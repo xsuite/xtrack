@@ -1,0 +1,9 @@
+*.so
+*.pyc
+.project
+.pydevproject
+*.png
+norepository_*
+*~
+build
+CyFPPS.cpp
