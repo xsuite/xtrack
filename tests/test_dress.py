@@ -11,7 +11,7 @@ def test_dress():
     class Element(dress(ElementData)):
 
         def __init__(self, vv):
-            self.xoinitalize(n=len(vv), b=np.sum(vv), vv=vv)
+            self.xoinitialize(n=len(vv), b=np.sum(vv), vv=vv)
 
     ele = Element([1,2,3])
     assert ele.n == ele._xobject.n == 3
@@ -39,7 +39,7 @@ def test_explicit_buffer():
     class Element(dress(ElementData)):
 
         def __init__(self, vv, **kwargs):
-            self.xoinitalize(n=len(vv), b=np.sum(vv), vv=vv, **kwargs)
+            self.xoinitialize(n=len(vv), b=np.sum(vv), vv=vv, **kwargs)
 
     ele1 = Element([1,2,3])
     ele2 = Element([7,8,9], _buffer=ele1._buffer)
