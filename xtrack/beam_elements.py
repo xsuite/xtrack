@@ -41,12 +41,7 @@ class SRotation(dress(_SRotationData)):
 
     @property
     def angle(self):
-        return np.arctan2(self.sin_z, self.cos_z)
-
-    @property
-    def angle_deg(self):
-        return self.angle * (180.0 / np.pi)
-
+        return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
 
 class _MultipoleData(xo.Struct):
     order = xo.Int64
@@ -104,18 +99,21 @@ class Multipole(dress(_MultipoleData)):
 
         # TODO: Remove when xobjects is fixed
         kwargs["bal"] = list(kwargs['bal'])
+        self._temp_bal_length = len(kwargs['bal'])
 
         self.xoinitialize(**kwargs)
 
     @property
     def knl(self):
-        idx = np.array([ii for ii in range(0, len(self.bal), 2)])
-        return self.bal[idx] * factorial(idx // 2, exact=True)
+        idxes = np.array([ii for ii in range(0, self._temp_bal_length, 2)])
+        return [self.bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
 
     @property
     def ksl(self):
-        idx = np.array([ii for ii in range(0, len(self.bal), 2)])
-        return self.bal[idx + 1] * factorial(idx // 2, exact=True)
+        idxes = np.array([ii for ii in range(0, self._temp_bal_length, 2)])
+        return [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
+        #idx = np.array([ii for ii in range(0, len(self.bal), 2)])
+        #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
 
 
 
