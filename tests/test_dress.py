@@ -1,53 +1,29 @@
+import numpy as np
+from xtrack import dress
 import xobjects as xo
 
-class _FieldOfDressed:
-    def __init__(self, name):
-        self.name = name
+class ElementData(xo.Struct):
+    n = xo.Int32
+    b = xo.Float64
+    vv = xo.Float64[:]
 
-    def __get__(self, container, ContainerType=None):
-        return getattr(container._xobject, self.name)
+class Element(dress(ElementData)):
 
-    def __set__(self, container, value):
-        setattr(container._xobject, self.name, value)
+    def __init__(self, vv):
+        self.xoinitalize(n=len(vv), b=np.sum(vv), vv=vv)
 
-def dress(XoStruct):
+ele = Element([1,2,3])
+assert ele.n == ele._xobject.n == 3
+assert ele.b == ele._xobject.b == 6
+assert ele.vv[1] == ele._xobject.vv[1] == 2
 
-    DressedXStruct = type(
-        'Dressed'+XoStruct.__name__,
-        (),
-        {'XoStruct': XoStruct})
+ele.vv = [7,8,9]
+assert ele.n == ele._xobject.n == 3
+assert ele.b == ele._xobject.b == 6
+assert ele.vv[1] == ele._xobject.vv[1] == 8
 
-    for ff in XoStruct._fields:
-        fname = ff.name
-        setattr(DressedXStruct, fname,
-                _FieldOfDressed(fname))
+ele.n = 5.
+assert ele.n == ele._xobject.n == 5
 
-    def xoinitalize(self, **kwargs):
-        self._xobject = self.XoStruct(**kwargs)
-
-    def myinit(self, **kwargs):
-        self.xoinitalize(**kwargs)
-
-    DressedXStruct.xoinitalize = xoinitalize
-    DressedXStruct.__init__ = myinit
-
-    return DressedXStruct
-
-
-
-class XMultipole(xo.Struct):
-    order = xo.Int64
-    bal = xo.Float64
-
-
-class Multipole(dress(XMultipole)):
-
-    def __init__(self, kn, ks, length):
-
-        order = 3
-        bal = kn
-
-        self.xoinitalize(order=order, bal=bal)
-
-
-mul = Multipole(kn=1, ks=2, length=5)
+ele.b = 50
+assert ele.b == ele._xobject.b == 50.
