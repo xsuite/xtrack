@@ -1,24 +1,110 @@
 import xobjects as xo
 
-class Multipole(xo.Struct):
+class _MultipoleData(xo.Struct):
     order = xo.Int64
     length = xo.Float64
     hxl = xo.Float64
     hyl = xo.Float64
     bal = xo.Float64[:]
 
-class Drift(xo.Struct):
+class Multipole(dress(_MultipoleData)):
+
+    def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
+        if bal is None and (
+            knl is not None or ksl is not None or order is not None
+        ):
+            if knl is None:
+                knl = []
+            if ksl is None:
+                ksl = []
+            if order is None:
+                order = 0
+
+            n = max((order + 1), max(len(knl), len(ksl)))
+            assert n > 0
+
+            _knl = np.array(knl)
+            nknl = np.zeros(n, dtype=_knl.dtype)
+            nknl[: len(knl)] = knl
+            knl = nknl
+            del _knl
+            assert len(knl) == n
+
+            _ksl = np.array(ksl)
+            nksl = np.zeros(n, dtype=_ksl.dtype)
+            nksl[: len(ksl)] = ksl
+            ksl = nksl
+            del _ksl
+            assert len(ksl) == n
+
+            order = n - 1
+            bal = np.zeros(2 * order + 2)
+
+            idx = np.array([ii for ii in range(0, len(knl))])
+            inv_factorial = 1.0 / factorial(idx, exact=True)
+            bal[0::2] = knl * inv_factorial
+            bal[1::2] = ksl * inv_factorial
+
+            kwargs["bal"] = bal
+            kwargs["order"] = order
+
+        elif bal is not None and len(bal) > 0:
+            kwargs["bal"] = bal
+            kwargs["order"] = (len(bal) - 2) // 2
+
+        super().__init__(**kwargs)
+
+    @property
+    def knl(self):
+        idx = np.array([ii for ii in range(0, len(self.bal), 2)])
+        return self.bal[idx] * factorial(idx // 2, exact=True)
+
+    @property
+    def ksl(self):
+        idx = np.array([ii for ii in range(0, len(self.bal), 2)])
+        return self.bal[idx + 1] * factorial(idx // 2, exact=True)
+
+
+class _DriftData(xo.Struct):
     length = xo.Float64
 
-class Cavity(xo.Struct):
+class Drift(dress(_DriftData)):
+    pass
+
+
+class _CavityData(xo.Struct):
     voltage = xo.Float64
     frequency = xo.Float64
     lag = xo.Float64
 
-class XYShift(xo.Struct):
+class Cavity(dress(_CavityData)):
+    pass
+
+
+class _XYShiftData(xo.Struct):
     dx = xo.Float64
     dy = xo.Float64
 
-class SRotation(xo.Struct):
+class XYShift(dress(_XYShiftData)):
+    pass
+
+
+class _SRotationData(xo.Struct):
     cos_z = xo.Float64
     sin_z = xo.Float64
+
+class SRotation(dress(_SRotationData)):
+
+    def __init__(self, angle=0, **nargs):
+        anglerad = angle / 180 * np.pi
+        nargs['cos_z']=np.cos(anglerad)
+        nargs['sin_z']=np.sin(anglerad)
+        super().__init__(**nargs)
+
+    @property
+    def angle(self):
+        return np.arctan2(self.sin_z, self.cos_z)
+
+    @property
+    def angle_deg(self):
+        return self.angle * (180.0 / np.pi)
