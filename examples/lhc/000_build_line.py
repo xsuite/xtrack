@@ -1,48 +1,18 @@
 import numpy as np
 
+import xtrack as xt
+import xobjects as xo
 import sixtracktools
 import pysixtrack
+
+context = xo.ContextCpu()
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
 
 
-import xtrack as xt
-import xobjects as xo
-xtelems = []
-
-buff = xo.ContextCpu().new_buffer()
-#buff = xo.ContextCupy().new_buffer()
-
-
-class Line():
-    def __init__(self, sequence,
-           _context=None, _buffer=None,  _offset=None):
-
-        num_elements = len(sequence.elements)
-        elem_type_names = set([ee.__class__.__name__
-                                for ee in sequence.elements])
-        element_types = [getattr(xt, nn) for nn in elem_type_names]
-        element_data_types = [cc.XoStruct for cc in element_types]
-
-        ElementRefClass = xo.Ref(*element_data_types)
-        LineDataClass = ElementRefClass[num_elements]
-        line_data = LineDataClass(_context=_context,
-                _buffer=_buffer, _offset=_offset)
-        elements = []
-        for ii, ee in enumerate(sequence.elements):
-            XtClass = getattr(xt, ee.__class__.__name__)
-            xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
-            elements.append(xt_ee)
-            line_data[ii] = xt_ee._xobject
-
-        self.elements = tuple(elements)
-        self._line_data = line_data
-        self._LineDataClass = LineDataClass
-        self._ElementRefClass = ElementRefClass
-
 print('Creating line...')
-xtline = Line(_buffer=buff, sequence=pyst_line)
+xtline = xt.Line(_context=context, sequence=pyst_line)
 
 # Check the test
 # ixtelems[2].knl[0]*=1.00000001
