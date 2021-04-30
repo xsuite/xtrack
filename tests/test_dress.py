@@ -1,4 +1,15 @@
 import xobjects as xo
+
+class _FieldOfDressed:
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, container, ContainerType=None):
+        return getattr(container._xobject, self.name)
+
+    def __set__(self, container, value):
+        setattr(container._xobject, self.name, value)
+
 def dress(XoStruct):
 
     DressedXStruct = type(
@@ -7,14 +18,9 @@ def dress(XoStruct):
         {'XoStruct': XoStruct})
 
     for ff in XoStruct._fields:
-        import pdb; pdb.set_trace()
-        fname = f'{ff.name}'
-
+        fname = ff.name
         setattr(DressedXStruct, fname,
-                property(lambda self: getattr(self._xobject, fname)))
-        def thissetter(self, value):
-            setattr(self._xobject, fname, value)
-        getattr(DressedXStruct, fname).setter(thissetter)
+                _FieldOfDressed(fname))
 
     def xoinitalize(self, **kwargs):
         self._xobject = self.XoStruct(**kwargs)
