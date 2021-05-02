@@ -10,8 +10,12 @@ context = xo.ContextCpu()
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
 sixdump = sixtracktools.SixDump101("res/dump3.dat")
+
+# TODO: The two particles look identical, to be checked
 part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
 part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
+
+particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
 
 print('Creating line...')
 xtline = xt.Line(_context=context, sequence=pyst_line)

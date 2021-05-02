@@ -7,6 +7,7 @@ pmass = 938.2720813e6
 class ParticlesData(xo.Struct):
 
     num_particles = xo.Int64
+    q0 = xo.Float64
     mass0 = xo.Float64
     beta0 = xo.Float64
     gamma0 = xo.Float64
@@ -28,8 +29,72 @@ class ParticlesData(xo.Struct):
     at_turn = xo.Int64[:]
     state = xo.Int64[:]
 
+reference_vars =[
+    'q0',
+    'mass0',
+    'beta0',
+    'gamma0',
+    'p0c',]
+
+per_particle_vars = [
+    's',
+    'x',
+    'y',
+    'px',
+    'py',
+    'zeta',
+    'psigma',
+    'delta',
+    'rpp',
+    'rvv',
+    'chi',
+    'charge_ratio',
+    'particle_id',
+    'at_element',
+    'at_turn',
+    'state',]
 
 class Particles(dress(ParticlesData)):
+
+    def __init__(self, pysixtrack_particles=None, **kwargs):
+
+        # Initalize array sizes
+        if pysixtrack_particles is not None:
+            # Assuming list of pysixtrack particles
+            num_particles = len(pysixtrack_particles)
+            kwargs = {kk: num_particles for kk in per_particle_vars}
+            kwargs['num_particles'] = num_particles
+        else:
+            raise NotImplementedError
+
+        self.xoinitialize(**kwargs)
+
+        # Initalize arrays
+        if pysixtrack_particles is not None:
+            for vv in reference_vars:
+                vv_first = getattr(pysixtrack_particles[0], vv)
+                for ii in range(self.num_particles):
+                    assert getattr(
+                            pysixtrack_particles[ii], vv) == vv_first
+                setattr(self, vv, vv_first)
+            for vv in per_particle_vars:
+                if vv == 'mass_ratio':
+                    vv_pyst = 'mratio'
+                elif vv == 'charge_ratio':
+                    vv_pyst = 'qratio'
+                elif vv == 'particle_id':
+                    vv_pyst = 'partid'
+                elif vv == 'at_element':
+                    vv_pyst = 'elemid'
+                elif vv == 'at_turn':
+                    vv_pyst = 'turn'
+                else:
+                    vv_pyst = vv
+                for ii in range(num_particles):
+                    getattr(self, vv)[ii] = getattr(
+                            pysixtrack_particles[ii], vv_pyst)
+        else:
+            raise NotImplementedError
 
     def _set_p0c(self):
         energy0 = np.sqrt(self.p0c ** 2 + self.mass0 ** 2)
@@ -61,55 +126,3 @@ class Particles(dress(ParticlesData)):
         self.p0c = p0c
         return self
 
-    def from_pysixtrack(self, inp, particle_index):
-        assert particle_index < self.num_particles
-        self.q0[particle_index] = inp.q0
-        self.mass0[particle_index] = inp.mass0
-        self.beta0[particle_index] = inp.beta0
-        self.gamma0[particle_index] = inp.gamma0
-        self.p0c[particle_index] = inp.p0c
-        self.s[particle_index] = inp.s
-        self.x[particle_index] = inp.x
-        self.y[particle_index] = inp.y
-        self.px[particle_index] = inp.px
-        self.py[particle_index] = inp.py
-        self.zeta[particle_index] = inp.zeta
-        self.psigma[particle_index] = inp.psigma
-        self.delta[particle_index] = inp.delta
-        self.rpp[particle_index] = inp.rpp
-        self.rvv[particle_index] = inp.rvv
-        self.chi[particle_index] = inp.chi
-        self.charge_ratio[particle_index] = inp.qratio
-        self.particle_id[particle_index] = (
-            inp.partid is not None and inp.partid or particle_index
-        )
-        self.at_element[particle_index] = inp.elemid
-        self.at_turn[particle_index] = inp.turn
-        self.state[particle_index] = inp.state
-        return
-
-    def to_pysixtrack(self, other, particle_index):
-        assert particle_index < self.num_particles
-        other._update_coordinates = False
-        other.q0 = self.q0[particle_index]
-        other.mass0 = self.mass0[particle_index]
-        other.beta0 = self.beta0[particle_index]
-        other.gamma0 = self.gamma0[particle_index]
-        other.p0c = self.p0c[particle_index]
-        other.s = self.s[particle_index]
-        other.x = self.x[particle_index]
-        other.y = self.y[particle_index]
-        other.px = self.px[particle_index]
-        other.py = self.py[particle_index]
-        other.zeta = self.zeta[particle_index]
-        other.psigma = self.psigma[particle_index]
-        other.delta = self.delta[particle_index]
-        other.chi = self.chi[particle_index]
-        other.qratio = self.charge_ratio[particle_index]
-        other.partid = self.particle_id[particle_index]
-        other.turn = self.at_turn[particle_index]
-        other.elemid = self.at_element[particle_index]
-        other.state = self.state[particle_index]
-        other._update_coordinates = True
-
-        return
