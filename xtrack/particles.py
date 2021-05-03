@@ -50,42 +50,41 @@ class Particles(dress(ParticlesData)):
     def __init__(self, pysixtrack_particles=None, num_particles=None, **kwargs):
 
         # Initalize array sizes
-        #if pysixtrack_particles is not None:
-        #     pass
-        #    # Assuming list of pysixtrack particles
-        #    num_particles = len(pysixtrack_particles)
-        #    kwargs.update(
-        #            {kk: np.arange(num_particles)+1 for tt, kk in per_particle_vars})
-        #    kwargs['num_particles'] = num_particles
-        #else:
-        #    assert num_particles is not None
-        #import pdb; pdb.set_trace()
+        if pysixtrack_particles is not None:
+            # Assuming list of pysixtrack particles
+            num_particles = len(pysixtrack_particles)
+            kwargs.update(
+                    {kk: np.arange(num_particles)+1 for tt, kk in per_particle_vars})
+            kwargs['num_particles'] = num_particles
+        else:
+            assert num_particles is not None
+
         self.xoinitialize(**kwargs)
 
         # Initalize arrays
-        #if pysixtrack_particles is not None:
-        #    for tt, vv in reference_vars:
-        #        vv_first = getattr(pysixtrack_particles[0], vv)
-        #        for ii in range(self.num_particles):
-        #            assert getattr(
-        #                    pysixtrack_particles[ii], vv) == vv_first
-        #        setattr(self, vv, vv_first)
-        #    for tt, vv in per_particle_vars:
-        #        if vv == 'mass_ratio':
-        #            vv_pyst = 'mratio'
-        #        elif vv == 'charge_ratio':
-        #            vv_pyst = 'qratio'
-        #        elif vv == 'particle_id':
-        #            vv_pyst = 'partid'
-        #        elif vv == 'at_element':
-        #            vv_pyst = 'elemid'
-        #        elif vv == 'at_turn':
-        #            vv_pyst = 'turn'
-        #        else:
-        #            vv_pyst = vv
-        #        for ii in range(num_particles):
-        #            getattr(self, vv)[ii] = getattr(
-        #                    pysixtrack_particles[ii], vv_pyst)
+        if pysixtrack_particles is not None:
+            for tt, vv in reference_vars:
+                vv_first = getattr(pysixtrack_particles[0], vv)
+                for ii in range(self.num_particles):
+                    assert getattr(
+                            pysixtrack_particles[ii], vv) == vv_first
+                setattr(self, vv, vv_first)
+            for tt, vv in per_particle_vars:
+                if vv == 'mass_ratio':
+                    vv_pyst = 'mratio'
+                elif vv == 'charge_ratio':
+                    vv_pyst = 'qratio'
+                elif vv == 'particle_id':
+                    vv_pyst = 'partid'
+                elif vv == 'at_element':
+                    vv_pyst = 'elemid'
+                elif vv == 'at_turn':
+                    vv_pyst = 'turn'
+                else:
+                    vv_pyst = vv
+                for ii in range(num_particles):
+                    getattr(self, vv)[ii] = getattr(
+                            pysixtrack_particles[ii], vv_pyst)
 
     def _set_p0c(self):
         energy0 = np.sqrt(self.p0c ** 2 + self.mass0 ** 2)
