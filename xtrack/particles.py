@@ -6,53 +6,55 @@ pmass = 938.2720813e6
 
 class ParticlesData(xo.Struct):
 
-    num_particles = xo.Int64
-    q0 = xo.Float64
-    mass0 = xo.Float64
-    beta0 = xo.Float64
-    gamma0 = xo.Float64
-    p0c = xo.Float64
+    #num_particles = xo.Int64
+    #q0 = xo.Float64
+    #mass0 = xo.Float64
+    #beta0 = xo.Float64
+    #gamma0 = xo.Float64
+    #p0c = xo.Float64
     s = xo.Float64[:]
     x = xo.Float64[:]
-    y = xo.Float64[:]
-    px = xo.Float64[:]
-    py = xo.Float64[:]
-    zeta = xo.Float64[:]
-    psigma = xo.Float64[:]
-    delta = xo.Float64[:]
-    rpp = xo.Float64[:]
-    rvv = xo.Float64[:]
-    chi = xo.Float64[:]
-    charge_ratio = xo.Float64[:]
-    particle_id = xo.Int64[:]
-    at_element =  xo.Int64[:]
-    at_turn = xo.Int64[:]
-    state = xo.Int64[:]
+    #y = xo.Float64[:]
+    #px = xo.Float64[:]
+    #py = xo.Float64[:]
+    #zeta = xo.Float64[:]
+    #psigma = xo.Float64[:]
+    #delta = xo.Float64[:]
+    #rpp = xo.Float64[:]
+    #rvv = xo.Float64[:]
+    #chi = xo.Float64[:]
+    #charge_ratio = xo.Float64[:]
+    #particle_id = xo.Int64[:]
+    #at_element =  xo.Int64[:]
+    #at_turn = xo.Int64[:]
+    #state = xo.Int64[:]
 
-reference_vars =[
-    'q0',
-    'mass0',
-    'beta0',
-    'gamma0',
-    'p0c',]
+reference_vars = (
+    #(xo.Float64, 'q0'),
+    #(xo.Float64, 'mass0'),
+    #(xo.Float64, 'beta0'),
+    #(xo.Float64, 'gamma0'),
+    #(xo.Float64, 'p0c',)
+    )
 
 per_particle_vars = [
-    's',
-    'x',
-    'y',
-    'px',
-    'py',
-    'zeta',
-    'psigma',
-    'delta',
-    'rpp',
-    'rvv',
-    'chi',
-    'charge_ratio',
-    'particle_id',
-    'at_element',
-    'at_turn',
-    'state',]
+    (xo.Float64, 's'),
+    (xo.Float64, 'x'),
+    #(xo.Float64, 'y'),
+    #(xo.Float64, 'px'),
+    #(xo.Float64, 'py'),
+    #(xo.Float64, 'zeta'),
+    #(xo.Float64, 'psigma'),
+    #(xo.Float64, 'delta'),
+    #(xo.Float64, 'rpp'),
+    #(xo.Float64, 'rvv'),
+    #(xo.Float64, 'chi'),
+    #(xo.Float64, 'charge_ratio'),
+    #(xo.Int64, 'particle_id'),
+    #(xo.Int64, 'at_element'),
+    #(xo.Int64, 'at_turn'),
+    #(xo.Int64, 'state'),
+    ]
 
 class Particles(dress(ParticlesData)):
 
@@ -62,7 +64,7 @@ class Particles(dress(ParticlesData)):
         if pysixtrack_particles is not None:
             # Assuming list of pysixtrack particles
             num_particles = len(pysixtrack_particles)
-            kwargs = {kk: num_particles for kk in per_particle_vars}
+            kwargs = {kk: num_particles for tt, kk in per_particle_vars}
             kwargs['num_particles'] = num_particles
         else:
             raise NotImplementedError
@@ -71,13 +73,13 @@ class Particles(dress(ParticlesData)):
 
         # Initalize arrays
         if pysixtrack_particles is not None:
-            for vv in reference_vars:
+            for tt, vv in reference_vars:
                 vv_first = getattr(pysixtrack_particles[0], vv)
                 for ii in range(self.num_particles):
                     assert getattr(
                             pysixtrack_particles[ii], vv) == vv_first
                 setattr(self, vv, vv_first)
-            for vv in per_particle_vars:
+            for tt, vv in per_particle_vars:
                 if vv == 'mass_ratio':
                     vv_pyst = 'mratio'
                 elif vv == 'charge_ratio':
