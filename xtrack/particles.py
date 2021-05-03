@@ -4,30 +4,6 @@ from .dress import dress
 
 pmass = 938.2720813e6
 
-class ParticlesData(xo.Struct):
-
-    #num_particles = xo.Int64
-    #q0 = xo.Float64
-    #mass0 = xo.Float64
-    #beta0 = xo.Float64
-    #gamma0 = xo.Float64
-    #p0c = xo.Float64
-    s = xo.Float64[:]
-    x = xo.Float64[:]
-    #y = xo.Float64[:]
-    #px = xo.Float64[:]
-    #py = xo.Float64[:]
-    #zeta = xo.Float64[:]
-    #psigma = xo.Float64[:]
-    #delta = xo.Float64[:]
-    #rpp = xo.Float64[:]
-    #rvv = xo.Float64[:]
-    #chi = xo.Float64[:]
-    #charge_ratio = xo.Float64[:]
-    #particle_id = xo.Int64[:]
-    #at_element =  xo.Int64[:]
-    #at_turn = xo.Int64[:]
-    #state = xo.Int64[:]
 
 reference_vars = (
     #(xo.Float64, 'q0'),
@@ -55,6 +31,18 @@ per_particle_vars = [
     #(xo.Int64, 'at_turn'),
     #(xo.Int64, 'state'),
     ]
+
+fields = {'num_particles': xo.Int64}
+for tt, nn in reference_vars:
+    fields[nn] = tt
+
+for tt, nn in per_particle_vars:
+    fields[nn] = tt[:]
+
+ParticlesData = type(
+        'ParticlesData',
+        (xo.Struct,),
+        fields)
 
 class Particles(dress(ParticlesData)):
 
