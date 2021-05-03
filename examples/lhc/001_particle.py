@@ -38,11 +38,14 @@ src_lines.append('''
 void Particles_to_LocalParticle(ParticlesData source, LocalParticle* dest,
                                 int64_t id){''')
 for tt, vv in ((xo.Int64, 'num_particles'),) + reference_vars:
-    src_lines.append('  ParticlesData_get_'+vv+'(source, dest->'+vv+');')
+    src_lines.append(
+            f' dest->{vv} = ParticlesData_get_'+vv+'(source);')
 for tt, vv in per_particle_vars:
-    src_lines.append('  ParticlesData_getp1_'+vv+'(source, dest->'+vv+');')
+    src_lines.append(
+            f'dest->{vv} = ParticlesData_getp1_'+vv+'(source, 0);')
 src_lines.append('  dest->ipart = id;')
 src_lines.append('}')
 src_particles_to_local = '\n'.join(src_lines)
 
-
+with open('test.h', 'w') as fid:
+    fid.write('\n'.join([source, src_typedef, src_particles_to_local]))
