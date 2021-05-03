@@ -46,7 +46,7 @@ ParticlesData = type(
 
 class Particles(dress(ParticlesData)):
 
-    def __init__(self, pysixtrack_particles=None, **kwargs):
+    def __init__(self, pysixtrack_particles=None, num_particles=None, **kwargs):
 
         # Initalize array sizes
         if pysixtrack_particles is not None:
@@ -55,8 +55,7 @@ class Particles(dress(ParticlesData)):
             kwargs = {kk: num_particles for tt, kk in per_particle_vars}
             kwargs['num_particles'] = num_particles
         else:
-            raise NotImplementedError
-
+            assert num_particles is not None
         self.xoinitialize(**kwargs)
 
         # Initalize arrays
@@ -83,8 +82,6 @@ class Particles(dress(ParticlesData)):
                 for ii in range(num_particles):
                     getattr(self, vv)[ii] = getattr(
                             pysixtrack_particles[ii], vv_pyst)
-        else:
-            raise NotImplementedError
 
     def _set_p0c(self):
         energy0 = np.sqrt(self.p0c ** 2 + self.mass0 ** 2)
