@@ -47,5 +47,15 @@ src_lines.append('  dest->ipart = id;')
 src_lines.append('}')
 src_particles_to_local = '\n'.join(src_lines)
 
+src_lines=[]
+for tt, vv in per_particle_vars:
+    src_lines.append('''
+void LocalParticle_add_to_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
++'{')
+    src_lines.append(f'  part->{vv}[part->ipart] += value;')
+    src_lines.append('}\n')
+src_adders = '\n'.join(src_lines)
+
+
 with open('test.h', 'w') as fid:
-    fid.write('\n'.join([source, src_typedef, src_particles_to_local]))
+    fid.write('\n'.join([source, src_typedef, src_particles_to_local, src_adders]))
