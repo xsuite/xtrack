@@ -15,7 +15,8 @@ sixdump = sixtracktools.SixDump101("res/dump3.dat")
 part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
 part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
 
-particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
+particles = xt.Particles(_context=context,
+        pysixtrack_particles=[part0_pyst, part1_pyst])
 
 
 
