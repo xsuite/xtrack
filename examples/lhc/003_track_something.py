@@ -21,7 +21,7 @@ part1_pyst.y += 2e-3
 
 particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
 
-source_particles, kernels, cdefs = xt.Particles.XoStruct._gen_c_api()
+source_particles, kernels, cdefs_particles = xt.Particles.XoStruct._gen_c_api()
 
 from xtrack.particles import scalar_vars, per_particle_vars
 
@@ -30,14 +30,17 @@ source_local_part = xt.particles.gen_local_particle_api()
 
 # Make a drift
 drift = xt.Drift(length=2.)
-source_drift, _, _ = xt.Drift.XoStruct._gen_c_api()
+source_drift, _, cdefs_drift = xt.Drift.XoStruct._gen_c_api()
 
 source_custom = r'''
 
-void Drift_track_particles(ParticlesData particles){
+void Drift_track_particles(ParticlesData particles, DriftData el){
     int64_t npart = ParticlesData_get_num_particles(particles);
     printf("Hello\n");
     printf("I got %ld particles\n", npart);
+
+    double length = DriftData_get_length(el);
+    printf("and I got a drift of length %f\n", length);
 
     LocalParticle lpart;
     Particles_to_LocalParticle(particles, &lpart, 0);
@@ -55,6 +58,7 @@ kernel_descriptions = {
     "Drift_track_particles": xo.Kernel(
         args=[
             xo.Arg(xt.Particles.XoStruct, name="particles"),
+            xo.Arg(xt.Drift.XoStruct, name="el"),
         ],
     )
 }
@@ -63,6 +67,6 @@ context.add_kernels(
         sources=[source_particles, source_local_part, source_drift,
                  source_custom,],
         kernels=kernel_descriptions,
-        extra_cdef=cdefs)
+        extra_cdef='\n'.join([cdefs_drift, cdefs_particles]))
 
-context.kernels.Drift_track_particles(particles=particles)
+context.kernels.Drift_track_particles(particles=particles, el=drift)
