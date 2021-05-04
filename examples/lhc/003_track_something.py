@@ -91,3 +91,8 @@ context.add_kernels(
         extra_cdef='\n'.join([cdefs_drift, cdefs_particles]))
 
 context.kernels.Drift_track_particles(particles=particles, el=drift)
+
+pyst_drift = pysixtrack.elements.Drift(length=drift.length).track(part1_pyst)
+for vv in ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']:
+    assert np.isclose(getattr(part1_pyst, vv), getattr(particles, vv)[1],
+            rtol=1e-10, atol=1e-14)
