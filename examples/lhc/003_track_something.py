@@ -15,6 +15,10 @@ sixdump = sixtracktools.SixDump101("res/dump3.dat")
 part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
 part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
 
+# Kick one particle
+part1_pyst.x += 1e-3
+part1_pyst.y += 2e-3
+
 particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
 
 source_particles, kernels, cdefs = xt.Particles.XoStruct._gen_c_api()
@@ -27,7 +31,14 @@ source_local_part = xt.particles.gen_local_particle_api()
 source_custom = r'''
 
 void Drift_track_particles(ParticlesData particles){
+    int64_t npart = ParticlesData_get_num_particles(particles);
     printf("Hello\n");
+    printf("I got %ld particles\n", npart);
+    for (int ii=0; ii<npart; ii++){
+        double x = ParticlesData_get_x(particles, ii);
+        printf("x[%d] = %f\n", ii, x);
+        }
+
 }
 
 '''
