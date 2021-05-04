@@ -59,7 +59,7 @@ for cc in cdefs:
 src_lines = []
 src_lines.append('''
     void track_line(
-        char* buffer,
+        int8_t* buffer,
         uint64_t* ele_offsets,
         uint64_t* ele_types,
         ParticlesData particles,
@@ -71,7 +71,7 @@ src_lines.append('''
     Particles_to_LocalParticle(particles, &lpart, 0);
 
     for (uint64_t ee=ele_start; ee<num_ele_track; ee++){
-        char* el = buffer + ele_offsets[ee];
+        int8_t* el = buffer + ele_offsets[ee];
         uint64_t ee_type = ele_types[ee];
 
         switch(ee_type){
