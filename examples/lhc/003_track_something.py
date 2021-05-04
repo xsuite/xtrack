@@ -34,8 +34,13 @@ void Drift_track_particles(ParticlesData particles){
     int64_t npart = ParticlesData_get_num_particles(particles);
     printf("Hello\n");
     printf("I got %ld particles\n", npart);
+
+    LocalParticle lpart;
+    Particles_to_LocalParticle(particles, &lpart, 0);
+
     for (int ii=0; ii<npart; ii++){
-        double x = ParticlesData_get_x(particles, ii);
+        lpart.ipart = ii;
+        double x = LocalParticle_get_x(&lpart);
         printf("x[%d] = %f\n", ii, x);
         }
 

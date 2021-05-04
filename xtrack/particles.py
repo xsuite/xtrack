@@ -158,7 +158,17 @@ def gen_local_particle_api(mode='no_local_copy'):
         src_lines.append('}\n')
     src_adders = '\n'.join(src_lines)
 
-    source = '\n\n'.join([src_typedef, src_particles_to_local, src_adders])
+    src_lines=[]
+    for tt, vv in per_particle_vars:
+        src_lines.append(f'{tt._c_type} LocalParticle_get_'+vv
+                        + f'(LocalParticle* part)'
+                        + '{')
+        src_lines.append(f'  return part->{vv}[part->ipart];')
+        src_lines.append('}')
+    src_getters = '\n'.join(src_lines)
+
+    source = '\n\n'.join([src_typedef, src_particles_to_local, src_adders,
+                          src_getters])
 
     return source
 
