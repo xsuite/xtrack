@@ -36,7 +36,6 @@ cdefs += cdefs_particles.split('\n')
 
 # Local particles
 sources.append(xt.particles.gen_local_particle_api())
-sources.append(Path('./addtoene.h'))
 
 # Elements
 for cc in xtline._ElementRefClass._rtypes:
