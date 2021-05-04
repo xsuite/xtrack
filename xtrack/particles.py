@@ -160,6 +160,30 @@ def gen_local_particle_api(mode='no_local_copy'):
 
     src_lines=[]
     for tt, vv in per_particle_vars:
+        src_lines.append('''
+    void LocalParticle_scale_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
+    +'{')
+        src_lines.append(f'  part->{vv}[part->ipart] *= value;')
+        src_lines.append('}\n')
+    src_scalers = '\n'.join(src_lines)
+
+    src_lines=[]
+    for tt, vv in per_particle_vars:
+        src_lines.append('''
+    void LocalParticle_set_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
+    +'{')
+        src_lines.append(f'  part->{vv}[part->ipart] = value;')
+        src_lines.append('}')
+    src_setters = '\n'.join(src_lines)
+
+    src_lines=[]
+    for tt, vv in scalar_vars:
+        src_lines.append(f'{tt._c_type} LocalParticle_get_'+vv
+                        + f'(LocalParticle* part)'
+                        + '{')
+        src_lines.append(f'  return part->{vv};')
+        src_lines.append('}')
+    for tt, vv in per_particle_vars:
         src_lines.append(f'{tt._c_type} LocalParticle_get_'+vv
                         + f'(LocalParticle* part)'
                         + '{')
@@ -167,8 +191,10 @@ def gen_local_particle_api(mode='no_local_copy'):
         src_lines.append('}')
     src_getters = '\n'.join(src_lines)
 
+    #src_add_to_energy
+
     source = '\n\n'.join([src_typedef, src_particles_to_local, src_adders,
-                          src_getters])
+                          src_getters, src_setters, src_scalers])
 
     return source
 

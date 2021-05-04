@@ -36,6 +36,7 @@ cdefs += cdefs_particles.split('\n')
 
 # Local particles
 sources.append(xt.particles.gen_local_particle_api())
+sources.append(Path('./addtoene.h'))
 
 # Elements
 for cc in xtline._ElementRefClass._rtypes:
@@ -44,8 +45,10 @@ for cc in xtline._ElementRefClass._rtypes:
     kernels.update(kk)
     cdefs += dd.split('\n')
 
+sources.append(Path('./constants.h'))
 sources.append(Path('./drift.h'))
 sources.append(Path('./multipole.h'))
+sources.append(Path('./cavity.h'))
 
 cdefs_norep=[]
 for cc in cdefs:
