@@ -4,27 +4,27 @@ from scipy.special import factorial
 
 from .dress import dress
 
-class _DriftData(xo.Struct):
+class DriftData(xo.Struct):
     length = xo.Float64
 
-class Drift(dress(_DriftData)):
+class Drift(dress(DriftData)):
     '''The drift...'''
     pass
 
-class _CavityData(xo.Struct):
+class CavityData(xo.Struct):
     voltage = xo.Float64
     frequency = xo.Float64
     lag = xo.Float64
 
-class Cavity(dress(_CavityData)):
+class Cavity(dress(CavityData)):
     pass
 
 
-class _XYShiftData(xo.Struct):
+class XYShiftData(xo.Struct):
     dx = xo.Float64
     dy = xo.Float64
 
-class XYShift(dress(_XYShiftData)):
+class XYShift(dress(XYShiftData)):
     pass
 
 class _SRotationData(xo.Struct):
@@ -43,14 +43,14 @@ class SRotation(dress(_SRotationData)):
     def angle(self):
         return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
 
-class _MultipoleData(xo.Struct):
+class MultipoleData(xo.Struct):
     order = xo.Int64
     length = xo.Float64
     hxl = xo.Float64
     hyl = xo.Float64
     bal = xo.Float64[:]
 
-class Multipole(dress(_MultipoleData)):
+class Multipole(dress(MultipoleData)):
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
 

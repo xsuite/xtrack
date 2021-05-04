@@ -28,6 +28,10 @@ from xtrack.particles import scalar_vars, per_particle_vars
 # Generate local particle CPU
 source_local_part = xt.particles.gen_local_particle_api()
 
+# Make a drift
+drift = xt.Drift(length=2.)
+source_drift, _, _ = xt.Drift.XoStruct._gen_c_api()
+
 source_custom = r'''
 
 void Drift_track_particles(ParticlesData particles){
@@ -43,7 +47,6 @@ void Drift_track_particles(ParticlesData particles){
         double x = LocalParticle_get_x(&lpart);
         printf("x[%d] = %f\n", ii, x);
         }
-
 }
 
 '''
@@ -57,7 +60,8 @@ kernel_descriptions = {
 }
 
 context.add_kernels(
-        sources=[source_particles, source_local_part, source_custom],
+        sources=[source_particles, source_local_part, source_drift,
+                 source_custom,],
         kernels=kernel_descriptions,
         extra_cdef=cdefs)
 
