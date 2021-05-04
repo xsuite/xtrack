@@ -22,4 +22,21 @@ source, kernels, cdefs = xt.Particles.XoStruct._gen_c_api()
 from xtrack.particles import reference_vars, per_particle_vars
 
 context.add_kernels([source], kernels, extra_cdef=cdefs)
-assert particles.x[0] == context.kernels.ParticlesData_get_x(obj=particles._xobject, i0=0)
+
+
+# Checks
+from xtrack.particles import reference_vars, per_particle_vars
+assert particles.num_particles == 2
+for tt, vv in per_particle_vars:
+    print(f'Check {vv}')
+    for ii in range(particles.num_particles):
+        pyval = getattr(particles, vv)[ii]
+        cval = getattr(context.kernels, f'ParticlesData_get_{vv}')(
+                obj=particles, i0=ii)
+        assert pyval == cval
+for tt, vv in reference_vars:
+    print(f'Check {vv}')
+    pyval = getattr(particles, vv)
+    cval = getattr(context.kernels, f'ParticlesData_get_{vv}')(
+            obj=particles)
+    assert pyval == cval
