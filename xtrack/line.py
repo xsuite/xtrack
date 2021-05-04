@@ -9,7 +9,7 @@ class Line():
         num_elements = len(sequence.elements)
         elem_type_names = set([ee.__class__.__name__
                                 for ee in sequence.elements])
-        element_types = [getattr(be, nn) for nn in elem_type_names]
+        element_types = [getattr(be, nn) for nn in sorted(elem_type_names)]
         element_data_types = [cc.XoStruct for cc in element_types]
 
         ElementRefClass = xo.Ref(*element_data_types)

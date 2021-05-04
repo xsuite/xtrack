@@ -56,5 +56,43 @@ for cc in cdefs:
     if cc not in cdefs_norep:
         cdefs_norep.append(cc)
 
+src_lines = []
+src_lines.append('''
+    void track_line(
+        char* buffer,
+        uint64_t* ele_offsets,
+        uint64_t* ele_types,
+        ParticlesData particles,
+        uint64_t ele_start,
+        uint64_t num_ele_track){
+
+
+    LocalParticle lpart;
+    Particles_to_LocalParticle(particles, &lpart, 0);
+
+    for (uint64_t ee=ele_start; ee<num_ele_track; ee++){
+        char* el = buffer + ele_offsets[ee];
+        uint64_t ee_type = ele_types[ee];
+
+        switch(ee_type){
+            case 0:
+                printf("Element %ld is a Cavity having voltage %f", ee,
+                    CavityData_get_voltage((CavityData) el));
+                break;
+            case 1:
+                printf("Element %ld is a Drift having length %f", ee,
+                    DriftData_get_length((DriftData) el));
+                break;
+        }
+    }
+}
+''')
+source_track = '\n'.join(src_lines)
+sources.append(source_track)
+
+#    for (int ii=0; ii<npart; ii++){
+#        lpart.ipart = ii;
+
+
 # Compile!
 context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep))
