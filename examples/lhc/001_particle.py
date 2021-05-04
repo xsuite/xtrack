@@ -19,13 +19,13 @@ particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
 
 source, kernels, cdefs = xt.Particles.XoStruct._gen_c_api()
 
-from xtrack.particles import reference_vars, per_particle_vars
+from xtrack.particles import scalar_vars, per_particle_vars
 
 context.add_kernels([source], kernels, extra_cdef=cdefs)
 
 
 # Checks
-from xtrack.particles import reference_vars, per_particle_vars
+from xtrack.particles import scalar_vars, per_particle_vars
 assert particles.num_particles == 2
 for tt, vv in per_particle_vars:
     print(f'Check {vv}')
@@ -34,7 +34,7 @@ for tt, vv in per_particle_vars:
         cval = getattr(context.kernels, f'ParticlesData_get_{vv}')(
                 obj=particles, i0=ii)
         assert pyval == cval
-for tt, vv in reference_vars:
+for tt, vv in scalar_vars:
     print(f'Check {vv}')
     pyval = getattr(particles, vv)
     cval = getattr(context.kernels, f'ParticlesData_get_{vv}')(

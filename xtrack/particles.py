@@ -6,7 +6,8 @@ from .dress import dress
 pmass = 938.2720813e6
 
 
-reference_vars = (
+scalar_vars = (
+    (xo.Int64,   'num_particles'),
     (xo.Float64, 'q0'),
     (xo.Float64, 'mass0'),
     (xo.Float64, 'beta0'),
@@ -33,8 +34,8 @@ per_particle_vars = [
     (xo.Int64, 'state'),
     ]
 
-fields = {'num_particles': xo.Int64}
-for tt, nn in reference_vars:
+fields = {}
+for tt, nn in scalar_vars:
     fields[nn] = tt
 
 for tt, nn in per_particle_vars:
@@ -63,7 +64,9 @@ class Particles(dress(ParticlesData)):
 
         # Initalize arrays
         if pysixtrack_particles is not None:
-            for tt, vv in reference_vars:
+            for tt, vv in scalar_vars:
+                if vv == 'num_particles':
+                    continue
                 vv_first = getattr(pysixtrack_particles[0], vv)
                 for ii in range(self.num_particles):
                     assert getattr(
@@ -116,3 +119,5 @@ class Particles(dress(ParticlesData)):
         self.p0c = p0c
         return self
 
+
+#def gen_local_particle_api(

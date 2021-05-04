@@ -19,13 +19,13 @@ particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
 
 source, kernels, cdefs = xt.Particles.XoStruct._gen_c_api()
 
-from xtrack.particles import reference_vars, per_particle_vars
+from xtrack.particles import scalar_vars, per_particle_vars
 
 # Generate local particle CPU
 
 src_lines = []
 src_lines.append('''typedef struct{''')
-for tt, vv in ((xo.Int64, 'num_particles'),) + reference_vars:
+for tt, vv in ((xo.Int64, 'num_particles'),) + scalar_vars:
     src_lines.append('    '+tt._c_type+' '+vv+';')
 for tt, vv in per_particle_vars:
     src_lines.append('    '+tt._c_type+'* '+vv+';')
@@ -37,12 +37,12 @@ src_lines = []
 src_lines.append('''
 void Particles_to_LocalParticle(ParticlesData source, LocalParticle* dest,
                                 int64_t id){''')
-for tt, vv in ((xo.Int64, 'num_particles'),) + reference_vars:
+for tt, vv in ((xo.Int64, 'num_particles'),) + scalar_vars:
     src_lines.append(
-            f' dest->{vv} = ParticlesData_get_'+vv+'(source);')
+            f'  dest->{vv} = ParticlesData_get_'+vv+'(source);')
 for tt, vv in per_particle_vars:
     src_lines.append(
-            f'dest->{vv} = ParticlesData_getp1_'+vv+'(source, 0);')
+            f'  dest->{vv} = ParticlesData_getp1_'+vv+'(source, 0);')
 src_lines.append('  dest->ipart = id;')
 src_lines.append('}')
 src_particles_to_local = '\n'.join(src_lines)
