@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 from scipy.special import factorial
 
@@ -42,6 +43,8 @@ for cc in xtline._ElementRefClass._rtypes:
     sources.append(ss)
     kernels.update(kk)
     cdefs += dd.split('\n')
+
+sources.append(Path('./drift.h'))
 
 cdefs_norep=[]
 for cc in cdefs:
