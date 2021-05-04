@@ -34,7 +34,9 @@ source_drift, _, cdefs_drift = xt.Drift.XoStruct._gen_c_api()
 
 source_custom = r'''
 
-void Drift_track_particles(ParticlesData particles, DriftData el){
+//void Drift_track_local_particle(
+
+void Drift_track_particles(DriftData el, ParticlesData particles){
     int64_t npart = ParticlesData_get_num_particles(particles);
     printf("Hello\n");
     printf("I got %ld particles\n", npart);
@@ -57,8 +59,8 @@ void Drift_track_particles(ParticlesData particles, DriftData el){
 kernel_descriptions = {
     "Drift_track_particles": xo.Kernel(
         args=[
-            xo.Arg(xt.Particles.XoStruct, name="particles"),
             xo.Arg(xt.Drift.XoStruct, name="el"),
+            xo.Arg(xt.Particles.XoStruct, name="particles"),
         ],
     )
 }
