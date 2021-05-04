@@ -38,7 +38,8 @@ cdefs += cdefs_particles.split('\n')
 sources.append(xt.particles.gen_local_particle_api())
 
 # Elements
-for cc in xtline._ElementRefClass._rtypes:
+element_classes = xtline._ElementRefClass._rtypes
+for cc in element_classes:
     ss, kk, dd = cc._gen_c_api()
     sources.append(ss)
     kernels.update(kk)
@@ -57,31 +58,39 @@ for cc in cdefs:
         cdefs_norep.append(cc)
 
 src_lines = []
-src_lines.append('''
+src_lines.append(r'''
     void track_line(
         int8_t* buffer,
-        uint64_t* ele_offsets,
-        uint64_t* ele_types,
+        int64_t* ele_offsets,
+        int64_t* ele_types,
         ParticlesData particles,
-        uint64_t ele_start,
-        uint64_t num_ele_track){
+        int64_t ele_start,
+        int64_t num_ele_track){
 
 
     LocalParticle lpart;
     Particles_to_LocalParticle(particles, &lpart, 0);
 
-    for (uint64_t ee=ele_start; ee<num_ele_track; ee++){
+    printf("Buffer = %p\n", buffer);
+
+    for (int64_t ee=ele_start; ee<num_ele_track; ee++){
         int8_t* el = buffer + ele_offsets[ee];
-        uint64_t ee_type = ele_types[ee];
+        int64_t ee_type = ele_types[ee];
+
+        printf("el = %p\n", el);
 
         switch(ee_type){
             case 0:
-                printf("Element %ld is a Cavity having voltage %f", ee,
+                printf("Element %ld is a Cavity having voltage %f\n", ee,
                     CavityData_get_voltage((CavityData) el));
                 break;
             case 1:
-                printf("Element %ld is a Drift having length %f", ee,
+                printf("Element %ld is a Drift having length %f\n", ee,
                     DriftData_get_length((DriftData) el));
+                break;
+            case 2:
+                printf("Element %ld is a Multipole having order %ld\n", ee,
+                    MultipoleData_get_order((MultipoleData) el));
                 break;
         }
     }
@@ -93,6 +102,27 @@ sources.append(source_track)
 #    for (int ii=0; ii<npart; ii++){
 #        lpart.ipart = ii;
 
+kernel_descriptions = {
+    "track_line": xo.Kernel(
+        args=[
+            xo.Arg(xo.Int8, pointer=True, name='buffer'),
+            xo.Arg(xo.Int64, pointer=True, name='ele_offsets'),
+            xo.Arg(xo.Int64, pointer=True, name='ele_types'),
+            xo.Arg(xt.particles.ParticlesData, name='particles'),
+            xo.Arg(xo.Int64, name='ele_start'),
+            xo.Arg(xo.Int64, name='num_ele_track'),
+        ],
+    )
+}
+kernels.update(kernel_descriptions)
 
 # Compile!
 context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep))
+
+ele_offsets = np.array([ee._offset for ee in xtline.elements], dtype=np.int64)
+ele_types = np.array(
+        [element_classes.index(ee._xobject.__class__) for ee in xtline.elements],
+        dtype=np.int64)
+context.kernels.track_line(buffer=xtline._buffer.buffer, ele_offsets=ele_offsets,
+                           ele_types=ele_types, particles=particles,
+                           ele_start=0, num_ele_track=5)
