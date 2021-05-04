@@ -120,4 +120,45 @@ class Particles(dress(ParticlesData)):
         return self
 
 
-#def gen_local_particle_api(
+def gen_local_particle_api(mode='no_local_copy'):
+
+    if mode != 'no_local_copy':
+        raise NotImplementedError
+
+    src_lines = []
+    src_lines.append('''typedef struct{''')
+    for tt, vv in scalar_vars:
+        src_lines.append('    '+tt._c_type+' '+vv+';')
+    for tt, vv in per_particle_vars:
+        src_lines.append('    '+tt._c_type+'* '+vv+';')
+    src_lines.append('    int64_t ipart;')
+    src_lines.append('}LocalParticle;')
+    src_typedef = '\n'.join(src_lines)
+
+    src_lines = []
+    src_lines.append('''
+    void Particles_to_LocalParticle(ParticlesData source, LocalParticle* dest,
+                                    int64_t id){''')
+    for tt, vv in scalar_vars:
+        src_lines.append(
+                f'  dest->{vv} = ParticlesData_get_'+vv+'(source);')
+    for tt, vv in per_particle_vars:
+        src_lines.append(
+                f'  dest->{vv} = ParticlesData_getp1_'+vv+'(source, 0);')
+    src_lines.append('  dest->ipart = id;')
+    src_lines.append('}')
+    src_particles_to_local = '\n'.join(src_lines)
+
+    src_lines=[]
+    for tt, vv in per_particle_vars:
+        src_lines.append('''
+    void LocalParticle_add_to_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
+    +'{')
+        src_lines.append(f'  part->{vv}[part->ipart] += value;')
+        src_lines.append('}\n')
+    src_adders = '\n'.join(src_lines)
+
+    source = '\n\n'.join([src_typedef, src_particles_to_local, src_adders])
+
+    return source
+
