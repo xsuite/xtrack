@@ -45,6 +45,7 @@ for cc in xtline._ElementRefClass._rtypes:
     cdefs += dd.split('\n')
 
 sources.append(Path('./drift.h'))
+sources.append(Path('./multipole.h'))
 
 cdefs_norep=[]
 for cc in cdefs:
