@@ -27,11 +27,11 @@ class XYShiftData(xo.Struct):
 class XYShift(dress(XYShiftData)):
     pass
 
-class _SRotationData(xo.Struct):
+class SRotationData(xo.Struct):
     cos_z = xo.Float64
     sin_z = xo.Float64
 
-class SRotation(dress(_SRotationData)):
+class SRotation(dress(SRotationData)):
 
     def __init__(self, angle=0, **nargs):
         anglerad = angle / 180 * np.pi
