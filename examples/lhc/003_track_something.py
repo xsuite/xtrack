@@ -59,13 +59,17 @@ void Drift_track_particles(DriftData el, ParticlesData particles){
     double length = DriftData_get_length(el);
     printf("and I got a drift of length %f\n", length);
 
-    LocalParticle lpart;
-    Particles_to_LocalParticle(particles, &lpart, 0);
+    LocalParticle lpart0;
+    Particles_to_LocalParticle(particles, &lpart0, 0);
 
     for (int ii=0; ii<npart; ii++){
+        LocalParticle lpart = lpart0;
         lpart.ipart = ii;
+
         double x = LocalParticle_get_x(&lpart);
         printf("x[%d] = %f\n", ii, x);
+
+        Drift_track_local_particle(el, &lpart);
         }
 }
 
