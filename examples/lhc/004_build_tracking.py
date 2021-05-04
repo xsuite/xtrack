@@ -48,6 +48,7 @@ sources.append(Path('./constants.h'))
 sources.append(Path('./drift.h'))
 sources.append(Path('./multipole.h'))
 sources.append(Path('./cavity.h'))
+sources.append(Path('./xyshift.h'))
 
 cdefs_norep=[]
 for cc in cdefs:
