@@ -7,13 +7,13 @@ import xobjects as xo
 import sixtracktools
 import pysixtrack
 
-short_test = False # Short line
+short_test = True # Short line (5 elements)
 
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
+#context = xo.ContextCupy()
+context = xo.ContextPyopencl('0.0')
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -63,6 +63,8 @@ elif isinstance(context, xo.ContextPyopencl):
 
     ''')
 
+sources.append(xt._pkg_root.joinpath('headers/constants.h'))
+
 # Particles
 source_particles, kernels_particles, cdefs_particles = (
                             xt.Particles.XoStruct._gen_c_api(conf=api_conf))
@@ -81,12 +83,7 @@ for cc in element_classes:
     kernels.update(kk)
     cdefs += dd.split('\n')
 
-sources.append(Path('./constants.h'))
-sources.append(Path('./drift.h'))
-sources.append(Path('./multipole.h'))
-sources.append(Path('./cavity.h'))
-sources.append(Path('./xyshift.h'))
-sources.append(Path('./srotation.h'))
+    sources.append(cc.track_function_source)
 
 cdefs_norep=[]
 for cc in cdefs:

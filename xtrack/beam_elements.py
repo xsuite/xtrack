@@ -1,11 +1,18 @@
+from pathlib import Path
+
 import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
 from .dress import dress
 
+thisfolder = Path(__file__).parent.absolute()
+pkg_root = thisfolder
+
 class DriftData(xo.Struct):
     length = xo.Float64
+with open(thisfolder.joinpath('track_functions/drift.h')) as fid:
+    DriftData.track_function_source = fid.read()
 
 class Drift(dress(DriftData)):
     '''The drift...'''
@@ -15,14 +22,17 @@ class CavityData(xo.Struct):
     voltage = xo.Float64
     frequency = xo.Float64
     lag = xo.Float64
+with open(thisfolder.joinpath('track_functions/cavity.h')) as fid:
+    CavityData.track_function_source = fid.read()
 
 class Cavity(dress(CavityData)):
     pass
 
-
 class XYShiftData(xo.Struct):
     dx = xo.Float64
     dy = xo.Float64
+with open(thisfolder.joinpath('track_functions/xyshift.h')) as fid:
+    XYShiftData.track_function_source = fid.read()
 
 class XYShift(dress(XYShiftData)):
     pass
@@ -30,6 +40,8 @@ class XYShift(dress(XYShiftData)):
 class SRotationData(xo.Struct):
     cos_z = xo.Float64
     sin_z = xo.Float64
+with open(thisfolder.joinpath('track_functions/srotation.h')) as fid:
+    SRotationData.track_function_source = fid.read()
 
 class SRotation(dress(SRotationData)):
 
@@ -49,6 +61,8 @@ class MultipoleData(xo.Struct):
     hxl = xo.Float64
     hyl = xo.Float64
     bal = xo.Float64[:]
+with open(thisfolder.joinpath('track_functions/multipole.h')) as fid:
+    MultipoleData.track_function_source = fid.read()
 
 class Multipole(dress(MultipoleData)):
 
@@ -114,7 +128,6 @@ class Multipole(dress(MultipoleData)):
         return [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
         #idx = np.array([ii for ii in range(0, len(self.bal), 2)])
         #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
-
 
 
 
