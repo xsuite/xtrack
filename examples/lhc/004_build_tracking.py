@@ -16,6 +16,7 @@ sixdump = sixtracktools.SixDump101("res/dump3.dat")
 # TODO: The two particles look identical, to be checked
 part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
 part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
+pysixtrack_particles = [part0_pyst, part1_pyst]
 
 particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
 
@@ -83,14 +84,17 @@ src_lines.append(r'''
             case 0:
                 printf("Element %ld is a Cavity having voltage %f\n", ee,
                     CavityData_get_voltage((CavityData) el));
+                Cavity_track_local_particle((CavityData) el, &lpart);
                 break;
             case 1:
                 printf("Element %ld is a Drift having length %f\n", ee,
                     DriftData_get_length((DriftData) el));
+                Drift_track_local_particle((DriftData) el, &lpart);
                 break;
             case 2:
                 printf("Element %ld is a Multipole having order %ld\n", ee,
                     MultipoleData_get_order((MultipoleData) el));
+                Multipole_track_local_particle((MultipoleData) el, &lpart);
                 break;
         }
     }
@@ -126,3 +130,8 @@ ele_types = np.array(
 context.kernels.track_line(buffer=xtline._buffer.buffer, ele_offsets=ele_offsets,
                            ele_types=ele_types, particles=particles,
                            ele_start=0, num_ele_track=5)
+ip_check = 1
+pyst_part = pysixtrack_particles[ip_check]
+for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_names)):
+    print(nn)
+

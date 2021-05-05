@@ -64,30 +64,10 @@ class Particles(dress(ParticlesData)):
 
         # Initalize arrays
         if pysixtrack_particles is not None:
-            for tt, vv in scalar_vars:
-                if vv == 'num_particles':
-                    continue
-                vv_first = getattr(pysixtrack_particles[0], vv)
-                for ii in range(self.num_particles):
-                    assert getattr(
-                            pysixtrack_particles[ii], vv) == vv_first
-                setattr(self, vv, vv_first)
-            for tt, vv in per_particle_vars:
-                if vv == 'mass_ratio':
-                    vv_pyst = 'mratio'
-                elif vv == 'charge_ratio':
-                    vv_pyst = 'qratio'
-                elif vv == 'particle_id':
-                    vv_pyst = 'partid'
-                elif vv == 'at_element':
-                    vv_pyst = 'elemid'
-                elif vv == 'at_turn':
-                    vv_pyst = 'turn'
-                else:
-                    vv_pyst = vv
-                for ii in range(num_particles):
-                    getattr(self, vv)[ii] = getattr(
-                            pysixtrack_particles[ii], vv_pyst)
+            for ii, pyst_part in enumerate(pysixtrack_particles):
+                self.set_one_particle_from_pysixtrack(ii, pyst_part,
+                        set_scalar_vars=(ii==0))
+
 
     def _set_p0c(self):
         energy0 = np.sqrt(self.p0c ** 2 + self.mass0 ** 2)
@@ -119,6 +99,38 @@ class Particles(dress(ParticlesData)):
         self.p0c = p0c
         return self
 
+    def set_one_particle_from_pysixtrack(self, index, pysixtrack_particle,
+            set_scalar_vars=False, check_scalar_vars=True):
+
+        if not(set_scalar_vars) and check_scalar_vars:
+            for tt, vv in scalar_vars:
+                if vv == 'num_particles':
+                    continue
+                vv_first = getattr(self, vv)
+                assert (getattr(pysixtrack_particle, vv)
+                               == vv_first), f'Inconsistent "{vv}"'
+
+        if set_scalar_vars:
+            for tt, vv in scalar_vars:
+                if vv == 'num_particles':
+                    continue
+                setattr(self, vv, getattr(pysixtrack_particle, vv))
+
+        for tt, vv in per_particle_vars:
+            if vv == 'mass_ratio':
+                vv_pyst = 'mratio'
+            elif vv == 'charge_ratio':
+                vv_pyst = 'qratio'
+            elif vv == 'particle_id':
+                vv_pyst = 'partid'
+            elif vv == 'at_element':
+                vv_pyst = 'elemid'
+            elif vv == 'at_turn':
+                vv_pyst = 'turn'
+            else:
+                vv_pyst = vv
+            getattr(self, vv)[index] = getattr(
+                        pysixtrack_particle, vv_pyst)
 
 def gen_local_particle_api(mode='no_local_copy'):
 
