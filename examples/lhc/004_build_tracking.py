@@ -74,7 +74,7 @@ src_lines.append(r'''
 
     printf("Buffer = %p\n", buffer);
 
-    for (int64_t ee=ele_start; ee<num_ele_track; ee++){
+    for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
         int8_t* el = buffer + ele_offsets[ee];
         int64_t ee_type = ele_types[ee];
 
@@ -127,11 +127,41 @@ ele_offsets = np.array([ee._offset for ee in xtline.elements], dtype=np.int64)
 ele_types = np.array(
         [element_classes.index(ee._xobject.__class__) for ee in xtline.elements],
         dtype=np.int64)
-context.kernels.track_line(buffer=xtline._buffer.buffer, ele_offsets=ele_offsets,
-                           ele_types=ele_types, particles=particles,
-                           ele_start=0, num_ele_track=5)
-ip_check = 1
-pyst_part = pysixtrack_particles[ip_check]
+
+# # One turn
+# context.kernels.track_line(buffer=xtline._buffer.buffer, ele_offsets=ele_offsets,
+#                            ele_types=ele_types, particles=particles,
+#                           ele_start=0, num_ele_track=len(xtline.elements))
+
+ip_check = 0
+pyst_part = pysixtrack_particles[ip_check].copy()
+vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_names)):
     print(nn)
+    vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
+    particles.set_one_particle_from_pysixtrack(ip_check, pyst_part)
+
+    context.kernels.track_line(buffer=xtline._buffer.buffer,
+                               ele_offsets=ele_offsets,
+                               ele_types=ele_types,
+                               particles=particles,
+                               ele_start=ii,
+                               num_ele_track=1)
+
+    eepyst.track(pyst_part)
+    for vv in vars_to_check:
+        pyst_change = getattr(pyst_part, vv) - vars_before[vv]
+        xt_change = getattr(particles, vv)[ip_check] -vars_before[vv]
+        passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=1e-14)
+        if not passed:
+            print(f'Not passend on var {vv}!\n'
+                  f'    pyst:   {pyst_change: .7e}\n'
+                  f'    xtrack: {xt_change: .7e}\n')
+            break
+
+    if not passed:
+        break
+
+
+
 
