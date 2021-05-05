@@ -96,6 +96,12 @@ src_lines.append(r'''
                     MultipoleData_get_order((MultipoleData) el));
                 Multipole_track_local_particle((MultipoleData) el, &lpart);
                 break;
+            case 3:
+                SRotation_track_local_particle((SRotationData) el, &lpart);
+                break;
+            case 4:
+                XYShift_track_local_particle((XYShiftData) el, &lpart);
+                break;
         }
     }
 }
