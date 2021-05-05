@@ -9,9 +9,9 @@ import pysixtrack
 
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
-#context = xo.ContextCpu()
+context = xo.ContextCpu()
 #context = xo.ContextCupy()
-context = xo.ContextPyopencl()
+#context = xo.ContextPyopencl()
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
