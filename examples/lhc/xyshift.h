@@ -1,6 +1,7 @@
 #ifndef XTRACK_XYSHIFT_H
 #define XTRACK_XYSHIFT_H
 
+/*gpufun*/
 void XYShift_track_local_particle(XYShiftData el, LocalParticle* part){
 
     double const minus_dx = -(XYShiftData_get_dx(el));

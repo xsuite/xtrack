@@ -60,6 +60,12 @@ class Particles(dress(ParticlesData)):
         else:
             assert num_particles is not None
 
+        if '_context' in kwargs.keys():
+            ctx = kwargs['_context']
+            for kk, vv in kwargs.items():
+                if isinstance(vv, np.ndarray):
+                    kwargs[kk] = ctx.nparray_to_context_array(vv)
+
         self.xoinitialize(**kwargs)
 
         # Initalize arrays
@@ -149,6 +155,7 @@ def gen_local_particle_api(mode='no_local_copy'):
 
     src_lines = []
     src_lines.append('''
+    /*gpufun*/
     void Particles_to_LocalParticle(/*gpuglmem*/ ParticlesData source,
                                     LocalParticle* dest,
                                     int64_t id){''')
@@ -165,6 +172,7 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_lines=[]
     for tt, vv in per_particle_vars:
         src_lines.append('''
+    /*gpufun*/
     void LocalParticle_add_to_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
     +'{')
         src_lines.append(f'  part->{vv}[part->ipart] += value;')
@@ -174,6 +182,7 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_lines=[]
     for tt, vv in per_particle_vars:
         src_lines.append('''
+    /*gpufun*/
     void LocalParticle_scale_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
     +'{')
         src_lines.append(f'  part->{vv}[part->ipart] *= value;')
@@ -183,6 +192,7 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_lines=[]
     for tt, vv in per_particle_vars:
         src_lines.append('''
+    /*gpufun*/
     void LocalParticle_set_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
     +'{')
         src_lines.append(f'  part->{vv}[part->ipart] = value;')
@@ -191,12 +201,14 @@ def gen_local_particle_api(mode='no_local_copy'):
 
     src_lines=[]
     for tt, vv in scalar_vars:
+        src_lines.append('/*gpufun*/')
         src_lines.append(f'{tt._c_type} LocalParticle_get_'+vv
                         + f'(LocalParticle* part)'
                         + '{')
         src_lines.append(f'  return part->{vv};')
         src_lines.append('}')
     for tt, vv in per_particle_vars:
+        src_lines.append('/*gpufun*/')
         src_lines.append(f'{tt._c_type} LocalParticle_get_'+vv
                         + f'(LocalParticle* part)'
                         + '{')
@@ -205,6 +217,7 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_getters = '\n'.join(src_lines)
 
     custom_source='''
+/*gpufun*/
 double LocalParticle_get_energy0(LocalParticle* part){
 
     double const p0c = LocalParticle_get_p0c(part);
@@ -213,6 +226,7 @@ double LocalParticle_get_energy0(LocalParticle* part){
     return sqrt( p0c * p0c + m0 * m0 );
 }
 
+/*gpufun*/
 void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
 
     double const beta0 = LocalParticle_get_beta0(part);

@@ -10,6 +10,7 @@ import pysixtrack
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
+context = xo.ContextCupy()
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -30,6 +31,13 @@ print('Build capi')
 sources = []
 kernels = {}
 cdefs = []
+
+if isinstance(context, xo.ContextCupy):
+    sources.append('''
+    typedef signed long long int64_t;
+    typedef signed char      int8_t;
+
+    ''')
 
 # Particles
 source_particles, kernels_particles, cdefs_particles = (
@@ -60,6 +68,11 @@ cdefs_norep=[]
 for cc in cdefs:
     if cc not in cdefs_norep:
         cdefs_norep.append(cc)
+
+if isinstance(context, xo.ContextCupy):
+    for ii, ss in enumerate(sources):
+        if isinstance(ss, str):
+            sources[ii] = ss.replace('#include', '//#include')
 
 src_lines = []
 src_lines.append(r'''

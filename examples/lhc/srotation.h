@@ -1,6 +1,7 @@
 #ifndef XTRACK_SROTATION_H
 #define XTRACK_SROTATION_H
 
+/*gpufun*/
 void SRotation_track_local_particle(SRotationData el, LocalParticle* part){
 
     double const n_part = LocalParticle_get_num_particles(part); 

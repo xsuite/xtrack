@@ -1,5 +1,7 @@
 #ifndef XTRACK_MULTIPOLE_H
 #define XTRACK_MULTIPOLE_H
+
+/*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part){
 
     double const n_part = LocalParticle_get_num_particles(part); 
