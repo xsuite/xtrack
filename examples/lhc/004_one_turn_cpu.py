@@ -9,8 +9,9 @@ import pysixtrack
 
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
-context = xo.ContextCpu()
-context = xo.ContextCupy()
+#context = xo.ContextCpu()
+#context = xo.ContextCupy()
+context = xo.ContextPyopencl()
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -32,7 +33,7 @@ sources = []
 kernels = {}
 cdefs = []
 
-if isinstance(context, xo.ContextCupy):
+if not(isinstance(context, xo.ContextCpu)):
     sources.append('''
     typedef signed long long int64_t;
     typedef signed char      int8_t;
@@ -69,10 +70,11 @@ for cc in cdefs:
     if cc not in cdefs_norep:
         cdefs_norep.append(cc)
 
-if isinstance(context, xo.ContextCupy):
+if not(isinstance(context, xo.ContextCpu)):
     for ii, ss in enumerate(sources):
         if isinstance(ss, str):
-            sources[ii] = ss.replace('#include', '//#include')
+            sources[ii] = ss.replace('#include <stdint.h>',
+                                   '//#include <stdint.h>')
 
 src_lines = []
 src_lines.append(r'''
@@ -99,7 +101,7 @@ src_lines.append(r'''
 //    printf("Buffer = %p\n", buffer);
 
     for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
-        int8_t* el = buffer + ele_offsets[ee];
+        /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
         int64_t ee_type = ele_typeids[ee];
 
 //        printf("el = %p\n", el);

@@ -156,7 +156,7 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_lines = []
     src_lines.append('''
     /*gpufun*/
-    void Particles_to_LocalParticle(/*gpuglmem*/ ParticlesData source,
+    void Particles_to_LocalParticle(ParticlesData source,
                                     LocalParticle* dest,
                                     int64_t id){''')
     for tt, vv in scalar_vars:
