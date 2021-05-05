@@ -7,6 +7,8 @@ import xobjects as xo
 import sixtracktools
 import pysixtrack
 
+short_test = False # Short line
+
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
@@ -15,6 +17,21 @@ context = xo.ContextCupy()
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
+
+if short_test:
+    new_elements = []
+    new_names = []
+    found_types = []
+    for ee, nn in zip(pyst_line.elements, pyst_line.element_names):
+        if ee.__class__ not in found_types:
+            new_elements.append(ee)
+            new_names.append(nn)
+            found_types.append(ee.__class__)
+    pyst_line.elements = new_elements
+    pyst_line.element_names = new_names
+
+    pyst_line.elements[0] = pysixtrack.elements.Drift(length=77.)
+
 sixdump = sixtracktools.SixDump101("res/dump3.dat")
 
 # TODO: The two particles look identical, to be checked
@@ -33,10 +50,16 @@ sources = []
 kernels = {}
 cdefs = []
 
-if not(isinstance(context, xo.ContextCpu)):
+if isinstance(context, xo.ContextCupy):
     sources.append('''
     typedef signed long long int64_t;
     typedef signed char      int8_t;
+
+    ''')
+elif isinstance(context, xo.ContextPyopencl):
+    sources.append('''
+    typedef long int64_t;
+    typedef char int8_t;
 
     ''')
 
