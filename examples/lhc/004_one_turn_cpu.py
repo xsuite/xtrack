@@ -12,8 +12,8 @@ short_test = True # Short line (5 elements)
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
+context = xo.ContextCupy()
+#context = xo.ContextPyopencl('0.0')
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -50,19 +50,6 @@ sources = []
 kernels = {}
 cdefs = []
 
-if isinstance(context, xo.ContextCupy):
-    sources.append('''
-    typedef signed long long int64_t;
-    typedef signed char      int8_t;
-
-    ''')
-elif isinstance(context, xo.ContextPyopencl):
-    sources.append('''
-    typedef long int64_t;
-    typedef char int8_t;
-
-    ''')
-
 sources.append(xt._pkg_root.joinpath('headers/constants.h'))
 
 # Particles
@@ -90,12 +77,6 @@ for cc in cdefs:
     if cc not in cdefs_norep:
         cdefs_norep.append(cc)
 
-if not(isinstance(context, xo.ContextCpu)):
-    for ii, ss in enumerate(sources):
-        if isinstance(ss, str):
-            sources[ii] = ss.replace('#include <stdint.h>',
-                                   '//#include <stdint.h>')
-
 src_lines = []
 src_lines.append(r'''
     /*gpukern*/
@@ -118,41 +99,28 @@ src_lines.append(r'''
     if (part_id<n_part){
     Particles_to_LocalParticle(particles, &lpart, part_id);
 
-//    printf("Buffer = %p\n", buffer);
 
     for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
         int64_t ee_type = ele_typeids[ee];
 
-//        printf("el = %p\n", el);
-
         switch(ee_type){
-            case 0:
-//                printf("Element %ld is a Cavity having voltage %f\n", ee,
-//                    CavityData_get_voltage((CavityData) el));
-                Cavity_track_local_particle((CavityData) el, &lpart);
-                break;
-            case 1:
-//                printf("Element %ld is a Drift having length %f\n", ee,
-//                    DriftData_get_length((DriftData) el));
-                Drift_track_local_particle((DriftData) el, &lpart);
-                break;
-            case 2:
-//                printf("Element %ld is a Multipole having order %ld\n", ee,
-//                    MultipoleData_get_order((MultipoleData) el));
-                Multipole_track_local_particle((MultipoleData) el, &lpart);
-                break;
-            case 3:
-                SRotation_track_local_particle((SRotationData) el, &lpart);
-                break;
-            case 4:
-                XYShift_track_local_particle((XYShiftData) el, &lpart);
-                break;
-        }
-    }
-    }
-}
 ''')
+
+for ii, cc in enumerate(element_classes):
+    ccnn = cc.__name__.replace('Data', '')
+    src_lines.append(f'''
+            case {ii}:
+                {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
+                break;''')
+
+src_lines.append('''
+        } //switch
+    } //for
+    }//if
+}//kernel
+''')
+
 source_track = '\n'.join(src_lines)
 sources.append(source_track)
 
