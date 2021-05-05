@@ -63,40 +63,46 @@ for cc in cdefs:
 
 src_lines = []
 src_lines.append(r'''
+    /*gpukern*/
     void track_line(
-        int8_t* buffer,
-        int64_t* ele_offsets,
-        int64_t* ele_types,
-        ParticlesData particles,
-        int64_t ele_start,
-        int64_t num_ele_track){
+        /*gpuglmem*/ int8_t* buffer,
+        /*gpuglmem*/ int64_t* ele_offsets,
+        /*gpuglmem*/ int64_t* ele_typeids,
+                     ParticlesData particles,
+                     int64_t ele_start,
+                     int64_t num_ele_track){
 
 
     LocalParticle lpart;
-    Particles_to_LocalParticle(particles, &lpart, 0);
 
-    printf("Buffer = %p\n", buffer);
+    int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
+    int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
+    int64_t part_id = get_global_id(0);                    //only_for_context opencl
+
+    Particles_to_LocalParticle(particles, &lpart, part_id);
+
+//    printf("Buffer = %p\n", buffer);
 
     for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
         int8_t* el = buffer + ele_offsets[ee];
-        int64_t ee_type = ele_types[ee];
+        int64_t ee_type = ele_typeids[ee];
 
-        printf("el = %p\n", el);
+//        printf("el = %p\n", el);
 
         switch(ee_type){
             case 0:
-                printf("Element %ld is a Cavity having voltage %f\n", ee,
-                    CavityData_get_voltage((CavityData) el));
+//                printf("Element %ld is a Cavity having voltage %f\n", ee,
+//                    CavityData_get_voltage((CavityData) el));
                 Cavity_track_local_particle((CavityData) el, &lpart);
                 break;
             case 1:
-                printf("Element %ld is a Drift having length %f\n", ee,
-                    DriftData_get_length((DriftData) el));
+//                printf("Element %ld is a Drift having length %f\n", ee,
+//                    DriftData_get_length((DriftData) el));
                 Drift_track_local_particle((DriftData) el, &lpart);
                 break;
             case 2:
-                printf("Element %ld is a Multipole having order %ld\n", ee,
-                    MultipoleData_get_order((MultipoleData) el));
+//                printf("Element %ld is a Multipole having order %ld\n", ee,
+//                    MultipoleData_get_order((MultipoleData) el));
                 Multipole_track_local_particle((MultipoleData) el, &lpart);
                 break;
             case 3:
@@ -120,7 +126,7 @@ kernel_descriptions = {
         args=[
             xo.Arg(xo.Int8, pointer=True, name='buffer'),
             xo.Arg(xo.Int64, pointer=True, name='ele_offsets'),
-            xo.Arg(xo.Int64, pointer=True, name='ele_types'),
+            xo.Arg(xo.Int64, pointer=True, name='ele_typeids'),
             xo.Arg(xt.particles.ParticlesData, name='particles'),
             xo.Arg(xo.Int64, name='ele_start'),
             xo.Arg(xo.Int64, name='num_ele_track'),
@@ -132,29 +138,26 @@ kernels.update(kernel_descriptions)
 # Compile!
 context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
                     save_source_as='source.c',
-                    specialize=False)
+                    specialize=True)
 
 ele_offsets = np.array([ee._offset for ee in xtline.elements], dtype=np.int64)
-ele_types = np.array(
+ele_typeids = np.array(
         [element_classes.index(ee._xobject.__class__) for ee in xtline.elements],
         dtype=np.int64)
-
-# # One turn
-# context.kernels.track_line(buffer=xtline._buffer.buffer, ele_offsets=ele_offsets,
-#                            ele_types=ele_types, particles=particles,
-#                           ele_start=0, num_ele_track=len(xtline.elements))
+ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
+ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
 
 ip_check = 1
 pyst_part = pysixtrack_particles[ip_check].copy()
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_names)):
-    print(f'\n\nelement {nn}')
+    print(f'\nelement {nn}')
     vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
     particles.set_one_particle_from_pysixtrack(ip_check, pyst_part)
 
     context.kernels.track_line(buffer=xtline._buffer.buffer,
-                               ele_offsets=ele_offsets,
-                               ele_types=ele_types,
+                               ele_offsets=ele_offsets_dev,
+                               ele_typeids=ele_typeids_dev,
                                particles=particles,
                                ele_start=ii,
                                num_ele_track=1)
