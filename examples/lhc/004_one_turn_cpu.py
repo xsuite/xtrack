@@ -11,7 +11,7 @@ api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
 #context = xo.ContextCupy()
-#context = xo.ContextPyopencl()
+context = xo.ContextPyopencl('0.0')
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -158,6 +158,7 @@ kernels.update(kernel_descriptions)
 context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
                     save_source_as='source.c',
                     specialize=True)
+prrrrrr
 
 print('Start check')
 ele_offsets = np.array([ee._offset for ee in xtline.elements], dtype=np.int64)
