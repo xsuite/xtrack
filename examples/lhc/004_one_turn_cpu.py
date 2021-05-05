@@ -10,7 +10,7 @@ import pysixtrack
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
+context = xo.ContextCupy()
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -92,6 +92,8 @@ src_lines.append(r'''
     int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
     int64_t part_id = get_global_id(0);                    //only_for_context opencl
 
+    int64_t n_part = ParticlesData_get_num_particles(particles);
+    if (part_id<n_part){
     Particles_to_LocalParticle(particles, &lpart, part_id);
 
 //    printf("Buffer = %p\n", buffer);
@@ -126,6 +128,7 @@ src_lines.append(r'''
                 break;
         }
     }
+    }
 }
 ''')
 source_track = '\n'.join(src_lines)
@@ -154,6 +157,7 @@ context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
                     save_source_as='source.c',
                     specialize=True)
 
+print('Start check')
 ele_offsets = np.array([ee._offset for ee in xtline.elements], dtype=np.int64)
 ele_typeids = np.array(
         [element_classes.index(ee._xobject.__class__) for ee in xtline.elements],
@@ -164,11 +168,13 @@ ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
 ip_check = 1
 pyst_part = pysixtrack_particles[ip_check].copy()
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
+problem_found = False
 for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_names)):
     print(f'\nelement {nn}')
     vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
     particles.set_one_particle_from_pysixtrack(ip_check, pyst_part)
 
+    context.kernels.track_line.description.n_threads = particles.num_particles
     context.kernels.track_line(buffer=xtline._buffer.buffer,
                                ele_offsets=ele_offsets_dev,
                                ele_typeids=ele_typeids_dev,
@@ -182,6 +188,7 @@ for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_name
         xt_change = getattr(particles, vv)[ip_check] -vars_before[vv]
         passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=1e-14)
         if not passed:
+            problem_found = True
             print(f'Not passend on var {vv}!\n'
                   f'    pyst:   {pyst_change: .7e}\n'
                   f'    xtrack: {xt_change: .7e}\n')
@@ -193,5 +200,7 @@ for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_name
         print("Check passed!")
 
 
-
+if not problem_found:
+    print('All passed on context:')
+    print(context)
 
