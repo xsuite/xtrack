@@ -10,8 +10,8 @@ import pysixtrack
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
+context = xo.ContextCupy()
+#context = xo.ContextPyopencl('0.0')
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -84,8 +84,8 @@ src_lines.append(r'''
         /*gpuglmem*/ int64_t* ele_offsets,
         /*gpuglmem*/ int64_t* ele_typeids,
                      ParticlesData particles,
-                     int64_t ele_start,
-                     int64_t num_ele_track){
+                     int ele_start,
+                     int num_ele_track){
 
 
     LocalParticle lpart;
@@ -143,8 +143,8 @@ kernel_descriptions = {
             xo.Arg(xo.Int64, pointer=True, name='ele_offsets'),
             xo.Arg(xo.Int64, pointer=True, name='ele_typeids'),
             xo.Arg(xt.particles.ParticlesData, name='particles'),
-            xo.Arg(xo.Int64, name='ele_start'),
-            xo.Arg(xo.Int64, name='num_ele_track'),
+            xo.Arg(xo.Int32, name='ele_start'),
+            xo.Arg(xo.Int32, name='num_ele_track'),
         ],
     )
 }
@@ -158,7 +158,6 @@ kernels.update(kernel_descriptions)
 context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
                     save_source_as='source.c',
                     specialize=True)
-prrrrrr
 
 print('Start check')
 ele_offsets = np.array([ee._offset for ee in xtline.elements], dtype=np.int64)
@@ -181,7 +180,7 @@ for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_name
     context.kernels.track_line(buffer=xtline._buffer.buffer,
                                ele_offsets=ele_offsets_dev,
                                ele_typeids=ele_typeids_dev,
-                               particles=particles,
+                               particles=particles._xobject,
                                ele_start=ii,
                                num_ele_track=1)
 

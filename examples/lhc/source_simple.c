@@ -1,14 +1,6 @@
-typedef signed long long int64_t;
-typedef signed char      int8_t;
-
       __kernel 
      void track_line(
-          __global int* test,
-          __global  int8_t* buffer,
-          __global  int64_t* ele_offsets,
-          __global  int64_t* ele_typeids,
-                      int64_t ele_start,
-                      int64_t num_ele_track
+	            signed long long ggg
 		      ){
  
  
