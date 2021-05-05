@@ -133,7 +133,7 @@ ele_types = np.array(
 #                            ele_types=ele_types, particles=particles,
 #                           ele_start=0, num_ele_track=len(xtline.elements))
 
-ip_check = 0
+ip_check = 1
 pyst_part = pysixtrack_particles[ip_check].copy()
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_names)):
