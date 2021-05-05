@@ -7,6 +7,8 @@ import xobjects as xo
 import sixtracktools
 import pysixtrack
 
+api_conf = {'prepointer': ' /*gpuglmem*/ '}
+
 context = xo.ContextCpu()
 
 six = sixtracktools.SixInput(".")
@@ -18,7 +20,8 @@ part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
 part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
 pysixtrack_particles = [part0_pyst, part1_pyst]
 
-particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst])
+particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst],
+                         _context=context)
 
 print('Creating line...')
 xtline = xt.Line(_context=context, sequence=pyst_line)
@@ -30,7 +33,7 @@ cdefs = []
 
 # Particles
 source_particles, kernels_particles, cdefs_particles = (
-                                xt.Particles.XoStruct._gen_c_api())
+                            xt.Particles.XoStruct._gen_c_api(conf=api_conf))
 sources.append(source_particles)
 kernels.update(kernels_particles)
 cdefs += cdefs_particles.split('\n')
@@ -41,7 +44,7 @@ sources.append(xt.particles.gen_local_particle_api())
 # Elements
 element_classes = xtline._ElementRefClass._rtypes
 for cc in element_classes:
-    ss, kk, dd = cc._gen_c_api()
+    ss, kk, dd = cc._gen_c_api(conf=api_conf)
     sources.append(ss)
     kernels.update(kk)
     cdefs += dd.split('\n')
@@ -127,7 +130,9 @@ kernel_descriptions = {
 kernels.update(kernel_descriptions)
 
 # Compile!
-context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep))
+context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
+                    save_source_as='source.c',
+                    specialize=False)
 
 ele_offsets = np.array([ee._offset for ee in xtline.elements], dtype=np.int64)
 ele_types = np.array(

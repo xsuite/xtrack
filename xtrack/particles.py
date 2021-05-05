@@ -140,16 +140,17 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_lines = []
     src_lines.append('''typedef struct{''')
     for tt, vv in scalar_vars:
-        src_lines.append('    '+tt._c_type+' '+vv+';')
+        src_lines.append('                ' + tt._c_type + '  '+vv+';')
     for tt, vv in per_particle_vars:
-        src_lines.append('    '+tt._c_type+'* '+vv+';')
+        src_lines.append('    /*gpuglmem*/' + tt._c_type + '* '+vv+';')
     src_lines.append('    int64_t ipart;')
     src_lines.append('}LocalParticle;')
     src_typedef = '\n'.join(src_lines)
 
     src_lines = []
     src_lines.append('''
-    void Particles_to_LocalParticle(ParticlesData source, LocalParticle* dest,
+    void Particles_to_LocalParticle(/*gpuglmem*/ ParticlesData source,
+                                    LocalParticle* dest,
                                     int64_t id){''')
     for tt, vv in scalar_vars:
         src_lines.append(
