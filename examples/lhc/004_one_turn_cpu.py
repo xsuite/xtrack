@@ -143,7 +143,7 @@ ip_check = 1
 pyst_part = pysixtrack_particles[ip_check].copy()
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_names)):
-    print(nn)
+    print(f'\n\nelement {nn}')
     vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
     particles.set_one_particle_from_pysixtrack(ip_check, pyst_part)
 
@@ -167,6 +167,8 @@ for ii, (eepyst, nn) in enumerate(zip(pyst_line.elements, pyst_line.element_name
 
     if not passed:
         break
+    else:
+        print("Check passed!")
 
 
 
