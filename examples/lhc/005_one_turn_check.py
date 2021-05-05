@@ -8,14 +8,14 @@ import pysixtrack
 
 from make_short_line import make_short_line
 
-short_test = True # Short line (5 elements)
+short_test = False # Short line (5 elements)
 
 ####################
 # Choose a context #
 ####################
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
+#context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 ##################
@@ -24,7 +24,6 @@ context = xo.ContextCupy()
 
 six = sixtracktools.SixInput(".")
 sequence = pysixtrack.Line.from_sixinput(six)
-
 if short_test:
     sequence = make_short_line(sequence)
 
