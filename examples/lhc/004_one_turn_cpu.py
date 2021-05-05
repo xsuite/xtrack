@@ -10,7 +10,7 @@ import pysixtrack
 api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
+#context = xo.ContextCupy()
 
 six = sixtracktools.SixInput(".")
 pyst_line = pysixtrack.Line.from_sixinput(six)
@@ -131,9 +131,6 @@ src_lines.append(r'''
 source_track = '\n'.join(src_lines)
 sources.append(source_track)
 
-#    for (int ii=0; ii<npart; ii++){
-#        lpart.ipart = ii;
-
 kernel_descriptions = {
     "track_line": xo.Kernel(
         args=[
@@ -146,6 +143,10 @@ kernel_descriptions = {
         ],
     )
 }
+
+# Internal API can be exposed only on CPU
+if not isinstance(context, xo.ContextCpu):
+    kernels = {}
 kernels.update(kernel_descriptions)
 
 # Compile!
