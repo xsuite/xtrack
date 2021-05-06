@@ -46,21 +46,43 @@ sixdump = sixtracktools.SixDump101("res/dump3.dat")
 # TODO: The two particles look identical, to be checked
 part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
 part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
+# Small kick
+part1_pyst.x += 1e-4
+part1_pyst.y += 1e-4
+
 pysixtrack_particles = [part0_pyst, part1_pyst]
 
-particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst],
+particles = xt.Particles(pysixtrack_particles=pysixtrack_particles,
                          _context=context)
 #########
 # Track #
 #########
+n_turns = 10
+tracker.track(particles, num_turns=n_turns)
 
-tracker.track(particles, num_turns=10)
-
-#########
-# Check #
-#########
-
+############################
+# Check against pysixtrack #
+############################
 ip_check = 1
+vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
+pyst_part = pysixtrack_particles[ip_check].copy()
+for _ in range(n_turns):
+    sequence.track(pyst_part)
+
+for vv in vars_to_check:
+    pyst_value = getattr(pyst_part, vv)
+    xt_value = getattr(particles, vv)[ip_check]
+    passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=1e-11)
+    if not passed:
+        print(f'Not passend on var {vv}!\n'
+              f'    pyst:   {pyst_value: .7e}\n'
+              f'    xtrack: {xt_value: .7e}\n')
+        raise ValueError
+
+##############
+# Check  ebe #
+##############
+
 pyst_part = pysixtrack_particles[ip_check].copy()
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
