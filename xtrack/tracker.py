@@ -155,5 +155,5 @@ class Tracker:
                 particles=particles._xobject,
                 num_turns=num_turns,
                 ele_start=ele_start,
-                num_ele_track=1)
+                num_ele_track=num_elements)
 

@@ -9,17 +9,17 @@ import pysixtrack
 from make_short_line import make_short_line
 import time
 
-short_test = False # Short line (5 elements)
+short_test = False# Short line (5 elements)
 n_part = 20000
-num_turns = int(1e4)
+num_turns = int(100)
 
 ####################
 # Choose a context #
 ####################
 
-context = xo.ContextCpu()
+#context = xo.ContextCpu()
 context = xo.ContextCupy()
-context = xo.ContextPyopencl('2.0')
+#context = xo.ContextPyopencl('0.0')
 
 ##################
 # Get a sequence #
@@ -66,3 +66,4 @@ tracker.track(particles, num_turns=num_turns)
 context.synchronize()
 t2 = time.time()
 print(f'Time {(t2-t1)*1000:.2f} ms')
+print(f'Time {(t2-t1)*1e6/num_turns/n_part:.2f} us/part/turn')
