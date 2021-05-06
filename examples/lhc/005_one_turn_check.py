@@ -15,7 +15,7 @@ short_test = False # Short line (5 elements)
 ####################
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
+context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 ##################
@@ -54,7 +54,7 @@ particles = xt.Particles(pysixtrack_particles=[part0_pyst, part1_pyst],
 # Track #
 #########
 
-tracker.track(particles, num_turns=1)
+tracker.track(particles, num_turns=10)
 
 #########
 # Check #

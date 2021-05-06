@@ -59,6 +59,7 @@ class Tracker:
                 /*gpuglmem*/ int64_t* ele_offsets,
                 /*gpuglmem*/ int64_t* ele_typeids,
                              ParticlesData particles,
+                             int num_turns,
                              int ele_start,
                              int num_ele_track){
 
@@ -73,12 +74,12 @@ class Tracker:
             if (part_id<n_part){
             Particles_to_LocalParticle(particles, &lpart, part_id);
 
+            for (int64_t iturn=0; iturn<num_turns; iturn++){
+                for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
+                    /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
+                    int64_t ee_type = ele_typeids[ee];
 
-            for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
-                /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
-                int64_t ee_type = ele_typeids[ee];
-
-                switch(ee_type){
+                    switch(ee_type){
         ''')
 
         for ii, cc in enumerate(element_classes):
@@ -89,8 +90,9 @@ class Tracker:
                         break;''')
 
         src_lines.append('''
-                } //switch
-            } //for
+                    } //switch
+                } //for elements
+            } //for turns
             }//if
         }//kernel
         ''')
@@ -105,6 +107,7 @@ class Tracker:
                     xo.Arg(xo.Int64, pointer=True, name='ele_offsets'),
                     xo.Arg(xo.Int64, pointer=True, name='ele_typeids'),
                     xo.Arg(particles_class.XoStruct, name='particles'),
+                    xo.Arg(xo.Int32, name='num_turns'),
                     xo.Arg(xo.Int32, name='ele_start'),
                     xo.Arg(xo.Int32, name='num_ele_track'),
                 ],
@@ -118,7 +121,7 @@ class Tracker:
 
         # Compile!
         context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
-                            save_source_as='source.c',
+                            save_source_as=save_source_as,
                             specialize=True)
 
         ele_offsets = np.array([ee._offset for ee in line.elements], dtype=np.int64)
@@ -139,9 +142,6 @@ class Tracker:
 
     def track(self, particles, ele_start=0, num_elements=None, num_turns=1):
 
-        if num_turns !=1:
-            raise NotImplementedError
-
         if num_elements is None:
             num_elements = self.num_elements
 
@@ -153,6 +153,7 @@ class Tracker:
                 ele_offsets=self.ele_offsets_dev,
                 ele_typeids=self.ele_typeids_dev,
                 particles=particles._xobject,
+                num_turns=num_turns,
                 ele_start=ele_start,
                 num_ele_track=1)
 
