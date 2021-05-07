@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 
 from .particles import Particles, gen_local_particle_api
@@ -99,6 +100,12 @@ class Tracker:
 
         source_track = '\n'.join(src_lines)
         sources.append(source_track)
+
+        for ii, ss in enumerate(sources):
+            if isinstance(ss, Path):
+                with open(ss, 'r') as fid:
+                    ss = fid.read()
+            sources[ii] = ss.replace('/*gpufun*/', '/*gpufun*/ static inline')
 
         kernel_descriptions = {
             "track_line": xo.Kernel(
