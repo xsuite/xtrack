@@ -15,7 +15,7 @@ import time
 # num_turns = int(100)
 
 short_test = False
-n_part = 20000
+n_part = 200#00
 num_turns = int(100)
 
 ####################

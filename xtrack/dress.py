@@ -1,12 +1,26 @@
 class _FieldOfDressed:
     def __init__(self, name):
         self.name = name
+        self.isdressed = False
+        self.content = None
 
     def __get__(self, container, ContainerType=None):
-        return getattr(container._xobject, self.name)
+        if self.isdressed:
+            return self.content
+        else:
+            return getattr(container._xobject, self.name)
 
     def __set__(self, container, value):
-        setattr(container._xobject, self.name, value)
+        if hasattr(value, '_xobject'): # value is a dressed xobject
+            self.isdressed = True
+            self.content = value
+            setattr(container._xobject, self.name, value._xobject)
+            getattr(container, self.name)._xobject = getattr(
+                                    container._xobject, self.name)
+        else:
+            self.isdressed = False
+            self.content = None
+            setattr(container._xobject, self.name, value)
 
 def dress(XoStruct):
 
