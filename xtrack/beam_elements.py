@@ -34,6 +34,11 @@ DriftData.track_kernel_source = '''
 DriftData.track_kernel_description = {'Drift_track_particles':
         xo.Kernel(args=[xo.Arg(DriftData, name='el'),
                         xo.Arg(ParticlesData, name='particles')])}
+# To compile:
+#context.add_kernels(sources=[xt.particles.ParticlesData._gen_c_api()[0], xt.particles.gen_local_particle_api(), xt.DriftData._gen_c_api()[0],
+#    xt.DriftData.track_function_source,
+#    xt.DriftData.track_kernel_source], kernels=xt.DriftData.track_kernel_description,
+#    extra_cdef='\n'.join([xt.DriftData._gen_c_api()[2], xt.particles.ParticlesData._gen_c_api()[2]    ]), save_source_as='test.c')
 
 class Drift(dress(DriftData)):
     '''The drift...'''
