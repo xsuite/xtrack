@@ -141,6 +141,8 @@ class Particles(dress(ParticlesData)):
                         self.weight = np.zeros(int(self.num_particles)) + 1.
                     else:
                         self.weight[index] = 1.
+                    continue
+
             if vv == 'mass_ratio':
                 vv_pyst = 'mratio'
             elif vv == 'charge_ratio':

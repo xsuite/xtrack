@@ -5,6 +5,7 @@ import xobjects as xo
 from scipy.special import factorial
 
 from .dress import dress
+from .particles import ParticlesData
 
 thisfolder = Path(__file__).parent.absolute()
 pkg_root = thisfolder
@@ -13,6 +14,26 @@ class DriftData(xo.Struct):
     length = xo.Float64
 with open(thisfolder.joinpath('track_functions/drift.h')) as fid:
     DriftData.track_function_source = fid.read()
+DriftData.track_kernel_source = '''
+            /*gpukern*/
+            void Drift_track_particles(
+                             DriftData el,
+                             ParticlesData particles){
+            LocalParticle lpart;
+            int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
+            int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
+            int64_t part_id = get_global_id(0);                    //only_for_context opencl
+
+            int64_t n_part = ParticlesData_get_num_particles(particles);
+            if (part_id<n_part){
+                Particles_to_LocalParticle(particles, &lpart, part_id);
+                Drift_track_local_particle(el, &lpart);
+                }
+            }
+'''
+DriftData.track_kernel_description = {'Drift_track_particles':
+        xo.Kernel(args=[xo.Arg(DriftData, name='el'),
+                        xo.Arg(ParticlesData, name='particles')])}
 
 class Drift(dress(DriftData)):
     '''The drift...'''
