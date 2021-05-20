@@ -2,6 +2,8 @@ import xobjects as xo
 from .particles import ParticlesData, gen_local_particle_api
 from .dress import dress
 
+api_conf = {'prepointer': ' /*gpuglmem*/ '}
+
 def dress_element(XoElementData):
 
     DressedElement = dress(XoElementData)
@@ -9,9 +11,10 @@ def dress_element(XoElementData):
     name = XoElementData.__name__[:-4]
 
     DressedElement.track_kernel_source = ('''
-            /*gpukern*/'''
-            f'void {name}_track_particles('
-            f'               {name}Data el,'
+            /*gpukern*/
+            '''
+            f'void {name}_track_particles(\n'
+            f'               {name}Data el,\n'
 '''
                              ParticlesData particles){
             LocalParticle lpart;
@@ -23,7 +26,7 @@ def dress_element(XoElementData):
             if (part_id<n_part){
                 Particles_to_LocalParticle(particles, &lpart, part_id);
 '''
-            f'{name}_track_local_particle(el, &lpart);'
+            f'{name}_track_local_particle(el, &lpart);\n'
 '''
                 }
             }
@@ -37,15 +40,15 @@ def dress_element(XoElementData):
         context = self._buffer.context
 
         context.add_kernels(sources=[
-                ParticlesData._gen_c_api()[0],
+                ParticlesData._gen_c_api(api_conf)[0],
                 gen_local_particle_api(),
-                self.XoStruct._gen_c_api()[0],
+                self.XoStruct._gen_c_api(api_conf)[0],
                 self.XoStruct.track_function_source,
                 self.track_kernel_source],
             kernels=self.track_kernel_description,
             extra_cdef='\n'.join([
-                self.XoStruct._gen_c_api()[2],
-                ParticlesData._gen_c_api()[2]]),
+                self.XoStruct._gen_c_api(api_conf)[2],
+                ParticlesData._gen_c_api(api_conf)[2]]),
             save_source_as=None)
 
 
