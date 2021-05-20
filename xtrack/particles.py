@@ -28,6 +28,7 @@ per_particle_vars = [
     (xo.Float64, 'rvv'),
     (xo.Float64, 'chi'),
     (xo.Float64, 'charge_ratio'),
+    (xo.Float64, 'weight'),
     (xo.Int64, 'particle_id'),
     (xo.Int64, 'at_element'),
     (xo.Int64, 'at_turn'),
@@ -52,13 +53,17 @@ class Particles(dress(ParticlesData)):
 
         # Initalize array sizes
         if pysixtrack_particles is not None:
-            # Assuming list of pysixtrack particles
-            num_particles = len(pysixtrack_particles)
-            kwargs.update(
-                    {kk: np.arange(num_particles)+1 for tt, kk in per_particle_vars})
-            kwargs['num_particles'] = num_particles
+            if hasattr(pysixtrack_particles, '__iter__'):
+                # Assuming list of pysixtrack particles
+                num_particles = len(pysixtrack_particles)
+            else:
+                num_particles = len(pysixtrack_particles.x)
         else:
             assert num_particles is not None
+
+        kwargs.update(
+                {kk: np.arange(num_particles)+1 for tt, kk in per_particle_vars})
+        kwargs['num_particles'] = num_particles
 
         if '_context' in kwargs.keys():
             ctx = kwargs['_context']
@@ -70,9 +75,14 @@ class Particles(dress(ParticlesData)):
 
         # Initalize arrays
         if pysixtrack_particles is not None:
-            for ii, pyst_part in enumerate(pysixtrack_particles):
-                self.set_one_particle_from_pysixtrack(ii, pyst_part,
-                        set_scalar_vars=(ii==0))
+            if hasattr(pysixtrack_particles, '__iter__'):
+                for ii, pyst_part in enumerate(pysixtrack_particles):
+                    self.set_particles_from_pysixtrack(ii, pyst_part,
+                                                   set_scalar_vars=(ii==0))
+            else:
+                self.set_particles_from_pysixtrack(None,
+                                                   pysixtrack_particles,
+                                                   set_scalar_vars=True)
 
 
     def _set_p0c(self):
@@ -105,8 +115,10 @@ class Particles(dress(ParticlesData)):
         self.p0c = p0c
         return self
 
-    def set_one_particle_from_pysixtrack(self, index, pysixtrack_particle,
+    def set_particles_from_pysixtrack(self, index, pysixtrack_particle,
             set_scalar_vars=False, check_scalar_vars=True):
+
+        context = self._buffer.context
 
         if not(set_scalar_vars) and check_scalar_vars:
             for tt, vv in scalar_vars:
@@ -123,6 +135,12 @@ class Particles(dress(ParticlesData)):
                 setattr(self, vv, getattr(pysixtrack_particle, vv))
 
         for tt, vv in per_particle_vars:
+            if vv == 'weight':
+                if not hasattr(pysixtrack_particle, 'weight'):
+                    if index is None:
+                        self.weight = np.zeros(int(self.num_particles)) + 1.
+                    else:
+                        self.weight[index] = 1.
             if vv == 'mass_ratio':
                 vv_pyst = 'mratio'
             elif vv == 'charge_ratio':
@@ -135,8 +153,15 @@ class Particles(dress(ParticlesData)):
                 vv_pyst = 'turn'
             else:
                 vv_pyst = vv
-            getattr(self, vv)[index] = getattr(
-                        pysixtrack_particle, vv_pyst)
+
+            if index is None:
+                val_pyst = getattr(pysixtrack_particle, vv_pyst)
+                if np.isscalar(val_pyst):
+                    val_pyst = val_pyst + np.zeros(int(self.num_particles))
+                setattr(self, vv, context.nparray_to_context_array(val_pyst))
+            else:
+                getattr(self, vv)[index] = getattr(
+                            pysixtrack_particle, vv_pyst)
 
 def gen_local_particle_api(mode='no_local_copy'):
 

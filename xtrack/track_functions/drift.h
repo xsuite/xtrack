@@ -6,7 +6,7 @@ void Drift_track_local_particle(DriftData el, LocalParticle* part){
 
     double const length = DriftData_get_length(el);
 
-    double const n_part = LocalParticle_get_num_particles(part); 
+    double const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 
