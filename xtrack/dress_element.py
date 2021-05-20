@@ -28,7 +28,8 @@ def dress_element(XoElementData):
                 }
             }
 ''')
-    DressedElement.track_kernel_description = {f'{name}_track_particles':
+    DressedElement._track_kernel_name = f'{name}_track_particles'
+    DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
                         xo.Arg(ParticlesData, name='particles')])}
 
@@ -47,6 +48,19 @@ def dress_element(XoElementData):
                 ParticlesData._gen_c_api()[2]]),
             save_source_as=None)
 
+
+    def track(self, particles):
+
+        if not hasattr(self, '_track_kernel'):
+            context = self._buffer.context
+            if self._track_kernel_name not in context.kernels.keys():
+                self.compile_track_kernel()
+            self._track_kernel = context.kernels[self._track_kernel_name]
+
+        self._track_kernel.description.n_threads = particles.num_particles
+        self._track_kernel(el=self._xobject, particles=particles)
+
     DressedElement.compile_track_kernel = compile_track_kernel
+    DressedElement.track = track
 
     return DressedElement
