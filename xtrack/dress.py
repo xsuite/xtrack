@@ -1,3 +1,4 @@
+
 class _FieldOfDressed:
     def __init__(self, name, XoStruct):
         self.name = name
@@ -58,3 +59,4 @@ def dress(XoStruct):
     DressedXStruct.__init__ = myinit
 
     return DressedXStruct
+

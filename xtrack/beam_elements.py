@@ -4,7 +4,7 @@ import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
-from .dress import dress
+from .dress_element import dress_element
 from .particles import ParticlesData
 
 thisfolder = Path(__file__).parent.absolute()
@@ -14,33 +14,13 @@ class DriftData(xo.Struct):
     length = xo.Float64
 with open(thisfolder.joinpath('track_functions/drift.h')) as fid:
     DriftData.track_function_source = fid.read()
-DriftData.track_kernel_source = '''
-            /*gpukern*/
-            void Drift_track_particles(
-                             DriftData el,
-                             ParticlesData particles){
-            LocalParticle lpart;
-            int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
-            int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
-            int64_t part_id = get_global_id(0);                    //only_for_context opencl
-
-            int64_t n_part = ParticlesData_get_num_particles(particles);
-            if (part_id<n_part){
-                Particles_to_LocalParticle(particles, &lpart, part_id);
-                Drift_track_local_particle(el, &lpart);
-                }
-            }
-'''
-DriftData.track_kernel_description = {'Drift_track_particles':
-        xo.Kernel(args=[xo.Arg(DriftData, name='el'),
-                        xo.Arg(ParticlesData, name='particles')])}
 # To compile:
 #context.add_kernels(sources=[xt.particles.ParticlesData._gen_c_api()[0], xt.particles.gen_local_particle_api(), xt.DriftData._gen_c_api()[0],
 #    xt.DriftData.track_function_source,
 #    xt.DriftData.track_kernel_source], kernels=xt.DriftData.track_kernel_description,
 #    extra_cdef='\n'.join([xt.DriftData._gen_c_api()[2], xt.particles.ParticlesData._gen_c_api()[2]    ]), save_source_as='test.c')
 
-class Drift(dress(DriftData)):
+class Drift(dress_element(DriftData)):
     '''The drift...'''
     pass
 
@@ -51,7 +31,7 @@ class CavityData(xo.Struct):
 with open(thisfolder.joinpath('track_functions/cavity.h')) as fid:
     CavityData.track_function_source = fid.read()
 
-class Cavity(dress(CavityData)):
+class Cavity(dress_element(CavityData)):
     pass
 
 class XYShiftData(xo.Struct):
@@ -60,7 +40,7 @@ class XYShiftData(xo.Struct):
 with open(thisfolder.joinpath('track_functions/xyshift.h')) as fid:
     XYShiftData.track_function_source = fid.read()
 
-class XYShift(dress(XYShiftData)):
+class XYShift(dress_element(XYShiftData)):
     pass
 
 class SRotationData(xo.Struct):
@@ -69,7 +49,7 @@ class SRotationData(xo.Struct):
 with open(thisfolder.joinpath('track_functions/srotation.h')) as fid:
     SRotationData.track_function_source = fid.read()
 
-class SRotation(dress(SRotationData)):
+class SRotation(dress_element(SRotationData)):
 
     def __init__(self, angle=0, **nargs):
         anglerad = angle / 180 * np.pi
@@ -90,7 +70,7 @@ class MultipoleData(xo.Struct):
 with open(thisfolder.joinpath('track_functions/multipole.h')) as fid:
     MultipoleData.track_function_source = fid.read()
 
-class Multipole(dress(MultipoleData)):
+class Multipole(dress_element(MultipoleData)):
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
 
