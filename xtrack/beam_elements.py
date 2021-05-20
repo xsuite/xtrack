@@ -6,19 +6,13 @@ from scipy.special import factorial
 
 from .dress_element import dress_element
 from .particles import ParticlesData
+from .general import _pkg_root
 
-thisfolder = Path(__file__).parent.absolute()
-pkg_root = thisfolder
 
 class DriftData(xo.Struct):
     length = xo.Float64
-with open(thisfolder.joinpath('track_functions/drift.h')) as fid:
-    DriftData.track_function_source = fid.read()
-# To compile:
-#context.add_kernels(sources=[xt.particles.ParticlesData._gen_c_api()[0], xt.particles.gen_local_particle_api(), xt.DriftData._gen_c_api()[0],
-#    xt.DriftData.track_function_source,
-#    xt.DriftData.track_kernel_source], kernels=xt.DriftData.track_kernel_description,
-#    extra_cdef='\n'.join([xt.DriftData._gen_c_api()[2], xt.particles.ParticlesData._gen_c_api()[2]    ]), save_source_as='test.c')
+DriftData.track_function_sources = [
+        _pkg_root.joinpath('track_functions/drift.h')]
 
 class Drift(dress_element(DriftData)):
     '''The drift...'''
@@ -28,8 +22,8 @@ class CavityData(xo.Struct):
     voltage = xo.Float64
     frequency = xo.Float64
     lag = xo.Float64
-with open(thisfolder.joinpath('track_functions/cavity.h')) as fid:
-    CavityData.track_function_source = fid.read()
+CavityData.track_function_sources = [
+        _pkg_root.joinpath('track_functions/cavity.h')]
 
 class Cavity(dress_element(CavityData)):
     pass
@@ -37,8 +31,8 @@ class Cavity(dress_element(CavityData)):
 class XYShiftData(xo.Struct):
     dx = xo.Float64
     dy = xo.Float64
-with open(thisfolder.joinpath('track_functions/xyshift.h')) as fid:
-    XYShiftData.track_function_source = fid.read()
+XYShiftData.track_function_sources = [
+        _pkg_root.joinpath('track_functions/xyshift.h')]
 
 class XYShift(dress_element(XYShiftData)):
     pass
@@ -46,8 +40,9 @@ class XYShift(dress_element(XYShiftData)):
 class SRotationData(xo.Struct):
     cos_z = xo.Float64
     sin_z = xo.Float64
-with open(thisfolder.joinpath('track_functions/srotation.h')) as fid:
-    SRotationData.track_function_source = fid.read()
+SRotationData.track_function_sources = [
+        _pkg_root.joinpath('track_functions/srotation.h')]
+
 
 class SRotation(dress_element(SRotationData)):
 
@@ -67,8 +62,8 @@ class MultipoleData(xo.Struct):
     hxl = xo.Float64
     hyl = xo.Float64
     bal = xo.Float64[:]
-with open(thisfolder.joinpath('track_functions/multipole.h')) as fid:
-    MultipoleData.track_function_source = fid.read()
+MultipoleData.track_function_sources = [
+        _pkg_root.joinpath('track_functions/multipole.h')]
 
 class Multipole(dress_element(MultipoleData)):
 

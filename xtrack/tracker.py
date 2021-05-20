@@ -45,7 +45,7 @@ class Tracker:
             kernels.update(kk)
             cdefs += dd.split('\n')
 
-            sources.append(cc.track_function_source)
+            sources += cc.track_function_sources
 
         cdefs_norep=[]
         for cc in cdefs:
