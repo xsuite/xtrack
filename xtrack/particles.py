@@ -286,3 +286,60 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
 
     return source
 
+def pysixtrack_particles_to_xtrack_dict(self, pysixtrack_particles):
+
+
+    if hasattr(pysixtrack_particles, '__iter__'):
+        num_particles = len(pysixtrack_particles)
+        raise NotImplementedError
+        # Something recursive
+        return
+    else:
+        out = {}
+        pyst_dict = pysixtrack_particles.to_dict()
+        for kk, vv in pyst_dict.items():
+            pyst_dict[kk] = np.atleast_1d(vv)
+
+        lll = [len(vv) for kk, vv in pyst_dict.items() if hasattr(vv, '__len__')]
+        lll = list(set(lll))
+        assert len(set(lll) - {1}) <= 1
+        num_particles = max(lll)
+        out['num_particles'] = num_particles
+
+    for tt, vv in scalar_vars:
+        if vv == 'num_particles':
+            continue
+        val =  getattr(pysixtrack_particle, vv)
+        assert np.all(val, val[0], rtol=1e-10, atol=1e-14)
+        out[vv] = val[0]
+
+    for tt, vv in per_particle_vars:
+
+        if vv == 'weight'and not hasattr(pysixtrack_particle, 'weight'):
+            out['weight'] = np.ones(int(self.num_particles), dtype=tt._dtype)
+            continue
+
+        if vv == 'mass_ratio':
+            vv_pyst = 'mratio'
+        elif vv == 'charge_ratio':
+            vv_pyst = 'qratio'
+        elif vv == 'particle_id':
+            vv_pyst = 'partid'
+        elif vv == 'at_element':
+            vv_pyst = 'elemid'
+        elif vv == 'at_turn':
+            vv_pyst = 'turn'
+        else:
+            vv_pyst = vv
+
+        val_pyst = pyst_part[vv]
+
+        if num_particles > 1 and len(val_pyst)==1:
+            temp = np.zeros(int(self.num_particles), dtype=tt._dtype)
+            temp += val_pyst[0]
+            val_pyst = temp
+
+        if type(val_pyst) != tt._dtype:
+            val_pyst = tt._dtype(val_pyst)
+
+        out[vv] = val_pyst
