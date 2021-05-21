@@ -1,3 +1,4 @@
+import pysixtrack
 import numpy as np
 import xobjects as xo
 
@@ -286,7 +287,7 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
 
     return source
 
-def pysixtrack_particles_to_xtrack_dict(self, pysixtrack_particles):
+def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
 
 
     if hasattr(pysixtrack_particles, '__iter__'):
@@ -296,9 +297,13 @@ def pysixtrack_particles_to_xtrack_dict(self, pysixtrack_particles):
         return
     else:
         out = {}
+
+        # Vectorized everything
         pyst_dict = pysixtrack_particles.to_dict()
         for kk, vv in pyst_dict.items():
             pyst_dict[kk] = np.atleast_1d(vv)
+        pyst_part_vectorized = pysixtrack.Particles.from_dict(pyst_dict)
+
 
         lll = [len(vv) for kk, vv in pyst_dict.items() if hasattr(vv, '__len__')]
         lll = list(set(lll))
@@ -309,13 +314,13 @@ def pysixtrack_particles_to_xtrack_dict(self, pysixtrack_particles):
     for tt, vv in scalar_vars:
         if vv == 'num_particles':
             continue
-        val =  getattr(pysixtrack_particle, vv)
-        assert np.all(val, val[0], rtol=1e-10, atol=1e-14)
+        val = getattr(pyst_part_vectorized, vv)
+        assert np.allclose(val, val[0], rtol=1e-10, atol=1e-14)
         out[vv] = val[0]
 
     for tt, vv in per_particle_vars:
 
-        if vv == 'weight'and not hasattr(pysixtrack_particle, 'weight'):
+        if vv == 'weight'and not hasattr(pysixtrack_particles, 'weight'):
             out['weight'] = np.ones(int(self.num_particles), dtype=tt._dtype)
             continue
 
@@ -332,7 +337,7 @@ def pysixtrack_particles_to_xtrack_dict(self, pysixtrack_particles):
         else:
             vv_pyst = vv
 
-        val_pyst = pyst_part[vv]
+        val_pyst = getattr(pyst_part_vectorized, vv_pyst)
 
         if num_particles > 1 and len(val_pyst)==1:
             temp = np.zeros(int(self.num_particles), dtype=tt._dtype)
