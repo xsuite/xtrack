@@ -298,12 +298,31 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
     else:
         out = {}
 
-        # Vectorized everything
         pyst_dict = pysixtrack_particles.to_dict()
+        for tt, kk in list(scalar_vars) + list(per_particle_vars):
+            if kk not in pyst_dict.keys():
+                if kk == 'num_particles':
+                    continue
+                if kk == 'weight':
+                    pyst_dict[kk]  = 1.
+                else:
+                    if kk == 'mass_ratio':
+                        kk_pyst = 'mratio'
+                    elif kk == 'charge_ratio':
+                        kk_pyst = 'qratio'
+                    elif kk == 'particle_id':
+                        kk_pyst = 'partid'
+                    elif kk == 'at_element':
+                        kk_pyst = 'elemid'
+                    elif kk == 'at_turn':
+                        kk_pyst = 'turn'
+                    else:
+                        kk_pyst = kk
+                    # Use properties
+                    pyst_dict[kk] = getattr(pysixtrack_particles, kk_pyst)
+
         for kk, vv in pyst_dict.items():
             pyst_dict[kk] = np.atleast_1d(vv)
-        pyst_part_vectorized = pysixtrack.Particles.from_dict(pyst_dict)
-
 
         lll = [len(vv) for kk, vv in pyst_dict.items() if hasattr(vv, '__len__')]
         lll = list(set(lll))
@@ -314,37 +333,22 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
     for tt, vv in scalar_vars:
         if vv == 'num_particles':
             continue
-        val = getattr(pyst_part_vectorized, vv)
+        val = pyst_dict[kk]
         assert np.allclose(val, val[0], rtol=1e-10, atol=1e-14)
         out[vv] = val[0]
 
     for tt, vv in per_particle_vars:
 
-        if vv == 'weight'and not hasattr(pysixtrack_particles, 'weight'):
-            out['weight'] = np.ones(int(self.num_particles), dtype=tt._dtype)
-            continue
-
-        if vv == 'mass_ratio':
-            vv_pyst = 'mratio'
-        elif vv == 'charge_ratio':
-            vv_pyst = 'qratio'
-        elif vv == 'particle_id':
-            vv_pyst = 'partid'
-        elif vv == 'at_element':
-            vv_pyst = 'elemid'
-        elif vv == 'at_turn':
-            vv_pyst = 'turn'
-        else:
-            vv_pyst = vv
-
-        val_pyst = getattr(pyst_part_vectorized, vv_pyst)
+        val_pyst = pyst_dict[vv]
 
         if num_particles > 1 and len(val_pyst)==1:
-            temp = np.zeros(int(self.num_particles), dtype=tt._dtype)
+            temp = np.zeros(int(num_particles), dtype=tt._dtype)
             temp += val_pyst[0]
             val_pyst = temp
 
         if type(val_pyst) != tt._dtype:
-            val_pyst = tt._dtype(val_pyst)
+            val_pyst = np.array(val_pyst, dtype=tt._dtype)
 
         out[vv] = val_pyst
+
+    return out
