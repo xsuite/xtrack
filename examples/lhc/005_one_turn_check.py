@@ -15,7 +15,7 @@ short_test = False # Short line (5 elements)
 ####################
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
+#context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 ##################
@@ -30,7 +30,7 @@ if short_test:
 ##################
 # Build TrackJob #
 ##################
-
+print('Build tracker...')
 tracker = xt.Tracker(context=context,
             sequence=sequence,
             particles_class=xt.Particles,
@@ -40,7 +40,7 @@ tracker = xt.Tracker(context=context,
 ######################
 # Get some particles #
 ######################
-
+print('Particles...')
 sixdump = sixtracktools.SixDump101("res/dump3.dat")
 
 # TODO: The two particles look identical, to be checked
@@ -57,12 +57,14 @@ particles = xt.Particles(pysixtrack_particles=pysixtrack_particles,
 #########
 # Track #
 #########
+print('Track a few turns...')
 n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
 ############################
 # Check against pysixtrack #
 ############################
+print('Check against pysixtrack...')
 ip_check = 1
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 pyst_part = pysixtrack_particles[ip_check].copy()
@@ -71,7 +73,7 @@ for _ in range(n_turns):
 
 for vv in vars_to_check:
     pyst_value = getattr(pyst_part, vv)
-    xt_value = getattr(particles, vv)[ip_check]
+    xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
     passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=1e-11)
     if not passed:
         print(f'Not passend on var {vv}!\n'
@@ -82,7 +84,7 @@ for vv in vars_to_check:
 ##############
 # Check  ebe #
 ##############
-
+print('Check element-by-element against pysixtrack...')
 pyst_part = pysixtrack_particles[ip_check].copy()
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
@@ -96,7 +98,8 @@ for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)
     eepyst.track(pyst_part)
     for vv in vars_to_check:
         pyst_change = getattr(pyst_part, vv) - vars_before[vv]
-        xt_change = getattr(particles, vv)[ip_check] -vars_before[vv]
+        xt_change = context.nparray_from_context_array(
+                getattr(particles, vv))[ip_check] -vars_before[vv]
         passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=1e-14)
         if not passed:
             problem_found = True

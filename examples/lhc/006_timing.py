@@ -15,15 +15,19 @@ import time
 # num_turns = int(100)
 
 short_test = False
-n_part = 200#00
 num_turns = int(100)
 
 ####################
 # Choose a context #
 ####################
 
+n_part = 200
 context = xo.ContextCpu()
+
+#n_part = 20000
 #context = xo.ContextCupy()
+
+#n_part = 20000
 #context = xo.ContextPyopencl('0.0')
 
 ##################
@@ -99,7 +103,8 @@ for iturn in range(num_turns):
 
 for vv in vars_to_check:
     pyst_value = getattr(pyst_part, vv)
-    xt_value = getattr(particles, vv)[ip_check]
+    xt_value = context.nparray_from_context_array(
+                        getattr(particles, vv)[ip_check])
     passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=1e-11)
     if not passed:
         print(f'Not passed on var {vv}!\n'
