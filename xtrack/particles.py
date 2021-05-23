@@ -131,52 +131,58 @@ class Particles(dress(ParticlesData)):
     def set_particles_from_pysixtrack(self, index, pysixtrack_particle,
             set_scalar_vars=False, check_scalar_vars=True):
 
-        context = self._buffer.context
+        part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particle)
+        for tt, kk in list(scalar_vars):
+            if kk == 'num_particles':
+                continue
+            setattr(self, kk, part_dict[kk])
+        for tt, kk in list(per_particle_vars):
+            getattr(self, kk)[index] = part_dict[kk][0]
 
-        if not(set_scalar_vars) and check_scalar_vars:
-            for tt, vv in scalar_vars:
-                if vv == 'num_particles':
-                    continue
-                vv_first = getattr(self, vv)
-                assert (getattr(pysixtrack_particle, vv)
-                               == vv_first), f'Inconsistent "{vv}"'
+        #if not(set_scalar_vars) and check_scalar_vars:
+        #    for tt, vv in scalar_vars:
+        #        if vv == 'num_particles':
+        #            continue
+        #        vv_first = getattr(self, vv)
+        #        assert (getattr(pysixtrack_particle, vv)
+        #                       == vv_first), f'Inconsistent "{vv}"'
 
-        if set_scalar_vars:
-            for tt, vv in scalar_vars:
-                if vv == 'num_particles':
-                    continue
-                setattr(self, vv, getattr(pysixtrack_particle, vv))
+        #if set_scalar_vars:
+        #    for tt, vv in scalar_vars:
+        #        if vv == 'num_particles':
+        #            continue
+        #        setattr(self, vv, getattr(pysixtrack_particle, vv))
 
-        for tt, vv in per_particle_vars:
-            if vv == 'weight':
-                if not hasattr(pysixtrack_particle, 'weight'):
-                    if index is None:
-                        self.weight = np.zeros(int(self.num_particles)) + 1.
-                    else:
-                        self.weight[index] = 1.
-                    continue
+        #for tt, vv in per_particle_vars:
+        #    if vv == 'weight':
+        #        if not hasattr(pysixtrack_particle, 'weight'):
+        #            if index is None:
+        #                self.weight = np.zeros(int(self.num_particles)) + 1.
+        #            else:
+        #                self.weight[index] = 1.
+        #            continue
 
-            if vv == 'mass_ratio':
-                vv_pyst = 'mratio'
-            elif vv == 'charge_ratio':
-                vv_pyst = 'qratio'
-            elif vv == 'particle_id':
-                vv_pyst = 'partid'
-            elif vv == 'at_element':
-                vv_pyst = 'elemid'
-            elif vv == 'at_turn':
-                vv_pyst = 'turn'
-            else:
-                vv_pyst = vv
+        #    if vv == 'mass_ratio':
+        #        vv_pyst = 'mratio'
+        #    elif vv == 'charge_ratio':
+        #        vv_pyst = 'qratio'
+        #    elif vv == 'particle_id':
+        #        vv_pyst = 'partid'
+        #    elif vv == 'at_element':
+        #        vv_pyst = 'elemid'
+        #    elif vv == 'at_turn':
+        #        vv_pyst = 'turn'
+        #    else:
+        #        vv_pyst = vv
 
-            if index is None:
-                val_pyst = getattr(pysixtrack_particle, vv_pyst)
-                if np.isscalar(val_pyst):
-                    val_pyst = val_pyst + np.zeros(int(self.num_particles))
-                setattr(self, vv, context.nparray_to_context_array(val_pyst))
-            else:
-                getattr(self, vv)[index] = getattr(
-                            pysixtrack_particle, vv_pyst)
+        #    if index is None:
+        #        val_pyst = getattr(pysixtrack_particle, vv_pyst)
+        #        if np.isscalar(val_pyst):
+        #            val_pyst = val_pyst + np.zeros(int(self.num_particles))
+        #        setattr(self, vv, context.nparray_to_context_array(val_pyst))
+        #    else:
+        #        getattr(self, vv)[index] = getattr(
+        #                    pysixtrack_particle, vv_pyst)
 
 def gen_local_particle_api(mode='no_local_copy'):
 
