@@ -43,7 +43,7 @@ def dress_element(XoElementData):
                 ParticlesData._gen_c_api(api_conf)[0],
                 gen_local_particle_api(),
                 self.XoStruct._gen_c_api(api_conf)[0]]
-                + self.XoStruct.track_function_sources
+                + self.XoStruct.extra_sources
                 + [self.track_kernel_source],
             kernels=self.track_kernel_description,
             extra_cdef='\n'.join([

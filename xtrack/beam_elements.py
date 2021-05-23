@@ -11,7 +11,7 @@ from .general import _pkg_root
 
 class DriftData(xo.Struct):
     length = xo.Float64
-DriftData.track_function_sources = [
+DriftData.extra_sources = [
         _pkg_root.joinpath('track_functions/drift.h')]
 
 class Drift(dress_element(DriftData)):
@@ -22,7 +22,7 @@ class CavityData(xo.Struct):
     voltage = xo.Float64
     frequency = xo.Float64
     lag = xo.Float64
-CavityData.track_function_sources = [
+CavityData.extra_sources = [
         _pkg_root.joinpath('track_functions/cavity.h')]
 
 class Cavity(dress_element(CavityData)):
@@ -31,7 +31,7 @@ class Cavity(dress_element(CavityData)):
 class XYShiftData(xo.Struct):
     dx = xo.Float64
     dy = xo.Float64
-XYShiftData.track_function_sources = [
+XYShiftData.extra_sources = [
         _pkg_root.joinpath('track_functions/xyshift.h')]
 
 class XYShift(dress_element(XYShiftData)):
@@ -40,7 +40,7 @@ class XYShift(dress_element(XYShiftData)):
 class SRotationData(xo.Struct):
     cos_z = xo.Float64
     sin_z = xo.Float64
-SRotationData.track_function_sources = [
+SRotationData.extra_sources = [
         _pkg_root.joinpath('track_functions/srotation.h')]
 
 
@@ -62,7 +62,7 @@ class MultipoleData(xo.Struct):
     hxl = xo.Float64
     hyl = xo.Float64
     bal = xo.Float64[:]
-MultipoleData.track_function_sources = [
+MultipoleData.extra_sources = [
         _pkg_root.joinpath('track_functions/multipole.h')]
 
 class Multipole(dress_element(MultipoleData)):
