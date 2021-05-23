@@ -52,38 +52,50 @@ class Particles(dress(ParticlesData)):
 
     def __init__(self, pysixtrack_particles=None, num_particles=None, **kwargs):
 
+
         # Initalize array sizes
-        if pysixtrack_particles is not None:
-            if hasattr(pysixtrack_particles, '__iter__'):
-                # Assuming list of pysixtrack particles
-                num_particles = len(pysixtrack_particles)
-            else:
-                num_particles = len(pysixtrack_particles.x)
-        else:
-            assert num_particles is not None
+        part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particles)
+        num_particles = int(part_dict['num_particles'])
+
+
+        #if pysixtrack_particles is not None:
+        #    if hasattr(pysixtrack_particles, '__iter__'):
+        #        # Assuming list of pysixtrack particles
+        #        num_particles = len(pysixtrack_particles)
+        #    else:
+        #        num_particles = len(pysixtrack_particles.x)
+        #else:
+        #    assert num_particles is not None
 
         kwargs.update(
-                {kk: np.arange(num_particles)+1 for tt, kk in per_particle_vars})
+                {kk: num_particles for tt, kk in per_particle_vars})
         kwargs['num_particles'] = num_particles
 
-        if '_context' in kwargs.keys():
-            ctx = kwargs['_context']
-            for kk, vv in kwargs.items():
-                if isinstance(vv, np.ndarray):
-                    kwargs[kk] = ctx.nparray_to_context_array(vv)
+        #if '_context' in kwargs.keys():
+        #    ctx = kwargs['_context']
+        #    for kk, vv in kwargs.items():
+        #        if isinstance(vv, np.ndarray):
+        #            kwargs[kk] = ctx.nparray_to_context_array(vv)
 
         self.xoinitialize(**kwargs)
+        context = self._buffer.context
+
+        for tt, kk in list(scalar_vars):
+            setattr(self, kk, part_dict[kk])
+        for tt, kk in list(per_particle_vars):
+            setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
+
 
         # Initalize arrays
-        if pysixtrack_particles is not None:
-            if hasattr(pysixtrack_particles, '__iter__'):
-                for ii, pyst_part in enumerate(pysixtrack_particles):
-                    self.set_particles_from_pysixtrack(ii, pyst_part,
-                                                   set_scalar_vars=(ii==0))
-            else:
-                self.set_particles_from_pysixtrack(None,
-                                                   pysixtrack_particles,
-                                                   set_scalar_vars=True)
+        #if pysixtrack_particles is not None:
+        #    if hasattr(pysixtrack_particles, '__iter__'):
+        #        for ii, pyst_part in enumerate(pysixtrack_particles):
+        #            self.set_particles_from_pysixtrack(ii, pyst_part,
+        #                                           set_scalar_vars=(ii==0))
+        #    else:
+        #        self.set_particles_from_pysixtrack(None,
+        #                                           pysixtrack_particles,
+        #                                           set_scalar_vars=True)
 
 
     def _set_p0c(self):
@@ -289,22 +301,30 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
 
 def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
 
-
     if hasattr(pysixtrack_particles, '__iter__'):
         num_particles = len(pysixtrack_particles)
-        raise NotImplementedError
-        # Something recursive
-        return
+        dicts = list(map(pysixtrack_particles_to_xtrack_dict, pysixtrack_particles))
+        out = {}
+        out['num_particles'] = num_particles
+        for tt, kk in scalar_vars:
+            if kk == 'num_particles':
+                continue
+            # TODO check consistency
+            out[kk] = dicts[0][kk]
+        for tt, kk in per_particle_vars:
+            out[kk] = np.concatenate([dd[kk] for dd in dicts])
+        return out
     else:
         out = {}
 
         pyst_dict = pysixtrack_particles.to_dict()
+        if 'weight' not in pyst_dict.keys():
+            pyst_dict['weight'] = 1.
+
         for tt, kk in list(scalar_vars) + list(per_particle_vars):
             if kk not in pyst_dict.keys():
                 if kk == 'num_particles':
                     continue
-                if kk == 'weight':
-                    pyst_dict[kk]  = 1.
                 else:
                     if kk == 'mass_ratio':
                         kk_pyst = 'mratio'
@@ -330,16 +350,16 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
         num_particles = max(lll)
         out['num_particles'] = num_particles
 
-    for tt, vv in scalar_vars:
-        if vv == 'num_particles':
+    for tt, kk in scalar_vars:
+        if kk == 'num_particles':
             continue
         val = pyst_dict[kk]
         assert np.allclose(val, val[0], rtol=1e-10, atol=1e-14)
-        out[vv] = val[0]
+        out[kk] = val[0]
 
-    for tt, vv in per_particle_vars:
+    for tt, kk in per_particle_vars:
 
-        val_pyst = pyst_dict[vv]
+        val_pyst = pyst_dict[kk]
 
         if num_particles > 1 and len(val_pyst)==1:
             temp = np.zeros(int(num_particles), dtype=tt._dtype)
@@ -349,6 +369,6 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
         if type(val_pyst) != tt._dtype:
             val_pyst = np.array(val_pyst, dtype=tt._dtype)
 
-        out[vv] = val_pyst
+        out[kk] = val_pyst
 
     return out
