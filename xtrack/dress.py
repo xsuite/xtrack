@@ -55,7 +55,20 @@ def dress(XoStruct):
     def myinit(self, **kwargs):
         self.xoinitialize(**kwargs)
 
+    def compile_custom_kernels(self):
+        context = self._buffer.context
+
+        api_conf = {'prepointer': ' /*gpuglmem*/ '} # TODO: remove
+        capi_src, _, capi_cdefs = self.XoStruct._gen_c_api(api_conf)
+
+        context.add_kernels(sources=([capi_src]
+                + self.XoStruct.extra_sources),
+            kernels=self.XoStruct.custom_kernels,
+            extra_cdef='\n'.join([capi_cdefs]),
+            save_source_as='temp.c')
+
     DressedXStruct.xoinitialize = xoinitialize
+    DressedXStruct.compile_custom_kernels = compile_custom_kernels
     DressedXStruct.__init__ = myinit
 
     return DressedXStruct
