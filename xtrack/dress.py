@@ -33,7 +33,7 @@ class _FieldOfDressed:
             self.content = None
             setattr(container._xobject, self.name, value)
 
-def dress(XoStruct):
+def dress(XoStruct, rename={}):
 
     DressedXStruct = type(
         'Dressed'+XoStruct.__name__,
@@ -46,7 +46,12 @@ def dress(XoStruct):
 
     for ff in XoStruct._fields:
         fname = ff.name
-        setattr(DressedXStruct, fname,
+        if fname in rename.keys():
+            pyname = rename[fname]
+        else:
+            pyname = fname
+
+        setattr(DressedXStruct, pyname,
                 _FieldOfDressed(fname, XoStruct))
 
     def xoinitialize(self, **kwargs):
