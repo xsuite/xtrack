@@ -42,6 +42,8 @@ def dress(XoStruct, rename={}):
         (),
         {'XoStruct': XoStruct})
 
+    DressedXStruct._rename = rename
+
     for ff in ['_buffer', '_offset']:
         setattr(DressedXStruct, ff,
                 _FieldOfDressed(ff, XoStruct))
@@ -57,7 +59,21 @@ def dress(XoStruct, rename={}):
                 _FieldOfDressed(fname, XoStruct))
 
     def xoinitialize(self, **kwargs):
+        dressed_kwargs = {}
+        for kk, vv in kwargs.items():
+            if hasattr(vv, '_xobject'):
+                dressed_kwargs[kk] = vv
+                kwargs[kk] = vv._xobject
+
         self._xobject = self.XoStruct(**kwargs)
+
+        for kk, vv in dressed_kwargs.items():
+            if kk in self._rename.keys():
+                pyname = self._rename[kk]
+            else:
+                pyname = kk
+            setattr(self, pyname, vv)
+
 
     def myinit(self, **kwargs):
         self.xoinitialize(**kwargs)
