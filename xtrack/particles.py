@@ -252,7 +252,9 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
         out = {}
 
         pyst_dict = pysixtrack_particles.to_dict()
-        if 'weight' not in pyst_dict.keys():
+        if hasattr(pysixtrack_particles, 'weight'):
+            pyst_dict['weight'] = getattr(pysixtrack_particles, 'weight')
+        else:
             pyst_dict['weight'] = 1.
 
         for tt, kk in list(scalar_vars) + list(per_particle_vars):
