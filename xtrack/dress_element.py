@@ -36,7 +36,7 @@ def dress_element(XoElementData):
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
                         xo.Arg(ParticlesData, name='particles')])}
 
-    def compile_track_kernel(self):
+    def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
 
         context.add_kernels(sources=[
@@ -49,7 +49,7 @@ def dress_element(XoElementData):
             extra_cdef='\n'.join([
                 self.XoStruct._gen_c_api(api_conf)[2],
                 ParticlesData._gen_c_api(api_conf)[2]]),
-            save_source_as=None)
+            save_source_as=save_source_as)
 
 
     def track(self, particles):
