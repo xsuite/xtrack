@@ -22,7 +22,9 @@ class _FieldOfDressed:
             return getattr(container._xobject, self.name)
 
     def __set__(self, container, value):
-        if hasattr(value, '_xobject'): # value is a dressed xobject
+        if self.isnplikearray:
+            getattr(container._xobject, self.name).to_nplike()[:] = value
+        elif hasattr(value, '_xobject'): # value is a dressed xobject
             self.isdressed = True
             setattr(container, '_dressed_' + self.name, value)
             setattr(container._xobject, self.name, value._xobject)
