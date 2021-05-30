@@ -39,16 +39,24 @@ def dress_element(XoElementData):
     def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
 
+        src_part, _, cdefs_part= ParticlesData._gen_c_api(api_conf)
+        src_ele, _, cdefs_ele = self.XoStruct._gen_c_api(api_conf)
+
+        cdefs = '\n'.join([cdefs_part, cdefs_ele])
+        cdefs_norep=[]
+        for cc in cdefs.split('\n'):
+            if cc not in cdefs_norep:
+                cdefs_norep.append(cc)
+        cdefs_norep = '\n'.join(cdefs_norep)
+
         context.add_kernels(sources=[
-                ParticlesData._gen_c_api(api_conf)[0],
+                src_part,
                 gen_local_particle_api(),
-                self.XoStruct._gen_c_api(api_conf)[0]]
+                src_ele]
                 + self.XoStruct.extra_sources
                 + [self.track_kernel_source],
             kernels=self.track_kernel_description,
-            extra_cdef='\n'.join([
-                self.XoStruct._gen_c_api(api_conf)[2],
-                ParticlesData._gen_c_api(api_conf)[2]]),
+            extra_cdef=cdefs_norep,
             save_source_as=save_source_as)
 
 
