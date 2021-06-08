@@ -226,6 +226,26 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
     LocalParticle_set_rvv(part, rvv );
     LocalParticle_set_rpp(part, 1. / one_plus_delta );
 }
+
+/*gpufun*/
+void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
+
+    double const beta0 = LocalParticle_get_beta0(part);
+    double const delta_beta0 = new_delta_value * beta0;
+    double const ptau_beta0  = sqrt( delta_beta0 * delta_beta0 +
+                                2. * delta_beta0 * beta0 + 1. ) - 1.;
+
+    double const one_plus_delta = 1. + new_delta_value;
+    double const rvv    = ( one_plus_delta ) / ( 1. + ptau_beta0 );
+    double const rpp    = 1. / one_plus_delta;
+    double const psigma = ptau_beta0 / ( beta0 * beta0 );
+
+    LocalParticle_set_delta(part, new_delta_value);
+    LocalParticle_set_rvv(part, rvv );
+    LocalParticle_set_rpp(part, rpp );
+    LocalParticle_set_psigma(part, psigma );
+
+}
 '''
 
     source = '\n\n'.join([src_typedef, src_particles_to_local, src_adders,
