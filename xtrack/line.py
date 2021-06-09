@@ -15,7 +15,7 @@ except ImportError:
 
 def seq_typename_to_xtclass(typename):
     if typename in xfields_elements.keys():
-        return xfields[typename]
+        return xfields_elements[typename]
     else:
         return getattr(be, typename)
 
@@ -45,8 +45,8 @@ class Line():
         elements = []
         for ii, ee in enumerate(sequence.elements):
             XtClass = seq_typename_to_xtclass(ee.__class__.__name__)
-            if hasattr(XtClass, 'from_pysiztrack'):
-                xt_ee = XtClass.from_pysixtrack(ee)
+            if hasattr(XtClass, 'from_pysixtrack'):
+                xt_ee = XtClass.from_pysixtrack(ee, _buffer=line_data._buffer)
             else:
                 xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
             elements.append(xt_ee)
