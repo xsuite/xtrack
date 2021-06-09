@@ -17,7 +17,7 @@ fname_line_particles = './lhc_with_bb/line_and_particle.pkl'
 ####################
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
+context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 #############
@@ -28,14 +28,14 @@ with open(fname_line_particles, 'rb') as fid:
     input_data = pickle.load(fid)
 
 
-# DEBUUUUUG:
-line_dict = input_data['line']
-for ii, ee in enumerate(line_dict['elements']):
-    if ee['__class__'] == 'BeamBeam6D':
-        line_dict['elements'][ii] = {}
-        ee = line_dict['elements'][ii]
-        ee['__class__'] = 'Drift'
-        ee['length'] = 0.
+## DEBUUUUUG:
+#line_dict = input_data['line']
+#for ii, ee in enumerate(line_dict['elements']):
+#    if ee['__class__'] == 'BeamBeam6D':
+#        line_dict['elements'][ii] = {}
+#        ee = line_dict['elements'][ii]
+#        ee['__class__'] = 'Drift'
+#        ee['length'] = 0.
 
 
 ##################
