@@ -2,9 +2,16 @@ import xobjects as xo
 
 from . import beam_elements as be
 
+
+
 class Line():
     def __init__(self, sequence,
            _context=None, _buffer=None,  _offset=None):
+
+        '''
+        At the moment the sequence is assumed to be a pysixtrack line.
+        This will be generalized in the future.
+        '''
 
         num_elements = len(sequence.elements)
         elem_type_names = set([ee.__class__.__name__
