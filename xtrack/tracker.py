@@ -105,7 +105,7 @@ class Tracker:
             if isinstance(ss, Path):
                 with open(ss, 'r') as fid:
                     ss = fid.read()
-            sources[ii] = ss.replace('/*gpufun*/', '/*gpufun*/ inline')
+            sources[ii] = ss.replace('/*gpufun*/', '/*gpufun*/ static inline')
 
         kernel_descriptions = {
             "track_line": xo.Kernel(
