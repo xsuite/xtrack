@@ -1,5 +1,4 @@
 import pickle
-from pathlib import Path
 import numpy as np
 
 import xtrack as xt
@@ -12,12 +11,6 @@ short_test = False # Short line (5 elements)
 
 fname_line_particles = './lhc_no_bb/line_and_particle.pkl'
 
-#############
-# Load file #
-#############
-with open(fname_line_particles, 'rb') as fid:
-    input_data = pickle.load(fid)
-
 ####################
 # Choose a context #
 ####################
@@ -26,11 +19,20 @@ context = xo.ContextCpu()
 #context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
+#############
+# Load file #
+#############
+
+with open(fname_line_particles, 'rb') as fid:
+    input_data = pickle.load(fid)
+
 ##################
 # Get a sequence #
 ##################
 
 sequence = pysixtrack.Line.from_dict(input_data['line'])
+if short_test:
+    sequence = make_short_line(sequence)
 
 ##################
 # Build TrackJob #

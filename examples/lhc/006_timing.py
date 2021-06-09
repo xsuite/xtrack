@@ -1,13 +1,14 @@
-from pathlib import Path
+import pickle
 import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import sixtracktools
 import pysixtrack
 
 from make_short_line import make_short_line
 import time
+
+fname_line_particles = './lhc_no_bb/line_and_particle.pkl'
 
 # # Quick test (for debugging)
 # short_test = True# Short line (5 elements)
@@ -30,13 +31,19 @@ context = xo.ContextCpu()
 #n_part = 20000
 #context = xo.ContextPyopencl('0.0')
 
+#############
+# Load file #
+#############
+
+with open(fname_line_particles, 'rb') as fid:
+    input_data = pickle.load(fid)
+
 ##################
 # Get a sequence #
 ##################
 
 print('Import sequence')
-six = sixtracktools.SixInput(".")
-sequence = pysixtrack.Line.from_sixinput(six)
+sequence = pysixtrack.Line.from_dict(input_data['line'])
 if short_test:
     sequence = make_short_line(sequence)
 
@@ -56,18 +63,13 @@ tracker = xt.Tracker(context=context,
 ######################
 
 print('Import particles')
-sixdump = sixtracktools.SixDump101("res/dump3.dat")
-
-# TODO: The two particles look identical, to be checked
-part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
-part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
-pysixtrack_particles = [part0_pyst, part1_pyst]
+part_pyst = pysixtrack.Particles.from_dict(input_data['particle'])
 
 dx_array = np.linspace(-1e-4, 1e-4, n_part)
 dy_array = np.linspace(-2e-4, 2e-4, n_part)
 pysixtrack_particles = []
 for ii in range(n_part):
-    pp = part1_pyst.copy()
+    pp = part_pyst.copy()
     pp.x += dx_array[ii]
     pp.y += dy_array[ii]
     pysixtrack_particles.append(pp)
