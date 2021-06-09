@@ -167,7 +167,7 @@ for ii in range(1, len(iconv)):
         break
 
 import pickle
-with open('line_and_testpart.pkl', 'wb') as fid:
+with open('line_and_particle.pkl', 'wb') as fid:
     pickle.dump({
         'line': line.to_dict(keepextra=True),
         'particle': pysixtrack.Particles(

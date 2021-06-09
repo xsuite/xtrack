@@ -10,6 +10,7 @@ from make_short_line import make_short_line
 short_test = False # Short line (5 elements)
 
 fname_line_particles = './lhc_no_bb/line_and_particle.pkl'
+fname_line_particles = './lhc_with_bb/line_and_particle.pkl'
 
 ####################
 # Choose a context #

@@ -1,0 +1,25 @@
+# SixTrack Simulation Time Data
+################################################################################
+Internal_ZeroTime                :       0.000736 s
+Stamp_AtStart                    :       0.000000 s
+Stamp_AfterFileUnits             :       0.003038 s
+Stamp_AfterDaten                 :       1.143733 s
+Stamp_AfterClosedOrbit           :       3.767823 s
+Stamp_AfterBeamDist              :       3.772159 s
+Stamp_AfterInitialisation        :       3.772167 s
+Stamp_AfterPreTrack              :       3.954288 s
+Stamp_AfterTracking              :       5.212579 s
+Stamp_AfterPostProcessing        :       5.212596 s
+Stamp_AfterHASH                  :       5.212630 s
+Stamp_BeforeExit                 :       5.212663 s
+Sum_Tracking                     :       1.258291 s
+Avg_PerParticle                  :      19.660797 ms
+Avg_PerTurn                      :      12.582910 ms
+Avg_PerElement                   :       0.068145 ms
+Avg_PerParticleTurn              :     196.607969 us
+Avg_PerParticleTurnElement       :      10.647602 ns
+Cost_DumpModule                  :       0.000000 s   [N = 0]
+Cost_CollimationModule           :       0.000000 s   [N = 0]
+Cost_ScatterModule               :       0.000000 s   [N = 0]
+Cost_HDF5Module                  :       0.000000 s   [N = 0]
+# END
