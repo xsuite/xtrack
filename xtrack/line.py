@@ -2,7 +2,22 @@ import xobjects as xo
 
 from . import beam_elements as be
 
+try:
+    import xfields as xf
+    xfields_elements = {
+        'BeamBeam4D': xf.BeamBeamBiGaussian2D,
+        'BeamBeam6D': xf.BeamBeamBiGaussian3D}
+except ImportError:
+    print('Xfields not available')
+    xfields_elements = {
+        'BeamBeam4D': None,
+        'BeamBeam6D': None}
 
+def seq_typename_to_xtclass(typename):
+    if typename in xfields_elements.keys():
+        return xfields[typename]
+    else:
+        return getattr(be, typename)
 
 class Line():
     def __init__(self, sequence,
@@ -16,8 +31,12 @@ class Line():
         num_elements = len(sequence.elements)
         elem_type_names = set([ee.__class__.__name__
                                 for ee in sequence.elements])
-        element_types = [getattr(be, nn) for nn in sorted(elem_type_names)]
-        element_data_types = [cc.XoStruct for cc in element_types]
+
+        # Identify xtrack element classes
+        element_data_types = []
+        for nn in sorted(elem_type_names):
+            cc = seq_typename_to_xtclass(nn)
+            element_data_types.append(cc.XoStruct)
 
         ElementRefClass = xo.Ref(*element_data_types)
         LineDataClass = ElementRefClass[num_elements]
@@ -25,8 +44,11 @@ class Line():
                 _buffer=_buffer, _offset=_offset)
         elements = []
         for ii, ee in enumerate(sequence.elements):
-            XtClass = getattr(be, ee.__class__.__name__)
-            xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
+            XtClass = seq_typename_to_xtclass(ee.__class__.__name__)
+            if hasattr(XtClass, 'from_pysiztrack'):
+                xt_ee = XtClass.from_pysixtrack(ee)
+            else:
+                xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
             elements.append(xt_ee)
             line_data[ii] = xt_ee._xobject
 
