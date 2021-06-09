@@ -1,14 +1,22 @@
+import pickle
 from pathlib import Path
 import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import sixtracktools
 import pysixtrack
 
 from make_short_line import make_short_line
 
 short_test = False # Short line (5 elements)
+
+fname_line_particles = './lhc_no_bb/line_and_particle.pkl'
+
+#############
+# Load file #
+#############
+with open(fname_line_particles, 'rb') as fid:
+    input_data = pickle.load(fid)
 
 ####################
 # Choose a context #
@@ -22,10 +30,7 @@ context = xo.ContextCpu()
 # Get a sequence #
 ##################
 
-six = sixtracktools.SixInput(".")
-sequence = pysixtrack.Line.from_sixinput(six)
-if short_test:
-    sequence = make_short_line(sequence)
+sequence = pysixtrack.Line.from_dict(input_data['line'])
 
 ##################
 # Build TrackJob #
@@ -40,17 +45,9 @@ tracker = xt.Tracker(context=context,
 ######################
 # Get some particles #
 ######################
-print('Particles...')
-sixdump = sixtracktools.SixDump101("res/dump3.dat")
+part_pyst = pysixtrack.Particles.from_dict(input_data['particle'])
 
-# TODO: The two particles look identical, to be checked
-part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
-part1_pyst = pysixtrack.Particles(**sixdump[1::2][0].get_minimal_beam())
-# Small kick
-part1_pyst.x += 1e-4
-part1_pyst.y += 1e-4
-
-pysixtrack_particles = [part0_pyst, part1_pyst]
+pysixtrack_particles = [part_pyst, part_pyst] # Track twice the same particle
 
 particles = xt.Particles(pysixtrack_particles=pysixtrack_particles,
                          _context=context)
