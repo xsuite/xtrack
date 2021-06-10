@@ -18,7 +18,7 @@ fname_line_particles = './lhc_with_bb/line_and_particle.pkl'
 
 context = xo.ContextCpu()
 #context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
+#context = xo.ContextPyopencl('0.0')
 
 #############
 # Load file #
@@ -111,7 +111,7 @@ for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)
         pyst_change = getattr(pyst_part, vv) - vars_before[vv]
         xt_change = context.nparray_from_context_array(
                 getattr(particles, vv))[ip_check] -vars_before[vv]
-        passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=1e-14)
+        passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=5e-14)
         if not passed:
             problem_found = True
             print(f'Not passend on var {vv}!\n'
