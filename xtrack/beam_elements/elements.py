@@ -4,9 +4,9 @@ import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
-from .dress_element import dress_element
-from .particles import ParticlesData
-from .general import _pkg_root
+from ..dress_element import dress_element
+from ..particles import ParticlesData
+from ..general import _pkg_root
 
 
 class DriftData(xo.Struct):
