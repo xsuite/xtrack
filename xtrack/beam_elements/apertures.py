@@ -1,6 +1,6 @@
 import xobjects as xo
 
-from .dress_element import dress_element
+from ..dress_element import dress_element
 
 
 class LimitRect(xo.Struct):

@@ -12,7 +12,7 @@ from ..general import _pkg_root
 class DriftData(xo.Struct):
     length = xo.Float64
 DriftData.extra_sources = [
-        _pkg_root.joinpath('track_functions/drift.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
 
 class Drift(dress_element(DriftData)):
     '''The drift...'''
@@ -23,7 +23,7 @@ class CavityData(xo.Struct):
     frequency = xo.Float64
     lag = xo.Float64
 CavityData.extra_sources = [
-        _pkg_root.joinpath('track_functions/cavity.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
 
 class Cavity(dress_element(CavityData)):
     pass
@@ -32,7 +32,7 @@ class XYShiftData(xo.Struct):
     dx = xo.Float64
     dy = xo.Float64
 XYShiftData.extra_sources = [
-        _pkg_root.joinpath('track_functions/xyshift.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
 
 class XYShift(dress_element(XYShiftData)):
     pass
@@ -41,7 +41,7 @@ class SRotationData(xo.Struct):
     cos_z = xo.Float64
     sin_z = xo.Float64
 SRotationData.extra_sources = [
-        _pkg_root.joinpath('track_functions/srotation.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
 
 class SRotation(dress_element(SRotationData)):
@@ -63,7 +63,7 @@ class MultipoleData(xo.Struct):
     hyl = xo.Float64
     bal = xo.Float64[:]
 MultipoleData.extra_sources = [
-        _pkg_root.joinpath('track_functions/multipole.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
 class Multipole(dress_element(MultipoleData)):
 
