@@ -50,7 +50,8 @@ ParticlesData = type(
 
 class Particles(dress(ParticlesData)):
 
-    def __init__(self, pysixtrack_particles=None, num_particles=None, **kwargs):
+    def __init__(self, pysixtrack_particles=None, num_particles=None,
+            set_all_active=True, **kwargs):
 
 
         # Initalize array sizes
@@ -68,6 +69,9 @@ class Particles(dress(ParticlesData)):
             setattr(self, kk, part_dict[kk])
         for tt, kk in list(per_particle_vars):
             setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
+
+        if set_all_active:
+            particles.state[:] = 1
 
 
     def _set_p0c(self):
