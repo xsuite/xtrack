@@ -166,10 +166,26 @@ for ii in range(1, len(iconv)):
         print("Error detected")
         break
 
-import pickle
-with open('line_and_particle.pkl', 'wb') as fid:
-    pickle.dump({
+#import pickle
+#with open('line_and_particle.pkl', 'wb') as fid:
+#    pickle.dump({
+#        'line': line.to_dict(keepextra=True),
+#        'particle': pysixtrack.Particles(
+#                **sixdump[0].get_minimal_beam()).to_dict()},
+#        fid)
+
+import json
+class Encoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif np.issubdtype(type(obj), np.integer):
+            return int(obj)
+        return json.JSONEncoder.default(self, obj)
+with open('line_and_particle.json', 'w') as fid:
+    json.dump({
         'line': line.to_dict(keepextra=True),
         'particle': pysixtrack.Particles(
                 **sixdump[0].get_minimal_beam()).to_dict()},
-        fid)
+        fid, cls=Encoder)
+

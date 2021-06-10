@@ -1,3 +1,4 @@
+import json
 import pickle
 import numpy as np
 
@@ -8,8 +9,8 @@ import pysixtrack
 from make_short_line import make_short_line
 import time
 
-fname_line_particles = './lhc_no_bb/line_and_particle.pkl'
-fname_line_particles = './lhc_with_bb/line_and_particle.pkl'
+fname_line_particles = './lhc_no_bb/line_and_particle.json'
+#fname_line_particles = './lhc_with_bb/line_and_particle.json'
 
 # # Quick test (for debugging)
 # short_test = True# Short line (5 elements)
@@ -26,8 +27,8 @@ num_turns = int(100)
 n_part = 200
 context = xo.ContextCpu()
 
-n_part = 20000
-context = xo.ContextCupy()
+#n_part = 20000
+#context = xo.ContextCupy()
 
 #n_part = 20000
 #context = xo.ContextPyopencl('0.0')
@@ -36,8 +37,12 @@ context = xo.ContextCupy()
 # Load file #
 #############
 
-with open(fname_line_particles, 'rb') as fid:
-    input_data = pickle.load(fid)
+if fname_line_particles.endswith('.pkl'):
+    with open(fname_line_particles, 'rb') as fid:
+        input_data = pickle.load(fid)
+elif fname_line_particles.endswith('.json'):
+    with open(fname_line_particles, 'r') as fid:
+        input_data = json.load(fid)
 
 # # Force remove bb
 # line_dict = input_data['line']

@@ -1,4 +1,5 @@
 import pickle
+import json
 import numpy as np
 
 import xtrack as xt
@@ -9,8 +10,8 @@ from make_short_line import make_short_line
 
 short_test = False # Short line (5 elements)
 
-fname_line_particles = './lhc_no_bb/line_and_particle.pkl'
-fname_line_particles = './lhc_with_bb/line_and_particle.pkl'
+fname_line_particles = './lhc_no_bb/line_and_particle.json'
+#fname_line_particles = './lhc_with_bb/line_and_particle.json'
 
 ####################
 # Choose a context #
@@ -24,8 +25,13 @@ context = xo.ContextPyopencl('0.0')
 # Load file #
 #############
 
-with open(fname_line_particles, 'rb') as fid:
-    input_data = pickle.load(fid)
+if fname_line_particles.endswith('.pkl'):
+    with open(fname_line_particles, 'rb') as fid:
+        input_data = pickle.load(fid)
+elif fname_line_particles.endswith('.json'):
+    with open(fname_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+
 
 ##################
 # Get a sequence #
