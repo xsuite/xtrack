@@ -1,5 +1,6 @@
 import pickle
 import json
+import pathlib
 import numpy as np
 
 import xtrack as xt
@@ -10,8 +11,12 @@ from make_short_line import make_short_line
 
 short_test = False # Short line (5 elements)
 
-fname_line_particles = './lhc_no_bb/line_and_particle.json'
-#fname_line_particles = './lhc_with_bb/line_and_particle.json'
+test_data_folder = pathlib.Path(
+        __file__).parent.joinpath('../../test_data').absolute()
+
+fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
+fname_line_particles = test_data_folder.joinpath(
+                                './lhc_with_bb/line_and_particle.json')
 
 ####################
 # Choose a context #
@@ -25,13 +30,12 @@ context = xo.ContextPyopencl('0.0')
 # Load file #
 #############
 
-if fname_line_particles.endswith('.pkl'):
+if str(fname_line_particles).endswith('.pkl'):
     with open(fname_line_particles, 'rb') as fid:
         input_data = pickle.load(fid)
-elif fname_line_particles.endswith('.json'):
+elif str(fname_line_particles).endswith('.json'):
     with open(fname_line_particles, 'r') as fid:
         input_data = json.load(fid)
-
 
 ##################
 # Get a sequence #

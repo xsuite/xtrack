@@ -1,3 +1,4 @@
+import pathlib
 import json
 import pickle
 import numpy as np
@@ -9,9 +10,13 @@ import pysixtrack
 from make_short_line import make_short_line
 import time
 
-fname_line_particles = './lhc_no_bb/line_and_particle.json'
-#fname_line_particles = './lhc_with_bb/line_and_particle.json'
 
+test_data_folder = pathlib.Path(
+        __file__).parent.joinpath('../../test_data').absolute()
+
+fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
+fname_line_particles = test_data_folder.joinpath(
+                                './lhc_with_bb/line_and_particle.json')
 # # Quick test (for debugging)
 # short_test = True# Short line (5 elements)
 # n_part = 20
@@ -37,10 +42,10 @@ context = xo.ContextCpu()
 # Load file #
 #############
 
-if fname_line_particles.endswith('.pkl'):
+if str(fname_line_particles).endswith('.pkl'):
     with open(fname_line_particles, 'rb') as fid:
         input_data = pickle.load(fid)
-elif fname_line_particles.endswith('.json'):
+elif str(fname_line_particles).endswith('.json'):
     with open(fname_line_particles, 'r') as fid:
         input_data = json.load(fid)
 
