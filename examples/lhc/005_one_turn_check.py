@@ -18,7 +18,7 @@ fname_line_particles = './lhc_with_bb/line_and_particle.pkl'
 
 context = xo.ContextCpu()
 #context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
+context = xo.ContextPyopencl('0.0')
 
 #############
 # Load file #
