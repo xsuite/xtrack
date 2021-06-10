@@ -9,6 +9,7 @@ from make_short_line import make_short_line
 import time
 
 fname_line_particles = './lhc_no_bb/line_and_particle.pkl'
+fname_line_particles = './lhc_with_bb/line_and_particle.pkl'
 
 # # Quick test (for debugging)
 # short_test = True# Short line (5 elements)
@@ -25,8 +26,8 @@ num_turns = int(100)
 n_part = 200
 context = xo.ContextCpu()
 
-#n_part = 20000
-#context = xo.ContextCupy()
+n_part = 20000
+context = xo.ContextCupy()
 
 #n_part = 20000
 #context = xo.ContextPyopencl('0.0')
@@ -37,6 +38,15 @@ context = xo.ContextCpu()
 
 with open(fname_line_particles, 'rb') as fid:
     input_data = pickle.load(fid)
+
+# # Force remove bb
+# line_dict = input_data['line']
+# for ii, ee in enumerate(line_dict['elements']):
+#     if ee['__class__'] == 'BeamBeam6D' or ee['__class__'] == 'BeamBeam4D':
+#         line_dict['elements'][ii] = {}
+#         ee = line_dict['elements'][ii]
+#         ee['__class__'] = 'Drift'
+#         ee['length'] = 0.
 
 ##################
 # Get a sequence #
@@ -107,7 +117,7 @@ for vv in vars_to_check:
     pyst_value = getattr(pyst_part, vv)
     xt_value = context.nparray_from_context_array(
                         getattr(particles, vv)[ip_check])
-    passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=1e-11)
+    passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=3e-11)
     if not passed:
         print(f'Not passed on var {vv}!\n'
               f'    pyst:   {pyst_value: .7e}\n'
