@@ -105,7 +105,8 @@ class Particles(dress(ParticlesData)):
         return self
 
     def set_particles_from_pysixtrack(self, index, pysixtrack_particle,
-            set_scalar_vars=False, check_scalar_vars=True):
+            set_scalar_vars=False, check_scalar_vars=True,
+            force_active_state=True):
 
         part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particle)
         for tt, kk in list(scalar_vars):
@@ -114,6 +115,9 @@ class Particles(dress(ParticlesData)):
             setattr(self, kk, part_dict[kk])
         for tt, kk in list(per_particle_vars):
             getattr(self, kk)[index] = part_dict[kk][0]
+
+        if force_active_state:
+            self.state[:] = 1
 
 
 def gen_local_particle_api(mode='no_local_copy'):
