@@ -6,7 +6,7 @@ import xtrack as xt
 import pysixtrack
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
+#context = xo.ContextCupy()
 #context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
@@ -35,24 +35,8 @@ aper_pyst = pysixtrack.elements.LimitRect(min_x=x_aper_min,
 
 aper = xt.LimitRect(_context=context,
                     **aper_pyst.to_dict())
-aper.track(particles)
 
 aper_pyst.track(pyst_part)
-
-part_id = context.nparray_from_context_array(particles.particle_id)
-part_state = context.nparray_from_context_array(particles.state)
-part_x = context.nparray_from_context_array(particles.x)
-part_y = context.nparray_from_context_array(particles.y)
-
-id_alive = part_id[part_state>0]
-
-assert np.allclose(pyst_part.partid, id_alive)
-
-import matplotlib.pyplot as plt
-plt.close('all')
-plt.figure(1)
-plt.plot(part_x, part_y, '.', color='red')
-plt.plot(part_x[part_state>0], part_y[part_state>0], '.', color='green')
 
 # Build a small test line
 pyst_line = pysixtrack.Line(elements=[
@@ -63,4 +47,25 @@ pyst_line = pysixtrack.Line(elements=[
 
 tracker = xt.Tracker(context=context, sequence=pyst_line,
                      save_source_as='source.cu')
+
+tracker.track(particles)
+
+part_id = context.nparray_from_context_array(particles.particle_id)
+part_state = context.nparray_from_context_array(particles.state)
+part_x = context.nparray_from_context_array(particles.x)
+part_y = context.nparray_from_context_array(particles.y)
+part_s = context.nparray_from_context_array(particles.s)
+
+id_alive = part_id[part_state>0]
+
+assert np.allclose(pyst_part.partid, id_alive)
+assert np.allclose(part_s[part_state>0], 10.)
+assert np.allclose(part_s[part_state<1], 5.)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.plot(part_x, part_y, '.', color='red')
+plt.plot(part_x[part_state>0], part_y[part_state>0], '.', color='green')
+
 plt.show()

@@ -54,13 +54,4 @@ plt.figure(1)
 plt.plot(part_x, part_y, '.', color='red')
 plt.plot(part_x[part_state>0], part_y[part_state>0], '.', color='green')
 
-# Build a small test line
-pyst_line = pysixtrack.Line(elements=[
-                pysixtrack.elements.Drift(length=5.),
-                aper_pyst,
-                pysixtrack.elements.Drift(length=5.)],
-                element_names=['drift0', 'aper', 'drift1'])
-
-tracker = xt.Tracker(context=context, sequence=pyst_line,
-                     save_source_as='source.cu')
 plt.show()
