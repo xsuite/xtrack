@@ -47,7 +47,9 @@ class Tracker:
 
             sources += cc.extra_sources
 
-        cdefs_norep=[]
+        sources.append(_pkg_root.joinpath('tracker_src/tracker.h'))
+
+        cdefs_norep=[] # TODO Check if this can be handled be the context
         for cc in cdefs:
             if cc not in cdefs_norep:
                 cdefs_norep.append(cc)
