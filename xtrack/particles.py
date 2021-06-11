@@ -191,6 +191,20 @@ def gen_local_particle_api(mode='no_local_copy'):
         src_lines.append('}')
     src_getters = '\n'.join(src_lines)
 
+    src_exchange = '''
+/*gpufun*/
+void LocalParticle_exchange(LocalParticle* part, int64_t i1, int64_t i2){
+'''
+    for tt, vv in per_particle_vars:
+        src_exchange += '\n'.join([
+          '\n    {',
+          f'    {tt._c_type} temp = part->{vv}[i2];',
+          f'    part->{vv}[i2] = part->{vv}[i1];',
+          f'    part->{vv}[i1] = temp;',
+          '     }'])
+    src_exchange += '}\n'
+
+
     custom_source='''
 /*gpufun*/
 double LocalParticle_get_energy0(LocalParticle* part){
@@ -249,8 +263,11 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
 }
 '''
 
+
+
     source = '\n\n'.join([src_typedef, src_particles_to_local, src_adders,
-                          src_getters, src_setters, src_scalers, custom_source])
+                          src_getters, src_setters, src_scalers, src_exchange,
+                          custom_source])
 
     return source
 
