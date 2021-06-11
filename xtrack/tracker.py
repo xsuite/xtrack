@@ -13,6 +13,7 @@ class Tracker:
 
     def __init__(self, context, sequence,
             particles_class=Particles,
+            global_xy_limit=1.,
             local_particle_src=None,
             save_source_as=None):
 
@@ -23,6 +24,7 @@ class Tracker:
         kernels = {}
         cdefs = []
 
+        sources.append(f'#define XTRACK_GLOBAL_POSLIMIT ({global_xy_limit})')
         sources.append(_pkg_root.joinpath('headers/constants.h'))
 
         # Particles

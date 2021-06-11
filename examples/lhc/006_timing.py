@@ -15,8 +15,8 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
-fname_line_particles = test_data_folder.joinpath(
-                                './lhc_with_bb/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath(
+#                                './lhc_with_bb/line_and_particle.json')
 # # Quick test (for debugging)
 # short_test = True# Short line (5 elements)
 # n_part = 20

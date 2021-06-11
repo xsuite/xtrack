@@ -15,10 +15,10 @@ void global_aperture_check(LocalParticle* part){
         double const y = LocalParticle_get_y(part);
 
 	int64_t const is_alive = (int64_t)(
-                      (x >= -XTRACK_GLOBAL_POSLIMIT &&
-		      (x <=  XTRACK_GLOBAL_POSLIMIT &&
-		      (y >= -XTRACK_GLOBAL_POSLIMIT &&
-		      (y <=  XTRACK_GLOBAL_POSLIMIT );
+                      (x >= -XTRACK_GLOBAL_POSLIMIT) &&
+		      (x <=  XTRACK_GLOBAL_POSLIMIT) &&
+		      (y >= -XTRACK_GLOBAL_POSLIMIT) &&
+		      (y <=  XTRACK_GLOBAL_POSLIMIT) );
 
 	// I assume that if I am in the function is because
     	if (!is_alive){
