@@ -82,6 +82,7 @@ class Tracker:
             for (int64_t iturn=0; iturn<num_turns; iturn++){
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
                     if (check_is_not_lost(&lpart)>0){
+
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
 
@@ -92,6 +93,14 @@ class Tracker:
             ccnn = cc.__name__.replace('Data', '')
             src_lines.append(f'''
                         case {ii}:
+''')
+            if ccnn == 'Drift':
+                src_lines.append('''
+                            global_aperture_check(&lpart);
+
+                            ''')
+            src_lines.append(
+f'''
                             {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
                             break;''')
 
