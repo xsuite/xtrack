@@ -6,8 +6,8 @@ import xtrack as xt
 import pysixtrack
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
-#context = xo.ContextPyopencl()
+context = xo.ContextCupy()
+context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2
@@ -58,7 +58,7 @@ part_s = context.nparray_from_context_array(particles.s)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(pyst_part.partid, id_alive)
+assert np.allclose(np.sort(pyst_part.partid), np.sort(id_alive))
 assert np.allclose(part_s[part_state>0], 10.)
 assert np.allclose(part_s[part_state<1], 5.)
 

@@ -7,13 +7,17 @@
 
 /*gpufun*/
 int64_t check_is_not_lost(LocalParticle* part) {
-    for (int64_t ipart=0; ipart<part->num_particles; ipart++){
+    int64_t ipart=0;
+    while (ipart < part->num_particles){
         if (part->state[ipart]<1){
-            part->num_particles--; // I have swapped this line and the following
-	                           // wrt simpletrack
-            LocalParticle_exchange(part, ipart, part->num_particles);
+            LocalParticle_exchange(part, ipart, part->num_particles-1);
+            part->num_particles--; 
         }
+	else{
+	    ipart++;
+	}
     }
+
     if (part->num_particles==0){
         return 0;//All particles lost
     } else {
