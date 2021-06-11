@@ -1,6 +1,35 @@
 #ifndef XTRACK_TRACKER_H
 #define XTRACK_TRACKER_H
 
+#ifdef XTRACK_GLOBAL_POSLIMIT
+
+/*gpufun*/
+void global_aperture_check(LocalParticle* part){
+
+    double const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
+    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
+	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+
+
+        double const x = LocalParticle_get_x(part);
+        double const y = LocalParticle_get_y(part);
+
+	int64_t const is_alive = (int64_t)(
+                      (x >= -XTRACK_GLOBAL_POSLIMIT &&
+		      (x <=  XTRACK_GLOBAL_POSLIMIT &&
+		      (y >= -XTRACK_GLOBAL_POSLIMIT &&
+		      (y <=  XTRACK_GLOBAL_POSLIMIT );
+
+	// I assume that if I am in the function is because
+    	if (!is_alive){
+           LocalParticle_set_state(part, 0);
+	}
+
+    } //only_for_context cpu_serial cpu_openmp
+
+}
+#endif
+
 #define CPUIMPLEM //only_for_context cpu_serial cpu_openmp
 
 #ifdef CPUIMPLEM
