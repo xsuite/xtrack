@@ -17,6 +17,7 @@ class Tracker:
             local_particle_src=None,
             save_source_as=None):
 
+        self.global_xy_limit = global_xy_limit
 
         line = Line(_context=context, sequence=sequence)
 
