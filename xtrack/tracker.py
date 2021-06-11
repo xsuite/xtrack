@@ -79,24 +79,26 @@ class Tracker:
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
-                    /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
-                    int64_t ee_type = ele_typeids[ee];
+                    if (check_is_not_lost(&lpart)>0){
+                        /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
+                        int64_t ee_type = ele_typeids[ee];
 
-                    switch(ee_type){
+                        switch(ee_type){
         ''')
 
         for ii, cc in enumerate(element_classes):
             ccnn = cc.__name__.replace('Data', '')
             src_lines.append(f'''
-                    case {ii}:
-                        {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
-                        break;''')
+                        case {ii}:
+                            {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
+                            break;''')
 
         src_lines.append('''
-                    } //switch
-                } //for elements
-            } //for turns
-            }//if
+                        } //switch
+                    } // check_is_not_lost
+                } // for elements
+            } // for turns
+            }// if partid
         }//kernel
         ''')
 

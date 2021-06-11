@@ -6,7 +6,7 @@
 #ifdef CPUIMPLEM
 
 /*gpufun*/
-int64_t check_is_notlost(LocalParticle* part) {
+int64_t check_is_not_lost(LocalParticle* part) {
     for (int64_t ipart=0; ipart<part->num_particles; ipart++){
         if (part->state[ipart]<1){
             part->num_particles--; // I have swapped this line and the following
@@ -24,7 +24,7 @@ int64_t check_is_notlost(LocalParticle* part) {
 #else
 
 /*gpufun*/
-int64_t check_is_notlost(LocalParticle* part) {
+int64_t check_is_not_lost(LocalParticle* part) {
     return LocalParticle_get_state(part);
 };
 
