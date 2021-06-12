@@ -84,6 +84,8 @@ class Tracker:
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
                     if (check_is_not_lost(&lpart)>0){
 
+                        update_at_element(&lpart, ee);
+
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
 
