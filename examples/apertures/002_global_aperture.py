@@ -50,6 +50,7 @@ part_y = context.nparray_from_context_array(particles.y)
 part_px = context.nparray_from_context_array(particles.px)
 part_py = context.nparray_from_context_array(particles.py)
 part_s = context.nparray_from_context_array(particles.s)
+part_at_turn = context.nparray_from_context_array(particles.at_turn)
 
 id_alive = part_id[part_state>0]
 
@@ -73,5 +74,7 @@ for ii in range(n_part):
         s_expected.append(s_expected_y)
 
 s_expected = np.array(s_expected)
+at_turn_expected = np.clip(np.floor(s_expected/tot_length), 0, n_turns-1)
 
 assert np.allclose(part_s, s_expected, atol=1e-3)
+assert np.allclose(at_turn_expected, part_at_turn)
