@@ -81,6 +81,11 @@ class Tracker:
             Particles_to_LocalParticle(particles, &lpart, part_id);
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
+
+                if (check_is_not_lost(&lpart)>0){
+                    update_at_turn(&lpart, iturn);
+                    }
+
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
                     if (check_is_not_lost(&lpart)>0){
 

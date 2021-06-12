@@ -43,6 +43,19 @@ void update_at_element(LocalParticle* part, int64_t new_at_ele){
 
 }
 
+/*gpufun*/
+void update_at_turn(LocalParticle* part, int64_t new_at_turn){
+
+    double const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
+    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
+	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+
+        LocalParticle_set_at_turn(part, new_at_turn);
+
+    } //only_for_context cpu_serial cpu_openmp
+
+}
+
 
 // check_is_not_lost has different implementation on CPU and GPU
 

@@ -39,7 +39,9 @@ pyst_line = pysixtrack.Line(elements=
 
 tracker = xt.Tracker(context=context, sequence=pyst_line)
 
-tracker.track(particles)
+# Track
+n_turns = 3.
+tracker.track(particles, num_turns=n_turns)
 
 part_id = context.nparray_from_context_array(particles.particle_id)
 part_state = context.nparray_from_context_array(particles.state)
@@ -53,16 +55,17 @@ id_alive = part_id[part_state>0]
 
 #x = px*s
 s_expected = []
+s_tot = tot_length*n_turns
 for ii in range(n_part):
-    if np.abs(part_px[ii]) * tot_length > tracker.global_xy_limit:
+    if np.abs(part_px[ii]) * s_tot > tracker.global_xy_limit:
         s_expected_x = np.abs(tracker.global_xy_limit / part_px[ii])
     else:
-        s_expected_x = tot_length
+        s_expected_x = s_tot
 
-    if np.abs(part_py[ii] * tot_length) > tracker.global_xy_limit:
+    if np.abs(part_py[ii] * s_tot) > tracker.global_xy_limit:
         s_expected_y = np.abs(tracker.global_xy_limit / part_py[ii])
     else:
-        s_expected_y = tot_length
+        s_expected_y = s_tot
 
     if s_expected_x<s_expected_y:
         s_expected.append(s_expected_x)
