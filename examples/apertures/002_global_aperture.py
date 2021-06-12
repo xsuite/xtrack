@@ -51,6 +51,7 @@ part_px = context.nparray_from_context_array(particles.px)
 part_py = context.nparray_from_context_array(particles.py)
 part_s = context.nparray_from_context_array(particles.s)
 part_at_turn = context.nparray_from_context_array(particles.at_turn)
+part_at_element = context.nparray_from_context_array(particles.at_element)
 
 id_alive = part_id[part_state>0]
 
@@ -75,6 +76,14 @@ for ii in range(n_part):
 
 s_expected = np.array(s_expected)
 at_turn_expected = np.clip(np.floor(s_expected/tot_length), 0, n_turns-1)
+at_element_expected = np.floor((s_expected-tot_length*at_turn_expected)
+                                     /(tot_length/n_slices)) + 1
+at_element_expected = np.clip(at_element_expected, 0, n_slices-1)
 
 assert np.allclose(part_s, s_expected, atol=1e-3)
 assert np.allclose(at_turn_expected, part_at_turn)
+
+# I need to add a tolerance of one element as a mismatch is visible
+# on a few slices due to rounding
+assert np.allclose(at_element_expected, part_at_element, atol=1.1)
+
