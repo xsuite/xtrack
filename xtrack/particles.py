@@ -50,6 +50,10 @@ ParticlesData = type(
 
 class Particles(dress(ParticlesData)):
 
+    _structure = {
+            'scalar_vars': scalar_vars,
+            'vector_vars': vector_vars}
+
     def __init__(self, pysixtrack_particles=None, num_particles=None,
                  force_active_state=True, **kwargs):
 
