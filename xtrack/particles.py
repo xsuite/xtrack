@@ -151,6 +151,28 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_lines.append('}')
     src_particles_to_local = '\n'.join(src_lines)
 
+    src_lines = []
+    src_lines.append('''
+    /*gpufun*/
+    void LocalParticle_to_particles(
+                                    LocalParticle* source,
+                                    ParticlesData dest,
+                                    int64_t id,
+                                    int64_t set_scalar){''')
+    src_lines.append('if (set_scalar){')
+    for tt, vv in scalar_vars:
+        src_lines.append(
+                f'  ParticlesData_set_' + vv + '(dest,'
+                f'      LocalParticle_get_{vv}(source));')
+    src_lines.append('}')
+
+    for tt, vv in per_particle_vars:
+        src_lines.append(
+                f'  ParticlesData_set_' + vv + '(dest,'
+                f'      LocalParticle_get_{vv}(source), id);')
+    src_lines.append('}')
+    src_local_to_particles = '\n'.join(src_lines)
+
     src_lines=[]
     for tt, vv in per_particle_vars:
         src_lines.append('''
@@ -270,10 +292,9 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
 }
 '''
 
-
-
-    source = '\n\n'.join([src_typedef, src_particles_to_local, src_adders,
-                          src_getters, src_setters, src_scalers, src_exchange,
+    source = '\n\n'.join([src_typedef, src_adders, src_getters,
+                          src_setters, src_scalers, src_exchange,
+                          src_particles_to_local, src_local_to_particles,
                           custom_source])
 
     return source
