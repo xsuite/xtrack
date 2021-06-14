@@ -15,7 +15,7 @@ def _monitor_init(self, _context=None, _buffer=None, _offset=None,
 
     self.xoinitialize(_context=_context, _buffer=_buffer, _offset=_offset,
             start_at_turn=start_at_turn, stop_at_turn=stop_at_turn,
-            data=data_init)
+            n_records=n_records, data=data_init)
 
     self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data)
 
@@ -28,6 +28,7 @@ def generate_monitor_class(ParticlesClass):
             (xo.Struct,),
             {'start_at_turn': xo.Int64,
              'stop_at_turn': xo.Int64,
+             'n_records': xo.Int64,
              'data': ParticlesClass.XoStruct})
 
     ParticlesMonitorDataClass.extra_sources = [
