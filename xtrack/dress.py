@@ -54,25 +54,32 @@ def dress(XoStruct, rename={}):
         setattr(DressedXStruct, pyname,
                 _FieldOfDressed(fname, XoStruct))
 
-    def xoinitialize(self, **kwargs):
-        dressed_kwargs = {}
-        for kk, vv in kwargs.items():
-            if hasattr(vv, '_xobject'):
-                dressed_kwargs[kk] = vv
-                kwargs[kk] = vv._xobject
+    def xoinitialize(self, _xobject=None, **kwargs):
 
-        self._xobject = self.XoStruct(**kwargs)
+        if _xobject is not None:
+            self._xobject = _xobject
+        else:
 
-        for kk, vv in dressed_kwargs.items():
-            if kk in self._rename.keys():
-                pyname = self._rename[kk]
-            else:
-                pyname = kk
-            setattr(self, pyname, vv)
+            # Handle dressed inputs
+            dressed_kwargs = {}
+            for kk, vv in kwargs.items():
+                if hasattr(vv, '_xobject'): # vv is dressed
+                    dressed_kwargs[kk] = vv
+                    kwargs[kk] = vv._xobject
+
+            self._xobject = self.XoStruct(**kwargs)
+
+            # Handle dressed inputs
+            for kk, vv in dressed_kwargs.items():
+                if kk in self._rename.keys():
+                    pyname = self._rename[kk]
+                else:
+                    pyname = kk
+                setattr(self, pyname, vv)
 
 
-    def myinit(self, **kwargs):
-        self.xoinitialize(**kwargs)
+    def myinit(self, _xobject=None, **kwargs):
+        self.xoinitialize(_xobject=_xobject, **kwargs)
 
     def compile_custom_kernels(self, only_if_needed=False):
         context = self._buffer.context
