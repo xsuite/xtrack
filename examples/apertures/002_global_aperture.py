@@ -6,8 +6,8 @@ import xtrack as xt
 import pysixtrack
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-context = xo.ContextPyopencl()
+#context = xo.ContextCupy()
+#context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2
@@ -41,7 +41,7 @@ tracker = xt.Tracker(context=context, sequence=pyst_line, save_source_as='source
 
 # Track
 n_turns = 3.
-tracker.track(particles, num_turns=n_turns)
+tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
 
 part_id = context.nparray_from_context_array(particles.particle_id)
 part_state = context.nparray_from_context_array(particles.state)

@@ -7,7 +7,7 @@ def _monitor_init(self, _context=None, _buffer=None, _offset=None,
                   start_at_turn=None, stop_at_turn=None,
                   num_particles=None):
 
-    n_turns = stop_at_turn - start_at_turn
+    n_turns = int(stop_at_turn) - int(start_at_turn)
     n_records = n_turns * num_particles
 
     data_init = {nn: n_records for tt, nn in
