@@ -2,7 +2,6 @@
 class _FieldOfDressed:
     def __init__(self, name, XoStruct):
         self.name = name
-        self.isdressed = False
         self.isnplikearray = False
 
         fnames = [ff.name for ff in XoStruct._fields]
@@ -12,11 +11,10 @@ class _FieldOfDressed:
                 if hasattr(ftype._itemtype, '_dtype'): # valid nplike object
                     self.isnplikearray = True
 
-
     def __get__(self, container, ContainerType=None):
         if self.isnplikearray:
             return getattr(container._xobject, self.name).to_nplike()
-        elif self.isdressed:
+        elif hasattr(container, '_dressed_'+self.name):
             return getattr(container, '_dressed_'+self.name)
         else:
             return getattr(container._xobject, self.name)
@@ -25,13 +23,11 @@ class _FieldOfDressed:
         if self.isnplikearray:
             getattr(container._xobject, self.name).to_nplike()[:] = value
         elif hasattr(value, '_xobject'): # value is a dressed xobject
-            self.isdressed = True
             setattr(container, '_dressed_' + self.name, value)
             setattr(container._xobject, self.name, value._xobject)
             getattr(container, self.name)._xobject = getattr(
                                     container._xobject, self.name)
         else:
-            self.isdressed = False
             self.content = None
             setattr(container._xobject, self.name, value)
 

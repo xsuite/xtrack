@@ -52,11 +52,13 @@ class Particles(dress(ParticlesData)):
 
     _structure = {
             'scalar_vars': scalar_vars,
-            'vector_vars': vector_vars}
+            'per_particle_vars': per_particle_vars}
 
     def __init__(self, pysixtrack_particles=None, num_particles=None,
                  force_active_state=True, **kwargs):
 
+        # num_particles can only be inferred from pysisxtrack particles for now
+        assert num_particles is None
 
         # Initalize array sizes
         part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particles)
