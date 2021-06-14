@@ -4,7 +4,7 @@
 /*gpufun*/
 void Cavity_track_local_particle(CavityData el, LocalParticle* part){
 
-    double const n_part = LocalParticle_get_num_particles(part); 
+    int64_t const n_part = LocalParticle_get_num_particles(part); 
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
         double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;

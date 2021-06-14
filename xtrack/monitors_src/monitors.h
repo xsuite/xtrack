@@ -12,7 +12,7 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
     int64_t n_turns_record = stop_at_turn - start_at_turn;
 
-    double const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
+    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 

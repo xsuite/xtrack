@@ -6,7 +6,7 @@
 /*gpufun*/
 void global_aperture_check(LocalParticle* part){
 
-    double const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
+    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 
@@ -33,7 +33,7 @@ void global_aperture_check(LocalParticle* part){
 /*gpufun*/
 void update_at_element(LocalParticle* part, int64_t new_at_ele){
 
-    double const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
+    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 
@@ -46,7 +46,7 @@ void update_at_element(LocalParticle* part, int64_t new_at_ele){
 /*gpufun*/
 void update_at_turn(LocalParticle* part, int64_t new_at_turn){
 
-    double const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
+    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 
