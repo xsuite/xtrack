@@ -17,14 +17,16 @@ test_data_folder = pathlib.Path(
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
 fname_line_particles = test_data_folder.joinpath(
                                 './lhc_with_bb/line_and_particle.json')
+fname_line_particles = test_data_folder.joinpath(
+                                './hllhc_14/line_and_particle.json')
 
 ####################
 # Choose a context #
 ####################
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
+#context = xo.ContextCupy()
+#context = xo.ContextPyopencl('0.0')
 
 #############
 # Load file #
