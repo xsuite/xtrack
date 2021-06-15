@@ -176,8 +176,8 @@ def gen_local_particle_api(mode='no_local_copy'):
 
     for tt, vv in per_particle_vars:
         src_lines.append(
-                f'  ParticlesData_set_' + vv + '(dest,'
-                f'      LocalParticle_get_{vv}(source), id);')
+                f'  ParticlesData_set_' + vv + '(dest, id'
+                f'      LocalParticle_get_{vv}(source));')
     src_lines.append('}')
     src_local_to_particles = '\n'.join(src_lines)
 
