@@ -16,7 +16,7 @@ test_data_folder = pathlib.Path(
 def test_lhc_track():
     for fname_line_particles in [
             test_data_folder.joinpath('lhc_no_bb/line_and_particle.json'),
-            test_data_folder.joinpath('./lhc_with_bb/line_and_particle.json')]:
+            test_data_folder.joinpath('./hllhc_14/line_and_particle.json')]:
 
         for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
             if CTX not in available:

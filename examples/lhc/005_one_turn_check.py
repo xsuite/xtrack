@@ -15,10 +15,10 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
-fname_line_particles = test_data_folder.joinpath(
-                                './lhc_with_bb/line_and_particle.json')
-fname_line_particles = test_data_folder.joinpath(
-                                './hllhc_14/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath(
+#                                './lhc_with_bb/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath(
+#                                './hllhc_14/line_and_particle.json')
 
 ####################
 # Choose a context #
