@@ -105,10 +105,10 @@ class Tracker:
 
                 if (check_is_not_lost(&lpart)>0){
                     update_at_turn(&lpart, iturn);
-                    }
 
-                if (flag_tbt_monitor){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                    if (flag_tbt_monitor){
+                        ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                    }
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
