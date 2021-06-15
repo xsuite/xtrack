@@ -25,8 +25,8 @@ fname_line_particles = test_data_folder.joinpath(
 ####################
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
+context = xo.ContextCupy()
+context = xo.ContextPyopencl('0.0')
 
 #############
 # Load file #

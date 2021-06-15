@@ -232,7 +232,18 @@ class RFMultipole(dress_element(RFMultipoleData)):
             kwargs["phase"] = p
             kwargs["order"] = (len(bal) - 2) / 2
 
+
+        temp_bal = kwargs["bal"]
+        temp_phase = kwargs["phase"]
+
+        kwargs["bal"] = len(temp_bal)
+        kwargs["phase"] = len(temp_phase)
+
         super().__init__(**kwargs)
+
+        ctx = self._buffer.context
+        self.bal[:] = ctx.nparray_to_context_array(temp_bal)
+        self.phase[:] = ctx.nparray_to_context_array(temp_phase)
 
     @property
     def knl(self):
