@@ -77,10 +77,7 @@ if short_test:
 
 print('Build tracker')
 tracker = xt.Tracker(context=context,
-            sequence=sequence,
-            particles_class=xt.Particles,
-            local_particle_src=None,
-            save_source_as='source.c')
+                     sequence=sequence)
 
 ######################
 # Get some particles #
