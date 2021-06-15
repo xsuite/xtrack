@@ -40,7 +40,7 @@ pyst_line = pysixtrack.Line(elements=
 tracker = xt.Tracker(context=context, sequence=pyst_line, save_source_as='source.c')
 
 # Track
-n_turns = 3.
+n_turns = 3
 tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
 
 part_id = context.nparray_from_context_array(particles.particle_id)
@@ -75,10 +75,10 @@ for ii in range(n_part):
         s_expected.append(s_expected_y)
 
 s_expected = np.array(s_expected)
-at_turn_expected = np.clip(np.floor(s_expected/tot_length), 0, n_turns-1)
+at_turn_expected = np.int_(np.clip(np.floor(s_expected/tot_length), 0, n_turns-1))
 at_element_expected = np.floor((s_expected-tot_length*at_turn_expected)
                                      /(tot_length/n_slices)) + 1
-at_element_expected = np.clip(at_element_expected, 0, n_slices-1)
+at_element_expected = np.int_(np.clip(at_element_expected, 0, n_slices-1))
 
 assert np.allclose(part_s, s_expected, atol=1e-3)
 assert np.allclose(at_turn_expected, part_at_turn)
@@ -86,4 +86,31 @@ assert np.allclose(at_turn_expected, part_at_turn)
 # I need to add a tolerance of one element as a mismatch is visible
 # on a few slices due to rounding
 assert np.allclose(at_element_expected, part_at_element, atol=1.1)
+
+# Test monitor
+mon = tracker.record_last_track
+for ii in range(n_part):
+    iidd = part_id[ii]
+    this_at_turn = part_at_turn[ii]
+    this_px = part_px[ii]
+    this_py = part_py[ii]
+
+    for tt in range(n_turns):
+        if tt<=this_at_turn:
+            assert(mon.at_turn[iidd, tt] == tt)
+            assert(np.isclose(mon.s[iidd, tt], tt*tot_length, atol=1e-14))
+            assert(np.isclose(mon.x[iidd, tt], tt*tot_length*this_px, atol=1e-14))
+            assert(np.isclose(mon.y[iidd, tt], tt*tot_length*this_py, atol=1e-14))
+            assert(np.isclose(mon.px[iidd, tt], this_px, atol=1e-14))
+            assert(np.isclose(mon.py[iidd, tt], this_py, atol=1e-14))
+        else:
+            assert(mon.at_turn[iidd, tt] == 0)
+            assert(mon.s[iidd, tt] == 0)
+            assert(mon.x[iidd, tt] == 0)
+            assert(mon.y[iidd, tt] == 0)
+            assert(mon.px[iidd, tt] == 0)
+            assert(mon.py[iidd, tt] == 0)
+
+
+
 
