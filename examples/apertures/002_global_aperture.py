@@ -2,8 +2,8 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+import xline as xl
 
-import pysixtrack
 
 #context = xo.ContextCpu()
 #context = xo.ContextCupy()
@@ -30,8 +30,8 @@ particles = xt.Particles(_context=context,
 # Build a small test line
 tot_length = 2.
 n_slices = 10000
-pyst_line = pysixtrack.Line(elements=
-                n_slices*[pysixtrack.elements.Drift(length=tot_length/n_slices)],
+pyst_line = xl.Line(elements=
+                n_slices*[xl.Drift(length=tot_length/n_slices)],
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
 tracker = xt.Tracker(context=context, sequence=pyst_line, save_source_as='source.c')
