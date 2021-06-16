@@ -3,8 +3,8 @@ import numpy as np
 import xobjects as xo
 from xobjects.context import available
 import xtrack as xt
+import xline as xl
 
-import pysixtrack
 
 def test_aperture_turn_ele_and_monitor():
 
@@ -35,8 +35,7 @@ def test_aperture_turn_ele_and_monitor():
         # Build a small test line
         tot_length = 2.
         n_slices = 10000
-        pyst_line = pysixtrack.Line(elements=
-                        n_slices*[pysixtrack.elements.Drift(
+        pyst_line = xl.Line(elements=n_slices*[xl.Drift(
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 
