@@ -57,26 +57,47 @@ class Particles(dress(ParticlesData)):
     def __init__(self, pysixtrack_particles=None,
                  force_active_state=None, **kwargs):
 
-        # Initalize array sizes
-        if pysixtrack_particles is not None:
-            if force_active_state is None:
-                force_active_state = True
-            part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particles)
-            num_particles = int(part_dict['num_particles'])
+        if '_xobject' in kwargs.keys():
+            # Initialize xobject
+            self.xoinitialize(**kwargs)
+        else:
+            if pysixtrack_particles is not None:
+                if force_active_state is None:
+                    force_active_state = True
+            elif any([nn in kwargs.keys() for tt, nn in per_particle_vars]):
+                # Needed to generate consistent longitudinal variables
+                pysixtrack_particles = pysixtrack.Particles(**kwargs)
 
+            # Get pysixtrack dict
+            if pysixtrack_particles is not None:
+                part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particles)
+                if 'num_particles' in kwargs.keys():
+                    assert kwargs['num_particles'] == part_dict['num_particles']
+                else:
+                    kwargs['num_particles'] = part_dict['num_particles']
+
+            # Make sure num_particles is integer
+            kwargs['num_particles'] = int(kwargs['num_particles'])
+
+            # We just provide array sizes to xoinitialize (we will set values later)
             kwargs.update(
-                    {kk: num_particles for tt, kk in per_particle_vars})
-            kwargs['num_particles'] = num_particles
+                    {kk: kwargs['num_particles'] for tt, kk in per_particle_vars})
 
-        self.xoinitialize(**kwargs)
+            # Initialize xobject
+            self.xoinitialize(**kwargs)
 
-        if pysixtrack_particles is not None:
-            context = self._buffer.context
-
-            for tt, kk in list(scalar_vars):
-                setattr(self, kk, part_dict[kk])
-            for tt, kk in list(per_particle_vars):
-                setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
+            # Set coordinates
+            if pysixtrack_particles is not None:
+                context = self._buffer.context
+                for tt, kk in list(scalar_vars):
+                    setattr(self, kk, part_dict[kk])
+                for tt, kk in list(per_particle_vars):
+                    setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
+            else:
+                for tt, kk in list(scalar_vars):
+                    setattr(self, kk, part_dict[kk])
+                for tt, kk in list(per_particle_vars):
+                    getattr(self, kk)[:] = 0
 
         if force_active_state:
             self.state[:] = 1

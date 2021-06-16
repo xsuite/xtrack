@@ -18,9 +18,8 @@ def _monitor_init(
     n_turns = int(stop_at_turn) - int(start_at_turn)
     n_records = n_turns * num_particles
 
-    data_init = {
-        nn: n_records for tt, nn in self._ParticlesClass._structure["per_particle_vars"]
-    }
+    data_init = {nn: n_records for tt, nn in
+                    self._ParticlesClass._structure["per_particle_vars"]}
 
     self.xoinitialize(
         _context=_context,
