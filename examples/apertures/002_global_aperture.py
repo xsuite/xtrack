@@ -5,9 +5,9 @@ import xtrack as xt
 
 import pysixtrack
 
-context = xo.ContextCpu()
-context = xo.ContextCupy()
-#context = xo.ContextPyopencl()
+#context = xo.ContextCpu()
+#context = xo.ContextCupy()
+context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2

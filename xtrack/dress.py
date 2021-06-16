@@ -93,8 +93,7 @@ def dress(XoStruct, rename={}):
             if all_found:
                 return
 
-        api_conf = {'prepointer': ' /*gpuglmem*/ '} # TODO: remove
-        capi_src, _, capi_cdefs = self.XoStruct._gen_c_api(api_conf)
+        capi_src, _, capi_cdefs = self.XoStruct._gen_c_api()
 
         context.add_kernels(sources=([capi_src]
                 + self.XoStruct.extra_sources),

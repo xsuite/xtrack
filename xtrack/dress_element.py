@@ -2,8 +2,6 @@ import xobjects as xo
 from .particles import ParticlesData, gen_local_particle_api
 from .dress import dress
 
-api_conf = {'prepointer': ' /*gpuglmem*/ '}
-
 def dress_element(XoElementData):
 
     DressedElement = dress(XoElementData)
@@ -39,8 +37,8 @@ def dress_element(XoElementData):
     def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
 
-        src_part, _, cdefs_part= ParticlesData._gen_c_api(api_conf)
-        src_ele, _, cdefs_ele = self.XoStruct._gen_c_api(api_conf)
+        src_part, _, cdefs_part= ParticlesData._gen_c_api()
+        src_ele, _, cdefs_ele = self.XoStruct._gen_c_api()
 
         cdefs = '\n'.join([cdefs_part, cdefs_ele])
         cdefs_norep=[]
