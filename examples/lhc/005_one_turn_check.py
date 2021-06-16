@@ -3,9 +3,9 @@ import json
 import pathlib
 import numpy as np
 
-import xtrack as xt
 import xobjects as xo
-import pysixtrack
+import xtrack as xt
+import xline as xl
 
 from make_short_line import make_short_line
 
@@ -43,7 +43,7 @@ elif str(fname_line_particles).endswith('.json'):
 # Get a sequence #
 ##################
 
-sequence = pysixtrack.Line.from_dict(input_data['line'])
+sequence = xl.Line.from_dict(input_data['line'])
 if short_test:
     sequence = make_short_line(sequence)
 
@@ -60,12 +60,9 @@ tracker = xt.Tracker(_context=context,
 ######################
 # Get some particles #
 ######################
-part_pyst = pysixtrack.Particles.from_dict(input_data['particle'])
+particles = xt.Particles(**input_data['particle'], _context=context,
+                         force_active_state=True)
 
-pysixtrack_particles = [part_pyst, part_pyst] # Track twice the same particle
-
-particles = xt.Particles(pysixtrack_particles=pysixtrack_particles,
-                         _context=context)
 #########
 # Track #
 #########
@@ -77,9 +74,10 @@ tracker.track(particles, num_turns=n_turns)
 # Check against pysixtrack #
 ############################
 print('Check against pysixtrack...')
-ip_check = 1
+import pysixtrack
+ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-pyst_part = pysixtrack_particles[ip_check].copy()
+pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
 for _ in range(n_turns):
     sequence.track(pyst_part)
 
@@ -97,7 +95,7 @@ for vv in vars_to_check:
 # Check  ebe #
 ##############
 print('Check element-by-element against pysixtrack...')
-pyst_part = pysixtrack_particles[ip_check].copy()
+pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
