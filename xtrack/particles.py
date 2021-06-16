@@ -358,15 +358,20 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
                     continue
                 else:
                     if kk == 'mass_ratio':
-                        kk_pyst = 'mratio'
+                        if 'mass_ratio' not in pyst_dict.keys():
+                            kk_pyst = 'mratio'
                     elif kk == 'charge_ratio':
-                        kk_pyst = 'qratio'
+                        if 'charge_ratio' not in pyst_dict.keys():
+                            kk_pyst = 'qratio'
                     elif kk == 'particle_id':
-                        kk_pyst = 'partid'
+                        if 'particle_id' not in pyst_dict.keys():
+                            kk_pyst = 'partid'
                     elif kk == 'at_element':
-                        kk_pyst = 'elemid'
+                        if 'at_element' not in pyst_dict.keys():
+                            kk_pyst = 'elemid'
                     elif kk == 'at_turn':
-                        kk_pyst = 'turn'
+                        if 'at_turn' not in pyst_dict.keys():
+                            kk_pyst = 'turn'
                     else:
                         kk_pyst = kk
                     # Use properties
