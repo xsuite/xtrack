@@ -23,18 +23,14 @@ def test_aperture_turn_ele_and_monitor():
         part_gen_range = 0.35
         n_part=100
 
-        pyst_part = pysixtrack.Particles(
-                p0c=6500e9,
-                x=np.zeros(n_part),
-                px=np.linspace(-1, 1, n_part),
-                y=np.zeros(n_part),
-                py=np.linspace(-2, 2, n_part),
-                sigma=np.zeros(n_part),
-                delta=np.zeros(n_part))
-        pyst_part.px[1::2] = 0
-        pyst_part.py[0::2] = 0
-
-        particles = xt.Particles(_context=context, pysixtrack_particles=pyst_part)
+        particles = xt.Particles(_context=context,
+                                 p0c=6500e9,
+                                 x=np.zeros(n_part),
+                                 px=np.linspace(-1, 1, n_part),
+                                 y=np.zeros(n_part),
+                                 py=np.linspace(-2, 2, n_part),
+                                 sigma=np.zeros(n_part),
+                                 delta=np.zeros(n_part))
 
         # Build a small test line
         tot_length = 2.
