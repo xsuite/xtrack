@@ -11,7 +11,7 @@ api_conf = {'prepointer': ' /*gpuglmem*/ '}
 
 class Tracker:
 
-    def __init__(self, context, sequence,
+    def __init__(self, _context, sequence,
             particles_class=None,
             particles_monitor_class=None,
             global_xy_limit=1.,
@@ -30,7 +30,7 @@ class Tracker:
 
         self.global_xy_limit = global_xy_limit
 
-        line = Line(_context=context, sequence=sequence)
+        line = Line(_context=_context, sequence=sequence)
 
         sources = []
         kernels = {}
@@ -173,12 +173,12 @@ f'''
         }
 
         # Internal API can be exposed only on CPU
-        if not isinstance(context, xo.ContextCpu):
+        if not isinstance(_context, xo.ContextCpu):
             kernels = {}
         kernels.update(kernel_descriptions)
 
         # Compile!
-        context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
+        _context.add_kernels(sources, kernels, extra_cdef='\n\n'.join(cdefs_norep),
                             save_source_as=save_source_as,
                             specialize=True)
 
@@ -186,15 +186,15 @@ f'''
         ele_typeids = np.array(
                 [element_classes.index(ee._xobject.__class__) for ee in line.elements],
                 dtype=np.int64)
-        ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
-        ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
+        ele_offsets_dev = _context.nparray_to_context_array(ele_offsets)
+        ele_typeids_dev = _context.nparray_to_context_array(ele_typeids)
 
-        self.context = context
+        self._context = _context
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
         self.ele_offsets_dev = ele_offsets_dev
         self.ele_typeids_dev = ele_typeids_dev
-        self.track_kernel = context.kernels.track_line
+        self.track_kernel = _context.kernels.track_line
         self.num_elements = len(line.elements)
         self.line = line
 
@@ -214,7 +214,7 @@ f'''
         elif turn_by_turn_monitor is True:
             flag_tbt = 1
             # TODO Assumes at_turn starts from zero, to be generalized
-            monitor = self.particles_monitor_class(_context=self.context,
+            monitor = self.particles_monitor_class(_context=self._context,
                     start_at_turn=0, stop_at_turn=num_turns,
                     num_particles=particles.num_particles)
             buffer_monitor = monitor._buffer.buffer

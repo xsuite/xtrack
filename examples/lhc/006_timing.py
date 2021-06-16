@@ -76,8 +76,7 @@ if short_test:
 ##################
 
 print('Build tracker')
-tracker = xt.Tracker(context=context,
-                     sequence=sequence)
+tracker = xt.Tracker(_context=context, sequence=sequence)
 
 ######################
 # Get some particles #

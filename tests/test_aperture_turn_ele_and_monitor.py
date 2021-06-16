@@ -44,7 +44,7 @@ def test_aperture_turn_ele_and_monitor():
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 
-        tracker = xt.Tracker(context=context, sequence=pyst_line)
+        tracker = xt.Tracker(_context=context, sequence=pyst_line)
         n_turns = 3
         tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
 

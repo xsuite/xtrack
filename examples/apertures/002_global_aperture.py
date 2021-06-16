@@ -2,6 +2,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+import xpart as xp
 
 import pysixtrack
 
@@ -17,7 +18,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=100
 
-pyst_part = pysixtrack.Particles(
+xparticles = xp.Particles(
         p0c=6500e9,
         x=np.zeros(n_part),
         px=np.linspace(-1, 1, n_part),
@@ -25,10 +26,10 @@ pyst_part = pysixtrack.Particles(
         py=np.linspace(-2, 2, n_part),
         sigma=np.zeros(n_part),
         delta=np.zeros(n_part))
-pyst_part.px[1::2] = 0
-pyst_part.py[0::2] = 0
+xparticles.px[1::2] = 0
+xparticles.py[0::2] = 0
 
-particles = xt.Particles(_context=context, pysixtrack_particles=pyst_part)
+particles = xt.Particles(_context=context, xparticles=xparticles)
 
 # Build a small test line
 tot_length = 2.
@@ -37,7 +38,7 @@ pyst_line = pysixtrack.Line(elements=
                 n_slices*[pysixtrack.elements.Drift(length=tot_length/n_slices)],
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
-tracker = xt.Tracker(context=context, sequence=pyst_line, save_source_as='source.c')
+tracker = xt.Tracker(_context=context, sequence=pyst_line)
 
 # Track
 n_turns = 3

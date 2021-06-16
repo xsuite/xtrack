@@ -54,14 +54,14 @@ class Particles(dress(ParticlesData)):
             'scalar_vars': scalar_vars,
             'per_particle_vars': per_particle_vars}
 
-    def __init__(self, pysixtrack_particles=None,
+    def __init__(self, xparticles=None,
                  force_active_state=None, **kwargs):
 
         # Initalize array sizes
-        if pysixtrack_particles is not None:
+        if xparticles is not None:
             if force_active_state is None:
                 force_active_state = True
-            part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particles)
+            part_dict = xparticles_to_xtrack_dict(xparticles)
             num_particles = int(part_dict['num_particles'])
 
             kwargs.update(
@@ -70,7 +70,7 @@ class Particles(dress(ParticlesData)):
 
         self.xoinitialize(**kwargs)
 
-        if pysixtrack_particles is not None:
+        if xparticles is not None:
             context = self._buffer.context
 
             for tt, kk in list(scalar_vars):
@@ -112,11 +112,11 @@ class Particles(dress(ParticlesData)):
         self.p0c = p0c
         return self
 
-    def set_particles_from_pysixtrack(self, index, pysixtrack_particle,
+    def set_from_xparticles(self, index, xparticle,
             set_scalar_vars=False, check_scalar_vars=True,
             force_active_state=True):
 
-        part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particle)
+        part_dict = xparticles_to_xtrack_dict(xparticle)
         for tt, kk in list(scalar_vars):
             if kk == 'num_particles':
                 continue
@@ -307,11 +307,11 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
 
     return source
 
-def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
+def xparticles_to_xtrack_dict(xparticles):
 
-    if hasattr(pysixtrack_particles, '__iter__'):
-        num_particles = len(pysixtrack_particles)
-        dicts = list(map(pysixtrack_particles_to_xtrack_dict, pysixtrack_particles))
+    if hasattr(xparticles, '__iter__'):
+        num_particles = len(xparticles)
+        dicts = list(map(xparticles_to_xtrack_dict, xparticles))
         out = {}
         out['num_particles'] = num_particles
         for tt, kk in scalar_vars:
@@ -325,14 +325,14 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
     else:
         out = {}
 
-        pyst_dict = pysixtrack_particles.to_dict()
-        if hasattr(pysixtrack_particles, 'weight'):
-            pyst_dict['weight'] = getattr(pysixtrack_particles, 'weight')
+        xpart_dict = xparticles.to_dict()
+        if hasattr(xparticles, 'weight'):
+            xpart_dict['weight'] = getattr(xparticles, 'weight')
         else:
-            pyst_dict['weight'] = 1.
+            xpart_dict['weight'] = 1.
 
         for tt, kk in list(scalar_vars) + list(per_particle_vars):
-            if kk not in pyst_dict.keys():
+            if kk not in xpart_dict.keys():
                 if kk == 'num_particles':
                     continue
                 else:
@@ -349,12 +349,12 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
                     else:
                         kk_pyst = kk
                     # Use properties
-                    pyst_dict[kk] = getattr(pysixtrack_particles, kk_pyst)
+                    xpart_dict[kk] = getattr(xparticles, kk_pyst)
 
-        for kk, vv in pyst_dict.items():
-            pyst_dict[kk] = np.atleast_1d(vv)
+        for kk, vv in xpart_dict.items():
+            xpart_dict[kk] = np.atleast_1d(vv)
 
-        lll = [len(vv) for kk, vv in pyst_dict.items() if hasattr(vv, '__len__')]
+        lll = [len(vv) for kk, vv in xpart_dict.items() if hasattr(vv, '__len__')]
         lll = list(set(lll))
         assert len(set(lll) - {1}) <= 1
         num_particles = max(lll)
@@ -363,13 +363,13 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
     for tt, kk in scalar_vars:
         if kk == 'num_particles':
             continue
-        val = pyst_dict[kk]
+        val = xpart_dict[kk]
         assert np.allclose(val, val[0], rtol=1e-10, atol=1e-14)
         out[kk] = val[0]
 
     for tt, kk in per_particle_vars:
 
-        val_pyst = pyst_dict[kk]
+        val_pyst = xpart_dict[kk]
 
         if num_particles > 1 and len(val_pyst)==1:
             temp = np.zeros(int(num_particles), dtype=tt._dtype)

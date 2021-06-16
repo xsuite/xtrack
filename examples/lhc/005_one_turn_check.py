@@ -51,11 +51,7 @@ if short_test:
 # Build TrackJob #
 ##################
 print('Build tracker...')
-tracker = xt.Tracker(context=context,
-            sequence=sequence,
-            particles_class=xt.Particles,
-            local_particle_src=None,
-            save_source_as='source.c')
+tracker = xt.Tracker(_context=context, sequence=sequence)
 
 ######################
 # Get some particles #
