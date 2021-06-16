@@ -45,7 +45,7 @@ pyst_line = pysixtrack.Line(elements=[
                 pysixtrack.elements.Drift(length=5.)],
                 element_names=['drift0', 'aper', 'drift1'])
 
-tracker = xt.Tracker(context=context, sequence=pyst_line)
+tracker = xt.Tracker(_context=context, sequence=pyst_line)
 
 tracker.track(particles)
 

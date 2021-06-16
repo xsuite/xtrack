@@ -11,8 +11,10 @@ import xobjects as xo
 class Tracker:
     def __init__(
         self,
-        context,
-        sequence,
+        _context=None,
+        _buffer=None,
+        _offset=None,
+        sequence=None,
         particles_class=None,
         particles_monitor_class=None,
         global_xy_limit=1.0,
@@ -34,7 +36,9 @@ class Tracker:
 
         self.global_xy_limit = global_xy_limit
 
-        line = Line(_context=context, sequence=sequence)
+        line = Line(_context=_context, _buffer=_buffer, _offset=_offset,
+                    sequence=sequence)
+        context = line._buffer.context
 
         sources = []
         kernels = {}
@@ -211,7 +215,6 @@ class Tracker:
         ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
         ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
 
-        self.context = context
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
         self.ele_offsets_dev = ele_offsets_dev
@@ -242,7 +245,7 @@ class Tracker:
             flag_tbt = 1
             # TODO Assumes at_turn starts from zero, to be generalized
             monitor = self.particles_monitor_class(
-                _context=self.context,
+                _context=self.line._buffer.context,
                 start_at_turn=0,
                 stop_at_turn=num_turns,
                 num_particles=particles.num_particles,

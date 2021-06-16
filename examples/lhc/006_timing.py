@@ -76,7 +76,7 @@ if short_test:
 ##################
 
 print('Build tracker')
-tracker = xt.Tracker(context=context,
+tracker = xt.Tracker(_context=context,
                      sequence=sequence)
 
 ######################

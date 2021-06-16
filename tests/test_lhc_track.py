@@ -46,7 +46,7 @@ def test_lhc_track():
             # Build TrackJob #
             ##################
             print('Build tracker...')
-            tracker = xt.Tracker(context=context,
+            tracker = xt.Tracker(_context=context,
                         sequence=sequence,
                         particles_class=xt.Particles,
                         local_particle_src=None,
