@@ -2,7 +2,7 @@ import xobjects as xo
 
 from . import beam_elements as be
 
-def get_pysixtrack_xfields_mapping():
+def get_xline_xfields_mapping():
     try:
         import xfields as xf # I need to do it like this to avoid circular import
         xfields_elements = {
@@ -27,7 +27,7 @@ class Line():
            use_xfields_elements=True):
 
         '''
-        At the moment the sequence is assumed to be a pysixtrack line.
+        At the moment the sequence is assumed to be a xline line.
         This will be generalized in the future.
         '''
 
@@ -35,7 +35,7 @@ class Line():
             external_elements = {}
 
         if use_xfields_elements:
-            external_elements.update(get_pysixtrack_xfields_mapping())
+            external_elements.update(get_xline_xfields_mapping())
 
         num_elements = len(sequence.elements)
         elem_type_names = set([ee.__class__.__name__
@@ -54,8 +54,8 @@ class Line():
         elements = []
         for ii, ee in enumerate(sequence.elements):
             XtClass = seq_typename_to_xtclass(ee.__class__.__name__, external_elements)
-            if hasattr(XtClass, 'from_pysixtrack'):
-                xt_ee = XtClass.from_pysixtrack(ee, _buffer=line_data._buffer)
+            if hasattr(XtClass, 'from_xline'):
+                xt_ee = XtClass.from_xline(ee, _buffer=line_data._buffer)
             else:
                 xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
             elements.append(xt_ee)
