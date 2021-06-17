@@ -173,9 +173,11 @@ for ii in range(1, len(iconv)):
 #        'particle': pysixtrack.Particles(
 #                **sixdump[0].get_minimal_beam()).to_dict()},
 #        fid)
+
 part_dict = pysixtrack.Particles(
         **sixdump[0].get_minimal_beam()).to_dict()
 part_dict['state'] = 1
+
 import json
 class Encoder(json.JSONEncoder):
     def default(self, obj):
