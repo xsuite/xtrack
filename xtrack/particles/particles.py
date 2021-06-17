@@ -64,7 +64,7 @@ class Particles(dress(ParticlesData)):
             'scalar_vars': scalar_vars,
             'per_particle_vars': per_particle_vars}
 
-    def __init__(self, force_active_state=None, **kwargs):
+    def __init__(self, force_active_state=False, **kwargs):
 
         # Compatibility with old pysixtrack naming
         for old, new in pysixtrack_naming:
