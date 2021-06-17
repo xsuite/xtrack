@@ -178,21 +178,28 @@ class Pyparticles(object):
         elif not_none == 2:
             if chi is None:
                 self._mratio = mratio
-                self.qratio = qratio
+                self._qratio = qratio
+                self._chi = qratio / mratio
             elif mratio is None:
                 self._chi = chi
-                self.qratio = qratio
+                self._qratio = qratio
+                self._mratio = qratio / chi
             elif qratio is None:
                 self._chi = chi
-                self.mratio = mratio
+                self._mratio = mratio
+                self._qratio = chi * mratio
         else:
-            raise ValueError(
-                f"""
+            self._chi = chi
+            self._mratio = mratio
+            self._qratio = chi * mratio
+            if np.allclose(self._chi, qratio / mratio):
+                raise ValueError(
+                    f"""
             Particles defined with multiple mass/charge information:
             chi    = {chi},
             mratio = {mratio},
             qratio = {qratio}"""
-            )
+                )
 
     def __init__(
         self,
@@ -236,7 +243,7 @@ class Pyparticles(object):
         self.__init__ref(p0c, energy0, gamma0, beta0)
         self.__init__delta(delta, ptau, psigma)
         self.__init__zeta(zeta, tau, sigma)
-        self.__init__chi(chi, mratio, qratio)
+        self.__init__chi(chi=chi, mratio=mratio, qratio=qratio)
         self._update_coordinates = True
         length = self._check_array_length()
 
