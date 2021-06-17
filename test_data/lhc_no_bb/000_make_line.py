@@ -17,6 +17,9 @@ sequence = pysixtrack.Line.from_sixinput(six)
 sixdump = sixtracktools.SixDump101("res/dump3.dat")
 part0_pyst = pysixtrack.Particles(**sixdump[0::2][0].get_minimal_beam())
 
+# Force active state
+part0_pyst.state = 1
+
 #import pickle
 #with open('line_and_particle.pkl', 'wb') as fid:
 #    pickle.dump({

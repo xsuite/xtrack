@@ -5,7 +5,7 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import pysixtrack
+import xline as xl
 
 from make_short_line import make_short_line
 import time
@@ -67,7 +67,7 @@ elif str(fname_line_particles).endswith('.json'):
 ##################
 
 print('Import sequence')
-sequence = pysixtrack.Line.from_dict(input_data['line'])
+sequence = xl.Line.from_dict(input_data['line'])
 if short_test:
     sequence = make_short_line(sequence)
 
@@ -84,25 +84,19 @@ tracker = xt.Tracker(_context=context,
 ######################
 
 print('Import particles')
-part_pyst = pysixtrack.Particles.from_dict(input_data['particle'])
+part_dict = input_data['particle']
 
-dx_array = np.linspace(-1e-4, 1e-4, n_part)
-dy_array = np.linspace(-2e-4, 2e-4, n_part)
-pysixtrack_particles = []
-for ii in range(n_part):
-    pp = part_pyst.copy()
-    pp.x += dx_array[ii]
-    pp.y += dy_array[ii]
-    pysixtrack_particles.append(pp)
+# Go from one particle to many particles
+part_dict['x'] += np.linspace(-1e-4, 1e-4, n_part)
+part_dict['y'] += np.linspace(-2e-4, 2e-4, n_part)
 
-particles = xt.Particles(pysixtrack_particles=pysixtrack_particles,
-                         _context=context)
+particles = xt.Particles(_context=context, **part_dict)
 #########
 # Track #
 #########
 
 print('Track!')
-print(f'context: {tracker.context}')
+print(f'context: {tracker.line._buffer.context}')
 t1 = time.time()
 tracker.track(particles, num_turns=num_turns)
 context.synchronize()
@@ -115,11 +109,20 @@ print(f'Time {(t2-t1)*1e6/num_turns/n_part:.2f} us/part/turn')
 # Check against pysixtrack #
 ############################
 
+import pysixtrack
 ip_check = n_part//3*2
 
 print(f'\nTest against pysixtrack over {num_turns} turns on particle {ip_check}:')
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-pyst_part = pysixtrack_particles[ip_check].copy()
+
+import pysixtrack
+pyst_part = pysixtrack.Particles(**part_dict)
+
+# Select particle to check
+for nn in pyst_part._dict_vars:
+    if not np.isscalar(getattr(pyst_part, nn)):
+        setattr(pyst_part, nn, getattr(pyst_part, nn)[ip_check])
+
 for iturn in range(num_turns):
     print(f'turn {iturn}/{num_turns}', end='\r', flush=True)
     sequence.track(pyst_part)
