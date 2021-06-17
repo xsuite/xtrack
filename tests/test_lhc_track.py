@@ -5,8 +5,7 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import pysixtrack
-
+import xline as xl
 
 from xobjects.context import available
 
@@ -40,27 +39,19 @@ def test_lhc_track():
             # Get a sequence #
             ##################
 
-            sequence = pysixtrack.Line.from_dict(input_data['line'])
+            sequence = xl.Line.from_dict(input_data['line'])
 
             ##################
             # Build TrackJob #
             ##################
             print('Build tracker...')
-            tracker = xt.Tracker(_context=context,
-                        sequence=sequence,
-                        particles_class=xt.Particles,
-                        local_particle_src=None,
-                        save_source_as='source.c')
+            tracker = xt.Tracker(_context=context, sequence=sequence)
 
             ######################
             # Get some particles #
             ######################
-            part_pyst = pysixtrack.Particles.from_dict(input_data['particle'])
+            particles = xt.Particles(_context=context, **input_data['particle'])
 
-            pysixtrack_particles = [part_pyst, part_pyst] # Track twice the same particle
-
-            particles = xt.Particles(pysixtrack_particles=pysixtrack_particles,
-                                     _context=context)
             #########
             # Track #
             #########
@@ -72,12 +63,13 @@ def test_lhc_track():
             # Check against pysixtrack #
             ############################
             print('Check against pysixtrack...')
-            ip_check = 1
+            import pysixtrack
+            ip_check = 0
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-            pyst_part = pysixtrack_particles[ip_check].copy()
+            pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
             for _ in range(n_turns):
                 sequence.track(pyst_part)
-
+            
             for vv in vars_to_check:
                 pyst_value = getattr(pyst_part, vv)
                 xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
@@ -87,20 +79,21 @@ def test_lhc_track():
                           f'    pyst:   {pyst_value: .7e}\n'
                           f'    xtrack: {xt_value: .7e}\n')
                     raise ValueError
-
+            
             ##############
             # Check  ebe #
             ##############
             print('Check element-by-element against pysixtrack...')
-            pyst_part = pysixtrack_particles[ip_check].copy()
+            pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
             problem_found = False
             for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
+                print(f'\nelement {nn}')
                 vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
-                particles.set_particles_from_pysixtrack(ip_check, pyst_part)
-
+                particles.set_particle(ip_check, **pyst_part.to_dict())
+            
                 tracker.track(particles, ele_start=ii, num_elements=1)
-
+            
                 eepyst.track(pyst_part)
                 for vv in vars_to_check:
                     pyst_change = getattr(pyst_part, vv) - vars_before[vv]
@@ -109,20 +102,17 @@ def test_lhc_track():
                     passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=5e-14)
                     if not passed:
                         problem_found = True
-                        print(f'\nelement {nn}')
                         print(f'Not passend on var {vv}!\n'
                               f'    pyst:   {pyst_change: .7e}\n'
                               f'    xtrack: {xt_change: .7e}\n')
                         break
-
+            
                 if not passed:
                     break
                 else:
-                    print(f'Check passed for element: {nn}        ', end='\r', flush=True)
-
-            assert not(problem_found)
-
+                    print("Check passed!")
+            
+            
             if not problem_found:
                 print('All passed on context:')
                 print(context)
-

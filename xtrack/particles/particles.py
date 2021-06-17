@@ -350,58 +350,44 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
 
 def pyparticles_to_xtrack_dict(pyparticles):
 
-    if hasattr(pyparticles, '__iter__'):
-        num_particles = len(pyparticles)
-        dicts = list(map(pyparticles_to_xtrack_dict, pyparticles))
-        out = {}
-        out['num_particles'] = num_particles
-        for tt, kk in scalar_vars:
+    out = {}
+
+    pyst_dict = pyparticles.to_dict()
+    if hasattr(pyparticles, 'weight'):
+        pyst_dict['weight'] = getattr(pyparticles, 'weight')
+    else:
+        pyst_dict['weight'] = 1.
+
+    for tt, kk in list(scalar_vars) + list(per_particle_vars):
+        if kk not in pyst_dict.keys():
             if kk == 'num_particles':
                 continue
-            # TODO check consistency
-            out[kk] = dicts[0][kk]
-        for tt, kk in per_particle_vars:
-            out[kk] = np.concatenate([dd[kk] for dd in dicts])
-        return out
-    else:
-        out = {}
+            else:
+                # Use properties
+                pyst_dict[kk] = getattr(pyparticles, kk)
 
-        pyst_dict = pyparticles.to_dict()
-        if hasattr(pyparticles, 'weight'):
-            pyst_dict['weight'] = getattr(pyparticles, 'weight')
-        else:
-            pyst_dict['weight'] = 1.
+                # OLD PYSIXTRACK COMPATIBILITY (mode to __init__)
+                # if kk == 'charge_ratio':
+                #     kk_pyst = 'qratio'
+                # elif kk == 'particle_id':
+                #     kk_pyst = 'partid'
+                # elif kk == 'at_element':
+                #     kk_pyst = 'elemid'
+                # elif kk == 'at_turn':
+                #     kk_pyst = 'turn'
+                # else:
+                #     kk_pyst = kk
+                # # Use properties
+                # pyst_dict[kk] = getattr(pyparticles, kk_pyst)
 
-        for tt, kk in list(scalar_vars) + list(per_particle_vars):
-            if kk not in pyst_dict.keys():
-                if kk == 'num_particles':
-                    continue
-                else:
-                    # Use properties
-                    pyst_dict[kk] = getattr(pyparticles, kk)
+    for kk, vv in pyst_dict.items():
+        pyst_dict[kk] = np.atleast_1d(vv)
 
-                    # OLD PYSIXTRACK COMPATIBILITY (mode to __init__)
-                    # if kk == 'charge_ratio':
-                    #     kk_pyst = 'qratio'
-                    # elif kk == 'particle_id':
-                    #     kk_pyst = 'partid'
-                    # elif kk == 'at_element':
-                    #     kk_pyst = 'elemid'
-                    # elif kk == 'at_turn':
-                    #     kk_pyst = 'turn'
-                    # else:
-                    #     kk_pyst = kk
-                    # # Use properties
-                    # pyst_dict[kk] = getattr(pyparticles, kk_pyst)
-
-        for kk, vv in pyst_dict.items():
-            pyst_dict[kk] = np.atleast_1d(vv)
-
-        lll = [len(vv) for kk, vv in pyst_dict.items() if hasattr(vv, '__len__')]
-        lll = list(set(lll))
-        assert len(set(lll) - {1}) <= 1
-        num_particles = max(lll)
-        out['num_particles'] = num_particles
+    lll = [len(vv) for kk, vv in pyst_dict.items() if hasattr(vv, '__len__')]
+    lll = list(set(lll))
+    assert len(set(lll) - {1}) <= 1
+    num_particles = max(lll)
+    out['num_particles'] = num_particles
 
     for tt, kk in scalar_vars:
         if kk == 'num_particles':
