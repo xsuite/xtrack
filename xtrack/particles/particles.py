@@ -353,6 +353,11 @@ def pyparticles_to_xtrack_dict(pyparticles):
     out = {}
 
     pyst_dict = pyparticles.to_dict()
+    for old, new in pysixtrack_naming:
+        if hasattr(pyparticles, old):
+            assert new not in pyst_dict.keys()
+            pyst_dict[new] = getattr(pyparticles, old)
+
     if hasattr(pyparticles, 'weight'):
         pyst_dict['weight'] = getattr(pyparticles, 'weight')
     else:
@@ -366,19 +371,6 @@ def pyparticles_to_xtrack_dict(pyparticles):
                 # Use properties
                 pyst_dict[kk] = getattr(pyparticles, kk)
 
-                # OLD PYSIXTRACK COMPATIBILITY (mode to __init__)
-                # if kk == 'charge_ratio':
-                #     kk_pyst = 'qratio'
-                # elif kk == 'particle_id':
-                #     kk_pyst = 'partid'
-                # elif kk == 'at_element':
-                #     kk_pyst = 'elemid'
-                # elif kk == 'at_turn':
-                #     kk_pyst = 'turn'
-                # else:
-                #     kk_pyst = kk
-                # # Use properties
-                # pyst_dict[kk] = getattr(pyparticles, kk_pyst)
 
     for kk, vv in pyst_dict.items():
         pyst_dict[kk] = np.atleast_1d(vv)

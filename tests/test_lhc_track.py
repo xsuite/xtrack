@@ -69,7 +69,7 @@ def test_lhc_track():
             pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
             for _ in range(n_turns):
                 sequence.track(pyst_part)
-            
+
             for vv in vars_to_check:
                 pyst_value = getattr(pyst_part, vv)
                 xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
@@ -79,7 +79,7 @@ def test_lhc_track():
                           f'    pyst:   {pyst_value: .7e}\n'
                           f'    xtrack: {xt_value: .7e}\n')
                     raise ValueError
-            
+
             ##############
             # Check  ebe #
             ##############
@@ -90,10 +90,11 @@ def test_lhc_track():
             for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
                 print(f'\nelement {nn}')
                 vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
-                particles.set_particle(ip_check, **pyst_part.to_dict())
-            
+                pp_dict = xt.pyparticles_to_xtrack_dict(pyst_part)
+                particles.set_particle(ip_check, **pp_dict)
+
                 tracker.track(particles, ele_start=ii, num_elements=1)
-            
+
                 eepyst.track(pyst_part)
                 for vv in vars_to_check:
                     pyst_change = getattr(pyst_part, vv) - vars_before[vv]
@@ -106,13 +107,12 @@ def test_lhc_track():
                               f'    pyst:   {pyst_change: .7e}\n'
                               f'    xtrack: {xt_change: .7e}\n')
                         break
-            
+
                 if not passed:
                     break
                 else:
                     print("Check passed!")
-            
-            
+
             if not problem_found:
                 print('All passed on context:')
                 print(context)
