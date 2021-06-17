@@ -26,7 +26,7 @@ pyst_part = pysixtrack.Particles(
         sigma = np.zeros(n_part),
         delta = np.zeros(n_part))
 
-particles = xt.Particles(_context=context, pysixtrack_particles=pyst_part)
+particles = xt.Particles(_context=context, **pyst_part.to_dict())
 
 aper_pyst = pysixtrack.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,

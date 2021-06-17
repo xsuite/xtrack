@@ -30,11 +30,11 @@ particles = xt.Particles(_context=context,
 # Build a small test line
 tot_length = 2.
 n_slices = 10000
-pyst_line = xl.Line(elements=
+line = xl.Line(elements=
                 n_slices*[xl.Drift(length=tot_length/n_slices)],
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
-tracker = xt.Tracker(_context=context, sequence=pyst_line, save_source_as='source.c')
+tracker = xt.Tracker(_context=context, sequence=line, save_source_as='source.c')
 
 # Track
 n_turns = 3
