@@ -32,13 +32,13 @@ class Pyparticles(object):
     energy0 [eV] refernece energy
     gamma0  [1]  reference relativistic gamma
     beta0   [1]  reference relativistix beta
-    chi     [1]  q/ q0 * m0/m = qratio / mratio
-    mratio  [1]  mass/mass0
-    qratio  [1]  q / q0
-    partid  int
-    turn    int
+    chi     [1]  q/ q0 * m0/m = charge_ratio / mass_ratio
+    mass_ratio  [1]  mass/mass0
+    charge_ratio  [1]  q / q0
+    particle_id  int
+    at_turn    int
     state   int
-    elemid  int
+    at_element  int
     """
 
     clight = 299792458
@@ -161,44 +161,44 @@ class Pyparticles(object):
             sigma = {sigma}"""
             )
 
-    def __init__chi(self, mratio, qratio, chi):
-        not_none = count_not_none(mratio, qratio, chi)
+    def __init__chi(self, mass_ratio, charge_ratio, chi):
+        not_none = count_not_none(mass_ratio, charge_ratio, chi)
         if not_none == 0:
             self._chi = 1.0
-            self._mratio = 1.0
-            self._qratio = 1.0
+            self._mass_ratio = 1.0
+            self._charge_ratio = 1.0
         elif not_none == 1:
             raise ValueError(
                 f"""\
             Particles defined with insufficient mass/charge information:
             chi    = {chi},
-            mratio = {mratio},
-            qratio = {qratio}"""
+            mass_ratio = {mass_ratio},
+            charge_ratio = {charge_ratio}"""
             )
         elif not_none == 2:
             if chi is None:
-                self._mratio = mratio
-                self._qratio = qratio
-                self._chi = qratio / mratio
-            elif mratio is None:
+                self._mass_ratio = mass_ratio
+                self._charge_ratio = charge_ratio
+                self._chi = charge_ratio / mass_ratio
+            elif mass_ratio is None:
                 self._chi = chi
-                self._qratio = qratio
-                self._mratio = qratio / chi
-            elif qratio is None:
+                self._charge_ratio = charge_ratio
+                self._mass_ratio = charge_ratio / chi
+            elif charge_ratio is None:
                 self._chi = chi
-                self._mratio = mratio
-                self._qratio = chi * mratio
+                self._mass_ratio = mass_ratio
+                self._charge_ratio = chi * mass_ratio
         else:
             self._chi = chi
-            self._mratio = mratio
-            self._qratio = chi * mratio
-            if np.allclose(self._chi, qratio / mratio):
+            self._mass_ratio = mass_ratio
+            self._charge_ratio = chi * mass_ratio
+            if np.allclose(self._chi, charge_ratio / mass_ratio):
                 raise ValueError(
                     f"""
             Particles defined with multiple mass/charge information:
             chi    = {chi},
-            mratio = {mratio},
-            qratio = {qratio}"""
+            mass_ratio = {mass_ratio},
+            charge_ratio = {charge_ratio}"""
                 )
 
     def __init__(
@@ -222,12 +222,12 @@ class Pyparticles(object):
         gamma0=None,
         beta0=None,
         chi=None,
-        mratio=None,
-        qratio=None,
-        partid=None,
-        turn=None,
+        mass_ratio=None,
+        charge_ratio=None,
+        particle_id=None,
+        at_turn=None,
         state=None,  # == 0 particle lost, == 1 particle active
-        elemid=None,
+        at_element=None,
         **args,
     ):
 
@@ -243,21 +243,21 @@ class Pyparticles(object):
         self.__init__ref(p0c, energy0, gamma0, beta0)
         self.__init__delta(delta, ptau, psigma)
         self.__init__zeta(zeta, tau, sigma)
-        self.__init__chi(chi=chi, mratio=mratio, qratio=qratio)
+        self.__init__chi(chi=chi, mass_ratio=mass_ratio, charge_ratio=charge_ratio)
         self._update_coordinates = True
         length = self._check_array_length()
 
-        if partid is None:
-            partid = np.arange(length) if length is not None else 0
-        self.partid = partid
+        if particle_id is None:
+            particle_id = np.arange(length) if length is not None else 0
+        self.particle_id = particle_id
 
-        if turn is None:
-            turn = np.zeros(length) if length is not None else 0
-        self.turn = turn
+        if at_turn is None:
+            at_turn = np.zeros(length) if length is not None else 0
+        self.at_turn = at_turn
 
-        if elemid is None:
-            elemid = np.zeros(length) if length is not None else 0
-        self.elemid = elemid
+        if at_element is None:
+            at_element = np.zeros(length) if length is not None else 0
+        self.at_element = at_element
 
         if state is None:
             state = np.ones(length) if length is not None else 1
@@ -278,11 +278,11 @@ class Pyparticles(object):
                         raise ValueError(f"invalid length len({nn})={len(xx)}")
         return length
 
-    Px = property(lambda p: p.px * p.p0c * p.mratio)
-    Py = property(lambda p: p.py * p.p0c * p.mratio)
-    energy = property(lambda p: (p.ptau * p.p0c + p.energy0) * p.mratio)
-    pc = property(lambda p: (p.delta * p.p0c + p.p0c) * p.mratio)
-    mass = property(lambda p: p.mass0 * p.mratio)
+    Px = property(lambda p: p.px * p.p0c * p.mass_ratio)
+    Py = property(lambda p: p.py * p.p0c * p.mass_ratio)
+    energy = property(lambda p: (p.ptau * p.p0c + p.energy0) * p.mass_ratio)
+    pc = property(lambda p: (p.delta * p.p0c + p.p0c) * p.mass_ratio)
+    mass = property(lambda p: p.mass0 * p.mass_ratio)
     beta = property(lambda p: (1 + p.delta) / (1 / p.beta0 + p.ptau))
     # rvv = property(lambda self: self.beta/self.beta0)
     # rpp = property(lambda self: 1/(1+self.delta))
@@ -385,25 +385,25 @@ class Pyparticles(object):
         self._update_ref(*new)
         self._update_particles_from_absolute(*_abs)
 
-    mratio = property(lambda self: self._mratio)
+    mass_ratio = property(lambda self: self._mass_ratio)
 
-    @mratio.setter
-    def mratio(self, mratio):
-        self._mratio = mratio
-        self._chi = self._qratio / self._mratio
+    @mass_ratio.setter
+    def mass_ratio(self, mass_ratio):
+        self._mass_ratio = mass_ratio
+        self._chi = self._charge_ratio / self._mass_ratio
 
-    qratio = property(lambda self: self._qratio)
+    charge_ratio = property(lambda self: self._charge_ratio)
 
-    @qratio.setter
-    def qratio(self, qratio):
-        self._qratio = qratio
-        self._chi = qratio / self._mratio
+    @charge_ratio.setter
+    def charge_ratio(self, charge_ratio):
+        self._charge_ratio = charge_ratio
+        self._chi = charge_ratio / self._mass_ratio
 
     chi = property(lambda self: self._chi)
 
     @chi.setter
     def chi(self, chi):
-        self._qratio = self._chi * self._mratio
+        self._charge_ratio = self._chi * self._mass_ratio
         self._chi = chi
 
     def _get_absolute(self):
@@ -418,10 +418,10 @@ class Pyparticles(object):
 
     def _update_particles_from_absolute(self, Px, Py, pc, energy):
         if self._update_coordinates:
-            mratio = self.mass / self.mass0
-            norm = mratio * self.p0c
-            self._mratio = mratio
-            self._chi = self._qratio / mratio
+            mass_ratio = self.mass / self.mass0
+            norm = mass_ratio * self.p0c
+            self._mass_ratio = mass_ratio
+            self._chi = self._charge_ratio / mass_ratio
             self._ptau = energy / norm - 1
             self._delta = pc / norm - 1
             self.px = Px / norm
@@ -442,8 +442,8 @@ class Pyparticles(object):
         zeta    = {self.zeta}
         delta   = {self.delta}
         ptau    = {self.ptau}
-        mratio  = {self.mratio}
-        qratio  = {self.qratio}
+        mass_ratio  = {self.mass_ratio}
+        charge_ratio  = {self.charge_ratio}
         chi     = {self.chi}"""
         return out
 
@@ -459,9 +459,9 @@ class Pyparticles(object):
         "q0",
         "p0c",
         "chi",
-        "mratio",
-        "partid",
-        "turn",
+        "mass_ratio",
+        "particle_id",
+        "at_turn",
         "state",
     )
 

@@ -101,7 +101,7 @@ problem_found = False
 for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     print(f'\nelement {nn}')
     vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
-    particles.set_particles_from_pysixtrack(ip_check, pyst_part)
+    particles.set_particle(ip_check, **pyst_part.to_dict())
 
     tracker.track(particles, ele_start=ii, num_elements=1)
 

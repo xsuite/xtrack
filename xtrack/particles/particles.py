@@ -49,6 +49,15 @@ ParticlesData = type(
         (xo.Struct,),
         fields)
 
+pysixtrack_naming=(
+        ('qratio', 'charge_ratio'),
+        ('mratio', 'mass_ratio'),
+        ('partid', 'particle_id'),
+        ('turn', 'at_turn'),
+        ('elemid', 'at_element'),
+        )
+
+
 class Particles(dress(ParticlesData)):
 
     _structure = {
@@ -56,6 +65,12 @@ class Particles(dress(ParticlesData)):
             'per_particle_vars': per_particle_vars}
 
     def __init__(self, force_active_state=None, **kwargs):
+
+        # Compatibility with old pysixtrack naming
+        for old, new in pysixtrack_naming:
+            if old in kwargs.keys():
+                assert new not in kwargs.keys()
+                kwargs[new] = kwargs[old]
 
         if '_xobject' in kwargs.keys():
             # Initialize xobject
@@ -130,11 +145,19 @@ class Particles(dress(ParticlesData)):
         self.p0c = p0c
         return self
 
-    def set_particles_from_pysixtrack(self, index, pysixtrack_particle,
-            set_scalar_vars=False, check_scalar_vars=True,
-            force_active_state=True):
+    def set_particle(self, index, set_scalar_vars=False,
+            check_scalar_vars=True, force_active_state=True, **kwargs):
 
-        part_dict = pyparticles_to_xtrack_dict(pysixtrack_particle)
+        # Compatibility with old pysixtrack naming
+        for old, new in pysixtrack_naming:
+            if old in kwargs.keys():
+                assert new not in kwargs.keys()
+                kwargs[new] = kwargs[old]
+
+
+        # Needed to generate consistent longitudinal variables
+        pyparticles = Pyparticles(**kwargs)
+        part_dict = pyparticles_to_xtrack_dict(pyparticles)
         for tt, kk in list(scalar_vars):
             if kk == 'num_particles':
                 continue
@@ -354,22 +377,22 @@ def pyparticles_to_xtrack_dict(pyparticles):
                 if kk == 'num_particles':
                     continue
                 else:
-                    if kk == 'charge_ratio':
-                        if 'charge_ratio' not in pyst_dict.keys():
-                            kk_pyst = 'qratio'
-                    elif kk == 'particle_id':
-                        if 'particle_id' not in pyst_dict.keys():
-                            kk_pyst = 'partid'
-                    elif kk == 'at_element':
-                        if 'at_element' not in pyst_dict.keys():
-                            kk_pyst = 'elemid'
-                    elif kk == 'at_turn':
-                        if 'at_turn' not in pyst_dict.keys():
-                            kk_pyst = 'turn'
-                    else:
-                        kk_pyst = kk
                     # Use properties
-                    pyst_dict[kk] = getattr(pyparticles, kk_pyst)
+                    pyst_dict[kk] = getattr(pyparticles, kk)
+
+                    # OLD PYSIXTRACK COMPATIBILITY (mode to __init__)
+                    # if kk == 'charge_ratio':
+                    #     kk_pyst = 'qratio'
+                    # elif kk == 'particle_id':
+                    #     kk_pyst = 'partid'
+                    # elif kk == 'at_element':
+                    #     kk_pyst = 'elemid'
+                    # elif kk == 'at_turn':
+                    #     kk_pyst = 'turn'
+                    # else:
+                    #     kk_pyst = kk
+                    # # Use properties
+                    # pyst_dict[kk] = getattr(pyparticles, kk_pyst)
 
         for kk, vv in pyst_dict.items():
             pyst_dict[kk] = np.atleast_1d(vv)
