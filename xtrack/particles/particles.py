@@ -63,15 +63,15 @@ class Particles(dress(ParticlesData)):
         else:
             if any([nn in kwargs.keys() for tt, nn in per_particle_vars]):
                 # Needed to generate consistent longitudinal variables
-                pysixtrack_particles = Pyparticles(**kwargs)
+                pyparticles = Pyparticles(**kwargs)
 
-                part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particles)
+                part_dict = pyparticles_to_xtrack_dict(pyparticles)
                 if 'num_particles' in kwargs.keys():
                     assert kwargs['num_particles'] == part_dict['num_particles']
                 else:
                     kwargs['num_particles'] = part_dict['num_particles']
             else:
-                pysixtrack_particles = None
+                pyparticles = None
 
             # Make sure num_particles is integer
             kwargs['num_particles'] = int(kwargs['num_particles'])
@@ -84,7 +84,7 @@ class Particles(dress(ParticlesData)):
             self.xoinitialize(**kwargs)
 
             # Initialize coordinates
-            if pysixtrack_particles is not None:
+            if pyparticles is not None:
                 context = self._buffer.context
                 for tt, kk in list(scalar_vars):
                     setattr(self, kk, part_dict[kk])
@@ -134,7 +134,7 @@ class Particles(dress(ParticlesData)):
             set_scalar_vars=False, check_scalar_vars=True,
             force_active_state=True):
 
-        part_dict = pysixtrack_particles_to_xtrack_dict(pysixtrack_particle)
+        part_dict = pyparticles_to_xtrack_dict(pysixtrack_particle)
         for tt, kk in list(scalar_vars):
             if kk == 'num_particles':
                 continue
@@ -325,11 +325,11 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
 
     return source
 
-def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
+def pyparticles_to_xtrack_dict(pyparticles):
 
-    if hasattr(pysixtrack_particles, '__iter__'):
-        num_particles = len(pysixtrack_particles)
-        dicts = list(map(pysixtrack_particles_to_xtrack_dict, pysixtrack_particles))
+    if hasattr(pyparticles, '__iter__'):
+        num_particles = len(pyparticles)
+        dicts = list(map(pyparticles_to_xtrack_dict, pyparticles))
         out = {}
         out['num_particles'] = num_particles
         for tt, kk in scalar_vars:
@@ -343,9 +343,9 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
     else:
         out = {}
 
-        pyst_dict = pysixtrack_particles.to_dict()
-        if hasattr(pysixtrack_particles, 'weight'):
-            pyst_dict['weight'] = getattr(pysixtrack_particles, 'weight')
+        pyst_dict = pyparticles.to_dict()
+        if hasattr(pyparticles, 'weight'):
+            pyst_dict['weight'] = getattr(pyparticles, 'weight')
         else:
             pyst_dict['weight'] = 1.
 
@@ -354,10 +354,7 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
                 if kk == 'num_particles':
                     continue
                 else:
-                    if kk == 'mass_ratio':
-                        if 'mass_ratio' not in pyst_dict.keys():
-                            kk_pyst = 'mratio'
-                    elif kk == 'charge_ratio':
+                    if kk == 'charge_ratio':
                         if 'charge_ratio' not in pyst_dict.keys():
                             kk_pyst = 'qratio'
                     elif kk == 'particle_id':
@@ -372,7 +369,7 @@ def pysixtrack_particles_to_xtrack_dict(pysixtrack_particles):
                     else:
                         kk_pyst = kk
                     # Use properties
-                    pyst_dict[kk] = getattr(pysixtrack_particles, kk_pyst)
+                    pyst_dict[kk] = getattr(pyparticles, kk_pyst)
 
         for kk, vv in pyst_dict.items():
             pyst_dict[kk] = np.atleast_1d(vv)
