@@ -23,7 +23,7 @@ def test_drift():
                 zeta=2.)
 
         particles = xt.Particles(_context=ctx,
-                                 pysixtrack_particles=[pyst_particle])
+                                 **pyst_particle.to_dict())
 
         drift = xt.Drift(_context=ctx, length=10.)
         drift.track(particles)
