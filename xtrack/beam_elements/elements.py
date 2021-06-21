@@ -4,47 +4,45 @@ import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
-from ..dress_element import dress_element
+from ..dress_element import BeamElement
 from ..particles import ParticlesData
 from ..general import _pkg_root
 
 
-class DriftData(xo.Struct):
-    length = xo.Float64
-DriftData.extra_sources = [
+class Drift(BeamElement):
+    _xofields = {
+        'length': xo.Float64}
+
+Drift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
 
-class Drift(dress_element(DriftData)):
-    '''The drift...'''
-    pass
 
-class CavityData(xo.Struct):
-    voltage = xo.Float64
-    frequency = xo.Float64
-    lag = xo.Float64
-CavityData.extra_sources = [
+class Cavity(BeamElement):
+    _xofields = {
+        'voltage': xo.Float64,
+        'frequency': xo.Float64,
+        'lag': xo.Float64,
+        }
+
+Cavity.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
 
-class Cavity(dress_element(CavityData)):
-    pass
 
-class XYShiftData(xo.Struct):
-    dx = xo.Float64
-    dy = xo.Float64
-XYShiftData.extra_sources = [
+class XYShift(BeamElement):
+    _xofields = {
+        'dx': xo.Float64,
+        'dy': xo.Float64,
+        }
+
+XYShift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
 
-class XYShift(dress_element(XYShiftData)):
-    pass
 
-class SRotationData(xo.Struct):
-    cos_z = xo.Float64
-    sin_z = xo.Float64
-SRotationData.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
-
-
-class SRotation(dress_element(SRotationData)):
+class SRotation(BeamElement):
+    _xofields={
+        'cos_z': xo.Float64,
+        'sin_z': xo.Float64,
+        }
 
     def __init__(self, angle=0, **nargs):
         anglerad = angle / 180 * np.pi
@@ -56,16 +54,18 @@ class SRotation(dress_element(SRotationData)):
     def angle(self):
         return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
 
-class MultipoleData(xo.Struct):
-    order = xo.Int64
-    length = xo.Float64
-    hxl = xo.Float64
-    hyl = xo.Float64
-    bal = xo.Float64[:]
-MultipoleData.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
+SRotation.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
-class Multipole(dress_element(MultipoleData)):
+
+class Multipole(BeamElement):
+    _xofields={
+        'order': xo.Int64,
+        'length': xo.Float64,
+        'hxl': xo.Float64,
+        'hyl': xo.Float64,
+        'bal': xo.Float64[:],
+        }
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
 
@@ -130,17 +130,19 @@ class Multipole(dress_element(MultipoleData)):
         #idx = np.array([ii for ii in range(0, len(self.bal), 2)])
         #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
 
-class RFMultipoleData(xo.Struct):
-    order = xo.Int64
-    voltage = xo.Float64
-    frequency = xo.Float64
-    lag = xo.Float64
-    bal = xo.Float64[:]
-    phase = xo.Float64[:]
-RFMultipoleData.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
+Multipole.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
-class RFMultipole(dress_element(RFMultipoleData)):
+
+class RFMultipole(BeamElement):
+    _xofields={
+        'order': xo.Int64,
+        'voltage': xo.Float64,
+        'frequency': xo.Float64,
+        'lag': xo.Float64,
+        'bal': xo.Float64[:],
+        'phase': xo.Float64[:],
+    }
 
     def __init__(
         self,
@@ -280,4 +282,7 @@ class RFMultipole(dress_element(RFMultipoleData)):
     def set_ps(self, value, order):
         assert order <= self.order
         self.phase[order * 2 + 1] = value
+
+RFMultipole.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
 
