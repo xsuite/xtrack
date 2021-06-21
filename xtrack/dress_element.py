@@ -73,3 +73,18 @@ def dress_element(XoElementData):
     DressedElement.track = track
 
     return DressedElement
+
+
+class MetaBeamElement(type):
+
+    def __new__(cls, name, bases, data):
+        XoStruct_name = name+'Data'
+        xofields = data['_xofields']
+        XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
+
+        bases = (dress_element(XoStruct),) + bases
+
+        return type.__new__(cls, name, bases, data)
+
+class BeamElement(metaclass=MetaBeamElement):
+    _xofields={}
