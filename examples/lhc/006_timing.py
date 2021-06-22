@@ -33,11 +33,11 @@ num_turns = int(100)
 # Choose a context #
 ####################
 
-n_part = 200
-context = xo.ContextCpu()
+#n_part = 200
+#context = xo.ContextCpu()
 
-#n_part = 20000
-#context = xo.ContextCupy()
+n_part = 20000
+context = xo.ContextCupy()
 
 #n_part = 20000
 #context = xo.ContextPyopencl('0.0')
