@@ -1,2 +1,1 @@
-special-vendored-path/* linguist-vendored
-test_data/* linguist-vendored=false
+test_data/* linguist-vendored
