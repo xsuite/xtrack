@@ -14,11 +14,15 @@ import time
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
-fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
 #fname_line_particles = test_data_folder.joinpath(
 #                                './lhc_with_bb/line_and_particle.json')
 #fname_line_particles = test_data_folder.joinpath(
 #                                './hllhc_14/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath(
+#                        './sps_w_spacecharge/line_and_particle.json')
+fname_line_particles = test_data_folder.joinpath(
+                        './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
 
 
 # # Quick test (for debugging)
@@ -33,11 +37,11 @@ num_turns = int(100)
 # Choose a context #
 ####################
 
-#n_part = 200
-#context = xo.ContextCpu()
+n_part = 200
+context = xo.ContextCpu()
 
-n_part = 20000
-context = xo.ContextCupy()
+#n_part = 20000
+#context = xo.ContextCupy()
 
 #n_part = 20000
 #context = xo.ContextPyopencl('0.0')

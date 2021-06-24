@@ -14,13 +14,13 @@ short_test = False # Short line (5 elements)
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
-fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
 #fname_line_particles = test_data_folder.joinpath(
 #                                './lhc_with_bb/line_and_particle.json')
-fname_line_particles = test_data_folder.joinpath(
-                        './hllhc_14/line_and_particle.json')
-fname_line_particles = test_data_folder.joinpath(
-                        './sps_w_spacecharge/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath(
+#                        './hllhc_14/line_and_particle.json')
+#fname_line_particles = test_data_folder.joinpath(
+#                     './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
 fname_line_particles = test_data_folder.joinpath(
                         './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
 
@@ -29,7 +29,7 @@ fname_line_particles = test_data_folder.joinpath(
 ####################
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
+#context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 #############
@@ -102,7 +102,6 @@ pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
-    print(f'\nelement {nn}')
     vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
     pp_dict = xt.pyparticles_to_xtrack_dict(pyst_part)
     particles.set_particle(ip_check, **pp_dict)
@@ -123,9 +122,10 @@ for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)
             break
 
     if not passed:
+        print(f'\nelement {nn}')
         break
     else:
-        print("Check passed!")
+        print(f'Check passed for element: {nn}              ', end='\r', flush=True)
 
 
 if not problem_found:
