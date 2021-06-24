@@ -18,16 +18,18 @@ fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.js
 #fname_line_particles = test_data_folder.joinpath(
 #                                './lhc_with_bb/line_and_particle.json')
 fname_line_particles = test_data_folder.joinpath(
-                                './hllhc_14/line_and_particle.json')
+                        './hllhc_14/line_and_particle.json')
 fname_line_particles = test_data_folder.joinpath(
-                                './sps_w_spacecharge/line_and_particle.json')
+                        './sps_w_spacecharge/line_and_particle.json')
+fname_line_particles = test_data_folder.joinpath(
+                        './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
 
 ####################
 # Choose a context #
 ####################
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
+context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 #############
@@ -90,7 +92,7 @@ for vv in vars_to_check:
         print(f'Not passend on var {vv}!\n'
               f'    pyst:   {pyst_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
-#        raise ValueError
+        raise ValueError
 
 ##############
 # Check  ebe #
