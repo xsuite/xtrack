@@ -7,12 +7,14 @@ def get_xline_xfields_mapping():
         import xfields as xf # I need to do it like this to avoid circular import
         xfields_elements = {
             'BeamBeam4D': xf.BeamBeamBiGaussian2D,
-            'BeamBeam6D': xf.BeamBeamBiGaussian3D}
+            'BeamBeam6D': xf.BeamBeamBiGaussian3D,
+            'SCQGaussProfile': xf.SpaceChargeBiGaussian}
     except ImportError:
         print('Xfields not available')
         xfields_elements = {
             'BeamBeam4D': None,
-            'BeamBeam6D': None}
+            'BeamBeam6D': None,
+            'SCQGaussProfile': None}
     return xfields_elements
 
 def seq_typename_to_xtclass(typename, external_elements):
