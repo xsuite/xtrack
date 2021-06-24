@@ -3669,7 +3669,7 @@ qf.51610: qf,lrad:= 3.085,knl:={ 0,( kqf1 ) * ( 3.085 ) },apertype=ellipse,apert
 mdhw: hkicker,lrad:= 0.526;
 mdhw.51633: mdhw,lrad:= 0.526,kick:=kmdhw51633 ;
 mdhw.51634: mdhw,lrad:= 0.526,kick:=kmdhw51634 ;
-bipmh: monitor,l:= 0,apertype=racetrack,aperture:={ 68, 32.8, 10.1};
+bipmh: monitor,l:= 0,apertype=rectangle,aperture:={ 68, 32.8};
 bipmh.51634: bipmh,slot_id:= 10940701;
 mdhw.51637: mdhw,lrad:= 0.526,kick:=kmdhw51637 ;
 bshv.51659: bshv,lrad:= 0.45,apertype=ellipse,aperture:={ 0.078, 0.078};
@@ -3680,7 +3680,7 @@ qd.51710: qd,lrad:= 3.085,knl:={ 0,( kqd ) * ( 3.085 ) },apertype=ellipse,apertu
 mdvw: vkicker,lrad:= 0.526;
 mdvw.51732: mdvw,lrad:= 0.526,kick:=kmdvw51732 ;
 mdvw.51734: mdvw,lrad:= 0.526,kick:=kmdvw51734 ;
-bipmv: monitor,l:= 0,apertype=racetrack,aperture:={ 68, 32.8, 10.1};
+bipmv: monitor,l:= 0,apertype=rectangle,aperture:={68, 32.8};
 bipmv.51734: bipmv,slot_id:= 10940704;
 mdvw.51736: mdvw,lrad:= 0.526,kick:=kmdvw51736 ;
 mdph: hkicker,lrad:= 0.25,apertype=ellipse,aperture:={ 0.0775, 0.0415};

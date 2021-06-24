@@ -17,7 +17,8 @@ mad = Madx()
 mad.call('sps_thin.seq')
 
 line_without_spacecharge = pysixtrack.Line.from_madx_sequence(
-                                            mad.sequence['sps'])
+                                            mad.sequence['sps'],
+                                            install_apertures=True)
 
 part = pysixtrack.Particles(p0c=p0c, x=2e-3, y=3e-3)
 
