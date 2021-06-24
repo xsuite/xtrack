@@ -19,8 +19,12 @@ mad.call('sps_thin.seq')
 line_without_spacecharge = pysixtrack.Line.from_madx_sequence(
                                             mad.sequence['sps'],
                                             install_apertures=True)
+# enable RF
+i_cavity = line_without_spacecharge.element_names.index('acta.31637')
+line_without_spacecharge.elements[i_cavity].voltage = 3e6
+line_without_spacecharge.elements[i_cavity].lag = 180.
 
-part = pysixtrack.Particles(p0c=p0c, x=2e-3, y=3e-3)
+part = pysixtrack.Particles(p0c=p0c, x=2e-3, y=3e-3, zeta=20e-2)
 
 with open('line_no_spacecharge_and_particle.json', 'w') as fid:
     json.dump({
@@ -43,6 +47,11 @@ bt.install_sc_placeholders(
 line_with_spacecharge = pysixtrack.Line.from_madx_sequence(
                                        mad.sequence['sps'],
                                        install_apertures=True)
+
+# enable RF
+i_cavity = line_with_spacecharge.element_names.index('acta.31637')
+line_with_spacecharge.elements[i_cavity].voltage = 3e6
+line_with_spacecharge.elements[i_cavity].lag = 180.
 
 with open('line_with_spacecharge_and_particle.json', 'w') as fid:
     json.dump({
