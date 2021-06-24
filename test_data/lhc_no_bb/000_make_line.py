@@ -27,14 +27,6 @@ part0_pyst.state = 1
 #        'particle': part0_pyst.to_dict()},
 #        fid)
 
-import json
-class Encoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif np.issubdtype(type(obj), np.integer):
-            return int(obj)
-        return json.JSONEncoder.default(self, obj)
 with open('line_and_particle.json', 'w') as fid:
     json.dump({
         'line': sequence.to_dict(keepextra=True),
