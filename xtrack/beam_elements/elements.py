@@ -286,3 +286,57 @@ class RFMultipole(BeamElement):
 RFMultipole.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
 
+
+class DipoleEdge(BeamElement):
+    _xofields = {
+            'r21': xo.Float64,
+            'r43': xo.Float64,
+            }
+
+    def __init__(
+        self,
+        r21=None,
+        r43=None,
+        h=None,
+        e1=None,
+        hgap=None,
+        fint=None,
+        **kwargs
+    ):
+        if r21 is None and r43 is None:
+            ZERO = np.float64(0.0)
+            if hgap is None:
+                hgap = ZERO
+            if h is None:
+                h = ZERO
+            if e1 is None:
+                e1 = ZERO
+            if fint is None:
+                fint = ZERO
+
+            # Check that the argument e1 is not too close to ( 2k + 1 ) * pi/2
+            # so that the cos in the denominator of the r43 calculation and
+            # the tan in the r21 calculations blow up
+            assert not np.isclose(np.absolute(np.cos(e1)), ZERO)
+
+            corr = np.float64(2.0) * h * hgap * fint
+            r21 = h * np.tan(e1)
+            temp = corr / np.cos(e1) * (np.float64(1) + np.sin(e1) * np.sin(e1))
+
+            # again, the argument to the tan calculation should be limited
+            assert not np.isclose(np.absolute(np.cos(e1 - temp)), ZERO)
+            r43 = -h * np.tan(e1 - temp)
+
+        if r21 is not None and r43 is not None:
+            kwargs['r21'] = r21
+            kwargs['r43'] = r43
+            super().__init__(**kwargs)
+        else:
+            raise ValueError(
+                "DipoleEdge needs either coefficiants r21 and r43"
+                " or suitable values for h, e1, hgap, and fint provided"
+            )
+
+
+DipoleEdge.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
