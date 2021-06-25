@@ -62,13 +62,43 @@ class Tracker:
 
         line = Line(_context=_context, _buffer=_buffer, _offset=_offset,
                     sequence=sequence)
+
         context = line._buffer.context
+
+        element_classes = line._ElementRefClass._rtypes + (
+            particles_monitor_class.XoStruct,
+        )
+
+        self.line = line
+        ele_offsets = np.array([ee._offset for ee in line.elements], dtype=np.int64)
+        ele_typeids = np.array(
+            [element_classes.index(ee._xobject.__class__) for ee in line.elements],
+            dtype=np.int64,
+        )
+        ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
+        ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
+
+        self.particles_class = particles_class
+        self.particles_monitor_class = particles_monitor_class
+        self.ele_offsets_dev = ele_offsets_dev
+        self.ele_typeids_dev = ele_typeids_dev
+        self.num_elements = len(line.elements)
+        self.global_xy_limit = global_xy_limit
+        self.local_particle_src = local_particle_src
+        self.element_classes = element_classes
+
+        self._build_kernel(save_source_as)
+
+    def _build_kernel(self, save_source_as):
+
+        context = self.line._buffer.context
 
         sources = []
         kernels = {}
         cdefs = []
 
-        sources.append(f"#define XTRACK_GLOBAL_POSLIMIT ({global_xy_limit})")
+        sources.append(
+                f"#define XTRACK_GLOBAL_POSLIMIT ({self.global_xy_limit})")
         sources.append(_pkg_root.joinpath("headers/constants.h"))
 
         # Particles
@@ -76,21 +106,18 @@ class Tracker:
             source_particles,
             kernels_particles,
             cdefs_particles,
-        ) = particles_class.XoStruct._gen_c_api()
+        ) = self.particles_class.XoStruct._gen_c_api()
         sources.append(source_particles)
         kernels.update(kernels_particles)
         cdefs += cdefs_particles.split("\n")
 
         # Local particles
-        if local_particle_src is None:
-            local_particle_src = gen_local_particle_api()
-        sources.append(local_particle_src)
+        if self.local_particle_src is None:
+            self.local_particle_src = gen_local_particle_api()
+        sources.append(self.local_particle_src)
 
         # Elements
-        element_classes = line._ElementRefClass._rtypes + (
-            particles_monitor_class.XoStruct,
-        )
-        for cc in element_classes:
+        for cc in self.element_classes:
             ss, kk, dd = cc._gen_c_api()
             sources.append(ss)
             kernels.update(kk)
@@ -160,7 +187,7 @@ class Tracker:
         """
         )
 
-        for ii, cc in enumerate(element_classes):
+        for ii, cc in enumerate(self.element_classes):
             ccnn = cc.__name__.replace("Data", "")
             src_lines.append(
                 f"""
@@ -206,7 +233,7 @@ class Tracker:
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(xo.Int64, pointer=True, name="ele_offsets"),
                     xo.Arg(xo.Int64, pointer=True, name="ele_typeids"),
-                    xo.Arg(particles_class.XoStruct, name="particles"),
+                    xo.Arg(self.particles_class.XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
@@ -231,21 +258,8 @@ class Tracker:
             specialize=True,
         )
 
-        ele_offsets = np.array([ee._offset for ee in line.elements], dtype=np.int64)
-        ele_typeids = np.array(
-            [element_classes.index(ee._xobject.__class__) for ee in line.elements],
-            dtype=np.int64,
-        )
-        ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
-        ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
-
-        self.particles_class = particles_class
-        self.particles_monitor_class = particles_monitor_class
-        self.ele_offsets_dev = ele_offsets_dev
-        self.ele_typeids_dev = ele_typeids_dev
         self.track_kernel = context.kernels.track_line
-        self.num_elements = len(line.elements)
-        self.line = line
+
 
     def track(
         self,
