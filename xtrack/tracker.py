@@ -58,6 +58,9 @@ class Tracker:
                                  # to avoid circular import
             particles_monitor_class = xt.ParticlesMonitor
 
+        if local_particle_src is None:
+            local_particle_src = gen_local_particle_api()
+
         self.global_xy_limit = global_xy_limit
 
         line = Line(_context=_context, _buffer=_buffer, _offset=_offset,
@@ -112,8 +115,6 @@ class Tracker:
         cdefs += cdefs_particles.split("\n")
 
         # Local particles
-        if self.local_particle_src is None:
-            self.local_particle_src = gen_local_particle_api()
         sources.append(self.local_particle_src)
 
         # Elements
