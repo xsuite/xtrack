@@ -15,6 +15,7 @@ class Tracker:
         _buffer=None,
         _offset=None,
         sequence=None,
+        track_kernel=None,
         particles_class=None,
         particles_monitor_class=None,
         global_xy_limit=1.0,
@@ -22,6 +23,31 @@ class Tracker:
         save_source_as=None,
     ):
 
+        self._init_track_with_kernel(
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
+            sequence=sequence,
+            track_kernel=track_kernel,
+            particles_class=particles_class,
+            particles_monitor_class=particles_monitor_class,
+            global_xy_limit=global_xy_limit,
+            local_particle_src=local_particle_src,
+            save_source_as=save_source_as)
+
+    def _init_track_with_kernel(
+        self,
+        _context=None,
+        _buffer=None,
+        _offset=None,
+        sequence=None,
+        track_kernel=None,
+        particles_class=None,
+        particles_monitor_class=None,
+        global_xy_limit=1.0,
+        local_particle_src=None,
+        save_source_as=None,
+    ):
         if particles_class is None:
             import xtrack as xt  # I have to do it like this
                                  # to avoid circular import

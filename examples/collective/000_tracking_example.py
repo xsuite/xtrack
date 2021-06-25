@@ -37,7 +37,25 @@ _buffer = context.new_buffer()
 for ii, ee in enumerate(newseq.elements):
     if ee.__class__.__name__ == 'SCQGaussProfile':
         newee = xf.SpaceChargeBiGaussian.from_xline(ee, _buffer=_buffer)
+        newee.iscollective=True
         newseq.elements[ii] = newee
+
+# Split the sequence
+parts = []
+this_part = xl.Line(elements=[], element_names=[])
+for nn, ee in zip(newseq.element_names, newseq.elements):
+    if hasattr(ee, 'iscollective') and ee.iscollective:
+        if len(this_part.elements)>0:
+            parts.append(this_part)
+        parts.append(ee)
+        this_part = xl.Line(elements=[], element_names=[])
+    else:
+        this_part.append_element(ee, nn)
+
+        if len(this_part.elements)>0:
+            parts.append(this_part)
+
+prrrrr
 
 #################
 # Build Tracker #
