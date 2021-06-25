@@ -24,14 +24,12 @@ class Tracker:
 
         if particles_class is None:
             import xtrack as xt  # I have to do it like this
-
-            # to avoid circular import
+                                 # to avoid circular import
             particles_class = xt.Particles
 
         if particles_monitor_class is None:
             import xtrack as xt  # I have to do it like this
-
-            # to avoid circular import
+                                 # to avoid circular import
             particles_monitor_class = xt.ParticlesMonitor
 
         self.global_xy_limit = global_xy_limit

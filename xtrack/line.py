@@ -40,14 +40,22 @@ class Line():
             external_elements.update(get_xline_xfields_mapping())
 
         num_elements = len(sequence.elements)
-        elem_type_names = set([ee.__class__.__name__
-                                for ee in sequence.elements])
 
-        # Identify xtrack element classes
+        # Identify element types that are not xobjects 
+        elem_type_names = set([ee.__class__.__name__
+                                for ee in sequence.elements
+                                if not hasattr(ee, 'XoStruct')])
         element_data_types = []
         for nn in sorted(elem_type_names):
             cc = seq_typename_to_xtclass(nn, external_elements)
             element_data_types.append(cc.XoStruct)
+
+        # Identify element types that are xobjects
+        for ee in sequence.elements:
+            if (hasattr(ee, 'XoStruct')
+                    and ee.XoStruct not in element_data_types):
+                element_data_types.append(ee.XoStruct)
+
 
         ElementRefClass = xo.Ref(*element_data_types)
         LineDataClass = ElementRefClass[num_elements]
@@ -55,11 +63,16 @@ class Line():
                 _buffer=_buffer, _offset=_offset)
         elements = []
         for ii, ee in enumerate(sequence.elements):
-            XtClass = seq_typename_to_xtclass(ee.__class__.__name__, external_elements)
-            if hasattr(XtClass, 'from_xline'):
-                xt_ee = XtClass.from_xline(ee, _buffer=line_data._buffer)
-            else:
-                xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
+            if hasattr(ee, 'XoStruct'): # is already xobject
+                assert ee._buffer == line_data._buffer, (
+                        'Copy from different buffer not yet implemented')
+                xt_ee = ee
+            else: # needs to be converted
+                XtClass = seq_typename_to_xtclass(ee.__class__.__name__, external_elements)
+                if hasattr(XtClass, 'from_xline'):
+                    xt_ee = XtClass.from_xline(ee, _buffer=line_data._buffer)
+                else:
+                    xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
             elements.append(xt_ee)
             line_data[ii] = xt_ee._xobject
 
