@@ -42,6 +42,7 @@ class Tracker:
         _offset=None,
         sequence=None,
         track_kernel=None,
+        element_classes=None
         particles_class=None,
         particles_monitor_class=None,
         global_xy_limit=1.0,
@@ -68,9 +69,12 @@ class Tracker:
 
         context = line._buffer.context
 
-        element_classes = line._ElementRefClass._rtypes + (
-            particles_monitor_class.XoStruct,
-        )
+        if element_classes is None:
+            # Kernel relies on element_classes ordering
+            assert track_kernel=='skip' or track_kernel is None
+            element_classes = line._ElementRefClass._rtypes + (
+                particles_monitor_class.XoStruct,
+            )
 
         self.line = line
         ele_offsets = np.array([ee._offset for ee in line.elements], dtype=np.int64)
@@ -93,6 +97,8 @@ class Tracker:
         if track_kernel == 'skip':
             self.track_kernel = None
         elif track_kernel is None:
+            # Kernel relies on element_classes ordering
+            assert element_classes is None
             self._build_kernel(save_source_as)
         else:
             self.track_kernel = track_kernel

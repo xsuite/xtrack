@@ -55,19 +55,21 @@ for nn, ee in zip(newseq.element_names, newseq.elements):
 if len(this_part.elements)>0:
     parts.append(this_part)
 
-# Transform parts into trackers 
+# Transform non collective elements into xtrack elements 
 noncollective_xelements = []
 for ii, pp in enumerate(parts):
     if hasattr(pp, 'iscollective') and pp.iscollective:
         pass
     else:
-        parts[ii] = xt.Tracker(
-            _buffer=_buffer,
-            sequence=pp,
-            track_kernel='skip')
-        noncollective_xelements += parts[ii].line.elements
+        tempxtline = xt.Line(_buffer=_buffer,
+                           sequence=pp)
+        pp.elements = tempxtline.elements
+        noncollective_xelements += pp.elements
 
-
+supertracker = xt.Tracker(_buffer=_buffer,
+        sequence=xl.Line(elements=noncollective_xelements,
+            element_names=[
+                f'e{ii}' for ii in range(len(noncollective_xelements))]))
 
 prrrrr
 
