@@ -37,7 +37,7 @@ _buffer = context.new_buffer()
 for ii, ee in enumerate(newseq.elements):
     if ee.__class__.__name__ == 'SCQGaussProfile':
         newee = xf.SpaceChargeBiGaussian.from_xline(ee, _buffer=_buffer)
-        #newee.iscollective=True
+        newee.iscollective=True
         newseq.elements[ii] = newee
 
 # Split the sequence
@@ -52,22 +52,35 @@ for nn, ee in zip(newseq.element_names, newseq.elements):
     else:
         this_part.append_element(ee, nn)
 
-        if len(this_part.elements)>0:
-            parts.append(this_part)
+if len(this_part.elements)>0:
+    parts.append(this_part)
+
+# Transform parts into trackers 
+noncollective_xelements = []
+for ii, pp in enumerate(parts):
+    if hasattr(pp, 'iscollective') and pp.iscollective:
+        pass
+    else:
+        parts[ii] = xt.Tracker(
+            _buffer=_buffer,
+            sequence=pp,
+            track_kernel='skip')
+        noncollective_xelements += parts[ii].line.elements
+
+
+
+prrrrr
 
 
 #################
 # Build Tracker #
 #################
 print('Build tracker...')
-tracker_0 = xt.Tracker(_buffer=_buffer,
+tracker= xt.Tracker(_buffer=_buffer,
             sequence=newseq,
             particles_class=xt.Particles,
             local_particle_src=None,
             save_source_as='source.c')
-tracker = xt.Tracker(_buffer=_buffer,
-            sequence=newseq,
-            track_kernel=tracker_0.track_kernel)
 
 ######################
 # Get some particles #

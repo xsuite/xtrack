@@ -90,7 +90,9 @@ class Tracker:
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
 
-        if track_kernel is None:
+        if track_kernel == 'skip':
+            self.track_kernel = None
+        elif track_kernel is None:
             self._build_kernel(save_source_as)
         else:
             self.track_kernel = track_kernel
