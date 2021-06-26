@@ -90,7 +90,10 @@ class Tracker:
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
 
-        self._build_kernel(save_source_as)
+        if track_kernel is None:
+            self._build_kernel(save_source_as)
+        else:
+            self.track_kernel = track_kernel
 
     def _build_kernel(self, save_source_as):
 
