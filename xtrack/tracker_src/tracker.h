@@ -31,26 +31,27 @@ void global_aperture_check(LocalParticle* part){
 #endif
 
 /*gpufun*/
-void update_at_element(LocalParticle* part, int64_t new_at_ele){
+void increment_at_element(LocalParticle* part){
 
     int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 
-        LocalParticle_set_at_element(part, new_at_ele);
+        LocalParticle_add_to_at_element(part, 1);
 
     } //only_for_context cpu_serial cpu_openmp
 
 }
 
 /*gpufun*/
-void update_at_turn(LocalParticle* part, int64_t new_at_turn){
+void increment_at_turn(LocalParticle* part){
 
     int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 
-        LocalParticle_set_at_turn(part, new_at_turn);
+        LocalParticle_add_to_at_turn(part, 1);
+	LocalParticle_set_at_element(part, 0);
 
     } //only_for_context cpu_serial cpu_openmp
 

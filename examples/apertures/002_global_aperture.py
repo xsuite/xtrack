@@ -5,9 +5,9 @@ import xtrack as xt
 import xline as xl
 
 
-#context = xo.ContextCpu()
+context = xo.ContextCpu()
 #context = xo.ContextCupy()
-context = xo.ContextPyopencl()
+#context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2
@@ -72,7 +72,7 @@ for ii in range(n_part):
         s_expected.append(s_expected_y)
 
 s_expected = np.array(s_expected)
-at_turn_expected = np.int_(np.clip(np.floor(s_expected/tot_length), 0, n_turns-1))
+at_turn_expected = np.int_(np.clip(np.floor(s_expected/tot_length), 0, n_turns))
 at_element_expected = np.floor((s_expected-tot_length*at_turn_expected)
                                      /(tot_length/n_slices)) + 1
 at_element_expected = np.int_(np.clip(at_element_expected, 0, n_slices-1))

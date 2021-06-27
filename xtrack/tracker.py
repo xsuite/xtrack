@@ -183,18 +183,14 @@ class Tracker:
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
-                if (check_is_not_lost(&lpart)>0){
-                    update_at_turn(&lpart, iturn);
-
-                    if (flag_tbt_monitor){
+                if (flag_tbt_monitor){
+                    if (check_is_not_lost(&lpart)>0){
                         ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                     }
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
                     if (check_is_not_lost(&lpart)>0){
-
-                        update_at_element(&lpart, ee);
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
@@ -227,7 +223,13 @@ class Tracker:
             """
                         } //switch
                     } // check_is_not_lost
+                    if (check_is_not_lost(&lpart)>0){
+                        increment_at_element(&lpart);
+                    }
                 } // for elements
+                if (check_is_not_lost(&lpart)>0){
+                    increment_at_turn(&lpart);
+                }
             } // for turns
             }// if partid
         }//kernel
