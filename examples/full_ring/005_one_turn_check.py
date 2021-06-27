@@ -73,51 +73,50 @@ print('Track a few turns...')
 n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
-############################
-# Check against pysixtrack #
-############################
-print('Check against pysixtrack...')
-import pysixtrack
+#######################
+# Check against xline #
+#######################
+print('Check against xline...')
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
+xl_part = xl.Particles.from_dict(input_data['particle'])
 for _ in range(n_turns):
-    sequence.track(pyst_part)
+    sequence.track(xl_part)
 
 for vv in vars_to_check:
-    pyst_value = getattr(pyst_part, vv)
+    xl_value = getattr(xl_part, vv)
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-    passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=1e-11)
+    passed = np.isclose(xt_value, xl_value, rtol=2e-8, atol=7e-9)
     if not passed:
         print(f'Not passend on var {vv}!\n'
-              f'    pyst:   {pyst_value: .7e}\n'
+              f'    xl:   {xl_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
         raise ValueError
 
 ##############
 # Check  ebe #
 ##############
-print('Check element-by-element against pysixtrack...')
-pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
+print('Check element-by-element against xline...')
+xl_part = xl.Particles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
-for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
-    vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
-    pp_dict = xt.pyparticles_to_xtrack_dict(pyst_part)
+for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
+    vars_before = {vv :getattr(xl_part, vv) for vv in vars_to_check}
+    pp_dict = xt.pyparticles_to_xtrack_dict(xl_part)
     particles.set_particle(ip_check, **pp_dict)
 
     tracker.track(particles, ele_start=ii, num_elements=1)
 
-    eepyst.track(pyst_part)
+    eexl.track(xl_part)
     for vv in vars_to_check:
-        pyst_change = getattr(pyst_part, vv) - vars_before[vv]
+        xl_change = getattr(xl_part, vv) - vars_before[vv]
         xt_change = context.nparray_from_context_array(
                 getattr(particles, vv))[ip_check] -vars_before[vv]
-        passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=5e-14)
+        passed = np.isclose(xt_change, xl_change, rtol=1e-10, atol=5e-14)
         if not passed:
             problem_found = True
             print(f'Not passend on var {vv}!\n'
-                  f'    pyst:   {pyst_change: .7e}\n'
+                  f'    xl:   {xl_change: .7e}\n'
                   f'    xtrack: {xt_change: .7e}\n')
             break
 
@@ -129,6 +128,6 @@ for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)
 
 
 if not problem_found:
-    print('All passed on context:')
+    print('\nAll passed on context:')
     print(context)
 

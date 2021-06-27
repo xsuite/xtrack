@@ -48,6 +48,26 @@ line_with_spacecharge = pysixtrack.Line.from_madx_sequence(
                                        mad.sequence['sps'],
                                        install_apertures=True)
 
+# Get spacecharge names and twiss info from optics
+mad_sc_names, sc_twdata = bt.get_spacecharge_names_twdata(
+    mad, 'sps', mode='Bunched')
+
+# Setup spacecharge
+sc_elements, sc_names = line_with_spacecharge.get_elements_of_type(
+        pysixtrack.elements.SCQGaussProfile
+    )
+bt.setup_spacecharge_bunched_in_line(
+        sc_elements=sc_elements,
+        sc_lengths=sc_lengths,
+        sc_twdata=sc_twdata,
+        betagamma=part.beta0*part.gamma0,
+        number_of_particles=1e11,
+        delta_rms=1e-4,
+        neps_x=1.5e-6,
+        neps_y=2e-6,
+        bunchlength_rms=10e-2
+    )
+
 # enable RF
 i_cavity = line_with_spacecharge.element_names.index('acta.31637')
 line_with_spacecharge.elements[i_cavity].voltage = 3e6

@@ -38,6 +38,7 @@ spch_elements = []
 for ii, ee in enumerate(newseq.elements):
     if ee.__class__.__name__ == 'SCQGaussProfile':
         newee = xf.SpaceChargeBiGaussian.from_xline(ee, _buffer=_buffer)
+        #newee.update_sigma_x_on_track = True # Commented out for test
         newee.iscollective=True
         newseq.elements[ii] = newee
         spch_elements.append(newee)
