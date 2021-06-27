@@ -12,13 +12,24 @@ from xobjects.context import available
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
+
+
 def test_full_rings(element_by_element=False):
-    for fname_line_particles in [
+     test_fnames =  [
             test_data_folder.joinpath('lhc_no_bb/line_and_particle.json'),
             test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
             test_data_folder.joinpath('sps_w_spacecharge/'
                                       'line_with_spacecharge_and_particle.json'),
-            ]:
+            ]
+
+     tolerances_10_turns = [
+                    (1e-9, 1e-11),
+                    (1e-9, 1e-11),
+                    (2e-8, 7e-9)]
+
+     for icase, fname_line_particles in enumerate(test_fnames):
+
+        rtol_10turns, atol_10turns = tolerances_10_turns[icase]
 
         print('Case:', fname_line_particles)
         for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
@@ -77,7 +88,8 @@ def test_full_rings(element_by_element=False):
             for vv in vars_to_check:
                 pyst_value = getattr(pyst_part, vv)
                 xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-                passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=1e-11)
+                passed = np.isclose(xt_value, pyst_value,
+                                    rtol=rtol_10turns, atol=atol_10turns)
                 print(f'Varable {vv}:\n'
                       f'    pyst:   {pyst_value: .7e}\n'
                       f'    xtrack: {xt_value: .7e}\n')

@@ -14,15 +14,24 @@ short_test = False # Short line (5 elements)
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
-#fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
-#fname_line_particles = test_data_folder.joinpath(
-#                                './lhc_with_bb/line_and_particle.json')
-#fname_line_particles = test_data_folder.joinpath(
-#                        './hllhc_14/line_and_particle.json')
-#fname_line_particles = test_data_folder.joinpath(
-#                     './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
-fname_line_particles = test_data_folder.joinpath(
-                        './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
+rtol_10turns = 1e-9; atol_10turns=1e-11
+
+# fname_line_particles = test_data_folder.joinpath(
+#                                 './lhc_with_bb/line_and_particle.json')
+# rtol_10turns = 1e-9; atol_10turns=1e-11
+
+# fname_line_particles = test_data_folder.joinpath(
+#                         './hllhc_14/line_and_particle.json')
+# rtol_10turns = 1e-9; atol_10turns=1e-11
+
+# fname_line_particles = test_data_folder.joinpath(
+#                  './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
+# rtol_10turns = 1e-9; atol_10turns=1e-11
+
+# fname_line_particles = test_data_folder.joinpath(
+#                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+# rtol_10turns = 2e-8; atol_10turns=7e-9
 
 ####################
 # Choose a context #
@@ -86,7 +95,7 @@ for _ in range(n_turns):
 for vv in vars_to_check:
     xl_value = getattr(xl_part, vv)
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-    passed = np.isclose(xt_value, xl_value, rtol=2e-8, atol=7e-9)
+    passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns, atol=atol_10turns)
     if not passed:
         print(f'Not passend on var {vv}!\n'
               f'    xl:   {xl_value: .7e}\n'
