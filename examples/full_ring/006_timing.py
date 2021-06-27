@@ -29,9 +29,9 @@ rtol_100turns = 1e-9; atol_100turns=3e-11
 #                  './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
 # rtol_100turns = 1e-9; atol_100turns=3e-11
 
-fname_line_particles = test_data_folder.joinpath(
-                   './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
-rtol_100turns = 2e-8; atol_100turns=7e-9
+#fname_line_particles = test_data_folder.joinpath(
+#                   './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+#rtol_100turns = 2e-8; atol_100turns=7e-9
 
 short_test = False
 num_turns = int(100)

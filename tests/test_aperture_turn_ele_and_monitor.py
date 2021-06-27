@@ -76,7 +76,7 @@ def test_aperture_turn_ele_and_monitor():
 
         s_expected = np.array(s_expected)
         at_turn_expected = np.int_(np.clip(np.floor(s_expected/tot_length),
-                                           0, n_turns-1))
+                                           0, n_turns))
         at_element_expected = np.floor((s_expected-tot_length*at_turn_expected)
                                              /(tot_length/n_slices)) + 1
         at_element_expected = np.int_(np.clip(at_element_expected, 0,
