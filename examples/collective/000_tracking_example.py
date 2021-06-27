@@ -113,21 +113,20 @@ for tt in range(n_turns):
     for pp in parts:
         pp.track(particles)
 
-############################
-# Check against pysixtrack #
-############################
-print('Check against pysixtrack...')
-import pysixtrack
+#######################
+# Check against xline #
+#######################
+print('Check against xline ...')
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
+pyst_part = xl.Particles.from_dict(input_data['particle'])
 for _ in range(n_turns):
     sequence.track(pyst_part)
 
 for vv in vars_to_check:
     pyst_value = getattr(pyst_part, vv)
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-    passed = np.isclose(xt_value, pyst_value, rtol=1e-9, atol=1e-11)
+    passed = np.isclose(xt_value, pyst_value, rtol=2e-8, atol=7e-9)
     print(f'Check var {vv}:\n'
           f'    pyst:   {pyst_value: .7e}\n'
           f'    xtrack: {xt_value: .7e}\n')

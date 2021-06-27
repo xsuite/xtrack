@@ -74,14 +74,13 @@ def test_full_rings(element_by_element=False):
             n_turns = 10
             tracker.track(particles, num_turns=n_turns)
 
-            ############################
-            # Check against pysixtrack #
-            ############################
-            print('Check against pysixtrack...')
-            import pysixtrack
+            #######################
+            # Check against xline #
+            #######################
+            print('Check against ...')
             ip_check = 0
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-            pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
+            pyst_part = xl.Particles.from_dict(input_data['particle'])
             for _ in range(n_turns):
                 sequence.track(pyst_part)
 
@@ -102,8 +101,8 @@ def test_full_rings(element_by_element=False):
             # Check  ebe #
             ##############
             if element_by_element:
-                print('Check element-by-element against pysixtrack...')
-                pyst_part = pysixtrack.Particles.from_dict(input_data['particle'])
+                print('Check element-by-element against xline...')
+                pyst_part = xl.Particles.from_dict(input_data['particle'])
                 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
                 problem_found = False
                 for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
