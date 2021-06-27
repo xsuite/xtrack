@@ -34,55 +34,68 @@ sequence = xl.Line.from_dict(input_data['line'])
 # Replace all spacecharge with xobjects
 newseq = sequence.copy()
 _buffer = context.new_buffer()
+spch_elements = []
 for ii, ee in enumerate(newseq.elements):
     if ee.__class__.__name__ == 'SCQGaussProfile':
         newee = xf.SpaceChargeBiGaussian.from_xline(ee, _buffer=_buffer)
         newee.iscollective=True
         newseq.elements[ii] = newee
+        spch_elements.append(newee)
+
+# # Test
+# for ss in spch_elements:
+#     ss.update_mean_x_on_track = True
+#     ss.update_sigma_x_on_track = True
 
 # Split the sequence
 parts = []
 this_part = xl.Line(elements=[], element_names=[])
 for nn, ee in zip(newseq.element_names, newseq.elements):
-    if hasattr(ee, 'iscollective') and ee.iscollective:
+    if not hasattr(ee, 'iscollective') or not ee.iscollective:
+        this_part.append_element(ee, nn)
+    else:
         if len(this_part.elements)>0:
+            this_part.iscollective=False
             parts.append(this_part)
         parts.append(ee)
         this_part = xl.Line(elements=[], element_names=[])
-    else:
-        this_part.append_element(ee, nn)
-
 if len(this_part.elements)>0:
+    this_part.iscollective=False
     parts.append(this_part)
 
 # Transform non collective elements into xtrack elements 
 noncollective_xelements = []
 for ii, pp in enumerate(parts):
-    if hasattr(pp, 'iscollective') and pp.iscollective:
-        pass
-    else:
+    if hasattr(pp, 'iscollective') and not pp.iscollective:
         tempxtline = xt.Line(_buffer=_buffer,
                            sequence=pp)
         pp.elements = tempxtline.elements
         noncollective_xelements += pp.elements
 
+# Build tracker for non collective elements
 supertracker = xt.Tracker(_buffer=_buffer,
         sequence=xl.Line(elements=noncollective_xelements,
             element_names=[
                 f'e{ii}' for ii in range(len(noncollective_xelements))]))
 
-prrrrr
+# Build trackers for non collective parts
+for ii, pp in enumerate(parts):
+    if hasattr(pp, 'iscollective') and not pp.iscollective:
+        parts[ii] = xt.Tracker(_buffer=_buffer,
+                            sequence=pp,
+                            element_classes=supertracker.element_classes,
+                            track_kernel=supertracker.track_kernel)
 
 
-#################
-# Build Tracker #
-#################
-print('Build tracker...')
-tracker= xt.Tracker(_buffer=_buffer,
-            sequence=newseq,
-            particles_class=xt.Particles,
-            local_particle_src=None,
-            save_source_as='source.c')
+# #################
+# # Build Tracker #
+# #################
+# print('Build tracker...')
+# tracker= xt.Tracker(_buffer=_buffer,
+#             sequence=newseq,
+#             particles_class=xt.Particles,
+#             local_particle_src=None,
+#             save_source_as='source.c')
 
 ######################
 # Get some particles #
@@ -94,7 +107,10 @@ particles = xt.Particles(_context=context, **input_data['particle'])
 #########
 print('Track a few turns...')
 n_turns = 10
-tracker.track(particles, num_turns=n_turns)
+#tracker.track(particles, num_turns=n_turns)
+for tt in range(n_turns):
+    for pp in parts:
+        pp.track(particles)
 
 ############################
 # Check against pysixtrack #

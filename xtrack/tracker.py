@@ -16,6 +16,7 @@ class Tracker:
         _offset=None,
         sequence=None,
         track_kernel=None,
+        element_classes=None,
         particles_class=None,
         particles_monitor_class=None,
         global_xy_limit=1.0,
@@ -29,6 +30,7 @@ class Tracker:
             _offset=_offset,
             sequence=sequence,
             track_kernel=track_kernel,
+            element_classes=element_classes,
             particles_class=particles_class,
             particles_monitor_class=particles_monitor_class,
             global_xy_limit=global_xy_limit,
@@ -42,7 +44,7 @@ class Tracker:
         _offset=None,
         sequence=None,
         track_kernel=None,
-        element_classes=None
+        element_classes=None,
         particles_class=None,
         particles_monitor_class=None,
         global_xy_limit=1.0,
@@ -68,6 +70,10 @@ class Tracker:
                     sequence=sequence)
 
         context = line._buffer.context
+
+        if track_kernel is None:
+            # Kernel relies on element_classes ordering
+            assert element_classes is None
 
         if element_classes is None:
             # Kernel relies on element_classes ordering
@@ -97,8 +103,6 @@ class Tracker:
         if track_kernel == 'skip':
             self.track_kernel = None
         elif track_kernel is None:
-            # Kernel relies on element_classes ordering
-            assert element_classes is None
             self._build_kernel(save_source_as)
         else:
             self.track_kernel = track_kernel

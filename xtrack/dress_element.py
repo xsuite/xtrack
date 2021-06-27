@@ -33,6 +33,7 @@ def dress_element(XoElementData):
     DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
                         xo.Arg(ParticlesData, name='particles')])}
+    DressedElement.iscollective = False
 
     def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
