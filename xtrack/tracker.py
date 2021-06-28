@@ -18,7 +18,7 @@ class Tracker:
         track_kernel=None,
         element_classes=None,
         particles_class=None,
-        update_at_turn=True,
+        skip_end_turn_actions=False,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -33,7 +33,7 @@ class Tracker:
             track_kernel=track_kernel,
             element_classes=element_classes,
             particles_class=particles_class,
-            update_at_turn=update_at_turn,
+            skip_end_turn_actions=skip_end_turn_actions,
             particles_monitor_class=particles_monitor_class,
             global_xy_limit=global_xy_limit,
             local_particle_src=local_particle_src,
@@ -48,7 +48,7 @@ class Tracker:
         track_kernel=None,
         element_classes=None,
         particles_class=None,
-        update_at_turn=True,
+        skip_end_turn_actions=False,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -100,7 +100,7 @@ class Tracker:
         self.ele_typeids_dev = ele_typeids_dev
         self.num_elements = len(line.elements)
         self.global_xy_limit = global_xy_limit
-        self.update_at_turn = update_at_turn
+        self.skip_end_turn_actions = skip_end_turn_actions
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
 
@@ -302,11 +302,11 @@ class Tracker:
 
         assert num_elements + ele_start <= self.num_elements
 
-        if self.update_at_turn and num_elements + ele_start == self.num_elements:
-            flag_end_turn_actions=True
-        else:
+        if self.skip_end_turn_actions:
             flag_end_turn_actions=False
-
+        else:
+            flag_end_turn_actions = (
+                    num_elements + ele_start == self.num_elements)
 
         if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
             flag_tbt = 0

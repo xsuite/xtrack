@@ -73,7 +73,7 @@ for ii, pp in enumerate(parts):
         pp.elements = tempxtline.elements
         noncollective_xelements += pp.elements
 
-# Build tracker for non collective elements
+# Build tracker for all non collective elements
 supertracker = xt.Tracker(_buffer=_buffer,
         sequence=xl.Line(elements=noncollective_xelements,
             element_names=[
@@ -85,7 +85,8 @@ for ii, pp in enumerate(parts):
         parts[ii] = xt.Tracker(_buffer=_buffer,
                             sequence=pp,
                             element_classes=supertracker.element_classes,
-                            track_kernel=supertracker.track_kernel)
+                            track_kernel=supertracker.track_kernel,
+                            skip_end_turn_actions=True)
 
 
 # #################
@@ -112,6 +113,10 @@ n_turns = 10
 for tt in range(n_turns):
     for pp in parts:
         pp.track(particles)
+    # Increment at_turn and reset at_element
+    # (use the supertracker to perform only end-turn actions)
+    supertracker.track(particles, ele_start=supertracker.num_elements,
+                       num_elements=0)
 
 #######################
 # Check against xline #
