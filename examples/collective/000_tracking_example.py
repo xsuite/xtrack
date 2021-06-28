@@ -48,11 +48,16 @@ for ii, ee in enumerate(newseq.elements):
 #     ss.update_mean_x_on_track = True
 #     ss.update_sigma_x_on_track = True
 
+def _check_is_collective(ele):
+    iscoll = hasattr(ele, 'iscollective') and not ele.iscollective
+    return iscoll
+
+
 # Split the sequence
 parts = []
 this_part = xl.Line(elements=[], element_names=[])
 for nn, ee in zip(newseq.element_names, newseq.elements):
-    if not hasattr(ee, 'iscollective') or not ee.iscollective:
+    if _check_is_collective(ee):
         this_part.append_element(ee, nn)
     else:
         if len(this_part.elements)>0:
@@ -67,7 +72,7 @@ if len(this_part.elements)>0:
 # Transform non collective elements into xtrack elements 
 noncollective_xelements = []
 for ii, pp in enumerate(parts):
-    if hasattr(pp, 'iscollective') and not pp.iscollective:
+    if _check_is_collective(pp):
         tempxtline = xt.Line(_buffer=_buffer,
                            sequence=pp)
         pp.elements = tempxtline.elements
@@ -81,7 +86,7 @@ supertracker = xt.Tracker(_buffer=_buffer,
 
 # Build trackers for non collective parts
 for ii, pp in enumerate(parts):
-    if hasattr(pp, 'iscollective') and not pp.iscollective:
+    if _check_is_collective(pp):
         parts[ii] = xt.Tracker(_buffer=_buffer,
                             sequence=pp,
                             element_classes=supertracker.element_classes,

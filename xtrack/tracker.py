@@ -6,6 +6,7 @@ from .general import _pkg_root
 from .line import Line
 
 import xobjects as xo
+import xline as xl
 
 
 class Tracker:
@@ -25,21 +26,56 @@ class Tracker:
         save_source_as=None,
     ):
 
-        self._init_track_with_kernel(
-            _context=_context,
-            _buffer=_buffer,
-            _offset=_offset,
-            sequence=sequence,
-            track_kernel=track_kernel,
-            element_classes=element_classes,
-            particles_class=particles_class,
-            skip_end_turn_actions=skip_end_turn_actions,
-            particles_monitor_class=particles_monitor_class,
-            global_xy_limit=global_xy_limit,
-            local_particle_src=local_particle_src,
-            save_source_as=save_source_as)
+        # Check if there are collective elements
+        self.iscollective = False
+        for ee in sequence.elements:
+            if not hasattr(ee, 'iscollective') or ee.iscollective:
+                self.iscollective = True
+                break
 
-    def _init_track_with_kernel(
+        if self.iscollective:
+            pass
+        else:
+            self._init_track_no_collective(
+                _context=_context,
+                _buffer=_buffer,
+                _offset=_offset,
+                sequence=sequence,
+                track_kernel=track_kernel,
+                element_classes=element_classes,
+                particles_class=particles_class,
+                skip_end_turn_actions=skip_end_turn_actions,
+                particles_monitor_class=particles_monitor_class,
+                global_xy_limit=global_xy_limit,
+                local_particle_src=local_particle_src,
+                save_source_as=save_source_as)
+
+    def _init_track_with_collective(
+        self,
+        _context=None,
+        _buffer=None,
+        _offset=None,
+        sequence=None,
+        track_kernel=None,
+        element_classes=None,
+        particles_class=None,
+        skip_end_turn_actions=False,
+        particles_monitor_class=None,
+        global_xy_limit=1.0,
+        local_particle_src=None,
+        save_source_as=None,
+    ):
+
+        assert _offset is None
+
+        if _buffer is None:
+            if _context is None:
+                _context = xo.context.context_default
+            _buffer = _context.new_buffer()
+
+
+
+    def _init_track_no_collective(
         self,
         _context=None,
         _buffer=None,
@@ -110,6 +146,8 @@ class Tracker:
             self._build_kernel(save_source_as)
         else:
             self.track_kernel = track_kernel
+
+        self.track=self._track_no_collective
 
     def _build_kernel(self, save_source_as):
 
@@ -287,7 +325,8 @@ class Tracker:
         self.track_kernel = context.kernels.track_line
 
 
-    def track(
+
+    def _track_no_collective(
         self,
         particles,
         ele_start=0,
