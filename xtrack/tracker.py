@@ -3,11 +3,14 @@ import numpy as np
 
 from .particles import Particles, gen_local_particle_api
 from .general import _pkg_root
-from .line import Line
+from .line import Line as xtLine
 
 import xobjects as xo
 import xline as xl
 
+def _check_is_collective(ele):
+    iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
+    return iscoll
 
 class Tracker:
     def __init__(
@@ -29,12 +32,24 @@ class Tracker:
         # Check if there are collective elements
         self.iscollective = False
         for ee in sequence.elements:
-            if not hasattr(ee, 'iscollective') or ee.iscollective:
+            if _check_is_collective(ee):
                 self.iscollective = True
                 break
 
         if self.iscollective:
-            pass
+            self._init_track_with_collective(
+                _context=_context,
+                _buffer=_buffer,
+                _offset=_offset,
+                sequence=sequence,
+                track_kernel=track_kernel,
+                element_classes=element_classes,
+                particles_class=particles_class,
+                skip_end_turn_actions=skip_end_turn_actions,
+                particles_monitor_class=particles_monitor_class,
+                global_xy_limit=global_xy_limit,
+                local_particle_src=local_particle_src,
+                save_source_as=save_source_as)
         else:
             self._init_track_no_collective(
                 _context=_context,
@@ -67,12 +82,76 @@ class Tracker:
     ):
 
         assert _offset is None
+        assert track_kernel is None
+        assert element_classes is None
+
+        self.skip_end_turn_actions = skip_end_turn_actions
+        self.particles_class = particles_class
+        self.global_xy_limit = global_xy_limit
+        self.local_particle_src = local_particle_src
+        self.save_source_as = save_source_as
 
         if _buffer is None:
             if _context is None:
                 _context = xo.context.context_default
             _buffer = _context.new_buffer()
+        self._buffer = _buffer
 
+        # Split the sequence
+        parts = []
+        this_part = xl.Line(elements=[], element_names=[])
+        for nn, ee in zip(sequence.element_names, sequence.elements):
+            if not _check_is_collective(ee):
+                this_part.append_element(ee, nn)
+            else:
+                if len(this_part.elements)>0:
+                    this_part.iscollective=False
+                    parts.append(this_part)
+                parts.append(ee)
+                this_part = xl.Line(elements=[], element_names=[])
+        if len(this_part.elements)>0:
+            this_part.iscollective=False
+            parts.append(this_part)
+
+        # Transform non collective elements into xtrack elements 
+        noncollective_xelements = []
+        for ii, pp in enumerate(parts):
+            if not _check_is_collective(pp):
+                tempxtline = xtLine(_buffer=_buffer,
+                                   sequence=pp)
+                pp.elements = tempxtline.elements
+                noncollective_xelements += pp.elements
+
+        # Build tracker for all non collective elements
+        supertracker = Tracker(_buffer=_buffer,
+                sequence=xl.Line(elements=noncollective_xelements,
+                    element_names=[
+                        f'e{ii}' for ii in range(len(noncollective_xelements))]),
+                    particles_class=particles_class,
+                    particles_monitor_class=particles_monitor_class,
+                    global_xy_limit=global_xy_limit,
+                    local_particle_src=local_particle_src,
+                    save_source_as=save_source_as
+                    )
+
+        # Build trackers for non collective parts
+        for ii, pp in enumerate(parts):
+            if not _check_is_collective(pp):
+                parts[ii] = Tracker(_buffer=_buffer,
+                                    sequence=pp,
+                                    element_classes=supertracker.element_classes,
+                                    track_kernel=supertracker.track_kernel,
+                                    particles_class=particles_class,
+                                    particles_monitor_class=particles_monitor_class,
+                                    global_xy_limit=global_xy_limit,
+                                    local_particle_src=local_particle_src,
+                                    skip_end_turn_actions=True)
+
+        self._supertracker = supertracker
+        self._parts = parts
+        self.track = self._track_with_collective
+        self.particles_class = supertracker.particles_class
+        self.particles_monitor_class = supertracker.particles_monitor_class
 
 
     def _init_track_no_collective(
@@ -105,7 +184,7 @@ class Tracker:
 
         self.global_xy_limit = global_xy_limit
 
-        line = Line(_context=_context, _buffer=_buffer, _offset=_offset,
+        line = xtLine(_context=_context, _buffer=_buffer, _offset=_offset,
                     sequence=sequence)
 
         context = line._buffer.context
@@ -324,6 +403,46 @@ class Tracker:
 
         self.track_kernel = context.kernels.track_line
 
+
+    def _track_with_collective(
+        self,
+        particles,
+        ele_start=0,
+        num_elements=None,
+        num_turns=1,
+        turn_by_turn_monitor=None,
+    ):
+
+        assert ele_start == 0
+        assert num_elements is None
+
+        if turn_by_turn_monitor:
+            flag_tbt = True
+            context = self._buffer.context
+            # TODO To be generalized to start at generic turn
+            monitor = self.particles_monitor_class(
+                _context=context,
+                start_at_turn=0,
+                stop_at_turn=num_turns,
+                num_particles=particles.num_particles,
+            )
+        else:
+            flag_tbt = False
+
+        for tt in range(num_turns):
+            if turn_by_turn_monitor:
+                monitor.track(particles)
+            for pp in self._parts:
+                pp.track(particles)
+            # Increment at_turn and reset at_element
+            # (use the supertracker to perform only end-turn actions)
+            self._supertracker.track(particles,
+                               ele_start=self._supertracker.num_elements,
+                               num_elements=0)
+        if flag_tbt:
+            self.record_last_track = monitor
+        else:
+            self.record_last_track = None
 
 
     def _track_no_collective(
