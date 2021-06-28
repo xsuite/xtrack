@@ -20,8 +20,8 @@ n_part = 200
 ####################
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
+context = xo.ContextCupy()
+context = xo.ContextPyopencl('0.0')
 
 ##################
 # Get a sequence #
@@ -54,6 +54,9 @@ tracker= xt.Tracker(_buffer=_buffer,
              local_particle_src=None,
              save_source_as='source.c')
 
+assert tracker.iscollective
+assert tracker.track == tracker._track_with_collective
+
 ######################
 # Get some particles #
 ######################
@@ -68,6 +71,7 @@ n_turns = 10
 tracker.track(particles, num_turns=n_turns,
               turn_by_turn_monitor=True)
 
+assert tracker.record_last_track.x.shape == (1, 10)
 
 #######################
 # Check against xline #
