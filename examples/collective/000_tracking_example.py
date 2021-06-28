@@ -10,7 +10,7 @@ import xfields as xf
 
 fname_sequence = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
-
+turn_by_turn_monitor = True
 
 num_turns = int(100)
 n_part = 200
@@ -107,10 +107,25 @@ particles = xt.Particles(_context=context, **input_data['particle'])
 #########
 # Track #
 #########
+
+
+
 print('Track a few turns...')
 n_turns = 10
+self = supertracker
+if turn_by_turn_monitor:
+
+    monitor = self.particles_monitor_class(
+        _context=_buffer.context,
+        start_at_turn=0,
+        stop_at_turn=n_turns,
+        num_particles=particles.num_particles,
+    )
+
 #tracker.track(particles, num_turns=n_turns)
 for tt in range(n_turns):
+    if turn_by_turn_monitor:
+        monitor.track(particles)
     for pp in parts:
         pp.track(particles)
     # Increment at_turn and reset at_element
