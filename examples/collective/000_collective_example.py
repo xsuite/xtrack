@@ -31,15 +31,16 @@ sequence = xl.Line.from_dict(input_data['line'])
 # Replace all spacecharge with xobjects
 newseq = sequence.copy()
 _buffer = context.new_buffer()
-spch_elements = []
-for ii, ee in enumerate(newseq.elements):
-    if ee.__class__.__name__ == 'SCQGaussProfile':
-        newee = xf.SpaceChargeBiGaussian.from_xline(ee, _buffer=_buffer)
-        #newee.update_sigma_x_on_track = True # Commented out for test
-        newee.iscollective=True
-        newseq.elements[ii] = newee
-        spch_elements.append(newee)
+spch_elements = xf.replace_spaceharge_with_quasi_frozen(
+                                        newseq, _buffer=_buffer)
 
+# For testing I make them frozen but I leave iscollective=True
+for ee in spch_elements:
+    ee.update_mean_x_on_track = False
+    ee.update_mean_y_on_track = False
+    ee.update_sigma_x_on_track = False
+    ee.update_sigma_y_on_track = False
+    assert ee.iscollective
 
 #################
 # Build Tracker #
