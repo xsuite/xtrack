@@ -12,9 +12,6 @@ fname_sequence = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 turn_by_turn_monitor = True
 
-num_turns = int(100)
-n_part = 200
-
 ####################
 # Choose a context #
 ####################
