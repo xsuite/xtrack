@@ -164,7 +164,7 @@ class Tracker:
                              int num_turns,
                              int ele_start,
                              int num_ele_track,
-                             int flag_includes_end,
+                             int flag_end_turn_actions,
                              int flag_tbt_monitor,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor){
@@ -232,7 +232,7 @@ class Tracker:
                         increment_at_element(&lpart);
                     }
                 } // for elements
-                if (flag_includes_end>0){
+                if (flag_end_turn_actions>0){
                     if (check_is_not_lost(&lpart)>0){
                         increment_at_turn(&lpart);
                     }
@@ -262,7 +262,7 @@ class Tracker:
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
-                    xo.Arg(xo.Int32, name="flag_includes_end"),
+                    xo.Arg(xo.Int32, name="flag_end_turn_actions"),
                     xo.Arg(xo.Int32, name="flag_tbt_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
@@ -303,9 +303,9 @@ class Tracker:
         assert num_elements + ele_start <= self.num_elements
 
         if self.update_at_turn and num_elements + ele_start == self.num_elements:
-            flag_includes_end=True
+            flag_end_turn_actions=True
         else:
-            flag_includes_end=False
+            flag_end_turn_actions=False
 
 
         if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
@@ -336,7 +336,7 @@ class Tracker:
             num_turns=num_turns,
             ele_start=ele_start,
             num_ele_track=num_elements,
-            flag_includes_end=flag_includes_end,
+            flag_end_turn_actions=flag_end_turn_actions,
             flag_tbt_monitor=flag_tbt,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,

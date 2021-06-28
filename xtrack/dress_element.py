@@ -1,6 +1,7 @@
 import xobjects as xo
 from .particles import ParticlesData, gen_local_particle_api
 from .dress import dress
+from .general import _pkg_root
 
 def dress_element(XoElementData):
 
@@ -23,11 +24,16 @@ def dress_element(XoElementData):
             int64_t n_part = ParticlesData_get_num_particles(particles);
             if (part_id<n_part){
                 Particles_to_LocalParticle(particles, &lpart, part_id);
+                if (check_is_not_lost(&lpart)>0){
 '''
-            f'{name}_track_local_particle(el, &lpart);\n'
+            f'      {name}_track_local_particle(el, &lpart);\n'
 '''
                 }
+                if (check_is_not_lost(&lpart)>0){
+                        increment_at_element(&lpart);
+                }
             }
+        }
 ''')
     DressedElement._track_kernel_name = f'{name}_track_particles'
     DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
@@ -41,6 +47,7 @@ def dress_element(XoElementData):
         src_part, _, cdefs_part= ParticlesData._gen_c_api()
         src_ele, _, cdefs_ele = self.XoStruct._gen_c_api()
 
+        # TODO Context should handle repetitions
         cdefs = '\n'.join([cdefs_part, cdefs_ele])
         cdefs_norep=[]
         for cc in cdefs.split('\n'):
@@ -51,6 +58,7 @@ def dress_element(XoElementData):
         context.add_kernels(sources=[
                 src_part,
                 gen_local_particle_api(),
+                _pkg_root.joinpath("tracker_src/tracker.h"),
                 src_ele]
                 + self.XoStruct.extra_sources
                 + [self.track_kernel_source],
