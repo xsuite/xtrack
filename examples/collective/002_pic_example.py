@@ -1,6 +1,7 @@
+import xobjects as xo
 import xfields as xf
 
-class PIC_collection:
+class PICCollection:
 
     def __init__(self, _buffer,
                  nx_grid,
@@ -62,3 +63,14 @@ y_lim_max = 5e-2
 
 n_xlims = 5
 n_ylims = 3
+
+nx_grid = 256
+ny_grid = 256
+nz_grid = 100
+
+z_range = (-30e-2, 30e-2)
+
+context = xo.ContextCpu()
+_buffer = context.new_buffer()
+
+pic_collection = PICCollection(_buffer, 
