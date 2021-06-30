@@ -24,12 +24,13 @@ class PyHtXtParticles(Particles):
 
     @classmethod
     def from_pyheadtail(cls, particles):
-        new  = cls(macroparticlenumber = particles.macroparticlenumber,
-                   particlenumber_per_mp= particles.particlenumber_per_mp,
-                   charge=particles.charge,
-                   mass=particles.mass,
-                   circumference=particles.circumference,
-                   gamma=particles.gamma)
+        new  = cls(num_particles=particles.macroparticlenumber)
+
+        new.particlenumber_per_mp = particles.particlenumber_per_mp
+        new.charge = particles.charge
+        new.mass = particles.mass
+        new.circumference = particles.circumference
+        new.gamma = particles.gamma
         new.x = particles.x
         new.xp = particles.xp
         new.y = particles.y
@@ -124,30 +125,19 @@ class PyHtXtParticles(Particles):
     def _p0(self, value):
         self.p0c = value/e*c
 
-    def __init__(self, macroparticlenumber, particlenumber_per_mp,
-                 charge, mass, circumference, gamma, coords_n_momenta_dict={},
-                 *args, **kwargs):
+    @property
+    def id(self):
+        return self.particle_id
+
+
+    def __init__(self, **kwargs):
         '''The dictionary coords_n_momenta_dict contains the coordinate
         and conjugate momenta names and assigns to each the
         corresponding array.
         e.g.: coords_n_momenta_dict = {'x': array(..), 'xp': array(..)}
         '''
 
-        _context = kwargs.get('_context') # gives None if not present
-        _buffer = kwargs.get('_buffer') # gives None if not present
-        _offset = kwargs.get('_offset') # gives None if not present
-        super().__init__(num_particles=macroparticlenumber,
-                        _context=_context,
-                        _buffer=_buffer,
-                        _offset=_offset)
-
-        self.particlenumber_per_mp = particlenumber_per_mp
-
-        self.charge = charge
-        self.mass = mass
-
-        self.circumference = circumference
-        self.gamma = gamma
+        super().__init__(**kwargs)
 
         '''Dictionary of SliceSet objects which are retrieved via
         self.get_slices(slicer) by a client. Each SliceSet is recorded
@@ -156,6 +146,7 @@ class PyHtXtParticles(Particles):
         should clean the saved SliceSet dictionary via
         self.clean_slices().
         '''
+
         self._slice_sets = {}
 
         '''Set of coordinate and momentum attributes of this Particles
@@ -166,9 +157,7 @@ class PyHtXtParticles(Particles):
         '''ID of particles in order to keep track of single entries
         in the coordinate and momentum arrays.
         '''
-        self.id = arange(1, self.macroparticlenumber + 1, dtype=np.int32)
 
-        self.update(coords_n_momenta_dict)
 
 
     @property

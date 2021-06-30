@@ -11,3 +11,6 @@ from .tracker import Tracker
 
 from .monitors import generate_monitor_class
 ParticlesMonitor = generate_monitor_class(Particles)
+
+# TEMP TEST
+Particles = PyHtXtParticles
