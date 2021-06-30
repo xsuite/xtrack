@@ -87,6 +87,19 @@ class PyHtXtParticles(Particles):
     def charge(self, value):
         self.q0 = value/e
 
+    @property
+    def macroparticlenumber(self):
+        return self.num_particles
+
+    @property
+    def particlenumber_per_mp(self):
+        return self.weight[0] # I avoid checking that they are all the same
+                         # not to compromise on performance
+
+    @particlenumber_per_mp.setter
+    def particlenumber_per_mp(self, value):
+        self.weight[:] = value
+
     def __init__(self, macroparticlenumber, particlenumber_per_mp,
                  charge, mass, circumference, gamma, coords_n_momenta_dict={},
                  *args, **kwargs):
@@ -104,7 +117,6 @@ class PyHtXtParticles(Particles):
                         _buffer=_buffer,
                         _offset=_offset)
 
-        self.macroparticlenumber = macroparticlenumber
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
