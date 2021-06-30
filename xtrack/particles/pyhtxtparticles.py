@@ -71,6 +71,21 @@ class PyHtXtParticles(Particles):
     def dp(self, value):
         self._update_delta(value)
 
+    @property
+    def mass(self):
+        return self.mass0/(c*c)*e
+
+    @mass.setter
+    def mass(self, value):
+        self.mass0 = value/e*c*c
+
+    @property
+    def charge(self):
+        return self.q0*e
+
+    @charge.setter
+    def charge(self, value):
+        self.q0 = value/e
 
     def __init__(self, macroparticlenumber, particlenumber_per_mp,
                  charge, mass, circumference, gamma, coords_n_momenta_dict={},
