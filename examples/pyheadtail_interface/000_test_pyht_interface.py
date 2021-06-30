@@ -6,6 +6,7 @@ from scipy.constants import e,c
 from LHC import LHC
 
 import xtrack as xt
+xt.enable_pyheadtail_interface()
 
 macroparticlenumber_track = 50000
 macroparticlenumber_optics = 2000000
@@ -30,7 +31,7 @@ elif mode == 'non-smooth':
     machine = LHC(machine_configuration='Injection', optics_mode = 'non-smooth', V_RF=10e6,  **optics)
 
 print('Create bunch for optics...')
-bunch  = xt.PyHtXtParticles.from_pyheadtail(
+bunch  = xt.Particles.from_pyheadtail(
         machine.generate_6D_Gaussian_bunch_matched(
         macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z))
 print('Done.')
@@ -88,7 +89,7 @@ plt.show()
 
 
 machine.one_turn_map.insert(ix, machine.longitudinal_map)
-bunch  = xt.PyHtXtParticles.from_pyheadtail(
+bunch  = xt.Particles.from_pyheadtail(
     machine.generate_6D_Gaussian_bunch_matched(
         macroparticlenumber_track, intensity, epsn_x, epsn_y, sigma_z=sigma_z))
 

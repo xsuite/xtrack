@@ -10,7 +10,7 @@ from scipy.constants import c, e  # unit e needed for long. emittance
 from PyHEADTAIL.cobra_functions import stats as cp
 from PyHEADTAIL.general import pmath as pm
 
-from .particles import Particles
+from ..particles import Particles
 
 arange = np.arange
 mean = np.mean
