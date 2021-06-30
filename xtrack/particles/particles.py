@@ -107,9 +107,18 @@ class Particles(dress(ParticlesData)):
                     setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
             else:
                 for tt, kk in list(scalar_vars):
+                    if kk == 'num_particles':
+                        continue
                     setattr(self, kk, 0.)
+
                 for tt, kk in list(per_particle_vars):
-                    getattr(self, kk)[:] = 0
+                    if kk == 'chi' or kk == 'charge_ratio' or kk == 'state':
+                        value = 1.
+                    elif kk == 'particle_id':
+                        value = np.arange(0, self.num_particles, dtype=np.int64)
+                    else:
+                        value = 0.
+                    getattr(self, kk)[:] = value
 
         if force_active_state:
             self.state[:] = 1

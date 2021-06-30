@@ -100,6 +100,30 @@ class PyHtXtParticles(Particles):
     def particlenumber_per_mp(self, value):
         self.weight[:] = value
 
+    @property
+    def _gamma(self):
+        return self.gamma0
+
+    @_gamma.setter
+    def _gamma(self, value):
+        self.gamma0 = value
+
+    @property
+    def _beta(self):
+        return self.beta0
+
+    @_beta.setter
+    def _beta(self, value):
+        self.beta0 = value
+
+    @property
+    def _p0(self):
+        return self.p0c/c*e
+
+    @_p0.setter
+    def _p0(self, value):
+        self.p0c = value/e*c
+
     def __init__(self, macroparticlenumber, particlenumber_per_mp,
                  charge, mass, circumference, gamma, coords_n_momenta_dict={},
                  *args, **kwargs):
