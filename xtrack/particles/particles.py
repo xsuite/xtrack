@@ -107,7 +107,7 @@ class Particles(dress(ParticlesData)):
                     setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
             else:
                 for tt, kk in list(scalar_vars):
-                    setattr(self, kk, part_dict[kk])
+                    setattr(self, kk, 0.)
                 for tt, kk in list(per_particle_vars):
                     getattr(self, kk)[:] = 0
 
@@ -167,6 +167,21 @@ class Particles(dress(ParticlesData)):
 
         if force_active_state:
             self.state[:] = 1
+
+    def _update_delta(self, new_delta_value):
+        beta0 = self.beta0
+        delta_beta0 = new_delta_value * beta0
+        ptau_beta0  = np.sqrt( delta_beta0 * delta_beta0 +
+                                2. * delta_beta0 * beta0 + 1. ) - 1.
+        one_plus_delta = 1. + new_delta_value
+        rvv    = ( one_plus_delta ) / ( 1. + ptau_beta0 )
+        rpp    = 1. / one_plus_delta
+        psigma = ptau_beta0 / ( beta0 * beta0 )
+
+        self.delta[:] = new_delta_value
+        self.rvv[:] = rvv
+        self.rpp[:] = rpp
+        self.psigma[:] = psigma
 
 
 def gen_local_particle_api(mode='no_local_copy'):
