@@ -1,6 +1,10 @@
+import pathlib
+import json
 import numpy as np
 
 import xobjects as xo
+import xline as xl
+import xtrack as xt
 import xfields as xf
 
 class PICCollection:
@@ -61,8 +65,54 @@ class PICCollection:
 
 context = xo.ContextCpu()
 _buffer = context.new_buffer()
+
+fname_sequence = ('../../test_data/sps_w_spacecharge/'
+                  'line_with_spacecharge_and_particle.json')
+
+####################
+# Choose a context #
+####################
+
+context = xo.ContextCpu()
+context = xo.ContextCupy()
+context = xo.ContextPyopencl('0.0')
+
+
+##################
+# Get a sequence #
+##################
+
+with open(fname_sequence, 'r') as fid:
+     input_data = json.load(fid)
+sequence = xl.Line.from_dict(input_data['line'])
+
+n_sigmas_range_pic = 10
+nx_grid = 256
+ny_grid = 256
+nz_grid = 50
+n_lims_x = 7
+n_lims_y = 5
+z_range=(-30e-2, 30e-2)
+
+all_sc_elems = []
+ind_sc_elems = []
+all_sigma_x = []
+all_sigma_y = []
+for ii, ee in enumerate(sequence.elements):
+    if ee.__class__.__name__ == 'SCQGaussProfile':
+        all_sc_elems.append(ee)
+        ind_sc_elems.append(ii)
+        all_sigma_x.append(ee.sigma_x)
+        all_sigma_y.append(ee.sigma_y)
+
+
+x_lim_min = np.min(all_sigma_x) * (n_sigmas_range_pic + 0.5)
+x_lim_max = np.max(all_sigma_x) * (n_sigmas_range_pic + 0.5)
+y_lim_min = np.min(all_sigma_y) * (n_sigmas_range_pic + 0.5)
+y_lim_max = np.max(all_sigma_y) * (n_sigmas_range_pic + 0.5)
+
 pic_collection = PICCollection(_buffer,
-    nx_grid=256, ny_grid=256, nz_grid=50,
-    x_lim_min=0.042, x_lim_max=0.055, n_lims_x=7,
-    y_lim_min=0.027, y_lim_max=0.042, n_lims_y=3,
-    z_range=(-30e-2, 30e-2))
+    nx_grid=nx_grid, ny_grid=ny_grid, nz_grid=nz_grid,
+    x_lim_min=x_lim_min, x_lim_max=x_lim_max, n_lims_x=n_lims_x,
+    y_lim_min=y_lim_min, y_lim_max=y_lim_max, n_lims_y=n_lims_y,
+    z_range=z_range)
