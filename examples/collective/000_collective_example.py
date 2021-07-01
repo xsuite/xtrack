@@ -20,8 +20,8 @@ sequence = xl.Line.from_dict(input_data['line'])
 ###############################################
 # Choose a context and create a memory buffer #
 ##############################################
-context = xo.ContextCpu()
-#context = xo.ContextCupy()
+#context = xo.ContextCpu()
+context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 _buffer = context.new_buffer()

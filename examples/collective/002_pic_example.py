@@ -1,3 +1,5 @@
+import numpy as np
+
 import xobjects as xo
 import xfields as xf
 
@@ -28,19 +30,19 @@ class PICCollection:
         self.solver = solver
         self.apply_z_kick = apply_z_kick
 
-        self.x_lims = np.linspace(x_lim_min, x_lim_max, n_xlims)
-        self.y_lims = np.linspace(y_lim_min, y_lim_may, n_ylims)
+        self.x_lims = np.linspace(x_lim_min, x_lim_max, n_lims_x)
+        self.y_lims = np.linspace(y_lim_min, y_lim_max, n_lims_y)
 
         self._existing_pics = {}
 
 
-    def get_pic(x_lim, y_lim):
+    def get_pic(self, x_lim, y_lim):
 
         ix = np.argmin(np.abs(x_lim - self.x_lims))
         iy = np.argmin(np.abs(y_lim - self.y_lims))
 
         if (ix, iy) not in self._existing_pics.keys():
-            print(f'Creating PIC ({ix}, {iy}')
+            print(f'Creating PIC ({ix}, {iy})')
             xlim_pic = self.x_lims[ix]
             ylim_pic = self.y_lims[iy]
             new_pic = xf.SpaceCharge3D(
@@ -56,21 +58,11 @@ class PICCollection:
 
         return self._existing_pics[ix, iy]
 
-x_lim_min = 1e-2
-x_lim_max = 5e-2
-y_lim_min = 1e-2
-y_lim_max = 5e-2
-
-n_xlims = 5
-n_ylims = 3
-
-nx_grid = 256
-ny_grid = 256
-nz_grid = 100
-
-z_range = (-30e-2, 30e-2)
 
 context = xo.ContextCpu()
 _buffer = context.new_buffer()
-
-pic_collection = PICCollection(_buffer, 
+pic_collection = PICCollection(_buffer,
+    nx_grid=256, ny_grid=256, nz_grid=50,
+    x_lim_min=0.042, x_lim_max=0.055, n_lims_x=7,
+    y_lim_min=0.027, y_lim_max=0.042, n_lims_y=3,
+    z_range=(-30e-2, 30e-2))
