@@ -15,6 +15,22 @@ class Encoder(json.JSONEncoder):
 
 mad = Madx()
 mad.call('sps_thin.seq')
+mad.use('sps')
+twtable = mad.twiss()
+
+# Save twiss at start ring
+twiss_at_start = {
+    'alfx': twtable.alfx[0],
+    'alfy': twtable.alfy[0],
+    'betx': twtable.betx[0],
+    'bety': twtable.bety[0],
+    'dx': twtable.dx[0],
+    'dy': twtable.dy[0],
+    'dpx': twtable.dpx[0],
+    'dpy': twtable.dpy[0]
+}
+with open('twiss_at_start.json', 'w') as fid:
+    json.dump(twiss_at_start, fid)
 
 line_without_spacecharge = pysixtrack.Line.from_madx_sequence(
                                             mad.sequence['sps'],
@@ -62,9 +78,9 @@ bt.setup_spacecharge_bunched_in_line(
         sc_twdata=sc_twdata,
         betagamma=part.beta0*part.gamma0,
         number_of_particles=1e11,
-        delta_rms=1e-4,
-        neps_x=1.5e-6,
-        neps_y=2e-6,
+        delta_rms=2e-3,
+        neps_x=2.5e-6,
+        neps_y=2.5e-6,
         bunchlength_rms=10e-2
     )
 
