@@ -1,6 +1,6 @@
 import json
 from cpymad.madx import Madx
-import pysixtrack
+import xline
 
 p0c = 25.92e9
 
@@ -32,7 +32,7 @@ twiss_at_start = {
 with open('twiss_at_start.json', 'w') as fid:
     json.dump(twiss_at_start, fid)
 
-line_without_spacecharge = pysixtrack.Line.from_madx_sequence(
+line_without_spacecharge = xline.Line.from_madx_sequence(
                                             mad.sequence['sps'],
                                             install_apertures=True)
 # enable RF
@@ -40,7 +40,7 @@ i_cavity = line_without_spacecharge.element_names.index('acta.31637')
 line_without_spacecharge.elements[i_cavity].voltage = 3e6
 line_without_spacecharge.elements[i_cavity].lag = 180.
 
-part = pysixtrack.Particles(p0c=p0c, x=2e-3, y=3e-3, zeta=20e-2)
+part = xline.Particles(p0c=p0c, x=2e-3, y=3e-3, zeta=20e-2)
 
 with open('line_no_spacecharge_and_particle.json', 'w') as fid:
     json.dump({
@@ -48,7 +48,7 @@ with open('line_no_spacecharge_and_particle.json', 'w') as fid:
         'particle': part.to_dict()},
         fid, cls=Encoder)
 
-import pysixtrack.be_beamfields.tools as bt
+import xline.be_beamfields.tools as bt
 sc_locations, sc_lengths = bt.determine_sc_locations(
     line=line_without_spacecharge,
     n_SCkicks = 540,
@@ -60,7 +60,7 @@ bt.install_sc_placeholders(
     mad, 'sps', sc_names, sc_locations, mode='Bunched')
 
 # Generate line with spacecharge
-line_with_spacecharge = pysixtrack.Line.from_madx_sequence(
+line_with_spacecharge = xline.Line.from_madx_sequence(
                                        mad.sequence['sps'],
                                        install_apertures=True)
 
@@ -70,7 +70,7 @@ mad_sc_names, sc_twdata = bt.get_spacecharge_names_twdata(
 
 # Setup spacecharge
 sc_elements, sc_names = line_with_spacecharge.get_elements_of_type(
-        pysixtrack.elements.SCQGaussProfile
+        xline.elements.SCQGaussProfile
     )
 bt.setup_spacecharge_bunched_in_line(
         sc_elements=sc_elements,
