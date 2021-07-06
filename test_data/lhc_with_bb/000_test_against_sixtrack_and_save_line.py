@@ -1,5 +1,5 @@
 import sixtracktools
-import pysixtrack
+import xline
 
 
 import numpy as np
@@ -13,8 +13,8 @@ import numpy as np
 sixinput = sixtracktools.SixInput(".")
 p0c_eV = sixinput.initialconditions[-3] * 1e6
 
-# Build pysixtrack line from sixtrack input
-line = pysixtrack.Line.from_sixinput(sixinput)
+# Build xline line from sixtrack input
+line = xline.Line.from_sixinput(sixinput)
 
 # Info on sixtrack->pyblep conversion
 iconv = line.other_info["iconv"]
@@ -67,7 +67,7 @@ closed_orbit = line.track_elem_by_elem(part_on_CO)
 
 # Check that closed orbit is closed
 pstart = closed_orbit[0].copy()
-pstart_st = pysixtrack.Particles(**sixdump_CO[0].get_minimal_beam())
+pstart_st = xline.Particles(**sixdump_CO[0].get_minimal_beam())
 
 print("STsigma, Sigma, Stdelta, delta, Stpx, px")
 for iturn in range(10):
@@ -99,8 +99,8 @@ for att in "x px y py delta sigma".split():
 sixdump = sixdump_all[1::2]  # Particle with deviation from CO
 # sixdump = sixdump_all[::2] # Particle on CO
 
-p_in_st = pysixtrack.Particles(**sixdump[0].get_minimal_beam())
-p_out_st = pysixtrack.Particles(**sixdump[1].get_minimal_beam())
+p_in_st = xline.Particles(**sixdump[0].get_minimal_beam())
+p_out_st = xline.Particles(**sixdump[1].get_minimal_beam())
 
 p_in_pyst = p_in_st.copy()
 p_out_pyst = p_in_pyst.copy()
@@ -146,7 +146,7 @@ print("")
 for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
-    prun = pysixtrack.Particles(**sixdump[ii - 1].get_minimal_beam())
+    prun = xline.Particles(**sixdump[ii - 1].get_minimal_beam())
     pbench_prev = prun.copy()
     print(f"\n-----sixtrack={ii} sixtracklib={jja} --------------")
     # print(f"pysixtr {jja}, x={prun.x}, px={prun.px}")
@@ -156,7 +156,7 @@ for ii in range(1, len(iconv)):
         pin = prun.copy()
         elem.track(prun)
         print(f"{jj} {label},{str(elem)[:50]}")
-    pbench = pysixtrack.Particles(**sixdump[ii].get_minimal_beam())
+    pbench = xline.Particles(**sixdump[ii].get_minimal_beam())
     # print(f"sixdump {ii}, x={pbench.x}, px={pbench.px}")
     print("-----------------------")
     error = compare(prun, pbench, pbench_prev)
@@ -170,11 +170,11 @@ for ii in range(1, len(iconv)):
 #with open('line_and_particle.pkl', 'wb') as fid:
 #    pickle.dump({
 #        'line': line.to_dict(keepextra=True),
-#        'particle': pysixtrack.Particles(
+#        'particle': xline.Particles(
 #                **sixdump[0].get_minimal_beam()).to_dict()},
 #        fid)
 
-part_dict = pysixtrack.Particles(
+part_dict = xline.Particles(
         **sixdump[0].get_minimal_beam()).to_dict()
 part_dict['state'] = 1
 

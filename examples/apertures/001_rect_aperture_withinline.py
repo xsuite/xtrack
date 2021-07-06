@@ -3,7 +3,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-import pysixtrack
+import xline
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -17,7 +17,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-pyst_part = pysixtrack.Particles(
+pyst_part = xline.Particles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -29,7 +29,7 @@ pyst_part = pysixtrack.Particles(
 part_dict = xt.pyparticles_to_xtrack_dict(pyst_part)
 particles = xt.Particles(_context=context, **part_dict)
 
-aper_pyst = pysixtrack.elements.LimitRect(min_x=x_aper_min,
+aper_pyst = xline.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
                                           min_y=y_aper_min,
                                           max_y=y_aper_max)
@@ -40,10 +40,10 @@ aper = xt.LimitRect(_context=context,
 aper_pyst.track(pyst_part)
 
 # Build a small test line
-pyst_line = pysixtrack.Line(elements=[
-                pysixtrack.elements.Drift(length=5.),
+pyst_line = xline.Line(elements=[
+                xline.elements.Drift(length=5.),
                 aper_pyst,
-                pysixtrack.elements.Drift(length=5.)],
+                xline.elements.Drift(length=5.)],
                 element_names=['drift0', 'aper', 'drift1'])
 
 tracker = xt.Tracker(_context=context, sequence=pyst_line)
