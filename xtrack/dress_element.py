@@ -88,7 +88,13 @@ class MetaBeamElement(type):
 
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
-        xofields = data['_xofields']
+        if '_xofields' in data.keys():
+            xofields = data['_xofields']
+        else:
+            for bb in bases:
+                if hasattr(bb,'_xofields'):
+                    xofields = bb._xofields
+                    break
         XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
 
         bases = (dress_element(XoStruct),) + bases
