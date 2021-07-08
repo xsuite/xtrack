@@ -25,6 +25,7 @@ class Cavity(BeamElement):
         }
 
 Cavity.XoStruct.extra_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
 
 
@@ -284,6 +285,7 @@ class RFMultipole(BeamElement):
         self.phase[order * 2 + 1] = value
 
 RFMultipole.XoStruct.extra_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
 
 
