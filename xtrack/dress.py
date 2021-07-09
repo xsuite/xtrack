@@ -109,7 +109,7 @@ def dress(XoStruct, rename={}):
 
 
         context.add_kernels(
-            sources=[self.XoStruct.extra_sources],
+            sources=self.XoStruct.extra_sources,
             kernels=self.XoStruct.custom_kernels,
             extra_classes=[self.XoStruct],
             save_source_as='temp.c')
