@@ -107,12 +107,11 @@ def dress(XoStruct, rename={}):
             if all_found:
                 return
 
-        capi_src, _, capi_cdefs = self.XoStruct._gen_c_api()
 
-        context.add_kernels(sources=([capi_src]
-                + self.XoStruct.extra_sources),
+        context.add_kernels(
+            sources=self.XoStruct.extra_sources,
             kernels=self.XoStruct.custom_kernels,
-            extra_cdef='\n'.join([capi_cdefs]),
+            extra_classes=[self.XoStruct],
             save_source_as='temp.c')
 
     DressedXStruct.xoinitialize = xoinitialize
