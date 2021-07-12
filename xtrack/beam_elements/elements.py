@@ -39,6 +39,37 @@ XYShift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
 
 
+## ELECTRON LENS
+
+class Elens(BeamElement):
+# if array is needed we do it like this
+#    _xofields={'inner_radius': xo.Float64[:]}
+    _xofields={
+               'current':      xo.Float64,
+               'inner_radius': xo.Float64,
+               'outer_radius': xo.Float64,
+               'elens_length': xo.Float64,
+               'voltage':      xo.Float64
+              }
+
+    def __init__(self,  inner_radius = None,
+                        outer_radius = None,
+                        current      = None,
+                        elens_length = None,
+                        voltage      = None, **kwargs):
+        super().__init__(**kwargs)
+        self.inner_radius    = inner_radius
+        self.outer_radius    = outer_radius
+        self.current         = current
+        self.elens_length    = elens_length
+        self.voltage         = voltage
+
+Elens.XoStruct.extra_sources = [
+    _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
+
+
+
+
 class SRotation(BeamElement):
     _xofields={
         'cos_z': xo.Float64,
