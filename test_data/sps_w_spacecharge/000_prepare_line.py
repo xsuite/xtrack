@@ -1,8 +1,10 @@
 import json
 from cpymad.madx import Madx
 import xline
+import pymask as pm
 
 p0c = 25.92e9
+seq_name = 'sps'
 
 class Encoder(json.JSONEncoder):
     def default(self, obj):
@@ -15,7 +17,7 @@ class Encoder(json.JSONEncoder):
 
 mad = Madx()
 mad.call('sps_thin.seq')
-mad.use('sps')
+mad.use(seq_name)
 twtable = mad.twiss()
 
 # Save twiss at start ring
@@ -32,8 +34,13 @@ twiss_at_start = {
 with open('twiss_at_start.json', 'w') as fid:
     json.dump(twiss_at_start, fid)
 
+optics_and_orbit_at_start_ring = pm.get_optics_and_orbit_at_start_ring(
+                                                  mad, seq_name=seq_name)
+with open('optics_and_co_at_start_ring.json', 'w') as fid:
+    json.dump(optics_and_orbit_at_start_ring, fid, cls=pm.JEncoder)
+
 line_without_spacecharge = xline.Line.from_madx_sequence(
-                                            mad.sequence['sps'],
+                                            mad.sequence[seq_name],
                                             install_apertures=True)
 # enable RF
 i_cavity = line_without_spacecharge.element_names.index('acta.31637')
