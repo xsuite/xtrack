@@ -36,3 +36,48 @@ def test_drift():
                           pyst_particle.x, rtol=1e-14, atol=1e-14)
         assert np.isclose(ctx.nparray_from_context_array(particles.y)[0],
                           pyst_particle.y, rtol=1e-14, atol=1e-14)
+
+
+
+def test_elens():
+
+   for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
+        if CTX not in available:
+            continue
+
+        print(f"Test {CTX}")
+        ctx = CTX()
+
+        pyst_particle = xl.Particles(
+                p0c=np.array([7000e9]),
+                x=np.array([1e-3]),
+                px=np.array([0.0]),
+                y=np.array([2.2e-3]),
+                py=np.array([0.0]),
+                zeta=np.array([0.]))
+
+        part_dict = xt.pyparticles_to_xtrack_dict(pyst_particle)
+        particles = xt.Particles(_context=ctx,
+                                 **part_dict)
+
+
+        elens = xt.Elens(inner_radius=1.1e-3,
+                       outer_radius=2.2e-3,
+                       elens_length=3.,
+                       voltage=15e3,
+                       current=5)
+
+        elens.track(particles)
+
+        pyst_elens = xl.elements.Elens(inner_radius=1.1e-3,
+                       outer_radius=2.2e-3,
+                       elens_length=3.,
+                       voltage=15e3,
+                       current=5)
+
+        pyst_elens.track(pyst_particle)
+
+        assert np.isclose(ctx.nparray_from_context_array(particles.px)[0],
+                          pyst_particle.px, rtol=1e-9, atol=1e-9)
+        assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
+                          pyst_particle.py, rtol=1e-9, atol=1e-9)
