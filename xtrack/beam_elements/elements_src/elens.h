@@ -21,24 +21,33 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part){
 
         // electron mass
         double const EMASS  = 510998.928;
-        // proton mass
-        double const PMASS  = 938272081.0;
+        // speed of light
+
+        #if !defined( C_LIGHT )
+            #define   C_LIGHT ( 299792458.0 )
+        #endif /* !defined( C_LIGHT ) */
+
+        #if !defined( EPSILON_0 )
+            #define   EPSILON_0 (8.854187817620e-12)
+        #endif /* !defined( EPSILON_0 ) */
+
+        #if !defined( PI )
+            #define PI (3.1415926535897932384626433832795028841971693993751)
+        #endif /* !defined( PI ) */
+
         double x      = LocalParticle_get_x(part);
         double y      = LocalParticle_get_y(part);
 
-        double px      = LocalParticle_get_px(part);
-        double py      = LocalParticle_get_py(part);
-
         // delta
-        double delta  = LocalParticle_get_delta(part);
+        // double delta  = LocalParticle_get_delta(part);
         // charge ratio: q/q0
-        double qratio = LocalParticle_get_charge_ratio(part);
+        // double qratio = LocalParticle_get_charge_ratio(part);
         // chi = q/q0 * m0/m
         double const chi    = LocalParticle_get_chi(part);
         // reference particle momentum
         double const p0c    = LocalParticle_get_p0c(part);
         // particle momentum
-        double pc     = (1+delta)*(chi/qratio)*(p0c);
+        // double pc     = (1+delta)*(chi/qratio)*(p0c);
         // reference particle charge
         double const q0     = LocalParticle_get_q0(part);
 
