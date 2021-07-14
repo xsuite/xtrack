@@ -34,18 +34,25 @@ twiss_at_start = {
 with open('twiss_at_start.json', 'w') as fid:
     json.dump(twiss_at_start, fid)
 
-optics_and_orbit_at_start_ring = pm.get_optics_and_orbit_at_start_ring(
-                                                  mad, seq_name=seq_name)
-with open('optics_and_co_at_start_ring.json', 'w') as fid:
-    json.dump(optics_and_orbit_at_start_ring, fid, cls=pm.JEncoder)
 
 line_without_spacecharge = xline.Line.from_madx_sequence(
                                             mad.sequence[seq_name],
                                             install_apertures=True)
-# enable RF
+# enable RF in xline
+V_RF = 3e6
 i_cavity = line_without_spacecharge.element_names.index('acta.31637')
-line_without_spacecharge.elements[i_cavity].voltage = 3e6
+line_without_spacecharge.elements[i_cavity].voltage = V_RF
 line_without_spacecharge.elements[i_cavity].lag = 180.
+
+# enable RF in MAD-X
+i_cav_madx = mad.sequence[seq_name].element_names().index('acta.31637')
+mad.sequence[seq_name].elements[i_cav_madx].volt = V_RF/1e6
+mad.sequence[seq_name].elements[i_cav_madx].lag = 0.5
+
+optics_and_orbit_at_start_ring = pm.get_optics_and_orbit_at_start_ring(
+                                                  mad, seq_name=seq_name)
+with open('optics_and_co_at_start_ring.json', 'w') as fid:
+    json.dump(optics_and_orbit_at_start_ring, fid, cls=pm.JEncoder)
 
 part = xline.Particles(p0c=p0c, x=2e-3, y=3e-3, zeta=20e-2)
 
