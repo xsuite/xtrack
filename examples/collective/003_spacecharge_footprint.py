@@ -41,18 +41,31 @@ with open(fname_sequence, 'r') as fid:
      input_data = json.load(fid)
 sequence = xl.Line.from_dict(input_data['line'])
 
-#################################
-# Get beam sigmas at start ring #
-# from first space-charge lens  #
-#################################
+first_sc = sequence.elements[1]
+sigma_x = first_sc.sigma_x
+sigma_y = first_sc.sigma_y
+
+xf.replace_spaceharge_with_PIC(_buffer, sequence,
+        n_sigmas_range_pic_x=10,
+        n_sigmas_range_pic_y=9,
+        nx_grid=256, ny_grid=256, nz_grid=100,
+        n_lims_x=2, n_lims_y=2,
+        z_range=(-3*sigma_z, 3*sigma_z))
+
+#xf.replace_spaceharge_with_quasi_frozen(
+#                                    sequence, _buffer=_buffer,
+#                                    update_mean_x_on_track=False,
+#                                    update_mean_y_on_track=False)
+
+########################
+# Get optics and orbit #
+########################
+
 with open(fname_optics, 'r') as fid:
     ddd = json.load(fid)
 part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
 RR = np.array(ddd['RR_madx'])
 
-first_sc = sequence.elements[1]
-sigma_x = first_sc.sigma_x
-sigma_y = first_sc.sigma_y
 
 #################
 # Build Tracker #
@@ -76,7 +89,7 @@ r_max_sigma = 5
 N_r_footprint = 10
 N_theta_footprint = 8
 xy_norm = footprint.initial_xy_polar(
-        r_min=1e-2, r_max=r_max_sigma,
+        r_min=0.1, r_max=r_max_sigma,
         r_N=N_r_footprint + 1, theta_min=np.pi / 100,
         theta_max=np.pi / 2 - np.pi / 100,
         theta_N=N_theta_footprint)
