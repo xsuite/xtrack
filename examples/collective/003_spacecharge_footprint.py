@@ -4,17 +4,24 @@ import numpy as np
 
 import xobjects as xo
 import xline as xl
+import xpart as xp
 import xtrack as xt
 import xfields as xf
 
 fname_sequence = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 
-number_of_particles=1e11
-delta_rms=2e-3
+fname_optics = ('../../test_data/sps_w_spacecharge/'
+                'optics_and_co_at_start_ring.json')
+
+seq_name = 'sps'
+bunch_intensity = 1e11
+sigma_z = 22.5e-2
 neps_x=2.5e-6
 neps_y=2.5e-6
-bunchlength_rms=10e-2
+n_part=int(1e4)
+rf_voltage=3e6
+num_turns=256
 
 ####################
 # Choose a context #
@@ -22,7 +29,7 @@ bunchlength_rms=10e-2
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
+#context = xo.ContextPyopencl('0.0')
 
 _buffer = context.new_buffer()
 
@@ -34,15 +41,15 @@ with open(fname_sequence, 'r') as fid:
      input_data = json.load(fid)
 sequence = xl.Line.from_dict(input_data['line'])
 
-# # TEST
-# for ee in sequence.elements:
-#     if hasattr(ee, 'number_of_particles'):
-#         ee.number_of_particles = 5e10
-
 #################################
 # Get beam sigmas at start ring #
 # from first space-charge lens  #
 #################################
+with open(fname_optics, 'r') as fid:
+    ddd = json.load(fid)
+part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
+RR = np.array(ddd['RR_madx'])
+
 first_sc = sequence.elements[1]
 sigma_x = first_sc.sigma_x
 sigma_y = first_sc.sigma_y
@@ -57,6 +64,13 @@ tracker = xt.Tracker(_buffer=_buffer,
 # Generate particles for footprint #
 ####################################
 
+part = xp.generate_matched_gaussian_bunch(
+         num_particles=n_part, total_intensity_particles=bunch_intensity,
+         nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
+         particle_on_co=part_on_co, R_matrix=RR,
+         circumference=6911., alpha_momentum_compaction=0.0030777,
+         rf_harmonic=4620, rf_voltage=rf_voltage, rf_phase=0)
+
 import footprint
 r_max_sigma = 5
 N_r_footprint = 10
@@ -67,29 +81,38 @@ xy_norm = footprint.initial_xy_polar(
         theta_max=np.pi / 2 - np.pi / 100,
         theta_N=N_theta_footprint)
 
-particles = xt.Particles(_context=context,
-        p0c=26e9,
-        x=sigma_x*xy_norm[:, :, 0].flatten(),
-        y=sigma_y*xy_norm[:, :, 1].flatten())
+N_footprint = len(xy_norm[:, :, 0].flatten())
+part.x[:N_footprint] = sigma_x*xy_norm[:, :, 0].flatten()
+part.y[:N_footprint] = sigma_y*xy_norm[:, :, 1].flatten()
+part.px[:N_footprint] = 0.
+part.py[:N_footprint] = 0.
+part.zeta[:N_footprint] = 0.
+part._delta[:N_footprint] = 0.
+part._rpp[:N_footprint] = 0.
+part._rvv[:N_footprint] = 0.
+
+xtparticles = xt.Particles(_context=context, **part.to_dict())
 
 #########
 # Track #
 #########
-
-tracker.track(particles, num_turns=256, turn_by_turn_monitor=True)
+x_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
+y_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
+for ii in range(num_turns):
+    print(f'Turn: {ii}', end='\r', flush=True)
+    x_tbt[:, ii] = context.nparray_from_context_array(xtparticles.x[:N_footprint]).copy()
+    y_tbt[:, ii] = context.nparray_from_context_array(xtparticles.y[:N_footprint]).copy()
+    tracker.track(xtparticles)
 
 ######################
 # Frequency analysis #
 ######################
 import NAFFlib
 
-Qx = np.zeros(particles.num_particles)
-Qy = np.zeros(particles.num_particles)
+Qx = np.zeros(N_footprint)
+Qy = np.zeros(N_footprint)
 
-x_tbt = tracker.record_last_track.x
-y_tbt = tracker.record_last_track.y
-
-for i_part in range(particles.num_particles):
+for i_part in range(N_footprint):
     Qx[i_part] = NAFFlib.get_tune(x_tbt[i_part, :])
     Qy[i_part] = NAFFlib.get_tune(y_tbt[i_part, :])
 
