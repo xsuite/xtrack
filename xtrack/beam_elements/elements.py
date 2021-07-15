@@ -362,14 +362,16 @@ class LinearTransferMatrix(BeamElement):
         'disp_y_0': xo.Float64,
         'disp_y_1': xo.Float64,
         'beta_s': xo.Float64,
-        'p_increment': xo.Float64
+        'energy_ref_increment': xo.Float64,
+        'energy_increment': xo.Float64
         }
 
     def __init__(self, Q_x=0,Q_y=0,
                      beta_x_0=1.0,beta_x_1=1.0,beta_y_0=1.0,beta_y_1=1.0,
                      alpha_x_0=0.0,alpha_x_1=0.0,alpha_y_0=0.0,alpha_y_1=0.0,
                      disp_x_0=0.0,disp_x_1=0.0,disp_y_0=0.0,disp_y_1=0.0,
-                     Q_s=0.0,beta_s=1.0,p_increment=0.0, **nargs):
+                     Q_s=0.0,beta_s=1.0,
+                     energy_increment=0.0,energy_ref_increment=0.0, **nargs):
         nargs['cos_x']=np.cos(2.0*np.pi*Q_x)
         nargs['sin_x']=np.sin(2.0*np.pi*Q_x)
         nargs['cos_y']=np.cos(2.0*np.pi*Q_y)
@@ -389,7 +391,8 @@ class LinearTransferMatrix(BeamElement):
         nargs['disp_y_0']=disp_y_0
         nargs['disp_y_1']=disp_y_1
         nargs['beta_s']=beta_s
-        nargs['p_increment']=p_increment
+        nargs['energy_ref_increment']=energy_ref_increment # acceleration with change of reference momentum (e.g. ramp)
+        nargs['energy_increment']=energy_increment # acceleration without change of reference momentum (e.g. compensation of energy loss)
         super().__init__(**nargs)
 
     @property

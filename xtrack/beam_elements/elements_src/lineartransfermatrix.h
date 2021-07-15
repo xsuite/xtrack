@@ -3,10 +3,14 @@
 
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part){
-
-    int64_t const n_part = LocalParticle_get_num_particles(part); 
+    double const new_energy0 = LocalParticle_get_energy0(part)+LinearTransferMatrixData_get_energy_ref_increment(el);
+    double const new_p0c = sqrt(new_energy0*new_energy0-LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
+    double const new_beta0 = new_p0c / new_energy0;
+    double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
+    double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)*LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
+    int64_t const n_part = LocalParticle_get_num_particles(part);
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+	    part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
         double new_x = LocalParticle_get_x(part);
         double new_y = LocalParticle_get_y(part);
         double new_px = LocalParticle_get_px(part);
@@ -40,7 +44,12 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         new_y = M00*new_y + M01*new_py;
         new_py = M10*tmp + M11*new_py;
 
-        //TODO longitudinal tracking
+        LocalParticle_add_to_energy(part, LinearTransferMatrixData_get_energy_increment(el));
+        LocalParticle_set_delta(part,LocalParticle_get_delta(part) * LocalParticle_get_p0c(part)/new_p0c);
+        new_x *= geo_emit_factor;
+        new_px *= geo_emit_factor;
+        new_y *= geo_emit_factor;
+        new_py *= geo_emit_factor;
 
         new_x += LinearTransferMatrixData_get_disp_x_1(el) * LocalParticle_get_delta(part);
         new_y += LinearTransferMatrixData_get_disp_y_1(el) * LocalParticle_get_delta(part);
@@ -50,7 +59,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     	LocalParticle_set_px(part, new_px);
     	LocalParticle_set_py(part, new_py);
     } //only_for_context cpu_serial cpu_openmp
-
+    //LocalParticle_set_p0c(part,new_p0c); can one set attributes of the particles object from c?
 }
 
 #endif
