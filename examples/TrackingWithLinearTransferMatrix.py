@@ -37,8 +37,8 @@ alpha_y_IP2 = 2.0
 dispersion_IP2 = 1.0
 
 nTurn = 500
-#energy_increment = (5.0-1.25)*1E9/nTurn/2
-energy_increment = 0.0
+energy_increment = (5.0-1.25)*1E9/nTurn/2
+#energy_increment = 0.0
 
 particles = xt.Particles(_context=context,
                          q0 = 1,
@@ -72,6 +72,8 @@ for turn in range(nTurn):
     plt.plot(particles.x,particles.px,'.b')
     plt.figure(1)
     plt.plot(particles.y,particles.py,'.g')
+    plt.figure(3)
+    plt.plot(turn,0.5*((particles.x[1]-dispersion_IP1*particles.delta[1])**2*(1+alpha_x_IP1**2)/beta_x_IP1+2*alpha_x_IP1*(particles.x[1]-dispersion_IP1*particles.delta[1])*particles.px[1]+particles.px[1]**2*beta_x_IP1)*particles.gamma0*particles.beta0,'x')
     arc12.track(particles)
     particles.p0c = np.sqrt((np.sqrt(particles.p0c**2+particles.mass0**2)+energy_increment)**2-particles.mass0**2) #TODO this should be included in tracking
     particles._set_p0c()
@@ -79,9 +81,12 @@ for turn in range(nTurn):
     plt.plot(particles.x,particles.px,'.b')
     plt.figure(11)
     plt.plot(particles.y,particles.py,'.g')
+    plt.figure(13)
+    plt.plot(turn,0.5*((particles.x[1]-dispersion_IP2*particles.delta[1])**2*(1+alpha_x_IP2**2)/beta_x_IP2+2*alpha_x_IP2*(particles.x[1]-dispersion_IP2*particles.delta[1])*particles.px[1]+particles.px[1]**2*beta_x_IP2)*particles.gamma0*particles.beta0,'x')
     arc21.track(particles)
     particles.p0c = np.sqrt((np.sqrt(particles.p0c**2+particles.mass0**2)+energy_increment)**2-particles.mass0**2) #TODO this should be included in tracking
     particles._set_p0c()
+
     plt.figure(12)
     plt.plot(particles.zeta,particles.delta,'.r')
     plt.axvline(sigma_z,color='k')
