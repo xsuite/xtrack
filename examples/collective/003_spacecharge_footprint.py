@@ -47,11 +47,12 @@ first_sc = sequence.elements[1]
 sigma_x = first_sc.sigma_x
 sigma_y = first_sc.sigma_y
 
-xf.replace_spaceharge_with_PIC(_buffer, sequence,
+pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
+        _buffer, sequence,
         n_sigmas_range_pic_x=10,
         n_sigmas_range_pic_y=9,
         nx_grid=256, ny_grid=256, nz_grid=50,
-        n_lims_x=3, n_lims_y=2,
+        n_lims_x=7, n_lims_y=3,
         z_range=(-3*sigma_z, 3*sigma_z))
 
 #xf.replace_spaceharge_with_quasi_frozen(
