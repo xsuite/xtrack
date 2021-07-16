@@ -19,9 +19,9 @@ bunch_intensity = 1e11
 sigma_z = 22.5e-2
 neps_x=2.5e-6
 neps_y=2.5e-6
-n_part=int(1e4)
+n_part=int(10e6)
 rf_voltage=3e6
-num_turns=256
+num_turns=32
 
 ####################
 # Choose a context #
@@ -32,6 +32,8 @@ context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 _buffer = context.new_buffer()
+
+print(context)
 
 ##################
 # Get a sequence #
@@ -48,8 +50,8 @@ sigma_y = first_sc.sigma_y
 xf.replace_spaceharge_with_PIC(_buffer, sequence,
         n_sigmas_range_pic_x=10,
         n_sigmas_range_pic_y=9,
-        nx_grid=256, ny_grid=256, nz_grid=100,
-        n_lims_x=2, n_lims_y=2,
+        nx_grid=256, ny_grid=256, nz_grid=50,
+        n_lims_x=3, n_lims_y=2,
         z_range=(-3*sigma_z, 3*sigma_z))
 
 #xf.replace_spaceharge_with_quasi_frozen(
