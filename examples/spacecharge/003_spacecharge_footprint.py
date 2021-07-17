@@ -19,9 +19,13 @@ bunch_intensity = 1e11
 sigma_z = 22.5e-2
 neps_x=2.5e-6
 neps_y=2.5e-6
-n_part=int(10e6)
+n_part=int(1e6)
 rf_voltage=3e6
 num_turns=32
+
+mode = 'frozen'
+mode = 'quasi-frozen'
+mode = 'pic'
 
 ####################
 # Choose a context #
@@ -47,18 +51,27 @@ first_sc = sequence.elements[1]
 sigma_x = first_sc.sigma_x
 sigma_y = first_sc.sigma_y
 
-pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
-        _buffer, sequence,
-        n_sigmas_range_pic_x=10,
-        n_sigmas_range_pic_y=9,
-        nx_grid=256, ny_grid=256, nz_grid=50,
-        n_lims_x=7, n_lims_y=3,
-        z_range=(-3*sigma_z, 3*sigma_z))
+##########################
+# Configure space-charge #
+##########################
 
-#xf.replace_spaceharge_with_quasi_frozen(
-#                                    sequence, _buffer=_buffer,
-#                                    update_mean_x_on_track=False,
-#                                    update_mean_y_on_track=False)
+if mode == 'frozen':
+    pass # Already condfigured in line
+elif mode == 'quasi-frozen':
+    xf.replace_spaceharge_with_quasi_frozen(
+                                    sequence, _buffer=_buffer,
+                                    update_mean_x_on_track=True,
+                                    update_mean_y_on_track=True)
+elif mode == 'pic':
+    pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
+        _buffer, sequence,
+        n_sigmas_range_pic_x=8,
+        n_sigmas_range_pic_y=8,
+        nx_grid=256, ny_grid=256, nz_grid=100,
+        n_lims_x=5, n_lims_y=3,
+        z_range=(-1*sigma_z, 1*sigma_z))
+else:
+    raise ValueError(f'Invalid mode: {mode}')
 
 ########################
 # Get optics and orbit #
@@ -92,9 +105,10 @@ r_max_sigma = 5
 N_r_footprint = 10
 N_theta_footprint = 8
 xy_norm = footprint.initial_xy_polar(
-        r_min=0.1, r_max=r_max_sigma,
-        r_N=N_r_footprint + 1, theta_min=np.pi / 100,
-        theta_max=np.pi / 2 - np.pi / 100,
+        r_min=0.3, r_max=r_max_sigma,
+        r_N=N_r_footprint + 1,
+        theta_min=np.pi / 10,
+        theta_max=np.pi / 2 - np.pi / 10,
         theta_N=N_theta_footprint)
 
 N_footprint = len(xy_norm[:, :, 0].flatten())
@@ -149,4 +163,8 @@ axcoord.set_ylim(top=np.max(xy_norm[:, :, 1]))
 fig4 = plt.figure(4)
 axFP = fig4.add_subplot(1, 1, 1)
 footprint.draw_footprint(Qxy_fp, axis_object=axFP, linewidth = 1)
+axFP.set_xlim(.1, .16)
+axFP.set_ylim(.18, .25)
+axFP.set_aspect('equal')
+fig4.suptitle(mode)
 plt.show()
