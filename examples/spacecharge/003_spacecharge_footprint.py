@@ -15,8 +15,8 @@ fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
 seq_name = 'sps'
-bunch_intensity = 1e11
-sigma_z = 22.5e-2
+bunch_intensity = 1e11/2
+sigma_z = 22.5e-2/2
 neps_x=2.5e-6
 neps_y=2.5e-6
 n_part=int(1e6)
@@ -24,7 +24,7 @@ rf_voltage=3e6
 num_turns=32
 
 mode = 'frozen'
-mode = 'quasi-frozen'
+#mode = 'quasi-frozen'
 mode = 'pic'
 
 ####################
