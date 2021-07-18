@@ -25,13 +25,13 @@ num_turns=32
 
 mode = 'frozen'
 mode = 'quasi-frozen'
-#mode = 'pic'
+mode = 'pic'
 
 ####################
 # Choose a context #
 ####################
 
-context = xo.ContextCpu()
+#context = xo.ContextCpu()
 context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
@@ -56,7 +56,7 @@ sigma_y = first_sc.sigma_y
 ##########################
 
 if mode == 'frozen':
-    pass # Already condfigured in line
+    pass # Already configured in line
 elif mode == 'quasi-frozen':
     xf.replace_spaceharge_with_quasi_frozen(
                                     sequence, _buffer=_buffer,
@@ -64,11 +64,11 @@ elif mode == 'quasi-frozen':
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
     pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
-        _buffer, sequence,
+        _context=context, sequence=sequence,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
-        n_lims_x=5, n_lims_y=3,
+        n_lims_x=7, n_lims_y=3,
         z_range=(-3*sigma_z, 3*sigma_z))
 else:
     raise ValueError(f'Invalid mode: {mode}')

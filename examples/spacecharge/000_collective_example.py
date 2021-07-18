@@ -22,7 +22,7 @@ sequence = xl.Line.from_dict(input_data['line'])
 ##############################################
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
+context = xo.ContextPyopencl('0.0')
 
 _buffer = context.new_buffer()
 
