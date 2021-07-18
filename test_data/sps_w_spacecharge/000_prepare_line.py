@@ -9,8 +9,9 @@ import xpart as xp
 import pymask as pm
 
 seq_name = 'sps'
-bunch_intensity = 1e11/2
-sigma_z = 22.5e-2/2
+bunch_intensity = 1e11/3
+sigma_z = 22.5e-2/3 # Short bunch to avoid probing bucket non-linearity
+                    # to compare against frozen
 neps_x=2.5e-6
 neps_y=2.5e-6
 

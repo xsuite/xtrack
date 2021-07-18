@@ -15,8 +15,8 @@ fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
 seq_name = 'sps'
-bunch_intensity = 1e11/2
-sigma_z = 22.5e-2/2
+bunch_intensity = 1e11/3
+sigma_z = 22.5e-2/3
 neps_x=2.5e-6
 neps_y=2.5e-6
 n_part=int(1e6)
@@ -24,8 +24,8 @@ rf_voltage=3e6
 num_turns=32
 
 mode = 'frozen'
-#mode = 'quasi-frozen'
-mode = 'pic'
+mode = 'quasi-frozen'
+#mode = 'pic'
 
 ####################
 # Choose a context #
@@ -69,7 +69,7 @@ elif mode == 'pic':
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
         n_lims_x=5, n_lims_y=3,
-        z_range=(-1*sigma_z, 1*sigma_z))
+        z_range=(-3*sigma_z, 3*sigma_z))
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
@@ -107,8 +107,8 @@ N_theta_footprint = 8
 xy_norm = footprint.initial_xy_polar(
         r_min=0.3, r_max=r_max_sigma,
         r_N=N_r_footprint + 1,
-        theta_min=np.pi / 10,
-        theta_max=np.pi / 2 - np.pi / 10,
+        theta_min=0.05 * np.pi / 2,
+        theta_max=np.pi / 2 - 0.05 * np.pi / 2,
         theta_N=N_theta_footprint)
 
 N_footprint = len(xy_norm[:, :, 0].flatten())
