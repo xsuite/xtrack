@@ -58,7 +58,7 @@ part_s = context.nparray_from_context_array(particles.s)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(np.sort(pyst_part.partid), np.sort(id_alive))
+assert np.allclose(np.sort(pyst_part.particle_id), np.sort(id_alive))
 assert np.allclose(part_s[part_state>0], 10.)
 assert np.allclose(part_s[part_state<1], 5.)
 
