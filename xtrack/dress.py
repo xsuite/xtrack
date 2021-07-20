@@ -44,15 +44,19 @@ def dress(XoStruct, rename={}):
         setattr(DressedXStruct, ff,
                 _FieldOfDressed(ff, XoStruct))
 
+    pynames_list = []
     for ff in XoStruct._fields:
         fname = ff.name
         if fname in rename.keys():
             pyname = rename[fname]
         else:
             pyname = fname
+        pynames_list.append(pyname)
 
         setattr(DressedXStruct, pyname,
                 _FieldOfDressed(fname, XoStruct))
+
+        DressedXStruct._fields = pynames_list
 
     def xoinitialize(self, _xobject=None, **kwargs):
 
@@ -81,6 +85,16 @@ def dress(XoStruct, rename={}):
     def myinit(self, _xobject=None, **kwargs):
         self.xoinitialize(_xobject=_xobject, **kwargs)
 
+    def to_dict(self):
+        out = {}
+        for ff in self._fields:
+            vv = getattr(self, ff)
+            if hasattr(vv, 'to_dict'):
+                out[ff] = vv.to_dict()
+            else:
+                out[ff] = vv
+        return out
+
     def compile_custom_kernels(self, only_if_needed=False):
         context = self._buffer.context
 
@@ -93,16 +107,16 @@ def dress(XoStruct, rename={}):
             if all_found:
                 return
 
-        capi_src, _, capi_cdefs = self.XoStruct._gen_c_api()
 
-        context.add_kernels(sources=([capi_src]
-                + self.XoStruct.extra_sources),
+        context.add_kernels(
+            sources=self.XoStruct.extra_sources,
             kernels=self.XoStruct.custom_kernels,
-            extra_cdef='\n'.join([capi_cdefs]),
+            extra_classes=[self.XoStruct],
             save_source_as='temp.c')
 
     DressedXStruct.xoinitialize = xoinitialize
     DressedXStruct.compile_custom_kernels = compile_custom_kernels
+    DressedXStruct.to_dict = to_dict
     DressedXStruct.__init__ = myinit
 
     return DressedXStruct

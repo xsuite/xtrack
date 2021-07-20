@@ -196,9 +196,9 @@ class Tracker:
         if element_classes is None:
             # Kernel relies on element_classes ordering
             assert track_kernel=='skip' or track_kernel is None
-            element_classes = line._ElementRefClass._rtypes + (
+            element_classes = line._ElementRefClass._reftypes + [
                 particles_monitor_class.XoStruct,
-            )
+            ]
 
         self.line = line
         ele_offsets = np.array([ee._offset for ee in line.elements], dtype=np.int64)
@@ -240,34 +240,17 @@ class Tracker:
                 f"#define XTRACK_GLOBAL_POSLIMIT ({self.global_xy_limit})")
         sources.append(_pkg_root.joinpath("headers/constants.h"))
 
-        # Particles
-        (
-            source_particles,
-            kernels_particles,
-            cdefs_particles,
-        ) = self.particles_class.XoStruct._gen_c_api()
-        sources.append(source_particles)
-        kernels.update(kernels_particles)
-        cdefs += cdefs_particles.split("\n")
 
         # Local particles
         sources.append(self.local_particle_src)
 
         # Elements
-        for cc in self.element_classes:
-            ss, kk, dd = cc._gen_c_api()
-            sources.append(ss)
-            kernels.update(kk)
-            cdefs += dd.split("\n")
-
-            sources += cc.extra_sources
-
         sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
 
-        cdefs_norep = []  # TODO Check if this can be handled be the context
-        for cc in cdefs:
-            if cc not in cdefs_norep:
-                cdefs_norep.append(cc)
+
+        for ee in self.element_classes:
+            for ss in ee.extra_sources:
+                sources.append(ss)
 
         src_lines = []
         src_lines.append(
@@ -363,12 +346,6 @@ class Tracker:
         source_track = "\n".join(src_lines)
         sources.append(source_track)
 
-        for ii, ss in enumerate(sources):
-            if isinstance(ss, Path):
-                with open(ss, "r") as fid:
-                    ss = fid.read()
-            sources[ii] = ss.replace("/*gpufun*/", "/*gpufun*/ static inline")
-
         kernel_descriptions = {
             "track_line": xo.Kernel(
                 args=[
@@ -396,7 +373,7 @@ class Tracker:
         context.add_kernels(
             sources,
             kernels,
-            extra_cdef="\n\n".join(cdefs_norep),
+            extra_classes=self.element_classes,
             save_source_as=save_source_as,
             specialize=True,
         )

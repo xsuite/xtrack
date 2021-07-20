@@ -57,7 +57,9 @@ class Line():
                 element_data_types.append(ee.XoStruct)
 
 
-        ElementRefClass = xo.Ref(*element_data_types)
+        class ElementRefClass(xo.UnionRef):
+            _reftypes=element_data_types
+
         LineDataClass = ElementRefClass[num_elements]
         line_data = LineDataClass(_context=_context,
                 _buffer=_buffer, _offset=_offset)
