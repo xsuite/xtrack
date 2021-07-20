@@ -34,9 +34,25 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part){
     	    dpy = MultipoleData_get_bal(el, index_y) + zim;
     	}
 
-    	dpx = -chi * dpx;
-    	dpy =  chi * dpy;
+    	dpx = -chi * dpx; // rad
+    	dpy =  chi * dpy; // rad
 
+	// compute the average energy loss by synchrotron radiation
+	double const h = hypot(dpx, dpy) / length; // 1/m, 1/rho, curvature
+	double const p0c = LocalParticle_get_p0c(part); // eV
+	double const m0  = LocalParticle_get_mass0(part); // eV/c^2
+	double const d = LocalParticle_get_delta(part);
+	double const pc = p0c * (1 + d); // eV
+	double const energy = hypot(m0, pc); // eV
+	double const beta_gamma = pc / m0; // 
+	double const q0 = LocalParticle_get_q0(part); // e
+	// e^2 / 4 pi epsilon0 eV = (1 / 694461541.7756249) m
+	double const classical_radius = q0*q0 / m0 / 694461541.7756249; // m, classical electromagnetic radius
+	double const eloss = 2.0 / 3.0 * classical_radius*length * beta_gamma*beta_gamma*beta_gamma * h*h * energy; // eV
+
+	// apply the energy kick
+	Local_particle_add_to_energy(part, -eloss);
+	
     	if( ( hxl > 0) || ( hyl > 0) || ( hxl < 0 ) || ( hyl < 0 ) )
     	{
     	    double const delta  = LocalParticle_get_delta(part);
