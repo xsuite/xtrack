@@ -8,6 +8,27 @@ import xpart as xp
 import xtrack as xt
 import xfields as xf
 
+
+############
+# Settings #
+############
+
+bunch_intensity = 1e11/3
+sigma_z = 22.5e-2/3
+neps_x=2.5e-6
+neps_y=2.5e-6
+n_part=int(1e6)
+rf_voltage=3e6
+num_turns=32
+
+# Available modes: frozen/quasi-frozen/pic
+mode = 'pic'
+
+##################################################
+#                   Load xline                   #
+# (assume frozen SC lenses are alredy installed) #
+##################################################
+
 fname_sequence = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 
@@ -24,18 +45,6 @@ with open(fname_optics, 'r') as fid:
 part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
 RR = np.array(ddd['RR_madx']) # Linear one-turn matrix
 
-seq_name = 'sps'
-bunch_intensity = 1e11/3
-sigma_z = 22.5e-2/3
-neps_x=2.5e-6
-neps_y=2.5e-6
-n_part=int(1e6)
-rf_voltage=3e6
-num_turns=32
-
-# Available modes: frozen/quasi-frozen/pic
-mode = 'pic'
-
 ####################
 # Choose a context #
 ####################
@@ -43,12 +52,7 @@ mode = 'pic'
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
-
 print(context)
-
-# Make a buffer
-_buffer = context.new_buffer()
-
 
 ##########################
 # Configure space-charge #
@@ -58,7 +62,7 @@ if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
     xf.replace_spaceharge_with_quasi_frozen(
-                                    sequence, _buffer=_buffer,
+                                    sequence, _buffer=context.new_buffer(),
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
@@ -75,12 +79,13 @@ else:
 #################
 # Build Tracker #
 #################
-tracker = xt.Tracker(_context=_context,
+
+tracker = xt.Tracker(_context=context,
                     sequence=sequence)
 
-####################################
-# Generate particles for footprint #
-####################################
+######################
+# Generate particles # 
+######################
 
 part = xp.generate_matched_gaussian_bunch(
          num_particles=n_part, total_intensity_particles=bunch_intensity,

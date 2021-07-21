@@ -14,7 +14,6 @@ fname_sequence = ('../../test_data/sps_w_spacecharge/'
 fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
-seq_name = 'sps'
 bunch_intensity = 1e11/3
 sigma_z = 22.5e-2/3
 neps_x=2.5e-6
