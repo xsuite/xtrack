@@ -16,6 +16,8 @@ fname_optics = ('../../test_data/sps_w_spacecharge/'
 
 with open(fname_sequence, 'r') as fid:
      input_data = json.load(fid)
+sequence = xl.Line.from_dict(input_data['line'])
+
 with open(fname_optics, 'r') as fid:
     ddd = json.load(fid)
 
@@ -44,13 +46,8 @@ context = xo.ContextCupy()
 
 print(context)
 
+# Make a buffer
 _buffer = context.new_buffer()
-
-##################
-# Get a sequence #
-##################
-
-sequence = xl.Line.from_dict(input_data['line'])
 
 
 ##########################
@@ -75,7 +72,11 @@ elif mode == 'pic':
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
-
+#################
+# Build Tracker #
+#################
+tracker = xt.Tracker(_context=_context,
+                    sequence=sequence)
 
 ####################################
 # Generate particles for footprint #
@@ -88,77 +89,11 @@ part = xp.generate_matched_gaussian_bunch(
          circumference=6911., alpha_momentum_compaction=0.0030777,
          rf_harmonic=4620, rf_voltage=rf_voltage, rf_phase=0)
 
-#################
-# Build Tracker #
-#################
-tracker = xt.Tracker(_buffer=_buffer,
-                    sequence=sequence)
-
-import footprint
-r_max_sigma = 5
-N_r_footprint = 10
-N_theta_footprint = 8
-xy_norm = footprint.initial_xy_polar(
-        r_min=0.3, r_max=r_max_sigma,
-        r_N=N_r_footprint + 1,
-        theta_min=0.05 * np.pi / 2,
-        theta_max=np.pi / 2 - 0.05 * np.pi / 2,
-        theta_N=N_theta_footprint)
-
-N_footprint = len(xy_norm[:, :, 0].flatten())
-part.x[:N_footprint] = sigma_x*xy_norm[:, :, 0].flatten()
-part.y[:N_footprint] = sigma_y*xy_norm[:, :, 1].flatten()
-part.px[:N_footprint] = 0.
-part.py[:N_footprint] = 0.
-part.zeta[:N_footprint] = 0.
-part._delta[:N_footprint] = 0.
-part._rpp[:N_footprint] = 0.
-part._rvv[:N_footprint] = 0.
-
+# Transfer particles to context
 xtparticles = xt.Particles(_context=context, **part.to_dict())
 
 #########
 # Track #
 #########
-x_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
-y_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
-for ii in range(num_turns):
-    print(f'Turn: {ii}', end='\r', flush=True)
-    x_tbt[:, ii] = context.nparray_from_context_array(xtparticles.x[:N_footprint]).copy()
-    y_tbt[:, ii] = context.nparray_from_context_array(xtparticles.y[:N_footprint]).copy()
-    tracker.track(xtparticles)
+tracker.track(xtparticles, num_turns=3)
 
-######################
-# Frequency analysis #
-######################
-import NAFFlib
-
-Qx = np.zeros(N_footprint)
-Qy = np.zeros(N_footprint)
-
-for i_part in range(N_footprint):
-    Qx[i_part] = NAFFlib.get_tune(x_tbt[i_part, :])
-    Qy[i_part] = NAFFlib.get_tune(y_tbt[i_part, :])
-
-Qxy_fp = np.zeros_like(xy_norm)
-
-Qxy_fp[:, :, 0] = np.reshape(Qx, Qxy_fp[:, :, 0].shape)
-Qxy_fp[:, :, 1] = np.reshape(Qy, Qxy_fp[:, :, 1].shape)
-
-import matplotlib.pyplot as plt
-plt.close('all')
-
-fig3 = plt.figure(3)
-axcoord = fig3.add_subplot(1, 1, 1)
-footprint.draw_footprint(xy_norm, axis_object=axcoord, linewidth = 1)
-axcoord.set_xlim(right=np.max(xy_norm[:, :, 0]))
-axcoord.set_ylim(top=np.max(xy_norm[:, :, 1]))
-
-fig4 = plt.figure(4)
-axFP = fig4.add_subplot(1, 1, 1)
-footprint.draw_footprint(Qxy_fp, axis_object=axFP, linewidth = 1)
-axFP.set_xlim(.1, .16)
-axFP.set_ylim(.18, .25)
-axFP.set_aspect('equal')
-fig4.suptitle(mode)
-plt.show()
