@@ -10,6 +10,13 @@ from ..general import _pkg_root
 
 
 class Drift(BeamElement):
+    '''Particle objects have the following fields
+
+             - s [m]: Reference accumulated pathlength
+             - x [m]:  Horizontal offset
+             - px      [1]:  Px / (m/m0 * p0c) = beta_x gamma /(beta0 gamma0)
+    '''
+
     _xofields = {
         'length': xo.Float64}
 
