@@ -10,11 +10,11 @@ from ..general import _pkg_root
 
 
 class Drift(BeamElement):
-    '''Particle objects have the following fields
+    '''Beam element modeling a drift section.
 
-             - s [m]: Reference accumulated pathlength
-             - x [m]:  Horizontal offset
-             - px      [1]:  Px / (m/m0 * p0c) = beta_x gamma /(beta0 gamma0)
+       Arguments:
+
+             - length [m]: Length of the drift section. Default is ``0``.
     '''
 
     _xofields = {
@@ -25,6 +25,15 @@ Drift.XoStruct.extra_sources = [
 
 
 class Cavity(BeamElement):
+    '''Beam element modeling an RF cavity.
+
+       Arguments:
+
+             - voltage [V]: Voltage of the RF cavity. Default is ``0``.
+             - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
+             - lag [deg]: Phase seen by the reference particle. Default is ``0``.
+    '''
+
     _xofields = {
         'voltage': xo.Float64,
         'frequency': xo.Float64,
