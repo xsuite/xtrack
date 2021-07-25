@@ -1,6 +1,6 @@
 import xobjects as xo
 
-from ..dress_element import BeamElement
+from ..base_element import BeamElement
 from ..general import _pkg_root
 
 

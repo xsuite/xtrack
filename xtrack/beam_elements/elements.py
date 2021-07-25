@@ -4,7 +4,7 @@ import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
-from ..dress_element import BeamElement
+from ..base_element import BeamElement
 from ..particles import ParticlesData
 from ..general import _pkg_root
 
