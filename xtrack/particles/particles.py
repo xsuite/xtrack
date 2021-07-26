@@ -12,12 +12,12 @@ scalar_vars = (
     (xo.Int64,   'num_particles'),
     (xo.Float64, 'q0'),
     (xo.Float64, 'mass0'),
-    (xo.Float64, 'beta0'),
-    (xo.Float64, 'gamma0'),
-    (xo.Float64, 'p0c',)
     )
 
 per_particle_vars = [
+    (xo.Float64, 'p0c'),
+    (xo.Float64, 'gamma0'),
+    (xo.Float64, 'beta0'),
     (xo.Float64, 's'),
     (xo.Float64, 'x'),
     (xo.Float64, 'y'),
