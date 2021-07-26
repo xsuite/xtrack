@@ -19,11 +19,16 @@ with open(fname_sequence, 'r') as fid:
 sequence = xl.Line.from_dict(input_data['line'])
 
 context = xo.ContextCpu()
+buffer = context.new_buffer()
 
-tracker = xt.Tracker(_context=context, sequence=sequence)
+energy_increase = xt.ReferenceEnergyIncrease(_buffer=buffer,
+                                             Delta_p0c=450e9/10*23e-6)
+sequence.append_element(energy_increase, 'energy_increase')
+
+tracker = xt.Tracker(_buffer=buffer, sequence=sequence)
 
 particles = xt.Particles(_context=context, p0c=26e9,
-                         delta=np.linspace(0, 0.4e-2, 20))
+                         zeta=np.linspace(-1, 1, 40))
 
 tracker.track(particles, num_turns=500, turn_by_turn_monitor=True)
 
@@ -32,6 +37,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 for ii in range(rec.x.shape[0]):
-    plt.plot(rec.zeta[ii, :], rec.delta[ii, :])
+    mask = rec.state[ii, :]>0
+    plt.plot(rec.zeta[ii, mask], rec.delta[ii, mask])
 
 plt.show()

@@ -8,6 +8,14 @@ from ..base_element import BeamElement
 from ..particles import ParticlesData
 from ..general import _pkg_root
 
+class ReferenceEnergyIncrease(BeamElement):
+
+    _xofields = {
+        'Delta_p0c': xo.Float64}
+
+ReferenceEnergyIncrease.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
+
 
 class Drift(BeamElement):
     '''Beam element modeling a drift section.
