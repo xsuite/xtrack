@@ -103,6 +103,8 @@ class PyHtXtParticles(Particles):
 
     @property
     def _gamma(self):
+	# I assume that they are all the same and take the first
+        # An assert would be too expensive...
         return self.gamma0[0]
 
     @_gamma.setter
@@ -111,6 +113,8 @@ class PyHtXtParticles(Particles):
 
     @property
     def _beta(self):
+	# I assume that they are all the same and take the first
+        # An assert would be too expensive...
         return self.beta0[0]
 
     @_beta.setter
@@ -119,6 +123,8 @@ class PyHtXtParticles(Particles):
 
     @property
     def _p0(self):
+	# I assume that they are all the same and take the first
+        # An assert would be too expensive...
         return self.p0c[0]/c*e
 
     @_p0.setter
