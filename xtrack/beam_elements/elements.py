@@ -434,6 +434,8 @@ class LinearTransferMatrixWithDetuning(BeamElement):
         'q_y': xo.Float64,
         'cos_s': xo.Float64,
         'sin_s': xo.Float64,
+        'beta_x_0': xo.Float64,
+        'beta_y_0': xo.Float64,
         'beta_ratio_x': xo.Float64,
         'beta_prod_x': xo.Float64,
         'beta_ratio_y': xo.Float64,
@@ -469,6 +471,8 @@ class LinearTransferMatrixWithDetuning(BeamElement):
         nargs['q_y']=Q_y
         nargs['cos_s']=np.cos(2.0*np.pi*Q_s)
         nargs['sin_s']=np.sin(2.0*np.pi*Q_s)
+        nargs['beta_x_0']=beta_x_0
+        nargs['beta_y_0']=beta_y_0
         nargs['beta_ratio_x']=np.sqrt(beta_x_1/beta_x_0)
         nargs['beta_prod_x']=np.sqrt(beta_x_1*beta_x_0)
         nargs['beta_ratio_y']=np.sqrt(beta_y_1/beta_y_0)
@@ -497,16 +501,8 @@ class LinearTransferMatrixWithDetuning(BeamElement):
         return np.arccos(self.cos_s) / (2*np.pi)
 
     @property
-    def beta_x_0(self):
-        return self.beta_prod_x/self.beta_ratio_x
-
-    @property
     def beta_x_1(self):
         return self.beta_prod_x*self.beta_ratio_x
-
-    @property
-    def beta_y_0(self):
-        return self.beta_prod_y/self.beta_ratio_y
 
     @property
     def beta_y_1(self):

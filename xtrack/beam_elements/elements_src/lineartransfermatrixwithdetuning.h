@@ -13,6 +13,8 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     double const q_y = LinearTransferMatrixWithDetuningData_get_q_y(el);
     double const cos_s = LinearTransferMatrixWithDetuningData_get_cos_s(el);
     double const sin_s = LinearTransferMatrixWithDetuningData_get_sin_s(el);
+    double const beta_x_0 = LinearTransferMatrixWithDetuningData_get_beta_x_0(el);
+    double const beta_y_0 = LinearTransferMatrixWithDetuningData_get_beta_y_0(el);
     double const beta_ratio_x = LinearTransferMatrixWithDetuningData_get_beta_ratio_x(el);
     double const beta_prod_x = LinearTransferMatrixWithDetuningData_get_beta_prod_x(el);
     double const beta_ratio_y = LinearTransferMatrixWithDetuningData_get_beta_ratio_y(el);
@@ -49,8 +51,14 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
         new_x -= disp_x_0 * LocalParticle_get_delta(part);
         new_y -= disp_y_0 * LocalParticle_get_delta(part);
 
-        double const J_x = 0.5*(new_x*new_x+new_px*new_px);
-        double const J_y = 0.5*(new_y*new_y+new_py*new_py);
+        double const J_x = 0.5 * (
+            (1.0 + alpha_x_0*alpha_x_0)/beta_x_0 * new_x*new_x
+            + 2*alpha_x_0 * new_x*new_px
+            + beta_x_0 * new_px*new_px);
+        double const J_y = 0.5 * (
+            (1.0 + alpha_y_0*alpha_y_0)/beta_y_0 * new_y*new_y
+            + 2*alpha_y_0 * new_y*new_py
+            + beta_y_0 * new_py*new_py);
         double phase = 2*M_PI*(q_x+chroma_x*new_delta+detx_x*J_x+detx_y*J_y);
         double const cos_x = cos(phase);
         double const sin_x = sin(phase);
