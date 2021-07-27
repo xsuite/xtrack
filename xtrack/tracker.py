@@ -472,7 +472,7 @@ class Tracker:
             offset_monitor = monitor._offset
         elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):
             flag_tbt = 1
-            monitor = self.turn_by_turn_monitor
+            monitor = turn_by_turn_monitor
             buffer_monitor = monitor._buffer.buffer
             offset_monitor = monitor._offset
         else:
