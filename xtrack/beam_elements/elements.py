@@ -10,6 +10,11 @@ from ..general import _pkg_root
 
 class ReferenceEnergyIncrease(BeamElement):
 
+    '''Beam element modeling a change of reference energy (acceleration, deceleration). Parameters:
+
+             - Delta_p0c [eV]: Change in reference energy. Default is ``0``.
+    '''
+
     _xofields = {
         'Delta_p0c': xo.Float64}
 
@@ -18,7 +23,7 @@ ReferenceEnergyIncrease.XoStruct.extra_sources = [
 
 
 class Drift(BeamElement):
-    '''Beam element modeling a drift section.
+    '''Beam element modeling a drift section. Parameters:
 
              - length [m]: Length of the drift section. Default is ``0``.
     '''
@@ -31,7 +36,7 @@ Drift.XoStruct.extra_sources = [
 
 
 class Cavity(BeamElement):
-    '''Beam element modeling an RF cavity.
+    '''Beam element modeling an RF cavity. Parameters:
 
              - voltage [V]: Voltage of the RF cavity. Default is ``0``.
              - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
@@ -50,6 +55,12 @@ Cavity.XoStruct.extra_sources = [
 
 
 class XYShift(BeamElement):
+    '''Beam element modeling an transverse shift of the reference system. Parameters:
+
+             - dx [m]: Horizontal shift. Default is ``0``.
+             - dy [m]: Vertical shift. Default is ``0``.
+
+    '''
     _xofields = {
         'dx': xo.Float64,
         'dy': xo.Float64,
@@ -60,6 +71,12 @@ XYShift.XoStruct.extra_sources = [
 
 
 class SRotation(BeamElement):
+    '''Beam element modeling an rotation of the reference system around the s axis. Parameters:
+
+                - angle [deg]: Rotation angle. Default is ``0``.
+
+    '''
+
     _xofields={
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
@@ -80,6 +97,17 @@ SRotation.XoStruct.extra_sources = [
 
 
 class Multipole(BeamElement):
+    '''Beam element modeling a thin magnetic multipole. Parameters:
+
+            - order [int]: Horizontal shift. Default is ``0``.
+            - knl [m^-n, array]: Normalized integrated strength of the normal components.
+            - ksl [m^-n, array]: Normalized integrated strength of the skew components.
+            - hxl [rad]: Rotation angle of the reference trajectoryin the horizzontal plane.
+            - hyl [rad]: Rotation angle of the reference trajectory in the vertical plane.
+            - length [m]: Length of the originating thick multipole.
+
+    '''
+
     _xofields={
         'order': xo.Int64,
         'length': xo.Float64,
@@ -156,6 +184,27 @@ Multipole.XoStruct.extra_sources = [
 
 
 class RFMultipole(BeamElement):
+    '''Beam element modeling a thin modulate multipole, with strengths given by:
+
+            kn(z) = k_n cos(2pi w tau + pn/180*pi)
+
+            ks[n](z) = k_n cos(2pi w tau + pn/180*pi)
+
+        Its parameters are:
+
+            - order [int]: Horizontal shift. Default is ``0``.
+            - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
+            - knl [m^-n, array]: Normalized integrated strength of the normal components.
+            - ksl [m^-n, array]: Normalized integrated strength of the skew components.
+            - pn [deg, array]: Phase of the normal components.
+            - ps [deg, array]: Phase of the skew components.
+            - voltage [V]: Longitudinal voltage. Default is ``0``.
+            - lag [deg]: Longitudinal phase seen by the reference particle. Default is ``0``.
+
+
+
+    '''
+
     _xofields={
         'order': xo.Int64,
         'voltage': xo.Float64,
