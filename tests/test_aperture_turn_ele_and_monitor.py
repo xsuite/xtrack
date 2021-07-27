@@ -151,9 +151,13 @@ def test_custom_monitor():
         tracker = xt.Tracker(_context=context, sequence=sequence)
         n_turns = 6
         start_monitor_at_turn = 2
+        part_id_monitor_start = 5
+        part_id_monitor_end = n_part - 7
+
         monitor = xt.ParticlesMonitor(_context=context,
                 start_at_turn=start_monitor_at_turn,
-                stop_at_turn=n_turns, num_particles=particles.num_particles)
+                stop_at_turn=n_turns,
+                particle_id_range=(part_id_monitor_start, part_id_monitor_end))
         for _ in range(n_turns):
             tracker.track(particles, turn_by_turn_monitor=monitor)
 
@@ -211,29 +215,46 @@ def test_custom_monitor():
             this_px = part_px[ii]
             this_py = part_py[ii]
 
+            if iidd < part_id_monitor_start or iidd >= part_id_monitor_end:
+                continue
+
             for tt in range(n_turns):
                 if tt < start_monitor_at_turn:
                     continue
                 if tt<=this_at_turn:
-                    assert(mon.at_turn[iidd, tt - start_monitor_at_turn] == tt)
-                    assert(mon.particle_id[iidd, tt - start_monitor_at_turn] == iidd)
-                    assert(np.isclose(mon.s[iidd, tt - start_monitor_at_turn],
+                    assert(mon.at_turn[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == tt)
+                    assert(mon.particle_id[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == iidd)
+                    assert(np.isclose(mon.s[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn],
                         tt*tot_length, atol=1e-14))
-                    assert(np.isclose(mon.x[iidd, tt - start_monitor_at_turn],
+                    assert(np.isclose(mon.x[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn],
                         tt*tot_length*this_px,
                         atol=1e-14))
-                    assert(np.isclose(mon.y[iidd, tt - start_monitor_at_turn],
+                    assert(np.isclose(mon.y[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn],
                         tt*tot_length*this_py,
                         atol=1e-14))
-                    assert(np.isclose(mon.px[iidd, tt - start_monitor_at_turn],
+                    assert(np.isclose(mon.px[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn],
                         this_px, atol=1e-14))
-                    assert(np.isclose(mon.py[iidd, tt - start_monitor_at_turn],
+                    assert(np.isclose(mon.py[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn],
                         this_py, atol=1e-14))
                 else:
-                    assert(mon.at_turn[iidd, tt - start_monitor_at_turn] == 0)
-                    assert(mon.particle_id[iidd, tt - start_monitor_at_turn] == 0)
-                    assert(mon.s[iidd, tt - start_monitor_at_turn] == 0)
-                    assert(mon.x[iidd, tt - start_monitor_at_turn] == 0)
-                    assert(mon.y[iidd, tt - start_monitor_at_turn] == 0)
-                    assert(mon.px[iidd, tt - start_monitor_at_turn] == 0)
-                    assert(mon.py[iidd, tt - start_monitor_at_turn] == 0)
+                    assert(mon.at_turn[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == 0)
+                    assert(mon.particle_id[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == 0)
+                    assert(mon.s[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == 0)
+                    assert(mon.x[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == 0)
+                    assert(mon.y[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == 0)
+                    assert(mon.px[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == 0)
+                    assert(mon.py[iidd - part_id_monitor_start,
+                        tt - start_monitor_at_turn] == 0)

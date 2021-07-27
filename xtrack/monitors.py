@@ -40,6 +40,8 @@ def _monitor_init(
         _offset=_offset,
         start_at_turn=start_at_turn,
         stop_at_turn=stop_at_turn,
+        part_id_start=part_id_start,
+        part_id_end=part_id_end,
         n_records=n_records,
         data=data_init,
     )
@@ -73,6 +75,8 @@ def generate_monitor_class(ParticlesClass):
         {
             "start_at_turn": xo.Int64,
             "stop_at_turn": xo.Int64,
+            'part_id_start': xo.Int64,
+            'part_id_end': xo.Int64,
             "n_records": xo.Int64,
             "data": ParticlesClass.XoStruct,
         },
