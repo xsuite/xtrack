@@ -184,7 +184,7 @@ Multipole.XoStruct.extra_sources = [
 
 
 class RFMultipole(BeamElement):
-    '''Beam element modeling a thin modulate multipole, with strengths given by:
+    '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
 
             kn(z) = k_n cos(2pi w tau + pn/180*pi)
 
@@ -200,8 +200,6 @@ class RFMultipole(BeamElement):
             - ps [deg, array]: Phase of the skew components.
             - voltage [V]: Longitudinal voltage. Default is ``0``.
             - lag [deg]: Longitudinal phase seen by the reference particle. Default is ``0``.
-
-
 
     '''
 
@@ -359,6 +357,15 @@ RFMultipole.XoStruct.extra_sources = [
 
 
 class DipoleEdge(BeamElement):
+    '''Beam element modeling a dipole edge. Parameters:
+
+            - h [1/m]: Curvature.
+            - e1 [rad]: Face angle.
+            - hgap [m]: Equivalent gap.
+            - fint []: Fringe integral.
+
+    '''
+
     _xofields = {
             'r21': xo.Float64,
             'r43': xo.Float64,
