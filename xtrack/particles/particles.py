@@ -12,12 +12,12 @@ scalar_vars = (
     (xo.Int64,   'num_particles'),
     (xo.Float64, 'q0'),
     (xo.Float64, 'mass0'),
-    (xo.Float64, 'beta0'),
-    (xo.Float64, 'gamma0'),
-    (xo.Float64, 'p0c',)
     )
 
 per_particle_vars = [
+    (xo.Float64, 'p0c'),
+    (xo.Float64, 'gamma0'),
+    (xo.Float64, 'beta0'),
     (xo.Float64, 's'),
     (xo.Float64, 'x'),
     (xo.Float64, 'y'),
@@ -358,9 +358,36 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
     double const psigma = ptau_beta0 / ( beta0 * beta0 );
 
     LocalParticle_set_delta(part, new_delta_value);
+
+    LocalParticle_scale_zeta(part,
+        rvv / LocalParticle_get_rvv(part));
+
     LocalParticle_set_rvv(part, rvv );
     LocalParticle_set_rpp(part, rpp );
     LocalParticle_set_psigma(part, psigma );
+
+}
+
+/*gpufun*/
+void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value){
+
+    double const mass0 = LocalParticle_get_mass0(part);
+    double const old_p0c = LocalParticle_get_p0c(part);
+    double const old_delta = LocalParticle_get_delta(part);
+
+    double const ppc = old_p0c * old_delta + old_p0c;
+    double const new_delta = (ppc - new_p0c_value)/new_p0c_value;
+
+    double const new_energy0 = sqrt(new_p0c_value*new_p0c_value + mass0 * mass0);
+    double const new_beta0 = new_p0c_value / new_energy0;
+    double const new_gamma0 = new_energy0 / mass0;
+
+    LocalParticle_set_p0c(part, new_p0c_value);
+    LocalParticle_set_gamma0(part, new_gamma0);
+    LocalParticle_set_beta0(part, new_beta0);
+
+    LocalParticle_update_delta(part, new_delta);
+    // TODO: This changes zeta. Is this correct?
 
 }
 '''

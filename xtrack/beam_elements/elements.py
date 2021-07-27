@@ -4,12 +4,25 @@ import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
-from ..dress_element import BeamElement
+from ..base_element import BeamElement
 from ..particles import ParticlesData
 from ..general import _pkg_root
 
+class ReferenceEnergyIncrease(BeamElement):
+
+    _xofields = {
+        'Delta_p0c': xo.Float64}
+
+ReferenceEnergyIncrease.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
+
 
 class Drift(BeamElement):
+    '''Beam element modeling a drift section.
+
+             - length [m]: Length of the drift section. Default is ``0``.
+    '''
+
     _xofields = {
         'length': xo.Float64}
 
@@ -18,6 +31,13 @@ Drift.XoStruct.extra_sources = [
 
 
 class Cavity(BeamElement):
+    '''Beam element modeling an RF cavity.
+
+             - voltage [V]: Voltage of the RF cavity. Default is ``0``.
+             - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
+             - lag [deg]: Phase seen by the reference particle. Default is ``0``.
+    '''
+
     _xofields = {
         'voltage': xo.Float64,
         'frequency': xo.Float64,

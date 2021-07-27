@@ -47,7 +47,7 @@ part_y = context.nparray_from_context_array(particles.y)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(pyst_part.partid, id_alive)
+assert np.allclose(pyst_part.particle_id, id_alive)
 
 import matplotlib.pyplot as plt
 plt.close('all')

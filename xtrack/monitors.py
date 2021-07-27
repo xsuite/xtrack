@@ -1,6 +1,6 @@
 import xobjects as xo
 
-from .dress_element import dress_element
+from .base_element import dress_element
 from .general import _pkg_root
 
 

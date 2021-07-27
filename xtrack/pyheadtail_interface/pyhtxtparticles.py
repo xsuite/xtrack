@@ -95,27 +95,33 @@ class PyHtXtParticles(XtParticles,PyHtParticles):
 
     @property
     def _gamma(self):
-        return self.gamma0
+	# I assume that they are all the same and take the first
+        # An assert would be too expensive...
+        return self.gamma0[0]
 
     @_gamma.setter
     def _gamma(self, value):
-        self.gamma0 = value
+        self.gamma0[:] = value
 
     @property
     def _beta(self):
-        return self.beta0
+	# I assume that they are all the same and take the first
+        # An assert would be too expensive...
+        return self.beta0[0]
 
     @_beta.setter
     def _beta(self, value):
-        self.beta0 = value
+        self.beta0[:] = value
 
     @property
     def _p0(self):
-        return self.p0c/c*e
+	# I assume that they are all the same and take the first
+        # An assert would be too expensive...
+        return self.p0c[0]/c*e
 
     @_p0.setter
     def _p0(self, value):
-        self.p0c = value/e*c
+        self.p0c[:] = value/e*c
 
     @property
     def id(self):
