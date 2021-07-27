@@ -32,9 +32,9 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     double const chroma_x = LinearTransferMatrixWithDetuningData_get_chroma_x(el);
     double const chroma_y = LinearTransferMatrixWithDetuningData_get_chroma_y(el);
     double const detx_x = LinearTransferMatrixWithDetuningData_get_detx_x(el);
-    double const detx_y = LinearTransferMatrixWithDetuningData_get_detx_x(el);
-    double const dety_y = LinearTransferMatrixWithDetuningData_get_detx_x(el);
-    double const dety_x = LinearTransferMatrixWithDetuningData_get_detx_x(el);
+    double const detx_y = LinearTransferMatrixWithDetuningData_get_detx_y(el);
+    double const dety_y = LinearTransferMatrixWithDetuningData_get_dety_y(el);
+    double const dety_x = LinearTransferMatrixWithDetuningData_get_dety_x(el);
 
     int64_t const n_part = LocalParticle_get_num_particles(part);
     for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
