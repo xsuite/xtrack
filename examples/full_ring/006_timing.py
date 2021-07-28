@@ -74,7 +74,22 @@ elif str(fname_line_particles).endswith('.json'):
 ##################
 
 print('Import sequence')
-sequence = xl.Line.from_dict(input_data['line'])
+#sequence = xl.Line.from_dict(input_data['line'])
+
+
+fodo = [xl.Drift(length=1.), xl.Multipole(knl=[0, 1.]),
+        xl.Drift(length=1.), xl.Multipole(knl=[0, -1.])]
+
+elelist = 4000*fodo
+elenames = [f'e{ii}' for ii in range(len(elelist))]
+
+sequence = xl.Line(elements=elelist, element_names=elenames)
+
+
+
+
+
+
 if short_test:
     sequence = make_short_line(sequence)
 

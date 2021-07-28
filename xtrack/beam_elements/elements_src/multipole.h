@@ -7,11 +7,13 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     int64_t const n_part = LocalParticle_get_num_particles(part0); //only_for_context cpu_serial cpu_openmp
     #pragma omp parallel for//only_for_context cpu_openmp
     for (int jj=0; jj<n_part; jj+=64){
-    for (int ii=jj; ii<jj+64 && ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
+    //#pragma omp simd
+    for (int iii=0; iii<64; iii++){ //only_for_context cpu_serial cpu_openmp
+	int const ii = iii+jj;
+
 	LocalParticle lpart = *part0;
 	LocalParticle* part = &lpart;
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
-
     	int64_t order = MultipoleData_get_order(el);
     	int64_t index_x = 2 * order;
     	int64_t index_y = index_x + 1;
@@ -23,7 +25,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     	double const y   = LocalParticle_get_y(part);
     	double const chi = LocalParticle_get_chi(part);
 
-    	double const hxl = MultipoleData_get_hxl(el);
+	double const hxl = MultipoleData_get_hxl(el);
     	double const hyl = MultipoleData_get_hyl(el);
 
     	while( index_x > 0 )

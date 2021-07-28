@@ -9,7 +9,10 @@ void Drift_track_local_particle(DriftData el, LocalParticle* part0){
     int64_t const n_part = LocalParticle_get_num_particles(part0); //only_for_context cpu_serial cpu_openmp
     #pragma omp parallel for//only_for_context cpu_openmp
     for (int jj=0; jj<n_part; jj+=64){
-    for (int ii=jj; ii<jj+64 && ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
+    //#pragma omp simd
+    for (int iii=0; iii<64; iii++){ //only_for_context cpu_serial cpu_openmp
+	int const ii = iii+jj;
+
 	LocalParticle lpart = *part0;
 	LocalParticle* part = &lpart;
 	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
