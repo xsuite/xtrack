@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import xobjects as xo
 from .particles import ParticlesData, gen_local_particle_api
 from .dress import dress
@@ -22,6 +24,32 @@ end_part_part_block = """
     }
    }
 """
+
+def _handle_per_particle_blocks(sources):
+
+    out = []
+    for ii, ss in enumerate(sources):
+        if isinstance(ss, Path):
+            with open(ss, 'r') as fid:
+                strss = fid.read()
+        else:
+            strss = ss
+
+        if '//start_per_particle_block' in strss:
+
+            lines = strss.splitlines()
+            for ill, ll in enumerate(lines):
+                if '//start_per_particle_block' in ll:
+                    lines[ill] = start_per_part_block
+                if '//end_per_particle_block' in ll:
+                    lines[ill] = end_part_part_block
+
+            # TODO: this is very dirty, just for check!!!!! 
+            out.append('\n'.join(lines))
+        else:
+            out.append(ss)
+
+    return out
 
 def dress_element(XoElementData):
 
@@ -112,26 +140,3 @@ class MetaBeamElement(type):
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
 
-    @classmethod
-    def _handle_per_particle_blocks(cls):
-
-        # TODO: TEMPORARY!!!!!
-        from pathlib import Path
-        for ii, ss in enumerate(cls.XoStruct.extra_sources):
-            if isinstance(ss, Path):
-                with open(ss, 'r') as fid:
-                    strss = fid.read()
-            else:
-                strss = ss
-
-            if '//start_per_particle_block' in strss:
-
-                lines = strss.splitlines()
-                for ill, ll in enumerate(lines):
-                    if '//start_per_particle_block' in ll:
-                        lines[ill] = start_per_part_block
-                    if '//end_per_particle_block' in ll:
-                        lines[ill] = end_part_part_block
-
-                # TODO: this is very dirty, just for check!!!!! 
-                cls.XoStruct.extra_sources[ii] = '\n'.join(lines)

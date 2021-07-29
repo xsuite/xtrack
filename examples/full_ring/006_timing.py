@@ -40,7 +40,7 @@ num_turns = int(100)
 # Choose a context #
 ####################
 
-n_part = 2048
+n_part = 8000
 context = xo.ContextCpu(omp_num_threads=8)
 #context = xo.ContextCpu(omp_num_threads=0)
 
