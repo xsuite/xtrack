@@ -2,11 +2,9 @@
 #define XTRACK_CAVITY_H
 
 /*gpufun*/
-void Cavity_track_local_particle(CavityData el, LocalParticle* part){
+void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
-    int64_t const n_part = LocalParticle_get_num_particles(part); 
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+    //start_per_particle_block
         double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
 
         double const   beta0  = LocalParticle_get_beta0(part);
@@ -22,7 +20,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part){
         double const energy   = q * CavityData_get_voltage(el) * sin(phase);
 
         LocalParticle_add_to_energy(part, energy);
-    } //only_for_context cpu_serial cpu_openmp
+    //end_per_particle_block
 }
 
 #endif

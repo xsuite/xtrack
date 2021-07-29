@@ -33,6 +33,7 @@ class Drift(BeamElement):
 
 Drift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
+Drift._handle_per_particle_blocks()
 
 
 class Cavity(BeamElement):
@@ -52,6 +53,7 @@ class Cavity(BeamElement):
 Cavity.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
+Cavity._handle_per_particle_blocks()
 
 
 class XYShift(BeamElement):
@@ -68,6 +70,7 @@ class XYShift(BeamElement):
 
 XYShift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
+XYShift._handle_per_particle_blocks()
 
 
 class SRotation(BeamElement):
@@ -94,7 +97,7 @@ class SRotation(BeamElement):
 
 SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
-
+SRotation._handle_per_particle_blocks()
 
 class Multipole(BeamElement):
     '''Beam element modeling a thin magnetic multipole. Parameters:
@@ -181,6 +184,7 @@ class Multipole(BeamElement):
 
 Multipole.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
+Multipole._handle_per_particle_blocks()
 
 
 class RFMultipole(BeamElement):

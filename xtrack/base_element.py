@@ -3,6 +3,25 @@ from .particles import ParticlesData, gen_local_particle_api
 from .dress import dress
 from .general import _pkg_root
 
+#TODO Remember if ii<n_part
+start_per_part_block = """
+   int64_t const n_part = LocalParticle_get_num_particles(part0); //only_for_context cpu_serial cpu_openmp
+   #pragma omp parallel for//only_for_context cpu_openmp
+   for (int jj=0; jj<n_part; jj+=64){
+     //#pragma omp simd
+     for (int iii=0; iii<64; iii++){ //only_for_context cpu_serial cpu_openmp
+        int const ii = iii+jj;
+
+        LocalParticle lpart = *part0;
+        LocalParticle* part = &lpart;
+        part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+"""
+
+end_part_part_block = """
+     }
+   }
+"""
+
 def dress_element(XoElementData):
 
     DressedElement = dress(XoElementData)
@@ -43,6 +62,8 @@ def dress_element(XoElementData):
 
     def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
+
+
 
         context.add_kernels(sources=[
                 gen_local_particle_api(),
@@ -89,3 +110,27 @@ class MetaBeamElement(type):
 
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
+
+    @classmethod
+    def _handle_per_particle_blocks(cls):
+
+        # TODO: TEMPORARY!!!!!
+        from pathlib import Path
+        for ii, ss in enumerate(cls.XoStruct.extra_sources):
+            if isinstance(ss, Path):
+                with open(ss, 'r') as fid:
+                    strss = fid.read()
+            else:
+                strss = ss
+
+            if '//start_per_particle_block' in strss:
+
+                lines = strss.splitlines()
+                for ill, ll in enumerate(lines):
+                    if '//start_per_particle_block' in ll:
+                        lines[ill] = start_per_part_block
+                    if '//end_per_particle_block' in ll:
+                        lines[ill] = end_part_part_block
+
+                # TODO: this is very dirty, just for check!!!!! 
+                cls.XoStruct.extra_sources[ii] = '\n'.join(lines)
