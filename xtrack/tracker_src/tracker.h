@@ -41,6 +41,7 @@ void increment_at_element(LocalParticle* part0){
 void increment_at_turn(LocalParticle* part0){
 
     //start_per_particle_block
+	LocalParticle_add_to_at_turn(part, 1);
 	LocalParticle_set_at_element(part, 0);
     //end_per_particle_block
 }
