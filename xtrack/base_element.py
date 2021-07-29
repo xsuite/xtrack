@@ -8,9 +8,10 @@ start_per_part_block = """
    int64_t const n_part = LocalParticle_get_num_particles(part0); //only_for_context cpu_serial cpu_openmp
    #pragma omp parallel for//only_for_context cpu_openmp
    for (int jj=0; jj<n_part; jj+=64){
-     //#pragma omp simd
-     for (int iii=0; iii<64; iii++){ //only_for_context cpu_serial cpu_openmp
-        int const ii = iii+jj;
+    //#pragma omp simd
+    for (int iii=0; iii<64; iii++){ //only_for_context cpu_serial cpu_openmp
+      int const ii = iii+jj;
+      if (ii<n_part){
 
         LocalParticle lpart = *part0;
         LocalParticle* part = &lpart;
@@ -19,6 +20,7 @@ start_per_part_block = """
 
 end_part_part_block = """
      }
+    }
    }
 """
 
