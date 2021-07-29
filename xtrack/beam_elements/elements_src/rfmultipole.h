@@ -11,7 +11,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
     double const voltage = RFMultipoleData_get_voltage(el);
     double const lag = RFMultipoleData_get_lag(el);
 
-    //start_per_particle_block
+    //start_per_particle_block (part0->part)
         double const k = frequency * ( 2.0 * PI / C_LIGHT);
 
         double const x = LocalParticle_get_x(part);

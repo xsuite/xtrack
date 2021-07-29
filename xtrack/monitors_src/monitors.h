@@ -13,7 +13,7 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
     int64_t n_turns_record = stop_at_turn - start_at_turn;
 
-    //start_per_particle_block
+    //start_per_particle_block (part0->part)
 	int64_t const at_turn = LocalParticle_get_at_turn(part);
 	if (at_turn>=start_at_turn && start_at_turn<stop_at_turn){
 	    int64_t const particle_id = LocalParticle_get_particle_id(part);

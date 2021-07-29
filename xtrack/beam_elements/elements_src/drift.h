@@ -6,7 +6,7 @@ void Drift_track_local_particle(DriftData el, LocalParticle* part0){
 
     double const length = DriftData_get_length(el);
 
-    //start_per_particle_block
+    //start_per_particle_block (part0->part)
 
         double const rpp    = LocalParticle_get_rpp(part);
         double const xp     = LocalParticle_get_px(part) * rpp;

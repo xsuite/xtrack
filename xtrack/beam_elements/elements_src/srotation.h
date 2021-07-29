@@ -4,7 +4,7 @@
 /*gpufun*/
 void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
 
-    //start_per_particle_block
+    //start_per_particle_block (part0->part)
     	double const sin_z = SRotationData_get_sin_z(el);
     	double const cos_z = SRotationData_get_cos_z(el);
 

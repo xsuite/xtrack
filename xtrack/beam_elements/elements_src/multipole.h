@@ -4,7 +4,7 @@
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
-   //start_per_particle_block
+   //start_per_particle_block (part0->part)
     	int64_t order = MultipoleData_get_order(el);
     	int64_t index_x = 2 * order;
     	int64_t index_y = index_x + 1;
