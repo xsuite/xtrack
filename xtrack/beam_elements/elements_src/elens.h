@@ -2,7 +2,7 @@
 #define XTRACK_ELENS_H
 
 /*gpufun*/
-void Elens_track_local_particle(ElensData el, LocalParticle* part){
+void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
     double const elens_length = ElensData_get_elens_length(el);
     double const inner_radius = ElensData_get_inner_radius(el);
@@ -12,10 +12,7 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part){
 
     // double const cos_z = SRotationData_get_cos_z(el);
 
-    int64_t const n_part = LocalParticle_get_num_particles(part);
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-    part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
-
+    //start_per_particle_block (part0->part)
 
       // EPSILON_0, PI, C_LIGHT,
 
@@ -137,8 +134,7 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part){
         // LocalParticle_add_to_py(part, dpy);
 
         // LocalParticle_set_py(part, py_hat);
-    } //only_for_context cpu_serial cpu_openmp
-
+    //end_per_particle_block
 }
 
 #endif
