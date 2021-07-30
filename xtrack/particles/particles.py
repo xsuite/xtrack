@@ -80,7 +80,7 @@ class Particles(dress(ParticlesData)):
                 # Needed to generate consistent longitudinal variables
                 pyparticles = Pyparticles(**kwargs)
 
-                part_dict = pyparticles_to_xtrack_dict(pyparticles)
+                part_dict = _pyparticles_to_xtrack_dict(pyparticles)
                 if 'num_particles' in kwargs.keys():
                     assert kwargs['num_particles'] == part_dict['num_particles']
                 else:
@@ -166,7 +166,7 @@ class Particles(dress(ParticlesData)):
 
         # Needed to generate consistent longitudinal variables
         pyparticles = Pyparticles(**kwargs)
-        part_dict = pyparticles_to_xtrack_dict(pyparticles)
+        part_dict = _pyparticles_to_xtrack_dict(pyparticles)
         for tt, kk in list(scalar_vars):
             if kk == 'num_particles':
                 continue
@@ -399,7 +399,7 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value){
 
     return source
 
-def pyparticles_to_xtrack_dict(pyparticles):
+def _pyparticles_to_xtrack_dict(pyparticles):
 
     out = {}
 
