@@ -61,7 +61,8 @@ def test_elens():
                                  **part_dict)
 
 
-        elens = xt.Elens(inner_radius=1.1e-3,
+        elens = xt.Elens(_context=ctx,
+                       inner_radius=1.1e-3,
                        outer_radius=2.2e-3,
                        elens_length=3.,
                        voltage=15e3,
