@@ -1,4 +1,3 @@
-import pathlib
 import json
 import numpy as np
 
@@ -7,7 +6,6 @@ import xline as xl
 import xpart as xp
 import xtrack as xt
 import xfields as xf
-
 
 ############
 # Settings #
@@ -21,29 +19,29 @@ n_part=int(1e6)
 rf_voltage=3e6
 num_turns=32
 
-# Available modes: frozen/quasi-frozen/pic
-mode = 'pic'
-
-##################################################
-#                   Load xline                   #
-# (assume frozen SC lenses are alredy installed) #
-##################################################
-
 fname_sequence = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 
 fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
+# Available modes: frozen/quasi-frozen/pic
+mode = 'pic'
+
 with open(fname_sequence, 'r') as fid:
-     input_data = json.load(fid)
-sequence = xl.Line.from_dict(input_data['line'])
-
+     seq_dict = json.load(fid)
 with open(fname_optics, 'r') as fid:
-    ddd = json.load(fid)
+    co_opt_dict = json.load(fid)
 
-part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
-RR = np.array(ddd['RR_madx']) # Linear one-turn matrix
+part_on_co = xp.Particles.from_dict(co_opt_dict['particle_on_madx_co'])
+RR = np.array(co_opt_dict['RR_madx']) # Linear one-turn matrix
+
+##################################################
+#                   Load xline                   #
+# (assume frozen SC lenses are alredy installed) #
+##################################################
+
+sequence = xl.Line.from_dict(seq_dict['line'])
 
 ####################
 # Choose a context #

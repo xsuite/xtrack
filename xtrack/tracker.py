@@ -393,21 +393,11 @@ class Tracker:
         assert ele_start == 0
         assert num_elements is None
 
-        if turn_by_turn_monitor:
-            flag_tbt = True
-            context = self._buffer.context
-            # TODO To be generalized to start at generic turn
-            monitor = self.particles_monitor_class(
-                _context=context,
-                start_at_turn=0,
-                stop_at_turn=num_turns,
-                num_particles=particles.num_particles,
-            )
-        else:
-            flag_tbt = False
+        (flag_tbt, monitor, buffer_monitor, offset_monitor
+             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         for tt in range(num_turns):
-            if turn_by_turn_monitor:
+            if flag_tbt:
                 monitor.track(particles)
             for pp in self._parts:
                 pp.track(particles)
@@ -416,10 +406,8 @@ class Tracker:
             self._supertracker.track(particles,
                                ele_start=self._supertracker.num_elements,
                                num_elements=0)
-        if flag_tbt:
-            self.record_last_track = monitor
-        else:
-            self.record_last_track = None
+
+        self.record_last_track = monitor
 
 
     def _track_no_collective(
@@ -443,24 +431,9 @@ class Tracker:
             flag_end_turn_actions = (
                     num_elements + ele_start == self.num_elements)
 
-        if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
-            flag_tbt = 0
-            buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
-            offset_monitor = 0
-        elif turn_by_turn_monitor is True:
-            flag_tbt = 1
-            # TODO Assumes at_turn starts from zero, to be generalized
-            monitor = self.particles_monitor_class(
-                _context=self.line._buffer.context,
-                start_at_turn=0,
-                stop_at_turn=num_turns,
-                num_particles=particles.num_particles,
-            )
-            buffer_monitor = monitor._buffer.buffer
-            offset_monitor = monitor._offset
-        else:
-            raise NotImplementedError
-            # User can provide their own monitor
+
+        (flag_tbt, monitor, buffer_monitor, offset_monitor
+             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         self.track_kernel.description.n_threads = particles.num_particles
         self.track_kernel(
@@ -477,7 +450,32 @@ class Tracker:
             offset_tbt_monitor=offset_monitor,
         )
 
-        if flag_tbt:
-            self.record_last_track = monitor
+        self.record_last_track = monitor
+
+    def _get_monitor(self, particles, turn_by_turn_monitor, num_turns):
+
+        if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
+            flag_tbt = 0
+            monitor = None
+            buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
+            offset_monitor = 0
+        elif turn_by_turn_monitor is True:
+            flag_tbt = 1
+            # TODO Assumes at_turn starts from zero, to be generalized
+            monitor = self.particles_monitor_class(
+                _context=particles._buffer.context,
+                start_at_turn=0,
+                stop_at_turn=num_turns,
+                num_particles=particles.num_particles,
+            )
+            buffer_monitor = monitor._buffer.buffer
+            offset_monitor = monitor._offset
+        elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):
+            flag_tbt = 1
+            monitor = turn_by_turn_monitor
+            buffer_monitor = monitor._buffer.buffer
+            offset_monitor = monitor._offset
         else:
-            self.record_last_track = None
+            raise ValueError('Please provide a valid monitor object')
+
+        return flag_tbt, monitor, buffer_monitor, offset_monitor
