@@ -22,9 +22,8 @@ def test_drift():
                 py=-1.5e-5,
                 zeta=2.)
 
-        part_dict = xt.pyparticles_to_xtrack_dict(pyst_particle)
         particles = xt.Particles(_context=ctx,
-                                 **part_dict)
+                                 **pyst_particle.to_dict())
 
         drift = xt.Drift(_context=ctx, length=10.)
         drift.track(particles)
@@ -56,9 +55,8 @@ def test_elens():
                 py=np.array([0.0]),
                 zeta=np.array([0.]))
 
-        part_dict = xt.pyparticles_to_xtrack_dict(pyst_particle)
         particles = xt.Particles(_context=ctx,
-                                 **part_dict)
+                                 **pyst_particle.to_dict())
 
 
         elens = xt.Elens(_context=ctx,
