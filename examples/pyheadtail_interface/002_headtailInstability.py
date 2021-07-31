@@ -18,11 +18,11 @@ from PyHEADTAIL.trackers.transverse_tracking import TransverseSegmentMap
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningSegment
 
-context = xo.ContextCpu(omp_num_threads=0)
+context = xo.ContextCpu(omp_num_threads=1)
 
-nTurn = int(1E5)
+nTurn = 3000 #int(1E4)
 bunch_intensity = 1.8E11
-n_macroparticles = int(1E4)
+n_macroparticles = int(1e5) #int(1E4)
 energy = 7E3 # [GeV]
 gamma = energy*1E9/protonMass
 betar = np.sqrt(1-1/gamma**2)
@@ -31,7 +31,7 @@ beta_x = 68.9
 beta_y = 70.34
 Q_x = 0.31
 Q_y = 0.32
-chroma = 10.0
+chroma = -5. #10.0
 sigma_4t = 1.2E-9
 sigma_z = sigma_4t/4.0*constants.c
 momentumCompaction = 3.483575072011584e-04
@@ -53,8 +53,9 @@ slicer_for_wakefields = UniformBinSlicer(n_slices_wakes, z_cuts=(-limit_z, limit
 waketable = WakeTable(wakefile, ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y'])
 wake_field = WakeField(slicer_for_wakefields, waketable)
 
-damper = TransverseDamper(dampingrate_x=33.0, dampingrate_y=33.0)
-i_oct = 300.0
+damping_time = 100000000 #33.
+damper = TransverseDamper(dampingrate_x=damping_time, dampingrate_y=damping_time)
+i_oct = 0.0000001
 detx_x = 1.4E5*i_oct/550.0 # from PTC with ATS optics, telescopic factor 1.0
 detx_y = -1.0E5*i_oct/550.0
 
@@ -166,7 +167,8 @@ print('PyHtXt size comp y',particles.sigma_y(),np.sqrt(normemit*beta_y/gamma/bet
 print('PyHtXt size comp z',particles.sigma_z(),sigma_z)
 print('PyHtXt size comp delta',particles.sigma_dp(),sigma_delta)
 
-arc = xt.LinearTransferMatrixWithDetuning(alpha_x_0 = 0.0, beta_x_0 = beta_x, disp_x_0 = 0.0,
+arc = xt.LinearTransferMatrixWithDetuning(_context=context,
+                           alpha_x_0 = 0.0, beta_x_0 = beta_x, disp_x_0 = 0.0,
                            alpha_x_1 = 0.0, beta_x_1 = beta_x, disp_x_1 = 0.0,
                            alpha_y_0 = 0.0, beta_y_0 = beta_y, disp_y_0 = 0.0,
                            alpha_y_1 = 0.0, beta_y_1 = beta_y, disp_y_1 = 0.0,

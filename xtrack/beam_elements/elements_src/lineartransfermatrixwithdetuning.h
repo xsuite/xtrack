@@ -2,12 +2,7 @@
 #define XTRACK_LINEARTRANSFERMATRIXWITHDETUNING_H
 
 /*gpufun*/
-void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixWithDetuningData el, LocalParticle* part){
-    double const new_energy0 = LocalParticle_get_mass0(part)*LocalParticle_get_gamma0(part)+LinearTransferMatrixWithDetuningData_get_energy_ref_increment(el);
-    double const new_p0c = sqrt(new_energy0*new_energy0-LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
-    double const new_beta0 = new_p0c / new_energy0;
-    double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
-    double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)*LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
+void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixWithDetuningData el, LocalParticle* part0){
 
     double const q_x = LinearTransferMatrixWithDetuningData_get_q_x(el);
     double const q_y = LinearTransferMatrixWithDetuningData_get_q_y(el);
@@ -36,9 +31,13 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     double const dety_y = LinearTransferMatrixWithDetuningData_get_dety_y(el);
     double const dety_x = LinearTransferMatrixWithDetuningData_get_dety_x(el);
 
-    int64_t const n_part = LocalParticle_get_num_particles(part);
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	    part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+    //start_per_particle_block (part0->part)
+
+    	double const new_energy0 = LocalParticle_get_mass0(part)*LocalParticle_get_gamma0(part)+LinearTransferMatrixWithDetuningData_get_energy_ref_increment(el);
+    	double const new_p0c = sqrt(new_energy0*new_energy0-LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
+    	double const new_beta0 = new_p0c / new_energy0;
+    	double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
+    	double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)*LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
         // Transverse linear uncoupled matrix
         double new_x = LocalParticle_get_x(part);
         double new_y = LocalParticle_get_y(part);
@@ -110,7 +109,7 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     	LocalParticle_set_y(part, new_y);
     	LocalParticle_set_px(part, new_px);
     	LocalParticle_set_py(part, new_py);
-    } //only_for_context cpu_serial cpu_openmp
+    //end_per_particle_block
 }
 
 #endif
