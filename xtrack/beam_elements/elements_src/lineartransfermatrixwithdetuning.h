@@ -98,13 +98,13 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
 
 	if (cos_s < 2){
 	    // We set cos_s = 999 if long map is to be skipped
-            double new_sigma = LocalParticle_get_sigma(part);
-            double new_psigma = LocalParticle_get_psigma(part);
-            tmp = new_sigma;
-            new_sigma = cos_s*tmp+beta_s*sin_s*new_psigma;
-            new_psigma = -sin_s*tmp/beta_s+cos_s*new_psigma;
-        	LocalParticle_update_sigma(part, new_sigma);
-        	LocalParticle_update_psigma(part, new_psigma);
+            double new_zeta = LocalParticle_get_zeta(part);
+            double new_delta = delta; 
+            tmp = new_zeta;
+            new_zeta = cos_s*tmp+beta_s*sin_s*new_delta;
+            new_delta = -sin_s*tmp/beta_s+cos_s*new_delta;
+            LocalParticle_set_zeta(part, new_zeta);
+            LocalParticle_update_delta(part, new_delta);
 	}
         
         // Change energy without change of reference momentume
