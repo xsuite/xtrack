@@ -535,6 +535,7 @@ LinearTransferMatrix.XoStruct.extra_sources = [
 
 class LinearTransferMatrixWithDetuning(BeamElement):
     _xofields={
+        'no_detuning': xo.Int64,
         'q_x': xo.Float64,
         'q_y': xo.Float64,
         'cos_s': xo.Float64,
@@ -564,41 +565,65 @@ class LinearTransferMatrixWithDetuning(BeamElement):
         'dety_x': xo.Float64
         }
 
-    def __init__(self, Q_x=0,Q_y=0,
-                     beta_x_0=1.0,beta_x_1=1.0,beta_y_0=1.0,beta_y_1=1.0,
-                     alpha_x_0=0.0,alpha_x_1=0.0,alpha_y_0=0.0,alpha_y_1=0.0,
-                     disp_x_0=0.0,disp_x_1=0.0,disp_y_0=0.0,disp_y_1=0.0,
-                     Q_s=0.0,beta_s=1.0,
-                     chroma_x=0.0,chroma_y=0.0,
-                     detx_x=0.0,detx_y=0.0,dety_y=0.0,dety_x=0.0,
-                     energy_increment=0.0,energy_ref_increment=0.0, **nargs):
-        nargs['q_x']=Q_x
-        nargs['q_y']=Q_y
-        nargs['cos_s']=np.cos(2.0*np.pi*Q_s)
-        nargs['sin_s']=np.sin(2.0*np.pi*Q_s)
-        nargs['beta_x_0']=beta_x_0
-        nargs['beta_y_0']=beta_y_0
-        nargs['beta_ratio_x']=np.sqrt(beta_x_1/beta_x_0)
-        nargs['beta_prod_x']=np.sqrt(beta_x_1*beta_x_0)
-        nargs['beta_ratio_y']=np.sqrt(beta_y_1/beta_y_0)
-        nargs['beta_prod_y']=np.sqrt(beta_y_1*beta_y_0)
-        nargs['alpha_x_0']=alpha_x_0
-        nargs['alpha_x_1']=alpha_x_1
-        nargs['alpha_y_0']=alpha_y_0
-        nargs['alpha_y_1']=alpha_y_1
-        nargs['disp_x_0']=disp_x_0
-        nargs['disp_x_1']=disp_x_1
-        nargs['disp_y_0']=disp_y_0
-        nargs['disp_y_1']=disp_y_1
-        nargs['beta_s']=beta_s
-        nargs['energy_ref_increment']=energy_ref_increment # acceleration with change of reference momentum (e.g. ramp)
-        nargs['energy_increment']=energy_increment # acceleration without change of reference momentum (e.g. compensation of energy loss)
-        nargs['chroma_x']=chroma_x
-        nargs['chroma_y']=chroma_y
-        nargs['detx_x']=detx_x
-        nargs['detx_y']=detx_y
-        nargs['dety_y']=dety_y
-        nargs['dety_x']=dety_x
+    def __init__(self, Q_x=0, Q_y=0,
+                     beta_x_0=1.0, beta_x_1=1.0, beta_y_0=1.0, beta_y_1=1.0,
+                     alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
+                     disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
+                     Q_s=0.0, beta_s=1.0,
+                     chroma_x=0.0, chroma_y=0.0,
+                     detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+                     energy_increment=0.0, energy_ref_increment=0.0, **nargs):
+
+        if (chroma_x==0 and chroma_y==0
+            and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
+
+            cos_x = np.cos(2.0*np.pi*Q_x)
+            sin_x = np.sin(2.0*np.pi*Q_x)
+            cos_y = np.cos(2.0*np.pi*Q_y)
+            sin_y = np.sin(2.0*np.pi*Q_y)
+
+            nargs['no_detuning']  =  True
+            nargs['q_x'] = sin_x
+            nargs['q_y'] = sin_y
+            nargs['chroma_x'] = cos_x
+            nargs['chroma_y'] = cos_y
+            nargs['detx_x'] = 0.
+            nargs['detx_y'] = 0.
+            nargs['dety_y'] = 0.
+            nargs['dety_x'] = 0.
+        else:
+            nargs['no_detuning']  =  False
+            nargs['q_x'] = Q_x
+            nargs['q_y'] = Q_y
+            nargs['chroma_x'] = chroma_x
+            nargs['chroma_y'] = chroma_y
+            nargs['detx_x'] = detx_x
+            nargs['detx_y'] = detx_y
+            nargs['dety_y'] = dety_y
+            nargs['dety_x'] = dety_x
+
+        nargs['cos_s'] = np.cos(2.0*np.pi*Q_s)
+        nargs['sin_s'] = np.sin(2.0*np.pi*Q_s)
+        nargs['beta_x_0'] = beta_x_0
+        nargs['beta_y_0'] = beta_y_0
+        nargs['beta_ratio_x'] = np.sqrt(beta_x_1/beta_x_0)
+        nargs['beta_prod_x'] = np.sqrt(beta_x_1*beta_x_0)
+        nargs['beta_ratio_y'] = np.sqrt(beta_y_1/beta_y_0)
+        nargs['beta_prod_y'] = np.sqrt(beta_y_1*beta_y_0)
+        nargs['alpha_x_0'] = alpha_x_0
+        nargs['alpha_x_1'] = alpha_x_1
+        nargs['alpha_y_0'] = alpha_y_0
+        nargs['alpha_y_1'] = alpha_y_1
+        nargs['disp_x_0'] = disp_x_0
+        nargs['disp_x_1'] = disp_x_1
+        nargs['disp_y_0'] = disp_y_0
+        nargs['disp_y_1'] = disp_y_1
+        nargs['beta_s'] = beta_s
+        # acceleration with change of reference momentum
+        nargs['energy_ref_increment'] = energy_ref_increment
+        # acceleration without change of reference momentum
+        nargs['energy_increment'] = energy_increment
+
         super().__init__(**nargs)
 
     @property
