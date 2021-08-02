@@ -33,14 +33,11 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     double const alpha_x_1 = LinearTransferMatrixWithDetuningData_get_alpha_x_1(el);
     double const alpha_y_1 = LinearTransferMatrixWithDetuningData_get_alpha_y_1(el);
 
+    double const energy_ref_increment = 
+	    LinearTransferMatrixWithDetuningData_get_energy_ref_increment(el);
 
     //start_per_particle_block (part0->part)
 
-    	double const new_energy0 = LocalParticle_get_mass0(part)*LocalParticle_get_gamma0(part)+LinearTransferMatrixWithDetuningData_get_energy_ref_increment(el);
-    	double const new_p0c = sqrt(new_energy0*new_energy0-LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
-    	double const new_beta0 = new_p0c / new_energy0;
-    	double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
-    	double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)*LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
 	
         // Transverse linear uncoupled matrix
         double new_x = LocalParticle_get_x(part);
@@ -111,14 +108,31 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
 	}
         
         // Change energy without change of reference momentume
-        LocalParticle_add_to_energy(part, LinearTransferMatrixWithDetuningData_get_energy_increment(el));
-        // Change energy with change of reference. In the transverse plane de change is smoothed, i.e. 
-        // both the position and the momentum are scaled, rather than only the momentum.
-        LocalParticle_update_p0c(part,new_p0c);
-        new_x *= geo_emit_factor;
-        new_px *= geo_emit_factor;
-        new_y *= geo_emit_factor;
-        new_py *= geo_emit_factor;
+	double const energy_increment = 
+		LinearTransferMatrixWithDetuningData_get_energy_increment(el);
+	if (energy_increment !=0){
+            LocalParticle_add_to_energy(part, energy_increment);
+	}
+
+        // Change energy reference
+	// In the transverse plane de change is smoothed, i.e. 
+        // both the position and the momentum are scaled,
+	// rather than only the momentum.
+	if (energy_ref_increment != 0){
+	    double const new_energy0 = LocalParticle_get_mass0(part)
+	        *LocalParticle_get_gamma0(part) + energy_ref_increment;
+            double const new_p0c = sqrt(new_energy0*new_energy0
+		-LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
+            double const new_beta0 = new_p0c / new_energy0;
+            double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
+            double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
+			    *LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
+            LocalParticle_update_p0c(part,new_p0c);
+            new_x *= geo_emit_factor;
+            new_px *= geo_emit_factor;
+            new_y *= geo_emit_factor;
+            new_py *= geo_emit_factor;
+	}
         
         // re-adding dispersion
         delta = LocalParticle_get_delta(part);
