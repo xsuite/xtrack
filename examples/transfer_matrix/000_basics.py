@@ -9,8 +9,9 @@ q_x_set = .28
 q_y_set = .31
 
 el = xt.LinearTransferMatrixWithDetuning(_context=context,
-        Q_x=q_x_set, Q_y=q_y_set,)
-        #chroma_x=0.00000001)
+        Q_x=q_x_set, Q_y=q_y_set,
+        #chroma_x=0.00000001
+        )
 
 part = xt.Particles(_context=context, x=[1], y=[1], p0c=6500e9)
 

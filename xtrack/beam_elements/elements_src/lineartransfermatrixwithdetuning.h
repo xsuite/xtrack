@@ -4,6 +4,7 @@
 /*gpufun*/
 void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixWithDetuningData el, LocalParticle* part0){
 
+    int64_t const no_detuning = LinearTransferMatrixWithDetuningData_get_no_detuning(el);
     double const q_x = LinearTransferMatrixWithDetuningData_get_q_x(el);
     double const q_y = LinearTransferMatrixWithDetuningData_get_q_y(el);
     double const cos_s = LinearTransferMatrixWithDetuningData_get_cos_s(el);
@@ -51,7 +52,17 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
         new_x -= disp_x_0 * delta;
         new_y -= disp_y_0 * delta;
 
-        double const J_x = 0.5 * (
+        double sin_x, cos_x, sin_y, cos_y;
+
+        if (no_detuning){
+	    // I use this parameters to pass cos_x, sin_x, ...
+            cos_x = chroma_x;
+            sin_x = q_x;
+            cos_y = chroma_y;
+            sin_y = q_y;
+	}
+	else{
+	double const J_x = 0.5 * (
             (1.0 + alpha_x_0*alpha_x_0)/beta_x_0 * new_x*new_x
             + 2*alpha_x_0 * new_x*new_px
             + beta_x_0 * new_px*new_px);
@@ -60,11 +71,13 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
             + 2*alpha_y_0 * new_y*new_py
             + beta_y_0 * new_py*new_py);
         double phase = 2*M_PI*(q_x+chroma_x*delta+detx_x*J_x+detx_y*J_y);
-        double const cos_x = cos(phase);
-        double const sin_x = sin(phase);
-        phase = 2*M_PI*(q_y+chroma_y*delta+dety_y*J_y+dety_x*J_x);
-        double const cos_y = cos(phase);
-        double const sin_y = sin(phase);
+            cos_x = cos(phase);
+            sin_x = sin(phase);
+            phase = 2*M_PI*(q_y+chroma_y*delta+dety_y*J_y+dety_x*J_x);
+            cos_y = cos(phase);
+            sin_y = sin(phase);
+	}
+
         double const M00_x = beta_ratio_x*(cos_x+alpha_x_0*sin_x);
         double const M01_x = beta_prod_x*sin_x;
         double const M10_x = ((alpha_x_0-alpha_x_1)*cos_x
