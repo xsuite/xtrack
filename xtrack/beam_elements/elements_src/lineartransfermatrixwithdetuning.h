@@ -7,15 +7,23 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     int64_t const no_detuning = LinearTransferMatrixWithDetuningData_get_no_detuning(el);
     double const q_x = LinearTransferMatrixWithDetuningData_get_q_x(el);
     double const q_y = LinearTransferMatrixWithDetuningData_get_q_y(el);
+    double const chroma_x = LinearTransferMatrixWithDetuningData_get_chroma_x(el);
+    double const chroma_y = LinearTransferMatrixWithDetuningData_get_chroma_y(el);
+    double const detx_x = LinearTransferMatrixWithDetuningData_get_detx_x(el);
+    double const detx_y = LinearTransferMatrixWithDetuningData_get_detx_y(el);
+    double const dety_y = LinearTransferMatrixWithDetuningData_get_dety_y(el);
+    double const dety_x = LinearTransferMatrixWithDetuningData_get_dety_x(el);
+
     double const cos_s = LinearTransferMatrixWithDetuningData_get_cos_s(el);
     double const sin_s = LinearTransferMatrixWithDetuningData_get_sin_s(el);
+    double const beta_s = LinearTransferMatrixWithDetuningData_get_beta_s(el);
+
     double const beta_x_0 = LinearTransferMatrixWithDetuningData_get_beta_x_0(el);
     double const beta_y_0 = LinearTransferMatrixWithDetuningData_get_beta_y_0(el);
     double const beta_ratio_x = LinearTransferMatrixWithDetuningData_get_beta_ratio_x(el);
     double const beta_prod_x = LinearTransferMatrixWithDetuningData_get_beta_prod_x(el);
     double const beta_ratio_y = LinearTransferMatrixWithDetuningData_get_beta_ratio_y(el);
     double const beta_prod_y = LinearTransferMatrixWithDetuningData_get_beta_prod_y(el);
-    double const beta_s = LinearTransferMatrixWithDetuningData_get_beta_s(el);
     double const disp_x_0 = LinearTransferMatrixWithDetuningData_get_disp_x_0(el);
     double const disp_y_0 = LinearTransferMatrixWithDetuningData_get_disp_y_0(el);
     double const alpha_x_0 = LinearTransferMatrixWithDetuningData_get_alpha_x_0(el);
@@ -25,12 +33,6 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     double const alpha_x_1 = LinearTransferMatrixWithDetuningData_get_alpha_x_1(el);
     double const alpha_y_1 = LinearTransferMatrixWithDetuningData_get_alpha_y_1(el);
 
-    double const chroma_x = LinearTransferMatrixWithDetuningData_get_chroma_x(el);
-    double const chroma_y = LinearTransferMatrixWithDetuningData_get_chroma_y(el);
-    double const detx_x = LinearTransferMatrixWithDetuningData_get_detx_x(el);
-    double const detx_y = LinearTransferMatrixWithDetuningData_get_detx_y(el);
-    double const dety_y = LinearTransferMatrixWithDetuningData_get_dety_y(el);
-    double const dety_x = LinearTransferMatrixWithDetuningData_get_dety_x(el);
 
     //start_per_particle_block (part0->part)
 
@@ -45,8 +47,6 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
         double new_px = LocalParticle_get_px(part);
         double new_py = LocalParticle_get_py(part);
         double delta = LocalParticle_get_delta(part);
-        double new_sigma = LocalParticle_get_sigma(part);
-        double new_psigma = LocalParticle_get_psigma(part);
 
         // removing dispersion
         new_x -= disp_x_0 * delta;
@@ -97,11 +97,17 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
         tmp = new_y;
         new_y = M00_y*tmp + M01_y*new_py;
         new_py = M10_y*tmp + M11_y*new_py;
-        tmp = new_sigma;
-        new_sigma = cos_s*tmp+beta_s*sin_s*new_psigma;
-        new_psigma = -sin_s*tmp/beta_s+cos_s*new_psigma;
-    	LocalParticle_update_sigma(part, new_sigma);
-    	LocalParticle_update_psigma(part, new_psigma);
+
+	if (cos_s < 2){
+	    // We set cos_s = 999 if long map is to be skipped
+            double new_sigma = LocalParticle_get_sigma(part);
+            double new_psigma = LocalParticle_get_psigma(part);
+            tmp = new_sigma;
+            new_sigma = cos_s*tmp+beta_s*sin_s*new_psigma;
+            new_psigma = -sin_s*tmp/beta_s+cos_s*new_psigma;
+        	LocalParticle_update_sigma(part, new_sigma);
+        	LocalParticle_update_psigma(part, new_psigma);
+	}
         
         // Change energy without change of reference momentume
         LocalParticle_add_to_energy(part, LinearTransferMatrixWithDetuningData_get_energy_increment(el));

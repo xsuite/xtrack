@@ -479,6 +479,11 @@ class LinearTransferMatrix(BeamElement):
                      disp_x_0=0.0,disp_x_1=0.0,disp_y_0=0.0,disp_y_1=0.0,
                      Q_s=0.0,beta_s=1.0,
                      energy_increment=0.0,energy_ref_increment=0.0, **nargs):
+
+        #TODO: Maybe used eta intstead of beta_s?
+        # Here the formula: beta_s = eta * beta_rel * c / omega_s
+
+
         nargs['cos_x']=np.cos(2.0*np.pi*Q_x)
         nargs['sin_x']=np.sin(2.0*np.pi*Q_x)
         nargs['cos_y']=np.cos(2.0*np.pi*Q_y)
@@ -602,8 +607,13 @@ class LinearTransferMatrixWithDetuning(BeamElement):
             nargs['dety_y'] = dety_y
             nargs['dety_x'] = dety_x
 
-        nargs['cos_s'] = np.cos(2.0*np.pi*Q_s)
-        nargs['sin_s'] = np.sin(2.0*np.pi*Q_s)
+        if Q_s is not None:
+            nargs['cos_s'] = np.cos(2.0*np.pi*Q_s)
+            nargs['sin_s'] = np.sin(2.0*np.pi*Q_s)
+        else:
+            nargs['cos_s'] = 999
+            nargs['sin_s'] = 0.
+
         nargs['beta_x_0'] = beta_x_0
         nargs['beta_y_0'] = beta_y_0
         nargs['beta_ratio_x'] = np.sqrt(beta_x_1/beta_x_0)
