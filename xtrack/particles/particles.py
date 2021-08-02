@@ -356,21 +356,6 @@ double LocalParticle_get_beta(LocalParticle* part){
     return (1 + LocalParticle_get_delta(part)) / (1 / LocalParticle_get_beta0(part) + LocalParticle_get_ptau(part));
 }
 
-/*gpufun*/
-double LocalParticle_get_sigma(LocalParticle* part){
-    double const beta0 = LocalParticle_get_beta0(part);
-    double const beta = LocalParticle_get_beta(part);
-    return beta0 / beta * LocalParticle_get_zeta(part);
-}
-
-/*gpufun*/
-void LocalParticle_update_sigma(LocalParticle* part, double new_sigma_value){
-    double const beta0 = LocalParticle_get_beta0(part);
-    double const beta = LocalParticle_get_beta(part);
-    double const new_zeta = beta / beta0 * new_sigma_value;
-    LocalParticle_set_zeta(part, new_zeta );
-}
-
 
 /*gpufun*/
 void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
@@ -393,26 +378,6 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
     LocalParticle_set_rpp(part, rpp );
     LocalParticle_set_psigma(part, psigma );
 
-}
-
-/*gpufun*/
-void LocalParticle_update_psigma(LocalParticle* part, double new_psigma_value){
-    double const beta0 = LocalParticle_get_beta0(part);
-    double const new_ptau_value = new_psigma_value * beta0;
-    double const new_delta_value = sqrt(new_ptau_value * new_ptau_value + 2 * new_ptau_value / beta0 + 1) - 1;
-
-    double const one_plus_delta = 1. + new_delta_value;
-    double const rvv    = ( one_plus_delta ) / ( 1. + new_ptau_value*beta0 );
-    double const rpp    = 1. / one_plus_delta;
-
-    LocalParticle_set_delta(part, new_delta_value);
-
-    LocalParticle_scale_zeta(part,
-        rvv / LocalParticle_get_rvv(part));
-
-    LocalParticle_set_rvv(part, rvv );
-    LocalParticle_set_rpp(part, rpp );
-    LocalParticle_set_psigma(part, new_psigma_value );
 }
 
 /*gpufun*/
