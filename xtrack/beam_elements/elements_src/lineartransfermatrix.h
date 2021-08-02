@@ -3,11 +3,6 @@
 
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
-    double const new_energy0 = LocalParticle_get_mass0(part)*LocalParticle_get_gamma0(part)+LinearTransferMatrixData_get_energy_ref_increment(el);
-    double const new_p0c = sqrt(new_energy0*new_energy0-LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
-    double const new_beta0 = new_p0c / new_energy0;
-    double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
-    double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)*LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
 
     double const cos_x = LinearTransferMatrixData_get_cos_x(el);
     double const sin_x = LinearTransferMatrixData_get_sin_x(el);
@@ -43,6 +38,15 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const M11_y = (cos_y-alpha_y_1*sin_y)/beta_ratio_y;
 
     //start_per_particle_block (part0->part)
+
+        double const new_energy0 = LocalParticle_get_mass0(part)*LocalParticle_get_gamma0(part)
+		                    +LinearTransferMatrixData_get_energy_ref_increment(el);
+        double const new_p0c = sqrt(new_energy0*new_energy0-LocalParticle_get_mass0(part)
+			            *LocalParticle_get_mass0(part));
+        double const new_beta0 = new_p0c / new_energy0;
+        double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
+        double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
+			                    *LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
         // Transverse linear uncoupled matrix
         double new_x = LocalParticle_get_x(part);
         double new_y = LocalParticle_get_y(part);
