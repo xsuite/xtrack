@@ -41,6 +41,7 @@ void LinearTransferMatrixWithDetuning_track_local_particle(LinearTransferMatrixW
     	double const new_beta0 = new_p0c / new_energy0;
     	double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
     	double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)*LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
+	
         // Transverse linear uncoupled matrix
         double new_x = LocalParticle_get_x(part);
         double new_y = LocalParticle_get_y(part);

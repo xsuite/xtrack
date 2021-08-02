@@ -51,20 +51,22 @@ particles = xt.Particles(_context=context,
                          delta=sigma_delta*np.ones(n_macroparticles,dtype=float),
                          )
 
-arc12 = xt.LinearTransferMatrix(alpha_x_0 = alpha_x_IP1, beta_x_0 = beta_x_IP1, disp_x_0 = dispersion_IP1,
-                           alpha_x_1 = alpha_x_IP2, beta_x_1 = beta_x_IP2, disp_x_1 = dispersion_IP2,
-                           alpha_y_0 = alpha_y_IP1, beta_y_0 = beta_y_IP1, disp_y_0 = 0.0,
-                           alpha_y_1 = alpha_y_IP2, beta_y_1 = beta_y_IP2, disp_y_1 = 0.0,
-                           Q_x = 0.155, Q_y=0.16,
-                           beta_s = beta_s, Q_s = 0.155,
-                           energy_ref_increment=energy_increment,energy_increment=0.0)
-arc21 = xt.LinearTransferMatrix(alpha_x_0 = alpha_x_IP2, beta_x_0 = beta_x_IP2, disp_x_0 = dispersion_IP2,
-                           alpha_x_1 = alpha_x_IP1, beta_x_1 = beta_x_IP1, disp_x_1 = dispersion_IP1,
-                           alpha_y_0 = alpha_y_IP2, beta_y_0 = beta_y_IP2, disp_y_0 = 0.0,
-                           alpha_y_1 = alpha_y_IP1, beta_y_1 = beta_y_IP1, disp_y_1 = 0.0,
-                           Q_x = 0.155, Q_y=0.16,
-                           beta_s = beta_s, Q_s = 0.155,
-                           energy_ref_increment=energy_increment,energy_increment=0.0)
+arc12 = xt.LinearTransferMatrixWithDetuning(
+        alpha_x_0=alpha_x_IP1, beta_x_0=beta_x_IP1, disp_x_0=dispersion_IP1,
+        alpha_x_1=alpha_x_IP2, beta_x_1=beta_x_IP2, disp_x_1=dispersion_IP2,
+        alpha_y_0=alpha_y_IP1, beta_y_0=beta_y_IP1, disp_y_0=0.0,
+        alpha_y_1=alpha_y_IP2, beta_y_1=beta_y_IP2, disp_y_1=0.0,
+        Q_x=0.155, Q_y=0.16,
+        beta_s=beta_s, Q_s=0.155,
+        energy_ref_increment=energy_increment,energy_increment=0.0)
+arc21 = xt.LinearTransferMatrixWithDetuning(
+        alpha_x_0=alpha_x_IP2, beta_x_0=beta_x_IP2, disp_x_0=dispersion_IP2,
+        alpha_x_1=alpha_x_IP1, beta_x_1=beta_x_IP1, disp_x_1=dispersion_IP1,
+        alpha_y_0=alpha_y_IP2, beta_y_0=beta_y_IP2, disp_y_0=0.0,
+        alpha_y_1=alpha_y_IP1, beta_y_1=beta_y_IP1, disp_y_1=0.0,
+        Q_x=0.155, Q_y=0.16,
+        beta_s=beta_s, Q_s=0.155,
+        energy_ref_increment=energy_increment,energy_increment=0.0)
 
 plt.figure(12)
 plt.plot(particles.zeta,particles.delta,'.b')
