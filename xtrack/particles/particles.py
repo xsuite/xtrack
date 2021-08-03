@@ -344,17 +344,6 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
     LocalParticle_set_rpp(part, 1. / one_plus_delta );
 }
 
-/*gpufun*/
-double LocalParticle_get_ptau(LocalParticle* part){
-    double const delta = LocalParticle_get_delta(part);
-    double const beta0 = LocalParticle_get_beta0(part);
-    return sqrt(delta*delta + 2 * delta + 1 / (beta0*beta0))- 1 / beta0;
-}
-
-/*gpufun*/
-double LocalParticle_get_beta(LocalParticle* part){
-    return (1 + LocalParticle_get_delta(part)) / (1 / LocalParticle_get_beta0(part) + LocalParticle_get_ptau(part));
-}
 
 
 /*gpufun*/
