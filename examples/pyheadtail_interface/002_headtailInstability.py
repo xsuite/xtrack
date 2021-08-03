@@ -167,7 +167,7 @@ print('PyHtXt size comp y',particles.sigma_y(),np.sqrt(normemit*beta_y/gamma/bet
 print('PyHtXt size comp z',particles.sigma_z(),sigma_z)
 print('PyHtXt size comp delta',particles.sigma_dp(),sigma_delta)
 
-arc = xt.LinearTransferMatrixWithDetuning(_context=context,
+arc = xt.LinearTransferMatrix(_context=context,
                            alpha_x_0 = 0.0, beta_x_0 = beta_x, disp_x_0 = 0.0,
                            alpha_x_1 = 0.0, beta_x_1 = beta_x, disp_x_1 = 0.0,
                            alpha_y_0 = 0.0, beta_y_0 = beta_y, disp_y_0 = 0.0,
