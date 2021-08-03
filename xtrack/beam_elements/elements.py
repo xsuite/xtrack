@@ -449,7 +449,7 @@ DipoleEdge.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
 
 
-class LinearTransferMatrixWithDetuning(BeamElement):
+class LinearTransferMatrix(BeamElement):
     _xofields={
         'no_detuning': xo.Int64,
         'q_x': xo.Float64,
@@ -559,8 +559,8 @@ class LinearTransferMatrixWithDetuning(BeamElement):
     def beta_y_1(self):
         return self.beta_prod_y*self.beta_ratio_y
 
-LinearTransferMatrixWithDetuning.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrixwithdetuning.h')]
+LinearTransferMatrix.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
 class EnergyChange(BeamElement):
     _xofields={
