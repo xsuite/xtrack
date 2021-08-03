@@ -21,9 +21,9 @@ from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningS
 
 context = xo.ContextCpu(omp_num_threads=1)
 
-nTurn = 3000  # int(1E4)
+nTurn = 5000  # int(1E4)
 bunch_intensity = 1.8e11
-n_macroparticles = int(1e5)  # int(1E4)
+n_macroparticles = int(1e4)
 energy = 7e3  # [GeV]
 gamma = energy * 1e9 / protonMass
 betar = np.sqrt(1 - 1 / gamma ** 2)
@@ -56,9 +56,9 @@ waketable = WakeTable(
 )
 wake_field = WakeField(slicer_for_wakefields, waketable)
 
-damping_time = 100000000  # 33.
+damping_time = 7000  # 33.
 damper = TransverseDamper(dampingrate_x=damping_time, dampingrate_y=damping_time)
-i_oct = 0.0000001
+i_oct = 15.
 detx_x = 1.4e5 * i_oct / 550.0  # from PTC with ATS optics, telescopic factor 1.0
 detx_y = -1.0e5 * i_oct / 550.0
 
@@ -168,6 +168,7 @@ if iMin >= iMax:
     iMax = nTurn
 ampl = np.abs(hilbert(x))
 b, a, r, p, stderr = linregress(turns[iMin:iMax], np.log(ampl[iMin:iMax]))
+gr_pyht = b
 plt.plot(turns, np.exp(a + b * turns), "--k", label=f"{1/b:.3E} turns")
 print(f"Growth rate {b*1E4} [$10^{-4}$/turn]")
 plt.title("PyHEADTAIL")
@@ -287,11 +288,14 @@ if iMin >= iMax:
     iMax = nTurn
 ampl = np.abs(hilbert(x))
 b, a, r, p, stderr = linregress(turns[iMin:iMax], np.log(ampl[iMin:iMax]))
+gr_xtpyht = b
 plt.plot(turns, np.exp(a + b * turns), "--k", label=f"{1/b:.3E} turns")
 print(f"Growth rate {b*1E4} [$10^{-4}$/turn]")
 plt.title("xsuite-PyHEADTAIL")
 plt.legend(loc="upper left")
 plt.xlabel("Turn")
 plt.ylabel("x [$\sigma_x$]")
+
+assert np.isclose(gr_xtpyht, gr_pyht, rtol=1e-3, atol=1e-100)
 
 plt.show()
