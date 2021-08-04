@@ -80,7 +80,7 @@ class Particles(dress(ParticlesData)):
                 # Needed to generate consistent longitudinal variables
                 pyparticles = Pyparticles(**kwargs)
 
-                part_dict = pyparticles_to_xtrack_dict(pyparticles)
+                part_dict = _pyparticles_to_xtrack_dict(pyparticles)
                 if 'num_particles' in kwargs.keys():
                     assert kwargs['num_particles'] == part_dict['num_particles']
                 else:
@@ -166,7 +166,7 @@ class Particles(dress(ParticlesData)):
 
         # Needed to generate consistent longitudinal variables
         pyparticles = Pyparticles(**kwargs)
-        part_dict = pyparticles_to_xtrack_dict(pyparticles)
+        part_dict = _pyparticles_to_xtrack_dict(pyparticles)
         for tt, kk in list(scalar_vars):
             if kk == 'num_particles':
                 continue
@@ -344,9 +344,10 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
     LocalParticle_set_rpp(part, 1. / one_plus_delta );
 }
 
+
+
 /*gpufun*/
 void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
-
     double const beta0 = LocalParticle_get_beta0(part);
     double const delta_beta0 = new_delta_value * beta0;
     double const ptau_beta0  = sqrt( delta_beta0 * delta_beta0 +
@@ -399,7 +400,7 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value){
 
     return source
 
-def pyparticles_to_xtrack_dict(pyparticles):
+def _pyparticles_to_xtrack_dict(pyparticles):
 
     out = {}
 

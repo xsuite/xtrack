@@ -2,12 +2,9 @@
 #define XTRACK_SROTATION_H
 
 /*gpufun*/
-void SRotation_track_local_particle(SRotationData el, LocalParticle* part){
+void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
 
-    int64_t const n_part = LocalParticle_get_num_particles(part); 
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
-
+    //start_per_particle_block (part0->part)
     	double const sin_z = SRotationData_get_sin_z(el);
     	double const cos_z = SRotationData_get_cos_z(el);
 
@@ -28,7 +25,7 @@ void SRotation_track_local_particle(SRotationData el, LocalParticle* part){
 
     	LocalParticle_set_px(part, px_hat);
     	LocalParticle_set_py(part, py_hat);
-    } //only_for_context cpu_serial cpu_openmp
+    //end_per_particle_block
 
 }
 

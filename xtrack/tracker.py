@@ -4,6 +4,7 @@ import numpy as np
 from .particles import Particles, gen_local_particle_api
 from .general import _pkg_root
 from .line import Line as xtLine
+from .base_element import _handle_per_particle_blocks
 
 import xobjects as xo
 import xline as xl
@@ -368,6 +369,8 @@ class Tracker:
         if not isinstance(context, xo.ContextCpu):
             kernels = {}
         kernels.update(kernel_descriptions)
+
+        sources = _handle_per_particle_blocks(sources)
 
         # Compile!
         context.add_kernels(

@@ -4,13 +4,10 @@
 #ifdef XTRACK_GLOBAL_POSLIMIT
 
 /*gpufun*/
-void global_aperture_check(LocalParticle* part){
-
-    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+void global_aperture_check(LocalParticle* part0){
 
 
+    //start_per_particle_block (part0->part)
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
@@ -24,37 +21,29 @@ void global_aperture_check(LocalParticle* part){
     	if (!is_alive){
            LocalParticle_set_state(part, 0);
 	}
+    //end_per_particle_block
 
-    } //only_for_context cpu_serial cpu_openmp
 
 }
 #endif
 
 /*gpufun*/
-void increment_at_element(LocalParticle* part){
+void increment_at_element(LocalParticle* part0){
 
-    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
-
+   //start_per_particle_block (part0->part)
         LocalParticle_add_to_at_element(part, 1);
+   //end_per_particle_block
 
-    } //only_for_context cpu_serial cpu_openmp
 
 }
 
 /*gpufun*/
-void increment_at_turn(LocalParticle* part){
+void increment_at_turn(LocalParticle* part0){
 
-    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
-
-        LocalParticle_add_to_at_turn(part, 1);
+    //start_per_particle_block (part0->part)
+	LocalParticle_add_to_at_turn(part, 1);
 	LocalParticle_set_at_element(part, 0);
-
-    } //only_for_context cpu_serial cpu_openmp
-
+    //end_per_particle_block
 }
 
 

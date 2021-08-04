@@ -26,8 +26,7 @@ pyst_part = xline.Particles(
         sigma = np.zeros(n_part),
         delta = np.zeros(n_part))
 
-part_dict = xt.pyparticles_to_xtrack_dict(pyst_part)
-particles = xt.Particles(_context=context, **part_dict)
+particles = xt.Particles(_context=context, **pyst_part.to_dict())
 
 aper_pyst = xline.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
