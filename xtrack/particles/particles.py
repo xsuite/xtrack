@@ -360,9 +360,6 @@ void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
 
     LocalParticle_set_delta(part, new_delta_value);
 
-    LocalParticle_scale_zeta(part,
-        rvv / LocalParticle_get_rvv(part));
-
     LocalParticle_set_rvv(part, rvv );
     LocalParticle_set_rpp(part, rpp );
     LocalParticle_set_psigma(part, psigma );

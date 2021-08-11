@@ -104,10 +104,8 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
             new_zeta = cos_s*tmp+beta_s*sin_s*new_delta;
             new_delta = -sin_s*tmp/beta_s+cos_s*new_delta;
 
-            // We need to set zeta after updating delta
-	    // not to introduce an artificial change
-            LocalParticle_update_delta(part, new_delta);
             LocalParticle_set_zeta(part, new_zeta);
+            LocalParticle_update_delta(part, new_delta);
 	}
         
         // Change energy without change of reference momentume
