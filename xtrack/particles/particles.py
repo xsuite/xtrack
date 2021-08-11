@@ -386,6 +386,9 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value){
 
     LocalParticle_update_delta(part, new_delta);
 
+    LocalParticle_scale_px(part, old_p0c/new_p0c_value);
+    LocalParticle_scale_py(part, old_p0c/new_p0c_value);
+
 }
 '''
 
