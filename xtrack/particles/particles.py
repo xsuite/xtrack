@@ -385,7 +385,6 @@ void LocalParticle_update_p0c(LocalParticle* part, double new_p0c_value){
     LocalParticle_set_beta0(part, new_beta0);
 
     LocalParticle_update_delta(part, new_delta);
-    // TODO: This changes zeta. Is this correct?
 
 }
 '''
