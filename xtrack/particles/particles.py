@@ -129,18 +129,6 @@ class Particles(dress(ParticlesData)):
         self.beta0 = self.p0c / energy0
         self.gamma0 = energy0 / self.mass0
 
-    def _set_delta(self):
-        rep = np.sqrt(self.delta ** 2 + 2 * self.delta + 1 / self.beta0 ** 2)
-        irpp = 1 + self.delta
-        self.rpp = 1 / irpp
-        beta = irpp / rep
-        self.rvv = beta / self.beta0
-        self.psigma = (
-            np.sqrt(self.delta ** 2 + 2 * self.delta + 1 / self.beta0 ** 2)
-            / self.beta0
-            - 1 / self.beta0 ** 2
-        )
-
     @property
     def ptau(self):
         return (
