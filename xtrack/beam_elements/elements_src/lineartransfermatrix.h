@@ -1,5 +1,5 @@
-#ifndef XTRACK_LINEARTRANSFERMATRIXWITHDETUNING_H
-#define XTRACK_LINEARTRANSFERMATRIXWITHDETUNING_H
+#ifndef XTRACK_LINEARTRANSFERMATRIX_H
+#define XTRACK_LINEARTRANSFERMATRIX_H
 
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
@@ -103,8 +103,11 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
             tmp = new_zeta;
             new_zeta = cos_s*tmp+beta_s*sin_s*new_delta;
             new_delta = -sin_s*tmp/beta_s+cos_s*new_delta;
-            LocalParticle_set_zeta(part, new_zeta);
+
+            // We need to set zeta after updating delta
+	    // not to introduce an artificial change
             LocalParticle_update_delta(part, new_delta);
+            LocalParticle_set_zeta(part, new_zeta);
 	}
         
         // Change energy without change of reference momentume
