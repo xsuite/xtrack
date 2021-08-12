@@ -14,6 +14,9 @@ size_vars = (
     (xo.Int64,   '_num_active_particles'),
     (xo.Int64,   '_num_lost_particles'),
     )
+# Capacity is always kept up to data
+# the other two are placeholders to be used if needed
+# i.e. on ContextCpu
 
 scalar_vars = (
     (xo.Float64, 'q0'),
@@ -83,19 +86,6 @@ class Particles(dress(ParticlesData)):
             # Initialize xobject
             self.xoinitialize(**kwargs)
         else:
-            if ('_num_active_particles' in kwargs.keys()
-                or '_num_lost_particles' in kwargs.keys()):
-
-                min_capacity = 0
-                if '_num_active_particles' in kwargs.keys():
-                    min_capacity += kwargs['_num_active_particles']
-                if '_num_lost_particles' in kwargs.keys():
-                    min_capacity += kwargs['_num_lost_particles']
-
-                if '_capacity' in kwargs.keys():
-                    assert kwargs['_capacity'] >= min_capacity
-                else:
-                    kwargs['_capacity'] = min_capacity
 
             if any([nn in kwargs.keys() for tt, nn in per_particle_vars]):
                 # Needed to generate consistent longitudinal variables
@@ -107,6 +97,7 @@ class Particles(dress(ParticlesData)):
                 else:
                     kwargs['_capacity'] = part_dict['_capacity']
             else:
+                assert '_capacity' in kwargs.keys()
                 pyparticles = None
 
             # Make sure _capacity is integer
@@ -125,7 +116,11 @@ class Particles(dress(ParticlesData)):
                 for tt, kk in list(scalar_vars):
                     setattr(self, kk, part_dict[kk])
                 for tt, kk in list(per_particle_vars):
-                    setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
+                    vv = getattr(self, kk)
+                    vals =  context.nparray_to_context_array(part_dict[kk])
+                    ll = len(vals)
+                    vv[:ll] = vals
+                    vv[ll:] = LAST_INVALID_STATE
             else:
                 for tt, kk in list(scalar_vars):
                     setattr(self, kk, 0.)
@@ -139,9 +134,35 @@ class Particles(dress(ParticlesData)):
                         value = 0.
                     getattr(self, kk)[:] = value
 
+        self._num_active_particles = -1 # To be filled in only on CPU
+        self._num_lost_particles = -1 # To be filled in only on CPU
+
+        if isinstance(self._buffer.context, xo.ContextCpu):
+            # Particles always need to be organized to run on CPU
+            self.reorganize()
+
         if force_active_state:
             self.state[:] = 1
 
+    def reorganize(self):
+        mask_active = self.state > 0
+        mask_lost = (self.state < 1) & (self.state>LAST_INVALID_STATE)
+
+        n_active = np.sum(mask_active)
+        n_lost = np.sum(mask_lost)
+
+        for tt, nn in self._structure['per_particle_vars']:
+            vv = getattr(self, nn)
+            vv_active = vv[mask_active]
+            vv_lost = vv[mask_lost]
+
+            vv[:n_active] = vv_active
+            vv[n_active:n_active+n_lost] = vv_lost
+            vv[n_active+n_lost:] = LAST_INVALID_STATE
+
+        if isinstance(self._buffer.context, xo.ContextCpu):
+            self._num_active_particles = n_active
+            self._num_lost_particles = n_lost
 
     def _set_p0c(self):
         energy0 = np.sqrt(self.p0c ** 2 + self.mass0 ** 2)
@@ -454,8 +475,8 @@ def _pyparticles_to_xtrack_dict(pyparticles):
 
         out[kk] = val_pyst
 
-    out['_num_active_particles'] = np.sum(out['state']>0)
-    out['_num_lost_particles'] = np.sum((out['state'] < 0) &
-                                          (out['state'] > MIN_VALID_STATE))
+    #out['_num_active_particles'] = np.sum(out['state']>0)
+    #out['_num_lost_particles'] = np.sum((out['state'] < 0) &
+    #                                      (out['state'] > LAST_INVALID_STATE))
 
     return out
