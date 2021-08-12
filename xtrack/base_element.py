@@ -6,7 +6,7 @@ from .dress import dress
 from .general import _pkg_root
 
 start_per_part_block = """
-   int64_t const n_part = LocalParticle_get_num_particles(part0); //only_for_context cpu_serial cpu_openmp
+   int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp
    #pragma omp parallel for                                       //only_for_context cpu_openmp
    for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial cpu_openmp
     //#pragma omp simd
@@ -71,8 +71,8 @@ def dress_element(XoElementData):
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
             int64_t part_id = get_global_id(0);                    //only_for_context opencl
 
-            int64_t n_part = ParticlesData_get_num_particles(particles);
-            if (part_id<n_part){
+            int64_t part_capacity = ParticlesData_get__capacity(particles);
+            if (part_id<part_capacity){
                 Particles_to_LocalParticle(particles, &lpart, part_id);
                 if (check_is_not_lost(&lpart)>0){
 '''
@@ -115,7 +115,7 @@ def dress_element(XoElementData):
                 self.compile_track_kernel()
             self._track_kernel = context.kernels[self._track_kernel_name]
 
-        self._track_kernel.description.n_threads = particles.num_particles
+        self._track_kernel.description.n_threads = particles._capacity
         self._track_kernel(el=self._xobject, particles=particles)
 
     DressedElement.compile_track_kernel = compile_track_kernel

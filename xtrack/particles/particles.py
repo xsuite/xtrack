@@ -129,7 +129,7 @@ class Particles(dress(ParticlesData)):
                     if kk == 'chi' or kk == 'charge_ratio' or kk == 'state':
                         value = 1.
                     elif kk == 'particle_id':
-                        value = np.arange(0, self.num_particles, dtype=np.int64)
+                        value = np.arange(0, self._capacity, dtype=np.int64)
                     else:
                         value = 0.
                     getattr(self, kk)[:] = value
@@ -164,6 +164,13 @@ class Particles(dress(ParticlesData)):
             self._num_active_particles = n_active
             self._num_lost_particles = n_lost
 
+    def get_active_particle_id_range(self):
+        mask_active = self.state > 0
+        ctx2np = self._buffer.context.nparray_from_context_array
+        ids_active_particles = ctx2np(self.particle_id[mask_active])
+        # Behaves as python rante (+1)
+        return np.min(ids_active_particles), np.max(ids_active_particles)+1
+
     def _set_p0c(self):
         energy0 = np.sqrt(self.p0c ** 2 + self.mass0 ** 2)
         self.beta0 = self.p0c / energy0
@@ -196,8 +203,6 @@ class Particles(dress(ParticlesData)):
         pyparticles = Pyparticles(**kwargs)
         part_dict = _pyparticles_to_xtrack_dict(pyparticles)
         for tt, kk in list(scalar_vars):
-            if kk == 'num_particles':
-                continue
             setattr(self, kk, part_dict[kk])
         for tt, kk in list(per_particle_vars):
             getattr(self, kk)[index] = part_dict[kk][0]

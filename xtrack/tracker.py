@@ -283,20 +283,20 @@ class Tracker:
             ParticlesMonitorData tbt_monitor =
                             (ParticlesMonitorData) tbt_mon_pointer;
 
-            int64_t n_part = ParticlesData_get_num_particles(particles);
-            if (part_id<n_part){
+            int64_t part_capacity = ParticlesData_get__capacity(particles);
+            if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id);
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
                 if (flag_tbt_monitor){
-                    if (check_is_not_lost(&lpart)>0){
+                    if (check_is_active(&lpart)>0){
                         ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                     }
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
-                    if (check_is_not_lost(&lpart)>0){
+                    if (check_is_active(&lpart)>0){
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
@@ -328,13 +328,13 @@ class Tracker:
         src_lines.append(
             """
                         } //switch
-                    } // check_is_not_lost
-                    if (check_is_not_lost(&lpart)>0){
+                    } // check_is_active
+                    if (check_is_active(&lpart)>0){
                         increment_at_element(&lpart);
                     }
                 } // for elements
                 if (flag_end_turn_actions>0){
-                    if (check_is_not_lost(&lpart)>0){
+                    if (check_is_active(&lpart)>0){
                         increment_at_turn(&lpart);
                     }
                 }
@@ -438,7 +438,7 @@ class Tracker:
         (flag_tbt, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
-        self.track_kernel.description.n_threads = particles.num_particles
+        self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(
             buffer=self.line._buffer.buffer,
             ele_offsets=self.ele_offsets_dev,
@@ -469,7 +469,7 @@ class Tracker:
                 _context=particles._buffer.context,
                 start_at_turn=0,
                 stop_at_turn=num_turns,
-                num_particles=particles.num_particles,
+                particle_id_range=particles.get_active_particle_id_range()
             )
             buffer_monitor = monitor._buffer.buffer
             offset_monitor = monitor._offset

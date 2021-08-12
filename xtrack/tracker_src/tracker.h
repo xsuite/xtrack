@@ -54,19 +54,21 @@ void increment_at_turn(LocalParticle* part0){
 #ifdef CPUIMPLEM
 
 /*gpufun*/
-int64_t check_is_not_lost(LocalParticle* part) {
+int64_t check_is_active(LocalParticle* part) {
     int64_t ipart=0;
-    while (ipart < part->num_particles){
+    while (ipart < part->_num_active_particles){
         if (part->state[ipart]<1){
-            LocalParticle_exchange(part, ipart, part->num_particles-1);
-            part->num_particles--; 
+            LocalParticle_exchange(
+                part, ipart, part->_num_active_particles-1);
+            part->_num_active_particles--; 
+            part->_num_lost_particles++; 
         }
 	else{
 	    ipart++;
 	}
     }
 
-    if (part->num_particles==0){
+    if (part->_num_active_particles==0){
         return 0;//All particles lost
     } else {
         return 1; //Some stable particles are still present
@@ -76,8 +78,8 @@ int64_t check_is_not_lost(LocalParticle* part) {
 #else
 
 /*gpufun*/
-int64_t check_is_not_lost(LocalParticle* part) {
-    return LocalParticle_get_state(part);
+int64_t check_is_active(LocalParticle* part) {
+    return LocalParticle_get_state(part)>0;
 };
 
 #endif
