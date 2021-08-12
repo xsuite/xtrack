@@ -7,14 +7,20 @@ from ..dress import dress
 
 pmass = 938.2720813e6
 
+LAST_INVALID_STATE = -999999999
+
+size_vars = (
+    (xo.Int64,   '_capacity'),
+    (xo.Int64,   '_num_active_particles'),
+    (xo.Int64,   '_num_lost_particles'),
+    )
 
 scalar_vars = (
-    (xo.Int64,   'num_particles'),
     (xo.Float64, 'q0'),
     (xo.Float64, 'mass0'),
     )
 
-per_particle_vars = [
+per_particle_vars = (
     (xo.Float64, 'p0c'),
     (xo.Float64, 'gamma0'),
     (xo.Float64, 'beta0'),
@@ -35,10 +41,10 @@ per_particle_vars = [
     (xo.Int64, 'at_element'),
     (xo.Int64, 'at_turn'),
     (xo.Int64, 'state'),
-    ]
+    )
 
 fields = {}
-for tt, nn in scalar_vars:
+for tt, nn in size_vars + scalar_vars:
     fields[nn] = tt
 
 for tt, nn in per_particle_vars:
@@ -59,12 +65,13 @@ pysixtrack_naming=(
 
 
 class Particles(dress(ParticlesData)):
-
     _structure = {
+            'size_vars': size_vars,
             'scalar_vars': scalar_vars,
             'per_particle_vars': per_particle_vars}
 
     def __init__(self, force_active_state=False, **kwargs):
+
 
         # Compatibility with old pysixtrack naming
         for old, new in pysixtrack_naming:
@@ -76,24 +83,38 @@ class Particles(dress(ParticlesData)):
             # Initialize xobject
             self.xoinitialize(**kwargs)
         else:
+            if ('_num_active_particles' in kwargs.keys()
+                or '_num_lost_particles' in kwargs.keys()):
+
+                min_capacity = 0
+                if '_num_active_particles' in kwargs.keys():
+                    min_capacity += kwargs['_num_active_particles']
+                if '_num_lost_particles' in kwargs.keys():
+                    min_capacity += kwargs['_num_lost_particles']
+
+                if '_capacity' in kwargs.keys():
+                    assert kwargs['_capacity'] >= min_capacity
+                else:
+                    kwargs['_capacity'] = min_capacity
+
             if any([nn in kwargs.keys() for tt, nn in per_particle_vars]):
                 # Needed to generate consistent longitudinal variables
                 pyparticles = Pyparticles(**kwargs)
 
                 part_dict = _pyparticles_to_xtrack_dict(pyparticles)
-                if 'num_particles' in kwargs.keys():
-                    assert kwargs['num_particles'] == part_dict['num_particles']
+                if '_capacity' in kwargs.keys():
+                    assert kwargs['_capacity'] >= part_dict['_capacity']
                 else:
-                    kwargs['num_particles'] = part_dict['num_particles']
+                    kwargs['_capacity'] = part_dict['_capacity']
             else:
                 pyparticles = None
 
-            # Make sure num_particles is integer
-            kwargs['num_particles'] = int(kwargs['num_particles'])
+            # Make sure _capacity is integer
+            kwargs['_capacity'] = int(kwargs['_capacity'])
 
             # We just provide array sizes to xoinitialize (we will set values later)
             kwargs.update(
-                    {kk: kwargs['num_particles'] for tt, kk in per_particle_vars})
+                    {kk: kwargs['_capacity'] for tt, kk in per_particle_vars})
 
             # Initialize xobject
             self.xoinitialize(**kwargs)
@@ -107,8 +128,6 @@ class Particles(dress(ParticlesData)):
                     setattr(self, kk, context.nparray_to_context_array(part_dict[kk]))
             else:
                 for tt, kk in list(scalar_vars):
-                    if kk == 'num_particles':
-                        continue
                     setattr(self, kk, 0.)
 
                 for tt, kk in list(per_particle_vars):
@@ -188,7 +207,7 @@ def gen_local_particle_api(mode='no_local_copy'):
 
     src_lines = []
     src_lines.append('''typedef struct{''')
-    for tt, vv in scalar_vars:
+    for tt, vv in size_vars + scalar_vars:
         src_lines.append('                 ' + tt._c_type + '  '+vv+';')
     for tt, vv in per_particle_vars:
         src_lines.append('    /*gpuglmem*/ ' + tt._c_type + '* '+vv+';')
@@ -202,7 +221,7 @@ def gen_local_particle_api(mode='no_local_copy'):
     void Particles_to_LocalParticle(ParticlesData source,
                                     LocalParticle* dest,
                                     int64_t id){''')
-    for tt, vv in scalar_vars:
+    for tt, vv in size_vars + scalar_vars:
         src_lines.append(
                 f'  dest->{vv} = ParticlesData_get_'+vv+'(source);')
     for tt, vv in per_particle_vars:
@@ -221,7 +240,7 @@ def gen_local_particle_api(mode='no_local_copy'):
                                     int64_t id,
                                     int64_t set_scalar){''')
     src_lines.append('if (set_scalar){')
-    for tt, vv in scalar_vars:
+    for tt, vv in size_vars + scalar_vars:
         src_lines.append(
                 f'  ParticlesData_set_' + vv + '(dest,'
                 f'      LocalParticle_get_{vv}(source));')
@@ -265,7 +284,7 @@ def gen_local_particle_api(mode='no_local_copy'):
     src_setters = '\n'.join(src_lines)
 
     src_lines=[]
-    for tt, vv in scalar_vars:
+    for tt, vv in size_vars + scalar_vars:
         src_lines.append('/*gpufun*/')
         src_lines.append(f'{tt._c_type} LocalParticle_get_'+vv
                         + f'(LocalParticle* part)'
@@ -402,13 +421,9 @@ def _pyparticles_to_xtrack_dict(pyparticles):
     else:
         pyst_dict['weight'] = 1.
 
-    for tt, kk in list(scalar_vars) + list(per_particle_vars):
-        if kk not in pyst_dict.keys():
-            if kk == 'num_particles':
-                continue
-            else:
-                # Use properties
-                pyst_dict[kk] = getattr(pyparticles, kk)
+    for tt, kk in scalar_vars + per_particle_vars:
+        # Use properties
+        pyst_dict[kk] = getattr(pyparticles, kk)
 
 
     for kk, vv in pyst_dict.items():
@@ -417,12 +432,10 @@ def _pyparticles_to_xtrack_dict(pyparticles):
     lll = [len(vv) for kk, vv in pyst_dict.items() if hasattr(vv, '__len__')]
     lll = list(set(lll))
     assert len(set(lll) - {1}) <= 1
-    num_particles = max(lll)
-    out['num_particles'] = num_particles
+    _capacity = max(lll)
+    out['_capacity'] = _capacity
 
     for tt, kk in scalar_vars:
-        if kk == 'num_particles':
-            continue
         val = pyst_dict[kk]
         assert np.allclose(val, val[0], rtol=1e-10, atol=1e-14)
         out[kk] = val[0]
@@ -431,8 +444,8 @@ def _pyparticles_to_xtrack_dict(pyparticles):
 
         val_pyst = pyst_dict[kk]
 
-        if num_particles > 1 and len(val_pyst)==1:
-            temp = np.zeros(int(num_particles), dtype=tt._dtype)
+        if _capacity > 1 and len(val_pyst)==1:
+            temp = np.zeros(int(_capacity), dtype=tt._dtype)
             temp += val_pyst[0]
             val_pyst = temp
 
@@ -440,5 +453,9 @@ def _pyparticles_to_xtrack_dict(pyparticles):
             val_pyst = np.array(val_pyst, dtype=tt._dtype)
 
         out[kk] = val_pyst
+
+    out['_num_active_particles'] = np.sum(out['state']>0)
+    out['_num_lost_particles'] = np.sum((out['state'] < 0) &
+                                          (out['state'] > MIN_VALID_STATE))
 
     return out
