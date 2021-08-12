@@ -7,7 +7,7 @@ import xline as xl
 
 context = xo.ContextCpu()
 #context = xo.ContextCupy()
-#context = xo.ContextPyopencl()
+context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2
@@ -35,6 +35,8 @@ line = xl.Line(elements=
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
 tracker = xt.Tracker(_context=context, sequence=line, save_source_as='source.c')
+
+import pdb; pdb.set_trace()
 
 # Track
 n_turns = 3

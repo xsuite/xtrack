@@ -75,7 +75,6 @@ class Particles(dress(ParticlesData)):
 
     def __init__(self, force_active_state=False, **kwargs):
 
-
         # Compatibility with old pysixtrack naming
         for old, new in pysixtrack_naming:
             if old in kwargs.keys():
@@ -145,6 +144,8 @@ class Particles(dress(ParticlesData)):
             self.state[:] = 1
 
     def reorganize(self):
+        assert not isinstance(self._buffer.context, xo.ContextPyopencl), (
+                'Masking does not work with pyopencl')
         mask_active = self.state > 0
         mask_lost = (self.state < 1) & (self.state>LAST_INVALID_STATE)
 
@@ -165,9 +166,9 @@ class Particles(dress(ParticlesData)):
             self._num_lost_particles = n_lost
 
     def get_active_particle_id_range(self):
-        mask_active = self.state > 0
         ctx2np = self._buffer.context.nparray_from_context_array
-        ids_active_particles = ctx2np(self.particle_id[mask_active])
+        mask_active = ctx2np(self.state) > 0
+        ids_active_particles = ctx2np(self.particle_id)[mask_active]
         # Behaves as python rante (+1)
         return np.min(ids_active_particles), np.max(ids_active_particles)+1
 
