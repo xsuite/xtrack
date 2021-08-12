@@ -16,7 +16,7 @@ class PyHtXtParticles(XtParticles,PyHtParticles):
 
     @classmethod
     def from_pyheadtail(cls, particles):
-        new  = cls(num_particles=particles.macroparticlenumber)
+        new  = cls(_capacity=particles.macroparticlenumber)
 
         new.particlenumber_per_mp = particles.particlenumber_per_mp
         new.charge = particles.charge
@@ -82,7 +82,7 @@ class PyHtXtParticles(XtParticles,PyHtParticles):
 
     @property
     def macroparticlenumber(self):
-        return self.num_particles
+        return np.sum(self.state>0)
 
     @property
     def particlenumber_per_mp(self):
