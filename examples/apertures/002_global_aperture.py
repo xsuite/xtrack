@@ -36,8 +36,6 @@ line = xl.Line(elements=
 
 tracker = xt.Tracker(_context=context, sequence=line, save_source_as='source.c')
 
-import pdb; pdb.set_trace()
-
 # Track
 n_turns = 3
 tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
