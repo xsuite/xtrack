@@ -165,6 +165,41 @@ class Particles(dress(ParticlesData)):
             self._num_active_particles = n_active
             self._num_lost_particles = n_lost
 
+        return n_active, n_lost
+
+    def add_particles(self, part, keep_lost=False):
+
+        if keep_lost:
+            raise NotImplementedError
+        assert not isinstance(self._buffer.context, xo.ContextPyopencl), (
+                'Masking does not work with pyopencl')
+
+        mask_copy = part.state > 0
+        n_copy = np.sum(mask_copy)
+
+        n_active, n_lost = self.reorganize()
+        i_start_copy = n_active + n_lost
+        n_free = self._capacity - n_active - n_lost
+
+        max_id = np.max(self.particle_id[:n_active+n_lost]
+
+        if n_copy > n_free:
+            raise NotImplementedError, "Regenerate xobject"
+
+        for tt, nn in self._structure['scalar_vars']:
+            assert np.iscolose(getattr(self, nn), getattr(part, nn),
+                    rtol=1e-14, atol=1e-14)
+
+        for tt, nn in self._structure['per_particle_vars']:
+            vv = getattr(self, nn)
+            vv_copy = getattr(part, nn)[mask_copy]
+            vv[i_start_copy:i_start_copy+n_copy] = vv_copy
+
+        self.particle_id[i_start_copy:i_start_copy+n_copy] = np.arange(
+                                     max_id, max_id+n_copy, dtype=np.int64)
+
+        self.reorganize()
+
     def get_active_particle_id_range(self):
         ctx2np = self._buffer.context.nparray_from_context_array
         mask_active = ctx2np(self.state) > 0
