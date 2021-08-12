@@ -47,7 +47,7 @@ void increment_at_turn(LocalParticle* part0){
 }
 
 
-// check_is_not_lost has different implementation on CPU and GPU
+// check_is_active has different implementation on CPU and GPU
 
 #define CPUIMPLEM //only_for_context cpu_serial cpu_openmp
 

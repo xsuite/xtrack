@@ -74,12 +74,12 @@ def dress_element(XoElementData):
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
                 Particles_to_LocalParticle(particles, &lpart, part_id);
-                if (check_is_not_lost(&lpart)>0){
+                if (check_is_active(&lpart)>0){
 '''
             f'      {name}_track_local_particle(el, &lpart);\n'
 '''
                 }
-                if (check_is_not_lost(&lpart)>0){
+                if (check_is_active(&lpart)>0){
                         increment_at_element(&lpart);
                 }
             }
