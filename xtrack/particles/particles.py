@@ -181,13 +181,13 @@ class Particles(dress(ParticlesData)):
         i_start_copy = n_active + n_lost
         n_free = self._capacity - n_active - n_lost
 
-        max_id = np.max(self.particle_id[:n_active+n_lost]
+        max_id = np.max(self.particle_id[:n_active+n_lost])
 
         if n_copy > n_free:
-            raise NotImplementedError, "Regenerate xobject"
+            raise NotImplementedError("Regenerate xobject")
 
         for tt, nn in self._structure['scalar_vars']:
-            assert np.iscolose(getattr(self, nn), getattr(part, nn),
+            assert np.isclose(getattr(self, nn), getattr(part, nn),
                     rtol=1e-14, atol=1e-14)
 
         for tt, nn in self._structure['per_particle_vars']:
@@ -196,7 +196,7 @@ class Particles(dress(ParticlesData)):
             vv[i_start_copy:i_start_copy+n_copy] = vv_copy
 
         self.particle_id[i_start_copy:i_start_copy+n_copy] = np.arange(
-                                     max_id, max_id+n_copy, dtype=np.int64)
+                                     max_id+1, max_id+1+n_copy, dtype=np.int64)
 
         self.reorganize()
 
