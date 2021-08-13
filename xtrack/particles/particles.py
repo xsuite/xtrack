@@ -44,6 +44,7 @@ per_particle_vars = (
     (xo.Int64, 'at_element'),
     (xo.Int64, 'at_turn'),
     (xo.Int64, 'state'),
+    (xo.Int64, 'parent_particle_id'),
     )
 
 fields = {}

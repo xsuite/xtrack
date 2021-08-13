@@ -42,7 +42,7 @@ class DummyInteractionProcess:
                 'charge_ratio': particles.x[:n_part][mask_secondary] *0 + .5,
 
 
-                'parent_id': particles.particle_id[:n_part][mask_secondary],
+                'parent_particle_id': particles.particle_id[:n_part][mask_secondary],
                 }
         else:
             products = None

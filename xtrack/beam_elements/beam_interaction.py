@@ -33,6 +33,6 @@ class BeamInteraction:
                     delta = products['delta'],
                     mass_ratio = products['mass_ratio'],
                     charge_ratio = products['charge_ratio'],
-                    parent_id = products['parent_id'])
+                    parent_particle_id = products['parent_particle_id'])
 
             particles.add_particles(new_particles)
