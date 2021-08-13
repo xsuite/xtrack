@@ -20,12 +20,12 @@ class DummyInteractionProcess:
 
         n_part = particles._num_active_particles
 
-        # Kill ~10% of the particles
+        # Kill some particles
         mask_kill = np.random.uniform(size=n_part) < self.fraction_lost
         particles.state[:n_part][mask_kill] = 0
 
 
-        # Generate  
+        # Generate some more particles
         mask_secondary = np.random.uniform(size=n_part) < self.fraction_secondary
         n_products = np.sum(mask_secondary)
         if n_products>0:
