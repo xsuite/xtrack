@@ -27,18 +27,27 @@ class DummyInteractionProcess:
 
         # Generate  
         mask_secondary = np.random.uniform(size=n_part) < self.fraction_secondary
-        products['s'] = particles.s[:n_part][mask_secondary]
-        products['x'] = particles.x[:n_part][mask_secondary]
-        products['px'] = particles.px[:n_part][mask_secondary]
-        products['y'] = particles.y[:n_part][mask_secondary]
-        products['py'] = particles.py[:n_part][mask_secondary]
-        products['zeta'] = particles.zeta[:n_part][mask_secondary]
-        products['delta'] = particles.delta[:n_part][mask_secondary]
+        n_products = np.sum(mask_secondary)
+        if n_products>0:
+            products = {
+                's': particles.s[:n_part][mask_secondary],
+                'x': particles.x[:n_part][mask_secondary],
+                'px': particles.px[:n_part][mask_secondary],
+                'y': particles.y[:n_part][mask_secondary],
+                'py': particles.py[:n_part][mask_secondary],
+                'zeta': particles.zeta[:n_part][mask_secondary],
+                'delta': particles.delta[:n_part][mask_secondary],
 
-        products['mass_ratio'] = particles.mass_ratio[:n_part][mask_secondary] * .5
-        products['charge_ratio'] = particles.charge_ratio[:n_part][mask_secondary] * .5
+                'mass_ratio': particles.x[:n_part][mask_secondary] *0 + .5,
+                'charge_ratio': particles.x[:n_part][mask_secondary] *0 + .5,
 
-        products['parent_id'] = particles.particle_id[:n_part][mask_secondary]
+
+                'parent_id': particles.particle_id[:n_part][mask_secondary],
+                }
+        else:
+            products = None
+
+        return products
 
 class BeamInteraction:
 
@@ -47,7 +56,7 @@ class BeamInteraction:
 
     def track(self, particles):
 
-        assert isinstance(particles.bufer.context, xo.ContextCpu)
+        assert isinstance(particles._buffer.context, xo.ContextCpu)
         assert particles._num_active_particles >= 0
 
         # Assumes active particles are contiguous
@@ -56,10 +65,10 @@ class BeamInteraction:
         # TODO: This should work also when no products are there
         #       Particles reorganization should still happen
 
-        if products is None or products.x.size == 0:
+        if products is None or products['x'].size == 0:
             particles.reorganize()
         else:
-            new_particles = xt.Particles(_context=particles.buffer.context,
+            new_particles = xt.Particles(_context=particles._buffer.context,
                     p0c = particles.p0c[0], # TODO: Should we check that 
                                             #       they are all the same?
                     s = products['s'],
@@ -76,4 +85,11 @@ class BeamInteraction:
             particles.add_particles(new_particles)
 
 
+beam_interaction = BeamInteraction(
+        interaction_process=DummyInteractionProcess(fraction_lost=0.1,
+                                                    fraction_secondary=0.2))
 
+particles = xt.Particles(_capacity=20,
+        p0c=7000, x=np.linspace(-1e-3, 1e-3, 10))
+
+beam_interaction.track(particles)
