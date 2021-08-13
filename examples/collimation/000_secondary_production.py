@@ -41,7 +41,6 @@ class DummyInteractionProcess:
                 'mass_ratio': particles.x[:n_part][mask_secondary] *0 + .5,
                 'charge_ratio': particles.x[:n_part][mask_secondary] *0 + .5,
 
-
                 'parent_particle_id': particles.particle_id[:n_part][mask_secondary],
                 }
         else:
@@ -53,7 +52,21 @@ beam_interaction = xt.BeamInteraction(
         interaction_process=DummyInteractionProcess(fraction_lost=0.1,
                                                     fraction_secondary=0.2))
 
-particles = xt.Particles(_capacity=20,
+particles = xt.Particles(_capacity=200,
         p0c=7000, x=np.linspace(-1e-3, 1e-3, 10))
 
-beam_interaction.track(particles)
+for _ in range(10):
+    beam_interaction.track(particles)
+
+assert np.all(np.diff(particles.state) <= 0) # checks that there is no lost after active
+assert particles._num_lost_particles >= 0
+assert particles._num_active_particles >= 0
+
+ind_secondaries = np.where(particles.parent_particle_id[:particles._num_active_particles] !=
+                    particles.particle_id[:particles._num_active_particles])[0]
+
+for ii in ind_secondaries:
+    parent_id = particles.parent_particle_id[ii]
+    parent_x = particles.x[np.where(particles.particle_id == parent_id)[0][0]]
+
+    assert parent_x == particles.x[ii]

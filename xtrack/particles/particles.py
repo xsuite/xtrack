@@ -185,7 +185,7 @@ class Particles(dress(ParticlesData)):
         max_id = np.max(self.particle_id[:n_active+n_lost])
 
         if n_copy > n_free:
-            raise NotImplementedError("Regenerate xobject")
+            raise NotImplementedError("Out of space, need to regenerate xobject")
 
         for tt, nn in self._structure['scalar_vars']:
             assert np.isclose(getattr(self, nn), getattr(part, nn),
