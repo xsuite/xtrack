@@ -287,16 +287,19 @@ class Tracker:
             if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id);
 
+            int64_t isactive = check_is_active(&lpart);
+
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
+                if (!isactive){
+                    break;
+                }
+
                 if (flag_tbt_monitor){
-                    if (check_is_active(&lpart)>0){
-                        ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                    }
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
-                    if (check_is_active(&lpart)>0){
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
@@ -328,13 +331,14 @@ class Tracker:
         src_lines.append(
             """
                         } //switch
-                    } // check_is_active
-                    if (check_is_active(&lpart)>0){
-                        increment_at_element(&lpart);
+                    isactive = check_is_active(&lpart);
+                    if (!isactive){
+                        break;
                     }
+                    increment_at_element(&lpart);
                 } // for elements
                 if (flag_end_turn_actions>0){
-                    if (check_is_active(&lpart)>0){
+                    if (isactive){
                         increment_at_turn(&lpart);
                     }
                 }
