@@ -7,12 +7,8 @@ from xobjects.context import available
 
 def test_drift():
 
-    for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
-        if CTX not in available:
-            continue
-
-        print(f"Test {CTX}")
-        ctx = CTX()
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
 
         pyst_particle = xl.Particles(
                 p0c=25.92e9,
@@ -40,12 +36,8 @@ def test_drift():
 
 def test_elens():
 
-   for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
-        if CTX not in available:
-            continue
-
-        print(f"Test {CTX}")
-        ctx = CTX()
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
 
         pyst_particle = xl.Particles(
                 p0c=np.array([7000e9]),
