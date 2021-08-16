@@ -49,7 +49,7 @@ sequence = xl.Line.from_dict(seq_dict['line'])
 
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
-context = xo.ContextPyopencl('2.0')
+context = xo.ContextPyopencl('0.0')
 print(context)
 
 ##########################
