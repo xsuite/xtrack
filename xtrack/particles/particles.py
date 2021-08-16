@@ -5,7 +5,14 @@ from ._pyparticles import Pyparticles
 
 from ..dress import dress
 
-pmass = 938.2720813e6
+from scipy.constants import m_p
+from scipy.constants import e as qe
+from scipy.constants import c as clight
+
+pmass = m_p * clight * clight / qe
+
+
+
 
 LAST_INVALID_STATE = -999999999
 
