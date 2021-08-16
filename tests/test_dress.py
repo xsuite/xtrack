@@ -45,14 +45,16 @@ def test_explicit_buffer():
         def __init__(self, vv, **kwargs):
             self.xoinitialize(n=len(vv), b=np.sum(vv), vv=vv, **kwargs)
 
-    ele1 = Element([1,2,3])
-    ele2 = Element([7,8,9], _buffer=ele1._buffer)
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+        ele1 = Element([1,2,3], _context=context)
+        ele2 = Element([7,8,9], _buffer=ele1._buffer)
 
-    assert ele1.vv[1] == ele1._xobject.vv[1] == 2
-    assert ele2.vv[1] == ele2._xobject.vv[1] == 8
-    for ee in [ele1, ele2]:
-        assert (ee._buffer is ee._xobject._buffer)
-        assert (ee._offset == ee._xobject._offset)
+        assert ele1.vv[1] == ele1._xobject.vv[1] == 2
+        assert ele2.vv[1] == ele2._xobject.vv[1] == 8
+        for ee in [ele1, ele2]:
+            assert (ee._buffer is ee._xobject._buffer)
+            assert (ee._offset == ee._xobject._offset)
 
-    assert ele1._buffer is ele2._buffer
-    assert ele1._offset != ele2._offset
+        assert ele1._buffer is ele2._buffer
+        assert ele1._offset != ele2._offset
