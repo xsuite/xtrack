@@ -74,7 +74,7 @@ class Particles(dress(ParticlesData)):
             'scalar_vars': scalar_vars,
             'per_particle_vars': per_particle_vars}
 
-    def __init__(self, force_active_state=False, **kwargs):
+    def __init__(self, **kwargs):
 
         # Compatibility with old pysixtrack naming
         for old, new in pysixtrack_naming:
@@ -140,9 +140,6 @@ class Particles(dress(ParticlesData)):
         if isinstance(self._buffer.context, xo.ContextCpu):
             # Particles always need to be organized to run on CPU
             self.reorganize()
-
-        if force_active_state:
-            self.state[:] = 1
 
     def reorganize(self):
         assert not isinstance(self._buffer.context, xo.ContextPyopencl), (
@@ -227,7 +224,7 @@ class Particles(dress(ParticlesData)):
         return self
 
     def set_particle(self, index, set_scalar_vars=False,
-            check_scalar_vars=True, force_active_state=True, **kwargs):
+            check_scalar_vars=True, **kwargs):
 
         # Compatibility with old pysixtrack naming
         for old, new in pysixtrack_naming:
@@ -243,9 +240,6 @@ class Particles(dress(ParticlesData)):
             setattr(self, kk, part_dict[kk])
         for tt, kk in list(per_particle_vars):
             getattr(self, kk)[index] = part_dict[kk][0]
-
-        if force_active_state:
-            self.state[:] = 1
 
     def _update_delta(self, new_delta_value):
         beta0 = self.beta0
