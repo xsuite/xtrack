@@ -32,12 +32,8 @@ def test_full_rings(element_by_element=False):
         rtol_10turns, atol_10turns = tolerances_10_turns[icase]
 
         print('Case:', fname_line_particles)
-        for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
-            if CTX not in available:
-                continue
-
-            print(f"Test {CTX}")
-            context = CTX()
+        for context in xo.context.get_test_contexts():
+            print(f"Test {context.__class__}")
 
             #############
             # Load file #
