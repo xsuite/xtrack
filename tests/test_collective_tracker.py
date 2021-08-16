@@ -3,19 +3,14 @@ import json
 import numpy as np
 
 import xobjects as xo
-from xobjects.context import available
 import xline as xl
 import xtrack as xt
 import xfields as xf
 
 def test_collective_tracker():
 
-    for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
-        if CTX not in available:
-            continue
-
-        print(f"Test {CTX}")
-        context = CTX()
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
 
         test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()

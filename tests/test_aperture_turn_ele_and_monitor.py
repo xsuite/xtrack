@@ -1,19 +1,14 @@
 import numpy as np
 
 import xobjects as xo
-from xobjects.context import available
 import xtrack as xt
 import xline as xl
 
 
 def test_aperture_turn_ele_and_monitor():
 
-    for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
-        if CTX not in available:
-            continue
-
-        print(f"Test {CTX}")
-        context = CTX()
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
 
         x_aper_min = -0.1
         x_aper_max = 0.2
@@ -117,12 +112,8 @@ def test_aperture_turn_ele_and_monitor():
 
 def test_custom_monitor():
 
-    for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
-        if CTX not in available:
-            continue
-
-        print(f"Test {CTX}")
-        context = CTX()
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
 
         x_aper_min = -0.1
         x_aper_max = 0.2
