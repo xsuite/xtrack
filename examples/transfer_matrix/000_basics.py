@@ -10,7 +10,7 @@ q_y_set = .31
 q_s_set = .01
 # Test branches with and without detuning
 for chrm in [1e-5, 0]:
-    el = xt.LinearTransferMatrixWithDetuning(_context=context,
+    el = xt.LinearTransferMatrix(_context=context,
             Q_x=q_x_set, Q_y=q_y_set, Q_s=q_s_set,
             beta_s=800.,
             chroma_x=chrm
