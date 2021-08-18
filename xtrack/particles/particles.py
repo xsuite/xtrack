@@ -52,6 +52,10 @@ per_particle_vars = (
     (xo.Int64, 'at_turn'),
     (xo.Int64, 'state'),
     (xo.Int64, 'parent_particle_id'),
+    (xo.UInt32, '__rng_s1'),
+    (xo.UInt32, '__rng_s2'),
+    (xo.UInt32, '__rng_s3'),
+    (xo.UInt32, '__rng_s4')
     )
 
 fields = {}
@@ -123,6 +127,8 @@ class Particles(dress(ParticlesData)):
                 for tt, kk in list(scalar_vars):
                     setattr(self, kk, part_dict[kk])
                 for tt, kk in list(per_particle_vars):
+                    if kk.startswith('__'):
+                        continue
                     vv = getattr(self, kk)
                     vals =  context.nparray_to_context_array(part_dict[kk])
                     ll = len(vals)
@@ -486,6 +492,8 @@ def _pyparticles_to_xtrack_dict(pyparticles):
         pyst_dict['weight'] = 1.
 
     for tt, kk in scalar_vars + per_particle_vars:
+        if kk.startswith('__'):
+            continue
         # Use properties
         pyst_dict[kk] = getattr(pyparticles, kk)
 
@@ -505,6 +513,8 @@ def _pyparticles_to_xtrack_dict(pyparticles):
         out[kk] = val[0]
 
     for tt, kk in per_particle_vars:
+        if kk.startswith('__'):
+            continue
 
         val_pyst = pyst_dict[kk]
 

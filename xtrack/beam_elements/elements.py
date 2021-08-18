@@ -209,7 +209,8 @@ class Multipole(BeamElement):
         #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
 
 Multipole.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
+    _pkg_root.joinpath('headers/rng.h'),
+    _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
 
 class RFMultipole(BeamElement):
