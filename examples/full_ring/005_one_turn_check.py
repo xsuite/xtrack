@@ -111,8 +111,7 @@ vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     vars_before = {vv :getattr(xl_part, vv) for vv in vars_to_check}
-    pp_dict = xt.pyparticles_to_xtrack_dict(xl_part)
-    particles.set_particle(ip_check, **pp_dict)
+    particles.set_particle(ip_check, **xl_part.to_dict())
 
     tracker.track(particles, ele_start=ii, num_elements=1)
 

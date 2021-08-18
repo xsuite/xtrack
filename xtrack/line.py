@@ -72,9 +72,11 @@ class Line():
             else: # needs to be converted
                 XtClass = seq_typename_to_xtclass(ee.__class__.__name__, external_elements)
                 if hasattr(XtClass, 'from_xline'):
-                    xt_ee = XtClass.from_xline(ee, _buffer=line_data._buffer)
+                    xt_ee = XtClass.from_xline(ee, _buffer=line_data._buffer,
+                                               _offset='packed')
                 else:
-                    xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict())
+                    xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict(),
+                                    _offset='packed')
             elements.append(xt_ee)
             line_data[ii] = xt_ee._xobject
 

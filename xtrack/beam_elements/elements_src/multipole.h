@@ -2,12 +2,9 @@
 #define XTRACK_MULTIPOLE_H
 
 /*gpufun*/
-void Multipole_track_local_particle(MultipoleData el, LocalParticle* part){
+void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
-    int64_t const n_part = LocalParticle_get_num_particles(part); 
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
-
+   //start_per_particle_block (part0->part)
     	int64_t order = MultipoleData_get_order(el);
     	int64_t index_x = 2 * order;
     	int64_t index_y = index_x + 1;
@@ -19,7 +16,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part){
     	double const y   = LocalParticle_get_y(part);
     	double const chi = LocalParticle_get_chi(part);
 
-    	double const hxl = MultipoleData_get_hxl(el);
+	double const hxl = MultipoleData_get_hxl(el);
     	double const hyl = MultipoleData_get_hyl(el);
 
     	while( index_x > 0 )
@@ -78,8 +75,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part){
 
     	LocalParticle_add_to_px(part, dpx );
     	LocalParticle_add_to_py(part, dpy );
-    } //only_for_context cpu_serial cpu_openmp
 
+    //end_per_particle_block
 }
 
 #endif

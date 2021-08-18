@@ -1,6 +1,6 @@
 import xobjects as xo
 
-from .dress_element import dress_element
+from .base_element import dress_element
 from .general import _pkg_root
 
 
@@ -12,11 +12,24 @@ def _monitor_init(
     start_at_turn=None,
     stop_at_turn=None,
     num_particles=None,
+    particle_id_range=None,
     auto_to_numpy=True,
 ):
 
+    if particle_id_range is not None:
+        assert num_particles is None
+        part_id_start = particle_id_range[0]
+        part_id_end = particle_id_range[1]
+    else:
+        assert num_particles is not None
+        part_id_start = 0
+        part_id_end = num_particles
+
+    n_part_ids = part_id_end - part_id_start
+    assert n_part_ids >= 0
+
     n_turns = int(stop_at_turn) - int(start_at_turn)
-    n_records = n_turns * num_particles
+    n_records = n_turns * n_part_ids
 
     data_init = {nn: n_records for tt, nn in
                     self._ParticlesClass._structure["per_particle_vars"]}
@@ -27,6 +40,8 @@ def _monitor_init(
         _offset=_offset,
         start_at_turn=start_at_turn,
         stop_at_turn=stop_at_turn,
+        part_id_start=part_id_start,
+        part_id_end=part_id_end,
         n_records=n_records,
         data=data_init,
     )
@@ -60,6 +75,8 @@ def generate_monitor_class(ParticlesClass):
         {
             "start_at_turn": xo.Int64,
             "stop_at_turn": xo.Int64,
+            'part_id_start': xo.Int64,
+            'part_id_end': xo.Int64,
             "n_records": xo.Int64,
             "data": ParticlesClass.XoStruct,
         },

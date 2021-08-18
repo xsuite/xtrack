@@ -3,7 +3,8 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 
-import xline
+import xline as xl
+import xpart as xp
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -17,7 +18,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-pyst_part = xline.Particles(
+xparticles = xp.Particles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -26,27 +27,26 @@ pyst_part = xline.Particles(
         sigma = np.zeros(n_part),
         delta = np.zeros(n_part))
 
-part_dict = xt.pyparticles_to_xtrack_dict(pyst_part)
-particles = xt.Particles(_context=context, **part_dict)
+particles = xt.Particles(_context=context, **xparticles.to_dict())
 
-aper_pyst = xline.elements.LimitRect(min_x=x_aper_min,
+aper_xline = xl.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
                                           min_y=y_aper_min,
                                           max_y=y_aper_max)
 
 aper = xt.LimitRect(_context=context,
-                    **aper_pyst.to_dict())
+                    **aper_xline.to_dict())
 
-aper_pyst.track(pyst_part)
+aper_xline.track(xparticles)
 
 # Build a small test line
-pyst_line = xline.Line(elements=[
-                xline.elements.Drift(length=5.),
-                aper_pyst,
-                xline.elements.Drift(length=5.)],
+line = xl.Line(elements=[
+                xl.elements.Drift(length=5.),
+                aper_xline,
+                xl.elements.Drift(length=5.)],
                 element_names=['drift0', 'aper', 'drift1'])
 
-tracker = xt.Tracker(_context=context, sequence=pyst_line)
+tracker = xt.Tracker(_context=context, sequence=line)
 
 tracker.track(particles)
 
@@ -58,7 +58,7 @@ part_s = context.nparray_from_context_array(particles.s)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(np.sort(pyst_part.particle_id), np.sort(id_alive))
+assert np.allclose(np.sort(xparticles.particle_id), np.sort(id_alive))
 assert np.allclose(part_s[part_state>0], 10.)
 assert np.allclose(part_s[part_state<1], 5.)
 

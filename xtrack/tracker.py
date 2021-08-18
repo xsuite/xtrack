@@ -4,6 +4,7 @@ import numpy as np
 from .particles import Particles, gen_local_particle_api
 from .general import _pkg_root
 from .line import Line as xtLine
+from .base_element import _handle_per_particle_blocks
 
 import xobjects as xo
 import xline as xl
@@ -282,20 +283,23 @@ class Tracker:
             ParticlesMonitorData tbt_monitor =
                             (ParticlesMonitorData) tbt_mon_pointer;
 
-            int64_t n_part = ParticlesData_get_num_particles(particles);
-            if (part_id<n_part){
+            int64_t part_capacity = ParticlesData_get__capacity(particles);
+            if (part_id<part_capacity){
             Particles_to_LocalParticle(particles, &lpart, part_id);
+
+            int64_t isactive = check_is_active(&lpart);
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
+                if (!isactive){
+                    break;
+                }
+
                 if (flag_tbt_monitor){
-                    if (check_is_not_lost(&lpart)>0){
-                        ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                    }
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
-                    if (check_is_not_lost(&lpart)>0){
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
@@ -327,13 +331,14 @@ class Tracker:
         src_lines.append(
             """
                         } //switch
-                    } // check_is_not_lost
-                    if (check_is_not_lost(&lpart)>0){
-                        increment_at_element(&lpart);
+                    isactive = check_is_active(&lpart);
+                    if (!isactive){
+                        break;
                     }
+                    increment_at_element(&lpart);
                 } // for elements
                 if (flag_end_turn_actions>0){
-                    if (check_is_not_lost(&lpart)>0){
+                    if (isactive){
                         increment_at_turn(&lpart);
                     }
                 }
@@ -369,6 +374,8 @@ class Tracker:
             kernels = {}
         kernels.update(kernel_descriptions)
 
+        sources = _handle_per_particle_blocks(sources)
+
         # Compile!
         context.add_kernels(
             sources,
@@ -393,21 +400,11 @@ class Tracker:
         assert ele_start == 0
         assert num_elements is None
 
-        if turn_by_turn_monitor:
-            flag_tbt = True
-            context = self._buffer.context
-            # TODO To be generalized to start at generic turn
-            monitor = self.particles_monitor_class(
-                _context=context,
-                start_at_turn=0,
-                stop_at_turn=num_turns,
-                num_particles=particles.num_particles,
-            )
-        else:
-            flag_tbt = False
+        (flag_tbt, monitor, buffer_monitor, offset_monitor
+             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         for tt in range(num_turns):
-            if turn_by_turn_monitor:
+            if flag_tbt:
                 monitor.track(particles)
             for pp in self._parts:
                 pp.track(particles)
@@ -416,10 +413,8 @@ class Tracker:
             self._supertracker.track(particles,
                                ele_start=self._supertracker.num_elements,
                                num_elements=0)
-        if flag_tbt:
-            self.record_last_track = monitor
-        else:
-            self.record_last_track = None
+
+        self.record_last_track = monitor
 
 
     def _track_no_collective(
@@ -443,26 +438,11 @@ class Tracker:
             flag_end_turn_actions = (
                     num_elements + ele_start == self.num_elements)
 
-        if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
-            flag_tbt = 0
-            buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
-            offset_monitor = 0
-        elif turn_by_turn_monitor is True:
-            flag_tbt = 1
-            # TODO Assumes at_turn starts from zero, to be generalized
-            monitor = self.particles_monitor_class(
-                _context=self.line._buffer.context,
-                start_at_turn=0,
-                stop_at_turn=num_turns,
-                num_particles=particles.num_particles,
-            )
-            buffer_monitor = monitor._buffer.buffer
-            offset_monitor = monitor._offset
-        else:
-            raise NotImplementedError
-            # User can provide their own monitor
 
-        self.track_kernel.description.n_threads = particles.num_particles
+        (flag_tbt, monitor, buffer_monitor, offset_monitor
+             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+
+        self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(
             buffer=self.line._buffer.buffer,
             ele_offsets=self.ele_offsets_dev,
@@ -477,7 +457,32 @@ class Tracker:
             offset_tbt_monitor=offset_monitor,
         )
 
-        if flag_tbt:
-            self.record_last_track = monitor
+        self.record_last_track = monitor
+
+    def _get_monitor(self, particles, turn_by_turn_monitor, num_turns):
+
+        if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
+            flag_tbt = 0
+            monitor = None
+            buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
+            offset_monitor = 0
+        elif turn_by_turn_monitor is True:
+            flag_tbt = 1
+            # TODO Assumes at_turn starts from zero, to be generalized
+            monitor = self.particles_monitor_class(
+                _context=particles._buffer.context,
+                start_at_turn=0,
+                stop_at_turn=num_turns,
+                particle_id_range=particles.get_active_particle_id_range()
+            )
+            buffer_monitor = monitor._buffer.buffer
+            offset_monitor = monitor._offset
+        elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):
+            flag_tbt = 1
+            monitor = turn_by_turn_monitor
+            buffer_monitor = monitor._buffer.buffer
+            offset_monitor = monitor._offset
         else:
-            self.record_last_track = None
+            raise ValueError('Please provide a valid monitor object')
+
+        return flag_tbt, monitor, buffer_monitor, offset_monitor

@@ -1,7 +1,57 @@
+from pathlib import Path
+
 import xobjects as xo
 from .particles import ParticlesData, gen_local_particle_api
 from .dress import dress
 from .general import _pkg_root
+
+start_per_part_block = """
+   int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp
+   #pragma omp parallel for                                       //only_for_context cpu_openmp
+   for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial cpu_openmp
+    //#pragma omp simd
+    for (int iii=0; iii<!!CHUNK_SIZE!!; iii++){                   //only_for_context cpu_serial cpu_openmp
+      int const ii = iii+jj;                                      //only_for_context cpu_serial cpu_openmp
+      if (ii<n_part){                                             //only_for_context cpu_serial cpu_openmp
+
+        LocalParticle lpart = *part0;//only_for_context cpu_serial cpu_openmp
+        LocalParticle* part = &lpart;//only_for_context cpu_serial cpu_openmp
+        part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+
+        LocalParticle* part = part0;//only_for_context opencl cuda
+""".replace("!!CHUNK_SIZE!!", "128")
+
+end_part_part_block = """
+     } //only_for_context cpu_serial cpu_openmp
+    }  //only_for_context cpu_serial cpu_openmp
+   }   //only_for_context cpu_serial cpu_openmp
+"""
+
+def _handle_per_particle_blocks(sources):
+
+    out = []
+    for ii, ss in enumerate(sources):
+        if isinstance(ss, Path):
+            with open(ss, 'r') as fid:
+                strss = fid.read()
+        else:
+            strss = ss
+
+        if '//start_per_particle_block' in strss:
+
+            lines = strss.splitlines()
+            for ill, ll in enumerate(lines):
+                if '//start_per_particle_block' in ll:
+                    lines[ill] = start_per_part_block
+                if '//end_per_particle_block' in ll:
+                    lines[ill] = end_part_part_block
+
+            # TODO: this is very dirty, just for check!!!!! 
+            out.append('\n'.join(lines))
+        else:
+            out.append(ss)
+
+    return out
 
 def dress_element(XoElementData):
 
@@ -21,15 +71,15 @@ def dress_element(XoElementData):
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
             int64_t part_id = get_global_id(0);                    //only_for_context opencl
 
-            int64_t n_part = ParticlesData_get_num_particles(particles);
-            if (part_id<n_part){
+            int64_t part_capacity = ParticlesData_get__capacity(particles);
+            if (part_id<part_capacity){
                 Particles_to_LocalParticle(particles, &lpart, part_id);
-                if (check_is_not_lost(&lpart)>0){
+                if (check_is_active(&lpart)>0){
 '''
             f'      {name}_track_local_particle(el, &lpart);\n'
 '''
                 }
-                if (check_is_not_lost(&lpart)>0){
+                if (check_is_active(&lpart)>0){
                         increment_at_element(&lpart);
                 }
             }
@@ -44,13 +94,17 @@ def dress_element(XoElementData):
     def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
 
-        context.add_kernels(sources=[
-                gen_local_particle_api(),
+        sources=(
+                [gen_local_particle_api(),
                 _pkg_root.joinpath("tracker_src/tracker.h")]
                 + self.XoStruct.extra_sources
-                + [self.track_kernel_source],
-            kernels=self.track_kernel_description,
-            save_source_as=save_source_as)
+                + [self.track_kernel_source])
+
+        sources = _handle_per_particle_blocks(sources)
+
+        context.add_kernels(sources=sources,
+                kernels=self.track_kernel_description,
+                 save_source_as=save_source_as)
 
 
     def track(self, particles):
@@ -61,7 +115,7 @@ def dress_element(XoElementData):
                 self.compile_track_kernel()
             self._track_kernel = context.kernels[self._track_kernel_name]
 
-        self._track_kernel.description.n_threads = particles.num_particles
+        self._track_kernel.description.n_threads = particles._capacity
         self._track_kernel(el=self._xobject, particles=particles)
 
     DressedElement.compile_track_kernel = compile_track_kernel
@@ -89,3 +143,4 @@ class MetaBeamElement(type):
 
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
+

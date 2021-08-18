@@ -40,8 +40,9 @@ num_turns = int(100)
 # Choose a context #
 ####################
 
-n_part = 200
-context = xo.ContextCpu()
+n_part = 8000
+context = xo.ContextCpu(omp_num_threads=8)
+#context = xo.ContextCpu(omp_num_threads=0)
 
 #n_part = 20000
 #context = xo.ContextCupy()
@@ -75,6 +76,21 @@ elif str(fname_line_particles).endswith('.json'):
 
 print('Import sequence')
 sequence = xl.Line.from_dict(input_data['line'])
+
+
+#fodo = [xl.Drift(length=1.), xl.Multipole(knl=[0, 1.]),
+#        xl.Drift(length=1.), xl.Multipole(knl=[0, -1.])]
+#
+#elelist = 4000*fodo
+#elenames = [f'e{ii}' for ii in range(len(elelist))]
+#
+#sequence = xl.Line(elements=elelist, element_names=elenames)
+
+
+
+
+
+
 if short_test:
     sequence = make_short_line(sequence)
 
@@ -84,7 +100,8 @@ if short_test:
 
 print('Build tracker')
 tracker = xt.Tracker(_context=context,
-                     sequence=sequence)
+                     sequence=sequence,
+                     save_source_as='source.c')
 
 ######################
 # Get some particles #

@@ -4,20 +4,44 @@ import numpy as np
 import xobjects as xo
 from scipy.special import factorial
 
-from ..dress_element import BeamElement
+from ..base_element import BeamElement
 from ..particles import ParticlesData
 from ..general import _pkg_root
 
+class ReferenceEnergyIncrease(BeamElement):
+
+    '''Beam element modeling a change of reference energy (acceleration, deceleration). Parameters:
+
+             - Delta_p0c [eV]: Change in reference energy. Default is ``0``.
+    '''
+
+    _xofields = {
+        'Delta_p0c': xo.Float64}
+
+ReferenceEnergyIncrease.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
+
 
 class Drift(BeamElement):
+    '''Beam element modeling a drift section. Parameters:
+
+             - length [m]: Length of the drift section. Default is ``0``.
+    '''
+
     _xofields = {
         'length': xo.Float64}
 
 Drift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
 
-
 class Cavity(BeamElement):
+    '''Beam element modeling an RF cavity. Parameters:
+
+             - voltage [V]: Voltage of the RF cavity. Default is ``0``.
+             - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
+             - lag [deg]: Phase seen by the reference particle. Default is ``0``.
+    '''
+
     _xofields = {
         'voltage': xo.Float64,
         'frequency': xo.Float64,
@@ -30,6 +54,12 @@ Cavity.XoStruct.extra_sources = [
 
 
 class XYShift(BeamElement):
+    '''Beam element modeling an transverse shift of the reference system. Parameters:
+
+             - dx [m]: Horizontal shift. Default is ``0``.
+             - dy [m]: Vertical shift. Default is ``0``.
+
+    '''
     _xofields = {
         'dx': xo.Float64,
         'dy': xo.Float64,
@@ -39,7 +69,44 @@ XYShift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
 
 
+## ELECTRON LENS
+
+class Elens(BeamElement):
+# if array is needed we do it like this
+#    _xofields={'inner_radius': xo.Float64[:]}
+    _xofields={
+               'current':      xo.Float64,
+               'inner_radius': xo.Float64,
+               'outer_radius': xo.Float64,
+               'elens_length': xo.Float64,
+               'voltage':      xo.Float64
+              }
+
+    def __init__(self,  inner_radius = None,
+                        outer_radius = None,
+                        current      = None,
+                        elens_length = None,
+                        voltage      = None, **kwargs):
+        super().__init__(**kwargs)
+        self.inner_radius    = inner_radius
+        self.outer_radius    = outer_radius
+        self.current         = current
+        self.elens_length    = elens_length
+        self.voltage         = voltage
+
+Elens.XoStruct.extra_sources = [
+    _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
+
+
+
+
 class SRotation(BeamElement):
+    '''Beam element modeling an rotation of the reference system around the s axis. Parameters:
+
+                - angle [deg]: Rotation angle. Default is ``0``.
+
+    '''
+
     _xofields={
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
@@ -58,8 +125,18 @@ class SRotation(BeamElement):
 SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
-
 class Multipole(BeamElement):
+    '''Beam element modeling a thin magnetic multipole. Parameters:
+
+            - order [int]: Horizontal shift. Default is ``0``.
+            - knl [m^-n, array]: Normalized integrated strength of the normal components.
+            - ksl [m^-n, array]: Normalized integrated strength of the skew components.
+            - hxl [rad]: Rotation angle of the reference trajectoryin the horizzontal plane.
+            - hyl [rad]: Rotation angle of the reference trajectory in the vertical plane.
+            - length [m]: Length of the originating thick multipole.
+
+    '''
+
     _xofields={
         'order': xo.Int64,
         'length': xo.Float64,
@@ -136,6 +213,25 @@ Multipole.XoStruct.extra_sources = [
 
 
 class RFMultipole(BeamElement):
+    '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
+
+            kn(z) = k_n cos(2pi w tau + pn/180*pi)
+
+            ks[n](z) = k_n cos(2pi w tau + pn/180*pi)
+
+        Its parameters are:
+
+            - order [int]: Horizontal shift. Default is ``0``.
+            - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
+            - knl [m^-n, array]: Normalized integrated strength of the normal components.
+            - ksl [m^-n, array]: Normalized integrated strength of the skew components.
+            - pn [deg, array]: Phase of the normal components.
+            - ps [deg, array]: Phase of the skew components.
+            - voltage [V]: Longitudinal voltage. Default is ``0``.
+            - lag [deg]: Longitudinal phase seen by the reference particle. Default is ``0``.
+
+    '''
+
     _xofields={
         'order': xo.Int64,
         'voltage': xo.Float64,
@@ -290,6 +386,15 @@ RFMultipole.XoStruct.extra_sources = [
 
 
 class DipoleEdge(BeamElement):
+    '''Beam element modeling a dipole edge. Parameters:
+
+            - h [1/m]: Curvature.
+            - e1 [rad]: Face angle.
+            - hgap [m]: Equivalent gap.
+            - fint []: Fringe integral.
+
+    '''
+
     _xofields = {
             'r21': xo.Float64,
             'r43': xo.Float64,
@@ -342,3 +447,133 @@ class DipoleEdge(BeamElement):
 
 DipoleEdge.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
+
+
+class LinearTransferMatrix(BeamElement):
+    _xofields={
+        'no_detuning': xo.Int64,
+        'q_x': xo.Float64,
+        'q_y': xo.Float64,
+        'cos_s': xo.Float64,
+        'sin_s': xo.Float64,
+        'beta_x_0': xo.Float64,
+        'beta_y_0': xo.Float64,
+        'beta_ratio_x': xo.Float64,
+        'beta_prod_x': xo.Float64,
+        'beta_ratio_y': xo.Float64,
+        'beta_prod_y': xo.Float64,
+        'alpha_x_0': xo.Float64,
+        'alpha_x_1': xo.Float64,
+        'alpha_y_0': xo.Float64,
+        'alpha_y_1': xo.Float64,
+        'disp_x_0': xo.Float64,
+        'disp_x_1': xo.Float64,
+        'disp_y_0': xo.Float64,
+        'disp_y_1': xo.Float64,
+        'beta_s': xo.Float64,
+        'energy_ref_increment': xo.Float64,
+        'energy_increment': xo.Float64,
+        'chroma_x': xo.Float64,
+        'chroma_y': xo.Float64,
+        'detx_x': xo.Float64,
+        'detx_y': xo.Float64,
+        'dety_y': xo.Float64,
+        'dety_x': xo.Float64
+        }
+
+    def __init__(self, Q_x=0, Q_y=0,
+                     beta_x_0=1.0, beta_x_1=1.0, beta_y_0=1.0, beta_y_1=1.0,
+                     alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
+                     disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
+                     Q_s=0.0, beta_s=1.0,
+                     chroma_x=0.0, chroma_y=0.0,
+                     detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+                     energy_increment=0.0, energy_ref_increment=0.0, **nargs):
+
+        if (chroma_x==0 and chroma_y==0
+            and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
+
+            cos_x = np.cos(2.0*np.pi*Q_x)
+            sin_x = np.sin(2.0*np.pi*Q_x)
+            cos_y = np.cos(2.0*np.pi*Q_y)
+            sin_y = np.sin(2.0*np.pi*Q_y)
+
+            nargs['no_detuning']  =  True
+            nargs['q_x'] = sin_x
+            nargs['q_y'] = sin_y
+            nargs['chroma_x'] = cos_x
+            nargs['chroma_y'] = cos_y
+            nargs['detx_x'] = 0.
+            nargs['detx_y'] = 0.
+            nargs['dety_y'] = 0.
+            nargs['dety_x'] = 0.
+        else:
+            nargs['no_detuning']  =  False
+            nargs['q_x'] = Q_x
+            nargs['q_y'] = Q_y
+            nargs['chroma_x'] = chroma_x
+            nargs['chroma_y'] = chroma_y
+            nargs['detx_x'] = detx_x
+            nargs['detx_y'] = detx_y
+            nargs['dety_y'] = dety_y
+            nargs['dety_x'] = dety_x
+
+        if Q_s is not None:
+            nargs['cos_s'] = np.cos(2.0*np.pi*Q_s)
+            nargs['sin_s'] = np.sin(2.0*np.pi*Q_s)
+        else:
+            nargs['cos_s'] = 999
+            nargs['sin_s'] = 0.
+
+        nargs['beta_x_0'] = beta_x_0
+        nargs['beta_y_0'] = beta_y_0
+        nargs['beta_ratio_x'] = np.sqrt(beta_x_1/beta_x_0)
+        nargs['beta_prod_x'] = np.sqrt(beta_x_1*beta_x_0)
+        nargs['beta_ratio_y'] = np.sqrt(beta_y_1/beta_y_0)
+        nargs['beta_prod_y'] = np.sqrt(beta_y_1*beta_y_0)
+        nargs['alpha_x_0'] = alpha_x_0
+        nargs['alpha_x_1'] = alpha_x_1
+        nargs['alpha_y_0'] = alpha_y_0
+        nargs['alpha_y_1'] = alpha_y_1
+        nargs['disp_x_0'] = disp_x_0
+        nargs['disp_x_1'] = disp_x_1
+        nargs['disp_y_0'] = disp_y_0
+        nargs['disp_y_1'] = disp_y_1
+        nargs['beta_s'] = beta_s
+        # acceleration with change of reference momentum
+        nargs['energy_ref_increment'] = energy_ref_increment
+        # acceleration without change of reference momentum
+        nargs['energy_increment'] = energy_increment
+
+        super().__init__(**nargs)
+
+    @property
+    def Q_s(self):
+        return np.arccos(self.cos_s) / (2*np.pi)
+
+    @property
+    def beta_x_1(self):
+        return self.beta_prod_x*self.beta_ratio_x
+
+    @property
+    def beta_y_1(self):
+        return self.beta_prod_y*self.beta_ratio_y
+
+LinearTransferMatrix.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
+
+class EnergyChange(BeamElement):
+    _xofields={
+        'energy_ref_increment': xo.Float64,
+        'energy_increment': xo.Float64
+        }
+
+    def __init__(self, energy_increment=0.0,energy_ref_increment=0.0, **nargs):
+        nargs['energy_ref_increment']=energy_ref_increment # acceleration with change of reference momentum (e.g. ramp)
+        nargs['energy_increment']=energy_increment # acceleration without change of reference momentum (e.g. compensation of energy loss)
+        super().__init__(**nargs)
+
+EnergyChange.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/energychange.h')]
+
+

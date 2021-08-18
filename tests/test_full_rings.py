@@ -32,12 +32,8 @@ def test_full_rings(element_by_element=False):
         rtol_10turns, atol_10turns = tolerances_10_turns[icase]
 
         print('Case:', fname_line_particles)
-        for CTX in xo.ContextCpu, xo.ContextPyopencl, xo.ContextCupy:
-            if CTX not in available:
-                continue
-
-            print(f"Test {CTX}")
-            context = CTX()
+        for context in xo.context.get_test_contexts():
+            print(f"Test {context.__class__}")
 
             #############
             # Load file #
@@ -107,8 +103,7 @@ def test_full_rings(element_by_element=False):
                 problem_found = False
                 for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
                     vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
-                    pp_dict = xt.pyparticles_to_xtrack_dict(pyst_part)
-                    particles.set_particle(ip_check, **pp_dict)
+                    particles.set_particle(ip_check, **pyst_part.to_dict())
 
                     tracker.track(particles, ele_start=ii, num_elements=1)
 
