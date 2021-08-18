@@ -35,6 +35,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     	dpy =  chi * dpy; // rad
 
 	// compute the average energy loss by synchrotron radiation
+	double const length = MultipoleData_get_length(el); // m
 	double const h = hypot(dpx, dpy) / length; // 1/m, 1/rho, curvature
 	double const p0c = LocalParticle_get_p0c(part); // eV
 	double const m0  = LocalParticle_get_mass0(part); // eV/c^2
@@ -53,7 +54,6 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     	if( ( hxl > 0) || ( hyl > 0) || ( hxl < 0 ) || ( hyl < 0 ) )
     	{
     	    double const delta  = LocalParticle_get_delta(part);
-    	    double const length = MultipoleData_get_length(el);
 
     	    double const hxlx   = x * hxl;
     	    double const hyly   = y * hyl;
