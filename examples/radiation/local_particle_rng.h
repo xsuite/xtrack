@@ -1,7 +1,7 @@
 #ifndef LOCALPARTICE_RNG_H
 #define LOCALPARTICE_RNG_H
 
-double LocalParticle_gen_random_double(LocalParticle* part){
+double LocalParticle_generate_random_double(LocalParticle* part){
 
     uint32_t s1 = LocalParticle_get___rng_s1(part);
     uint32_t s2 = LocalParticle_get___rng_s2(part);

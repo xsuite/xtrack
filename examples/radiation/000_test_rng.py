@@ -20,3 +20,17 @@ seeds = ctx.nparray_to_context_array(
         np.array([3,4,7], dtype=np.uint32))
 ctx.kernels.Particles_initialize_rand_gen(particles=part,
         seeds=seeds, n_init=part._capacity)
+
+class TestElement(xt.BeamElement):
+     _xofields={
+        'dummy': xo.Float64,
+        }
+
+TestElement.XoStruct.extra_sources = [
+    xt._pkg_root.joinpath('headers/rng.h'),
+    Path('./local_particle_rng.h'),
+    Path('./test_elem.h')]
+
+telem = TestElement()
+
+telem.track(part)
