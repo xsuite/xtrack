@@ -4,14 +4,13 @@ import xobjects as xo
 from ._pyparticles import Pyparticles
 
 from ..dress import dress
+from ..general import _pkg_root
 
 from scipy.constants import m_p
 from scipy.constants import e as qe
 from scipy.constants import c as clight
 
 pmass = m_p * clight * clight / qe
-
-
 
 
 LAST_INVALID_STATE = -999999999
@@ -21,7 +20,7 @@ size_vars = (
     (xo.Int64,   '_num_active_particles'),
     (xo.Int64,   '_num_lost_particles'),
     )
-# Capacity is always kept up to data
+# Capacity is always kept up to date
 # the other two are placeholders to be used if needed
 # i.e. on ContextCpu
 
@@ -69,6 +68,17 @@ ParticlesData = type(
         'ParticlesData',
         (xo.Struct,),
         fields)
+
+ParticlesData.extra_sources = [
+    _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+    _pkg_root.joinpath('random_number_generator/rng_src/particles_rng.h')]
+ParticlesData.custom_kernels = {
+    'Particles_initialize_rand_gen': xo.Kernel(
+        args=[
+            xo.Arg(ParticlesData, name='particles'),
+            xo.Arg(xo.UInt32, pointer=True, name='seeds'),
+            xo.Arg(xo.Int32, name='n_init')],
+        n_threads='n_init')}
 
 pysixtrack_naming=(
         ('qratio', 'charge_ratio'),
@@ -268,6 +278,8 @@ class Particles(dress(ParticlesData)):
         self.rvv[:] = rvv
         self.rpp[:] = rpp
         self.psigma[:] = psigma
+
+
 
 
 def gen_local_particle_api(mode='no_local_copy'):
