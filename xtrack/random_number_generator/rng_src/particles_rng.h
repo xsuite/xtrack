@@ -3,7 +3,7 @@
 
 /*gpukern*/
 void Particles_initialize_rand_gen(ParticlesData particles,
-	uint32_t* seeds, int n_init){
+	/*gpuglmem*/ uint32_t* seeds, int n_init){
 
      for (int ii=0; ii<n_init; ii++){//vectorize_over ii n_init
 
