@@ -1,6 +1,7 @@
 #ifndef LOCALPARTICE_RNG_H
 #define LOCALPARTICE_RNG_H
 
+/*gpufun*/
 double LocalParticle_generate_random_double(LocalParticle* part){
 
     uint32_t s1 = LocalParticle_get___rng_s1(part);

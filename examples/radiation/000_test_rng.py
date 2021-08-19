@@ -5,8 +5,9 @@ import xtrack as xt
 from pathlib import Path
 
 ctx = xo.ContextCpu()
+ctx = xo.ContextCupy()
 
-part = xt.Particles(context=ctx, p0c=6.5e12, x=[1,2,3])
+part = xt.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
 part._init_random_number_generator()
 
 class TestElement(xt.BeamElement):
@@ -27,6 +28,6 @@ void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 }
 ''')
 
-telem = TestElement()
+telem = TestElement(_context=ctx)
 
 telem.track(part)

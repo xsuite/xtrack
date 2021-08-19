@@ -179,7 +179,7 @@ class Particles(dress(ParticlesData)):
          context = self._buffer.context
          seeds_dev = context.nparray_to_context_array(seeds)
          context.kernels.Particles_initialize_rand_gen(particles=self,
-             seeds=seeds, n_init=self._capacity)
+             seeds=seeds_dev, n_init=self._capacity)
 
 
 
