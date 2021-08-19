@@ -6,8 +6,11 @@ from pathlib import Path
 
 ctx = xo.ContextCpu()
 ctx.add_kernels(
-        sources=[xt._pkg_root.joinpath('headers/rng.h'),
-                 Path('./particles_rng.h')],
+        sources=[
+            xt._pkg_root.joinpath(
+                'random_number_generator/rng_src/base_rng.h'),
+            xt._pkg_root.joinpath(
+                'random_number_generator/rng_src/particles_rng.h')],
         kernels={'Particles_initialize_rand_gen': xo.Kernel(
                      args=[
                          xo.Arg(xt.Particles.XoStruct, name='particles'),
@@ -28,8 +31,8 @@ class TestElement(xt.BeamElement):
         }
 
 TestElement.XoStruct.extra_sources = [
-    xt._pkg_root.joinpath('headers/rng.h'),
-    Path('./local_particle_rng.h'),
+    xt._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+    xt._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     Path('./test_elem.h')]
 
 telem = TestElement()
