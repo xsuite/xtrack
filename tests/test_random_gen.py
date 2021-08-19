@@ -40,8 +40,7 @@ def test_random_generation():
 
         tracker = xt.Tracker(_buffer=telem._buffer,
                 sequence=xl.Line(elements=[telem],
-                    element_names='test_element'),
-                    save_source_as='source.c')
+                    element_names='test_element'),)
 
         tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
 

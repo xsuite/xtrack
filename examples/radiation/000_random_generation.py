@@ -6,7 +6,7 @@ import xline as xl
 from pathlib import Path
 
 ctx = xo.ContextCpu()
-#ctx = xo.ContextCupy()
+ctx = xo.ContextCupy()
 #ctx = xo.ContextPyopencl()
 
 part = xt.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
