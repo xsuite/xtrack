@@ -16,8 +16,9 @@ ctx.add_kernels(
                      n_threads='n_init')})
 
 part = xt.Particles(context=ctx, p0c=6.5e12, x=[1,2,3])
-seeds = ctx.nparray_to_context_array(
-        np.array([3,4,7], dtype=np.uint32))
+seeds = np.random.randint(low=1, high=4e9, size=part._capacity, dtype=np.uint32)
+
+seeds_dev = ctx.nparray_to_context_array(seeds)
 ctx.kernels.Particles_initialize_rand_gen(particles=part,
         seeds=seeds, n_init=part._capacity)
 
