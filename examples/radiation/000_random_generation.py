@@ -6,8 +6,8 @@ import xline as xl
 from pathlib import Path
 
 ctx = xo.ContextCpu()
-ctx = xo.ContextCupy()
-ctx = xo.ContextPyopencl()
+#ctx = xo.ContextCupy()
+#ctx = xo.ContextPyopencl()
 
 part = xt.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
 part._init_random_number_generator()
@@ -34,6 +34,7 @@ telem = TestElement(_context=ctx)
 
 telem.track(part)
 
+# Use turn-by-turn monitor to acquire some statistics
 
 tracker = xt.Tracker(_buffer=telem._buffer,
         sequence=xl.Line(elements=[telem],
