@@ -142,6 +142,7 @@ class Multipole(BeamElement):
         'length': xo.Float64,
         'hxl': xo.Float64,
         'hyl': xo.Float64,
+        'radiation_flag': xo.Int64,
         'bal': xo.Float64[:],
         }
 
@@ -209,7 +210,8 @@ class Multipole(BeamElement):
         #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
 
 Multipole.XoStruct.extra_sources = [
-    _pkg_root.joinpath('headers/rng.h'),
+    _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+    _pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
 

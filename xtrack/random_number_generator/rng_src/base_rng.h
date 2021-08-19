@@ -3,8 +3,8 @@
 
 #include <stdint.h> //only_for_context none
 
-static double
-rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3 )
+/*gpufun*/
+double rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3 )
 {
 #define MASK 0xffffffffUL
 #define TAUSWORTHE(s,a,b,c,d) ((((s) &c) <<d) &MASK) ^ (((((s) <<a) &MASK)^(s)) >>b)
@@ -16,8 +16,8 @@ rng_get (uint32_t *s1, uint32_t *s2, uint32_t *s3 )
   return ((*s1) ^ (*s2) ^ (*s3)) / 4294967296.0 ;
 }
 
-static void
-rng_set (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t s )
+/*gpufun*/
+void rng_set (uint32_t *s1, uint32_t *s2, uint32_t *s3, uint32_t s )
 {
   if (s == 0)
     s = 1;      /* default seed is 1 */
