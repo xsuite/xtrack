@@ -2,6 +2,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+import xline as xl
 from pathlib import Path
 
 ctx = xo.ContextCpu()
@@ -32,3 +33,28 @@ void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 telem = TestElement(_context=ctx)
 
 telem.track(part)
+
+
+tracker = xt.Tracker(_buffer=telem._buffer,
+        sequence=xl.Line(elements=[telem],
+            element_names='test_element'),
+            save_source_as='source.c')
+
+tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure()
+for i_part in range(part._capacity):
+    x = tracker.record_last_track.x[i_part, :]
+    assert np.all(x>0)
+    assert np.all(x<1)
+    hstgm, bin_edges = np.histogram(x,  bins=50, range=(0, 1), density=True)
+
+    bin_centers = 0.5*(bin_edges[:-1] + bin_edges[1:])
+    plt.plot(bin_centers, hstgm)
+    plt.ylim(bottom=0, top=1.1)
+    plt.grid(True)
+    assert np.allclose(hstgm, 1, rtol=1e-10, atol=0.03)
+plt.show()
+
