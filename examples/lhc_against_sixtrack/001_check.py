@@ -2,9 +2,14 @@ import numpy as np
 
 import sixtracktools
 import xline
+import xtrack as xt
+import xobjects as xo
+
+context = xo.ContextCpu()
 
 six = sixtracktools.SixInput(".")
 line = xline.Line.from_sixinput(six)
+tracker = xt.Tracker(_context=context, sequence=line)
 iconv = line.other_info["iconv"]
 
 sixdump = sixtracktools.SixDump101("res/dump3.dat")[1::2]
@@ -13,7 +18,7 @@ sixdump = sixtracktools.SixDump101("res/dump3.dat")[1::2]
 def compare(prun, pbench):
     out = []
     for att in "x px y py zeta delta".split():
-        vrun = getattr(prun, att)
+        vrun = getattr(prun, att)[0]
         vbench = getattr(pbench, att)
         diff = vrun - vbench
         out.append(abs(diff))
@@ -28,12 +33,16 @@ s_coord = []
 for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
-    prun = xline.Particles(**sixdump[ii - 1].get_minimal_beam())
+    prun = xt.Particles(_context=context,
+            **xline.Particles(**sixdump[ii - 1].get_minimal_beam()).to_dict())
+    prun.state[0]=1
+    prun.reorganize()
     print(f"\n-----sixtrack={ii} xline={jja} --------------")
     # print(f"pysixtr {jja}, x={prun.x}, px={prun.px}")
     for jj in range(jja + 1, jjb + 1):
         label, elem = line.element_names[jj], line.elements[jj]
-        elem.track(prun)
+        #elem.track(prun)
+        tracker.track(particles=prun, ele_start=jj, num_elements=1)
         print(f"{jj} {label},{str(elem)[:50]}")
     pbench = xline.Particles(**sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)
