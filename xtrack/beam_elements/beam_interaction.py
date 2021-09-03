@@ -4,8 +4,12 @@ from ..particles import Particles
 
 class BeamInteraction:
 
-    def __init__(self, interaction_process):
+    def __init__(self, name, interaction_process, length=0):
+        self.name = name
         self.interaction_process = interaction_process
+
+        self.length = length
+        self.isthick = True if length > 0 else False
 
     def track(self, particles):
 
