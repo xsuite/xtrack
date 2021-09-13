@@ -15,14 +15,19 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
     //start_per_particle_block (part0->part)
 	int64_t const at_turn = LocalParticle_get_at_turn(part);
-	if (at_turn>=start_at_turn && start_at_turn<stop_at_turn){
+	if (at_turn>=start_at_turn && at_turn<stop_at_turn){
 	    int64_t const particle_id = LocalParticle_get_particle_id(part);
 	    if (particle_id<part_id_end && particle_id>=part_id_start){
 	    	int64_t const store_at = 
 		    n_turns_record * (particle_id - part_id_start)
 		    + at_turn - start_at_turn;
-
-	    	LocalParticle_to_Particles(part, data, store_at, 0);
+		printf("store_at = %d\n", (int) store_at);
+		printf("at_turn = %d\n", (int) at_turn);
+		printf("start_at_turn = %d\n", (int) start_at_turn);
+		printf("stop_at_turn = %d\n", (int) stop_at_turn);
+		printf("n_turns_record = %d\n", (int) n_turns_record);
+		printf("part_id_start = %d\n", (int) part_id_start);
+	    	//LocalParticle_to_Particles(part, data, store_at, 0);
 	    }
 	}
     //end_per_particle_block

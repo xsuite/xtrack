@@ -438,7 +438,7 @@ class Tracker:
             flag_end_turn_actions = (
                     num_elements + ele_start == self.num_elements)
 
-
+        import pdb; pdb.set_trace()
         (flag_tbt, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
