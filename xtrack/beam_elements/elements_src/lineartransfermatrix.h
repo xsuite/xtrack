@@ -33,6 +33,15 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const alpha_x_1 = LinearTransferMatrixData_get_alpha_x_1(el);
     double const alpha_y_1 = LinearTransferMatrixData_get_alpha_y_1(el);
 
+    double const CO_x_0 = LinearTransferMatrixData_get_CO_x_0(el);
+    double const CO_x_1 = LinearTransferMatrixData_get_CO_x_1(el);
+    double const CO_px_0 = LinearTransferMatrixData_get_CO_px_0(el);
+    double const CO_px_1 = LinearTransferMatrixData_get_CO_px_1(el);
+    double const CO_y_0 = LinearTransferMatrixData_get_CO_y_0(el);
+    double const CO_y_1 = LinearTransferMatrixData_get_CO_y_1(el);
+    double const CO_py_0 = LinearTransferMatrixData_get_CO_py_0(el);
+    double const CO_py_1 = LinearTransferMatrixData_get_CO_py_1(el);
+
     double const energy_ref_increment = 
 	    LinearTransferMatrixData_get_energy_ref_increment(el);
 
@@ -46,9 +55,11 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         double new_py = LocalParticle_get_py(part);
         double delta = LocalParticle_get_delta(part);
 
-        // removing dispersion
-        new_x -= disp_x_0 * delta;
-        new_y -= disp_y_0 * delta;
+        // removing dispersion and close orbit
+        new_x -= disp_x_0 * delta + CO_x_0;
+        new_px -= CO_px_0;
+        new_y -= disp_y_0 * delta + CO_y_0;
+        new_py -= CO_py_0;
 
         double sin_x, cos_x, sin_y, cos_y;
 
@@ -135,10 +146,12 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
             new_py *= geo_emit_factor;
 	}
         
-        // re-adding dispersion
+        // re-adding dispersion and closed orbit
         delta = LocalParticle_get_delta(part);
-        new_x += disp_x_1 * delta;
-        new_y += disp_y_1 * delta;
+        new_x += disp_x_1 * delta + CO_x_1;
+        new_px += CO_px_1;
+        new_y += disp_y_1 * delta + CO_y_1;
+        new_py += CO_py_1;
 
     	LocalParticle_set_x(part, new_x);
     	LocalParticle_set_y(part, new_y);
