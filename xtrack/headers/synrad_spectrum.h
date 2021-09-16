@@ -145,6 +145,14 @@ double syngen(LocalParticle *part)
   return result;  // result now exact spectrum with unity weight
 }
 
+/* Nel mio documento è la formula a pagina 8, n_\gamma
+  static inline double synrad_probability(double particle_momentum, double kick )
+  {
+    double const c1=2.5/SQRT3*ALPHA_EM*INV_EMASS;
+    return c1*fabs(kick)*particle_momentum;
+  }
+*/
+
 // in multipolo
 
 /*
