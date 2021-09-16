@@ -428,7 +428,7 @@ double LocalParticle_get_energy0(LocalParticle* part){
 }
 
 /*gpufun*/
-void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
+void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy, int pz_only ){
 
     double const beta0 = LocalParticle_get_beta0(part);
     double const delta_beta0 = LocalParticle_get_delta(part) * beta0;
@@ -451,10 +451,18 @@ void LocalParticle_add_to_energy(LocalParticle* part, double delta_energy){
         rvv / LocalParticle_get_rvv(part));
 
     LocalParticle_set_rvv(part, rvv );
-    LocalParticle_set_rpp(part, 1. / one_plus_delta );
+
+    double const new_rpp = 1. / one_plus_delta;
+
+    if (!pz_only) {
+        double const old_rpp = LocalParticle_get_rpp(part);
+        double const f = old_rpp / new_rpp;
+        LocalParticle_scale_px(part, f);
+        LocalParticle_scale_py(part, f);
+    }
+
+    LocalParticle_set_rpp(part, new_rpp );
 }
-
-
 
 /*gpufun*/
 void LocalParticle_update_delta(LocalParticle* part, double new_delta_value){
