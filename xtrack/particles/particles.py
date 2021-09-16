@@ -281,6 +281,8 @@ class Particles(dress(ParticlesData)):
         for tt, kk in list(scalar_vars):
             setattr(self, kk, part_dict[kk])
         for tt, kk in list(per_particle_vars):
+            if kk.startswith('__') and kk not in part_dict.keys():
+                continue
             getattr(self, kk)[index] = part_dict[kk][0]
 
     def _update_delta(self, new_delta_value):

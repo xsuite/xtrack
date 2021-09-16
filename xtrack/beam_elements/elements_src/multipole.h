@@ -55,7 +55,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 	  LocalParticle_add_to_energy(part, -eloss);
 
 	  // A random number can be generated in this way
-	  double r = LocalParticle_generate_random_double(part); 
+	  //double r = LocalParticle_generate_random_double(part); 
 
 	}
 	

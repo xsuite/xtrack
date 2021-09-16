@@ -45,10 +45,7 @@ def test_collective_tracker():
         #################
         print('Build tracker...')
         tracker= xt.Tracker(_buffer=_buffer,
-                     sequence=newseq,
-                     particles_class=xt.Particles,
-                     local_particle_src=None,
-                     save_source_as='source.c')
+                     sequence=newseq)
 
         assert tracker.iscollective
         assert tracker.track == tracker._track_with_collective
