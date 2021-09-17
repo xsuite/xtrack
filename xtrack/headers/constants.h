@@ -1,3 +1,5 @@
+#ifndef XTRACK_CONSTANTS_H
+#define XTRACK_CONSTANTS_H
 
 #if !defined( C_LIGHT )
     #define   C_LIGHT ( 299792458.0 )
@@ -27,3 +29,4 @@
     #define QELEM (1.60217662e-19)
 #endif /* !defined( QELEM ) */
 
+#endif /* XTRACK_CONSTANTS_H */

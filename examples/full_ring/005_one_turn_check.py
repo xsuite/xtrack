@@ -109,6 +109,8 @@ print('Check element-by-element against xline...')
 xl_part = xl.Particles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
+diffs = []
+s_coord = []
 for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     vars_before = {vv :getattr(xl_part, vv) for vv in vars_to_check}
     particles.set_particle(ip_check, **xl_part.to_dict())
@@ -116,6 +118,8 @@ for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     tracker.track(particles, ele_start=ii, num_elements=1)
 
     eexl.track(xl_part)
+    s_coord.append(xl_part.s)
+    diffs.append([])
     for vv in vars_to_check:
         xl_change = getattr(xl_part, vv) - vars_before[vv]
         xt_change = context.nparray_from_context_array(
@@ -127,6 +131,8 @@ for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
                   f'    xl:   {xl_change: .7e}\n'
                   f'    xtrack: {xt_change: .7e}\n')
             break
+        diffs[-1].append(np.abs(
+            getattr(particles, vv)[ip_check] - getattr(xl_part, vv)))
 
     if not passed:
         print(f'\nelement {nn}')
@@ -134,8 +140,23 @@ for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     else:
         print(f'Check passed for element: {nn}              ', end='\r', flush=True)
 
+diffs = np.array(diffs)
 
 if not problem_found:
     print('\nAll passed on context:')
     print(context)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+fig = plt.figure(1, figsize=(6.4*1.5, 4.8*1.3))
+for ii, (vv, uu) in enumerate(
+        zip(['x', 'px', 'y', 'py', r'$\zeta$', r'$\delta$'],
+            ['[m]', '[-]', '[m]', '[-]', '[m]', '[-]'])):
+    ax = fig.add_subplot(3, 2, ii+1)
+    ax.plot(s_coord, diffs[:, ii])
+    ax.set_ylabel('Difference on '+ vv + ' ' + uu)
+    ax.set_xlabel('s [m]')
+fig.subplots_adjust(hspace=.48)
+plt.show()
+
 
