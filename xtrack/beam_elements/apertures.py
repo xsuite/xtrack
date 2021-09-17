@@ -58,3 +58,21 @@ class LimitEllipse(BeamElement):
 
 LimitEllipse.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
+
+
+class LimitPolygon(BeamElement):
+    _xofields = {
+        x_vertices = xo.Float64[:]
+        y_vertices = xo.Float64[:]
+        }
+
+    def __init__(self, x_vertices, y_vertices, **kwargs):
+
+        assert len(x_vertices) == len(y_vertices)
+        super().__init__(
+                x_vertices=x_vertices,
+                y_vertices=y_vertices,
+                **kwargs)
+
+LimitPolygon.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
