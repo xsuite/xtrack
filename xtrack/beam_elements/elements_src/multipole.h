@@ -52,7 +52,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 	  double const eloss = 2.0 / 3.0 * classical_radius*length * beta_gamma*beta_gamma*beta_gamma * h*h * energy; // eV
 	  
 	  // apply the energy kick
-	  LocalParticle_add_to_energy(part, -eloss, 1);
+	  LocalParticle_add_to_energy(part, -eloss, 0);
 
 	  // A random number can be generated in this way
 	  //double r = LocalParticle_generate_random_double(part); 
