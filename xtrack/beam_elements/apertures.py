@@ -1,3 +1,5 @@
+import numpy as np
+
 import xobjects as xo
 
 from ..base_element import BeamElement
@@ -62,17 +64,34 @@ LimitEllipse.XoStruct.extra_sources = [
 
 class LimitPolygon(BeamElement):
     _xofields = {
-        x_vertices = xo.Float64[:]
-        y_vertices = xo.Float64[:]
+        'x_vertices': xo.Float64[:],
+        'y_vertices': xo.Float64[:]
         }
 
     def __init__(self, x_vertices, y_vertices, **kwargs):
 
         assert len(x_vertices) == len(y_vertices)
+
         super().__init__(
                 x_vertices=x_vertices,
                 y_vertices=y_vertices,
                 **kwargs)
+
+        lengths = np.sqrt(np.diff(self.x_closed)**2
+                        + np.diff(self.y_closed)**2)
+
+
+    @property
+    def x_closed(self):
+        ctx = self._buffer.context
+        xx = ctx.nparray_from_context_array(self.x_vertices)
+        return np.concatenate([xx, np.array([xx[0]])])
+
+    @property
+    def y_closed(self):
+        ctx = self._buffer.context
+        yy = ctx.nparray_from_context_array(self.y_vertices)
+        return np.concatenate([yy, np.array([yy[0]])])
 
 LimitPolygon.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
