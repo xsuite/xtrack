@@ -15,13 +15,13 @@ buf = ctx.new_buffer()
 # Define aper_0
 aper_0 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
 shift_aper_0 = (1e-2, 0.5e-2)
-rot_deg_aper_0 = 30.
+rot_deg_aper_0 = 10.
 
 # Define aper_1
 aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
                                    min_y=-2e-2, max_y=2e-2)
 shift_aper_1 = (-5e-3, 1e-2)
-rot_deg_aper_1 = -45.
+rot_deg_aper_1 = 10.
 
 
 # aper_0_sandwitch
@@ -56,6 +56,7 @@ for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
     ax = fig.add_subplot(111)
     plt.plot(x0, y0, '.', color='red')
     plt.axis('equal')
+    plt.grid(linestyle=':')
     plt.plot(x0[ids][pp.state>0], y0[ids][pp.state>0], '.', color='green')
 
 plt.show()
