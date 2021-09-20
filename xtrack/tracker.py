@@ -94,7 +94,7 @@ class Tracker:
 
         if _buffer is None:
             if _context is None:
-                _context = xo.context.context_default
+                _context = xo.context_default
             _buffer = _context.new_buffer()
         self._buffer = _buffer
 
@@ -228,6 +228,33 @@ class Tracker:
             self.track_kernel = track_kernel
 
         self.track=self._track_no_collective
+
+    def get_backtracker(self, _context=None, _buffer=None):
+
+        assert not self.iscollective
+
+        if _buffer is None:
+            if _context is None:
+                _context = xo.context_default
+            _buffer = _context.new_buffer()
+
+        line = xl.Line(elements=[], element_names=[])
+        for nn, ee in zip(self.line.element_names[::-1],
+                          self.line.elements[::-1]):
+            line.append_element(
+                    ee.get_backtrack_element(_buffer=_buffer), nn)
+
+        return self.__class__(
+                    _buffer=_buffer,
+                    sequence=line,
+                    track_kernel=self.track_kernel,
+                    element_classes=self.element_classes,
+                    particles_class=self.particles_class,
+                    skip_end_turn_actions=self.skip_end_turn_actions,
+                    particles_monitor_class=self.particles_monitor_class,
+                    global_xy_limit=self.global_xy_limit,
+                    local_particle_src=self.local_particle_src,
+                )
 
     def _build_kernel(self, save_source_as):
 
