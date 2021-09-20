@@ -141,7 +141,7 @@ double average_number_of_photons(double beta_gamma, double kick )
 size_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
 {
   if (fabs(kick) < 1e-15)
-    return 0.0;
+    return 0;
   size_t n = 0;
   double const mass = 123; // eV
   double average_free_path = length / average_number_of_photons(beta_gamma, kick); // m
