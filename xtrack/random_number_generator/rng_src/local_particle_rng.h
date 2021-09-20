@@ -2,8 +2,8 @@
 #define LOCALPARTICE_RNG_H
 
 /*gpufun*/
-double LocalParticle_generate_random_double(LocalParticle* part){
-
+double LocalParticle_generate_random_double(LocalParticle* part)
+{
     uint32_t s1 = LocalParticle_get___rng_s1(part);
     uint32_t s2 = LocalParticle_get___rng_s2(part);
     uint32_t s3 = LocalParticle_get___rng_s3(part);
@@ -15,7 +15,12 @@ double LocalParticle_generate_random_double(LocalParticle* part){
     LocalParticle_set___rng_s3(part, s3);
 
     return r;
+}
 
+/*gpufun*/
+double LocalParticle_generate_random_double_exp(LocalParticle* part)
+{
+  return -log(LocalParticle_generate_random_double(part));
 }
 
 #endif
