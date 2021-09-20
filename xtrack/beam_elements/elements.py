@@ -377,6 +377,8 @@ class RFMultipole(BeamElement):
             kwargs["bal"] = bal
             kwargs["phase"] = p
             kwargs["order"] = (len(bal) - 2) / 2
+        else:
+            raise ValueError('Invalid input!')
 
 
         temp_bal = kwargs["bal"]
@@ -411,12 +413,12 @@ class RFMultipole(BeamElement):
 
     @property
     def pn(self):
-        idx = np.array([ii for ii in range(0, len(self.p), 2)])
+        idx = np.array([ii for ii in range(0, len(self.phase), 2)])
         return self.phase[idx]
 
     @property
     def ps(self):
-        idx = np.array([ii for ii in range(0, len(self.p), 2)])
+        idx = np.array([ii for ii in range(0, len(self.phase), 2)])
         return self.phase[idx + 1]
 
     def set_pn(self, value, order):
@@ -426,6 +428,16 @@ class RFMultipole(BeamElement):
     def set_ps(self, value, order):
         assert order <= self.order
         self.phase[order * 2 + 1] = value
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              order=self.order,
+                              voltage=-self.voltage,
+                              frequency=self.frequency,
+                              lag=self.lag,
+                              bal=[-bb for bb in self.bal], # TODO: maybe it can be made more efficient
+                              p = [pp for pp in self.phase],
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 RFMultipole.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
