@@ -151,6 +151,11 @@ class SRotation(BeamElement):
     def angle(self):
         return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
@@ -237,6 +242,16 @@ class Multipole(BeamElement):
         return [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
         #idx = np.array([ii for ii in range(0, len(self.bal), 2)])
         #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              order=self.order,
+                              length=-self.length,
+                              hxl=self.hxl,
+                              hyl=self.hyl,
+                              radiation_flag=0, #TODO, I force radiation off for now
+                              bal=[-bb for bb in self.bal], # TODO: maybe it can be made more efficient
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 Multipole.XoStruct.extra_sources = [
     _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
