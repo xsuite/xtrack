@@ -40,6 +40,8 @@ trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
 
+
+# Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
     part_gen_range = 0.05
     pp = xt.Particles(

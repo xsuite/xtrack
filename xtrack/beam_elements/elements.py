@@ -18,6 +18,10 @@ class ReferenceEnergyIncrease(BeamElement):
     _xofields = {
         'Delta_p0c': xo.Float64}
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(Delta_p0c=-self.Delta_p0c,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 ReferenceEnergyIncrease.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
 
@@ -30,6 +34,10 @@ class Drift(BeamElement):
 
     _xofields = {
         'length': xo.Float64}
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(length=-self.length,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 Drift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
@@ -48,6 +56,13 @@ class Cavity(BeamElement):
         'lag': xo.Float64,
         }
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              voltage=-self.voltage,
+                              frequency=self.frequency,
+                              lag=self.lag,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 Cavity.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
@@ -64,6 +79,11 @@ class XYShift(BeamElement):
         'dx': xo.Float64,
         'dy': xo.Float64,
         }
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              dx=-self.dx, dy=-self.dy,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 XYShift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -93,6 +113,15 @@ class Elens(BeamElement):
         self.current         = current
         self.elens_length    = elens_length
         self.voltage         = voltage
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              current=self.current,
+                              inner_radius=self.inner_radius,
+                              outer_radius=self.outer_radius,
+                              elens_length=-self.elens_length,
+                              voltage=self.voltage,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 Elens.XoStruct.extra_sources = [
     _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
