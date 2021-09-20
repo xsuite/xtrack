@@ -106,19 +106,7 @@ double SynRad(double x)
   return synrad;
 }
 
-/*
-double get_energy_loss(double kick, double length, double particle_energy )
-{
-  if (fabs(kick)<std::numeric_limits<double>::epsilon())
-    return 0.0;
-  double const c1=1.5*HBAR*C_LIGHT*INV_EMASS*INV_EMASS*INV_EMASS;
-  double energy_critical = c1*particle_energy*particle_energy*particle_energy*fabs(kick)/length;
-  double energy_loss = syngen()*energy_critical;
-  return fabs(energy_loss) > fabs(particle_energy) ? particle_energy : energy_loss;
-}
-*/
-
-double syngen(LocalParticle *part)
+double syn_gen_photon_energy_normalized(LocalParticle *part)
 {
   // initialize constants used in the approximate expressions
   // for SYNRAD   (integral over the modified Bessel function K5/3)
@@ -142,35 +130,40 @@ double syngen(LocalParticle *part)
       appr=a2*exp(-result);
     }
   } while(exact < appr*LocalParticle_generate_random_double(part));	// reject in proportion of approx
-  return result;  // result now exact spectrum with unity weight
+  return result; // result now exact spectrum with unity weight
 }
 
-/* Nel mio documento è la formula a pagina 8, n_\gamma
-  static inline double synrad_probability(double particle_momentum, double kick )
-  {
-    double const c1=2.5/SQRT3*ALPHA_EM*INV_EMASS;
-    return c1*fabs(kick)*particle_momentum;
+double average_number_of_photons(double beta_gamma, double kick )
+{
+  return 2.5/SQRT3*ALPHA_EM*beta_gamma*fabs(kick);
+}
+
+size_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
+{
+  if (fabs(kick) < 1e-15)
+    return 0.0;
+  size_t n = 0;
+  double const mass = 123; // eV
+  double average_free_path = length / average_number_of_photons(beta_gamma, kick); // m
+  double path_length = Radiation.Exponential() * average_free_path; // m
+  while (path_length < length) {
+    n++;
+    double const energy = LocalParticle_get_energy(part); // eV
+    double const gamma = energy / mass; // TODO: check if it's gamma, or beta*gamma
+    double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
+    double const energy_critical = c1 * (gamma*gamma*gamma) * fabs(kick) / length; // eV
+    double const energy_loss = syn_gen_photon_energy_normalized(part) * energy_critical; // eV
+    if (energy_loss>energy) {
+      LocalParticle_set_state(part, 0);
+      break;
+    } else {
+      LocalParticle_add_to_energy(part, -energy_loss, 0);
+      double const momentum = LocalParticle_get_momentum(part); // eV/c
+      average_free_path = length / average_number_of_photons(momentum / mass, kick); // m
+      path_length += Radiation.Exponential() * average_free_path; // m
+    }
   }
-*/
-
-// in multipolo
-
-/*
-	    free_path-=SYNRAD::synrad_probability(particle.energy,tmp);
-	    while (free_path<0.0) {
-	      double eloss = SYNRAD::get_energy_loss(tmp,l,particle.energy);
-	      particle.energy-=eloss;
-	      if (fabs(particle.energy)<std::numeric_limits<double>::epsilon()) {
-		particle.set_lost();
-		break;
-	      }
-	      free_path+=Radiation.Exponential();
-	      nphot++;
-	      if(inter_data.track_photon) {
-		ptracker->add_photon(particle.x,particle.y,particle.xp,particle.yp,eloss,j*l,this);
-	      }
-	    }
-*/
-
+  return n;
+}
 
 #endif /* XTRACK_SYNRAD_SPECTRUM_H */
