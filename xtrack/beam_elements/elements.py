@@ -503,6 +503,12 @@ class DipoleEdge(BeamElement):
                 " or suitable values for h, e1, hgap, and fint provided"
             )
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              r21=-self.r21,
+                              r43=-self.r43,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 
 DipoleEdge.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
