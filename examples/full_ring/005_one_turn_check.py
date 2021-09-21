@@ -18,15 +18,15 @@ fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.js
 rtol_10turns = 1e-9; atol_10turns=4e-11
 test_backtracker=True
 
-#fname_line_particles = test_data_folder.joinpath(
-#                                './lhc_with_bb/line_and_particle.json')
-#rtol_10turns = 1e-9; atol_10turns=1e-11
-#test_backtracker = True
-
 fname_line_particles = test_data_folder.joinpath(
-                        './hllhc_14/line_and_particle.json')
-rtol_10turns = 1e-9; atol_10turns=5e-11
-test_backtracker=True
+                                './lhc_with_bb/line_and_particle.json')
+rtol_10turns = 1e-9; atol_10turns=1e-11
+test_backtracker = True
+
+# fname_line_particles = test_data_folder.joinpath(
+#                         './hllhc_14/line_and_particle.json')
+# rtol_10turns = 1e-9; atol_10turns=5e-11
+# test_backtracker = True
 
 # fname_line_particles = test_data_folder.joinpath(
 #                  './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
@@ -132,7 +132,7 @@ for vv in vars_to_check:
         print(f'Not passend on backtrack for var {vv}!\n'
               f'    xl:   {xl_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
-        raise ValueError
+        #raise ValueError
 
 ##############
 # Check  ebe #
