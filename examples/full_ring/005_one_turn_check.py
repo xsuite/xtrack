@@ -60,15 +60,16 @@ sequence = xl.Line.from_dict(input_data['line'])
 if short_test:
     sequence = make_short_line(sequence)
 
-##################
-# Build TrackJob #
-##################
+#################
+# Build Tracker #
+#################
 print('Build tracker...')
 tracker = xt.Tracker(_context=context,
             sequence=sequence,
             particles_class=xt.Particles,
             local_particle_src=None,
             save_source_as='source.c')
+backtracker = tracker.get_backtracker(_context=context)
 
 ######################
 # Get some particles #
@@ -137,8 +138,25 @@ for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     if not passed:
         print(f'\nelement {nn}')
         break
+
+    backtracker.track(particles, ele_start=len(tracker.line.elements) - ii - 1,
+                      num_elements=1)
+    for vv in vars_to_check:
+        xt_value = context.nparray_from_context_array(
+                                    getattr(particles, vv))[ip_check]
+        passed = np.isclose(xt_value, vars_before[vv], rtol=1e-10, atol=5e-14)
+        if not passed:
+            problem_found = True
+            print(f'\nNot passend on var {vv}!\n'
+                  f'    before: {vars_before[vv]: .7e}\n'
+                  f'    xtrack: {xt_value: .7e}\n')
+            break
+    if not passed:
+        print(f'\nelement {nn}')
+        break
     else:
         print(f'Check passed for element: {nn}              ', end='\r', flush=True)
+
 
 diffs = np.array(diffs)
 

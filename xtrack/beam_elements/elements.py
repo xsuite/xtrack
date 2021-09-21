@@ -247,8 +247,8 @@ class Multipole(BeamElement):
         return self.__class__(
                               order=self.order,
                               length=-self.length,
-                              hxl=self.hxl,
-                              hyl=self.hyl,
+                              hxl=-self.hxl,
+                              hyl=-self.hyl,
                               radiation_flag=0, #TODO, I force radiation off for now
                               bal=[-bb for bb in self.bal], # TODO: maybe it can be made more efficient
                               _context=_context, _buffer=_buffer, _offset=_offset)
