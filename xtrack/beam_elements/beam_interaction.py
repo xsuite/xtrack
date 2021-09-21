@@ -3,9 +3,15 @@ import xobjects as xo
 from ..particles import Particles
 
 class BeamInteraction:
-
-    def __init__(self, interaction_process):
+    def __init__(self, name, interaction_process, length=0, isthick=None):
+        self.name = name
         self.interaction_process = interaction_process
+
+        self.length = length
+
+        if isthick is None:
+            isthick = True if length > 0 else False
+        self.isthick = isthick
 
     def track(self, particles):
 
