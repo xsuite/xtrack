@@ -13,7 +13,7 @@ extensions = []
 
 setup(
     name='xtrack',
-    version='0.2.1',
+    version='0.2.3',
     description='Tracking library for particle accelerators',
     url='https://github.com/xsuite/xtrack',
     author='Riccard De Maria, Giovanni Iadarola',
@@ -21,7 +21,7 @@ setup(
     ext_modules = extensions,
     install_requires=[
         'numpy>=1.0',
-        'xobjects>=0.0.7',
+        'xobjects>=0.0.8',
         'xline'
         ]
     )

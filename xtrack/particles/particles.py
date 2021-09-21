@@ -4,14 +4,13 @@ import xobjects as xo
 from ._pyparticles import Pyparticles
 
 from ..dress import dress
+from ..general import _pkg_root
 
 from scipy.constants import m_p
 from scipy.constants import e as qe
 from scipy.constants import c as clight
 
 pmass = m_p * clight * clight / qe
-
-
 
 
 LAST_INVALID_STATE = -999999999
@@ -21,7 +20,7 @@ size_vars = (
     (xo.Int64,   '_num_active_particles'),
     (xo.Int64,   '_num_lost_particles'),
     )
-# Capacity is always kept up to data
+# Capacity is always kept up to date
 # the other two are placeholders to be used if needed
 # i.e. on ContextCpu
 
@@ -52,6 +51,10 @@ per_particle_vars = (
     (xo.Int64, 'at_turn'),
     (xo.Int64, 'state'),
     (xo.Int64, 'parent_particle_id'),
+    (xo.UInt32, '__rng_s1'),
+    (xo.UInt32, '__rng_s2'),
+    (xo.UInt32, '__rng_s3'),
+    (xo.UInt32, '__rng_s4')
     )
 
 fields = {}
@@ -65,6 +68,17 @@ ParticlesData = type(
         'ParticlesData',
         (xo.Struct,),
         fields)
+
+ParticlesData.extra_sources = [
+    _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+    _pkg_root.joinpath('random_number_generator/rng_src/particles_rng.h')]
+ParticlesData.custom_kernels = {
+    'Particles_initialize_rand_gen': xo.Kernel(
+        args=[
+            xo.Arg(ParticlesData, name='particles'),
+            xo.Arg(xo.UInt32, pointer=True, name='seeds'),
+            xo.Arg(xo.Int32, name='n_init')],
+        n_threads='n_init')}
 
 pysixtrack_naming=(
         ('qratio', 'charge_ratio'),
@@ -123,6 +137,8 @@ class Particles(dress(ParticlesData)):
                 for tt, kk in list(scalar_vars):
                     setattr(self, kk, part_dict[kk])
                 for tt, kk in list(per_particle_vars):
+                    if kk.startswith('__'):
+                        continue
                     vv = getattr(self, kk)
                     vals =  context.nparray_to_context_array(part_dict[kk])
                     ll = len(vals)
@@ -147,6 +163,25 @@ class Particles(dress(ParticlesData)):
         if isinstance(self._buffer.context, xo.ContextCpu):
             # Particles always need to be organized to run on CPU
             self.reorganize()
+
+    def _init_random_number_generator(self, seeds=None):
+
+         self.compile_custom_kernels(only_if_needed=True)
+
+         if seeds is None:
+            seeds = np.random.randint(low=1, high=4e9,
+                        size=self._capacity, dtype=np.uint32)
+         else:
+            assert len(seeds) == particles._capacity
+            if not hasattr(seeds, 'dtype') or seeds.dtype != np.uint32:
+                seeds = np.array(seeds, dtype=np.uint32)
+
+         context = self._buffer.context
+         seeds_dev = context.nparray_to_context_array(seeds)
+         context.kernels.Particles_initialize_rand_gen(particles=self,
+             seeds=seeds_dev, n_init=self._capacity)
+
+
 
     def reorganize(self):
         assert not isinstance(self._buffer.context, xo.ContextPyopencl), (
@@ -246,6 +281,8 @@ class Particles(dress(ParticlesData)):
         for tt, kk in list(scalar_vars):
             setattr(self, kk, part_dict[kk])
         for tt, kk in list(per_particle_vars):
+            if kk.startswith('__') and kk not in part_dict.keys():
+                continue
             getattr(self, kk)[index] = part_dict[kk][0]
 
     def _update_delta(self, new_delta_value):
@@ -262,6 +299,8 @@ class Particles(dress(ParticlesData)):
         self.rvv[:] = rvv
         self.rpp[:] = rpp
         self.psigma[:] = psigma
+
+
 
 
 def gen_local_particle_api(mode='no_local_copy'):
@@ -486,6 +525,8 @@ def _pyparticles_to_xtrack_dict(pyparticles):
         pyst_dict['weight'] = 1.
 
     for tt, kk in scalar_vars + per_particle_vars:
+        if kk.startswith('__'):
+            continue
         # Use properties
         pyst_dict[kk] = getattr(pyparticles, kk)
 
@@ -505,6 +546,8 @@ def _pyparticles_to_xtrack_dict(pyparticles):
         out[kk] = val[0]
 
     for tt, kk in per_particle_vars:
+        if kk.startswith('__'):
+            continue
 
         val_pyst = pyst_dict[kk]
 

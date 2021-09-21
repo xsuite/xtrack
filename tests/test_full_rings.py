@@ -23,8 +23,8 @@ def test_full_rings(element_by_element=False):
             ]
 
      tolerances_10_turns = [
-                    (1e-9, 1e-11),
-                    (1e-9, 1e-11),
+                    (1e-9, 3e-11),
+                    (1e-9, 3e-11),
                     (2e-8, 7e-9)]
 
      for icase, fname_line_particles in enumerate(test_fnames):
