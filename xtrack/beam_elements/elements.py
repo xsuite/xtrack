@@ -367,11 +367,11 @@ class RFMultipole(BeamElement):
         elif (
             bal is not None
             and bal
-            and len(bal) > 2
+            and len(bal) >= 2
             and ((len(bal) % 2) == 0)
             and p is not None
             and p
-            and len(p) > 2
+            and len(p) >= 2
             and ((len(p) % 2) == 0)
         ):
             kwargs["bal"] = bal

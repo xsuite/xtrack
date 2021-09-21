@@ -21,9 +21,9 @@ rtol_10turns = 1e-9; atol_10turns=1e-11
 #                                 './lhc_with_bb/line_and_particle.json')
 # rtol_10turns = 1e-9; atol_10turns=1e-11
 
-# fname_line_particles = test_data_folder.joinpath(
-#                         './hllhc_14/line_and_particle.json')
-# rtol_10turns = 1e-9; atol_10turns=1e-11
+fname_line_particles = test_data_folder.joinpath(
+                        './hllhc_14/line_and_particle.json')
+rtol_10turns = 1e-9; atol_10turns=1e-11
 
 # fname_line_particles = test_data_folder.joinpath(
 #                  './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
