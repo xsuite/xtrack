@@ -142,26 +142,31 @@ size_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length
 {
   if (fabs(kick) < 1e-15)
     return 0;
+  
   size_t nphot = 0;
-  double const mass = 123; // eV
-  double n = Radiation.Exponential(); // m
-  while (n < average_number_of_photons(beta_gamma, kick)) {
-    nhot++;
-    double const energy = LocalParticle_get_energy(part); // eV
-    double const gamma = energy / mass; // TODO: check if it's gamma, or beta*gamma
-    double const beta_gamma = sqrt(gamma*gamma-1); // that's how it is beta gamma
+  double const mass = LocalParticle_get_mass(part); // eV
+  double energy = LocalParticle_get_energy(part); // eV
+  double gamma = energy / mass; // 
+  double beta_gamma = sqrt(gamma*gamma-1); //
+  for (double n = Radiation.Exponential(); n < average_number_of_photons(beta_gamma, kick); n += Radiation.Exponential()) {
+    nphot++;
+    gamma = energy / mass; // TODO: check if it's gamma, or beta*gamma
+    beta_gamma = sqrt(gamma*gamma-1); // that's how it is beta gamma
     double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
     double const energy_critical = c1 * (gamma*gamma*gamma) * fabs(kick) / length; // eV
     double const energy_loss = syn_gen_photon_energy_normalized(part) * energy_critical; // eV
-    if (energy_loss>energy) {
-      LocalParticle_set_state(part, 0);
+    if (energy_loss >= energy) {
+      energy = 0.0; // eV
       break;
-    } else {
-      LocalParticle_add_to_energy(part, -energy_loss, 0);
-      double const momentum = LocalParticle_get_momentum(part); // eV/c
-      n += Radiation.Exponential(); // m
     }
+    energy -= energy_loss; // eV
   }
+
+  if (energy == 0.0)
+    LocalParticle_set_state(part, 0);
+  else
+    LocalParticle_set_energy(part, energy);
+
   return nphot;
 }
 
