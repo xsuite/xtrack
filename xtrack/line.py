@@ -63,10 +63,11 @@ class Line():
         LineDataClass = ElementRefClass[num_elements]
         line_data = LineDataClass(_context=_context,
                 _buffer=_buffer, _offset=_offset)
+        assert len(sequence.elements) == len(sequence.element_names)
         elements = []
         element_names = []
-        for ii, (ee, nn) in enumerate(
-                zip(sequence.elements, sequence.element_names)):
+        for ii, (ee, nn) in enumerate(zip(sequence.elements,
+                                      sequence.element_names)):
             if hasattr(ee, 'XoStruct'): # is already xobject
                 assert ee._buffer == line_data._buffer, (
                         'Copy from different buffer not yet implemented')
