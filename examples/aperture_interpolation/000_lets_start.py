@@ -74,16 +74,31 @@ num_elements = i_aperture-i_start+1
 
 n_theta = 360
 r_max =20e-2
-dr = 1e-3
+dr = 1e-4
 
 r_vect = np.arange(0, r_max, dr)
-theta_vect = np.linspace(0, 2*pi, n_theta+1)[:-1]
+theta_vect = np.linspace(0, 2*np.pi, n_theta+1)[:-1]
 
 RR, TT = np.meshgrid(r_vect, theta_vect)
+x_test = RR.flatten()*np.cos(TT.flatten())
+y_test = RR.flatten()*np.sin(TT.flatten())
+
 ptest = xt.Particles(p0c=1,
-        x = RR.flatten()*np.cos(TT.flatten()),
-        y = RR.flatten()*np.sin(TT.flatten()))
+        x = x_test.copy(),
+        y = y_test.copy())
 tracker.track(ptest, ele_start=i_start, num_elements=num_elements)
+
+indx_sorted = np.argsort(ptest.particle_id)
+state_sorted = np.take(ptest.state, indx_sorted)
+
+x_mat = x_test.reshape(RR.shape)
+y_mat = y_test.reshape(RR.shape)
+state_mat = state_sorted.reshape(RR.shape)
+
+i_r_aper = np.argmin(state_mat>0, axis=1)
+
+x_vertices = np.array([x_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
+y_vertices = np.array([y_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
 
 # Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
