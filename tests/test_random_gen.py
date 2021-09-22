@@ -4,6 +4,7 @@ import xobjects as xo
 import xtrack as xt
 import xline as xl
 from pathlib import Path
+
 def test_random_generation():
     for ctx in xo.context.get_test_contexts():
         print(f'{ctx}')
@@ -39,8 +40,7 @@ def test_random_generation():
         # Use turn-by turin monitor to acquire some statistics
 
         tracker = xt.Tracker(_buffer=telem._buffer,
-                sequence=xl.Line(elements=[telem],
-                    element_names='test_element'),)
+                sequence=xl.Line(elements=[telem]))
 
         tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
 

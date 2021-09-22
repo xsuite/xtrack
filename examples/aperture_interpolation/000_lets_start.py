@@ -29,7 +29,7 @@ trk_aper_0 = xt.Tracker(_buffer=buf, sequence=xl.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
               aper_0,
-              #xt.Multipole(_buffer=buf, knl=[1.]),
+              xt.Multipole(_buffer=buf, knl=[0.001]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
               xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])]))
 
@@ -38,17 +38,48 @@ trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
               aper_1,
-              #xt.Multipole(_buffer=buf, knl=[-1.]),
+              xt.Multipole(_buffer=buf, knl=[0.001]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
 
 # Build example line
-# tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
-#     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
-#               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
-#               aper_1,
-#               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
-#               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
+tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
+    elements = (trk_aper_0.line.elements
+                + (xt.Drift(_buffer=buf, length=1),
+                   xt.Drift(_buffer=buf, length=2))
+                + trk_aper_1.line.elements)))
+
+# Test on full line
+particles = xt.Particles(_context=ctx,
+            px=np.random.uniform(-0.01, 0.01, 10000),
+            py=np.random.uniform(-0.01, 0.01, 10000))
+
+tracker.track(particles)
+
+# Aperture to polygon
+i_aperture = 10
+
+# find previous drift
+ii=i_aperture
+found = False
+while not(found):
+    ccnn = tracker.line.elements[ii].__class__.__name__
+    print(ccnn)
+    if ccnn == 'Drift':
+        found = True
+    else:
+        ii -= 1
+i_start = ii + 1
+num_elements = i_aperture-i_start
+
+n_theta = 360
+r_max =20e-2
+dr = 1e-3
+
+r_vect = np.arange(0, r_max, dr)
+theta_vect = np.linspace(0, 2*pi, n_theta+1)[:-1]
+
+RR, TT = np.meshgrid(r_vect, theta_vect)
 
 
 # Visualize apertures
@@ -70,5 +101,7 @@ for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
     plt.axis('equal')
     plt.grid(linestyle=':')
     plt.plot(x0[ids][pp.state>0], y0[ids][pp.state>0], '.', color='green')
+
+
 
 plt.show()
