@@ -29,6 +29,7 @@ trk_aper_0 = xt.Tracker(_buffer=buf, sequence=xl.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
               aper_0,
+              #xt.Multipole(_buffer=buf, knl=[1.]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
               xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])]))
 
@@ -37,8 +38,17 @@ trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
               aper_1,
+              #xt.Multipole(_buffer=buf, knl=[-1.]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
+
+# Build example line
+# tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
+#     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
+#               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
+#               aper_1,
+#               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
+#               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
 
 
 # Visualize apertures
