@@ -100,6 +100,7 @@ i_r_aper = np.argmin(state_mat>0, axis=1)
 x_vertices = np.array([x_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
 y_vertices = np.array([y_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
 
+
 # Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
     part_gen_range = 0.05
