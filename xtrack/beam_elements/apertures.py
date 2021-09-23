@@ -121,3 +121,21 @@ class LimitPolygon(BeamElement):
 
 LimitPolygon.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
+
+LimitPolygon.XoStruct.custom_kernels = {
+    'LimitPolygon_impact_point_and_normal': xo.Kernel(
+        args = [xo.Arg(LimitPolygon.XoStruct, name='el'),
+                xo.Arg(xo.Float64, pointer=True, name='x_in'),
+                xo.Arg(xo.Float64, pointer=True, name='y_in'),
+                xo.Arg(xo.Float64, pointer=True, name='z_in'),
+                xo.Arg(xo.Float64, pointer=True, name='x_out'),
+                xo.Arg(xo.Float64, pointer=True, name='y_out'),
+                xo.Arg(xo.Float64, pointer=True, name='z_out'),
+                xo.Arg(xo.Int64,   pointer=False, name='n_impacts'),
+                xo.Arg(xo.Float64, pointer=True, name='x_inters'),
+                xo.Arg(xo.Float64, pointer=True, name='y_inters'),
+                xo.Arg(xo.Float64, pointer=True, name='z_inters'),
+                xo.Arg(xo.Float64, pointer=True, name='Nx_inters'),
+                xo.Arg(xo.Float64, pointer=True, name='Ny_inters'),
+                xo.Arg(xo.Int64,   pointer=True, name='i_found')],
+        n_threads='n_impacts')}

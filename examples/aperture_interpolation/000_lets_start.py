@@ -107,6 +107,8 @@ i_convex = np.sort(hull.vertices)
 x_convex = x_non_convex[i_convex]
 y_convex = y_non_convex[i_convex]
 
+temp_poly = xt.LimitPolygon(x_vertices=x_convex, y_vertices=y_convex)
+
 # Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
     part_gen_range = 0.05

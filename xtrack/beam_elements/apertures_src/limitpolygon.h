@@ -1,6 +1,7 @@
 #ifndef XTRACK_LIMITPOLYGON_H
 #define XTRACK_LIMITPOLYGON_H
 
+#ifndef NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE
 /*gpufun*/
 void LimitPolygon_track_local_particle(LimitPolygonData el,
 		LocalParticle* part0){
@@ -41,6 +42,7 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
     //end_per_particle_block
 
 }
+#endif
 
 /*gpukern*/
 void LimitPolygon_impact_point_and_normal(
@@ -70,13 +72,12 @@ void LimitPolygon_impact_point_and_normal(
 
         double t_min_curr = 1.;
         int64_t i_found_curr = -1;
-        int64_t found_curr = 0;
         double x_in_curr = x_in[i_imp];
         double y_in_curr = y_in[i_imp];
         double x_out_curr = x_out[i_imp];
         double y_out_curr = y_out[i_imp];
 
-        for (int64_t ii; ii<N_edg; ii++){
+        for (int64_t ii=0; ii<N_edg; ii++){
 
 	    double t_border;
 	    double t_ii;
@@ -100,7 +101,6 @@ void LimitPolygon_impact_point_and_normal(
 	                 +Ny[ii]*(y_out_curr-y_in_curr));
                 if (t_ii>=0. && t_ii<t_min_curr){
                     t_min_curr=t_ii;
-                    found_curr = 1;
                     i_found_curr = ii;
 		}
             }
@@ -116,7 +116,7 @@ void LimitPolygon_impact_point_and_normal(
             Ny_inters[i_imp] = Ny[i_found_curr];
             i_found[i_imp] = i_found_curr;
 	}
-    }i //end_vectorize
+    } //end_vectorize
     
 }
 
