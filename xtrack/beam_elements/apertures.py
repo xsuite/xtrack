@@ -65,7 +65,9 @@ LimitEllipse.XoStruct.extra_sources = [
 class LimitPolygon(BeamElement):
     _xofields = {
         'x_vertices': xo.Float64[:],
-        'y_vertices': xo.Float64[:]
+        'y_vertices': xo.Float64[:],
+        'x_normal': xo.Float64[:],
+        'y_normal': xo.Float64[:]
         }
 
     def __init__(self, x_vertices, y_vertices, **kwargs):
@@ -79,6 +81,8 @@ class LimitPolygon(BeamElement):
 
         lengths = np.sqrt(np.diff(self.x_closed)**2
                         + np.diff(self.y_closed)**2)
+
+        assert np.all(lengths>0)
 
 
     @property
