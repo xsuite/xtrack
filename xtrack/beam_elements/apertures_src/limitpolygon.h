@@ -18,7 +18,6 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
         int64_t jj = N_edg-1;
 	int64_t is_alive = 0;
         while (ii < N_edg){
-           //printf("ii=%d\n", (int)ii); 
 	   const double Vx_ii = LimitPolygonData_get_x_vertices(el, ii);
 	   const double Vx_jj = LimitPolygonData_get_x_vertices(el, jj);
 	   const double Vy_ii = LimitPolygonData_get_y_vertices(el, ii);
@@ -81,7 +80,6 @@ void LimitPolygon_impact_point_and_normal(
 
         for (int64_t ii=0; ii<N_edg; ii++){
 
-            printf("\n\nii=%d\n", (int) ii);
 	    double t_border;
 	    double t_ii;
             double const den = ((y_out_curr-y_in_curr)*(Vx[ii+1]-Vx[ii])
@@ -96,19 +94,15 @@ void LimitPolygon_impact_point_and_normal(
                 t_border=((y_out_curr-y_in_curr)*(x_in_curr-Vx[ii])
 		         +(x_in_curr-x_out_curr)*(y_in_curr-Vy[ii]))/den;
 	    }
-	    printf("t_border=%e\n", t_border);
 
             if (t_border>=0.-tol && t_border<=1.+tol){
                 t_ii = (Nx[ii]*(Vx[ii]-x_in_curr)
 		       +Ny[ii]*(Vy[ii]-y_in_curr)) 
 		       /(Nx[ii]*(x_out_curr-x_in_curr)
 	                 +Ny[ii]*(y_out_curr-y_in_curr));
-	        printf("t_ii=%e\n", t_ii);
                 if (t_ii>=0.-tol && t_ii<t_min_curr+tol){
                     t_min_curr=t_ii;
                     i_found_curr = ii;
-	            printf("t_min_curr=%e\n", t_min_curr);
-	            printf("i_found_curr=%e\n", i_found_curr);
 		}
             }
 	}
