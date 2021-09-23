@@ -45,25 +45,26 @@ void LimitPolygon_track_local_particle(LimitPolygonData el,
 /*gpukern*/
 void LimitPolygon_impact_point_and_normal(
 		             LimitPolygonData el,
-		             const double* x_in,
-		             const double* y_in, 
-			     const double* z_in,
-                             const double* x_out,
-		             const double* y_out, 
-			     const double* z_out,
-			     const int64_t n_impacts,
-		                   double* x_inters,
-		                   double* y_inters, 
-			           double* z_inters,
-		                   double* Nx_inters,
-		                   double* Ny_inters,
-				   int64_t* i_found){ 
+                /*gpuglmem*/ const double* x_in,
+                /*gpuglmem*/ const double* y_in, 
+                /*gpuglmem*/ const double* z_in,
+                /*gpuglmem*/ const double* x_out,
+                /*gpuglmem*/ const double* y_out, 
+                /*gpuglmem*/ const double* z_out,
+                             const int64_t n_impacts,
+                /*gpuglmem*/       double* x_inters,
+                /*gpuglmem*/       double* y_inters, 
+                /*gpuglmem*/       double* z_inters,
+                /*gpuglmem*/       double* Nx_inters,
+                /*gpuglmem*/       double* Ny_inters,
+                /*gpuglmem*/       int64_t* i_found){ 
 			           
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
-    const double* Vx = LimitPolygonData_getp1_x_vertices(el, 0);
-    const double* Vy = LimitPolygonData_getp1_y_vertices(el, 0);
-    const double* Nx = LimitPolygonData_getp1_x_normal(el, 0);
-    const double* Ny = LimitPolygonData_getp1_y_normal(el, 0);
+    /*gpuglmem*/ const double* Vx = LimitPolygonData_getp1_x_vertices(el, 0);
+    /*gpuglmem*/ const double* Vy = LimitPolygonData_getp1_y_vertices(el, 0);
+    /*gpuglmem*/ const double* Nx = LimitPolygonData_getp1_x_normal(el, 0);
+    /*gpuglmem*/ const double* Ny = LimitPolygonData_getp1_y_normal(el, 0);
+    double resc_fac = LimitPolygonData_get_resc_fac(el);
 
     for (int64_t i_imp=0; i_imp<n_impacts; i_imp++){ //vectorize_over i_imp n_impacts
 

@@ -67,7 +67,8 @@ class LimitPolygon(BeamElement):
         'x_vertices': xo.Float64[:],
         'y_vertices': xo.Float64[:],
         'x_normal': xo.Float64[:],
-        'y_normal': xo.Float64[:]
+        'y_normal': xo.Float64[:],
+        'resc_fac': xo.Float64
         }
 
     def __init__(self, x_vertices, y_vertices, **kwargs):
@@ -77,6 +78,9 @@ class LimitPolygon(BeamElement):
         super().__init__(
                 x_vertices=x_vertices,
                 y_vertices=y_vertices,
+                x_normal = len(x_vertices),
+                y_normal = len(x_vertices),
+                resc_fac = 1.,
                 **kwargs)
 
         lengths = np.sqrt(np.diff(self.x_closed)**2
