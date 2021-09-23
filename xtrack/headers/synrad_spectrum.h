@@ -1,11 +1,20 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
+#include <stddef.h>
 #include <math.h>
+
+#define SQRT3 1.732050807568877
+#define ALPHA_EM 0.0072973525693
 
 typedef struct { double x; } LocalParticle;
 
+extern double LocalParticle_generate_random_double_exp(LocalParticle * );
 extern double LocalParticle_generate_random_double(LocalParticle * );
+extern double LocalParticle_get_energy(LocalParticle * );
+extern double LocalParticle_get_mass(LocalParticle * );
+extern void LocalParticle_set_energy(LocalParticle * , double );
+extern void LocalParticle_set_state(LocalParticle * , int );
 
 // x :    energy normalized to the critical energy
 // returns function value _SynRadC   photon spectrum dn/dx
@@ -148,7 +157,8 @@ size_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length
   double energy = LocalParticle_get_energy(part); // eV
   double gamma = energy / mass; // 
   double beta_gamma = sqrt(gamma*gamma-1); //
-  for (double n = Radiation.Exponential(); n < average_number_of_photons(beta_gamma, kick); n += Radiation.Exponential()) {
+  double n = LocalParticle_generate_random_double_exp(part); 
+  while (n < average_number_of_photons(beta_gamma, kick)) {
     nphot++;
     gamma = energy / mass; // TODO: check if it's gamma, or beta*gamma
     beta_gamma = sqrt(gamma*gamma-1); // that's how it is beta gamma
@@ -160,6 +170,7 @@ size_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length
       break;
     }
     energy -= energy_loss; // eV
+    n += LocalParticle_generate_random_double_exp(part);
   }
 
   if (energy == 0.0)
