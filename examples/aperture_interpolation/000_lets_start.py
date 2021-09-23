@@ -73,9 +73,9 @@ i_start = ii + 1
 num_elements = i_aperture-i_start+1
 
 # Get polygon
-n_theta = 360
-r_max =20e-2
-dr = 1e-3
+n_theta = 360*5
+r_max =0.5 # m
+dr = 1e-5
 
 r_vect = np.arange(0, r_max, dr)
 theta_vect = np.linspace(0, 2*np.pi, n_theta+1)[:-1]
@@ -107,14 +107,18 @@ i_hull = np.sort(hull.vertices)
 x_hull = x_non_convex[i_hull]
 y_hull = y_non_convex[i_hull]
 
+# Get a convex polygon that does not have points for all angles
 temp_poly = xt.LimitPolygon(x_vertices=x_hull, y_vertices=y_hull)
 
+# Get a convex polygon that has vertices at all requested angles
 r_out = 1. # m
 res = temp_poly.impact_point_and_normal(
         x_in=0*theta_vect, y_in=0*theta_vect, z_in=0*theta_vect,
         x_out=r_out*np.cos(theta_vect),
         y_out=r_out*np.sin(theta_vect),
         z_out=0*theta_vect)
+
+polygon = xt.LimitPolygon(x_vertices=res[0], y_vertices=res[1])
 
 
 # Visualize apertures
