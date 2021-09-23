@@ -61,6 +61,8 @@ void LimitPolygon_impact_point_and_normal(
                 /*gpuglmem*/       double* Ny_inters,
                 /*gpuglmem*/       int64_t* i_found){ 
 			           
+    double const tol = 1e-13;
+
     int64_t N_edg = LimitPolygonData_len_x_vertices(el);
     /*gpuglmem*/ const double* Vx = LimitPolygonData_getp1_x_vertices(el, 0);
     /*gpuglmem*/ const double* Vy = LimitPolygonData_getp1_y_vertices(el, 0);
@@ -79,6 +81,7 @@ void LimitPolygon_impact_point_and_normal(
 
         for (int64_t ii=0; ii<N_edg; ii++){
 
+            printf("\n\nii=%d\n", (int) ii);
 	    double t_border;
 	    double t_ii;
             double const den = ((y_out_curr-y_in_curr)*(Vx[ii+1]-Vx[ii])
@@ -93,15 +96,19 @@ void LimitPolygon_impact_point_and_normal(
                 t_border=((y_out_curr-y_in_curr)*(x_in_curr-Vx[ii])
 		         +(x_in_curr-x_out_curr)*(y_in_curr-Vy[ii]))/den;
 	    }
+	    printf("t_border=%e\n", t_border);
 
-            if (t_border>=0. && t_border<=1.){
+            if (t_border>=0.-tol && t_border<=1.+tol){
                 t_ii = (Nx[ii]*(Vx[ii]-x_in_curr)
 		       +Ny[ii]*(Vy[ii]-y_in_curr)) 
 		       /(Nx[ii]*(x_out_curr-x_in_curr)
 	                 +Ny[ii]*(y_out_curr-y_in_curr));
-                if (t_ii>=0. && t_ii<t_min_curr){
+	        printf("t_ii=%e\n", t_ii);
+                if (t_ii>=0.-tol && t_ii<t_min_curr+tol){
                     t_min_curr=t_ii;
                     i_found_curr = ii;
+	            printf("t_min_curr=%e\n", t_min_curr);
+	            printf("i_found_curr=%e\n", i_found_curr);
 		}
             }
 	}
@@ -114,8 +121,8 @@ void LimitPolygon_impact_point_and_normal(
         if (i_found_curr>=0){
             Nx_inters[i_imp] = Nx[i_found_curr];
             Ny_inters[i_imp] = Ny[i_found_curr];
-            i_found[i_imp] = i_found_curr;
 	}
+        i_found[i_imp] = i_found_curr;
     } //end_vectorize
     
 }

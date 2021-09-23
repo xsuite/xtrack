@@ -103,11 +103,31 @@ y_non_convex = np.array([y_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
 
 from scipy.spatial import ConvexHull
 hull = ConvexHull(np.array([x_non_convex, y_non_convex]).T)
-i_convex = np.sort(hull.vertices)
-x_convex = x_non_convex[i_convex]
-y_convex = y_non_convex[i_convex]
+i_hull = np.sort(hull.vertices)
+x_hull = x_non_convex[i_hull]
+y_hull = y_non_convex[i_hull]
 
-temp_poly = xt.LimitPolygon(x_vertices=x_convex, y_vertices=y_convex)
+temp_poly = xt.LimitPolygon(x_vertices=x_hull, y_vertices=y_hull)
+
+r_out = 1. # m
+res = temp_poly.impact_point_and_normal(
+        x_in=0*theta_vect, y_in=0*theta_vect, z_in=0*theta_vect,
+        x_out=r_out*np.cos(theta_vect),
+        y_out=r_out*np.sin(theta_vect),
+        z_out=0*theta_vect)
+
+#### FOR DEBUG
+r_out = 1. # m
+theta_vect_old = theta_vect.copy()
+theta_vect=np.atleast_1d(theta_vect_old[-4])
+res = temp_poly.impact_point_and_normal(
+        x_in=0*theta_vect, y_in=0*theta_vect, z_in=0*theta_vect,
+        x_out=r_out*np.cos(theta_vect),
+        y_out=r_out*np.sin(theta_vect),
+        z_out=0*theta_vect)
+
+#######
+
 
 # Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):

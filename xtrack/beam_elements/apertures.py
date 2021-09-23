@@ -96,8 +96,8 @@ class LimitPolygon(BeamElement):
                     "The area of the polygon is negative!\n"
                     "Vertices must be provided with counter-clockwise order!")
 
-        Nx = -np.diff(self.x_closed)
-        Ny = np.diff(self.y_closed)
+        Nx = -np.diff(self.y_closed)
+        Ny = np.diff(self.x_closed)
 
         norm_N = np.sqrt(Nx**2 + Ny**2)
         Nx = Nx / norm_N
@@ -118,6 +118,38 @@ class LimitPolygon(BeamElement):
         ctx = self._buffer.context
         yy = ctx.nparray_from_context_array(self.y_vertices)
         return np.concatenate([yy, np.array([yy[0]])])
+
+    def impact_point_and_normal(self, x_in, y_in, z_in,
+                                x_out, y_out, z_out):
+
+        ctx = self._buffer.context
+
+        if 'LimitPolygon_impact_point_and_normal' not in ctx.kernels.keys():
+            ctx.add_kernels(
+                sources = (['#define NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE']
+                             + self.XoStruct.extra_sources),
+                kernels =  self.XoStruct.custom_kernels)
+
+        x_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
+        y_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
+        z_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
+        Nx_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
+        Ny_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
+        i_found = ctx.zeros(shape=x_in.shape, dtype=np.int64)
+
+        ctx.kernels.LimitPolygon_impact_point_and_normal(el=self,
+                x_in=x_in, y_in=y_in, z_in=z_in,
+                x_out=x_out, y_out=y_out, z_out=z_out,
+                n_impacts=len(x_in), x_inters=x_inters,
+                y_inters=y_inters, z_inters=z_inters,
+                Nx_inters=Nx_inters, Ny_inters=Ny_inters,
+                i_found=i_found)
+
+        assert np.all(i_found>=0)
+
+        return x_inters, y_inters, z_inters, Nx_inters, Ny_inters, i_found
+
+
 
 LimitPolygon.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
