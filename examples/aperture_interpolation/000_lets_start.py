@@ -60,6 +60,9 @@ tracker.track(particles)
 i_aperture = 10
 
 # find previous drift
+import time
+t0 = time.time()
+
 ii=i_aperture
 found = False
 while not(found):
@@ -73,33 +76,52 @@ i_start = ii + 1
 num_elements = i_aperture-i_start+1
 
 # Get polygon
-n_theta = 360*5
-r_max =0.5 # m
-dr = 1e-5
+n_theta = 360 * 5
+r_max = 0.5 # m
+dr = 50e-6
 
-r_vect = np.arange(0, r_max, dr)
 theta_vect = np.linspace(0, 2*np.pi, n_theta+1)[:-1]
 
-RR, TT = np.meshgrid(r_vect, theta_vect)
-x_test = RR.flatten()*np.cos(TT.flatten())
-y_test = RR.flatten()*np.sin(TT.flatten())
+this_rmin = 0
+this_rmax = r_max
+this_dr = (this_rmax-this_rmin)/100.
+rmin_theta = 0*theta_vect
+for iteration in range(2):
 
-ptest = xt.Particles(p0c=1,
-        x = x_test.copy(),
-        y = y_test.copy())
-tracker.track(ptest, ele_start=i_start, num_elements=num_elements)
+    r_vect = np.arange(this_rmin, this_rmax, this_dr)
 
-indx_sorted = np.argsort(ptest.particle_id)
-state_sorted = np.take(ptest.state, indx_sorted)
+    RR, TT = np.meshgrid(r_vect, theta_vect)
+    RR += np.atleast_2d(rmin_theta).T
+
+    x_test = RR.flatten()*np.cos(TT.flatten())
+    y_test = RR.flatten()*np.sin(TT.flatten())
+
+    print(f'{iteration=} num_part={x_test.shape[0]}')
+
+    ptest = xt.Particles(p0c=1,
+            x = x_test.copy(),
+            y = y_test.copy())
+    tracker.track(ptest, ele_start=i_start, num_elements=num_elements)
+
+    indx_sorted = np.argsort(ptest.particle_id)
+    state_sorted = np.take(ptest.state, indx_sorted)
+
+    state_mat = state_sorted.reshape(RR.shape)
+
+    i_r_aper = np.argmin(state_mat>0, axis=1)
+
+    rmin_theta = r_vect[i_r_aper-1]
+    this_rmin=0
+    this_rmax=2*this_dr
+    this_dr = dr
+
 
 x_mat = x_test.reshape(RR.shape)
 y_mat = y_test.reshape(RR.shape)
-state_mat = state_sorted.reshape(RR.shape)
-
-i_r_aper = np.argmin(state_mat>0, axis=1)
-
-x_non_convex = np.array([x_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
-y_non_convex = np.array([y_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
+x_non_convex = np.array(
+        [x_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
+y_non_convex = np.array(
+        [y_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
 
 from scipy.spatial import ConvexHull
 hull = ConvexHull(np.array([x_non_convex, y_non_convex]).T)
@@ -120,6 +142,9 @@ res = temp_poly.impact_point_and_normal(
 
 polygon = xt.LimitPolygon(x_vertices=res[0], y_vertices=res[1])
 
+
+t1 = time.time()
+print(f'Took {t1-t0:.2e} s')
 
 # Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
