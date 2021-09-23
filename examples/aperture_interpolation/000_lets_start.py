@@ -72,9 +72,10 @@ while not(found):
 i_start = ii + 1
 num_elements = i_aperture-i_start+1
 
+# Get polygon
 n_theta = 360
 r_max =20e-2
-dr = 1e-4
+dr = 1e-3
 
 r_vect = np.arange(0, r_max, dr)
 theta_vect = np.linspace(0, 2*np.pi, n_theta+1)[:-1]
@@ -97,11 +98,14 @@ state_mat = state_sorted.reshape(RR.shape)
 
 i_r_aper = np.argmin(state_mat>0, axis=1)
 
-x_vertices = np.array([x_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
-y_vertices = np.array([y_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
+x_non_convex = np.array([x_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
+y_non_convex = np.array([y_mat[itt, i_r_aper[itt]] for itt in range(n_theta)])
 
 from scipy.spatial import ConvexHull
-hull = ConvexHull(np.array([x_vertices, y_vertices]).T)
+hull = ConvexHull(np.array([x_non_convex, y_non_convex]).T)
+i_convex = np.sort(hull.vertices)
+x_convex = x_non_convex[i_convex]
+y_convex = y_non_convex[i_convex]
 
 # Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
