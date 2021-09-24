@@ -16,9 +16,9 @@ ctx = xo.context_default
 buf = ctx.new_buffer()
 
 # Just to copile the kernel
-pp = xt.LimitPolygon(x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
+temp_poly = xt.LimitPolygon(_buffer=buf, x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
 na = lambda a : np.array(a, dtype=np.float64)
-pp.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
+temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
                            x_out=na([2]), y_out=na([2]), z_out=na([0]))
 
 # Define aper_0
@@ -78,6 +78,10 @@ for ii, ee in enumerate(tracker.line.elements):
     if ee.__class__.__name__.startswith('Limit'):
         i_apertures.append(ii)
 
+# Build kernel with all elements polygon
+trk_gen = xt.Tracker(_buffer=buf,
+        sequence=xl.Line(elements=tracker.line.elements + (temp_poly,)))
+
 
 i_aper_1 = i_apertures[1]
 i_aper_0 = i_apertures[0]
@@ -116,10 +120,22 @@ for ss in s_vect:
     x_hull = x_non_convex[i_hull]
     y_hull = y_non_convex[i_hull]
     interp_polygons.append(xt.LimitPolygon(
+        _buffer=buf,
         x_vertices=x_hull,
         y_vertices=y_hull))
 
+# Build interp line
+s_elements = [s0] + list(s_vect) +[s1]
+elements = [polygon_0] + interp_polygons + [polygon_1]
+# NB!!!!!! NEED TO ADD OTHER THIN ELEMENTS FROM THE LINE
 
+
+
+interp_tracker = xt.Tracker(
+        _buffer=buf,
+        sequence=xl.Line(elements=interp_polygons),
+        track_kernel=trk_gen.track_kernel,
+        element_classes=trk_gen.element_classes)
 
 t1 = time.time()
 print(f'Took\t{(t1-t0)*1e3:.2f} ms')
