@@ -97,11 +97,14 @@ n_theta = 360
 r_max = 0.5 # m
 dr = 50e-6
 
-polygon_1, i_start_thin_1 = ap.characterize_aperture(tracker, i_aper_1, n_theta, r_max, dr)
+polygon_1, i_start_thin_1 = ap.characterize_aperture(tracker,
+                             i_aper_1, n_theta, r_max, dr,
+                             buffer_for_poly=buf)
 num_elements = len(tracker.line.elements)
 polygon_0, i_start_thin_0_bktr = ap.characterize_aperture(backtracker,
-                                     num_elements-i_aper_0-1,
-                                     n_theta, r_max, dr)
+                             num_elements-i_aper_0-1,
+                             n_theta, r_max, dr,
+                             buffer_for_poly=buf)
 i_start_thin_0 = num_elements - i_start_thin_0_bktr - 1
 
 s0 = tracker.line.element_s_locations[i_aper_0]
@@ -155,7 +158,6 @@ for ii in range(1, len(s_sorted)):
         s_all.append(ss)
     ele_all.append(ele_sorted[ii])
     s_all.append(s_sorted[ii])
-
 
 
 interp_tracker = xt.Tracker(
