@@ -103,8 +103,6 @@ class LimitPolygon(BeamElement):
 
         assert np.all(lengths>0)
 
-        self.area = -0.5 * np.sum((self.y_closed[1:] + self.y_closed[:-1])
-                                * (self.x_closed[1:] - self.x_closed[:-1]))
 
         if self.area < 0:
             raise ValueError(
@@ -164,7 +162,17 @@ class LimitPolygon(BeamElement):
 
         return x_inters, y_inters, z_inters, Nx_inters, Ny_inters, i_found
 
-
+    @property
+    def area(self):
+        return -0.5 * np.sum((self.y_closed[1:] + self.y_closed[:-1])
+                                * (self.x_closed[1:] - self.x_closed[:-1]))
+    @property
+    def centroid(self):
+        x = self.x_vertices
+        y = self.x_vertices
+        cx = 1/(6*self.area)*np.sum((x[:-1]+x[1:])*(x[:-1]*y[1:]-x[1:]*y[:-1]))
+        cy = 1/(6*self.area)*np.sum((y[:-1]+y[1:])*(y[:-1]*x[1:]-y[1:]*x[:-1]))
+        return (cx,cy)
 
 LimitPolygon.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]

@@ -15,20 +15,24 @@ n_part=10000
 ctx = xo.context_default
 buf = ctx.new_buffer()
 
+# Just to copile the kernel
 pp = xt.LimitPolygon(x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
 na = lambda a : np.array(a, dtype=np.float64)
 pp.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
                            x_out=na([2]), y_out=na([2]), z_out=na([0]))
 
 # Define aper_0
+#aper_0 = xt.LimitRect(_buffer=buf, min_y=-1e-2, max_y=1e-2,
+#                                   min_x=-2e-2, max_x=2e-2)
 aper_0 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
-shift_aper_0 = (0,0); (1e-2, 0.5e-2)
+shift_aper_0 = (1e-2, 0.5e-2)
 rot_deg_aper_0 = 10.
 
 # Define aper_1
+#aper_1 = xt.LimitEllipse(_buffer=buf, a=1e-2, b=2e-2)
 aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
                                    min_y=-2e-2, max_y=2e-2)
-shift_aper_1 = (0,0); (-5e-3, 1e-2)
+shift_aper_1 = (-5e-3, 1e-2)
 rot_deg_aper_1 = 10.
 
 
@@ -82,7 +86,7 @@ import time
 t0 = time.time()
 
 # Get polygons
-n_theta = 360 * 5
+n_theta = 360
 r_max = 0.5 # m
 dr = 50e-6
 
@@ -143,4 +147,26 @@ for ii, (trkr, poly) in enumerate(
     plt.grid(linestyle=':')
     plt.plot(x0[ids][pp.state>0], y0[ids][pp.state>0], '.', color='green')
     plt.plot(poly.x_closed, poly.y_closed, '-k', linewidth=1)
+
+plt.figure()
+ax = plt.axes(projection='3d')
+ax.plot3D(
+        polygon_0.x_closed,
+        polygon_0.y_closed,
+        s0+polygon_0.x_closed*0,
+        color='k', linewidth=3)
+ax.plot3D(
+        polygon_1.x_closed,
+        polygon_1.y_closed,
+        s1+polygon_1.x_closed*0,
+        color='k', linewidth=3)
+for ii, ss in zip(range(0,len(s_vect)), s_vect):
+    pp=interp_polygons[ii];
+    ax.plot3D(
+            pp.x_closed,
+            pp.y_closed,
+            s_vect[ii]+0*pp.x_closed,
+            alpha=0.9,
+            )
+ax.view_init(65, 62); plt.draw()
 plt.show()
