@@ -58,7 +58,10 @@ trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
 tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
     elements = (trk_aper_0.line.elements
                 + (xt.Drift(_buffer=buf, length=1),
-                   xt.Drift(_buffer=buf, length=2))
+                   xt.Multipole(_buffer=buf, knl=[1]),
+                   xt.Drift(_buffer=buf, length=1),
+                   xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
+                   xt.Drift(_buffer=buf, length=1.),)
                 + trk_aper_1.line.elements)))
 
 # Test on full line
@@ -94,10 +97,12 @@ n_theta = 360
 r_max = 0.5 # m
 dr = 50e-6
 
-polygon_1 = ap.characterize_aperture(tracker, i_aper_1, n_theta, r_max, dr)
+polygon_1, i_start_thin_1 = ap.characterize_aperture(tracker, i_aper_1, n_theta, r_max, dr)
 num_elements = len(tracker.line.elements)
-polygon_0 = ap.characterize_aperture(backtracker, num_elements-i_aper_0-1,
+polygon_0, i_start_thin_0_bktr = ap.characterize_aperture(backtracker,
+                                     num_elements-i_aper_0-1,
                                      n_theta, r_max, dr)
+i_start_thin_0 = num_elements - i_start_thin_0_bktr - 1
 
 s0 = tracker.line.element_s_locations[i_aper_0]
 s1 = tracker.line.element_s_locations[i_aper_1]
@@ -127,13 +132,35 @@ for ss in s_vect:
 # Build interp line
 s_elements = [s0] + list(s_vect) +[s1]
 elements = [polygon_0] + interp_polygons + [polygon_1]
-# NB!!!!!! NEED TO ADD OTHER THIN ELEMENTS FROM THE LINE
+
+for i_ele in range(i_start_thin_0+1, i_start_thin_1):
+    ee = tracker.line.elements[i_ele]
+    if not ee.__class__.__name__.startswith('Drift'):
+        assert not hasattr(ee, 'isthick') or not ee.isthick
+        ss_ee = tracker.line.element_s_locations[i_ele]
+        elements.append(ee)
+        s_elements.append(ss_ee)
+i_sorted = np.argsort(s_elements)
+s_sorted = list(np.take(s_elements, i_sorted))
+ele_sorted = list(np.take(elements, i_sorted))
+
+s_all = [s_sorted[0]]
+ele_all = [ele_sorted[0]]
+
+for ii in range(1, len(s_sorted)):
+    ss = s_sorted[ii]
+
+    if ss-s_all[-1]>1e-14:
+        ele_all.append(xt.Drift(_buffer=buf, length=ss-s_all[-1]))
+        s_all.append(ss)
+    ele_all.append(ele_sorted[ii])
+    s_all.append(s_sorted[ii])
 
 
 
 interp_tracker = xt.Tracker(
         _buffer=buf,
-        sequence=xl.Line(elements=interp_polygons),
+        sequence=xl.Line(elements=ele_all),
         track_kernel=trk_gen.track_kernel,
         element_classes=trk_gen.element_classes)
 
