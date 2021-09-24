@@ -115,7 +115,7 @@ for iteration in range(2):
     this_rmax=2*this_dr
     this_dr = dr
 
-
+t1 = time.time()
 x_mat = x_test.reshape(RR.shape)
 y_mat = y_test.reshape(RR.shape)
 x_non_convex = np.array(
@@ -143,8 +143,9 @@ res = temp_poly.impact_point_and_normal(
 polygon = xt.LimitPolygon(x_vertices=res[0], y_vertices=res[1])
 
 
-t1 = time.time()
-print(f'Took {t1-t0:.2e} s')
+t2 = time.time()
+print(f'First part took\t{(t1-t0)*1e3:.2f} ms')
+print(f'Second part took\t{(t2-t1)*1e3:.2f} ms')
 
 # Visualize apertures
 for ii, trkr in enumerate([trk_aper_0, trk_aper_1]):
