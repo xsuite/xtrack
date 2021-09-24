@@ -1,7 +1,7 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
-#include <stddef.h>
+#include <stdint.h>
 #include <math.h>
 
 #define SQRT3 1.732050807568877
@@ -147,21 +147,20 @@ double average_number_of_photons(double beta_gamma, double kick )
   return 2.5/SQRT3*ALPHA_EM*beta_gamma*fabs(kick);
 }
 
-size_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
+int64_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
 {
   if (fabs(kick) < 1e-15)
     return 0;
   
-  size_t nphot = 0;
+  int64_t nphot = 0;
   double const mass = LocalParticle_get_mass(part); // eV
   double energy = LocalParticle_get_energy(part); // eV
   double gamma = energy / mass; // 
   double beta_gamma = sqrt(gamma*gamma-1); //
-  double n = LocalParticle_generate_random_double_exp(part); 
+
+  double n = LocalParticle_generate_random_double_exp(part); // path_length / mean_free_path;
   while (n < average_number_of_photons(beta_gamma, kick)) {
     nphot++;
-    gamma = energy / mass; // TODO: check if it's gamma, or beta*gamma
-    beta_gamma = sqrt(gamma*gamma-1); // that's how it is beta gamma
     double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
     double const energy_critical = c1 * (gamma*gamma*gamma) * fabs(kick) / length; // eV
     double const energy_loss = syn_gen_photon_energy_normalized(part) * energy_critical; // eV
@@ -169,7 +168,11 @@ size_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length
       energy = 0.0; // eV
       break;
     }
+
     energy -= energy_loss; // eV
+    gamma = energy / mass; // TODO: check if it's gamma, or beta*gamma
+    beta_gamma = sqrt(gamma*gamma-1); // that's how it is beta gamma
+
     n += LocalParticle_generate_random_double_exp(part);
   }
 
