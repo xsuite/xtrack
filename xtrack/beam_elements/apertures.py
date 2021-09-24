@@ -14,6 +14,14 @@ class LimitRect(BeamElement):
         'max_y': xo.Float64,
         }
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                    min_x=self.min_x,
+                    max_x=self.max_x,
+                    min_y=self.min_y,
+                    max_y=self.max_y,
+                    _context=_context, _buffer=_buffer, _offset=_offset)
+
 LimitRect.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
@@ -57,6 +65,13 @@ class LimitEllipse(BeamElement):
         self.b_squ = b_squ
         self.a_b_squ = a_squ * b_squ
         return self
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                    a_squ=self.a_squ,
+                    b_squ=self.b_squ,
+                    a_b_squ=self.a_b_squ,
+                    _context=_context, _buffer=_buffer, _offset=_offset)
 
 LimitEllipse.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]

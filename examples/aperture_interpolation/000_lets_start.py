@@ -86,6 +86,7 @@ this_rmin = 0
 this_rmax = r_max
 this_dr = (this_rmax-this_rmin)/100.
 rmin_theta = 0*theta_vect
+t_iter = []
 for iteration in range(2):
 
     r_vect = np.arange(this_rmin, this_rmax, this_dr)
@@ -114,6 +115,7 @@ for iteration in range(2):
     this_rmin=0
     this_rmax=2*this_dr
     this_dr = dr
+    t_iter.append(time.time() - t0)
 
 t1 = time.time()
 x_mat = x_test.reshape(RR.shape)
