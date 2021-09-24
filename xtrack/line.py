@@ -86,6 +86,7 @@ class Line():
 
         self.elements = tuple(elements)
         self.element_names = tuple(element_names)
+        self.element_s_locations = tuple(sequence.get_s_elements())
         self._line_data = line_data
         self._LineDataClass = LineDataClass
         self._ElementRefClass = ElementRefClass
