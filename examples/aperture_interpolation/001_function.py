@@ -58,7 +58,7 @@ trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
 tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
     elements = (trk_aper_0.line.elements
                 + (xt.Drift(_buffer=buf, length=1),
-                   xt.Multipole(_buffer=buf, knl=[1]),
+                   xt.Multipole(_buffer=buf, knl=[1e-3]),
                    xt.Drift(_buffer=buf, length=1),
                    xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
                    xt.Drift(_buffer=buf, length=1.),)
@@ -165,6 +165,15 @@ interp_tracker = xt.Tracker(
         sequence=xl.Line(elements=ele_all),
         track_kernel=trk_gen.track_kernel,
         element_classes=trk_gen.element_classes)
+
+mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
+part_refine = xt.Particles(
+                x=particles.x[mask_part],
+                px=particles.px[mask_part],
+                y=particles.y[mask_part],
+                py=particles.py[mask_part],
+                zeta=particles.zeta[mask_part],
+                delta=particles.delta[mask_part])
 
 t1 = time.time()
 print(f'Took\t{(t1-t0)*1e3:.2f} ms')
