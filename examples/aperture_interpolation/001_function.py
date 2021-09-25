@@ -180,9 +180,15 @@ n_backtrack = i_aper_1 - (i_start_thin_0+1)
 i_start_backtrack = num_elements-i_aper_1
 backtracker.track(part_refine, ele_start=i_start_backtrack,
                   num_elements = n_backtrack)
-#Just for check
+# Just for check
 elem_backtrack = backtracker.line.elements[
                     i_start_backtrack:i_start_backtrack + n_backtrack]
+
+# Track with extra apertures
+interp_tracker.track(part_refine)
+# There is a small fraction of particles that are not lost. We verified that they
+# are really at the edge. Their coordinates correspond to the end fo the short line,
+# which is correct
 
 t1 = time.time()
 print(f'Took\t{(t1-t0)*1e3:.2f} ms')
@@ -231,5 +237,6 @@ for ii, ss in zip(range(0,len(s_vect)), s_vect):
             s_vect[ii]+0*pp.x_closed,
             alpha=0.9,
             )
+ax.plot3D(part_refine.x, part_refine.y, part_refine.s, '.r')
 ax.view_init(65, 62); plt.draw()
 plt.show()
