@@ -176,6 +176,13 @@ part_refine = xt.Particles(
                 zeta=particles.zeta[mask_part],
                 delta=particles.delta[mask_part],
                 s=particles.s[mask_part])
+n_backtrack = i_aper_1 - (i_start_thin_0+1)
+i_start_backtrack = num_elements-i_aper_1
+backtracker.track(part_refine, ele_start=i_start_backtrack,
+                  num_elements = n_backtrack)
+#Just for check
+elem_backtrack = backtracker.line.elements[
+                    i_start_backtrack:i_start_backtrack + n_backtrack]
 
 t1 = time.time()
 print(f'Took\t{(t1-t0)*1e3:.2f} ms')
