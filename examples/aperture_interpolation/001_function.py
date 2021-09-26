@@ -76,13 +76,12 @@ tracker.track(particles)
 backtracker = tracker.get_backtracker(_context=ctx)
 
 # Find apertures
-
 i_apertures = []
 for ii, ee in enumerate(tracker.line.elements):
     if ee.__class__.__name__.startswith('Limit'):
         i_apertures.append(ii)
 
-# Build kernel with all elements polygon
+# Build kernel with all elements and polygon
 trk_gen = xt.Tracker(_buffer=buf,
         sequence=xl.Line(elements=tracker.line.elements + (temp_poly,)))
 
@@ -93,6 +92,8 @@ i_aper_0 = i_apertures[0]
 import time
 t0 = time.time()
 
+temp_buf = ctx.new_buffer()
+
 # Get polygons
 n_theta = 360
 r_max = 0.5 # m
@@ -100,12 +101,12 @@ dr = 50e-6
 
 polygon_1, i_start_thin_1 = ap.characterize_aperture(tracker,
                              i_aper_1, n_theta, r_max, dr,
-                             buffer_for_poly=buf)
+                             buffer_for_poly=temp_buf)
 num_elements = len(tracker.line.elements)
 polygon_0, i_start_thin_0_bktr = ap.characterize_aperture(backtracker,
                              num_elements-i_aper_0-1,
                              n_theta, r_max, dr,
-                             buffer_for_poly=buf)
+                             buffer_for_poly=temp_buf)
 i_start_thin_0 = num_elements - i_start_thin_0_bktr - 1
 
 s0 = tracker.line.element_s_locations[i_aper_0]
@@ -129,7 +130,7 @@ for ss in s_vect:
     x_hull = x_non_convex[i_hull]
     y_hull = y_non_convex[i_hull]
     interp_polygons.append(xt.LimitPolygon(
-        _buffer=buf,
+        _buffer=temp_buf,
         x_vertices=x_hull,
         y_vertices=y_hull))
 
@@ -142,7 +143,7 @@ for i_ele in range(i_start_thin_0+1, i_start_thin_1):
     if not ee.__class__.__name__.startswith('Drift'):
         assert not hasattr(ee, 'isthick') or not ee.isthick
         ss_ee = tracker.line.element_s_locations[i_ele]
-        elements.append(ee)
+        elements.append(ee.copy(_buffer=temp_buf))
         s_elements.append(ss_ee)
 i_sorted = np.argsort(s_elements)
 s_sorted = list(np.take(s_elements, i_sorted))
@@ -155,14 +156,14 @@ for ii in range(1, len(s_sorted)):
     ss = s_sorted[ii]
 
     if ss-s_all[-1]>1e-14:
-        ele_all.append(xt.Drift(_buffer=buf, length=ss-s_all[-1]))
+        ele_all.append(xt.Drift(_buffer=temp_buf, length=ss-s_all[-1]))
         s_all.append(ss)
     ele_all.append(ele_sorted[ii])
     s_all.append(s_sorted[ii])
 
 
 interp_tracker = xt.Tracker(
-        _buffer=buf,
+        _buffer=temp_buf,
         sequence=xl.Line(elements=ele_all),
         track_kernel=trk_gen.track_kernel,
         element_classes=trk_gen.element_classes)
