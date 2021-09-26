@@ -227,19 +227,21 @@ class Multipole(BeamElement):
 
 
         # TODO: Remove when xobjects is fixed
-        kwargs["bal"] = list(kwargs['bal'])
-        self._temp_bal_length = len(kwargs['bal'])
+        if 'bal' in kwargs.keys():
+            kwargs["bal"] = list(kwargs['bal'])
 
         self.xoinitialize(**kwargs)
 
     @property
     def knl(self):
-        idxes = np.array([ii for ii in range(0, self._temp_bal_length, 2)])
+        bal_length = len(self.bal)
+        idxes = np.array([ii for ii in range(0, bal_length, 2)])
         return [self.bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
 
     @property
     def ksl(self):
-        idxes = np.array([ii for ii in range(0, self._temp_bal_length, 2)])
+        bal_length = len(self.bal)
+        idxes = np.array([ii for ii in range(0, bal_length, 2)])
         return [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
         #idx = np.array([ii for ii in range(0, len(self.bal), 2)])
         #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
@@ -378,21 +380,26 @@ class RFMultipole(BeamElement):
             kwargs["bal"] = bal
             kwargs["phase"] = p
             kwargs["order"] = (len(bal) - 2) / 2
+        elif '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            pass
         else:
             raise ValueError('Invalid input!')
 
 
-        temp_bal = kwargs["bal"]
-        temp_phase = kwargs["phase"]
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            super().__init__(**kwargs)
+        else:
+            temp_bal = kwargs["bal"]
+            temp_phase = kwargs["phase"]
 
-        kwargs["bal"] = len(temp_bal)
-        kwargs["phase"] = len(temp_phase)
+            kwargs["bal"] = len(temp_bal)
+            kwargs["phase"] = len(temp_phase)
 
-        super().__init__(**kwargs)
+            super().__init__(**kwargs)
 
-        ctx = self._buffer.context
-        self.bal[:] = ctx.nparray_to_context_array(temp_bal)
-        self.phase[:] = ctx.nparray_to_context_array(temp_phase)
+            ctx = self._buffer.context
+            self.bal[:] = ctx.nparray_to_context_array(temp_bal)
+            self.phase[:] = ctx.nparray_to_context_array(temp_phase)
 
     @property
     def knl(self):

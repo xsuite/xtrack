@@ -237,6 +237,6 @@ for ii, ss in zip(range(0,len(s_vect)), s_vect):
             s_vect[ii]+0*pp.x_closed,
             alpha=0.9,
             )
-ax.plot3D(part_refine.x, part_refine.y, part_refine.s, '.r')
+ax.plot3D(part_refine.x, part_refine.y, part_refine.s, '.r', markersize=.5)
 ax.view_init(65, 62); plt.draw()
 plt.show()
