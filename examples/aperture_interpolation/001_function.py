@@ -64,6 +64,7 @@ tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
                    xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
                    xt.Drift(_buffer=buf, length=1.),)
                 + trk_aper_1.line.elements)))
+num_elements = len(tracker.line.elements)
 
 # Test on full line
 particles = xt.Particles(_context=ctx,
@@ -92,81 +93,18 @@ i_aper_0 = i_apertures[0]
 import time
 t0 = time.time()
 
-temp_buf = ctx.new_buffer()
+
 
 # Get polygons
 n_theta = 360
 r_max = 0.5 # m
 dr = 50e-6
-
-polygon_1, i_start_thin_1 = ap.characterize_aperture(tracker,
-                             i_aper_1, n_theta, r_max, dr,
-                             buffer_for_poly=temp_buf)
-num_elements = len(tracker.line.elements)
-polygon_0, i_start_thin_0_bktr = ap.characterize_aperture(backtracker,
-                             num_elements-i_aper_0-1,
-                             n_theta, r_max, dr,
-                             buffer_for_poly=temp_buf)
-i_start_thin_0 = num_elements - i_start_thin_0_bktr - 1
-
-s0 = tracker.line.element_s_locations[i_aper_0]
-s1 = tracker.line.element_s_locations[i_aper_1]
-
-# Interpolate
-
-Delta_s = s1 - s0
 ds = 0.1
 
-s_vect = np.arange(s0, s1, ds)
+interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1 = ap.interp_aperture(ctx,
+                                    tracker, backtracker, i_aper_0, i_aper_1,
+                                    n_theta, r_max, dr, ds, _trk_gen=trk_gen)
 
-interp_polygons = []
-for ss in s_vect:
-    x_non_convex=(polygon_1.x_vertices*(ss - s0) / Delta_s
-              + polygon_0.x_vertices*(s1 - ss) / Delta_s)
-    y_non_convex=(polygon_1.y_vertices*(ss - s0) / Delta_s
-              + polygon_0.y_vertices*(s1 - ss) / Delta_s)
-    hull = ConvexHull(np.array([x_non_convex, y_non_convex]).T)
-    i_hull = np.sort(hull.vertices)
-    x_hull = x_non_convex[i_hull]
-    y_hull = y_non_convex[i_hull]
-    interp_polygons.append(xt.LimitPolygon(
-        _buffer=temp_buf,
-        x_vertices=x_hull,
-        y_vertices=y_hull))
-
-# Build interp line
-s_elements = [s0] + list(s_vect) +[s1]
-elements = [polygon_0] + interp_polygons + [polygon_1]
-
-for i_ele in range(i_start_thin_0+1, i_start_thin_1):
-    ee = tracker.line.elements[i_ele]
-    if not ee.__class__.__name__.startswith('Drift'):
-        assert not hasattr(ee, 'isthick') or not ee.isthick
-        ss_ee = tracker.line.element_s_locations[i_ele]
-        elements.append(ee.copy(_buffer=temp_buf))
-        s_elements.append(ss_ee)
-i_sorted = np.argsort(s_elements)
-s_sorted = list(np.take(s_elements, i_sorted))
-ele_sorted = list(np.take(elements, i_sorted))
-
-s_all = [s_sorted[0]]
-ele_all = [ele_sorted[0]]
-
-for ii in range(1, len(s_sorted)):
-    ss = s_sorted[ii]
-
-    if ss-s_all[-1]>1e-14:
-        ele_all.append(xt.Drift(_buffer=temp_buf, length=ss-s_all[-1]))
-        s_all.append(ss)
-    ele_all.append(ele_sorted[ii])
-    s_all.append(s_sorted[ii])
-
-
-interp_tracker = xt.Tracker(
-        _buffer=temp_buf,
-        sequence=xl.Line(elements=ele_all),
-        track_kernel=trk_gen.track_kernel,
-        element_classes=trk_gen.element_classes)
 
 mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
 part_refine = xt.Particles(
@@ -195,6 +133,8 @@ t1 = time.time()
 print(f'Took\t{(t1-t0)*1e3:.2f} ms')
 
 # Visualize apertures
+polygon_0 = interp_tracker.line.elements[0]
+polygon_1 = interp_tracker.line.elements[-1]
 for ii, (trkr, poly) in enumerate(
                          zip([trk_aper_0, trk_aper_1],
                              [polygon_0, polygon_1])):
@@ -230,14 +170,15 @@ ax.plot3D(
         polygon_1.y_closed,
         s1+polygon_1.x_closed*0,
         color='k', linewidth=3)
-for ii, ss in zip(range(0,len(s_vect)), s_vect):
-    pp=interp_polygons[ii];
-    ax.plot3D(
-            pp.x_closed,
-            pp.y_closed,
-            s_vect[ii]+0*pp.x_closed,
-            alpha=0.9,
-            )
+for ee, ss in zip(interp_tracker.line.elements,
+                  interp_tracker.line.element_s_locations):
+    if ee.__class__ is xt.LimitPolygon:
+        ax.plot3D(
+                ee.x_closed,
+                ee.y_closed,
+                s0+ss+0*ee.x_closed,
+                alpha=0.9,
+                )
 ax.plot3D(part_refine.x, part_refine.y, part_refine.s, '.r', markersize=.5)
 ax.view_init(65, 62); plt.draw()
 plt.show()
