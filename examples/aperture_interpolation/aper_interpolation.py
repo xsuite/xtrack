@@ -10,21 +10,25 @@ logger = logging.getLogger(__name__)
 
 class LossLocationRefinement:
 
-    def __init__(self, tracker, backtracker=None):
+    def __init__(self, tracker, backtracker=None,
+                 n_theta=None, r_max=None, dr=None, ds=None,
+                 save_refine_trackers=False):
 
-        self._context = tracker.context
+        self.tracker = tracker
+
+        self._context = tracker.line._buffer.context
         assert self._context.__class__ is xo.ContextCpu, (
                 "Other contexts are not supported!")
 
         # Build a polygon and compile the kernel
-        temp_poly = xt.LimitPolygon(_buffer=tracker._buffer,
+        temp_poly = xt.LimitPolygon(_buffer=tracker.line._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
         temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
                                    x_out=na([2]), y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        trk_gen = xt.Tracker(_buffer=tracker._buffer,
+        trk_gen = xt.Tracker(_buffer=tracker.line._buffer,
                 sequence=xl.Line(elements=tracker.line.elements + (temp_poly,)))
 
         self._trk_gen = trk_gen
@@ -36,13 +40,22 @@ class LossLocationRefinement:
 
         self.i_apertures, self.apertures = find_apertures(tracker)
 
-    def refine_loss_location(particles, i_apertures=None):
+        self.save_refine_trackers = save_refine_trackers
+        if save_refine_trackers:
+            self.refine_trackers = {}
+
+        self.n_theta = n_theta
+        self.r_max = r_max
+        self.dr = dr
+        self.ds = ds
+
+    def refine_loss_location(self, particles, i_apertures=None):
 
         if i_apertures is None:
             i_apertures = self.i_apertures
 
         for i_ap in i_apertures:
-            if np.any((particles.at_element==i_ap and particles.state==0)):
+            if np.any((particles.at_element==i_ap) & (particles.state==0)):
 
                 if self.i_apertures.index(i_ap) == 0:
                     logger.warning(
@@ -53,13 +66,21 @@ class LossLocationRefinement:
                 i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
 
                 (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
-                        ) = ap.interp_aperture_using_polygons(ctx,
-                                  tracker, backtracker, i_aper_0, i_aper_1,
-                                  n_theta, r_max, dr, ds, _trk_gen=trk_gen)
+                        ) = interp_aperture_using_polygons(self._context,
+                                  self.tracker, self.backtracker, i_aper_0, i_aper_1,
+                                  self.n_theta, self.r_max, self.dr, self.ds,
+                                  _trk_gen=self._trk_gen)
 
-                part_refine = ap.refine_loss_location_single_aperture(
+                part_refine = refine_loss_location_single_aperture(
                             particles,i_aper_1, i_start_thin_0,
-                            backtracker, interp_tracker, inplace=True)
+                            self.backtracker, interp_tracker, inplace=True)
+
+                if self.save_refine_trackers:
+                    interp_tracker.i_start_thin_0 = i_start_thin_0
+                    interp_tracker.i_start_thin_1 = i_start_thin_1
+                    interp_tracker.s0 = s0
+                    interp_tracker.s1 = s1
+                    self.refine_trackers[i_ap] = interp_tracker
 
 
 def find_apertures(tracker):

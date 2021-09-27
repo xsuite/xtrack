@@ -15,11 +15,6 @@ n_part=10000
 ctx = xo.context_default
 buf = ctx.new_buffer()
 
-# Just to copile the kernel
-temp_poly = xt.LimitPolygon(_buffer=buf, x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
-na = lambda a : np.array(a, dtype=np.float64)
-temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
-                           x_out=na([2]), y_out=na([2]), z_out=na([0]))
 
 # Define aper_0
 #aper_0 = xt.LimitRect(_buffer=buf, min_y=-1e-2, max_y=1e-2,
@@ -73,44 +68,27 @@ particles = xt.Particles(_context=ctx,
 
 tracker.track(particles)
 
-# Get backtracker
-backtracker = tracker.get_backtracker(_context=ctx)
 
-# Find apertures
-i_apertures = []
-for ii, ee in enumerate(tracker.line.elements):
-    if ee.__class__.__name__.startswith('Limit'):
-        i_apertures.append(ii)
-
-# Build kernel with all elements and polygon
-trk_gen = xt.Tracker(_buffer=buf,
-        sequence=xl.Line(elements=tracker.line.elements + (temp_poly,)))
-
-
-i_aper_1 = i_apertures[1]
-i_aper_0 = i_apertures[0]
+loss_loc_refinement = ap.LossLocationRefinement(tracker,
+                                            n_theta = 360,
+                                            r_max = 0.5, # m
+                                            dr = 50e-6,
+                                            ds = 0.1,
+                                            save_refine_trackers=True)
 
 import time
 t0 = time.time()
 
-# Get polygons
-n_theta = 360
-r_max = 0.5 # m
-dr = 50e-6
-ds = 0.1
-
-(interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
-        ) = ap.interp_aperture_using_polygons(ctx,
-                                    tracker, backtracker, i_aper_0, i_aper_1,
-                                    n_theta, r_max, dr, ds, _trk_gen=trk_gen)
-
-part_refine = ap.refine_loss_location_single_aperture(particles,
-                            i_aper_1, i_start_thin_0, backtracker, interp_tracker)
+loss_loc_refinement.refine_loss_location(particles)
 
 t1 = time.time()
 print(f'Took\t{(t1-t0)*1e3:.2f} ms')
 
 # Visualize apertures
+interp_tracker = loss_loc_refinement.refine_trackers[
+                                    loss_loc_refinement.i_apertures[1]]
+s0 = interp_tracker.s0
+s1 = interp_tracker.s1
 polygon_0 = interp_tracker.line.elements[0]
 polygon_1 = interp_tracker.line.elements[-1]
 for ii, (trkr, poly) in enumerate(
@@ -157,7 +135,7 @@ for ee, ss in zip(interp_tracker.line.elements,
                 s0+ss+0*ee.x_closed,
                 alpha=0.9,
                 )
-mask = particles.at_element == i_apertures[1]
+mask = particles.at_element == loss_loc_refinement.i_apertures[1]
 ax.plot3D(particles.x[mask], particles.y[mask], particles.s[mask],
           '.r', markersize=.5)
 ax.view_init(65, 62); plt.draw()
