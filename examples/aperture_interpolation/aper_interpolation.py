@@ -3,7 +3,46 @@ from scipy.spatial import ConvexHull
 
 import xtrack as xt
 import xline as xl
+import xobjects as xo
 
+class LossLocationRefinement:
+
+    def __init__(self, tracker, backtracker=None):
+
+        self._context = tracker.context
+        assert self._context.__class__ is xo.ContextCpu, (
+                "Other contexts are not supported!")
+
+        # Build a polygon and compile the kernel
+        temp_poly = xt.LimitPolygon(_buffer=tracker._buffer,
+                x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
+        na = lambda a : np.array(a, dtype=np.float64)
+        temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
+                                   x_out=na([2]), y_out=na([2]), z_out=na([0]))
+
+        # Build track kernel with all elements + polygon
+        trk_gen = xt.Tracker(_buffer=tracker._buffer,
+                sequence=xl.Line(elements=tracker.line.elements + (temp_poly,)))
+
+        self._trk_gen = trk_gen
+
+        if backtracker is None:
+            backtracker = tracker.get_backtracker(_context=self._context)
+
+        self.backtracker = backtracker
+
+        self.i_apertures, self.apertures = find_apertures(tracker)
+
+
+def find_apertures(tracker):
+    i_apertures = []
+    apertures = []
+    for ii, ee in enumerate(tracker.line.elements):
+        if ee.__class__.__name__.startswith('Limit'):
+            i_apertures.append(ii)
+            apertures.append(ee)
+
+    return i_apertures, apertures
 
 def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                                          backtracker, interp_tracker,
