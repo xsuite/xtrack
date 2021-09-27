@@ -62,8 +62,6 @@ class LossLocationRefinement:
                             backtracker, interp_tracker, inplace=True)
 
 
-
-
 def find_apertures(tracker):
     i_apertures = []
     apertures = []

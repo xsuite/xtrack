@@ -157,6 +157,8 @@ for ee, ss in zip(interp_tracker.line.elements,
                 s0+ss+0*ee.x_closed,
                 alpha=0.9,
                 )
-ax.plot3D(part_refine.x, part_refine.y, part_refine.s, '.r', markersize=.5)
+mask = particles.at_element == i_apertures[1]
+ax.plot3D(particles.x[mask], particles.y[mask], particles.s[mask],
+          '.r', markersize=.5)
 ax.view_init(65, 62); plt.draw()
 plt.show()
