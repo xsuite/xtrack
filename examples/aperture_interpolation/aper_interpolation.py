@@ -6,10 +6,12 @@ import xline as xl
 
 
 def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
-                                         backtracker, interp_tracker):
+                                         backtracker, interp_tracker,
+                                         inplace=True):
 
     mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
     part_refine = xt.Particles(
+                    p0c=particles.p0c[mask_part],
                     x=particles.x[mask_part],
                     px=particles.px[mask_part],
                     y=particles.y[mask_part],
@@ -30,7 +32,24 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
     interp_tracker.track(part_refine)
     # There is a small fraction of particles that are not lost.
     # We verified that they are really at the edge. Their coordinates
-    # correspond to the end fo the short line, which is correct
+    # correspond to the end fo the short line, which is correct 
+
+
+    if inplace:
+        indx_sorted = np.argsort(part_refine.particle_id)
+        particles.x[mask_part] = part_refine.x[indx_sorted]
+        particles.px[mask_part] = part_refine.px[indx_sorted]
+        particles.y[mask_part] = part_refine.y[indx_sorted]
+        particles.py[mask_part] = part_refine.py[indx_sorted]
+        particles.zeta[mask_part] = part_refine.zeta[indx_sorted]
+        particles.s[mask_part] = part_refine.s[indx_sorted]
+        particles.delta[mask_part] = part_refine.delta[indx_sorted]
+        particles.psigma[mask_part] = part_refine.psigma[indx_sorted]
+        particles.rvv[mask_part] = part_refine.rvv[indx_sorted]
+        particles.rpp[mask_part] = part_refine.rpp[indx_sorted]
+        particles.p0c[mask_part] = part_refine.p0c[indx_sorted]
+        particles.gamma0[mask_part] = part_refine.gamma0[indx_sorted]
+        particles.beta0[mask_part] = part_refine.beta0[indx_sorted]
 
     return part_refine
 
