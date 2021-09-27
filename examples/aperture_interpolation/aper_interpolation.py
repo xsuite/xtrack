@@ -5,6 +5,9 @@ import xtrack as xt
 import xline as xl
 import xobjects as xo
 
+import logging
+logger = logging.getLogger(__name__)
+
 class LossLocationRefinement:
 
     def __init__(self, tracker, backtracker=None):
@@ -32,6 +35,33 @@ class LossLocationRefinement:
         self.backtracker = backtracker
 
         self.i_apertures, self.apertures = find_apertures(tracker)
+
+    def refine_loss_location(particles, i_apertures=None):
+
+        if i_apertures is None:
+            i_apertures = self.i_apertures
+
+        for i_ap in i_apertures:
+            if np.any((particles.at_element==i_ap and particles.state==0)):
+
+                if self.i_apertures.index(i_ap) == 0:
+                    logger.warning(
+                            'Unable to handle the first aperture in the line')
+                    continue
+
+                i_aper_1 = i_ap
+                i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
+
+                (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+                        ) = ap.interp_aperture_using_polygons(ctx,
+                                  tracker, backtracker, i_aper_0, i_aper_1,
+                                  n_theta, r_max, dr, ds, _trk_gen=trk_gen)
+
+                part_refine = ap.refine_loss_location_single_aperture(
+                            particles,i_aper_1, i_start_thin_0,
+                            backtracker, interp_tracker, inplace=True)
+
+
 
 
 def find_apertures(tracker):

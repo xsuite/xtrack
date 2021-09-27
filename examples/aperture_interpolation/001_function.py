@@ -100,7 +100,7 @@ dr = 50e-6
 ds = 0.1
 
 (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
-        )= ap.interp_aperture_using_polygons(ctx,
+        ) = ap.interp_aperture_using_polygons(ctx,
                                     tracker, backtracker, i_aper_0, i_aper_1,
                                     n_theta, r_max, dr, ds, _trk_gen=trk_gen)
 
