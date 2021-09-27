@@ -4,7 +4,37 @@ from scipy.spatial import ConvexHull
 import xtrack as xt
 import xline as xl
 
-def interp_aperture(context, tracker, backtracker, i_aper_0, i_aper_1,
+
+def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
+                                         backtracker, interp_tracker):
+
+    mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
+    part_refine = xt.Particles(
+                    x=particles.x[mask_part],
+                    px=particles.px[mask_part],
+                    y=particles.y[mask_part],
+                    py=particles.py[mask_part],
+                    zeta=particles.zeta[mask_part],
+                    delta=particles.delta[mask_part],
+                    s=particles.s[mask_part])
+    n_backtrack = i_aper_1 - (i_start_thin_0+1)
+    num_elements = len(backtracker.line.elements)
+    i_start_backtrack = num_elements-i_aper_1
+    backtracker.track(part_refine, ele_start=i_start_backtrack,
+                      num_elements = n_backtrack)
+    # Just for check
+    elem_backtrack = backtracker.line.elements[
+                        i_start_backtrack:i_start_backtrack + n_backtrack]
+
+    # Track with extra apertures
+    interp_tracker.track(part_refine)
+    # There is a small fraction of particles that are not lost.
+    # We verified that they are really at the edge. Their coordinates
+    # correspond to the end fo the short line, which is correct
+
+    return part_refine
+
+def interp_aperture_using_polygons(context, tracker, backtracker, i_aper_0, i_aper_1,
                        n_theta, r_max, dr, ds, _trk_gen):
 
     temp_buf = context.new_buffer()
