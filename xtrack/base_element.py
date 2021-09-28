@@ -124,8 +124,24 @@ def dress_element(XoElementData):
     return DressedElement
 
 
-class MetaBeamElement(type):
+@classmethod
+def _cls_check_requires_sync(cls, mode="any"):
+    requ_sync = False
+    if hasattr(cls, "_requires_sync"):
+        requ_sync_modes = getattr(cls, "_requires_sync", [])
+        requ_sync = bool(
+            (mode == "any" and len(requ_sync_modes) > 0)
+            or (len(mode) > 0 and mode in requ_sync_modes)
+        )
+    return requ_sync
 
+
+@classmethod
+def _cls_do_global_aperture_check(cls):
+    return getattr(cls, "_global_aperture_check", False)
+
+
+class MetaBeamElement(type):
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
         if '_xofields' in data.keys():
@@ -135,11 +151,12 @@ class MetaBeamElement(type):
                 if hasattr(bb,'_xofields'):
                     xofields = bb._xofields
                     break
+
         XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
 
         bases = (dress_element(XoStruct),) + bases
+        return super().__new__(cls, name, bases, data)
 
-        return type.__new__(cls, name, bases, data)
 
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
