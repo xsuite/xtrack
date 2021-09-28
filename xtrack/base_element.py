@@ -143,12 +143,12 @@ def _cls_do_global_aperture_check(cls):
 
 class MetaBeamElement(type):
     def __new__(cls, name, bases, data):
-        XoStruct_name = name+'Data'
-        if '_xofields' in data.keys():
-            xofields = data['_xofields']
+        XoStruct_name = name + "Data"
+        if "_xofields" in data.keys():
+            xofields = data["_xofields"]
         else:
             for bb in bases:
-                if hasattr(bb,'_xofields'):
+                if hasattr(bb, "_xofields"):
                     xofields = bb._xofields
                     break
 
@@ -159,5 +159,4 @@ class MetaBeamElement(type):
 
 
 class BeamElement(metaclass=MetaBeamElement):
-    _xofields={}
-
+    _xofields = {}
