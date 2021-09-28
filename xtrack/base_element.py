@@ -154,6 +154,20 @@ class MetaBeamElement(type):
 
         XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
 
+        if not hasattr(XoStruct, "_requires_sync"):
+            requ_sync_data = data.get("_requires_sync", [])
+            setattr(XoStruct, "_requires_sync", requ_sync_data)
+
+        if not hasattr(XoStruct, "requires_sync"):
+            XoStruct.requires_sync = _cls_check_requires_sync
+
+        if not hasattr(XoStruct, "_global_aperture_check"):
+            gl_aperture_check = data.get("_global_aperture_check", False)
+            setattr(XoStruct, "_global_aperture_check", gl_aperture_check)
+
+        if not hasattr(XoStruct, "requires_global_aperture_check"):
+            XoStruct.requires_global_aperture_check = _cls_do_global_aperture_check
+
         bases = (dress_element(XoStruct),) + bases
         return super().__new__(cls, name, bases, data)
 
