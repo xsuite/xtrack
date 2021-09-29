@@ -67,3 +67,24 @@ class LimitEllipse(BeamElement):
 LimitEllipse.XoStruct.extra_sources = [
     _pkg_root.joinpath("beam_elements/apertures_src/limitellipse.h")
 ]
+
+
+class LimitRectEllipse(BeamElement):
+    _xofields = {
+        "max_x": xo.Float64,
+        "max_y": xo.Float64,
+        "a_squ": xo.Float64,
+        "b_squ": xo.Float64,
+        "a_b_squ": xo.Float64,
+    }
+
+    def __init__(self, max_x=0.0, max_y=0.0, **kwargs):
+        args = LimitEllipse._prepare_init_args(**kwargs)
+        args["max_x"] = max(max_x, 0.0)
+        args["max_y"] = max(max_y, 0.0)
+        super().__init__(**args)
+
+
+LimitRectEllipse.XoStruct.extra_sources = [
+    _pkg_root.joinpath("beam_elements/apertures_src/limitrectellipse.h")
+]
