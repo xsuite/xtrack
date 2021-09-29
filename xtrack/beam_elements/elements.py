@@ -37,6 +37,21 @@ Drift.XoStruct.extra_sources = [
     _pkg_root.joinpath("beam_elements/elements_src/drift.h")
 ]
 
+
+class DriftExact(BeamElement):
+    """Beam element modeling a drift section without parabolic approximation. Parameters:
+
+    - length [m]: Length of the drift section. Default is ``0``.
+    """
+
+    _xofields = {"length": xo.Float64}
+
+
+DriftExact.XoStruct.extra_sources = [
+    _pkg_root.joinpath("beam_elements/elements_src/driftexact.h")
+]
+
+
 class Cavity(BeamElement):
     """Beam element modeling an RF cavity. Parameters:
 
