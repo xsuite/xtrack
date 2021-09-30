@@ -32,39 +32,41 @@ def _handle_per_particle_blocks(sources):
     out = []
     for ii, ss in enumerate(sources):
         if isinstance(ss, Path):
-            with open(ss, 'r') as fid:
+            with open(ss, "r") as fid:
                 strss = fid.read()
         else:
             strss = ss
 
-        if '//start_per_particle_block' in strss:
+        if "//start_per_particle_block" in strss:
 
             lines = strss.splitlines()
             for ill, ll in enumerate(lines):
-                if '//start_per_particle_block' in ll:
+                if "//start_per_particle_block" in ll:
                     lines[ill] = start_per_part_block
-                if '//end_per_particle_block' in ll:
+                if "//end_per_particle_block" in ll:
                     lines[ill] = end_part_part_block
 
-            # TODO: this is very dirty, just for check!!!!! 
-            out.append('\n'.join(lines))
+            # TODO: this is very dirty, just for check!!!!!
+            out.append("\n".join(lines))
         else:
             out.append(ss)
 
     return out
 
+
 def dress_element(XoElementData):
 
     DressedElement = dress(XoElementData)
-    assert XoElementData.__name__.endswith('Data')
+    assert XoElementData.__name__.endswith("Data")
     name = XoElementData.__name__[:-4]
 
-    DressedElement.track_kernel_source = ('''
+    DressedElement.track_kernel_source = (
+        """
             /*gpukern*/
-            '''
-            f'void {name}_track_particles(\n'
-            f'               {name}Data el,\n'
-'''
+            """
+        f"void {name}_track_particles(\n"
+        f"               {name}Data el,\n"
+        """
                              ParticlesData particles){
             LocalParticle lpart;
             int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
@@ -75,41 +77,48 @@ def dress_element(XoElementData):
             if (part_id<part_capacity){
                 Particles_to_LocalParticle(particles, &lpart, part_id);
                 if (check_is_active(&lpart)>0){
-'''
-            f'      {name}_track_local_particle(el, &lpart);\n'
-'''
+"""
+        f"      {name}_track_local_particle(el, &lpart);\n"
+        """
                 }
                 if (check_is_active(&lpart)>0){
                         increment_at_element(&lpart);
                 }
             }
         }
-''')
-    DressedElement._track_kernel_name = f'{name}_track_particles'
-    DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
-        xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
-                        xo.Arg(ParticlesData, name='particles')])}
+"""
+    )
+    DressedElement._track_kernel_name = f"{name}_track_particles"
+    DressedElement.track_kernel_description = {
+        DressedElement._track_kernel_name: xo.Kernel(
+            args=[
+                xo.Arg(XoElementData, name="el"),
+                xo.Arg(ParticlesData, name="particles"),
+            ]
+        )
+    }
     DressedElement.iscollective = False
 
     def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
 
-        sources=(
-                [gen_local_particle_api(),
-                _pkg_root.joinpath("tracker_src/tracker.h")]
-                + self.XoStruct.extra_sources
-                + [self.track_kernel_source])
+        sources = (
+            [gen_local_particle_api(), _pkg_root.joinpath("tracker_src/tracker.h")]
+            + self.XoStruct.extra_sources
+            + [self.track_kernel_source]
+        )
 
         sources = _handle_per_particle_blocks(sources)
 
-        context.add_kernels(sources=sources,
-                kernels=self.track_kernel_description,
-                 save_source_as=save_source_as)
-
+        context.add_kernels(
+            sources=sources,
+            kernels=self.track_kernel_description,
+            save_source_as=save_source_as,
+        )
 
     def track(self, particles):
 
-        if not hasattr(self, '_track_kernel'):
+        if not hasattr(self, "_track_kernel"):
             context = self._buffer.context
             if self._track_kernel_name not in context.kernels.keys():
                 self.compile_track_kernel()

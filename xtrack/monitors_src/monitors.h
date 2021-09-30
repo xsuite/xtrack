@@ -2,7 +2,7 @@
 #define XTRACK_MONITORS_H
 
 /*gpufun*/
-void ParticlesMonitor_track_local_particle(ParticlesMonitorData el, 
+void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 					   LocalParticle* part0){
 
     int64_t const start_at_turn = ParticlesMonitorData_get_start_at_turn(el);
@@ -18,10 +18,10 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 	if (at_turn>=start_at_turn && at_turn<stop_at_turn){
 	    int64_t const particle_id = LocalParticle_get_particle_id(part);
 	    if (particle_id<part_id_end && particle_id>=part_id_start){
-	    	int64_t const store_at = 
+	    	int64_t const store_at =
 		    n_turns_record * (particle_id - part_id_start)
 		    + at_turn - start_at_turn;
-	    	LocalParticle_to_Particles(part, data, store_at, 0);
+	    	LocalParticle_to_particles_data(part, data, store_at, false);
 	    }
 	}
     //end_per_particle_block

@@ -1,89 +1,57 @@
 #ifndef XTRACK_TRACKER_H
 #define XTRACK_TRACKER_H
 
-#ifdef XTRACK_GLOBAL_POSLIMIT
+#if !defined( CPUIMPLEM )
+    #define CPUIMPLEM //only_for_context cpu_serial cpu_openmp
+#endif /* !defined( CPUIMPLEM ) */
 
+#if defined( XTRACK_GLOBAL_POSLIMIT )
 /*gpufun*/
-void global_aperture_check(LocalParticle* part0){
-
-
+void global_aperture_check( LocalParticle* part0 ){
     //start_per_particle_block (part0->part)
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
-	int64_t const is_alive = (int64_t)(
-                      (x >= -XTRACK_GLOBAL_POSLIMIT) &&
-		      (x <=  XTRACK_GLOBAL_POSLIMIT) &&
-		      (y >= -XTRACK_GLOBAL_POSLIMIT) &&
-		      (y <=  XTRACK_GLOBAL_POSLIMIT) );
+        bool const is_alive = (
+            ( x >= -( double )XTRACK_GLOBAL_POSLIMIT ) &&
+            ( x <=  ( double )XTRACK_GLOBAL_POSLIMIT ) &&
+            ( y >= -( double )XTRACK_GLOBAL_POSLIMIT ) &&
+            ( y <=  ( double )XTRACK_GLOBAL_POSLIMIT ) );
 
-	// I assume that if I am in the function is because
-    	if (!is_alive){
-           LocalParticle_set_state(part, 0);
-	}
+        if( !is_alive ) LocalParticle_mark_as_lost( part );
     //end_per_particle_block
-
-
 }
-#endif
+
+#else /*  !defined( XTRACK_GLOBAL_POSLIMIT ) */
+/*gpufun*/ void global_aperture_check( LocalParticle* part0 ){ ( void )part0; }
+
+#endif /* defined( XTRACK_GLOBAL_POSLIMIT ) */
 
 /*gpufun*/
 void increment_at_element(LocalParticle* part0){
-
    //start_per_particle_block (part0->part)
-        LocalParticle_add_to_at_element(part, 1);
+        LocalParticle_add_to_at_element( part, 1 );
    //end_per_particle_block
-
-
 }
 
 /*gpufun*/
 void increment_at_turn(LocalParticle* part0){
-
     //start_per_particle_block (part0->part)
-	LocalParticle_add_to_at_turn(part, 1);
-	LocalParticle_set_at_element(part, 0);
+        LocalParticle_add_to_at_turn(part, 1);
+        LocalParticle_set_at_element(part, 0);
     //end_per_particle_block
 }
 
-
-// check_is_active has different implementation on CPU and GPU
-
-#define CPUIMPLEM //only_for_context cpu_serial cpu_openmp
-
-#ifdef CPUIMPLEM
+/*gpufun*/
+bool check_is_active( LocalParticle* part ) {
+    return LocalParticle_are_any_active( part ); }
 
 /*gpufun*/
-int64_t check_is_active(LocalParticle* part) {
-    int64_t ipart=0;
-    while (ipart < part->_num_active_particles){
-        if (part->state[ipart]<1){
-            LocalParticle_exchange(
-                part, ipart, part->_num_active_particles-1);
-            part->_num_active_particles--; 
-            part->_num_lost_particles++; 
-        }
-	else{
-	    ipart++;
-	}
-    }
-
-    if (part->_num_active_particles==0){
-        return 0;//All particles lost
-    } else {
-        return 1; //Some stable particles are still present
-    }
+void sync_locally( void ) {
+    __syncthreads(); //only_for_context cuda
+    #if defined( __OPENCL_VERSION__ ) /* defined( __OPENCL_VERSION__ ) */
+    barrier( CLK_LOCAL_MEM_FENCE ); //only_for_context opencl
+    #endif /* defined( __OPENCL_VERSION__ ) */
 }
-
-#else
-
-/*gpufun*/
-int64_t check_is_active(LocalParticle* part) {
-    return LocalParticle_get_state(part)>0;
-};
-
-#endif
-
-#undef CPUIMPLEM //only_for_context cpu_serial cpu_openmp
 
 #endif

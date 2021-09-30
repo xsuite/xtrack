@@ -1,6 +1,7 @@
 import xobjects as xo
 
 from .base_element import dress_element
+from .base_element import _cls_check_requires_sync, _cls_do_global_aperture_check
 from .general import _pkg_root
 
 
@@ -31,8 +32,9 @@ def _monitor_init(
     n_turns = int(stop_at_turn) - int(start_at_turn)
     n_records = n_turns * n_part_ids
 
-    data_init = {nn: n_records for tt, nn in
-                    self._ParticlesClass._structure["per_particle_vars"]}
+    data_init = {
+        nn: n_records for tt, nn in self._ParticlesClass._structure["per_particle_vars"]
+    }
 
     self.xoinitialize(
         _context=_context,
@@ -75,8 +77,8 @@ def generate_monitor_class(ParticlesClass):
         {
             "start_at_turn": xo.Int64,
             "stop_at_turn": xo.Int64,
-            'part_id_start': xo.Int64,
-            'part_id_end': xo.Int64,
+            "part_id_start": xo.Int64,
+            "part_id_end": xo.Int64,
             "n_records": xo.Int64,
             "data": ParticlesClass.XoStruct,
         },
@@ -86,11 +88,25 @@ def generate_monitor_class(ParticlesClass):
         _pkg_root.joinpath("monitors_src/monitors.h")
     ]
 
+    if not hasattr(ParticlesMonitorDataClass, "requires_sync"):
+        ParticlesMonitorDataClass.requires_sync = _cls_check_requires_sync
+
+    if not hasattr(ParticlesMonitorDataClass, "requires_global_aperture_check"):
+        ParticlesMonitorDataClass.requires_global_aperture_check = (
+            _cls_do_global_aperture_check
+        )
+
     ParticlesMonitorClass = type(
         "ParticlesMonitor",
         (dress_element(ParticlesMonitorDataClass),),
         {"_ParticlesClass": ParticlesClass},
     )
+
+    if not hasattr(ParticlesMonitorClass, "_requires_sync"):
+        setattr(ParticlesMonitorClass, "_requires_sync", [])
+
+    if not hasattr(ParticlesMonitorClass, "_global_aperture_check"):
+        setattr(ParticlesMonitorClass, "_global_aperture_check", False)
 
     ParticlesMonitorClass.__init__ = _monitor_init
 
