@@ -6,7 +6,11 @@ from .dress import dress
 from .general import _pkg_root
 
 start_per_part_block = """
-   int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp
+   #if !defined( XTRACK_LOCAL_PARTICLE_MODE ) || \
+               ( XTRACK_LOCAL_PARTICLE_MODE == XTRACK_LOCAL_PARTICLE_ADAPTER )
+
+   int64_t const n_part = LocalParticle_get__num_all_active_particles(part0); //only_for_context cpu_serial cpu_openmp
+
    #pragma omp parallel for                                       //only_for_context cpu_openmp
    for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial cpu_openmp
     //#pragma omp simd
@@ -18,14 +22,29 @@ start_per_part_block = """
         LocalParticle* part = &lpart;//only_for_context cpu_serial cpu_openmp
         part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
 
-        LocalParticle* part = part0;//only_for_context opencl cuda
-""".replace("!!CHUNK_SIZE!!", "128")
+    #else /* ( XTRACK_LOCAL_PARTICLE_MODE != XTRACK_LOCAL_PARTICLE_ADAPTER ) */
+
+    LocalParticle* part = part0;//only_for_context cpu_serial cpu_openmp
+
+    #endif /* ( XTRACK_LOCAL_PARTICLE_MODE ) */
+
+    LocalParticle* part = part0;//only_for_context opencl cuda
+
+""".replace(
+    "!!CHUNK_SIZE!!", "128"
+)
 
 end_part_part_block = """
+    #if !defined( XTRACK_LOCAL_PARTICLE_MODE ) || \
+                ( XTRACK_LOCAL_PARTICLE_MODE == XTRACK_LOCAL_PARTICLE_ADAPTER )
+
      } //only_for_context cpu_serial cpu_openmp
     }  //only_for_context cpu_serial cpu_openmp
    }   //only_for_context cpu_serial cpu_openmp
+
+   #endif /* ( XTRACK_LOCAL_PARTICLE_MODE ) */
 """
+
 
 def _handle_per_particle_blocks(sources):
 
