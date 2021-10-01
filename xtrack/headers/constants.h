@@ -1,3 +1,8 @@
+#if defined( NULL )
+    #define XTRACK_NULL NULL
+#else
+    #define XTRACK_NULL 0
+#endif
 
 #if !defined( C_LIGHT )
     #define   C_LIGHT ( 299792458.0 )
