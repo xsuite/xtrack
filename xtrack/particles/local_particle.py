@@ -476,33 +476,33 @@ def gen_local_particle_adapter_src():
             dest->_num_lost_particles   = ( int64_t )0u;
             dest->ipart                 = ( int64_t )0u;
 
-            dest->p0c                   = NULL;
-            dest->gamma0                = NULL;
-            dest->beta0                 = NULL;
-            dest->s                     = NULL;
-            dest->x                     = NULL;
-            dest->y                     = NULL;
-            dest->px                    = NULL;
-            dest->py                    = NULL;
-            dest->zeta                  = NULL;
-            dest->psigma                = NULL;
-            dest->delta                 = NULL;
-            dest->rpp                   = NULL;
-            dest->rvv                   = NULL;
-            dest->chi                   = NULL;
-            dest->charge_ratio          = NULL;
-            dest->weight                = NULL;
+            dest->p0c                   = XTRACK_NULL;
+            dest->gamma0                = XTRACK_NULL;
+            dest->beta0                 = XTRACK_NULL;
+            dest->s                     = XTRACK_NULL;
+            dest->x                     = XTRACK_NULL;
+            dest->y                     = XTRACK_NULL;
+            dest->px                    = XTRACK_NULL;
+            dest->py                    = XTRACK_NULL;
+            dest->zeta                  = XTRACK_NULL;
+            dest->psigma                = XTRACK_NULL;
+            dest->delta                 = XTRACK_NULL;
+            dest->rpp                   = XTRACK_NULL;
+            dest->rvv                   = XTRACK_NULL;
+            dest->chi                   = XTRACK_NULL;
+            dest->charge_ratio          = XTRACK_NULL;
+            dest->weight                = XTRACK_NULL;
 
-            dest->particle_id           = NULL;
-            dest->at_element            = NULL;
-            dest->at_turn               = NULL;
-            dest->state                 = NULL;
-            dest->parent_particle_id    = NULL;
+            dest->particle_id           = XTRACK_NULL;
+            dest->at_element            = XTRACK_NULL;
+            dest->at_turn               = XTRACK_NULL;
+            dest->state                 = XTRACK_NULL;
+            dest->parent_particle_id    = XTRACK_NULL;
 
-            dest->__rng_s1              = NULL;
-            dest->__rng_s2              = NULL;
-            dest->__rng_s3              = NULL;
-            dest->__rng_s4              = NULL;
+            dest->__rng_s1              = XTRACK_NULL;
+            dest->__rng_s2              = XTRACK_NULL;
+            dest->__rng_s3              = XTRACK_NULL;
+            dest->__rng_s4              = XTRACK_NULL;
         }
     }
 
@@ -1506,7 +1506,7 @@ def gen_local_particle_shared_copy_src():
         LocalParticle* dest, int64_t const particle_index,
         /*gpusharedmem*/ char* special_fields )
     {
-        if( ( particle_index >= 0 ) && ( special_fields != NULL ) )
+        if( ( particle_index >= 0 ) && ( special_fields != XTRACK_NULL ) )
         {
             uint32_t const local_ipart = 0; //only_for_context cpu_serial
             uint32_t const local_ipart = 0; //only_for_context cpu_openmp
@@ -1529,7 +1529,7 @@ def gen_local_particle_shared_copy_src():
         {
             dest->local_per_particle_offset = ( uint32_t )0u;
             dest->local_common_offset = ( uint32_t )0u;
-            dest->special_fields = NULL;
+            dest->special_fields = XTRACK_NULL;
             dest->global_ipart = ( int64_t )-1;
             dest->_capacity = ( int64_t )0u;
         }
