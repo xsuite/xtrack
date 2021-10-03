@@ -39,8 +39,7 @@ def test_random_generation():
         # Use turn-by turin monitor to acquire some statistics
 
         tracker = xt.Tracker(_buffer=telem._buffer,
-                sequence=xl.Line(elements=[telem],
-                    element_names='test_element'),)
+                sequence=xl.Line(elements=[telem]))
 
         tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
 
