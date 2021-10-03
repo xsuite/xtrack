@@ -56,7 +56,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 	    // apply the energy kick
 	    LocalParticle_add_to_energy(part, -eloss, 0);
 	  } else {
-	    int64_t nphot = syn_gen_photons(part, kick, length);
+	    syn_gen_photons(part, kick, length);
 	  }
 	}
 	
