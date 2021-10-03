@@ -97,12 +97,13 @@ double SynRad(double x)
       a=z*b-a+.06239591359332750793;
       double p;
       p=.5*z*a-b    +1.06552390798340693166;
-      synrad=p*sqrt(M_PI_2/x)/exp(x);
+      synrad=p*sqrt(0.5*PI/x)/exp(x);
     }
   }
   return synrad;
 }
 
+/*gpufun*/
 double syn_gen_photon_energy_normalized(LocalParticle *part)
 {
   // initialize constants used in the approximate expressions
@@ -130,11 +131,13 @@ double syn_gen_photon_energy_normalized(LocalParticle *part)
   return result; // result now exact spectrum with unity weight
 }
 
+/*gpufun*/
 double average_number_of_photons(double beta_gamma, double kick )
 {
   return 2.5/SQRT3*ALPHA_EM*beta_gamma*fabs(kick);
 }
 
+/*gpufun*/
 int64_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
 {
   if (fabs(kick) < 1e-15)
