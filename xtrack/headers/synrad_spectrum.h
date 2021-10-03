@@ -1,20 +1,20 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
-#include <stdint.h>
-#include <math.h>
+// #include <stdint.h>
+// #include <math.h>
 
 #define SQRT3 1.732050807568877
 #define ALPHA_EM 0.0072973525693
 
-typedef struct { double x; } LocalParticle;
-
-extern double LocalParticle_generate_random_double_exp(LocalParticle * );
-extern double LocalParticle_generate_random_double(LocalParticle * );
-extern double LocalParticle_get_energy(LocalParticle * );
-extern double LocalParticle_get_mass(LocalParticle * );
-extern void LocalParticle_set_energy(LocalParticle * , double );
-extern void LocalParticle_set_state(LocalParticle * , int );
+// typedef struct { double x; } LocalParticle;
+// 
+// extern double LocalParticle_generate_random_double_exp(LocalParticle * );
+// extern double LocalParticle_generate_random_double(LocalParticle * );
+// extern double LocalParticle_get_energy(LocalParticle * );
+// extern double LocalParticle_get_mass(LocalParticle * );
+// extern void LocalParticle_set_energy(LocalParticle * , double );
+// extern void LocalParticle_set_state(LocalParticle * , int );
 
 // x :    energy normalized to the critical energy
 // returns function value _SynRadC   photon spectrum dn/dx
