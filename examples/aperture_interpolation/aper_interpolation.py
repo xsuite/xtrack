@@ -157,7 +157,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
 
     return part_refine
 
-def interp_aperture_using_polygons(context, tracker, backtracker, i_aper_0, i_aper_1,
+def interp_aperture_using_polygons(context, tracker, backtracker,
+                       i_aper_0, i_aper_1,
                        n_theta, r_max, dr, ds, _trk_gen):
 
     temp_buf = context.new_buffer()
@@ -172,14 +173,10 @@ def interp_aperture_using_polygons(context, tracker, backtracker, i_aper_0, i_ap
                                  buffer_for_poly=temp_buf)
     i_start_thin_0 = num_elements - i_start_thin_0_bktr - 1
 
-    s0 = tracker.line.element_s_locations[i_aper_0]
-    s1 = tracker.line.element_s_locations[i_aper_1]
+    s0, s1, s_vect = generate_interp_aperture_locations(tracker,
+                                                   i_aper_0, i_aper_1, ds)
 
-    # Interpolate
     Delta_s = s1 - s0
-
-    s_vect = np.arange(s0, s1, ds)
-
     interp_polygons = []
     for ss in s_vect:
         x_non_convex=(polygon_1.x_vertices*(ss - s0) / Delta_s
@@ -205,6 +202,14 @@ def interp_aperture_using_polygons(context, tracker, backtracker, i_aper_0, i_ap
             _trk_gen=_trk_gen)
 
     return interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+
+def generate_interp_aperture_locations(tracker, i_aper_0, i_aper_1, ds):
+
+    s0 = tracker.line.element_s_locations[i_aper_0]
+    s1 = tracker.line.element_s_locations[i_aper_1]
+    s_vect = np.arange(s0, s1, ds)
+
+    return s0, s1, s_vect
 
 def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
                          tracker, i_start_thin_0, i_start_thin_1, _trk_gen):
