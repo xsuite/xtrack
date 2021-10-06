@@ -176,7 +176,6 @@ def interp_aperture_using_polygons(context, tracker, backtracker, i_aper_0, i_ap
     s1 = tracker.line.element_s_locations[i_aper_1]
 
     # Interpolate
-
     Delta_s = s1 - s0
 
     s_vect = np.arange(s0, s1, ds)
@@ -196,16 +195,30 @@ def interp_aperture_using_polygons(context, tracker, backtracker, i_aper_0, i_ap
             x_vertices=x_hull,
             y_vertices=y_hull))
 
+    interp_tracker = build_interp_tracker(
+            _buffer=temp_buf,
+            s0=s0, s1=s1, s_interp=s_vect,
+            aper_0=polygon_0, aper_1=polygon_1,
+            aper_interp=interp_polygons,
+            tracker=tracker, i_start_thin_0=i_start_thin_0,
+            i_start_thin_1=i_start_thin_1,
+            _trk_gen=_trk_gen)
+
+    return interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+
+def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
+                         tracker, i_start_thin_0, i_start_thin_1, _trk_gen):
+
     # Build interp line
-    s_elements = [s0] + list(s_vect) +[s1]
-    elements = [polygon_0] + interp_polygons + [polygon_1]
+    s_elements = [s0] + list(s_interp) +[s1]
+    elements = [aper_0] + aper_interp + [aper_1]
 
     for i_ele in range(i_start_thin_0+1, i_start_thin_1):
         ee = tracker.line.elements[i_ele]
         if not ee.__class__.__name__.startswith('Drift'):
             assert not hasattr(ee, 'isthick') or not ee.isthick
             ss_ee = tracker.line.element_s_locations[i_ele]
-            elements.append(ee.copy(_buffer=temp_buf))
+            elements.append(ee.copy(_buffer=_buffer))
             s_elements.append(ss_ee)
     i_sorted = np.argsort(s_elements)
     s_sorted = list(np.take(s_elements, i_sorted))
@@ -218,19 +231,18 @@ def interp_aperture_using_polygons(context, tracker, backtracker, i_aper_0, i_ap
         ss = s_sorted[ii]
 
         if ss-s_all[-1]>1e-14:
-            ele_all.append(xt.Drift(_buffer=temp_buf, length=ss-s_all[-1]))
+            ele_all.append(xt.Drift(_buffer=_buffer, length=ss-s_all[-1]))
             s_all.append(ss)
         ele_all.append(ele_sorted[ii])
         s_all.append(s_sorted[ii])
 
-
     interp_tracker = xt.Tracker(
-            _buffer=temp_buf,
+            _buffer=_buffer,
             sequence=xl.Line(elements=ele_all),
             track_kernel=_trk_gen.track_kernel,
             element_classes=_trk_gen.element_classes)
 
-    return interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+    return interp_tracker
 
 def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
                           buffer_for_poly):

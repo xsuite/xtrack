@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -15,6 +17,7 @@ n_part=10000
 ctx = xo.context_default
 buf = ctx.new_buffer()
 
+ap.logger.setLevel(logging.DEBUG)
 
 # Define aper_0
 #aper_0 = xt.LimitRect(_buffer=buf, min_y=-1e-2, max_y=1e-2,
