@@ -157,6 +157,42 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
 
     return part_refine
 
+def interp_aperture_replicate(context, tracker, backtracker,
+                              i_aper_0, i_aper_1,
+                              ds, _trk_gen, mode='end',):
+
+    temp_buf = context.new_buffer()
+
+    i_start_thin_1 = find_previous_drift(tracker, i_aper_1)
+    num_elements = len(tracker.line.elements)
+    i_start_thin_0_bktr = find_previous_drift(backtracker,
+                                 index_in_reversed_line(num_elements, i_aper_0))
+    i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
+
+    s0, s1, s_vect = generate_interp_aperture_locations(tracker,
+                                                   i_aper_0, i_aper_1, ds)
+
+    if mode=='end':
+        aper_to_copy = tracker.line.elements[i_aper_1]
+    elif mode=='start':
+        aper_to_copy = tracker.line.elements[i_aper_0]
+    else:
+        raise ValueError(f'Invalid mode: {mode}')
+    interp_apertures = []
+    for ss in s_vect:
+        interp_apertures.append(aper_to_copy.copy(_buffer=temp_buf))
+
+    interp_tracker = build_interp_tracker(
+            _buffer=temp_buf,
+            s0=s0, s1=s1, s_interp=s_vect,
+            aper_0=polygon_0, aper_1=polygon_1,
+            aper_interp=interp_polygons,
+            tracker=tracker, i_start_thin_0=i_start_thin_0,
+            i_start_thin_1=i_start_thin_1,
+            _trk_gen=_trk_gen)
+
+    return interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+
 def interp_aperture_using_polygons(context, tracker, backtracker,
                        i_aper_0, i_aper_1,
                        n_theta, r_max, dr, ds, _trk_gen):
@@ -168,10 +204,10 @@ def interp_aperture_using_polygons(context, tracker, backtracker,
                                  buffer_for_poly=temp_buf)
     num_elements = len(tracker.line.elements)
     polygon_0, i_start_thin_0_bktr = characterize_aperture(backtracker,
-                                 num_elements-i_aper_0-1,
+                                 index_in_reversed_line(num_elements, i_aper_0),
                                  n_theta, r_max, dr,
                                  buffer_for_poly=temp_buf)
-    i_start_thin_0 = num_elements - i_start_thin_0_bktr - 1
+    i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
 
     s0, s1, s_vect = generate_interp_aperture_locations(tracker,
                                                    i_aper_0, i_aper_1, ds)
@@ -249,10 +285,8 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     return interp_tracker
 
-def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
-                          buffer_for_poly):
+def find_previous_drift(tracker, i_aperture):
 
-    # find previous drift
     ii=i_aperture
     found = False
     while not(found):
@@ -263,10 +297,23 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
         else:
             ii -= 1
     i_start = ii + 1
+
+    return i_start
+
+def index_in_reversed_line(num_elements, ii):
+    return num_elements - ii - 1
+
+
+def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
+                          buffer_for_poly):
+
+    # find previous drift
+    i_start = find_previous_drift(tracker, i_aperture)
+
+    # Number of thin elements to characterize
     num_elements = i_aperture-i_start+1
 
     # Get polygon
-
     theta_vect = np.linspace(0, 2*np.pi, n_theta+1)[:-1]
 
     this_rmin = 0
