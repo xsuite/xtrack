@@ -32,6 +32,7 @@ aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
                                    min_y=-2e-2, max_y=2e-2)
 shift_aper_1 = (0,0)#(-5e-3, 1e-2)
 rot_deg_aper_1 = 0. #10.
+aper_1 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
 
 
 # aper_0_sandwitch

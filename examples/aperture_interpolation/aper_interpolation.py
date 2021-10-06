@@ -67,25 +67,31 @@ class LossLocationRefinement:
                 i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
                 logger.debug(f'{i_aper_1=}, {i_aper_0=}')
 
-                # Check for active shifts and rotations
-                presence_shifts_rotations = False
-                for ii in range(i_aper_0, i_aper_1):
-                    ee = self.tracker.line.elements[ii]
-                    if ee.__class__ is xt.SRotation:
-                        if not np.isclose(ee.angle, 0, rtol=0, atol=1e-15):
-                            presence_shifts_rotations = True
-                            break
-                    if ee.__class__ is xt.XYShift:
-                        if not np.allclose([ee.dx, ee.dy], 0, rtol=0, atol=1e-15):
-                            presence_shifts_rotations = True
-                            break
+                presence_shifts_rotations = check_for_active_shifts_and_rotations(
+                                                    self.tracker, i_aper_0, i_aper_1)
                 logger.debug(f'{presence_shifts_rotations=}')
 
-                (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
-                        ) = interp_aperture_using_polygons(self._context,
-                                  self.tracker, self.backtracker, i_aper_0, i_aper_1,
-                                  self.n_theta, self.r_max, self.dr, self.ds,
-                                  _trk_gen=self._trk_gen)
+                if (not(presence_shifts_rotations) and
+                   apertures_are_identical(self.tracker.line.elements[i_aper_0],
+                                           self.tracker.line.elements[i_aper_1])):
+
+                    logger.debug('Replicate mode')
+                    (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+                            ) = interp_aperture_replicate(self._context,
+                                      self.tracker, self.backtracker,
+                                      i_aper_0, i_aper_1,
+                                      self.ds,
+                                      _trk_gen=self._trk_gen)
+
+                else:
+
+                    logger.debug('Polygon interpolation mode')
+                    (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+                            ) = interp_aperture_using_polygons(self._context,
+                                      self.tracker, self.backtracker,
+                                      i_aper_0, i_aper_1,
+                                      self.n_theta, self.r_max, self.dr, self.ds,
+                                      _trk_gen=self._trk_gen)
 
                 part_refine = refine_loss_location_single_aperture(
                             particles,i_aper_1, i_start_thin_0,
@@ -97,6 +103,36 @@ class LossLocationRefinement:
                     interp_tracker.s0 = s0
                     interp_tracker.s1 = s1
                     self.refine_trackers[i_ap] = interp_tracker
+
+
+def check_for_active_shifts_and_rotations(tracker, i_aper_0, i_aper_1):
+
+    presence_shifts_rotations = False
+    for ii in range(i_aper_0, i_aper_1):
+        ee = tracker.line.elements[ii]
+        if ee.__class__ is xt.SRotation:
+            if not np.isclose(ee.angle, 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+        if ee.__class__ is xt.XYShift:
+            if not np.allclose([ee.dx, ee.dy], 0, rtol=0, atol=1e-15):
+                presence_shifts_rotations = True
+                break
+    return presence_shifts_rotations
+
+def apertures_are_identical(aper1, aper2):
+
+    if aper1.__class__ != aper2.__class__:
+        return False
+
+    identical = True
+    for ff in aper1._fields:
+        tt = np.isclose(getattr(aper1, ff), getattr(aper2, ff),
+                        rtol=0, atol=1e-15)
+        if not tt:
+            identical = False
+            break
+    return identical
 
 
 def find_apertures(tracker):
@@ -185,8 +221,9 @@ def interp_aperture_replicate(context, tracker, backtracker,
     interp_tracker = build_interp_tracker(
             _buffer=temp_buf,
             s0=s0, s1=s1, s_interp=s_vect,
-            aper_0=polygon_0, aper_1=polygon_1,
-            aper_interp=interp_polygons,
+            aper_0=aper_to_copy.copy(_buffer=temp_buf),
+            aper_1=aper_to_copy.copy(_buffer=temp_buf),
+            aper_interp=interp_apertures,
             tracker=tracker, i_start_thin_0=i_start_thin_0,
             i_start_thin_1=i_start_thin_1,
             _trk_gen=_trk_gen)
