@@ -1,31 +1,19 @@
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 
-#include <stdint.h>
-#include <math.h>
-
 #define SQRT3 1.732050807568877
 #define ALPHA_EM 0.0072973525693
 
-typedef struct { double x; } LocalParticle;
-
-extern double LocalParticle_generate_random_double_exp(LocalParticle * );
-extern double LocalParticle_generate_random_double(LocalParticle * );
-extern double LocalParticle_get_energy(LocalParticle * );
-extern double LocalParticle_get_mass(LocalParticle * );
-extern void LocalParticle_set_energy(LocalParticle * , double );
-extern void LocalParticle_set_state(LocalParticle * , int );
-
-// x :    energy normalized to the critical energy
-// returns function value _SynRadC   photon spectrum dn/dx
-// (integral of modified 1/3 order Bessel function)
-// principal: Chebyshev series see H.H.Umstaetter CERN/PS/SM/81-13 10-3-1981
-// see also my LEP Note 632 of 12/1990
-// converted to C++, H.Burkhardt 21-4-1996    */
 
 /*gpufun*/
 double SynRad(double x)
 { 
+  // x :    energy normalized to the critical energy
+  // returns function value _SynRadC   photon spectrum dn/dx
+  // (integral of modified 1/3 order Bessel function)
+  // principal: Chebyshev series see H.H.Umstaetter CERN/PS/SM/81-13 10-3-1981
+  // see also my LEP Note 632 of 12/1990
+  // converted to C++, H.Burkhardt 21-4-1996    */
   double synrad = 0.;
   if(x>0. && x<800.) {	// otherwise result synrad remains 0
     if(x<6.) {
@@ -109,12 +97,13 @@ double SynRad(double x)
       a=z*b-a+.06239591359332750793;
       double p;
       p=.5*z*a-b    +1.06552390798340693166;
-      synrad=p*sqrt(M_PI_2/x)/exp(x);
+      synrad=p*sqrt(0.5*PI/x)/exp(x);
     }
   }
   return synrad;
 }
 
+/*gpufun*/
 double syn_gen_photon_energy_normalized(LocalParticle *part)
 {
   // initialize constants used in the approximate expressions
@@ -142,20 +131,30 @@ double syn_gen_photon_energy_normalized(LocalParticle *part)
   return result; // result now exact spectrum with unity weight
 }
 
+/*gpufun*/
 double average_number_of_photons(double beta_gamma, double kick )
 {
   return 2.5/SQRT3*ALPHA_EM*beta_gamma*fabs(kick);
 }
 
+/*gpufun*/
 int64_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
 {
   if (fabs(kick) < 1e-15)
     return 0;
   
   int64_t nphot = 0;
-  double const mass = LocalParticle_get_mass(part); // eV
-  double energy = LocalParticle_get_energy(part); // eV
-  double gamma = energy / mass; // 
+
+  // TODO Introduce effect of chi and mass_ratio!!!
+  double const gamma0 = LocalParticle_get_gamma0(part);
+  double const mass0 = LocalParticle_get_mass0(part); // eV
+  double const energy0 = mass0 * gamma0;
+  double const initial_energy = energy0 + LocalParticle_get_psigma(part)
+	                                * LocalParticle_get_p0c(part)
+			                * LocalParticle_get_beta0(part); // eV
+
+  double energy = initial_energy;
+  double gamma = energy / mass0; // 
   double beta_gamma = sqrt(gamma*gamma-1); //
 
   double n = LocalParticle_generate_random_double_exp(part); // path_length / mean_free_path;
@@ -170,16 +169,17 @@ int64_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double lengt
     }
 
     energy -= energy_loss; // eV
-    gamma = energy / mass; // TODO: check if it's gamma, or beta*gamma
+    gamma = energy / mass0; // TODO: check if it's gamma, or beta*gamma
     beta_gamma = sqrt(gamma*gamma-1); // that's how it is beta gamma
 
     n += LocalParticle_generate_random_double_exp(part);
   }
 
   if (energy == 0.0)
-    LocalParticle_set_state(part, 0);
-  else
-    LocalParticle_set_energy(part, energy);
+    LocalParticle_set_state(part, -10); // used to flag this kind of loss
+  else{
+    LocalParticle_add_to_energy(part, energy-initial_energy, 0);
+  }
 
   return nphot;
 }
