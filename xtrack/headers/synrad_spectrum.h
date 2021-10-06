@@ -132,7 +132,7 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
 }
 
 /*gpufun*/
-double average_number_of_photons(double beta_gamma, double kick )
+double synrad_average_number_of_photons(double beta_gamma, double kick )
 {
   return 2.5/SQRT3*ALPHA_EM*beta_gamma*fabs(kick);
 }
@@ -176,7 +176,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double kick /* rad */, double l
   double beta_gamma = sqrt(gamma*gamma-1); //
 
   double n = LocalParticle_generate_random_double_exp(part); // path_length / mean_free_path;
-  while (n < average_number_of_photons(beta_gamma, kick)) {
+  while (n < synrad_average_number_of_photons(beta_gamma, kick)) {
     nphot++;
     double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
     double const energy_critical = c1 * (gamma*gamma*gamma) * fabs(kick) / length; // eV
