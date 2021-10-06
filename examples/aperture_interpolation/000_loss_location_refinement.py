@@ -23,16 +23,15 @@ ap.logger.setLevel(logging.DEBUG)
 #aper_0 = xt.LimitRect(_buffer=buf, min_y=-1e-2, max_y=1e-2,
 #                                   min_x=-2e-2, max_x=2e-2)
 aper_0 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
-shift_aper_0 = (0,0) #(1e-2, 0.5e-2)
-rot_deg_aper_0 = 0.# 10.
+shift_aper_0 = (1e-2, 0.5e-2)
+rot_deg_aper_0 = 10.
 
 # Define aper_1
 #aper_1 = xt.LimitEllipse(_buffer=buf, a=1e-2, b=2e-2)
 aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
                                    min_y=-2e-2, max_y=2e-2)
-shift_aper_1 = (0,0)#(-5e-3, 1e-2)
-rot_deg_aper_1 = 0. #10.
-aper_1 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
+shift_aper_1 = (-5e-3, 1e-2)
+rot_deg_aper_1 = 10.
 
 
 # aper_0_sandwitch
