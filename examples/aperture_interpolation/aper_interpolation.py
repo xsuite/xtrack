@@ -7,6 +7,7 @@ import xobjects as xo
 
 import logging
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
 
 class LossLocationRefinement:
 
@@ -64,6 +65,21 @@ class LossLocationRefinement:
 
                 i_aper_1 = i_ap
                 i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
+                logger.debug(f'{i_aper_1=}, {i_aper_0=}')
+
+                # Check for active shifts and rotations
+                presence_shifts_rotations = False
+                for ii in range(i_aper_0, i_aper_1):
+                    ee = self.tracker.line.elements[ii]
+                    if ee.__class__ is xt.SRotation:
+                        if not np.isclose(ee.angle, 0, rtol=0, atol=1e-15):
+                            presence_shifts_rotations = True
+                            break
+                    if ee.__class__ is xt.XYShift:
+                        if not np.allclose([ee.dx, ee.dy], 0, rtol=0, atol=1e-15):
+                            presence_shifts_rotations = True
+                            break
+                logger.debug(f'{presence_shifts_rotations=}')
 
                 (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
                         ) = interp_aperture_using_polygons(self._context,
@@ -251,7 +267,7 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
         x_test = RR.flatten()*np.cos(TT.flatten())
         y_test = RR.flatten()*np.sin(TT.flatten())
 
-        print(f'{iteration=} num_part={x_test.shape[0]}')
+        logger.info(f'{iteration=} num_part={x_test.shape[0]}')
 
         ptest = xt.Particles(p0c=1,
                 x = x_test.copy(),
