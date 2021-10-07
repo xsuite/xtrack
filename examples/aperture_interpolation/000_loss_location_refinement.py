@@ -129,6 +129,7 @@ ax.plot3D(
         polygon_1.y_closed,
         s1+polygon_1.x_closed*0,
         color='k', linewidth=3)
+s_check = []
 for ee, ss in zip(interp_tracker.line.elements,
                   interp_tracker.line.element_s_locations):
     if ee.__class__ is xt.LimitPolygon:
@@ -138,6 +139,7 @@ for ee, ss in zip(interp_tracker.line.elements,
                 s0+ss+0*ee.x_closed,
                 alpha=0.9,
                 )
+        s_check.append(ss)
 mask = particles.at_element == loss_loc_refinement.i_apertures[1]
 ax.plot3D(particles.x[mask], particles.y[mask], particles.s[mask],
           '.r', markersize=.5)
