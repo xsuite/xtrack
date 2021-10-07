@@ -104,7 +104,7 @@ double SynRad(double x)
 }
 
 /*gpufun*/
-double syn_gen_photon_energy_normalized(LocalParticle *part)
+double synrad_gen_photon_energy_normalized(LocalParticle *part)
 {
   // initialize constants used in the approximate expressions
   // for SYNRAD   (integral over the modified Bessel function K5/3)
@@ -114,9 +114,9 @@ double syn_gen_photon_energy_normalized(LocalParticle *part)
   double const a2 = 1.770750801624037; // Synrad(xlow)/exp(-xlow);
   double const c1 = 0.; // 
   double const ratio = 0.908250405131381;
-  double appr,exact,result;
+  double appr, exact, result;
   do { 
-    if(LocalParticle_generate_random_double(part) < ratio) { // use low energy approximation
+    if (LocalParticle_generate_random_double(part) < ratio) { // use low energy approximation
       result=c1+(1.-c1)*LocalParticle_generate_random_double(part);
       double tmp = result*result;
       result*=tmp;  	// take to 3rd power;
@@ -127,18 +127,36 @@ double syn_gen_photon_energy_normalized(LocalParticle *part)
       exact=SynRad(result);
       appr=a2*exp(-result);
     }
-  } while(exact < appr*LocalParticle_generate_random_double(part));	// reject in proportion of approx
+  } while (exact < appr*LocalParticle_generate_random_double(part));	// reject in proportion of approx
   return result; // result now exact spectrum with unity weight
 }
 
 /*gpufun*/
-double average_number_of_photons(double beta_gamma, double kick )
+double synrad_average_number_of_photons(double beta_gamma, double kick )
 {
   return 2.5/SQRT3*ALPHA_EM*beta_gamma*fabs(kick);
 }
 
 /*gpufun*/
-int64_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
+void synrad_average_energy_loss(LocalParticle *part, double kick /* rad */, double length /* m */ )
+{
+  double const h = kick / length; // 1/m, 1/rho, curvature
+  double const p0c = LocalParticle_get_p0c(part); // eV
+  double const m0  = LocalParticle_get_mass0(part); // eV/c^2
+  double const d = LocalParticle_get_delta(part);
+  double const pc = p0c * (1 + d); // eV
+  double const energy = hypot(m0, pc); // eV
+  double const beta_gamma = pc / m0; // 
+  double const q0 = LocalParticle_get_q0(part); // e
+  // e^2 / 4 pi epsilon0 eV = (1 / 694461541.7756249) m
+  double const classical_radius = q0*q0 / m0 / 694461541.7756249; // m, classical electromagnetic radius
+  double const eloss = 2.0 / 3.0 * classical_radius*length * beta_gamma*beta_gamma*beta_gamma * h*h * energy; // eV
+  // apply the energy kick
+  LocalParticle_add_to_energy(part, -eloss, 0);
+}
+
+/*gpufun*/
+int64_t synrad_emit_photons(LocalParticle *part, double kick /* rad */, double length /* m */ )
 {
   if (fabs(kick) < 1e-15)
     return 0;
@@ -158,11 +176,11 @@ int64_t syn_gen_photons(LocalParticle *part, double kick /* rad */, double lengt
   double beta_gamma = sqrt(gamma*gamma-1); //
 
   double n = LocalParticle_generate_random_double_exp(part); // path_length / mean_free_path;
-  while (n < average_number_of_photons(beta_gamma, kick)) {
+  while (n < synrad_average_number_of_photons(beta_gamma, kick)) {
     nphot++;
     double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
     double const energy_critical = c1 * (gamma*gamma*gamma) * fabs(kick) / length; // eV
-    double const energy_loss = syn_gen_photon_energy_normalized(part) * energy_critical; // eV
+    double const energy_loss = synrad_gen_photon_energy_normalized(part) * energy_critical; // eV
     if (energy_loss >= energy) {
       energy = 0.0; // eV
       break;
