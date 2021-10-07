@@ -68,9 +68,9 @@ class LossLocationRefinement:
                 logger.debug(f'{i_aper_1=}, {i_aper_0=}')
 
                 s0, s1, _ = generate_interp_aperture_locations(self.tracker,
-                                                   i_aper_0, i_aper_1, ds)
+                                                   i_aper_0, i_aper_1, self.ds)
                 assert s1 >= s0
-                if s1 - s0 > ds:
+                if s1 - s0 <= self.ds:
                     logger.debug('s1-s0 < ds: nothing to do')
                     continue
 
@@ -287,7 +287,12 @@ def generate_interp_aperture_locations(tracker, i_aper_0, i_aper_1, ds):
 
     s0 = tracker.line.element_s_locations[i_aper_0]
     s1 = tracker.line.element_s_locations[i_aper_1]
-    s_vect = np.arange(s0, s1, ds)
+    assert s1>=s0
+    n_segments = int(np.ceil(s1-s0)/ds)
+    if n_segments <= 1:
+        s_vect = np.array([])
+    else:
+        s_vect = np.linspace(s0, s1, n_segments+1)[1:-1]
 
     return s0, s1, s_vect
 
