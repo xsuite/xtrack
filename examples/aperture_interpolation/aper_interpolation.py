@@ -67,6 +67,13 @@ class LossLocationRefinement:
                 i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
                 logger.debug(f'{i_aper_1=}, {i_aper_0=}')
 
+                s0, s1, _ = generate_interp_aperture_locations(self.tracker,
+                                                   i_aper_0, i_aper_1, ds)
+                assert s1 >= s0
+                if s1 - s0 > ds:
+                    logger.debug('s1-s0 < ds: nothing to do')
+                    continue
+
                 presence_shifts_rotations = check_for_active_shifts_and_rotations(
                                                     self.tracker, i_aper_0, i_aper_1)
                 logger.debug(f'{presence_shifts_rotations=}')
