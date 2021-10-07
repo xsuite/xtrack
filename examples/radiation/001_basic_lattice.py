@@ -9,15 +9,23 @@ from cpymad.madx import Madx
 import xline as xl
 import xtrack as xt
 
-## Generate machine model with MAD-X script
+#############################################
+## Generate machine model with MAD-X script #
+#############################################
 mad = Madx()
 mad.call("madseq.madx")
 line = xl.Line.from_madx_sequence(mad.sequence['clic_ffs'])
 
+###########################
+# Build tracker (compile) #
+###########################
 tracker  = xt.Tracker(sequence=line, save_source_as='gensource.c')
 
-me_eV = me_kg*clight**2/qe
+######################
+# Generate particles #
+######################
 
+me_eV = me_kg*clight**2/qe
 n_part = 100
 particles = xt.Particles(
         p0c=2e9, # eV
@@ -28,6 +36,10 @@ particles = xt.Particles(
         py=np.random.uniform(-1e-6, 1e-6, n_part),
         zeta=np.random.uniform(-1e-2, 1e-2, n_part),
         delta=np.random.uniform(-1e-4, 1e-4, n_part))
+
+#########
+# Track #
+#########
 
 ## If you need to inspect element by element
 # n_elements = len(tracker.line.elements)
