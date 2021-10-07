@@ -21,6 +21,15 @@ line = xl.Line.from_madx_sequence(mad.sequence['clic_ffs'])
 ###########################
 tracker  = xt.Tracker(sequence=line, save_source_as='gensource.c')
 
+#######################
+# Switch on radiation #
+#######################
+for ee in tracker.line.elements:
+    if hasattr(ee, 'radiation_flag'):
+        #ee.radiation_flag = 1 # no random part
+        ee.radiation_flag = 2 # with random part
+
+
 ######################
 # Generate particles #
 ######################
