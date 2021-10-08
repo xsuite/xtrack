@@ -31,12 +31,10 @@ class LossLocationRefinement:
         # Build track kernel with all elements + polygon
         trk_gen = xt.Tracker(_buffer=tracker.line._buffer,
                 sequence=xl.Line(elements=tracker.line.elements + (temp_poly,)))
-
         self._trk_gen = trk_gen
 
         if backtracker is None:
             backtracker = tracker.get_backtracker(_context=self._context)
-
         self.backtracker = backtracker
 
         self.i_apertures, self.apertures = find_apertures(tracker)

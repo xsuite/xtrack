@@ -9,7 +9,6 @@ import xobjects as xo
 import xpart as xp
 from scipy.spatial import ConvexHull
 
-import aper_interpolation as ap
 
 plt.close('all')
 
@@ -17,7 +16,8 @@ n_part=10000
 ctx = xo.context_default
 buf = ctx.new_buffer()
 
-ap.logger.setLevel(logging.DEBUG)
+logger = logging.getLogger('xtrack')
+logger.setLevel(logging.DEBUG)
 
 # Define aper_0
 #aper_0 = xt.LimitRect(_buffer=buf, min_y=-1e-2, max_y=1e-2,
@@ -72,7 +72,7 @@ particles = xt.Particles(_context=ctx,
 tracker.track(particles)
 
 
-loss_loc_refinement = ap.LossLocationRefinement(tracker,
+loss_loc_refinement = xt.LossLocationRefinement(tracker,
                                             n_theta = 360,
                                             r_max = 0.5, # m
                                             dr = 50e-6,
