@@ -65,11 +65,7 @@ class LimitEllipse(BeamElement):
         return self
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                    a_squ=self.a_squ,
-                    b_squ=self.b_squ,
-                    a_b_squ=self.a_b_squ,
-                    _context=_context, _buffer=_buffer, _offset=_offset)
+        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
 LimitEllipse.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
