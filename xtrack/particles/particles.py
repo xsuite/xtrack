@@ -181,8 +181,6 @@ class Particles(dress(ParticlesData)):
          context.kernels.Particles_initialize_rand_gen(particles=self,
              seeds=seeds_dev, n_init=self._capacity)
 
-
-
     def reorganize(self):
         assert not isinstance(self._buffer.context, xo.ContextPyopencl), (
                 'Masking does not work with pyopencl')

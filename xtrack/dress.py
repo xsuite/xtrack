@@ -96,6 +96,8 @@ def dress(XoStruct, rename={}):
         return out
 
     def copy(self, _context=None, _buffer=None, _offset=None):
+        if _context is None and _buffer is None:
+            _context = self._xobject._buffer.context
         # This makes a copy of the xobject
         xobject = self.XoStruct(self._xobject, _context=_context,
                                 _buffer=_buffer, _offset=_offset)
