@@ -116,8 +116,9 @@ class LimitPolygon(BeamElement):
         Nx = Nx / norm_N
         Ny = Ny / norm_N
 
-        self.x_normal = Nx
-        self.y_normal = Ny
+        ctx = self._buffer.context
+        self.x_normal = ctx.nparray_to_context_array(Nx)
+        self.y_normal = ctx.nparray_to_context_array(Ny)
 
 
     @property
