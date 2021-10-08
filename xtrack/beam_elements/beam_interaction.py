@@ -3,7 +3,9 @@ import xobjects as xo
 from ..particles import Particles
 
 class BeamInteraction:
-    def __init__(self, name, interaction_process, length=0, isthick=None):
+    def __init__(self, name=None, interaction_process=None,
+                 length=0, isthick=None):
+
         self.name = name
         self.interaction_process = interaction_process
 
