@@ -32,7 +32,6 @@ aper_1 = xt.LimitEllipse(_buffer=buf, a=1e-2, b=1e-2)
 shift_aper_1 = (shift_x, shift_y)
 rot_deg_aper_1 = 10.
 
-
 # aper_0_sandwitch
 trk_aper_0 = xt.Tracker(_buffer=buf, sequence=xl.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
@@ -95,6 +94,16 @@ mask_lost = particles.state == 0
 r_calc = np.sqrt((particles.x-shift_x)**2 + (particles.y-shift_y)**2)
 assert np.all(r_calc[~mask_lost]<1e-2)
 assert np.all(r_calc[mask_lost]>1e-2)
+i_aper_1 = tracker.line.elements.index(aper_1)
+assert np.all(particles.at_element[mask_lost]==i_aper_1)
+assert np.all(particles.at_element[~mask_lost]==0)
+s0 = tracker.line.element_s_locations[tracker.line.elements.index(aper_0)]
+s1 = tracker.line.element_s_locations[tracker.line.elements.index(aper_1)]
+r0 = np.sqrt(aper_0.a_squ)
+r1 = np.sqrt(aper_1.a_squ)
+s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
+# TODO This threshold is a bit large
+assert np.allclose(particles.s[mask_lost], s_expected[mask_lost], atol=0.11)
 
 # Visualize apertures
 interp_tracker = loss_loc_refinement.refine_trackers[
@@ -139,6 +148,7 @@ ax.plot3D(
         s1+polygon_1.x_closed*0,
         color='k', linewidth=3)
 s_check = []
+r_check = []
 for ee, ss in zip(interp_tracker.line.elements,
                   interp_tracker.line.element_s_locations):
     if ee.__class__ is xt.LimitPolygon:
@@ -148,7 +158,10 @@ for ee, ss in zip(interp_tracker.line.elements,
                 s0+ss+0*ee.x_closed,
                 alpha=0.9,
                 )
-        s_check.append(ss)
+        s_check.append(ss+s0)
+        r_vertices = np.sqrt(
+                (ee.x_vertices-shift_x)**2 + (ee.y_vertices-shift_y)**2)
+        r_check.append(np.mean(r_vertices))
 mask = particles.at_element == loss_loc_refinement.i_apertures[1]
 ax.plot3D(particles.x[mask], particles.y[mask], particles.s[mask],
           '.r', markersize=.5)
