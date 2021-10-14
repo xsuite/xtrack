@@ -225,12 +225,19 @@ class Multipole(BeamElement):
             kwargs["bal"] = bal
             kwargs["order"] = (len(bal) - 2) // 2
 
-
-        # TODO: Remove when xobjects is fixed
+        ## TODO: Remove when xobjects is fixed
         if 'bal' in kwargs.keys():
-            kwargs["bal"] = list(kwargs['bal'])
+            keep_bal = kwargs['bal']
+            kwargs['bal'] = len(keep_bal) # Initializes with zeros
 
         self.xoinitialize(**kwargs)
+
+        ## TODO: Remove when xobjects is fixed
+        if 'bal' in kwargs.keys():
+            if isinstance(keep_bal, np.ndarray):
+                keep_bal = self._buffer.context.nparray_to_context_array(
+                                                                    keep_bal)
+            self.bal[:]= keep_bal # Sets the values
 
     @property
     def knl(self):
@@ -253,7 +260,7 @@ class Multipole(BeamElement):
                               hxl=-self.hxl,
                               hyl=-self.hyl,
                               radiation_flag=0, #TODO, I force radiation off for now
-                              bal=[-bb for bb in self.bal], # TODO: maybe it can be made more efficient
+                              bal=-self.bal, # TODO: maybe it can be made more efficient
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Multipole.XoStruct.extra_sources = [
