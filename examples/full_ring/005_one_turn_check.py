@@ -18,25 +18,20 @@ fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.js
 rtol_10turns = 1e-9; atol_10turns=4e-11
 test_backtracker=True
 
-fname_line_particles = test_data_folder.joinpath(
-                                './lhc_with_bb/line_and_particle.json')
-rtol_10turns = 1e-9; atol_10turns=1e-11
-test_backtracker = False
+# fname_line_particles = test_data_folder.joinpath(
+#                                 './lhc_with_bb/line_and_particle.json')
+# rtol_10turns = 1e-9; atol_10turns=1e-11
+# test_backtracker = False
 
 # fname_line_particles = test_data_folder.joinpath(
 #                         './hllhc_14/line_and_particle.json')
-# rtol_10turns = 1e-9; atol_10turns=5e-11
-# test_backtracker = True
-
-# fname_line_particles = test_data_folder.joinpath(
-#                  './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
 # rtol_10turns = 1e-9; atol_10turns=1e-11
-#test_backtrackeri = False
+# test_backtracker = False
 
 # fname_line_particles = test_data_folder.joinpath(
-#                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+#                     './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
 # rtol_10turns = 2e-8; atol_10turns=7e-9
-# test_backtrackeri = False
+# test_backtracker = False
 
 ####################
 # Choose a context #
