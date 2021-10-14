@@ -21,7 +21,7 @@ test_backtracker=True
 fname_line_particles = test_data_folder.joinpath(
                                 './lhc_with_bb/line_and_particle.json')
 rtol_10turns = 1e-9; atol_10turns=1e-11
-test_backtracker = True
+test_backtracker = False
 
 # fname_line_particles = test_data_folder.joinpath(
 #                         './hllhc_14/line_and_particle.json')
@@ -115,24 +115,25 @@ for vv in vars_to_check:
 # Check backtracker #
 #####################
 
-backtracker.track(particles, num_turns=n_turns)
+if test_backtracker:
+    backtracker.track(particles, num_turns=n_turns)
 
-xl_part = xl.Particles.from_dict(input_data['particle'])
+    xl_part = xl.Particles.from_dict(input_data['particle'])
 
-for vv in vars_to_check:
-    xl_value = getattr(xl_part, vv)
-    xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-    passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
-                        atol=atol_10turns)
-    if not passed and vv=='s':
-        passed = np.isclose(xt_value, xl_value,
-                rtol=rtol_10turns, atol=1e-8)
+    for vv in vars_to_check:
+        xl_value = getattr(xl_part, vv)
+        xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
+        passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
+                            atol=atol_10turns)
+        if not passed and vv=='s':
+            passed = np.isclose(xt_value, xl_value,
+                    rtol=rtol_10turns, atol=1e-8)
 
-    if not passed:
-        print(f'Not passend on backtrack for var {vv}!\n'
-              f'    xl:   {xl_value: .7e}\n'
-              f'    xtrack: {xt_value: .7e}\n')
-        #raise ValueError
+        if not passed:
+            print(f'Not passend on backtrack for var {vv}!\n'
+                  f'    xl:   {xl_value: .7e}\n'
+                  f'    xtrack: {xt_value: .7e}\n')
+            #raise ValueError
 
 ##############
 # Check  ebe #
