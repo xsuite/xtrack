@@ -44,8 +44,6 @@ def test_random_generation():
 
         tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
 
-        import matplotlib.pyplot as plt
-        plt.close('all')
         for i_part in range(part._capacity):
             x = tracker.record_last_track.x[i_part, :]
             assert np.all(x>0)
