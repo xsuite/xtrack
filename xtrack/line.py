@@ -63,8 +63,11 @@ class Line():
         LineDataClass = ElementRefClass[num_elements]
         line_data = LineDataClass(_context=_context,
                 _buffer=_buffer, _offset=_offset)
+        assert len(sequence.elements) == len(sequence.element_names)
         elements = []
-        for ii, ee in enumerate(sequence.elements):
+        element_names = []
+        for ii, (ee, nn) in enumerate(zip(sequence.elements,
+                                      sequence.element_names)):
             if hasattr(ee, 'XoStruct'): # is already xobject
                 assert ee._buffer == line_data._buffer, (
                         'Copy from different buffer not yet implemented')
@@ -78,9 +81,12 @@ class Line():
                     xt_ee = XtClass(_buffer=line_data._buffer, **ee.to_dict(),
                                     _offset='packed')
             elements.append(xt_ee)
+            element_names.append(nn)
             line_data[ii] = xt_ee._xobject
 
         self.elements = tuple(elements)
+        self.element_names = tuple(element_names)
+        self.element_s_locations = tuple(sequence.get_s_elements())
         self._line_data = line_data
         self._LineDataClass = LineDataClass
         self._ElementRefClass = ElementRefClass

@@ -15,23 +15,23 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
-rtol_10turns = 1e-9; atol_10turns=1e-11
+rtol_10turns = 1e-9; atol_10turns=4e-11
+test_backtracker=True
 
 # fname_line_particles = test_data_folder.joinpath(
 #                                 './lhc_with_bb/line_and_particle.json')
 # rtol_10turns = 1e-9; atol_10turns=1e-11
+# test_backtracker = False
 
 # fname_line_particles = test_data_folder.joinpath(
 #                         './hllhc_14/line_and_particle.json')
 # rtol_10turns = 1e-9; atol_10turns=1e-11
+# test_backtracker = False
 
 # fname_line_particles = test_data_folder.joinpath(
-#                  './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
-# rtol_10turns = 1e-9; atol_10turns=1e-11
-
-# fname_line_particles = test_data_folder.joinpath(
-#                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+#                     './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
 # rtol_10turns = 2e-8; atol_10turns=7e-9
+# test_backtracker = False
 
 ####################
 # Choose a context #
@@ -60,15 +60,18 @@ sequence = xl.Line.from_dict(input_data['line'])
 if short_test:
     sequence = make_short_line(sequence)
 
-##################
-# Build TrackJob #
-##################
+#################
+# Build Tracker #
+#################
 print('Build tracker...')
 tracker = xt.Tracker(_context=context,
             sequence=sequence,
             particles_class=xt.Particles,
             local_particle_src=None,
             save_source_as='source.c')
+
+if test_backtracker:
+    backtracker = tracker.get_backtracker(_context=context)
 
 ######################
 # Get some particles #
@@ -96,11 +99,36 @@ for vv in vars_to_check:
     xl_value = getattr(xl_part, vv)
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
     passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns, atol=atol_10turns)
+
     if not passed:
         print(f'Not passend on var {vv}!\n'
               f'    xl:   {xl_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
         raise ValueError
+
+#####################
+# Check backtracker #
+#####################
+
+if test_backtracker:
+    backtracker.track(particles, num_turns=n_turns)
+
+    xl_part = xl.Particles.from_dict(input_data['particle'])
+
+    for vv in vars_to_check:
+        xl_value = getattr(xl_part, vv)
+        xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
+        passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
+                            atol=atol_10turns)
+        if not passed and vv=='s':
+            passed = np.isclose(xt_value, xl_value,
+                    rtol=rtol_10turns, atol=1e-8)
+
+        if not passed:
+            print(f'Not passend on backtrack for var {vv}!\n'
+                  f'    xl:   {xl_value: .7e}\n'
+                  f'    xtrack: {xt_value: .7e}\n')
+            #raise ValueError
 
 ##############
 # Check  ebe #
@@ -137,8 +165,28 @@ for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     if not passed:
         print(f'\nelement {nn}')
         break
-    else:
-        print(f'Check passed for element: {nn}              ', end='\r', flush=True)
+
+    if test_backtracker:
+        backtracker.track(particles,
+                ele_start=len(tracker.line.elements) - ii - 1,
+                num_elements=1)
+        for vv in vars_to_check:
+            xt_value = context.nparray_from_context_array(
+                                        getattr(particles, vv))[ip_check]
+            passed = np.isclose(xt_value, vars_before[vv],
+                                rtol=1e-10, atol=1e-13)
+            if not passed:
+                problem_found = True
+                print(f'\nNot passend on var {vv}!\n'
+                      f'    before: {vars_before[vv]: .7e}\n'
+                      f'    xtrack: {xt_value: .7e}\n')
+                break
+        if not passed:
+            print(f'\nelement {nn}')
+            break
+
+    print(f'Check passed for element: {nn}              ', end='\r', flush=True)
+
 
 diffs = np.array(diffs)
 

@@ -26,10 +26,12 @@ def test_full_rings(element_by_element=False):
                     (1e-9, 3e-11),
                     (1e-9, 3e-11),
                     (2e-8, 7e-9)]
+     test_backtracker_flags = [True, False, False]
 
      for icase, fname_line_particles in enumerate(test_fnames):
 
         rtol_10turns, atol_10turns = tolerances_10_turns[icase]
+        test_backtracker= test_backtracker_flags[icase]
 
         print('Case:', fname_line_particles)
         for context in xo.context.get_test_contexts():
@@ -82,7 +84,8 @@ def test_full_rings(element_by_element=False):
 
             for vv in vars_to_check:
                 pyst_value = getattr(pyst_part, vv)
-                xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
+                xt_value = context.nparray_from_context_array(
+                                                  getattr(particles, vv))[ip_check]
                 passed = np.isclose(xt_value, pyst_value,
                                     rtol=rtol_10turns, atol=atol_10turns)
                 print(f'Varable {vv}:\n'
@@ -91,7 +94,33 @@ def test_full_rings(element_by_element=False):
                 if not passed:
                     raise ValueError('Discrepancy found!')
 
-            print('Test passed!')
+            #####################
+            # Check backtracker #
+            #####################
+
+            if test_backtracker:
+                print('Testing backtracker')
+                backtracker = tracker.get_backtracker(_context=context)
+                backtracker.track(particles, num_turns=n_turns)
+
+                xl_part = xl.Particles.from_dict(input_data['particle'])
+
+                for vv in vars_to_check:
+                    xl_value = getattr(xl_part, vv)
+                    xt_value = context.nparray_from_context_array(
+                                                getattr(particles, vv))[ip_check]
+                    passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
+                                        atol=atol_10turns)
+                    if not passed and vv=='s':
+                        passed = np.isclose(xt_value, xl_value,
+                                rtol=rtol_10turns, atol=1e-8)
+
+                    if not passed:
+                        print(f'Not passend on backtrack for var {vv}!\n'
+                              f'    xl:   {xl_value: .7e}\n'
+                              f'    xtrack: {xt_value: .7e}\n')
+                        #raise ValueError
+                        print('Test passed!')
 
             ##############
             # Check  ebe #
@@ -101,8 +130,10 @@ def test_full_rings(element_by_element=False):
                 pyst_part = xl.Particles.from_dict(input_data['particle'])
                 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
                 problem_found = False
-                for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
-                    vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
+                for ii, (eepyst, nn) in enumerate(zip(
+                                   sequence.elements, sequence.element_names)):
+                    vars_before = {vv :getattr(pyst_part, vv)
+                                                       for vv in vars_to_check}
                     particles.set_particle(ip_check, **pyst_part.to_dict())
 
                     tracker.track(particles, ele_start=ii, num_elements=1)
@@ -111,8 +142,9 @@ def test_full_rings(element_by_element=False):
                     for vv in vars_to_check:
                         pyst_change = getattr(pyst_part, vv) - vars_before[vv]
                         xt_change = context.nparray_from_context_array(
-                                getattr(particles, vv))[ip_check] -vars_before[vv]
-                        passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=5e-14)
+                            getattr(particles, vv))[ip_check] -vars_before[vv]
+                        passed = np.isclose(xt_change, pyst_change,
+                                                     rtol=1e-10, atol=5e-14)
                         if not passed:
                             problem_found = True
                             print(f'Not passend on var {vv}!\n'

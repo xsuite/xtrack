@@ -4,6 +4,7 @@ import xobjects as xo
 import xtrack as xt
 import xline as xl
 from pathlib import Path
+
 def test_random_generation():
     for ctx in xo.context.get_test_contexts():
         print(f'{ctx}')

@@ -95,6 +95,14 @@ def dress(XoStruct, rename={}):
                 out[ff] = vv
         return out
 
+    def copy(self, _context=None, _buffer=None, _offset=None):
+        if _context is None and _buffer is None:
+            _context = self._xobject._buffer.context
+        # This makes a copy of the xobject
+        xobject = self.XoStruct(self._xobject, _context=_context,
+                                _buffer=_buffer, _offset=_offset)
+        return self.__class__(_xobject=xobject)
+
     def compile_custom_kernels(self, only_if_needed=False):
         context = self._buffer.context
 
@@ -117,6 +125,7 @@ def dress(XoStruct, rename={}):
     DressedXStruct.xoinitialize = xoinitialize
     DressedXStruct.compile_custom_kernels = compile_custom_kernels
     DressedXStruct.to_dict = to_dict
+    DressedXStruct.copy= copy
     DressedXStruct.__init__ = myinit
 
     return DressedXStruct

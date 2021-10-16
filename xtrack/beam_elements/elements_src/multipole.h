@@ -71,7 +71,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     	    dpx += hxl + hxl * delta;
     	    dpy -= hyl + hyl * delta;
 
-    	    if( length > 0 )
+    	    if( length > 0 || length < 0)
     	    {
     	        double const b1l = chi * MultipoleData_get_bal(el, 0 );
     	        double const a1l = chi * MultipoleData_get_bal(el, 1 );

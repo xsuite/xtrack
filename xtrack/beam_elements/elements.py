@@ -18,6 +18,10 @@ class ReferenceEnergyIncrease(BeamElement):
     _xofields = {
         'Delta_p0c': xo.Float64}
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(Delta_p0c=-self.Delta_p0c,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 ReferenceEnergyIncrease.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
 
@@ -30,6 +34,11 @@ class Drift(BeamElement):
 
     _xofields = {
         'length': xo.Float64}
+    isthick=True
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(length=-self.length,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 Drift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
@@ -48,6 +57,13 @@ class Cavity(BeamElement):
         'lag': xo.Float64,
         }
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              voltage=-self.voltage,
+                              frequency=self.frequency,
+                              lag=self.lag,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 Cavity.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
@@ -64,6 +80,11 @@ class XYShift(BeamElement):
         'dx': xo.Float64,
         'dy': xo.Float64,
         }
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              dx=-self.dx, dy=-self.dy,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 XYShift.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -94,6 +115,15 @@ class Elens(BeamElement):
         self.elens_length    = elens_length
         self.voltage         = voltage
 
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              current=self.current,
+                              inner_radius=self.inner_radius,
+                              outer_radius=self.outer_radius,
+                              elens_length=-self.elens_length,
+                              voltage=self.voltage,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 Elens.XoStruct.extra_sources = [
     _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
@@ -121,6 +151,11 @@ class SRotation(BeamElement):
     @property
     def angle(self):
         return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
@@ -190,24 +225,43 @@ class Multipole(BeamElement):
             kwargs["bal"] = bal
             kwargs["order"] = (len(bal) - 2) // 2
 
-
-        # TODO: Remove when xobjects is fixed
-        kwargs["bal"] = list(kwargs['bal'])
-        self._temp_bal_length = len(kwargs['bal'])
+        ## TODO: Remove when xobjects is fixed
+        if 'bal' in kwargs.keys():
+            keep_bal = kwargs['bal']
+            kwargs['bal'] = len(keep_bal) # Initializes with zeros
 
         self.xoinitialize(**kwargs)
 
+        ## TODO: Remove when xobjects is fixed
+        if 'bal' in kwargs.keys():
+            if isinstance(keep_bal, np.ndarray):
+                keep_bal = self._buffer.context.nparray_to_context_array(
+                                                                    keep_bal)
+            self.bal[:]= keep_bal # Sets the values
+
     @property
     def knl(self):
-        idxes = np.array([ii for ii in range(0, self._temp_bal_length, 2)])
+        bal_length = len(self.bal)
+        idxes = np.array([ii for ii in range(0, bal_length, 2)])
         return [self.bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
 
     @property
     def ksl(self):
-        idxes = np.array([ii for ii in range(0, self._temp_bal_length, 2)])
+        bal_length = len(self.bal)
+        idxes = np.array([ii for ii in range(0, bal_length, 2)])
         return [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
         #idx = np.array([ii for ii in range(0, len(self.bal), 2)])
         #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              order=self.order,
+                              length=-self.length,
+                              hxl=-self.hxl,
+                              hyl=-self.hyl,
+                              radiation_flag=0, #TODO, I force radiation off for now
+                              bal=-self.bal, # TODO: maybe it can be made more efficient
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 Multipole.XoStruct.extra_sources = [
     _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
@@ -323,29 +377,36 @@ class RFMultipole(BeamElement):
         elif (
             bal is not None
             and bal
-            and len(bal) > 2
+            and len(bal) >= 2
             and ((len(bal) % 2) == 0)
             and p is not None
             and p
-            and len(p) > 2
+            and len(p) >= 2
             and ((len(p) % 2) == 0)
         ):
             kwargs["bal"] = bal
             kwargs["phase"] = p
             kwargs["order"] = (len(bal) - 2) / 2
+        elif '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            pass
+        else:
+            raise ValueError('Invalid input!')
 
 
-        temp_bal = kwargs["bal"]
-        temp_phase = kwargs["phase"]
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            super().__init__(**kwargs)
+        else:
+            temp_bal = kwargs["bal"]
+            temp_phase = kwargs["phase"]
 
-        kwargs["bal"] = len(temp_bal)
-        kwargs["phase"] = len(temp_phase)
+            kwargs["bal"] = len(temp_bal)
+            kwargs["phase"] = len(temp_phase)
 
-        super().__init__(**kwargs)
+            super().__init__(**kwargs)
 
-        ctx = self._buffer.context
-        self.bal[:] = ctx.nparray_to_context_array(temp_bal)
-        self.phase[:] = ctx.nparray_to_context_array(temp_phase)
+            ctx = self._buffer.context
+            self.bal[:] = ctx.nparray_to_context_array(temp_bal)
+            self.phase[:] = ctx.nparray_to_context_array(temp_phase)
 
     @property
     def knl(self):
@@ -367,12 +428,12 @@ class RFMultipole(BeamElement):
 
     @property
     def pn(self):
-        idx = np.array([ii for ii in range(0, len(self.p), 2)])
+        idx = np.array([ii for ii in range(0, len(self.phase), 2)])
         return self.phase[idx]
 
     @property
     def ps(self):
-        idx = np.array([ii for ii in range(0, len(self.p), 2)])
+        idx = np.array([ii for ii in range(0, len(self.phase), 2)])
         return self.phase[idx + 1]
 
     def set_pn(self, value, order):
@@ -382,6 +443,16 @@ class RFMultipole(BeamElement):
     def set_ps(self, value, order):
         assert order <= self.order
         self.phase[order * 2 + 1] = value
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              order=self.order,
+                              voltage=-self.voltage,
+                              frequency=self.frequency,
+                              lag=self.lag,
+                              bal=[-bb for bb in self.bal], # TODO: maybe it can be made more efficient
+                              p = [pp for pp in self.phase],
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 RFMultipole.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -446,6 +517,12 @@ class DipoleEdge(BeamElement):
                 "DipoleEdge needs either coefficiants r21 and r43"
                 " or suitable values for h, e1, hgap, and fint provided"
             )
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              r21=-self.r21,
+                              r43=-self.r43,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 DipoleEdge.XoStruct.extra_sources = [
