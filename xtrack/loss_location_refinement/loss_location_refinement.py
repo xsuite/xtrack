@@ -132,7 +132,7 @@ def apertures_are_identical(aper1, aper2):
 
     identical = True
     for ff in aper1._fields:
-        tt = np.isclose(getattr(aper1, ff), getattr(aper2, ff),
+        tt = np.allclose(getattr(aper1, ff), getattr(aper2, ff),
                         rtol=0, atol=1e-15)
         if not tt:
             identical = False
