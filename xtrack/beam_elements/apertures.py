@@ -80,39 +80,42 @@ class LimitPolygon(BeamElement):
         'resc_fac': xo.Float64
         }
 
-    def __init__(self, x_vertices, y_vertices, **kwargs):
+    def __init__(self, x_vertices=None, y_vertices=None, **kwargs):
 
-        assert len(x_vertices) == len(y_vertices)
+        if '_xobject' in kwargs.keys():
+            super().__init__(**kwargs)
+        else:
+            assert len(x_vertices) == len(y_vertices)
 
-        super().__init__(
-                x_vertices=x_vertices,
-                y_vertices=y_vertices,
-                x_normal = len(x_vertices),
-                y_normal = len(x_vertices),
-                resc_fac = 1.,
-                **kwargs)
+            super().__init__(
+                    x_vertices=x_vertices,
+                    y_vertices=y_vertices,
+                    x_normal = len(x_vertices),
+                    y_normal = len(x_vertices),
+                    resc_fac = 1.,
+                    **kwargs)
 
-        lengths = np.sqrt(np.diff(self.x_closed)**2
-                        + np.diff(self.y_closed)**2)
+            lengths = np.sqrt(np.diff(self.x_closed)**2
+                            + np.diff(self.y_closed)**2)
 
-        assert np.all(lengths>0)
+            assert np.all(lengths>0)
 
 
-        if self.area < 0:
-            raise ValueError(
-                    "The area of the polygon is negative!\n"
-                    "Vertices must be provided with counter-clockwise order!")
+            if self.area < 0:
+                raise ValueError(
+                        "The area of the polygon is negative!\n"
+                        "Vertices must be provided with counter-clockwise order!")
 
-        Nx = -np.diff(self.y_closed)
-        Ny = np.diff(self.x_closed)
+            Nx = -np.diff(self.y_closed)
+            Ny = np.diff(self.x_closed)
 
-        norm_N = np.sqrt(Nx**2 + Ny**2)
-        Nx = Nx / norm_N
-        Ny = Ny / norm_N
+            norm_N = np.sqrt(Nx**2 + Ny**2)
+            Nx = Nx / norm_N
+            Ny = Ny / norm_N
 
-        ctx = self._buffer.context
-        self.x_normal = ctx.nparray_to_context_array(Nx)
-        self.y_normal = ctx.nparray_to_context_array(Ny)
+            ctx = self._buffer.context
+            self.x_normal = ctx.nparray_to_context_array(Nx)
+            self.y_normal = ctx.nparray_to_context_array(Ny)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
