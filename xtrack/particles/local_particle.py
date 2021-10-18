@@ -381,9 +381,7 @@ def gen_local_particle_common_src():
     /*gpufun*/
     double LocalParticle_get_energy0( const LocalParticle *const p )
     {
-        double const p0c = LocalParticle_get_p0c( p );
-        double const mass0 = LocalParticle_get_mass0( p );
-        return sqrt( ( p0c * p0c ) + ( mass0 * mass0 ) );
+        return hypot( LocalParticle_get_p0c( p ), LocalParticle_get_mass0( p ) );
     }
 
     /*gpufun*/
