@@ -261,556 +261,6 @@ class Tracker:
 
         self.track = self._track_no_collective
 
-    @staticmethod
-    def _indent_str(offset=0, **kwargs):
-        indent_per_level = kwargs.get("indent_per_level", "    ")
-        indent_level = kwargs.get("indent_level", 0)
-        return indent_per_level * (indent_level + offset)
-
-    @staticmethod
-    def _inc_indent_level(kwargs):
-        indent_level = kwargs.get("indent_level", 0)
-        kwargs.update(
-            {
-                "indent_level": indent_level + 1,
-            }
-        )
-        return indent_level
-
-    @staticmethod
-    def _set_indent_level(lvl, kwargs):
-        cur_level = kwargs.get("indent_level", 0)
-        kwargs.update(
-            {
-                "indent_level": lvl,
-            }
-        )
-        return cur_level
-
-    def _gen_track_kernel_preamble(self, context, **kwargs):
-        sources = []
-        indent_str = Tracker._indent_str(0, **kwargs)
-        body_indent_str = Tracker._indent_str(1, **kwargs)
-
-        if self.global_xy_limit is not None:
-            src = f"{indent_str}#if !defined( XTRACK_GLOBAL_POSLIMIT )\r\n"
-            src += f"{body_indent_str}#define XTRACK_GLOBAL_POSLIMIT ({self.global_xy_limit})\r\n"
-            src += f"{indent_str}#endif  /* !defined( XTRACK_GLOBAL_POSLIMIT ) */\r\n"
-            sources.append(src)
-
-        sources.append(_pkg_root.joinpath("headers/constants.h"))
-
-        # Local particles
-        sources.append(self.local_particle_src)
-
-        # Elements
-        sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
-
-        for ee in self.element_classes:
-            for ss in ee.extra_sources:
-                sources.append(ss)
-
-        return sources
-
-    def _gen_track_kernel_common_start(
-        self,
-        context,
-        ind,
-        indent_level,
-        use_shared_copy,
-        break_on_lost_particles,
-        **kwargs,
-    ):
-
-        buffer_param = kwargs.get("buffer_param", "buffer")
-        loc_particle_param = kwargs.get("loc_particle_param", "p")
-        pdata_param = kwargs.get("pdata_param", "particles")
-        n_part_param = kwargs.get("n_part_param", "n_part")
-        part_idx_param = kwargs.get("part_idx_param", "part_idx")
-
-        ele_start_param = kwargs.get("ele_start_param", "ele_start")
-        n_ele_track_param = kwargs.get("n_ele_track_param", "num_ele_track")
-        ele_stop_param = kwargs.get("ele_stop_param", "ele_stop")
-        ele_cnt_param = kwargs.get("ele_cnt_param", "ele")
-        ele_offsets_param = kwargs.get("ele_offsets_param", "ele_offsets")
-        ele_typeids_param = kwargs.get("ele_typeids_param", "ele_typeids")
-        el_ptr_param = kwargs.get("el_ptr_param", "elem")
-        el_type_param = kwargs.get("el_type_param", "elem_type_id")
-
-        n_turns_param = kwargs.get("n_turns_param", "num_turns")
-        turn_cnt_param = kwargs.get("turn_cnt_param", "iturn")
-
-        flag_tbt_monitor_param = kwargs.get(
-            "flag_tbt_monitor_param", "flag_tbt_monitor"
-        )
-        tbt_mon_ptr_param = kwargs.get("tbt_mon_ptr_param", "tbt_mon_pointer")
-        buffer_tbt_monitor_param = kwargs.get(
-            "buffer_tbt_monitor_param", "buffer_tbt_monitor"
-        )
-        tbt_monitor_param = kwargs.get("tbt_monitor_param", "tbt_monitor")
-        offset_tbt_monitor_param = kwargs.get(
-            "offset_tbt_monitor_param", "offset_tbt_monitor"
-        )
-
-        elem_by_elem_particles_param = kwargs.get("elem_by_elem_particles_param", None)
-        num_ebe_part_param = kwargs.get("num_ebe_part_param", None)
-        num_ebe_part_per_turn_param = kwargs.get("num_ebe_part_per_turn_param", None)
-        ebe_store_at_param = kwargs.get("ebe_store_at_param", "store_at")
-        ebe_sync_common_fields_param = kwargs.get(
-            "ebe_sync_common_fields_param", "sync_common_fields"
-        )
-
-        il = indent_level
-
-        if self._local_particle_mode == LocalParticleVar.ADAPTER:
-            loc_particle_mode_str = "/* local_particle_mode = ADAPTER */"
-        elif self._local_particle_mode == LocalParticleVar.THREAD_LOCAL_COPY:
-            loc_particle_mode_str = "/* local_particle_mode = THREAD_LOCAL_COPY */"
-        elif self._local_particle_mode == LocalParticleVar.SHARED_COPY:
-            loc_particle_mode_str = "/* local_particle_mode = SHARED_COPY */"
-
-        src = f"{ind[ il ]}LocalParticle {loc_particle_param}; {loc_particle_mode_str}\r\n"
-        if break_on_lost_particles:
-            src += f"{ind[ il ]}bool is_active = false;\r\n"
-
-        src += (
-            f"{ind[ il ]}int64_t {part_idx_param} = 0; "
-            + f"//only_for_context cpu_serial cpu_openmp\r\n"
-        )
-        src += (
-            f"{ind[ il ]}int64_t {part_idx_param} = "
-            + f"blockDim.x * blockIdx.x + threadIdx.x; "
-            + f"//only_for_context cuda\r\n"
-        )
-        src += (
-            f"{ind[ il ]}int64_t {part_idx_param} = "
-            + f"get_global_id(0); //only_for_context opencl\r\n"
-        )
-        src += f"{ind[ il ]}int64_t {turn_cnt_param} = ( int64_t )0;\r\n\r\n"
-
-        src += (
-            f"{ind[ il ]}/*gpuglmem*/ int8_t* {tbt_mon_ptr_param} = "
-            + f"{buffer_tbt_monitor_param} + {offset_tbt_monitor_param};\r\n"
-        )
-
-        src += (
-            f"{ind[ il ]}ParticlesMonitorData {tbt_monitor_param} = "
-            + f"( ParticlesMonitorData ){tbt_mon_ptr_param};\r\n\r\n"
-        )
-
-        src += (
-            f"{ind[ il ]}int64_t const {ele_stop_param} = "
-            + f"{ele_start_param} + {n_ele_track_param};\r\n"
-        )
-        src += (
-            f"{ind[ il ]}int64_t {n_part_param} = "
-            + f"ParticlesData_get__capacity( {pdata_param} );\r\n"
-        )
-
-        if (
-            elem_by_elem_particles_param is not None
-            and num_ebe_part_param is not None
-            and num_ebe_part_per_turn_param is not None
-        ):
-            src += f"{ind[ il ]}int64_t const {num_ebe_part_param} = "
-            src += "ParticlesData_get__capacity( \r\n"
-            src += f"{ind[ il + 1 ]}{elem_by_elem_particles_param} );\r\n"
-            src += f"{ind[ il ]}int64_t const {num_ebe_part_per_turn_param} = "
-            src += f"{n_ele_track_param} * {n_part_param};\r\n"
-
-        src += (
-            f"{ind[ il ]}if( {part_idx_param} >= {n_part_param} ) "
-            + f"{part_idx_param} = ( int64_t )-1;\r\n"
-        )
-
-        src += "\r\n"
-        src += f"{ind[ il ]}LocalParticle_init_from_particles_data( \r\n"
-        src += f"{ind[ il + 2 ]}{pdata_param}, &{loc_particle_param}, "
-        src += f"{part_idx_param}"
-
-        if not use_shared_copy:
-            src += " );\r\n"
-        else:
-            src += f",{local_fields_param} );\r\n"
-            src += f"{ind[ il ]}sync_locally();\r\n"
-
-        src += "\r\n"
-        src += f"{ind[ il ]}if( {part_idx_param} < {n_part_param} ) {{ \r\n"
-        il += 1
-
-        if break_on_lost_particles:
-            src += (
-                f"{ind[ il ]}is_active = "
-                + f"check_is_active( &{loc_particle_param} );\r\n"
-            )
-
-        src += f"{ind[ il ]}for( ; {turn_cnt_param} < {n_turns_param}; "
-        src += f"++{turn_cnt_param} ){{\r\n"
-        il += 1
-
-        src += f"{ind[ il ]}int64_t {ele_cnt_param} = {ele_start_param};\r\n"
-        if break_on_lost_particles:
-            src += f"{ind[ il ]}if( !is_active ) break;\r\n"
-
-        if tbt_monitor_param is not None and flag_tbt_monitor_param is not None:
-            src += "\r\n"
-            src += f"{ind[ il ]}if( {flag_tbt_monitor_param} ) \r\n"
-            src += f"{ind[ il + 1 ]}ParticlesMonitor_track_local_particle( "
-            src += f"{tbt_monitor_param}, &{loc_particle_param} );\r\n\r\n"
-
-        src += "\r\n"
-        src += (
-            f"{ind[ il ]}for( ; {ele_cnt_param} < {ele_stop_param} ; "
-            + f"++{ele_cnt_param} ){{\r\n"
-        )
-        il += 1
-        src += (
-            f"{ind[ il ]}/*gpuglmem*/ int8_t* {el_ptr_param} = "
-            + f"{buffer_param} + {ele_offsets_param}[ {ele_cnt_param} ];\r\n"
-        )
-        src += (
-            f"{ind[ il ]}int64_t const {el_type_param} = "
-            + f"{ele_typeids_param}[ {ele_cnt_param} ];\r\n"
-        )
-
-        if elem_by_elem_particles_param is not None and num_ebe_part_param is not None:
-            src += "\r\n"
-            if break_on_lost_particles:
-                src += (
-                    f"{ind[il]}if( {num_ebe_part_per_turn_param} <= "
-                    + f"{num_ebe_part_param} ) {{ \r\n"
-                )
-            else:
-                src += (
-                    f"{ind[il]}if( ( {num_ebe_part_per_turn_param} <= "
-                    + f"{num_ebe_part_param} ) && \r\n"
-                )
-                src += (
-                    f"{ind[il]}    ( LocalParticle_is_active( "
-                    + f"&{loc_particle_param} ) ) {{ \r\n"
-                )
-
-            src += (
-                f"{ind[il+1]}bool const {ebe_sync_common_fields_param} = "
-                + f"( {part_idx_param} == 0 );\r\n"
-            )
-            src += f"{ind[il+1]}int64_t {ebe_store_at_param} = \r\n"
-            src += (
-                f"{ind[il+2]}LocalParticle_get_at_turn( "
-                + f"&{loc_particle_param} ) * {num_ebe_part_per_turn_param} +\r\n"
-            )
-            src += (
-                f"{ind[il+2]}LocalParticle_get_at_element( "
-                + f"&{loc_particle_param} ) * {n_part_param};\r\n"
-            )
-            src += (
-                f"{ind[il+1]}{ebe_store_at_param} = {ebe_store_at_param} % "
-                + f"{num_ebe_part_param};\r\n"
-            )
-            src += f"{ind[il+2]}if( {part_idx_param} == 0 ) "
-            src += 'printf( "store_at = %ld\\n", ( long int )store_at );'
-            src += f"\r\n"
-            src += f"{ind[il+1]}LocalParticle_to_particles_data(\r\n"
-            src += (
-                f"{ind[il+2]}&{loc_particle_param}, {pdata_param}, "
-                + f"{ebe_store_at_param}, {ebe_sync_common_fields_param} );\r\n"
-            )
-            src += f"{ind[il]}}} /* store elem - by - elem */\r\n"
-
-        return src
-
-    def _get_track_kernel_elem_dispatcher(
-        self,
-        context,
-        ind,
-        il,
-        use_shared_copy,
-        break_on_lost_particles,
-        element_classes,
-        **kwargs,
-    ):
-
-        loc_particle_param = kwargs.get("loc_particle_param", "p")
-        part_idx_param = kwargs.get("part_idx_param", "part_idx")
-        el_ptr_param = kwargs.get("el_ptr_param", "elem")
-        el_type_param = kwargs.get("el_type_param", "elem_type_id")
-
-        src = "\r\n"
-        src += f"{ind[il]}switch( {el_type_param} ) {{\r\n"
-        il += 1
-        for ii, cc in enumerate(element_classes):
-            ccnn = cc.__name__.replace("Data", "")
-            src += f"{ind[il]}case {ii}: {{ \r\n"
-
-            loc_il = il + 1
-            if self.global_xy_limit is not None and cc.requires_global_aperture_check():
-                src += (
-                    f"{ind[loc_il]}global_aperture_check( &{loc_particle_param} );\r\n"
-                )
-                if break_on_lost_particles:
-                    src += f"{ind[loc_il]}is_active = check_is_active( &{loc_particle_param} );\r\n"
-                    src += f"{ind[loc_il]}if( !is_active ) break;\r\n"
-                elif not cc.requires_sync("local"):
-                    src += f"{ind[loc_il]}if( LocalParticle_is_active( &{loc_particle_param} ) ){{\r\n"
-                    loc_il += 1
-
-            src += f"{ind[loc_il]}{ccnn}_track_local_particle( \r\n"
-            src += f"{ind[loc_il+1]}( {ccnn}Data ){el_ptr_param}, &{loc_particle_param} );\r\n"
-
-            if self.global_xy_limit is not None and cc.requires_global_aperture_check():
-                if not break_on_lost_particles and not cc.requires_sync("local"):
-                    loc_il -= 1
-                    src += f"{ind[loc_il]}}} /* is_active */\r\n"
-                elif not break_on_lost_particles and cc.requires_sync("local"):
-                    src += f"{ind[loc_il]}sync_locally();\r\n"
-
-            src += f"{ind[loc_il]}break;\r\n"
-            src += f"{ind[il]}}} /* case: {ii} :: {ccnn}Data */\r\n\r\n"
-
-        il -= 1
-        src += f"{ind[il]}}}; /* switch( {el_type_param} ) */\r\n"
-        return src
-
-    def _gen_track_kernel_common_end(
-        self, context, ind, il, use_shared_copy, break_on_lost_particles, **kwargs
-    ):
-
-        loc_particle_param = kwargs.get("loc_particle_param", "p")
-        pdata_param = kwargs.get("pdata_param", "particles")
-        n_part_param = kwargs.get("n_part_param", "n_part")
-        part_idx_param = kwargs.get("part_idx_param", "part_idx")
-        flag_eot_actions_param = kwargs.get("flag_eot_actions_param", "flag_eot")
-
-        il += 4
-        src = "\r\n"
-
-        if break_on_lost_particles:
-            src += f"{ind[il]}is_active = check_is_active( &{loc_particle_param} );\r\n"
-            src += f"{ind[il]}if( !is_active ) break;\r\n"
-            src += f"{ind[il]}increment_at_element( &{loc_particle_param} );\r\n"
-        else:
-            src += (
-                f"{ind[il]}if( LocalParticle_is_active( "
-                + f"&{loc_particle_param} ) ) {{\r\n"
-            )
-            src += f"{ind[il+1]}increment_at_element( &{loc_particle_param} ); }}\r\n"
-
-        il -= 1
-        src += f"{ind[il]}}} /* for all elements */\r\n"
-        src += "\r\n"
-
-        il -= 1
-        if break_on_lost_particles:
-            src += (
-                f"{ind[il]}if( ( {flag_eot_actions_param} ) && ( is_active ) ) {{\r\n"
-            )
-        else:
-            src += f"{ind[il]}if( ( {flag_eot_actions_param} ) && \r\n"
-            src += f"{ind[il]}    ( LocalParticle_is_active( &{loc_particle_param} ) ) ) {{ \r\n"
-        src += f"{ind[il+1]}increment_at_turn( &{loc_particle_param} ); }} \r\n"
-        src += "\r\n"
-
-        il -= 1
-        src += f"{ind[il]}}} /* for all turns */ \r\n"
-        src += "\r\n"
-
-        il -= 1
-        src += f"{ind[il]}}} /* {part_idx_param} < {n_part_param} */ \r\n"
-
-        if use_shared_copy:
-            src += f"{ind[il]}sync_locally();\r\n"
-        src += "\r\n"
-
-        if not (self._local_particle_mode == LocalParticleVar.ADAPTER):
-            src += (
-                f"{ind[il]}LocalParticle_sync_to_particles_data( "
-                + f"&{loc_particle_param}, {pdata_param}, "
-                + f"( {part_idx_param} == 0 ) ); //only_for_context opencl cuda"
-            )
-            src += "\r\n"
-            src += (
-                f"{ind[il]}LocalParticle_sync_to_particles_data( "
-                + f"&{loc_particle_param}, {pdata_param}, "
-                + f", true ); //only_for_context cpu_serial cpu_openmp"
-            )
-            src += "\r\n"
-
-        return src
-
-    def _build_track_elem_by_elem_kernel(self, save_source_as, **kwargs):
-        context = self.line._buffer.context
-        sources = self._gen_track_kernel_preamble(context, **kwargs)
-        kernels = {}
-        cdefs = []
-
-        indents = {}
-        for offset in range(20):
-            indents[offset] = Tracker._indent_str(offset, **kwargs)
-
-        buffer_param = kwargs.get("buffer_param", "buffer")
-        ele_offsets_param = kwargs.get("ele_offsets_param", "ele_offsets")
-        ele_typeids_param = kwargs.get("ele_typeids_param", "ele_typeids")
-        pdata_param = kwargs.get("pdata_param", "particles")
-        n_turns_param = kwargs.get("n_turns_param", "num_turns")
-        ele_start_param = kwargs.get("ele_start_param", "ele_start")
-        n_ele_track_param = kwargs.get("n_ele_track_param", "num_ele_track")
-        flag_eot_actions_param = kwargs.get("flag_eot_actions_param", "flag_eot")
-        flag_tbt_monitor_param = kwargs.get(
-            "flag_tbt_monitor_param", "flag_tbt_monitor"
-        )
-        buffer_tbt_monitor_param = kwargs.get(
-            "buffer_tbt_monitor_param", "buffer_tbt_monitor"
-        )
-        offset_tbt_monitor_param = kwargs.get(
-            "offset_tbt_monitor_param", "offset_tbt_monitor"
-        )
-        elem_by_elem_particles_param = kwargs.get(
-            "elem_by_elem_particles_param", "elem_by_elem_particles"
-        )
-        num_ebe_part_param = kwargs.get("num_ebe_part_param", "n_ebe_part")
-        num_ebe_part_per_turn_param = kwargs.get(
-            "num_ebe_part_per_turn_param", "n_ebe_part_per_turn"
-        )
-
-        local_fields_param = kwargs.get("local_fields_param", "local_fields")
-
-        src = "\r\n"
-        src += f"{indents[ 0 ]}/*gpukern*/ void track_elem_by_elem(\r\n"
-        src += f"{indents[ 2 ]}/*gpuglmem*/ int8_t* {buffer_param},\r\n"
-        src += f"{indents[ 2 ]}/*gpuglmem*/ int64_t* {ele_offsets_param},\r\n"
-        src += f"{indents[ 2 ]}/*gpuglmem*/ int64_t* {ele_typeids_param},\r\n"
-        src += f"{indents[ 2 ]}ParticlesData {pdata_param},\r\n"
-        src += f"{indents[ 2 ]}int {n_turns_param}, \r\n"
-        src += f"{indents[ 2 ]}int {ele_start_param}, \r\n"
-        src += f"{indents[ 2 ]}int {n_ele_track_param}, \r\n"
-        src += f"{indents[ 2 ]}int {flag_eot_actions_param}, \r\n"
-        src += f"{indents[ 2 ]}int {flag_tbt_monitor_param}, \r\n"
-        src += f"{indents[ 2 ]}/*gpuglmem*/ int8_t* {buffer_tbt_monitor_param},\r\n"
-        src += f"{indents[ 2 ]}int {offset_tbt_monitor_param}, \r\n"
-        src += f"{indents[ 2 ]}ParticlesData {elem_by_elem_particles_param}"
-
-        if self._local_particle_mode == LocalParticleVar.SHARED_COPY and (
-            context is None
-            or (
-                not isinstance(context, xo.ContextPyopencl)
-                and not isinstance(context, xo.ContextCupy)
-            )
-        ):
-            raise ValueError(
-                "shared copy local_particle_mode not "
-                + "available for provided context"
-            )
-
-        use_shared_copy = False
-        if self._local_particle_mode == LocalParticleVar.SHARED_COPY and isinstance(
-            context, xo.ContextPyopencl
-        ):
-            src += ", \r\n"
-            src += f"{ind[ 2 ]}/*gpusharedmem*/ int8_t* {local_fields_param} "
-            use_shared_copy = True
-
-        src += f" )\r\n{indents[0]}{{\r\n"
-
-        if self._local_particle_mode == LocalParticleVar.SHARED_COPY and isinstance(
-            context, xo.ContextCupy
-        ):
-            src += f"{ind[ 2 ]}extern /*gpusharedmem*/ char "
-            src += f"{local_fields_param}[];\r\n"
-            use_shared_copy = True
-
-        break_on_lost_particles = True  # not use_shared_copy
-        if break_on_lost_particles:
-            for ee in self.element_classes:
-                if ee.requires_sync(mode="local"):
-                    break_on_lost_particles = False
-                    break
-
-        indent_level = 2
-        src += self._gen_track_kernel_common_start(
-            context,
-            indents,
-            indent_level,
-            use_shared_copy,
-            break_on_lost_particles,
-            elem_by_elem_particles_param=elem_by_elem_particles_param,
-            num_ebe_part_param=num_ebe_part_param,
-            num_ebe_part_per_turn_param=num_ebe_part_per_turn_param,
-            **kwargs,
-        )
-
-        indent_level = 5
-        src += self._get_track_kernel_elem_dispatcher(
-            context,
-            indents,
-            indent_level,
-            use_shared_copy,
-            break_on_lost_particles,
-            self.element_classes,
-            **kwargs,
-        )
-
-        indent_level = 1
-        src += self._gen_track_kernel_common_end(
-            context,
-            indents,
-            indent_level,
-            use_shared_copy,
-            break_on_lost_particles,
-            **kwargs,
-        )
-
-        src += f"{indents[0]}}} /* kernel */\r\n"
-        sources.append(src)
-
-        kernel_args = [
-            xo.Arg(xo.Int8, pointer=True, name=f"{buffer_param}"),
-            xo.Arg(xo.Int64, pointer=True, name=f"{ele_offsets_param}"),
-            xo.Arg(xo.Int64, pointer=True, name=f"{ele_typeids_param}"),
-            xo.Arg(self.particles_class.XoStruct, name=f"{pdata_param}"),
-            xo.Arg(xo.Int32, name=f"{n_turns_param}"),
-            xo.Arg(xo.Int32, name=f"{ele_start_param}"),
-            xo.Arg(xo.Int32, name=f"{n_ele_track_param}"),
-            xo.Arg(xo.Int32, name=f"{flag_eot_actions_param}"),
-            xo.Arg(xo.Int32, name=f"{flag_tbt_monitor_param}"),
-            xo.Arg(xo.Int8, pointer=True, name=f"{buffer_tbt_monitor_param}"),
-            xo.Arg(xo.Int64, name=f"{offset_tbt_monitor_param}"),
-            xo.Arg(
-                self.particles_class.XoStruct, name=f"{elem_by_elem_particles_param}"
-            ),
-        ]
-
-        if use_shared_copy and isinstance(context, xo.ContextPyopencl):
-            kernel_args.append(
-                xo.SharedMemPyopenclArg(
-                    xo.Int8,
-                    name=f"{local_fields_param}",
-                    shmem_per_work_group=16,
-                    shmem_per_work_item=136,
-                )
-            )
-
-        kernel_descriptions = {"track_elem_by_elem": xo.Kernel(args=kernel_args)}
-
-        # Internal API can be exposed only on CPU
-        if not isinstance(context, xo.ContextCpu):
-            kernels = {}
-        kernels.update(kernel_descriptions)
-
-        sources = _handle_per_particle_blocks(sources)
-
-        # Compile!
-        context.add_kernels(
-            sources,
-            kernels,
-            extra_classes=self.element_classes,
-            save_source_as=save_source_as,
-            specialize=True,
-        )
-
-        if use_shared_copy and isinstance(context, xo.ContextPyopencl):
-            kernel_args[-1].update(kernel=context.kernels.track_elem_by_elem)
-
-        self.track_elem_by_elem_kernel = context.kernels.track_elem_by_elem
 
     def _build_kernel(self, save_source_as):
         context = self.line._buffer.context
@@ -820,7 +270,14 @@ class Tracker:
         cdefs = []
 
         if self.global_xy_limit is not None:
-            sources.append(f"#define XTRACK_GLOBAL_POSLIMIT ({self.global_xy_limit})")
+            sources.append( r"""
+        #if !defined( XTRACK_GLOBAL_POSLIMIT )
+            #define XTRACK_GLOBAL_POSLIMIT """ +
+            f"({self.global_xy_limit})" + r"""
+        #endif /* !defined( XTRACK_GLOBAL_POSLIMIT ) */
+
+        """ )
+
 
         sources.append(_pkg_root.joinpath("headers/constants.h"))
 
@@ -869,7 +326,7 @@ class Tracker:
             src_lines[
                 -1
             ] += r""",
-                /*gpusharedmem*/ char* shared_special_fields"""
+                /*gpusharedmem*/ char* local_fields"""
             use_shared_copy = True
         src_lines[
             -1
@@ -880,8 +337,12 @@ class Tracker:
         if self._local_particle_mode == LocalParticleVar.SHARED_COPY and isinstance(
             context, xo.ContextCupy
         ):
-            src_lines[-1] += "extern /*gpusharedmem*/ char shared_special_fields[];\r\n"
+            src_lines[-1] += "extern __shared__ char local_fields[];\r\n"
             use_shared_copy = True
+
+        if use_shared_copy:
+            shared_num_bytes_per_thread = 136
+            shared_num_bytes_common = 16
 
         break_on_lost_particles = not use_shared_copy
         if break_on_lost_particles:
@@ -932,7 +393,7 @@ class Tracker:
 
         else:
             src += r"""LocalParticle_init_from_particles_data(
-                particles, &lpart, part_idx, shared_special_fields );
+                particles, &lpart, part_idx, local_fields );
             sync_locally();
 
             """
@@ -1039,7 +500,7 @@ class Tracker:
 
         if not (self._local_particle_mode == LocalParticleVar.ADAPTER):
             src += r"""
-            LocalParticle_sync_to_particles_data( &lpart, particles, ( part_idx == 0 ) ); //only_for_context opencl cuda"
+            LocalParticle_sync_to_particles_data( &lpart, particles, ( part_idx == 0 ) ); //only_for_context opencl cuda
             LocalParticle_sync_to_particles_data( &lpart, particles, true ); //only_for_context cpu_serial cpu_openmp
         """
 
@@ -1065,22 +526,24 @@ class Tracker:
 
         if use_shared_copy and isinstance(context, xo.ContextPyopencl):
             kernel_args.append(
-                xo.SharedMemPyopenclArg(
+                xo.LocalMemPyopenclArg(
                     xo.Int8,
-                    name="shared_special_fields",
-                    shmem_per_work_group=16,
-                    shmem_per_work_item=136,
+                    name="local_fields",
+                    num_bytes_per_thread=shared_num_bytes_per_thread,
+                    num_bytes_common=shared_num_bytes_common,
                 )
             )
-
-        kernel_descriptions = {"track_line": xo.Kernel(args=kernel_args)}
 
         # Internal API can be exposed only on CPU
         if not isinstance(context, xo.ContextCpu):
             kernels = {}
-        kernels.update(kernel_descriptions)
+        kernels.update({"track_line": xo.Kernel(args=kernel_args)})
 
         sources = _handle_per_particle_blocks(sources)
+
+        build_options = []
+        if isinstance( context, xo.ContextPyopencl ):
+            build_options.append( "-cl-kernel-arg-info" )
 
         # Compile!
         context.add_kernels(
@@ -1089,12 +552,21 @@ class Tracker:
             extra_classes=self.element_classes,
             save_source_as=save_source_as,
             specialize=True,
+            build_options=build_options
         )
 
-        if use_shared_copy and isinstance(context, xo.ContextPyopencl):
-            kernel_args[-1].update(kernel=context.kernels.track_line)
-
         self.track_kernel = context.kernels.track_line
+        if use_shared_copy:
+            if isinstance(context, xo.ContextPyopencl):
+                assert self.track_kernel.num_local_mem_args == 1
+                idx = self.track_kernel.local_mem_arg_indices[ 0 ]
+                assert idx == len( kernel_args ) - 1
+                assert isinstance( kernel_args[ idx ], xo.LocalMemPyopenclArg )
+                kernel_args[ idx ].assign_to_kernel( self.track_kernel, idx )
+            elif isinstance( context, xo.ContextCupy ):
+                self.track_kernel.update_num_bytes_shared_mem(
+                    shared_num_bytes_per_thread, shared_num_bytes_common )
+
 
     def _track_with_collective(
         self,
@@ -1193,45 +665,3 @@ class Tracker:
             raise ValueError("Please provide a valid monitor object")
 
         return flag_tbt, monitor, buffer_monitor, offset_monitor
-
-    def track_elem_by_elem(
-        self,
-        particles,
-        elem_by_elem_particles,
-        ele_start=0,
-        num_elements=None,
-        num_turns=1,
-        turn_by_turn_monitor=None,
-    ):
-
-        if num_elements is None:
-            # get to the end of the turn
-            num_elements = self.num_elements - ele_start
-        assert num_elements + ele_start <= self.num_elements
-
-        if self.skip_end_turn_actions:
-            flag_end_turn_actions = False
-        else:
-            flag_end_turn_actions = num_elements + ele_start == self.num_elements
-
-        (flag_tbt, monitor, buffer_monitor, offset_monitor) = self._get_monitor(
-            particles, turn_by_turn_monitor, num_turns
-        )
-
-        self.track_elem_by_elem_kernel.description.n_threads = particles._capacity
-        self.track_elem_by_elem_kernel(
-            buffer=self.line._buffer.buffer,
-            ele_offsets=self.ele_offsets_dev,
-            ele_typeids=self.ele_typeids_dev,
-            particles=particles._xobject,
-            num_turns=num_turns,
-            ele_start=ele_start,
-            num_ele_track=num_elements,
-            flag_eot=flag_end_turn_actions,
-            flag_tbt_monitor=flag_tbt,
-            buffer_tbt_monitor=buffer_monitor,
-            offset_tbt_monitor=offset_monitor,
-            elem_by_elem_particles=elem_by_elem_particles._xobject,
-        )
-
-        self.record_last_track = monitor
