@@ -1,9 +1,9 @@
 import numpy as np
 import xobjects as xo
-from enum import Enum
 
 from ._pyparticles import Pyparticles
 from .local_particle import (
+    LocalParticleVar,
     gen_local_particle_common_src,
     gen_local_particle_adapter_src,
     gen_local_particle_local_copy_src,
@@ -312,12 +312,6 @@ class Particles(dress(ParticlesData)):
         self.rvv[:] = rvv
         self.rpp[:] = rpp
         self.psigma[:] = psigma
-
-
-class LocalParticleVar(Enum):
-    ADAPTER = 0
-    THREAD_LOCAL_COPY = 1
-    SHARED_COPY = 2
 
 
 def gen_local_particle_api(mode=LocalParticleVar.ADAPTER):
