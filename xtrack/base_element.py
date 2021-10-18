@@ -1,9 +1,12 @@
 from pathlib import Path
+import re
 
 import xobjects as xo
 from .particles import ParticlesData, gen_local_particle_api
+from .particles import LocalParticleVar, _get_local_particle_fields
 from .dress import dress
 from .general import _pkg_root
+import itertools
 
 start_per_part_block = """
    #if !defined( XTRACK_LOCAL_PARTICLE_MODE ) || \
