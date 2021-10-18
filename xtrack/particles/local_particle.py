@@ -1211,146 +1211,16 @@ def gen_local_particle_local_copy_src():
 
 
 def gen_local_particle_shared_copy_src():
-    shared_fields = {
-        "q0": {
-            "offset": 0,
-            "type": "double",
-            "api": [],
-        },
-        "mass0": {
-            "offset": 8,
-            "type": "double",
-            "api": [],
-        },
-    }
-
-    per_part_fields = {
-        "p0c": {
-            "offset": 0,
-            "type": "double",
-            "api": [],
-        },
-        "gamma0": {
-            "offset": 8,
-            "type": "double",
-            "api": [],
-        },
-        "beta0": {
-            "offset": 16,
-            "type": "double",
-            "api": ["scale"],
-        },
-        "s": {
-            "offset": 24,
-            "type": "double",
-            "api": ["add"],
-        },
-        "x": {
-            "offset": 32,
-            "type": "double",
-            "api": ["add"],
-        },
-        "y": {
-            "offset": 40,
-            "type": "double",
-            "api": ["add"],
-        },
-        "px": {
-            "offset": 48,
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "py": {
-            "offset": 56,
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "zeta": {
-            "offset": 64,
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "delta": {
-            "offset": 72,
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "psigma": {
-            "offset": 80,
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "rpp": {
-            "offset": 88,
-            "type": "double",
-            "api": ["scale"],
-        },
-        "rvv": {
-            "offset": 96,
-            "type": "double",
-            "api": ["scale"],
-        },
-        "chi": {
-            "offset": 104,
-            "type": "double",
-            "api": ["scale"],
-        },
-        "charge_ratio": {
-            "offset": 112,
-            "type": "double",
-            "api": ["scale"],
-        },
-        "weight": {
-            "offset": 120,
-            "type": "double",
-            "api": ["scale"],
-        },
-        "state_particle_id": {
-            "offset": 128,
-            "type": "int64_t",
-        },
-    }
-
-    priv_part_fields = {
-        "at_element": {
-            "type": "int64_t",
-            "api": [
-                "add",
-            ],
-        },
-        "at_turn": {
-            "type": "int64_t",
-            "api": [
-                "add",
-            ],
-        },
-        "parent_particle_id": {
-            "type": "int64_t",
-            "api": [],
-        },
-        "__rng_s1": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s2": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s3": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s4": {
-            "type": "uint32_t",
-            "api": [],
-        },
-    }
+    mode = LocalParticleVar.SHARED_COPY
+    shared_fields, per_part_fields, priv_part_fields = \
+        _get_local_particle_fields(mode)
 
     src = """
     #include <stdbool.h> //only_for_context cpu_serial cpu_openmp
 
     typedef struct {
-        /*gpusharedmem*/ char*  special_fields;
+        /*gpusharedmem*/ char*  local_fields; //only_for_context cpu_serial cpu_openmp opencl
+        char*  local_fields; //only_for_context cuda
         uint32_t local_per_particle_offset;
         uint32_t local_common_offset;
 
@@ -1396,13 +1266,13 @@ def gen_local_particle_shared_copy_src():
         api = data.get("api", [])
 
         src += f"/*gpufun*/ {type_str} LocalParticle_get_{vv}( "
-        src += f"const LocalParticle *const p ){{"
+        src += "const LocalParticle *const p ){"
         src += r"""
             """
-        src += f"return *( ( /*gpusharedmem*/ const double *const )( "
+        src += f"return *( ( /*gpusharedmem*/ const {type_str} *const )( "
         src += r"""
                 """
-        src += f"p->special_fields + p->local_common_offset + {offset} ) ); }}"
+        src += f"p->local_fields + p->local_common_offset + {offset} ) ); }}"
         src += r"""
 
     """
@@ -1413,7 +1283,7 @@ def gen_local_particle_shared_copy_src():
             f"*( ( /*gpusharedmem*/ {type_str}* )( "
             + r"""
                 """
-            + f"p->special_fields + p->local_common_offset + {offset} )"
+            + f"p->local_fields + p->local_common_offset + {offset} )"
         )
         src += r"""
                 ) = value; }
@@ -1430,7 +1300,7 @@ def gen_local_particle_shared_copy_src():
                 f"*( ( /*gpusharedmem*/ {type_str}* )( "
                 + r"""
                     """
-                + f"p->special_fields + p->local_common_offset + {offset} )"
+                + f"p->local_fields + p->local_common_offset + {offset} )"
             )
             src += r"""
                     ) += value; }
@@ -1449,7 +1319,7 @@ def gen_local_particle_shared_copy_src():
                 f"*( ( /*gpusharedmem*/ {type_str}* )( "
                 + r"""
                     """
-                + f"p->special_fields + p->local_common_offset + {offset} )"
+                + f"p->local_fields + p->local_common_offset + {offset} )"
             )
             src += r"""
                     ) *= value; }
@@ -1466,10 +1336,10 @@ def gen_local_particle_shared_copy_src():
         src += f"const LocalParticle *const p ){{"
         src += r"""
             """
-        src += f"return *( ( /*gpusharedmem*/ const double *const )( "
+        src += f"return *( ( /*gpusharedmem*/ const {type_str} *const )( "
         src += r"""
                 """
-        src += f"p->special_fields + p->local_per_particle_offset + {offset} ) ); }}"
+        src += f"p->local_fields + p->local_per_particle_offset + {offset} ) ); }}"
         src += r"""
 
     """
@@ -1480,7 +1350,7 @@ def gen_local_particle_shared_copy_src():
             f"*( ( /*gpusharedmem*/ {type_str}* )( "
             + r"""
                 """
-            + f"p->special_fields + p->local_per_particle_offset + {offset} )"
+            + f"p->local_fields + p->local_per_particle_offset + {offset} )"
         )
         src += r"""
                 ) = value; }
@@ -1495,7 +1365,7 @@ def gen_local_particle_shared_copy_src():
                 f"*( ( /*gpusharedmem*/ {type_str}* )( "
                 + r"""
                 """
-                + f"p->special_fields + p->local_per_particle_offset + {offset} )"
+                + f"p->local_fields + p->local_per_particle_offset + {offset} )"
             )
             src += r"""
                     ) += value; }
@@ -1510,7 +1380,7 @@ def gen_local_particle_shared_copy_src():
                 f"*( ( /*gpusharedmem*/ {type_str}* )( "
                 + r"""
                 """
-                + f"p->special_fields + p->local_per_particle_offset + {offset} )"
+                + f"p->local_fields + p->local_per_particle_offset + {offset} )"
             )
             src += r"""
                     ) *= value; }
@@ -1678,9 +1548,9 @@ def gen_local_particle_shared_copy_src():
 
     /*gpufun*/ void LocalParticle_init_from_particles_data( ParticlesData src,
         LocalParticle* dest, int64_t const particle_index,
-        /*gpusharedmem*/ char* special_fields )
+        /*gpusharedmem*/ char* ext_local_fields )
     {
-        if( ( particle_index >= 0 ) && ( special_fields != XTRACK_NULL ) )
+        if( ( particle_index >= 0 ) && ( ext_local_fields != XTRACK_NULL ) )
         {
             uint32_t const local_ipart = 0; //only_for_context cpu_serial
             uint32_t const local_ipart = 0; //only_for_context cpu_openmp
@@ -1694,7 +1564,7 @@ def gen_local_particle_shared_copy_src():
 
             dest->local_per_particle_offset = local_ipart  * local_pitch;
             dest->local_common_offset       = local_n_part * local_pitch;
-            dest->special_fields            = special_fields;
+            dest->local_fields              = ext_local_fields;
             dest->global_ipart              = particle_index;
             dest->_capacity                 = ParticlesData_get__capacity( src );
             LocalParticle_sync_from_particles_data( src, dest );
@@ -1703,7 +1573,7 @@ def gen_local_particle_shared_copy_src():
         {
             dest->local_per_particle_offset = ( uint32_t )0u;
             dest->local_common_offset = ( uint32_t )0u;
-            dest->special_fields = XTRACK_NULL;
+            dest->local_fields = XTRACK_NULL;
             dest->global_ipart = ( int64_t )-1;
             dest->_capacity = ( int64_t )0u;
         }
@@ -1725,7 +1595,7 @@ def gen_local_particle_shared_copy_src():
 
     /*gpufun*/ bool LocalParticle_is_active( const LocalParticle *const p ) {
         return ( *( ( /*gpusharedmem*/ const int64_t *const )(
-            p->special_fields + p->local_per_particle_offset + """
+            p->local_fields + p->local_per_particle_offset + """
 
     src += f"{per_part_fields[ 'state_particle_id' ][ 'offset' ]} ) ) >= 0 ); }}"
     src += r"""
@@ -1738,7 +1608,7 @@ def gen_local_particle_shared_copy_src():
 
     /*gpufun*/ void LocalParticle_mark_as_lost( LocalParticle* p ) {
         /*gpusharedmem*/ int64_t* ptr = ( /*gpusharedmem*/ int64_t* )(
-            p->special_fields + p->local_per_particle_offset + """
+            p->local_fields + p->local_per_particle_offset + """
     src += f" {per_part_fields[ 'state_particle_id' ][ 'offset' ]} );"
     src += r"""
         int64_t const cur_state_particle_id = *ptr;
