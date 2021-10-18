@@ -1,5 +1,379 @@
 import numpy as np
 import xobjects as xo
+from enum import Enum
+
+class LocalParticleVar(Enum):
+    ADAPTER = 0
+    THREAD_LOCAL_COPY = 1
+    SHARED_COPY = 2
+
+def _get_local_particle_fields(local_particle_mode=LocalParticleVar.ADAPTER):
+    shared_fields = {}
+    per_part_fields = {}
+    priv_part_fields = {}
+
+    if local_particle_mode == LocalParticleVar.THREAD_LOCAL_COPY:
+        shared_fields.update( {
+            "q0": {
+                "type": "double",
+                "api": [],
+            },
+            "mass0": {
+                "type": "double",
+                "api": [],
+            },
+        } )
+
+        per_part_fields.update( {
+            "p0c": {
+                "type": "double",
+                "api": [],
+            },
+            "gamma0": {
+                "type": "double",
+                "api": [],
+            },
+            "beta0": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "s": {
+                "type": "double",
+                "api": ["add"],
+            },
+            "x": {
+                "type": "double",
+                "api": ["add"],
+            },
+            "y": {
+                "type": "double",
+                "api": ["add"],
+            },
+            "px": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "py": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "zeta": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "delta": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "psigma": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "rpp": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "rvv": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "chi": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "charge_ratio": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "weight": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "state_particle_id": {
+                "type": "int64_t",
+                "api": [],
+            },
+            "at_element": {
+                "type": "int64_t",
+                "api": ["add"],
+            },
+            "at_turn": {
+                "type": "int64_t",
+                "api": ["add"],
+            },
+            "parent_particle_id": {
+                "type": "int64_t",
+                "api": [],
+            },
+            "__rng_s1": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s2": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s3": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s4": {
+                "type": "uint32_t",
+                "api": [],
+            },
+        } )
+    elif local_particle_mode == LocalParticleVar.SHARED_COPY:
+        shared_fields.update( {
+            "q0": {
+                "offset": 0,
+                "type": "double",
+                "api": [],
+            },
+            "mass0": {
+                "offset": 8,
+                "type": "double",
+                "api": [],
+            },
+        } )
+
+        per_part_fields.update( {
+            "p0c": {
+                "offset": 0,
+                "type": "double",
+                "api": [],
+            },
+            "gamma0": {
+                "offset": 8,
+                "type": "double",
+                "api": [],
+            },
+            "beta0": {
+                "offset": 16,
+                "type": "double",
+                "api": ["scale"],
+            },
+            "s": {
+                "offset": 24,
+                "type": "double",
+                "api": ["add"],
+            },
+            "x": {
+                "offset": 32,
+                "type": "double",
+                "api": ["add"],
+            },
+            "y": {
+                "offset": 40,
+                "type": "double",
+                "api": ["add"],
+            },
+            "px": {
+                "offset": 48,
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "py": {
+                "offset": 56,
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "zeta": {
+                "offset": 64,
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "delta": {
+                "offset": 72,
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "psigma": {
+                "offset": 80,
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "rpp": {
+                "offset": 88,
+                "type": "double",
+                "api": ["scale"],
+            },
+            "rvv": {
+                "offset": 96,
+                "type": "double",
+                "api": ["scale"],
+            },
+            "chi": {
+                "offset": 104,
+                "type": "double",
+                "api": ["scale"],
+            },
+            "charge_ratio": {
+                "offset": 112,
+                "type": "double",
+                "api": ["scale"],
+            },
+            "weight": {
+                "offset": 120,
+                "type": "double",
+                "api": ["scale"],
+            },
+            "state_particle_id": {
+                "offset": 128,
+                "type": "int64_t",
+            },
+        } )
+
+        priv_part_fields.update( {
+            "at_element": {
+                "type": "int64_t",
+                "api": [
+                    "add",
+                ],
+            },
+            "at_turn": {
+                "type": "int64_t",
+                "api": [
+                    "add",
+                ],
+            },
+            "parent_particle_id": {
+                "type": "int64_t",
+                "api": [],
+            },
+            "__rng_s1": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s2": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s3": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s4": {
+                "type": "uint32_t",
+                "api": [],
+            },
+        } )
+    else:
+        shared_fields.update({
+            "q0": {
+                "type": "double",
+                "api": [],
+            },
+            "mass0": {
+                "type": "double",
+                "api": [],
+            },
+        })
+
+        per_part_fields.update({
+            "p0c": {
+                "type": "double",
+                "api": [],
+            },
+            "gamma0": {
+                "type": "double",
+                "api": [],
+            },
+            "beta0": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "s": {
+                "type": "double",
+                "api": ["add"],
+            },
+            "x": {
+                "type": "double",
+                "api": ["add"],
+            },
+            "y": {
+                "type": "double",
+                "api": ["add"],
+            },
+            "px": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "py": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "zeta": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "delta": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "psigma": {
+                "type": "double",
+                "api": ["add", "scale"],
+            },
+            "rpp": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "rvv": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "chi": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "charge_ratio": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "weight": {
+                "type": "double",
+                "api": ["scale"],
+            },
+            "particle_id": {
+                "type": "int64_t",
+                "api": [],
+            },
+            "at_element": {
+                "type": "int64_t",
+                "api": ["add"],
+            },
+            "at_turn": {
+                "type": "int64_t",
+                "api": ["add"],
+            },
+            "state": {
+                "type": "int64_t",
+                "api": [],
+            },
+            "parent_particle_id": {
+                "type": "int64_t",
+                "api": [],
+            },
+            "__rng_s1": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s2": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s3": {
+                "type": "uint32_t",
+                "api": [],
+            },
+            "__rng_s4": {
+                "type": "uint32_t",
+                "api": [],
+            },
+        })
+
+    return ( shared_fields, per_part_fields, priv_part_fields )
+
 
 
 def gen_local_particle_common_src():
@@ -66,18 +440,38 @@ def gen_local_particle_common_src():
     /*gpufun*/
     void LocalParticle_update_p0c( LocalParticle* p, double p0c_val )
     {
+        double const inv_p0c_val = ( double )1.0 / p0c_val;
+
+        #if !defined( XTRACK_DONT_CACHE_PARTICLE_FIELDS )
         double const mass0 = LocalParticle_get_mass0( p );
         double const old_p0c = LocalParticle_get_p0c( p );
         double const old_delta = LocalParticle_get_delta( p );
+        double const px_py_scale = old_p0c * inv_p0c_val;
 
         double const ppc = old_p0c * old_delta + old_p0c;
-        double const new_delta = ( ppc - p0c_val ) / p0c_val;
+        double const new_delta = ( ppc - p0c_val ) * inv_p0c_val;
 
-        double const new_energy0 = sqrt(
-            ( p0c_val * p0c_val ) + ( mass0 * mass0 ) );
-
+        double const new_energy0 = hypot( p0c_val, mass0 );
         double const new_beta0  = p0c_val / new_energy0;
         double const new_gamma0 = new_energy0 / mass0;
+
+        #else /* defined( XTRACK_DONT_CACHE_PARTICLE_FIELDS ) */
+        double const px_py_scale = LocalParticle_get_p0c( p ) * inv_p0c_val;
+
+        double const ppc = LocalParticle_get_p0c( p ) *
+                           LocalParticle_get_delta( p ) +
+                           LocalParticle_get_p0c( p );
+
+        double const new_delta = ( ppc - p0c_val ) * inv_p0c_val;
+
+        double const new_energy0 = hypot( p0c_val, LocalParticle_get_mass0( p ) );
+        double const new_beta0   = p0c_val / new_energy0;
+        double const new_gamma0  = new_energy0 / LocalParticle_get_mass0( p );
+
+        #endif /* XTRACK_DONT_CACHE_PARTICLE_FIELDS */
+
+        LocalParticle_scale_px( p, px_py_scale );
+        LocalParticle_scale_py( p, px_py_scale );
 
         LocalParticle_set_p0c(    p, p0c_val );
         LocalParticle_set_gamma0( p, new_gamma0 );
@@ -85,127 +479,14 @@ def gen_local_particle_common_src():
 
         LocalParticle_update_delta( p, new_delta );
 
-        LocalParticle_scale_px( p, old_p0c / p0c_val );
-        LocalParticle_scale_py( p, old_p0c / p0c_val );
     }
     """
     return src
 
 
 def gen_local_particle_adapter_src():
-    shared_fields = {
-        "q0": {
-            "type": "double",
-            "api": [],
-        },
-        "mass0": {
-            "type": "double",
-            "api": [],
-        },
-    }
-
-    per_part_fields = {
-        "p0c": {
-            "type": "double",
-            "api": [],
-        },
-        "gamma0": {
-            "type": "double",
-            "api": [],
-        },
-        "beta0": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "s": {
-            "type": "double",
-            "api": ["add"],
-        },
-        "x": {
-            "type": "double",
-            "api": ["add"],
-        },
-        "y": {
-            "type": "double",
-            "api": ["add"],
-        },
-        "px": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "py": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "zeta": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "delta": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "psigma": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "rpp": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "rvv": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "chi": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "charge_ratio": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "weight": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "particle_id": {
-            "type": "int64_t",
-            "api": [],
-        },
-        "at_element": {
-            "type": "int64_t",
-            "api": ["add"],
-        },
-        "at_turn": {
-            "type": "int64_t",
-            "api": ["add"],
-        },
-        "state": {
-            "type": "int64_t",
-            "api": [],
-        },
-        "parent_particle_id": {
-            "type": "int64_t",
-            "api": [],
-        },
-        "__rng_s1": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s2": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s3": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s4": {
-            "type": "uint32_t",
-            "api": [],
-        },
-    }
+    mode = LocalParticleVar.ADAPTER
+    shared_fields, per_part_fields, _ = _get_local_particle_fields(mode)
 
     src = """
     #include <stdbool.h> //only_for_context cpu_serial cpu_openmp
@@ -608,115 +889,8 @@ def gen_local_particle_adapter_src():
 
 
 def gen_local_particle_local_copy_src():
-    shared_fields = {
-        "q0": {
-            "type": "double",
-            "api": [],
-        },
-        "mass0": {
-            "type": "double",
-            "api": [],
-        },
-    }
-
-    per_part_fields = {
-        "p0c": {
-            "type": "double",
-            "api": [],
-        },
-        "gamma0": {
-            "type": "double",
-            "api": [],
-        },
-        "beta0": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "s": {
-            "type": "double",
-            "api": ["add"],
-        },
-        "x": {
-            "type": "double",
-            "api": ["add"],
-        },
-        "y": {
-            "type": "double",
-            "api": ["add"],
-        },
-        "px": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "py": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "zeta": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "delta": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "psigma": {
-            "type": "double",
-            "api": ["add", "scale"],
-        },
-        "rpp": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "rvv": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "chi": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "charge_ratio": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "weight": {
-            "type": "double",
-            "api": ["scale"],
-        },
-        "state_particle_id": {
-            "type": "int64_t",
-            "api": [],
-        },
-        "at_element": {
-            "type": "int64_t",
-            "api": ["add"],
-        },
-        "at_turn": {
-            "type": "int64_t",
-            "api": ["add"],
-        },
-        "parent_particle_id": {
-            "type": "int64_t",
-            "api": [],
-        },
-        "__rng_s1": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s2": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s3": {
-            "type": "uint32_t",
-            "api": [],
-        },
-        "__rng_s4": {
-            "type": "uint32_t",
-            "api": [],
-        },
-    }
+    mode = LocalParticleVar.THREAD_LOCAL_COPY
+    shared_fields, per_part_fields, _ = _get_local_particle_fields(mode)
 
     src = """
     #include <stdbool.h> //only_for_context cpu_serial cpu_openmp
