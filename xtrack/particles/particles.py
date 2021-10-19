@@ -29,32 +29,40 @@ scalar_vars = (
     (xo.Float64, 'mass0'),
     )
 
-per_particle_vars = (
-    (xo.Float64, 'p0c'),
-    (xo.Float64, 'gamma0'),
-    (xo.Float64, 'beta0'),
-    (xo.Float64, 's'),
-    (xo.Float64, 'x'),
-    (xo.Float64, 'y'),
-    (xo.Float64, 'px'),
-    (xo.Float64, 'py'),
-    (xo.Float64, 'zeta'),
+part_energy_vars = (
     (xo.Float64, 'psigma'),
     (xo.Float64, 'delta'),
     (xo.Float64, 'rpp'),
     (xo.Float64, 'rvv'),
-    (xo.Float64, 'chi'),
-    (xo.Float64, 'charge_ratio'),
-    (xo.Float64, 'weight'),
-    (xo.Int64, 'particle_id'),
-    (xo.Int64, 'at_element'),
-    (xo.Int64, 'at_turn'),
-    (xo.Int64, 'state'),
-    (xo.Int64, 'parent_particle_id'),
-    (xo.UInt32, '__rng_s1'),
-    (xo.UInt32, '__rng_s2'),
-    (xo.UInt32, '__rng_s3'),
-    (xo.UInt32, '__rng_s4')
+        )
+
+per_particle_vars = (
+    (
+        (xo.Float64, 'p0c'),
+        (xo.Float64, 'gamma0'),
+        (xo.Float64, 'beta0'),
+        (xo.Float64, 's'),
+        (xo.Float64, 'x'),
+        (xo.Float64, 'y'),
+        (xo.Float64, 'px'),
+        (xo.Float64, 'py'),
+        (xo.Float64, 'zeta'),
+    )
+    + part_energy_vars +
+    (
+        (xo.Float64, 'chi'),
+        (xo.Float64, 'charge_ratio'),
+        (xo.Float64, 'weight'),
+        (xo.Int64, 'particle_id'),
+        (xo.Int64, 'at_element'),
+        (xo.Int64, 'at_turn'),
+        (xo.Int64, 'state'),
+        (xo.Int64, 'parent_particle_id'),
+        (xo.UInt32, '__rng_s1'),
+        (xo.UInt32, '__rng_s2'),
+        (xo.UInt32, '__rng_s3'),
+        (xo.UInt32, '__rng_s4')
+    )
     )
 
 fields = {}
@@ -242,7 +250,7 @@ class Particles(dress(ParticlesData)):
         ctx2np = self._buffer.context.nparray_from_context_array
         mask_active = ctx2np(self.state) > 0
         ids_active_particles = ctx2np(self.particle_id)[mask_active]
-        # Behaves as python rante (+1)
+        # Behaves as python range (+1)
         return np.min(ids_active_particles), np.max(ids_active_particles)+1
 
     def _set_p0c(self):
@@ -301,7 +309,7 @@ class Particles(dress(ParticlesData)):
 
 
 
-def gen_local_particle_api(mode='no_local_copy'):
+def gen_local_particle_api(mode='no_local_copy', freeze_vars=()):
 
     if mode != 'no_local_copy':
         raise NotImplementedError
