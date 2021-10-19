@@ -12,7 +12,6 @@ from scipy.constants import c as clight
 
 pmass = m_p * clight * clight / qe
 
-
 LAST_INVALID_STATE = -999999999
 
 size_vars = (
@@ -306,7 +305,15 @@ class Particles(dress(ParticlesData)):
         self.rpp[:] = rpp
         self.psigma[:] = psigma
 
+def _str_in_list(string, str_list):
 
+    found = False
+    for ss in str_list:
+        # To avoid strange behaviors with different str formats
+        if ss.decode('utf-8') == string.decode('utf-8'):
+            found = True
+            break
+    return found
 
 
 def gen_local_particle_api(mode='no_local_copy', freeze_vars=()):
@@ -324,6 +331,7 @@ def gen_local_particle_api(mode='no_local_copy', freeze_vars=()):
     src_lines.append('}LocalParticle;')
     src_typedef = '\n'.join(src_lines)
 
+    # Particles_to_LocalParticle
     src_lines = []
     src_lines.append('''
     /*gpufun*/
@@ -340,6 +348,7 @@ def gen_local_particle_api(mode='no_local_copy', freeze_vars=()):
     src_lines.append('}')
     src_particles_to_local = '\n'.join(src_lines)
 
+    # LocalParticle_to_Particles
     src_lines = []
     src_lines.append('''
     /*gpufun*/
@@ -362,36 +371,52 @@ def gen_local_particle_api(mode='no_local_copy', freeze_vars=()):
     src_lines.append('}')
     src_local_to_particles = '\n'.join(src_lines)
 
+    # Adders
     src_lines=[]
     for tt, vv in per_particle_vars:
         src_lines.append('''
     /*gpufun*/
     void LocalParticle_add_to_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
     +'{')
+        if _str_in_list(vv, freeze_vars):
+            src_lines.append('/* frozen variable!')
         src_lines.append(f'  part->{vv}[part->ipart] += value;')
+        if _str_in_list(vv, freeze_vars):
+            src_lines.append('frozen variable!*/')
         src_lines.append('}\n')
     src_adders = '\n'.join(src_lines)
 
+    # Scalers
     src_lines=[]
     for tt, vv in per_particle_vars:
         src_lines.append('''
     /*gpufun*/
     void LocalParticle_scale_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
     +'{')
+        if _str_in_list(vv, freeze_vars):
+            src_lines.append('/* frozen variable!')
         src_lines.append(f'  part->{vv}[part->ipart] *= value;')
+        if _str_in_list(vv, freeze_vars):
+            src_lines.append('frozen variable!*/')
         src_lines.append('}\n')
     src_scalers = '\n'.join(src_lines)
 
+    # Setters
     src_lines=[]
     for tt, vv in per_particle_vars:
         src_lines.append('''
     /*gpufun*/
     void LocalParticle_set_'''+vv+f'(LocalParticle* part, {tt._c_type} value)'
     +'{')
+        if _str_in_list(vv, freeze_vars):
+            src_lines.append('/* frozen variable!')
         src_lines.append(f'  part->{vv}[part->ipart] = value;')
+        if _str_in_list(vv, freeze_vars):
+            src_lines.append('frozen variable!*/')
         src_lines.append('}')
     src_setters = '\n'.join(src_lines)
 
+    # Getters 
     src_lines=[]
     for tt, vv in size_vars + scalar_vars:
         src_lines.append('/*gpufun*/')
@@ -409,6 +434,7 @@ def gen_local_particle_api(mode='no_local_copy', freeze_vars=()):
         src_lines.append('}')
     src_getters = '\n'.join(src_lines)
 
+    # Particle exchangers
     src_exchange = '''
 /*gpufun*/
 void LocalParticle_exchange(LocalParticle* part, int64_t i1, int64_t i2){
