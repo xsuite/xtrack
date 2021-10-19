@@ -17,7 +17,6 @@ test_data_folder = pathlib.Path(
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
 rtol_10turns = 1e-9; atol_10turns=4e-11
 test_backtracker=True
-freeze_vars = xt.particles.part_energy_varnames() + ['zeta']
 
 # fname_line_particles = test_data_folder.joinpath(
 #                                 './lhc_with_bb/line_and_particle.json')
@@ -68,8 +67,6 @@ print('Build tracker...')
 tracker = xt.Tracker(_context=context,
             sequence=sequence,
             particles_class=xt.Particles,
-            local_particle_src=xt.particles.gen_local_particle_api(
-                                                freeze_vars=freeze_vars),
             save_source_as='source.c',
             )
 
