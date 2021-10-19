@@ -24,7 +24,7 @@ rtol_10turns = 1e-9; atol_10turns=1e-11
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
+context = xo.ContextPyopencl('0.0')
 
 #############
 # Load file #
@@ -72,8 +72,10 @@ n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
 for vv in ['psigma', 'delta', 'rpp', 'rvv', 'zeta']:
-    vv_before = getattr(particles_before_tracking, vv)
-    vv_after= getattr(particles, vv)
+    vv_before = context.nparray_from_context_array(
+                        getattr(particles_before_tracking, vv))
+    vv_after= context.nparray_from_context_array(
+                        getattr(particles, vv))
     assert np.all(vv_before == vv_after)
 
 print('Check passed')
