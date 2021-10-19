@@ -59,6 +59,7 @@ tracker = xt.Tracker(_context=context,
 ######################
 # Get some particles #
 ######################
+input_data['particle']['x'] += np.linspace(-1e-4, 1e-4, 10)
 particles = xt.Particles(_context=context, **input_data['particle'])
 
 particles_before_tracking = particles.copy()
@@ -70,4 +71,9 @@ print('Track a few turns...')
 n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
+for vv in ['psigma', 'delta', 'rpp', 'rvv', 'zeta']:
+    vv_before = getattr(particles_before_tracking, vv)
+    vv_after= getattr(particles, vv)
+    assert np.all(vv_before == vv_after)
 
+print('Check passed')
