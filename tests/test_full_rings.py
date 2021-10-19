@@ -162,3 +162,61 @@ def test_full_rings(element_by_element=False):
                 if not problem_found:
                     print('All passed on context:')
                     print(context)
+
+
+
+def test_freeze_vars():
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+
+        test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
+
+        fname_line_particles = test_data_folder.joinpath(
+                                './hllhc_14/line_and_particle.json')
+
+        #############
+        # Load file #
+        #############
+
+        with open(fname_line_particles, 'r') as fid:
+            input_data = json.load(fid)
+
+        ##################
+        # Get a sequence #
+        ##################
+        sequence = xl.Line.from_dict(input_data['line'])
+
+        #################
+        # Build Tracker #
+        #################
+        print('Build tracker...')
+        freeze_vars = xt.particles.part_energy_varnames() + ['zeta']
+        tracker = xt.Tracker(_context=context,
+                    sequence=sequence,
+                    local_particle_src=xt.particles.gen_local_particle_api(
+                                                        freeze_vars=freeze_vars),
+                    )
+
+        ######################
+        # Get some particles #
+        ######################
+        input_data['particle']['x'] += np.linspace(-1e-4, 1e-4, 10)
+        particles = xt.Particles(_context=context, **input_data['particle'])
+
+        particles_before_tracking = particles.copy()
+
+        #########
+        # Track #
+        #########
+        print('Track a few turns...')
+        n_turns = 10
+        tracker.track(particles, num_turns=n_turns)
+
+        for vv in ['psigma', 'delta', 'rpp', 'rvv', 'zeta']:
+            vv_before = context.nparray_from_context_array(
+                                getattr(particles_before_tracking, vv))
+            vv_after= context.nparray_from_context_array(
+                                getattr(particles, vv))
+            assert np.all(vv_before == vv_after)
+
+        print('Check passed')
