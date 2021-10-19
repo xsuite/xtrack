@@ -64,6 +64,7 @@ per_particle_vars = (
     )
     )
 
+
 fields = {}
 for tt, nn in size_vars + scalar_vars:
     fields[nn] = tt
@@ -309,12 +310,16 @@ def _str_in_list(string, str_list):
 
     found = False
     for ss in str_list:
+        # TODO: Tried this but did not work
         # To avoid strange behaviors with different str formats
-        if ss.decode('utf-8') == string.decode('utf-8'):
+        # if ss.decode('utf-8') == string.decode('utf-8'):
+        if ss == string:
             found = True
             break
     return found
 
+def part_energy_varnames():
+    return [vv for tt, vv in part_energy_vars]
 
 def gen_local_particle_api(mode='no_local_copy', freeze_vars=()):
 
