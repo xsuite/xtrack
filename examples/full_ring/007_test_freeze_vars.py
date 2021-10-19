@@ -23,7 +23,7 @@ rtol_10turns = 1e-9; atol_10turns=1e-11
 ####################
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
+context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 #############
