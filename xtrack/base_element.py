@@ -65,7 +65,8 @@ def dress_element(XoElementData):
             f'void {name}_track_particles(\n'
             f'               {name}Data el,\n'
 '''
-                             ParticlesData particles){
+                             ParticlesData particles,
+                             int64_t flag_increment_at_element){
             LocalParticle lpart;
             int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
@@ -79,7 +80,7 @@ def dress_element(XoElementData):
             f'      {name}_track_local_particle(el, &lpart);\n'
 '''
                 }
-                if (check_is_active(&lpart)>0){
+                if (check_is_active(&lpart)>0 && flag_increment_at_element){
                         increment_at_element(&lpart);
                 }
             }
@@ -88,7 +89,8 @@ def dress_element(XoElementData):
     DressedElement._track_kernel_name = f'{name}_track_particles'
     DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
-                        xo.Arg(ParticlesData, name='particles')])}
+                        xo.Arg(ParticlesData, name='particles'),
+                        xo.Arg(xo.Int64, name='flag_increment_at_element')])}
     DressedElement.iscollective = False
 
     def compile_track_kernel(self, save_source_as=None):
@@ -107,7 +109,7 @@ def dress_element(XoElementData):
                  save_source_as=save_source_as)
 
 
-    def track(self, particles):
+    def track(self, particles, increment_at_element=False):
 
         if not hasattr(self, '_track_kernel'):
             context = self._buffer.context
@@ -116,7 +118,8 @@ def dress_element(XoElementData):
             self._track_kernel = context.kernels[self._track_kernel_name]
 
         self._track_kernel.description.n_threads = particles._capacity
-        self._track_kernel(el=self._xobject, particles=particles)
+        self._track_kernel(el=self._xobject, particles=particles,
+                           flag_increment_at_element=increment_at_element)
 
     DressedElement.compile_track_kernel = compile_track_kernel
     DressedElement.track = track
