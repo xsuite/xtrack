@@ -8,6 +8,7 @@ from .base_element import _handle_per_particle_blocks
 
 import xobjects as xo
 import xline as xl
+from xtrack import Drift
 
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
@@ -147,6 +148,9 @@ class Tracker:
                                     global_xy_limit=global_xy_limit,
                                     local_particle_src=local_particle_src,
                                     skip_end_turn_actions=True)
+
+        # Make a "marker" element to increase at_element
+        self._zerodrift = Drift(_context=_buffer.context, length=0)
 
         self._supertracker = supertracker
         self._parts = parts
@@ -433,8 +437,13 @@ class Tracker:
         for tt in range(num_turns):
             if flag_tbt:
                 monitor.track(particles)
+
             for pp in self._parts:
                 pp.track(particles)
+                if not isinstance(pp, Tracker):
+                    self._zerodrift.track(particles, increment_at_element=True)
+
+
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)
             self._supertracker.track(particles,

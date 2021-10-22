@@ -100,3 +100,5 @@ tracker.track(particles)
 t2 = time.time()
 
 print(f'{t2-t1=:.2f}')
+mask_lost = particles.state == 0
+assert np.all(particles.at_element[mask_lost] == 10)
