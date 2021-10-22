@@ -123,6 +123,14 @@ class Tracker:
                                    sequence=pp)
                 pp.elements = tempxtline.elements
                 noncollective_xelements += pp.elements
+            else:
+                if hasattr(pp, 'isthick') and pp.isthick:
+                    ldrift = pp.length
+                else:
+                    ldrift = 0.
+
+                noncollective_xelements.append(
+                    Drift(_buffer=_buffer, length=ldrift))
 
         # Build tracker for all non collective elements
         supertracker = Tracker(_buffer=_buffer,
