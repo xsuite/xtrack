@@ -108,5 +108,11 @@ loss_loc_refinement = xt.LossLocationRefinement(tracker,
                                             n_theta = 360,
                                             r_max = 0.5, # m
                                             dr = 50e-6,
-                                            ds = 0.1,
+                                            ds = 0.05,
                                             save_refine_trackers=True)
+
+loss_loc_refinement.refine_loss_location(particles)
+
+assert np.allclose(particles.s[mask_lost], 9.00,
+                   rtol=0, atol=loss_loc_refinement.ds*1.0001)
+
