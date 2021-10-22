@@ -15,29 +15,33 @@ class LossLocationRefinement:
                  n_theta=None, r_max=None, dr=None, ds=None,
                  save_refine_trackers=False):
 
-        self.tracker = tracker
+        if tracker.iscollective:
+            self.tracker = tracker._supertracker
+        else:
+            self.tracker = tracker
 
-        self._context = tracker.line._buffer.context
+        self._context = self.tracker.line._buffer.context
         assert self._context.__class__ is xo.ContextCpu, (
                 "Other contexts are not supported!")
 
         # Build a polygon and compile the kernel
-        temp_poly = xt.LimitPolygon(_buffer=tracker.line._buffer,
+        temp_poly = xt.LimitPolygon(_buffer=self.tracker.line._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
         temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
                                    x_out=na([2]), y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        trk_gen = xt.Tracker(_buffer=tracker.line._buffer,
-                sequence=xl.Line(elements=tracker.line.elements + (temp_poly,)))
+        trk_gen = xt.Tracker(_buffer=self.tracker.line._buffer,
+                sequence=xl.Line(
+                    elements=self.tracker.line.elements + (temp_poly,)))
         self._trk_gen = trk_gen
 
         if backtracker is None:
-            backtracker = tracker.get_backtracker(_context=self._context)
+            backtracker = self.tracker.get_backtracker(_context=self._context)
         self.backtracker = backtracker
 
-        self.i_apertures, self.apertures = find_apertures(tracker)
+        self.i_apertures, self.apertures = find_apertures(self.tracker)
 
         self.save_refine_trackers = save_refine_trackers
         if save_refine_trackers:

@@ -36,7 +36,7 @@ class DummyInteractionProcess:
 
         # Kill some particles
         mask_kill = np.random.uniform(size=n_part) < self.fraction_lost
-        particles.state[:n_part][mask_kill] = 0
+        particles.state[:n_part][mask_kill] = -1 # special flag`
 
 
         # Generate some more particles
@@ -102,3 +102,11 @@ t2 = time.time()
 print(f'{t2-t1=:.2f}')
 mask_lost = particles.state == 0
 assert np.all(particles.at_element[mask_lost] == 10)
+
+
+loss_loc_refinement = xt.LossLocationRefinement(tracker,
+                                            n_theta = 360,
+                                            r_max = 0.5, # m
+                                            dr = 50e-6,
+                                            ds = 0.1,
+                                            save_refine_trackers=True)
