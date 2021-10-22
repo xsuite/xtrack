@@ -42,6 +42,8 @@ class DummyInteractionProcess:
                 'charge_ratio': particles.x[:n_part][mask_secondary] *0 + .5,
 
                 'parent_particle_id': particles.particle_id[:n_part][mask_secondary],
+                'at_element': particles.at_element[:n_part][mask_secondary],
+                'at_turn': particles.at_turn[:n_part][mask_secondary],
                 }
         else:
             products = None
