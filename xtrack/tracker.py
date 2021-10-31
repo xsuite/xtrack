@@ -7,7 +7,6 @@ from .line import Line as xtLine
 from .base_element import _handle_per_particle_blocks
 
 import xobjects as xo
-import xline as xl
 from xtrack import Drift
 
 def _check_is_collective(ele):
@@ -82,6 +81,8 @@ class Tracker:
         local_particle_src=None,
         save_source_as=None,
     ):
+
+        import xline as xl
 
         assert _offset is None
         assert track_kernel is None

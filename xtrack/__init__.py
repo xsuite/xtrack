@@ -1,6 +1,5 @@
 from .general import _pkg_root
 
-from .dress import dress
 from .base_element import dress_element, BeamElement
 from .beam_elements import *
 from .line import Line
