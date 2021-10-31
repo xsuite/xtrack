@@ -116,9 +116,10 @@ part.y[:N_footprint] = sigma_y*xy_norm[:, :, 1].flatten()
 part.px[:N_footprint] = 0.
 part.py[:N_footprint] = 0.
 part.zeta[:N_footprint] = 0.
-part._delta[:N_footprint] = 0.
-part._rpp[:N_footprint] = 0.
-part._rvv[:N_footprint] = 0.
+part.delta[:N_footprint] = 0.
+part.rpp[:N_footprint] = 0.
+part.rvv[:N_footprint] = 0.
+part.psigma[:N_footprint] = 0.
 
 xtparticles = xt.Particles(_context=context, **part.to_dict())
 
