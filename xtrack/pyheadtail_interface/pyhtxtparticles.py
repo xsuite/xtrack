@@ -2,7 +2,7 @@ import numpy as np
 from scipy.constants import e,c
 
 from PyHEADTAIL.particles.particles import Particles as PyHtParticles
-from ..particles import Particles as XtParticles
+from xpart import Particles as XtParticles
 
 
 class PyHtXtParticles(XtParticles,PyHtParticles):
