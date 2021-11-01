@@ -6,6 +6,7 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 import xline as xl
+import xpart as xp
 
 from xobjects.context import available
 
@@ -63,7 +64,7 @@ def test_full_rings(element_by_element=False):
             ######################
             # Get some particles #
             ######################
-            particles = xt.Particles(_context=context, **input_data['particle'])
+            particles = xp.Particles(_context=context, **input_data['particle'])
 
             #########
             # Track #
@@ -78,12 +79,12 @@ def test_full_rings(element_by_element=False):
             print('Check against ...')
             ip_check = 0
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-            pyst_part = xl.Particles.from_dict(input_data['particle'])
+            pyst_part = xl.XlineTestParticles.from_dict(input_data['particle'])
             for _ in range(n_turns):
                 sequence.track(pyst_part)
 
             for vv in vars_to_check:
-                pyst_value = getattr(pyst_part, vv)
+                pyst_value = getattr(pyst_part, vv)[0]
                 xt_value = context.nparray_from_context_array(
                                                   getattr(particles, vv))[ip_check]
                 passed = np.isclose(xt_value, pyst_value,
@@ -103,7 +104,7 @@ def test_full_rings(element_by_element=False):
                 backtracker = tracker.get_backtracker(_context=context)
                 backtracker.track(particles, num_turns=n_turns)
 
-                xl_part = xl.Particles.from_dict(input_data['particle'])
+                xl_part = xp.Particles.from_dict(input_data['particle'])
 
                 for vv in vars_to_check:
                     xl_value = getattr(xl_part, vv)
@@ -127,7 +128,7 @@ def test_full_rings(element_by_element=False):
             ##############
             if element_by_element:
                 print('Check element-by-element against xline...')
-                pyst_part = xl.Particles.from_dict(input_data['particle'])
+                pyst_part = xl.XlineTestParticles.from_dict(input_data['particle'])
                 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
                 problem_found = False
                 for ii, (eepyst, nn) in enumerate(zip(
@@ -190,10 +191,10 @@ def test_freeze_vars():
         # Build Tracker #
         #################
         print('Build tracker...')
-        freeze_vars = xt.particles.part_energy_varnames() + ['zeta']
+        freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
         tracker = xt.Tracker(_context=context,
                     sequence=sequence,
-                    local_particle_src=xt.particles.gen_local_particle_api(
+                    local_particle_src=xp.gen_local_particle_api(
                                                         freeze_vars=freeze_vars),
                     )
 
@@ -201,7 +202,7 @@ def test_freeze_vars():
         # Get some particles #
         ######################
         input_data['particle']['x'] += np.linspace(-1e-4, 1e-4, 10)
-        particles = xt.Particles(_context=context, **input_data['particle'])
+        particles = xp.Particles(_context=context, **input_data['particle'])
 
         particles_before_tracking = particles.copy()
 

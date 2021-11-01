@@ -6,6 +6,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xline as xl
+import xpart as xp
 
 from make_short_line import make_short_line
 
@@ -23,10 +24,10 @@ test_backtracker=True
 # rtol_10turns = 1e-9; atol_10turns=1e-11
 # test_backtracker = False
 
-# fname_line_particles = test_data_folder.joinpath(
-#                         './hllhc_14/line_and_particle.json')
-# rtol_10turns = 1e-9; atol_10turns=1e-11
-# test_backtracker = False
+fname_line_particles = test_data_folder.joinpath(
+                         './hllhc_14/line_and_particle.json')
+rtol_10turns = 1e-9; atol_10turns=1e-11
+test_backtracker = False
 
 # fname_line_particles = test_data_folder.joinpath(
 #                     './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
@@ -66,7 +67,7 @@ if short_test:
 print('Build tracker...')
 tracker = xt.Tracker(_context=context,
             sequence=sequence,
-            particles_class=xt.Particles,
+            particles_class=xp.Particles,
             save_source_as='source.c',
             )
 
@@ -76,7 +77,7 @@ if test_backtracker:
 ######################
 # Get some particles #
 ######################
-particles = xt.Particles(_context=context, **input_data['particle'])
+particles = xp.Particles(_context=context, **input_data['particle'])
 
 #########
 # Track #
@@ -91,12 +92,12 @@ tracker.track(particles, num_turns=n_turns)
 print('Check against xline...')
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-xl_part = xl.Particles.from_dict(input_data['particle'])
+xl_part = xl.XlineTestParticles.from_dict(input_data['particle'])
 for _ in range(n_turns):
     sequence.track(xl_part)
 
 for vv in vars_to_check:
-    xl_value = getattr(xl_part, vv)
+    xl_value = getattr(xl_part, vv)[0]
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
     passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns, atol=atol_10turns)
 
@@ -113,10 +114,10 @@ for vv in vars_to_check:
 if test_backtracker:
     backtracker.track(particles, num_turns=n_turns)
 
-    xl_part = xl.Particles.from_dict(input_data['particle'])
+    xl_part = xl.XlineTestParticles.from_dict(input_data['particle'])
 
     for vv in vars_to_check:
-        xl_value = getattr(xl_part, vv)
+        xl_value = getattr(xl_part, vv)[0]
         xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
         passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
                             atol=atol_10turns)
@@ -128,13 +129,13 @@ if test_backtracker:
             print(f'Not passend on backtrack for var {vv}!\n'
                   f'    xl:   {xl_value: .7e}\n'
                   f'    xtrack: {xt_value: .7e}\n')
-            #raise ValueError
+            raise ValueError
 
 ##############
 # Check  ebe #
 ##############
 print('Check element-by-element against xline...')
-xl_part = xl.Particles.from_dict(input_data['particle'])
+xl_part = xl.XlineTestParticles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 diffs = []
