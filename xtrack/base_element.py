@@ -97,7 +97,7 @@ def dress_element(XoElementData):
         context = self._buffer.context
 
         sources=(
-                [gen_local_particle_api(),
+                [xp.gen_local_particle_api(),
                 _pkg_root.joinpath("tracker_src/tracker.h")]
                 + self.XoStruct.extra_sources
                 + [self.track_kernel_source])

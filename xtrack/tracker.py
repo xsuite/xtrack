@@ -195,7 +195,7 @@ class Tracker:
             particles_monitor_class = xt.ParticlesMonitor
 
         if local_particle_src is None:
-            local_particle_src = gen_local_particle_api()
+            local_particle_src = xp.gen_local_particle_api()
 
         self.global_xy_limit = global_xy_limit
 
