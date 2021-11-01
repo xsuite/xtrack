@@ -2,6 +2,7 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 import xline as xl
+import xpart as xp
 
 from xobjects.context import available
 
@@ -10,7 +11,7 @@ def test_drift():
     for ctx in xo.context.get_test_contexts():
         print(f"Test {ctx.__class__}")
 
-        pyst_particle = xl.Particles(
+        pyst_particle = xl.XlineTestParticles(
                 p0c=25.92e9,
                 x=1e-3,
                 px=1e-5,
@@ -18,7 +19,7 @@ def test_drift():
                 py=-1.5e-5,
                 zeta=2.)
 
-        particles = xt.Particles(_context=ctx,
+        particles = xp.Particles(_context=ctx,
                                  **pyst_particle.to_dict())
 
         drift = xt.Drift(_context=ctx, length=10.)
@@ -39,7 +40,7 @@ def test_elens():
     for ctx in xo.context.get_test_contexts():
         print(f"Test {ctx.__class__}")
 
-        pyst_particle = xl.Particles(
+        pyst_particle = xl.XlineTestParticles(
                 p0c=np.array([7000e9]),
                 x=np.array([1e-3]),
                 px=np.array([0.0]),
@@ -47,7 +48,7 @@ def test_elens():
                 py=np.array([0.0]),
                 zeta=np.array([0.]))
 
-        particles = xt.Particles(_context=ctx,
+        particles = xp.Particles(_context=ctx,
                                  **pyst_particle.to_dict())
 
 

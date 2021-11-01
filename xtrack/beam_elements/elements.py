@@ -4,6 +4,7 @@ import numpy as np
 from scipy.special import factorial
 
 import xobjects as xo
+import xpart as xp
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
@@ -264,8 +265,10 @@ class Multipole(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Multipole.XoStruct.extra_sources = [
-    _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-    _pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+    xp.general._pkg_root.joinpath(
+        'random_number_generator/rng_src/base_rng.h'),
+    xp.general._pkg_root.joinpath(
+        'random_number_generator/rng_src/local_particle_rng.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
 

@@ -6,6 +6,7 @@ import xobjects as xo
 import xline as xl
 import xtrack as xt
 import xfields as xf
+import xpart as xp
 
 def test_collective_tracker():
 
@@ -53,7 +54,7 @@ def test_collective_tracker():
         ######################
         # Get some particles #
         ######################
-        particles = xt.Particles(_context=context, **input_data['particle'])
+        particles = xp.Particles(_context=context, **input_data['particle'])
 
         #########
         # Track #
@@ -72,12 +73,12 @@ def test_collective_tracker():
         print('Check against xline ...')
         ip_check = 0
         vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-        pyst_part = xl.Particles.from_dict(input_data['particle'])
+        pyst_part = xl.XlineTestParticles.from_dict(input_data['particle'])
         for _ in range(n_turns):
             sequence.track(pyst_part)
 
         for vv in vars_to_check:
-            pyst_value = getattr(pyst_part, vv)
+            pyst_value = getattr(pyst_part, vv)[0]
             xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
             passed = np.isclose(xt_value, pyst_value, rtol=2e-8, atol=7e-9)
             print(f'Check var {vv}:\n'

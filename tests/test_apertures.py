@@ -2,6 +2,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+import xpart as xp
 
 def test_rect_ellipse():
 
@@ -23,7 +24,7 @@ def test_rect_ellipse():
                              np.linspace(-30e-3, 30e-3, 100))
         x_part = XX.flatten()
         y_part = XX.flatten()
-        part_re = xt.Particles(_context=context,
+        part_re = xp.Particles(_context=context,
                                x=x_part, y=y_part)
         part_e = part_re.copy()
         part_r = part_re.copy()
@@ -55,7 +56,7 @@ def test_aperture_polygon():
                         y_vertices=np2ctx(y_vertices))
 
         # Try some particles inside
-        parttest = xt.Particles(
+        parttest = xp.Particles(
                         _context=context,
                         p0c=6500e9,
                         x=x_vertices*0.99,
@@ -64,7 +65,7 @@ def test_aperture_polygon():
         assert np.allclose(ctx2np(parttest.state), 1)
 
         # Try some particles outside
-        parttest = xt.Particles(
+        parttest = xp.Particles(
                         _context=context,
                         p0c=6500e9,
                         x=x_vertices*1.01,

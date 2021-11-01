@@ -7,6 +7,7 @@ from .base_element import _handle_per_particle_blocks
 
 import xobjects as xo
 import xpart as xp
+import xline as xl
 
 from xtrack import Drift
 

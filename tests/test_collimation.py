@@ -5,6 +5,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xline as xl
+import xpart as xp
 
 def test_collimation_infrastructure():
     context = xo.ContextCpu()
@@ -67,7 +68,7 @@ def test_collimation_infrastructure():
     # Go through the collimator multiple times #
     ############################################
 
-    particles = xt.Particles(_capacity=200,
+    particles = xp.Particles(_capacity=200,
             p0c=7000, x=np.linspace(-1e-3, 1e-3, 10))
 
     for _ in range(10):
@@ -152,7 +153,7 @@ def test_aperture_refinement():
     # Test on full line
     r = np.linspace(0, 0.018, n_part)
     theta = np.linspace(0, 8*np.pi, n_part)
-    particles = xt.Particles(_context=ctx,
+    particles = xp.Particles(_context=ctx,
             p0c=6500e9,
             x=r*np.cos(theta)+shift_x,
             y=r*np.sin(theta)+shift_y)
@@ -280,7 +281,7 @@ def test_losslocationrefinement_thick_collective_collimator():
 
     tracker = xt.Tracker(sequence=line)
 
-    particles = xt.Particles(
+    particles = xp.Particles(
             _capacity=200000,
             x=np.zeros(100000))
 
