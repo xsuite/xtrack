@@ -1,12 +1,13 @@
 from pathlib import Path
 import numpy as np
 
-from .particles import Particles, gen_local_particle_api
 from .general import _pkg_root
 from .line import Line as xtLine
 from .base_element import _handle_per_particle_blocks
 
 import xobjects as xo
+import xpart as xp
+
 from xtrack import Drift
 
 def _check_is_collective(ele):
@@ -186,7 +187,7 @@ class Tracker:
         if particles_class is None:
             import xtrack as xt  # I have to do it like this
                                  # to avoid circular import
-            particles_class = xt.Particles
+            particles_class = xp.Particles
 
         if particles_monitor_class is None:
             import xtrack as xt  # I have to do it like this

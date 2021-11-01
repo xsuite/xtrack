@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import xobjects as xo
-from .particles import ParticlesData, gen_local_particle_api
-from .dress import dress
+import xpart as xp
+
 from .general import _pkg_root
 
 start_per_part_block = """
@@ -55,7 +55,7 @@ def _handle_per_particle_blocks(sources):
 
 def dress_element(XoElementData):
 
-    DressedElement = dress(XoElementData)
+    DressedElement = xo.dress(XoElementData)
     assert XoElementData.__name__.endswith('Data')
     name = XoElementData.__name__[:-4]
 
@@ -89,7 +89,7 @@ def dress_element(XoElementData):
     DressedElement._track_kernel_name = f'{name}_track_particles'
     DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
-                        xo.Arg(ParticlesData, name='particles'),
+                        xo.Arg(xp.Particles.XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element')])}
     DressedElement.iscollective = False
 

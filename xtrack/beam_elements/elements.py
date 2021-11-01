@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import numpy as np
-import xobjects as xo
 from scipy.special import factorial
 
+import xobjects as xo
+
 from ..base_element import BeamElement
-from ..particles import ParticlesData
 from ..general import _pkg_root
 
 class ReferenceEnergyIncrease(BeamElement):

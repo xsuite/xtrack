@@ -1,9 +1,10 @@
 import numpy as np
 from scipy.spatial import ConvexHull
 
-import xtrack as xt
-import xline as xl
 import xobjects as xo
+import xpart as xp
+import xline as xl
+import xtrack as xt
 
 import logging
 logger = logging.getLogger(__name__)
@@ -159,7 +160,7 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                                          inplace=True):
 
     mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
-    part_refine = xt.Particles(
+    part_refine = xp.Particles(
                     p0c=particles.p0c[mask_part],
                     x=particles.x[mask_part],
                     px=particles.px[mask_part],
@@ -384,7 +385,7 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
 
         logger.info(f'{iteration=} num_part={x_test.shape[0]}')
 
-        ptest = xt.Particles(p0c=1,
+        ptest = xp.Particles(p0c=1,
                 x = x_test.copy(),
                 y = y_test.copy())
         tracker.track(ptest, ele_start=i_start, num_elements=num_elements)
