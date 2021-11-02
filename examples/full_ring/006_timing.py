@@ -6,6 +6,7 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 import xline as xl
+import xpart as xp
 
 from make_short_line import make_short_line
 import time
@@ -116,7 +117,7 @@ part_dict = input_data['particle']
 part_dict['x'] += np.linspace(-1e-4, 1e-4, n_part)
 part_dict['y'] += np.linspace(-2e-4, 2e-4, n_part)
 
-particles = xt.Particles(_context=context, **part_dict)
+particles = xp.Particles(_context=context, **part_dict)
 #########
 # Track #
 #########
@@ -140,7 +141,7 @@ ip_check = n_part//3*2
 print(f'\nTest against xline over {num_turns} turns on particle {ip_check}:')
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 
-xline_part = xl.Particles(**part_dict)
+xline_part = xp.Particles(**part_dict)
 
 # Select particle to check
 for nn in xline_part._dict_vars:
@@ -152,7 +153,7 @@ for iturn in range(num_turns):
     sequence.track(xline_part)
 
 for vv in vars_to_check:
-    xline_value = getattr(xline_part, vv)
+    xline_value = getattr(xline_part, vv)[0]
     xt_value = context.nparray_from_context_array(
                         getattr(particles, vv)[ip_check])
     passed = np.isclose(xt_value, xline_value,
