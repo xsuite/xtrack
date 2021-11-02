@@ -4,6 +4,7 @@ import sixtracktools
 import xline
 import xtrack as xt
 import xobjects as xo
+import xpart as xp
 
 context = xo.ContextCpu()
 
@@ -33,8 +34,9 @@ s_coord = []
 for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
-    prun = xt.Particles(_context=context,
-            **xline.Particles(**sixdump[ii - 1].get_minimal_beam()).to_dict())
+    prun = xp.Particles(_context=context,
+            **xline.XlineTestParticles(
+                **sixdump[ii - 1].get_minimal_beam()).to_dict())
     prun.state[0]=1
     prun.reorganize()
     print(f"\n-----sixtrack={ii} xline={jja} --------------")
@@ -44,7 +46,7 @@ for ii in range(1, len(iconv)):
         #elem.track(prun)
         tracker.track(particles=prun, ele_start=jj, num_elements=1)
         print(f"{jj} {label},{str(elem)[:50]}")
-    pbench = xline.Particles(**sixdump[ii].get_minimal_beam())
+    pbench = xline.XlineTestParticles(**sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)
     # print(f"sixdump {ii}, x={pbench.x}, px={pbench.px}")
     print("-----------------------")

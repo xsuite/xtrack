@@ -8,11 +8,6 @@ from .loss_location_refinement import LossLocationRefinement
 
 from .monitors import generate_monitor_class
 
-def enable_pyheadtail_interface():
-    import xtrack.pyheadtail_interface.pyhtxtparticles as pp
-    import xtrack as xt
-    xt.Particles = pp.PyHtXtParticles
-
 import xpart as xp
 ParticlesMonitor = generate_monitor_class(xp.Particles)
 del(xp)
