@@ -3,6 +3,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xline as xl
+import xpart as xp
 
 
 context = xo.ContextCpu()
@@ -18,7 +19,7 @@ part_gen_range = 0.35
 n_part=100
 
 
-particles = xt.Particles(_context=context,
+particles = xp.Particles(_context=context,
                          p0c=6500e9,
                          x=np.zeros(n_part),
                          px=np.linspace(-1, 1, n_part),
