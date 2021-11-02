@@ -84,7 +84,7 @@ def test_full_rings(element_by_element=False):
                 sequence.track(pyst_part)
 
             for vv in vars_to_check:
-                pyst_value = getattr(pyst_part, vv)[0]
+                pyst_value = getattr(pyst_part, vv)
                 xt_value = context.nparray_from_context_array(
                                                   getattr(particles, vv))[ip_check]
                 passed = np.isclose(xt_value, pyst_value,

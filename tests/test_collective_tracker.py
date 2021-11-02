@@ -78,7 +78,7 @@ def test_collective_tracker():
             sequence.track(pyst_part)
 
         for vv in vars_to_check:
-            pyst_value = getattr(pyst_part, vv)[0]
+            pyst_value = getattr(pyst_part, vv)
             xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
             passed = np.isclose(xt_value, pyst_value, rtol=2e-8, atol=7e-9)
             print(f'Check var {vv}:\n'
