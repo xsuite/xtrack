@@ -121,7 +121,7 @@ part.rpp[:N_footprint] = 0.
 part.rvv[:N_footprint] = 0.
 part.psigma[:N_footprint] = 0.
 
-xtparticles = xt.Particles(_context=context, **part.to_dict())
+xtparticles = xp.Particles(_context=context, **part.to_dict())
 
 #########
 # Track #
