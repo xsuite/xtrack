@@ -29,7 +29,7 @@ sequence.append_element(energy_increase, 'energy_increase')
 
 tracker = xt.Tracker(_buffer=buffer, sequence=sequence)
 
-particles = xt.Particles(_context=context, p0c=26e9,
+particles = xp.Particles(_context=context, p0c=26e9,
                          zeta=np.linspace(-1, 1, 40))
 
 tracker.track(particles, num_turns=500, turn_by_turn_monitor=True)
