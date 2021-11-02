@@ -141,10 +141,10 @@ ip_check = n_part//3*2
 print(f'\nTest against xline over {num_turns} turns on particle {ip_check}:')
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 
-xline_part = xp.Particles(**part_dict)
+xline_part = xl.XlineTestParticles(**part_dict)
 
 # Select particle to check
-for nn in xline_part._dict_vars:
+for tt, nn in particles._structure['per_particle_vars']:
     if not np.isscalar(getattr(xline_part, nn)):
         setattr(xline_part, nn, getattr(xline_part, nn)[ip_check])
 
