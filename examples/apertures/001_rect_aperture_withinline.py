@@ -2,7 +2,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-
 import xline as xl
 import xpart as xp
 
@@ -18,7 +17,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-xparticles = xp.Particles(
+xlparticles = xl.XlineTestParticles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -27,7 +26,7 @@ xparticles = xp.Particles(
         sigma = np.zeros(n_part),
         delta = np.zeros(n_part))
 
-particles = xt.Particles(_context=context, **xparticles.to_dict())
+particles = xp.Particles(_context=context, **xlparticles.to_dict())
 
 aper_xline = xl.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
@@ -37,7 +36,7 @@ aper_xline = xl.elements.LimitRect(min_x=x_aper_min,
 aper = xt.LimitRect(_context=context,
                     **aper_xline.to_dict())
 
-aper_xline.track(xparticles)
+aper_xline.track(xlparticles)
 
 # Build a small test line
 line = xl.Line(elements=[
@@ -58,7 +57,7 @@ part_s = context.nparray_from_context_array(particles.s)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(np.sort(xparticles.particle_id), np.sort(id_alive))
+assert np.allclose(np.sort(xlparticles.particle_id), np.sort(id_alive))
 assert np.allclose(part_s[part_state>0], 10.)
 assert np.allclose(part_s[part_state<1], 5.)
 

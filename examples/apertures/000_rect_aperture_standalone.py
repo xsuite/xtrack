@@ -2,8 +2,8 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-
-import xline
+import xline as xl
+import xpart as xp
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -17,7 +17,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-pyst_part = xline.Particles(
+pyst_part = xl.XlineTestParticles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -26,9 +26,9 @@ pyst_part = xline.Particles(
         sigma = np.zeros(n_part),
         delta = np.zeros(n_part))
 
-particles = xt.Particles(_context=context, **pyst_part.to_dict())
+particles = xp.Particles(_context=context, **pyst_part.to_dict())
 
-aper_pyst = xline.elements.LimitRect(min_x=x_aper_min,
+aper_pyst = xl.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
                                           min_y=y_aper_min,
                                           max_y=y_aper_max)
