@@ -38,6 +38,9 @@ _buffer = context.new_buffer()
 
 print(context)
 
+arr2ctx = context.nparray_to_context_array
+ctx2arr = context.nparray_from_context_array
+
 ##################
 # Get a sequence #
 ##################
@@ -92,7 +95,7 @@ tracker = xt.Tracker(_buffer=_buffer,
 # Generate particles for footprint #
 ####################################
 
-part = xp.generate_matched_gaussian_bunch(
+particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
          particle_on_co=part_on_co, R_matrix=RR,
@@ -111,17 +114,15 @@ xy_norm = footprint.initial_xy_polar(
         theta_N=N_theta_footprint)
 
 N_footprint = len(xy_norm[:, :, 0].flatten())
-part.x[:N_footprint] = sigma_x*xy_norm[:, :, 0].flatten()
-part.y[:N_footprint] = sigma_y*xy_norm[:, :, 1].flatten()
-part.px[:N_footprint] = 0.
-part.py[:N_footprint] = 0.
-part.zeta[:N_footprint] = 0.
-part.delta[:N_footprint] = 0.
-part.rpp[:N_footprint] = 0.
-part.rvv[:N_footprint] = 0.
-part.psigma[:N_footprint] = 0.
-
-xtparticles = xp.Particles(_context=context, **part.to_dict())
+particles.x[:N_footprint] = arr2ctx(sigma_x*xy_norm[:, :, 0].flatten())
+particles.y[:N_footprint] = arr2ctx(sigma_y*xy_norm[:, :, 1].flatten())
+particles.px[:N_footprint] = 0.
+particles.py[:N_footprint] = 0.
+particles.zeta[:N_footprint] = 0.
+particles.delta[:N_footprint] = 0.
+particles.rpp[:N_footprint] = 1.
+particles.rvv[:N_footprint] = 1.
+particles.psigma[:N_footprint] = 0.
 
 #########
 # Track #
@@ -130,9 +131,9 @@ x_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 y_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 for ii in range(num_turns):
     print(f'Turn: {ii}', end='\r', flush=True)
-    x_tbt[:, ii] = context.nparray_from_context_array(xtparticles.x[:N_footprint]).copy()
-    y_tbt[:, ii] = context.nparray_from_context_array(xtparticles.y[:N_footprint]).copy()
-    tracker.track(xtparticles)
+    x_tbt[:, ii] = ctx2arr(particles.x[:N_footprint]).copy()
+    y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
+    tracker.track(particles)
 
 ######################
 # Frequency analysis #

@@ -85,15 +85,13 @@ tracker = xt.Tracker(_context=context,
 # Generate particles # 
 ######################
 
-part = xp.generate_matched_gaussian_bunch(
+particles = xp.generate_matched_gaussian_bunch(_context=_context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
          particle_on_co=part_on_co, R_matrix=RR,
          circumference=6911., alpha_momentum_compaction=0.0030777,
          rf_harmonic=4620, rf_voltage=rf_voltage, rf_phase=0)
 
-# Transfer particles to context
-xtparticles = xt.Particles(_context=context, **part.to_dict())
 
 #########
 # Track #
