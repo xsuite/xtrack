@@ -20,7 +20,7 @@ def compare(prun, pbench):
     out = []
     for att in "x px y py zeta delta".split():
         vrun = getattr(prun, att)[0]
-        vbench = getattr(pbench, att)
+        vbench = getattr(pbench, att)[0]
         diff = vrun - vbench
         out.append(abs(diff))
         print(f"{att:<5} {vrun:22.13e} {vbench:22.13e} {diff:22.13g}")
@@ -35,8 +35,7 @@ for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
     prun = xp.Particles(_context=context,
-            **xline.XlineTestParticles(
-                **sixdump[ii - 1].get_minimal_beam()).to_dict())
+                **sixdump[ii - 1].get_minimal_beam())
     prun.state[0]=1
     prun.reorganize()
     print(f"\n-----sixtrack={ii} xline={jja} --------------")
@@ -46,7 +45,7 @@ for ii in range(1, len(iconv)):
         #elem.track(prun)
         tracker.track(particles=prun, ele_start=jj, num_elements=1)
         print(f"{jj} {label},{str(elem)[:50]}")
-    pbench = xline.XlineTestParticles(**sixdump[ii].get_minimal_beam())
+    pbench = xp.Particles(**sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)
     # print(f"sixdump {ii}, x={pbench.x}, px={pbench.px}")
     print("-----------------------")
