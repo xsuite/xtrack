@@ -62,7 +62,7 @@ class PyHtXtParticles(XtParticles,PyHtParticles):
 
     @dp.setter
     def dp(self, value):
-        self._update_delta(value)
+        self.update_delta(value)
 
     @property
     def mass(self):

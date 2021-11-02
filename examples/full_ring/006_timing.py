@@ -156,7 +156,7 @@ for iturn in range(num_turns):
     sequence.track(xline_part)
 
 for vv in vars_to_check:
-    xline_value = getattr(xline_part, vv)[0]
+    xline_value = getattr(xline_part, vv)
     xt_value = context.nparray_from_context_array(
                         getattr(particles, vv)[ip_check])
     passed = np.isclose(xt_value, xline_value,
