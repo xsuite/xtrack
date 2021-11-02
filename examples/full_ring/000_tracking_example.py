@@ -5,6 +5,7 @@ import numpy as np
 import xobjects as xo
 import xline as xl
 import xtrack as xt
+import xpart as xp
 
 
 fname_sequence = '../../test_data/lhc_no_bb/line_and_particle.json'
@@ -36,7 +37,7 @@ tracker = xt.Tracker(_context=context, sequence=sequence)
 ######################
 # Get some particles #
 ######################
-particles = xt.Particles(_context=context,
+particles = xp.Particles(_context=context,
                          p0c=6500e9,
                          x=np.random.uniform(-1e-3, 1e-3, n_part),
                          px=np.random.uniform(-1e-5, 1e-5, n_part),

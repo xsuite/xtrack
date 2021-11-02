@@ -39,7 +39,7 @@ test_backtracker = False
 ####################
 
 context = xo.ContextCpu()
-#context = xo.ContextCupy()
+context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 #############
@@ -97,7 +97,7 @@ for _ in range(n_turns):
     sequence.track(xl_part)
 
 for vv in vars_to_check:
-    xl_value = getattr(xl_part, vv)[0]
+    xl_value = getattr(xl_part, vv)
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
     passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns, atol=atol_10turns)
 
@@ -117,7 +117,7 @@ if test_backtracker:
     xl_part = xl.XlineTestParticles.from_dict(input_data['particle'])
 
     for vv in vars_to_check:
-        xl_value = getattr(xl_part, vv)[0]
+        xl_value = getattr(xl_part, vv)
         xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
         passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
                             atol=atol_10turns)

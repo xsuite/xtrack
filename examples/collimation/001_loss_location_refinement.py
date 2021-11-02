@@ -65,7 +65,7 @@ tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
 num_elements = len(tracker.line.elements)
 
 # Test on full line
-particles = xt.Particles(_context=ctx,
+particles = xp.Particles(_context=ctx,
             px=np.random.uniform(-0.01, 0.01, 10000),
             py=np.random.uniform(-0.01, 0.01, 10000))
 
@@ -98,7 +98,7 @@ for ii, (trkr, poly) in enumerate(
                          zip([trk_aper_0, trk_aper_1],
                              [polygon_0, polygon_1])):
     part_gen_range = 0.05
-    pp = xt.Particles(
+    pp = xp.Particles(
                     p0c=6500e9,
                     x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
                     y=np.random.uniform(-part_gen_range, part_gen_range, n_part))

@@ -5,6 +5,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xline as xl
+import xpart as xp
 
 context = xo.ContextCpu()
 
@@ -91,7 +92,7 @@ line = xl.Line(elements=[
 
 tracker = xt.Tracker(sequence=line)
 
-particles = xt.Particles(
+particles = xp.Particles(
         _capacity=200000,
         x=np.zeros(100000))
 

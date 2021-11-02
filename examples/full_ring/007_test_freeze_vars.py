@@ -6,6 +6,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xline as xl
+import xpart as xp
 
 from make_short_line import make_short_line
 
@@ -48,10 +49,10 @@ if short_test:
 # Build Tracker #
 #################
 print('Build tracker...')
-freeze_vars = xt.particles.part_energy_varnames() + ['zeta']
+freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
 tracker = xt.Tracker(_context=context,
             sequence=sequence,
-            local_particle_src=xt.particles.gen_local_particle_api(
+            local_particle_src=xp.gen_local_particle_api(
                                                 freeze_vars=freeze_vars),
             )
 
@@ -59,7 +60,7 @@ tracker = xt.Tracker(_context=context,
 # Get some particles #
 ######################
 input_data['particle']['x'] += np.linspace(-1e-4, 1e-4, 10)
-particles = xt.Particles(_context=context, **input_data['particle'])
+particles = xp.Particles(_context=context, **input_data['particle'])
 
 particles_before_tracking = particles.copy()
 
