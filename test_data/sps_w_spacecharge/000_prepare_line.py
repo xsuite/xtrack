@@ -126,11 +126,12 @@ mad_sc_names, sc_twdata = bt.get_spacecharge_names_twdata(
 sc_elements, sc_names = line_with_spacecharge.get_elements_of_type(
         xl.elements.SCQGaussProfile
     )
+import pdb; pdb.set_trace()
 bt.setup_spacecharge_bunched_in_line(
         sc_elements=sc_elements,
         sc_lengths=sc_lengths,
         sc_twdata=sc_twdata,
-        betagamma=part.beta0*part.gamma0,
+        betagamma=part.beta0[0]*part.gamma0[0],
         number_of_particles=bunch_intensity,
         delta_rms=delta_rms,
         neps_x=neps_x,
