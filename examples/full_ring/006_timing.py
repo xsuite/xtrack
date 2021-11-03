@@ -118,7 +118,7 @@ particles = xp.assemble_particles(_context=context,
 #########
 # Track #
 #########
-particles_before_tracking = particles.copy()
+particles_before_tracking = particles.copy(_context=xo.ContextCpu())
 print('Track!')
 print(f'context: {tracker.line._buffer.context}')
 t1 = time.time()
