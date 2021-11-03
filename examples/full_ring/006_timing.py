@@ -89,11 +89,6 @@ sequence = xl.Line.from_dict(input_data['line'])
 #
 #sequence = xl.Line(elements=elelist, element_names=elenames)
 
-
-
-
-
-
 if short_test:
     sequence = make_short_line(sequence)
 
@@ -111,17 +106,19 @@ tracker = xt.Tracker(_context=context,
 ######################
 
 print('Import particles')
-part_dict = input_data['particle']
+part_ref = xp.Particles(**input_data['particle'])
 
 # Go from one particle to many particles
-part_dict['x'] += np.linspace(-1e-4, 1e-4, n_part)
-part_dict['y'] += np.linspace(-2e-4, 2e-4, n_part)
 
-particles = xp.Particles(_context=context, **part_dict)
+particles = xp.assemble_particles(_context=context,
+    particle_ref=part_ref,
+    x=np.linspace(-1e-4, 1e-4, n_part),
+    y=np.linspace(-2e-4, 2e-4, n_part))
+
 #########
 # Track #
 #########
-
+particles_before_tracking = particles.copy()
 print('Track!')
 print(f'context: {tracker.line._buffer.context}')
 t1 = time.time()
@@ -140,7 +137,7 @@ ip_check = n_part//3*2
 
 print(f'\nTest against xline over {num_turns} turns on particle {ip_check}:')
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-
+part_dict = particles_before_tracking.to_dict()
 part_to_check = {}
 for kk, vv in part_dict.items():
     if hasattr(vv, '__iter__'):
