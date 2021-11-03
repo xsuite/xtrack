@@ -147,12 +147,12 @@ for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
     tracker.track(particles, ele_start=ii, num_elements=1)
 
     eexl.track(xl_part)
-    s_coord.append(xl_part.s)
+    s_coord.append(xl_part.s[0])
     diffs.append([])
     for vv in vars_to_check:
         xl_change = getattr(xl_part, vv) - vars_before[vv]
-        xt_change = context.nparray_from_context_array(
-                getattr(particles, vv))[ip_check] -vars_before[vv]
+        xt_change = (context.nparray_from_context_array(
+                getattr(particles, vv))[ip_check]- vars_before[vv])
         passed = np.isclose(xt_change, xl_change, rtol=1e-10, atol=5e-14)
         if not passed:
             problem_found = True
@@ -161,7 +161,8 @@ for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
                   f'    xtrack: {xt_change: .7e}\n')
             break
         diffs[-1].append(np.abs(
-            getattr(particles, vv)[ip_check] - getattr(xl_part, vv)))
+            context.nparray_from_context_array(
+                getattr(particles, vv))[ip_check] - getattr(xl_part, vv)[0]))
 
     if not passed:
         print(f'\nelement {nn}')
