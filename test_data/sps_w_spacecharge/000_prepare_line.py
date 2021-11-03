@@ -8,6 +8,8 @@ import xline as xl
 import xpart as xp
 import xobjects as xo
 
+import sc_tools as bt
+
 seq_name = 'sps'
 bunch_intensity = 1e11/3
 sigma_z = 22.5e-2/3 # Short bunch to avoid probing bucket non-linearity
@@ -95,14 +97,13 @@ with open('line_no_spacecharge_and_particle.json', 'w') as fid:
 bunch = xp.generate_matched_gaussian_bunch(
          num_particles=int(2e6), total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_on_co=part_on_co, R_matrix=RR,
+         particle_ref=part_on_co, R_matrix=RR,
          circumference=mad.sequence[seq_name].beam.circ,
          alpha_momentum_compaction=mad.table.summ.alfa,
          rf_harmonic=4620, rf_voltage=V_RF, rf_phase=0)
 delta_rms = np.std(bunch.delta)
 
 
-import xline.be_beamfields.tools as bt
 sc_locations, sc_lengths = bt.determine_sc_locations(
     line=line_without_spacecharge,
     n_SCkicks = 540,
@@ -126,7 +127,6 @@ mad_sc_names, sc_twdata = bt.get_spacecharge_names_twdata(
 sc_elements, sc_names = line_with_spacecharge.get_elements_of_type(
         xl.elements.SCQGaussProfile
     )
-import pdb; pdb.set_trace()
 bt.setup_spacecharge_bunched_in_line(
         sc_elements=sc_elements,
         sc_lengths=sc_lengths,
