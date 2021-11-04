@@ -33,7 +33,7 @@ shift_aper_1 = (shift_x, shift_y)
 rot_deg_aper_1 = 10.
 
 # aper_0_sandwitch
-trk_aper_0 = xt.Tracker(_buffer=buf, sequence=xl.Line(
+trk_aper_0 = xt.Tracker(_buffer=buf, line=xl.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
               aper_0,
@@ -42,7 +42,7 @@ trk_aper_0 = xt.Tracker(_buffer=buf, sequence=xl.Line(
               xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])]))
 
 # aper_1_sandwitch
-trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
+trk_aper_1 = xt.Tracker(_buffer=buf, line=xl.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
               aper_1,
@@ -51,7 +51,7 @@ trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
 
 # Build example line
-tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
+tracker = xt.Tracker(_buffer=buf, line=xl.Line(
     elements = ((xt.Drift(_buffer=buf, length=0.5),)
                 + trk_aper_0.line.elements
                 + (xt.Drift(_buffer=buf, length=1),

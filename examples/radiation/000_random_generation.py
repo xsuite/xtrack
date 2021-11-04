@@ -38,7 +38,7 @@ telem.track(part)
 # Use turn-by-turn monitor to acquire some statistics
 
 tracker = xt.Tracker(_buffer=telem._buffer,
-        sequence=xl.Line(elements=[telem]),
+        line=xl.Line(elements=[telem]),
             save_source_as='source.c')
 
 tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)

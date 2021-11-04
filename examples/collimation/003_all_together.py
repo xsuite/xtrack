@@ -90,7 +90,7 @@ line = xl.Line(elements=[
     xl.Drift(length=10.),
     ])
 
-tracker = xt.Tracker(sequence=line)
+tracker = xt.Tracker(line=line)
 
 particles = xp.Particles(
         _capacity=200000,

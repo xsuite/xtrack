@@ -32,7 +32,7 @@ sequence = xl.Line.from_dict(input_data['line'])
 ##################
 # Build TrackJob #
 ##################
-tracker = xt.Tracker(_context=context, sequence=sequence)
+tracker = xt.Tracker(_context=context, line=sequence)
 
 ######################
 # Get some particles #

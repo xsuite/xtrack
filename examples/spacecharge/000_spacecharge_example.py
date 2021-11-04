@@ -65,7 +65,7 @@ if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
     xf.replace_spaceharge_with_quasi_frozen(
-                                    sequence, _buffer=_buffer,
+                                    sequence,
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
@@ -84,7 +84,7 @@ else:
 # Build Tracker #
 #################
 tracker = xt.Tracker(_context=context,
-                    sequence=sequence)
+                    line=sequence)
 
 ######################
 # Generate particles #

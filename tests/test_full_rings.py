@@ -59,7 +59,7 @@ def test_full_rings(element_by_element=False):
             # Build TrackJob #
             ##################
             print('Build tracker...')
-            tracker = xt.Tracker(_context=context, sequence=sequence)
+            tracker = xt.Tracker(_context=context, line=sequence)
 
             ######################
             # Get some particles #
@@ -193,7 +193,7 @@ def test_freeze_vars():
         print('Build tracker...')
         freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
         tracker = xt.Tracker(_context=context,
-                    sequence=sequence,
+                    line=sequence,
                     local_particle_src=xp.gen_local_particle_api(
                                                         freeze_vars=freeze_vars),
                     )

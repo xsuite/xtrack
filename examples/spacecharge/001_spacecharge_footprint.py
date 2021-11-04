@@ -89,7 +89,7 @@ RR = np.array(ddd['RR_madx'])
 # Build Tracker #
 #################
 tracker = xt.Tracker(_buffer=_buffer,
-                    sequence=sequence)
+                    line=sequence)
 
 ####################################
 # Generate particles for footprint #

@@ -27,7 +27,7 @@ energy_increase = xt.ReferenceEnergyIncrease(_buffer=buffer,
                                              Delta_p0c=Delta_p0c)
 sequence.append_element(energy_increase, 'energy_increase')
 
-tracker = xt.Tracker(_buffer=buffer, sequence=sequence)
+tracker = xt.Tracker(_buffer=buffer, line=sequence)
 
 particles = xp.Particles(_context=context, p0c=26e9,
                          zeta=np.linspace(-1, 1, 40))

@@ -3,8 +3,9 @@ from scipy.spatial import ConvexHull
 
 import xobjects as xo
 import xpart as xp
-import xline as xl
-import xtrack as xt
+from ..tracker import Tracker
+from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift
+from ..line import Line
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,15 +27,15 @@ class LossLocationRefinement:
                 "Other contexts are not supported!")
 
         # Build a polygon and compile the kernel
-        temp_poly = xt.LimitPolygon(_buffer=self.tracker.line._buffer,
+        temp_poly = LimitPolygon(_buffer=self.tracker.line._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
         temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
                                    x_out=na([2]), y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        trk_gen = xt.Tracker(_buffer=self.tracker.line._buffer,
-                sequence=xl.Line(
+        trk_gen = Tracker(_buffer=self.tracker.line._buffer,
+                line=Line(
                     elements=self.tracker.line.elements + (temp_poly,)))
         self._trk_gen = trk_gen
 
@@ -120,11 +121,11 @@ def check_for_active_shifts_and_rotations(tracker, i_aper_0, i_aper_1):
     presence_shifts_rotations = False
     for ii in range(i_aper_0, i_aper_1):
         ee = tracker.line.elements[ii]
-        if ee.__class__ is xt.SRotation:
+        if ee.__class__ is SRotation:
             if not np.isclose(ee.angle, 0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
                 break
-        if ee.__class__ is xt.XYShift:
+        if ee.__class__ is XYShift:
             if not np.allclose([ee.dx, ee.dy], 0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
                 break
@@ -270,7 +271,7 @@ def interp_aperture_using_polygons(context, tracker, backtracker,
         i_hull = np.sort(hull.vertices)
         x_hull = x_non_convex[i_hull]
         y_hull = y_non_convex[i_hull]
-        interp_polygons.append(xt.LimitPolygon(
+        interp_polygons.append(LimitPolygon(
             _buffer=temp_buf,
             x_vertices=x_hull,
             y_vertices=y_hull))
@@ -324,14 +325,14 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
         ss = s_sorted[ii]
 
         if ss-s_all[-1]>1e-14:
-            ele_all.append(xt.Drift(_buffer=_buffer, length=ss-s_all[-1]))
+            ele_all.append(Drift(_buffer=_buffer, length=ss-s_all[-1]))
             s_all.append(ss)
         ele_all.append(ele_sorted[ii])
         s_all.append(s_sorted[ii])
 
-    interp_tracker = xt.Tracker(
+    interp_tracker = Tracker(
             _buffer=_buffer,
-            sequence=xl.Line(elements=ele_all),
+            line=Line(elements=ele_all),
             track_kernel=_trk_gen.track_kernel,
             element_classes=_trk_gen.element_classes)
 
@@ -415,7 +416,7 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
     y_hull = y_non_convex[i_hull]
 
     # Get a convex polygon that does not have points for all angles
-    temp_poly = xt.LimitPolygon(x_vertices=x_hull, y_vertices=y_hull)
+    temp_poly = LimitPolygon(x_vertices=x_hull, y_vertices=y_hull)
 
     # Get a convex polygon that has vertices at all requested angles
     r_out = 1. # m
@@ -425,7 +426,7 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
             y_out=r_out*np.sin(theta_vect),
             z_out=0*theta_vect)
 
-    polygon = xt.LimitPolygon(x_vertices=res[0], y_vertices=res[1],
+    polygon = LimitPolygon(x_vertices=res[0], y_vertices=res[1],
                               _buffer=buffer_for_poly)
 
     return polygon, i_start

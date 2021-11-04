@@ -121,7 +121,7 @@ def test_aperture_refinement():
     rot_deg_aper_1 = 10.
 
     # aper_0_sandwitch
-    trk_aper_0 = xt.Tracker(_buffer=buf, sequence=xl.Line(
+    trk_aper_0 = xt.Tracker(_buffer=buf, line=xl.Line(
         elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
                   xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
                   aper_0,
@@ -130,7 +130,7 @@ def test_aperture_refinement():
                   xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])]))
 
     # aper_1_sandwitch
-    trk_aper_1 = xt.Tracker(_buffer=buf, sequence=xl.Line(
+    trk_aper_1 = xt.Tracker(_buffer=buf, line=xl.Line(
         elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
                   xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
                   aper_1,
@@ -139,7 +139,7 @@ def test_aperture_refinement():
                   xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
 
     # Build example line
-    tracker = xt.Tracker(_buffer=buf, sequence=xl.Line(
+    tracker = xt.Tracker(_buffer=buf, line=xl.Line(
         elements = ((xt.Drift(_buffer=buf, length=0.5),)
                     + trk_aper_0.line.elements
                     + (xt.Drift(_buffer=buf, length=1),
@@ -279,7 +279,7 @@ def test_losslocationrefinement_thick_collective_collimator():
         xl.Drift(length=10.),
         ])
 
-    tracker = xt.Tracker(sequence=line)
+    tracker = xt.Tracker(line=line)
 
     particles = xp.Particles(
             _capacity=200000,

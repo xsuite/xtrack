@@ -41,7 +41,7 @@ sequence.append_element(damper, 'Damper')
 ##################
 # Build TrackJob #
 ##################
-tracker = xt.Tracker(_context=context, sequence=sequence)
+tracker = xt.Tracker(_context=context, line=sequence)
 
 ######################
 # Get some particles #

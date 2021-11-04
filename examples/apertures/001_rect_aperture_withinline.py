@@ -45,7 +45,7 @@ line = xl.Line(elements=[
                 xl.elements.Drift(length=5.)],
                 element_names=['drift0', 'aper', 'drift1'])
 
-tracker = xt.Tracker(_context=context, sequence=line)
+tracker = xt.Tracker(_context=context, line=line)
 
 tracker.track(particles)
 

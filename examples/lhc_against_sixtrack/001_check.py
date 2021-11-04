@@ -10,7 +10,7 @@ context = xo.ContextCpu()
 
 six = sixtracktools.SixInput(".")
 line = xline.Line.from_sixinput(six)
-tracker = xt.Tracker(_context=context, sequence=line)
+tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 
 sixdump = sixtracktools.SixDump101("res/dump3.dat")[1::2]

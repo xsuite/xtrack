@@ -26,7 +26,7 @@ line = xl.Line.from_sixinput(sixinput)
 iconv = line.other_info["iconv"]
 
 # Build tracker
-tracker = xt.Tracker(sequence=line)
+tracker = xt.Tracker(line=line)
 
 ########################################################
 #                  Search closed orbit                 #

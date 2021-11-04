@@ -66,7 +66,7 @@ if short_test:
 #################
 print('Build tracker...')
 tracker = xt.Tracker(_context=context,
-            sequence=sequence,
+            line=sequence,
             particles_class=xp.Particles,
             save_source_as='source.c',
             )
