@@ -309,9 +309,12 @@ class RFMultipole(BeamElement):
         pn=None,
         ps=None,
         bal=None,
-        p=None,
+        phase=None,
         **kwargs
     ):
+
+        assert 'p' not in kwargs, "`p` in RF Multipole is not supported anymore"
+
         if bal is None and (
             knl is not None
             or ksl is not None
@@ -363,18 +366,18 @@ class RFMultipole(BeamElement):
 
             order = n - 1
             bal = np.zeros(2 * order + 2)
-            p = np.zeros(2 * order + 2)
+            phase = np.zeros(2 * order + 2)
 
             idx = np.array([ii for ii in range(0, len(knl))])
             inv_factorial = 1.0 / factorial(idx, exact=True)
             bal[0::2] = knl * inv_factorial
             bal[1::2] = ksl * inv_factorial
 
-            p[0::2] = pn
-            p[1::2] = ps
+            phase[0::2] = pn
+            phase[1::2] = ps
 
             kwargs["bal"] = bal
-            kwargs["phase"] = p
+            kwargs["phase"] = phase
             kwargs["order"] = order
 
         elif (
@@ -382,18 +385,18 @@ class RFMultipole(BeamElement):
             and bal
             and len(bal) >= 2
             and ((len(bal) % 2) == 0)
-            and p is not None
-            and p
-            and len(p) >= 2
-            and ((len(p) % 2) == 0)
+            and phase is not None
+            and phase
+            and len(phase) >= 2
+            and ((len(phase) % 2) == 0)
         ):
             kwargs["bal"] = bal
-            kwargs["phase"] = p
+            kwargs["phase"] = phase
             kwargs["order"] = (len(bal) - 2) / 2
         elif '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             pass
         else:
-            raise ValueError('Invalid input!')
+            raise ValueError('RF Multipole Invalid input!')
 
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:

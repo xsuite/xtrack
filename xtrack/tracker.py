@@ -530,3 +530,12 @@ class Tracker:
             raise ValueError('Please provide a valid monitor object')
 
         return flag_tbt, monitor, buffer_monitor, offset_monitor
+
+
+        def _slow_track_ebe(self,part):
+            out=[]
+            for ii in range(len(line.elements)):
+                out.append(part.copy())
+                self.track(part,ele_start=ii,num_elements=1)
+            return out
+

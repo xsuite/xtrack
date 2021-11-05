@@ -5,18 +5,119 @@ import xobjects as xo
 
 from .loader_sixtrack import _expand_struct
 from .loader_mad import iter_from_madx_sequence
-from .beam_elements import element_classes, Drift
+from .beam_elements import element_classes
+from . import beam_elements
 
-_thick_element_types = (Drift, ) #TODO add DriftExact
+
+import logging
+
+log=logging.getLogger(__name__)
+
+def mk_class_namespace(extra_classes):
+    try:
+       import xfields as xf
+       all_classes= element_classes + xf.element_classes + extra_classes
+    except ImportError:
+        log.warning("Xfields not installed correctly")
+
+    out=AttrDict()
+    for cl in all_classes:
+        out[cl.__name__]=cl
+    return out
+
+
+_thick_element_types = (beam_elements.Drift, ) #TODO add DriftExact
+
+def _is_drift(element): # can be removed if length is zero
+    return isinstance(element, (beam_elements.Drift,) )
 
 def _is_thick(element):
     return  ((hasattr(element, "isthick") and element.isthick) or
              (isinstance(element, _thick_element_types)))
 
+
+
+
 # missing access to particles._m:
 deg2rad = np.pi / 180.
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+
 class Line:
+    @classmethod
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+        class_dict=mk_class_namespace(classes)
+        
+        _buffer=xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
+        self = cls(elements=[], element_names=[])
+        for el in dct["elements"]:
+            eltype = class_dict[el["__class__"]]
+            eldct=el.copy()
+            del eldct['__class__']
+            if hasattr(el,'XoStruct'):
+               newel = eltype.from_dict(eldct,_buffer=_buffer)
+            else:
+               newel = eltype.from_dict(eldct)
+            self.elements.append(newel)
+        self.element_names = dct["element_names"]
+        return self
+
+
+    @classmethod
+    def from_sixinput(cls, sixinput, classes=()):
+        class_dict=mk_class_namespace(classes)
+        
+        line_data, rest, iconv = _expand_struct(sixinput, convert=class_dict)
+
+        ele_names = [dd[0] for dd in line_data]
+        elements = [dd[2] for dd in line_data]
+
+        line = cls(elements=elements, element_names=ele_names)
+        
+        other_info = {}
+        other_info["rest"] = rest
+        other_info["iconv"] = iconv
+
+        line.other_info = other_info
+
+        return line
+
+    @classmethod
+    def from_madx_sequence(
+        cls,
+        sequence,
+        classes=(),
+        ignored_madtypes=[],
+        exact_drift=False,
+        drift_threshold=1e-6,
+        install_apertures=False,
+        apply_madx_errors=False,
+    ):
+
+        class_dict=mk_class_namespace(classes)
+
+        line = cls(elements=[], element_names=[])
+
+        for el_name, el in iter_from_madx_sequence(
+            sequence,
+            class_dict,
+            ignored_madtypes=ignored_madtypes,
+            exact_drift=exact_drift,
+            drift_threshold=drift_threshold,
+            install_apertures=install_apertures,
+        ):
+            line.append_element(el, el_name)
+
+        if apply_madx_errors:
+            line._apply_madx_errors(sequence)
+
+        return line
+
     def __init__(self, elements=(), element_names=None):
         if isinstance(elements,dict):
             element_dict=elements
@@ -48,19 +149,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         return out
 
-    @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=None):
-        _buffer=xo.get_a_buffer(_context=_context, _buffer=_buffer)
-        self = cls(elements=[], element_names=[])
-        for el in dct["elements"]:
-            eltype = getattr(elements, el["__class__"])
-            if hasattr(el,'XoStruct'):
-               newel = eltype.from_dict(el,_buffer=_buffer)
-            else:
-               newel = eltype.from_dict(el)
-            self.elements.append(newel)
-        self.element_names = dct["element_names"]
-        return self
+
 
     def slow_track(self, p):
         ret = None
@@ -96,8 +185,6 @@ class Line:
         return self
 
     def get_length(self):
-        thick_element_types = (elements.Drift, elements.DriftExact)
-
         ll = 0
         for ee in self.elements:
             if _is_thick(ee):
@@ -123,7 +210,7 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if isinstance(ee, (elements.Multipole)):
+            if isinstance(ee, (beam_elements.Multipole)):
                 aux = [ee.hxl, ee.hyl] + list(ee.knl) + list(ee.ksl)
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
@@ -141,7 +228,7 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if isinstance(ee, (elements.Drift, elements.DriftExact)):
+            if _is_drift(ee):
                 if ee.length == 0.0:
                     continue
             newline.append_element(ee, nn)
@@ -162,10 +249,10 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if isinstance(ee, (elements.Drift, elements.DriftExact)):
+            if _is_drift(ee):
                 prev_ee = newline.elements[-1]
                 prev_nn = newline.element_names[-1]
-                if isinstance(prev_ee, (elements.Drift, elements.DriftExact)):
+                if _is_drift(prev_ee):
                     prev_ee.length += ee.length
                     prev_nn += ('_' + nn)
                     newline.element_names[-1] = prev_nn
@@ -190,10 +277,10 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if isinstance(ee, elements.Multipole):
+            if isinstance(ee, beam_elements.Multipole):
                 prev_ee = newline.elements[-1]
                 prev_nn = newline.element_names[-1]
-                if isinstance(prev_ee, elements.Multipole) and prev_ee.hxl==ee.hxl and prev_ee.hyl==ee.hyl:
+                if isinstance(prev_ee, beam_elements.Multipole) and prev_ee.hxl==ee.hxl and prev_ee.hyl==ee.hyl:
                     oo=max(len(prev_ee.knl),len(prev_ee.ksl),len(ee.knl),len(ee.ksl))
                     knl=np.zeros(oo,dtype=float)
                     ksl=np.zeros(oo,dtype=float)
@@ -252,52 +339,7 @@ class Line:
         return elem_idx
 
 
-    @classmethod
-    def from_sixinput(cls, sixinput, classes=None):
-        other_info = {}
 
-        line_data, rest, iconv = _expand_struct(sixinput, convert=classes)
-
-        ele_names = [dd[0] for dd in line_data]
-        elements = [dd[2] for dd in line_data]
-
-        line = cls(elements=elements, element_names=ele_names)
-
-        other_info["rest"] = rest
-        other_info["iconv"] = iconv
-
-        line.other_info = other_info
-
-        return line
-
-    @classmethod
-    def from_madx_sequence(
-        cls,
-        sequence,
-        classes=element_classes,
-        ignored_madtypes=[],
-        exact_drift=False,
-        drift_threshold=1e-6,
-        install_apertures=False,
-        apply_madx_errors=False,
-    ):
-
-        line = cls(elements=[], element_names=[])
-
-        for el_name, el in iter_from_madx_sequence(
-            sequence,
-            classes=classes,
-            ignored_madtypes=ignored_madtypes,
-            exact_drift=exact_drift,
-            drift_threshold=drift_threshold,
-            install_apertures=install_apertures,
-        ):
-            line.append_element(el, el_name)
-
-        if apply_madx_errors:
-            line._apply_madx_errors(sequence)
-
-        return line
 
     # error handling (alignment, multipole orders, ...):
 
@@ -323,8 +365,8 @@ class Line:
 
     def _add_offset_error_to(self, element_name, dx=0, dy=0):
         idx_el, idx_after_el = self.find_element_ids(element_name)
-        xyshift = elements.XYShift(dx=dx, dy=dy)
-        inv_xyshift = elements.XYShift(dx=-dx, dy=-dy)
+        xyshift = beam_elements.XYShift(dx=dx, dy=dy)
+        inv_xyshift = beam_elements.XYShift(dx=-dx, dy=-dy)
         self.insert_element(idx_el, xyshift, element_name + "_offset_in")
         self.insert_element(
             idx_after_el + 1, inv_xyshift, element_name + "_offset_out"
@@ -337,8 +379,8 @@ class Line:
             # it is allowed to provide arex/arey without providing an aperture
             print('Info: Element', element_name, ': arex/y provided without aperture -> arex/y ignored')
             return
-        xyshift = elements.XYShift(dx=arex, dy=arey)
-        inv_xyshift = elements.XYShift(dx=-arex, dy=-arey)
+        xyshift = beam_elements.XYShift(dx=arex, dy=arey)
+        inv_xyshift = beam_elements.XYShift(dx=-arex, dy=-arey)
         self.insert_element(idx_el_aper, xyshift, element_name + "_aperture_offset_in")
         self.insert_element(
             idx_after_el + 1, inv_xyshift, element_name + "_aperture_offset_out"
@@ -356,7 +398,7 @@ class Line:
         '''
         idx_el, idx_after_el = self.find_element_ids(element_name)
         element = self.elements[self.element_names.index(element_name)]
-        if isinstance(element, elements.Multipole) and (
+        if isinstance(element, beam_elements.Multipole) and (
                 element.hxl or element.hyl):
             dpsi = angle * deg2rad
 
@@ -368,8 +410,8 @@ class Line:
 
             element.hxl = hxl1
             element.hyl = hyl1
-        srot = elements.SRotation(angle=angle)
-        inv_srot = elements.SRotation(angle=-angle)
+        srot = beam_elements.SRotation(angle=angle)
+        inv_srot = beam_elements.SRotation(angle=-angle)
         self.insert_element(idx_el, srot, element_name + "_tilt_in")
         self.insert_element(idx_after_el + 1, inv_srot, element_name + "_tilt_out")
 

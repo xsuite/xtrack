@@ -2,8 +2,6 @@ from math import factorial
 
 import numpy as np
 
-from . import elements
-
 clight = 299792458
 pi = np.pi
 
@@ -21,7 +19,7 @@ def bn_rel(bn16, bn3, r0, d0, sign):
     return out
 
 
-def _expand_struct(sixinput, convert=elements):
+def _expand_struct(sixinput, convert):
     elems = []
     count = {}
     icount = 0
@@ -34,8 +32,8 @@ def _expand_struct(sixinput, convert=elements):
     XYShift = convert.XYShift
     SRotation = convert.SRotation
     # Line = convert.Line
-    BeamBeam4D = convert.BeamBeam4D
-    BeamBeam6D = convert.BeamBeam6D
+    BeamBeamBiGaussian2D = convert.BeamBeamBiGaussian2D
+    BeamBeamBiGaussian3D = convert.BeamBeamBiGaussian3D
     RFMultipole = convert.RFMultipole
     exclude = False
     # add special elenents
@@ -109,10 +107,21 @@ def _expand_struct(sixinput, convert=elements):
             elem = Cavity(voltage=v, frequency=freq, lag=180 - d3)
         elif etype == 20:
             thisbb = sixinput.bbelements[nnn]
+            dct={}
             if hasattr(thisbb, "sigma_x"):
-                elem = BeamBeam4D(**thisbb._asdict())
+                from scipy.constants import e as qe
+                dct['n_particles'] = thisbb.charge/qe # pysixtrack has it in coulumb
+                dct['q0'] = qe # TODO change implementation
+                dct['beta0'] = thisbb.beta_r
+                dct['mean_x'] = thisbb.x_bb
+                dct['mean_y'] = thisbb.y_bb
+                dct['sigma_x'] = thisbb.sigma_x
+                dct['sigma_y'] = thisbb.sigma_y
+                dct['d_px'] = thisbb.d_px
+                dct['d_py'] = thisbb.d_py
+                elem = convert.BeamBeamBiGaussian2D(**dct)
             elif hasattr(thisbb, "phi"):
-                elem = BeamBeam6D(**thisbb._asdict())
+                elem = convert.BeamBeamBiGaussian3D(old_interface=thisbb._asdict())
             else:
                 raise ValueError("What?!")
         elif etype == 23:

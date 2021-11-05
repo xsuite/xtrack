@@ -1,11 +1,8 @@
 import numpy as np
 
-from . import elements as xline_elements
-
-
 def iter_from_madx_sequence(
     sequence,
-    classes=xline_elements,
+    classes,
     ignored_madtypes=[],
     exact_drift=False,
     drift_threshold=1e-6,

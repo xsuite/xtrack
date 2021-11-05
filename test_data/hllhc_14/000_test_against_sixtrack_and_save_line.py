@@ -5,7 +5,6 @@ import numpy as np
 import sixtracktools
 
 import xobjects as xo
-import xline as xl
 import xtrack as xt
 import xpart as xp
 import xfields as xf
@@ -20,7 +19,7 @@ sixinput = sixtracktools.SixInput(".")
 p0c_eV = sixinput.initialconditions[-3] * 1e6
 
 # Build xline line from sixtrack input
-line = xl.Line.from_sixinput(sixinput)
+line = xt.Line.from_sixinput(sixinput)
 
 # Info on sixtrack->pyblep conversion
 iconv = line.other_info["iconv"]
@@ -72,7 +71,7 @@ part_dict['state'] = 1
 
 with open('line_and_particle.json', 'w') as fid:
     json.dump({
-        'line': line.to_dict(keepextra=True),
+        'line': line.to_dict(),
         'particle': part_dict},
         fid, cls=xo.JEncoder)
 

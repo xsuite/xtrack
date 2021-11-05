@@ -41,14 +41,12 @@ class LineFrozen:
         for ii, (ee, nn) in enumerate(zip(line.elements,
                                       line.element_names)):
             assert hasattr(ee, 'XoStruct') # is already xobject
-            if ee._buffer == line_data._buffer:
-                xt_ee = ee
-            else:
-                xt_ee = ee.copy(_buffer=line_data._buffer)
-            
-            elements.append(xt_ee)
+            if ee._buffer != line_data._buffer:
+                ee._xobject=ee._xobject.__class__(ee._xobject,_buffer= line_data._buffer)
+
+            elements.append(ee)
             element_names.append(nn)
-            line_data[ii] = xt_ee._xobject
+            line_data[ii] = ee._xobject
 
         self.elements = tuple(elements)
         self.element_names = tuple(element_names)

@@ -24,6 +24,5 @@ setup(
         'numpy>=1.0',
         'scipy',
         'xobjects>=0.0.8',
-        'xline'
         ]
     )
