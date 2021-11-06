@@ -4,18 +4,35 @@ import sixtracktools
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
+import xfields as xf
 
-sixtrack_folder = './sixtrack_lhc_no_bb'
+sixtrack_folder = './sixtrack_lhc_no_bb'; atol = 1e-13
+#sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
 
 context = xo.ContextCpu()
 
-six = sixtracktools.SixInput(sixtrack_folder)
-line = xt.Line.from_sixinput(six)
+sixinput = sixtracktools.SixInput(sixtrack_folder)
+line = xt.Line.from_sixinput(sixinput)
 tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 
-sixdump = sixtracktools.SixDump101(sixtrack_folder + "/res/dump3.dat")[1::2]
+sixdump_all = sixtracktools.SixDump101(sixtrack_folder + "/res/dump3.dat")
 
+if any(ee.__class__.__name__.startswith('BeamBeam') for ee in line.elements):
+    Nele_st = len(iconv)
+    sixdump_CO = sixdump_all[::2][:Nele_st]
+    # Get closed-orbit from sixtrack 
+    p0c_eV = sixinput.initialconditions[-3] * 1e6
+    part_on_CO = xp.Particles(
+            p0c=p0c_eV,
+            x=sixdump_CO.x[0],
+            px=sixdump_CO.px[0],
+            y=sixdump_CO.y[0],
+            py=sixdump_CO.py[0],
+            zeta=sixdump_CO.zeta[0],
+            delta=sixdump_CO.delta[0])
+    xf.configure_orbit_dependent_parameters_for_bb(tracker,
+                           particle_on_co=part_on_CO, xline=line)
 
 def compare(prun, pbench):
     out = []
@@ -28,7 +45,7 @@ def compare(prun, pbench):
     print(f"max {max(out):21.12e}")
     return max(out), out
 
-
+sixdump = sixdump_all[1::2]
 print("")
 diffs = []
 s_coord = []
@@ -53,7 +70,7 @@ for ii in range(1, len(iconv)):
     out, out_all = compare(prun, pbench)
     print("-----------------------\n\n")
     diffs.append(out_all)
-    if out > 1e-13:
+    if out > atol:
         print("Too large discrepancy")
         break
 
