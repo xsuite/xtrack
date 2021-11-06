@@ -1,7 +1,6 @@
 import numpy as np
 
 import sixtracktools
-import xline
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
@@ -9,7 +8,7 @@ import xpart as xp
 context = xo.ContextCpu()
 
 six = sixtracktools.SixInput(".")
-line = xline.Line.from_sixinput(six)
+line = xt.Line.from_sixinput(six)
 tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 
