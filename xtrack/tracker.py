@@ -34,8 +34,9 @@ class Tracker:
     ):
 
         if sequence is not None:
-            print("`Tracker(... sequence=... ) is deprecated use `line=`)")
-            line=sequence
+            raise ValueError(
+                    "`Tracker(... sequence=... ) is deprecated use `line=`)")
+
         # Check if there are collective elements
         self.iscollective = False
         for ee in line.elements:
@@ -214,7 +215,8 @@ class Tracker:
                 particles_monitor_class.XoStruct,
             ]
 
-        self.line = frozenline
+        self.line = line
+        self._line_frozen = frozenline
         ele_offsets = np.array([ee._offset for ee in frozenline.elements], dtype=np.int64)
         ele_typeids = np.array(
             [element_classes.index(ee._xobject.__class__) for ee in frozenline.elements],
@@ -259,7 +261,7 @@ class Tracker:
 
         return self.__class__(
                     _buffer=_buffer,
-                    sequence=line,
+                    line=line,
                     track_kernel=self.track_kernel,
                     element_classes=self.element_classes,
                     particles_class=self.particles_class,
@@ -271,7 +273,7 @@ class Tracker:
 
     def _build_kernel(self, save_source_as):
 
-        context = self.line._buffer.context
+        context = self._line_frozen._buffer.context
 
         sources = []
         kernels = {}
@@ -488,7 +490,7 @@ class Tracker:
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(
-            buffer=self.line._buffer.buffer,
+            buffer=self._line_frozen._buffer.buffer,
             ele_offsets=self.ele_offsets_dev,
             ele_typeids=self.ele_typeids_dev,
             particles=particles._xobject,
