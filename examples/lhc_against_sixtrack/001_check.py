@@ -5,14 +5,16 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
+sixtrack_folder = './sixtrack_lhc_no_bb'
+
 context = xo.ContextCpu()
 
-six = sixtracktools.SixInput(".")
+six = sixtracktools.SixInput(sixtrack_folder)
 line = xt.Line.from_sixinput(six)
 tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 
-sixdump = sixtracktools.SixDump101("res/dump3.dat")[1::2]
+sixdump = sixtracktools.SixDump101(sixtrack_folder + "/res/dump3.dat")[1::2]
 
 
 def compare(prun, pbench):
