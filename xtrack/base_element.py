@@ -126,7 +126,7 @@ def dress_element(XoElementData):
 
     return DressedElement
 
-
+# TODO Duplicated code with xo.DressedStruct, can it be avoided?
 class MetaBeamElement(type):
 
     def __new__(cls, name, bases, data):
@@ -141,8 +141,11 @@ class MetaBeamElement(type):
         XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
 
         bases = (dress_element(XoStruct),) + bases
+        new_class = type.__new__(cls, name, bases, data)
 
-        return type.__new__(cls, name, bases, data)
+        XoStruct._DressingClass = new_class
+
+        return new_class
 
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
