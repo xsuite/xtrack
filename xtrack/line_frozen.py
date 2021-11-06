@@ -21,7 +21,8 @@ class LineFrozen:
 
 
         element_data_types = set(ee.XoStruct for ee in line.elements)
-        sorted_element_data_types = sorted(element_data_types, key = lambda cc:cc.__name__)
+        sorted_element_data_types = sorted(
+			element_data_types, key = lambda cc:cc.__name__)
 
         class ElementRefClass(xo.UnionRef):
             _reftypes = sorted_element_data_types
@@ -32,7 +33,7 @@ class LineFrozen:
             _context=_context,
             _buffer=_buffer,
              _offset=_offset)
-        
+
         assert len(line.elements) == len(line.element_names)
 
         elements = []
@@ -42,7 +43,9 @@ class LineFrozen:
                                       line.element_names)):
             assert hasattr(ee, 'XoStruct') # is already xobject
             if ee._buffer != line_data._buffer:
-                ee._xobject=ee._xobject.__class__(ee._xobject,_buffer= line_data._buffer)
+                new_xobject=ee._xobject.__class__(
+                        ee._xobject,_buffer= line_data._buffer)
+                ee._reinit_from_xobject(_xobject=new_xobject)
 
             elements.append(ee)
             element_names.append(nn)
