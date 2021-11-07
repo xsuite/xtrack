@@ -43,9 +43,7 @@ class LineFrozen:
                                       line.element_names)):
             assert hasattr(ee, 'XoStruct') # is already xobject
             if ee._buffer != line_data._buffer:
-                new_xobject=ee._xobject.__class__(
-                        ee._xobject,_buffer= line_data._buffer)
-                ee._reinit_from_xobject(_xobject=new_xobject)
+                ee._move_to(_buffer=line_data._buffer)
 
             elements.append(ee)
             element_names.append(nn)
