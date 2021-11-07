@@ -16,6 +16,11 @@ def _check_is_collective(ele):
     return iscoll
 
 class Tracker:
+
+    @property
+    def _buffer(self):
+        return self._line_frozen._buffer
+
     def __init__(
         self,
         _context=None,

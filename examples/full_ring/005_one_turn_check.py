@@ -92,7 +92,6 @@ print('Check against xline...')
 
 testline = xst.TestLine.from_dict(input_data['line'])
 
-
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 xl_part = xst.TestParticles.from_dict(input_data['particle'])

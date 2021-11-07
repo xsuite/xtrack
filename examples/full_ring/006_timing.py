@@ -5,8 +5,9 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import xline as xl
 import xpart as xp
+
+import xslowtrack as xst
 
 from make_short_line import make_short_line
 import time
@@ -78,17 +79,7 @@ elif str(fname_line_particles).endswith('.json'):
 ##################
 
 print('Import sequence')
-sequence = xl.Line.from_dict(input_data['line'])
-
-
-#fodo = [xl.Drift(length=1.), xl.Multipole(knl=[0, 1.]),
-#        xl.Drift(length=1.), xl.Multipole(knl=[0, -1.])]
-#
-#elelist = 4000*fodo
-#elenames = [f'e{ii}' for ii in range(len(elelist))]
-#
-#sequence = xl.Line(elements=elelist, element_names=elenames)
-
+line= xt.Line.from_dict(input_data['line'])
 if short_test:
     sequence = make_short_line(sequence)
 
@@ -98,7 +89,7 @@ if short_test:
 
 print('Build tracker')
 tracker = xt.Tracker(_context=context,
-                     line=sequence,
+                     line=line,
                      save_source_as='source.c')
 
 ######################
@@ -120,7 +111,7 @@ particles = xp.assemble_particles(_context=context,
 #########
 particles_before_tracking = particles.copy(_context=xo.ContextCpu())
 print('Track!')
-print(f'context: {tracker.line._buffer.context}')
+print(f'context: {tracker._buffer.context}')
 t1 = time.time()
 tracker.track(particles, num_turns=num_turns)
 context.synchronize()
@@ -133,6 +124,8 @@ print(f'Time {(t2-t1)*1e6/num_turns/n_part:.2f} us/part/turn')
 # Check against xline #
 #######################
 
+testline = xst.TestLine.from_dict(input_data['line'])
+
 ip_check = n_part//3*2
 
 print(f'\nTest against xline over {num_turns} turns on particle {ip_check}:')
@@ -140,17 +133,17 @@ vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 part_dict = particles_before_tracking.to_dict()
 part_to_check = {}
 for kk, vv in part_dict.items():
-    if hasattr(vv, '__iter__'):
+    if hasattr(vv, '__iter__') and not kk.startswith('_'):
         part_to_check[kk] = part_dict[kk][ip_check]
     else:
         part_to_check[kk] = part_dict[kk]
 
-xline_part = xl.XlineTestParticles(**part_to_check)
+xline_part = xst.TestParticles(**part_to_check)
 
 
 for iturn in range(num_turns):
     print(f'turn {iturn}/{num_turns}', end='\r', flush=True)
-    sequence.track(xline_part)
+    testline.track(xline_part)
 
 for vv in vars_to_check:
     xline_value = getattr(xline_part, vv)
