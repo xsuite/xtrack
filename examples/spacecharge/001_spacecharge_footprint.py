@@ -22,8 +22,8 @@ rf_voltage=3e6
 num_turns=32
 
 mode = 'frozen'
-#mode = 'quasi-frozen'
-mode = 'pic'
+mode = 'quasi-frozen'
+#mode = 'pic'
 
 ####################
 # Choose a context #
