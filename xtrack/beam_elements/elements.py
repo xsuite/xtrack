@@ -182,6 +182,13 @@ class Multipole(BeamElement):
         'bal': xo.Float64[:],
         }
 
+    def to_dict(self):
+        dct = super().to_dict()
+        dct['knl'] = self.knl
+        dct['ksl'] = self.ksl
+        return dct
+
+
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
 
         if bal is None and (
@@ -300,6 +307,14 @@ class RFMultipole(BeamElement):
         'bal': xo.Float64[:],
         'phase': xo.Float64[:],
     }
+
+    def to_dict(self):
+        dct = super().to_dict()
+        dct['knl'] = self.knl
+        dct['ksl'] = self.ksl
+        dct['pn'] = self.pn
+        dct['ps'] = self.ps
+        return dct
 
     def __init__(
         self,

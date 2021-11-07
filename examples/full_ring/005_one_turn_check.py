@@ -5,8 +5,9 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
 import xpart as xp
+
+import xslowtrack as xst
 
 from make_short_line import make_short_line
 
@@ -29,10 +30,10 @@ fname_line_particles = test_data_folder.joinpath(
 rtol_10turns = 1e-9; atol_10turns=1e-11
 test_backtracker = False
 
-fname_line_particles = test_data_folder.joinpath(
-                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
-rtol_10turns = 2e-8; atol_10turns=7e-9
-test_backtracker = False
+#fname_line_particles = test_data_folder.joinpath(
+#                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+#rtol_10turns = 2e-8; atol_10turns=7e-9
+#test_backtracker = False
 
 ####################
 # Choose a context #
@@ -46,27 +47,34 @@ context = xo.ContextCpu()
 # Load file #
 #############
 
-if str(fname_line_particles).endswith('.pkl'):
-    with open(fname_line_particles, 'rb') as fid:
-        input_data = pickle.load(fid)
-elif str(fname_line_particles).endswith('.json'):
-    with open(fname_line_particles, 'r') as fid:
-        input_data = json.load(fid)
+with open(fname_line_particles, 'r') as fid:
+    input_data = json.load(fid)
+
 
 ##################
 # Get a sequence #
 ##################
 
-sequence = xl.Line.from_dict(input_data['line'])
+line = xt.Line.from_dict(input_data['line'])
 if short_test:
-    sequence = make_short_line(sequence)
+    line = make_short_line(line)
+
+#######################
+# Make slowtrack line #
+#######################
+
+import xslowtrack as xst
+testline = xst.TestLine.from_dict(line.to_dict())
+
+prrrrr
+
 
 #################
 # Build Tracker #
 #################
 print('Build tracker...')
 tracker = xt.Tracker(_context=context,
-            line=sequence,
+            line=line,
             particles_class=xp.Particles,
             save_source_as='source.c',
             )
@@ -86,13 +94,13 @@ print('Track a few turns...')
 n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
-#######################
-# Check against xline #
-#######################
+############################
+# Check against xslowtrack #
+############################
 print('Check against xline...')
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-xl_part = xl.XlineTestParticles.from_dict(input_data['particle'])
+xl_part = xst.TestParticles.from_dict(input_data['particle'])
 for _ in range(n_turns):
     sequence.track(xl_part)
 

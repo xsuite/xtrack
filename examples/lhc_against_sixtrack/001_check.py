@@ -7,7 +7,7 @@ import xpart as xp
 import xfields as xf
 
 sixtrack_folder = './sixtrack_lhc_no_bb'; atol = 1e-13
-#sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
+sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
 
 context = xo.ContextCpu()
 

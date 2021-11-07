@@ -52,7 +52,7 @@ class Line:
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         class_dict=mk_class_namespace(classes)
-        
+
         _buffer=xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
         self = cls(elements=[], element_names=[])
         for el in dct["elements"]:
