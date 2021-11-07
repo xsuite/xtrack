@@ -3,7 +3,6 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xpart as xp
 import xtrack as xt
 import xfields as xf
@@ -23,8 +22,8 @@ rf_voltage=3e6
 num_turns=32
 
 mode = 'frozen'
-mode = 'quasi-frozen'
-mode = 'pic'
+#mode = 'quasi-frozen'
+#mode = 'pic'
 
 ####################
 # Choose a context #
@@ -47,9 +46,9 @@ ctx2arr = context.nparray_from_context_array
 
 with open(fname_sequence, 'r') as fid:
      input_data = json.load(fid)
-sequence = xl.Line.from_dict(input_data['line'])
+line = xt.Line.from_dict(input_data['line'])
 
-first_sc = sequence.elements[1]
+first_sc = line.elements[1]
 sigma_x = first_sc.sigma_x
 sigma_y = first_sc.sigma_y
 
@@ -61,12 +60,12 @@ if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
     xf.replace_spaceharge_with_quasi_frozen(
-                                    sequence, _buffer=_buffer,
+                                    line, _buffer=_buffer,
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
     pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
-        _context=context, sequence=sequence,
+        _context=context, sequence=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
@@ -89,7 +88,7 @@ RR = np.array(ddd['RR_madx'])
 # Build Tracker #
 #################
 tracker = xt.Tracker(_buffer=_buffer,
-                    line=sequence)
+                    line=line)
 
 ####################################
 # Generate particles for footprint #
