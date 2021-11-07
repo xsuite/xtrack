@@ -59,15 +59,6 @@ line = xt.Line.from_dict(input_data['line'])
 if short_test:
     line = make_short_line(line)
 
-#######################
-# Make slowtrack line #
-#######################
-
-import xslowtrack as xst
-testline = xst.TestLine.from_dict(line.to_dict())
-
-prrrrr
-
 
 #################
 # Build Tracker #
@@ -98,11 +89,15 @@ tracker.track(particles, num_turns=n_turns)
 # Check against xslowtrack #
 ############################
 print('Check against xline...')
+
+testline = xst.TestLine.from_dict(input_data['line'])
+
+
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 xl_part = xst.TestParticles.from_dict(input_data['particle'])
 for _ in range(n_turns):
-    sequence.track(xl_part)
+   testline.track(xl_part)
 
 for vv in vars_to_check:
     xl_value = getattr(xl_part, vv)
@@ -143,12 +138,12 @@ if test_backtracker:
 # Check  ebe #
 ##############
 print('Check element-by-element against xline...')
-xl_part = xl.XlineTestParticles.from_dict(input_data['particle'])
+xl_part = xst.TestParticles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 diffs = []
 s_coord = []
-for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
+for ii, (eexl, nn) in enumerate(zip(testline.elements, testline.element_names)):
     vars_before = {vv :getattr(xl_part, vv)[0] for vv in vars_to_check}
     particles.set_particle(ip_check, **xl_part.to_dict())
 
