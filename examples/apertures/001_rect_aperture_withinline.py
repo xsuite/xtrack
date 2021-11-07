@@ -2,8 +2,9 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
 import xpart as xp
+
+import xslowtrack as xst
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -17,7 +18,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-xlparticles = xl.XlineTestParticles(
+xlparticles = xst.TestParticles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -28,7 +29,7 @@ xlparticles = xl.XlineTestParticles(
 
 particles = xp.Particles(_context=context, **xlparticles.to_dict())
 
-aper_xline = xl.elements.LimitRect(min_x=x_aper_min,
+aper_xline = xst.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
                                           min_y=y_aper_min,
                                           max_y=y_aper_max)
@@ -39,10 +40,10 @@ aper = xt.LimitRect(_context=context,
 aper_xline.track(xlparticles)
 
 # Build a small test line
-line = xl.Line(elements=[
-                xl.elements.Drift(length=5.),
-                aper_xline,
-                xl.elements.Drift(length=5.)],
+line = xt.Line(elements=[
+                xt.Drift(length=5.),
+                aper,
+                xt.Drift(length=5.)],
                 element_names=['drift0', 'aper', 'drift1'])
 
 tracker = xt.Tracker(_context=context, line=line)
