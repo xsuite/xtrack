@@ -5,7 +5,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
 import xpart as xp
 
 from make_short_line import make_short_line
@@ -41,7 +40,7 @@ elif str(fname_line_particles).endswith('.json'):
 # Get a sequence #
 ##################
 
-sequence = xl.Line.from_dict(input_data['line'])
+sequence = xt.Line.from_dict(input_data['line'])
 if short_test:
     sequence = make_short_line(sequence)
 
@@ -59,8 +58,10 @@ tracker = xt.Tracker(_context=context,
 ######################
 # Get some particles #
 ######################
-input_data['particle']['x'] += np.linspace(-1e-4, 1e-4, 10)
-particles = xp.Particles(_context=context, **input_data['particle'])
+part0 = xp.Particles(_context=context, **input_data['particle'])
+particles = xp.assemble_particles(_context=context,
+        x=np.linspace(-1e-4, 1e-4, 10), particle_ref=part0)
+
 
 particles_before_tracking = particles.copy()
 
