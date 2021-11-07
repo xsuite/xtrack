@@ -2,16 +2,16 @@ import json
 import numpy as np
 
 import sixtracktools
-import xline as xl
 import xpart as xp
 import xobjects as xo
+import xtrack as xt
 
 ##################
 # Get a sequence #
 ##################
 
 six = sixtracktools.SixInput(".")
-sequence = xl.Line.from_sixinput(six)
+line = xt.Line.from_sixinput(six)
 
 
 ######################
@@ -25,7 +25,7 @@ part0_pyst.state = 1
 
 with open('line_and_particle.json', 'w') as fid:
     json.dump({
-        'line': sequence.to_dict(keepextra=True),
+        'line': line.to_dict(),
         'particle': part0_pyst.to_dict()},
         fid, cls=xo.JEncoder)
 

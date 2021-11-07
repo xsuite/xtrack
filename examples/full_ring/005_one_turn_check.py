@@ -25,10 +25,10 @@ fname_line_particles = test_data_folder.joinpath(
 rtol_10turns = 1e-9; atol_10turns=1e-11
 test_backtracker = False
 
-fname_line_particles = test_data_folder.joinpath(
-                         './hllhc_14/line_and_particle.json')
-rtol_10turns = 1e-9; atol_10turns=1e-11
-test_backtracker = False
+#fname_line_particles = test_data_folder.joinpath(
+#                         './hllhc_14/line_and_particle.json')
+#rtol_10turns = 1e-9; atol_10turns=1e-11
+#test_backtracker = False
 
 #fname_line_particles = test_data_folder.joinpath(
 #                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
@@ -117,7 +117,7 @@ for vv in vars_to_check:
 if test_backtracker:
     backtracker.track(particles, num_turns=n_turns)
 
-    xl_part = xl.XlineTestParticles.from_dict(input_data['particle'])
+    xl_part = xst.TestParticles.from_dict(input_data['particle'])
 
     for vv in vars_to_check:
         xl_value = getattr(xl_part, vv)

@@ -143,6 +143,11 @@ class SRotation(BeamElement):
         'sin_z': xo.Float64,
         }
 
+    def to_dict(self):
+        dct = super().to_dict()
+        dct['angle'] = self.angle
+        return dct
+
     def __init__(self, angle=0, **nargs):
         anglerad = angle / 180 * np.pi
         nargs['cos_z']=np.cos(anglerad)
