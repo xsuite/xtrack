@@ -129,7 +129,7 @@ class Line:
         else:
             element_list = elements
             if element_names is None:
-                self.element_names = [ f"e{ii}" for ii in range(len(elements))]
+                element_names = [ f"e{ii}" for ii in range(len(elements))]
             element_dict = dict(zip(element_names,element_list))
 
         self.elements=elements
