@@ -4,7 +4,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
 import xpart as xp
 
 context = xo.ContextCpu()
@@ -75,19 +74,19 @@ interaction_process=DummyInteractionProcess(length=1., kick_x=4e-3,
 beam_interaction = xt.BeamInteraction(length=interaction_process.length,
                                       interaction_process=interaction_process)
 
-line = xl.Line(elements=[
-    xl.Multipole(knl=[0,0]),
-    xl.LimitEllipse(a=2e-2, b=2e-2),
-    xl.Drift(length=1.),
-    xl.Multipole(knl=[0,0]),
-    xl.LimitEllipse(a=2e-2, b=2e-2),
-    xl.Drift(length=2.),
+line = xt.Line(elements=[
+    xt.Multipole(knl=[0,0]),
+    xt.LimitEllipse(a=2e-2, b=2e-2),
+    xt.Drift(length=1.),
+    xt.Multipole(knl=[0,0]),
+    xt.LimitEllipse(a=2e-2, b=2e-2),
+    xt.Drift(length=2.),
     beam_interaction,
-    xl.Multipole(knl=[0,0]),
-    xl.LimitEllipse(a=2e-2, b=2e-2),
-    xl.Drift(length=10.),
-    xl.LimitEllipse(a=2e-2, b=2e-2),
-    xl.Drift(length=10.),
+    xt.Multipole(knl=[0,0]),
+    xt.LimitEllipse(a=2e-2, b=2e-2),
+    xt.Drift(length=10.),
+    xt.LimitEllipse(a=2e-2, b=2e-2),
+    xt.Drift(length=10.),
     ])
 
 tracker = xt.Tracker(line=line)

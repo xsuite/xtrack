@@ -3,7 +3,6 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-import xline as xl
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
@@ -33,7 +32,7 @@ shift_aper_1 = (shift_x, shift_y)
 rot_deg_aper_1 = 10.
 
 # aper_0_sandwitch
-trk_aper_0 = xt.Tracker(_buffer=buf, line=xl.Line(
+trk_aper_0 = xt.Tracker(_buffer=buf, line=xt.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
               aper_0,
@@ -42,7 +41,7 @@ trk_aper_0 = xt.Tracker(_buffer=buf, line=xl.Line(
               xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])]))
 
 # aper_1_sandwitch
-trk_aper_1 = xt.Tracker(_buffer=buf, line=xl.Line(
+trk_aper_1 = xt.Tracker(_buffer=buf, line=xt.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
               aper_1,
@@ -51,7 +50,7 @@ trk_aper_1 = xt.Tracker(_buffer=buf, line=xl.Line(
               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
 
 # Build example line
-tracker = xt.Tracker(_buffer=buf, line=xl.Line(
+tracker = xt.Tracker(_buffer=buf, line=xt.Line(
     elements = ((xt.Drift(_buffer=buf, length=0.5),)
                 + trk_aper_0.line.elements
                 + (xt.Drift(_buffer=buf, length=1),
@@ -97,8 +96,8 @@ assert np.all(r_calc[mask_lost]>1e-2)
 i_aper_1 = tracker.line.elements.index(aper_1)
 assert np.all(particles.at_element[mask_lost]==i_aper_1)
 assert np.all(particles.at_element[~mask_lost]==0)
-s0 = tracker.line.element_s_locations[tracker.line.elements.index(aper_0)]
-s1 = tracker.line.element_s_locations[tracker.line.elements.index(aper_1)]
+s0 = tracker.line.get_s_elements()[tracker.line.elements.index(aper_0)]
+s1 = tracker.line.get_s_elements()[tracker.line.elements.index(aper_1)]
 r0 = np.sqrt(aper_0.a_squ)
 r1 = np.sqrt(aper_1.a_squ)
 s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
@@ -150,7 +149,7 @@ ax.plot3D(
 s_check = []
 r_check = []
 for ee, ss in zip(interp_tracker.line.elements,
-                  interp_tracker.line.element_s_locations):
+                  interp_tracker.line.get_s_elements()):
     if ee.__class__ is xt.LimitPolygon:
         ax.plot3D(
                 ee.x_closed,

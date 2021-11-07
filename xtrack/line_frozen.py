@@ -51,6 +51,10 @@ class LineFrozen:
 
         self.elements = tuple(elements)
         self.element_names = tuple(element_names)
+
+        line.elements = self.elements
+        line.element_names = self.element_names
+
         self.element_s_locations = tuple(line.get_s_elements())
         self._line_data = line_data
         self._LineDataClass = LineDataClass

@@ -22,21 +22,21 @@ class LossLocationRefinement:
         else:
             self.tracker = tracker
 
-        self._context = self.tracker.line._buffer.context
+        self._context = self.tracker._line_frozen._buffer.context
         assert self._context.__class__ is xo.ContextCpu, (
                 "Other contexts are not supported!")
 
         # Build a polygon and compile the kernel
-        temp_poly = LimitPolygon(_buffer=self.tracker.line._buffer,
+        temp_poly = LimitPolygon(_buffer=self.tracker._line_frozen._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
         temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
                                    x_out=na([2]), y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        trk_gen = Tracker(_buffer=self.tracker.line._buffer,
+        trk_gen = Tracker(_buffer=self.tracker._line_frozen._buffer,
                 line=Line(
-                    elements=self.tracker.line.elements + (temp_poly,)))
+                    elements=self.tracker._line_frozen.elements + (temp_poly,)))
         self._trk_gen = trk_gen
 
         if backtracker is None:
@@ -289,8 +289,8 @@ def interp_aperture_using_polygons(context, tracker, backtracker,
 
 def generate_interp_aperture_locations(tracker, i_aper_0, i_aper_1, ds):
 
-    s0 = tracker.line.element_s_locations[i_aper_0]
-    s1 = tracker.line.element_s_locations[i_aper_1]
+    s0 = tracker._line_frozen.element_s_locations[i_aper_0]
+    s1 = tracker._line_frozen.element_s_locations[i_aper_1]
     assert s1>=s0
     n_segments = int(np.ceil(s1-s0)/ds)
     if n_segments <= 1:
@@ -311,7 +311,7 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
         ee = tracker.line.elements[i_ele]
         if not ee.__class__.__name__.startswith('Drift'):
             assert not hasattr(ee, 'isthick') or not ee.isthick
-            ss_ee = tracker.line.element_s_locations[i_ele]
+            ss_ee = tracker._line_frozen.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
             s_elements.append(ss_ee)
     i_sorted = np.argsort(s_elements)
