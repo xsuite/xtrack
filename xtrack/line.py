@@ -71,14 +71,14 @@ class Line:
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
         class_dict=mk_class_namespace(classes)
-        
+
         line_data, rest, iconv = _expand_struct(sixinput, convert=class_dict)
 
         ele_names = [dd[0] for dd in line_data]
         elements = [dd[2] for dd in line_data]
 
         line = cls(elements=elements, element_names=ele_names)
-        
+
         other_info = {}
         other_info["rest"] = rest
         other_info["iconv"] = iconv

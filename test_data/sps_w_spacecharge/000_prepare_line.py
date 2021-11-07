@@ -4,9 +4,9 @@ import numpy as np
 
 from cpymad.madx import Madx
 
-import xline as xl
 import xpart as xp
 import xobjects as xo
+import xtrack as xt
 
 import sc_tools as bt
 
@@ -21,7 +21,7 @@ mad = Madx()
 mad.call('sps_thin.seq')
 mad.use(seq_name)
 
-line_without_spacecharge = xl.Line.from_madx_sequence(
+line_without_spacecharge = xt.Line.from_madx_sequence(
                                             mad.sequence[seq_name],
                                             install_apertures=True)
 # enable RF in xline
@@ -87,7 +87,7 @@ part.y += 3e-3
 part.zeta += 20e-2
 with open('line_no_spacecharge_and_particle.json', 'w') as fid:
     json.dump({
-        'line': line_without_spacecharge.to_dict(keepextra=True),
+        'line': line_without_spacecharge.to_dict(),
         'particle': part.to_dict()},
         fid, cls=xo.JEncoder)
 
@@ -115,7 +115,7 @@ bt.install_sc_placeholders(
     mad, 'sps', sc_names, sc_locations, mode='Bunched')
 
 # Generate line with spacecharge
-line_with_spacecharge = xl.Line.from_madx_sequence(
+line_with_spacecharge = xt.Line.from_madx_sequence(
                                        mad.sequence['sps'],
                                        install_apertures=True)
 

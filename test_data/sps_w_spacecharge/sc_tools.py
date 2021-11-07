@@ -1,6 +1,5 @@
 import numpy as np
-import xline
-from xline import MadPoint
+from madpoint import MadPoint
 
 _sigma_names = [11, 12, 13, 14, 22, 23, 24, 33, 34, 44]
 _beta_names = ["betx", "bety"]
