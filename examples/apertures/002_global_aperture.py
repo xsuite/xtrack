@@ -2,7 +2,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
 import xpart as xp
 
 
@@ -31,8 +30,8 @@ particles = xp.Particles(_context=context,
 # Build a small test line
 tot_length = 2.
 n_slices = 10000
-line = xl.Line(elements=
-                n_slices*[xl.Drift(length=tot_length/n_slices)],
+line = xt.Line(elements=
+                n_slices*[xt.Drift(length=tot_length/n_slices)],
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
 tracker = xt.Tracker(_context=context, line=line, save_source_as='source.c')
