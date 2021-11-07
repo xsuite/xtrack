@@ -7,6 +7,7 @@ from cpymad.madx import Madx
 import xpart as xp
 import xobjects as xo
 import xtrack as xt
+import xfields as xf
 
 import sc_tools as bt
 
@@ -125,7 +126,7 @@ mad_sc_names, sc_twdata = bt.get_spacecharge_names_twdata(
 
 # Setup spacecharge
 sc_elements, sc_names = line_with_spacecharge.get_elements_of_type(
-        xl.elements.SCQGaussProfile
+       xf.SpaceChargeBiGaussian
     )
 bt.setup_spacecharge_bunched_in_line(
         sc_elements=sc_elements,
@@ -146,7 +147,7 @@ line_with_spacecharge.elements[i_cavity].lag = 180.
 
 with open('line_with_spacecharge_and_particle.json', 'w') as fid:
     json.dump({
-        'line': line_with_spacecharge.to_dict(keepextra=True),
+        'line': line_with_spacecharge.to_dict(),
         'particle': part.to_dict()},
         fid, cls=xo.JEncoder)
 

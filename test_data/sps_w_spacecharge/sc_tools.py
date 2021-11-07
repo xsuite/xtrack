@@ -162,7 +162,7 @@ def _setup_spacecharge_in_line(
 ):
 
     for ii, ss in enumerate(sc_elements):
-        ss.number_of_particles = number_of_particles
+        ss.longitudinal_profile.number_of_particles = number_of_particles
         ss.sigma_x = np.sqrt(
             sc_twdata["betx"][ii] * neps_x / betagamma
             + (sc_twdata["dispersion_x"][ii] * delta_rms) ** 2
@@ -172,9 +172,8 @@ def _setup_spacecharge_in_line(
             + (sc_twdata["dispersion_y"][ii] * delta_rms) ** 2
         )
         ss.length = sc_lengths[ii]
-        ss.x_co = sc_twdata["x"][ii]
-        ss.y_co = sc_twdata["y"][ii]
-        ss.enabled = True
+        ss.mean_x = sc_twdata["x"][ii]
+        ss.mean_y = sc_twdata["y"][ii]
 
 
 def setup_spacecharge_bunched_in_line(
@@ -190,7 +189,7 @@ def setup_spacecharge_bunched_in_line(
 ):
 
     for ii, ss in enumerate(sc_elements):
-        ss.bunchlength_rms = bunchlength_rms
+        ss.longitudinal_profile.sigma_z = bunchlength_rms
     _setup_spacecharge_in_line(
         sc_elements,
         sc_lengths,
