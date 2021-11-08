@@ -2,7 +2,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
 import xpart as xp
 from pathlib import Path
 
@@ -38,7 +37,7 @@ telem.track(part)
 # Use turn-by-turn monitor to acquire some statistics
 
 tracker = xt.Tracker(_buffer=telem._buffer,
-        line=xl.Line(elements=[telem]),
+        line=xt.Line(elements=[telem]),
             save_source_as='source.c')
 
 tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
