@@ -3,7 +3,6 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xtrack as xt
 import xpart as xp
 
@@ -27,7 +26,7 @@ context = xo.ContextCpu()
 
 with open(fname_sequence, 'r') as fid:
      input_data = json.load(fid)
-sequence = xl.Line.from_dict(input_data['line'])
+sequence = xt.Line.from_dict(input_data['line'])
 
 
 #########################

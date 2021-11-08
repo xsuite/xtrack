@@ -17,10 +17,6 @@ def _check_is_collective(ele):
 
 class Tracker:
 
-    @property
-    def _buffer(self):
-        return self._line_frozen._buffer
-
     def __init__(
         self,
         _context=None,
@@ -239,6 +235,7 @@ class Tracker:
         self.skip_end_turn_actions = skip_end_turn_actions
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
+        self._buffer = frozenline._buffer
 
         if track_kernel == 'skip':
             self.track_kernel = None
