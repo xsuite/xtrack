@@ -3,7 +3,6 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xpart as xp
 import xtrack as xt
 import xfields as xf
@@ -55,7 +54,7 @@ RR = np.array(ddd['RR_madx'])
 
 with open(fname_sequence, 'r') as fid:
      input_data = json.load(fid)
-sequence = xl.Line.from_dict(input_data['line'])
+sequence = xt.Line.from_dict(input_data['line'])
 
 ##########################
 # Configure space-charge #
