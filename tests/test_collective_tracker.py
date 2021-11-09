@@ -3,10 +3,11 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xtrack as xt
 import xfields as xf
 import xpart as xp
+
+import xslowtrack as xst
 
 def test_collective_tracker():
 
@@ -25,13 +26,12 @@ def test_collective_tracker():
 
         with open(path_sequence, 'r') as fid:
              input_data = json.load(fid)
-        sequence = xl.Line.from_dict(input_data['line'])
+        line = xt.Line.from_dict(input_data['line'])
 
         # Replace all spacecharge with xobjects
-        newseq = sequence.copy()
         _buffer = context.new_buffer()
         spch_elements = xf.replace_spaceharge_with_quasi_frozen(
-                                        newseq, _buffer=_buffer)
+                                        line, _buffer=_buffer)
 
         # For testing I make them frozen but I leave iscollective=True
         for ee in spch_elements:
@@ -46,7 +46,7 @@ def test_collective_tracker():
         #################
         print('Build tracker...')
         tracker= xt.Tracker(_buffer=_buffer,
-                     line=newseq)
+                     line=line)
 
         assert tracker.iscollective
         assert tracker.track == tracker._track_with_collective
@@ -70,15 +70,18 @@ def test_collective_tracker():
         #######################
         # Check against xline #
         #######################
+
+        testline = xst.TestLine.from_dict(input_data['line'])
+
         print('Check against xline ...')
         ip_check = 0
         vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-        pyst_part = xl.XlineTestParticles.from_dict(input_data['particle'])
+        pyst_part = xst.TestParticles.from_dict(input_data['particle'])
         for _ in range(n_turns):
-            sequence.track(pyst_part)
+            testline.track(pyst_part)
 
         for vv in vars_to_check:
-            pyst_value = getattr(pyst_part, vv)
+            pyst_value = getattr(pyst_part, vv)[0]
             xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
             passed = np.isclose(xt_value, pyst_value, rtol=2e-8, atol=7e-9)
             print(f'Check var {vv}:\n'

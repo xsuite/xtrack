@@ -500,6 +500,14 @@ class DipoleEdge(BeamElement):
             'r43': xo.Float64,
             }
 
+    def to_dict(self):
+        dct = super().to_dict()
+        dct['h'] = self.h
+        dct['e1'] = self.e1
+        dct['hgap'] = self.hgap
+        dct['fint'] = self.fint
+        return dct
+
     def __init__(
         self,
         r21=None,
@@ -533,6 +541,11 @@ class DipoleEdge(BeamElement):
             # again, the argument to the tan calculation should be limited
             assert not np.isclose(np.absolute(np.cos(e1 - temp)), ZERO)
             r43 = -h * np.tan(e1 - temp)
+
+            self.h = h
+            self.e1 = e1
+            self.hgap = hgap
+            self.fint = fint
 
         if r21 is not None and r43 is not None:
             kwargs['r21'] = r21

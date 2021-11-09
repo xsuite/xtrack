@@ -2,7 +2,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
 import xpart as xp
 
 
@@ -31,7 +30,7 @@ def test_aperture_turn_ele_and_monitor():
         # Build a small test line
         tot_length = 2.
         n_slices = 10000
-        sequence = xl.Line(elements=n_slices*[xl.Drift(
+        sequence = xt.Line(elements=n_slices*[xt.Drift(
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 
@@ -136,7 +135,7 @@ def test_custom_monitor():
         # Build a small test line
         tot_length = 2.
         n_slices = 10000
-        sequence = xl.Line(elements=n_slices*[xl.Drift(
+        sequence = xt.Line(elements=n_slices*[xt.Drift(
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 

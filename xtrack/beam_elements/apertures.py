@@ -28,6 +28,12 @@ class LimitEllipse(BeamElement):
             'a_b_squ': xo.Float64,
             }
 
+    def to_dict(self):
+        dct = super().to_dict()
+        dct['a'] = np.sqrt(self.a_squ)
+        dct['b'] = np.sqrt(self.b_squ)
+        return dct
+
     def __init__(self, a_squ=None, b_squ=None, **kwargs):
         if a_squ is None and "a" in kwargs:
             a = kwargs.get("a")
