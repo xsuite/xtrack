@@ -32,7 +32,7 @@ if any(ee.__class__.__name__.startswith('BeamBeam') for ee in line.elements):
             zeta=sixdump_CO.zeta[0],
             delta=sixdump_CO.delta[0])
     xf.configure_orbit_dependent_parameters_for_bb(tracker,
-                           particle_on_co=part_on_CO, xline=line)
+                           particle_on_co=part_on_CO)
 
 def compare(prun, pbench):
     out = []
@@ -56,7 +56,7 @@ for ii in range(1, len(iconv)):
                 **sixdump[ii - 1].get_minimal_beam())
     prun.state[0]=1
     prun.reorganize()
-    print(f"\n-----sixtrack={ii} xline={jja} --------------")
+    print(f"\n-----sixtrack={ii} xtrack={jja} --------------")
     # print(f"pysixtr {jja}, x={prun.x}, px={prun.px}")
     for jj in range(jja + 1, jjb + 1):
         label, elem = line.element_names[jj], line.elements[jj]

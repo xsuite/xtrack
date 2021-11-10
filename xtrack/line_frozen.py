@@ -12,10 +12,6 @@ class LineFrozen:
     def __init__(self, line,
            _context=None, _buffer=None,  _offset=None):
 
-        '''
-        At the moment the sequence is assumed to be a xline line.
-        This will be generalized in the future.
-        '''
 
         num_elements = len(line.elements)
 

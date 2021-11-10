@@ -446,7 +446,7 @@ class Line:
             # (...set up lattice and errors in cpymad...)
 
             seq = madx.sequence.some_lattice
-            xline_line = xline.Line.from_madx_sequence(
+            line = Line.from_madx_sequence(
                                     seq,
                                     apply_madx_errors=True
                               )

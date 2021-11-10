@@ -360,25 +360,3 @@ class MadPoint(object):
         return np.dot(dd, self.ex), np.dot(dd, self.ey)
 
 
-def mad_benchmark(mtype, attrs, pc=0.2, x=0, px=0, y=0, py=0, t=0, pt=0):
-    import xline
-    from cpymad.madx import Madx
-
-    mad = Madx(stdout=False)
-    madtype = mad.command[mtype]
-    mad.beam(particle="proton", pc=pc)
-    madtype.clone("mm", **attrs)
-    mad.input("bench: line=(mm)")
-    mad.use(sequence="bench")
-    mad.track(onepass=True, dump=False)
-    mad.start(x=x, px=px, y=y, py=py, t=t, pt=pt)
-    mad.run()
-    mad.endtrack()
-    p_mad = xline.Particles.from_madx_track(mad)
-    p_six = p_mad.copy(0)
-    line = xline.Line.from_madx_sequence(
-        mad.sequence.bench, exact_drift=True
-    )
-    line.track(p_six)
-    p_mad.copy(-1).compare(p_six, rel_tol=0)
-    return mad, line, p_mad, p_six

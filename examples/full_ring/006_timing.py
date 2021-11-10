@@ -7,7 +7,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-import xslowtrack as xst
+import ducktrack as dtk
 
 from make_short_line import make_short_line
 import time
@@ -120,15 +120,15 @@ print(f'Time {(t2-t1)*1000:.2f} ms')
 print(f'Time {(t2-t1)*1e6/num_turns/n_part:.2f} us/part/turn')
 
 
-#######################
-# Check against xline #
-#######################
+###########################
+# Check against ducktrack #
+###########################
 
-testline = xst.TestLine.from_dict(input_data['line'])
+testline = dtk.TestLine.from_dict(input_data['line'])
 
 ip_check = n_part//3*2
 
-print(f'\nTest against xline over {num_turns} turns on particle {ip_check}:')
+print(f'\nTest against ducktrack over {num_turns} turns on particle {ip_check}:')
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 part_dict = particles_before_tracking.to_dict()
 part_to_check = {}
@@ -138,25 +138,25 @@ for kk, vv in part_dict.items():
     else:
         part_to_check[kk] = part_dict[kk]
 
-xline_part = xst.TestParticles(**part_to_check)
+dtk_part = dtk.TestParticles(**part_to_check)
 
 
 for iturn in range(num_turns):
     print(f'turn {iturn}/{num_turns}', end='\r', flush=True)
-    testline.track(xline_part)
+    testline.track(dtk_part)
 
 for vv in vars_to_check:
-    xline_value = getattr(xline_part, vv)
+    dtk_value = getattr(dtk_part, vv)
     xt_value = context.nparray_from_context_array(
                         getattr(particles, vv)[ip_check])
-    passed = np.isclose(xt_value, xline_value,
+    passed = np.isclose(xt_value, dtk_value,
                         rtol=rtol_100turns, atol=atol_100turns)
     if not passed:
         print(f'Not passed on var {vv}!\n'
-              f'    xline:   {xline_value: .7e}\n'
+              f'    dtk:    {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
         raise ValueError
     else:
         print(f'Passed on var {vv}!\n'
-              f'    xline:   {xline_value: .7e}\n'
+              f'    dtk:    {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
