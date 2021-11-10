@@ -5,8 +5,9 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import xline as xl
 import xpart as xp
+
+import xslowtrack as xst
 
 from xobjects.context import available
 
@@ -53,13 +54,13 @@ def test_full_rings(element_by_element=False):
             # Get a sequence #
             ##################
 
-            sequence = xl.Line.from_dict(input_data['line'])
+            line = xt.Line.from_dict(input_data['line'])
 
             ##################
             # Build TrackJob #
             ##################
             print('Build tracker...')
-            tracker = xt.Tracker(_context=context, line=sequence)
+            tracker = xt.Tracker(_context=context, line=line)
 
             ######################
             # Get some particles #
@@ -76,15 +77,18 @@ def test_full_rings(element_by_element=False):
             #######################
             # Check against xline #
             #######################
+
+            testline = xst.TestLine.from_dict(input_data['line'])
+
             print('Check against ...')
             ip_check = 0
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-            pyst_part = xl.XlineTestParticles.from_dict(input_data['particle'])
+            pyst_part = xst.TestParticles.from_dict(input_data['particle'])
             for _ in range(n_turns):
-                sequence.track(pyst_part)
+                testline.track(pyst_part)
 
             for vv in vars_to_check:
-                pyst_value = getattr(pyst_part, vv)
+                pyst_value = getattr(pyst_part, vv)[0]
                 xt_value = context.nparray_from_context_array(
                                                   getattr(particles, vv))[ip_check]
                 passed = np.isclose(xt_value, pyst_value,
@@ -104,10 +108,10 @@ def test_full_rings(element_by_element=False):
                 backtracker = tracker.get_backtracker(_context=context)
                 backtracker.track(particles, num_turns=n_turns)
 
-                xl_part = xp.Particles.from_dict(input_data['particle'])
+                xl_part = xst.TestParticles(**input_data['particle'])
 
                 for vv in vars_to_check:
-                    xl_value = getattr(xl_part, vv)
+                    xl_value = getattr(xl_part, vv)[0]
                     xt_value = context.nparray_from_context_array(
                                                 getattr(particles, vv))[ip_check]
                     passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
@@ -122,48 +126,6 @@ def test_full_rings(element_by_element=False):
                               f'    xtrack: {xt_value: .7e}\n')
                         #raise ValueError
                         print('Test passed!')
-
-            ##############
-            # Check  ebe #
-            ##############
-            if element_by_element:
-                print('Check element-by-element against xline...')
-                pyst_part = xl.XlineTestParticles.from_dict(input_data['particle'])
-                vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-                problem_found = False
-                for ii, (eepyst, nn) in enumerate(zip(
-                                   sequence.elements, sequence.element_names)):
-                    vars_before = {vv :getattr(pyst_part, vv)
-                                                       for vv in vars_to_check}
-                    particles.set_particle(ip_check, **pyst_part.to_dict())
-
-                    tracker.track(particles, ele_start=ii, num_elements=1)
-
-                    eepyst.track(pyst_part)
-                    for vv in vars_to_check:
-                        pyst_change = getattr(pyst_part, vv) - vars_before[vv]
-                        xt_change = context.nparray_from_context_array(
-                            getattr(particles, vv))[ip_check] -vars_before[vv]
-                        passed = np.isclose(xt_change, pyst_change,
-                                                     rtol=1e-10, atol=5e-14)
-                        if not passed:
-                            problem_found = True
-                            print(f'Not passend on var {vv}!\n'
-                                  f'    pyst:   {pyst_change: .7e}\n'
-                                  f'    xtrack: {xt_change: .7e}\n')
-                            break
-
-                    if not passed:
-                        print(f'\nelement {nn}')
-                        break
-                    else:
-                        print(f'Check passed for element: {nn}              ',
-                                end='\r', flush=True)
-
-                if not problem_found:
-                    print('All passed on context:')
-                    print(context)
-
 
 
 def test_freeze_vars():
@@ -185,7 +147,7 @@ def test_freeze_vars():
         ##################
         # Get a sequence #
         ##################
-        sequence = xl.Line.from_dict(input_data['line'])
+        line = xt.Line.from_dict(input_data['line'])
 
         #################
         # Build Tracker #
@@ -193,7 +155,7 @@ def test_freeze_vars():
         print('Build tracker...')
         freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
         tracker = xt.Tracker(_context=context,
-                    line=sequence,
+                    line=line,
                     local_particle_src=xp.gen_local_particle_api(
                                                         freeze_vars=freeze_vars),
                     )
@@ -201,8 +163,10 @@ def test_freeze_vars():
         ######################
         # Get some particles #
         ######################
-        input_data['particle']['x'] += np.linspace(-1e-4, 1e-4, 10)
-        particles = xp.Particles(_context=context, **input_data['particle'])
+        particle_ref=xp.Particles(**input_data['particle'])
+        particles = xp.assemble_particles(_context=context,
+                particle_ref=particle_ref,
+                x=np.linspace(-1e-4, 1e-4, 10))
 
         particles_before_tracking = particles.copy()
 
