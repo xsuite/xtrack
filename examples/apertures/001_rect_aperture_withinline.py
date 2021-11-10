@@ -4,7 +4,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-import ducktrack as dt
+import ducktrack as dtk
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -18,7 +18,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-xlparticles = dt.TestParticles(
+xlparticles = dtk.TestParticles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -29,7 +29,7 @@ xlparticles = dt.TestParticles(
 
 particles = xp.Particles(_context=context, **xlparticles.to_dict())
 
-aper_test = dt.LimitRect(min_x=x_aper_min,
+aper_test = dtk.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
                                           min_y=y_aper_min,
                                           max_y=y_aper_max)

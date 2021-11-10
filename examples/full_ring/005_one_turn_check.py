@@ -7,7 +7,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-import xslowtrack as xst
+import ducktrack as dtk
 
 from make_short_line import make_short_line
 
@@ -85,27 +85,27 @@ print('Track a few turns...')
 n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
-############################
-# Check against xslowtrack #
-############################
-print('Check against xline...')
+###########################
+# Check against ducktrack #
+###########################
+print('Check against ducktrack...')
 
-testline = xst.TestLine.from_dict(input_data['line'])
+testline = dtk.TestLine.from_dict(input_data['line'])
 
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-xl_part = xst.TestParticles.from_dict(input_data['particle'])
+dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
 for _ in range(n_turns):
-   testline.track(xl_part)
+   testline.track(dtk_part)
 
 for vv in vars_to_check:
-    xl_value = getattr(xl_part, vv)
+    dtk_value = getattr(dtk_part, vv)
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-    passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns, atol=atol_10turns)
+    passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns, atol=atol_10turns)
 
     if not passed:
         print(f'Not passend on var {vv}!\n'
-              f'    xl:   {xl_value: .7e}\n'
+              f'    dtk:   {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
         raise ValueError
 
@@ -116,55 +116,55 @@ for vv in vars_to_check:
 if test_backtracker:
     backtracker.track(particles, num_turns=n_turns)
 
-    xl_part = xst.TestParticles.from_dict(input_data['particle'])
+    dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
 
     for vv in vars_to_check:
-        xl_value = getattr(xl_part, vv)
+        dtk_value = getattr(dtk_part, vv)
         xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-        passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
+        passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns,
                             atol=atol_10turns)
         if not passed and vv=='s':
-            passed = np.isclose(xt_value, xl_value,
+            passed = np.isclose(xt_value, dtk_value,
                     rtol=rtol_10turns, atol=1e-8)
 
         if not passed:
             print(f'Not passend on backtrack for var {vv}!\n'
-                  f'    xl:   {xl_value: .7e}\n'
+                  f'    dtk:   {dtk_value: .7e}\n'
                   f'    xtrack: {xt_value: .7e}\n')
             raise ValueError
 
 ##############
 # Check  ebe #
 ##############
-print('Check element-by-element against xline...')
-xl_part = xst.TestParticles.from_dict(input_data['particle'])
+print('Check element-by-element against ducktrack...')
+dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 diffs = []
 s_coord = []
-for ii, (eexl, nn) in enumerate(zip(testline.elements, testline.element_names)):
-    vars_before = {vv :getattr(xl_part, vv)[0] for vv in vars_to_check}
-    particles.set_particle(ip_check, **xl_part.to_dict())
+for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names)):
+    vars_before = {vv :getattr(dtk_part, vv)[0] for vv in vars_to_check}
+    particles.set_particle(ip_check, **dtk_part.to_dict())
 
     tracker.track(particles, ele_start=ii, num_elements=1)
 
-    eexl.track(xl_part)
-    s_coord.append(xl_part.s[0])
+    eedtk.track(dtk_part)
+    s_coord.append(dtk_part.s[0])
     diffs.append([])
     for vv in vars_to_check:
-        xl_change = getattr(xl_part, vv) - vars_before[vv]
+        dtk_change = getattr(dtk_part, vv) - vars_before[vv]
         xt_change = (context.nparray_from_context_array(
                 getattr(particles, vv))[ip_check]- vars_before[vv])
-        passed = np.isclose(xt_change, xl_change, rtol=1e-10, atol=5e-14)
+        passed = np.isclose(xt_change, dtk_change, rtol=1e-10, atol=5e-14)
         if not passed:
             problem_found = True
             print(f'Not passend on var {vv}!\n'
-                  f'    xl:   {xl_change: .7e}\n'
+                  f'    dtk:   {dtk_change: .7e}\n'
                   f'    xtrack: {xt_change: .7e}\n')
             break
         diffs[-1].append(np.abs(
             context.nparray_from_context_array(
-                getattr(particles, vv))[ip_check] - getattr(xl_part, vv)[0]))
+                getattr(particles, vv))[ip_check] - getattr(dtk_part, vv)[0]))
 
     if not passed:
         print(f'\nelement {nn}')
