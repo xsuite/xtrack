@@ -23,6 +23,7 @@ setup(
     install_requires=[
         'numpy>=1.0',
         'scipy',
-        'xobjects>=0.0.8',
+        'xobjects',
+        'xpart'
         ]
     )
