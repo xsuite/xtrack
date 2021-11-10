@@ -25,7 +25,7 @@ mad.use(seq_name)
 line_without_spacecharge = xt.Line.from_madx_sequence(
                                             mad.sequence[seq_name],
                                             install_apertures=True)
-# enable RF in xline
+# enable RF
 V_RF = 3e6
 i_cavity = line_without_spacecharge.element_names.index('acta.31637')
 line_without_spacecharge.elements[i_cavity].voltage = V_RF

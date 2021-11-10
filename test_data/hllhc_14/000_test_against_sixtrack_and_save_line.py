@@ -18,7 +18,7 @@ import xfields as xf
 sixinput = sixtracktools.SixInput(".")
 p0c_eV = sixinput.initialconditions[-3] * 1e6
 
-# Build xline line from sixtrack input
+# Build line from sixtrack input
 line = xt.Line.from_sixinput(sixinput)
 
 # Info on sixtrack->pyblep conversion
@@ -58,7 +58,7 @@ for nn in "x px y py zeta delta".split():
 #######################################################
 
 xf.configure_orbit_dependent_parameters_for_bb(tracker,
-                       particle_on_co=part_on_CO, xline=line)
+                       particle_on_co=part_on_CO)
 
 
 ################
