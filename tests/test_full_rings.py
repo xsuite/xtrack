@@ -164,7 +164,7 @@ def test_freeze_vars():
         # Get some particles #
         ######################
         particle_ref=xp.Particles(**input_data['particle'])
-        particles = xp.assemble_particles(_context=context,
+        particles = xp.build_particles(_context=context,
                 particle_ref=particle_ref,
                 x=np.linspace(-1e-4, 1e-4, 10))
 

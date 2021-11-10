@@ -101,7 +101,7 @@ part_ref = xp.Particles(**input_data['particle'])
 
 # Go from one particle to many particles
 
-particles = xp.assemble_particles(_context=context,
+particles = xp.build_particles(_context=context,
     particle_ref=part_ref,
     x=np.linspace(-1e-4, 1e-4, n_part),
     y=np.linspace(-2e-4, 2e-4, n_part))

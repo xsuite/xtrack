@@ -59,7 +59,7 @@ tracker = xt.Tracker(_context=context,
 # Get some particles #
 ######################
 part0 = xp.Particles(_context=context, **input_data['particle'])
-particles = xp.assemble_particles(_context=context,
+particles = xp.build_particles(_context=context,
         x=np.linspace(-1e-4, 1e-4, 10), particle_ref=part0)
 
 
