@@ -7,7 +7,7 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-import xslowtrack as xst
+import ducktrack as dtk
 
 from xobjects.context import available
 
@@ -74,27 +74,27 @@ def test_full_rings(element_by_element=False):
             n_turns = 10
             tracker.track(particles, num_turns=n_turns)
 
-            #######################
-            # Check against xline #
-            #######################
+            ###########################
+            # Check against ducktrack #
+            ###########################
 
-            testline = xst.TestLine.from_dict(input_data['line'])
+            testline = dtk.TestLine.from_dict(input_data['line'])
 
             print('Check against ...')
             ip_check = 0
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-            pyst_part = xst.TestParticles.from_dict(input_data['particle'])
+            dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
             for _ in range(n_turns):
-                testline.track(pyst_part)
+                testline.track(dtk_part)
 
             for vv in vars_to_check:
-                pyst_value = getattr(pyst_part, vv)[0]
+                dtk_value = getattr(dtk_part, vv)[0]
                 xt_value = context.nparray_from_context_array(
                                                   getattr(particles, vv))[ip_check]
-                passed = np.isclose(xt_value, pyst_value,
+                passed = np.isclose(xt_value, dtk_value,
                                     rtol=rtol_10turns, atol=atol_10turns)
                 print(f'Varable {vv}:\n'
-                      f'    pyst:   {pyst_value: .7e}\n'
+                      f'    dtk:    {dtk_value: .7e}\n'
                       f'    xtrack: {xt_value: .7e}\n')
                 if not passed:
                     raise ValueError('Discrepancy found!')
@@ -108,21 +108,21 @@ def test_full_rings(element_by_element=False):
                 backtracker = tracker.get_backtracker(_context=context)
                 backtracker.track(particles, num_turns=n_turns)
 
-                xl_part = xst.TestParticles(**input_data['particle'])
+                dtk_part = dtk.TestParticles(**input_data['particle'])
 
                 for vv in vars_to_check:
-                    xl_value = getattr(xl_part, vv)[0]
+                    dtk_value = getattr(dtk_part, vv)[0]
                     xt_value = context.nparray_from_context_array(
                                                 getattr(particles, vv))[ip_check]
-                    passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns,
+                    passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns,
                                         atol=atol_10turns)
                     if not passed and vv=='s':
-                        passed = np.isclose(xt_value, xl_value,
+                        passed = np.isclose(xt_value, dtk_value,
                                 rtol=rtol_10turns, atol=1e-8)
 
                     if not passed:
                         print(f'Not passend on backtrack for var {vv}!\n'
-                              f'    xl:   {xl_value: .7e}\n'
+                              f'    dtk:    {dtk_value: .7e}\n'
                               f'    xtrack: {xt_value: .7e}\n')
                         #raise ValueError
                         print('Test passed!')

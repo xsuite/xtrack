@@ -7,7 +7,7 @@ import xtrack as xt
 import xfields as xf
 import xpart as xp
 
-import xslowtrack as xst
+import ducktrack as dtk
 
 def test_collective_tracker():
 
@@ -67,25 +67,25 @@ def test_collective_tracker():
 
         assert tracker.record_last_track.x.shape == (1, 10)
 
-        #######################
-        # Check against xline #
-        #######################
+        ###########################
+        # Check against ducktrack #
+        ###########################
 
-        testline = xst.TestLine.from_dict(input_data['line'])
+        testline = dtk.TestLine.from_dict(input_data['line'])
 
-        print('Check against xline ...')
+        print('Check against ducktrack ...')
         ip_check = 0
         vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-        pyst_part = xst.TestParticles.from_dict(input_data['particle'])
+        dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
         for _ in range(n_turns):
-            testline.track(pyst_part)
+            testline.track(dtk_part)
 
         for vv in vars_to_check:
-            pyst_value = getattr(pyst_part, vv)[0]
+            dtk_value = getattr(dtk_part, vv)[0]
             xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-            passed = np.isclose(xt_value, pyst_value, rtol=2e-8, atol=7e-9)
+            passed = np.isclose(xt_value, dtk_value, rtol=2e-8, atol=7e-9)
             print(f'Check var {vv}:\n'
-                  f'    pyst:   {pyst_value: .7e}\n'
+                  f'    dtk:    {dtk_value: .7e}\n'
                   f'    xtrack: {xt_value: .7e}\n')
             if not passed:
                 raise ValueError

@@ -48,7 +48,7 @@ part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
 RR = np.array(ddd['RR_madx'])
 
 ##################################################
-#                   Load xline                   #
+#                   Load line                    #
 # (assume frozen SC lenses are alredy installed) #
 ##################################################
 
