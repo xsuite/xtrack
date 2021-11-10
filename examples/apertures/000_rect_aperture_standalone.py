@@ -4,7 +4,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-import xslowtrack as xst
+import ducktrack as dt
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -18,7 +18,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-pyst_part = xst.TestParticles(
+test_part = dt.TestParticles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -27,18 +27,18 @@ pyst_part = xst.TestParticles(
         sigma = np.zeros(n_part),
         delta = np.zeros(n_part))
 
-particles = xp.Particles(_context=context, **pyst_part.to_dict())
+particles = xp.Particles(_context=context, **test_part.to_dict())
 
-aper_pyst = xst.elements.LimitRect(min_x=x_aper_min,
+aper_test = dt.elements.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
                                           min_y=y_aper_min,
                                           max_y=y_aper_max)
 
 aper = xt.LimitRect(_context=context,
-                    **aper_pyst.to_dict())
+                    **aper_test.to_dict())
 aper.track(particles)
 
-aper_pyst.track(pyst_part)
+aper_test.track(test_part)
 
 part_id = context.nparray_from_context_array(particles.particle_id)
 part_state = context.nparray_from_context_array(particles.state)
@@ -47,7 +47,7 @@ part_y = context.nparray_from_context_array(particles.y)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(pyst_part.particle_id, id_alive)
+assert np.allclose(test_part.particle_id, id_alive)
 
 import matplotlib.pyplot as plt
 plt.close('all')
