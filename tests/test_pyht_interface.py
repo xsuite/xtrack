@@ -11,7 +11,7 @@ def test_instability():
 
     import xobjects as xo
     import xtrack as xt
-    from xtrack.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
+    from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
     from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
     from PyHEADTAIL.particles.slicing import UniformBinSlicer
