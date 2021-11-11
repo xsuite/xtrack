@@ -23,7 +23,7 @@ num_turns=32
 
 mode = 'frozen'
 mode = 'quasi-frozen'
-#mode = 'pic'
+mode = 'pic'
 
 ####################
 # Choose a context #
