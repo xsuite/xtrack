@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+from scipy.optimize import fsolve
 
 from .general import _pkg_root
 from .line_frozen import LineFrozen
@@ -245,6 +246,22 @@ class Tracker:
             self.track_kernel = track_kernel
 
         self.track=self._track_no_collective
+
+    def find_closed_orbit(self, particle_co_guess):
+        res = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, self),
+              x0=np.array([particle_co_guess.x, particle_co_guess.px,
+                           particle_co_guess.y, particle_co_guess.py,
+                           particle_co_guess.zeta, particle_co_guess.delta]))
+
+        particle_on_co = particle_co_guess.copy()
+        particle_on_co.x = res[0]
+        particle_on_co.px = res[1]
+        particle_on_co.y = res[2]
+        particle_on_co.py = res[3]
+        particle_on_co.zeta = res[4]
+        particle_on_co.update_delta(res[5])
+
+        return particle_on_co
 
     def get_backtracker(self, _context=None, _buffer=None):
 
@@ -542,4 +559,24 @@ class Tracker:
                 out.append(part.copy())
                 self.track(part,ele_start=ii,num_elements=1)
             return out
+
+def _one_turn_map(p, particle_ref, tracker):
+    part = particle_ref.copy()
+    part.x = p[0]
+    part.px = p[1]
+    part.y = p[2]
+    part.py = p[3]
+    part.zeta = p[4]
+    part.delta = p[5]
+
+    tracker.track(part)
+    p_res = np.array([
+           part.x[0],
+           part.px[0],
+           part.y[0],
+           part.py[0],
+           part.zeta[0],
+           part.delta[0]])
+    return p_res
+
 
