@@ -249,9 +249,12 @@ class Tracker:
 
     def find_closed_orbit(self, particle_co_guess):
         res = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, self),
-              x0=np.array([particle_co_guess.x, particle_co_guess.px,
-                           particle_co_guess.y, particle_co_guess.py,
-                           particle_co_guess.zeta, particle_co_guess.delta]))
+              x0=np.array([particle_co_guess._xobject.x[0],
+                           particle_co_guess._xobject.px[0],
+                           particle_co_guess._xobject.y[0],
+                           particle_co_guess._xobject.py[0],
+                           particle_co_guess._xobject.zeta[0],
+                           particle_co_guess._xobject.delta[0]]))
 
         particle_on_co = particle_co_guess.copy()
         particle_on_co.x = res[0]
@@ -571,12 +574,12 @@ def _one_turn_map(p, particle_ref, tracker):
 
     tracker.track(part)
     p_res = np.array([
-           part.x[0],
-           part.px[0],
-           part.y[0],
-           part.py[0],
-           part.zeta[0],
-           part.delta[0]])
+           part._xobject.x[0],
+           part._xobject.px[0],
+           part._xobject.y[0],
+           part._xobject.py[0],
+           part._xobject.zeta[0],
+           part._xobject.delta[0]])
     return p_res
 
 

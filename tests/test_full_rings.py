@@ -127,6 +127,25 @@ def test_full_rings(element_by_element=False):
                         #raise ValueError
                         print('Test passed!')
 
+            ######################
+            # Check closed orbit #
+            ######################
+
+            part_co = tracker.find_closed_orbit(particle_co_guess=xp.Particles(
+                                        _context=context,
+                                        p0c=input_data['particle']['p0c']))
+
+            parttest = part_co.copy()
+            for _ in range(10):
+               tracker.track(parttest)
+               assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
+                                 rtol=0, atol=1e-9)
+               assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
+                                 rtol=0, atol=1e-9)
+               assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
+                                 rtol=0, atol=5e-9)
+
+
 
 def test_freeze_vars():
     for context in xo.context.get_test_contexts():
