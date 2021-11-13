@@ -5,7 +5,7 @@ import xobjects as xo
 
 from .loader_sixtrack import _expand_struct
 from .loader_mad import iter_from_madx_sequence
-from .beam_elements import element_classes
+from .beam_elements import element_classes, Multipole
 from . import beam_elements
 
 
@@ -141,7 +141,7 @@ class Line:
         self._manager=None # TODO xdeps
 
     def __len__(self):
-        return len(self.elements_names)
+        return len(self.element_names)
 
     def to_dict(self):
         out = {}
@@ -217,9 +217,8 @@ class Line:
             newline.append_element(ee, nn)
 
         if inplace:
-            self.elements.clear()
-            self.element_names.clear()
-            self.append_line(newline)
+            self.elements = newline.elements
+            self.element_names = newline.element_names
             return self
         else:
             return newline
@@ -234,9 +233,8 @@ class Line:
             newline.append_element(ee, nn)
 
         if inplace:
-            self.elements.clear()
-            self.element_names.clear()
-            self.append_line(newline)
+            self.elements = newline.elements
+            self.element_names = newline.element_names
             return self
         else:
             return newline
@@ -262,9 +260,8 @@ class Line:
                 newline.append_element(ee, nn)
 
         if inplace:
-            self.elements.clear()
-            self.element_names.clear()
-            self.append_line(newline)
+            self.elements = newline.elements
+            self.element_names = newline.element_names
             return self
         else:
             return newline
@@ -280,7 +277,10 @@ class Line:
             if isinstance(ee, beam_elements.Multipole):
                 prev_ee = newline.elements[-1]
                 prev_nn = newline.element_names[-1]
-                if isinstance(prev_ee, beam_elements.Multipole) and prev_ee.hxl==ee.hxl and prev_ee.hyl==ee.hyl:
+                if (isinstance(prev_ee, beam_elements.Multipole)
+                    and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
+                    ):
+
                     oo=max(len(prev_ee.knl),len(prev_ee.ksl),len(ee.knl),len(ee.ksl))
                     knl=np.zeros(oo,dtype=float)
                     ksl=np.zeros(oo,dtype=float)
@@ -292,19 +292,21 @@ class Line:
                         ksl[ii]+=kk
                     for ii,kk in enumerate(ee.ksl):
                         ksl[ii]+=kk
-                    prev_ee.knl=knl
-                    prev_ee.ksl=ksl
+                    newee = beam_elements.Multipole(
+                            knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
+                            length=prev_ee.length,
+                            radiation_flag=prev_ee.radiation_flag)
                     prev_nn += ('_' + nn)
                     newline.element_names[-1] = prev_nn
+                    newline.elements[-1] = newee
                 else:
                     newline.append_element(ee, nn)
             else:
                 newline.append_element(ee, nn)
 
         if inplace:
-            self.elements.clear()
-            self.element_names.clear()
-            self.append_line(newline)
+            self.elements = newline.elements
+            self.element_names = newline.element_names
             return self
         else:
             return newline
@@ -418,19 +420,32 @@ class Line:
     def _add_multipole_error_to(self, element_name, knl=[], ksl=[]):
         # will raise error if element not present:
         assert element_name in self.element_names
-        element = self.elements[self.element_names.index(element_name)]
-        # normal components
-        knl = np.trim_zeros(knl, trim="b")
-        if len(element.knl) < len(knl):
-            element.knl += [0] * (len(knl) - len(element.knl))
-        for i, component in enumerate(knl):
-            element.knl[i] += component
-        # skew components
-        ksl = np.trim_zeros(ksl, trim="b")
-        if len(element.ksl) < len(ksl):
-            element.ksl += [0] * (len(ksl) - len(element.ksl))
-        for i, component in enumerate(ksl):
-            element.ksl[i] += component
+        element_index = self.element_names.index(element_name)
+        element = self.elements[element_index]
+
+        new_order = max([len(knl), len(ksl), len(element.knl), len(element.ksl)])
+        new_knl = new_order*[0]
+        new_ksl = new_order*[0]
+
+        # Original strengths
+        for ii, vv in enumerate(element.knl):
+            new_knl[ii] += element.knl[ii]
+        for ii, vv in enumerate(element.ksl):
+            new_ksl[ii] += element.ksl[ii]
+
+        # Errors
+        for ii, vv in enumerate(knl):
+            new_knl[ii] += knl[ii]
+        for ii, vv in enumerate(ksl):
+            new_ksl[ii] += ksl[ii]
+
+        new_element = Multipole(knl=new_knl, ksl=new_ksl,
+                length=element.length, hxl=element.hxl,
+                hyl=element.hyl, radiation_flag=element.radiation_flag)
+
+        self.elements[element_index] = new_element
+
+
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing

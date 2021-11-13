@@ -267,7 +267,7 @@ class Tracker:
         return particle_on_co
 
     def compute_one_turn_matrix_finite_differences(
-            self, particle_on_co
+            self, particle_on_co,
             dx=1e-9, dpx=1e-12, dy=1e-9, dpy=1e-12,
             dzeta=1e-9, ddelta=1e-9):
 

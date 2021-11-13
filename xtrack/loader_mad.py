@@ -126,7 +126,7 @@ def iter_from_madx_sequence(
                 # BB interaction is 6D
 
                 import xfields as xf
-                newele = xf.BeamBeamBiGaussian3D(old_interface=**{
+                newele = xf.BeamBeamBiGaussian3D(old_interface={
                     'phi': 0.0,
                     'alpha': 0.0,
                     'x_bb_co': 0.0,
@@ -165,7 +165,7 @@ def iter_from_madx_sequence(
                     mean_x=0.,
                     mean_y=0.,
                     sigma_x=1.,
-                    sigma_y=1.
+                    sigma_y=1.,
                     d_px=0,
                     d_py=0)
 
