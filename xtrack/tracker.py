@@ -266,6 +266,31 @@ class Tracker:
 
         return particle_on_co
 
+    def compute_one_turn_matrix_finite_differences(
+            self, particle_on_co
+            dx=1e-9, dpx=1e-12, dy=1e-9, dpy=1e-12,
+            dzeta=1e-9, ddelta=1e-9):
+
+        assert isinstance(self._buffer.context, xo.ContextCpu), (
+                "This feature is not yet supported on GPU")
+
+        # Find R matrix
+        p0 = np.array([
+               particle_on_co.x[0],
+               particle_on_co.px[0],
+               particle_on_co.y[0],
+               particle_on_co.py[0],
+               particle_on_co.zeta[0],
+               particle_on_co.delta[0]])
+        II = np.eye(6)
+        RR = np.zeros((6, 6), dtype=np.float64)
+        for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
+            RR[:,jj]=(_one_turn_map(p0+II[jj]*dd, particle_on_co, self)-
+                      _one_turn_map(p0-II[jj]*dd, particle_on_co, self))/(2*dd)
+
+        return RR
+
+
     def get_backtracker(self, _context=None, _buffer=None):
 
         assert not self.iscollective
