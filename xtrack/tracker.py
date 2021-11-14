@@ -268,8 +268,8 @@ class Tracker:
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
-            dx=1e-9, dpx=1e-12, dy=1e-9, dpy=1e-12,
-            dzeta=1e-9, ddelta=1e-9):
+            dx=1e-7, dpx=1e-10, dy=1e-7, dpy=1e-10,
+            dzeta=1e-6, ddelta=1e-7):
 
         assert isinstance(self._buffer.context, xo.ContextCpu), (
                 "This feature is not yet supported on GPU")
