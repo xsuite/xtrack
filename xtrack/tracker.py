@@ -595,7 +595,7 @@ def _one_turn_map(p, particle_ref, tracker):
     part.y = p[2]
     part.py = p[3]
     part.zeta = p[4]
-    part.delta = p[5]
+    part.update_delta(p[5])
 
     tracker.track(part)
     p_res = np.array([
