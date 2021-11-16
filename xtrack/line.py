@@ -49,6 +49,7 @@ class AttrDict(dict):
 
 
 class Line:
+
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         class_dict=mk_class_namespace(classes)
@@ -140,6 +141,15 @@ class Line:
         self._vars={} #TODO xdeps
         self._manager=None # TODO xdeps
 
+    def _freeze(self):
+        self.elements = tuple(self.elements)
+        self.element_names = tuple(self.element_names)
+
+    def _frozen_check(self):
+        if isinstance(self.elements, tuple):
+            raise ValueError(
+                'This action is not allowed as the line is forzen!')
+
     def __len__(self):
         return len(self.element_names)
 
@@ -173,12 +183,18 @@ class Line:
         return out
 
     def insert_element(self, idx, element, name):
+
+        self._frozen_check()
+
         self.elements.insert(idx, element)
         self.element_names.insert(idx, name)
         # assert len(self.elements) == len(self.element_names)
         return self
 
     def append_element(self, element, name):
+
+        self._frozen_check()
+
         self.elements.append(element)
         self.element_names.append(name)
         # assert len(self.elements) == len(self.element_names)
@@ -207,6 +223,9 @@ class Line:
         return s
 
     def remove_inactive_multipoles(self, inplace=False):
+
+        self._frozen_check()
+
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
@@ -224,6 +243,9 @@ class Line:
             return newline
 
     def remove_zero_length_drifts(self, inplace=False):
+
+        self._frozen_check()
+
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
@@ -240,6 +262,9 @@ class Line:
             return newline
 
     def merge_consecutive_drifts(self, inplace=False):
+
+        self._frozen_check()
+
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
@@ -267,6 +292,9 @@ class Line:
             return newline
 
     def merge_consecutive_multipoles(self, inplace=False):
+
+        self._frozen_check()
+
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
@@ -281,7 +309,8 @@ class Line:
                     and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
                     ):
 
-                    oo=max(len(prev_ee.knl),len(prev_ee.ksl),len(ee.knl),len(ee.ksl))
+                    oo=max(len(prev_ee.knl), len(prev_ee.ksl),
+                           len(ee.knl), len(ee.ksl))
                     knl=np.zeros(oo,dtype=float)
                     ksl=np.zeros(oo,dtype=float)
                     for ii,kk in enumerate(prev_ee.knl):
@@ -339,9 +368,6 @@ class Line:
                     elem_idx.append(idx+start_idx_offset)
                     break
         return elem_idx
-
-
-
 
     # error handling (alignment, multipole orders, ...):
 

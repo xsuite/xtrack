@@ -217,6 +217,7 @@ class Tracker:
                 particles_monitor_class.XoStruct,
             ]
 
+        line._freeze()
         self.line = line
         self._line_frozen = frozenline
         ele_offsets = np.array([ee._offset for ee in frozenline.elements], dtype=np.int64)
