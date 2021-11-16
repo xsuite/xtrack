@@ -581,12 +581,12 @@ class Tracker:
         return flag_tbt, monitor, buffer_monitor, offset_monitor
 
 
-        def _slow_track_ebe(self,part):
-            out=[]
-            for ii in range(len(line.elements)):
-                out.append(part.copy())
-                self.track(part,ele_start=ii,num_elements=1)
-            return out
+    def _slow_track_ebe(self,part):
+        out=[]
+        for ii in range(len(line.elements)):
+            out.append(part.copy())
+            self.track(part,ele_start=ii,num_elements=1)
+        return out
 
 def _one_turn_map(p, particle_ref, tracker):
     part = particle_ref.copy()
