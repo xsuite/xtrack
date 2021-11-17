@@ -148,7 +148,7 @@ class Line:
     def _frozen_check(self):
         if isinstance(self.elements, tuple):
             raise ValueError(
-                'This action is not allowed as the line is forzen!')
+                'This action is not allowed as the line is frozen!')
 
     def __len__(self):
         return len(self.element_names)

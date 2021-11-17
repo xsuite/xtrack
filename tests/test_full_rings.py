@@ -139,11 +139,11 @@ def test_full_rings(element_by_element=False):
             for _ in range(10):
                tracker.track(parttest)
                assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
-                                 rtol=0, atol=1e-9)
+                                 rtol=0, atol=1e-11)
                assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
-                                 rtol=0, atol=1e-9)
+                                 rtol=0, atol=1e-11)
                assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
-                                 rtol=0, atol=5e-9)
+                                 rtol=0, atol=1e-11)
 
 
 
