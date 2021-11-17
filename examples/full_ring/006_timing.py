@@ -74,14 +74,14 @@ elif str(fname_line_particles).endswith('.json'):
 #         ee['__class__'] = 'Drift'
 #         ee['length'] = 0.
 
-##################
-# Get a sequence #
-##################
+##############
+# Get a line #
+##############
 
-print('Import sequence')
+print('Import line')
 line= xt.Line.from_dict(input_data['line'])
 if short_test:
-    sequence = make_short_line(sequence)
+    line = make_short_line(line)
 
 ##################
 # Build TrackJob #

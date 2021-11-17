@@ -36,13 +36,13 @@ elif str(fname_line_particles).endswith('.json'):
     with open(fname_line_particles, 'r') as fid:
         input_data = json.load(fid)
 
-##################
-# Get a sequence #
-##################
+##############
+# Get a line #
+##############
 
-sequence = xt.Line.from_dict(input_data['line'])
+line = xt.Line.from_dict(input_data['line'])
 if short_test:
-    sequence = make_short_line(sequence)
+    line = make_short_line(line)
 
 #################
 # Build Tracker #
@@ -50,7 +50,7 @@ if short_test:
 print('Build tracker...')
 freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
 tracker = xt.Tracker(_context=context,
-            line=sequence,
+            line=line,
             local_particle_src=xp.gen_local_particle_api(
                                                 freeze_vars=freeze_vars),
             )
