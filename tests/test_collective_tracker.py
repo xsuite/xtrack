@@ -30,7 +30,7 @@ def test_collective_tracker():
 
         # Replace all spacecharge with xobjects
         _buffer = context.new_buffer()
-        spch_elements = xf.replace_spaceharge_with_quasi_frozen(
+        spch_elements = xf.replace_spacecharge_with_quasi_frozen(
                                         line, _buffer=_buffer)
 
         # For testing I make them frozen but I leave iscollective=True

@@ -59,12 +59,12 @@ sigma_y = first_sc.sigma_y
 if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
-    xf.replace_spaceharge_with_quasi_frozen(
+    xf.replace_spacecharge_with_quasi_frozen(
                                     line, _buffer=_buffer,
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
-    pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
+    pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
         _context=context, sequence=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
