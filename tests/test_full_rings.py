@@ -51,7 +51,7 @@ def test_full_rings(element_by_element=False):
                     input_data = json.load(fid)
 
             ##################
-            # Get a sequence #
+            # Get a line #
             ##################
 
             line = xt.Line.from_dict(input_data['line'])
@@ -163,9 +163,9 @@ def test_freeze_vars():
         with open(fname_line_particles, 'r') as fid:
             input_data = json.load(fid)
 
-        ##################
-        # Get a sequence #
-        ##################
+        ##############
+        # Get a line #
+        ##############
         line = xt.Line.from_dict(input_data['line'])
 
         #################
