@@ -7,7 +7,7 @@ import xpart as xp
 import xtrack as xt
 import xfields as xf
 
-fname_sequence = ('../../test_data/sps_w_spacecharge/'
+fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 
 fname_optics = ('../../test_data/sps_w_spacecharge/'
@@ -21,8 +21,8 @@ n_part=int(1e6)
 rf_voltage=3e6
 num_turns=32
 
-mode = 'frozen'
-mode = 'quasi-frozen'
+#mode = 'frozen'
+#mode = 'quasi-frozen'
 mode = 'pic'
 
 ####################
@@ -40,11 +40,11 @@ print(context)
 arr2ctx = context.nparray_to_context_array
 ctx2arr = context.nparray_from_context_array
 
-##################
-# Get a sequence #
-##################
+##############
+# Get a line #
+##############
 
-with open(fname_sequence, 'r') as fid:
+with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
 
@@ -65,7 +65,7 @@ elif mode == 'quasi-frozen':
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
     pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
-        _context=context, sequence=line,
+        _context=context, line=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
