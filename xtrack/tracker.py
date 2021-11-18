@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+from scipy.optimize import fsolve
 
 from .general import _pkg_root
 from .line_frozen import LineFrozen
@@ -216,6 +217,7 @@ class Tracker:
                 particles_monitor_class.XoStruct,
             ]
 
+        line._freeze()
         self.line = line
         self._line_frozen = frozenline
         ele_offsets = np.array([ee._offset for ee in frozenline.elements], dtype=np.int64)
@@ -245,6 +247,50 @@ class Tracker:
             self.track_kernel = track_kernel
 
         self.track=self._track_no_collective
+
+    def find_closed_orbit(self, particle_co_guess):
+        res = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, self),
+              x0=np.array([particle_co_guess._xobject.x[0],
+                           particle_co_guess._xobject.px[0],
+                           particle_co_guess._xobject.y[0],
+                           particle_co_guess._xobject.py[0],
+                           particle_co_guess._xobject.zeta[0],
+                           particle_co_guess._xobject.delta[0]]))
+
+        particle_on_co = particle_co_guess.copy()
+        particle_on_co.x = res[0]
+        particle_on_co.px = res[1]
+        particle_on_co.y = res[2]
+        particle_on_co.py = res[3]
+        particle_on_co.zeta = res[4]
+        particle_on_co.update_delta(res[5])
+
+        return particle_on_co
+
+    def compute_one_turn_matrix_finite_differences(
+            self, particle_on_co,
+            dx=1e-7, dpx=1e-10, dy=1e-7, dpy=1e-10,
+            dzeta=1e-6, ddelta=1e-7):
+
+        assert isinstance(self._buffer.context, xo.ContextCpu), (
+                "This feature is not yet supported on GPU")
+
+        # Find R matrix
+        p0 = np.array([
+               particle_on_co.x[0],
+               particle_on_co.px[0],
+               particle_on_co.y[0],
+               particle_on_co.py[0],
+               particle_on_co.zeta[0],
+               particle_on_co.delta[0]])
+        II = np.eye(6)
+        RR = np.zeros((6, 6), dtype=np.float64)
+        for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
+            RR[:,jj]=(_one_turn_map(p0+II[jj]*dd, particle_on_co, self)-
+                      _one_turn_map(p0-II[jj]*dd, particle_on_co, self))/(2*dd)
+
+        return RR
+
 
     def get_backtracker(self, _context=None, _buffer=None):
 
@@ -536,10 +582,30 @@ class Tracker:
         return flag_tbt, monitor, buffer_monitor, offset_monitor
 
 
-        def _slow_track_ebe(self,part):
-            out=[]
-            for ii in range(len(line.elements)):
-                out.append(part.copy())
-                self.track(part,ele_start=ii,num_elements=1)
-            return out
+    def _slow_track_ebe(self,part):
+        out=[]
+        for ii in range(len(line.elements)):
+            out.append(part.copy())
+            self.track(part,ele_start=ii,num_elements=1)
+        return out
+
+def _one_turn_map(p, particle_ref, tracker):
+    part = particle_ref.copy()
+    part.x = p[0]
+    part.px = p[1]
+    part.y = p[2]
+    part.py = p[3]
+    part.zeta = p[4]
+    part.update_delta(p[5])
+
+    tracker.track(part)
+    p_res = np.array([
+           part._xobject.x[0],
+           part._xobject.px[0],
+           part._xobject.y[0],
+           part._xobject.py[0],
+           part._xobject.zeta[0],
+           part._xobject.delta[0]])
+    return p_res
+
 

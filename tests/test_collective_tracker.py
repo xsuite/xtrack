@@ -16,21 +16,21 @@ def test_collective_tracker():
 
         test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
-        path_sequence = test_data_folder.joinpath('sps_w_spacecharge/'
+        path_line = test_data_folder.joinpath('sps_w_spacecharge/'
                                    'line_with_spacecharge_and_particle.json')
         turn_by_turn_monitor = True
 
-        ##################
-        # Get a sequence #
-        ##################
+        ##############
+        # Get a line #
+        ##############
 
-        with open(path_sequence, 'r') as fid:
+        with open(path_line, 'r') as fid:
              input_data = json.load(fid)
         line = xt.Line.from_dict(input_data['line'])
 
         # Replace all spacecharge with xobjects
         _buffer = context.new_buffer()
-        spch_elements = xf.replace_spaceharge_with_quasi_frozen(
+        spch_elements = xf.replace_spacecharge_with_quasi_frozen(
                                         line, _buffer=_buffer)
 
         # For testing I make them frozen but I leave iscollective=True

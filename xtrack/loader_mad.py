@@ -124,48 +124,51 @@ def iter_from_madx_sequence(
         elif mad_etype == "beambeam":
             if ee.slot_id == 6 or ee.slot_id == 60:
                 # BB interaction is 6D
-                newele = classes.BeamBeam6D(
-                    phi=0.0,
-                    alpha=0.0,
-                    x_bb_co=0.0,
-                    y_bb_co=0.0,
-                    charge_slices=[0.0],
-                    zeta_slices=[0.0],
-                    sigma_11=1.0,
-                    sigma_12=0.0,
-                    sigma_13=0.0,
-                    sigma_14=0.0,
-                    sigma_22=1.0,
-                    sigma_23=0.0,
-                    sigma_24=0.0,
-                    sigma_33=0.0,
-                    sigma_34=0.0,
-                    sigma_44=0.0,
-                    x_co=0.0,
-                    px_co=0.0,
-                    y_co=0.0,
-                    py_co=0.0,
-                    zeta_co=0.0,
-                    delta_co=0.0,
-                    d_x=0.0,
-                    d_px=0.0,
-                    d_y=0.0,
-                    d_py=0.0,
-                    d_zeta=0.0,
-                    d_delta=0.0,
-                )
+
+                import xfields as xf
+                newele = xf.BeamBeamBiGaussian3D(old_interface={
+                    'phi': 0.0,
+                    'alpha': 0.0,
+                    'x_bb_co': 0.0,
+                    'y_bb_co': 0.0,
+                    'charge_slices': [0.0],
+                    'zeta_slices': [0.0],
+                    'sigma_11': 1.0,
+                    'sigma_12': 0.0,
+                    'sigma_13': 0.0,
+                    'sigma_14': 0.0,
+                    'sigma_22': 1.0,
+                    'sigma_23': 0.0,
+                    'sigma_24': 0.0,
+                    'sigma_33': 0.0,
+                    'sigma_34': 0.0,
+                    'sigma_44': 0.0,
+                    'x_co': 0.0,
+                    'px_co': 0.0,
+                    'y_co': 0.0,
+                    'py_co': 0.0,
+                    'zeta_co': 0.0,
+                    'delta_co': 0.0,
+                    'd_x': 0.0,
+                    'd_px': 0.0,
+                    'd_y': 0.0,
+                    'd_py': 0.0,
+                    'd_zeta': 0.0,
+                    'd_delta': 0.0,})
             else:
                 # BB interaction is 4D
-                newele = classes.BeamBeam4D(
-                    charge=0.0,
-                    sigma_x=1.0,
-                    sigma_y=1.0,
-                    beta_r=1.0,
-                    x_bb=0.0,
-                    y_bb=0.0,
-                    d_px=0.0,
-                    d_py=0.0,
-                )
+                import xfields as xf
+                newele = xf.BeamBeamBiGaussian2D(
+                    n_particles=0.,
+                    q0=0.,
+                    beta0=1.,
+                    mean_x=0.,
+                    mean_y=0.,
+                    sigma_x=1.,
+                    sigma_y=1.,
+                    d_px=0,
+                    d_py=0)
+
         elif mad_etype == "placeholder":
             if ee.slot_id == 1:
                 newele = classes.SCCoasting()

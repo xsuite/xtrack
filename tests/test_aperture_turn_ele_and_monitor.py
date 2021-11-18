@@ -30,11 +30,11 @@ def test_aperture_turn_ele_and_monitor():
         # Build a small test line
         tot_length = 2.
         n_slices = 10000
-        sequence = xt.Line(elements=n_slices*[xt.Drift(
+        line = xt.Line(elements=n_slices*[xt.Drift(
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 
-        tracker = xt.Tracker(_context=context, line=sequence)
+        tracker = xt.Tracker(_context=context, line=line)
         n_turns = 3
         tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
 
@@ -135,11 +135,11 @@ def test_custom_monitor():
         # Build a small test line
         tot_length = 2.
         n_slices = 10000
-        sequence = xt.Line(elements=n_slices*[xt.Drift(
+        line = xt.Line(elements=n_slices*[xt.Drift(
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 
-        tracker = xt.Tracker(_context=context, line=sequence)
+        tracker = xt.Tracker(_context=context, line=line)
         n_turns = 6
         start_monitor_at_turn = 2
         part_id_monitor_start = 5

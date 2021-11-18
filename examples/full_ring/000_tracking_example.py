@@ -7,7 +7,7 @@ import xtrack as xt
 import xpart as xp
 
 
-fname_sequence = '../../test_data/lhc_no_bb/line_and_particle.json'
+fname_line = '../../test_data/lhc_no_bb/line_and_particle.json'
 
 num_turns = int(100)
 n_part = 200
@@ -20,11 +20,11 @@ context = xo.ContextCpu()
 #context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
-##################
-# Get a sequence #
-##################
+##############
+# Get a line #
+##############
 
-with open(fname_sequence, 'r') as fid:
+with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
 

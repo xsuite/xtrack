@@ -51,7 +51,7 @@ def test_full_rings(element_by_element=False):
                     input_data = json.load(fid)
 
             ##################
-            # Get a sequence #
+            # Get a line #
             ##################
 
             line = xt.Line.from_dict(input_data['line'])
@@ -127,6 +127,25 @@ def test_full_rings(element_by_element=False):
                         #raise ValueError
                         print('Test passed!')
 
+            ######################
+            # Check closed orbit #
+            ######################
+
+            part_co = tracker.find_closed_orbit(particle_co_guess=xp.Particles(
+                                        _context=context,
+                                        p0c=input_data['particle']['p0c']))
+
+            parttest = part_co.copy()
+            for _ in range(10):
+               tracker.track(parttest)
+               assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
+                                 rtol=0, atol=1e-11)
+               assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
+                                 rtol=0, atol=1e-11)
+               assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
+                                 rtol=0, atol=1e-11)
+
+
 
 def test_freeze_vars():
     for context in xo.context.get_test_contexts():
@@ -144,9 +163,9 @@ def test_freeze_vars():
         with open(fname_line_particles, 'r') as fid:
             input_data = json.load(fid)
 
-        ##################
-        # Get a sequence #
-        ##################
+        ##############
+        # Get a line #
+        ##############
         line = xt.Line.from_dict(input_data['line'])
 
         #################

@@ -11,7 +11,7 @@ import xfields as xf
 # Settings #
 ############
 
-fname_sequence = ('../../test_data/sps_w_spacecharge/'
+fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 
 fname_optics = ('../../test_data/sps_w_spacecharge/'
@@ -52,9 +52,9 @@ RR = np.array(ddd['RR_madx'])
 # (assume frozen SC lenses are alredy installed) #
 ##################################################
 
-with open(fname_sequence, 'r') as fid:
+with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
-sequence = xt.Line.from_dict(input_data['line'])
+line = xt.Line.from_dict(input_data['line'])
 
 ##########################
 # Configure space-charge #
@@ -63,13 +63,13 @@ sequence = xt.Line.from_dict(input_data['line'])
 if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
-    xf.replace_spaceharge_with_quasi_frozen(
-                                    sequence,
+    xf.replace_spacecharge_with_quasi_frozen(
+                                    line,
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
-    pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
-        _context=context, sequence=sequence,
+    pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
+        _context=context, line=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
@@ -83,7 +83,7 @@ else:
 # Build Tracker #
 #################
 tracker = xt.Tracker(_context=context,
-                    line=sequence)
+                    line=line)
 
 ######################
 # Generate particles #

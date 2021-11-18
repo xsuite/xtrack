@@ -12,10 +12,10 @@ import xtrack as xt
 
 Delta_p0c = 450e9/10*23e-6 # ramp rate 450GeV/10s
 
-fname_sequence = ('../../test_data/sps_w_spacecharge/'
+fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_no_spacecharge_and_particle.json')
 
-with open(fname_sequence, 'r') as fid:
+with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
 
