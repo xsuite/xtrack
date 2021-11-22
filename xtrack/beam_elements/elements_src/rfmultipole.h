@@ -2,7 +2,7 @@
 #define XTRACK_RFMULTIPOLE_H
 
 /*gpufun*/
-void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part){
+void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
 
     /*gpuglmem*/ double const* bal = RFMultipoleData_getp1_bal(el, 0);
     /*gpuglmem*/ double const* phase = RFMultipoleData_getp1_phase(el, 0);
@@ -11,10 +11,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part){
     double const voltage = RFMultipoleData_get_voltage(el);
     double const lag = RFMultipoleData_get_lag(el);
 
-    int64_t const n_part = LocalParticle_get_num_particles(part); //only_for_context cpu_serial cpu_openmp
-    for (int ii=0; ii<n_part; ii++){ //only_for_context cpu_serial cpu_openmp
-	part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
-
+    //start_per_particle_block (part0->part)
         double const k = frequency * ( 2.0 * PI / C_LIGHT);
 
         double const x = LocalParticle_get_x(part);
@@ -69,8 +66,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part){
         LocalParticle_add_to_py(part, py_kick);
         LocalParticle_add_to_energy(part, energy_kick);
 
-    } //only_for_context cpu_serial cpu_openmp
-
+    //end_per_particle_block
 
 }
 

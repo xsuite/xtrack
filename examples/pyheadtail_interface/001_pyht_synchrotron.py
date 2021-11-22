@@ -6,11 +6,12 @@ from scipy.constants import e,c
 from LHC import LHC
 
 import xtrack as xt
-xt.enable_pyheadtail_interface()
+import xpart as xp
+xp.enable_pyheadtail_interface()
 
 macroparticlenumber_track = 50000
 macroparticlenumber_optics = 2000000
-n_turns = 512*4
+n_turns = 512
 
 epsn_x  = 2.5e-6
 epsn_y  = 3.5e-6
@@ -31,7 +32,7 @@ elif mode == 'non-smooth':
     machine = LHC(machine_configuration='Injection', optics_mode = 'non-smooth', V_RF=10e6,  **optics)
 
 print('Create bunch for optics...')
-bunch  = xt.Particles.from_pyheadtail(
+bunch  = xp.Particles.from_pyheadtail(
         machine.generate_6D_Gaussian_bunch_matched(
         macroparticlenumber_optics, intensity, epsn_x, epsn_y, sigma_z=sigma_z))
 print('Done.')
@@ -89,7 +90,7 @@ plt.show()
 
 
 machine.one_turn_map.insert(ix, machine.longitudinal_map)
-bunch  = xt.Particles.from_pyheadtail(
+bunch  = xp.Particles.from_pyheadtail(
     machine.generate_6D_Gaussian_bunch_matched(
         macroparticlenumber_track, intensity, epsn_x, epsn_y, sigma_z=sigma_z))
 
@@ -156,15 +157,12 @@ twax[2].set_ylabel(r'$\varepsilon_z$')
 axes[0].grid()
 axes[1].grid()
 axes[2].grid()
-for ax in list(axes)+list(twax): 
+for ax in list(axes)+list(twax):
     ax.ticklabel_format(useOffset=False, style='sci', scilimits=(0,0),axis='y')
-for ax in list(axes): 
+for ax in list(axes):
     ax.legend(loc='upper right',prop={'size':12})
-for ax in list(twax): 
+for ax in list(twax):
     ax.legend(loc='lower right',prop={'size':12})
-    
-#~ plt.figure(100)
-#~ plt.plot(optics['s'][:],optics['beta_x'][:], '-o')
 
 LHC_with_octupole_injection = LHC(machine_configuration='Injection', n_segments=5, octupole_knob = -1.5)
 print('450GeV:')

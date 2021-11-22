@@ -5,7 +5,9 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import xline as xl
+import xpart as xp
+
+import ducktrack as dtk
 
 from make_short_line import make_short_line
 import time
@@ -40,8 +42,11 @@ num_turns = int(100)
 # Choose a context #
 ####################
 
+#n_part = 8000
+#context = xo.ContextCpu(omp_num_threads=8)
+
 n_part = 200
-context = xo.ContextCpu()
+context = xo.ContextCpu(omp_num_threads=0)
 
 #n_part = 20000
 #context = xo.ContextCupy()
@@ -69,14 +74,14 @@ elif str(fname_line_particles).endswith('.json'):
 #         ee['__class__'] = 'Drift'
 #         ee['length'] = 0.
 
-##################
-# Get a sequence #
-##################
+##############
+# Get a line #
+##############
 
-print('Import sequence')
-sequence = xl.Line.from_dict(input_data['line'])
+print('Import line')
+line= xt.Line.from_dict(input_data['line'])
 if short_test:
-    sequence = make_short_line(sequence)
+    line = make_short_line(line)
 
 ##################
 # Build TrackJob #
@@ -84,26 +89,29 @@ if short_test:
 
 print('Build tracker')
 tracker = xt.Tracker(_context=context,
-                     sequence=sequence)
+                     line=line,
+                     save_source_as='source.c')
 
 ######################
 # Get some particles #
 ######################
 
 print('Import particles')
-part_dict = input_data['particle']
+part_ref = xp.Particles(**input_data['particle'])
 
 # Go from one particle to many particles
-part_dict['x'] += np.linspace(-1e-4, 1e-4, n_part)
-part_dict['y'] += np.linspace(-2e-4, 2e-4, n_part)
 
-particles = xt.Particles(_context=context, **part_dict)
+particles = xp.build_particles(_context=context,
+    particle_ref=part_ref,
+    x=np.linspace(-1e-4, 1e-4, n_part),
+    y=np.linspace(-2e-4, 2e-4, n_part))
+
 #########
 # Track #
 #########
-
+particles_before_tracking = particles.copy(_context=xo.ContextCpu())
 print('Track!')
-print(f'context: {tracker.line._buffer.context}')
+print(f'context: {tracker._buffer.context}')
 t1 = time.time()
 tracker.track(particles, num_turns=num_turns)
 context.synchronize()
@@ -112,38 +120,43 @@ print(f'Time {(t2-t1)*1000:.2f} ms')
 print(f'Time {(t2-t1)*1e6/num_turns/n_part:.2f} us/part/turn')
 
 
-#######################
-# Check against xline #
-#######################
+###########################
+# Check against ducktrack #
+###########################
+
+testline = dtk.TestLine.from_dict(input_data['line'])
 
 ip_check = n_part//3*2
 
-print(f'\nTest against xline over {num_turns} turns on particle {ip_check}:')
+print(f'\nTest against ducktrack over {num_turns} turns on particle {ip_check}:')
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
+part_dict = particles_before_tracking.to_dict()
+part_to_check = {}
+for kk, vv in part_dict.items():
+    if hasattr(vv, '__iter__') and not kk.startswith('_'):
+        part_to_check[kk] = part_dict[kk][ip_check]
+    else:
+        part_to_check[kk] = part_dict[kk]
 
-xline_part = xl.Particles(**part_dict)
+dtk_part = dtk.TestParticles(**part_to_check)
 
-# Select particle to check
-for nn in xline_part._dict_vars:
-    if not np.isscalar(getattr(xline_part, nn)):
-        setattr(xline_part, nn, getattr(xline_part, nn)[ip_check])
 
 for iturn in range(num_turns):
     print(f'turn {iturn}/{num_turns}', end='\r', flush=True)
-    sequence.track(xline_part)
+    testline.track(dtk_part)
 
 for vv in vars_to_check:
-    xline_value = getattr(xline_part, vv)
+    dtk_value = getattr(dtk_part, vv)
     xt_value = context.nparray_from_context_array(
                         getattr(particles, vv)[ip_check])
-    passed = np.isclose(xt_value, xline_value,
+    passed = np.isclose(xt_value, dtk_value,
                         rtol=rtol_100turns, atol=atol_100turns)
     if not passed:
         print(f'Not passed on var {vv}!\n'
-              f'    xline:   {xline_value: .7e}\n'
+              f'    dtk:    {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
         raise ValueError
     else:
         print(f'Passed on var {vv}!\n'
-              f'    xline:   {xline_value: .7e}\n'
+              f'    dtk:    {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')

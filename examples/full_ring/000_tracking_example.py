@@ -3,11 +3,11 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xtrack as xt
+import xpart as xp
 
 
-fname_sequence = '../../test_data/lhc_no_bb/line_and_particle.json'
+fname_line = '../../test_data/lhc_no_bb/line_and_particle.json'
 
 num_turns = int(100)
 n_part = 200
@@ -20,23 +20,23 @@ context = xo.ContextCpu()
 #context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
-##################
-# Get a sequence #
-##################
+##############
+# Get a line #
+##############
 
-with open(fname_sequence, 'r') as fid:
+with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
-sequence = xl.Line.from_dict(input_data['line'])
+line = xt.Line.from_dict(input_data['line'])
 
 ##################
 # Build TrackJob #
 ##################
-tracker = xt.Tracker(_context=context, sequence=sequence)
+tracker = xt.Tracker(_context=context, line=line)
 
 ######################
 # Get some particles #
 ######################
-particles = xt.Particles(_context=context,
+particles = xp.Particles(_context=context,
                          p0c=6500e9,
                          x=np.random.uniform(-1e-3, 1e-3, n_part),
                          px=np.random.uniform(-1e-5, 1e-5, n_part),

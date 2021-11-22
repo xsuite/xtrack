@@ -2,12 +2,12 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
+import xpart as xp
 
 
 context = xo.ContextCpu()
 #context = xo.ContextCupy()
-#context = xo.ContextPyopencl()
+context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2
@@ -18,7 +18,7 @@ part_gen_range = 0.35
 n_part=100
 
 
-particles = xt.Particles(_context=context,
+particles = xp.Particles(_context=context,
                          p0c=6500e9,
                          x=np.zeros(n_part),
                          px=np.linspace(-1, 1, n_part),
@@ -30,11 +30,11 @@ particles = xt.Particles(_context=context,
 # Build a small test line
 tot_length = 2.
 n_slices = 10000
-line = xl.Line(elements=
-                n_slices*[xl.Drift(length=tot_length/n_slices)],
+line = xt.Line(elements=
+                n_slices*[xt.Drift(length=tot_length/n_slices)],
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
-tracker = xt.Tracker(_context=context, sequence=line, save_source_as='source.c')
+tracker = xt.Tracker(_context=context, line=line, save_source_as='source.c')
 
 # Track
 n_turns = 3

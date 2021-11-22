@@ -5,7 +5,9 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
+import xpart as xp
+
+import ducktrack as dtk
 
 from make_short_line import make_short_line
 
@@ -15,23 +17,23 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
+rtol_10turns = 1e-9; atol_10turns=4e-11
+test_backtracker=True
+
+fname_line_particles = test_data_folder.joinpath(
+                                './lhc_with_bb/line_and_particle.json')
 rtol_10turns = 1e-9; atol_10turns=1e-11
+test_backtracker = False
 
-# fname_line_particles = test_data_folder.joinpath(
-#                                 './lhc_with_bb/line_and_particle.json')
-# rtol_10turns = 1e-9; atol_10turns=1e-11
-
-# fname_line_particles = test_data_folder.joinpath(
+#fname_line_particles = test_data_folder.joinpath(
 #                         './hllhc_14/line_and_particle.json')
-# rtol_10turns = 1e-9; atol_10turns=1e-11
+#rtol_10turns = 1e-9; atol_10turns=1e-11
+#test_backtracker = False
 
-# fname_line_particles = test_data_folder.joinpath(
-#                  './sps_w_spacecharge/line_without_spacecharge_and_particle.json')
-# rtol_10turns = 1e-9; atol_10turns=1e-11
-
-# fname_line_particles = test_data_folder.joinpath(
-#                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
-# rtol_10turns = 2e-8; atol_10turns=7e-9
+fname_line_particles = test_data_folder.joinpath(
+                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+rtol_10turns = 2e-8; atol_10turns=7e-9
+test_backtracker = False
 
 ####################
 # Choose a context #
@@ -45,35 +47,36 @@ context = xo.ContextCpu()
 # Load file #
 #############
 
-if str(fname_line_particles).endswith('.pkl'):
-    with open(fname_line_particles, 'rb') as fid:
-        input_data = pickle.load(fid)
-elif str(fname_line_particles).endswith('.json'):
-    with open(fname_line_particles, 'r') as fid:
-        input_data = json.load(fid)
+with open(fname_line_particles, 'r') as fid:
+    input_data = json.load(fid)
 
-##################
-# Get a sequence #
-##################
 
-sequence = xl.Line.from_dict(input_data['line'])
+##############
+# Get a line #
+##############
+
+line = xt.Line.from_dict(input_data['line'])
 if short_test:
-    sequence = make_short_line(sequence)
+    line = make_short_line(line)
 
-##################
-# Build TrackJob #
-##################
+
+#################
+# Build Tracker #
+#################
 print('Build tracker...')
 tracker = xt.Tracker(_context=context,
-            sequence=sequence,
-            particles_class=xt.Particles,
-            local_particle_src=None,
-            save_source_as='source.c')
+            line=line,
+            particles_class=xp.Particles,
+            save_source_as='source.c',
+            )
+
+if test_backtracker:
+    backtracker = tracker.get_backtracker(_context=context)
 
 ######################
 # Get some particles #
 ######################
-particles = xt.Particles(_context=context, **input_data['particle'])
+particles = xp.Particles(_context=context, **input_data['particle'])
 
 #########
 # Track #
@@ -82,61 +85,130 @@ print('Track a few turns...')
 n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
-#######################
-# Check against xline #
-#######################
-print('Check against xline...')
+###########################
+# Check against ducktrack #
+###########################
+print('Check against ducktrack...')
+
+testline = dtk.TestLine.from_dict(input_data['line'])
+
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-xl_part = xl.Particles.from_dict(input_data['particle'])
+dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
 for _ in range(n_turns):
-    sequence.track(xl_part)
+   testline.track(dtk_part)
 
 for vv in vars_to_check:
-    xl_value = getattr(xl_part, vv)
+    dtk_value = getattr(dtk_part, vv)
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-    passed = np.isclose(xt_value, xl_value, rtol=rtol_10turns, atol=atol_10turns)
+    passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns, atol=atol_10turns)
+
     if not passed:
         print(f'Not passend on var {vv}!\n'
-              f'    xl:   {xl_value: .7e}\n'
+              f'    dtk:   {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
         raise ValueError
+
+#####################
+# Check backtracker #
+#####################
+
+if test_backtracker:
+    backtracker.track(particles, num_turns=n_turns)
+
+    dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
+
+    for vv in vars_to_check:
+        dtk_value = getattr(dtk_part, vv)
+        xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
+        passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns,
+                            atol=atol_10turns)
+        if not passed and vv=='s':
+            passed = np.isclose(xt_value, dtk_value,
+                    rtol=rtol_10turns, atol=1e-8)
+
+        if not passed:
+            print(f'Not passend on backtrack for var {vv}!\n'
+                  f'    dtk:   {dtk_value: .7e}\n'
+                  f'    xtrack: {xt_value: .7e}\n')
+            raise ValueError
 
 ##############
 # Check  ebe #
 ##############
-print('Check element-by-element against xline...')
-xl_part = xl.Particles.from_dict(input_data['particle'])
+print('Check element-by-element against ducktrack...')
+dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
-for ii, (eexl, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
-    vars_before = {vv :getattr(xl_part, vv) for vv in vars_to_check}
-    pp_dict = xt.pyparticles_to_xtrack_dict(xl_part)
-    particles.set_particle(ip_check, **pp_dict)
+diffs = []
+s_coord = []
+for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names)):
+    vars_before = {vv :getattr(dtk_part, vv)[0] for vv in vars_to_check}
+    particles.set_particle(ip_check, **dtk_part.to_dict())
 
     tracker.track(particles, ele_start=ii, num_elements=1)
 
-    eexl.track(xl_part)
+    eedtk.track(dtk_part)
+    s_coord.append(dtk_part.s[0])
+    diffs.append([])
     for vv in vars_to_check:
-        xl_change = getattr(xl_part, vv) - vars_before[vv]
-        xt_change = context.nparray_from_context_array(
-                getattr(particles, vv))[ip_check] -vars_before[vv]
-        passed = np.isclose(xt_change, xl_change, rtol=1e-10, atol=5e-14)
+        dtk_change = getattr(dtk_part, vv) - vars_before[vv]
+        xt_change = (context.nparray_from_context_array(
+                getattr(particles, vv))[ip_check]- vars_before[vv])
+        passed = np.isclose(xt_change, dtk_change, rtol=1e-10, atol=5e-14)
         if not passed:
             problem_found = True
             print(f'Not passend on var {vv}!\n'
-                  f'    xl:   {xl_change: .7e}\n'
+                  f'    dtk:   {dtk_change: .7e}\n'
                   f'    xtrack: {xt_change: .7e}\n')
             break
+        diffs[-1].append(np.abs(
+            context.nparray_from_context_array(
+                getattr(particles, vv))[ip_check] - getattr(dtk_part, vv)[0]))
 
     if not passed:
         print(f'\nelement {nn}')
         break
-    else:
-        print(f'Check passed for element: {nn}              ', end='\r', flush=True)
 
+    if test_backtracker:
+        backtracker.track(particles,
+                ele_start=len(tracker.line.elements) - ii - 1,
+                num_elements=1)
+        for vv in vars_to_check:
+            xt_value = context.nparray_from_context_array(
+                                        getattr(particles, vv))[ip_check]
+            passed = np.isclose(xt_value, vars_before[vv],
+                                rtol=1e-10, atol=1e-13)
+            if not passed:
+                problem_found = True
+                print(f'\nNot passend on var {vv}!\n'
+                      f'    before: {vars_before[vv]: .7e}\n'
+                      f'    xtrack: {xt_value: .7e}\n')
+                break
+        if not passed:
+            print(f'\nelement {nn}')
+            break
+
+    print(f'Check passed for element: {nn}              ', end='\r', flush=True)
+
+
+diffs = np.array(diffs)
 
 if not problem_found:
     print('\nAll passed on context:')
     print(context)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+fig = plt.figure(1, figsize=(6.4*1.5, 4.8*1.3))
+for ii, (vv, uu) in enumerate(
+        zip(['x', 'px', 'y', 'py', r'$\zeta$', r'$\delta$'],
+            ['[m]', '[-]', '[m]', '[-]', '[m]', '[-]'])):
+    ax = fig.add_subplot(3, 2, ii+1)
+    ax.plot(s_coord, diffs[:, ii])
+    ax.set_ylabel('Difference on '+ vv + ' ' + uu)
+    ax.set_xlabel('s [m]')
+fig.subplots_adjust(hspace=.48)
+plt.show()
+
 
