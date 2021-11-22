@@ -26,8 +26,9 @@ tracker  = xt.Tracker(sequence=line, save_source_as='gensource.c')
 #######################
 for ee in tracker.line.elements:
     if hasattr(ee, 'radiation_flag'):
+        ee.radiation_flag = 1 # no random part
         #ee.radiation_flag = 1 # no random part
-        ee.radiation_flag = 2 # with random part
+        #ee.radiation_flag = 2 # with random part
 
 
 ######################
@@ -35,9 +36,9 @@ for ee in tracker.line.elements:
 ######################
 
 me_eV = me_kg*clight**2/qe
-n_part = 100
+n_part = 10000
 particles = xt.Particles(
-        p0c=2e9, # eV
+        p0c=1500e9, # eV
         mass0=me_eV,
         x=np.random.uniform(-1e-3, 1e-3, n_part),
         px=np.random.uniform(-1e-6, 1e-6, n_part),
@@ -58,12 +59,15 @@ particles = xt.Particles(
 #     # print(particles.x[0])
 
 # For multiple turns:
-num_turns=10
-for iturn in range(num_turns):
-    tracker.track(particles)
-    # Updated coordinates can be accessed in place, e.g.:
-    # print(particles.x[0])
+# particles0 = particles.copy()
+tracker.track(particles)
 
 
-
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1);
+plt.plot(particles.x, particles.px, '.')
+plt.figure(2);
+plt.plot(particles.y, particles.py, '.')
+plt.show()
 
