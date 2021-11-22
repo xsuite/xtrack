@@ -2,7 +2,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
+import xpart as xp
 
 
 def test_aperture_turn_ele_and_monitor():
@@ -18,7 +18,7 @@ def test_aperture_turn_ele_and_monitor():
         part_gen_range = 0.35
         n_part=100
 
-        particles = xt.Particles(_context=context,
+        particles = xp.Particles(_context=context,
                                  p0c=6500e9,
                                  x=np.zeros(n_part),
                                  px=np.linspace(-1, 1, n_part),
@@ -30,11 +30,11 @@ def test_aperture_turn_ele_and_monitor():
         # Build a small test line
         tot_length = 2.
         n_slices = 10000
-        sequence = xl.Line(elements=n_slices*[xl.Drift(
+        line = xt.Line(elements=n_slices*[xt.Drift(
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 
-        tracker = xt.Tracker(_context=context, sequence=sequence)
+        tracker = xt.Tracker(_context=context, line=line)
         n_turns = 3
         tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
 
@@ -123,7 +123,7 @@ def test_custom_monitor():
         part_gen_range = 0.35
         n_part=100
 
-        particles = xt.Particles(_context=context,
+        particles = xp.Particles(_context=context,
                                  p0c=6500e9,
                                  x=np.zeros(n_part),
                                  px=np.linspace(-1, 1, n_part),
@@ -135,11 +135,11 @@ def test_custom_monitor():
         # Build a small test line
         tot_length = 2.
         n_slices = 10000
-        sequence = xl.Line(elements=n_slices*[xl.Drift(
+        line = xt.Line(elements=n_slices*[xt.Drift(
                                                 length=tot_length/n_slices)],
                         element_names=['drift{ii}' for ii in range(n_slices)])
 
-        tracker = xt.Tracker(_context=context, sequence=sequence)
+        tracker = xt.Tracker(_context=context, line=line)
         n_turns = 6
         start_monitor_at_turn = 2
         part_id_monitor_start = 5

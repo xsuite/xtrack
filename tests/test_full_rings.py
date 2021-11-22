@@ -5,7 +5,9 @@ import numpy as np
 
 import xtrack as xt
 import xobjects as xo
-import xline as xl
+import xpart as xp
+
+import ducktrack as dtk
 
 from xobjects.context import available
 
@@ -26,10 +28,12 @@ def test_full_rings(element_by_element=False):
                     (1e-9, 3e-11),
                     (1e-9, 3e-11),
                     (2e-8, 7e-9)]
+     test_backtracker_flags = [True, False, False]
 
      for icase, fname_line_particles in enumerate(test_fnames):
 
         rtol_10turns, atol_10turns = tolerances_10_turns[icase]
+        test_backtracker= test_backtracker_flags[icase]
 
         print('Case:', fname_line_particles)
         for context in xo.context.get_test_contexts():
@@ -47,21 +51,21 @@ def test_full_rings(element_by_element=False):
                     input_data = json.load(fid)
 
             ##################
-            # Get a sequence #
+            # Get a line #
             ##################
 
-            sequence = xl.Line.from_dict(input_data['line'])
+            line = xt.Line.from_dict(input_data['line'])
 
             ##################
             # Build TrackJob #
             ##################
             print('Build tracker...')
-            tracker = xt.Tracker(_context=context, sequence=sequence)
+            tracker = xt.Tracker(_context=context, line=line)
 
             ######################
             # Get some particles #
             ######################
-            particles = xt.Particles(_context=context, **input_data['particle'])
+            particles = xp.Particles(_context=context, **input_data['particle'])
 
             #########
             # Track #
@@ -70,63 +74,133 @@ def test_full_rings(element_by_element=False):
             n_turns = 10
             tracker.track(particles, num_turns=n_turns)
 
-            #######################
-            # Check against xline #
-            #######################
+            ###########################
+            # Check against ducktrack #
+            ###########################
+
+            testline = dtk.TestLine.from_dict(input_data['line'])
+
             print('Check against ...')
             ip_check = 0
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-            pyst_part = xl.Particles.from_dict(input_data['particle'])
+            dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
             for _ in range(n_turns):
-                sequence.track(pyst_part)
+                testline.track(dtk_part)
 
             for vv in vars_to_check:
-                pyst_value = getattr(pyst_part, vv)
-                xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-                passed = np.isclose(xt_value, pyst_value,
+                dtk_value = getattr(dtk_part, vv)[0]
+                xt_value = context.nparray_from_context_array(
+                                                  getattr(particles, vv))[ip_check]
+                passed = np.isclose(xt_value, dtk_value,
                                     rtol=rtol_10turns, atol=atol_10turns)
                 print(f'Varable {vv}:\n'
-                      f'    pyst:   {pyst_value: .7e}\n'
+                      f'    dtk:    {dtk_value: .7e}\n'
                       f'    xtrack: {xt_value: .7e}\n')
                 if not passed:
                     raise ValueError('Discrepancy found!')
 
-            print('Test passed!')
+            #####################
+            # Check backtracker #
+            #####################
 
-            ##############
-            # Check  ebe #
-            ##############
-            if element_by_element:
-                print('Check element-by-element against xline...')
-                pyst_part = xl.Particles.from_dict(input_data['particle'])
-                vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-                problem_found = False
-                for ii, (eepyst, nn) in enumerate(zip(sequence.elements, sequence.element_names)):
-                    vars_before = {vv :getattr(pyst_part, vv) for vv in vars_to_check}
-                    particles.set_particle(ip_check, **pyst_part.to_dict())
+            if test_backtracker:
+                print('Testing backtracker')
+                backtracker = tracker.get_backtracker(_context=context)
+                backtracker.track(particles, num_turns=n_turns)
 
-                    tracker.track(particles, ele_start=ii, num_elements=1)
+                dtk_part = dtk.TestParticles(**input_data['particle'])
 
-                    eepyst.track(pyst_part)
-                    for vv in vars_to_check:
-                        pyst_change = getattr(pyst_part, vv) - vars_before[vv]
-                        xt_change = context.nparray_from_context_array(
-                                getattr(particles, vv))[ip_check] -vars_before[vv]
-                        passed = np.isclose(xt_change, pyst_change, rtol=1e-10, atol=5e-14)
-                        if not passed:
-                            problem_found = True
-                            print(f'Not passend on var {vv}!\n'
-                                  f'    pyst:   {pyst_change: .7e}\n'
-                                  f'    xtrack: {xt_change: .7e}\n')
-                            break
+                for vv in vars_to_check:
+                    dtk_value = getattr(dtk_part, vv)[0]
+                    xt_value = context.nparray_from_context_array(
+                                                getattr(particles, vv))[ip_check]
+                    passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns,
+                                        atol=atol_10turns)
+                    if not passed and vv=='s':
+                        passed = np.isclose(xt_value, dtk_value,
+                                rtol=rtol_10turns, atol=1e-8)
 
                     if not passed:
-                        print(f'\nelement {nn}')
-                        break
-                    else:
-                        print(f'Check passed for element: {nn}              ',
-                                end='\r', flush=True)
+                        print(f'Not passend on backtrack for var {vv}!\n'
+                              f'    dtk:    {dtk_value: .7e}\n'
+                              f'    xtrack: {xt_value: .7e}\n')
+                        #raise ValueError
+                        print('Test passed!')
 
-                if not problem_found:
-                    print('All passed on context:')
-                    print(context)
+            ######################
+            # Check closed orbit #
+            ######################
+
+            part_co = tracker.find_closed_orbit(particle_co_guess=xp.Particles(
+                                        _context=context,
+                                        p0c=input_data['particle']['p0c']))
+
+            parttest = part_co.copy()
+            for _ in range(10):
+               tracker.track(parttest)
+               assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
+                                 rtol=0, atol=1e-11)
+               assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
+                                 rtol=0, atol=1e-11)
+               assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
+                                 rtol=0, atol=1e-11)
+
+
+
+def test_freeze_vars():
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+
+        test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
+
+        fname_line_particles = test_data_folder.joinpath(
+                                './hllhc_14/line_and_particle.json')
+
+        #############
+        # Load file #
+        #############
+
+        with open(fname_line_particles, 'r') as fid:
+            input_data = json.load(fid)
+
+        ##############
+        # Get a line #
+        ##############
+        line = xt.Line.from_dict(input_data['line'])
+
+        #################
+        # Build Tracker #
+        #################
+        print('Build tracker...')
+        freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
+        tracker = xt.Tracker(_context=context,
+                    line=line,
+                    local_particle_src=xp.gen_local_particle_api(
+                                                        freeze_vars=freeze_vars),
+                    )
+
+        ######################
+        # Get some particles #
+        ######################
+        particle_ref=xp.Particles(**input_data['particle'])
+        particles = xp.build_particles(_context=context,
+                particle_ref=particle_ref,
+                x=np.linspace(-1e-4, 1e-4, 10))
+
+        particles_before_tracking = particles.copy()
+
+        #########
+        # Track #
+        #########
+        print('Track a few turns...')
+        n_turns = 10
+        tracker.track(particles, num_turns=n_turns)
+
+        for vv in ['psigma', 'delta', 'rpp', 'rvv', 'zeta']:
+            vv_before = context.nparray_from_context_array(
+                                getattr(particles_before_tracking, vv))
+            vv_after= context.nparray_from_context_array(
+                                getattr(particles, vv))
+            assert np.all(vv_before == vv_after)
+
+        print('Check passed')

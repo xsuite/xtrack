@@ -2,9 +2,9 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-
-import xline as xl
 import xpart as xp
+
+import ducktrack as dtk
 
 context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -18,7 +18,7 @@ y_aper_max = 0.3
 part_gen_range = 0.35
 n_part=10000
 
-xparticles = xp.Particles(
+dtk_particles = dtk.TestParticles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
@@ -27,26 +27,26 @@ xparticles = xp.Particles(
         sigma = np.zeros(n_part),
         delta = np.zeros(n_part))
 
-particles = xt.Particles(_context=context, **xparticles.to_dict())
+particles = xp.Particles(_context=context, **dtk_particles.to_dict())
 
-aper_xline = xl.elements.LimitRect(min_x=x_aper_min,
+aper_test = dtk.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
                                           min_y=y_aper_min,
                                           max_y=y_aper_max)
 
 aper = xt.LimitRect(_context=context,
-                    **aper_xline.to_dict())
+                    **aper_test.to_dict())
 
-aper_xline.track(xparticles)
+aper_test.track(dtk_particles)
 
 # Build a small test line
-line = xl.Line(elements=[
-                xl.elements.Drift(length=5.),
-                aper_xline,
-                xl.elements.Drift(length=5.)],
+line = xt.Line(elements=[
+                xt.Drift(length=5.),
+                aper,
+                xt.Drift(length=5.)],
                 element_names=['drift0', 'aper', 'drift1'])
 
-tracker = xt.Tracker(_context=context, sequence=line)
+tracker = xt.Tracker(_context=context, line=line)
 
 tracker.track(particles)
 
@@ -58,7 +58,7 @@ part_s = context.nparray_from_context_array(particles.s)
 
 id_alive = part_id[part_state>0]
 
-assert np.allclose(np.sort(xparticles.particle_id), np.sort(id_alive))
+assert np.allclose(np.sort(dtk_particles.particle_id), np.sort(id_alive))
 assert np.allclose(part_s[part_state>0], 10.)
 assert np.allclose(part_s[part_state<1], 5.)
 

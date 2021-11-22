@@ -3,12 +3,11 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xpart as xp
 import xtrack as xt
 import xfields as xf
 
-fname_sequence = ('../../test_data/sps_w_spacecharge/'
+fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 
 fname_optics = ('../../test_data/sps_w_spacecharge/'
@@ -22,8 +21,8 @@ n_part=int(1e6)
 rf_voltage=3e6
 num_turns=32
 
-mode = 'frozen'
-mode = 'quasi-frozen'
+#mode = 'frozen'
+#mode = 'quasi-frozen'
 mode = 'pic'
 
 ####################
@@ -38,15 +37,18 @@ _buffer = context.new_buffer()
 
 print(context)
 
-##################
-# Get a sequence #
-##################
+arr2ctx = context.nparray_to_context_array
+ctx2arr = context.nparray_from_context_array
 
-with open(fname_sequence, 'r') as fid:
+##############
+# Get a line #
+##############
+
+with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
-sequence = xl.Line.from_dict(input_data['line'])
+line = xt.Line.from_dict(input_data['line'])
 
-first_sc = sequence.elements[1]
+first_sc = line.elements[1]
 sigma_x = first_sc.sigma_x
 sigma_y = first_sc.sigma_y
 
@@ -57,13 +59,13 @@ sigma_y = first_sc.sigma_y
 if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
-    xf.replace_spaceharge_with_quasi_frozen(
-                                    sequence, _buffer=_buffer,
+    xf.replace_spacecharge_with_quasi_frozen(
+                                    line, _buffer=_buffer,
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
-    pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
-        _context=context, sequence=sequence,
+    pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
+        _context=context, line=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
@@ -86,16 +88,16 @@ RR = np.array(ddd['RR_madx'])
 # Build Tracker #
 #################
 tracker = xt.Tracker(_buffer=_buffer,
-                    sequence=sequence)
+                    line=line)
 
 ####################################
 # Generate particles for footprint #
 ####################################
 
-part = xp.generate_matched_gaussian_bunch(
+particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_on_co=part_on_co, R_matrix=RR,
+         particle_ref=part_on_co, R_matrix=RR,
          circumference=6911., alpha_momentum_compaction=0.0030777,
          rf_harmonic=4620, rf_voltage=rf_voltage, rf_phase=0)
 
@@ -111,16 +113,15 @@ xy_norm = footprint.initial_xy_polar(
         theta_N=N_theta_footprint)
 
 N_footprint = len(xy_norm[:, :, 0].flatten())
-part.x[:N_footprint] = sigma_x*xy_norm[:, :, 0].flatten()
-part.y[:N_footprint] = sigma_y*xy_norm[:, :, 1].flatten()
-part.px[:N_footprint] = 0.
-part.py[:N_footprint] = 0.
-part.zeta[:N_footprint] = 0.
-part._delta[:N_footprint] = 0.
-part._rpp[:N_footprint] = 0.
-part._rvv[:N_footprint] = 0.
-
-xtparticles = xt.Particles(_context=context, **part.to_dict())
+particles.x[:N_footprint] = arr2ctx(sigma_x*xy_norm[:, :, 0].flatten())
+particles.y[:N_footprint] = arr2ctx(sigma_y*xy_norm[:, :, 1].flatten())
+particles.px[:N_footprint] = 0.
+particles.py[:N_footprint] = 0.
+particles.zeta[:N_footprint] = 0.
+particles.delta[:N_footprint] = 0.
+particles.rpp[:N_footprint] = 1.
+particles.rvv[:N_footprint] = 1.
+particles.psigma[:N_footprint] = 0.
 
 #########
 # Track #
@@ -129,9 +130,9 @@ x_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 y_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 for ii in range(num_turns):
     print(f'Turn: {ii}', end='\r', flush=True)
-    x_tbt[:, ii] = context.nparray_from_context_array(xtparticles.x[:N_footprint]).copy()
-    y_tbt[:, ii] = context.nparray_from_context_array(xtparticles.y[:N_footprint]).copy()
-    tracker.track(xtparticles)
+    x_tbt[:, ii] = ctx2arr(particles.x[:N_footprint]).copy()
+    y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
+    tracker.track(particles)
 
 ######################
 # Frequency analysis #

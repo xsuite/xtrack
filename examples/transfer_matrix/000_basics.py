@@ -2,6 +2,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+import xpart as xp
 
 context = xo.ContextCpu()
 
@@ -16,7 +17,7 @@ for chrm in [1e-5, 0]:
             chroma_x=chrm
             )
 
-    part = xt.Particles(_context=context, x=[1], y=[1], zeta=[1],
+    part = xp.Particles(_context=context, x=[1], y=[1], zeta=[1],
                         p0c=6500e9)
 
     n_turns = 1024

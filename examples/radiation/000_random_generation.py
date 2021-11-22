@@ -2,14 +2,14 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xline as xl
+import xpart as xp
 from pathlib import Path
 
 ctx = xo.ContextCpu()
 ctx = xo.ContextCupy()
 #ctx = xo.ContextPyopencl()
 
-part = xt.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
+part = xp.Particles(_context=ctx, p0c=6.5e12, x=[1,2,3])
 part._init_random_number_generator()
 
 class TestElement(xt.BeamElement):
@@ -17,8 +17,8 @@ class TestElement(xt.BeamElement):
         'dummy': xo.Float64,
         }
 TestElement.XoStruct.extra_sources = [
-    xt._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-    xt._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+    xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+    xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     ]
 TestElement.XoStruct.extra_sources.append('''
 /*gpufun*/
@@ -37,8 +37,7 @@ telem.track(part)
 # Use turn-by-turn monitor to acquire some statistics
 
 tracker = xt.Tracker(_buffer=telem._buffer,
-        sequence=xl.Line(elements=[telem],
-            element_names='test_element'),
+        line=xt.Line(elements=[telem]),
             save_source_as='source.c')
 
 tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
