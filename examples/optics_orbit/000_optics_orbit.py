@@ -29,5 +29,11 @@ R_matrix = tracker.compute_one_turn_matrix_finite_differences(
 eta = -R_matrix[4, 5]/line.get_length() # minus sign comes from z = s-ct
 alpha_mom_compaction = eta + 1/particle_ref.gamma0[0]**2
 
-
-
+freq_list = []
+lag_list_deg = []
+voltage_list = []
+for ee in line.elements:
+    if ee.__class__.__name__ == 'Cavity':
+        freq_list.append(ee.frequency)
+        lag_list_deg.append(ee.lag)
+        voltage_list.append(ee.voltage)
