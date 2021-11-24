@@ -150,7 +150,7 @@ void synrad_average_energy_loss(LocalParticle *part, double kick /* rad */, doub
   double const q0 = LocalParticle_get_q0(part); // e
   // e^2 / 4 pi epsilon0 eV = (1 / 694461541.7756249) m
   double const classical_radius = q0*q0 / m0 / 694461541.7756249; // m, classical electromagnetic radius
-  double const eloss = 2.0 / 3.0 * classical_radius*length * beta_gamma*beta_gamma*beta_gamma * h*h * energy; // eV
+  double const eloss = 2.0 / 3.0 * classical_radius * length * beta_gamma*beta_gamma*beta_gamma * h*h * energy; // eV
   // apply the energy kick
   LocalParticle_add_to_energy(part, -eloss, 0);
 }
@@ -164,17 +164,14 @@ int64_t synrad_emit_photons(LocalParticle *part, double kick /* rad */, double l
   int64_t nphot = 0;
 
   // TODO Introduce effect of chi and mass_ratio!!!
-  double const gamma0 = LocalParticle_get_gamma0(part);
-  double const mass0 = LocalParticle_get_mass0(part); // eV
-  double const energy0 = mass0 * gamma0;
-  double const initial_energy = energy0 + LocalParticle_get_psigma(part)
-	                                * LocalParticle_get_p0c(part)
-			                * LocalParticle_get_beta0(part); // eV
-
+  double const m0 = LocalParticle_get_mass0(part); // eV
+  double const p0c = LocalParticle_get_p0c(part); // eV
+  double const d = LocalParticle_get_delta(part);
+  double const pc = p0c * (1 + d); // eV
+  double const initial_energy = hypot(m0, pc); // eV
   double energy = initial_energy;
-  double gamma = energy / mass0; // 
+  double gamma = energy / m0; // 
   double beta_gamma = sqrt(gamma*gamma-1); //
-
   double n = LocalParticle_generate_random_double_exp(part); // path_length / mean_free_path;
   while (n < synrad_average_number_of_photons(beta_gamma, kick)) {
     nphot++;
@@ -185,11 +182,9 @@ int64_t synrad_emit_photons(LocalParticle *part, double kick /* rad */, double l
       energy = 0.0; // eV
       break;
     }
-
     energy -= energy_loss; // eV
-    gamma = energy / mass0; // TODO: check if it's gamma, or beta*gamma
-    beta_gamma = sqrt(gamma*gamma-1); // that's how it is beta gamma
-
+    gamma = energy / m0; //
+    beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
     n += LocalParticle_generate_random_double_exp(part);
   }
 
