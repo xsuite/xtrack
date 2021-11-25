@@ -4,7 +4,6 @@
 #define SQRT3 1.732050807568877
 #define ALPHA_EM 0.0072973525693
 
-
 /*gpufun*/
 double SynRad(double x)
 { 
@@ -141,12 +140,10 @@ double synrad_average_number_of_photons(double beta_gamma, double kick )
 void synrad_average_energy_loss(LocalParticle *part, double kick /* rad */, double length /* m */ )
 {
   double const h = kick / length; // 1/m, 1/rho, curvature
-  double const p0c = LocalParticle_get_p0c(part); // eV
   double const m0  = LocalParticle_get_mass0(part); // eV/c^2
-  double const d = LocalParticle_get_delta(part);
-  double const pc = p0c * (1 + d); // eV
-  double const energy = hypot(m0, pc); // eV
-  double const beta_gamma = pc / m0; // 
+  double const energy = LocalParticle_get_energy0(part) + LocalParticle_get_psigma(part)*LocalParticle_get_p0c(part)*LocalParticle_get_beta0(part); // eV
+  double const gamma = energy / m0; // 
+  double const beta_gamma = sqrt(gamma*gamma-1); //
   double const q0 = LocalParticle_get_q0(part); // e
   // e^2 / 4 pi epsilon0 eV = (1 / 694461541.7756249) m
   double const classical_radius = q0*q0 / m0 / 694461541.7756249; // m, classical electromagnetic radius
@@ -165,10 +162,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double kick /* rad */, double l
 
   // TODO Introduce effect of chi and mass_ratio!!!
   double const m0 = LocalParticle_get_mass0(part); // eV
-  double const p0c = LocalParticle_get_p0c(part); // eV
-  double const d = LocalParticle_get_delta(part);
-  double const pc = p0c * (1 + d); // eV
-  double const initial_energy = hypot(m0, pc); // eV
+  double const initial_energy = LocalParticle_get_energy0(part) + LocalParticle_get_psigma(part)*LocalParticle_get_p0c(part)*LocalParticle_get_beta0(part); // eV
   double energy = initial_energy;
   double gamma = energy / m0; // 
   double beta_gamma = sqrt(gamma*gamma-1); //
