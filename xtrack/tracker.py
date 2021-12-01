@@ -166,6 +166,7 @@ class Tracker:
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
 
+        self.line = line
         self._supertracker = supertracker
         self._parts = parts
         self.track = self._track_with_collective
@@ -249,6 +250,10 @@ class Tracker:
         self.track=self._track_no_collective
 
     def find_closed_orbit(self, particle_co_guess):
+
+        particle_co_guess = particle_co_guess.copy(
+                            _context=self._buffer.context)
+
         res = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, self),
               x0=np.array([particle_co_guess._xobject.x[0],
                            particle_co_guess._xobject.px[0],
@@ -272,17 +277,16 @@ class Tracker:
             dx=1e-7, dpx=1e-10, dy=1e-7, dpy=1e-10,
             dzeta=1e-6, ddelta=1e-7):
 
-        assert isinstance(self._buffer.context, xo.ContextCpu), (
-                "This feature is not yet supported on GPU")
-
+        particle_on_co = particle_on_co.copy(
+                            _context=self._buffer.context)
         # Find R matrix
         p0 = np.array([
-               particle_on_co.x[0],
-               particle_on_co.px[0],
-               particle_on_co.y[0],
-               particle_on_co.py[0],
-               particle_on_co.zeta[0],
-               particle_on_co.delta[0]])
+               particle_on_co._xobject.x[0],
+               particle_on_co._xobject.px[0],
+               particle_on_co._xobject.y[0],
+               particle_on_co._xobject.py[0],
+               particle_on_co._xobject.zeta[0],
+               particle_on_co._xobject.delta[0]])
         II = np.eye(6)
         RR = np.zeros((6, 6), dtype=np.float64)
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
