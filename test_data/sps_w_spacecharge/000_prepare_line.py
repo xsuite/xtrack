@@ -98,7 +98,7 @@ with open('line_no_spacecharge_and_particle.json', 'w') as fid:
 bunch = xp.generate_matched_gaussian_bunch(
          num_particles=int(2e6), total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_ref=part_on_co, R_matrix=RR,
+         particle_on_co=part_on_co, R_matrix=RR,
          circumference=mad.sequence[seq_name].beam.circ,
          alpha_momentum_compaction=mad.table.summ.alfa,
          rf_harmonic=4620, rf_voltage=V_RF, rf_phase=0)
