@@ -79,7 +79,6 @@ with open('optics_and_co_at_start_ring.json', 'w') as fid:
 
 part_on_co = xp.Particles.from_dict(
         optics_and_co_at_start_ring_from_madx['particle_on_madx_co'])
-RR = np.array(optics_and_co_at_start_ring_from_madx['RR_madx'])
 
 # A test particle
 part = part_on_co.copy()
@@ -98,10 +97,7 @@ with open('line_no_spacecharge_and_particle.json', 'w') as fid:
 bunch = xp.generate_matched_gaussian_bunch(
          num_particles=int(2e6), total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_on_co=part_on_co, R_matrix=RR,
-         circumference=mad.sequence[seq_name].beam.circ,
-         alpha_momentum_compaction=mad.table.summ.alfa,
-         rf_harmonic=4620, rf_voltage=V_RF, rf_phase=0)
+         particle_ref=part_on_co, tracker=xt.Tracker(line=line_without_spacecharge))
 delta_rms = np.std(bunch.delta)
 
 
