@@ -22,8 +22,8 @@ rf_voltage=3e6
 num_turns=32
 
 #mode = 'frozen'
-#mode = 'quasi-frozen'
-mode = 'pic'
+mode = 'quasi-frozen'
+#mode = 'pic'
 
 ####################
 # Choose a context #
@@ -97,9 +97,7 @@ tracker = xt.Tracker(_buffer=_buffer,
 particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_ref=part_on_co, R_matrix=RR,
-         circumference=6911., alpha_momentum_compaction=0.0030777,
-         rf_harmonic=4620, rf_voltage=rf_voltage, rf_phase=0)
+         particle_on_co=part_on_co, R_matrix=RR, tracker=tracker)
 
 import footprint
 r_max_sigma = 5
