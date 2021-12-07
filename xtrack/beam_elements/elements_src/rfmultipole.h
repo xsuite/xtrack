@@ -64,7 +64,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
 
         LocalParticle_add_to_px(part, px_kick);
         LocalParticle_add_to_py(part, py_kick);
-        LocalParticle_add_to_energy(part, energy_kick);
+        LocalParticle_add_to_energy(part, energy_kick, 1);
 
     //end_per_particle_block
 

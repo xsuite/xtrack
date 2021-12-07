@@ -112,7 +112,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 	double const energy_increment = 
 		LinearTransferMatrixData_get_energy_increment(el);
 	if (energy_increment !=0){
-            LocalParticle_add_to_energy(part, energy_increment);
+	  LocalParticle_add_to_energy(part, energy_increment, 1);
 	}
 
         // Change energy reference

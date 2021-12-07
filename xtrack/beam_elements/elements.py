@@ -277,10 +277,9 @@ class Multipole(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Multipole.XoStruct.extra_sources = [
-    xp.general._pkg_root.joinpath(
-        'random_number_generator/rng_src/base_rng.h'),
-    xp.general._pkg_root.joinpath(
-        'random_number_generator/rng_src/local_particle_rng.h'),
+    xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+    xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+    _pkg_root.joinpath('headers/synrad_spectrum.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
 

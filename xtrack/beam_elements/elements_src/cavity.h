@@ -19,7 +19,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
         double const energy   = q * CavityData_get_voltage(el) * sin(phase);
 
-        LocalParticle_add_to_energy(part, energy);
+        LocalParticle_add_to_energy(part, energy, 1);
     //end_per_particle_block
 }
 
