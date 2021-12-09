@@ -5,16 +5,22 @@ from scipy.constants import epsilon_0
 
 import xpart as xp
 import xtrack as xt
+import xobjects as xo
+
+context = xo.ContextCpu()
+context = xo.ContextCupy()
+context = xo.ContextPyopencl()
 
 theta_bend = 0.05
 L_bend = 5.
 
 dipole_ave = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
-                      radiation_flag=1)
+                          radiation_flag=1, _context=context)
 dipole_rnd = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
-                      radiation_flag=2)
+                          radiation_flag=2, _context=context)
 
 particles_ave = xp.Particles(
+        _context=context,
         p0c=5e9, # 5 GeV
         x=np.zeros(1000000),
         px=1e-4,
@@ -34,7 +40,6 @@ dipole_rnd.track(particles_rnd)
 dct_ave = particles_ave.to_dict()
 dct_rng = particles_rnd.to_dict()
 
-
 assert np.allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
                   atol=0, rtol=5e-3)
 
@@ -53,7 +58,6 @@ assert np.allclose(dct_ave['py']*dct_ave['rpp'],
 assert np.allclose(dct_rng['py']*dct_rng['rpp'],
                    dct_rng_before['py']*dct_rng_before['rpp'],
                    atol=0, rtol=1e-10)
-
 
 rho = L_bend/theta_bend
 mass0_kg = (dct_ave['mass0']*qe/clight**2)
