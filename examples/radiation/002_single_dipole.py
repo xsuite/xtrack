@@ -3,9 +3,12 @@ import numpy as np
 import xpart as xp
 import xtrack as xt
 
-dipole_ave = xt.Multipole(knl=[0.05], length=5, hxl=0.05,
+theta_bend = 0.05
+L_bend = 5.
+
+dipole_ave = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
                       radiation_flag=1)
-dipole_rnd = xt.Multipole(knl=[0.05], length=5, hxl=0.05,
+dipole_rnd = xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend,
                       radiation_flag=2)
 
 particles_ave = xp.Particles(
@@ -30,9 +33,34 @@ dct_rng = particles_rnd.to_dict()
 
 
 assert np.allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
-                  atol=0, rtol=1e-3)
+                  atol=0, rtol=5e-3)
 
-#assert np.allclose(
-#        (dct_rng['py'] - dct_rng_before['py'])
-#        /dct_rng_before['py']/dct_rng['delta']
+assert np.allclose(dct_ave['px']*dct_ave['rpp'],
+                   dct_ave_before['px']*dct_ave_before['rpp'],
+                   atol=0, rtol=1e-10)
+
+assert np.allclose(dct_rng['px']*dct_rng['rpp'],
+                   dct_rng_before['px']*dct_rng_before['rpp'],
+                   atol=0, rtol=1e-10)
+
+assert np.allclose(dct_ave['py']*dct_ave['rpp'],
+                   dct_ave_before['py']*dct_ave_before['rpp'],
+                   atol=0, rtol=1e-10)
+
+assert np.allclose(dct_rng['py']*dct_rng['rpp'],
+                   dct_rng_before['py']*dct_rng_before['rpp'],
+                   atol=0, rtol=1e-10)
+
+from scipy.constants import e as qe
+from scipy.constants import c as clight
+from scipy.constants import epsilon_0
+
+rho = L_bend/theta_bend
+mass0_kg = (dct_ave['mass0']*qe/clight**2)
+r0 = qe**2/(4*np.pi*epsilon_0*mass0_kg*clight**2)
+Ps = (2*r0*clight*mass0_kg*clight**2*
+      dct_ave['beta0'][0]**4*dct_ave['gamma0'][0]**4)/(3*rho**2) # W
+
+Delta_E_eV = Ps*(L_bend/clight) / qe
+Delta_trk = (dct_ave['psigma']-dct_ave_before['psigma'])*dct_ave['p0c']*dct_ave['beta0']
 
