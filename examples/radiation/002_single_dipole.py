@@ -32,7 +32,7 @@ dct_rng = particles_rnd.to_dict()
 assert np.allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
                   atol=0, rtol=1e-3)
 
-assert np.allclose(
-        (dct_rng['py'] - dct_rng_before['py'])
-        /dct_rng_before['py']/dct_rng['delta']
+#assert np.allclose(
+#        (dct_rng['py'] - dct_rng_before['py'])
+#        /dct_rng_before['py']/dct_rng['delta']
 
