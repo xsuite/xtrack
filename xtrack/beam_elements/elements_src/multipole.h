@@ -40,7 +40,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 	
 	// compute the average energy loss by synchrotron radiation
         if (radiation_flag>0 && length!=0.0) {
-	  double const kick = hypot(dpx, dpy); // rad
+	  double const kick = hypot(dpx, dpy) * LocalParticle_get_rpp(part); // rad
 	  if (radiation_flag==1) {
 	    synrad_average_energy_loss(part, kick, length);
 	  } else {
