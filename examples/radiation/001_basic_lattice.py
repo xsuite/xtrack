@@ -6,7 +6,7 @@ from scipy.constants import c as clight
 
 from cpymad.madx import Madx
 
-import xline as xl
+import xpart as xp
 import xtrack as xt
 
 #############################################
@@ -14,38 +14,39 @@ import xtrack as xt
 #############################################
 mad = Madx()
 mad.call("madseq.madx")
-line = xl.Line.from_madx_sequence(mad.sequence['clic_ffs'])
+line = xt.Line.from_madx_sequence(mad.sequence['clic_ffs'])
 
 ###########################
 # Build tracker (compile) #
 ###########################
-tracker  = xt.Tracker(sequence=line, save_source_as='gensource.c')
+tracker  = xt.Tracker(line=line, save_source_as='gensource.c')
 
 #######################
 # Switch on radiation #
 #######################
 for ee in tracker.line.elements:
     if hasattr(ee, 'radiation_flag'):
-        ee.radiation_flag = 1 # no random part
         #ee.radiation_flag = 1 # no random part
-        #ee.radiation_flag = 2 # with random part
+        ee.radiation_flag = 2 # with random part
 
+####################
+# Import particles #
+####################
 
-######################
-# Generate particles #
-######################
-
+my_data = np.genfromtxt('beam_dist.txt', delimiter=',')
 me_eV = me_kg*clight**2/qe
-n_part = 10000
-particles = xt.Particles(
+particles = xp.Particles(
         p0c=1500e9, # eV
+        q0=-1,
         mass0=me_eV,
-        x=np.random.uniform(-1e-3, 1e-3, n_part),
-        px=np.random.uniform(-1e-6, 1e-6, n_part),
-        y=np.random.uniform(-1e-3, 1e-3, n_part),
-        py=np.random.uniform(-1e-6, 1e-6, n_part),
-        zeta=np.random.uniform(-1e-2, 1e-2, n_part),
-        delta=np.random.uniform(-1e-4, 1e-4, n_part))
+        x =my_data[:,0],
+        px=my_data[:,1],
+        y =my_data[:,2],
+        py=my_data[:,3],
+        zeta=my_data[:,4],
+        delta=my_data[:,5])
+
+particles._init_random_number_generator()
 
 #########
 # Track #
@@ -59,15 +60,48 @@ particles = xt.Particles(
 #     # print(particles.x[0])
 
 # For multiple turns:
-# particles0 = particles.copy()
+particles0 = particles.copy()
 tracker.track(particles)
 
+P0 = 1500.
+E0 = np.hypot(0.0005109989275678127, P0)
+gamma = E0 / 0.0005109989275678127
+beta = np.sqrt(gamma*gamma-1)/gamma
+#delta_p1 = np.sqrt(pt*pt + 2.*pt/beta + 1.);
 
-import matplotlib.pyplot as plt
-plt.close('all')
-plt.figure(1);
-plt.plot(particles.x, particles.px, '.')
-plt.figure(2);
-plt.plot(particles.y, particles.py, '.')
-plt.show()
+px = particles.px[:]
+py = particles.py[:]
+delta = particles.delta[:]
+x = particles.x[:]
+y = particles.y[:]
+z = particles.zeta[:]
+
+P = P0 * (1. + delta)
+Px = P0 * px
+Py = P0 * py
+Pz = np.sqrt(P*P - Px*Px - Py*Py) 
+
+xp = Px / Pz * 1e6 # urad
+yp = Py / Pz * 1e6 # urad
+x *= 1e6 # um
+y *= 1e6 # um
+z *= 1e6 # um
+
+x = x.reshape(100000,1)
+y = y.reshape(100000,1)
+z = z.reshape(100000,1)
+xp = xp.reshape(100000,1)
+yp = yp.reshape(100000,1)
+P = P.reshape(100000,1)
+
+np.savetxt('ipdist_xtrack_rad2.txt', np.concatenate([P,x,y,z,xp,yp], axis=1), fmt='%.15g')
+
+if 1:
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    plt.figure(1);
+    plt.plot(particles.x, particles.px, '.', markersize=1)
+    plt.figure(2);
+    plt.plot(particles.y, particles.py, '.', markersize=1)
+    plt.show()
 
