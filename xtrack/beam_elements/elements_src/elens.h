@@ -9,6 +9,9 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
     double const outer_radius = ElensData_get_outer_radius(el);
     double const current = ElensData_get_current(el);
     double const voltage = ElensData_get_voltage(el);
+    double const residual_kick_x = ElensData_get_residual_kick_x(el);
+    double const residual_kick_y = ElensData_get_residual_kick_y(el);
+
 
     // double const cos_z = SRotationData_get_cos_z(el);
 
@@ -114,7 +117,9 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
         double dpx = 0.;
         double dpy = 0.;
         //
-        if( r > 0 )
+
+
+        if ( r > r1 )
         {
           theta_pxpy = (-1)*frr*theta_max*(outer_radius/r)*(1/(rpp*chi));
           dpx        = x*theta_pxpy/r;
@@ -122,9 +127,12 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
         }
         else
         {
-          dpx = 0.;
-          dpy = 0.;
+          // if the particle is not inside the e-beam, it will only
+          // be subject to the residual kick
+          dpx = residual_kick_x;
+          dpy = residual_kick_y;
         }
+
 
         LocalParticle_add_to_px(part, dpx );
         LocalParticle_add_to_py(part, dpy );

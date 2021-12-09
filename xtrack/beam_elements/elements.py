@@ -101,20 +101,27 @@ class Elens(BeamElement):
                'inner_radius': xo.Float64,
                'outer_radius': xo.Float64,
                'elens_length': xo.Float64,
-               'voltage':      xo.Float64
+               'voltage':      xo.Float64,
+               'residual_kick_x': xo.Float64,
+               'residual_kick_y': xo.Float64
               }
 
-    def __init__(self,  inner_radius = None,
-                        outer_radius = None,
-                        current      = None,
-                        elens_length = None,
-                        voltage      = None, **kwargs):
+    def __init__(self,  inner_radius  = None,
+                        outer_radius  = None,
+                        current       = None,
+                        elens_length  = None,
+                        voltage       = None,
+                        residual_kick_x = 0,
+                        residual_kick_y = 0,
+                        **kwargs):
         super().__init__(**kwargs)
         self.inner_radius    = inner_radius
         self.outer_radius    = outer_radius
         self.current         = current
         self.elens_length    = elens_length
         self.voltage         = voltage
+        self.residual_kick_x   = residual_kick_x
+        self.residual_kick_y   = residual_kick_y
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
