@@ -9,6 +9,7 @@ def _monitor_init(
     _context=None,
     _buffer=None,
     _offset=None,
+    _xobject=None,
     start_at_turn=None,
     stop_at_turn=None,
     num_particles=None,
@@ -16,42 +17,44 @@ def _monitor_init(
     auto_to_numpy=True,
 ):
 
-    if particle_id_range is not None:
-        assert num_particles is None
-        part_id_start = particle_id_range[0]
-        part_id_end = particle_id_range[1]
+    if _xobject is not None:
+        self.xoinitialize(_xobject=_xobject)
     else:
-        assert num_particles is not None
-        part_id_start = 0
-        part_id_end = num_particles
+        if particle_id_range is not None:
+            assert num_particles is None
+            part_id_start = particle_id_range[0]
+            part_id_end = particle_id_range[1]
+        else:
+            assert num_particles is not None
+            part_id_start = 0
+            part_id_end = num_particles
 
-    n_part_ids = part_id_end - part_id_start
-    assert n_part_ids >= 0
+        n_part_ids = part_id_end - part_id_start
+        assert n_part_ids >= 0
 
-    n_turns = int(stop_at_turn) - int(start_at_turn)
-    n_records = n_turns * n_part_ids
+        n_turns = int(stop_at_turn) - int(start_at_turn)
+        n_records = n_turns * n_part_ids
 
-    data_init = {nn: n_records for tt, nn in
-                    self._ParticlesClass._structure["per_particle_vars"]}
+        data_init = {nn: n_records for tt, nn in
+                        self._ParticlesClass._structure["per_particle_vars"]}
 
-    self.xoinitialize(
-        _context=_context,
-        _buffer=_buffer,
-        _offset=_offset,
-        start_at_turn=start_at_turn,
-        stop_at_turn=stop_at_turn,
-        part_id_start=part_id_start,
-        part_id_end=part_id_end,
-        n_records=n_records,
-        data=data_init,
-    )
+        self.xoinitialize(
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
+            start_at_turn=start_at_turn,
+            stop_at_turn=stop_at_turn,
+            part_id_start=part_id_start,
+            part_id_end=part_id_end,
+            n_records=n_records,
+            data=data_init,
+        )
 
-    self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data)
-    self.auto_to_numpy = auto_to_numpy
+        self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data)
+        self.auto_to_numpy = auto_to_numpy
 
-    for tt, nn in self._ParticlesClass._structure["per_particle_vars"]:
-        getattr(self.data, nn)[:] = 0
-
+        for tt, nn in self._ParticlesClass._structure["per_particle_vars"]:
+            getattr(self.data, nn)[:] = 0
 
 class _FieldOfMonitor:
     def __init__(self, name):
