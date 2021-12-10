@@ -8,8 +8,6 @@ import xtrack as xt
 import xobjects as xo
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-context = xo.ContextPyopencl()
 
 theta_bend = 0.05
 L_bend = 5.
