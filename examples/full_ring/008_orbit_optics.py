@@ -28,8 +28,11 @@ with open(fname_line_particles, 'r') as fid:
     input_data = json.load(fid)
 
 line = xt.Line.from_dict(input_data['line'])
-if short_test:
-    line = make_short_line(line)
+
+for ee in line.elements:
+    if ee.__class__.__name__.startswith('BeamBeam'):
+        assert hasattr(ee, 'q0')
+        ee.q0 = 0
 
 print('Build tracker...')
 freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
@@ -48,6 +51,9 @@ dx=1e-7; dpx=1e-10; dy=1e-7; dpy=1e-10; dzeta=1e-6; ddelta=1e-7
 
 num_elements = len(tracker.line.elements)
 x = np.zeros(num_elements, dtype=np.float64)
+betx = np.zeros(num_elements, dtype=np.float64)
+bety = np.zeros(num_elements, dtype=np.float64)
+s = tracker.line.get_s_elements()
 
 for ii, ee in enumerate(tracker.line.elements):
 
@@ -77,7 +83,11 @@ for ii, ee in enumerate(tracker.line.elements):
     for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
         RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
 
+    WW, WWinv, Rot = xp.compute_linear_normal_form(RR, tol_det_M=10e-2)
+
     x[ii] = part_on_co.x[0]
+    betx[ii] = WW[0, 0]**2 + WW[0, 1]**2
+    bety[ii] = WW[2, 2]**2 + WW[2, 3]**2
 
     ee.track(part_on_co)
 
