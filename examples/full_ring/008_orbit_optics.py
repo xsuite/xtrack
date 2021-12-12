@@ -39,19 +39,19 @@ tracker = xt.Tracker(_context=context,
                                                 freeze_vars=freeze_vars),
             )
 
-self = tracker
 
 part0 = xp.Particles(_context=context, **input_data['particle'])
 
 part_on_co = tracker.find_closed_orbit(part0)
 
-RR_ref =  tracker.compute_one_turn_matrix_finite_differences(part_on_co)
-
 dx=1e-7; dpx=1e-10; dy=1e-7; dpy=1e-10; dzeta=1e-6; ddelta=1e-7
 
-def test():
-    particle_on_co = part_on_co.copy(
-                        _context=self._buffer.context)
+num_elements = len(tracker.line.elements)
+x = np.zeros(num_elements, dtype=np.float64)
+
+for ii, ee in enumerate(tracker.line.elements):
+
+    print(f'{ii}/{len(tracker.line.elements)}        ', end='\r', flush=True)
 
     part_temp = xp.build_particles(particle_ref=part_on_co, mode='shift',
             x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
@@ -61,7 +61,8 @@ def test():
             zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
             delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],)
 
-    tracker.track(part_temp)
+    tracker.track(part_temp, ele_start=ii)
+    tracker.track(part_temp, ele_start=0, num_elements=ii)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
     temp_mat[0, :] = part_temp.x
@@ -76,5 +77,8 @@ def test():
     for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
         RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
 
-    return RR
+    x[ii] = part_on_co.x[0]
+
+    ee.track(part_on_co)
+
 
