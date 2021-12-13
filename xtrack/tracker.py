@@ -588,7 +588,7 @@ class Tracker:
 
     def _slow_track_ebe(self,part):
         out=[]
-        for ii in range(len(line.elements)):
+        for ii in range(len(self.line.elements)):
             out.append(part.copy())
             self.track(part,ele_start=ii,num_elements=1)
         return out
