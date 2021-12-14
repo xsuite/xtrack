@@ -47,6 +47,7 @@ r_sigma = 0.01
 nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6
 n_theta = 1000
+delta_disp = 1e-5
 part_x = xp.build_particles(
             x_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
             px_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
@@ -61,6 +62,20 @@ part_y = xp.build_particles(
             particle_on_co=part_on_co,
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
+part_y = xp.build_particles(
+            y_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
+            py_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
+            zeta=part_on_co.zeta[0], delta=part_on_co.delta[0],
+            particle_on_co=part_on_co,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+            R_matrix=RR)
+part_disp = xp.build_particles(
+            x_norm=0,
+            zeta=part_on_co.zeta[0], delta=delta_disp,
+            particle_on_co=part_on_co,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+            R_matrix=RR)
+
 
 num_elements = len(tracker.line.elements)
 max_x = np.zeros(num_elements, dtype=np.float64)
@@ -69,6 +84,8 @@ min_x = np.zeros(num_elements, dtype=np.float64)
 min_y = np.zeros(num_elements, dtype=np.float64)
 x_co = np.zeros(num_elements, dtype=np.float64)
 y_co = np.zeros(num_elements, dtype=np.float64)
+x_disp = np.zeros(num_elements, dtype=np.float64)
+y_disp = np.zeros(num_elements, dtype=np.float64)
 
 for ii, ee in enumerate(tracker.line.elements):
     print(f'{ii}/{len(tracker.line.elements)}        ', end='\r', flush=True)
@@ -81,9 +98,13 @@ for ii, ee in enumerate(tracker.line.elements):
     x_co[ii] = part_on_co.x[0]
     y_co[ii] = part_on_co.y[0]
 
+    x_disp[ii] = part_disp.x[0]
+    y_disp[ii] = part_disp.y[0]
+
     tracker.track(part_on_co, ele_start=ii, num_elements=1)
     tracker.track(part_x, ele_start=ii, num_elements=1)
     tracker.track(part_y, ele_start=ii, num_elements=1)
+    tracker.track(part_disp, ele_start=ii, num_elements=1)
 
 s = tracker.line.get_s_elements()
 
@@ -96,5 +117,10 @@ sigy = (sigy_max + sigy_min)/2
 
 betx = sigx**2*part0.gamma0[0]*part0.beta0[0]/nemitt_x
 bety = sigy**2*part0.gamma0[0]*part0.beta0[0]/nemitt_y
+
+dx = x_disp/delta_disp
+dy = y_disp/delta_disp
+
 qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
 qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)
+
