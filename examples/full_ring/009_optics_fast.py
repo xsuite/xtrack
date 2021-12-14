@@ -13,7 +13,7 @@ test_data_folder = pathlib.Path(
 fname_line_particles = test_data_folder.joinpath(
                         './hllhc_14/line_and_particle.json')
 
-fname_line_particles = './temp_precise_lattice/xtline.json'
+#fname_line_particles = './temp_precise_lattice/xtline.json'
 
 ####################
 # Choose a context #
@@ -27,16 +27,12 @@ with open(fname_line_particles, 'r') as fid:
 
 line = xt.Line.from_dict(input_data['line'])
 
-for ee in line.elements:
-    if ee.__class__.__name__.startswith('BeamBeam'):
-        assert hasattr(ee, 'q0')
-        ee.q0 = 0
 
 print('Build tracker...')
-freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
 tracker = xt.Tracker(_context=context,
             line=line,
             )
+
 
 part0 = xp.Particles(_context=context, **input_data['particle'])
 
@@ -75,7 +71,6 @@ part_disp = xp.build_particles(
             particle_on_co=part_on_co,
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
-
 
 num_elements = len(tracker.line.elements)
 max_x = np.zeros(num_elements, dtype=np.float64)
@@ -118,9 +113,10 @@ sigy = (sigy_max + sigy_min)/2
 betx = sigx**2*part0.gamma0[0]*part0.beta0[0]/nemitt_x
 bety = sigy**2*part0.gamma0[0]*part0.beta0[0]/nemitt_y
 
-dx = x_disp/delta_disp
-dy = y_disp/delta_disp
+dx = (x_disp-x_co)/delta_disp
+dy = (y_disp-y_co)/delta_disp
 
 qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
 qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)
+
 
