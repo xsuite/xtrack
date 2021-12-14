@@ -35,11 +35,8 @@ for ee in line.elements:
         ee.q0 = 0
 
 print('Build tracker...')
-freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
 tracker = xt.Tracker(_context=context,
             line=line,
-            local_particle_src=xp.gen_local_particle_api(
-                                                freeze_vars=freeze_vars),
             )
 
 

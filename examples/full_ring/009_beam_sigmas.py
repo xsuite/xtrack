@@ -7,15 +7,13 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-from make_short_line import make_short_line
-
-short_test = False # Short line (5 elements)
-
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
 fname_line_particles = test_data_folder.joinpath(
                         './hllhc_14/line_and_particle.json')
+
+fname_line_particles = './temp_precise_lattice/xtline.json'
 
 ####################
 # Choose a context #
@@ -38,15 +36,13 @@ print('Build tracker...')
 freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
 tracker = xt.Tracker(_context=context,
             line=line,
-            local_particle_src=xp.gen_local_particle_api(
-                                                freeze_vars=freeze_vars),
             )
-
 
 part0 = xp.Particles(_context=context, **input_data['particle'])
 
 part_on_co = tracker.find_closed_orbit(part0)
 RR = tracker.compute_one_turn_matrix_finite_differences(particle_on_co=part_on_co)
+W, Winv, Rot = xp.compute_linear_normal_form(RR)
 r_sigma = 0.01
 nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6
@@ -100,4 +96,5 @@ sigy = (sigy_max + sigy_min)/2
 
 betx = sigx**2*part0.gamma0[0]*part0.beta0[0]/nemitt_x
 bety = sigy**2*part0.gamma0[0]*part0.beta0[0]/nemitt_y
-
+qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
+qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)
