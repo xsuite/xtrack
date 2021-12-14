@@ -13,7 +13,7 @@ test_data_folder = pathlib.Path(
 fname_line_particles = test_data_folder.joinpath(
                         './hllhc_14/line_and_particle.json')
 
-#fname_line_particles = './temp_precise_lattice/xtline.json'
+fname_line_particles = './temp_precise_lattice/xtline.json'
 
 ####################
 # Choose a context #
