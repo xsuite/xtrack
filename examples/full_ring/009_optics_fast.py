@@ -118,7 +118,7 @@ for ii, ee in enumerate(tracker.line.elements):
     tracker.track(part_y, ele_start=ii, num_elements=1)
     tracker.track(part_disp, ele_start=ii, num_elements=1)
 
-s = tracker.line.get_s_elements()
+s = np.array(tracker.line.get_s_elements())
 
 sigx_max = (max_x - x_co)/r_sigma
 sigy_max = (max_y - y_co)/r_sigma
@@ -164,7 +164,21 @@ WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus = xp.compute_linear_normal_fo
 qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
 qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
 
-qpx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
-qpy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
+dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
+dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
 
+twiss_res = {
+    's': s,
+    'x': x_co,
+    'px': px_co,
+    'y': y_co,
+    'py': py_co,
+    'dx': dx,
+    'dpx': dpx,
+    'dy': dy,
+    'dpy': dpy,
+    'qx': qx,
+    'qy': qy,
+    'dqx': dqx,
+    'dqy': dqy}
 
