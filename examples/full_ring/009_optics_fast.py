@@ -81,8 +81,12 @@ min_x = np.zeros(num_elements, dtype=np.float64)
 min_y = np.zeros(num_elements, dtype=np.float64)
 x_co = np.zeros(num_elements, dtype=np.float64)
 y_co = np.zeros(num_elements, dtype=np.float64)
+px_co = np.zeros(num_elements, dtype=np.float64)
+py_co = np.zeros(num_elements, dtype=np.float64)
 x_disp = np.zeros(num_elements, dtype=np.float64)
 y_disp = np.zeros(num_elements, dtype=np.float64)
+px_disp = np.zeros(num_elements, dtype=np.float64)
+py_disp = np.zeros(num_elements, dtype=np.float64)
 
 for ii, ee in enumerate(tracker.line.elements):
     print(f'{ii}/{len(tracker.line.elements)}        ', end='\r', flush=True)
@@ -95,8 +99,14 @@ for ii, ee in enumerate(tracker.line.elements):
     x_co[ii] = part_on_co.x[0]
     y_co[ii] = part_on_co.y[0]
 
+    px_co[ii] = part_on_co.px[0]
+    py_co[ii] = part_on_co.py[0]
+
     x_disp[ii] = part_disp.x[0]
     y_disp[ii] = part_disp.y[0]
+
+    px_disp[ii] = part_disp.px[0]
+    py_disp[ii] = part_disp.py[0]
 
     tracker.track(part_on_co, ele_start=ii, num_elements=1)
     tracker.track(part_x, ele_start=ii, num_elements=1)
@@ -118,10 +128,11 @@ bety = sigy**2*part0.gamma0[0]*part0.beta0[0]/nemitt_y
 dx = (x_disp-x_co)/delta_disp
 dy = (y_disp-y_co)/delta_disp
 
+dpx = (px_disp-px_co)/delta_disp
+dpy = (py_disp-py_co)/delta_disp
+
 qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
 qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)
-
-
 
 part_chrom_plus = xp.build_particles(
             x_norm=0,
