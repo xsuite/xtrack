@@ -46,6 +46,7 @@ n_theta = 1000
 delta_disp = 1e-5
 delta_chrom = 1e-4
 part_x = xp.build_particles(
+            _context=context,
             x_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
             px_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
             zeta=part_on_co.zeta[0], delta=part_on_co.delta[0],
@@ -53,6 +54,7 @@ part_x = xp.build_particles(
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
 part_y = xp.build_particles(
+            _context=context,
             y_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
             py_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
             zeta=part_on_co.zeta[0], delta=part_on_co.delta[0],
@@ -60,6 +62,7 @@ part_y = xp.build_particles(
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
 part_y = xp.build_particles(
+            _context=context,
             y_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
             py_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
             zeta=part_on_co.zeta[0], delta=part_on_co.delta[0],
@@ -67,6 +70,7 @@ part_y = xp.build_particles(
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
 part_disp = xp.build_particles(
+            _context=context,
             x_norm=0,
             zeta=part_on_co.zeta[0], delta=delta_disp,
             particle_on_co=part_on_co,
@@ -88,25 +92,26 @@ y_disp = np.zeros(num_elements, dtype=np.float64)
 px_disp = np.zeros(num_elements, dtype=np.float64)
 py_disp = np.zeros(num_elements, dtype=np.float64)
 
+ctx2np = context.nparray_from_context_array
 for ii, ee in enumerate(tracker.line.elements):
     print(f'{ii}/{len(tracker.line.elements)}        ', end='\r', flush=True)
-    max_x[ii] = np.max(part_x.x)
-    max_y[ii] = np.max(part_y.y)
+    max_x[ii] = np.max(ctx2np(part_x.x))
+    max_y[ii] = np.max(ctx2np(part_y.y))
 
-    min_x[ii] = np.min(part_x.x)
-    min_y[ii] = np.min(part_y.y)
+    min_x[ii] = np.min(ctx2np(part_x.x))
+    min_y[ii] = np.min(ctx2np(part_y.y))
 
-    x_co[ii] = part_on_co.x[0]
-    y_co[ii] = part_on_co.y[0]
+    x_co[ii] = part_on_co._xobject.x[0]
+    y_co[ii] = part_on_co._xobject.y[0]
 
-    px_co[ii] = part_on_co.px[0]
-    py_co[ii] = part_on_co.py[0]
+    px_co[ii] = part_on_co._xobject.px[0]
+    py_co[ii] = part_on_co._xobject.py[0]
 
-    x_disp[ii] = part_disp.x[0]
-    y_disp[ii] = part_disp.y[0]
+    x_disp[ii] = part_disp._xobject.x[0]
+    y_disp[ii] = part_disp._xobject.y[0]
 
-    px_disp[ii] = part_disp.px[0]
-    py_disp[ii] = part_disp.py[0]
+    px_disp[ii] = part_disp._xobject.px[0]
+    py_disp[ii] = part_disp._xobject.py[0]
 
     tracker.track(part_on_co, ele_start=ii, num_elements=1)
     tracker.track(part_x, ele_start=ii, num_elements=1)
@@ -122,8 +127,8 @@ sigy_min = (y_co - min_y)/r_sigma
 sigx = (sigx_max + sigx_min)/2
 sigy = (sigy_max + sigy_min)/2
 
-betx = sigx**2*part0.gamma0[0]*part0.beta0[0]/nemitt_x
-bety = sigy**2*part0.gamma0[0]*part0.beta0[0]/nemitt_y
+betx = sigx**2*part0._xobject.gamma0[0]*part0._xobject.beta0[0]/nemitt_x
+bety = sigy**2*part0._xobject.gamma0[0]*part0._xobject.beta0[0]/nemitt_y
 
 dx = (x_disp-x_co)/delta_disp
 dy = (y_disp-y_co)/delta_disp
@@ -135,6 +140,7 @@ qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
 qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)
 
 part_chrom_plus = xp.build_particles(
+            _context=context,
             x_norm=0,
             zeta=part_on_co.zeta[0], delta=delta_chrom,
             particle_on_co=part_on_co,
@@ -147,6 +153,7 @@ qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
 qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
 
 part_chrom_minus = xp.build_particles(
+            _context=context,
             x_norm=0,
             zeta=part_on_co.zeta[0], delta=-delta_chrom,
             particle_on_co=part_on_co,
