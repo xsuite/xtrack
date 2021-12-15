@@ -5,6 +5,7 @@ from scipy.optimize import fsolve
 from .general import _pkg_root
 from .line_frozen import LineFrozen
 from .base_element import _handle_per_particle_blocks
+from .twiss_from_tracker import twiss_from_tracker
 
 import xobjects as xo
 import xpart as xp
@@ -295,6 +296,13 @@ class Tracker:
 
         return RR
 
+    def twiss(self, particle_ref, r_sigma=0.01,
+        nemitt_x=1e-6, nemitt_y=2.5e-6,
+        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4):
+
+        return twiss_from_tracker(self, particle_ref, r_sigma=0.01,
+            nemitt_x=1e-6, nemitt_y=2.5e-6,
+            n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4)
 
     def get_backtracker(self, _context=None, _buffer=None):
 

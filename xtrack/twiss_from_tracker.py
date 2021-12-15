@@ -147,6 +147,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'px': px_co,
         'y': y_co,
         'py': py_co,
+        'betx': betx,
+        'bety': bety,
+        'sigx': sigx,
+        'sigy': sigy,
         'dx': dx,
         'dpx': dpx,
         'dy': dy,
@@ -155,4 +159,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'qy': qy,
         'dqx': dqx,
         'dqy': dqy}
+
+    return twiss_res
 
