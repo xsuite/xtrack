@@ -44,6 +44,7 @@ nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6
 n_theta = 1000
 delta_disp = 1e-5
+delta_chrom = 1e-4
 part_x = xp.build_particles(
             x_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
             px_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
@@ -71,6 +72,7 @@ part_disp = xp.build_particles(
             particle_on_co=part_on_co,
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
+
 
 num_elements = len(tracker.line.elements)
 max_x = np.zeros(num_elements, dtype=np.float64)
@@ -118,5 +120,34 @@ dy = (y_disp-y_co)/delta_disp
 
 qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
 qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)
+
+
+
+part_chrom_plus = xp.build_particles(
+            x_norm=0,
+            zeta=part_on_co.zeta[0], delta=delta_chrom,
+            particle_on_co=part_on_co,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+            R_matrix=RR)
+RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
+                                            particle_on_co=part_chrom_plus.copy())
+WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus = xp.compute_linear_normal_form(RR_chrom_plus)
+qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
+qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
+
+part_chrom_minus = xp.build_particles(
+            x_norm=0,
+            zeta=part_on_co.zeta[0], delta=-delta_chrom,
+            particle_on_co=part_on_co,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+            R_matrix=RR)
+RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
+                                            particle_on_co=part_chrom_minus.copy())
+WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus = xp.compute_linear_normal_form(RR_chrom_minus)
+qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
+qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
+
+qpx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
+qpy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
 
 
