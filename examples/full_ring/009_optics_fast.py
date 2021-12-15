@@ -61,18 +61,10 @@ part_y = xp.build_particles(
             particle_on_co=part_on_co,
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
-part_y = xp.build_particles(
-            _context=context,
-            y_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
-            py_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
-            zeta=part_on_co.zeta[0], delta=part_on_co.delta[0],
-            particle_on_co=part_on_co,
-            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-            R_matrix=RR)
 part_disp = xp.build_particles(
             _context=context,
             x_norm=0,
-            zeta=part_on_co.zeta[0], delta=delta_disp,
+            zeta=part_on_co.zeta[0], delta=[delta_disp, -delta_disp],
             particle_on_co=part_on_co,
             scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
             R_matrix=RR)
@@ -87,10 +79,14 @@ x_co = np.zeros(num_elements, dtype=np.float64)
 y_co = np.zeros(num_elements, dtype=np.float64)
 px_co = np.zeros(num_elements, dtype=np.float64)
 py_co = np.zeros(num_elements, dtype=np.float64)
-x_disp = np.zeros(num_elements, dtype=np.float64)
-y_disp = np.zeros(num_elements, dtype=np.float64)
-px_disp = np.zeros(num_elements, dtype=np.float64)
-py_disp = np.zeros(num_elements, dtype=np.float64)
+x_disp_plus = np.zeros(num_elements, dtype=np.float64)
+x_disp_minus = np.zeros(num_elements, dtype=np.float64)
+y_disp_plus = np.zeros(num_elements, dtype=np.float64)
+y_disp_minus = np.zeros(num_elements, dtype=np.float64)
+px_disp_plus = np.zeros(num_elements, dtype=np.float64)
+px_disp_minus = np.zeros(num_elements, dtype=np.float64)
+py_disp_plus = np.zeros(num_elements, dtype=np.float64)
+py_disp_minus = np.zeros(num_elements, dtype=np.float64)
 
 ctx2np = context.nparray_from_context_array
 for ii, ee in enumerate(tracker.line.elements):
@@ -107,11 +103,15 @@ for ii, ee in enumerate(tracker.line.elements):
     px_co[ii] = part_on_co._xobject.px[0]
     py_co[ii] = part_on_co._xobject.py[0]
 
-    x_disp[ii] = part_disp._xobject.x[0]
-    y_disp[ii] = part_disp._xobject.y[0]
+    x_disp_plus[ii] = part_disp._xobject.x[0]
+    x_disp_minus[ii] = part_disp._xobject.x[1]
+    y_disp_plus[ii] = part_disp._xobject.y[0]
+    y_disp_minus[ii] = part_disp._xobject.y[1]
 
-    px_disp[ii] = part_disp._xobject.px[0]
-    py_disp[ii] = part_disp._xobject.py[0]
+    px_disp_plus[ii] = part_disp._xobject.px[0]
+    px_disp_minus[ii] = part_disp._xobject.px[1]
+    py_disp_plus[ii] = part_disp._xobject.py[0]
+    py_disp_minus[ii] = part_disp._xobject.py[1]
 
     tracker.track(part_on_co, ele_start=ii, num_elements=1)
     tracker.track(part_x, ele_start=ii, num_elements=1)
@@ -130,11 +130,10 @@ sigy = (sigy_max + sigy_min)/2
 betx = sigx**2*part0._xobject.gamma0[0]*part0._xobject.beta0[0]/nemitt_x
 bety = sigy**2*part0._xobject.gamma0[0]*part0._xobject.beta0[0]/nemitt_y
 
-dx = (x_disp-x_co)/delta_disp
-dy = (y_disp-y_co)/delta_disp
-
-dpx = (px_disp-px_co)/delta_disp
-dpy = (py_disp-py_co)/delta_disp
+dx = (x_disp_plus-x_disp_minus)/delta_disp/2
+dy = (y_disp_plus-y_disp_minus)/delta_disp/2
+dpx = (px_disp_plus-px_disp_minus)/delta_disp/2
+dpy = (py_disp_plus-py_disp_minus)/delta_disp/2
 
 qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
 qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)

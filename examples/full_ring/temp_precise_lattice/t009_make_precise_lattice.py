@@ -6,6 +6,8 @@ mad.input("""
 call,file="../../../../hllhc15/util/lhc.seq";
 call,file="../../../../hllhc15/hllhc_sequence.madx";
 call,file="../../../../hllhc15/toolkit/macro.madx";
+seqedit,sequence=lhcb1;flatten;cycle,start=IP3;flatten;endedit;
+seqedit,sequence=lhcb2;flatten;cycle,start=IP3;flatten;endedit;
 exec,mk_beam(7000);
 exec,myslice;
 call,file="../../../../hllhc15/round/opt_round_150_1500_thin.madx";
