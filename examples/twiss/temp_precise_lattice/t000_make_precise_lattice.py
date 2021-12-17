@@ -1,5 +1,7 @@
 from cpymad.madx import Madx
 
+# hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
+
 mad = Madx()
 
 mad.input("""

@@ -20,9 +20,7 @@ part0 = xp.Particles(_context=context, **input_data['particle'])
 print('Build tracker...')
 tracker = xt.Tracker(_context=context, line=line)
 
-tw = tracker.twiss(particle_ref=part0,
-        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
-        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4)
+tw = tracker.twiss(particle_ref=part0)
 
 import matplotlib.pyplot as plt
 
