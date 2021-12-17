@@ -5,12 +5,15 @@ import pymask as pm
 import xtrack as xt
 import xpart as xp
 
-Madx = pm.Madxp
+from cpymad.madx import Madx
+
+path = '../../test_data/hllhc14_input_mad/'
+
 mad = Madx(command_log="mad_final.log")
-mad.call("final_seq.madx")
+mad.call(path + "final_seq.madx")
 mad.use(sequence="lhcb1")
 mad.twiss()
-mad.readtable(file="final_errors.tfs", table="errtab")
+mad.readtable(file=path + "final_errors.tfs", table="errtab")
 mad.seterr(table="errtab")
 mad.set(format=".15g")
 twmad = mad.twiss(rmatrix=True, chrom=True)
