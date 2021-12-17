@@ -142,6 +142,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
 
     twiss_res = {
+        'name': tracker.line.element_names,
         's': s,
         'x': x_co,
         'px': px_co,

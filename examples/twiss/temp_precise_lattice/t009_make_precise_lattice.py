@@ -11,6 +11,9 @@ seqedit,sequence=lhcb2;flatten;cycle,start=IP3;flatten;endedit;
 exec,mk_beam(7000);
 exec,myslice;
 call,file="../../../../hllhc15/round/opt_round_150_1500_thin.madx";
+on_x1 = 1;
+on_x5 = 1;
+on_disp = 0;
 exec,check_ip(b1);
 exec,check_ip(b2);
 """)
