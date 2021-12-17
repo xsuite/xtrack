@@ -50,7 +50,8 @@ spdisp.plot(twxt['s'], twxt['dx'], '--', color='lightblue')
 spdisp.plot(twmad['s'], twmad['dy'], 'r')
 spdisp.plot(twxt['s'], twxt['dy'], '--', color='darkred')
 
-for name in ['mb.b19r5.b1', 'mb.b19r1.b1']:
+for name in ['mb.b19r5.b1', 'mb.b19r1.b1', 'ip1', 'ip2', 'ip5', 'ip8',
+             'mbxf.4l1', 'mbxf.4l5']:
     imad = list(twmad['name']).index(name+':1')
     ixt = list(twxt['name']).index(name)
 
@@ -61,11 +62,15 @@ for name in ['mb.b19r5.b1', 'mb.b19r1.b1']:
                       atol=0, rtol=3e-4)
     assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
                       atol=0, rtol=3e-4)
-    assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad], rtol=3e-4, atol=5e-3)
-    assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad], rtol=3e-4, atol=5e-3)
-    assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad], rtol=3e-4, atol=0.5e-4)
-    assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad], rtol=3e-4, atol=0.5e-4)
+    assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad], atol=1e-2)
+    assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad], atol=1e-2)
+    assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad], atol=3e-4)
+    assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad], atol=3e-4)
 
-
+    assert np.isclose(twxt['s'][ixt], twmad['s'][imad], atol=5e-6)
+    assert np.isclose(twxt['x'][ixt], twmad['x'][imad], atol=5e-6)
+    assert np.isclose(twxt['y'][ixt], twmad['y'][imad], atol=5e-6)
+    assert np.isclose(twxt['px'][ixt], twmad['px'][imad], atol=1e-7)
+    assert np.isclose(twxt['py'][ixt], twmad['py'][imad], atol=1e-7)
 
 plt.show()
