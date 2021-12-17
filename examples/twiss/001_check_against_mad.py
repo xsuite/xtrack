@@ -4,6 +4,7 @@ import numpy as np
 import pymask as pm
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 
 from cpymad.madx import Madx
 
@@ -23,7 +24,8 @@ line = xt.Line.from_madx_sequence(
 part_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                         gamma0=mad.sequence.lhcb1.beam.gamma)
 
-tracker = xt.Tracker(line=line)
+context = xo.ContextCpu()
+tracker = xt.Tracker(_context=context, line=line)
 
 twxt = tracker.twiss(particle_ref=part_ref)
 
