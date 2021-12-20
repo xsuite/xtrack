@@ -53,8 +53,9 @@ def _monitor_init(
         self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data)
         self.auto_to_numpy = auto_to_numpy
 
-        for tt, nn in self._ParticlesClass._structure["per_particle_vars"]:
-            getattr(self.data, nn)[:] = 0
+        with self.data._bypass_linked_vars():
+            for tt, nn in self._ParticlesClass._structure["per_particle_vars"]:
+                getattr(self.data, nn)[:] = 0
 
 class _FieldOfMonitor:
     def __init__(self, name):
