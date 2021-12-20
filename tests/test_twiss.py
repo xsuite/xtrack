@@ -2,7 +2,6 @@ import sys
 import pathlib
 import numpy as np
 
-import pymask as pm
 import xtrack as xt
 import xpart as xp
 import xobjects as xo

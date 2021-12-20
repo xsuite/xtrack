@@ -188,19 +188,20 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
 
     if inplace:
         indx_sorted = np.argsort(part_refine.particle_id)
-        particles.x[mask_part] = part_refine.x[indx_sorted]
-        particles.px[mask_part] = part_refine.px[indx_sorted]
-        particles.y[mask_part] = part_refine.y[indx_sorted]
-        particles.py[mask_part] = part_refine.py[indx_sorted]
-        particles.zeta[mask_part] = part_refine.zeta[indx_sorted]
-        particles.s[mask_part] = part_refine.s[indx_sorted]
-        particles.delta[mask_part] = part_refine.delta[indx_sorted]
-        particles.psigma[mask_part] = part_refine.psigma[indx_sorted]
-        particles.rvv[mask_part] = part_refine.rvv[indx_sorted]
-        particles.rpp[mask_part] = part_refine.rpp[indx_sorted]
-        particles.p0c[mask_part] = part_refine.p0c[indx_sorted]
-        particles.gamma0[mask_part] = part_refine.gamma0[indx_sorted]
-        particles.beta0[mask_part] = part_refine.beta0[indx_sorted]
+        with particles._bypass_linked_vars():
+            particles.x[mask_part] = part_refine.x[indx_sorted]
+            particles.px[mask_part] = part_refine.px[indx_sorted]
+            particles.y[mask_part] = part_refine.y[indx_sorted]
+            particles.py[mask_part] = part_refine.py[indx_sorted]
+            particles.zeta[mask_part] = part_refine.zeta[indx_sorted]
+            particles.s[mask_part] = part_refine.s[indx_sorted]
+            particles.delta[mask_part] = part_refine.delta[indx_sorted]
+            particles.psigma[mask_part] = part_refine.psigma[indx_sorted]
+            particles.rvv[mask_part] = part_refine.rvv[indx_sorted]
+            particles.rpp[mask_part] = part_refine.rpp[indx_sorted]
+            particles.p0c[mask_part] = part_refine.p0c[indx_sorted]
+            particles.gamma0[mask_part] = part_refine.gamma0[indx_sorted]
+            particles.beta0[mask_part] = part_refine.beta0[indx_sorted]
 
     return part_refine
 
