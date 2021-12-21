@@ -250,19 +250,7 @@ class Multipole(BeamElement):
             kwargs["bal"] = bal
             kwargs["order"] = (len(bal) - 2) // 2
 
-        ## TODO: Remove when xobjects is fixed
-        if 'bal' in kwargs.keys():
-            keep_bal = kwargs['bal']
-            kwargs['bal'] = len(keep_bal) # Initializes with zeros
-
         self.xoinitialize(**kwargs)
-
-        ## TODO: Remove when xobjects is fixed
-        if 'bal' in kwargs.keys():
-            if isinstance(keep_bal, np.ndarray):
-                keep_bal = self._buffer.context.nparray_to_context_array(
-                                                                    keep_bal)
-            self.bal[:]= keep_bal # Sets the values
 
     @property
     def knl(self):
