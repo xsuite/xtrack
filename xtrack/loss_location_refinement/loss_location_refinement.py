@@ -183,7 +183,7 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
     interp_tracker.track(part_refine)
     # There is a small fraction of particles that are not lost.
     # We verified that they are really at the edge. Their coordinates
-    # correspond to the end fo the short line, which is correct 
+    # correspond to the end fo the short line, which is correct
 
 
     if inplace:
