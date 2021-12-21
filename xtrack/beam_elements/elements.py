@@ -174,10 +174,12 @@ SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
 
-def _update_bal_from_knl_ksl(knl, ksl, bal):
+def _update_bal_from_knl_ksl(knl, ksl, bal, context=None):
     assert len(bal) == 2*len(knl) == 2*len(ksl)
     idx = np.array([ii for ii in range(0, len(knl))])
     inv_factorial = 1.0 / factorial(idx, exact=True)
+    if context is not None:
+        inv_factorial = context.nparray_to_context_array(inv_factorial)
     bal[0::2] = knl * inv_factorial
     bal[1::2] = ksl * inv_factorial
 
@@ -256,8 +258,9 @@ class Multipole(BeamElement):
     def knl(self):
         bal_length = len(self.bal)
         idxes = np.array([ii for ii in range(0, bal_length, 2)])
+        _bal = self._buffer.context.nparray_from_context_array(self.bal)
         _knl = self._buffer.context.nparray_to_context_array(np.array(
-            [self.bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]))
+            [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]))
         return self._buffer.context.linked_array_type.from_array(
                                         _knl,
                                         mode='setitem_from_container',
@@ -271,14 +274,16 @@ class Multipole(BeamElement):
     def _knl_setitem(self, indx, val):
         _knl = self.knl.copy()
         _knl[indx] = val
-        _update_bal_from_knl_ksl(_knl, self.ksl, self.bal)
+        _update_bal_from_knl_ksl(_knl, self.ksl, self.bal,
+                                 context=self._buffer.context)
 
     @property
     def ksl(self):
         bal_length = len(self.bal)
         idxes = np.array([ii for ii in range(0, bal_length, 2)])
+        _bal = self._buffer.context.nparray_from_context_array(self.bal)
         _ksl = self._buffer.context.nparray_to_context_array(np.array(
-            [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]))
+            [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]))
         return self._buffer.context.linked_array_type.from_array(
                                         _ksl,
                                         mode='setitem_from_container',
@@ -292,7 +297,8 @@ class Multipole(BeamElement):
     def _ksl_setitem(self, indx, val):
         _ksl = self.ksl.copy()
         _ksl[indx] = val
-        _update_bal_from_knl_ksl(self.knl, _ksl, self.bal)
+        _update_bal_from_knl_ksl(self.knl, _ksl, self.bal,
+                                 context=self._buffer.context)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -463,40 +469,18 @@ class RFMultipole(BeamElement):
             self.phase[:] = ctx.nparray_to_context_array(temp_phase)
 
     @property
-    def knl(self):
-        idx = np.array([ii for ii in range(0, len(self.bal), 2)])
-        return self.bal[idx] * factorial(idx // 2, exact=True)
-
-    @property
-    def ksl(self):
-        idx = np.array([ii for ii in range(0, len(self.bal), 2)])
-        return self.bal[idx + 1] * factorial(idx // 2, exact=True)
-
-    def set_knl(self, value, order):
-        assert order <= self.order
-        self.bal[order * 2] = value / factorial(order, exact=True)
-
-    def set_ksl(self, value, order):
-        assert order <= self.order
-        self.bal[order * 2 + 1] = value / factorial(order, exact=True)
-
-    @property
     def pn(self):
-        idx = np.array([ii for ii in range(0, len(self.phase), 2)])
-        return self.phase[idx]
+        raise NotImplementedError
+        # TODO: should be done with linked arrays
+        # idx = np.array([ii for ii in range(0, len(self.phase), 2)])
+        # return self.phase[idx]
 
     @property
     def ps(self):
-        idx = np.array([ii for ii in range(0, len(self.phase), 2)])
-        return self.phase[idx + 1]
-
-    def set_pn(self, value, order):
-        assert order <= self.order
-        self.phase[order * 2] = value
-
-    def set_ps(self, value, order):
-        assert order <= self.order
-        self.phase[order * 2 + 1] = value
+        raise NotImplementedError
+        # TODO: should be done with linked arrays
+        # idx = np.array([ii for ii in range(0, len(self.phase), 2)])
+        # return self.phase[idx + 1]
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -507,6 +491,11 @@ class RFMultipole(BeamElement):
                               bal=[-bb for bb in self.bal], # TODO: maybe it can be made more efficient
                               p = [pp for pp in self.phase],
                               _context=_context, _buffer=_buffer, _offset=_offset)
+
+RFMultipole.knl = Multipole.knl
+RFMultipole.ksl = Multipole.ksl
+RFMultipole._knl_setitem = Multipole._knl_setitem
+RFMultipole._ksl_setitem = Multipole._ksl_setitem
 
 RFMultipole.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
