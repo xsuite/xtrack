@@ -173,6 +173,14 @@ class SRotation(BeamElement):
 SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
+
+def _update_bal_from_knl_ksl(knl, ksl, bal):
+    assert len(bal) == 2*len(knl) == 2*len(ksl)
+    idx = np.array([ii for ii in range(0, len(knl))])
+    inv_factorial = 1.0 / factorial(idx, exact=True)
+    bal[0::2] = knl * inv_factorial
+    bal[1::2] = ksl * inv_factorial
+
 class Multipole(BeamElement):
     '''Beam element modeling a thin magnetic multipole. Parameters:
 
@@ -233,10 +241,7 @@ class Multipole(BeamElement):
             order = n - 1
             bal = np.zeros(2 * order + 2)
 
-            idx = np.array([ii for ii in range(0, len(knl))])
-            inv_factorial = 1.0 / factorial(idx, exact=True)
-            bal[0::2] = knl * inv_factorial
-            bal[1::2] = ksl * inv_factorial
+            _update_bal_from_knl_ksl(knl, ksl, bal)
 
             kwargs["bal"] = bal
             kwargs["order"] = order
@@ -263,15 +268,43 @@ class Multipole(BeamElement):
     def knl(self):
         bal_length = len(self.bal)
         idxes = np.array([ii for ii in range(0, bal_length, 2)])
-        return [self.bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
+        _knl = self._buffer.context.nparray_to_context_array(np.array(
+            [self.bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]))
+        return self._buffer.context.linked_array_type.from_array(
+                                        _knl,
+                                        mode='setitem_from_container',
+                                        container=self,
+                                        container_setitem_name='_knl_setitem')
+
+    @knl.setter
+    def knl(self, value):
+        self.knl[:] = value
+
+    def _knl_setitem(self, indx, val):
+        _knl = self.knl.copy()
+        _knl[indx] = val
+        _update_bal_from_knl_ksl(_knl, self.ksl, self.bal)
 
     @property
     def ksl(self):
         bal_length = len(self.bal)
         idxes = np.array([ii for ii in range(0, bal_length, 2)])
-        return [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
-        #idx = np.array([ii for ii in range(0, len(self.bal), 2)])
-        #return self.bal[idx + 1] * factorial(idx // 2, exact=True)
+        _ksl = self._buffer.context.nparray_to_context_array(np.array(
+            [self.bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]))
+        return self._buffer.context.linked_array_type.from_array(
+                                        _ksl,
+                                        mode='setitem_from_container',
+                                        container=self,
+                                        container_setitem_name='_ksl_setitem')
+
+    @ksl.setter
+    def ksl(self, value):
+        self.ksl[:] = value
+
+    def _ksl_setitem(self, indx, val):
+        _ksl = self.ksl.copy()
+        _ksl[indx] = val
+        _update_bal_from_knl_ksl(self.knl, _ksl, self.bal)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
