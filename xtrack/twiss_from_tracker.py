@@ -3,11 +3,37 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
+from scipy.optimize import fsolve
+
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-7, 'dpx':1e-10,
     'dy':1e-7, 'dpy':1e-10,
     'dzeta':1e-6, 'ddelta':1e-7
 }
+
+def find_closed_orbit(tracker, particle_co_guess, co_search_settings={}):
+
+    particle_co_guess = particle_co_guess.copy(
+                        _context=tracker._buffer.context)
+
+    res = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker),
+          x0=np.array([particle_co_guess._xobject.x[0],
+                       particle_co_guess._xobject.px[0],
+                       particle_co_guess._xobject.y[0],
+                       particle_co_guess._xobject.py[0],
+                       particle_co_guess._xobject.zeta[0],
+                       particle_co_guess._xobject.delta[0]]),
+          **co_search_settings)
+
+    particle_on_co = particle_co_guess.copy()
+    particle_on_co.x = res[0]
+    particle_on_co.px = res[1]
+    particle_on_co.y = res[2]
+    particle_on_co.py = res[3]
+    particle_on_co.zeta = res[4]
+    particle_on_co.delta = res[5]
+
+    return particle_on_co
 
 def compute_one_turn_matrix_finite_differences(
         tracker, particle_on_co,
@@ -222,4 +248,23 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'dqy': dqy}
 
     return twiss_res
+
+def _one_turn_map(p, particle_ref, tracker):
+    part = particle_ref.copy()
+    part.x = p[0]
+    part.px = p[1]
+    part.y = p[2]
+    part.py = p[3]
+    part.zeta = p[4]
+    part.delta = p[5]
+
+    tracker.track(part)
+    p_res = np.array([
+           part._xobject.x[0],
+           part._xobject.px[0],
+           part._xobject.y[0],
+           part._xobject.py[0],
+           part._xobject.zeta[0],
+           part._xobject.delta[0]])
+    return p_res
 

@@ -1,11 +1,12 @@
 from pathlib import Path
 import numpy as np
-from scipy.optimize import fsolve
 
 from .general import _pkg_root
 from .line_frozen import LineFrozen
 from .base_element import _handle_per_particle_blocks
-from .twiss_from_tracker import twiss_from_tracker, compute_one_turn_matrix_finite_differences
+from .twiss_from_tracker import (twiss_from_tracker,
+                                 compute_one_turn_matrix_finite_differences,
+                                 find_closed_orbit)
 
 import xobjects as xo
 import xpart as xp
@@ -124,7 +125,7 @@ class Tracker:
             this_part.iscollective=False
             parts.append(this_part)
 
-        # Transform non collective elements into xtrack elements 
+        # Transform non collective elements into xtrack elements
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
@@ -250,43 +251,23 @@ class Tracker:
 
         self.track=self._track_no_collective
 
-    def find_closed_orbit(self, particle_co_guess):
-
-        particle_co_guess = particle_co_guess.copy(
-                            _context=self._buffer.context)
-
-        res = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, self),
-              x0=np.array([particle_co_guess._xobject.x[0],
-                           particle_co_guess._xobject.px[0],
-                           particle_co_guess._xobject.y[0],
-                           particle_co_guess._xobject.py[0],
-                           particle_co_guess._xobject.zeta[0],
-                           particle_co_guess._xobject.delta[0]]))
-
-        particle_on_co = particle_co_guess.copy()
-        particle_on_co.x = res[0]
-        particle_on_co.px = res[1]
-        particle_on_co.y = res[2]
-        particle_on_co.py = res[3]
-        particle_on_co.zeta = res[4]
-        particle_on_co.delta = res[5]
-
-        return particle_on_co
+    def find_closed_orbit(self, particle_co_guess, co_search_settings={}):
+        return find_closed_orbit(self, particle_co_guess, co_search_settings)
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None):
-
         return compute_one_turn_matrix_finite_differences(self, particle_on_co,
                                                    steps_r_matrix)
 
     def twiss(self, particle_ref, r_sigma=0.01,
-        nemitt_x=1e-6, nemitt_y=2.5e-6,
-        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4):
+        nemitt_x=1e-6, nemitt_y=1e-6,
+        n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4, steps_r_matrix=None):
 
-        return twiss_from_tracker(self, particle_ref, r_sigma=0.01,
-            nemitt_x=1e-6, nemitt_y=2.5e-6,
-            n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4)
+        return twiss_from_tracker(self, particle_ref, r_sigma=r_sigma,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            n_theta=n_theta, delta_disp=delta_disp, delta_chrom=delta_chrom,
+            steps_r_matrix=steps_r_matrix)
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
@@ -607,24 +588,5 @@ class Tracker:
             out.append(part.copy())
             self.track(part,ele_start=ii,num_elements=1)
         return out
-
-def _one_turn_map(p, particle_ref, tracker):
-    part = particle_ref.copy()
-    part.x = p[0]
-    part.px = p[1]
-    part.y = p[2]
-    part.py = p[3]
-    part.zeta = p[4]
-    part.delta = p[5]
-
-    tracker.track(part)
-    p_res = np.array([
-           part._xobject.x[0],
-           part._xobject.px[0],
-           part._xobject.y[0],
-           part._xobject.py[0],
-           part._xobject.zeta[0],
-           part._xobject.delta[0]])
-    return p_res
 
 
