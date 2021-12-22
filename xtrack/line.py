@@ -141,6 +141,27 @@ class Line:
         self._vars={} #TODO xdeps
         self._manager=None # TODO xdeps
 
+    def cycle(self, index_first_element=None, name_first_element=None):
+
+        if ((index_first_element is not None and name_first_element is not None)
+               or (index_first_element is None and name_first_element is None)):
+             raise ValueError(
+                "Plaese provide either `index_first_element` or `name_first_element`.")
+
+        if name_first_element is not None:
+            assert self.element_names.count(name_first_element) == 1, (
+                f"name_first_element={name_first_element} occurs more than once!"
+            )
+            index_first_element = self.element_names.index(name_first_element)
+
+        new_elements = (list(self.elements[index_first_element:])
+                        + list(self.elements[:index_first_element]))
+        new_element_names = (list(self.element_names[index_first_element:])
+                        + list(self.element_names[:index_first_element]))
+
+        return self.__class__(
+                         elements=new_elements, element_names=new_element_names)
+
     def _freeze(self):
         self.elements = tuple(self.elements)
         self.element_names = tuple(self.element_names)
@@ -339,6 +360,7 @@ class Line:
             return self
         else:
             return newline
+
     def get_elements_of_type(self, types):
         if not hasattr(types, "__iter__"):
             type_list = [types]

@@ -304,13 +304,36 @@ class Tracker:
             nemitt_x=1e-6, nemitt_y=2.5e-6,
             n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4)
 
+    def cycle(self, index_first_element=None, name_first_element=None,
+              _buffer=None, _context=None):
+
+        cline = self.line.cycle(index_first_element=index_first_element,
+                                name_first_element=name_first_element)
+
+        if _buffer is None:
+            if _context is None:
+                _context = self._buffer.context
+            _buffer = _context.new_buffer()
+
+        return self.__class__(
+                    _buffer=_buffer,
+                    line=cline,
+                    track_kernel=self.track_kernel,
+                    element_classes=self.element_classes,
+                    particles_class=self.particles_class,
+                    skip_end_turn_actions=self.skip_end_turn_actions,
+                    particles_monitor_class=self.particles_monitor_class,
+                    global_xy_limit=self.global_xy_limit,
+                    local_particle_src=self.local_particle_src,
+                )
+
     def get_backtracker(self, _context=None, _buffer=None):
 
         assert not self.iscollective
 
         if _buffer is None:
             if _context is None:
-                _context = xo.context_default
+                _context = self._buffer.context
             _buffer = _context.new_buffer()
 
         line = Line(elements=[], element_names=[])
