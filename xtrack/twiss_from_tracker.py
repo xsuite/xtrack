@@ -11,7 +11,10 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta':1e-6, 'ddelta':1e-7
 }
 
-def find_closed_orbit(tracker, particle_co_guess, co_search_settings={}):
+def find_closed_orbit(tracker, particle_co_guess, co_search_settings=None):
+
+    if co_search_settings is None:
+        co_search_settings = {}
 
     particle_co_guess = particle_co_guess.copy(
                         _context=tracker._buffer.context)
@@ -91,11 +94,13 @@ def compute_one_turn_matrix_finite_differences(
 
 def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=2.5e-6,
-        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4, steps_r_matrix=None):
+        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4, steps_r_matrix=None,
+        co_search_settings=None):
 
     context = tracker._buffer.context
 
-    part_on_co = tracker.find_closed_orbit(particle_ref)
+    part_on_co = tracker.find_closed_orbit(particle_ref,
+                                         co_search_settings=co_search_settings)
     RR = tracker.compute_one_turn_matrix_finite_differences(
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)
@@ -204,7 +209,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
                 R_matrix=RR)
     RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
-                                         particle_on_co=part_chrom_plus.copy())
+                                         particle_on_co=part_chrom_plus.copy(),
+                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
         ) = xp.compute_linear_normal_form(RR_chrom_plus)
     qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
@@ -218,7 +224,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
                 R_matrix=RR)
     RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_minus.copy())
+                                        particle_on_co=part_chrom_minus.copy(),
+                                        steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
         ) = xp.compute_linear_normal_form(RR_chrom_minus)
     qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
