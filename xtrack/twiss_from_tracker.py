@@ -3,16 +3,76 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
+DEFAULT_STEPS_R_MATRIX = {
+    'dx':1e-7, 'dpx':1e-10,
+    'dy':1e-7, 'dpy':1e-10,
+    'dzeta':1e-6, 'ddelta':1e-7
+}
+
+def compute_one_turn_matrix_finite_differences(
+        tracker, particle_on_co,
+        steps_r_matrix=None):
+
+    if steps_r_matrix is not None:
+        steps_in = steps_r_matrix.copy()
+        for nn in steps_in.keys():
+            assert nn in DEFAULT_STEPS_R_MATRIX.keys(), (
+                '`steps_r_matrix` can contain only ' +
+                ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
+            )
+        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+        steps_r_matrix.update(steps_in)
+    else:
+        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+
+
+    context = tracker._buffer.context
+
+    particle_on_co = particle_on_co.copy(
+                        _context=context)
+
+    dx = steps_r_matrix["dx"]
+    dpx = steps_r_matrix["dpx"]
+    dy = steps_r_matrix["dy"]
+    dpy = steps_r_matrix["dpy"]
+    dzeta = steps_r_matrix["dzeta"]
+    ddelta = steps_r_matrix["ddelta"]
+    part_temp = xp.build_particles(_context=context,
+            particle_ref=particle_on_co, mode='shift',
+            x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
+            px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
+            y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
+            py =    [0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
+            zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
+            delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],)
+
+    tracker.track(part_temp)
+
+    temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
+    temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
+    temp_mat[1, :] = context.nparray_from_context_array(part_temp.px)
+    temp_mat[2, :] = context.nparray_from_context_array(part_temp.y)
+    temp_mat[3, :] = context.nparray_from_context_array(part_temp.py)
+    temp_mat[4, :] = context.nparray_from_context_array(part_temp.zeta)
+    temp_mat[5, :] = context.nparray_from_context_array(part_temp.delta)
+
+    RR = np.zeros(shape=(6, 6), dtype=np.float64)
+
+    for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
+        RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
+
+    return RR
 
 def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=2.5e-6,
-        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4):
+        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4, steps_r_matrix=None):
 
     context = tracker._buffer.context
 
     part_on_co = tracker.find_closed_orbit(particle_ref)
     RR = tracker.compute_one_turn_matrix_finite_differences(
-                                                     particle_on_co=part_on_co)
+                                                steps_r_matrix=steps_r_matrix,
+                                                particle_on_co=part_on_co)
     W, Winv, Rot = xp.compute_linear_normal_form(RR)
     part_x = xp.build_particles(
                 _context=context,

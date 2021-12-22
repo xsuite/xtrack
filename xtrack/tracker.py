@@ -5,7 +5,7 @@ from scipy.optimize import fsolve
 from .general import _pkg_root
 from .line_frozen import LineFrozen
 from .base_element import _handle_per_particle_blocks
-from .twiss_from_tracker import twiss_from_tracker
+from .twiss_from_tracker import twiss_from_tracker, compute_one_turn_matrix_finite_differences
 
 import xobjects as xo
 import xpart as xp
@@ -275,39 +275,10 @@ class Tracker:
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
-            dx=1e-7, dpx=1e-10, dy=1e-7, dpy=1e-10,
-            dzeta=1e-6, ddelta=1e-7):
+            steps_r_matrix=None):
 
-        context = self._buffer.context
-
-        particle_on_co = particle_on_co.copy(
-                            _context=context)
-
-        part_temp = xp.build_particles(_context=context,
-                particle_ref=particle_on_co, mode='shift',
-                x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
-                px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
-                y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
-                py =    [0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
-                zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
-                delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],)
-
-        self.track(part_temp)
-
-        temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
-        temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
-        temp_mat[1, :] = context.nparray_from_context_array(part_temp.px)
-        temp_mat[2, :] = context.nparray_from_context_array(part_temp.y)
-        temp_mat[3, :] = context.nparray_from_context_array(part_temp.py)
-        temp_mat[4, :] = context.nparray_from_context_array(part_temp.zeta)
-        temp_mat[5, :] = context.nparray_from_context_array(part_temp.delta)
-
-        RR = np.zeros(shape=(6, 6), dtype=np.float64)
-
-        for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
-            RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
-
-        return RR
+        return compute_one_turn_matrix_finite_differences(self, particle_on_co,
+                                                   steps_r_matrix)
 
     def twiss(self, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=2.5e-6,
