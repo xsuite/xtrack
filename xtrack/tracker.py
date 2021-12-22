@@ -278,21 +278,34 @@ class Tracker:
             dx=1e-7, dpx=1e-10, dy=1e-7, dpy=1e-10,
             dzeta=1e-6, ddelta=1e-7):
 
+        context = self._buffer.context
+
         particle_on_co = particle_on_co.copy(
-                            _context=self._buffer.context)
-        # Find R matrix
-        p0 = np.array([
-               particle_on_co._xobject.x[0],
-               particle_on_co._xobject.px[0],
-               particle_on_co._xobject.y[0],
-               particle_on_co._xobject.py[0],
-               particle_on_co._xobject.zeta[0],
-               particle_on_co._xobject.delta[0]])
-        II = np.eye(6)
-        RR = np.zeros((6, 6), dtype=np.float64)
+                            _context=context)
+
+        part_temp = xp.build_particles(_context=context,
+                particle_ref=particle_on_co, mode='shift',
+                x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
+                px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
+                y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
+                py =    [0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
+                zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
+                delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],)
+
+        self.track(part_temp)
+
+        temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
+        temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
+        temp_mat[1, :] = context.nparray_from_context_array(part_temp.px)
+        temp_mat[2, :] = context.nparray_from_context_array(part_temp.y)
+        temp_mat[3, :] = context.nparray_from_context_array(part_temp.py)
+        temp_mat[4, :] = context.nparray_from_context_array(part_temp.zeta)
+        temp_mat[5, :] = context.nparray_from_context_array(part_temp.delta)
+
+        RR = np.zeros(shape=(6, 6), dtype=np.float64)
+
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, ddelta]):
-            RR[:,jj]=(_one_turn_map(p0+II[jj]*dd, particle_on_co, self)-
-                      _one_turn_map(p0-II[jj]*dd, particle_on_co, self))/(2*dd)
+            RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
 
         return RR
 
