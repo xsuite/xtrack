@@ -7,7 +7,8 @@ from .base_element import _handle_per_particle_blocks
 from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
                                  find_closed_orbit,
-                                 compute_slip_factor)
+                                 compute_slip_factor,
+                                 compute_momentum_compaction_factor)
 
 import xobjects as xo
 import xpart as xp
@@ -275,6 +276,15 @@ class Tracker:
     def compute_slip_factor(self, particle_ref=None, particle_on_co=None,
                         co_search_settings=None, steps_r_matrix=None):
         return compute_slip_factor(self, particle_ref=particle_ref,
+                               particle_on_co=particle_on_co,
+                               co_search_settings=co_search_settings,
+                               steps_r_matrix=steps_r_matrix)
+
+    def compute_momentum_compaction_factor(self, particle_ref=None,
+                        particle_on_co=None,
+                        co_search_settings=None, steps_r_matrix=None):
+        return compute_momentum_compaction_factor(self,
+                               particle_ref=particle_ref,
                                particle_on_co=particle_on_co,
                                co_search_settings=co_search_settings,
                                steps_r_matrix=steps_r_matrix)
