@@ -11,6 +11,23 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta':1e-6, 'ddelta':1e-7
 }
 
+def get_slip_factor(tracker, particle_ref=None, particle_on_co=None,
+                R_matrix=None, co_search_settings=None, steps_r_matrix=None):
+
+    if R_matrix is None:
+        if particle_on_co is None:
+            assert particle_ref is not None
+            particle_on_co = tracker.find_closed_orbit(
+                particle_co_guess=particle_ref,
+                co_search_settings=co_search_settings)
+
+        R_matrix = tracker.compute_one_turn_matrix_finite_differences(
+                            tracker, particle_on_co, steps_r_matrix)
+
+    eta = -R_matrix[4, 5]/tracker.line.get_length() # minus sign comes from z = s-ct
+
+    return eta
+
 def find_closed_orbit(tracker, particle_co_guess, co_search_settings=None):
 
     if co_search_settings is None:
