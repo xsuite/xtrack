@@ -7,8 +7,7 @@ from .base_element import _handle_per_particle_blocks
 from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
                                  find_closed_orbit,
-                                 compute_slip_factor,
-                                 compute_momentum_compaction_factor)
+                                )
 
 import xobjects as xo
 import xpart as xp
