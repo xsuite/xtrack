@@ -279,7 +279,9 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'dqx': dqx,
         'dqy': dqy,
         'slip_factor': eta,
-        'momentum_compaction_factor': alpha
+        'momentum_compaction_factor': alpha,
+        'R_matrix': RR,
+        'particle_on_co':part_on_co.copy(_context=xo.context_default)
         }
 
     return twiss_res
