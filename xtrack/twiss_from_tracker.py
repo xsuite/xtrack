@@ -211,6 +211,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         tracker.track(part_y, ele_start=ii, num_elements=1)
         tracker.track(part_disp, ele_start=ii, num_elements=1)
 
+    eta = -((part_disp._xobject.zeta[0] - part_disp._xobject.zeta[1])
+             /(2*delta_disp)/tracker.line.get_length())
+    alpha = eta + 1/particle_ref.gamma0[0]**2
+
     s = np.array(tracker.line.get_s_elements())
 
     sigx_max = (max_x - x_co)/r_sigma
@@ -284,7 +288,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'qx': qx,
         'qy': qy,
         'dqx': dqx,
-        'dqy': dqy}
+        'dqy': dqy,
+        'slip_factor': eta,
+        'momentum_compaction_factor': alpha
+        }
 
     return twiss_res
 
