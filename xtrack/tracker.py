@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+import logging
 
 from .general import _pkg_root
 from .line_frozen import LineFrozen
@@ -14,6 +15,8 @@ import xpart as xp
 
 from .beam_elements import Drift
 from .line import Line
+
+logger = logging.getLogger(__name__)
 
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
@@ -145,26 +148,27 @@ class Tracker:
 
         # Build tracker for all non collective elements
         supertracker = Tracker(_buffer=_buffer,
-                line=Line(elements=noncollective_xelements),
-                    particles_class=particles_class,
-                    particles_monitor_class=particles_monitor_class,
-                    global_xy_limit=global_xy_limit,
-                    local_particle_src=local_particle_src,
-                    save_source_as=save_source_as
-                    )
+                line=Line(elements=noncollective_xelements,
+                          element_names=line.element_names),
+                particles_class=particles_class,
+                particles_monitor_class=particles_monitor_class,
+                global_xy_limit=global_xy_limit,
+                local_particle_src=local_particle_src,
+                save_source_as=save_source_as
+                )
 
         # Build trackers for non collective parts
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
                 parts[ii] = Tracker(_buffer=_buffer,
-                                    line=pp,
-                                    element_classes=supertracker.element_classes,
-                                    track_kernel=supertracker.track_kernel,
-                                    particles_class=particles_class,
-                                    particles_monitor_class=particles_monitor_class,
-                                    global_xy_limit=global_xy_limit,
-                                    local_particle_src=local_particle_src,
-                                    skip_end_turn_actions=True)
+                                line=pp,
+                                element_classes=supertracker.element_classes,
+                                track_kernel=supertracker.track_kernel,
+                                particles_class=particles_class,
+                                particles_monitor_class=particles_monitor_class,
+                                global_xy_limit=global_xy_limit,
+                                local_particle_src=local_particle_src,
+                                skip_end_turn_actions=True)
 
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
@@ -205,7 +209,8 @@ class Tracker:
 
         self.global_xy_limit = global_xy_limit
 
-        frozenline = LineFrozen(_context=_context, _buffer=_buffer, _offset=_offset,
+        frozenline = LineFrozen(
+                    _context=_context, _buffer=_buffer, _offset=_offset,
                     line=line)
 
         context = frozenline._buffer.context
@@ -224,11 +229,11 @@ class Tracker:
         line._freeze()
         self.line = line
         self._line_frozen = frozenline
-        ele_offsets = np.array([ee._offset for ee in frozenline.elements], dtype=np.int64)
+        ele_offsets = np.array(
+            [ee._offset for ee in frozenline.elements], dtype=np.int64)
         ele_typeids = np.array(
-            [element_classes.index(ee._xobject.__class__) for ee in frozenline.elements],
-            dtype=np.int64,
-        )
+            [element_classes.index(ee._xobject.__class__)
+                for ee in frozenline.elements], dtype=np.int64)
         ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
         ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
 
@@ -266,7 +271,16 @@ class Tracker:
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4, steps_r_matrix=None,
         co_search_settings=None, at_elements=None):
 
-        return twiss_from_tracker(self, particle_ref, r_sigma=r_sigma,
+        if self.iscollective:
+            logger.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                'replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+
+        return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             n_theta=n_theta, delta_disp=delta_disp, delta_chrom=delta_chrom,
             steps_r_matrix=steps_r_matrix,

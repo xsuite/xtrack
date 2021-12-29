@@ -25,7 +25,7 @@ class DummyInteractionProcess:
         self.kick_x = kick_x
         self.length = length
 
-        self.drift= xt.Drift(length=self.length)
+        self.drift = xt.Drift(length=self.length)
 
 
     def interact(self, particles):
