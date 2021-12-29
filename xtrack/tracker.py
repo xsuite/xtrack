@@ -98,8 +98,6 @@ class Tracker:
     ):
 
         assert _offset is None
-        assert track_kernel is None
-        assert element_classes is None
 
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
@@ -150,6 +148,8 @@ class Tracker:
         supertracker = Tracker(_buffer=_buffer,
                 line=Line(elements=noncollective_xelements,
                           element_names=line.element_names),
+                track_kernel=track_kernel,
+                element_classes=element_classes,
                 particles_class=particles_class,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
@@ -299,16 +299,18 @@ class Tracker:
             _buffer = _context.new_buffer()
 
         return self.__class__(
-                    _buffer=_buffer,
-                    line=cline,
-                    track_kernel=self.track_kernel,
-                    element_classes=self.element_classes,
-                    particles_class=self.particles_class,
-                    skip_end_turn_actions=self.skip_end_turn_actions,
-                    particles_monitor_class=self.particles_monitor_class,
-                    global_xy_limit=self.global_xy_limit,
-                    local_particle_src=self.local_particle_src,
-                )
+                _buffer=_buffer,
+                line=cline,
+                track_kernel=(self.track_kernel if not self.iscollective
+                                    else self._supertracker.track_kernel),
+                element_classes=(self.element_classes if not self.iscollective
+                                    else self._supertracker.element_classes),
+                particles_class=self.particles_class,
+                skip_end_turn_actions=self.skip_end_turn_actions,
+                particles_monitor_class=self.particles_monitor_class,
+                global_xy_limit=self.global_xy_limit,
+                local_particle_src=self.local_particle_src,
+            )
 
     def get_backtracker(self, _context=None, _buffer=None):
 

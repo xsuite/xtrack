@@ -11,20 +11,23 @@ def test_cycle():
         d1 = xt.Drift()
         r0 = xt.SRotation()
 
-        line = xt.Line(elements=[d0, c0, d1, r0])
 
-        tracker = xt.Tracker(line=line, _context=context)
+        for collective in [True, False]:
+            line = xt.Line(elements=[d0, c0, d1, r0])
+            d1.iscollective = collective
 
-        ctracker_name = tracker.cycle(name_first_element='e2')
-        ctracker_index = tracker.cycle(index_first_element=2)
+            tracker = xt.Tracker(line=line, _context=context)
 
-        for ctracker in [ctracker_index, ctracker_name]:
-            assert ctracker.line.element_names[0] == 'e2'
-            assert ctracker.line.element_names[1] == 'e3'
-            assert ctracker.line.element_names[2] == 'e0'
-            assert ctracker.line.element_names[3] == 'e1'
+            ctracker_name = tracker.cycle(name_first_element='e2')
+            ctracker_index = tracker.cycle(index_first_element=2)
 
-            assert ctracker.line.elements[0] is d1
-            assert ctracker.line.elements[1] is r0
-            assert ctracker.line.elements[2] is d0
-            assert ctracker.line.elements[3] is c0
+            for ctracker in [ctracker_index, ctracker_name]:
+                assert ctracker.line.element_names[0] == 'e2'
+                assert ctracker.line.element_names[1] == 'e3'
+                assert ctracker.line.element_names[2] == 'e0'
+                assert ctracker.line.element_names[3] == 'e1'
+
+                assert ctracker.line.elements[0] is d1
+                assert ctracker.line.elements[1] is r0
+                assert ctracker.line.elements[2] is d0
+                assert ctracker.line.elements[3] is c0
