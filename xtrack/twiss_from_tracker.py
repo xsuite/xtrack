@@ -11,38 +11,6 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta':1e-6, 'ddelta':1e-7
 }
 
-def compute_slip_factor(tracker, particle_ref=None, particle_on_co=None,
-                R_matrix=None, co_search_settings=None, steps_r_matrix=None):
-
-    if R_matrix is None:
-        if particle_on_co is None:
-            assert particle_ref is not None
-            particle_on_co = tracker.find_closed_orbit(
-                particle_co_guess=particle_ref,
-                co_search_settings=co_search_settings)
-
-        R_matrix = compute_one_turn_matrix_finite_differences(
-                            tracker=tracker,
-                            particle_on_co=particle_on_co,
-                            steps_r_matrix=steps_r_matrix)
-
-    eta = -R_matrix[4, 5]/tracker.line.get_length() # minus sign comes from z = s-ct
-
-    return eta
-
-def compute_momentum_compaction_factor(tracker, particle_ref=None,
-                particle_on_co=None, R_matrix=None, co_search_settings=None,
-                steps_r_matrix=None):
-
-    eta = compute_slip_factor(tracker=tracker, particle_ref=particle_ref,
-                particle_on_co=particle_on_co, R_matrix=R_matrix,
-                co_search_settings=co_search_settings,
-                steps_r_matrix=steps_r_matrix)
-
-    alpha = eta + 1/particle_ref.gamma0[0]**2
-
-    return alpha
-
 def find_closed_orbit(tracker, particle_co_guess, co_search_settings=None):
 
     if co_search_settings is None:
@@ -127,7 +95,7 @@ def compute_one_turn_matrix_finite_differences(
 def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=2.5e-6,
         n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4, steps_r_matrix=None,
-        co_search_settings=None):
+        co_search_settings=None, at_elements=None):
 
     context = tracker._buffer.context
 
@@ -161,28 +129,45 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
                 R_matrix=RR)
 
+    enames = tracker.line.element_names
+    if at_elements is not None:
+        indx_twiss = []
+        for nn in at_elements:
+            assert nn in tracker.line.element_names
+            indx_twiss.append(enames.index(nn))
+        indx_twiss = sorted(indx_twiss)
+    else:
+        indx_twiss = list(range(len(enames)))
 
-    num_elements = len(tracker.line.elements)
-    max_x = np.zeros(num_elements, dtype=np.float64)
-    max_y = np.zeros(num_elements, dtype=np.float64)
-    min_x = np.zeros(num_elements, dtype=np.float64)
-    min_y = np.zeros(num_elements, dtype=np.float64)
-    x_co = np.zeros(num_elements, dtype=np.float64)
-    y_co = np.zeros(num_elements, dtype=np.float64)
-    px_co = np.zeros(num_elements, dtype=np.float64)
-    py_co = np.zeros(num_elements, dtype=np.float64)
-    x_disp_plus = np.zeros(num_elements, dtype=np.float64)
-    x_disp_minus = np.zeros(num_elements, dtype=np.float64)
-    y_disp_plus = np.zeros(num_elements, dtype=np.float64)
-    y_disp_minus = np.zeros(num_elements, dtype=np.float64)
-    px_disp_plus = np.zeros(num_elements, dtype=np.float64)
-    px_disp_minus = np.zeros(num_elements, dtype=np.float64)
-    py_disp_plus = np.zeros(num_elements, dtype=np.float64)
-    py_disp_minus = np.zeros(num_elements, dtype=np.float64)
+    n_twiss = len(indx_twiss)
+
+    max_x = np.zeros(n_twiss, dtype=np.float64)
+    max_y = np.zeros(n_twiss, dtype=np.float64)
+    min_x = np.zeros(n_twiss, dtype=np.float64)
+    min_y = np.zeros(n_twiss, dtype=np.float64)
+    x_co = np.zeros(n_twiss, dtype=np.float64)
+    y_co = np.zeros(n_twiss, dtype=np.float64)
+    px_co = np.zeros(n_twiss, dtype=np.float64)
+    py_co = np.zeros(n_twiss, dtype=np.float64)
+    x_disp_plus = np.zeros(n_twiss, dtype=np.float64)
+    x_disp_minus = np.zeros(n_twiss, dtype=np.float64)
+    y_disp_plus = np.zeros(n_twiss, dtype=np.float64)
+    y_disp_minus = np.zeros(n_twiss, dtype=np.float64)
+    px_disp_plus = np.zeros(n_twiss, dtype=np.float64)
+    px_disp_minus = np.zeros(n_twiss, dtype=np.float64)
+    py_disp_plus = np.zeros(n_twiss, dtype=np.float64)
+    py_disp_minus = np.zeros(n_twiss, dtype=np.float64)
 
     ctx2np = context.nparray_from_context_array
-    for ii, ee in enumerate(tracker.line.elements):
-        print(f'{ii}/{len(tracker.line.elements)}        ',
+
+    tracker.track(part_on_co, ele_start=0, num_elements=indx_twiss[0])
+    tracker.track(part_x, ele_start=0, num_elements=indx_twiss[0])
+    tracker.track(part_y, ele_start=0, num_elements=indx_twiss[0])
+    tracker.track(part_disp, ele_start=0, num_elements=indx_twiss[0])
+
+    for ii, indx in enumerate(indx_twiss):
+
+        print(f'{ii}/{len(indx_twiss)}        ',
               end='\r', flush=True)
         max_x[ii] = np.max(ctx2np(part_x.x))
         max_y[ii] = np.max(ctx2np(part_y.y))
@@ -206,16 +191,20 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         py_disp_plus[ii] = part_disp._xobject.py[0]
         py_disp_minus[ii] = part_disp._xobject.py[1]
 
-        tracker.track(part_on_co, ele_start=ii, num_elements=1)
-        tracker.track(part_x, ele_start=ii, num_elements=1)
-        tracker.track(part_y, ele_start=ii, num_elements=1)
-        tracker.track(part_disp, ele_start=ii, num_elements=1)
+        if ii == len(indx_twiss)-1:
+            n_next_track = len(tracker.line.elements) - indx
+        else:
+            n_next_track = indx_twiss[ii+1] - indx
+        tracker.track(part_on_co, ele_start=indx, num_elements=n_next_track)
+        tracker.track(part_x, ele_start=indx, num_elements=n_next_track)
+        tracker.track(part_y, ele_start=indx, num_elements=n_next_track)
+        tracker.track(part_disp, ele_start=indx, num_elements=n_next_track)
 
     eta = -((part_disp._xobject.zeta[0] - part_disp._xobject.zeta[1])
              /(2*delta_disp)/tracker.line.get_length())
     alpha = eta + 1/particle_ref.gamma0[0]**2
 
-    s = np.array(tracker.line.get_s_elements())
+    s = np.array(tracker.line.get_s_elements())[indx_twiss]
 
     sigx_max = (max_x - x_co)/r_sigma
     sigy_max = (max_y - y_co)/r_sigma
@@ -271,7 +260,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
 
     twiss_res = {
-        'name': tracker.line.element_names,
+        'name': [tracker.line.element_names[indx] for indx in indx_twiss],
         's': s,
         'x': x_co,
         'px': px_co,

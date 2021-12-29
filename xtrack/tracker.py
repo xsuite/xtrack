@@ -265,29 +265,14 @@ class Tracker:
     def twiss(self, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=1e-6,
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4, steps_r_matrix=None,
-        co_search_settings=None):
+        co_search_settings=None, at_elements=None):
 
         return twiss_from_tracker(self, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             n_theta=n_theta, delta_disp=delta_disp, delta_chrom=delta_chrom,
             steps_r_matrix=steps_r_matrix,
-            co_search_settings=co_search_settings)
-
-    def compute_slip_factor(self, particle_ref=None, particle_on_co=None,
-                        co_search_settings=None, steps_r_matrix=None):
-        return compute_slip_factor(self, particle_ref=particle_ref,
-                               particle_on_co=particle_on_co,
-                               co_search_settings=co_search_settings,
-                               steps_r_matrix=steps_r_matrix)
-
-    def compute_momentum_compaction_factor(self, particle_ref=None,
-                        particle_on_co=None,
-                        co_search_settings=None, steps_r_matrix=None):
-        return compute_momentum_compaction_factor(self,
-                               particle_ref=particle_ref,
-                               particle_on_co=particle_on_co,
-                               co_search_settings=co_search_settings,
-                               steps_r_matrix=steps_r_matrix)
+            co_search_settings=co_search_settings,
+            at_elements=at_elements)
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
