@@ -34,38 +34,37 @@ def test_twiss():
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
 
+        tracker = xt.Tracker(_context=context, line=line)
+        assert tracker.iscollective
 
-            tracker = xt.Tracker(_context=context, line=line)
-            assert tracker.iscollective == makecollective
+        twxt = tracker.twiss(particle_ref=part_ref)
+        assert np.isclose(np.modf(mad.table.summ.q1)[0], twxt['qx'], rtol=1e-4, atol=0)
+        assert np.isclose(np.modf(mad.table.summ.q2)[0], twxt['qy'], rtol=1e-4, atol=0)
+        assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
+        assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
+        assert np.isclose(mad.table.summ.alfa[0],
+            twxt['momentum_compaction_factor'],
+            atol=2e-10, rtol=0)
 
-            twxt = tracker.twiss(particle_ref=part_ref)
-            assert np.isclose(np.modf(mad.table.summ.q1)[0], twxt['qx'], rtol=1e-4, atol=0)
-            assert np.isclose(np.modf(mad.table.summ.q2)[0], twxt['qy'], rtol=1e-4, atol=0)
-            assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
-            assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
-            assert np.isclose(mad.table.summ.alfa[0],
-                twxt['momentum_compaction_factor'],
-                atol=2e-10, rtol=0)
+        for name in ['mb.b19r5.b1', 'mb.b19r1.b1',
+                    'ip1', 'ip2', 'ip5', 'ip8',
+                    'mbxf.4l1', 'mbxf.4l5']:
 
-            for name in ['mb.b19r5.b1', 'mb.b19r1.b1',
-                        'ip1', 'ip2', 'ip5', 'ip8',
-                        'mbxf.4l1', 'mbxf.4l5']:
+            imad = list(twmad['name']).index(name+':1')
+            ixt = list(twxt['name']).index(name)
 
-                imad = list(twmad['name']).index(name+':1')
-                ixt = list(twxt['name']).index(name)
+            assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
+                            atol=0, rtol=3e-4)
+            assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
+                            atol=0, rtol=3e-4)
+            assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad], atol=1e-2, rtol=0)
+            assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad], atol=1e-2, rtol=0)
+            assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad], atol=3e-4, rtol=0)
+            assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad], atol=3e-4, rtol=0)
 
-                assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
-                                atol=0, rtol=3e-4)
-                assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
-                                atol=0, rtol=3e-4)
-                assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad], atol=1e-2, rtol=0)
-                assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad], atol=1e-2, rtol=0)
-                assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad], atol=3e-4, rtol=0)
-                assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad], atol=3e-4, rtol=0)
-
-                assert np.isclose(twxt['s'][ixt], twmad['s'][imad], atol=5e-6, rtol=0)
-                assert np.isclose(twxt['x'][ixt], twmad['x'][imad], atol=5e-6, rtol=0)
-                assert np.isclose(twxt['y'][ixt], twmad['y'][imad], atol=5e-6, rtol=0)
-                assert np.isclose(twxt['px'][ixt], twmad['px'][imad], atol=1e-7, rtol=0)
-                assert np.isclose(twxt['py'][ixt], twmad['py'][imad], atol=1e-7, rtol=0)
+            assert np.isclose(twxt['s'][ixt], twmad['s'][imad], atol=5e-6, rtol=0)
+            assert np.isclose(twxt['x'][ixt], twmad['x'][imad], atol=5e-6, rtol=0)
+            assert np.isclose(twxt['y'][ixt], twmad['y'][imad], atol=5e-6, rtol=0)
+            assert np.isclose(twxt['px'][ixt], twmad['px'][imad], atol=1e-7, rtol=0)
+            assert np.isclose(twxt['py'][ixt], twmad['py'][imad], atol=1e-7, rtol=0)
 
