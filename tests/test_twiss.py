@@ -41,7 +41,7 @@ def test_twiss():
         assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
         assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
         assert np.isclose(mad.table.summ.alfa,
-              twxt['momentum_compation_factor'],
+              twxt['momentum_compaction_factor'],
               atol=2e-6, rtol=0)
 
         for name in ['mb.b19r5.b1', 'mb.b19r1.b1',
