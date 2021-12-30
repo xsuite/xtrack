@@ -133,8 +133,11 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     if at_elements is not None:
         indx_twiss = []
         for nn in at_elements:
-            assert nn in tracker.line.element_names
-            indx_twiss.append(enames.index(nn))
+            if isinstance(nn, (int, np.integer)):
+                indx_twiss.append(int(nn))
+            else:
+                assert nn in tracker.line.element_names
+                indx_twiss.append(enames.index(nn))
         indx_twiss = sorted(indx_twiss)
     else:
         indx_twiss = list(range(len(enames)))
@@ -145,6 +148,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     max_y = np.zeros(n_twiss, dtype=np.float64)
     min_x = np.zeros(n_twiss, dtype=np.float64)
     min_y = np.zeros(n_twiss, dtype=np.float64)
+    max_px = np.zeros(n_twiss, dtype=np.float64)
+    max_py = np.zeros(n_twiss, dtype=np.float64)
+    min_px = np.zeros(n_twiss, dtype=np.float64)
+    min_py = np.zeros(n_twiss, dtype=np.float64)
     x_co = np.zeros(n_twiss, dtype=np.float64)
     y_co = np.zeros(n_twiss, dtype=np.float64)
     px_co = np.zeros(n_twiss, dtype=np.float64)
@@ -174,6 +181,12 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
         min_x[ii] = np.min(ctx2np(part_x.x))
         min_y[ii] = np.min(ctx2np(part_y.y))
+
+        max_px[ii] = np.max(ctx2np(part_x.px))
+        max_py[ii] = np.max(ctx2np(part_y.py))
+
+        min_px[ii] = np.min(ctx2np(part_x.px))
+        min_py[ii] = np.min(ctx2np(part_y.py))
 
         x_co[ii] = part_on_co._xobject.x[0]
         y_co[ii] = part_on_co._xobject.y[0]
@@ -213,10 +226,32 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     sigx = (sigx_max + sigx_min)/2
     sigy = (sigy_max + sigy_min)/2
 
+    sigpx_max = (max_px - px_co)/r_sigma
+    sigpy_max = (max_py - py_co)/r_sigma
+    sigpx_min = (px_co - min_px)/r_sigma
+    sigpy_min = (py_co - min_py)/r_sigma
+    sigpx = (sigpx_max + sigpx_min)/2
+    sigpy = (sigpy_max + sigpy_min)/2
+
     betx = (sigx**2*particle_ref._xobject.gamma0[0]
             * particle_ref._xobject.beta0[0]/nemitt_x)
     bety = (sigy**2*particle_ref._xobject.gamma0[0]
             * particle_ref._xobject.beta0[0]/nemitt_y)
+
+    gamx = (sigpx**2*particle_ref._xobject.gamma0[0]
+            * particle_ref._xobject.beta0[0]/nemitt_x)
+    gamy = (sigpy**2*particle_ref._xobject.gamma0[0]
+            * particle_ref._xobject.beta0[0]/nemitt_y)
+
+    mask_alfx_zero = np.abs(betx*gamx - 1) < 1e-4
+    alfx = 0*betx
+    alfx[~mask_alfx_zero] = np.sqrt(
+            betx[~mask_alfx_zero]*gamx[~mask_alfx_zero] - 1)
+
+    mask_alfy_zero = np.abs(bety*gamy - 1) < 1e-4
+    alfy = 0*bety
+    alfy[~mask_alfy_zero] = np.sqrt(
+            bety[~mask_alfy_zero]*gamy[~mask_alfy_zero] - 1)
 
     dx = (x_disp_plus-x_disp_minus)/delta_disp/2
     dy = (y_disp_plus-y_disp_minus)/delta_disp/2
@@ -268,6 +303,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'py': py_co,
         'betx': betx,
         'bety': bety,
+        'alfx': alfx,
+        'alfy': alfy,
+        'gamx': gamx,
+        'gamy': gamy,
         'sigx': sigx,
         'sigy': sigy,
         'dx': dx,
