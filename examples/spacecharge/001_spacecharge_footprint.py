@@ -13,13 +13,27 @@ fname_line = ('../../test_data/sps_w_spacecharge/'
 fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
-bunch_intensity = 1e11/3
+# # Realistic settings (feasible only on GPU)
+# bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
+# sigma_z = 22.5e-2/3
+# neps_x=2.5e-6
+# neps_y=2.5e-6
+# n_part=int(1e6)
+# rf_voltage=3e6
+# num_turns=32
+# nz_grid = 100
+# z_range = (-3*sigma_z, 3*sigma_z)
+
+# Test settings (fast but inaccurate)
+bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
 sigma_z = 22.5e-2/3
 neps_x=2.5e-6
 neps_y=2.5e-6
-n_part=int(1e6)
+n_part=int(1e6/10)
 rf_voltage=3e6
 num_turns=32
+nz_grid = 100/20
+z_range = (-3*sigma_z/20, 3*sigma_z/20)
 
 #mode = 'frozen'
 mode = 'quasi-frozen'
@@ -68,9 +82,9 @@ elif mode == 'pic':
         _context=context, line=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
-        nx_grid=256, ny_grid=256, nz_grid=100,
+        nx_grid=256, ny_grid=256, nz_grid=nz_grid,
         n_lims_x=7, n_lims_y=3,
-        z_range=(-3*sigma_z, 3*sigma_z))
+        z_range=z_range)
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
@@ -117,9 +131,6 @@ particles.px[:N_footprint] = 0.
 particles.py[:N_footprint] = 0.
 particles.zeta[:N_footprint] = 0.
 particles.delta[:N_footprint] = 0.
-particles.rpp[:N_footprint] = 1.
-particles.rvv[:N_footprint] = 1.
-particles.psigma[:N_footprint] = 0.
 
 #########
 # Track #
