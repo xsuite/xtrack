@@ -275,7 +275,7 @@ class Tracker:
             logger.warning(
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
-                'replaced by drifts')
+                ' replaced by drifts')
             tracker = self._supertracker
         else:
             tracker = self
