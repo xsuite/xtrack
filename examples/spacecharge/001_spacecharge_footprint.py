@@ -13,27 +13,27 @@ fname_line = ('../../test_data/sps_w_spacecharge/'
 fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
-# Realistic settings (feasible only on GPU)
-bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
-sigma_z = 22.5e-2/3
-neps_x=2.5e-6
-neps_y=2.5e-6
-n_part=int(1e6)
-rf_voltage=3e6
-num_turns=32
-nz_grid = 100
-z_range = (-3*sigma_z, 3*sigma_z)
-
-# # Test settings (fast but inaccurate)
+# # Realistic settings (feasible only on GPU)
 # bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
 # sigma_z = 22.5e-2/3
 # neps_x=2.5e-6
 # neps_y=2.5e-6
-# n_part=int(1e6/10)
+# n_part=int(1e6)
 # rf_voltage=3e6
-# num_turns=4#32
-# nz_grid = 100//20
-# z_range = (-3*sigma_z/20, 3*sigma_z/20)
+# num_turns=32
+# nz_grid = 100
+# z_range = (-3*sigma_z, 3*sigma_z)
+
+# Test settings (fast but inaccurate)
+bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
+sigma_z = 22.5e-2/3
+neps_x=2.5e-6
+neps_y=2.5e-6
+n_part=int(1e6/10)
+rf_voltage=3e6
+num_turns=32
+nz_grid = 100//20
+z_range = (-3*sigma_z/20, 3*sigma_z/20)
 
 mode = 'frozen'
 mode = 'quasi-frozen'
