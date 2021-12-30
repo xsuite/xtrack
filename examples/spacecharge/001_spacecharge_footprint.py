@@ -13,31 +13,31 @@ fname_line = ('../../test_data/sps_w_spacecharge/'
 fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
-# # Realistic settings (feasible only on GPU)
-# bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
-# sigma_z = 22.5e-2/3
-# neps_x=2.5e-6
-# neps_y=2.5e-6
-# n_part=int(1e6)
-# rf_voltage=3e6
-# num_turns=32
-# nz_grid = 100
-# z_range = (-3*sigma_z, 3*sigma_z)
-
-# Test settings (fast but inaccurate)
+# Realistic settings (feasible only on GPU)
 bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
 sigma_z = 22.5e-2/3
 neps_x=2.5e-6
 neps_y=2.5e-6
-n_part=int(1e6/10)
+n_part=int(1e6)
 rf_voltage=3e6
 num_turns=32
-nz_grid = 100/20
-z_range = (-3*sigma_z/20, 3*sigma_z/20)
+nz_grid = 100
+z_range = (-3*sigma_z, 3*sigma_z)
 
-#mode = 'frozen'
+# # Test settings (fast but inaccurate)
+# bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
+# sigma_z = 22.5e-2/3
+# neps_x=2.5e-6
+# neps_y=2.5e-6
+# n_part=int(1e6/10)
+# rf_voltage=3e6
+# num_turns=4#32
+# nz_grid = 100//20
+# z_range = (-3*sigma_z/20, 3*sigma_z/20)
+
+mode = 'frozen'
 mode = 'quasi-frozen'
-#mode = 'pic'
+mode = 'pic'
 
 ####################
 # Choose a context #
@@ -124,6 +124,7 @@ xy_norm = footprint.initial_xy_polar(
         theta_max=np.pi / 2 - 0.05 * np.pi / 2,
         theta_N=N_theta_footprint)
 
+# Particles are not matched but for comparison it is fine
 N_footprint = len(xy_norm[:, :, 0].flatten())
 particles.x[:N_footprint] = arr2ctx(sigma_x*xy_norm[:, :, 0].flatten())
 particles.y[:N_footprint] = arr2ctx(sigma_y*xy_norm[:, :, 1].flatten())
@@ -131,6 +132,16 @@ particles.px[:N_footprint] = 0.
 particles.py[:N_footprint] = 0.
 particles.zeta[:N_footprint] = 0.
 particles.delta[:N_footprint] = 0.
+
+# Add a probe at 1 sigma
+particles.x[N_footprint] = sigma_x
+particles.y[N_footprint] = sigma_y
+particles.px[N_footprint] = 0.
+particles.py[N_footprint] = 0.
+particles.zeta[N_footprint] = 0.
+particles.delta[N_footprint] = 0.
+
+particles_0 = particles.copy()
 
 #########
 # Track #
@@ -142,6 +153,8 @@ for ii in range(num_turns):
     x_tbt[:, ii] = ctx2arr(particles.x[:N_footprint]).copy()
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
     tracker.track(particles)
+
+tw = tracker.twiss(particle_ref=part_on_co,  at_elements=[0])
 
 ######################
 # Frequency analysis #
@@ -160,6 +173,42 @@ Qxy_fp = np.zeros_like(xy_norm)
 Qxy_fp[:, :, 0] = np.reshape(Qx, Qxy_fp[:, :, 0].shape)
 Qxy_fp[:, :, 1] = np.reshape(Qy, Qxy_fp[:, :, 1].shape)
 
+
+###############################
+# Tune shift from single turn #
+###############################
+
+
+p_probe_before = particles_0.filter(
+        particles_0.particle_id == N_footprint).to_dict()
+
+tracker.track(particles_0)
+
+p_probe_after = particles_0.filter(
+        particles_0.particle_id == N_footprint).to_dict()
+
+betx = tw['betx'][0]
+alfx = tw['alfx'][0]
+phasex_0 = np.angle(p_probe_before['x'] / np.sqrt(betx) -
+                   1j*(p_probe_before['x'] * alfx / np.sqrt(betx) +
+                       p_probe_before['px'] * np.sqrt(betx)))[0]
+phasex_1 = np.angle(p_probe_after['x'] / np.sqrt(betx) -
+                   1j*(p_probe_after['x'] * alfx / np.sqrt(betx) +
+                       p_probe_after['px'] * np.sqrt(betx)))[0]
+bety = tw['bety'][0]
+alfy = tw['alfy'][0]
+phasey_0 = np.angle(p_probe_before['y'] / np.sqrt(bety) -
+                   1j*(p_probe_before['y'] * alfy / np.sqrt(bety) +
+                       p_probe_before['py'] * np.sqrt(bety)))[0]
+phasey_1 = np.angle(p_probe_after['y'] / np.sqrt(bety) -
+                   1j*(p_probe_after['y'] * alfy / np.sqrt(bety) +
+                       p_probe_after['py'] * np.sqrt(bety)))[0]
+qx_probe = (phasex_1 - phasex_0)/(2*np.pi)
+qy_probe = (phasey_1 - phasey_0)/(2*np.pi)
+#########
+# Plots #
+#########
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
@@ -172,8 +221,9 @@ axcoord.set_ylim(top=np.max(xy_norm[:, :, 1]))
 fig4 = plt.figure(4)
 axFP = fig4.add_subplot(1, 1, 1)
 footprint.draw_footprint(Qxy_fp, axis_object=axFP, linewidth = 1)
-axFP.set_xlim(.1, .16)
-axFP.set_ylim(.18, .25)
+axFP.plot(qx_probe, qy_probe, 'x')
+#axFP.set_xlim(-.07, 0)
+#axFP.set_ylim(-.07, 0)
 axFP.set_aspect('equal')
 fig4.suptitle(mode)
 plt.show()
