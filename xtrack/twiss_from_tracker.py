@@ -152,6 +152,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     max_py = np.zeros(n_twiss, dtype=np.float64)
     min_px = np.zeros(n_twiss, dtype=np.float64)
     min_py = np.zeros(n_twiss, dtype=np.float64)
+    sign_alfx = np.zeros(n_twiss, dtype=np.float64)
+    sign_alfy = np.zeros(n_twiss, dtype=np.float64)
     x_co = np.zeros(n_twiss, dtype=np.float64)
     y_co = np.zeros(n_twiss, dtype=np.float64)
     px_co = np.zeros(n_twiss, dtype=np.float64)
@@ -193,6 +195,11 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
         px_co[ii] = part_on_co._xobject.px[0]
         py_co[ii] = part_on_co._xobject.py[0]
+
+        sign_alfx[ii] = -np.sign(np.sum(ctx2np(
+            (part_x.x - x_co[ii]) * (part_x.px - px_co[ii]))))
+        sign_alfy[ii] = -np.sign(np.sum(ctx2np(
+            (part_y.y - y_co[ii]) * (part_y.py - py_co[ii]))))
 
         x_disp_plus[ii] = part_disp._xobject.x[0]
         x_disp_minus[ii] = part_disp._xobject.x[1]
@@ -247,11 +254,13 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     alfx = 0*betx
     alfx[~mask_alfx_zero] = np.sqrt(
             betx[~mask_alfx_zero]*gamx[~mask_alfx_zero] - 1)
+    alfx*=sign_alfx
 
     mask_alfy_zero = np.abs(bety*gamy - 1) < 1e-4
     alfy = 0*bety
     alfy[~mask_alfy_zero] = np.sqrt(
             bety[~mask_alfy_zero]*gamy[~mask_alfy_zero] - 1)
+    alfy*=sign_alfy
 
     dx = (x_disp_plus-x_disp_minus)/delta_disp/2
     dy = (y_disp_plus-y_disp_minus)/delta_disp/2
