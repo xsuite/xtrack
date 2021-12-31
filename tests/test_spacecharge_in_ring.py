@@ -26,24 +26,8 @@ rf_voltage=3e6
 nz_grid = 100//20
 z_range = (-3*sigma_z/40, 3*sigma_z/40)
 
-mode = 'frozen'
-mode = 'quasi-frozen'
-mode = 'pic'
 
-####################
-# Choose a context #
-####################
 
-context = xo.ContextCpu()
-#context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
-
-_buffer = context.new_buffer()
-
-print(context)
-
-arr2ctx = context.nparray_to_context_array
-ctx2arr = context.nparray_from_context_array
 
 ##############
 # Get a line #
@@ -57,9 +41,63 @@ first_sc = line.elements[1]
 sigma_x = first_sc.sigma_x
 sigma_y = first_sc.sigma_y
 
+
+########################
+# Get optics and orbit #
+########################
+
+with open(fname_optics, 'r') as fid:
+    ddd = json.load(fid)
+part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
+RR = np.array(ddd['RR_madx'])
+
+##################
+# Make particles #
+##################
+particles0 = xp.generate_matched_gaussian_bunch(
+         num_particles=n_part, total_intensity_particles=bunch_intensity,
+         nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
+         particle_on_co=part_on_co, R_matrix=RR,
+         tracker=xt.Tracker(# I make a temp tracker to gen. particles only once 
+             line=xt.Line.from_dict(input_data['line'])))
+
+# Add a probe at 1 sigma
+particles0.x[0] = 2*sigma_x
+particles0.y[0] = 2*sigma_y
+particles0.px[0] = 0.
+particles0.py[0] = 0.
+particles0.zeta[0] = 0.
+particles0.delta[0] = 0.
+
+####################
+# Choose a context #
+####################
+
+mode = 'frozen'
+mode = 'quasi-frozen'
+#mode = 'pic'
+
+context = xo.ContextCpu()
+context = xo.ContextCupy()
+#context = xo.ContextPyopencl('0.0')
+# We need only particles at zeta close to the probe
+if mode == 'frozen':
+    particles = particles0.filter(particles0.particle_id < 100)
+elif mode == 'quasi-frozen':
+    particles = particles0.filter(particles0.particle_id < 1e5)
+elif mode == 'pic':
+    particles = particles0.filter(
+         (particles0.zeta>z_range[0]*5) & (particles0.zeta<z_range[1]*5))
+else:
+    raise ValueError('Invalid mode!')
+
+particles = particles.copy(_context=context)
+
 ##########################
 # Configure space-charge #
 ##########################
+
+_buffer = context.new_buffer()
 
 if mode == 'frozen':
     pass # Already configured in line
@@ -80,16 +118,6 @@ elif mode == 'pic':
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
-########################
-# Get optics and orbit #
-########################
-
-with open(fname_optics, 'r') as fid:
-    ddd = json.load(fid)
-part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
-RR = np.array(ddd['RR_madx'])
-
-
 #################
 # Build Tracker #
 #################
@@ -109,24 +137,6 @@ tracker = xt.Tracker(_buffer=_buffer,
 # Generate particles for footprint #
 ####################################
 
-particles = xp.generate_matched_gaussian_bunch(_context=context,
-         num_particles=n_part, total_intensity_particles=bunch_intensity,
-         nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_on_co=part_on_co, R_matrix=RR, tracker=tracker)
-
-# Add a probe at 1 sigma
-particles.x[0] = 2*sigma_x
-particles.y[0] = 2*sigma_y
-particles.px[0] = 0.
-particles.py[0] = 0.
-particles.zeta[0] = 0.
-particles.delta[0] = 0.
-
-# We need only particles at zeta close to the probe
-particles = particles.filter(
-         (particles.zeta>z_range[0]*5) & (particles.zeta<z_range[1]*5))
-
-particles_0 = particles.copy()
 
 tw = tracker.twiss(
         particle_ref=part_on_co,  at_elements=[0],
@@ -137,15 +147,15 @@ tw = tracker.twiss(
 # Tune shift from single turn #
 ###############################
 
-p_probe_before = particles_0.filter(
-        particles_0.particle_id == 0).to_dict()
+p_probe_before = particles.filter(
+        particles.particle_id == 0).to_dict()
 
 print('Start tracking...')
-tracker.track(particles_0)
+tracker.track(particles)
 print('Done tracking.')
 
-p_probe_after = particles_0.filter(
-        particles_0.particle_id == 0).to_dict()
+p_probe_after = particles.filter(
+        particles.particle_id == 0).to_dict()
 
 betx = tw['betx'][0]
 alfx = tw['alfx'][0]
