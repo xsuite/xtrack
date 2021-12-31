@@ -74,7 +74,7 @@ particles0.delta[0] = 0.
 ####################
 
 mode = 'frozen'
-mode = 'quasi-frozen'
+#mode = 'quasi-frozen'
 #mode = 'pic'
 
 context = xo.ContextCpu()
