@@ -14,7 +14,7 @@ import xobjects as xo
 import xpart as xp
 
 from .beam_elements import Drift
-from .line import Line
+from .line import Line, _is_thick, _is_drift
 
 logger = logging.getLogger(__name__)
 
@@ -268,8 +268,10 @@ class Tracker:
 
     def twiss(self, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=1e-6,
-        n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None):
+        n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
+        steps_r_matrix=None,
+        co_search_settings=None, at_elements=None,
+        filter_elements=None):
 
         if self.iscollective:
             logger.warning(
@@ -279,6 +281,25 @@ class Tracker:
             tracker = self._supertracker
         else:
             tracker = self
+
+        if filter_elements is not None:
+            new_elements = []
+            assert len(filter_elements) == len(tracker.line.elements)
+            for ff, ee in zip(filter_elements, tracker.line.elements):
+                if ff:
+                    new_elements.append(ee)
+                else:
+                    if _is_thick(ee) and not _is_drift(ee):
+                        new_elements.append(Drift(length==ee.length))
+                    else:
+                        new_elements.append(Drift(length=0))
+            tracker = self.__class__(
+                                 _buffer=tracker._buffer,
+                                 line=Line(
+                                     elements=new_elements,
+                                     element_names=self.line.element_names),
+                                 element_classes = tracker.element_classes,
+                                 track_kernel=tracker.track_kernel)
 
         return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
@@ -295,8 +316,9 @@ class Tracker:
 
         if _buffer is None:
             if _context is None:
-                _context = self._buffer.context
-            _buffer = _context.new_buffer()
+                _buffer = self._buffer
+            else:
+                _buffer = _context.new_buffer()
 
         return self.__class__(
                 _buffer=_buffer,
