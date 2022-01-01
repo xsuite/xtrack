@@ -14,10 +14,6 @@ def test_ring_with_spacecharge():
     fname_line = test_data_folder.joinpath('sps_w_spacecharge/'
                       'line_with_spacecharge_and_particle.json')
 
-    fname_optics = test_data_folder.joinpath('sps_w_spacecharge/'
-                    'optics_and_co_at_start_ring.json')
-
-
     # Test settings (fast but inaccurate)
     bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
     sigma_z = 22.5e-2/3

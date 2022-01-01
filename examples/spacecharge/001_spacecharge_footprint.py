@@ -10,9 +10,6 @@ import xfields as xf
 fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_with_spacecharge_and_particle.json')
 
-fname_optics = ('../../test_data/sps_w_spacecharge/'
-                'optics_and_co_at_start_ring.json')
-
 # Realistic settings (feasible only on GPU)
 bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
 sigma_z = 22.5e-2/3
@@ -37,7 +34,7 @@ z_range = (-3*sigma_z, 3*sigma_z)
 
 mode = 'frozen'
 mode = 'quasi-frozen'
-mode = 'pic'
+#mode = 'pic'
 
 ####################
 # Choose a context #

@@ -38,15 +38,6 @@ context = xo.ContextCupy()
 
 print(context)
 
-########################
-# Get optics and orbit #
-########################
-
-with open(fname_optics, 'r') as fid:
-    ddd = json.load(fid)
-part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
-RR = np.array(ddd['RR_madx'])
-
 ##################################################
 #                   Load line                    #
 # (assume frozen SC lenses are alredy installed) #
@@ -55,6 +46,7 @@ RR = np.array(ddd['RR_madx'])
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
+particle_ref = xp.Particles.from_dict(input_data['particle'])
 
 ##########################
 # Configure space-charge #
@@ -92,7 +84,7 @@ tracker = xt.Tracker(_context=context,
 particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_ref=part_on_co, tracker=tracker)
+         particle_ref=particle_ref, tracker=tracker)
 
 #########
 # Track #
