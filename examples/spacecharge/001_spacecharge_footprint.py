@@ -13,27 +13,27 @@ fname_line = ('../../test_data/sps_w_spacecharge/'
 fname_optics = ('../../test_data/sps_w_spacecharge/'
                 'optics_and_co_at_start_ring.json')
 
-# # Realistic settings (feasible only on GPU)
-# bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
-# sigma_z = 22.5e-2/3
-# neps_x=2.5e-6
-# neps_y=2.5e-6
-# n_part=int(1e6)
-# rf_voltage=3e6
-# num_turns=32
-# nz_grid = 100
-# z_range = (-3*sigma_z, 3*sigma_z)
-
-# Test settings (fast but inaccurate)
+# Realistic settings (feasible only on GPU)
 bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
 sigma_z = 22.5e-2/3
 neps_x=2.5e-6
 neps_y=2.5e-6
-n_part=int(1e6/10)
+n_part=int(1e6)
 rf_voltage=3e6
 num_turns=32
-nz_grid = 100//20
-z_range = (-3*sigma_z/20, 3*sigma_z/20)
+nz_grid = 100
+z_range = (-3*sigma_z, 3*sigma_z)
+
+## Test settings (fast but inaccurate)
+#bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
+#sigma_z = 22.5e-2/3
+#neps_x=2.5e-6
+#neps_y=2.5e-6
+#n_part=int(1e6/10)
+#rf_voltage=3e6
+#num_turns=32
+#nz_grid = 100//20
+#z_range = (-3*sigma_z/20, 3*sigma_z/20)
 
 mode = 'frozen'
 mode = 'quasi-frozen'
@@ -45,9 +45,7 @@ mode = 'pic'
 
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
-
-_buffer = context.new_buffer()
+#context = xo.ContextPyopencl('0.0')
 
 print(context)
 
@@ -61,6 +59,7 @@ ctx2arr = context.nparray_from_context_array
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
+particle_ref = xp.Particles.from_dict(input_data['particle'])
 
 first_sc = line.elements[1]
 sigma_x = first_sc.sigma_x
@@ -74,7 +73,7 @@ if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
     xf.replace_spacecharge_with_quasi_frozen(
-                                    line, _buffer=_buffer,
+                                    line, _buffer=context.new_buffer(),
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
@@ -88,21 +87,12 @@ elif mode == 'pic':
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
-########################
-# Get optics and orbit #
-########################
-
-with open(fname_optics, 'r') as fid:
-    ddd = json.load(fid)
-part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
-RR = np.array(ddd['RR_madx'])
-
-
 #################
 # Build Tracker #
 #################
-tracker = xt.Tracker(_buffer=_buffer,
+tracker = xt.Tracker(_context=context,
                     line=line)
+tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ####################################
 # Generate particles for footprint #
@@ -111,7 +101,7 @@ tracker = xt.Tracker(_buffer=_buffer,
 particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_on_co=part_on_co, R_matrix=RR, tracker=tracker)
+         particle_ref=particle_ref, tracker=tracker_no_sc)
 
 import footprint
 r_max_sigma = 5
@@ -154,7 +144,7 @@ for ii in range(num_turns):
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
     tracker.track(particles)
 
-tw = tracker.twiss(particle_ref=part_on_co,  at_elements=[0])
+tw = tracker.twiss(particle_ref=particle_ref, at_elements=[0])
 
 ######################
 # Frequency analysis #
@@ -222,8 +212,8 @@ fig4 = plt.figure(4)
 axFP = fig4.add_subplot(1, 1, 1)
 footprint.draw_footprint(Qxy_fp, axis_object=axFP, linewidth = 1)
 axFP.plot(qx_probe, qy_probe, 'x')
-#axFP.set_xlim(-.07, 0)
-#axFP.set_ylim(-.07, 0)
+axFP.set_xlim(.15-.07, .15)
+axFP.set_ylim(.25-.07, .25)
 axFP.set_aspect('equal')
 fig4.suptitle(mode)
 plt.show()
