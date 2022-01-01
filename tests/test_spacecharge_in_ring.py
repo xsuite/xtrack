@@ -35,20 +35,11 @@ def test_ring_with_spacecharge():
     with open(fname_line, 'r') as fid:
          input_data = json.load(fid)
     line0 = xt.Line.from_dict(input_data['line'])
+    particle_ref=xp.Particles.from_dict(input_data['particle'])
 
     first_sc = line0.elements[1]
     sigma_x = first_sc.sigma_x
     sigma_y = first_sc.sigma_y
-
-
-    ########################
-    # Get optics and orbit #
-    ########################
-
-    with open(fname_optics, 'r') as fid:
-        ddd = json.load(fid)
-    part_on_co = xp.Particles.from_dict(ddd['particle_on_madx_co'])
-    RR = np.array(ddd['RR_madx'])
 
     ##################
     # Make particles #
@@ -58,9 +49,9 @@ def test_ring_with_spacecharge():
     particles0 = xp.generate_matched_gaussian_bunch(
              num_particles=n_part, total_intensity_particles=bunch_intensity,
              nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-             particle_on_co=part_on_co, R_matrix=RR,
+             particle_ref=particle_ref,
              tracker=xt.Tracker(# I make a temp tracker to gen. particles only once 
-                 line=line0))
+                 line=line0.filter_elements(exclude_types_starting_with='SpaceCh')))
     warnings.filterwarnings('default')
 
     # Add a probe at 1 sigma
@@ -139,7 +130,7 @@ def test_ring_with_spacecharge():
 
             tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
             tw = tracker_no_sc.twiss(
-                    particle_ref=part_on_co,  at_elements=[0])
+                    particle_ref=particle_ref,  at_elements=[0])
 
             p_probe_before = particles.filter(
                     particles.particle_id == 0).to_dict()
