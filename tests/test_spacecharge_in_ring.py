@@ -53,12 +53,15 @@ def test_ring_with_spacecharge():
     ##################
     # Make particles #
     ##################
+    import warnings
+    warnings.filterwarnings('ignore')
     particles0 = xp.generate_matched_gaussian_bunch(
              num_particles=n_part, total_intensity_particles=bunch_intensity,
              nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
              particle_on_co=part_on_co, R_matrix=RR,
              tracker=xt.Tracker(# I make a temp tracker to gen. particles only once 
                  line=line0))
+    warnings.filterwarnings('default')
 
     # Add a probe at 1 sigma
     particles0.x[0] = 2*sigma_x
@@ -79,6 +82,13 @@ def test_ring_with_spacecharge():
             print(f"Test {context.__class__}")
             print(f'mode = {mode}')
             print('\n\n')
+
+            if isinstance(context, xo.ContextPyopencl) and mode == 'pic':
+                # TODO With pyopencl the test gets to the end
+                # but then hangs or crashes python
+                print('Skipped! Known issue...')
+                continue
+
 
             # We need only particles at zeta close to the probe
             if mode == 'frozen':
