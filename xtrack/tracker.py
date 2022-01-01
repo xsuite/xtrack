@@ -14,7 +14,7 @@ import xobjects as xo
 import xpart as xp
 
 from .beam_elements import Drift
-from .line import Line, _is_thick, _is_drift
+from .line import Line
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +271,7 @@ class Tracker:
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
         steps_r_matrix=None,
         co_search_settings=None, at_elements=None,
-        filter_elements=None):
+        ):
 
         if self.iscollective:
             logger.warning(
@@ -282,24 +282,6 @@ class Tracker:
         else:
             tracker = self
 
-        if filter_elements is not None:
-            new_elements = []
-            assert len(filter_elements) == len(tracker.line.elements)
-            for ff, ee in zip(filter_elements, tracker.line.elements):
-                if ff:
-                    new_elements.append(ee)
-                else:
-                    if _is_thick(ee) and not _is_drift(ee):
-                        new_elements.append(Drift(length==ee.length))
-                    else:
-                        new_elements.append(Drift(length=0))
-            tracker = self.__class__(
-                                 _buffer=tracker._buffer,
-                                 line=Line(
-                                     elements=new_elements,
-                                     element_names=self.line.element_names),
-                                 element_classes = tracker.element_classes,
-                                 track_kernel=tracker.track_kernel)
 
         return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
@@ -307,6 +289,17 @@ class Tracker:
             steps_r_matrix=steps_r_matrix,
             co_search_settings=co_search_settings,
             at_elements=at_elements)
+
+
+    def filter_elements(self, mask=None, exclude_types_starting_with=None):
+        return self.__class__(
+                 _buffer=self._buffer,
+                 line=self.line.filter_elements(mask=mask,
+                     exclude_types_starting_with=exclude_types_starting_with),
+                 track_kernel=(self.track_kernel if not self.iscollective
+                                    else self._supertracker.track_kernel),
+                 element_classes=(self.element_classes if not self.iscollective
+                                    else self._supertracker.element_classes))
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):

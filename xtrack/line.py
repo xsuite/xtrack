@@ -7,6 +7,7 @@ from .loader_sixtrack import _expand_struct
 from .loader_mad import iter_from_madx_sequence
 from .beam_elements import element_classes, Multipole
 from . import beam_elements
+from .beam_elements import Drift
 
 
 import logging
@@ -140,6 +141,30 @@ class Line:
 
         self._vars={} #TODO xdeps
         self._manager=None # TODO xdeps
+
+    def filter_elements(self, mask=None, exclude_types_starting_with=None):
+
+        if mask is None:
+            assert exclude_types_starting_with is not None
+
+        if exclude_types_starting_with is not None:
+            assert mask is None
+            mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
+                    for ee in self.elements]
+
+        new_elements = []
+        assert len(mask) == len(self.elements)
+        for ff, ee in zip(mask, self.elements):
+            if ff:
+                new_elements.append(ee)
+            else:
+                if _is_thick(ee) and not _is_drift(ee):
+                    new_elements.append(Drift(length==ee.length))
+                else:
+                    new_elements.append(Drift(length=0))
+
+        return self.__class__(elements=new_elements,
+                              element_names=self.element_names)
 
     def cycle(self, index_first_element=None, name_first_element=None):
 
