@@ -1,14 +1,12 @@
 import pathlib
 import json
 import numpy as np
-import pandas as pd
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xfields as xf
 
-from xtrack.line import _is_thick, _is_drift
 
 fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_no_spacecharge_and_particle.json')
