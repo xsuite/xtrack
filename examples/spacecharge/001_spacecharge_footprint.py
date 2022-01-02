@@ -16,7 +16,6 @@ sigma_z = 22.5e-2/3
 neps_x=2.5e-6
 neps_y=2.5e-6
 n_part=int(1e6)
-rf_voltage=3e6
 num_turns=32
 nz_grid = 100
 z_range = (-3*sigma_z, 3*sigma_z)
