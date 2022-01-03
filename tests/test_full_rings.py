@@ -21,7 +21,7 @@ def test_full_rings(element_by_element=False):
             test_data_folder.joinpath('lhc_no_bb/line_and_particle.json'),
             test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
             test_data_folder.joinpath('sps_w_spacecharge/'
-                                      'line_with_spacecharge_and_particle.json'),
+                                      'line_no_spacecharge_and_particle.json'),
             ]
 
      tolerances_10_turns = [
