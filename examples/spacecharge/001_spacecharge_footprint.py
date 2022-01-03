@@ -7,37 +7,29 @@ import xpart as xp
 import xtrack as xt
 import xfields as xf
 
+############
+# Settings #
+############
+
 fname_line = ('../../test_data/sps_w_spacecharge/'
-                  'line_with_spacecharge_and_particle.json')
+                  'line_no_spacecharge_and_particle.json')
 
 # Realistic settings (feasible only on GPU)
 bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
 sigma_z = 22.5e-2/3
-neps_x=2.5e-6
-neps_y=2.5e-6
+nemitt_x=2.5e-6
+nemitt_y=2.5e-6
 n_part=int(1e6)
 num_turns=32
 nz_grid = 100
 z_range = (-3*sigma_z, 3*sigma_z)
 
-## Test settings (fast but inaccurate)
-#bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
-#sigma_z = 22.5e-2/3
-#neps_x=2.5e-6
-#neps_y=2.5e-6
-#n_part=int(1e6/10)
-#rf_voltage=3e6
-#num_turns=32
-#nz_grid = 100//20
-#z_range = (-3*sigma_z/20, 3*sigma_z/20)
+num_spacecharge_interactions = 540
+tol_spacecharge_position = 1e-2
 
 mode = 'frozen'
-mode = 'quasi-frozen'
+#mode = 'quasi-frozen'
 #mode = 'pic'
-
-####################
-# Choose a context #
-####################
 
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -45,21 +37,33 @@ context = xo.ContextCupy()
 
 print(context)
 
-arr2ctx = context.nparray_to_context_array
-ctx2arr = context.nparray_from_context_array
-
-##############
-# Get a line #
-##############
+############
+# Get line #
+############
 
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
-line = xt.Line.from_dict(input_data['line'])
+line_no_sc = xt.Line.from_dict(input_data['line'])
 particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-first_sc = line.elements[1]
-sigma_x = first_sc.sigma_x
-sigma_y = first_sc.sigma_y
+#############################################
+# Install spacecharge interactions (frozen) #
+#############################################
+
+lprofile = xf.LongitudinalProfileQGaussian(
+        number_of_particles=bunch_intensity,
+        sigma_z=sigma_z,
+        z0=0.,
+        q_parameter=1.)
+
+line = xf.install_spacecharge_frozen(line=line_no_sc,
+                   particle_ref=particle_ref,
+                   longitudinal_profile=lprofile,
+                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                   sigma_z=sigma_z,
+                   num_spacecharge_interactions=num_spacecharge_interactions,
+                   tol_spacecharge_position=tol_spacecharge_position)
+
 
 ##########################
 # Configure space-charge #
@@ -83,55 +87,65 @@ elif mode == 'pic':
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
-#################
-# Build Tracker #
-#################
+##################
+# Build trackers #
+##################
+
 tracker = xt.Tracker(_context=context,
                     line=line)
 tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
-####################################
-# Generate particles for footprint #
-####################################
-
-particles = xp.generate_matched_gaussian_bunch(_context=context,
-         num_particles=n_part, total_intensity_particles=bunch_intensity,
-         nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, tracker=tracker_no_sc)
+######################
+# Generate particles #
+######################
 
 import footprint
 r_max_sigma = 5
 N_r_footprint = 10
 N_theta_footprint = 8
-xy_norm = footprint.initial_xy_polar(
-        r_min=0.3, r_max=r_max_sigma,
-        r_N=N_r_footprint + 1,
-        theta_min=0.05 * np.pi / 2,
-        theta_max=np.pi / 2 - 0.05 * np.pi / 2,
-        theta_N=N_theta_footprint)
+theta_min = 0.05 * np.pi / 2
+theta_max = np.pi / 2 - 0.05 * np.pi / 2
 
-# Particles are not matched but for comparison it is fine
-N_footprint = len(xy_norm[:, :, 0].flatten())
-particles.x[:N_footprint] = arr2ctx(sigma_x*xy_norm[:, :, 0].flatten())
-particles.y[:N_footprint] = arr2ctx(sigma_y*xy_norm[:, :, 1].flatten())
-particles.px[:N_footprint] = 0.
-particles.py[:N_footprint] = 0.
-particles.zeta[:N_footprint] = 0.
-particles.delta[:N_footprint] = 0.
+x_norm_fp, y_norm_fp, r_footprint, theta_footprint = xp.generate_2D_polar_grid(
+        r_range=(0.3, r_max_sigma),
+        nr=N_r_footprint+1,
+        theta_range=(theta_min, theta_max), ntheta=N_theta_footprint)
+N_footprint = len(x_norm_fp)
 
-# Add a probe at 1 sigma
-particles.x[N_footprint] = sigma_x
-particles.y[N_footprint] = sigma_y
-particles.px[N_footprint] = 0.
-particles.py[N_footprint] = 0.
-particles.zeta[N_footprint] = 0.
-particles.delta[N_footprint] = 0.
+particles_fp = xp.build_particles(_context=context,
+            tracker=tracker_no_sc,
+            particle_ref=particle_ref,
+            weight=0, # pure probe particles
+            zeta=0, delta=0,
+            x_norm=x_norm_fp, px_norm=0,
+            y_norm=y_norm_fp, py_norm=0,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+
+# I add explicitly a probe particle at1.5 sigma
+particle_probe = xp.build_particles(_context=context,
+            tracker=tracker_no_sc,
+            particle_ref=particle_ref,
+            weight=0, # pure probe particles
+            zeta=0, delta=0,
+            x_norm=1.5, px_norm=0,
+            y_norm=1.5, py_norm=0,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+
+particles_gaussian = xp.generate_matched_gaussian_bunch(_context=context,
+         num_particles=n_part, total_intensity_particles=bunch_intensity,
+         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+         particle_ref=particle_ref, tracker=tracker_no_sc)
+
+particles = xp.Particles.merge(
+                          [particles_fp, particle_probe, particles_gaussian])
 
 particles_0 = particles.copy()
 
 #########
 # Track #
 #########
+
+ctx2arr = context.nparray_from_context_array
 x_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 y_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 for ii in range(num_turns):
@@ -140,12 +154,17 @@ for ii in range(num_turns):
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
     tracker.track(particles)
 
-tw = tracker.twiss(particle_ref=particle_ref, at_elements=[0])
+tw = tracker_no_sc.twiss(particle_ref=particle_ref, at_elements=[0])
 
 ######################
 # Frequency analysis #
 ######################
+
 import NAFFlib
+
+xy_norm = np.zeros((N_r_footprint + 1, N_theta_footprint, 2), dtype=np.float64)
+xy_norm[:, :, 0] = x_norm_fp.reshape((N_r_footprint + 1, N_theta_footprint))
+xy_norm[:, :, 1] = y_norm_fp.reshape((N_r_footprint + 1, N_theta_footprint))
 
 Qx = np.zeros(N_footprint)
 Qy = np.zeros(N_footprint)
@@ -163,7 +182,6 @@ Qxy_fp[:, :, 1] = np.reshape(Qy, Qxy_fp[:, :, 1].shape)
 ###############################
 # Tune shift from single turn #
 ###############################
-
 
 p_probe_before = particles_0.filter(
         particles_0.particle_id == N_footprint).to_dict()
@@ -191,6 +209,7 @@ phasey_1 = np.angle(p_probe_after['y'] / np.sqrt(bety) -
                        p_probe_after['py'] * np.sqrt(bety)))[0]
 qx_probe = (phasex_1 - phasex_0)/(2*np.pi)
 qy_probe = (phasey_1 - phasey_0)/(2*np.pi)
+
 #########
 # Plots #
 #########

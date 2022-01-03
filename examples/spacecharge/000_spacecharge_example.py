@@ -12,17 +12,13 @@ import xfields as xf
 ############
 
 fname_line = ('../../test_data/sps_w_spacecharge/'
-                  'line_with_spacecharge_and_particle.json')
+                  'line_no_spacecharge_and_particle.json')
 
-fname_optics = ('../../test_data/sps_w_spacecharge/'
-                'optics_and_co_at_start_ring.json')
-
-bunch_intensity = 1e11/3
+bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
 sigma_z = 22.5e-2/3
-neps_x=2.5e-6
-neps_y=2.5e-6
+nemitt_x=2.5e-6
+nemitt_y=2.5e-6
 n_part=int(1e6)
-rf_voltage=3e6
 num_turns=32
 
 # Available modes: frozen/quasi-frozen/pic
@@ -38,15 +34,32 @@ context = xo.ContextCupy()
 
 print(context)
 
-##################################################
-#                   Load line                    #
-# (assume frozen SC lenses are alredy installed) #
-##################################################
+#############
+# Load line #
+#############
 
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
-line = xt.Line.from_dict(input_data['line'])
+line_no_sc = xt.Line.from_dict(input_data['line'])
 particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+#############################################
+# Install spacecharge interactions (frozen) #
+#############################################
+
+lprofile = xf.LongitudinalProfileQGaussian(
+        number_of_particles=bunch_intensity,
+        sigma_z=sigma_z,
+        z0=0.,
+        q_parameter=1.)
+
+line = xf.install_spacecharge_frozen(line=line_no_sc,
+                   particle_ref=particle_ref,
+                   longitudinal_profile=lprofile,
+                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                   sigma_z=sigma_z,
+                   num_spacecharge_interactions=num_spacecharge_interactions,
+                   tol_spacecharge_position=tol_spacecharge_position)
 
 ##########################
 # Configure space-charge #
