@@ -24,6 +24,10 @@ z_range = (-3*sigma_z, 3*sigma_z)
 num_spacecharge_interactions = 540
 tol_spacecharge_position = 1e-2
 
+mode = 'frozen'
+#mode = 'quasi-frozen'
+#mode = 'pic'
+
 ##############
 # Get a line #
 ##############
@@ -47,10 +51,6 @@ line = xf.install_spacecharge_frozen(line=line_no_sc,
                    sigma_z=sigma_z,
                    num_spacecharge_interactions=num_spacecharge_interactions,
                    tol_spacecharge_position=tol_spacecharge_position)
-
-mode = 'frozen'
-#mode = 'quasi-frozen'
-mode = 'pic'
 
 ####################
 # Choose a context #
@@ -141,34 +141,6 @@ particles_gaussian = xp.generate_matched_gaussian_bunch(_context=context,
 particles = xp.Particles.merge(
                           [particles_fp, particle_probe, particles_gaussian])
 
-#
-#r_max_sigma = 5
-#N_r_footprint = 10
-#N_theta_footprint = 8
-#xy_norm = footprint.initial_xy_polar(
-#        r_min=0.3, r_max=r_max_sigma,
-#        r_N=N_r_footprint + 1,
-#        theta_min=0.05 * np.pi / 2,
-#        theta_max=np.pi / 2 - 0.05 * np.pi / 2,
-#        theta_N=N_theta_footprint)
-#
-## Particles are not matched but for comparison it is fine
-#N_footprint = len(xy_norm[:, :, 0].flatten())
-#particles.x[:N_footprint] = arr2ctx(sigma_x*xy_norm[:, :, 0].flatten())
-#particles.y[:N_footprint] = arr2ctx(sigma_y*xy_norm[:, :, 1].flatten())
-#particles.px[:N_footprint] = 0.
-#particles.py[:N_footprint] = 0.
-#particles.zeta[:N_footprint] = 0.
-#particles.delta[:N_footprint] = 0.
-#
-## Add a probe at 1 sigma
-#particles.x[N_footprint] = sigma_x
-#particles.y[N_footprint] = sigma_y
-#particles.px[N_footprint] = 0.
-#particles.py[N_footprint] = 0.
-#particles.zeta[N_footprint] = 0.
-#particles.delta[N_footprint] = 0.
-
 particles_0 = particles.copy()
 
 #########
@@ -210,7 +182,6 @@ Qxy_fp[:, :, 1] = np.reshape(Qy, Qxy_fp[:, :, 1].shape)
 # Tune shift from single turn #
 ###############################
 
-
 p_probe_before = particles_0.filter(
         particles_0.particle_id == N_footprint).to_dict()
 
@@ -237,6 +208,7 @@ phasey_1 = np.angle(p_probe_after['y'] / np.sqrt(bety) -
                        p_probe_after['py'] * np.sqrt(bety)))[0]
 qx_probe = (phasex_1 - phasex_0)/(2*np.pi)
 qy_probe = (phasey_1 - phasey_0)/(2*np.pi)
+
 #########
 # Plots #
 #########
