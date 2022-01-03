@@ -15,6 +15,7 @@ fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_no_spacecharge_and_particle.json')
 
 bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
+                         # to compare frozen/quasi-frozen and PIC
 sigma_z = 22.5e-2/3
 nemitt_x=2.5e-6
 nemitt_y=2.5e-6
@@ -99,7 +100,7 @@ tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 # Generate particles #
 ######################
 
-# (matching without spacecharge)
+# (we choose to match the distribution without accounting for spacecharge)
 particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
