@@ -12,17 +12,19 @@ def test_ring_with_spacecharge():
     test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
     fname_line = test_data_folder.joinpath('sps_w_spacecharge/'
-                      'line_with_spacecharge_and_particle.json')
+                      'line_no_spacecharge_and_particle.json')
 
     # Test settings (fast but inaccurate)
     bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
     sigma_z = 22.5e-2/3
-    neps_x=2.5e-6
-    neps_y=2.5e-6
+    nemitt_x=2.5e-6
+    nemitt_y=2.5e-6
     n_part=int(1e6/10)*10
-    rf_voltage=3e6
     nz_grid = 100//20
     z_range = (-3*sigma_z/40, 3*sigma_z/40)
+
+    num_spacecharge_interactions = 540
+    tol_spacecharge_position = 1e-2
 
     ##############
     # Get a line #
@@ -30,38 +32,39 @@ def test_ring_with_spacecharge():
 
     with open(fname_line, 'r') as fid:
          input_data = json.load(fid)
-    line0 = xt.Line.from_dict(input_data['line'])
+    line0_no_sc = xt.Line.from_dict(input_data['line'])
     particle_ref=xp.Particles.from_dict(input_data['particle'])
 
-    first_sc = line0.elements[1]
-    sigma_x = first_sc.sigma_x
-    sigma_y = first_sc.sigma_y
+    lprofile = xf.LongitudinalProfileQGaussian(
+        number_of_particles=bunch_intensity,
+        sigma_z=sigma_z,
+        z0=0.,
+        q_parameter=1.)
+
 
     ##################
     # Make particles #
     ##################
+    tracker_temp=xt.Tracker(# I make a temp tracker to gen. particles only once 
+            line=line0_no_sc.filter_elements(exclude_types_starting_with='SpaceCh'))
     import warnings
     warnings.filterwarnings('ignore')
-    particles0 = xp.generate_matched_gaussian_bunch(
+    particle_probe = xp.build_particles(
+                tracker=tracker_temp,
+                particle_ref=particle_ref,
+                weight=0, # pure probe particles
+                zeta=0, delta=0,
+                x_norm=2, px_norm=0,
+                y_norm=2, py_norm=0,
+                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+
+    particles_gaussian = xp.generate_matched_gaussian_bunch(
              num_particles=n_part, total_intensity_particles=bunch_intensity,
-             nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-             particle_ref=particle_ref,
-             tracker=xt.Tracker(# I make a temp tracker to gen. particles only once 
-                 line=line0.filter_elements(exclude_types_starting_with='SpaceCh')))
+             nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+             particle_ref=particle_ref, tracker=tracker_temp)
+
+    particles0 = xp.Particles.merge([particle_probe, particles_gaussian])
     warnings.filterwarnings('default')
-
-    # Add a probe at 1 sigma
-    particles0.x[0] = 2*sigma_x
-    particles0.y[0] = 2*sigma_y
-    particles0.px[0] = 0.
-    particles0.py[0] = 0.
-    particles0.zeta[0] = 0.
-    particles0.delta[0] = 0.
-
-    ####################
-    # Choose a context #
-    ####################
-
 
     for context in xo.context.get_test_contexts():
         for mode in ['frozen', 'quasi-frozen', 'pic']:
@@ -76,21 +79,26 @@ def test_ring_with_spacecharge():
                 print('Skipped! Known issue...')
                 continue
 
-
             # We need only particles at zeta close to the probe
             if mode == 'frozen':
                 particles = particles0.filter(particles0.particle_id < 100)
             elif mode == 'quasi-frozen':
                 particles = particles0.filter(particles0.particle_id < 1e5)
             elif mode == 'pic':
-                particles = particles0.filter(
-                     (particles0.zeta>z_range[0]*5) & (particles0.zeta<z_range[1]*5))
+                particles = particles0.filter((particles0.zeta>z_range[0]*5)
+                                              & (particles0.zeta<z_range[1]*5))
             else:
                 raise ValueError('Invalid mode!')
 
             particles = particles.copy(_context=context)
 
-            line = xt.Line.from_dict(input_data['line'])
+            line = xf.install_spacecharge_frozen(line=line0_no_sc,
+                           particle_ref=particle_ref,
+                           longitudinal_profile=lprofile,
+                           nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                           sigma_z=sigma_z,
+                           num_spacecharge_interactions=num_spacecharge_interactions,
+                           tol_spacecharge_position=tol_spacecharge_position)
 
             ##########################
             # Configure space-charge #
@@ -159,8 +167,9 @@ def test_ring_with_spacecharge():
             qx_probe = (phasex_1 - phasex_0)/(2*np.pi)
             qy_probe = (phasey_1 - phasey_0)/(2*np.pi)
 
-            qx_target = 0.13622046302275012
-            qy_target = 0.23004568206474874
+            qx_target = 0.12424673159186882
+            qy_target = 0.21993469870358598
+
             print(f'ex={(qx_probe - qx_target)/1e-3:.6f}e-3 '
                   f'ey={(qy_probe - qy_target)/1e-3:.6f}e-3')
             assert np.isclose(qx_probe, qx_target, atol=5e-4, rtol=0)
