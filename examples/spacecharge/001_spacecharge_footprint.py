@@ -93,7 +93,7 @@ else:
 
 tracker = xt.Tracker(_context=context,
                     line=line)
-tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
+tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
 # Generate particles #
@@ -113,7 +113,7 @@ x_norm_fp, y_norm_fp, r_footprint, theta_footprint = xp.generate_2D_polar_grid(
 N_footprint = len(x_norm_fp)
 
 particles_fp = xp.build_particles(_context=context,
-            tracker=tracker_no_sc,
+            tracker=tracker_sc_off,
             particle_ref=particle_ref,
             weight=0, # pure probe particles
             zeta=0, delta=0,
@@ -123,7 +123,7 @@ particles_fp = xp.build_particles(_context=context,
 
 # I add explicitly a probe particle at1.5 sigma
 particle_probe = xp.build_particles(_context=context,
-            tracker=tracker_no_sc,
+            tracker=tracker_sc_off,
             particle_ref=particle_ref,
             weight=0, # pure probe particles
             zeta=0, delta=0,
@@ -134,7 +134,7 @@ particle_probe = xp.build_particles(_context=context,
 particles_gaussian = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, tracker=tracker_no_sc)
+         particle_ref=particle_ref, tracker=tracker_sc_off)
 
 particles = xp.Particles.merge(
                           [particles_fp, particle_probe, particles_gaussian])
@@ -154,7 +154,7 @@ for ii in range(num_turns):
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
     tracker.track(particles)
 
-tw = tracker_no_sc.twiss(particle_ref=particle_ref, at_elements=[0])
+tw = tracker_sc_off.twiss(particle_ref=particle_ref, at_elements=[0])
 
 ######################
 # Frequency analysis #

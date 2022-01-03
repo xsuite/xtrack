@@ -93,7 +93,7 @@ else:
 
 tracker = xt.Tracker(_context=context,
                     line=line)
-tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
+tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
 # Generate particles #
@@ -103,7 +103,7 @@ tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, tracker=tracker_no_sc)
+         particle_ref=particle_ref, tracker=tracker_sc_off)
 
 #########
 # Track #
