@@ -49,8 +49,8 @@ line = xf.install_spacecharge_frozen(line=line_no_sc,
                    tol_spacecharge_position=tol_spacecharge_position)
 
 mode = 'frozen'
-mode = 'quasi-frozen'
-#mode = 'pic'
+#mode = 'quasi-frozen'
+mode = 'pic'
 
 ####################
 # Choose a context #
@@ -62,7 +62,6 @@ context = xo.ContextCupy()
 
 print(context)
 
-arr2ctx = context.nparray_to_context_array
 ctx2arr = context.nparray_from_context_array
 
 first_sc = line.elements[0]
@@ -102,38 +101,73 @@ tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 # Generate particles for footprint #
 ####################################
 
-particles = xp.generate_matched_gaussian_bunch(_context=context,
-         num_particles=n_part, total_intensity_particles=bunch_intensity,
-         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, tracker=tracker_no_sc)
-
 import footprint
 r_max_sigma = 5
 N_r_footprint = 10
 N_theta_footprint = 8
-xy_norm = footprint.initial_xy_polar(
-        r_min=0.3, r_max=r_max_sigma,
-        r_N=N_r_footprint + 1,
-        theta_min=0.05 * np.pi / 2,
-        theta_max=np.pi / 2 - 0.05 * np.pi / 2,
-        theta_N=N_theta_footprint)
+theta_min = 0.05 * np.pi / 2
+theta_max = np.pi / 2 - 0.05 * np.pi / 2
 
-# Particles are not matched but for comparison it is fine
-N_footprint = len(xy_norm[:, :, 0].flatten())
-particles.x[:N_footprint] = arr2ctx(sigma_x*xy_norm[:, :, 0].flatten())
-particles.y[:N_footprint] = arr2ctx(sigma_y*xy_norm[:, :, 1].flatten())
-particles.px[:N_footprint] = 0.
-particles.py[:N_footprint] = 0.
-particles.zeta[:N_footprint] = 0.
-particles.delta[:N_footprint] = 0.
+x_norm_fp, y_norm_fp, r_footprint, theta_footprint = xp.generate_2D_polar_grid(
+        r_range=(0.3, r_max_sigma),
+        nr=N_r_footprint+1,
+        theta_range=(theta_min, theta_max), ntheta=N_theta_footprint)
+N_footprint = len(x_norm_fp)
 
-# Add a probe at 1 sigma
-particles.x[N_footprint] = sigma_x
-particles.y[N_footprint] = sigma_y
-particles.px[N_footprint] = 0.
-particles.py[N_footprint] = 0.
-particles.zeta[N_footprint] = 0.
-particles.delta[N_footprint] = 0.
+particles_fp = xp.build_particles(_context=context,
+            tracker=tracker_no_sc,
+            particle_ref=particle_ref,
+            weight=0, # pure probe particles
+            zeta=0, delta=0,
+            x_norm=x_norm_fp, px_norm=0,
+            y_norm=y_norm_fp, py_norm=0,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+
+# I add explicitly a probe particle at1.5 sigma
+particle_probe = xp.build_particles(_context=context,
+            tracker=tracker_no_sc,
+            particle_ref=particle_ref,
+            weight=0, # pure probe particles
+            zeta=0, delta=0,
+            x_norm=1.5, px_norm=0,
+            y_norm=1.5, py_norm=0,
+            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+
+particles_gaussian = xp.generate_matched_gaussian_bunch(_context=context,
+         num_particles=n_part, total_intensity_particles=bunch_intensity,
+         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+         particle_ref=particle_ref, tracker=tracker_no_sc)
+
+particles = xp.Particles.merge(
+                          [particles_fp, particle_probe, particles_gaussian])
+
+#
+#r_max_sigma = 5
+#N_r_footprint = 10
+#N_theta_footprint = 8
+#xy_norm = footprint.initial_xy_polar(
+#        r_min=0.3, r_max=r_max_sigma,
+#        r_N=N_r_footprint + 1,
+#        theta_min=0.05 * np.pi / 2,
+#        theta_max=np.pi / 2 - 0.05 * np.pi / 2,
+#        theta_N=N_theta_footprint)
+#
+## Particles are not matched but for comparison it is fine
+#N_footprint = len(xy_norm[:, :, 0].flatten())
+#particles.x[:N_footprint] = arr2ctx(sigma_x*xy_norm[:, :, 0].flatten())
+#particles.y[:N_footprint] = arr2ctx(sigma_y*xy_norm[:, :, 1].flatten())
+#particles.px[:N_footprint] = 0.
+#particles.py[:N_footprint] = 0.
+#particles.zeta[:N_footprint] = 0.
+#particles.delta[:N_footprint] = 0.
+#
+## Add a probe at 1 sigma
+#particles.x[N_footprint] = sigma_x
+#particles.y[N_footprint] = sigma_y
+#particles.px[N_footprint] = 0.
+#particles.py[N_footprint] = 0.
+#particles.zeta[N_footprint] = 0.
+#particles.delta[N_footprint] = 0.
 
 particles_0 = particles.copy()
 
@@ -148,12 +182,16 @@ for ii in range(num_turns):
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
     tracker.track(particles)
 
-tw = tracker.twiss(particle_ref=particle_ref, at_elements=[0])
+tw = tracker_no_sc.twiss(particle_ref=particle_ref, at_elements=[0])
 
 ######################
 # Frequency analysis #
 ######################
 import NAFFlib
+
+xy_norm = np.zeros((N_r_footprint + 1, N_theta_footprint, 2), dtype=np.float64)
+xy_norm[:, :, 0] = x_norm_fp.reshape((N_r_footprint + 1, N_theta_footprint))
+xy_norm[:, :, 1] = y_norm_fp.reshape((N_r_footprint + 1, N_theta_footprint))
 
 Qx = np.zeros(N_footprint)
 Qy = np.zeros(N_footprint)
