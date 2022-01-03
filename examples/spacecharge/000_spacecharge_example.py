@@ -21,6 +21,9 @@ nemitt_y=2.5e-6
 n_part=int(1e6)
 num_turns=32
 
+num_spacecharge_interactions = 540
+tol_spacecharge_position = 1e-2
+
 # Available modes: frozen/quasi-frozen/pic
 mode = 'pic'
 
@@ -61,9 +64,9 @@ line = xf.install_spacecharge_frozen(line=line_no_sc,
                    num_spacecharge_interactions=num_spacecharge_interactions,
                    tol_spacecharge_position=tol_spacecharge_position)
 
-##########################
-# Configure space-charge #
-##########################
+#################################
+# Switch to PIC or quasi-frozen #
+#################################
 
 if mode == 'frozen':
     pass # Already configured in line
@@ -87,20 +90,24 @@ else:
 #################
 # Build Tracker #
 #################
+
 tracker = xt.Tracker(_context=context,
                     line=line)
+tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
 # Generate particles #
 ######################
 
+# (matching without spacecharge)
 particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
-         nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, tracker=tracker)
+         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+         particle_ref=particle_ref, tracker=tracker_no_sc)
 
 #########
 # Track #
 #########
+
 tracker.track(particles, num_turns=3)
 
