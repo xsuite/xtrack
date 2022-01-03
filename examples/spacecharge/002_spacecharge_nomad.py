@@ -7,6 +7,9 @@ import xpart as xp
 import xtrack as xt
 import xfields as xf
 
+############
+# Settings #
+############
 
 fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_no_spacecharge_and_particle.json')
@@ -28,16 +31,23 @@ mode = 'frozen'
 #mode = 'quasi-frozen'
 #mode = 'pic'
 
-##############
-# Get a line #
-##############
+#context = xo.ContextCpu()
+context = xo.ContextCupy()
+#context = xo.ContextPyopencl('0.0')
+
+############
+# Get line #
+############
 
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line_no_sc = xt.Line.from_dict(input_data['line'])
 particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-# Define longitudinal profile
+####################################
+# Install spacecharge interactions #
+####################################
+
 lprofile = xf.LongitudinalProfileQGaussian(
         number_of_particles=bunch_intensity,
         sigma_z=sigma_z,
@@ -52,13 +62,6 @@ line = xf.install_spacecharge_frozen(line=line_no_sc,
                    num_spacecharge_interactions=num_spacecharge_interactions,
                    tol_spacecharge_position=tol_spacecharge_position)
 
-####################
-# Choose a context #
-####################
-
-#context = xo.ContextCpu()
-context = xo.ContextCupy()
-#context = xo.ContextPyopencl('0.0')
 
 print(context)
 
@@ -90,16 +93,17 @@ elif mode == 'pic':
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
-#################
-# Build Tracker #
-#################
+##################
+# Build trackers #
+##################
+
 tracker = xt.Tracker(_context=context,
                     line=line)
 tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
-####################################
-# Generate particles for footprint #
-####################################
+######################
+# Generate particles #
+######################
 
 import footprint
 r_max_sigma = 5
@@ -146,6 +150,7 @@ particles_0 = particles.copy()
 #########
 # Track #
 #########
+
 x_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 y_tbt = np.zeros((N_footprint, num_turns), dtype=np.float64)
 for ii in range(num_turns):
@@ -159,6 +164,7 @@ tw = tracker_no_sc.twiss(particle_ref=particle_ref, at_elements=[0])
 ######################
 # Frequency analysis #
 ######################
+
 import NAFFlib
 
 xy_norm = np.zeros((N_r_footprint + 1, N_theta_footprint, 2), dtype=np.float64)
