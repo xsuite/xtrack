@@ -33,6 +33,8 @@ particles = xp.Particles(_context=context, p0c=26e9,
 
 tracker.track(particles, num_turns=500, turn_by_turn_monitor=True)
 
+#!end-doc-part
+
 rec = tracker.record_last_track
 import matplotlib.pyplot as plt
 plt.close('all')
