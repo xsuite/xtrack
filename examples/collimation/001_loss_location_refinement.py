@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
-from scipy.spatial import ConvexHull
-
 
 plt.close('all')
 
@@ -15,18 +13,16 @@ n_part=10000
 ctx = xo.context_default
 buf = ctx.new_buffer()
 
+# Display debug information
 logger = logging.getLogger('xtrack')
 logger.setLevel(logging.DEBUG)
 
 # Define aper_0
-#aper_0 = xt.LimitRect(_buffer=buf, min_y=-1e-2, max_y=1e-2,
-#                                   min_x=-2e-2, max_x=2e-2)
 aper_0 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
 shift_aper_0 = (1e-2, 0.5e-2)
 rot_deg_aper_0 = 10.
 
 # Define aper_1
-#aper_1 = xt.LimitEllipse(_buffer=buf, a=1e-2, b=2e-2)
 aper_1 = xt.LimitRect(_buffer=buf, min_x=-1e-2, max_x=1e-2,
                                    min_y=-2e-2, max_y=2e-2)
 shift_aper_1 = (-5e-3, 1e-2)
@@ -63,20 +59,22 @@ tracker = xt.Tracker(_buffer=buf, line=xt.Line(
                 + trk_aper_1.line.elements)))
 num_elements = len(tracker.line.elements)
 
-# Test on full line
+# Generate test particles
 particles = xp.Particles(_context=ctx,
             px=np.random.uniform(-0.01, 0.01, 10000),
             py=np.random.uniform(-0.01, 0.01, 10000))
 
+# Track
 tracker.track(particles)
 
-
+# Refine loss location
 loss_loc_refinement = xt.LossLocationRefinement(tracker,
-                                            n_theta = 360,
-                                            r_max = 0.5, # m
-                                            dr = 50e-6,
-                                            ds = 0.1,
-                                            save_refine_trackers=True)
+        n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
+        r_max = 0.5, # Maximum transverse aperture in m
+        dr = 50e-6, # Transverse loss refinement accuracy [m]
+        ds = 0.1, # Longitudinal loss refinement accuracy [m]
+        save_refine_trackers=True # Diagnostics flag
+        )
 
 import time
 t0 = time.time()
@@ -85,6 +83,8 @@ loss_loc_refinement.refine_loss_location(particles)
 
 t1 = time.time()
 print(f'Took\t{(t1-t0)*1e3:.2f} ms')
+
+#!end-doc-part
 
 # Visualize apertures
 interp_tracker = loss_loc_refinement.refine_trackers[
