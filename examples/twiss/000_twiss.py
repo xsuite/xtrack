@@ -7,7 +7,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-fname_line_particles = '../../test_data/hllhc_14/line_and_particle.json'
+fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
 
 with open(fname_line_particles, 'r') as fid:
     input_data = json.load(fid)
