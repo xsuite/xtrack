@@ -14,12 +14,12 @@ with open(fname_line_particles, 'r') as fid:
     input_data = json.load(fid)
 
 line = xt.Line.from_dict(input_data['line'])
-part0 = xp.Particles.from_dict(input_data['particle'])
+particle_ref = xp.Particles.from_dict(input_data['particle'])
 
 print('Build tracker...')
 tracker = xt.Tracker(line=line)
 
-tw = tracker.twiss(particle_ref=part0)
+tw = tracker.twiss(particle_ref=particle_ref)
 
 import matplotlib.pyplot as plt
 
