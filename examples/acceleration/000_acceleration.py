@@ -1,14 +1,9 @@
-import pathlib
 import json
 import numpy as np
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-
-############
-# Settings #
-############
 
 Delta_p0c = 450e9/10*23e-6 # ramp rate 450GeV/10s
 
