@@ -143,4 +143,7 @@ mask = particles.at_element == loss_loc_refinement.i_apertures[1]
 ax.plot3D(particles.x[mask], particles.y[mask], particles.s[mask],
           '.r', markersize=.5)
 ax.view_init(65, 62); plt.draw()
+ax.set_xlabel('x [m]')
+ax.set_ylabel('y [m]')
+ax.set_zlabel('s [m]')
 plt.show()
