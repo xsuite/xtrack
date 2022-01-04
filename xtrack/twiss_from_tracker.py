@@ -264,12 +264,18 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
             * particle_ref._xobject.beta0[0]/nemitt_y)
 
     mask_alfx_zero = np.abs(betx*gamx - 1) < 1e-4
+    mask_alfx_neg = (betx*gamx - 1) < 0
+    assert np.all(np.abs(betx*gamx - 1)[mask_alfx_neg] < 1e-2) # value is sufficiently small
+    mask_alfx_zero[mask_alfx_neg] = True
     alfx = 0*betx
     alfx[~mask_alfx_zero] = np.sqrt(
             betx[~mask_alfx_zero]*gamx[~mask_alfx_zero] - 1)
     alfx*=sign_alfx
 
     mask_alfy_zero = np.abs(bety*gamy - 1) < 1e-4
+    mask_alfy_neg = (bety*gamy - 1) < 0
+    assert np.all(np.abs(bety*gamy - 1)[mask_alfy_neg] < 1e-2) # value is sufficiently small
+    mask_alfy_zero[mask_alfy_neg] = True
     alfy = 0*bety
     alfy[~mask_alfy_zero] = np.sqrt(
             bety[~mask_alfy_zero]*gamy[~mask_alfy_zero] - 1)

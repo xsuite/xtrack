@@ -7,18 +7,16 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-fname_line_particles = './temp_precise_lattice/xtline.json'
-
-context = xo.ContextCpu()
+fname_line_particles = '../../test_data/hllhc_14/line_and_particle.json'
 
 with open(fname_line_particles, 'r') as fid:
     input_data = json.load(fid)
 
 line = xt.Line.from_dict(input_data['line'])
-part0 = xp.Particles(_context=context, **input_data['particle'])
+part0 = xp.Particles.from_dict(input_data['particle'])
 
 print('Build tracker...')
-tracker = xt.Tracker(_context=context, line=line)
+tracker = xt.Tracker(line=line)
 
 tw = tracker.twiss(particle_ref=part0)
 
