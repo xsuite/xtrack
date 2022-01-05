@@ -113,7 +113,7 @@ particles = xp.Particles(
 t1 = time.time()                                          #!skip-doc
 tracker.track(particles)
 t2 = time.time()                                          #!skip-doc
-
+                                                          #!skip-doc
 print(f'{t2-t1=:.2f}')                                    #!skip-doc
 mask_lost = particles.state == 0                          #!skip-doc
 assert np.all(particles.at_element[mask_lost] == 10)      #!skip-doc
