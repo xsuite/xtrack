@@ -21,6 +21,8 @@ tracker = xt.Tracker(line=line)
 
 tw = tracker.twiss(particle_ref=particle_ref)
 
+#!end-doc-part
+
 import matplotlib.pyplot as plt
 
 plt.close('all')
