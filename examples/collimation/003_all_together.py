@@ -6,16 +6,13 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-context = xo.ContextCpu()
-
 ######################################
 # Create a dummy collimation process #
 ######################################
 
-
 class DummyInteractionProcess:
     '''
-    I kill some particles and I kick some others by an given angle
+    I kill some particles. I kick some others by an given angle
     and I generate some secondaries with the opposite angles.
     '''
     def __init__(self, fraction_lost, fraction_secondary, length, kick_x):
@@ -64,15 +61,19 @@ class DummyInteractionProcess:
 
         return products
 
-#############################################
-# Create the corresponding beam interaction #
-#############################################
+############################################################
+# Create a beam interaction from the process defined above #
+############################################################
 
 interaction_process=DummyInteractionProcess(length=1., kick_x=4e-3,
                                             fraction_lost=0.0,
                                             fraction_secondary=0.2)
-beam_interaction = xt.BeamInteraction(length=interaction_process.length,
+collimator = xt.BeamInteraction(length=interaction_process.length,
                                       interaction_process=interaction_process)
+
+########################################################
+# Create a line including the collimator defined above #
+########################################################
 
 line = xt.Line(elements=[
     xt.Multipole(knl=[0,0]),
@@ -81,7 +82,7 @@ line = xt.Line(elements=[
     xt.Multipole(knl=[0,0]),
     xt.LimitEllipse(a=2e-2, b=2e-2),
     xt.Drift(length=2.),
-    beam_interaction,
+    collimator,
     xt.Multipole(knl=[0,0]),
     xt.LimitEllipse(a=2e-2, b=2e-2),
     xt.Drift(length=10.),
@@ -89,19 +90,30 @@ line = xt.Line(elements=[
     xt.Drift(length=10.),
     ])
 
+#################
+# Build tracker #
+#################
+
 tracker = xt.Tracker(line=line)
 
+##########################
+# Build particles object #
+##########################
+
+# The particle contains empty slots to store the product particles that will be
+# generated during the tracking.
 particles = xp.Particles(
         _capacity=200000,
         x=np.zeros(100000))
 
-t1 = time.time()
+t1 = time.time()                                          #!skip-doc
 tracker.track(particles)
-t2 = time.time()
+t2 = time.time()                                          #!skip-doc
 
-print(f'{t2-t1=:.2f}')
-mask_lost = particles.state == 0
-assert np.all(particles.at_element[mask_lost] == 10)
+print(f'{t2-t1=:.2f}')                                    #!skip-doc
+mask_lost = particles.state == 0                          #!skip-doc
+assert np.all(particles.at_element[mask_lost] == 10)      #!skip-doc
+
 
 
 loss_loc_refinement = xt.LossLocationRefinement(tracker,
