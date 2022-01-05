@@ -5,9 +5,6 @@ import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-ctx = xo.context_default
-buf = ctx.new_buffer()
-
 # Display debug information .         #!skip-doc
 logger = logging.getLogger('xtrack')  #!skip-doc
 logger.setLevel(logging.DEBUG)        #!skip-doc
@@ -16,7 +13,10 @@ logger.setLevel(logging.DEBUG)        #!skip-doc
 # Build test line #
 ###################
 
-# We build a test line with having two aperture elements which are shifted and
+ctx = xo.context_default
+buf = ctx.new_buffer()
+
+# We build a test line having two aperture elements which are shifted and
 # rotated w.r.t. the accelerator reference frame.
 
 # Define aper_0
