@@ -1,5 +1,4 @@
-import time
-
+import time                          #!skip-doc
 import numpy as np
 
 import xobjects as xo
