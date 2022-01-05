@@ -8,7 +8,7 @@ import xtrack as xt
 import xpart as xp
 
 fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
-#fname_line_particles = '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json'
+#fname_line_particles = '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json' #!skip-doc
 
 with open(fname_line_particles, 'r') as fid:
     input_data = json.load(fid)
