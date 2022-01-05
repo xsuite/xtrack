@@ -1,21 +1,23 @@
-import logging
-
+import logging                            #!skip-doc
 import numpy as np
-import matplotlib.pyplot as plt
 
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
 
-plt.close('all')
-
-n_part=10000
 ctx = xo.context_default
 buf = ctx.new_buffer()
 
-# Display debug information
-logger = logging.getLogger('xtrack')
-logger.setLevel(logging.DEBUG)
+# Display debug information .         #!skip-doc
+logger = logging.getLogger('xtrack')  #!skip-doc
+logger.setLevel(logging.DEBUG)        #!skip-doc
+
+###################
+# Build test line #
+###################
+
+# We build a test line with having two aperture elements which are shifted and
+# rotated w.r.t. the accelerator reference frame.
 
 # Define aper_0
 aper_0 = xt.LimitEllipse(_buffer=buf, a=2e-2, b=1e-2)
@@ -47,7 +49,10 @@ trk_aper_1 = xt.Tracker(_buffer=buf, line=xt.Line(
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
               xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
 
-# Build example line
+#################
+# Build tracker #
+#################
+
 tracker = xt.Tracker(_buffer=buf, line=xt.Line(
     elements = ((xt.Drift(_buffer=buf, length=0.5),)
                 + trk_aper_0.line.elements
@@ -64,10 +69,16 @@ particles = xp.Particles(_context=ctx,
             px=np.random.uniform(-0.01, 0.01, 10000),
             py=np.random.uniform(-0.01, 0.01, 10000))
 
-# Track
+#########
+# Track #
+#########
+
 tracker.track(particles)
 
-# Refine loss location
+########################
+# Refine loss location #
+########################
+
 loss_loc_refinement = xt.LossLocationRefinement(tracker,
         n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
         r_max = 0.5, # Maximum transverse aperture in m
@@ -76,15 +87,19 @@ loss_loc_refinement = xt.LossLocationRefinement(tracker,
         save_refine_trackers=True # Diagnostics flag
         )
 
-import time
-t0 = time.time()
+import time                                              #!skip-doc
+t0 = time.time()                                         #!skip-doc
 
 loss_loc_refinement.refine_loss_location(particles)
 
-t1 = time.time()
-print(f'Took\t{(t1-t0)*1e3:.2f} ms')
+t1 = time.time()                                         #!skip-doc
+print(f'Took\t{(t1-t0)*1e3:.2f} ms') .                   #!skip-doc
+
 
 #!end-doc-part
+
+import matplotlib.pyplot as plt
+plt.close('all')
 
 # Visualize apertures
 interp_tracker = loss_loc_refinement.refine_trackers[
@@ -99,8 +114,8 @@ for ii, (trkr, poly) in enumerate(
     part_gen_range = 0.05
     pp = xp.Particles(
                     p0c=6500e9,
-                    x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
-                    y=np.random.uniform(-part_gen_range, part_gen_range, n_part))
+                    x=np.random.uniform(-part_gen_range, part_gen_range, 10000),
+                    y=np.random.uniform(-part_gen_range, part_gen_range, 10000))
     x0 = pp.x.copy()
     y0 = pp.y.copy()
 
