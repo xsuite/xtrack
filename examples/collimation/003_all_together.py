@@ -100,11 +100,15 @@ tracker = xt.Tracker(line=line)
 # Build particles object #
 ##########################
 
-# The particle contains empty slots to store the product particles that will be
+# We prepare empty slots to store the product particles that will be
 # generated during the tracking.
 particles = xp.Particles(
         _capacity=200000,
         x=np.zeros(100000))
+
+#########
+# Track #
+#########
 
 t1 = time.time()                                          #!skip-doc
 tracker.track(particles)
@@ -114,7 +118,9 @@ print(f'{t2-t1=:.2f}')                                    #!skip-doc
 mask_lost = particles.state == 0                          #!skip-doc
 assert np.all(particles.at_element[mask_lost] == 10)      #!skip-doc
 
-
+############################
+# Loss location refinement #
+############################
 
 loss_loc_refinement = xt.LossLocationRefinement(tracker,
                                             n_theta = 360,
@@ -125,6 +131,6 @@ loss_loc_refinement = xt.LossLocationRefinement(tracker,
 
 loss_loc_refinement.refine_loss_location(particles)
 
-assert np.allclose(particles.s[mask_lost], 9.00,
-                   rtol=0, atol=loss_loc_refinement.ds*1.0001)
+assert np.allclose(particles.s[mask_lost], 9.00,                #!skip-doc
+                   rtol=0, atol=loss_loc_refinement.ds*1.0001)  #!skip-doc
 
