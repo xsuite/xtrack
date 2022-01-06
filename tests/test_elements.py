@@ -101,5 +101,6 @@ def test_linked_arrays_in_multipole_and_rfmultipole():
             assert np.allclose(ctx.nparray_from_context_array(m.knl),
                             [1, 2, 5, 6], rtol=0, atol=1e-12)
 
-        assert np.allclose(ctx.nparray_from_context_array(m.ksl),
-                           [10, 20, 50, 60], rtol=0, atol=1e-12)
+            assert np.allclose(ctx.nparray_from_context_array(m.ksl),
+                               [10, 20, 50, 60], rtol=0, atol=1e-12)
+
