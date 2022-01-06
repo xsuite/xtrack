@@ -11,7 +11,20 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta':1e-6, 'ddelta':1e-7
 }
 
-def find_closed_orbit(tracker, particle_co_guess, co_search_settings=None):
+def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
+                      co_search_settings=None):
+
+    if particle_co_guess is None:
+        particle_co_guess = particle_ref.copy()
+        particle_co_guess.x = 0
+        particle_co_guess.px = 0
+        particle_co_guess.y = 0
+        particle_co_guess.py = 0
+        particle_co_guess.zeta = 0
+        particle_co_guess.delta = 0
+    else:
+        assert particle_ref is None
+        particle_ref = particle_co_guess
 
     if co_search_settings is None:
         co_search_settings = {}
@@ -98,22 +111,12 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None):
 
-    if particle_co_guess is None:
-        particle_co_guess = particle_ref.copy()
-        particle_co_guess.x = 0
-        particle_co_guess.px = 0
-        particle_co_guess.y = 0
-        particle_co_guess.py = 0
-        particle_co_guess.zeta = 0
-        particle_co_guess.delta = 0
-    else:
-        assert particle_ref is None
-        particle_ref = particle_co_guess
 
     context = tracker._buffer.context
 
-    part_on_co = tracker.find_closed_orbit(particle_co_guess,
-                                         co_search_settings=co_search_settings)
+    part_on_co = tracker.find_closed_orbit(particle_co_guess=particle_co_guess,
+                                        particle_ref=particle_ref,
+                                        co_search_settings=co_search_settings)
     RR = tracker.compute_one_turn_matrix_finite_differences(
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)
