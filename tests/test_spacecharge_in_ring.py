@@ -92,6 +92,7 @@ def test_ring_with_spacecharge():
 
             particles = particles.copy(_context=context)
 
+            warnings.filterwarnings('ignore')
             line = xf.install_spacecharge_frozen(line=line0_no_sc,
                            particle_ref=particle_ref,
                            longitudinal_profile=lprofile,
@@ -99,6 +100,7 @@ def test_ring_with_spacecharge():
                            sigma_z=sigma_z,
                            num_spacecharge_interactions=num_spacecharge_interactions,
                            tol_spacecharge_position=tol_spacecharge_position)
+            warnings.filterwarnings('default')
 
             ##########################
             # Configure space-charge #
