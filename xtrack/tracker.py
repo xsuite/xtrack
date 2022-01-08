@@ -432,14 +432,7 @@ class Tracker:
 
                         if (flag_tbt_monitor==2){
                             // Hackish way of getting a element-by-element monitor
-
-                            // Temporarily set at_turn = at_element
-                            int64_t temp_at_turn = LocalParticle_get_at_turn(&lpart);
-                            LocalParticle_set_at_turn(&lpart,
-                                LocalParticle_get_at_element(&lpart));
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                            // Restore at turn
-                            LocalParticle_set_at_turn(&lpart, temp_at_turn);
                         }
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
@@ -590,6 +583,7 @@ class Tracker:
                 ) = self._get_monitor(particles, turn_by_turn_monitor=True,
                                       num_turns=len(self.line.elements))
             flag_tbt = 2
+            monitor.ebe_mode = 1
         else:
             (flag_tbt, monitor, buffer_monitor, offset_monitor
                 ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)

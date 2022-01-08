@@ -24,6 +24,7 @@ particle_ref = xp.Particles.from_dict(input_data['particle'])
 tracker = xt.Tracker(line=line)
 
 particles = xp.build_particles(particle_ref=particle_ref, x=np.zeros(1000))
+import pdb; pdb.set_trace()
 tracker.track(particles, turn_by_turn_monitor='ONE_TURN_EBE')
 
 #newelements = []
