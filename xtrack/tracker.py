@@ -424,11 +424,23 @@ class Tracker:
                     break;
                 }
 
-                if (flag_tbt_monitor){
+                if (flag_tbt_monitor==1){
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
+
+                        if (flag_tbt_monitor==2){
+                            // Hackish way of getting a element-by-element monitor
+
+                            // Temporarily set at_turn = at_element
+                            int64_t temp_at_turn = LocalParticle_get_at_turn(&lpart);
+                            LocalParticle_set_at_turn(&lpart,
+                                LocalParticle_get_at_element(&lpart));
+                            ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                            // Restore at turn
+                            LocalParticle_set_at_turn(&lpart, temp_at_turn);
+                        }
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
@@ -572,8 +584,15 @@ class Tracker:
             flag_end_turn_actions = (
                     num_elements + ele_start == self.num_elements)
 
-        (flag_tbt, monitor, buffer_monitor, offset_monitor
-             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+        if turn_by_turn_monitor == 'ONE_TURN_EBE':
+            # Hackish way to quickly get a element-by-element monitor
+            (flag_tbt, monitor, buffer_monitor, offset_monitor
+                ) = self._get_monitor(particles, turn_by_turn_monitor=True,
+                                      num_turns=len(self.line.elements))
+            flag_tbt = 2
+        else:
+            (flag_tbt, monitor, buffer_monitor, offset_monitor
+                ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(
@@ -600,7 +619,7 @@ class Tracker:
             buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
             offset_monitor = 0
         elif turn_by_turn_monitor is True:
-            flag_tbt = 1
+            flag_tbt = 2
             # TODO Assumes at_turn starts from zero, to be generalized
             monitor = self.particles_monitor_class(
                 _context=particles._buffer.context,
