@@ -615,16 +615,14 @@ class LinearTransferMatrix(BeamElement):
         'detx_y': xo.Float64,
         'dety_y': xo.Float64,
         'dety_x': xo.Float64,
-        'CO_x_0': xo.Float64,
-        'CO_px_0': xo.Float64,
-        'CO_y_0': xo.Float64,
-        'CO_py_0': xo.Float64,
-        'CO_zeta_0': xo.Float64,
-        'CO_delta_0': xo.Float64,
-        'CO_x_1': xo.Float64,
-        'CO_px_1': xo.Float64,
-        'CO_y_1': xo.Float64,
-        'CO_py_1': xo.Float64,
+        'x_ref_0': xo.Float64,
+        'px_ref_0': xo.Float64,
+        'y_ref_0': xo.Float64,
+        'py_ref_0': xo.Float64,
+        'x_ref_1': xo.Float64,
+        'px_ref_1': xo.Float64,
+        'y_ref_1': xo.Float64,
+        'py_ref_1': xo.Float64,
         }
 
     def __init__(self, Q_x=0, Q_y=0,
@@ -635,8 +633,8 @@ class LinearTransferMatrix(BeamElement):
                      chroma_x=0.0, chroma_y=0.0,
                      detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
                      energy_increment=0.0, energy_ref_increment=0.0,
-                     CO_x_0 = 0.0, CO_px_0 = 0.0, CO_x_1 = 0.0, CO_px_1 = 0.0,
-                     CO_y_0 = 0.0, CO_py_0 = 0.0, CO_y_1 = 0.0, CO_py_1 = 0.0,
+                     x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
+                     y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
                      **nargs):
 
         if (chroma_x==0 and chroma_y==0
