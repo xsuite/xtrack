@@ -1,24 +1,35 @@
 from pathlib import Path
 import numpy as np
+import logging
 
-from .particles import Particles, gen_local_particle_api
 from .general import _pkg_root
-from .line import Line as xtLine
+from .line_frozen import LineFrozen
 from .base_element import _handle_per_particle_blocks
+from .twiss_from_tracker import (twiss_from_tracker,
+                                 compute_one_turn_matrix_finite_differences,
+                                 find_closed_orbit,
+                                )
 
 import xobjects as xo
-import xline as xl
+import xpart as xp
+
+from .beam_elements import Drift
+from .line import Line
+
+logger = logging.getLogger(__name__)
 
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
     return iscoll
 
 class Tracker:
+
     def __init__(
         self,
         _context=None,
         _buffer=None,
         _offset=None,
+        line=None,
         sequence=None,
         track_kernel=None,
         element_classes=None,
@@ -30,9 +41,13 @@ class Tracker:
         save_source_as=None,
     ):
 
+        if sequence is not None:
+            raise ValueError(
+                    "`Tracker(... sequence=... ) is deprecated use `line=`)")
+
         # Check if there are collective elements
         self.iscollective = False
-        for ee in sequence.elements:
+        for ee in line.elements:
             if _check_is_collective(ee):
                 self.iscollective = True
                 break
@@ -42,7 +57,7 @@ class Tracker:
                 _context=_context,
                 _buffer=_buffer,
                 _offset=_offset,
-                sequence=sequence,
+                line=line,
                 track_kernel=track_kernel,
                 element_classes=element_classes,
                 particles_class=particles_class,
@@ -56,7 +71,7 @@ class Tracker:
                 _context=_context,
                 _buffer=_buffer,
                 _offset=_offset,
-                sequence=sequence,
+                line=line,
                 track_kernel=track_kernel,
                 element_classes=element_classes,
                 particles_class=particles_class,
@@ -71,7 +86,7 @@ class Tracker:
         _context=None,
         _buffer=None,
         _offset=None,
-        sequence=None,
+        line=None,
         track_kernel=None,
         element_classes=None,
         particles_class=None,
@@ -83,8 +98,6 @@ class Tracker:
     ):
 
         assert _offset is None
-        assert track_kernel is None
-        assert element_classes is None
 
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
@@ -94,14 +107,14 @@ class Tracker:
 
         if _buffer is None:
             if _context is None:
-                _context = xo.context.context_default
+                _context = xo.context_default
             _buffer = _context.new_buffer()
         self._buffer = _buffer
 
         # Split the sequence
         parts = []
-        this_part = xl.Line(elements=[], element_names=[])
-        for nn, ee in zip(sequence.element_names, sequence.elements):
+        this_part = Line(elements=[], element_names=[])
+        for nn, ee in zip(line.element_names, line.elements):
             if not _check_is_collective(ee):
                 this_part.append_element(ee, nn)
             else:
@@ -109,45 +122,58 @@ class Tracker:
                     this_part.iscollective=False
                     parts.append(this_part)
                 parts.append(ee)
-                this_part = xl.Line(elements=[], element_names=[])
+                this_part = Line(elements=[], element_names=[])
         if len(this_part.elements)>0:
             this_part.iscollective=False
             parts.append(this_part)
 
-        # Transform non collective elements into xtrack elements 
+        # Transform non collective elements into xtrack elements
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
-                tempxtline = xtLine(_buffer=_buffer,
-                                   sequence=pp)
+                tempxtline = LineFrozen(_buffer=_buffer,
+                                   line=pp)
                 pp.elements = tempxtline.elements
                 noncollective_xelements += pp.elements
+            else:
+                if hasattr(pp, 'isthick') and pp.isthick:
+                    ldrift = pp.length
+                else:
+                    ldrift = 0.
+
+                noncollective_xelements.append(
+                    Drift(_buffer=_buffer, length=ldrift))
 
         # Build tracker for all non collective elements
         supertracker = Tracker(_buffer=_buffer,
-                sequence=xl.Line(elements=noncollective_xelements,
-                    element_names=[
-                        f'e{ii}' for ii in range(len(noncollective_xelements))]),
-                    particles_class=particles_class,
-                    particles_monitor_class=particles_monitor_class,
-                    global_xy_limit=global_xy_limit,
-                    local_particle_src=local_particle_src,
-                    save_source_as=save_source_as
-                    )
+                line=Line(elements=noncollective_xelements,
+                          element_names=line.element_names),
+                track_kernel=track_kernel,
+                element_classes=element_classes,
+                particles_class=particles_class,
+                particles_monitor_class=particles_monitor_class,
+                global_xy_limit=global_xy_limit,
+                local_particle_src=local_particle_src,
+                save_source_as=save_source_as
+                )
 
         # Build trackers for non collective parts
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
                 parts[ii] = Tracker(_buffer=_buffer,
-                                    sequence=pp,
-                                    element_classes=supertracker.element_classes,
-                                    track_kernel=supertracker.track_kernel,
-                                    particles_class=particles_class,
-                                    particles_monitor_class=particles_monitor_class,
-                                    global_xy_limit=global_xy_limit,
-                                    local_particle_src=local_particle_src,
-                                    skip_end_turn_actions=True)
+                                line=pp,
+                                element_classes=supertracker.element_classes,
+                                track_kernel=supertracker.track_kernel,
+                                particles_class=particles_class,
+                                particles_monitor_class=particles_monitor_class,
+                                global_xy_limit=global_xy_limit,
+                                local_particle_src=local_particle_src,
+                                skip_end_turn_actions=True)
 
+        # Make a "marker" element to increase at_element
+        self._zerodrift = Drift(_context=_buffer.context, length=0)
+
+        self.line = line
         self._supertracker = supertracker
         self._parts = parts
         self.track = self._track_with_collective
@@ -160,7 +186,7 @@ class Tracker:
         _context=None,
         _buffer=None,
         _offset=None,
-        sequence=None,
+        line=None,
         track_kernel=None,
         element_classes=None,
         particles_class=None,
@@ -171,24 +197,23 @@ class Tracker:
         save_source_as=None,
     ):
         if particles_class is None:
-            import xtrack as xt  # I have to do it like this
-                                 # to avoid circular import
-            particles_class = xt.Particles
+            particles_class = xp.Particles
 
         if particles_monitor_class is None:
             import xtrack as xt  # I have to do it like this
-                                 # to avoid circular import
+                                 # to avoid circular import #TODO to be solved
             particles_monitor_class = xt.ParticlesMonitor
 
         if local_particle_src is None:
-            local_particle_src = gen_local_particle_api()
+            local_particle_src = xp.gen_local_particle_api()
 
         self.global_xy_limit = global_xy_limit
 
-        line = xtLine(_context=_context, _buffer=_buffer, _offset=_offset,
-                    sequence=sequence)
+        frozenline = LineFrozen(
+                    _context=_context, _buffer=_buffer, _offset=_offset,
+                    line=line)
 
-        context = line._buffer.context
+        context = frozenline._buffer.context
 
         if track_kernel is None:
             # Kernel relies on element_classes ordering
@@ -197,16 +222,18 @@ class Tracker:
         if element_classes is None:
             # Kernel relies on element_classes ordering
             assert track_kernel=='skip' or track_kernel is None
-            element_classes = line._ElementRefClass._reftypes + [
+            element_classes = frozenline._ElementRefClass._reftypes + [
                 particles_monitor_class.XoStruct,
             ]
 
+        line._freeze()
         self.line = line
-        ele_offsets = np.array([ee._offset for ee in line.elements], dtype=np.int64)
+        self._line_frozen = frozenline
+        ele_offsets = np.array(
+            [ee._offset for ee in frozenline.elements], dtype=np.int64)
         ele_typeids = np.array(
-            [element_classes.index(ee._xobject.__class__) for ee in line.elements],
-            dtype=np.int64,
-        )
+            [element_classes.index(ee._xobject.__class__)
+                for ee in frozenline.elements], dtype=np.int64)
         ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
         ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
 
@@ -214,11 +241,12 @@ class Tracker:
         self.particles_monitor_class = particles_monitor_class
         self.ele_offsets_dev = ele_offsets_dev
         self.ele_typeids_dev = ele_typeids_dev
-        self.num_elements = len(line.elements)
+        self.num_elements = len(frozenline.elements)
         self.global_xy_limit = global_xy_limit
         self.skip_end_turn_actions = skip_end_turn_actions
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
+        self._buffer = frozenline._buffer
 
         if track_kernel == 'skip':
             self.track_kernel = None
@@ -229,9 +257,110 @@ class Tracker:
 
         self.track=self._track_no_collective
 
+    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
+                          co_search_settings={}):
+        return find_closed_orbit(self, particle_co_guess=particle_co_guess,
+                                 particle_ref=particle_ref,
+                                 co_search_settings=co_search_settings)
+
+    def compute_one_turn_matrix_finite_differences(
+            self, particle_on_co,
+            steps_r_matrix=None):
+        return compute_one_turn_matrix_finite_differences(self, particle_on_co,
+                                                   steps_r_matrix)
+
+    def twiss(self, particle_ref, r_sigma=0.01,
+        nemitt_x=1e-6, nemitt_y=1e-6,
+        n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
+        particle_co_guess=None, steps_r_matrix=None,
+        co_search_settings=None, at_elements=None,
+        ):
+
+        if self.iscollective:
+            logger.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+
+
+        return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            n_theta=n_theta, delta_disp=delta_disp, delta_chrom=delta_chrom,
+            particle_co_guess=particle_co_guess,
+            steps_r_matrix=steps_r_matrix,
+            co_search_settings=co_search_settings,
+            at_elements=at_elements)
+
+
+    def filter_elements(self, mask=None, exclude_types_starting_with=None):
+        return self.__class__(
+                 _buffer=self._buffer,
+                 line=self.line.filter_elements(mask=mask,
+                     exclude_types_starting_with=exclude_types_starting_with),
+                 track_kernel=(self.track_kernel if not self.iscollective
+                                    else self._supertracker.track_kernel),
+                 element_classes=(self.element_classes if not self.iscollective
+                                    else self._supertracker.element_classes))
+
+    def cycle(self, index_first_element=None, name_first_element=None,
+              _buffer=None, _context=None):
+
+        cline = self.line.cycle(index_first_element=index_first_element,
+                                name_first_element=name_first_element)
+
+        if _buffer is None:
+            if _context is None:
+                _buffer = self._buffer
+            else:
+                _buffer = _context.new_buffer()
+
+        return self.__class__(
+                _buffer=_buffer,
+                line=cline,
+                track_kernel=(self.track_kernel if not self.iscollective
+                                    else self._supertracker.track_kernel),
+                element_classes=(self.element_classes if not self.iscollective
+                                    else self._supertracker.element_classes),
+                particles_class=self.particles_class,
+                skip_end_turn_actions=self.skip_end_turn_actions,
+                particles_monitor_class=self.particles_monitor_class,
+                global_xy_limit=self.global_xy_limit,
+                local_particle_src=self.local_particle_src,
+            )
+
+    def get_backtracker(self, _context=None, _buffer=None):
+
+        assert not self.iscollective
+
+        if _buffer is None:
+            if _context is None:
+                _context = self._buffer.context
+            _buffer = _context.new_buffer()
+
+        line = Line(elements=[], element_names=[])
+        for nn, ee in zip(self.line.element_names[::-1],
+                          self.line.elements[::-1]):
+            line.append_element(
+                    ee.get_backtrack_element(_buffer=_buffer), nn)
+
+        return self.__class__(
+                    _buffer=_buffer,
+                    line=line,
+                    track_kernel=self.track_kernel,
+                    element_classes=self.element_classes,
+                    particles_class=self.particles_class,
+                    skip_end_turn_actions=self.skip_end_turn_actions,
+                    particles_monitor_class=self.particles_monitor_class,
+                    global_xy_limit=self.global_xy_limit,
+                    local_particle_src=self.local_particle_src,
+                )
+
     def _build_kernel(self, save_source_as):
 
-        context = self.line._buffer.context
+        context = self._line_frozen._buffer.context
 
         sources = []
         kernels = {}
@@ -406,8 +535,13 @@ class Tracker:
         for tt in range(num_turns):
             if flag_tbt:
                 monitor.track(particles)
+
             for pp in self._parts:
                 pp.track(particles)
+                if not isinstance(pp, Tracker):
+                    self._zerodrift.track(particles, increment_at_element=True)
+
+
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)
             self._supertracker.track(particles,
@@ -438,13 +572,12 @@ class Tracker:
             flag_end_turn_actions = (
                     num_elements + ele_start == self.num_elements)
 
-
         (flag_tbt, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(
-            buffer=self.line._buffer.buffer,
+            buffer=self._line_frozen._buffer.buffer,
             ele_offsets=self.ele_offsets_dev,
             ele_typeids=self.ele_typeids_dev,
             particles=particles._xobject,
@@ -486,3 +619,13 @@ class Tracker:
             raise ValueError('Please provide a valid monitor object')
 
         return flag_tbt, monitor, buffer_monitor, offset_monitor
+
+
+    def _slow_track_ebe(self,part):
+        out=[]
+        for ii in range(len(self.line.elements)):
+            out.append(part.copy())
+            self.track(part,ele_start=ii,num_elements=1)
+        return out
+
+

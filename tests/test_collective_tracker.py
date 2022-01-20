@@ -3,9 +3,11 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xtrack as xt
 import xfields as xf
+import xpart as xp
+
+import ducktrack as dtk
 
 def test_collective_tracker():
 
@@ -14,23 +16,22 @@ def test_collective_tracker():
 
         test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
-        path_sequence = test_data_folder.joinpath('sps_w_spacecharge/'
+        path_line = test_data_folder.joinpath('sps_w_spacecharge/'
                                    'line_with_spacecharge_and_particle.json')
         turn_by_turn_monitor = True
 
-        ##################
-        # Get a sequence #
-        ##################
+        ##############
+        # Get a line #
+        ##############
 
-        with open(path_sequence, 'r') as fid:
+        with open(path_line, 'r') as fid:
              input_data = json.load(fid)
-        sequence = xl.Line.from_dict(input_data['line'])
+        line = xt.Line.from_dict(input_data['line'])
 
         # Replace all spacecharge with xobjects
-        newseq = sequence.copy()
         _buffer = context.new_buffer()
-        spch_elements = xf.replace_spaceharge_with_quasi_frozen(
-                                        newseq, _buffer=_buffer)
+        spch_elements = xf.replace_spacecharge_with_quasi_frozen(
+                                        line, _buffer=_buffer)
 
         # For testing I make them frozen but I leave iscollective=True
         for ee in spch_elements:
@@ -45,7 +46,7 @@ def test_collective_tracker():
         #################
         print('Build tracker...')
         tracker= xt.Tracker(_buffer=_buffer,
-                     sequence=newseq)
+                     line=line)
 
         assert tracker.iscollective
         assert tracker.track == tracker._track_with_collective
@@ -53,7 +54,7 @@ def test_collective_tracker():
         ######################
         # Get some particles #
         ######################
-        particles = xt.Particles(_context=context, **input_data['particle'])
+        particles = xp.Particles(_context=context, **input_data['particle'])
 
         #########
         # Track #
@@ -66,22 +67,25 @@ def test_collective_tracker():
 
         assert tracker.record_last_track.x.shape == (1, 10)
 
-        #######################
-        # Check against xline #
-        #######################
-        print('Check against xline ...')
+        ###########################
+        # Check against ducktrack #
+        ###########################
+
+        testline = dtk.TestLine.from_dict(input_data['line'])
+
+        print('Check against ducktrack ...')
         ip_check = 0
         vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-        pyst_part = xl.Particles.from_dict(input_data['particle'])
+        dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
         for _ in range(n_turns):
-            sequence.track(pyst_part)
+            testline.track(dtk_part)
 
         for vv in vars_to_check:
-            pyst_value = getattr(pyst_part, vv)
+            dtk_value = getattr(dtk_part, vv)[0]
             xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
-            passed = np.isclose(xt_value, pyst_value, rtol=2e-8, atol=7e-9)
+            passed = np.isclose(xt_value, dtk_value, rtol=2e-8, atol=7e-9)
             print(f'Check var {vv}:\n'
-                  f'    pyst:   {pyst_value: .7e}\n'
+                  f'    dtk:    {dtk_value: .7e}\n'
                   f'    xtrack: {xt_value: .7e}\n')
             if not passed:
                 raise ValueError

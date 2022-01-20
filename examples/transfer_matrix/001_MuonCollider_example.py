@@ -8,6 +8,7 @@ import xobjects as xo
 context = xo.ContextCpu(omp_num_threads=0)
 import xtrack as xt
 import xfields as xf
+import xpart as xp
 
 muonMass = constants.value('muon mass energy equivalent in MeV')*1E6
 
@@ -39,7 +40,7 @@ nTurn = 500
 energy_increment = (5.0-1.25)*1E9/nTurn/2
 #energy_increment = 0.0
 
-particles = xt.Particles(_context=context,
+particles = xp.Particles(_context=context,
                          q0 = 1,
                          mass0 = muonMass,
                          p0c=p0c,

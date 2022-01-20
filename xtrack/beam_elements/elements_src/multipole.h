@@ -36,28 +36,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     	dpx = -chi * dpx; // rad
     	dpy =  chi * dpy; // rad
 
-	// compute the average energy loss by synchrotron radiation
 	double const length = MultipoleData_get_length(el); // m
-        if (radiation_flag>0 && length!=0.0) {
-	  double const h = hypot(dpx, dpy) / length; // 1/m, 1/rho, curvature
-	  double const p0c = LocalParticle_get_p0c(part); // eV
-	  double const m0  = LocalParticle_get_mass0(part); // eV/c^2
-	  double const d = LocalParticle_get_delta(part);
-	  double const pc = p0c * (1 + d); // eV
-	  double const energy = hypot(m0, pc); // eV
-	  double const beta_gamma = pc / m0; // 
-	  double const q0 = LocalParticle_get_q0(part); // e
-	  // e^2 / 4 pi epsilon0 eV = (1 / 694461541.7756249) m
-	  double const classical_radius = q0*q0 / m0 / 694461541.7756249; // m, classical electromagnetic radius
-	  double const eloss = 2.0 / 3.0 * classical_radius*length * beta_gamma*beta_gamma*beta_gamma * h*h * energy; // eV
-	  
-	  // apply the energy kick
-	  LocalParticle_add_to_energy(part, -eloss);
-
-	  // A random number can be generated in this way
-	  //double r = LocalParticle_generate_random_double(part); 
-
-	}
+	
 	
     	if( ( hxl > 0) || ( hyl > 0) || ( hxl < 0 ) || ( hyl < 0 ) )
     	{
@@ -71,7 +51,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     	    dpx += hxl + hxl * delta;
     	    dpy -= hyl + hyl * delta;
 
-    	    if( length > 0 )
+    	    if( length != 0)
     	    {
     	        double const b1l = chi * MultipoleData_get_bal(el, 0 );
     	        double const a1l = chi * MultipoleData_get_bal(el, 1 );
@@ -80,9 +60,34 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     	        dpy += a1l * hyly / length;
     	    }
     	}
+	
+	// compute the average energy loss by synchrotron radiation
+        if (radiation_flag>0 && length!=0.0) {
 
-    	LocalParticle_add_to_px(part, dpx );
-    	LocalParticle_add_to_py(part, dpy );
+	  double const dpx_phys  = dpx  - hxl;
+	  double const dpy_phys  = dpy  + hyl;
+	  
+    	  LocalParticle_add_to_px(part, dpx/2);
+    	  LocalParticle_add_to_py(part, dpy/2);
+
+	  double const kick = hypot(dpx_phys, dpy_phys) 
+		              * LocalParticle_get_rpp(part); // rad
+	  if (radiation_flag==1) {
+	    synrad_average_energy_loss(part, kick, length);
+	  } else {
+	    synrad_emit_photons(part, kick, length);
+	  }
+
+    	  LocalParticle_add_to_px(part, dpx/2);
+    	  LocalParticle_add_to_py(part, dpy/2);
+
+	}
+	else
+	{
+    	  LocalParticle_add_to_px(part, dpx);
+    	  LocalParticle_add_to_py(part, dpy);
+
+	}
 
     //end_per_particle_block
 }

@@ -2,6 +2,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+import xpart as xp
 
 context = xo.ContextCpu()
 
@@ -42,6 +43,8 @@ class DummyInteractionProcess:
                 'charge_ratio': particles.x[:n_part][mask_secondary] *0 + .5,
 
                 'parent_particle_id': particles.particle_id[:n_part][mask_secondary],
+                'at_element': particles.at_element[:n_part][mask_secondary],
+                'at_turn': particles.at_turn[:n_part][mask_secondary],
                 }
         else:
             products = None
@@ -60,7 +63,7 @@ beam_interaction = xt.BeamInteraction(
 # Go through the collimator multiple times #
 ############################################
 
-particles = xt.Particles(_capacity=200,
+particles = xp.Particles(_capacity=200,
         p0c=7000, x=np.linspace(-1e-3, 1e-3, 10))
 
 for _ in range(10):

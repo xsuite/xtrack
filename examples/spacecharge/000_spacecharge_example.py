@@ -2,7 +2,6 @@ import json
 import numpy as np
 
 import xobjects as xo
-import xline as xl
 import xpart as xp
 import xtrack as xt
 import xfields as xf
@@ -11,37 +10,22 @@ import xfields as xf
 # Settings #
 ############
 
-bunch_intensity = 1e11/3
+fname_line = ('../../test_data/sps_w_spacecharge/'
+                  'line_no_spacecharge_and_particle.json')
+
+bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
+                         # to compare frozen/quasi-frozen and PIC
 sigma_z = 22.5e-2/3
-neps_x=2.5e-6
-neps_y=2.5e-6
+nemitt_x=2.5e-6
+nemitt_y=2.5e-6
 n_part=int(1e6)
-rf_voltage=3e6
 num_turns=32
 
-fname_sequence = ('../../test_data/sps_w_spacecharge/'
-                  'line_with_spacecharge_and_particle.json')
-
-fname_optics = ('../../test_data/sps_w_spacecharge/'
-                'optics_and_co_at_start_ring.json')
+num_spacecharge_interactions = 540
+tol_spacecharge_position = 1e-2
 
 # Available modes: frozen/quasi-frozen/pic
 mode = 'pic'
-
-with open(fname_sequence, 'r') as fid:
-     seq_dict = json.load(fid)
-with open(fname_optics, 'r') as fid:
-    co_opt_dict = json.load(fid)
-
-part_on_co = xp.Particles.from_dict(co_opt_dict['particle_on_madx_co'])
-RR = np.array(co_opt_dict['RR_madx']) # Linear one-turn matrix
-
-##################################################
-#                   Load xline                   #
-# (assume frozen SC lenses are alredy installed) #
-##################################################
-
-sequence = xl.Line.from_dict(seq_dict['line'])
 
 ####################
 # Choose a context #
@@ -49,23 +33,51 @@ sequence = xl.Line.from_dict(seq_dict['line'])
 
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
+#context = xo.ContextPyopencl('0.0')
+
 print(context)
 
-##########################
-# Configure space-charge #
-##########################
+#############
+# Load line #
+#############
+
+with open(fname_line, 'r') as fid:
+     input_data = json.load(fid)
+line_no_sc = xt.Line.from_dict(input_data['line'])
+particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+#############################################
+# Install spacecharge interactions (frozen) #
+#############################################
+
+lprofile = xf.LongitudinalProfileQGaussian(
+        number_of_particles=bunch_intensity,
+        sigma_z=sigma_z,
+        z0=0.,
+        q_parameter=1.)
+
+line = xf.install_spacecharge_frozen(line=line_no_sc,
+                   particle_ref=particle_ref,
+                   longitudinal_profile=lprofile,
+                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                   sigma_z=sigma_z,
+                   num_spacecharge_interactions=num_spacecharge_interactions,
+                   tol_spacecharge_position=tol_spacecharge_position)
+
+#################################
+# Switch to PIC or quasi-frozen #
+#################################
 
 if mode == 'frozen':
     pass # Already configured in line
 elif mode == 'quasi-frozen':
-    xf.replace_spaceharge_with_quasi_frozen(
-                                    sequence, _buffer=context.new_buffer(),
+    xf.replace_spacecharge_with_quasi_frozen(
+                                    line,
                                     update_mean_x_on_track=True,
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
-    pic_collection, all_pics = xf.replace_spaceharge_with_PIC(
-        _context=context, sequence=sequence,
+    pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
+        _context=context, line=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
@@ -74,29 +86,28 @@ elif mode == 'pic':
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
+
 #################
 # Build Tracker #
 #################
 
 tracker = xt.Tracker(_context=context,
-                    sequence=sequence)
+                    line=line)
+tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
-# Generate particles # 
+# Generate particles #
 ######################
 
-part = xp.generate_matched_gaussian_bunch(
+# (we choose to match the distribution without accounting for spacecharge)
+particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
-         nemitt_x=neps_x, nemitt_y=neps_y, sigma_z=sigma_z,
-         particle_on_co=part_on_co, R_matrix=RR,
-         circumference=6911., alpha_momentum_compaction=0.0030777,
-         rf_harmonic=4620, rf_voltage=rf_voltage, rf_phase=0)
-
-# Transfer particles to context
-xtparticles = xt.Particles(_context=context, **part.to_dict())
+         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+         particle_ref=particle_ref, tracker=tracker_sc_off)
 
 #########
 # Track #
 #########
-tracker.track(xtparticles, num_turns=3)
+
+tracker.track(particles, num_turns=3)
 
