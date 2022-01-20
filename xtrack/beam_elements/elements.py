@@ -687,14 +687,14 @@ class LinearTransferMatrix(BeamElement):
         nargs['disp_y_0'] = disp_y_0
         nargs['disp_y_1'] = disp_y_1
         nargs['beta_s'] = beta_s
-        nargs['CO_x_0'] = CO_x_0
-        nargs['CO_x_1'] = CO_x_1
-        nargs['CO_px_0'] = CO_px_0
-        nargs['CO_px_1'] = CO_px_1
-        nargs['CO_y_0'] = CO_y_0
-        nargs['CO_y_1'] = CO_y_1
-        nargs['CO_py_0'] = CO_py_0
-        nargs['CO_py_1'] = CO_py_1
+        nargs['x_ref_0'] = x_ref_0
+        nargs['x_ref_1'] = x_ref_1
+        nargs['px_ref_0'] = px_ref_0
+        nargs['px_ref_1'] = px_ref_1
+        nargs['y_ref_0'] = y_ref_0
+        nargs['y_ref_1'] = y_ref_1
+        nargs['py_ref_0'] = py_ref_0
+        nargs['py_ref_1'] = py_ref_1
         # acceleration with change of reference momentum
         nargs['energy_ref_increment'] = energy_ref_increment
         # acceleration without change of reference momentum
