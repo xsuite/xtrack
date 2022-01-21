@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0
