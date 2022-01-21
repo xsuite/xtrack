@@ -7,6 +7,26 @@ import ducktrack as dtk
 
 from xobjects.context import available
 
+def test_constructor():
+
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
+
+        elements = [
+            xt.Drift(_context=ctx),
+            xt.Multipole(_context=ctx, knl=[2, 3]),
+            xt.RFMultipole(_context=ctx, knl=[2]),
+            xt.Cavity(),
+            xt.SRotation(),
+            xt.XYShift(),
+            xt.DipoleEdge(),
+            xt.LinearTransferMatrix(),
+        ]
+
+        for ee in elements:
+            dd = ee.to_dict()
+            nee = ee.__class__.from_dict(dd, _context=ctx)
+
 def test_drift():
 
     for ctx in xo.context.get_test_contexts():
