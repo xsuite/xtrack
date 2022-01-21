@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0
@@ -547,7 +548,140 @@ class DipoleEdge(Element):
         p.px += r21 * p.x
         p.py += r43 * p.y
 
+class LinearTransferMatrix(Element):
+    _description = [
+        ("alpha_x_0","","",0.0),
+        ("beta_x_0","","",0.0),
+        ("disp_x_0","","",0.0),
+        ("alpha_x_1","","",0.0),
+        ("beta_x_1","","",0.0),
+        ("disp_x_1","","",0.0),
+        ("alpha_y_0","","",0.0),
+        ("beta_y_0","","",0.0),
+        ("disp_y_0","","",0.0),
+        ("alpha_y_1","","",0.0),
+        ("beta_y_1","","",0.0),
+        ("disp_y_1","","",0.0),
+        ("Q_x","","",0.0),
+        ("Q_y","","",0.0),
+        ("beta_s","","",0.0),
+        ("Q_s","","",0.0),
+        ("chroma_x","","",0.0),
+        ("chroma_y","","",0.0),
+        ("detx_x","","",0.0),
+        ("detx_y","","",0.0),
+        ("dety_y","","",0.0),
+        ("dety_x","","",0.0),
+        ("energy_ref_increment","","",0.0),
+        ("energy_increment","","",0.0),
+        ("x_ref_0","","",0.0),
+        ("px_ref_0","","",0.0),
+        ("x_ref_1","","",0.0),
+        ("px_ref_1","","",0.0),
+        ("y_ref_0","","",0.0),
+        ("py_ref_0","","",0.0),
+        ("y_ref_1","","",0.0),
+        ("py_ref_1","","",0.0)]
 
+    def track(self,p):
+        sin = p._m.sin
+        cos = p._m.cos
+        sqrt = p._m.sqrt
+
+        cos_s = cos(2.0*np.pi*self.Q_s)
+        sin_s = sin(2.0*np.pi*self.Q_s)
+        beta_ratio_x =  sqrt(self.beta_x_1/self.beta_x_0)
+        beta_prod_x = sqrt(self.beta_x_1*self.beta_x_0)
+        beta_ratio_y =  sqrt(self.beta_y_1/self.beta_y_0)
+        beta_prod_y = sqrt(self.beta_y_1*self.beta_y_0)
+
+        #Transverse linear uncoupled matrix
+
+        # removing dispersion and close orbit
+        p.x -= self.disp_x_0 * p.delta + self.x_ref_0
+        p.px -= self.px_ref_0
+        p.y -= self.disp_y_0 * p.delta + self.y_ref_0
+        p.py -= self.py_ref_0
+
+        J_x = 0.5 * (
+                (1.0 + self.alpha_x_0*self.alpha_x_0)/self.beta_x_0 * p.x*p.x
+                + 2*self.alpha_x_0 * p.x*p.px
+                + self.beta_x_0 * p.px*p.px)
+        J_y = 0.5 * (
+                (1.0 + self.alpha_y_0*self.alpha_y_0)/self.beta_y_0 * p.y*p.y
+                + 2*self.alpha_y_0 * p.y*p.py
+                + self.beta_y_0 * p.py*p.py)
+        phase = 2*np.pi*(self.Q_x+self.chroma_x*p.delta+self.detx_x*J_x+self.detx_y*J_y)
+        cos_x = cos(phase)
+        sin_x = sin(phase)
+        phase = 2*np.pi*(self.Q_y+self.chroma_y*p.delta+self.dety_y*J_y+self.dety_x*J_x)
+        cos_y = cos(phase)
+        sin_y = sin(phase)
+
+        M00_x = beta_ratio_x*(cos_x+self.alpha_x_0*sin_x)
+        M01_x = beta_prod_x*sin_x
+        M10_x = ((self.alpha_x_0-self.alpha_x_1)*cos_x
+                      -(1+self.alpha_x_0*self.alpha_x_1)*sin_x
+                       )/beta_prod_x
+        M11_x = (cos_x-self.alpha_x_1*sin_x)/beta_ratio_x
+        M00_y = beta_ratio_y*(cos_y+self.alpha_y_0*sin_y)
+        M01_y = beta_prod_y*sin_y
+        M10_y = ((self.alpha_y_0-self.alpha_y_1)*cos_y
+                      -(1+self.alpha_y_0*self.alpha_y_1)*sin_y
+                      )/beta_prod_y
+        M11_y = (cos_y-self.alpha_y_1*sin_y)/beta_ratio_y
+
+        p.x,p.px = M00_x*p.x + M01_x*p.px, M10_x*p.x + M11_x*p.px
+        p.y,p.py = M00_y*p.y + M01_y*p.py, M10_y*p.y + M11_y*p.py
+
+        p.delta, p.zeta = -sin_s*p.zeta/self.beta_s+cos_s*p.delta,cos_s*p.zeta+self.beta_s*sin_s*p.delta
+
+        if self.energy_increment !=0:
+            p.add_to_energy(self.energy_increment)
+
+        #Change energy reference
+        #In the transverse plane de change is smoothed, i.e. 
+        #  both the position and the momentum are scaled,
+        #  rather than only the momentum.
+        if self.energy_ref_increment != 0:
+            new_energy0 = p.mass0*p.gamma0 + self.energy_ref_increment
+            new_p0c = sqrt(new_energy0*new_energy0-p.mass0*p.mass0)
+            new_beta0 = new_p0c / new_energy0
+            new_gamma0 = new_energy0 / p.mass0
+            geo_emit_factor = sqrt(p.beta0*p.gamma0/new_beta0/new_gamma0)
+
+            if True:
+                p.p0c = new_p0c
+            else:
+                ppc = p.p0c * p.delta + p.p0c;
+                new_delta = (ppc - new_p0c)/new_p0c;
+                new_energy0 = sqrt(new_p0c*new_p0c + p.mass0 * p.mass0);
+                new_beta0 = new_p0c / new_energy0;
+                new_gamma0 = new_energy0 / p.mass0;
+                print('duck px0',p.px) # Why doesn t this match what's in lineartransfermatrix.h
+                p.px *= p.p0c/new_p0c
+                p.py *= p.p0c/new_p0c
+                print('duck px1',p.px)
+                p._p0c = new_p0c
+                p._gamma0 = new_gamma0
+                p._beta0 = new_beta0
+                p._delta = new_delta
+                deltabeta0 = new_delta * p.beta0
+                ptaubeta0 = sqrt(deltabeta0 ** 2 + 2 * deltabeta0 * p.beta0 + 1) - 1
+                p._rvv = (1 + new_delta) / (1 + ptaubeta0)
+                p._rpp = 1 / (1 + new_delta)
+
+            p.x *= geo_emit_factor
+            p.px *= geo_emit_factor
+            p.y *= geo_emit_factor
+            p.py *= geo_emit_factor
+        
+        # re-adding dispersion and closed orbit
+        p.x += self.disp_x_1 * p.delta + self.x_ref_1
+        p.px += self.px_ref_1
+        p.y += self.disp_y_1 * p.delta + self.y_ref_1
+        p.py += self.py_ref_1
+        
 __all__ = [
     "BeamBeam4D",
     "BeamBeam6D",
@@ -567,4 +701,5 @@ __all__ = [
     "SCQGaussProfile",
     "SRotation",
     "XYShift",
+    "LinearTransferMatrix"
 ]
