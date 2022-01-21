@@ -23,22 +23,7 @@ particle_ref = xp.Particles.from_dict(input_data['particle'])
 
 tracker = xt.Tracker(line=line)
 
-particles = xp.build_particles(particle_ref=particle_ref, x=np.zeros(1000))
-import pdb; pdb.set_trace()
+particles = xp.build_particles(particle_ref=particle_ref, x=np.zeros(10))
 tracker.track(particles, turn_by_turn_monitor='ONE_TURN_EBE')
 
-#newelements = []
-#newenames = []
-#mm_src = xt.ParticlesMonitor(
-#        _buffer=tracker._buffer,
-#        start_at_turn=0,
-#        stop_at_turn=1,
-#        num_particles=1000
-#    )
-#for ii, (ee, nn) in enumerate(
-#                        zip(tracker.line.elements, tracker.line.element_names)):
-#    mm = mm_src.copy(_buffer=tracker._buffer)
-#    newelements.append(mm)
-#    newenames.append(f'ebemon_{ii}')
-#    newelements.append(ee)
-#    newenames.append(nn)
+

@@ -582,8 +582,8 @@ class Tracker:
             (flag_tbt, monitor, buffer_monitor, offset_monitor
                 ) = self._get_monitor(particles, turn_by_turn_monitor=True,
                                       num_turns=len(self.line.elements))
-            flag_tbt = 2
             monitor.ebe_mode = 1
+            flag_tbt = 2
         else:
             (flag_tbt, monitor, buffer_monitor, offset_monitor
                 ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
@@ -613,7 +613,7 @@ class Tracker:
             buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
             offset_monitor = 0
         elif turn_by_turn_monitor is True:
-            flag_tbt = 2
+            flag_tbt = 1
             # TODO Assumes at_turn starts from zero, to be generalized
             monitor = self.particles_monitor_class(
                 _context=particles._buffer.context,
