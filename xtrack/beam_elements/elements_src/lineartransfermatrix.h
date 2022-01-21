@@ -1,6 +1,8 @@
 #ifndef XTRACK_LINEARTRANSFERMATRIX_H
 #define XTRACK_LINEARTRANSFERMATRIX_H
 
+#include<stdio.h>
+
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
 
@@ -126,37 +128,38 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 	  LocalParticle_add_to_energy(part, energy_increment, 1);
 	}
 
-        // Change energy reference
+	LocalParticle_set_x(part, new_x);
+	LocalParticle_set_y(part, new_y);
+	LocalParticle_set_px(part, new_px);
+	LocalParticle_set_py(part, new_py);
+
+    // Change energy reference
 	// In the transverse plane de change is smoothed, i.e. 
-        // both the position and the momentum are scaled,
+    // both the position and the momentum are scaled,
 	// rather than only the momentum.
 	if (energy_ref_increment != 0){
 	    double const new_energy0 = LocalParticle_get_mass0(part)
 	        *LocalParticle_get_gamma0(part) + energy_ref_increment;
-            double const new_p0c = sqrt(new_energy0*new_energy0
+        double const new_p0c = sqrt(new_energy0*new_energy0
 		-LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
-            double const new_beta0 = new_p0c / new_energy0;
-            double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
-            double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
+        double const new_beta0 = new_p0c / new_energy0;
+        double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
+        double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
 			    *LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
             LocalParticle_update_p0c(part,new_p0c);
-            new_x *= geo_emit_factor;
-            new_px *= geo_emit_factor;
-            new_y *= geo_emit_factor;
-            new_py *= geo_emit_factor;
+        LocalParticle_scale_x(part,geo_emit_factor);
+        LocalParticle_scale_px(part,geo_emit_factor);
+        LocalParticle_scale_y(part,geo_emit_factor);
+        LocalParticle_scale_py(part,geo_emit_factor);
 	}
         
-        // re-adding dispersion and closed orbit
-        delta = LocalParticle_get_delta(part);
-        new_x += disp_x_1 * delta + x_ref_1;
-        new_px += px_ref_1;
-        new_y += disp_y_1 * delta + y_ref_1;
-        new_py += py_ref_1;
+    // re-adding dispersion and closed orbit
+    delta = LocalParticle_get_delta(part);
+    LocalParticle_add_to_x(part,disp_x_1 * delta + x_ref_1);
+    LocalParticle_add_to_px(part,px_ref_1);
+    LocalParticle_add_to_y(part,disp_y_1 * delta + y_ref_1);
+    LocalParticle_add_to_py(part,py_ref_1);
 
-    	LocalParticle_set_x(part, new_x);
-    	LocalParticle_set_y(part, new_y);
-    	LocalParticle_set_px(part, new_px);
-    	LocalParticle_set_py(part, new_py);
     //end_per_particle_block
 }
 
