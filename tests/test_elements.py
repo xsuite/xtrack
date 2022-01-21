@@ -20,12 +20,17 @@ def test_constructor():
             xt.SRotation(),
             xt.XYShift(),
             xt.DipoleEdge(),
-            xt.LinearTransferMatrix(),
         ]
 
+        # test to_dict / from_dict
         for ee in elements:
             dd = ee.to_dict()
             nee = ee.__class__.from_dict(dd, _context=ctx)
+            # Check that the two objects are bitwise identical
+            assert (ee.copy(_context=xo.ContextCpu())._xobject._buffer.buffer[
+                      ee._xobject._offset:ee._xobject._size]
+                    - nee.copy(_context=xo.ContextCpu())._xobject._buffer.buffer[
+                        nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 def test_drift():
 

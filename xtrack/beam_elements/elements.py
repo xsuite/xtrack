@@ -436,11 +436,11 @@ class RFMultipole(BeamElement):
 
         elif (
             bal is not None
-            and bal
+            #and bal
             and len(bal) >= 2
             and ((len(bal) % 2) == 0)
             and phase is not None
-            and phase
+            #and phase
             and len(phase) >= 2
             and ((len(phase) % 2) == 0)
         ):
@@ -470,17 +470,17 @@ class RFMultipole(BeamElement):
 
     @property
     def pn(self):
-        raise NotImplementedError
-        # TODO: should be done with linked arrays
-        # idx = np.array([ii for ii in range(0, len(self.phase), 2)])
-        # return self.phase[idx]
+        _pn = self._buffer.context.nparray_to_context_array(np.array(
+            [self._xobject.phase[ii] for ii in range(0, len(self.phase), 2)]))
+        return self._buffer.context.linked_array_type.from_array(
+                                        _pn, mode='readonly')
 
     @property
     def ps(self):
-        raise NotImplementedError
-        # TODO: should be done with linked arrays
-        # idx = np.array([ii for ii in range(0, len(self.phase), 2)])
-        # return self.phase[idx + 1]
+        _ps = self._buffer.context.nparray_to_context_array(np.array(
+            [self._xobject.phase[ii+1] for ii in range(0, len(self.phase), 2)]))
+        return self._buffer.context.linked_array_type.from_array(
+                                        _ps, mode='readonly')
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
