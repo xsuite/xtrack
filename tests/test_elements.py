@@ -264,13 +264,6 @@ def test_linear_transfer_chroma_detuning():
         y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1)
         dtk_arc.track(dtk_particle)
 
-        print(ctx.nparray_from_context_array(particles.x)[0],dtk_particle.x)
-        print(ctx.nparray_from_context_array(particles.px)[0],dtk_particle.px)
-        print(ctx.nparray_from_context_array(particles.y)[0],dtk_particle.y)
-        print(ctx.nparray_from_context_array(particles.py)[0],dtk_particle.py)
-        print(ctx.nparray_from_context_array(particles.zeta)[0],dtk_particle.zeta)
-        print(ctx.nparray_from_context_array(particles.delta)[0],dtk_particle.delta)
-
         assert np.isclose(ctx.nparray_from_context_array(particles.x)[0],
                           dtk_particle.x, rtol=1e-14, atol=1e-14)
         assert np.isclose(ctx.nparray_from_context_array(particles.px)[0],
@@ -283,8 +276,6 @@ def test_linear_transfer_chroma_detuning():
                           dtk_particle.zeta, rtol=1e-14, atol=1e-14)
         assert np.isclose(ctx.nparray_from_context_array(particles.delta)[0],
                           dtk_particle.delta, rtol=1e-14, atol=1e-14)
-        print('OK!')
-        exit()
 
 
 
