@@ -1,4 +1,3 @@
-
 #ifndef XTRACK_LIMITRACETRACK_H
 #define XTRACK_LIMITRACETRACK_H
 
@@ -59,7 +58,6 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
     	if (!is_alive){
            LocalParticle_set_state(part, 0);
         }
-	}
 
     //end_per_particle_block
 }

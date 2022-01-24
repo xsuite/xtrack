@@ -21,6 +21,22 @@ LimitRect.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
 
+class LimitRacetrack(BeamElement):
+    _xofields = {
+        'min_x': xo.Float64,
+        'max_x': xo.Float64,
+        'min_y': xo.Float64,
+        'max_y': xo.Float64,
+        'a': xo.Float64,
+        'b': xo.Float64,
+        }
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
+
+LimitRacetrack.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
+
 class LimitEllipse(BeamElement):
     _xofields = {
             'a_squ': xo.Float64,
