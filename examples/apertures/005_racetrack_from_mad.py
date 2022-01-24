@@ -9,13 +9,15 @@ mad.input("""
     m_circle: marker, apertype="circle", aperture={.2};
     m_ellipse: marker, apertype="ellipse", aperture={.2, .1};
     m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
+    m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
     m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
     beam;
     ss: sequence,l=1;
         m_circle, at=0;
         m_ellipse, at=0.01;
         m_rectangle, at=0.02;
-        m_racetrack, at=0.03;
+        m_rectellipse, at=0.03;
+        m_racetrack, at=0.04;
     endsequence;
 
     use,sequence=ss;
@@ -44,7 +46,13 @@ assert rect.max_x == +.07
 assert rect.min_y == -.05
 assert rect.max_y == +.05
 
-racetr = apertures[3]
+rectellip = apertures[3]
+assert rectellip.max_x == .2
+assert rectellip.max_y == .4
+assert np.isclose(rectellip.a_squ, .25**2, atol=1e-13, rtol=0)
+assert np.isclose(rectellip.b_squ, .45**2, atol=1e-13, rtol=0)
+
+racetr = apertures[4]
 assert racetr.__class__.__name__ == 'LimitRacetrack'
 assert racetr.min_x == -.6
 assert racetr.max_x == +.6
