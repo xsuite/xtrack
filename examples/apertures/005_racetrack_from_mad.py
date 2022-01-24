@@ -11,6 +11,7 @@ mad.input("""
     m_rectangle: marker, apertype="rectangle", aperture={.07, .05};
     m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
     m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
+    m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
     beam;
     ss: sequence,l=1;
         m_circle, at=0;
@@ -18,6 +19,7 @@ mad.input("""
         m_rectangle, at=0.02;
         m_rectellipse, at=0.03;
         m_racetrack, at=0.04;
+        m_octagon, at=0.05;
     endsequence;
 
     use,sequence=ss;
@@ -60,3 +62,15 @@ assert racetr.min_y == -.4
 assert racetr.max_y == +.4
 assert racetr.a == .2
 assert racetr.b == .1
+
+octag = apertures[5]
+assert octag.__class__.__name__ == 'LimitPolygon'
+assert octag._xobject.x_vertices[0] == 0.4
+assert np.isclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-10, rtol=0)
+assert octag._xobject.y_vertices[1] == 0.5
+assert np.isclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-10, rtol=0)
+
+assert octag._xobject.y_vertices[2] == 0.5
+assert np.isclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-10, rtol=0)
+assert octag._xobject.x_vertices[3] == -0.4
+assert np.isclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-10, rtol=0)
