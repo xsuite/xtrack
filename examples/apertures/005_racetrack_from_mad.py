@@ -66,23 +66,23 @@ assert racetr.b == .1
 octag = apertures[5]
 assert octag.__class__.__name__ == 'LimitPolygon'
 assert octag._xobject.x_vertices[0] == 0.4
-assert np.isclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.y_vertices[0], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
 assert octag._xobject.y_vertices[1] == 0.5
-assert np.isclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.x_vertices[1], 0.5/np.tan(1.), atol=1e-14, rtol=0)
 
 assert octag._xobject.y_vertices[2] == 0.5
-assert np.isclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.x_vertices[2], -0.5/np.tan(1.), atol=1e-14, rtol=0)
 assert octag._xobject.x_vertices[3] == -0.4
-assert np.isclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.y_vertices[3], 0.4*np.tan(0.5), atol=1e-14, rtol=0)
 
 
 assert octag._xobject.x_vertices[4] == -0.4
-assert np.isclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.y_vertices[4], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
 assert octag._xobject.y_vertices[5] == -0.5
-assert np.isclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.x_vertices[5], -0.5/np.tan(1.), atol=1e-14, rtol=0)
 
 
 assert octag._xobject.y_vertices[6] == -0.5
-assert np.isclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
 assert octag._xobject.x_vertices[7] == 0.4
-assert np.isclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-10, rtol=0)
+assert np.isclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
