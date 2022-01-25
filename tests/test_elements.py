@@ -20,6 +20,11 @@ def test_constructor():
             xt.SRotation(),
             xt.XYShift(),
             xt.DipoleEdge(),
+            xt.LimitRect(),
+            xt.LimitRectEllipse(),
+            xt.LimitEllipse(),
+            xt.LimitRacetrack(),
+            xt.LimitPolygon(x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1])
         ]
 
         # test to_dict / from_dict
