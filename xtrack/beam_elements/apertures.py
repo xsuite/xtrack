@@ -21,6 +21,22 @@ LimitRect.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
 
+class LimitRacetrack(BeamElement):
+    _xofields = {
+        'min_x': xo.Float64,
+        'max_x': xo.Float64,
+        'min_y': xo.Float64,
+        'max_y': xo.Float64,
+        'a': xo.Float64,
+        'b': xo.Float64,
+        }
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
+
+LimitRacetrack.XoStruct.extra_sources = [
+        _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
+
 class LimitEllipse(BeamElement):
     _xofields = {
             'a_squ': xo.Float64,
@@ -93,12 +109,18 @@ class LimitPolygon(BeamElement):
         else:
             assert len(x_vertices) == len(y_vertices)
 
+            if 'x_normal' not in kwargs.keys():
+                kwargs['x_normal'] = len(x_vertices)
+
+            if 'y_normal' not in kwargs.keys():
+                kwargs['y_normal'] = len(x_vertices)
+
+            if 'resc_fac' not in kwargs.keys():
+                kwargs['resc_fac'] = 1.
+
             super().__init__(
                     x_vertices=x_vertices,
                     y_vertices=y_vertices,
-                    x_normal = len(x_vertices),
-                    y_normal = len(x_vertices),
-                    resc_fac = 1.,
                     **kwargs)
 
             lengths = np.sqrt(np.diff(self.x_closed)**2
@@ -240,12 +262,14 @@ class LimitRectEllipse(BeamElement):
         if a_squ < 0.0 or b_squ < 0.0:
             raise ValueError("a_squ and b_squ have to be positive definite")
 
+        if 'a_b_squ' not in kwargs.keys():
+            kwargs['a_b_squ'] = a_squ * b_squ
+
         super().__init__(
             max_x=max_x,
             max_y=max_y,
             a_squ=a_squ,
             b_squ=b_squ,
-            a_b_squ=a_squ * b_squ,
             **kwargs
         )
 

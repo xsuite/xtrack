@@ -223,6 +223,15 @@ def iter_from_madx_sequence(
                     min_y=-ee.aperture[1],
                     max_y=ee.aperture[1],
                 )
+            elif ee.apertype == "racetrack":
+                newaperture = classes.LimitRacetrack(
+                    min_x=-ee.aperture[0],
+                    max_x=ee.aperture[0],
+                    min_y=-ee.aperture[1],
+                    max_y=ee.aperture[1],
+                    a=ee.aperture[2],
+                    b=ee.aperture[3],
+                )
             elif ee.apertype == "ellipse":
                 newaperture = classes.LimitEllipse(
                     a=ee.aperture[0], b=ee.aperture[1]

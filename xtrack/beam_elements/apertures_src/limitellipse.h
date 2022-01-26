@@ -13,7 +13,7 @@ void LimitEllipse_track_local_particle(LimitEllipseData el, LocalParticle* part0
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
 
-	double const temp = x*x*b_squ + y*y*a_squ; 
+	double const temp = x*x*b_squ + y*y*a_squ;
 
 	int64_t const is_alive = (int64_t)( temp <= a_b_squ );
 
