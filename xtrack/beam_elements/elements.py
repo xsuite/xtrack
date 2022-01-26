@@ -699,7 +699,7 @@ class LinearTransferMatrix(BeamElement):
         nargs['energy_ref_increment'] = energy_ref_increment
         # acceleration without change of reference momentum
         nargs['energy_increment'] = energy_increment
-        
+
 
         super().__init__(**nargs)
 
@@ -716,6 +716,7 @@ class LinearTransferMatrix(BeamElement):
         return self.beta_prod_y*self.beta_ratio_y
 
 LinearTransferMatrix.XoStruct.extra_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
 class EnergyChange(BeamElement):

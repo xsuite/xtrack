@@ -78,10 +78,10 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
             (1.0 + alpha_y_0*alpha_y_0)/beta_y_0 * new_y*new_y
             + 2*alpha_y_0 * new_y*new_py
             + beta_y_0 * new_py*new_py);
-        double phase = 2*M_PI*(q_x+chroma_x*delta+detx_x*J_x+detx_y*J_y);
+        double phase = 2*PI*(q_x+chroma_x*delta+detx_x*J_x+detx_y*J_y);
             cos_x = cos(phase);
             sin_x = sin(phase);
-            phase = 2*M_PI*(q_y+chroma_y*delta+dety_y*J_y+dety_x*J_x);
+            phase = 2*PI*(q_y+chroma_y*delta+dety_y*J_y+dety_x*J_x);
             cos_y = cos(phase);
             sin_y = sin(phase);
     }
