@@ -614,7 +614,15 @@ class LinearTransferMatrix(BeamElement):
         'detx_x': xo.Float64,
         'detx_y': xo.Float64,
         'dety_y': xo.Float64,
-        'dety_x': xo.Float64
+        'dety_x': xo.Float64,
+        'x_ref_0': xo.Float64,
+        'px_ref_0': xo.Float64,
+        'y_ref_0': xo.Float64,
+        'py_ref_0': xo.Float64,
+        'x_ref_1': xo.Float64,
+        'px_ref_1': xo.Float64,
+        'y_ref_1': xo.Float64,
+        'py_ref_1': xo.Float64,
         }
 
     def __init__(self, Q_x=0, Q_y=0,
@@ -624,7 +632,10 @@ class LinearTransferMatrix(BeamElement):
                      Q_s=0.0, beta_s=1.0,
                      chroma_x=0.0, chroma_y=0.0,
                      detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
-                     energy_increment=0.0, energy_ref_increment=0.0, **nargs):
+                     energy_increment=0.0, energy_ref_increment=0.0,
+                     x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
+                     y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
+                     **nargs):
 
         if (chroma_x==0 and chroma_y==0
             and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
@@ -676,10 +687,19 @@ class LinearTransferMatrix(BeamElement):
         nargs['disp_y_0'] = disp_y_0
         nargs['disp_y_1'] = disp_y_1
         nargs['beta_s'] = beta_s
+        nargs['x_ref_0'] = x_ref_0
+        nargs['x_ref_1'] = x_ref_1
+        nargs['px_ref_0'] = px_ref_0
+        nargs['px_ref_1'] = px_ref_1
+        nargs['y_ref_0'] = y_ref_0
+        nargs['y_ref_1'] = y_ref_1
+        nargs['py_ref_0'] = py_ref_0
+        nargs['py_ref_1'] = py_ref_1
         # acceleration with change of reference momentum
         nargs['energy_ref_increment'] = energy_ref_increment
         # acceleration without change of reference momentum
         nargs['energy_increment'] = energy_increment
+        
 
         super().__init__(**nargs)
 
