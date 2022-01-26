@@ -649,38 +649,19 @@ class LinearTransferMatrix(Element):
             new_gamma0 = new_energy0 / p.mass0
             geo_emit_factor = sqrt(p.beta0*p.gamma0/new_beta0/new_gamma0)
 
-            if True:
-                p.p0c = new_p0c
-            else:
-                ppc = p.p0c * p.delta + p.p0c;
-                new_delta = (ppc - new_p0c)/new_p0c;
-                new_energy0 = sqrt(new_p0c*new_p0c + p.mass0 * p.mass0);
-                new_beta0 = new_p0c / new_energy0;
-                new_gamma0 = new_energy0 / p.mass0;
-                print('duck px0',p.px) # Why doesn t this match what's in lineartransfermatrix.h
-                p.px *= p.p0c/new_p0c
-                p.py *= p.p0c/new_p0c
-                print('duck px1',p.px)
-                p._p0c = new_p0c
-                p._gamma0 = new_gamma0
-                p._beta0 = new_beta0
-                p._delta = new_delta
-                deltabeta0 = new_delta * p.beta0
-                ptaubeta0 = sqrt(deltabeta0 ** 2 + 2 * deltabeta0 * p.beta0 + 1) - 1
-                p._rvv = (1 + new_delta) / (1 + ptaubeta0)
-                p._rpp = 1 / (1 + new_delta)
+            p.p0c = new_p0c
 
             p.x *= geo_emit_factor
             p.px *= geo_emit_factor
             p.y *= geo_emit_factor
             p.py *= geo_emit_factor
-        
+
         # re-adding dispersion and closed orbit
         p.x += self.disp_x_1 * p.delta + self.x_ref_1
         p.px += self.px_ref_1
         p.y += self.disp_y_1 * p.delta + self.y_ref_1
         p.py += self.py_ref_1
-        
+
 __all__ = [
     "BeamBeam4D",
     "BeamBeam6D",
