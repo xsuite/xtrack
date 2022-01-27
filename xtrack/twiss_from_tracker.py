@@ -190,7 +190,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     mux = np.unwrap(np.arctan2(W4[0, 1, :], W4[0, 0, :]))/2/np.pi
     muy = np.unwrap(np.arctan2(W4[2, 3, :], W4[2, 2, :]))/2/np.pi
 
-    eta = -((part_disp._xobject.zeta[0] - part_disp._xobject.zeta[1])
+    eta = -((part_for_twiss._xobject.zeta[6] - part_for_twiss._xobject.zeta[5])
                 /(2*delta_disp)/tracker.line.get_length())
     alpha = eta + 1/particle_ref.gamma0[0]**2
 
