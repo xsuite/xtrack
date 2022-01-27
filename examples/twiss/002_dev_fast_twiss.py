@@ -23,3 +23,65 @@ particle_ref = xp.Particles.from_dict(input_data['particle'])
 #################
 
 tracker = xt.Tracker(line=line)
+
+
+particle_co_guess = None
+co_search_settings = None
+steps_r_matrix = None
+nemitt_x = 1e-6
+nemitt_y = 1e-6
+
+
+
+context = tracker._buffer.context
+
+part_on_co = tracker.find_closed_orbit(particle_co_guess=particle_co_guess,
+                                    particle_ref=particle_ref,
+                                    co_search_settings=co_search_settings)
+RR = tracker.compute_one_turn_matrix_finite_differences(
+                                            steps_r_matrix=steps_r_matrix,
+                                            particle_on_co=part_on_co)
+
+W, Winv, Rot = xp.compute_linear_normal_form(RR)
+
+tracker.track(part_on_co.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
+
+x_co = tracker.record_last_track.x[0, :].copy()
+y_co = tracker.record_last_track.y[0, :].copy()
+px_co = tracker.record_last_track.px[0, :].copy()
+py_co = tracker.record_last_track.py[0, :].copy()
+
+s = np.array(tracker.line.get_s_elements())
+
+# r_in_sigmas_for_W = 0.1
+# part_for_twiss = xp.build_particles(
+#                     particle_on_co=part_on_co, R_matrix=RR,
+#                     x_norm =  np.array([1,0,0,0]) * r_in_sigmas_for_W,
+#                     px_norm = np.array([0,1,0,0]) * r_in_sigmas_for_W,
+#                     y_norm =  np.array([1,0,1,0]) * r_in_sigmas_for_W,
+#                     py_norm = np.array([0,0,0,1]) * r_in_sigmas_for_W,
+#                     zeta = part_on_co.zeta[0],
+#                     delta = part_on_co.delta[0],
+#                     scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+#                     )
+
+scale_transverse = 1e-7
+part_for_twiss = xp.build_particles(
+                    particle_ref=part_on_co, mode='shift',
+                    x=  W[0, :4] * scale_transverse,
+                    px= W[1, :4] * scale_transverse,
+                    y=  W[2, :4] * scale_transverse,
+                    py= W[3, :4] * scale_transverse,
+                    zeta = 0,
+                    delta = 0,
+                    )
+tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE')
+
+W4 = np.zeros(shape=(4,4,len(s)), dtype=np.float64)
+W4[0, :, :] = (tracker.record_last_track.x - x_co) / scale_transverse
+W4[1, :, :] = (tracker.record_last_track.px - px_co) / scale_transverse
+W4[2, :, :] = (tracker.record_last_track.y  - y_co) / scale_transverse
+W4[3, :, :] = (tracker.record_last_track.py - py_co) / scale_transverse
+
+betx = W4[0, 0, :]**2 + W4[0, 1, :]**2
+bety = W4[2, 2, :]**2 + W4[2, 3, :]**2
