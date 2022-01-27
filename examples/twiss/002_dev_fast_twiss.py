@@ -88,3 +88,5 @@ W4[3, :, :] = (tracker.record_last_track.py - py_co) / scale_transverse_y
 
 betx = W4[0, 0, :]**2 + W4[0, 1, :]**2
 bety = W4[2, 2, :]**2 + W4[2, 3, :]**2
+
+gamx = W4[1, 0, :]**2 + W4[1, 1, :]**2
