@@ -111,7 +111,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None):
 
-
     context = tracker._buffer.context
 
     part_on_co = tracker.find_closed_orbit(particle_co_guess=particle_co_guess,
@@ -120,177 +119,80 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     RR = tracker.compute_one_turn_matrix_finite_differences(
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)
+
+    gemitt_x = nemitt_x/part_on_co.beta0/part_on_co.gamma0
+    gemitt_y = nemitt_y/part_on_co.beta0/part_on_co.gamma0
+
     W, Winv, Rot = xp.compute_linear_normal_form(RR)
-    part_x = xp.build_particles(
-                _context=context,
-                x_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
-                px_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
-                zeta=part_on_co.zeta[0], delta=part_on_co.delta[0],
-                particle_on_co=part_on_co,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR)
-    part_y = xp.build_particles(
-                _context=context,
-                y_norm=r_sigma*np.cos(np.linspace(0, 2*np.pi, n_theta)),
-                py_norm=r_sigma*np.sin(np.linspace(0, 2*np.pi, n_theta)),
-                zeta=part_on_co.zeta[0], delta=part_on_co.delta[0],
-                particle_on_co=part_on_co,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR)
+
+
+    s = np.array(tracker.line.get_s_elements())
+
+    scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
+    scale_transverse_y = np.sqrt(gemitt_y)*r_sigma
+    part_for_twiss = xp.build_particles(_context=context,
+                        particle_ref=part_on_co, mode='shift',
+                        x=  list(W[0, :4] * scale_transverse_x) + [0],
+                        px= list(W[1, :4] * scale_transverse_x) + [0],
+                        y=  list(W[2, :4] * scale_transverse_y) + [0],
+                        py= list(W[3, :4] * scale_transverse_y) + [0],
+                        zeta = 0,
+                        delta = 0,
+                        )
+
     part_disp = xp.build_particles(
-                _context=context,
-                x_norm=0,
-                zeta=part_on_co.zeta[0], delta=[delta_disp, -delta_disp],
-                particle_on_co=part_on_co,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR)
+                    _context=context,
+                    x_norm=0,
+                    zeta=part_on_co.zeta[0], delta=[-delta_disp, +delta_disp],
+                    particle_on_co=part_on_co,
+                    scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+                    R_matrix=RR)
 
-    enames = tracker.line.element_names
-    if at_elements is not None:
-        indx_twiss = []
-        for nn in at_elements:
-            if isinstance(nn, (int, np.integer)):
-                indx_twiss.append(int(nn))
-            else:
-                assert nn in tracker.line.element_names
-                indx_twiss.append(enames.index(nn))
-        indx_twiss = sorted(indx_twiss)
-    else:
-        indx_twiss = list(range(len(enames)))
+    part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
 
-    n_twiss = len(indx_twiss)
+    tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE')
 
-    max_x = np.zeros(n_twiss, dtype=np.float64)
-    max_y = np.zeros(n_twiss, dtype=np.float64)
-    min_x = np.zeros(n_twiss, dtype=np.float64)
-    min_y = np.zeros(n_twiss, dtype=np.float64)
-    max_px = np.zeros(n_twiss, dtype=np.float64)
-    max_py = np.zeros(n_twiss, dtype=np.float64)
-    min_px = np.zeros(n_twiss, dtype=np.float64)
-    min_py = np.zeros(n_twiss, dtype=np.float64)
-    sign_alfx = np.zeros(n_twiss, dtype=np.float64)
-    sign_alfy = np.zeros(n_twiss, dtype=np.float64)
-    x_co = np.zeros(n_twiss, dtype=np.float64)
-    y_co = np.zeros(n_twiss, dtype=np.float64)
-    px_co = np.zeros(n_twiss, dtype=np.float64)
-    py_co = np.zeros(n_twiss, dtype=np.float64)
-    x_disp_plus = np.zeros(n_twiss, dtype=np.float64)
-    x_disp_minus = np.zeros(n_twiss, dtype=np.float64)
-    y_disp_plus = np.zeros(n_twiss, dtype=np.float64)
-    y_disp_minus = np.zeros(n_twiss, dtype=np.float64)
-    px_disp_plus = np.zeros(n_twiss, dtype=np.float64)
-    px_disp_minus = np.zeros(n_twiss, dtype=np.float64)
-    py_disp_plus = np.zeros(n_twiss, dtype=np.float64)
-    py_disp_minus = np.zeros(n_twiss, dtype=np.float64)
+    x_co = tracker.record_last_track.x[4, :].copy()
+    y_co = tracker.record_last_track.y[4, :].copy()
+    px_co = tracker.record_last_track.px[4, :].copy()
+    py_co = tracker.record_last_track.py[4, :].copy()
 
-    ctx2np = context.nparray_from_context_array
+    x_disp_minus = tracker.record_last_track.x[5, :].copy()
+    y_disp_minus = tracker.record_last_track.y[5, :].copy()
+    px_disp_minus = tracker.record_last_track.px[5, :].copy()
+    py_disp_minus = tracker.record_last_track.py[5, :].copy()
 
-    tracker.track(part_on_co, ele_start=0, num_elements=indx_twiss[0])
-    tracker.track(part_x, ele_start=0, num_elements=indx_twiss[0])
-    tracker.track(part_y, ele_start=0, num_elements=indx_twiss[0])
-    tracker.track(part_disp, ele_start=0, num_elements=indx_twiss[0])
-
-    for ii, indx in enumerate(indx_twiss):
-
-        print(f'{ii}/{len(indx_twiss)}        ',
-              end='\r', flush=True)
-        max_x[ii] = np.max(ctx2np(part_x.x))
-        max_y[ii] = np.max(ctx2np(part_y.y))
-
-        min_x[ii] = np.min(ctx2np(part_x.x))
-        min_y[ii] = np.min(ctx2np(part_y.y))
-
-        max_px[ii] = np.max(ctx2np(part_x.px))
-        max_py[ii] = np.max(ctx2np(part_y.py))
-
-        min_px[ii] = np.min(ctx2np(part_x.px))
-        min_py[ii] = np.min(ctx2np(part_y.py))
-
-        x_co[ii] = part_on_co._xobject.x[0]
-        y_co[ii] = part_on_co._xobject.y[0]
-
-        px_co[ii] = part_on_co._xobject.px[0]
-        py_co[ii] = part_on_co._xobject.py[0]
-
-        sign_alfx[ii] = -np.sign(np.sum(ctx2np(
-            (part_x.x - x_co[ii]) * (part_x.px - px_co[ii]))))
-        sign_alfy[ii] = -np.sign(np.sum(ctx2np(
-            (part_y.y - y_co[ii]) * (part_y.py - py_co[ii]))))
-
-        x_disp_plus[ii] = part_disp._xobject.x[0]
-        x_disp_minus[ii] = part_disp._xobject.x[1]
-        y_disp_plus[ii] = part_disp._xobject.y[0]
-        y_disp_minus[ii] = part_disp._xobject.y[1]
-
-        px_disp_plus[ii] = part_disp._xobject.px[0]
-        px_disp_minus[ii] = part_disp._xobject.px[1]
-        py_disp_plus[ii] = part_disp._xobject.py[0]
-        py_disp_minus[ii] = part_disp._xobject.py[1]
-
-        if ii == len(indx_twiss)-1:
-            n_next_track = len(tracker.line.elements) - indx
-        else:
-            n_next_track = indx_twiss[ii+1] - indx
-        tracker.track(part_on_co, ele_start=indx, num_elements=n_next_track)
-        tracker.track(part_x, ele_start=indx, num_elements=n_next_track)
-        tracker.track(part_y, ele_start=indx, num_elements=n_next_track)
-        tracker.track(part_disp, ele_start=indx, num_elements=n_next_track)
-
-    eta = -((part_disp._xobject.zeta[0] - part_disp._xobject.zeta[1])
-             /(2*delta_disp)/tracker.line.get_length())
-    alpha = eta + 1/particle_ref.gamma0[0]**2
-
-    s = np.array(tracker.line.get_s_elements())[indx_twiss]
-
-    sigx_max = (max_x - x_co)/r_sigma
-    sigy_max = (max_y - y_co)/r_sigma
-    sigx_min = (x_co - min_x)/r_sigma
-    sigy_min = (y_co - min_y)/r_sigma
-    sigx = (sigx_max + sigx_min)/2
-    sigy = (sigy_max + sigy_min)/2
-
-    sigpx_max = (max_px - px_co)/r_sigma
-    sigpy_max = (max_py - py_co)/r_sigma
-    sigpx_min = (px_co - min_px)/r_sigma
-    sigpy_min = (py_co - min_py)/r_sigma
-    sigpx = (sigpx_max + sigpx_min)/2
-    sigpy = (sigpy_max + sigpy_min)/2
-
-    betx = (sigx**2*particle_ref._xobject.gamma0[0]
-            * particle_ref._xobject.beta0[0]/nemitt_x)
-    bety = (sigy**2*particle_ref._xobject.gamma0[0]
-            * particle_ref._xobject.beta0[0]/nemitt_y)
-
-    gamx = (sigpx**2*particle_ref._xobject.gamma0[0]
-            * particle_ref._xobject.beta0[0]/nemitt_x)
-    gamy = (sigpy**2*particle_ref._xobject.gamma0[0]
-            * particle_ref._xobject.beta0[0]/nemitt_y)
-
-    mask_alfx_zero = np.abs(betx*gamx - 1) < 1e-4
-    mask_alfx_neg = (betx*gamx - 1) < 0
-    assert np.all(np.abs(betx*gamx - 1)[mask_alfx_neg] < 1e-2) # value is sufficiently small
-    mask_alfx_zero[mask_alfx_neg] = True
-    alfx = 0*betx
-    alfx[~mask_alfx_zero] = np.sqrt(
-            betx[~mask_alfx_zero]*gamx[~mask_alfx_zero] - 1)
-    alfx*=sign_alfx
-
-    mask_alfy_zero = np.abs(bety*gamy - 1) < 1e-4
-    mask_alfy_neg = (bety*gamy - 1) < 0
-    assert np.all(np.abs(bety*gamy - 1)[mask_alfy_neg] < 1e-2) # value is sufficiently small
-    mask_alfy_zero[mask_alfy_neg] = True
-    alfy = 0*bety
-    alfy[~mask_alfy_zero] = np.sqrt(
-            bety[~mask_alfy_zero]*gamy[~mask_alfy_zero] - 1)
-    alfy*=sign_alfy
+    x_disp_plus = tracker.record_last_track.x[6, :].copy()
+    y_disp_plus = tracker.record_last_track.y[6, :].copy()
+    px_disp_plus = tracker.record_last_track.px[6, :].copy()
+    py_disp_plus = tracker.record_last_track.py[6, :].copy()
 
     dx = (x_disp_plus-x_disp_minus)/delta_disp/2
     dy = (y_disp_plus-y_disp_minus)/delta_disp/2
     dpx = (px_disp_plus-px_disp_minus)/delta_disp/2
     dpy = (py_disp_plus-py_disp_minus)/delta_disp/2
 
-    qx = np.angle(np.linalg.eig(Rot)[0][0])/(2*np.pi)
-    qy = np.angle(np.linalg.eig(Rot)[0][2])/(2*np.pi)
+    W4 = np.zeros(shape=(4,4,len(s)), dtype=np.float64)
+    W4[0, :, :] = (tracker.record_last_track.x[:4, :] - x_co) / scale_transverse_x
+    W4[1, :, :] = (tracker.record_last_track.px[:4, :] - px_co) / scale_transverse_x
+    W4[2, :, :] = (tracker.record_last_track.y[:4, :]  - y_co) / scale_transverse_y
+    W4[3, :, :] = (tracker.record_last_track.py[:4, :] - py_co) / scale_transverse_y
+
+    betx = W4[0, 0, :]**2 + W4[0, 1, :]**2
+    bety = W4[2, 2, :]**2 + W4[2, 3, :]**2
+
+    gamx = W4[1, 0, :]**2 + W4[1, 1, :]**2
+    gamy = W4[3, 2, :]**2 + W4[3, 3, :]**2
+
+    alfx = - W4[0, 0, :] * W4[1, 0, :] - W4[0, 1, :] * W4[1, 1, :]
+    alfy = - W4[2, 2, :] * W4[3, 2, :] - W4[2, 3, :] * W4[3, 3, :]
+
+    mux = np.unwrap(np.arctan2(W4[0, 1, :], W4[0, 0, :]))/2/np.pi
+    muy = np.unwrap(np.arctan2(W4[2, 3, :], W4[2, 2, :]))/2/np.pi
+
+    eta = -((part_disp._xobject.zeta[0] - part_disp._xobject.zeta[1])
+                /(2*delta_disp)/tracker.line.get_length())
+    alpha = eta + 1/particle_ref.gamma0[0]**2
 
     part_chrom_plus = xp.build_particles(
                 _context=context,
@@ -300,8 +202,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
                 R_matrix=RR)
     RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
-                                         particle_on_co=part_chrom_plus.copy(),
-                                         steps_r_matrix=steps_r_matrix)
+                                            particle_on_co=part_chrom_plus.copy(),
+                                            steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
         ) = xp.compute_linear_normal_form(RR_chrom_plus)
     qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
@@ -326,7 +228,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
 
     twiss_res = {
-        'name': [tracker.line.element_names[indx] for indx in indx_twiss],
+        'name': tracker.line.element_names,
         's': s,
         'x': x_co,
         'px': px_co,
@@ -338,21 +240,41 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'alfy': alfy,
         'gamx': gamx,
         'gamy': gamy,
-        'sigx': sigx,
-        'sigy': sigy,
         'dx': dx,
         'dpx': dpx,
         'dy': dy,
         'dpy': dpy,
-        'qx': qx,
-        'qy': qy,
+        'mux': mux,
+        'muy': muy,
+        'qx': mux[-1],
+        'qy': muy[-1],
         'dqx': dqx,
         'dqy': dqy,
         'slip_factor': eta,
         'momentum_compaction_factor': alpha,
         'R_matrix': RR,
         'particle_on_co':part_on_co.copy(_context=xo.context_default)
-        }
+    }
+
+    # Downselect based on at_element
+    enames = tracker.line.element_names
+    if at_elements is not None:
+        indx_twiss = []
+        for nn in at_elements:
+            if isinstance(nn, (int, np.integer)):
+                indx_twiss.append(int(nn))
+            else:
+                assert nn in tracker.line.element_names
+                indx_twiss.append(enames.index(nn))
+        indx_twiss = sorted(indx_twiss)
+
+        for kk, vv in twiss_res.items():
+            if hasattr(vv, '__len__') and len(vv) == len(s):
+                if isinstance(vv, np.ndarray):
+                    twiss_res[kk] = vv[indx_twiss]
+                else:
+                    twiss_res[kk] = [vv[ii] for ii in indx_twiss]
+
 
     return twiss_res
 
