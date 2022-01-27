@@ -33,6 +33,7 @@ nemitt_y = 1e-6
 r_sigma = 0.01
 delta_disp = 1e-5
 delta_chrom = 1e-5
+at_elements = ['ip1', 'ip2', 'ip5', 'ip8']
 
 context = tracker._buffer.context
 
@@ -152,6 +153,53 @@ qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
 dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
 dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
 
+twiss_res = {
+    'name': tracker.line.element_names,
+    's': s,
+    'x': x_co,
+    'px': px_co,
+    'y': y_co,
+    'py': py_co,
+    'betx': betx,
+    'bety': bety,
+    'alfx': alfx,
+    'alfy': alfy,
+    'gamx': gamx,
+    'gamy': gamy,
+    'dx': dx,
+    'dpx': dpx,
+    'dy': dy,
+    'dpy': dpy,
+    'mux': mux,
+    'muy': muy,
+    'qx': mux[-1],
+    'qy': muy[-1],
+    'dqx': dqx,
+    'dqy': dqy,
+    'slip_factor': eta,
+    'momentum_compaction_factor': alpha,
+    'R_matrix': RR,
+    'particle_on_co':part_on_co.copy(_context=xo.context_default)
+}
+
+# Downselect based on at_element
+enames = tracker.line.element_names
+if at_elements is not None:
+    indx_twiss = []
+    for nn in at_elements:
+        if isinstance(nn, (int, np.integer)):
+            indx_twiss.append(int(nn))
+        else:
+            assert nn in tracker.line.element_names
+            indx_twiss.append(enames.index(nn))
+    indx_twiss = sorted(indx_twiss)
+
+    for kk, vv in twiss_res.items():
+        if hasattr(vv, '__len__') and len(vv) == len(s):
+            if isinstance(vv, np.ndarray):
+                twiss_res[kk] = vv[indx_twiss]
+            else:
+                twiss_res[kk] = [vv[ii] for ii in indx_twiss]
 t2 = time.time()
 
 print(f'dt={(t2-t1)*1000} ms')
