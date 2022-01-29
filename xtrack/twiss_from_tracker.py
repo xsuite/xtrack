@@ -120,11 +120,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)
 
-    gemitt_x = nemitt_x/part_on_co.beta0/part_on_co.gamma0
-    gemitt_y = nemitt_y/part_on_co.beta0/part_on_co.gamma0
+    gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+    gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
 
     W, Winv, Rot = xp.compute_linear_normal_form(RR)
-
 
     s = np.array(tracker.line.get_s_elements())
 
@@ -274,7 +273,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                     twiss_res[kk] = vv[indx_twiss]
                 else:
                     twiss_res[kk] = [vv[ii] for ii in indx_twiss]
-
 
     return twiss_res
 
