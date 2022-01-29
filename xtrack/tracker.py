@@ -395,7 +395,7 @@ class Tracker:
                              int ele_start,
                              int num_ele_track,
                              int flag_end_turn_actions,
-                             int flag_tbt_monitor,
+                             int flag_monitor,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor){
 
@@ -424,14 +424,13 @@ class Tracker:
                     break;
                 }
 
-                if (flag_tbt_monitor==1){
+                if (flag_monitor==1){
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
 
-                        if (flag_tbt_monitor==2){
-                            // Hackish way of getting a element-by-element monitor
+                        if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
 
@@ -496,7 +495,7 @@ class Tracker:
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
                     xo.Arg(xo.Int32, name="flag_end_turn_actions"),
-                    xo.Arg(xo.Int32, name="flag_tbt_monitor"),
+                    xo.Arg(xo.Int32, name="flag_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
                 ],
@@ -533,12 +532,13 @@ class Tracker:
 
         assert ele_start == 0
         assert num_elements is None
+        assert turn_by_turn_monitor != 'ONE_TURN_EBE'
 
-        (flag_tbt, monitor, buffer_monitor, offset_monitor
+        (flag_monitor, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         for tt in range(num_turns):
-            if flag_tbt:
+            if flag_monitor:
                 monitor.track(particles)
 
             for pp in self._parts:
@@ -577,16 +577,8 @@ class Tracker:
             flag_end_turn_actions = (
                     num_elements + ele_start == self.num_elements)
 
-        if turn_by_turn_monitor == 'ONE_TURN_EBE':
-            # Hackish way to quickly get a element-by-element monitor
-            (flag_tbt, monitor, buffer_monitor, offset_monitor
-                ) = self._get_monitor(particles, turn_by_turn_monitor=True,
-                                      num_turns=len(self.line.elements))
-            monitor.ebe_mode = 1
-            flag_tbt = 2
-        else:
-            (flag_tbt, monitor, buffer_monitor, offset_monitor
-                ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+        (flag_monitor, monitor, buffer_monitor, offset_monitor
+            ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(
@@ -598,7 +590,7 @@ class Tracker:
             ele_start=ele_start,
             num_ele_track=num_elements,
             flag_end_turn_actions=flag_end_turn_actions,
-            flag_tbt_monitor=flag_tbt,
+            flag_monitor=flag_monitor,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
         )
@@ -608,12 +600,12 @@ class Tracker:
     def _get_monitor(self, particles, turn_by_turn_monitor, num_turns):
 
         if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
-            flag_tbt = 0
+            flag_monitor = 0
             monitor = None
             buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
             offset_monitor = 0
         elif turn_by_turn_monitor is True:
-            flag_tbt = 1
+            flag_monitor = 1
             # TODO Assumes at_turn starts from zero, to be generalized
             monitor = self.particles_monitor_class(
                 _context=particles._buffer.context,
@@ -623,22 +615,18 @@ class Tracker:
             )
             buffer_monitor = monitor._buffer.buffer
             offset_monitor = monitor._offset
+        elif turn_by_turn_monitor == 'ONE_TURN_EBE':
+            (_, monitor, buffer_monitor, offset_monitor
+                ) = self._get_monitor(particles, turn_by_turn_monitor=True,
+                                      num_turns=len(self.line.elements))
+            monitor.ebe_mode = 1
+            flag_monitor = 2
         elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):
-            flag_tbt = 1
+            flag_monitor = 1
             monitor = turn_by_turn_monitor
             buffer_monitor = monitor._buffer.buffer
             offset_monitor = monitor._offset
         else:
             raise ValueError('Please provide a valid monitor object')
 
-        return flag_tbt, monitor, buffer_monitor, offset_monitor
-
-
-    def _slow_track_ebe(self,part):
-        out=[]
-        for ii in range(len(self.line.elements)):
-            out.append(part.copy())
-            self.track(part,ele_start=ii,num_elements=1)
-        return out
-
-
+        return flag_monitor, monitor, buffer_monitor, offset_monitor
