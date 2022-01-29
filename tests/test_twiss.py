@@ -69,6 +69,10 @@ def test_twiss():
                               atol=3e-4, rtol=0)
             assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad],
                               atol=3e-4, rtol=0)
+            assert np.isclose(twxt['mux'][ixt], twmad['mux'][imad],
+                              atol=1e-4, rtol=0)
+            assert np.isclose(twxt['muy'][ixt], twmad['muy'][imad],
+                              atol=1e-4, rtol=0)
 
             assert np.isclose(twxt['s'][ixt], twmad['s'][imad], atol=5e-6, rtol=0)
             assert np.isclose(twxt['x'][ixt], twmad['x'][imad], atol=5e-6, rtol=0)
