@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.constants import c as clight
 from scipy.constants import epsilon_0
+from scipy.constants import mu_0
 from scipy.constants import m_e as me_kg
 from scipy.constants import e as qe
 
@@ -368,6 +369,49 @@ class Elens(Element):
         # update px and py.
         p.px = xp/p.rpp
         p.py = yp/p.rpp
+        
+        
+
+class Wire(Element):
+    """Current-carrying wire"""
+
+    _description = [("wire_L_phy"  ,"m"," Physical length of the wire ",0),
+                    ("wire_L_int"  ,"m"," Integration length (embedding drift)",0),
+                    ("wire_current","A"," Current in the wire",0),
+                    ("wire_xma"    ,"m"," x position of the wire from reference trajectory",0),
+                    ("wire_yma"    ,"m"," y position of the wire from reference trajectory",0)
+                    ]
+
+    def track(self, p):
+        # Data from particle 
+        x      = p.x
+        y      = p.y
+        D_x    = x-self.wire_xma
+        D_y    = y-self.wire_yma
+        R2     = D_x*D_x + D_y*D_y
+
+
+        # chi = q/q0 * m0/m
+        # p0c : reference particle momentum
+        # q0  : reference particle charge
+        chi    = p.chi
+        p0c    = p.p0c
+        q0     = p.q0
+
+
+        # Computing the kick
+        L1   = self.wire_L_int + self.wire_L_phy
+        L2   = self.wire_L_int - self.wire_L_phy
+        N    = mu_0*self.wire_current*q0/(4*np.pi*p0c/clight)
+
+        dpx  =  -N*D_x*(np.sqrt(L1*L1 + 4.0*R2) - np.sqrt(L2*L2 + 4.0*R2))/R2
+        dpy  =  -N*D_y*(np.sqrt(L1*L1 + 4.0*R2) - np.sqrt(L2*L2 + 4.0*R2))/R2
+
+
+        # Update the particle properties
+        p.px += dpx
+        p.py += dpy
+        
 
 
 
