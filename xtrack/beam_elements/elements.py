@@ -136,6 +136,44 @@ Elens.XoStruct.extra_sources = [
     _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
 
+## Wire Element
+
+class Wire(BeamElement):
+    
+    _xofields={
+               'wire_L_phy'  : xo.Float64,
+               'wire_L_int'  : xo.Float64,
+               'wire_current': xo.Float64,
+               'wire_xma'    : xo.Float64,
+               'wire_yma'    : xo.Float64,
+              }
+
+    def __init__(self,  wire_L_phy   = None,
+                        wire_L_int   = None,
+                        wire_current = None,
+                        wire_xma     = None,
+                        wire_yma     = None,
+                        **kwargs):
+        super().__init__(**kwargs)
+        self.wire_L_phy   = wire_L_phy
+        self.wire_L_int   = wire_L_int
+        self.wire_current = wire_current
+        self.wire_xma     = wire_xma
+        self.wire_yma     = wire_yma
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              wire_L_phy   = self.wire_L_phy
+                              wire_L_int   = self.wire_L_int
+                              wire_current = self.wire_current
+                              wire_xma     = self.wire_xma
+                              wire_yma     = self.wire_yma
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
+Wire.XoStruct.extra_sources = [
+    _pkg_root.joinpath('beam_elements/elements_src/wire.h')]
+
+
 
 
 class SRotation(BeamElement):
