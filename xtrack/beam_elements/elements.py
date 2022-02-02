@@ -163,11 +163,11 @@ class Wire(BeamElement):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              wire_L_phy   = self.wire_L_phy
-                              wire_L_int   = self.wire_L_int
-                              wire_current = self.wire_current
-                              wire_xma     = self.wire_xma
-                              wire_yma     = self.wire_yma
+                              wire_L_phy   = self.wire_L_phy,
+                              wire_L_int   = self.wire_L_int,
+                              wire_current = self.wire_current,
+                              wire_xma     = self.wire_xma,
+                              wire_yma     = self.wire_yma,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Wire.XoStruct.extra_sources = [

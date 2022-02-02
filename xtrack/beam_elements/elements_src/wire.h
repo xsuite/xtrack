@@ -10,7 +10,7 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
     double const wire_current = WireData_get_wire_current(el);
     
     double const wire_xma = WireData_get_wire_xma(el);
-    double const wire_yma = WireData_get_wire_xma(el);
+    double const wire_yma = WireData_get_wire_yma(el);
 
 
 
@@ -46,7 +46,7 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
         // chi = q/q0 * m0/m
         // p0c : reference particle momentum
         // q0  : reference particle charge
-        double const chi    = LocalParticle_get_chi(part);
+        //double const chi    = LocalParticle_get_chi(part);
         double const p0c    = LocalParticle_get_p0c(part);
         double const q0     = LocalParticle_get_q0(part);
 

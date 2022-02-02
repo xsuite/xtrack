@@ -105,10 +105,10 @@ def iter_from_madx_sequence(
         elif mad_etype == "wire":
             if len(ee.L_phy) == 1:
                 newele = classes.Wire(
-                    wire_L_phy   = ee.L_phy[0]
-                    wire_L_int   = ee.L_int[0]
-                    wire_current = ee.current[0]
-                    wire_xma     = ee.xma[0]
+                    wire_L_phy   = ee.L_phy[0],
+                    wire_L_int   = ee.L_int[0],
+                    wire_current = ee.current[0],
+                    wire_xma     = ee.xma[0],
                     wire_yma     = ee.yma[0]
                 )
             else:
