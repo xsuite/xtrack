@@ -35,6 +35,7 @@ class Tracker:
         element_classes=None,
         particles_class=None,
         skip_end_turn_actions=False,
+        reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -62,6 +63,7 @@ class Tracker:
                 element_classes=element_classes,
                 particles_class=particles_class,
                 skip_end_turn_actions=skip_end_turn_actions,
+                reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
@@ -76,6 +78,7 @@ class Tracker:
                 element_classes=element_classes,
                 particles_class=particles_class,
                 skip_end_turn_actions=skip_end_turn_actions,
+                reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
@@ -91,6 +94,7 @@ class Tracker:
         element_classes=None,
         particles_class=None,
         skip_end_turn_actions=False,
+        reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -153,6 +157,7 @@ class Tracker:
                 particles_class=particles_class,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
+                reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as
                 )
@@ -191,6 +196,7 @@ class Tracker:
         element_classes=None,
         particles_class=None,
         skip_end_turn_actions=False,
+        reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -244,6 +250,7 @@ class Tracker:
         self.num_elements = len(frozenline.elements)
         self.global_xy_limit = global_xy_limit
         self.skip_end_turn_actions = skip_end_turn_actions
+        self.reset_s_at_end_turn = reset_s_at_end_turn
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
         self._buffer = frozenline._buffer
@@ -395,6 +402,7 @@ class Tracker:
                              int ele_start,
                              int num_ele_track,
                              int flag_end_turn_actions,
+                             int flag_reset_s_at_end_turn,
                              int flag_monitor,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor){
@@ -472,7 +480,7 @@ class Tracker:
                 } // for elements
                 if (flag_end_turn_actions>0){
                     if (isactive){
-                        increment_at_turn(&lpart);
+                        increment_at_turn(&lpart, flag_reset_s_at_end_turn);
                     }
                 }
             } // for turns
@@ -495,6 +503,7 @@ class Tracker:
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
                     xo.Arg(xo.Int32, name="flag_end_turn_actions"),
+                    xo.Arg(xo.Int32, name="flag_reset_s_at_end_turn"),
                     xo.Arg(xo.Int32, name="flag_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
@@ -590,6 +599,7 @@ class Tracker:
             ele_start=ele_start,
             num_ele_track=num_elements,
             flag_end_turn_actions=flag_end_turn_actions,
+            flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
             flag_monitor=flag_monitor,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
