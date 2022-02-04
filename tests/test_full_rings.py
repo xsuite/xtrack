@@ -60,7 +60,8 @@ def test_full_rings(element_by_element=False):
             # Build TrackJob #
             ##################
             print('Build tracker...')
-            tracker = xt.Tracker(_context=context, line=line)
+            tracker = xt.Tracker(_context=context, line=line,
+                                 reset_s_at_end_turn=False)
 
             ######################
             # Get some particles #
@@ -177,6 +178,7 @@ def test_freeze_vars():
                     line=line,
                     local_particle_src=xp.gen_local_particle_api(
                                                         freeze_vars=freeze_vars),
+                    reset_s_at_end_turn=False
                     )
 
         ######################
