@@ -226,6 +226,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
     dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
 
+    qs = np.angle(np.linalg.eig(Rot)[0][4])/(2*np.pi)
+
     twiss_res = {
         'name': tracker.line.element_names,
         's': s,
@@ -247,6 +249,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'muy': muy,
         'qx': mux[-1],
         'qy': muy[-1],
+        'qs': qs,
         'dqx': dqx,
         'dqy': dqy,
         'slip_factor': eta,
