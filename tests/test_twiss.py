@@ -28,7 +28,7 @@ def test_twiss():
     line = xt.Line.from_madx_sequence(
             mad.sequence['lhcb1'], apply_madx_errors=True)
     line.elements[10].iscollective = True # we make it artificially collective to test this option
-    part_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                             gamma0=mad.sequence.lhcb1.beam.gamma)
 
     for context in xo.context.get_test_contexts():
@@ -37,7 +37,7 @@ def test_twiss():
         tracker = xt.Tracker(_context=context, line=line)
         assert tracker.iscollective
 
-        twxt = tracker.twiss(particle_ref=part_ref)
+        twxt = tracker.twiss()
         assert np.isclose(mad.table.summ.q1[0], twxt['qx'], rtol=1e-4, atol=0)
         assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4, atol=0)
         assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
@@ -45,6 +45,7 @@ def test_twiss():
         assert np.isclose(mad.table.summ.alfa[0],
             twxt['momentum_compaction_factor'],
             atol=2e-10, rtol=0)
+        assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
         for name in ['mb.b19r5.b1', 'mb.b19r1.b1',
                     'ip1', 'ip2', 'ip5', 'ip8',
