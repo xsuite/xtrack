@@ -266,6 +266,10 @@ class Tracker:
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
                           co_search_settings={}):
+
+        if particle_ref is None:
+            particle_ref = self.particle_ref
+
         return find_closed_orbit(self, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
                                  co_search_settings=co_search_settings)
@@ -276,7 +280,7 @@ class Tracker:
         return compute_one_turn_matrix_finite_differences(self, particle_on_co,
                                                    steps_r_matrix)
 
-    def twiss(self, particle_ref, r_sigma=0.01,
+    def twiss(self, particle_ref=None, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=1e-6,
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, steps_r_matrix=None,
@@ -292,6 +296,8 @@ class Tracker:
         else:
             tracker = self
 
+        if particle_ref is None:
+            particle_ref = self.particle_ref
 
         return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
@@ -364,6 +370,10 @@ class Tracker:
                     global_xy_limit=self.global_xy_limit,
                     local_particle_src=self.local_particle_src,
                 )
+
+    @property
+    def particle_ref(self):
+        return self.line.particle_ref
 
     def _build_kernel(self, save_source_as):
 

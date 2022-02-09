@@ -2,6 +2,7 @@ import json
 import numpy as np
 
 import xobjects as xo
+import xpart as xp
 
 from .loader_sixtrack import _expand_struct
 from .loader_mad import iter_from_madx_sequence
@@ -67,6 +68,9 @@ class Line:
                newel = eltype.from_dict(eldct)
             self.elements.append(newel)
         self.element_names = dct["element_names"]
+        if 'particle_ref' in dct.keys():
+            line.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
+                                    _buffer=_buffer.context)
         return self
 
 
@@ -120,7 +124,7 @@ class Line:
 
         return line
 
-    def __init__(self, elements=(), element_names=None):
+    def __init__(self, elements=(), element_names=None, particle_ref=None):
         if isinstance(elements,dict):
             element_dict=elements
             if element_names is None:
@@ -141,6 +145,8 @@ class Line:
 
         self._vars={} #TODO xdeps
         self._manager=None # TODO xdeps
+
+        self.particle_ref = particle_ref
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
@@ -203,6 +209,8 @@ class Line:
         out = {}
         out["elements"] = [el.to_dict() for el in self.elements]
         out["element_names"] = self.element_names[:]
+        if self.particle_ref is not None:
+            out['particle_ref'] = particle_ref.to_dict()
         return out
 
 
