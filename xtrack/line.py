@@ -102,14 +102,15 @@ class Line:
         ignored_madtypes=[],
         exact_drift=False,
         drift_threshold=1e-6,
+        deferred_expressions=False,
         install_apertures=False,
         apply_madx_errors=False,
     ):
 
         class_dict=mk_class_namespace(classes)
 
-        line = cls(elements=[], element_names=[])
-
+        elements = []
+        element_names = []
         for el_name, el in iter_from_madx_sequence(
             sequence,
             class_dict,
@@ -118,7 +119,92 @@ class Line:
             drift_threshold=drift_threshold,
             install_apertures=install_apertures,
         ):
-            line.append_element(el, el_name)
+            elements.append(el)
+            element_names.append(el_name)
+
+        line = cls(elements=elements, element_names=element_names)
+
+        if deferred_expressions:
+            mad = sequence._madx
+
+            # Extract all values
+            from collections import defaultdict
+            import xdeps as xd
+            from xdeps.madxutils import MadxEval
+            import math
+
+            # Extract globals values from madx
+            _var_values=defaultdict(lambda :0)
+            for name,par in mad.globals.cmdpar.items():
+                _var_values[name]=par.value
+
+            # Extract element values from madx
+            _mad_elements_dct={}
+            for name,elem in mad.elements.items():
+                elemdata={}
+                for parname, par in elem.cmdpar.items():
+                    elemdata[parname]=par.value
+                _mad_elements_dct[name]=elemdata
+                _mad_elements_dct[name]['__basetype__'] = elem.base_type.name
+
+            _ref_manager = manager=xd.Manager()
+            _vref=manager.ref(_var_values,'vars')
+            _eref=manager.ref(_mad_elements_dct,'mad_elements_dct')
+            _fref=manager.ref(math,'f')
+            madeval=MadxEval(_vref,_fref,_eref).eval
+
+            # Extract expressions from madx globals
+            for name,par in mad.globals.cmdpar.items():
+                if par.expr is not None:
+                    _vref[name]=madeval(par.expr)
+
+            for name,elem in mad.elements.items():
+                for parname, par in elem.cmdpar.items():
+                    if par.expr is not None:
+                        if par.dtype==12: # handle lists
+                            for ii,ee in enumerate(par.expr):
+                                if ee is not None:
+                                    _eref[name][parname][ii]=madeval(ee)
+                        else:
+                            _eref[name][parname]=madeval(par.expr)
+
+            _lref = manager.ref(line.element_dict, 'line_dict')
+
+            for nn, ee in line.element_dict.items():
+                if isinstance(ee, beam_elements.Multipole):
+                    assert nn in _mad_elements_dct.keys()
+                    ee_mad_dct = _mad_elements_dct[nn]
+                    ref_knl = line.element_dict[nn].knl.copy()
+                    ref_ksl = line.element_dict[nn].ksl.copy()
+                    if ee_mad_dct['__basetype__'] == 'hkicker':
+                        _lref[nn].knl[0] = -_eref[nn]['kick']
+                    elif ee_mad_dct['__basetype__'] == 'vkicker':
+                        _lref[nn].ksl[0] = _eref[nn]['kick']
+                    elif ee_mad_dct['__basetype__'] == 'multipole':
+                        _lref[nn].knl = _eref[nn]['knl']
+                        _lref[nn].ksl[0] = _eref[nn]['ksl'][0]
+                    elif ee_mad_dct['__basetype__'] in ['tkicker', 'kicker']:
+                        if hasattr(ee_mad_dct, 'hkick'):
+                            _lref[nn].knl[0] = -_eref[nn]['hkick']
+                        if hasattr(ee_mad_dct, 'vkick'):
+                            _lref[nn].ksl[0] = _eref[nn]['vkick']
+                    else:
+                        raise ValueError('???')
+                    assert np.allclose(line.element_dict[nn].knl, ref_knl, 1e-18)
+                    assert np.allclose(line.element_dict[nn].ksl, ref_ksl, 1e-18)
+
+            line.vars = _vref
+            line._var_management = {}
+            line._var_management['data'] = {}
+            line._var_management['data']['var_values'] = _var_values
+            line._var_management['data']['mad_elements_dct'] = _mad_elements_dct
+
+            line._var_management['manager'] = _ref_manager
+            line._var_management['lref'] = _lref
+            line._var_management['vref'] = _vref
+            line._var_management['fref'] = _fref
+            line._var_management['eref'] = _eref
+
 
         if apply_madx_errors:
             line._apply_madx_errors(sequence)
@@ -143,9 +229,6 @@ class Line:
         self.element_list=element_list
         self.element_dict=element_dict
         self.element_names=element_names
-
-        self._vars={} #TODO xdeps
-        self._manager=None # TODO xdeps
 
         self.particle_ref = particle_ref
 
