@@ -1,3 +1,4 @@
+import json
 import sys
 import math
 import numpy as np
@@ -60,7 +61,7 @@ line.element_dict = dict(zip(line.element_names, line.element_list))
 
 tracker = xt.Tracker(line=line)
 
-lref = manager.ref(line.element_dict, 'line')
+lref = manager.ref(line.element_dict, 'line_dict')
 
 for nn, ee in line.element_dict.items():
     if isinstance(ee, xt.Multipole):
@@ -72,7 +73,7 @@ for nn, ee in line.element_dict.items():
         elif elements[nn]['__basetype__'] == 'vkicker':
             lref[nn].ksl[0] = eref[nn]['kick']
         elif elements[nn]['__basetype__'] == 'multipole':
-            lref[nn].knl[0] = eref[nn]['knl'][0]
+            lref[nn].knl = eref[nn]['knl']
             lref[nn].ksl[0] = eref[nn]['ksl'][0]
         elif elements[nn]['__basetype__'] in ['tkicker', 'kicker']:
             if hasattr(elements[nn], 'hkick'):
@@ -85,3 +86,11 @@ for nn, ee in line.element_dict.items():
         assert np.allclose(line.element_dict[nn].ksl, ref_ksl, 1e-18)
 
 line.vars = vref
+
+with open('status.json', 'w') as fid:
+    json.dump({
+            'line': line.to_dict(),
+            'xdeps_status': manager.dump(),
+            'variables': variables,
+            'elements': elements,
+        }, fid, cls=xo.JEncoder)

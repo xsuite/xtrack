@@ -210,7 +210,7 @@ class Line:
         out["elements"] = [el.to_dict() for el in self.elements]
         out["element_names"] = self.element_names[:]
         if self.particle_ref is not None:
-            out['particle_ref'] = particle_ref.to_dict()
+            out['particle_ref'] = self.particle_ref.to_dict()
         return out
 
 
