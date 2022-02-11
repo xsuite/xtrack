@@ -32,3 +32,7 @@ assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], 250e-6,
 line.vars['on_x1'] = -300
 assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], -300e-6,
                   atol=1e-6, rtol=0)
+
+with open('status.json', 'w') as fid:
+    json.dump(line.to_dict(), fid,
+    cls=xo.JEncoder)

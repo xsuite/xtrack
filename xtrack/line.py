@@ -158,6 +158,7 @@ class Line:
                 if par.expr is not None:
                     _vref[name]=madeval(par.expr)
 
+            # Extract expressions from madx elements
             for name,elem in mad.elements.items():
                 for parname, par in elem.cmdpar.items():
                     if par.expr is not None:
@@ -232,6 +233,9 @@ class Line:
 
         self.particle_ref = particle_ref
 
+        self._var_management = None
+        self.vars = None
+
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
         if mask is None:
@@ -295,6 +299,9 @@ class Line:
         out["element_names"] = self.element_names[:]
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
+        if self._var_management is not None:
+            out['_var_management_data'] = self._var_management['data']
+            out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
 
