@@ -11,7 +11,6 @@ elements = dct['elements']
 variables = dct['variables']
 
 line = xt.Line.from_dict(dct['line'])
-line.element_dict = dict(zip(line.element_names, line.element_list))
 
 manager=xd.Manager()
 vref=manager.ref(variables,'v')
