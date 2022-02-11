@@ -56,7 +56,7 @@ class Line:
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         class_dict=mk_class_namespace(classes)
 
-        _buffer=xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
+        _buffer, _ =xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
         self = cls(elements=[], element_names=[])
         for el in dct["elements"]:
             eltype = class_dict[el["__class__"]]
@@ -69,8 +69,8 @@ class Line:
             self.elements.append(newel)
         self.element_names = dct["element_names"]
         if 'particle_ref' in dct.keys():
-            line.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
-                                    _buffer=_buffer.context)
+            self.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
+                                    _context=_buffer.context)
         return self
 
 
