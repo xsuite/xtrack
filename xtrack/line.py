@@ -72,6 +72,29 @@ class Line:
         if 'particle_ref' in dct.keys():
             self.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
+
+        if '_var_manager' in dct.keys():
+            import xdeps as xd
+            import math
+            self._var_management = {}
+            vardata = dct['_var_management_data']
+
+            manager = xd.Manager()
+
+            _vref = manager.ref(vardata['var_values'],'vars')
+            _eref = manager.ref(vardata['mad_elements_dct'], 'mad_elements_dct')
+            _fref = manager.ref(math,'f')
+            _lref = manager.ref(self.element_dict, 'line_dict')
+            manager.reload(dct['_var_manager'])
+
+            self._var_management['manager'] = manager
+            self._var_management['data'] = vardata
+            self._var_management['lref'] = _lref
+            self._var_management['vref'] = _vref
+            self._var_management['fref'] = _fref
+            self._var_management['eref'] = _eref
+            self.vars = _vref
+
         return self
 
 

@@ -25,6 +25,10 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
 
 tracker = xt.Tracker(line=line)
 
+with open('status.json', 'w') as fid:
+    json.dump(line.to_dict(), fid,
+    cls=xo.JEncoder)
+
 line.vars['on_x1'] = 250
 assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], 250e-6,
                   atol=1e-6, rtol=0)
@@ -32,7 +36,3 @@ assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], 250e-6,
 line.vars['on_x1'] = -300
 assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], -300e-6,
                   atol=1e-6, rtol=0)
-
-with open('status.json', 'w') as fid:
-    json.dump(line.to_dict(), fid,
-    cls=xo.JEncoder)
