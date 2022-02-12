@@ -239,18 +239,13 @@ class Line:
         if isinstance(elements,dict):
             element_dict=elements
             if element_names is None:
-               element_list=list(elements.values())
-               element_names=list(elements.keys())
-            else:
-               element_list=[ elements[nn] for nn in element_names]
+                raise ValueError('`element_names must be provided'
+                                 ' if `elements` is a dictionary.')
         else:
-            element_list = elements
             if element_names is None:
                 element_names = [ f"e{ii}" for ii in range(len(elements))]
-            element_dict = dict(zip(element_names,element_list))
+            element_dict = dict(zip(element_names, elements))
 
-        self.elements=elements
-        self.element_list=element_list
         self.element_dict=element_dict
         self.element_names=element_names
 
@@ -258,6 +253,10 @@ class Line:
 
         self._var_management = None
         self.vars = None
+
+    @property
+    def elements(self):
+        return tuple([self.element_dict[nn] for nn in self.element_names])
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
@@ -305,11 +304,10 @@ class Line:
                          elements=new_elements, element_names=new_element_names)
 
     def _freeze(self):
-        self.elements = tuple(self.elements)
         self.element_names = tuple(self.element_names)
 
     def _frozen_check(self):
-        if isinstance(self.elements, tuple):
+        if isinstance(self.element_name, tuple):
             raise ValueError(
                 'This action is not allowed as the line is frozen!')
 
@@ -327,45 +325,18 @@ class Line:
             out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
-
-
-    def slow_track(self, p):
-        ret = None
-        for el in self.elements:
-            ret = el.track(p)
-            if ret is not None:
-                break
-        return ret
-
-    def slow_track_elem_by_elem(self, p, start=True, end=False):
-        out = []
-        if start:
-            out.append(p.copy())
-        for el in self.elements:
-            ret = el.track(p)
-            if ret is not None:
-                break
-            out.append(p.copy())
-        if end:
-            out.append(p.copy())
-        return out
-
     def insert_element(self, idx, element, name):
-
         self._frozen_check()
-
-        self.elements.insert(idx, element)
+        assert name not in self.element_dict.keys()
+        self.element_dict[name] = element
         self.element_names.insert(idx, name)
-        # assert len(self.elements) == len(self.element_names)
         return self
 
     def append_element(self, element, name):
-
         self._frozen_check()
-
-        self.elements.append(element)
+        assert name not in self.element_dict.keys()
+        self.element_dict[name] = element
         self.element_names.append(name)
-        # assert len(self.elements) == len(self.element_names)
         return self
 
     def get_length(self):
@@ -404,7 +375,6 @@ class Line:
             newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
             self.element_names = newline.element_names
             return self
         else:
@@ -423,7 +393,6 @@ class Line:
             newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
             self.element_names = newline.element_names
             return self
         else:
@@ -453,7 +422,7 @@ class Line:
                 newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
+            self.element_dict.update(newline.element_dict)
             self.element_names = newline.element_names
             return self
         else:
@@ -462,6 +431,10 @@ class Line:
     def merge_consecutive_multipoles(self, inplace=False):
 
         self._frozen_check()
+        if hasattr(self, '_var_management'):
+            raise NotImplementedError('`merge_consecutive_multipoles` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
 
         newline = Line(elements=[], element_names=[])
 
@@ -502,7 +475,7 @@ class Line:
                 newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
+            self.element_dict.update(newline.element_dict)
             self.element_names = newline.element_names
             return self
         else:
@@ -524,23 +497,7 @@ class Line:
 
         return elements, names
 
-    def get_element_ids_of_type(self, types, start_idx_offset=0):
-        assert start_idx_offset >= 0
-        if not hasattr(types, "__iter__"):
-            type_list = [types]
-        else:
-            type_list = types
-        elem_idx = []
-        for idx, elem in enumerate(self.elements):
-            for tt in type_list:
-                if isinstance(elem, tt):
-                    elem_idx.append(idx+start_idx_offset)
-                    break
-        return elem_idx
-
-    # error handling (alignment, multipole orders, ...):
-
-    def find_element_ids(self, element_name):
+    def _find_element_ids(self, element_name):
         """Find element_name in this Line instance's
         self.elements_name list. Assumes the names are unique.
 
@@ -561,7 +518,7 @@ class Line:
         return idx_el, idx_after_el
 
     def _add_offset_error_to(self, element_name, dx=0, dy=0):
-        idx_el, idx_after_el = self.find_element_ids(element_name)
+        idx_el, idx_after_el = self._find_element_ids(element_name)
         xyshift = beam_elements.XYShift(dx=dx, dy=dy)
         inv_xyshift = beam_elements.XYShift(dx=-dx, dy=-dy)
         self.insert_element(idx_el, xyshift, element_name + "_offset_in")
@@ -570,7 +527,7 @@ class Line:
         )
 
     def _add_aperture_offset_error_to(self, element_name, arex=0, arey=0):
-        idx_el, idx_after_el = self.find_element_ids(element_name)
+        idx_el, idx_after_el = self._find_element_ids(element_name)
         idx_el_aper = idx_after_el - 1
         if not self.element_names[idx_el_aper] == element_name + "_aperture":
             # it is allowed to provide arex/arey without providing an aperture
@@ -593,7 +550,7 @@ class Line:
         curvature terms in the Multipole (hxl and hyl) are rotated
         by `angle` as well.
         '''
-        idx_el, idx_after_el = self.find_element_ids(element_name)
+        idx_el, idx_after_el = self._find_element_ids(element_name)
         element = self.elements[self.element_names.index(element_name)]
         if isinstance(element, beam_elements.Multipole) and (
                 element.hxl or element.hyl):
@@ -639,8 +596,6 @@ class Line:
                 hyl=element.hyl, radiation_flag=element.radiation_flag)
 
         self.elements[element_index] = new_element
-
-
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing
