@@ -8,6 +8,7 @@ def madx_sequence_to_xtrack_line(
     exact_drift=False,
     drift_threshold=1e-6,
     install_apertures=False,
+    deferred_expressions=False
 ):
 
     if exact_drift:
@@ -18,6 +19,49 @@ def madx_sequence_to_xtrack_line(
 
 
     line = xt.Line(elements=[], element_names=[])
+
+    if deferred_expressions:
+        line._init_var_management()
+        mad = sequence._madx
+
+        from xdeps.madxutils import MadxEval
+
+        # Extract globals values from madx
+        _var_values = line._var_management['data']['var_values']
+        for name,par in mad.globals.cmdpar.items():
+            _var_values[name]=par.value
+
+        # Extract element values from madx
+        _mad_elements_dct= line._var_management['data']['mad_elements_dct']
+        for name,elem in mad.elements.items():
+            elemdata={}
+            for parname, par in elem.cmdpar.items():
+                elemdata[parname]=par.value
+            _mad_elements_dct[name]=elemdata
+            _mad_elements_dct[name]['__basetype__'] = elem.base_type.name
+
+        _ref_manager = line._var_management['manager']
+        _vref = line._var_management['vref']
+        _fref = line._var_management['fref']
+        _lref = line._var_management['lref']
+        _eref = line._var_management['eref']
+        madeval=MadxEval(_vref,_fref,_eref).eval
+
+        # Extract expressions from madx globals
+        for name,par in mad.globals.cmdpar.items():
+            if par.expr is not None:
+                _vref[name]=madeval(par.expr)
+
+        # Extract expressions from madx elements
+        for name,elem in mad.elements.items():
+            for parname, par in elem.cmdpar.items():
+                if par.expr is not None:
+                    if par.dtype==12: # handle lists
+                        for ii,ee in enumerate(par.expr):
+                            if ee is not None:
+                                _eref[name][parname][ii]=madeval(ee)
+                    else:
+                        _eref[name][parname]=madeval(par.expr)
 
     elements = seq.elements
     ele_pos = seq.element_positions()
@@ -49,6 +93,7 @@ def madx_sequence_to_xtrack_line(
         ]:
             newele = myDrift(length=ee.l)
             old_pp += ee.l
+            line.element_dict[eename] = newele
 
         elif mad_etype in ignored_madtypes:
             pass
@@ -63,6 +108,7 @@ def madx_sequence_to_xtrack_line(
                 hyl=ksl[0],
                 length=ee.lrad,
             )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "tkicker" or mad_etype == "kicker":
             hkick = [-ee.hkick] if hasattr(ee, "hkick") else []
@@ -70,20 +116,25 @@ def madx_sequence_to_xtrack_line(
             newele = classes.Multipole(
                 knl=hkick, ksl=vkick, length=ee.lrad, hxl=0, hyl=0
             )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "vkicker":
             newele = classes.Multipole(
                 knl=[], ksl=[ee.kick], length=ee.lrad, hxl=0, hyl=0
             )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "hkicker":
             newele = classes.Multipole(
                 knl=[-ee.kick], ksl=[], length=ee.lrad, hxl=0, hyl=0
             )
+            line.element_dict[eename] = newele
+
         elif mad_etype == "dipedge":
             newele = classes.DipoleEdge(
                 h=ee.h, e1=ee.e1, hgap=ee.hgap, fint=ee.fint
             )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "rfcavity":
             newele = classes.Cavity(
@@ -91,6 +142,7 @@ def madx_sequence_to_xtrack_line(
                 frequency=ee.freq * 1e6,
                 lag=ee.lag * 360,
             )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "rfmultipole":
             newele = classes.RFMultipole(
@@ -102,6 +154,7 @@ def madx_sequence_to_xtrack_line(
                 pn=[v * 360 for v in ee.pnl],
                 ps=[v * 360 for v in ee.psl],
             )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "crabcavity":
             #ee.volt in MV, sequence.beam.pc in GeV
@@ -120,6 +173,7 @@ def madx_sequence_to_xtrack_line(
                                             # To be checked!!!! 
 
                 )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "beambeam":
             if ee.slot_id == 6 or ee.slot_id == 60:
@@ -169,6 +223,8 @@ def madx_sequence_to_xtrack_line(
                     d_px=0,
                     d_py=0)
 
+            line.element_dict[eename] = newele
+
         elif mad_etype == "placeholder":
             if ee.slot_id == 1:
                 newele = classes.SCCoasting()
@@ -194,6 +250,7 @@ def madx_sequence_to_xtrack_line(
             else:
                 newele = myDrift(length=ee.l)
                 old_pp += ee.l
+            line.element_dict[eename] = newele
         else:
             raise ValueError(f'MAD element "{mad_etype}" not recognized')
 
@@ -206,7 +263,7 @@ def madx_sequence_to_xtrack_line(
         if abs(tilt)>0:
             line.append_element(classes.SRotation(angle=tilt), eename+"_pretilt")
 
-        line.append_element(newele, eename)
+        line.element_names.append(eename)
 
         if abs(tilt)>0:
             line.append_element(classes.SRotation(angle=-tilt), eename+"_posttilt")
