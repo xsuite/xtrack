@@ -84,7 +84,6 @@ class Line:
 
         return self
 
-
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
         class_dict=mk_class_namespace(classes)
@@ -127,36 +126,6 @@ class Line:
             drift_threshold=drift_threshold,
             install_apertures=install_apertures,
             deferred_expressions=deferred_expressions)
-
-
-        if deferred_expressions:
-            _vref = line._var_management['vref']
-            _fref = line._var_management['fref']
-            _lref = line._var_management['lref']
-            _eref = line._var_management['eref']
-            _mad_elements_dct= line._var_management['data']['mad_elements_dct']
-            for nn, ee in line.element_dict.items():
-                if isinstance(ee, beam_elements.Multipole):
-                    assert nn in _mad_elements_dct.keys()
-                    ee_mad_dct = _mad_elements_dct[nn]
-                    ref_knl = line.element_dict[nn].knl.copy()
-                    ref_ksl = line.element_dict[nn].ksl.copy()
-                    if ee_mad_dct['__basetype__'] == 'hkicker':
-                        _lref[nn].knl[0] = -_eref[nn]['kick']
-                    elif ee_mad_dct['__basetype__'] == 'vkicker':
-                        _lref[nn].ksl[0] = _eref[nn]['kick']
-                    elif ee_mad_dct['__basetype__'] == 'multipole':
-                        _lref[nn].knl = _eref[nn]['knl']
-                        _lref[nn].ksl[0] = _eref[nn]['ksl'][0]
-                    elif ee_mad_dct['__basetype__'] in ['tkicker', 'kicker']:
-                        if hasattr(ee_mad_dct, 'hkick'):
-                            _lref[nn].knl[0] = -_eref[nn]['hkick']
-                        if hasattr(ee_mad_dct, 'vkick'):
-                            _lref[nn].ksl[0] = _eref[nn]['vkick']
-                    else:
-                        raise ValueError('???')
-                    assert np.allclose(line.element_dict[nn].knl, ref_knl, 1e-18)
-                    assert np.allclose(line.element_dict[nn].ksl, ref_ksl, 1e-18)
 
         if apply_madx_errors:
             if line._var_management is not None:

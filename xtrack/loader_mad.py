@@ -109,6 +109,11 @@ def madx_sequence_to_xtrack_line(
                 length=ee.lrad,
             )
             line.element_dict[eename] = newele
+            if deferred_expressions:
+                for ii, _ in enumerate(knl):
+                    _lref[eename].knl[ii] = _eref[eename]['knl'][ii]
+                for ii, _ in enumerate(ksl):
+                    _lref[eename].ksl[ii] = _eref[eename]['ksl'][ii]
 
         elif mad_etype == "tkicker" or mad_etype == "kicker":
             hkick = [-ee.hkick] if hasattr(ee, "hkick") else []
@@ -117,18 +122,27 @@ def madx_sequence_to_xtrack_line(
                 knl=hkick, ksl=vkick, length=ee.lrad, hxl=0, hyl=0
             )
             line.element_dict[eename] = newele
+            if deferred_expressions:
+                if hasattr(ee, 'hkick'):
+                    _lref[eename].knl[0] = -_eref[eename]['hkick']
+                if hasattr(ee, 'vkick'):
+                    _lref[eename].ksl[0] = _eref[eename]['vkick']
 
         elif mad_etype == "vkicker":
             newele = classes.Multipole(
                 knl=[], ksl=[ee.kick], length=ee.lrad, hxl=0, hyl=0
             )
             line.element_dict[eename] = newele
+            if deferred_expressions:
+                _lref[eename].ksl[0] = _eref[eename]['kick']
 
         elif mad_etype == "hkicker":
             newele = classes.Multipole(
                 knl=[-ee.kick], ksl=[], length=ee.lrad, hxl=0, hyl=0
             )
             line.element_dict[eename] = newele
+            if deferred_expressions:
+                _lref[eename].knl[0] = -_eref[eename]['kick']
 
         elif mad_etype == "dipedge":
             newele = classes.DipoleEdge(
