@@ -1,6 +1,7 @@
 import numpy as np
+import xtrack as xt
 
-def iter_from_madx_sequence(
+def madx_sequence_to_xtrack_line(
     sequence,
     classes,
     ignored_madtypes=[],
@@ -15,6 +16,9 @@ def iter_from_madx_sequence(
         myDrift = classes.Drift
     seq = sequence
 
+
+    line = xt.Line(elements=[], element_names=[])
+
     elements = seq.elements
     ele_pos = seq.element_positions()
 
@@ -24,15 +28,12 @@ def iter_from_madx_sequence(
         skiptilt=False
 
         if pp > old_pp + drift_threshold:
-            yield "drift_%d" % i_drift, myDrift(length=(pp - old_pp))
+            line.append_element(myDrift(length=(pp - old_pp)), f"drift_{i_drift}")
             old_pp = pp
             i_drift += 1
 
         eename = ee.name
         mad_etype = ee.base_type.name
-
-        # if ee.length > 0:
-        #    raise ValueError(f"Sequence {seq} contains {eename} with length>0")
 
         if mad_etype in [
             "marker",
@@ -120,7 +121,6 @@ def iter_from_madx_sequence(
 
                 )
 
-
         elif mad_etype == "beambeam":
             if ee.slot_id == 6 or ee.slot_id == 60:
                 # BB interaction is 6D
@@ -204,12 +204,12 @@ def iter_from_madx_sequence(
             tilt=0
 
         if abs(tilt)>0:
-            yield eename+"_pretilt", classes.SRotation(angle=tilt)
+            line.append_element(classes.SRotation(angle=tilt), eename+"_pretilt")
 
-        yield eename, newele
+        line.append_element(newele, eename)
 
         if abs(tilt)>0:
-            yield eename+"_posttilt", classes.SRotation(angle=-tilt)
+            line.append_element(classes.SRotation(angle=-tilt), eename+"_posttilt")
 
         if (
             install_apertures
@@ -267,10 +267,12 @@ def iter_from_madx_sequence(
             else:
                 raise ValueError("Aperture type not recognized")
 
-            yield eename + "_aperture", newaperture
+            line.append_element(newaperture, eename + "_aperture")
 
     if hasattr(seq, "length") and seq.length > old_pp:
-        yield "drift_%d" % i_drift, myDrift(length=(seq.length - old_pp))
+        line.append_element(myDrift(length=(seq.length - old_pp)), f"drift_{i_drift}")
+
+    return line
 
 
 class MadPoint(object):

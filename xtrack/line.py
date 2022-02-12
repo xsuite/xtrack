@@ -5,7 +5,7 @@ import xobjects as xo
 import xpart as xp
 
 from .loader_sixtrack import _expand_struct
-from .loader_mad import iter_from_madx_sequence
+from .loader_mad import madx_sequence_to_xtrack_line
 from .beam_elements import element_classes, Multipole
 from . import beam_elements
 from .beam_elements import Drift
@@ -132,20 +132,13 @@ class Line:
 
         class_dict=mk_class_namespace(classes)
 
-        elements = []
-        element_names = []
-        for el_name, el in iter_from_madx_sequence(
+        line = madx_sequence_to_xtrack_line(
             sequence,
             class_dict,
             ignored_madtypes=ignored_madtypes,
             exact_drift=exact_drift,
             drift_threshold=drift_threshold,
-            install_apertures=install_apertures,
-        ):
-            elements.append(el)
-            element_names.append(el_name)
-
-        line = cls(elements=elements, element_names=element_names)
+            install_apertures=install_apertures)
 
         if deferred_expressions:
             mad = sequence._madx
@@ -310,7 +303,7 @@ class Line:
         self.element_names = tuple(self.element_names)
 
     def _frozen_check(self):
-        if isinstance(self.element_name, tuple):
+        if isinstance(self.element_names, tuple):
             raise ValueError(
                 'This action is not allowed as the line is frozen!')
 
@@ -470,8 +463,8 @@ class Line:
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
                     prev_nn += ('_' + nn)
+                    newline.element_dict[prev_nn] = newee
                     newline.element_names[-1] = prev_nn
-                    newline.elements[-1] = newee
                 else:
                     newline.append_element(ee, nn)
             else:
