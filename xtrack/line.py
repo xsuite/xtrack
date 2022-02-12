@@ -141,16 +141,13 @@ class Line:
             install_apertures=install_apertures)
 
         if deferred_expressions:
+            line._init_deferred_expressions()
             mad = sequence._madx
 
-            # Extract all values
-            from collections import defaultdict
-            import xdeps as xd
             from xdeps.madxutils import MadxEval
-            import math
 
             # Extract globals values from madx
-            _var_values=defaultdict(lambda :0)
+            _var_values = line._var_management['data']['var_values']
             for name,par in mad.globals.cmdpar.items():
                 _var_values[name]=par.value
 
@@ -163,10 +160,11 @@ class Line:
                 _mad_elements_dct[name]=elemdata
                 _mad_elements_dct[name]['__basetype__'] = elem.base_type.name
 
-            _ref_manager = manager=xd.Manager()
-            _vref=manager.ref(_var_values,'vars')
-            _eref=manager.ref(_mad_elements_dct,'mad_elements_dct')
-            _fref=manager.ref(math,'f')
+            _ref_manager = line._var_management['manager']
+            _vref = line._var_management['vref']
+            _fref = line._var_management['fref']
+            _lref = line._var_management['lref']
+            _eref = _ref_manager.ref(_mad_elements_dct,'mad_elements_dct')
             madeval=MadxEval(_vref,_fref,_eref).eval
 
             # Extract expressions from madx globals
@@ -185,7 +183,6 @@ class Line:
                         else:
                             _eref[name][parname]=madeval(par.expr)
 
-            _lref = manager.ref(line.element_dict, 'line_dict')
 
             for nn, ee in line.element_dict.items():
                 if isinstance(ee, beam_elements.Multipole):
@@ -210,16 +207,7 @@ class Line:
                     assert np.allclose(line.element_dict[nn].knl, ref_knl, 1e-18)
                     assert np.allclose(line.element_dict[nn].ksl, ref_ksl, 1e-18)
 
-            line.vars = _vref
-            line._var_management = {}
-            line._var_management['data'] = {}
-            line._var_management['data']['var_values'] = _var_values
             line._var_management['data']['mad_elements_dct'] = _mad_elements_dct
-
-            line._var_management['manager'] = _ref_manager
-            line._var_management['lref'] = _lref
-            line._var_management['vref'] = _vref
-            line._var_management['fref'] = _fref
             line._var_management['eref'] = _eref
 
 
@@ -230,6 +218,29 @@ class Line:
             line._apply_madx_errors(sequence)
 
         return line
+
+    def _init_deferred_expressions(self):
+
+        from collections import defaultdict
+        import xdeps as xd
+        import math
+
+        # Extract globals values from madx
+        _var_values=defaultdict(lambda :0)
+        _ref_manager = manager=xd.Manager()
+        _vref=manager.ref(_var_values,'vars')
+        _fref=manager.ref(math,'f')
+        _lref = manager.ref(self.element_dict, 'line_dict')
+
+        self.vars = _vref
+        self._var_management = {}
+        self._var_management['data'] = {}
+        self._var_management['data']['var_values'] = _var_values
+
+        self._var_management['manager'] = _ref_manager
+        self._var_management['lref'] = _lref
+        self._var_management['vref'] = _vref
+        self._var_management['fref'] = _fref
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
         if isinstance(elements,dict):
