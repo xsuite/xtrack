@@ -231,6 +231,9 @@ class Line:
 
 
         if apply_madx_errors:
+            if line._var_management is not None:
+                raise NotImplementedError('MAD-X errors cannot be imported'
+                            ' together with deferred expressions')
             line._apply_madx_errors(sequence)
 
         return line
