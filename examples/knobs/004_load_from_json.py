@@ -1,9 +1,7 @@
 import json
-import math
 import numpy as np
 
 import xtrack as xt
-import xdeps as xd
 
 with open('status.json', 'r') as fid:
     dct = json.load(fid)
