@@ -69,31 +69,18 @@ class Line:
             elements.append(newel)
 
         self = cls(elements=elements, element_names=dct['element_names'])
+
         if 'particle_ref' in dct.keys():
             self.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
                                     _context=_buffer.context)
 
         if '_var_manager' in dct.keys():
-            import xdeps as xd
-            import math
-            self._var_management = {}
-            vardata = dct['_var_management_data']
-
-            manager = xd.Manager()
-
-            _vref = manager.ref(vardata['var_values'],'vars')
-            _eref = manager.ref(vardata['mad_elements_dct'], 'mad_elements_dct')
-            _fref = manager.ref(math,'f')
-            _lref = manager.ref(self.element_dict, 'line_dict')
+            self._init_var_management()
+            manager = self._var_management['manager']
+            for kk in self._var_management['data'].keys():
+                self._var_management['data'][kk].update(
+                                            dct['_var_management_data'][kk])
             manager.reload(dct['_var_manager'])
-
-            self._var_management['manager'] = manager
-            self._var_management['data'] = vardata
-            self._var_management['lref'] = _lref
-            self._var_management['vref'] = _vref
-            self._var_management['fref'] = _fref
-            self._var_management['eref'] = _eref
-            self.vars = _vref
 
         return self
 
@@ -141,7 +128,7 @@ class Line:
             install_apertures=install_apertures)
 
         if deferred_expressions:
-            line._init_deferred_expressions()
+            line._init_var_management()
             mad = sequence._madx
 
             from xdeps.madxutils import MadxEval
@@ -152,7 +139,7 @@ class Line:
                 _var_values[name]=par.value
 
             # Extract element values from madx
-            _mad_elements_dct={}
+            _mad_elements_dct= line._var_management['data']['mad_elements_dct']
             for name,elem in mad.elements.items():
                 elemdata={}
                 for parname, par in elem.cmdpar.items():
@@ -164,7 +151,7 @@ class Line:
             _vref = line._var_management['vref']
             _fref = line._var_management['fref']
             _lref = line._var_management['lref']
-            _eref = _ref_manager.ref(_mad_elements_dct,'mad_elements_dct')
+            _eref = line._var_management['eref']
             madeval=MadxEval(_vref,_fref,_eref).eval
 
             # Extract expressions from madx globals
@@ -207,10 +194,6 @@ class Line:
                     assert np.allclose(line.element_dict[nn].knl, ref_knl, 1e-18)
                     assert np.allclose(line.element_dict[nn].ksl, ref_ksl, 1e-18)
 
-            line._var_management['data']['mad_elements_dct'] = _mad_elements_dct
-            line._var_management['eref'] = _eref
-
-
         if apply_madx_errors:
             if line._var_management is not None:
                 raise NotImplementedError('MAD-X errors cannot be imported'
@@ -219,7 +202,7 @@ class Line:
 
         return line
 
-    def _init_deferred_expressions(self):
+    def _init_var_management(self):
 
         from collections import defaultdict
         import xdeps as xd
@@ -227,20 +210,25 @@ class Line:
 
         # Extract globals values from madx
         _var_values=defaultdict(lambda :0)
+        _mad_elements_dct = {}
+
         _ref_manager = manager=xd.Manager()
         _vref=manager.ref(_var_values,'vars')
         _fref=manager.ref(math,'f')
         _lref = manager.ref(self.element_dict, 'line_dict')
+        _eref = _ref_manager.ref(_mad_elements_dct,'mad_elements_dct')
 
         self.vars = _vref
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
+        self._var_management['data']['mad_elements_dct'] = _mad_elements_dct
 
         self._var_management['manager'] = _ref_manager
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
+        self._var_management['eref'] = _eref
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
         if isinstance(elements,dict):
