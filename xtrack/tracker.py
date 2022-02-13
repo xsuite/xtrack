@@ -137,7 +137,9 @@ class Tracker:
             if not _check_is_collective(pp):
                 tempxtline = LineFrozen(_buffer=_buffer,
                                    line=pp)
-                pp.elements = tempxtline.elements
+                pp.element_dict = dict(zip(
+                    tempxtline.element_names, tempxtline.elements))
+                pp.element_names = tempxtline.element_names
                 noncollective_xelements += pp.elements
             else:
                 if hasattr(pp, 'isthick') and pp.isthick:

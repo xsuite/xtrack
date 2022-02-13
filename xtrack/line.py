@@ -523,7 +523,7 @@ class Line:
                 length=element.length, hxl=element.hxl,
                 hyl=element.hyl, radiation_flag=element.radiation_flag)
 
-        self.elements[element_index] = new_element
+        self.element_dict[element_name] = new_element
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing

@@ -11,19 +11,19 @@ from cpymad.madx import Madx
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
+path = test_data_folder.joinpath('hllhc14_input_mad/')
+
+mad = Madx(command_log="mad_final.log")
+mad.call(str(path.joinpath("final_seq.madx")))
+mad.use(sequence="lhcb1")
+mad.twiss()
+mad.readtable(file=str(path.joinpath("final_errors.tfs")),
+                table="errtab")
+mad.seterr(table="errtab")
+mad.set(format=".15g")
+twmad = mad.twiss(rmatrix=True, chrom=True)
+
 def test_twiss():
-
-    path = test_data_folder.joinpath('hllhc14_input_mad/')
-
-    mad = Madx(command_log="mad_final.log")
-    mad.call(str(path.joinpath("final_seq.madx")))
-    mad.use(sequence="lhcb1")
-    mad.twiss()
-    mad.readtable(file=str(path.joinpath("final_errors.tfs")),
-                  table="errtab")
-    mad.seterr(table="errtab")
-    mad.set(format=".15g")
-    twmad = mad.twiss(rmatrix=True, chrom=True)
 
     line = xt.Line.from_madx_sequence(
             mad.sequence['lhcb1'], apply_madx_errors=True)
@@ -81,3 +81,6 @@ def test_twiss():
             assert np.isclose(twxt['px'][ixt], twmad['px'][imad], atol=1e-7, rtol=0)
             assert np.isclose(twxt['py'][ixt], twmad['py'][imad], atol=1e-7, rtol=0)
 
+def test_line_import_from_madx():
+
+   pass
