@@ -88,14 +88,16 @@ def test_line_import_from_madx():
 
     rtol = 1e-7
     strict = True
-    atol=1e1
+    atol = 1e-14
 
+    print('Build line with expressions...')
     line_with_expressions = xt.Line.from_madx_sequence(
         mad.sequence['lhcb1'], apply_madx_errors=True,
         deferred_expressions=True)
     line_with_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
 
+    print('Build line without expressions...')
     line_no_expressions = xt.Line.from_madx_sequence(
         mad.sequence['lhcb1'], apply_madx_errors=True,
         deferred_expressions=False)
@@ -105,6 +107,7 @@ def test_line_import_from_madx():
     ltest = line_with_expressions
     lref = line_no_expressions
 
+    print('Start consistency check')
     # Check that the two machines are identical
     assert len(ltest) == len(lref)
 
@@ -136,7 +139,7 @@ def test_line_import_from_madx():
             val_test = dtest[kk]
             val_ref = dref[kk]
             if ((not np.isscalar(val_ref) and len(val_ref) != len(val_test))
-                    or norm(val_test) < 1e14) :
+                    or norm(val_test) < 1e-14) :
                 diff_rel = 100
             else:
                 diff_rel = norm(np.array(val_test) - np.array(val_ref)) / norm(val_test)
