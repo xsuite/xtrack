@@ -158,7 +158,7 @@ def test_line_import_from_madx():
             # If it got here it means that no condition above is met
             raise ValueError("Too large discrepancy!")
 
-    import pdb; pdb.set_trace()
+    print('\nTest xsuite vars...\n')
     tracker = xt.Tracker(line=line_with_expressions)
     assert np.isclose(tracker.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
     tracker.line.vars['kqtf.b1'] = -2e-4
@@ -185,7 +185,6 @@ def test_line_import_from_madx():
     tracker.line.vars['phi_crab_l5b1'] = 0.5
     assert np.isclose(tracker.line.element_dict['acfcav.bl5.b1'].ps, 270,
                       rtol=0, atol=1e-14)
-
 
     assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].knl[0]) > 0
     tracker.line.vars['on_crab1'] = 0
