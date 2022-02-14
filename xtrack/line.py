@@ -530,10 +530,12 @@ class Line:
             lref = self._var_management['lref']
             manager = self._var_management['manager']
             for ii in range(min([len(knl), len(element.knl)])):
-                manager.tasks[lref[element_name].knl[ii]].expr += knl[ii]
+                if lref[element_name].knl[ii] in manager.tasks.keys():
+                    manager.tasks[lref[element_name].knl[ii]].expr += knl[ii]
 
             for ii in range(min([len(ksl), len(element.ksl)])):
-                manager.tasks[lref[element_name].ksl[ii]].expr += ksl[ii]
+                if lref[element_name].ksl[ii] in manager.tasks.keys():
+                    manager.tasks[lref[element_name].ksl[ii]].expr += ksl[ii]
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing
