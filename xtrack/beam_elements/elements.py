@@ -317,6 +317,14 @@ Multipole.XoStruct.extra_sources = [
     _pkg_root.joinpath('headers/synrad_spectrum.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
+def _update_phase_from_pn_ps(pn, ps, phase, context=None):
+    assert len(phase) == 2*len(pn) == 2*len(ps)
+    idx = np.array([ii for ii in range(0, len(pn))])
+    inv_factorial = 1.0 / factorial(idx, exact=True)
+    if context is not None:
+        inv_factorial = context.nparray_to_context_array(inv_factorial)
+    phase[0::2] = pn * inv_factorial
+    phase[1::2] = ps * inv_factorial
 
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
@@ -468,19 +476,52 @@ class RFMultipole(BeamElement):
             self.bal[:] = ctx.nparray_to_context_array(temp_bal)
             self.phase[:] = ctx.nparray_to_context_array(temp_phase)
 
+
     @property
     def pn(self):
+        phase_length = len(self.phase)
+        idxes = np.array([ii for ii in range(0, phase_length, 2)])
+        _phase = self._buffer.context.nparray_from_context_array(self.phase)
         _pn = self._buffer.context.nparray_to_context_array(np.array(
-            [self._xobject.phase[ii] for ii in range(0, len(self.phase), 2)]))
+            [_phase[idx] * factorial(idx // 2, exact=True) for idx in idxes]))
         return self._buffer.context.linked_array_type.from_array(
-                                        _pn, mode='readonly')
+                                        _pn,
+                                        mode='setitem_from_container',
+                                        container=self,
+                                        container_setitem_name='_pn_setitem')
+
+    @pn.setter
+    def pn(self, value):
+        self.pn[:] = value
+
+    def _pn_setitem(self, indx, val):
+        _pn = self.pn.copy()
+        _pn[indx] = val
+        _update_phase_from_pn_ps(_pn, self.ps, self.phase,
+                                 context=self._buffer.context)
 
     @property
     def ps(self):
+        phase_length = len(self.phase)
+        idxes = np.array([ii for ii in range(0, phase_length, 2)])
+        _phase = self._buffer.context.nparray_from_context_array(self.phase)
         _ps = self._buffer.context.nparray_to_context_array(np.array(
-            [self._xobject.phase[ii+1] for ii in range(0, len(self.phase), 2)]))
+            [_phase[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]))
         return self._buffer.context.linked_array_type.from_array(
-                                        _ps, mode='readonly')
+                                        _ps,
+                                        mode='setitem_from_container',
+                                        container=self,
+                                        container_setitem_name='_ps_setitem')
+
+    @ps.setter
+    def ps(self, value):
+        self.ps[:] = value
+
+    def _ps_setitem(self, indx, val):
+        _ps = self.ps.copy()
+        _ps[indx] = val
+        _update_phase_from_pn_ps(self.knl, _ps, self.phase,
+                                 context=self._buffer.context)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
