@@ -157,6 +157,10 @@ def madx_sequence_to_xtrack_line(
                 lag=ee.lag * 360,
             )
             line.element_dict[eename] = newele
+            if deferred_expressions:
+                _lref[eename].voltage = _eref[eename]['volt'] * 1e6
+                _lref[eename].frequency = _eref[eename]['freq'] * 1e6
+                _lref[eename].lag = _eref[eename]['lag'] * 360
 
         elif mad_etype == "rfmultipole":
             newele = classes.RFMultipole(
