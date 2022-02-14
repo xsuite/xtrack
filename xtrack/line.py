@@ -128,9 +128,9 @@ class Line:
             deferred_expressions=deferred_expressions)
 
         if apply_madx_errors:
-            if line._var_management is not None:
-                raise NotImplementedError('MAD-X errors cannot be imported'
-                            ' together with deferred expressions')
+            # if line._var_management is not None:
+            #     raise NotImplementedError('MAD-X errors cannot be imported'
+            #                 ' together with deferred expressions')
             line._apply_madx_errors(sequence)
 
         return line
@@ -524,6 +524,16 @@ class Line:
                 hyl=element.hyl, radiation_flag=element.radiation_flag)
 
         self.element_dict[element_name] = new_element
+
+        # Handle deferred expressions
+        if self._var_management is not None:
+            lref = self._var_management['lref']
+            manager = self._var_management['manager']
+            for ii in range(min([len(knl), len(element.knl)])):
+                manager.tasks[lref[element_name].knl[ii]].expr += knl[ii]
+
+            for ii in range(min([len(ksl), len(element.ksl)])):
+                manager.tasks[lref[element_name].ksl[ii]].expr += ksl[ii]
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing

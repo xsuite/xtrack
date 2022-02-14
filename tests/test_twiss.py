@@ -91,13 +91,13 @@ def test_line_import_from_madx():
     atol=1e1
 
     line_with_expressions = xt.Line.from_madx_sequence(
-        mad.sequence['lhcb1'], apply_madx_errors=False,
+        mad.sequence['lhcb1'], apply_madx_errors=True,
         deferred_expressions=True)
     line_with_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
 
     line_no_expressions = xt.Line.from_madx_sequence(
-        mad.sequence['lhcb1'], apply_madx_errors=False,
+        mad.sequence['lhcb1'], apply_madx_errors=True,
         deferred_expressions=False)
     line_no_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
