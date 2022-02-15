@@ -150,10 +150,7 @@ class SRotation(BeamElement):
         'sin_z': xo.Float64,
         }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['angle'] = self.angle
-        return dct
+    _store_in_to_dict = ['angle']
 
     def __init__(self, angle=0, **nargs):
         anglerad = angle / 180 * np.pi
@@ -204,12 +201,7 @@ class Multipole(BeamElement):
         'bal': xo.Float64[:],
         }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['knl'] = self.knl
-        dct['ksl'] = self.ksl
-        return dct
-
+    _store_in_to_dict = ['knl', 'ksl']
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
 
@@ -355,13 +347,7 @@ class RFMultipole(BeamElement):
         'phase': xo.Float64[:],
     }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['knl'] = self.knl
-        dct['ksl'] = self.ksl
-        dct['pn'] = self.pn
-        dct['ps'] = self.ps
-        return dct
+    _store_in_to_dict = ['knl', 'ksl', 'pn', 'ps']
 
     def __init__(
         self,
@@ -558,13 +544,7 @@ class DipoleEdge(BeamElement):
             'r43': xo.Float64,
             }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['h'] = self.h
-        dct['e1'] = self.e1
-        dct['hgap'] = self.hgap
-        dct['fint'] = self.fint
-        return dct
+    _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
 
     def __init__(
         self,
