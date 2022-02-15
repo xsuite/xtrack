@@ -76,11 +76,16 @@ def test_twiss():
             assert np.isclose(twxt['muy'][ixt], twmad['muy'][imad],
                               atol=1e-4, rtol=0)
 
-            assert np.isclose(twxt['s'][ixt], twmad['s'][imad], atol=5e-6, rtol=0)
-            assert np.isclose(twxt['x'][ixt], twmad['x'][imad], atol=5e-6, rtol=0)
-            assert np.isclose(twxt['y'][ixt], twmad['y'][imad], atol=5e-6, rtol=0)
-            assert np.isclose(twxt['px'][ixt], twmad['px'][imad], atol=1e-7, rtol=0)
-            assert np.isclose(twxt['py'][ixt], twmad['py'][imad], atol=1e-7, rtol=0)
+            assert np.isclose(twxt['s'][ixt], twmad['s'][imad],
+                              atol=5e-6, rtol=0)
+            assert np.isclose(twxt['x'][ixt], twmad['x'][imad],
+                              atol=5e-6, rtol=0)
+            assert np.isclose(twxt['y'][ixt], twmad['y'][imad],
+                              atol=5e-6, rtol=0)
+            assert np.isclose(twxt['px'][ixt], twmad['px'][imad],
+                              atol=1e-7, rtol=0)
+            assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
+                              atol=1e-7, rtol=0)
 def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 
@@ -119,7 +124,8 @@ def test_line_import_from_madx():
     assert (ltest.get_length() - lref.get_length()) < 1e-6
 
     for ii, (ee_test, ee_six, nn_test, nn_six) in enumerate(
-        zip(ltest.elements, lref.elements, ltest.element_names, lref.element_names)
+        zip(ltest.elements, lref.elements,
+            ltest.element_names, lref.element_names)
     ):
         assert type(ee_test) == type(ee_six)
 
@@ -147,7 +153,8 @@ def test_line_import_from_madx():
                     or norm(val_test) < 1e-14) :
                 diff_rel = 100
             else:
-                diff_rel = norm(np.array(val_test) - np.array(val_ref)) / norm(val_test)
+                diff_rel = norm(
+                    np.array(val_test) - np.array(val_ref)) / norm(val_test)
             if diff_rel < rtol:
                 continue
 
@@ -171,11 +178,11 @@ def test_line_import_from_madx():
         tracker.line.vars['kqtf.b1'] = -2e-4
         assert np.isclose(tracker.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
 
-        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage, 2e6,
-                        rtol=0, atol=1e-14)
+        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage,
+                          2e6, rtol=0, atol=1e-14)
         tracker.line.vars['vrf400'] = 8
-        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage, 1e6,
-                        rtol=0, atol=1e-14)
+        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage,
+                          1e6, rtol=0, atol=1e-14)
 
         assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].lag, 180,
                         rtol=0, atol=1e-14)
