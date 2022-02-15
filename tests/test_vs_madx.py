@@ -34,7 +34,7 @@ mad_no_errors.twiss()
 def test_twiss():
 
     mad = mad_with_errors
-    twmad = mad.twiss()
+    twmad = mad.twiss(chrom=True)
 
     line = xt.Line.from_madx_sequence(
             mad.sequence['lhcb1'], apply_madx_errors=True)
