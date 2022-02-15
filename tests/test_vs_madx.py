@@ -14,17 +14,27 @@ test_data_folder = pathlib.Path(
 
 path = test_data_folder.joinpath('hllhc14_input_mad/')
 
-mad = Madx(command_log="mad_final.log")
-mad.call(str(path.joinpath("final_seq.madx")))
-mad.use(sequence="lhcb1")
-mad.twiss()
-mad.readtable(file=str(path.joinpath("final_errors.tfs")),
-                table="errtab")
-mad.seterr(table="errtab")
-mad.set(format=".15g")
-twmad = mad.twiss(rmatrix=True, chrom=True)
+mad_with_errors = Madx(command_log="mad_final.log")
+mad_with_errors.call(str(path.joinpath("final_seq.madx")))
+mad_with_errors.use(sequence="lhcb1")
+mad_with_errors.twiss()
+mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
+                          table="errtab")
+mad_with_errors.seterr(table="errtab")
+mad_with_errors.set(format=".15g")
+
+mad_no_errors = Madx(command_log="mad_final.log")
+mad_no_errors.call(str(test_data_folder.joinpath(
+                               'hllhc15_noerrors_nobb/sequence.madx')))
+mad_no_errors.use(sequence="lhcb1")
+mad_no_errors.globals['vrf400'] = 16
+mad_no_errors.globals['lagrf400.b1'] = 0.5
+mad_no_errors.twiss()
 
 def test_twiss():
+
+    mad = mad_with_errors
+    twmad = mad.twiss()
 
     line = xt.Line.from_madx_sequence(
             mad.sequence['lhcb1'], apply_madx_errors=True)
@@ -91,20 +101,26 @@ def norm(x):
 
 def test_line_import_from_madx():
 
+    mad = mad_with_errors
+
     rtol = 1e-7
     strict = True
     atol = 1e-14
 
     print('Build line with expressions...')
     line_with_expressions = xt.Line.from_madx_sequence(
-        mad.sequence['lhcb1'], apply_madx_errors=True,
+        mad.sequence['lhcb1'],
+        apply_madx_errors=True,
+        install_apertures=True,
         deferred_expressions=True)
     line_with_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
 
     print('Build line without expressions...')
     line_no_expressions = xt.Line.from_madx_sequence(
-        mad.sequence['lhcb1'], apply_madx_errors=True,
+        mad.sequence['lhcb1'],
+        apply_madx_errors=True,
+        install_apertures=True,
         deferred_expressions=False)
     line_no_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
@@ -172,6 +188,7 @@ def test_line_import_from_madx():
     print('\nTest tracker and xsuite vars...\n')
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
+
         tracker = xt.Tracker(line=line_with_expressions.copy(),
                              _context=context)
         assert np.isclose(tracker.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
@@ -223,3 +240,32 @@ def test_line_import_from_madx():
         tracker.vars['crabrf'] = 0.
         assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].frequency) == 0
         assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].frequency) == 0
+
+def test_orbit_knobs():
+
+    mad = mad_no_errors
+
+    line = xt.Line.from_madx_sequence(
+        mad.sequence['lhcb1'], apply_madx_errors=False,
+        deferred_expressions=True)
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+                        gamma0=mad.sequence.lhcb1.beam.gamma)
+
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+
+        tracker = xt.Tracker(line=line.copy(), _context=context)
+
+        tracker.vars['on_x1'] = 250
+        assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+                    atol=1e-6, rtol=0)
+        tracker.vars['on_x1'] = -300
+        assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+                    atol=1e-6, rtol=0)
+
+        tracker.vars['on_x5'] = 130
+        assert np.isclose(tracker.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+                    atol=1e-6, rtol=0)
+        tracker.vars['on_x5'] = -270
+        assert np.isclose(tracker.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+                    atol=1e-6, rtol=0)
