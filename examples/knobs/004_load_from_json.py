@@ -29,3 +29,17 @@ manager.find_deps([line.vars['on_x1']])
 #  line_dict['mcbrdv.4r1.b1'], line_dict['mcbrdv.4r1.b1'].ksl[0],
 #  line_dict['mcbrdv.4r1.b1'].ksl, vars['on_dx1vs'], vars['acbv13.l1b1'],
 #  ... ]
+
+lref = line._var_management['lref']
+manager.tasks[lref['mcbrdv.4r1.b1'].knl[0]].expr
+# returns:
+# mad_elements_dct['mcbrdv.4r1.b1']['kick']
+
+eref = line._var_management['eref']
+manager.tasks[eref['mcbrdv.4r1.b1']['kick']].expr
+# returns:
+# (vars['acbrdv4.r1b1']*vars['bv_aux'])
+
+manager.tasks[line.vars['acbrdv4.r1b1']]
+# returns:
+# vars['acbrdv4.r1b1'] = ((((((((4.455799347835793e-07*vars['on_x1vs'])+ ...
