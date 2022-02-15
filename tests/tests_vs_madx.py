@@ -104,10 +104,15 @@ def test_line_import_from_madx():
     line_no_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
 
+    # Profit to test to_dict/from_dict
+    print('Test to_dict/from_dict')
+    line_with_expressions = xt.Line.from_dict(line_with_expressions.to_dict())
+
+    print('Start consistency check')
+
     ltest = line_with_expressions
     lref = line_no_expressions
 
-    print('Start consistency check')
     # Check that the two machines are identical
     assert len(ltest) == len(lref)
 
@@ -147,7 +152,6 @@ def test_line_import_from_madx():
                 continue
 
             # Check if absolute error is small
-
             if not np.isscalar(val_ref) and len(val_ref) != len(val_test):
                 diff_abs = 1000
             else:
@@ -158,46 +162,49 @@ def test_line_import_from_madx():
             # If it got here it means that no condition above is met
             raise ValueError("Too large discrepancy!")
 
-    print('\nTest xsuite vars...\n')
-    tracker = xt.Tracker(line=line_with_expressions)
-    assert np.isclose(tracker.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
-    tracker.line.vars['kqtf.b1'] = -2e-4
-    assert np.isclose(tracker.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
+    print('\nTest tracker and xsuite vars...\n')
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+        tracker = xt.Tracker(line=line_with_expressions.copy(),
+                             _context=context)
+        assert np.isclose(tracker.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
+        tracker.line.vars['kqtf.b1'] = -2e-4
+        assert np.isclose(tracker.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
 
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage, 2e6,
-                      rtol=0, atol=1e-14)
-    tracker.line.vars['vrf400'] = 8
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage, 1e6,
-                      rtol=0, atol=1e-14)
+        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage, 2e6,
+                        rtol=0, atol=1e-14)
+        tracker.line.vars['vrf400'] = 8
+        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage, 1e6,
+                        rtol=0, atol=1e-14)
 
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].lag, 180,
-                      rtol=0, atol=1e-14)
-    tracker.line.vars['lagrf400.b1'] = 0.75
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].phase, 270,
-                      rtol=0, atol=1e-14)
+        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].lag, 180,
+                        rtol=0, atol=1e-14)
+        tracker.line.vars['lagrf400.b1'] = 0.75
+        assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].phase, 270,
+                        rtol=0, atol=1e-14)
 
-    assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].ksl[0]) > 0
-    tracker.line.vars['on_crab5'] = 0
-    assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].ksl[0]) == 0
+        assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].ksl[0]) > 0
+        tracker.line.vars['on_crab5'] = 0
+        assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].ksl[0]) == 0
 
-    assert np.isclose(tracker.line.element_dict['acfcav.bl5.b1'].ps, 90,
-                      rtol=0, atol=1e-14)
-    tracker.line.vars['phi_crab_l5b1'] = 0.5
-    assert np.isclose(tracker.line.element_dict['acfcav.bl5.b1'].ps, 270,
-                      rtol=0, atol=1e-14)
+        assert np.isclose(tracker.line.element_dict['acfcav.bl5.b1'].ps, 90,
+                        rtol=0, atol=1e-14)
+        tracker.line.vars['phi_crab_l5b1'] = 0.5
+        assert np.isclose(tracker.line.element_dict['acfcav.bl5.b1'].ps, 270,
+                        rtol=0, atol=1e-14)
 
-    assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].knl[0]) > 0
-    tracker.line.vars['on_crab1'] = 0
-    assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].knl[0]) == 0
+        assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].knl[0]) > 0
+        tracker.line.vars['on_crab1'] = 0
+        assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].knl[0]) == 0
 
-    assert np.isclose(tracker.line.element_dict['acfcah.bl1.b1'].pn, 90,
-                      rtol=0, atol=1e-14)
-    tracker.line.vars['phi_crab_l1b1'] = 0.5
-    assert np.isclose(tracker.line.element_dict['acfcah.bl1.b1'].pn, 270,
-                      rtol=0, atol=1e-14)
+        assert np.isclose(tracker.line.element_dict['acfcah.bl1.b1'].pn, 90,
+                        rtol=0, atol=1e-14)
+        tracker.line.vars['phi_crab_l1b1'] = 0.5
+        assert np.isclose(tracker.line.element_dict['acfcah.bl1.b1'].pn, 270,
+                        rtol=0, atol=1e-14)
 
-    assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].frequency) > 0
-    assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].frequency) > 0
-    tracker.line.vars['crabrf'] = 0.
-    assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].frequency) == 0
-    assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].frequency) == 0
+        assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].frequency) > 0
+        assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].frequency) > 0
+        tracker.line.vars['crabrf'] = 0.
+        assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].frequency) == 0
+        assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].frequency) == 0

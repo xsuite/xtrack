@@ -377,6 +377,10 @@ class Tracker:
     def particle_ref(self):
         return self.line.particle_ref
 
+    @property
+    def vars(self):
+        return self.line.vars
+
     def _build_kernel(self, save_source_as):
 
         context = self._line_frozen._buffer.context

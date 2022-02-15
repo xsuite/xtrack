@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 import numpy as np
 
 import xobjects as xo
@@ -249,9 +250,12 @@ class Line:
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None:
-            out['_var_management_data'] = self._var_management['data']
+            out['_var_management_data'] = deepcopy(self._var_management['data'])
             out['_var_manager'] = self._var_management['manager'].dump()
         return out
+
+    def copy(self):
+        return self.__class__.from_dict(self.to_dict())
 
     def insert_element(self, idx, element, name):
         self._frozen_check()
