@@ -31,7 +31,7 @@ manager.find_deps([line.vars['on_x1']])
 #  ... ]
 
 lref = line._var_management['lref']
-manager.tasks[lref['mcbrdv.4r1.b1'].knl[0]].expr
+manager.tasks[lref['mcbrdv.4r1.b1'].ksl[0]].expr
 # returns:
 # mad_elements_dct['mcbrdv.4r1.b1']['kick']
 
