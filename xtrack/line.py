@@ -129,9 +129,6 @@ class Line:
             deferred_expressions=deferred_expressions)
 
         if apply_madx_errors:
-            # if line._var_management is not None:
-            #     raise NotImplementedError('MAD-X errors cannot be imported'
-            #                 ' together with deferred expressions')
             line._apply_madx_errors(sequence)
 
         return line
@@ -173,6 +170,16 @@ class Line:
         else:
             if element_names is None:
                 element_names = [ f"e{ii}" for ii in range(len(elements))]
+            if len(element_names) > len(set(element_names)):
+                log.warning("Repetition found in `element_names` -> renaming")
+                old_element_names = element_names
+                element_names = []
+                counters = {nn: 0 for nn in old_element_names}
+                for nn in old_element_names:
+                    new_nn = nn + '_'+  str(counters[nn])
+                    counters[nn] += 1
+                    element_names.append(new_nn)
+
             element_dict = dict(zip(element_names, elements))
 
         self.element_dict=element_dict
