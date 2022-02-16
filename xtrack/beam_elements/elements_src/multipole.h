@@ -49,9 +49,12 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
             double const r = 1/(6*PI*EPSILON_0)
                              * QELEM / (mass0*q0*q0)
-                             * curv*curv 
+                             * curv*curv
                              * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
                              * L_path * (1 + delta);
+
+            double const beta = beta0 * LocalParticle_get_rvv(part);
+            double const f_t = sqrt(1 + r*(r-2)/(beta*beta));
 
         }
 
