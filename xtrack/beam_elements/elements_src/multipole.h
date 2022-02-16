@@ -33,10 +33,22 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             dpy = MultipoleData_get_bal(el, index_y) + zim;
         }
 
-        dpx = -chi * dpx; // rad
-        dpy =  chi * dpy; // rad
 
         double const length = MultipoleData_get_length(el); // m
+
+        // Radiation at entrance
+        if (radiation_flag == 1){
+            double const gamma0 LocalParticle_get_gamma0(part);
+            double const beta0 LocalParticle_get_beta0(part);
+            double const k_rad = arad * (beta0 * gamma0)^3 / 3.;
+            double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
+            double const delta  = LocalParticle_get_delta(part);
+
+        }
+
+
+        dpx = -chi * dpx; // rad
+        dpy =  chi * dpy; // rad
 
         if( ( hxl > 0) || ( hyl > 0) || ( hxl < 0 ) || ( hyl < 0 ) )
         {
