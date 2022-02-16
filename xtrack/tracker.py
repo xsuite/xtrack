@@ -267,7 +267,7 @@ class Tracker:
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
                           co_search_settings={}):
 
-        if particle_ref is None:
+        if particle_ref is None and particle_co_guess is None:
             particle_ref = self.particle_ref
 
         return find_closed_orbit(self, particle_co_guess=particle_co_guess,
