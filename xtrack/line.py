@@ -270,6 +270,7 @@ class Line:
     def insert_element(self, idx, element, name):
         self._frozen_check()
         assert name not in self.element_dict.keys()
+        assert name not in self.element_names
         self.element_dict[name] = element
         self.element_names.insert(idx, name)
         return self
