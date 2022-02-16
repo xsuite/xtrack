@@ -38,11 +38,20 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
         // Radiation at entrance
         if (radiation_flag == 1){
-            double const gamma0 LocalParticle_get_gamma0(part);
-            double const beta0 LocalParticle_get_beta0(part);
-            double const k_rad = arad * (beta0 * gamma0)^3 / 3.;
+            double const gamma0  = LocalParticle_get_gamma0(part);
+            double const beta0  = LocalParticle_get_beta0(part);
+            double const mass0 = LocalParticle_get_mass0(part);
+            double const q0 = LocalParticle_get_q0(part);
+
             double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
+            double const L_path = 0.5*length*(1 + (-hxl*x + hyl*y)/length); //CHECK!!!!
             double const delta  = LocalParticle_get_delta(part);
+
+            double const r = 1/(6*PI*EPSILON_0)
+                             * QELEM / (mass0*q0*q0)
+                             * curv*curv 
+                             * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
+                             * L_path * (1 + delta);
 
         }
 
