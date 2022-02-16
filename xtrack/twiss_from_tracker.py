@@ -223,8 +223,24 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
     qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
 
+    dist_from_half_integer_x = np.modf(mux[-1])[0] - 0.5
+    dist_from_half_integer_y = np.modf(muy[-1])[0] - 0.5
+
+    if np.abs(qx_chrom_plus - qx_chrom_minus) > np.abs(dist_from_half_integer_x):
+        raise NotImplementedError(
+                "Qx too close to half integer, impossible to evaluate Q'x")
+    if np.abs(qy_chrom_plus - qy_chrom_minus) > np.abs(dist_from_half_integer_y):
+        raise NotImplementedError(
+                "Qy too close to half integer, impossible to evaluate Q'y")
+
     dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
     dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
+
+    if dist_from_half_integer_x > 0:
+        dqx = -dqx
+
+    if dist_from_half_integer_y > 0:
+        dqy = -dqy
 
     qs = np.angle(np.linalg.eig(Rot)[0][4])/(2*np.pi)
 
