@@ -41,9 +41,14 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
 
         // Radiation at entrance
-        if (radiation_flag == 1 && length>0){
+        if (radiation_flag > 0 && length > 0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
-            synrad_average_kick(part, curv, L_path);
+            if (radiation_flag == 1){
+                synrad_average_kick(part, curv, L_path);
+            }
+            else if (radiation_flag == 2){
+                synrad_emit_photons(part, curv, L_path);
+            }
         }
 
         dpx = -chi * dpx; // rad
@@ -75,9 +80,14 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         LocalParticle_add_to_py(part, dpy);
 
         // Radiation at exit
-        if (radiation_flag == 1 && length>0){
+        if (radiation_flag > 0 && length > 0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
-            synrad_average_kick(part, curv, L_path);
+            if (radiation_flag == 1){
+                synrad_average_kick(part, curv, L_path);
+            }
+            else if (radiation_flag == 2){
+                synrad_emit_photons(part, curv, L_path);
+            }
         }
     //end_per_particle_block
 }
