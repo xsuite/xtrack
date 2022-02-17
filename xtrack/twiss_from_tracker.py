@@ -16,6 +16,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None):
 
     if particle_co_guess is None:
+        assert particle_ref is not None
         particle_co_guess = particle_ref.copy()
         particle_co_guess.x = 0
         particle_co_guess.px = 0

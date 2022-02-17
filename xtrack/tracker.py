@@ -302,6 +302,10 @@ class Tracker:
         if particle_ref is None:
             particle_ref = self.particle_ref
 
+        if particle_ref is None and particle_co_guess is None:
+            raise ValueError(
+                "Either `particle_ref` or `particle_co_guess` must be provided")
+
         return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             n_theta=n_theta, delta_disp=delta_disp, delta_chrom=delta_chrom,
