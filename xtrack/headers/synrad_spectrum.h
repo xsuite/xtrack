@@ -5,6 +5,29 @@
 #define ALPHA_EM 0.0072973525693
 
 /*gpufun*/
+void synrad_average_kick(LocalParticle* part, double curv, double lpath){
+    double const gamma0  = LocalParticle_get_gamma0(part);
+    double const beta0  = LocalParticle_get_beta0(part);
+    double const mass0 = LocalParticle_get_mass0(part);
+    double const q0 = LocalParticle_get_q0(part);
+
+    double const delta  = LocalParticle_get_delta(part);
+
+    double const r = 1/(6*PI*EPSILON_0)
+                        * QELEM / (mass0*q0*q0)
+                        * curv*curv
+                        * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
+                        * lpath * (1 + delta);
+
+    double const beta = beta0 * LocalParticle_get_rvv(part);
+    double const f_t = sqrt(1 + r*(r-2)/(beta*beta));
+
+    LocalParticle_update_delta(part, (delta+1) * f_t - 1);
+    LocalParticle_scale_px(part, f_t);
+    LocalParticle_scale_py(part, f_t);
+}
+
+/*gpufun*/
 double SynRad(double x)
 { 
   // x :    energy normalized to the critical energy
@@ -134,22 +157,6 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
 double synrad_average_number_of_photons(double beta_gamma, double kick )
 {
   return 2.5/SQRT3*ALPHA_EM*beta_gamma*fabs(kick);
-}
-
-/*gpufun*/
-void synrad_average_energy_loss(LocalParticle *part, double kick /* rad */, double length /* m */ )
-{
-  double const h = kick / length; // 1/m, 1/rho, curvature
-  double const m0  = LocalParticle_get_mass0(part); // eV/c^2
-  double const energy = LocalParticle_get_energy0(part) + LocalParticle_get_psigma(part)*LocalParticle_get_p0c(part)*LocalParticle_get_beta0(part); // eV
-  double const gamma = energy / m0; // 
-  double const beta_gamma = sqrt(gamma*gamma-1); //
-  double const q0 = LocalParticle_get_q0(part); // e
-  // e^2 / 4 pi epsilon0 eV = (1 / 694461541.7756249) m
-  double const classical_radius = q0*q0 / m0 / 694461541.7756249; // m, classical electromagnetic radius
-  double const eloss = 2.0 / 3.0 * classical_radius * length * beta_gamma*beta_gamma*beta_gamma * h*h * energy; // eV
-  // apply the energy kick
-  LocalParticle_add_to_energy(part, -eloss, 0);
 }
 
 /*gpufun*/

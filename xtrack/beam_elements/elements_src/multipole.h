@@ -1,28 +1,7 @@
 #ifndef XTRACK_MULTIPOLE_H
 #define XTRACK_MULTIPOLE_H
 
-/*gpufun*/
-void synrad_ave(LocalParticle* part, double curv, double lpath){
-    double const gamma0  = LocalParticle_get_gamma0(part);
-    double const beta0  = LocalParticle_get_beta0(part);
-    double const mass0 = LocalParticle_get_mass0(part);
-    double const q0 = LocalParticle_get_q0(part);
 
-    double const delta  = LocalParticle_get_delta(part);
-
-    double const r = 1/(6*PI*EPSILON_0)
-                        * QELEM / (mass0*q0*q0)
-                        * curv*curv
-                        * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
-                        * lpath * (1 + delta);
-
-    double const beta = beta0 * LocalParticle_get_rvv(part);
-    double const f_t = sqrt(1 + r*(r-2)/(beta*beta));
-
-    LocalParticle_update_delta(part, (delta+1) * f_t - 1);
-    LocalParticle_scale_px(part, f_t);
-    LocalParticle_scale_py(part, f_t);
-}
 
 
 /*gpufun*/
@@ -64,7 +43,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         // Radiation at entrance
         if (radiation_flag == 1 && length>0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
-            synrad_ave(part, curv, L_path);
+            synrad_average_kick(part, curv, L_path);
         }
 
         dpx = -chi * dpx; // rad
@@ -98,7 +77,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         // Radiation at exit
         if (radiation_flag == 1 && length>0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
-            synrad_ave(part, curv, L_path);
+            synrad_average_kick(part, curv, L_path);
         }
     //end_per_particle_block
 }
