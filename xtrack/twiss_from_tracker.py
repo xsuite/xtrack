@@ -155,6 +155,9 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     y_co = tracker.record_last_track.y[4, :].copy()
     px_co = tracker.record_last_track.px[4, :].copy()
     py_co = tracker.record_last_track.py[4, :].copy()
+    zeta_co = tracker.record_last_track.zeta[4, :].copy()
+    delta_co = tracker.record_last_track.delta[4, :].copy()
+    psigma_co = tracker.record_last_track.psigma[4, :].copy()
 
     x_disp_minus = tracker.record_last_track.x[5, :].copy()
     y_disp_minus = tracker.record_last_track.y[5, :].copy()
@@ -251,6 +254,9 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'px': px_co,
         'y': y_co,
         'py': py_co,
+        'zeta': zeta_co,
+        'delta': delta_co,
+        'psigma': psigma_co,
         'betx': betx,
         'bety': bety,
         'alfx': alfx,
@@ -284,7 +290,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
             else:
                 assert nn in tracker.line.element_names
                 indx_twiss.append(enames.index(nn))
-        indx_twiss = sorted(indx_twiss)
 
         for kk, vv in twiss_res.items():
             if hasattr(vv, '__len__') and len(vv) == len(s):

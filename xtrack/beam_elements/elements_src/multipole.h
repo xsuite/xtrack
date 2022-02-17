@@ -38,16 +38,17 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
 
         // Radiation at entrance
-        if (radiation_flag == 1){
+        if (radiation_flag == 1 && length>0){
+            double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
             double const gamma0  = LocalParticle_get_gamma0(part);
             double const beta0  = LocalParticle_get_beta0(part);
             double const mass0 = LocalParticle_get_mass0(part);
             double const q0 = LocalParticle_get_q0(part);
 
-            double const L_path = 0.5*length*(1 + (-hxl*x + hyl*y)/length); //CHECK!!!!
+            double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
             double const delta  = LocalParticle_get_delta(part);
 
-            double const r = 1/(6*PI*EPSILON_0)
+            double const r = 1./(6.*PI*EPSILON_0)
                              * QELEM / (mass0*q0*q0)
                              * curv*curv
                              * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
@@ -56,11 +57,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             double const beta = beta0 * LocalParticle_get_rvv(part);
             double const f_t = sqrt(1 + r*(r-2)/(beta*beta));
 
-            double const energy = LocalParticle_get_energy0(part)
-                    + LocalParticle_get_psigma(part)*LocalParticle_get_p0c(part)
-                       * LocalParticle_get_beta0(part); // eV
-
-            LocalParticle_add_to_energy(part, -r*energy, 1);
+            LocalParticle_update_delta(part, (delta+1) * f_t - 1);
             LocalParticle_scale_px(part, f_t);
             LocalParticle_scale_py(part, f_t);
 
@@ -96,13 +93,13 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         LocalParticle_add_to_py(part, dpy);
 
         // Radiation at exit
-        if (radiation_flag == 1){
+        if (radiation_flag == 1 && length > 0){
             double const gamma0  = LocalParticle_get_gamma0(part);
             double const beta0  = LocalParticle_get_beta0(part);
             double const mass0 = LocalParticle_get_mass0(part);
             double const q0 = LocalParticle_get_q0(part);
 
-            double const L_path = 0.5*length*(1 + (-hxl*x + hyl*y)/length); //CHECK!!!!
+            double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
             double const delta  = LocalParticle_get_delta(part);
 
             double const r = 1/(6*PI*EPSILON_0)
@@ -114,14 +111,9 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             double const beta = beta0 * LocalParticle_get_rvv(part);
             double const f_t = sqrt(1 + r*(r-2)/(beta*beta));
 
-            double const energy = LocalParticle_get_energy0(part)
-                    + LocalParticle_get_psigma(part)*LocalParticle_get_p0c(part)
-                       * LocalParticle_get_beta0(part); // eV
-
-            LocalParticle_add_to_energy(part, -r*energy, 1);
+            LocalParticle_update_delta(part, (delta+1) * f_t - 1);
             LocalParticle_scale_px(part, f_t);
             LocalParticle_scale_py(part, f_t);
-
         }
     //end_per_particle_block
 }
