@@ -4,6 +4,7 @@ import xobjects as xo
 import xpart as xp
 
 from scipy.optimize import fsolve
+from scipy.constants import c as clight
 
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-7, 'dpx':1e-10,
@@ -109,7 +110,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=2.5e-6,
         n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4,
         particle_co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None):
+        co_search_settings=None, at_elements=None,
+        eneloss_and_damping=False):
 
     context = tracker._buffer.context
 
@@ -247,6 +249,36 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     qs = np.angle(np.linalg.eig(Rot)[0][4])/(2*np.pi)
 
+    beta0 = tracker.particle_ref.beta0[0]
+    circumference = tracker.line.get_length()
+    T_rev = circumference/clight/beta0
+
+    if eneloss_and_damping:
+        diff_psigma = np.diff(psigma_co)
+        eloss_turn = -sum(diff_psigma[diff_psigma<0])*part_on_co.energy0[0]
+
+        # Get eigenvalues
+        w0, v0 = np.linalg.eig(RR)
+
+        # Sort eigenvalues
+        indx = [
+            int(np.floor(np.argmax(np.abs(v0[:, 2*ii]))/2)) for ii in range(3)]
+        eigenvals = np.array([w0[ii*2] for ii in indx])
+        tunes = np.angle(eigenvals)/2/np.pi
+
+        # Damping constants and partition numbers
+        damping_constants_turns = -np.log(np.abs(eigenvals))
+        damping_constants_s = damping_constants_turns / T_rev
+        partition_numbers = (
+            damping_constants_turns* 2 * part_on_co.energy0[0]/eloss_turn)
+
+        eneloss_damp_res = {
+            'eneloss_turn': eloss_turn,
+            'damping_constants_turns': damping_constants_turns,
+            'damping_constants_s':damping_constants_s,
+            'partition_numbers': partition_numbers
+        }
+
     twiss_res = {
         'name': tracker.line.element_names,
         's': s,
@@ -276,9 +308,14 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'dqy': dqy,
         'slip_factor': eta,
         'momentum_compaction_factor': alpha,
+        'circumference': circumference,
+        'T_rev': T_rev,
         'R_matrix': RR,
         'particle_on_co':part_on_co.copy(_context=xo.context_default)
     }
+
+    if eneloss_and_damping:
+        twiss_res.update(eneloss_damp_res)
 
     # Downselect based on at_element
     enames = tracker.line.element_names
@@ -292,6 +329,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 indx_twiss.append(enames.index(nn))
 
         for kk, vv in twiss_res.items():
+            if kk in eneloss_damp_res.keys():
+                continue
             if hasattr(vv, '__len__') and len(vv) == len(s):
                 if isinstance(vv, np.ndarray):
                     twiss_res[kk] = vv[indx_twiss]
