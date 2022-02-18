@@ -190,7 +190,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
         }
         energy -= energy_loss; // eV
         gamma = energy / m0; //
-        beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
+        // beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
         n += LocalParticle_generate_random_double_exp(part);
     }
 
