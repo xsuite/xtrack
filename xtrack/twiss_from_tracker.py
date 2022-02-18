@@ -197,7 +197,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     eta = -((part_for_twiss._xobject.zeta[6] - part_for_twiss._xobject.zeta[5])
                 /(2*delta_disp)/tracker.line.get_length())
-    alpha = eta + 1/part_on_co.gamma0[0]**2
+    alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
     part_chrom_plus = xp.build_particles(
                 _context=context,
@@ -256,7 +256,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     if eneloss_and_damping:
         diff_psigma = np.diff(psigma_co)
-        eloss_turn = -sum(diff_psigma[diff_psigma<0])*part_on_co.energy0[0]
+        energy0 = part_on_co.mass0 * part_on_co._xobject.gamma0[0]
+        eloss_turn = -(sum(diff_psigma[diff_psigma<0]) * energy0)
 
         # Get eigenvalues
         w0, v0 = np.linalg.eig(RR)
@@ -271,7 +272,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         damping_constants_turns = -np.log(np.abs(eigenvals))
         damping_constants_s = damping_constants_turns / T_rev
         partition_numbers = (
-            damping_constants_turns* 2 * part_on_co.energy0[0]/eloss_turn)
+            damping_constants_turns* 2 * energy0/eloss_turn)
 
         eneloss_damp_res = {
             'eneloss_turn': eloss_turn,
