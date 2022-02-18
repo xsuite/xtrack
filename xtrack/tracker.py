@@ -300,7 +300,8 @@ class Tracker:
             tracker = self
 
         if particle_ref is None:
-            particle_ref = self.particle_ref
+            if particle_co_guess is None:
+                particle_ref = self.particle_ref
 
         if particle_ref is None and particle_co_guess is None:
             raise ValueError(

@@ -87,6 +87,11 @@ particles = xp.build_particles(tracker=tracker,
     delta=np.array([0,0,1e-4]) + part_co.delta[0],
     scale_with_transverse_norm_emitt=(1e-9, 1e-9))
 
+# Switch radiation
+for ee in line.elements:
+    if isinstance(ee, xt.Multipole):
+        ee.radiation_flag = 2
+
 num_turns = 5000
 t1 = time.time()
 tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)

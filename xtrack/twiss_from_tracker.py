@@ -197,7 +197,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     eta = -((part_for_twiss._xobject.zeta[6] - part_for_twiss._xobject.zeta[5])
                 /(2*delta_disp)/tracker.line.get_length())
-    alpha = eta + 1/particle_ref.gamma0[0]**2
+    alpha = eta + 1/part_on_co.gamma0[0]**2
 
     part_chrom_plus = xp.build_particles(
                 _context=context,
@@ -250,7 +250,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     qs = np.angle(np.linalg.eig(Rot)[0][4])/(2*np.pi)
 
-    beta0 = tracker.particle_ref.beta0[0]
+    beta0 = part_on_co.beta0[0]
     circumference = tracker.line.get_length()
     T_rev = circumference/clight/beta0
 
@@ -330,7 +330,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 indx_twiss.append(enames.index(nn))
 
         for kk, vv in twiss_res.items():
-            if kk in eneloss_damp_res.keys():
+            if eneloss_and_damping and kk in eneloss_damp_res.keys():
                 continue
             if hasattr(vv, '__len__') and len(vv) == len(s):
                 if isinstance(vv, np.ndarray):
