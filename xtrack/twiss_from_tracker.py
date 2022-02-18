@@ -250,7 +250,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     qs = np.angle(np.linalg.eig(Rot)[0][4])/(2*np.pi)
 
-    beta0 = part_on_co.beta0[0]
+    beta0 = part_on_co._xobject.beta0[0]
     circumference = tracker.line.get_length()
     T_rev = circumference/clight/beta0
 
