@@ -176,10 +176,16 @@ class Line:
                 element_names = []
                 counters = {nn: 0 for nn in old_element_names}
                 for nn in old_element_names:
-                    new_nn = nn + '_'+  str(counters[nn])
+                    if counters[nn] > 0:
+                        new_nn = nn + '_'+  str(counters[nn])
+                    else:
+                        new_nn = nn
                     counters[nn] += 1
                     element_names.append(new_nn)
 
+            assert len(element_names) == len(elements), (
+                "`elements` and `element_names` should have the same length"
+            )
             element_dict = dict(zip(element_names, elements))
 
         self.element_dict=element_dict
