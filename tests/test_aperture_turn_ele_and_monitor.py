@@ -24,8 +24,7 @@ def test_aperture_turn_ele_and_monitor():
                                  px=np.linspace(-1, 1, n_part),
                                  y=np.zeros(n_part),
                                  py=np.linspace(-2, 2, n_part),
-                                 sigma=np.zeros(n_part),
-                                 delta=np.zeros(n_part))
+                                )
 
         # Build a small test line
         tot_length = 2.
@@ -130,8 +129,7 @@ def test_custom_monitor():
                                  px=np.linspace(-1, 1, n_part),
                                  y=np.zeros(n_part),
                                  py=np.linspace(-2, 2, n_part),
-                                 sigma=np.zeros(n_part),
-                                 delta=np.zeros(n_part))
+                                )
 
         # Build a small test line
         tot_length = 2.

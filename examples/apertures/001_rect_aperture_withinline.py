@@ -23,11 +23,9 @@ dtk_particles = dtk.TestParticles(
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),
         y=np.random.uniform(-part_gen_range, part_gen_range, n_part),
-        py = np.zeros(n_part),
-        sigma = np.zeros(n_part),
-        delta = np.zeros(n_part))
+        py = np.zeros(n_part))
 
-particles = xp.Particles(_context=context, **dtk_particles.to_dict())
+particles = xp.Particles.from_dict(_context=context, dct=dtk_particles.to_dict())
 
 aper_test = dtk.LimitRect(min_x=x_aper_min,
                                           max_x=x_aper_max,
@@ -59,7 +57,7 @@ part_s = context.nparray_from_context_array(particles.s)
 id_alive = part_id[part_state>0]
 
 assert np.allclose(np.sort(dtk_particles.particle_id), np.sort(id_alive))
-assert np.allclose(part_s[part_state>0], 10.)
+assert np.allclose(part_s[part_state>0], 0.)
 assert np.allclose(part_s[part_state<1], 5.)
 
 import matplotlib.pyplot as plt
