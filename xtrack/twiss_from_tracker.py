@@ -192,6 +192,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     alfx = - W4[0, 0, :] * W4[1, 0, :] - W4[0, 1, :] * W4[1, 1, :]
     alfy = - W4[2, 2, :] * W4[3, 2, :] - W4[2, 3, :] * W4[3, 3, :]
 
+    betz0 = W[4, 4]**2 + W[4, 5]**2
+
     mux = np.unwrap(np.arctan2(W4[0, 1, :], W4[0, 0, :]))/2/np.pi
     muy = np.unwrap(np.arctan2(W4[2, 3, :], W4[2, 2, :]))/2/np.pi
 
@@ -265,7 +267,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         indx = [
             int(np.floor(np.argmax(np.abs(v0[:, 2*ii]))/2)) for ii in range(3)]
         eigenvals = np.array([w0[ii*2] for ii in indx])
-        tunes = np.angle(eigenvals)/2/np.pi
 
         # Damping constants and partition numbers
         damping_constants_turns = -np.log(np.abs(eigenvals))
@@ -296,6 +297,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'alfy': alfy,
         'gamx': gamx,
         'gamy': gamy,
+        'betz0': betz0,
         'dx': dx,
         'dpx': dpx,
         'dy': dy,
