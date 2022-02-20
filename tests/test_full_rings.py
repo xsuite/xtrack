@@ -66,8 +66,8 @@ def test_full_rings(element_by_element=False):
             ######################
             # Get some particles #
             ######################
-            particles = xp.Particles(_context=context, **input_data['particle'])
-
+            particles = xp.Particles.from_dict(input_data['particle'],
+                                               _context=context)
             #########
             # Track #
             #########
@@ -184,7 +184,7 @@ def test_freeze_vars():
         ######################
         # Get some particles #
         ######################
-        particle_ref=xp.Particles(**input_data['particle'])
+        particle_ref=xp.Particles.from_dict(input_data['particle'])
         particles = xp.build_particles(_context=context,
                 particle_ref=particle_ref,
                 x=np.linspace(-1e-4, 1e-4, 10))

@@ -50,27 +50,26 @@ class LimitEllipse(BeamElement):
         dct['b'] = np.sqrt(self.b_squ)
         return dct
 
-    def __init__(self, a_squ=None, b_squ=None, **kwargs):
-        if a_squ is None and "a" in kwargs:
-            a = kwargs.get("a")
-            if a is not None and a > 0.0:
-                a_squ = a * a
-        if a_squ is None:
-            a_squ = 1.0
+    def __init__(self, a=None, b=None, a_squ=None, b_squ=None, **kwargs):
 
-        if b_squ is None and "b" in kwargs:
-            b = kwargs.get("b")
-            if b is not None and b > 0.0:
-                b_squ = b * b
-        if b_squ is None:
-            b_squ = 1.0
+        if a is None and a_squ is None:
+            a = 1.
+
+        if b is None and b_squ is None:
+            b = 1.
+
+        if a is not None:
+            a_squ = a * a
+
+        if b is not None:
+            b_squ = b * b
+
+        if 'a_b_squ' not in kwargs.keys():
+            kwargs['a_b_squ'] = a_squ * b_squ
 
         if a_squ > 0.0 and b_squ > 0.0:
-            a_b_squ = a_squ * b_squ
-            kwargs['a_squ'] = a_squ
-            kwargs['b_squ'] = b_squ
-            kwargs['a_b_squ'] = a_squ * b_squ
-            super().__init__(**kwargs)
+            super().__init__(a_squ=a_squ, b_squ=b_squ,
+                             **kwargs)
         else:
             raise ValueError("a_squ and b_squ have to be positive definite")
 
@@ -233,25 +232,25 @@ class LimitRectEllipse(BeamElement):
             }
 
     def __init__(
-        self, max_x=None, max_y=None, a_squ=None, b_squ=None, **kwargs
+        self, max_x=None, max_y=None, a_squ=None, b_squ=None,
+        a=None, b=None, **kwargs
     ):
         if max_x is None:
             max_x = 1.0
         if max_y is None:
             max_y = 1.0
-        if a_squ is None and "a" in kwargs:
-            a = kwargs.get("a")
-            if a is not None and a > 0.0:
-                a_squ = a * a
-        if a_squ is None:
-            a_squ = 1.0
 
-        if b_squ is None and "b" in kwargs:
-            b = kwargs.get("b")
-            if b is not None and b > 0.0:
-                b_squ = b * b
-        if b_squ is None:
-            b_squ = 1.0
+        if a is None and a_squ is None:
+            a = 1.
+
+        if b is None and b_squ is None:
+            b = 1.
+
+        if a is not None:
+            a_squ = a * a
+
+        if b is not None:
+            b_squ = b * b
 
         if max_x < 0.0:
             raise ValueError("max_x has to be positive definite")

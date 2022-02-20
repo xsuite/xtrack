@@ -50,8 +50,8 @@ def test_drift():
                 py=-1.5e-5,
                 zeta=2.)
 
-        particles = xp.Particles(_context=ctx,
-                                 **dtk_particle.to_dict())
+        particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                           _context=ctx)
 
         drift = xt.Drift(_context=ctx, length=10.)
         drift.track(particles)
@@ -79,9 +79,8 @@ def test_elens():
                 py=np.array([0.0]),
                 zeta=np.array([0.]))
 
-        particles = xp.Particles(_context=ctx,
-                                 **dtk_particle.to_dict())
-
+        particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                           _context=ctx)
 
         elens = xt.Elens(_context=ctx,
                        inner_radius=1.1e-3,
@@ -147,8 +146,8 @@ def test_linear_transfer():
                 zeta=2.,
                 delta=2E-4)
 
-        particles = xp.Particles(_context=ctx,
-                                 **dtk_particle.to_dict())
+        particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                           _context=ctx)
 
         alpha_x_0 = -0.5
         beta_x_0 = 100.0
@@ -231,8 +230,8 @@ def test_linear_transfer_chroma_detuning():
                 zeta=2.,
                 delta=2E-4)
 
-        particles = xp.Particles(_context=ctx,
-                                 **dtk_particle.to_dict())
+        particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                           _context=ctx)
 
         alpha_x_0 = -0.5
         beta_x_0 = 100.0

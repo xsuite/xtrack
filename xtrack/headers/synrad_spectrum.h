@@ -177,7 +177,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
     double const initial_energy = LocalParticle_get_energy0(part) + LocalParticle_get_psigma(part)*LocalParticle_get_p0c(part)*LocalParticle_get_beta0(part); // eV
     double energy = initial_energy;
     double gamma = energy / m0; //
-    double beta_gamma = sqrt(gamma*gamma-1); //
+    //double beta_gamma = sqrt(gamma*gamma-1); //
     double n = LocalParticle_generate_random_double_exp(part); // path_length / mean_free_path;
     while (n < synrad_average_number_of_photons(beta0 * gamma0, curv, lpath)) {
         nphot++;
@@ -190,7 +190,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
         }
         energy -= energy_loss; // eV
         gamma = energy / m0; //
-        beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
+        // beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
         n += LocalParticle_generate_random_double_exp(part);
     }
 
