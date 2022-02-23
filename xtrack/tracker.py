@@ -620,7 +620,7 @@ class Tracker:
             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         if self.line._needs_rng and not particles._has_valid_rng_state():
-            particle._init_random_number_generator()
+            particles._init_random_number_generator()
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(

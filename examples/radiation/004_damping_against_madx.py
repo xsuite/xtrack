@@ -139,7 +139,7 @@ mon = tracker.record_last_track
 
 assert np.isclose(np.std(mon.zeta[:, 750:]),
     np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),
-    rtol=0.1, atol=0
+    rtol=0.2, atol=0
     )
 
 assert np.isclose(np.std(mon.x[:, 750:]),
