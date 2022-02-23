@@ -11,7 +11,17 @@ mad = Madx()
 
 # Import thick sequence
 mad = Madx()
+
+# CLIC-DR
 mad.call('../../test_data/clic_dr/sequence.madx')
+
+# # ELETTRA
+# np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0'])# ELETTRA
+# mad.globals.update({'ON_SEXT': 1, 'ON_OCT': 1, 'ON_RF': 1, 'NRJ_GeV': 2.4,
+#                    'SAVE_FIGS': False, 'SAVE_TWISS': False})
+# mad.call("../../../elettra/elettra2_v15_VADER_2.3T.madx")
+# mad.call("../../../elettra/optics_elettra2_v15_VADER_2.3T.madx")
+
 mad.use('ring')
 
 # Twiss
@@ -43,10 +53,7 @@ line.particle_ref = xp.Particles(
 # Build tracker
 tracker = xt.Tracker(line=line)
 
-# Switch on radiation
-for ee in line.elements:
-    if isinstance(ee, xt.Multipole):
-        ee.radiation_flag = 1
+tracker.configure_radiation(mode='mean')
 
 # Twiss
 tw = tracker.twiss(eneloss_and_damping=True)
@@ -87,10 +94,7 @@ particles = xp.build_particles(tracker=tracker,
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     scale_with_transverse_norm_emitt=(1e-9, 1e-9))
 
-# Switch radiation
-for ee in line.elements:
-    if isinstance(ee, xt.Multipole):
-        ee.radiation_flag = 2
+tracker.configure_radiation(mode='quantum')
 
 num_turns = 5000
 t1 = time.time()
@@ -120,16 +124,12 @@ ax3.plot(part_co.delta[0]
 plt.show()
 
 # Switch radiation
-for ee in line.elements:
-    if isinstance(ee, xt.Multipole):
-        ee.radiation_flag = 1
+tracker.configure_radiation(mode='mean')
 par_for_emit = xp.build_particles(tracker=tracker, x_norm=50*[0],
                                   zeta=part_co.zeta[0], delta=part_co.delta[0],
                                   )
-# Switch radiation
-for ee in line.elements:
-    if isinstance(ee, xt.Multipole):
-        ee.radiation_flag = 2
+tracker.configure_radiation(mode='quantum')
+
 num_turns=1500
 t1 = time.time()
 tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)

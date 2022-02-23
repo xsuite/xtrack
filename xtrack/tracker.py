@@ -388,6 +388,9 @@ class Tracker:
     def vars(self):
         return self.line.vars
 
+    def configure_radiation(self, mode=None):
+        self.line.configure_radiation(mode=mode)
+
     def _build_kernel(self, save_source_as):
 
         context = self._line_frozen._buffer.context
@@ -539,6 +542,10 @@ class Tracker:
             kernels = {}
         kernels.update(kernel_descriptions)
 
+        # Random number generator init kernel
+        sources.extend(self.particles_class.XoStruct.extra_sources)
+        kernels.update(self.particles_class.XoStruct.custom_kernels)
+
         sources = _handle_per_particle_blocks(sources)
 
         # Compile!
@@ -611,6 +618,9 @@ class Tracker:
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+
+        if self.line._needs_rng and not particles._has_valid_rng_state():
+            particle._init_random_number_generator()
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(

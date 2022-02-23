@@ -195,6 +195,7 @@ class Line:
 
         self._var_management = None
         self.vars = None
+        self._needs_rng = False
 
     @property
     def elements(self):
@@ -244,6 +245,24 @@ class Line:
 
         return self.__class__(
                          elements=new_elements, element_names=new_element_names)
+
+    def configure_radiation(self, mode=None):
+        assert mode in [None, 'mean', 'quantum']
+        if mode == 'mean':
+            radiation_flag = 1
+        elif mode == 'quantum':
+            radiation_flag = 2
+        else:
+            radiation_flag = 0
+
+        for kk, ee in self.element_dict.items():
+            if hasattr(ee, 'radiation_flag'):
+                ee.radiation_flag = radiation_flag
+
+        if radiation_flag == 2:
+            self._needs_rng = True
+        else:
+            self._needs_rng = False
 
     def _freeze(self):
         self.element_names = tuple(self.element_names)
@@ -548,11 +567,12 @@ class Line:
             manager = self._var_management['manager']
             for ii in range(min([len(knl), len(element.knl)])):
                 if lref[element_name].knl[ii] in manager.tasks.keys():
-                    manager.tasks[lref[element_name].knl[ii]].expr += knl[ii]
+                    new_expr = manager.tasks[lref[element_name].knl[ii]].expr + knl[ii]
+                    lref[element_name].knl[ii] = new_expr
 
             for ii in range(min([len(ksl), len(element.ksl)])):
                 if lref[element_name].ksl[ii] in manager.tasks.keys():
-                    manager.tasks[lref[element_name].ksl[ii]].expr += ksl[ii]
+                    manager.tasks[lref[element_name].ksl[ii]].expr + ksl[ii]
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing
