@@ -7,8 +7,6 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-mad = Madx()
-
 # Import thick sequence
 mad = Madx()
 

@@ -1,3 +1,4 @@
+import pathlib
 import numpy as np
 from scipy.constants import e as qe
 from scipy.constants import c as clight
@@ -7,6 +8,8 @@ import xpart as xp
 import xtrack as xt
 import xobjects as xo
 
+test_data_folder = pathlib.Path(
+        __file__).parent.joinpath('../test_data').absolute()
 
 def test_radiation():
 
@@ -71,3 +74,102 @@ def test_radiation():
         Delta_trk = (dct_ave['psigma']-dct_ave_before['psigma'])*dct_ave['p0c']*dct_ave['beta0']
 
         assert np.allclose(Delta_E_eV, Delta_trk, atol=0, rtol=1e-6)
+
+
+def test_ring_with_radiation():
+
+    from cpymad.madx import Madx
+
+    # Import thick sequence
+    mad = Madx()
+
+    # CLIC-DR
+    mad.call(str(test_data_folder.joinpath('clic_dr/sequence.madx')))
+    mad.use('ring')
+
+    # Twiss
+    twthick = mad.twiss().dframe()
+
+    # Emit
+    mad.sequence.ring.beam.radiate = True
+    mad.emit()
+    mad_emit_table = mad.table.emit.dframe()
+    mad_emit_summ = mad.table.emitsumm.dframe()
+
+    # Makethin
+    mad.input(f'''
+    select, flag=MAKETHIN, SLICE=4, thick=false;
+    select, flag=MAKETHIN, pattern=wig, slice=1;
+    MAKETHIN, SEQUENCE=ring, MAKEDIPEDGE=true;
+    use, sequence=RING;
+    ''')
+    mad.use('ring')
+    mad.twiss()
+
+    # Build xtrack line
+    line = xt.Line.from_madx_sequence(mad.sequence['RING'])
+    line.particle_ref = xp.Particles(
+            mass0=xp.ELECTRON_MASS_EV,
+            q0=-1,
+            gamma0=mad.sequence.ring.beam.gamma)
+
+    for context in xo.context.get_test_contexts():
+        # Build tracker
+        tracker = xt.Tracker(line=line, _context=context)
+
+        tracker.configure_radiation(mode='mean')
+
+        # Twiss
+        tw = tracker.twiss(eneloss_and_damping=True)
+
+        # Checks
+        met = mad_emit_table
+        assert np.isclose(tw['eneloss_turn'], mad_emit_summ.u0[0]*1e9,
+                        rtol=3e-3, atol=0)
+        assert np.isclose(tw['damping_constants_s'][0],
+            met[met.loc[:, 'parameter']=='damping_constant']['mode1'][0],
+            rtol=3e-3, atol=0
+            )
+        assert np.isclose(tw['damping_constants_s'][1],
+            met[met.loc[:, 'parameter']=='damping_constant']['mode2'][0],
+            rtol=1e-3, atol=0
+            )
+        assert np.isclose(tw['damping_constants_s'][2],
+            met[met.loc[:, 'parameter']=='damping_constant']['mode3'][0],
+            rtol=3e-3, atol=0
+            )
+
+        assert np.isclose(tw['partition_numbers'][0],
+            met[met.loc[:, 'parameter']=='damping_partion']['mode1'][0],
+            rtol=3e-3, atol=0
+            )
+        assert np.isclose(tw['partition_numbers'][1],
+            met[met.loc[:, 'parameter']=='damping_partion']['mode2'][0],
+            rtol=1e-3, atol=0
+            )
+        assert np.isclose(tw['partition_numbers'][2],
+            met[met.loc[:, 'parameter']=='damping_partion']['mode3'][0],
+            rtol=3e-3, atol=0
+            )
+
+        tracker.configure_radiation(mode='mean')
+        part_co = tracker.find_closed_orbit()
+        par_for_emit = xp.build_particles(tracker=tracker, _context=context,
+                                        x_norm=50*[0],
+                                        zeta=part_co.zeta[0], delta=part_co.delta[0],
+                                        )
+        tracker.configure_radiation(mode='quantum')
+
+        num_turns=1500
+        tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
+        mon = tracker.record_last_track
+
+        assert np.isclose(np.std(mon.zeta[:, 750:]),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),
+            rtol=0.2, atol=0
+            )
+
+        assert np.isclose(np.std(mon.x[:, 750:]),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0]*tw['betx'][0]),
+            rtol=0.2, atol=0
+            )
