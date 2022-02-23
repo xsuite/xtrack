@@ -144,7 +144,7 @@ def test_full_rings(element_by_element=False):
                assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
                                  rtol=0, atol=1e-11)
                assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
-                                 rtol=0, atol=1e-11)
+                                 rtol=0, atol=3e-11)
 
 
 
