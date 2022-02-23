@@ -50,8 +50,10 @@ line.particle_ref = xp.Particles(
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 
+context = xo.ContextPyopencl()
+
 # Build tracker
-tracker = xt.Tracker(line=line)
+tracker = xt.Tracker(line=line, _context=context)
 
 tracker.configure_radiation(mode='mean')
 
@@ -89,7 +91,7 @@ assert np.isclose(tw['partition_numbers'][2],
     )
 
 part_co = tw['particle_on_co']
-particles = xp.build_particles(tracker=tracker,
+particles = xp.build_particles(tracker=tracker, _context=context,
     x_norm=[500., 0, 0], y_norm=[0, 0.0001, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     scale_with_transverse_norm_emitt=(1e-9, 1e-9))
@@ -125,7 +127,8 @@ plt.show()
 
 # Switch radiation
 tracker.configure_radiation(mode='mean')
-par_for_emit = xp.build_particles(tracker=tracker, x_norm=50*[0],
+par_for_emit = xp.build_particles(tracker=tracker, _context=context,
+                                  x_norm=50*[0],
                                   zeta=part_co.zeta[0], delta=part_co.delta[0],
                                   )
 tracker.configure_radiation(mode='quantum')
