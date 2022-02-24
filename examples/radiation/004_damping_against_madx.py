@@ -48,7 +48,7 @@ line.particle_ref = xp.Particles(
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 
-context = xo.ContextPyopencl()
+context = xo.ContextCpu()
 
 # Build tracker
 tracker = xt.Tracker(line=line, _context=context)
