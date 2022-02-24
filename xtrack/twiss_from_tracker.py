@@ -144,14 +144,14 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                         )
 
     part_disp = xp.build_particles(
-                    _context=context,
-                    x_norm=0,
-                    zeta=part_on_co.zeta[0],
-                    delta=np.array([-delta_disp, +delta_disp])+part_on_co.delta[0],
-                    particle_on_co=part_on_co,
-                    scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                    R_matrix=RR,
-                    symplectify=symplectify)
+        _context=context,
+        x_norm=0,
+        zeta=part_on_co.zeta[0],
+        delta=np.array([-delta_disp, +delta_disp])+part_on_co._xobject.delta[0],
+        particle_on_co=part_on_co,
+        scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+        R_matrix=RR,
+        symplectify=symplectify)
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
 
