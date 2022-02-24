@@ -312,7 +312,7 @@ def test_cavity():
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
 
-        cav = xt.Cavity(_context=context, frequency=0, lag=90, voltage=3000000)
+        cav = xt.Cavity(_context=context, frequency=0, lag=90, voltage=30)
         part = xp.Particles(p0c=1e9, delta=[0, 1e-2], zeta=[0, 0.2], _context=context)
         part0 = part.copy(_context=xo.ContextCpu())
 
@@ -334,7 +334,7 @@ def test_cavity():
         assert np.allclose(part.rpp, 1/(1+delta), atol=1e-14, rtol=0)
         assert np.allclose(part.rvv, beta/part.beta0, atol=1e-14, rtol=0)
         assert np.allclose(tau, tau0, atol=1e-14, rtol=0)
-        assert np.allclose((part.psigma - part0.psigma) * part0.beta0 * part0.p0c, 30, atol=1e-14, rtol=0)
+        assert np.allclose((part.psigma - part0.psigma) * part0.beta0 * part0.p0c, 30, atol=1e-9, rtol=0)
 
 
 
