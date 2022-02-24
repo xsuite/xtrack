@@ -287,7 +287,8 @@ class Tracker:
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None,
-        eneloss_and_damping=False
+        eneloss_and_damping=False,
+        symplectify=False
         ):
 
         if self.iscollective:
@@ -314,7 +315,8 @@ class Tracker:
             steps_r_matrix=steps_r_matrix,
             co_search_settings=co_search_settings,
             at_elements=at_elements,
-            eneloss_and_damping=eneloss_and_damping)
+            eneloss_and_damping=eneloss_and_damping,
+            symplectify=symplectify)
 
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
@@ -387,6 +389,9 @@ class Tracker:
     @property
     def vars(self):
         return self.line.vars
+
+    def configure_radiation(self, mode=None):
+        self.line.configure_radiation(mode=mode)
 
     def _build_kernel(self, save_source_as):
 
@@ -539,6 +544,10 @@ class Tracker:
             kernels = {}
         kernels.update(kernel_descriptions)
 
+        # Random number generator init kernel
+        sources.extend(self.particles_class.XoStruct.extra_sources)
+        kernels.update(self.particles_class.XoStruct.custom_kernels)
+
         sources = _handle_per_particle_blocks(sources)
 
         # Compile!
@@ -611,6 +620,9 @@ class Tracker:
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+
+        if self.line._needs_rng and not particles._has_valid_rng_state():
+            particles._init_random_number_generator()
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(

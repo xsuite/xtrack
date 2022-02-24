@@ -7,11 +7,19 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-mad = Madx()
-
 # Import thick sequence
 mad = Madx()
+
+# CLIC-DR
 mad.call('../../test_data/clic_dr/sequence.madx')
+
+# # ELETTRA
+# np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0'])# ELETTRA
+# mad.globals.update({'ON_SEXT': 1, 'ON_OCT': 1, 'ON_RF': 1, 'NRJ_GeV': 2.4,
+#                    'SAVE_FIGS': False, 'SAVE_TWISS': False})
+# mad.call("../../../elettra/elettra2_v15_VADER_2.3T.madx")
+# mad.call("../../../elettra/optics_elettra2_v15_VADER_2.3T.madx")
+
 mad.use('ring')
 
 # Twiss
@@ -40,13 +48,12 @@ line.particle_ref = xp.Particles(
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 
-# Build tracker
-tracker = xt.Tracker(line=line)
+context = xo.ContextPyopencl()
 
-# Switch on radiation
-for ee in line.elements:
-    if isinstance(ee, xt.Multipole):
-        ee.radiation_flag = 1
+# Build tracker
+tracker = xt.Tracker(line=line, _context=context)
+
+tracker.configure_radiation(mode='mean')
 
 # Twiss
 tw = tracker.twiss(eneloss_and_damping=True)
@@ -82,15 +89,12 @@ assert np.isclose(tw['partition_numbers'][2],
     )
 
 part_co = tw['particle_on_co']
-particles = xp.build_particles(tracker=tracker,
-    x_norm=[0.1, 0, 0], y_norm=[0, 0.1, 0], zeta=part_co.zeta[0],
-    delta=np.array([0,0,1e-4]) + part_co.delta[0],
+particles = xp.build_particles(tracker=tracker, _context=context,
+    x_norm=[500., 0, 0], y_norm=[0, 0.0001, 0], zeta=part_co.zeta[0],
+    delta=np.array([0,0,1e-2]) + part_co.delta[0],
     scale_with_transverse_norm_emitt=(1e-9, 1e-9))
 
-# Switch radiation
-for ee in line.elements:
-    if isinstance(ee, xt.Multipole):
-        ee.radiation_flag = 2
+tracker.configure_radiation(mode='quantum')
 
 num_turns = 5000
 t1 = time.time()
@@ -106,9 +110,9 @@ ax1 = fig.add_subplot(311)
 ax2 = fig.add_subplot(312, sharex=ax1)
 ax3 = fig.add_subplot(313, sharex=ax1)
 
-ax1.plot(mon.x.T)
-ax2.plot(mon.y.T)
-ax3.plot(mon.delta.T)
+ax1.plot(mon.x[0, :].T)
+ax2.plot(mon.y[1, :].T)
+ax3.plot(mon.delta[2, :].T)
 i_turn = np.arange(num_turns)
 ax1.plot(part_co.x[0]
     +(mon.x[0,0]-part_co.x[0])*np.exp(-i_turn*tw['damping_constants_turns'][0]))
@@ -118,3 +122,28 @@ ax3.plot(part_co.delta[0]
     +(mon.delta[2,0]-part_co.delta[0])*np.exp(-i_turn*tw['damping_constants_turns'][2]))
 
 plt.show()
+
+# Switch radiation
+tracker.configure_radiation(mode='mean')
+par_for_emit = xp.build_particles(tracker=tracker, _context=context,
+                                  x_norm=50*[0],
+                                  zeta=part_co.zeta[0], delta=part_co.delta[0],
+                                  )
+tracker.configure_radiation(mode='quantum')
+
+num_turns=1500
+t1 = time.time()
+tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
+t2 = time.time()
+print(f'Track time: {(t2-t1)/num_turns:.2e} s/turn')
+mon = tracker.record_last_track
+
+assert np.isclose(np.std(mon.zeta[:, 750:]),
+    np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),
+    rtol=0.2, atol=0
+    )
+
+assert np.isclose(np.std(mon.x[:, 750:]),
+    np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0]*tw['betx'][0]),
+    rtol=0.2, atol=0
+    )
