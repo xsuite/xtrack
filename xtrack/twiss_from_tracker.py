@@ -112,7 +112,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None,
-        eneloss_and_damping=False):
+        eneloss_and_damping=False,
+        symplectify=False):
 
     context = tracker._buffer.context
 
@@ -126,7 +127,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
     gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
 
-    W, Winv, Rot = xp.compute_linear_normal_form(RR)
+    W, Winv, Rot = xp.compute_linear_normal_form(RR, symplectify=symplectify)
 
     s = np.array(tracker.line.get_s_elements())
 
@@ -149,7 +150,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                     delta=np.array([-delta_disp, +delta_disp])+part_on_co.delta[0],
                     particle_on_co=part_on_co,
                     scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                    R_matrix=RR)
+                    R_matrix=RR,
+                    symplectify=symplectify)
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
 
@@ -208,12 +210,13 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 zeta=part_on_co.zeta[0], delta=delta_chrom,
                 particle_on_co=part_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR)
+                R_matrix=RR, symplectify=symplectify)
     RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
                                             particle_on_co=part_chrom_plus.copy(),
                                             steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = xp.compute_linear_normal_form(RR_chrom_plus)
+        ) = xp.compute_linear_normal_form(RR_chrom_plus,
+                                          symplectify=symplectify)
     qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
     qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
 
@@ -223,12 +226,13 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 zeta=part_on_co.zeta[0], delta=-delta_chrom,
                 particle_on_co=part_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR)
+                R_matrix=RR, symplectify=symplectify)
     RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=part_chrom_minus.copy(),
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = xp.compute_linear_normal_form(RR_chrom_minus)
+        ) = xp.compute_linear_normal_form(RR_chrom_minus,
+                                          symplectify=symplectify)
     qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
     qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
 

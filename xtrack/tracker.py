@@ -287,7 +287,8 @@ class Tracker:
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None,
-        eneloss_and_damping=False
+        eneloss_and_damping=False,
+        symplectify=False
         ):
 
         if self.iscollective:
@@ -314,7 +315,8 @@ class Tracker:
             steps_r_matrix=steps_r_matrix,
             co_search_settings=co_search_settings,
             at_elements=at_elements,
-            eneloss_and_damping=eneloss_and_damping)
+            eneloss_and_damping=eneloss_and_damping,
+            symplectify=symplectify)
 
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
