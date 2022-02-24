@@ -31,17 +31,25 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
     if co_search_settings is None:
         co_search_settings = {}
 
+    co_search_settings = co_search_settings.copy()
+    if 'xtol' not in co_search_settings.keys():
+        co_search_settings['xtol'] = 1e-6 # Relative error between calls
+
     particle_co_guess = particle_co_guess.copy(
                         _context=tracker._buffer.context)
 
-    res = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker),
-          x0=np.array([particle_co_guess._xobject.x[0],
-                       particle_co_guess._xobject.px[0],
-                       particle_co_guess._xobject.y[0],
-                       particle_co_guess._xobject.py[0],
-                       particle_co_guess._xobject.zeta[0],
-                       particle_co_guess._xobject.delta[0]]),
-          **co_search_settings)
+    (res, infodict, ier, mesg
+        ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker),
+              x0=np.array([particle_co_guess._xobject.x[0],
+                           particle_co_guess._xobject.px[0],
+                           particle_co_guess._xobject.y[0],
+                           particle_co_guess._xobject.py[0],
+                           particle_co_guess._xobject.zeta[0],
+                           particle_co_guess._xobject.delta[0]]),
+              full_output=True,
+              **co_search_settings)
+    fsolve_info = {
+        'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
 
     particle_on_co = particle_co_guess.copy()
     particle_on_co.x = res[0]
@@ -50,6 +58,8 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
     particle_on_co.py = res[3]
     particle_on_co.zeta = res[4]
     particle_on_co.delta = res[5]
+
+    particle_on_co._fsolve_info = fsolve_info
 
     return particle_on_co
 

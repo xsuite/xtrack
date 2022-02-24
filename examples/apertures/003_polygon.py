@@ -44,7 +44,7 @@ particles = xp.Particles(
                 px = np.zeros(n_part),
                 y=np.random.uniform(-part_gen_range, part_gen_range, n_part),
                 py = np.zeros(n_part),
-                sigma = np.zeros(n_part),
+                zeta = np.zeros(n_part),
                 delta = np.zeros(n_part))
 
 aper.track(particles)

@@ -24,7 +24,7 @@ particles = xp.Particles(_context=context,
                          px=np.linspace(-1, 1, n_part),
                          y=np.zeros(n_part),
                          py=np.linspace(-2, 2, n_part),
-                         sigma=np.zeros(n_part),
+                         zeta=np.zeros(n_part),
                          delta=np.zeros(n_part))
 
 # Build a small test line
@@ -77,7 +77,7 @@ at_element_expected = np.floor((s_expected-tot_length*at_turn_expected)
                                      /(tot_length/n_slices)) + 1
 at_element_expected = np.int_(np.clip(at_element_expected, 0, n_slices-1))
 
-assert np.allclose(part_s, s_expected, atol=1e-3)
+assert np.allclose(part_s, s_expected-at_turn_expected*tot_length, atol=1e-3)
 assert np.allclose(at_turn_expected, part_at_turn)
 
 # I need to add a tolerance of one element as a mismatch is visible
@@ -95,7 +95,7 @@ for ii in range(n_part):
     for tt in range(n_turns):
         if tt<=this_at_turn:
             assert(mon.at_turn[iidd, tt] == tt)
-            assert(np.isclose(mon.s[iidd, tt], tt*tot_length, atol=1e-14))
+            assert(np.isclose(mon.s[iidd, tt], 0., atol=1e-14))
             assert(np.isclose(mon.x[iidd, tt], tt*tot_length*this_px, atol=1e-14))
             assert(np.isclose(mon.y[iidd, tt], tt*tot_length*this_py, atol=1e-14))
             assert(np.isclose(mon.px[iidd, tt], this_px, atol=1e-14))
