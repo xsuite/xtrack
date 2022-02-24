@@ -68,6 +68,7 @@ tracker = xt.Tracker(_context=context,
             line=line,
             particles_class=xp.Particles,
             save_source_as='source.c',
+            reset_s_at_end_turn=False
             )
 
 if test_backtracker:
@@ -99,7 +100,7 @@ for _ in range(n_turns):
    testline.track(dtk_part)
 
 for vv in vars_to_check:
-    dtk_value = getattr(dtk_part, vv)
+    dtk_value = getattr(dtk_part, vv)[0]
     xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
     passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns, atol=atol_10turns)
 
@@ -144,7 +145,8 @@ diffs = []
 s_coord = []
 for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names)):
     vars_before = {vv :getattr(dtk_part, vv)[0] for vv in vars_to_check}
-    particles.set_particle(ip_check, **dtk_part.to_dict())
+    with particles._bypass_linked_vars():
+        particles.set_particle(ip_check, **dtk_part.to_dict())
 
     tracker.track(particles, ele_start=ii, num_elements=1)
 

@@ -90,7 +90,7 @@ if short_test:
 print('Build tracker')
 tracker = xt.Tracker(_context=context,
                      line=line,
-                     save_source_as='source.c')
+                     reset_s_at_end_turn=False)
 
 ######################
 # Get some particles #
