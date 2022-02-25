@@ -42,6 +42,7 @@ mad.use('ring')
 mad.twiss()
 
 # Build xtrack line
+print('Build xtrack line...')
 line = xt.Line.from_madx_sequence(mad.sequence['RING'])
 line.particle_ref = xp.Particles(
         mass0=xp.ELECTRON_MASS_EV,
@@ -49,13 +50,16 @@ line.particle_ref = xp.Particles(
         gamma0=mad.sequence.ring.beam.gamma)
 
 context = xo.ContextCpu()
+#context = xo.ContextCpu()
 
 # Build tracker
+print('Build tracker ...')
 tracker = xt.Tracker(line=line, _context=context)
 
 tracker.configure_radiation(mode='mean')
 
 # Twiss
+print('Checks with twiss...')
 tw = tracker.twiss(eneloss_and_damping=True)
 
 # Checks
@@ -93,9 +97,11 @@ particles = xp.build_particles(tracker=tracker, _context=context,
     x_norm=[500., 0, 0], y_norm=[0, 0.0001, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     scale_with_transverse_norm_emitt=(1e-9, 1e-9))
+#particles._init_random_number_generator(3*[4e9])
 
 tracker.configure_radiation(mode='quantum')
 
+print('Track 3 particles ...')
 num_turns = 5000
 t1 = time.time()
 tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
@@ -132,6 +138,7 @@ par_for_emit = xp.build_particles(tracker=tracker, _context=context,
 tracker.configure_radiation(mode='quantum')
 
 num_turns=1500
+print('Track 50 particles...')
 t1 = time.time()
 tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
 t2 = time.time()
@@ -147,3 +154,5 @@ assert np.isclose(np.std(mon.x[:, 750:]),
     np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0]*tw['betx'][0]),
     rtol=0.2, atol=0
     )
+
+assert np.all(mon.y[:] < 1e-15)

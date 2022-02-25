@@ -173,3 +173,5 @@ def test_ring_with_radiation():
             np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0]*tw['betx'][0]),
             rtol=0.2, atol=0
             )
+
+        assert np.all(mon.y[:] < 1e-15)
