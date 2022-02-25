@@ -24,6 +24,7 @@ setup(
         'numpy>=1.0',
         'scipy',
         'xobjects',
-        'xpart'
+        'xpart',
+        'xdeps'
         ]
     )

@@ -38,7 +38,7 @@ for factor in factors:
     ax1.semilogy(np.abs(mon.x.T), label=f'{factor}, {np.trace(RR)}')
     ax2.semilogy(np.abs(mon.y.T), label=f'{factor}, {np.trace(RR)}')
 
-    w0, v0 = np.linalg.eig(xp.linear_normal_form.healy_symplectify(RR))
+    w0, v0 = np.linalg.eig(xt.linear_normal_form.healy_symplectify(RR))
     eigs.append(w0)
     #axe.plot(w0.real, w0.imag, '.')
 
