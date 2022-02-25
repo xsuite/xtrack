@@ -6,6 +6,8 @@ import xpart as xp
 from scipy.optimize import fsolve
 from scipy.constants import c as clight
 
+from .linear_normal_form import compute_linear_normal_form
+
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-7, 'dpx':1e-10,
     'dy':1e-7, 'dpy':1e-10,
@@ -137,7 +139,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
     gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
 
-    W, Winv, Rot = xp.compute_linear_normal_form(RR, symplectify=symplectify)
+    W, Winv, Rot = compute_linear_normal_form(RR, symplectify=symplectify)
 
     s = np.array(tracker.line.get_s_elements())
 
@@ -225,7 +227,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                                             particle_on_co=part_chrom_plus.copy(),
                                             steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = xp.compute_linear_normal_form(RR_chrom_plus,
+        ) = compute_linear_normal_form(RR_chrom_plus,
                                           symplectify=symplectify)
     qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
     qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
@@ -241,7 +243,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                                         particle_on_co=part_chrom_minus.copy(),
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = xp.compute_linear_normal_form(RR_chrom_minus,
+        ) = compute_linear_normal_form(RR_chrom_minus,
                                           symplectify=symplectify)
     qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
     qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)

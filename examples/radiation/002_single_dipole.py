@@ -41,22 +41,6 @@ dct_rng = particles_rnd.to_dict()
 assert np.allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
                   atol=0, rtol=5e-3)
 
-assert np.allclose(dct_ave['px']*dct_ave['rpp'],
-                   dct_ave_before['px']*dct_ave_before['rpp'],
-                   atol=0, rtol=1e-10)
-
-assert np.allclose(dct_rng['px']*dct_rng['rpp'],
-                   dct_rng_before['px']*dct_rng_before['rpp'],
-                   atol=0, rtol=1e-10)
-
-assert np.allclose(dct_ave['py']*dct_ave['rpp'],
-                   dct_ave_before['py']*dct_ave_before['rpp'],
-                   atol=0, rtol=1e-10)
-
-assert np.allclose(dct_rng['py']*dct_rng['rpp'],
-                   dct_rng_before['py']*dct_rng_before['rpp'],
-                   atol=0, rtol=1e-10)
-
 rho = L_bend/theta_bend
 mass0_kg = (dct_ave['mass0']*qe/clight**2)
 r0 = qe**2/(4*np.pi*epsilon_0*mass0_kg*clight**2)
@@ -66,4 +50,5 @@ Ps = (2*r0*clight*mass0_kg*clight**2*
 Delta_E_eV = -Ps*(L_bend/clight) / qe
 Delta_trk = (dct_ave['psigma']-dct_ave_before['psigma'])*dct_ave['p0c']*dct_ave['beta0']
 
-assert np.allclose(Delta_E_eV, Delta_trk, atol=0, rtol=1e-7)
+assert np.allclose(Delta_E_eV, Delta_trk, atol=0, rtol=1e-6)
+

@@ -52,8 +52,8 @@ s_coord = []
 for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
-    prun = xp.Particles(_context=context,
-                **sixdump[ii - 1].get_minimal_beam())
+    prun = xp.Particles.from_dict(_context=context,
+            dct=sixdump[ii - 1].get_minimal_beam())
     prun.state[0]=1
     prun.reorganize()
     print(f"\n-----sixtrack={ii} xtrack={jja} --------------")
@@ -63,7 +63,7 @@ for ii in range(1, len(iconv)):
         #elem.track(prun)
         tracker.track(particles=prun, ele_start=jj, num_elements=1)
         print(f"{jj} {label},{str(elem)[:50]}")
-    pbench = xp.Particles(**sixdump[ii].get_minimal_beam())
+    pbench = xp.Particles.from_dict(sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)
     # print(f"sixdump {ii}, x={pbench.x}, px={pbench.px}")
     print("-----------------------")
