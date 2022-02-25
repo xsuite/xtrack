@@ -32,6 +32,13 @@ class LineFrozen:
                                       line.element_names)):
             assert hasattr(ee, 'XoStruct') # is already xobject
             if ee._buffer != line_data._buffer:
+                if ee._xobject._has_refs:
+                    raise ValueError(
+                f'The element `{nn}` contains references to external data and '
+                "cannot be moved to the tracker's buffer. "
+                "Elements containing references should be placed directly in the"
+                " same buffer as the tracker."
+                )
                 ee._move_to(_buffer=line_data._buffer)
 
             line_data[ii] = ee._xobject
