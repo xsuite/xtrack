@@ -26,7 +26,7 @@ ax2 = plt.subplot(212, sharex=ax1)
 fig2 = plt.figure()
 axe = plt.subplot()
 eigs = []
-factors = [0.9] #np.linspace(80, 120, 100)
+factors = np.linspace(80, 120, 100)
 for factor in factors:
     q1.knl[1] = factor*0.020
     q2.knl[1] = -factor*0.020
