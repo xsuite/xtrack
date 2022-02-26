@@ -31,37 +31,16 @@ def madx_sequence_to_xtrack_line(
         for name,par in mad.globals.cmdpar.items():
             _var_values[name]=par.value
 
-        # Extract element values from madx
-        _mad_elements_dct= line._var_management['data']['mad_elements_dct']
-        for name,elem in mad.elements.items():
-            elemdata={}
-            for parname, par in elem.cmdpar.items():
-                elemdata[parname]=par.value
-            _mad_elements_dct[name]=elemdata
-            _mad_elements_dct[name]['__basetype__'] = elem.base_type.name
-
         _ref_manager = line._var_management['manager']
         _vref = line._var_management['vref']
         _fref = line._var_management['fref']
         _lref = line._var_management['lref']
-        _eref = line._var_management['eref']
         madeval=MadxEval(_vref,_fref,None).eval
 
         # Extract expressions from madx globals
         for name,par in mad.globals.cmdpar.items():
             if par.expr is not None:
                 _vref[name]=madeval(par.expr)
-
-        # Extract expressions from madx elements
-        for name,elem in mad.elements.items():
-            for parname, par in elem.cmdpar.items():
-                if par.expr is not None:
-                    if par.dtype==12: # handle lists
-                        for ii,ee in enumerate(par.expr):
-                            if ee is not None:
-                                _eref[name][parname][ii]=madeval(ee)
-                    else:
-                        _eref[name][parname]=madeval(par.expr)
 
     elements = seq.elements
     ele_pos = seq.element_positions()
