@@ -390,6 +390,10 @@ class Tracker:
     def vars(self):
         return self.line.vars
 
+    @property
+    def vars(self):
+        return self.line.element_refs
+
     def configure_radiation(self, mode=None):
         self.line.configure_radiation(mode=mode)
 

@@ -1,4 +1,4 @@
-beam,particle=proton,sequence=lhcb1,bunched=true,radiate=false,mass:=0.93827208816,charge:=1,energy:=7000,pc:=6999.99993711753,gamma:=7460.52247352616,beta:=0.999999991016791,brho:=23349.4864541173,ex:=3.35097174342857e-10
+beam,particle="proton",sequence="lhcb1",bunched=true,radiate=false,mass:=0.93827208816,charge:=1,energy:=7000,pc:=6999.99993711753,gamma:=7460.52247352616,beta:=0.999999991016791,brho:=23349.4864541173,ex:=3.35097174342857e-10
 ,exn:=2.49999997754198e-06,ey:=3.35097174342857e-10,eyn:=2.49999997754198e-06,et:=0.001,sigt:=0,sige:=0.00011409582438835,kbunch:=1,npart:=220000000000,bcurrent:=0.000396380077084494,freq0:=0.0112454994103767,circ:=26658.8832,dtbyds:=0
 ,deltap:=0,alfa:=1.79664186004107e-08,u0:=0,qs:=0,arad:=1.53469826634454e-18,bv:=1,pdamp:={1 ,1 ,2 },n1min:=-1;
 l.omk = 0;
@@ -263,7 +263,7 @@ l.mbrs = 9.45;
 ad3.l4 := aip4*(1-r0);
 l.bpmwa = 0;
 l.adtkh = 0;
-vrf400 = 0;
+vrf400 = 16;
 lagrf400.b1 = 0.5;
 hrf400 = 35640;
 l.adtkv = 0;
@@ -7273,28 +7273,28 @@ mb.b9l7.b1: marker,kmax:=kmax_mb ,kmin:=kmin_mb ,calib:=kmax_mb / imax_mb ,polar
 mb.b9l7.b1..2: mb..2,kmax:=kmax_mb ,kmin:=kmin_mb ,calib:=kmax_mb / imax_mb ,polarity:=1,lrad:=( l.mb ) / ( 2 ) ,knl:={( ab.a67 ) / ( 2 ) },mech_sep:=0.194;
 mcs.b9l7.b1: mcs,kmax:=kmax_mcs ,kmin:=kmin_mcs ,calib:=kmax_mcs / imax_mcs ,polarity:=1,lrad:=l.mcs ,knl:={0,0,( kcs.a67b1 ) * ( l.mcs ) },mech_sep:=0.194;
 mbh..1: multipole,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,lrad:=( l.mbh ) / ( 4 ) ;
-mbh.a9l7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9l7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
 mbh..2: multipole,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,lrad:=( l.mbh ) / ( 4 ) ;
-mbh.a9l7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9l7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
-mbh.a9l7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
+mbh.a9l7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
 mbh..3: multipole,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,lrad:=( l.mbh ) / ( 4 ) ;
-mbh.a9l7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9l7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
 mbh..4: multipole,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,lrad:=( l.mbh ) / ( 4 ) ;
-mbh.a9l7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9l7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
 tcld: collimator,lrad:=0.6;
 vtcld.9l7.b1: tcld,lrad:=0.6;
-mbh.b9l7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9l7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
-mbh.b9l7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9l7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
-mbh.b9l7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
-mbh.b9l7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9l7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
+mbh.b9l7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
-mbh.b9l7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9l7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a67 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_l7b1 ;
 mcs.a9l7.b1: mcs,kmax:=kmax_mcs ,kmin:=kmin_mcs ,calib:=kmax_mcs / imax_mcs ,polarity:=1,lrad:=l.mcs ,knl:={0,0,( kcs.a67b1 ) * ( l.mcs ) },mech_sep:=0.194;
 bpm.8l7.b1: bpm,slot_id:= 247473,assembly_id:= 103494,mech_sep:=0.194;
@@ -7564,26 +7564,26 @@ mqtli.8r7.b1..2: mqtli..2,kmax:=kmax_mqtli ,kmin:=kmin_mqtli ,calib:=kmax_mqtli 
 mcbcv.8r7.b1: mcbcv,kmax:=kmax_mcbcv ,kmin:=kmin_mcbcv ,calib:=kmax_mcbcv / imax_mcbcv ,polarity:=1,lrad:=l.mcbcv ,kick:=acbcv8.r7b1 ,mech_sep:=0.194;
 mco.9r7.b1: mco,polarity:=1,knl:={0,0,0,kco.a78b1 * l.mco },slot_id:= 252666,assembly_id:= 103542,mech_sep:=0.194;
 mcd.9r7.b1: mcd,polarity:=1,knl:={0,0,0,0,kcd.a78b1 * l.mcd },slot_id:= 252667,assembly_id:= 103542,mech_sep:=0.194;
-mbh.a9r7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9r7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.a9r7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9r7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.a9r7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.a9r7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9r7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
+mbh.a9r7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.a9r7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.a9r7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
 s.tcld.9r7.b1: marker;
 tcld.9r7.b1: tcld,lrad:=0.6;
 e.tcld.9r7.b1: marker;
-mbh.b9r7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9r7.b1..1: mbh..1,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.b9r7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9r7.b1..2: mbh..2,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.b9r7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.b9r7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9r7.b1: marker,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh },aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
+mbh.b9r7.b1..3: mbh..3,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
-mbh.b9r7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype=rectellipse,aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
+mbh.b9r7.b1..4: mbh..4,kmax:=kmax_mbh ,kmin:=kmin_mbh ,calib:=kmax_mbh / imax_mbh ,polarity:=1,lrad:=( l.mbh ) / ( 4 ) ,knl:={( ( kbh.a78 ) * ( l.mbh ) ) / ( 4 ) },apertype="rectellipse",aperture:={r_mbh ,g_mbh ,r_mbh ,r_mbh }
 ,aper_tol:={0.0009,0.0008,0.0005},mech_sep:=mech_sep_mbh_r7b1 ;
 mcs.a9r7.b1: mcs,kmax:=kmax_mcs ,kmin:=kmin_mcs ,calib:=kmax_mcs / imax_mcs ,polarity:=1,lrad:=l.mcs ,knl:={0,0,( kcs.a78b1 ) * ( l.mcs ) },mech_sep:=0.194;
 mb.b9r7.b1..1: mb..1,kmax:=kmax_mb ,kmin:=kmin_mb ,calib:=kmax_mb / imax_mb ,polarity:=1,lrad:=( l.mb ) / ( 2 ) ,knl:={( ab.a78 ) / ( 2 ) },mech_sep:=0.194;

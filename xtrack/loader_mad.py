@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.constants import c as clight
+
 import xtrack as xt
 
 def madx_sequence_to_xtrack_line(
@@ -138,9 +140,13 @@ def madx_sequence_to_xtrack_line(
             line.element_dict[eename] = newele
 
         elif mad_etype == "rfcavity":
+            if ee.freq == 0 and ee.harmon != 0:
+                frequency = sequence.beam.beta * clight / sequence.length
+            else:
+                frequency = ee.freq * 1e6
             newele = classes.Cavity(
                 voltage=ee.volt * 1e6,
-                frequency=ee.freq * 1e6,
+                frequency=frequency,
                 lag=ee.lag * 360,
             )
             line.element_dict[eename] = newele
