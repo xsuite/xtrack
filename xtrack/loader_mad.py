@@ -166,9 +166,13 @@ def madx_sequence_to_xtrack_line(
             )
             line.element_dict[eename] = newele
             if deferred_expressions:
-                _lref[eename].voltage = _eref[eename]['volt'] * 1e6
-                _lref[eename].frequency = _eref[eename]['freq'] * 1e6
-                _lref[eename].lag = _eref[eename]['lag'] * 360
+                eepar = ee.cmdpar
+                if eepar.volt.expr is not None:
+                    _lref[eename].voltage = madeval(eepar.volt.expr) * 1e6
+                if eepar.freq.expr is not None:
+                    _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                if eepar.lag.expr is not None:
+                    _lref[eename].lag = madeval(eepar.lag.expr) * 360
 
         elif mad_etype == "rfmultipole":
             newele = classes.RFMultipole(
@@ -182,17 +186,25 @@ def madx_sequence_to_xtrack_line(
             )
             line.element_dict[eename] = newele
             if deferred_expressions:
-                _lref[eename].voltage = _eref[eename]['volt'] * 1e6
-                _lref[eename].frequency = _eref[eename]['freq'] * 1e6
-                _lref[eename].lag = _eref[eename]['lag'] * 360
-                for ii, _ in enumerate(ee.knl):
-                    _lref[eename].knl[ii] = _eref[eename]['knl'][ii]
-                for ii, _ in enumerate(ee.ksl):
-                    _lref[eename].ksl[ii] = _eref[eename]['ksl'][ii]
+                eepar = ee.cmdpar
+                if eepar.volt.expr is not None:
+                    _lref[eename].voltage = madeval(eepar.volt.expr) * 1e6
+                if eepar.freq.expr is not None:
+                    _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                if eepar.lag.expr is not None:
+                    _lref[eename].lag = madeval(eepar.lag.expr) * 3600
+                for ii, _ in enumerate(knl):
+                    if eepar.knl.expr[ii] is not None:
+                        _lref[eename].knl[ii] = madeval(eepar.knl.expr[ii])
+                for ii, _ in enumerate(ksl):
+                    if eepar.ksl.expr[ii] is not None:
+                        _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
                 for ii, _ in enumerate(ee.pnl):
-                    _lref[eename].pn[ii] = _eref[eename]['pnl'][ii] * 360
+                    if eepar.pn.expr[ii] is not None:
+                        _lref[eename].pn[ii] = madeval(eepar.pn.expr[ii]) * 360
                 for ii, _ in enumerate(ee.psl):
-                    _lref[eename].ps[ii] = _eref[eename]['psl'][ii] * 360
+                    if eepar.ps.expr[ii] is not None:
+                        _lref[eename].ps[ii] = madeval(eepar.ps.expr[ii]) * 360
 
         elif mad_etype == "crabcavity":
             #ee.volt in MV, sequence.beam.pc in GeV
@@ -206,10 +218,14 @@ def madx_sequence_to_xtrack_line(
                 skiptilt=True
 
                 if deferred_expressions:
-                    _lref[eename].frequency = _eref[eename]['freq'] * 1e6
-                    _lref[eename].ksl[0] = (-_eref[eename]['volt']
-                                            / sequence.beam.pc * 1e-3)
-                    _lref[eename].ps[0] = _eref[eename]['lag'] * 360 + 90
+                    eepar = ee.cmdpar
+                    if eepar.freq.expr is not None:
+                        _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                    if eepar.volt.expr is not None:
+                        _lref[eename].ksl[0] = (-madeval(eepar.volt.expr)
+                                                      / sequence.beam.pc * 1e-3)
+                    if eepar.lag.expr is not None:
+                        _lref[eename].ps[0] = madeval(eepar.lag.expr) * 360 + 90
             else:
                 newele = classes.RFMultipole(
                     frequency=ee.freq * 1e6,
@@ -220,10 +236,14 @@ def madx_sequence_to_xtrack_line(
                 line.element_dict[eename] = newele
 
                 if deferred_expressions:
-                    _lref[eename].frequency = _eref[eename]['freq'] * 1e6
-                    _lref[eename].knl[0] = (_eref[eename]['volt']
-                                            / sequence.beam.pc * 1e-3)
-                    _lref[eename].pn[0] = _eref[eename]['lag'] * 360 + 90
+                    eepar = ee.cmdpar
+                    if eepar.freq.expr is not None:
+                        _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                    if eepar.volt.expr is not None:
+                        _lref[eename].knl[0] = (madeval(eepar.volt.expr)
+                                                      / sequence.beam.pc * 1e-3)
+                    if eepar.lag.expr is not None:
+                        _lref[eename].pn[0] = madeval(eepar.lag.expr) * 360 + 90
 
         elif mad_etype == "beambeam":
             if ee.slot_id == 6 or ee.slot_id == 60:
