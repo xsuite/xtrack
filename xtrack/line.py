@@ -141,25 +141,30 @@ class Line:
 
         # Extract globals values from madx
         _var_values=defaultdict(lambda :0)
-        _mad_elements_dct = {}
 
         _ref_manager = manager=xd.Manager()
         _vref=manager.ref(_var_values,'vars')
         _fref=manager.ref(math,'f')
-        _lref = manager.ref(self.element_dict, 'line_dict')
-        _eref = _ref_manager.ref(_mad_elements_dct,'mad_elements_dct')
+        _lref = manager.ref(self.element_dict, 'element_refs')
 
-        self.vars = _vref
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
-        self._var_management['data']['mad_elements_dct'] = _mad_elements_dct
 
         self._var_management['manager'] = _ref_manager
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
-        self._var_management['eref'] = _eref
+
+    @property
+    def vars(self):
+        if self._var_management is not None:
+            return self._var_management['vref']
+
+    @property
+    def element_refs(self):
+        if self._var_management is not None:
+            return self._var_management['lref']
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
         if isinstance(elements,dict):
@@ -194,7 +199,6 @@ class Line:
         self.particle_ref = particle_ref
 
         self._var_management = None
-        self.vars = None
         self._needs_rng = False
 
     @property

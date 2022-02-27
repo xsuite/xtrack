@@ -19,4 +19,8 @@ on_disp = 0;
 exec,check_ip(b1);
 exec,check_ip(b2);
 """)
+mad.use(sequence="lhcb1")
+mad.globals['vrf400'] = 16
+mad.globals['lagrf400.b1'] = 0.5
+mad.twiss()
 mad.save(sequence='lhcb1',beam=True,file="sequence.madx")
