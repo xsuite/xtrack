@@ -145,7 +145,7 @@ class Line:
         _ref_manager = manager=xd.Manager()
         _vref=manager.ref(_var_values,'vars')
         _fref=manager.ref(math,'f')
-        _lref = manager.ref(self.element_dict, 'line_dict')
+        _lref = manager.ref(self.element_dict, 'element_refs')
 
         self._var_management = {}
         self._var_management['data'] = {}
