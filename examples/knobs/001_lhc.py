@@ -98,7 +98,7 @@ with open('status.json', 'w') as fid:
 # Reload
 with open('status.json', 'r') as fid:
     dct = json.load(fid)
-line = xt.Line.from_dict(dct)
+line_reloaded = xt.Line.from_dict(dct)
 
 #!end-doc-part
 
