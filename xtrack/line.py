@@ -147,7 +147,6 @@ class Line:
         _fref=manager.ref(math,'f')
         _lref = manager.ref(self.element_dict, 'line_dict')
 
-        self.vars = _vref
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
@@ -156,6 +155,16 @@ class Line:
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
+
+    @property
+    def vars(self):
+        if self._var_management is not None:
+            return self._var_management['vref']
+
+    @property
+    def element_refs(self):
+        if self._var_management is not None:
+            return self._var_management['lref']
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
         if isinstance(elements,dict):
@@ -190,7 +199,6 @@ class Line:
         self.particle_ref = particle_ref
 
         self._var_management = None
-        self.vars = None
         self._needs_rng = False
 
     @property

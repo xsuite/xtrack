@@ -9,7 +9,7 @@ mad = Madx()
 mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
 mad.use(sequence="lhcb1")
 
-# Build
+# Build Xtrack line importing MAD-X expressions
 line = xt.Line.from_madx_sequence(mad.sequence['lhcb1'],
                                   deferred_expressions=True # <--
                                   )
@@ -19,6 +19,17 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
 
 # Build tracker
 tracker = xt.Tracker(line=line)
+
+# Measure vertical angle at the interaction point 1 (IP1)
+print(tracker.twiss(at_elements=['ip1'])['px'])
+# Returns 1e-6
+
+# Set crossing angle in IP1 using the MAD-X knobs
+tracker.vars['on_x1'] = 300
+
+# Measure vertical angle at the interaction point 1 (IP1)
+print(tracker.twiss(at_elements=['ip1'])['px'])
+# Returns 1e-6
 
 
 import json
