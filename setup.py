@@ -13,7 +13,7 @@ extensions = []
 
 setup(
     name='xtrack',
-    version='0.8.0',
+    version='0.9.0',
     description='Tracking library for particle accelerators',
     url='https://github.com/xsuite/xtrack',
     author='Riccard De Maria, Giovanni Iadarola',
