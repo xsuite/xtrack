@@ -46,7 +46,7 @@ tracker.vars['on_x1'] = 300
 
 # Measure vertical angle at the interaction point 1 (IP1)
 print(tracker.twiss(at_elements=['ip1'])['px'])
-# ---> returns 1e-6
+# ---> returns 0.00030035
 
 #########################################################################
 # The expressions relating the beam elements properties to the          #
