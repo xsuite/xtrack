@@ -311,52 +311,35 @@ class Line:
             s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
             s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
 
+            s_start_ele = at_s
             if _is_thick(element):
-                s_start_ele = at_s
                 s_end_ele = at_s + element.length
-
-                i_first_drift_to_cut = np.where(s_vect_downstream>s_start_ele)[0][0]
-                i_last_drift_to_cut = np.where(s_vect_upstream<s_end_ele)[0][-1]
-                name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
-                name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
-                assert isinstance(self.element_dict[name_first_drift_to_cut], Drift)
-                assert isinstance(self.element_dict[name_last_drift_to_cut], Drift)
-
-                for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
-                    if not isinstance(self.element_dict[self.element_names[ii]],
-                                      Drift):
-                        raise ValueError('Cannot replace active element '
-                                         f'{self.element_names[ii]}')
-
-                l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
-                l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
-                assert l_left_part >= 0
-                assert l_right_part >= 0
-                name_left = name_first_drift_to_cut + '_part0'
-                name_right = name_last_drift_to_cut + '_part1'
-
-                self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
-                i_insert = i_first_drift_to_cut
-
             else:
-                assert at_s>0 and at_s<s_vect_downstream[-1], (
-                       'Invalid value for `at_s`')
+                s_end_ele = s_start_ele
 
-                # Identify which drift needs to be split
-                i_drift_to_cut = np.where(s_vect_downstream>at_s)[0][0]
-                name_drift_to_cut = self.element_names[i_drift_to_cut]
-                drift_to_cut = self.element_dict[name_drift_to_cut]
-                s_start_drift = s_vect_upstream[i_drift_to_cut]
-                assert isinstance(drift_to_cut, Drift)
+            i_first_drift_to_cut = np.where(s_vect_downstream>s_start_ele)[0][0]
+            i_last_drift_to_cut = np.where(s_vect_upstream<s_end_ele)[0][-1]
+            name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
+            name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
+            assert isinstance(self.element_dict[name_first_drift_to_cut], Drift)
+            assert isinstance(self.element_dict[name_last_drift_to_cut], Drift)
 
-                # Prepare lengths of new drifts
-                l_drift_to_cut = drift_to_cut.length
-                l_left_part = at_s - s_start_drift
-                l_right_part = l_drift_to_cut - l_left_part
-                name_left = name_drift_to_cut+'_part0'
-                name_right = name_drift_to_cut+'_part1'
+            for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
+                if not isinstance(self.element_dict[self.element_names[ii]],
+                                    Drift):
+                    raise ValueError('Cannot replace active element '
+                                        f'{self.element_names[ii]}')
 
-                i_insert = i_drift_to_cut
+            l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
+            l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
+            assert l_left_part >= 0
+            assert l_right_part >= 0
+            name_left = name_first_drift_to_cut + '_part0'
+            name_right = name_last_drift_to_cut + '_part1'
+
+            self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
+            i_insert = i_first_drift_to_cut
+
 
             drift_base = self.element_dict[self.element_names[i_insert]]
             drift_left = drift_base.copy()
