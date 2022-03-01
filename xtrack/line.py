@@ -370,12 +370,12 @@ class Line:
 
             names_to_insert = []
 
-            if drift_left.length >= 0:
+            if drift_left.length > 0:
                 names_to_insert.append(name_left)
                 self.element_dict[name_left] = drift_left
             names_to_insert.append(name)
             self.element_dict[name] = element
-            if drift_right.length >= 0:
+            if drift_right.length > 0:
                 names_to_insert.append(name_right)
                 self.element_dict[name_right] = drift_right
 
