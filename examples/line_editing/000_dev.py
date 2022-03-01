@@ -30,6 +30,7 @@ assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
 line = line0.copy()
 line.insert_element(element=xt.Drift(length=0.2), at_s=0.95, name='inserted_drift')
+assert line.get_s_position('inserted_drift') == 0.95
 assert len(line.elements) == 6
 assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
             ['e0_part0', 'inserted_drift', 'e1_part1', 'e2', 'e3', 'e4']))])
@@ -37,8 +38,9 @@ assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
 line = line0.copy()
 line.insert_element(element=xt.Drift(length=0.2), at_s=1.0, name='inserted_drift')
-assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+assert line.get_s_position('inserted_drift') == 1.
 assert len(line.elements) == 6
 assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
             ['e0', 'inserted_drift', 'e1_part1', 'e2', 'e3', 'e4']))])
 assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+
