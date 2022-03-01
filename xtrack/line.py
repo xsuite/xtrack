@@ -312,21 +312,31 @@ class Line:
             s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
 
             s_start_ele = at_s
+            i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
+
+            # Shortcut for thin element without drift splitting
+            if (not _is_thick(element)
+                and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s)<1e-10):
+                    return self.insert_element(index=i_first_drift_to_cut,
+                                              element=element, name=name)
+
             if _is_thick(element):
                 s_end_ele = at_s + element.length
             else:
                 s_end_ele = s_start_ele
 
-            i_first_drift_to_cut = np.where(s_vect_downstream>s_start_ele)[0][0]
-            i_last_drift_to_cut = np.where(s_vect_upstream<s_end_ele)[0][-1]
+            i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
+            assert i_first_drift_to_cut <= i_last_drift_to_cut
             name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
             name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
-            assert isinstance(self.element_dict[name_first_drift_to_cut], Drift)
-            assert isinstance(self.element_dict[name_last_drift_to_cut], Drift)
+            first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
+            last_drift_to_cut = self.element_dict[name_last_drift_to_cut]
+
+            assert _is_drift(first_drift_to_cut)
+            assert _is_drift(last_drift_to_cut)
 
             for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
-                if not isinstance(self.element_dict[self.element_names[ii]],
-                                    Drift):
+                if not _is_drift(self.element_dict[self.element_names[ii]]):
                     raise ValueError('Cannot replace active element '
                                         f'{self.element_names[ii]}')
 
@@ -339,7 +349,6 @@ class Line:
 
             self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
             i_insert = i_first_drift_to_cut
-
 
             drift_base = self.element_dict[self.element_names[i_insert]]
             drift_left = drift_base.copy()
