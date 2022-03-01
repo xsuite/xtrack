@@ -293,15 +293,64 @@ class Line:
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
-    def insert_element(self, idx=None, element=None, name=None):
+    def insert_element(self, index=None, element=None, name=None, at_s=None):
 
-        assert element is not None
         assert name is not None
+        if element is None:
+            assert name in self.element_names
+            element  = self.element_dict[name]
 
         self._frozen_check()
-        assert name not in self.element_dict.keys()
-        self.element_dict[name] = element
-        self.element_names.insert(idx, name)
+
+        # For now only thin insertion is possible
+        assert not _is_thick(element)
+
+        assert ((index is not None and at_s is None) or
+                (index is None and at_s is not None)), (
+                    "Either `index` or `at_s` must be provided"
+                )
+
+        if at_s is not None:
+            s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+            s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
+
+            assert at_s>0 and at_s<s_vect_downstream[-1], (
+                   'Invalid value for `at_s`')
+
+            # Identify which drift needs to be split
+            i_drift_to_cut = np.where(s_vect_downstream>at_s)[0][0]
+            name_drift_to_cut = self.element_names[i_drift_to_cut]
+            drift_to_cut = self.element_dict[name_drift_to_cut]
+            s_start_drift = s_vect_upstream[i_drift_to_cut]
+            assert isinstance(drift_to_cut, Drift)
+
+            # Prepare new drifts
+            l_drift_to_cut = drift_to_cut.length
+            l_left_part = at_s - s_start_drift
+            l_right_part = l_drift_to_cut - l_left_part
+            name_left = name_drift_to_cut+'_part0'
+            name_right = name_drift_to_cut+'_part1'
+            drift_left = drift_to_cut.copy()
+            drift_left.length = l_left_part
+            drift_right = drift_to_cut.copy()
+            drift_right.length = l_right_part
+
+            # Insert
+            assert name_left not in self.element_names
+            assert name_right not in self.element_names
+            self.element_dict[name_left] = drift_left
+            self.element_dict[name] = element
+            self.element_dict[name_right] = drift_right
+
+            self.element_names[i_drift_to_cut] = name_right
+            self.element_names.insert(i_drift_to_cut, name)
+            self.element_names.insert(i_drift_to_cut, name_left)
+
+        else:
+            assert name not in self.element_dict.keys()
+            self.element_dict[name] = element
+            self.element_names.insert(index, name)
+
         return self
 
     def append_element(self, element, name):
@@ -320,11 +369,9 @@ class Line:
         return ll
 
     def get_s_elements(self, mode="upstream"):
-        log.warning('`get_s_elements` will be removed in future versions,'
-                    ' please use `get_s_positions` instead')
-        return self.get_s_positions(mode=mode)
+        return self.get_s_position(mode=mode)
 
-    def get_s_positions(self, mode="upstream", at_elements=None):
+    def get_s_position(self, at_elements=None, mode="upstream"):
 
         assert mode in ["upstream", "downstream"]
         s_prev = 0
@@ -340,7 +387,7 @@ class Line:
         if at_elements is not None:
             if isinstance(at_elements, str):
                 assert at_elements in self.element_names
-                return self.element_names.index(at_elements)
+                return s[self.element_names.index(at_elements)]
             else:
                 assert all([nn in self.element_names for nn in at_elements])
                 return [s[self.element_names.index(nn)] for nn in at_elements]
