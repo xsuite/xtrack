@@ -293,7 +293,11 @@ class Line:
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
-    def insert_element(self, idx, element, name):
+    def insert_element(self, idx=None, element=None, name=None):
+
+        assert element is not None
+        assert name is not None
+
         self._frozen_check()
         assert name not in self.element_dict.keys()
         self.element_dict[name] = element
@@ -316,6 +320,11 @@ class Line:
         return ll
 
     def get_s_elements(self, mode="upstream"):
+        log.warning('`get_s_elements` will be removed in future versions,'
+                    ' please use `get_s_positions` instead')
+        return self.get_s_positions(mode=mode)
+
+    def get_s_positions(self, mode="upstream", at_elements=None):
 
         assert mode in ["upstream", "downstream"]
         s_prev = 0
@@ -327,7 +336,16 @@ class Line:
                 s_prev += ee.length
             if mode == "downstream":
                 s.append(s_prev)
-        return s
+
+        if at_elements is not None:
+            if isinstance(at_elements, str):
+                assert at_elements in self.element_names
+                return self.element_names.index(at_elements)
+            else:
+                assert all([nn in self.element_names for nn in at_elements])
+                return [s[self.element_names.index(nn)] for nn in at_elements]
+        else:
+            return s
 
     def remove_inactive_multipoles(self, inplace=False):
 
