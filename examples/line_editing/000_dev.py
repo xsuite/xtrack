@@ -44,3 +44,23 @@ assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
             ['e0', 'inserted_drift', 'e1_part1', 'e2', 'e3', 'e4']))])
 assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
+# Check preservation of markers
+elements = []
+enames = []
+
+for ii in range(5):
+    elements.append(xt.Drift(length=1))
+    enames.append(f'd{ii}')
+    elements.append(xt.Drift(length=0))
+    enames.append(f'm{ii}')
+
+line = xt.Line(elements=elements, element_names=enames)
+line.insert_element(element=xt.Drift(length=1.), at_s=1.0, name='inserted_drift')
+assert line.get_s_position('inserted_drift') == 1.
+assert len(line.elements) == 10
+assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
+    ['d0', 'm0', 'inserted_drift', 'm1', 'd2', 'm2', 'd3', 'm3', 'd4', 'm4']))])
+assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+
+line.insert_element(element=xt.Cavity(), at_s=3.0, name='cav0')
+
