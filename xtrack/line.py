@@ -330,8 +330,8 @@ class Line:
 
                 l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
                 l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
-                assert l_left_part >=0
-                assert l_right_part >=0
+                assert l_left_part >= 0
+                assert l_right_part >= 0
                 name_left = name_first_drift_to_cut + '_part0'
                 name_right = name_last_drift_to_cut + '_part1'
 
@@ -367,13 +367,22 @@ class Line:
             # Insert
             assert name_left not in self.element_names
             assert name_right not in self.element_names
-            self.element_dict[name_left] = drift_left
-            self.element_dict[name] = element
-            self.element_dict[name_right] = drift_right
 
-            self.element_names[i_insert] = name_right
-            self.element_names.insert(i_insert, name)
-            self.element_names.insert(i_insert, name_left)
+            names_to_insert = []
+
+            if drift_left.length >= 0:
+                names_to_insert.append(name_left)
+                self.element_dict[name_left] = drift_left
+            names_to_insert.append(name)
+            self.element_dict[name] = element
+            if drift_right.length >= 0:
+                names_to_insert.append(name_right)
+                self.element_dict[name_right] = drift_right
+
+            self.element_names[i_insert] = names_to_insert[-1]
+            if len(names_to_insert) > 1:
+                for nn in names_to_insert[:-1][::-1]:
+                    self.element_names.insert(i_insert, nn)
 
         else:
             if _is_thick(element):
