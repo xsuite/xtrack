@@ -28,6 +28,9 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
         particle_co_guess.py = 0
         particle_co_guess.zeta = 0
         particle_co_guess.delta = 0
+        particle_co_guess.s = 0
+        particle_co_guess.at_element = 0
+        particle_co_guess.at_turn = 0
     else:
         assert particle_ref is None
         particle_ref = particle_co_guess
@@ -102,9 +105,19 @@ def compute_one_turn_matrix_finite_differences(
             y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
             py =    [0.,  0., 0., dpy,    0.,     0.,  0.,   0.,  0., -dpy,     0.,      0.],
             zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
-            delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],)
+            delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
+            )
+    if particle_on_co.at_element[0]>0:
+        part_temp.s[:] = particle_on_co.s[0]
+        part_temp.at_element[:] = particle_on_co.at_element[0]
 
-    tracker.track(part_temp)
+    if particle_on_co.at_element[0]>0:
+        i_start = particle_on_co.at_element[0]
+        tracker.track(part_temp, ele_start=i_start)
+        tracker.track(part_temp, num_elements=i_start)
+    else:
+        assert particle_on_co.at_element[0] == 0
+        tracker.track(part_temp)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
