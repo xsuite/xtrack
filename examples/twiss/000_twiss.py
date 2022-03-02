@@ -31,6 +31,24 @@ tw = tracker.twiss()
 
 #!end-doc-part
 
+# Test custom s locations
+s_test = [2e3, 1e3, 3e3, 10e3]
+twats = tracker.twiss(at_s = s_test)
+for ii, ss in enumerate(s_test):
+    assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
+    i_prev = np.where(tw['s']<=ss)[0][-1]
+    assert np.isclose(twats['alfx'][ii], np.interp(ss, tw['s'], tw['alfx']),
+                      rtol=0, atol=1e-9)
+    assert np.isclose(twats['alfy'][ii], np.interp(ss, tw['s'], tw['alfy']),
+                     rtol=0, atol=1e-9)
+    assert np.isclose(twats['dpx'][ii], np.interp(ss, tw['s'], tw['dpx']),
+                      rtol=0, atol=1e-9)
+    assert np.isclose(twats['dpy'][ii], np.interp(ss, tw['s'], tw['dpy']),
+                      rtol=0, atol=1e-9)
+
+
+
+
 import matplotlib.pyplot as plt
 
 plt.close('all')
