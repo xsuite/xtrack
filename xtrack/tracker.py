@@ -286,7 +286,7 @@ class Tracker:
         nemitt_x=1e-6, nemitt_y=1e-6,
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None,
+        co_search_settings=None, at_elements=None, at_s=None,
         eneloss_and_damping=False,
         symplectify=False
         ):
@@ -314,7 +314,7 @@ class Tracker:
             particle_co_guess=particle_co_guess,
             steps_r_matrix=steps_r_matrix,
             co_search_settings=co_search_settings,
-            at_elements=at_elements,
+            at_elements=at_elements, at_s=at_s,
             eneloss_and_damping=eneloss_and_damping,
             symplectify=symplectify)
 

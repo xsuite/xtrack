@@ -8,6 +8,8 @@ from scipy.constants import c as clight
 
 from .linear_normal_form import compute_linear_normal_form
 
+import xtrack as xt # To avoid circular imports
+
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-7, 'dpx':1e-10,
     'dy':1e-7, 'dpy':1e-10,
@@ -119,13 +121,66 @@ def compute_one_turn_matrix_finite_differences(
 
     return RR
 
+def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix):
+
+    auxline = xt.Line(elements=list(tracker.line.elements).copy(),
+                      element_names=list(tracker.line.element_names).copy())
+
+    names_inserted_markers = []
+    for ii, ss in enumerate(at_s):
+        nn = marker_prefix + f'{ii}'
+        auxline.insert_element(element=xt.Drift(length=0),
+                            name=nn,
+                            at_s=ss
+                            )
+        names_inserted_markers.append(nn)
+
+    auxtracker = xt.Tracker(
+        _buffer=tracker._buffer,
+        line=auxline,
+        track_kernel=tracker.track_kernel,
+        element_classes=tracker.element_classes,
+        particles_class=tracker.particles_class,
+        skip_end_turn_actions=tracker.skip_end_turn_actions,
+        reset_s_at_end_turn=tracker.reset_s_at_end_turn,
+        particles_monitor_class=None,
+        global_xy_limit=tracker.global_xy_limit,
+        local_particle_src=tracker.local_particle_src
+    )
+
+    return auxtracker, names_inserted_markers
+
 def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=2.5e-6,
         n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4,
         particle_co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None,
+        co_search_settings=None, at_elements=None, at_s=None,
         eneloss_and_damping=False,
         symplectify=False):
+
+    if at_s is not None:
+        assert at_elements is None
+        (auxtracker, names_inserted_markers
+            ) = _build_auxiliary_tracker_with_extra_markers(
+            tracker=tracker, at_s=at_s, marker_prefix='inserted_twiss_marker')
+
+        twres = twiss_from_tracker(
+            tracker=auxtracker,
+            particle_ref=particle_ref,
+            r_sigma=r_sigma,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            n_theta=n_theta,
+            delta_disp=delta_disp,
+            delta_chrom=delta_chrom,
+            particle_co_guess=particle_co_guess,
+            steps_r_matrix=steps_r_matrix,
+            co_search_settings=co_search_settings,
+            at_elements=names_inserted_markers,
+            at_s=None,
+            eneloss_and_damping=eneloss_and_damping,
+            symplectify=symplectify)
+        return twres
 
     context = tracker._buffer.context
 
