@@ -117,16 +117,28 @@ class Tracker:
 
         # Split the sequence
         parts = []
+        _element_part = []
+        _element_index_in_part=[]
         this_part = Line(elements=[], element_names=[])
+        ii_in_part = 0
+        i_part = 0
         for nn, ee in zip(line.element_names, line.elements):
             if not _check_is_collective(ee):
                 this_part.append_element(ee, nn)
+                _element_part.append(i_part)
+                _element_index_in_part.append(ii_in_part)
+                ii_in_part += 1
             else:
                 if len(this_part.elements)>0:
                     this_part.iscollective=False
                     parts.append(this_part)
+                    i_part += 1
                 parts.append(ee)
+                _element_part.append(i_part)
+                _element_index_in_part.append(None)
+                i_part += 1
                 this_part = Line(elements=[], element_names=[])
+                ii_in_part = 0
         if len(this_part.elements)>0:
             this_part.iscollective=False
             parts.append(this_part)
@@ -180,12 +192,19 @@ class Tracker:
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
 
+        assert len(line.element_names) == len(supertracker.line.element_names)
+        assert len(line.element_names) == len(_element_index_in_part)
+        assert len(line.element_names) == len(_element_part)
+        assert _element_part[-1] == len(parts) - 1
+
         self.line = line
         self._supertracker = supertracker
         self._parts = parts
         self.track = self._track_with_collective
         self.particles_class = supertracker.particles_class
         self.particles_monitor_class = supertracker.particles_monitor_class
+        self._element_part = _element_part
+        self._element_index_in_part = _element_index_in_part
 
 
     def _init_track_no_collective(
@@ -575,14 +594,15 @@ class Tracker:
         turn_by_turn_monitor=None,
     ):
 
-        assert ele_start == 0
         assert num_elements is None
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
+
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         for tt in range(num_turns):
+
             if flag_monitor:
                 monitor.track(particles)
 
