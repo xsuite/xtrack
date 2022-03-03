@@ -470,6 +470,20 @@ class Tracker:
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
 
+                    int skip_element = 0;
+                    if (iturn == 0){
+                        int64_t part_at_ele = LocalParticle_get_at_element(&lpart);
+                        if (part_at_ele < 0){
+                            if (part_at_ele == (-ee)){
+                                LocalParticle_set_at_element(&lpart, ee);
+                            }
+                            else{
+                                skip_element = 1;
+                            }
+                        }
+                    }
+
+                    if (!skip_element){
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
@@ -503,12 +517,13 @@ class Tracker:
 
         src_lines.append(
             """
-                        } //switch
-                    isactive = check_is_active(&lpart);
-                    if (!isactive){
-                        break;
-                    }
-                    increment_at_element(&lpart);
+                            } //switch
+                        isactive = check_is_active(&lpart);
+                        if (!isactive){
+                            break;
+                        }
+                        increment_at_element(&lpart);
+                    } // if skip_element
                 } // for elements
                 if (flag_end_turn_actions>0){
                     if (isactive){

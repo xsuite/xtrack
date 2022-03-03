@@ -63,8 +63,8 @@ int64_t check_is_active(LocalParticle* part) {
         if (part->state[ipart]<1){
             LocalParticle_exchange(
                 part, ipart, part->_num_active_particles-1);
-            part->_num_active_particles--; 
-            part->_num_lost_particles++; 
+            part->_num_active_particles--;
+            part->_num_lost_particles++;
         }
 	else{
 	    ipart++;
