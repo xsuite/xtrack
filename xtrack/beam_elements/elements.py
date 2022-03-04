@@ -165,14 +165,15 @@ class Wire(BeamElement):
         return self.__class__(
                               wire_L_phy   = self.wire_L_phy,
                               wire_L_int   = self.wire_L_int,
-                              wire_current = self.wire_current,
+                              wire_current = -self.wire_current,
                               wire_xma     = self.wire_xma,
                               wire_yma     = self.wire_yma,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Wire.XoStruct.extra_sources = [
-    _pkg_root.joinpath('beam_elements/elements_src/wire.h')]
-
+     _pkg_root.joinpath('headers/constants.h'), 
+     _pkg_root.joinpath('beam_elements/elements_src/wire.h'), 
+]
 
 
 
