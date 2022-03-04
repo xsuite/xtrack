@@ -603,14 +603,24 @@ class Tracker:
 
         for tt in range(num_turns):
 
-            if flag_monitor:
+            if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
 
-            for pp in self._parts:
+            for ipp, pp in enumerate(self._parts):
+                if (tt == 0 and ele_start > 0):
+                    if self._element_part[ele_start] < ipp:
+                        continue
+                    if self._element_part[ele_start] == ipp:
+                        ii_in_part = self._element_index_in_part[ele_start]
+                        if ii_in_part is None:
+                            pp.track(particles)
+                        else:
+                            pp.track(particles, ele_start=ii_in_part)
+                        continue
+
                 pp.track(particles)
                 if not isinstance(pp, Tracker):
                     self._zerodrift.track(particles, increment_at_element=True)
-
 
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)
