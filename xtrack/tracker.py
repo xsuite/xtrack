@@ -198,6 +198,7 @@ class Tracker:
         assert _element_part[-1] == len(parts) - 1
 
         self.line = line
+        self.num_elements = len(line.element_names)
         self._supertracker = supertracker
         self._parts = parts
         self.track = self._track_with_collective
@@ -588,11 +589,14 @@ class Tracker:
     def _track_with_collective(
         self,
         particles,
-        ele_start=0,
+        ele_start=None,
         num_elements=None,
         num_turns=1,
         turn_by_turn_monitor=None,
     ):
+
+        assert ele_start >= 0
+        assert ele_start < self.num_elements
 
         assert num_elements is None
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
@@ -636,11 +640,14 @@ class Tracker:
     def _track_no_collective(
         self,
         particles,
-        ele_start=0,
+        ele_start=None,
         num_elements=None,
         num_turns=1,
         turn_by_turn_monitor=None,
     ):
+
+        assert ele_start >= 0
+        assert ele_start < self.num_elements
 
         if num_turns > 1:
             assert num_elements is None
