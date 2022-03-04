@@ -595,8 +595,16 @@ class Tracker:
         turn_by_turn_monitor=None,
     ):
 
+        if particles.start_tracking_at_element >= 0:
+            assert ele_start is None
+            ele_start = particles.start_tracking_at_element
+            particles.start_tracking_at_element = -1
+        else:
+            if ele_start is None:
+                ele_start = 0
+
         assert ele_start >= 0
-        assert ele_start < self.num_elements
+        assert ele_start <= self.num_elements
 
         assert num_elements is None
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
@@ -646,8 +654,16 @@ class Tracker:
         turn_by_turn_monitor=None,
     ):
 
+        if particles.start_tracking_at_element >=0:
+            assert ele_start is None
+            ele_start = particles.start_tracking_at_element
+            particles.start_tracking_at_element = -1
+        else:
+            if ele_start is None:
+                ele_start = 0
+
         assert ele_start >= 0
-        assert ele_start < self.num_elements
+        assert ele_start <= self.num_elements
 
         if num_turns > 1:
             assert num_elements is None
