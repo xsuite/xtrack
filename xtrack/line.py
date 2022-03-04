@@ -1,5 +1,8 @@
 import json
+import math
+import logging
 from copy import deepcopy
+
 import numpy as np
 
 import xobjects as xo
@@ -11,8 +14,6 @@ from .beam_elements import element_classes, Multipole
 from . import beam_elements
 from .beam_elements import Drift
 
-
-import logging
 
 log=logging.getLogger(__name__)
 
@@ -137,14 +138,13 @@ class Line:
 
         from collections import defaultdict
         import xdeps as xd
-        import math
 
         # Extract globals values from madx
         _var_values=defaultdict(lambda :0)
 
         _ref_manager = manager=xd.Manager()
         _vref=manager.ref(_var_values,'vars')
-        _fref=manager.ref(math,'f')
+        _fref=manager.ref(mathfunctions,'f')
         _lref = manager.ref(self.element_dict, 'element_refs')
 
         self._var_management = {}
@@ -649,4 +649,25 @@ class Line:
 
         return elements_not_found
 
-
+mathfunctions = type('math', (), {})
+mathfunctions.sqrt=math.sqrt
+mathfunctions.log=math.log
+mathfunctions.log10=math.log10
+mathfunctions.exp=math.exp
+mathfunctions.sin=math.sin
+mathfunctions.cos=math.cos
+mathfunctions.tan=math.tan
+mathfunctions.asin=math.asin
+mathfunctions.acos=math.acos
+mathfunctions.atan=math.atan
+mathfunctions.sinh=math.sinh
+mathfunctions.cosh=math.cosh
+mathfunctions.tanh=math.tanh
+mathfunctions.sinc=np.sinc
+mathfunctions.abs=math.fabs
+mathfunctions.erf=math.erf
+mathfunctions.erfc=math.erfc
+mathfunctions.floor=math.floor
+mathfunctions.ceil=math.ceil
+mathfunctions.round=np.round
+mathfunctions.frac=lambda x: (x%1)

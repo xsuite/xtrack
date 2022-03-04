@@ -67,6 +67,7 @@ def madx_sequence_to_xtrack_line(
             "vmonitor",
             "collimator",
             "rcollimator",
+            "ecollimator",
             "elseparator",
             "instrument",
             "solenoid",
