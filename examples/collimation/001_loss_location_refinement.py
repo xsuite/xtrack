@@ -93,7 +93,7 @@ t0 = time.time()                                         #!skip-doc
 loss_loc_refinement.refine_loss_location(particles)
 
 t1 = time.time()                                         #!skip-doc
-print(f'Took\t{(t1-t0)*1e3:.2f} ms') .                   #!skip-doc
+print(f'Took\t{(t1-t0)*1e3:.2f} ms')                     #!skip-doc
 
 
 #!end-doc-part

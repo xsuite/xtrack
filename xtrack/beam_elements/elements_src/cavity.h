@@ -9,7 +9,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
         double const   beta0  = LocalParticle_get_beta0(part);
         double const   zeta   = LocalParticle_get_zeta(part);
-        double const   q      = LocalParticle_get_q0(part)
+        double const   q      = fabs(LocalParticle_get_q0(part))
                 		    * LocalParticle_get_charge_ratio(part);
         double         rvv    = LocalParticle_get_rvv(part);
         double const   tau    = zeta / ( beta0 * rvv );

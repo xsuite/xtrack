@@ -293,7 +293,7 @@ def generate_interp_aperture_locations(tracker, i_aper_0, i_aper_1, ds):
     s0 = tracker._line_frozen.element_s_locations[i_aper_0]
     s1 = tracker._line_frozen.element_s_locations[i_aper_1]
     assert s1>=s0
-    n_segments = int(np.ceil(s1-s0)/ds)
+    n_segments = int(np.ceil((s1-s0)/ds))
     if n_segments <= 1:
         s_vect = np.array([])
     else:
@@ -335,7 +335,8 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
             _buffer=_buffer,
             line=Line(elements=ele_all),
             track_kernel=_trk_gen.track_kernel,
-            element_classes=_trk_gen.element_classes)
+            element_classes=_trk_gen.element_classes,
+            reset_s_at_end_turn=0)
 
     return interp_tracker
 

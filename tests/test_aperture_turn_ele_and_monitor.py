@@ -24,8 +24,7 @@ def test_aperture_turn_ele_and_monitor():
                                  px=np.linspace(-1, 1, n_part),
                                  y=np.zeros(n_part),
                                  py=np.linspace(-2, 2, n_part),
-                                 sigma=np.zeros(n_part),
-                                 delta=np.zeros(n_part))
+                                )
 
         # Build a small test line
         tot_length = 2.
@@ -77,7 +76,8 @@ def test_aperture_turn_ele_and_monitor():
         at_element_expected = np.int_(np.clip(at_element_expected, 0,
                                               n_slices-1))
 
-        assert np.allclose(part_s, s_expected, atol=1e-3)
+        assert np.allclose(part_s + at_turn_expected*line.get_length(), s_expected,
+                           atol=1e-3)
         assert np.allclose(at_turn_expected, part_at_turn)
 
         # I need to add a tolerance of one element as a mismatch is visible
@@ -95,7 +95,7 @@ def test_aperture_turn_ele_and_monitor():
             for tt in range(n_turns):
                 if tt<=this_at_turn:
                     assert(mon.at_turn[iidd, tt] == tt)
-                    assert(np.isclose(mon.s[iidd, tt], tt*tot_length, atol=1e-14))
+                    assert(np.isclose(mon.s[iidd, tt], 0., atol=1e-14))
                     assert(np.isclose(mon.x[iidd, tt], tt*tot_length*this_px,
                                       atol=1e-14))
                     assert(np.isclose(mon.y[iidd, tt], tt*tot_length*this_py,
@@ -129,8 +129,7 @@ def test_custom_monitor():
                                  px=np.linspace(-1, 1, n_part),
                                  y=np.zeros(n_part),
                                  py=np.linspace(-2, 2, n_part),
-                                 sigma=np.zeros(n_part),
-                                 delta=np.zeros(n_part))
+                                )
 
         # Build a small test line
         tot_length = 2.
@@ -191,7 +190,8 @@ def test_custom_monitor():
         at_element_expected = np.int_(np.clip(at_element_expected, 0,
                                               n_slices-1))
 
-        assert np.allclose(part_s, s_expected, atol=1e-3)
+        assert np.allclose(part_s + at_turn_expected * tracker.line.get_length(),
+                           s_expected, atol=1e-3)
         assert np.allclose(at_turn_expected, part_at_turn)
 
         # I need to add a tolerance of one element as a mismatch is visible
@@ -219,7 +219,7 @@ def test_custom_monitor():
                         tt - start_monitor_at_turn] == iidd)
                     assert(np.isclose(mon.s[iidd - part_id_monitor_start,
                         tt - start_monitor_at_turn],
-                        tt*tot_length, atol=1e-14))
+                        0., atol=1e-14))
                     assert(np.isclose(mon.x[iidd - part_id_monitor_start,
                         tt - start_monitor_at_turn],
                         tt*tot_length*this_px,

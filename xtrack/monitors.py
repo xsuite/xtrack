@@ -50,7 +50,8 @@ def _monitor_init(
             data=data_init,
         )
 
-        self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data)
+        self._dressed_data = self._ParticlesClass(_xobject=self._xobject.data,
+                                                  _no_reorganize=True)
         self.auto_to_numpy = auto_to_numpy
 
         with self.data._bypass_linked_vars():
@@ -81,6 +82,7 @@ def generate_monitor_class(ParticlesClass):
             "stop_at_turn": xo.Int64,
             'part_id_start': xo.Int64,
             'part_id_end': xo.Int64,
+            'ebe_mode': xo.Int64,
             "n_records": xo.Int64,
             "data": ParticlesClass.XoStruct,
         },

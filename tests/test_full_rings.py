@@ -60,13 +60,14 @@ def test_full_rings(element_by_element=False):
             # Build TrackJob #
             ##################
             print('Build tracker...')
-            tracker = xt.Tracker(_context=context, line=line)
+            tracker = xt.Tracker(_context=context, line=line,
+                                 reset_s_at_end_turn=False)
 
             ######################
             # Get some particles #
             ######################
-            particles = xp.Particles(_context=context, **input_data['particle'])
-
+            particles = xp.Particles.from_dict(input_data['particle'],
+                                               _context=context)
             #########
             # Track #
             #########
@@ -143,7 +144,7 @@ def test_full_rings(element_by_element=False):
                assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
                                  rtol=0, atol=1e-11)
                assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
-                                 rtol=0, atol=1e-11)
+                                 rtol=0, atol=3e-11)
 
 
 
@@ -177,12 +178,13 @@ def test_freeze_vars():
                     line=line,
                     local_particle_src=xp.gen_local_particle_api(
                                                         freeze_vars=freeze_vars),
+                    reset_s_at_end_turn=False
                     )
 
         ######################
         # Get some particles #
         ######################
-        particle_ref=xp.Particles(**input_data['particle'])
+        particle_ref=xp.Particles.from_dict(input_data['particle'])
         particles = xp.build_particles(_context=context,
                 particle_ref=particle_ref,
                 x=np.linspace(-1e-4, 1e-4, 10))

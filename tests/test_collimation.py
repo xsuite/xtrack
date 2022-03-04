@@ -28,7 +28,6 @@ def test_collimation_infrastructure():
             mask_kill = np.random.uniform(size=n_part) < self.fraction_lost
             particles.state[:n_part][mask_kill] = 0
 
-
             # Generate some more particles
             mask_secondary = np.random.uniform(size=n_part) < self.fraction_secondary
             n_products = np.sum(mask_secondary)

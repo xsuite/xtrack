@@ -1,12 +1,16 @@
 import numpy as np
+from scipy.constants import c as clight
 
-def iter_from_madx_sequence(
+import xtrack as xt
+
+def madx_sequence_to_xtrack_line(
     sequence,
     classes,
     ignored_madtypes=[],
     exact_drift=False,
     drift_threshold=1e-6,
     install_apertures=False,
+    deferred_expressions=False
 ):
 
     if exact_drift:
@@ -14,6 +18,31 @@ def iter_from_madx_sequence(
     else:
         myDrift = classes.Drift
     seq = sequence
+
+
+    line = xt.Line(elements=[], element_names=[])
+
+    if deferred_expressions:
+        line._init_var_management()
+        mad = sequence._madx
+
+        from xdeps.madxutils import MadxEval
+
+        # Extract globals values from madx
+        _var_values = line._var_management['data']['var_values']
+        for name,par in mad.globals.cmdpar.items():
+            _var_values[name]=par.value
+
+        _ref_manager = line._var_management['manager']
+        _vref = line._var_management['vref']
+        _fref = line._var_management['fref']
+        _lref = line._var_management['lref']
+        madeval=MadxEval(_vref,_fref,None).eval
+
+        # Extract expressions from madx globals
+        for name,par in mad.globals.cmdpar.items():
+            if par.expr is not None:
+                _vref[name]=madeval(par.expr)
 
     elements = seq.elements
     ele_pos = seq.element_positions()
@@ -24,15 +53,12 @@ def iter_from_madx_sequence(
         skiptilt=False
 
         if pp > old_pp + drift_threshold:
-            yield "drift_%d" % i_drift, myDrift(length=(pp - old_pp))
+            line.append_element(myDrift(length=(pp - old_pp)), f"drift_{i_drift}")
             old_pp = pp
             i_drift += 1
 
         eename = ee.name
         mad_etype = ee.base_type.name
-
-        # if ee.length > 0:
-        #    raise ValueError(f"Sequence {seq} contains {eename} with length>0")
 
         if mad_etype in [
             "marker",
@@ -41,6 +67,7 @@ def iter_from_madx_sequence(
             "vmonitor",
             "collimator",
             "rcollimator",
+            "ecollimator",
             "elseparator",
             "instrument",
             "solenoid",
@@ -48,6 +75,7 @@ def iter_from_madx_sequence(
         ]:
             newele = myDrift(length=ee.l)
             old_pp += ee.l
+            line.element_dict[eename] = newele
 
         elif mad_etype in ignored_madtypes:
             pass
@@ -62,6 +90,15 @@ def iter_from_madx_sequence(
                 hyl=ksl[0],
                 length=ee.lrad,
             )
+            line.element_dict[eename] = newele
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                for ii, _ in enumerate(knl):
+                    if eepar.knl.expr[ii] is not None:
+                        _lref[eename].knl[ii] = madeval(eepar.knl.expr[ii])
+                for ii, _ in enumerate(ksl):
+                    if eepar.ksl.expr[ii] is not None:
+                        _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
 
         elif mad_etype == "tkicker" or mad_etype == "kicker":
             hkick = [-ee.hkick] if hasattr(ee, "hkick") else []
@@ -69,27 +106,59 @@ def iter_from_madx_sequence(
             newele = classes.Multipole(
                 knl=hkick, ksl=vkick, length=ee.lrad, hxl=0, hyl=0
             )
+            line.element_dict[eename] = newele
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                if hasattr(eepar, 'hkick') and eepar.hkick.expr is not None:
+                    _lref[eename].knl[0] = -madeval(eepar.hkick.expr)
+                if hasattr(eepar, 'vkick') and eepar.vkick.expr is not None:
+                    _lref[eename].ksl[0] = madeval(eepar.vkick.expr)
 
         elif mad_etype == "vkicker":
             newele = classes.Multipole(
                 knl=[], ksl=[ee.kick], length=ee.lrad, hxl=0, hyl=0
             )
+            line.element_dict[eename] = newele
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                if eepar.kick.expr is not None:
+                    _lref[eename].ksl[0] = madeval(eepar.kick.expr)
 
         elif mad_etype == "hkicker":
             newele = classes.Multipole(
                 knl=[-ee.kick], ksl=[], length=ee.lrad, hxl=0, hyl=0
             )
+            line.element_dict[eename] = newele
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                if eepar.kick.expr is not None:
+                    _lref[eename].knl[0] = -madeval(eepar.kick.expr)
+
         elif mad_etype == "dipedge":
             newele = classes.DipoleEdge(
                 h=ee.h, e1=ee.e1, hgap=ee.hgap, fint=ee.fint
             )
+            line.element_dict[eename] = newele
 
         elif mad_etype == "rfcavity":
+            if ee.freq == 0 and ee.harmon != 0:
+                frequency = sequence.beam.beta * clight / sequence.length
+            else:
+                frequency = ee.freq * 1e6
             newele = classes.Cavity(
                 voltage=ee.volt * 1e6,
-                frequency=ee.freq * 1e6,
+                frequency=frequency,
                 lag=ee.lag * 360,
             )
+            line.element_dict[eename] = newele
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                if eepar.volt.expr is not None:
+                    _lref[eename].voltage = madeval(eepar.volt.expr) * 1e6
+                if eepar.freq.expr is not None:
+                    _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                if eepar.lag.expr is not None:
+                    _lref[eename].lag = madeval(eepar.lag.expr) * 360
 
         elif mad_etype == "rfmultipole":
             newele = classes.RFMultipole(
@@ -101,7 +170,30 @@ def iter_from_madx_sequence(
                 pn=[v * 360 for v in ee.pnl],
                 ps=[v * 360 for v in ee.psl],
             )
-            
+
+            line.element_dict[eename] = newele
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                if eepar.volt.expr is not None:
+                    _lref[eename].voltage = madeval(eepar.volt.expr) * 1e6
+                if eepar.freq.expr is not None:
+                    _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                if eepar.lag.expr is not None:
+                    _lref[eename].lag = madeval(eepar.lag.expr) * 3600
+                for ii, _ in enumerate(knl):
+                    if eepar.knl.expr[ii] is not None:
+                        _lref[eename].knl[ii] = madeval(eepar.knl.expr[ii])
+                for ii, _ in enumerate(ksl):
+                    if eepar.ksl.expr[ii] is not None:
+                        _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
+                for ii, _ in enumerate(ee.pnl):
+                    if eepar.pn.expr[ii] is not None:
+                        _lref[eename].pn[ii] = madeval(eepar.pn.expr[ii]) * 360
+                for ii, _ in enumerate(ee.psl):
+                    if eepar.ps.expr[ii] is not None:
+                        _lref[eename].ps[ii] = madeval(eepar.ps.expr[ii]) * 360
+
+
         elif mad_etype == "wire":
             if len(ee.L_phy) == 1:
                 newele = classes.Wire(
@@ -123,16 +215,36 @@ def iter_from_madx_sequence(
                     ksl=[-ee.volt / sequence.beam.pc*1e-3],
                     ps=[ee.lag * 360 + 90],
                 )
+                line.element_dict[eename] = newele
                 skiptilt=True
+
+                if deferred_expressions:
+                    eepar = ee.cmdpar
+                    if eepar.freq.expr is not None:
+                        _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                    if eepar.volt.expr is not None:
+                        _lref[eename].ksl[0] = (-madeval(eepar.volt.expr)
+                                                      / sequence.beam.pc * 1e-3)
+                    if eepar.lag.expr is not None:
+                        _lref[eename].ps[0] = madeval(eepar.lag.expr) * 360 + 90
             else:
                 newele = classes.RFMultipole(
                     frequency=ee.freq * 1e6,
                     knl=[ee.volt / sequence.beam.pc*1e-3],
                     pn=[ee.lag * 360 + 90], # TODO: Changed sign to match sixtrack
-                                            # To be checked!!!! 
-
+                                            # To be checked!!!!
                 )
+                line.element_dict[eename] = newele
 
+                if deferred_expressions:
+                    eepar = ee.cmdpar
+                    if eepar.freq.expr is not None:
+                        _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
+                    if eepar.volt.expr is not None:
+                        _lref[eename].knl[0] = (madeval(eepar.volt.expr)
+                                                      / sequence.beam.pc * 1e-3)
+                    if eepar.lag.expr is not None:
+                        _lref[eename].pn[0] = madeval(eepar.lag.expr) * 360 + 90
 
         elif mad_etype == "beambeam":
             if ee.slot_id == 6 or ee.slot_id == 60:
@@ -182,6 +294,8 @@ def iter_from_madx_sequence(
                     d_px=0,
                     d_py=0)
 
+            line.element_dict[eename] = newele
+
         elif mad_etype == "placeholder":
             if ee.slot_id == 1:
                 newele = classes.SCCoasting()
@@ -207,6 +321,7 @@ def iter_from_madx_sequence(
             else:
                 newele = myDrift(length=ee.l)
                 old_pp += ee.l
+            line.element_dict[eename] = newele
         else:
             raise ValueError(f'MAD element "{mad_etype}" not recognized')
 
@@ -217,12 +332,12 @@ def iter_from_madx_sequence(
             tilt=0
 
         if abs(tilt)>0:
-            yield eename+"_pretilt", classes.SRotation(angle=tilt)
+            line.append_element(classes.SRotation(angle=tilt), eename+"_pretilt")
 
-        yield eename, newele
+        line.element_names.append(eename)
 
         if abs(tilt)>0:
-            yield eename+"_posttilt", classes.SRotation(angle=-tilt)
+            line.append_element(classes.SRotation(angle=-tilt), eename+"_posttilt")
 
         if (
             install_apertures
@@ -235,6 +350,15 @@ def iter_from_madx_sequence(
                     max_x=ee.aperture[0],
                     min_y=-ee.aperture[1],
                     max_y=ee.aperture[1],
+                )
+            elif ee.apertype == "racetrack":
+                newaperture = classes.LimitRacetrack(
+                    min_x=-ee.aperture[0],
+                    max_x=ee.aperture[0],
+                    min_y=-ee.aperture[1],
+                    max_y=ee.aperture[1],
+                    a=ee.aperture[2],
+                    b=ee.aperture[3],
                 )
             elif ee.apertype == "ellipse":
                 newaperture = classes.LimitEllipse(
@@ -271,10 +395,12 @@ def iter_from_madx_sequence(
             else:
                 raise ValueError("Aperture type not recognized")
 
-            yield eename + "_aperture", newaperture
+            line.append_element(newaperture, eename + "_aperture")
 
     if hasattr(seq, "length") and seq.length > old_pp:
-        yield "drift_%d" % i_drift, myDrift(length=(seq.length - old_pp))
+        line.append_element(myDrift(length=(seq.length - old_pp)), f"drift_{i_drift}")
+
+    return line
 
 
 class MadPoint(object):

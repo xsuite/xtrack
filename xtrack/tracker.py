@@ -35,6 +35,7 @@ class Tracker:
         element_classes=None,
         particles_class=None,
         skip_end_turn_actions=False,
+        reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -62,6 +63,7 @@ class Tracker:
                 element_classes=element_classes,
                 particles_class=particles_class,
                 skip_end_turn_actions=skip_end_turn_actions,
+                reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
@@ -76,6 +78,7 @@ class Tracker:
                 element_classes=element_classes,
                 particles_class=particles_class,
                 skip_end_turn_actions=skip_end_turn_actions,
+                reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
@@ -91,6 +94,7 @@ class Tracker:
         element_classes=None,
         particles_class=None,
         skip_end_turn_actions=False,
+        reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -133,7 +137,9 @@ class Tracker:
             if not _check_is_collective(pp):
                 tempxtline = LineFrozen(_buffer=_buffer,
                                    line=pp)
-                pp.elements = tempxtline.elements
+                pp.element_dict = dict(zip(
+                    tempxtline.element_names, tempxtline.elements))
+                pp.element_names = tempxtline.element_names
                 noncollective_xelements += pp.elements
             else:
                 if hasattr(pp, 'isthick') and pp.isthick:
@@ -153,6 +159,7 @@ class Tracker:
                 particles_class=particles_class,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
+                reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as
                 )
@@ -191,6 +198,7 @@ class Tracker:
         element_classes=None,
         particles_class=None,
         skip_end_turn_actions=False,
+        reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
         local_particle_src=None,
@@ -244,6 +252,7 @@ class Tracker:
         self.num_elements = len(frozenline.elements)
         self.global_xy_limit = global_xy_limit
         self.skip_end_turn_actions = skip_end_turn_actions
+        self.reset_s_at_end_turn = reset_s_at_end_turn
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
         self._buffer = frozenline._buffer
@@ -259,6 +268,10 @@ class Tracker:
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
                           co_search_settings={}):
+
+        if particle_ref is None and particle_co_guess is None:
+            particle_ref = self.particle_ref
+
         return find_closed_orbit(self, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
                                  co_search_settings=co_search_settings)
@@ -269,11 +282,13 @@ class Tracker:
         return compute_one_turn_matrix_finite_differences(self, particle_on_co,
                                                    steps_r_matrix)
 
-    def twiss(self, particle_ref, r_sigma=0.01,
+    def twiss(self, particle_ref=None, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=1e-6,
         n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None,
+        eneloss_and_damping=False,
+        symplectify=False
         ):
 
         if self.iscollective:
@@ -285,6 +300,13 @@ class Tracker:
         else:
             tracker = self
 
+        if particle_ref is None:
+            if particle_co_guess is None:
+                particle_ref = self.particle_ref
+
+        if particle_ref is None and particle_co_guess is None:
+            raise ValueError(
+                "Either `particle_ref` or `particle_co_guess` must be provided")
 
         return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
@@ -292,7 +314,9 @@ class Tracker:
             particle_co_guess=particle_co_guess,
             steps_r_matrix=steps_r_matrix,
             co_search_settings=co_search_settings,
-            at_elements=at_elements)
+            at_elements=at_elements,
+            eneloss_and_damping=eneloss_and_damping,
+            symplectify=symplectify)
 
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
@@ -358,6 +382,21 @@ class Tracker:
                     local_particle_src=self.local_particle_src,
                 )
 
+    @property
+    def particle_ref(self):
+        return self.line.particle_ref
+
+    @property
+    def vars(self):
+        return self.line.vars
+
+    @property
+    def element_refs(self):
+        return self.line.element_refs
+
+    def configure_radiation(self, mode=None):
+        self.line.configure_radiation(mode=mode)
+
     def _build_kernel(self, save_source_as):
 
         context = self._line_frozen._buffer.context
@@ -395,7 +434,8 @@ class Tracker:
                              int ele_start,
                              int num_ele_track,
                              int flag_end_turn_actions,
-                             int flag_tbt_monitor,
+                             int flag_reset_s_at_end_turn,
+                             int flag_monitor,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor){
 
@@ -424,11 +464,15 @@ class Tracker:
                     break;
                 }
 
-                if (flag_tbt_monitor){
+                if (flag_monitor==1){
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
+
+                        if (flag_monitor==2){
+                            ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                        }
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
@@ -468,7 +512,7 @@ class Tracker:
                 } // for elements
                 if (flag_end_turn_actions>0){
                     if (isactive){
-                        increment_at_turn(&lpart);
+                        increment_at_turn(&lpart, flag_reset_s_at_end_turn);
                     }
                 }
             } // for turns
@@ -491,7 +535,8 @@ class Tracker:
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
                     xo.Arg(xo.Int32, name="flag_end_turn_actions"),
-                    xo.Arg(xo.Int32, name="flag_tbt_monitor"),
+                    xo.Arg(xo.Int32, name="flag_reset_s_at_end_turn"),
+                    xo.Arg(xo.Int32, name="flag_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
                 ],
@@ -502,6 +547,10 @@ class Tracker:
         if not isinstance(context, xo.ContextCpu):
             kernels = {}
         kernels.update(kernel_descriptions)
+
+        # Random number generator init kernel
+        sources.extend(self.particles_class.XoStruct.extra_sources)
+        kernels.update(self.particles_class.XoStruct.custom_kernels)
 
         sources = _handle_per_particle_blocks(sources)
 
@@ -528,12 +577,13 @@ class Tracker:
 
         assert ele_start == 0
         assert num_elements is None
+        assert turn_by_turn_monitor != 'ONE_TURN_EBE'
 
-        (flag_tbt, monitor, buffer_monitor, offset_monitor
+        (flag_monitor, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         for tt in range(num_turns):
-            if flag_tbt:
+            if flag_monitor:
                 monitor.track(particles)
 
             for pp in self._parts:
@@ -572,8 +622,11 @@ class Tracker:
             flag_end_turn_actions = (
                     num_elements + ele_start == self.num_elements)
 
-        (flag_tbt, monitor, buffer_monitor, offset_monitor
-             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+        (flag_monitor, monitor, buffer_monitor, offset_monitor
+            ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+
+        if self.line._needs_rng and not particles._has_valid_rng_state():
+            particles._init_random_number_generator()
 
         self.track_kernel.description.n_threads = particles._capacity
         self.track_kernel(
@@ -585,7 +638,8 @@ class Tracker:
             ele_start=ele_start,
             num_ele_track=num_elements,
             flag_end_turn_actions=flag_end_turn_actions,
-            flag_tbt_monitor=flag_tbt,
+            flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
+            flag_monitor=flag_monitor,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
         )
@@ -595,12 +649,12 @@ class Tracker:
     def _get_monitor(self, particles, turn_by_turn_monitor, num_turns):
 
         if turn_by_turn_monitor is None or turn_by_turn_monitor is False:
-            flag_tbt = 0
+            flag_monitor = 0
             monitor = None
             buffer_monitor = particles._buffer.buffer  # I just need a valid buffer
             offset_monitor = 0
         elif turn_by_turn_monitor is True:
-            flag_tbt = 1
+            flag_monitor = 1
             # TODO Assumes at_turn starts from zero, to be generalized
             monitor = self.particles_monitor_class(
                 _context=particles._buffer.context,
@@ -610,22 +664,18 @@ class Tracker:
             )
             buffer_monitor = monitor._buffer.buffer
             offset_monitor = monitor._offset
+        elif turn_by_turn_monitor == 'ONE_TURN_EBE':
+            (_, monitor, buffer_monitor, offset_monitor
+                ) = self._get_monitor(particles, turn_by_turn_monitor=True,
+                                      num_turns=len(self.line.elements))
+            monitor.ebe_mode = 1
+            flag_monitor = 2
         elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):
-            flag_tbt = 1
+            flag_monitor = 1
             monitor = turn_by_turn_monitor
             buffer_monitor = monitor._buffer.buffer
             offset_monitor = monitor._offset
         else:
             raise ValueError('Please provide a valid monitor object')
 
-        return flag_tbt, monitor, buffer_monitor, offset_monitor
-
-
-    def _slow_track_ebe(self,part):
-        out=[]
-        for ii in range(len(self.line.elements)):
-            out.append(part.copy())
-            self.track(part,ele_start=ii,num_elements=1)
-        return out
-
-
+        return flag_monitor, monitor, buffer_monitor, offset_monitor

@@ -1,16 +1,19 @@
 import json
+import math
+import logging
+from copy import deepcopy
+
 import numpy as np
 
 import xobjects as xo
+import xpart as xp
 
 from .loader_sixtrack import _expand_struct
-from .loader_mad import iter_from_madx_sequence
+from .loader_mad import madx_sequence_to_xtrack_line
 from .beam_elements import element_classes, Multipole
 from . import beam_elements
 from .beam_elements import Drift
 
-
-import logging
 
 log=logging.getLogger(__name__)
 
@@ -55,8 +58,8 @@ class Line:
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         class_dict=mk_class_namespace(classes)
 
-        _buffer=xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
-        self = cls(elements=[], element_names=[])
+        _buffer, _ =xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
+        elements = []
         for el in dct["elements"]:
             eltype = class_dict[el["__class__"]]
             eldct=el.copy()
@@ -65,10 +68,23 @@ class Line:
                newel = eltype.from_dict(eldct,_buffer=_buffer)
             else:
                newel = eltype.from_dict(eldct)
-            self.elements.append(newel)
-        self.element_names = dct["element_names"]
-        return self
+            elements.append(newel)
 
+        self = cls(elements=elements, element_names=dct['element_names'])
+
+        if 'particle_ref' in dct.keys():
+            self.particle_ref = xp.Particles.from_dict(dct['particle_ref'],
+                                    _context=_buffer.context)
+
+        if '_var_manager' in dct.keys():
+            self._init_var_management()
+            manager = self._var_management['manager']
+            for kk in self._var_management['data'].keys():
+                self._var_management['data'][kk].update(
+                                            dct['_var_management_data'][kk])
+            manager.reload(dct['_var_manager'])
+
+        return self
 
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
@@ -97,50 +113,97 @@ class Line:
         ignored_madtypes=[],
         exact_drift=False,
         drift_threshold=1e-6,
+        deferred_expressions=False,
         install_apertures=False,
         apply_madx_errors=False,
     ):
 
         class_dict=mk_class_namespace(classes)
 
-        line = cls(elements=[], element_names=[])
-
-        for el_name, el in iter_from_madx_sequence(
+        line = madx_sequence_to_xtrack_line(
             sequence,
             class_dict,
             ignored_madtypes=ignored_madtypes,
             exact_drift=exact_drift,
             drift_threshold=drift_threshold,
             install_apertures=install_apertures,
-        ):
-            line.append_element(el, el_name)
+            deferred_expressions=deferred_expressions)
 
         if apply_madx_errors:
             line._apply_madx_errors(sequence)
 
         return line
 
-    def __init__(self, elements=(), element_names=None):
+    def _init_var_management(self):
+
+        from collections import defaultdict
+        import xdeps as xd
+
+        # Extract globals values from madx
+        _var_values=defaultdict(lambda :0)
+
+        _ref_manager = manager=xd.Manager()
+        _vref=manager.ref(_var_values,'vars')
+        _fref=manager.ref(mathfunctions,'f')
+        _lref = manager.ref(self.element_dict, 'element_refs')
+
+        self._var_management = {}
+        self._var_management['data'] = {}
+        self._var_management['data']['var_values'] = _var_values
+
+        self._var_management['manager'] = _ref_manager
+        self._var_management['lref'] = _lref
+        self._var_management['vref'] = _vref
+        self._var_management['fref'] = _fref
+
+    @property
+    def vars(self):
+        if self._var_management is not None:
+            return self._var_management['vref']
+
+    @property
+    def element_refs(self):
+        if self._var_management is not None:
+            return self._var_management['lref']
+
+    def __init__(self, elements=(), element_names=None, particle_ref=None):
         if isinstance(elements,dict):
             element_dict=elements
             if element_names is None:
-               element_list=list(elements.values())
-               element_names=list(elements.keys())
-            else:
-               element_list=[ elements[nn] for nn in element_names]
+                raise ValueError('`element_names must be provided'
+                                 ' if `elements` is a dictionary.')
         else:
-            element_list = elements
             if element_names is None:
                 element_names = [ f"e{ii}" for ii in range(len(elements))]
-            element_dict = dict(zip(element_names,element_list))
+            if len(element_names) > len(set(element_names)):
+                log.warning("Repetition found in `element_names` -> renaming")
+                old_element_names = element_names
+                element_names = []
+                counters = {nn: 0 for nn in old_element_names}
+                for nn in old_element_names:
+                    if counters[nn] > 0:
+                        new_nn = nn + '_'+  str(counters[nn])
+                    else:
+                        new_nn = nn
+                    counters[nn] += 1
+                    element_names.append(new_nn)
 
-        self.elements=elements
-        self.element_list=element_list
+            assert len(element_names) == len(elements), (
+                "`elements` and `element_names` should have the same length"
+            )
+            element_dict = dict(zip(element_names, elements))
+
         self.element_dict=element_dict
         self.element_names=element_names
 
-        self._vars={} #TODO xdeps
-        self._manager=None # TODO xdeps
+        self.particle_ref = particle_ref
+
+        self._var_management = None
+        self._needs_rng = False
+
+    @property
+    def elements(self):
+        return tuple([self.element_dict[nn] for nn in self.element_names])
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
@@ -187,12 +250,29 @@ class Line:
         return self.__class__(
                          elements=new_elements, element_names=new_element_names)
 
+    def configure_radiation(self, mode=None):
+        assert mode in [None, 'mean', 'quantum']
+        if mode == 'mean':
+            radiation_flag = 1
+        elif mode == 'quantum':
+            radiation_flag = 2
+        else:
+            radiation_flag = 0
+
+        for kk, ee in self.element_dict.items():
+            if hasattr(ee, 'radiation_flag'):
+                ee.radiation_flag = radiation_flag
+
+        if radiation_flag == 2:
+            self._needs_rng = True
+        else:
+            self._needs_rng = False
+
     def _freeze(self):
-        self.elements = tuple(self.elements)
         self.element_names = tuple(self.element_names)
 
     def _frozen_check(self):
-        if isinstance(self.elements, tuple):
+        if isinstance(self.element_names, tuple):
             raise ValueError(
                 'This action is not allowed as the line is frozen!')
 
@@ -203,47 +283,28 @@ class Line:
         out = {}
         out["elements"] = [el.to_dict() for el in self.elements]
         out["element_names"] = self.element_names[:]
+        if self.particle_ref is not None:
+            out['particle_ref'] = self.particle_ref.to_dict()
+        if self._var_management is not None:
+            out['_var_management_data'] = deepcopy(self._var_management['data'])
+            out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
-
-
-    def slow_track(self, p):
-        ret = None
-        for el in self.elements:
-            ret = el.track(p)
-            if ret is not None:
-                break
-        return ret
-
-    def slow_track_elem_by_elem(self, p, start=True, end=False):
-        out = []
-        if start:
-            out.append(p.copy())
-        for el in self.elements:
-            ret = el.track(p)
-            if ret is not None:
-                break
-            out.append(p.copy())
-        if end:
-            out.append(p.copy())
-        return out
+    def copy(self):
+        return self.__class__.from_dict(self.to_dict())
 
     def insert_element(self, idx, element, name):
-
         self._frozen_check()
-
-        self.elements.insert(idx, element)
+        assert name not in self.element_dict.keys()
+        self.element_dict[name] = element
         self.element_names.insert(idx, name)
-        # assert len(self.elements) == len(self.element_names)
         return self
 
     def append_element(self, element, name):
-
         self._frozen_check()
-
-        self.elements.append(element)
+        assert name not in self.element_dict.keys()
+        self.element_dict[name] = element
         self.element_names.append(name)
-        # assert len(self.elements) == len(self.element_names)
         return self
 
     def get_length(self):
@@ -282,7 +343,6 @@ class Line:
             newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
             self.element_names = newline.element_names
             return self
         else:
@@ -301,7 +361,6 @@ class Line:
             newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
             self.element_names = newline.element_names
             return self
         else:
@@ -331,7 +390,7 @@ class Line:
                 newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
+            self.element_dict.update(newline.element_dict)
             self.element_names = newline.element_names
             return self
         else:
@@ -340,6 +399,10 @@ class Line:
     def merge_consecutive_multipoles(self, inplace=False):
 
         self._frozen_check()
+        if hasattr(self, '_var_management'):
+            raise NotImplementedError('`merge_consecutive_multipoles` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
 
         newline = Line(elements=[], element_names=[])
 
@@ -372,15 +435,15 @@ class Line:
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
                     prev_nn += ('_' + nn)
+                    newline.element_dict[prev_nn] = newee
                     newline.element_names[-1] = prev_nn
-                    newline.elements[-1] = newee
                 else:
                     newline.append_element(ee, nn)
             else:
                 newline.append_element(ee, nn)
 
         if inplace:
-            self.elements = newline.elements
+            self.element_dict.update(newline.element_dict)
             self.element_names = newline.element_names
             return self
         else:
@@ -402,23 +465,7 @@ class Line:
 
         return elements, names
 
-    def get_element_ids_of_type(self, types, start_idx_offset=0):
-        assert start_idx_offset >= 0
-        if not hasattr(types, "__iter__"):
-            type_list = [types]
-        else:
-            type_list = types
-        elem_idx = []
-        for idx, elem in enumerate(self.elements):
-            for tt in type_list:
-                if isinstance(elem, tt):
-                    elem_idx.append(idx+start_idx_offset)
-                    break
-        return elem_idx
-
-    # error handling (alignment, multipole orders, ...):
-
-    def find_element_ids(self, element_name):
+    def _find_element_ids(self, element_name):
         """Find element_name in this Line instance's
         self.elements_name list. Assumes the names are unique.
 
@@ -439,7 +486,7 @@ class Line:
         return idx_el, idx_after_el
 
     def _add_offset_error_to(self, element_name, dx=0, dy=0):
-        idx_el, idx_after_el = self.find_element_ids(element_name)
+        idx_el, idx_after_el = self._find_element_ids(element_name)
         xyshift = beam_elements.XYShift(dx=dx, dy=dy)
         inv_xyshift = beam_elements.XYShift(dx=-dx, dy=-dy)
         self.insert_element(idx_el, xyshift, element_name + "_offset_in")
@@ -448,7 +495,7 @@ class Line:
         )
 
     def _add_aperture_offset_error_to(self, element_name, arex=0, arey=0):
-        idx_el, idx_after_el = self.find_element_ids(element_name)
+        idx_el, idx_after_el = self._find_element_ids(element_name)
         idx_el_aper = idx_after_el - 1
         if not self.element_names[idx_el_aper] == element_name + "_aperture":
             # it is allowed to provide arex/arey without providing an aperture
@@ -471,7 +518,7 @@ class Line:
         curvature terms in the Multipole (hxl and hyl) are rotated
         by `angle` as well.
         '''
-        idx_el, idx_after_el = self.find_element_ids(element_name)
+        idx_el, idx_after_el = self._find_element_ids(element_name)
         element = self.elements[self.element_names.index(element_name)]
         if isinstance(element, beam_elements.Multipole) and (
                 element.hxl or element.hyl):
@@ -516,9 +563,17 @@ class Line:
                 length=element.length, hxl=element.hxl,
                 hyl=element.hyl, radiation_flag=element.radiation_flag)
 
-        self.elements[element_index] = new_element
+        self.element_dict[element_name] = new_element
 
+        # Handle deferred expressions
+        if self._var_management is not None:
+            lref = self._var_management['lref']
+            manager = self._var_management['manager']
+            for ii in range(min([len(knl), len(element.knl)])):
+                lref[element_name].knl[ii] += knl[ii]
 
+            for ii in range(min([len(ksl), len(element.ksl)])):
+                lref[element_name].ksl[ii] += ksl[ii]
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing
@@ -594,4 +649,25 @@ class Line:
 
         return elements_not_found
 
-
+mathfunctions = type('math', (), {})
+mathfunctions.sqrt=math.sqrt
+mathfunctions.log=math.log
+mathfunctions.log10=math.log10
+mathfunctions.exp=math.exp
+mathfunctions.sin=math.sin
+mathfunctions.cos=math.cos
+mathfunctions.tan=math.tan
+mathfunctions.asin=math.asin
+mathfunctions.acos=math.acos
+mathfunctions.atan=math.atan
+mathfunctions.sinh=math.sinh
+mathfunctions.cosh=math.cosh
+mathfunctions.tanh=math.tanh
+mathfunctions.sinc=np.sinc
+mathfunctions.abs=math.fabs
+mathfunctions.erf=math.erf
+mathfunctions.erfc=math.erfc
+mathfunctions.floor=math.floor
+mathfunctions.ceil=math.ceil
+mathfunctions.round=np.round
+mathfunctions.frac=lambda x: (x%1)

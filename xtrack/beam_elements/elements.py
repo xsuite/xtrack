@@ -189,10 +189,7 @@ class SRotation(BeamElement):
         'sin_z': xo.Float64,
         }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['angle'] = self.angle
-        return dct
+    _store_in_to_dict = ['angle']
 
     def __init__(self, angle=0, **nargs):
         anglerad = angle / 180 * np.pi
@@ -243,12 +240,7 @@ class Multipole(BeamElement):
         'bal': xo.Float64[:],
         }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['knl'] = self.knl
-        dct['ksl'] = self.ksl
-        return dct
-
+    _store_in_to_dict = ['knl', 'ksl']
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
 
@@ -356,6 +348,14 @@ Multipole.XoStruct.extra_sources = [
     _pkg_root.joinpath('headers/synrad_spectrum.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
+def _update_phase_from_pn_ps(pn, ps, phase, context=None):
+    assert len(phase) == 2*len(pn) == 2*len(ps)
+    idx = np.array([ii for ii in range(0, len(pn))])
+    inv_factorial = 1.0 / factorial(idx, exact=True)
+    if context is not None:
+        inv_factorial = context.nparray_to_context_array(inv_factorial)
+    phase[0::2] = pn * inv_factorial
+    phase[1::2] = ps * inv_factorial
 
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
@@ -386,13 +386,7 @@ class RFMultipole(BeamElement):
         'phase': xo.Float64[:],
     }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['knl'] = self.knl
-        dct['ksl'] = self.ksl
-        dct['pn'] = self.pn
-        dct['ps'] = self.ps
-        return dct
+    _store_in_to_dict = ['knl', 'ksl', 'pn', 'ps']
 
     def __init__(
         self,
@@ -507,19 +501,52 @@ class RFMultipole(BeamElement):
             self.bal[:] = ctx.nparray_to_context_array(temp_bal)
             self.phase[:] = ctx.nparray_to_context_array(temp_phase)
 
+
     @property
     def pn(self):
+        phase_length = len(self.phase)
+        idxes = np.array([ii for ii in range(0, phase_length, 2)])
+        _phase = self._buffer.context.nparray_from_context_array(self.phase)
         _pn = self._buffer.context.nparray_to_context_array(np.array(
-            [self._xobject.phase[ii] for ii in range(0, len(self.phase), 2)]))
+            [_phase[idx] * factorial(idx // 2, exact=True) for idx in idxes]))
         return self._buffer.context.linked_array_type.from_array(
-                                        _pn, mode='readonly')
+                                        _pn,
+                                        mode='setitem_from_container',
+                                        container=self,
+                                        container_setitem_name='_pn_setitem')
+
+    @pn.setter
+    def pn(self, value):
+        self.pn[:] = value
+
+    def _pn_setitem(self, indx, val):
+        _pn = self.pn.copy()
+        _pn[indx] = val
+        _update_phase_from_pn_ps(_pn, self.ps, self.phase,
+                                 context=self._buffer.context)
 
     @property
     def ps(self):
+        phase_length = len(self.phase)
+        idxes = np.array([ii for ii in range(0, phase_length, 2)])
+        _phase = self._buffer.context.nparray_from_context_array(self.phase)
         _ps = self._buffer.context.nparray_to_context_array(np.array(
-            [self._xobject.phase[ii+1] for ii in range(0, len(self.phase), 2)]))
+            [_phase[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]))
         return self._buffer.context.linked_array_type.from_array(
-                                        _ps, mode='readonly')
+                                        _ps,
+                                        mode='setitem_from_container',
+                                        container=self,
+                                        container_setitem_name='_ps_setitem')
+
+    @ps.setter
+    def ps(self, value):
+        self.ps[:] = value
+
+    def _ps_setitem(self, indx, val):
+        _ps = self.ps.copy()
+        _ps[indx] = val
+        _update_phase_from_pn_ps(self.knl, _ps, self.phase,
+                                 context=self._buffer.context)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -556,13 +583,7 @@ class DipoleEdge(BeamElement):
             'r43': xo.Float64,
             }
 
-    def to_dict(self):
-        dct = super().to_dict()
-        dct['h'] = self.h
-        dct['e1'] = self.e1
-        dct['hgap'] = self.hgap
-        dct['fint'] = self.fint
-        return dct
+    _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
 
     def __init__(
         self,
@@ -653,7 +674,15 @@ class LinearTransferMatrix(BeamElement):
         'detx_x': xo.Float64,
         'detx_y': xo.Float64,
         'dety_y': xo.Float64,
-        'dety_x': xo.Float64
+        'dety_x': xo.Float64,
+        'x_ref_0': xo.Float64,
+        'px_ref_0': xo.Float64,
+        'y_ref_0': xo.Float64,
+        'py_ref_0': xo.Float64,
+        'x_ref_1': xo.Float64,
+        'px_ref_1': xo.Float64,
+        'y_ref_1': xo.Float64,
+        'py_ref_1': xo.Float64,
         }
 
     def __init__(self, Q_x=0, Q_y=0,
@@ -663,7 +692,10 @@ class LinearTransferMatrix(BeamElement):
                      Q_s=0.0, beta_s=1.0,
                      chroma_x=0.0, chroma_y=0.0,
                      detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
-                     energy_increment=0.0, energy_ref_increment=0.0, **nargs):
+                     energy_increment=0.0, energy_ref_increment=0.0,
+                     x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
+                     y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
+                     **nargs):
 
         if (chroma_x==0 and chroma_y==0
             and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
@@ -715,10 +747,19 @@ class LinearTransferMatrix(BeamElement):
         nargs['disp_y_0'] = disp_y_0
         nargs['disp_y_1'] = disp_y_1
         nargs['beta_s'] = beta_s
+        nargs['x_ref_0'] = x_ref_0
+        nargs['x_ref_1'] = x_ref_1
+        nargs['px_ref_0'] = px_ref_0
+        nargs['px_ref_1'] = px_ref_1
+        nargs['y_ref_0'] = y_ref_0
+        nargs['y_ref_1'] = y_ref_1
+        nargs['py_ref_0'] = py_ref_0
+        nargs['py_ref_1'] = py_ref_1
         # acceleration with change of reference momentum
         nargs['energy_ref_increment'] = energy_ref_increment
         # acceleration without change of reference momentum
         nargs['energy_increment'] = energy_increment
+
 
         super().__init__(**nargs)
 
@@ -735,6 +776,7 @@ class LinearTransferMatrix(BeamElement):
         return self.beta_prod_y*self.beta_ratio_y
 
 LinearTransferMatrix.XoStruct.extra_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
 class EnergyChange(BeamElement):

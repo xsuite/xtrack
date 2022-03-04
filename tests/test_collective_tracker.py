@@ -45,8 +45,8 @@ def test_collective_tracker():
         # Build Tracker #
         #################
         print('Build tracker...')
-        tracker= xt.Tracker(_buffer=_buffer,
-                     line=line)
+        tracker= xt.Tracker(_buffer=_buffer, line=line,
+                            reset_s_at_end_turn=False)
 
         assert tracker.iscollective
         assert tracker.track == tracker._track_with_collective

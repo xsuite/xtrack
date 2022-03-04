@@ -52,8 +52,8 @@ spdisp.plot(twxt['s'], twxt['dx'], '--', color='lightblue')
 spdisp.plot(twmad['s'], twmad['dy'], 'r')
 spdisp.plot(twxt['s'], twxt['dy'], '--', color='darkred')
 
-assert np.isclose(np.modf(mad.table.summ.q1)[0], twxt['qx'], rtol=1e-4)
-assert np.isclose(np.modf(mad.table.summ.q2)[0], twxt['qy'], rtol=1e-4)
+assert np.isclose(mad.table.summ.q1[0], twxt['qx'], rtol=1e-4)
+assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4)
 assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
 assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
 
