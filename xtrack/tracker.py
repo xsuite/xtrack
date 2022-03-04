@@ -608,7 +608,7 @@ class Tracker:
 
             for ipp, pp in enumerate(self._parts):
                 if (tt == 0 and ele_start > 0): # handle delayed start
-                    if self._element_part[ele_start] < ipp:
+                    if ipp < self._element_part[ele_start]:
                         continue
                     if self._element_part[ele_start] == ipp:
                         ii_in_part = self._element_index_in_part[ele_start]
@@ -616,7 +616,9 @@ class Tracker:
                             pp.track(particles)
                         else:
                             pp.track(particles, ele_start=ii_in_part)
-                else:
+                    if ipp > self._element_part[ele_start]:
+                        pp.track(particles)
+                else: # not in first turn or no delayed start
                     pp.track(particles)
 
                 if not isinstance(pp, Tracker):
