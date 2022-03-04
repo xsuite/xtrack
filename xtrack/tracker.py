@@ -607,7 +607,7 @@ class Tracker:
                 monitor.track(particles)
 
             for ipp, pp in enumerate(self._parts):
-                if (tt == 0 and ele_start > 0):
+                if (tt == 0 and ele_start > 0): # handle delayed start
                     if self._element_part[ele_start] < ipp:
                         continue
                     if self._element_part[ele_start] == ipp:
@@ -616,9 +616,9 @@ class Tracker:
                             pp.track(particles)
                         else:
                             pp.track(particles, ele_start=ii_in_part)
-                        continue
+                else:
+                    pp.track(particles)
 
-                pp.track(particles)
                 if not isinstance(pp, Tracker):
                     self._zerodrift.track(particles, increment_at_element=True)
 
@@ -640,6 +640,9 @@ class Tracker:
         turn_by_turn_monitor=None,
     ):
 
+        if num_turns > 1:
+            assert num_elements is None
+
         if num_elements is None:
             # get to the end of the turn
             num_elements = self.num_elements - ele_start
@@ -659,20 +662,39 @@ class Tracker:
             particles._init_random_number_generator()
 
         self.track_kernel.description.n_threads = particles._capacity
-        self.track_kernel(
-            buffer=self._line_frozen._buffer.buffer,
-            ele_offsets=self.ele_offsets_dev,
-            ele_typeids=self.ele_typeids_dev,
-            particles=particles._xobject,
-            num_turns=num_turns,
-            ele_start=ele_start,
-            num_ele_track=num_elements,
-            flag_end_turn_actions=flag_end_turn_actions,
-            flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
-            flag_monitor=flag_monitor,
-            buffer_tbt_monitor=buffer_monitor,
-            offset_tbt_monitor=offset_monitor,
-        )
+
+        if ele_start > 0 or num_elements < self.num_elements: # Handle first partial turn
+            self.track_kernel(
+                buffer=self._line_frozen._buffer.buffer,
+                ele_offsets=self.ele_offsets_dev,
+                ele_typeids=self.ele_typeids_dev,
+                particles=particles._xobject,
+                num_turns=1,
+                ele_start=ele_start,
+                num_ele_track=num_elements,
+                flag_end_turn_actions=flag_end_turn_actions,
+                flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
+                flag_monitor=flag_monitor,
+                buffer_tbt_monitor=buffer_monitor,
+                offset_tbt_monitor=offset_monitor,
+            )
+            num_turns -= 1
+
+        if num_turns > 0:
+            self.track_kernel(
+                buffer=self._line_frozen._buffer.buffer,
+                ele_offsets=self.ele_offsets_dev,
+                ele_typeids=self.ele_typeids_dev,
+                particles=particles._xobject,
+                num_turns=num_turns,
+                ele_start=0, # always full turn
+                num_ele_track=self.num_elements, # always full turn
+                flag_end_turn_actions=flag_end_turn_actions,
+                flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
+                flag_monitor=flag_monitor,
+                buffer_tbt_monitor=buffer_monitor,
+                offset_tbt_monitor=offset_monitor,
+            )
 
         self.record_last_track = monitor
 
