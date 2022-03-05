@@ -107,16 +107,16 @@ def compute_one_turn_matrix_finite_differences(
             zeta =  [0.,  0., 0.,  0., dzeta,     0.,  0.,   0.,  0.,   0., -dzeta,      0.],
             delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
             )
-    if particle_on_co.at_element[0]>0:
-        part_temp.s[:] = particle_on_co.s[0]
-        part_temp.at_element[:] = particle_on_co.at_element[0]
+    if particle_on_co._xobject.at_element[0]>0:
+        part_temp.s[:] = particle_on_co._xobject.s[0]
+        part_temp.at_element[:] = particle_on_co._xobject.at_element[0]
 
-    if particle_on_co.at_element[0]>0:
-        i_start = particle_on_co.at_element[0]
+    if particle_on_co._xobject.at_element[0]>0:
+        i_start = particle_on_co._xobject.at_element[0]
         tracker.track(part_temp, ele_start=i_start)
         tracker.track(part_temp, num_elements=i_start)
     else:
-        assert particle_on_co.at_element[0] == 0
+        assert particle_on_co._xobject.at_element[0] == 0
         tracker.track(part_temp)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
@@ -230,7 +230,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     part_disp = xp.build_particles(
         _context=context,
         x_norm=0,
-        zeta=part_on_co.zeta[0],
+        zeta=part_on_co._xobject.zeta[0],
         delta=np.array([-delta_disp, +delta_disp])+part_on_co._xobject.delta[0],
         particle_on_co=part_on_co,
         scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
@@ -291,7 +291,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     part_chrom_plus = xp.build_particles(
                 _context=context,
                 x_norm=0,
-                zeta=part_on_co.zeta[0], delta=delta_chrom,
+                zeta=part_on_co._xobject.zeta[0], delta=delta_chrom,
                 particle_on_co=part_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
                 R_matrix=RR, symplectify=symplectify)
@@ -307,7 +307,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     part_chrom_minus = xp.build_particles(
                 _context=context,
                 x_norm=0,
-                zeta=part_on_co.zeta[0], delta=-delta_chrom,
+                zeta=part_on_co._xobject.zeta[0], delta=-delta_chrom,
                 particle_on_co=part_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
                 R_matrix=RR, symplectify=symplectify)

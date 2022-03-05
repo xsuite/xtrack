@@ -12,6 +12,21 @@ class LineFrozen:
     def __init__(self, line,
            _context=None, _buffer=None,  _offset=None):
 
+        # Check if all elements are in the first buffer
+        if _buffer is None:
+            _first_buffer = None
+            all_in_first_buffer = True
+            for ee in line.elements:
+                if hasattr(ee, '_buffer'):
+                    if _first_buffer is None:
+                        _first_buffer = ee._buffer
+                    if ee._buffer is not _first_buffer:
+                        all_in_first_buffer = False
+                        break
+            if all_in_first_buffer:
+                if _context is not None and _first_buffer.context is _context:
+                    _buffer = _first_buffer
+
         num_elements = len(line.element_names)
 
         element_data_types = set(ee.XoStruct for ee in line.elements)
