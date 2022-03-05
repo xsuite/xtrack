@@ -194,7 +194,7 @@ class Line:
             element_dict = dict(zip(element_names, elements))
 
         self.element_dict=element_dict.copy() # avoid modifications if user provided
-        self.element_names=element_names.copy()
+        self.element_names=list(element_names).copy()
 
         self.particle_ref = particle_ref
 
