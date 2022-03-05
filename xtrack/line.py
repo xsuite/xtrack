@@ -417,9 +417,13 @@ class Line:
                 s.append(s_prev)
 
         if at_elements is not None:
-            if isinstance(at_elements, str):
-                assert at_elements in self.element_names
-                return s[self.element_names.index(at_elements)]
+            if np.isscalar(at_elements):
+                if isinstance(at_elements, str):
+                    assert at_elements in self.element_names
+                    idx = self.element_names.index(at_elements)
+                else:
+                    idx = at_elements
+                return s[idx]
             else:
                 assert all([nn in self.element_names for nn in at_elements])
                 return [s[self.element_names.index(nn)] for nn in at_elements]

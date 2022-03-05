@@ -172,6 +172,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         symplectify=False):
 
     if at_s is not None:
+
+        if np.isscalar(at_s):
+            at_s = [at_s]
+
         assert at_elements is None
         (auxtracker, names_inserted_markers
             ) = _build_auxiliary_tracker_with_extra_markers(
