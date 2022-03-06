@@ -104,6 +104,49 @@ def test_elens():
         assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
                           dtk_particle.py, rtol=1e-9, atol=1e-9)
 
+        
+        
+def test_wire():
+
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
+
+        dtk_particle = dtk.TestParticles(
+                p0c =np.array([7000e9]),
+                x   =np.array([1e-3]),
+                px  =np.array([0.0]),
+                y   =np.array([2.2e-3]),
+                py  =np.array([0.0]),
+                zeta=np.array([0.]))
+
+        particles = xp.Particles(_context=ctx,
+                                 **dtk_particle.to_dict())
+
+
+        wire = xt.Wire(_context    =  ctx,
+                       wire_L_phy  =  1.3,
+                       wire_L_int  =  1.3,
+                       wire_current=  250,
+                       wire_xma    = -8e-3,
+                       wire_yma    = -10e-3)
+
+        wire.track(particles)
+
+        dtk_wire = dtk.elements.Wire(
+                       wire_L_phy  =  1.3,
+                       wire_L_int  =  1.3,
+                       wire_current=  250,
+                       wire_xma    = -8e-3,
+                       wire_yma    = -10e-3)
+
+        dtk_wire.track(dtk_particle)
+
+        assert np.isclose(ctx.nparray_from_context_array(particles.px)[0],
+                          dtk_particle.px, rtol=1e-9, atol=1e-9)
+        assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
+                          dtk_particle.py, rtol=1e-9, atol=1e-9)
+        
+        
 def test_linked_arrays_in_multipole_and_rfmultipole():
 
     for ctx in xo.context.get_test_contexts():

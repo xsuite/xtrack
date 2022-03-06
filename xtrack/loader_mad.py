@@ -170,6 +170,7 @@ def madx_sequence_to_xtrack_line(
                 pn=[v * 360 for v in ee.pnl],
                 ps=[v * 360 for v in ee.psl],
             )
+
             line.element_dict[eename] = newele
             if deferred_expressions:
                 eepar = ee.cmdpar
@@ -191,6 +192,20 @@ def madx_sequence_to_xtrack_line(
                 for ii, _ in enumerate(ee.psl):
                     if eepar.ps.expr[ii] is not None:
                         _lref[eename].ps[ii] = madeval(eepar.ps.expr[ii]) * 360
+
+
+        elif mad_etype == "wire":
+            if len(ee.L_phy) == 1:
+                newele = classes.Wire(
+                    wire_L_phy   = ee.L_phy[0],
+                    wire_L_int   = ee.L_int[0],
+                    wire_current = ee.current[0],
+                    wire_xma     = ee.xma[0],
+                    wire_yma     = ee.yma[0]
+                )
+            else:
+                # TODO: add multiple elements for multiwire configuration
+                raise ValueError("Multiwire configuration not supported")
 
         elif mad_etype == "crabcavity":
             #ee.volt in MV, sequence.beam.pc in GeV

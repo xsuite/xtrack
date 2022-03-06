@@ -13,6 +13,10 @@
     #define PI (3.1415926535897932384626433832795028841971693993751)
 #endif /* !defined( PI ) */
 
+#if !defined( MU_0 )
+    #define MU_0 (PI*4.0e-7)
+#endif /* !defined( MU_0 ) */
+
 #if !defined( DEG2RAD )
     #define DEG2RAD (0.0174532925199432957692369076848861271344287188854)
 #endif /* !defiend( DEG2RAD ) */
