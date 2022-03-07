@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 import xobjects as xo
@@ -15,6 +16,11 @@ DEFAULT_STEPS_R_MATRIX = {
     'dy':1e-7, 'dpy':1e-10,
     'dzeta':1e-6, 'ddelta':1e-7
 }
+
+log = logging.getLogger(__name__)
+
+class ClosedOrbitSearchError(Exception):
+    pass
 
 def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None):
@@ -45,18 +51,24 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
     particle_co_guess = particle_co_guess.copy(
                         _context=tracker._buffer.context)
 
-    (res, infodict, ier, mesg
-        ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker),
-              x0=np.array([particle_co_guess._xobject.x[0],
-                           particle_co_guess._xobject.px[0],
-                           particle_co_guess._xobject.y[0],
-                           particle_co_guess._xobject.py[0],
-                           particle_co_guess._xobject.zeta[0],
-                           particle_co_guess._xobject.delta[0]]),
-              full_output=True,
-              **co_search_settings)
-    fsolve_info = {
-        'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+    for shift_factor in [0, 1.]: # if not found at first attempt we shift slightly the starting point
+        if shift_factor>0:
+            log.warning('Need second attempt on closed orbit search')
+        (res, infodict, ier, mesg
+            ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker),
+                x0=np.array([particle_co_guess._xobject.x[0] + shift_factor * 1e-5,
+                            particle_co_guess._xobject.px[0] + shift_factor * 1e-7,
+                            particle_co_guess._xobject.y[0] + shift_factor * 1e-5,
+                            particle_co_guess._xobject.py[0] + shift_factor * 1e-7,
+                            particle_co_guess._xobject.zeta[0] + shift_factor * 1e-4,
+                            particle_co_guess._xobject.delta[0] + shift_factor * 1e-5]),
+                full_output=True,
+                **co_search_settings)
+        fsolve_info = {
+            'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+
+    if ier != 1:
+        raise ClosedOrbitSearchError
 
     particle_on_co = particle_co_guess.copy()
     particle_on_co.x = res[0]
@@ -139,6 +151,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix):
     auxline = xt.Line(elements=list(tracker.line.elements).copy(),
                       element_names=list(tracker.line.element_names).copy())
 
+    import pdb; pdb.set_trace()
     names_inserted_markers = []
     for ii, ss in enumerate(at_s):
         nn = marker_prefix + f'{ii}'
@@ -201,9 +214,11 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     context = tracker._buffer.context
 
-    part_on_co = tracker.find_closed_orbit(particle_co_guess=particle_co_guess,
-                                        particle_ref=particle_ref,
-                                        co_search_settings=co_search_settings)
+    part_on_co = tracker.find_closed_orbit(
+                                particle_co_guess=particle_co_guess,
+                                particle_ref=particle_ref,
+                                co_search_settings=co_search_settings)
+
     RR = tracker.compute_one_turn_matrix_finite_differences(
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)

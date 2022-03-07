@@ -205,6 +205,9 @@ class Line:
     def elements(self):
         return tuple([self.element_dict[nn] for nn in self.element_names])
 
+    def __getitem__(self, ii):
+        return self.element_dict.__getitem__(ii)
+
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
         if mask is None:
@@ -293,6 +296,7 @@ class Line:
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
+    @profile
     def insert_element(self, index=None, element=None, name=None, at_s=None):
 
         assert name is not None
@@ -309,6 +313,13 @@ class Line:
 
         if at_s is not None:
             s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+
+            if not _is_thick(element) or np.abs(element.length)==0:
+                i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
+                if np.abs(s_vect_upstream[i_closest] - at_s) < 1e-6:
+                    return self.insert_element(index=i_closest,
+                                            element=element, name=name)
+
             s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
 
             s_start_ele = at_s
@@ -320,13 +331,14 @@ class Line:
                     return self.insert_element(index=i_first_drift_to_cut,
                                               element=element, name=name)
 
-            if _is_thick(element):
+            if _is_thick(element) and np.abs(element.length)>0:
                 s_end_ele = at_s + element.length
             else:
                 s_end_ele = s_start_ele
 
             i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-            assert i_first_drift_to_cut <= i_last_drift_to_cut
+            if _is_thick(element) and element.length > 0:
+                assert i_first_drift_to_cut <= i_last_drift_to_cut
             name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
             name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
             first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
@@ -377,7 +389,7 @@ class Line:
                     self.element_names.insert(i_insert, nn)
 
         else:
-            if _is_thick(element):
+            if _is_thick(element) and np.abs(element.length):
                 raise NotImplementedError('use `at_s` to insert thick elements')
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
