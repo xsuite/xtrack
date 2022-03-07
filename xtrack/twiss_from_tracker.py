@@ -66,6 +66,8 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
                 **co_search_settings)
         fsolve_info = {
             'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+        if ier == 1:
+            break
 
     if ier != 1:
         raise ClosedOrbitSearchError
@@ -167,9 +169,11 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         markers.append(xt.Drift(length=0))
 
     if algorithm == 'insert':
-        for nn, mm in zip(names_inserted_markers, markers):
+        print('Here')
+        for nn, mm, ss in zip(names_inserted_markers, markers, at_s):
             auxline.insert_element(element=mm, name=nn, at_s=ss)
     elif algorithm == 'regen_all_drifts':
+        prrrr
         s_elems = auxline.get_s_elements()
         s_keep = []
         enames_keep = []
@@ -462,6 +466,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'R_matrix': RR,
         'particle_on_co':part_on_co.copy(_context=xo.context_default)
     }
+    twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
 
     if eneloss_and_damping:
         twiss_res.update(eneloss_damp_res)
