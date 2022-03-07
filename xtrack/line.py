@@ -296,7 +296,6 @@ class Line:
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
-    @profile
     def insert_element(self, index=None, element=None, name=None, at_s=None):
 
         assert name is not None
