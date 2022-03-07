@@ -151,7 +151,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix):
     auxline = xt.Line(elements=list(tracker.line.elements).copy(),
                       element_names=list(tracker.line.element_names).copy())
 
-    import pdb; pdb.set_trace()
     names_inserted_markers = []
     for ii, ss in enumerate(at_s):
         nn = marker_prefix + f'{ii}'
