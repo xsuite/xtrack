@@ -169,11 +169,9 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         markers.append(xt.Drift(length=0))
 
     if algorithm == 'insert':
-        print('Here')
         for nn, mm, ss in zip(names_inserted_markers, markers, at_s):
             auxline.insert_element(element=mm, name=nn, at_s=ss)
     elif algorithm == 'regen_all_drifts':
-        prrrr
         s_elems = auxline.get_s_elements()
         s_keep = []
         enames_keep = []
@@ -196,7 +194,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         new_ele_dict.update({nn: ee for nn, ee in zip(names_inserted_markers, markers)})
         s_curr = 0
         for ss, nn in zip(s_keep, enames_keep):
-            if ss > s_curr + 1e-4:
+            if ss > s_curr + 1e-6:
                 new_drift = xt.Drift(length=ss-s_curr)
                 new_dname = f'_auxrift_{i_new_drift}'
                 new_ele_dict[new_dname] = new_drift
