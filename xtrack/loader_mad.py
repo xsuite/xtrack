@@ -42,6 +42,8 @@ def madx_sequence_to_xtrack_line(
         # Extract expressions from madx globals
         for name,par in mad.globals.cmdpar.items():
             if par.expr is not None:
+                if 'table(' in par.expr: # Cannot import expressions involving tables
+                    continue
                 _vref[name]=madeval(par.expr)
 
     elements = seq.elements
@@ -179,7 +181,7 @@ def madx_sequence_to_xtrack_line(
                 if eepar.freq.expr is not None:
                     _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
                 if eepar.lag.expr is not None:
-                    _lref[eename].lag = madeval(eepar.lag.expr) * 3600
+                    _lref[eename].lag = madeval(eepar.lag.expr) * 360
                 for ii, _ in enumerate(knl):
                     if eepar.knl.expr[ii] is not None:
                         _lref[eename].knl[ii] = madeval(eepar.knl.expr[ii])
