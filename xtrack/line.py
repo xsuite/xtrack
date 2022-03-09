@@ -347,7 +347,9 @@ class Line:
             assert _is_drift(last_drift_to_cut)
 
             for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
-                if not _is_drift(self.element_dict[self.element_names[ii]]):
+                e_to_replace = self.element_dict[self.element_names[ii]]
+                if (not _is_drift(e_to_replace) and
+                    not e_to_replace.__class__.__name__.startswith('Limit')):
                     raise ValueError('Cannot replace active element '
                                         f'{self.element_names[ii]}')
 

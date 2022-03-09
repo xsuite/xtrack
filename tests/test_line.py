@@ -54,6 +54,17 @@ def test_insert():
                 ['e0_part0', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
+    line = line0.copy()
+    line.insert_element(element=xt.LimitEllipse(a=1, b=1), at_s=2.1, name='aper')
+    assert line.get_s_position('aper') == 2.1
+    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
+                ['e0', 'e1', 'e2_part0', 'aper', 'e2_part1', 'e3', 'e4']))])
+    line.insert_element(element=xt.Drift(length=0.8), at_s=1.9, name="newdrift")
+    assert line.get_s_position('newdrift') == 1.9
+    assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
+                ['e0', 'e1_part0', 'newdrift', 'e2_part1_part1', 'e3', 'e4']))])
+
     # Check preservation of markers
     elements = []
     enames = []
@@ -76,7 +87,7 @@ def test_insert():
     line.insert_element(element=xt.Cavity(), at_s=3.0, name='cav1')
     assert len(line.elements) == 12
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-        ['d0', 'm0', 'inserted_drift', 'm1', 'd2', 'm2', 'cav0', 'cav1', 'd3',
+        ['d0', 'm0', 'inserted_drift', 'm1', 'd2', 'cav1', 'cav0', 'm2', 'd3',
         'm3', 'd4', 'm4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
     assert line.get_s_position('cav0') == 3.
