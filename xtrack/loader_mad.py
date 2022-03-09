@@ -198,10 +198,10 @@ def madx_sequence_to_xtrack_line(
                         _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
                 for ii, _ in enumerate(ee.pnl):
                     if eepar.pn.expr[ii] is not None:
-                        _lref[eename].pn[ii] = madeval(eepar.pn.expr[ii]) * 360
+                        _lref[eename].pn[ii] = madeval(eepar.pnl.expr[ii]) * 360
                 for ii, _ in enumerate(ee.psl):
                     if eepar.ps.expr[ii] is not None:
-                        _lref[eename].ps[ii] = madeval(eepar.ps.expr[ii]) * 360
+                        _lref[eename].ps[ii] = madeval(eepar.psl.expr[ii]) * 360
 
 
         elif mad_etype == "wire":
