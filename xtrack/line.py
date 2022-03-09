@@ -388,7 +388,7 @@ class Line:
                     self.element_names.insert(i_insert, nn)
 
         else:
-            if _is_thick(element) and np.abs(element.length):
+            if _is_thick(element) and np.abs(element.length)>0:
                 raise NotImplementedError('use `at_s` to insert thick elements')
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
