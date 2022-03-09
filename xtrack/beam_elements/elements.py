@@ -683,6 +683,14 @@ class LinearTransferMatrix(BeamElement):
         'px_ref_1': xo.Float64,
         'y_ref_1': xo.Float64,
         'py_ref_1': xo.Float64,
+        'radiate': xo.Int64,
+        'damping_rate_x':xo.Float64,
+        'damping_rate_y':xo.Float64,
+        'damping_rate_z':xo.Float64,
+        'equ_emit_x':xo.Float64,
+        'equ_emit_y':xo.Float64,
+        'equ_length':xo.Float64,
+
         }
 
     def __init__(self, Q_x=0, Q_y=0,
@@ -695,6 +703,9 @@ class LinearTransferMatrix(BeamElement):
                      energy_increment=0.0, energy_ref_increment=0.0,
                      x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
                      y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
+                     radiate = False,
+                     damping_rate_x = 1E-3, damping_rate_y = 1E-3, damping_rate_z = 1E-3,
+                     equ_emit_x = 1E-9, equ_emit_y = 1E-9, equ_length = 1E-3,
                      **nargs):
 
         if (chroma_x==0 and chroma_y==0
@@ -761,6 +772,15 @@ class LinearTransferMatrix(BeamElement):
         nargs['energy_increment'] = energy_increment
 
 
+        nargs['radiate'] = radiate
+        nargs['damping_rate_x'] = damping_rate_x
+        nargs['damping_rate_y'] = damping_rate_y
+        nargs['damping_rate_z'] = damping_rate_z
+        nargs['equ_emit_x'] = equ_emit_x
+        nargs['equ_emit_y'] = equ_emit_y
+        nargs['equ_length'] = equ_length
+
+
         super().__init__(**nargs)
 
     @property
@@ -777,6 +797,8 @@ class LinearTransferMatrix(BeamElement):
 
 LinearTransferMatrix.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        _pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
 class EnergyChange(BeamElement):

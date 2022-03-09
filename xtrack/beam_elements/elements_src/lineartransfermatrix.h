@@ -45,6 +45,14 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const energy_ref_increment = 
         LinearTransferMatrixData_get_energy_ref_increment(el);
 
+    int64_t const radiate = LinearTransferMatrixData_get_radiate(el);
+    double const damping_rate_x = LinearTransferMatrixData_get_damping_rate_x(el);
+    double const damping_rate_y = LinearTransferMatrixData_get_damping_rate_y(el);
+    double const damping_rate_z = LinearTransferMatrixData_get_damping_rate_z(el);
+    double const equ_emit_x = LinearTransferMatrixData_get_equ_emit_x(el);
+    double const equ_emit_y = LinearTransferMatrixData_get_equ_emit_y(el);
+    double const equ_length = LinearTransferMatrixData_get_equ_length(el);
+
     //start_per_particle_block (part0->part)
 
     // Transverse linear uncoupled matrix
@@ -149,6 +157,16 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_scale_y(part,geo_emit_factor);
         LocalParticle_scale_py(part,geo_emit_factor);
     }
+
+    if(radiate) {
+        LocalParticle_scale_x(part,damping_rate_x);
+        LocalParticle_scale_px(part,damping_rate_x);
+        LocalParticle_scale_y(part,damping_rate_y);
+        LocalParticle_scale_py(part,damping_rate_y);
+        LocalParticle_scale_zeta(part,damping_rate_z);
+        LocalParticle_scale_delta(part,damping_rate_z);
+    }
+
         
     // re-adding dispersion and closed orbit
     delta = LocalParticle_get_delta(part);
