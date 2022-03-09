@@ -165,12 +165,21 @@ def test_line_import_from_madx():
             # Check if the relative error is small
             val_test = dtest[kk]
             val_ref = dref[kk]
-            if ((not np.isscalar(val_ref) and len(val_ref) != len(val_test))
-                    or norm(val_test) < 1e-14) :
-                diff_rel = 100
+            if not np.isscalar(val_ref):
+                if len(val_ref) != len(val_test):
+                    diff_rel = 100
+                else:
+                    for iiii, (vvr, vvt) in enumerate(list(zip(val_ref, val_test))):
+                        if not np.isclose(vvr, vvt, atol=atol, rtol=rtol):
+                            print(f'Issue found on `{kk}[{iiii}]`')
+                            diff_rel = 1000
+                        else:
+                            diff_rel = 0
             else:
-                diff_rel = norm(
-                    np.array(val_test) - np.array(val_ref)) / norm(val_test)
+                if val_ref > 0:
+                    diff_rel = np.abs((val_test - val_ref)/val_ref)
+                else:
+                    diff_rel = 100
             if diff_rel < rtol:
                 continue
 
