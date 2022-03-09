@@ -654,27 +654,25 @@ class Line:
         for ii, vv in enumerate(element.ksl):
             new_ksl[ii] += element.ksl[ii]
 
-        # Errors
-        for ii, vv in enumerate(knl):
-            new_knl[ii] += knl[ii]
-        for ii, vv in enumerate(ksl):
-            new_ksl[ii] += ksl[ii]
-
         new_element = Multipole(knl=new_knl, ksl=new_ksl,
                 length=element.length, hxl=element.hxl,
                 hyl=element.hyl, radiation_flag=element.radiation_flag)
 
         self.element_dict[element_name] = new_element
 
-        # Handle deferred expressions
+        # Errors
         if self._var_management is not None:
+            # Handle deferred expressions
             lref = self._var_management['lref']
-            manager = self._var_management['manager']
-            for ii in range(min([len(knl), len(element.knl)])):
+            for ii, vv in enumerate(knl):
                 lref[element_name].knl[ii] += knl[ii]
-
-            for ii in range(min([len(ksl), len(element.ksl)])):
+            for ii, vv in enumerate(ksl):
                 lref[element_name].ksl[ii] += ksl[ii]
+        else:
+            for ii, vv in enumerate(knl):
+                new_element.knl[ii] += knl[ii]
+            for ii, vv in enumerate(ksl):
+                new_element.ksl[ii] += ksl[ii]
 
     def _apply_madx_errors(self, madx_sequence):
         """Applies errors from MAD-X sequence to existing
