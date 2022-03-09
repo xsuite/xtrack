@@ -51,6 +51,7 @@ def madx_sequence_to_xtrack_line(
 
     old_pp = 0.0
     i_drift = 0
+    counters = {}
     for pp, ee in sorted(zip(ele_pos,elements),key=lambda x:x[0]):
         skiptilt=False
 
@@ -59,8 +60,15 @@ def madx_sequence_to_xtrack_line(
             old_pp = pp
             i_drift += 1
 
-        eename = ee.name
+        eename_mad = ee.name
         mad_etype = ee.base_type.name
+
+        if eename_mad not in counters.keys():
+            eename = eename_mad
+            counters[eename_mad] = 0
+        else:
+            counters[eename_mad] += 1
+            eename = eename_mad + f'_{counters[eename_mad]}'
 
         if mad_etype in [
             "marker",
