@@ -669,10 +669,10 @@ class Line:
         if self._var_management is not None:
             lref = self._var_management['lref']
             manager = self._var_management['manager']
-            for ii in range(min([len(knl), len(element.knl)])):
+            for ii in range(len(knl)):
                 lref[element_name].knl[ii] += knl[ii]
 
-            for ii in range(min([len(ksl), len(element.ksl)])):
+            for ii in range(len(ksl)):
                 lref[element_name].ksl[ii] += ksl[ii]
 
     def _apply_madx_errors(self, madx_sequence):
