@@ -490,11 +490,10 @@ class Line:
                 continue
 
             if _is_drift(ee):
-                prev_ee = newline.elements[-1]
                 prev_nn = newline.element_names[-1]
+                prev_ee = newline.element_dict[prev_nn]
                 if _is_drift(prev_ee):
                     prev_ee.length += ee.length
-                    prev_nn += ('_' + nn)
                     newline.element_names[-1] = prev_nn
                 else:
                     newline.append_element(ee, nn)
@@ -511,7 +510,7 @@ class Line:
     def merge_consecutive_multipoles(self, inplace=False):
 
         self._frozen_check()
-        if hasattr(self, '_var_management'):
+        if self._var_management is not None:
             raise NotImplementedError('`merge_consecutive_multipoles` not'
                                       ' available when deferred expressions are'
                                       ' used')
