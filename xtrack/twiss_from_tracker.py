@@ -297,6 +297,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         particle_on_co=part_on_co,
         scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
         R_matrix=RR,
+        matrix_responsiveness_tol=matrix_responsiveness_tol,
+        matrix_stability_tol=matrix_stability_tol,
         symplectify=symplectify)
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
@@ -356,13 +358,18 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 zeta=part_on_co._xobject.zeta[0], delta=delta_chrom,
                 particle_on_co=part_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR, symplectify=symplectify)
+                R_matrix=RR,
+                matrix_stability_tol=matrix_stability_tol,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                symplectify=symplectify)
     RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
                                             particle_on_co=part_chrom_plus.copy(),
                                             steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = compute_linear_normal_form(RR_chrom_plus,
-                                          symplectify=symplectify)
+        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
+                                        responsiveness_tol=matrix_responsiveness_tol,
+                                        stability_tol=matrix_stability_tol,
+                                        symplectify=symplectify)
     qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
     qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
 
@@ -372,13 +379,18 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 zeta=part_on_co._xobject.zeta[0], delta=-delta_chrom,
                 particle_on_co=part_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR, symplectify=symplectify)
+                R_matrix=RR,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                matrix_stability_tol=matrix_stability_tol,
+                symplectify=symplectify)
     RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=part_chrom_minus.copy(),
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = compute_linear_normal_form(RR_chrom_minus,
-                                          symplectify=symplectify)
+        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
+                                          symplectify=symplectify,
+                                          stability_tol=matrix_stability_tol,
+                                          responsiveness_tol=matrix_responsiveness_tol)
     qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
     qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
 
