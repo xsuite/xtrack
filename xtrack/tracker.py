@@ -86,6 +86,9 @@ class Tracker:
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as)
 
+        self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
+        self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
+
     def _init_track_with_collective(
         self,
         _context=None,
@@ -310,10 +313,15 @@ class Tracker:
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         eneloss_and_damping=False,
-        matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
-        matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
+        matrix_responsiveness_tol=None,
+        matrix_stability_tol=None,
         symplectify=False
         ):
+
+        if matrix_responsiveness_tol is None:
+            matrix_responsiveness_tol = self.matrix_responsiveness_tol
+        if matrix_stability_tol is None:
+            matrix_stability_tol = self.matrix_stability_tol
 
         if self.iscollective:
             logger.warning(
