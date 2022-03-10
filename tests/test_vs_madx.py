@@ -96,6 +96,21 @@ def test_twiss():
                               atol=1e-7, rtol=0)
             assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
                               atol=1e-7, rtol=0)
+
+        # Test custom s locations
+        s_test = [2e3, 1e3, 3e3, 10e3]
+        twats = tracker.twiss(at_s = s_test)
+        for ii, ss in enumerate(s_test):
+            assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
+            assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
+                            rtol=1e-5, atol=0)
+            assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
+                            rtol=1e-5, atol=0)
+            assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
+                            rtol=1e-5, atol=0)
+            assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
+                            rtol=1e-5, atol=0)
+
 def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 

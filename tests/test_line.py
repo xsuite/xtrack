@@ -1,6 +1,18 @@
 import numpy as np
 import xtrack as xt
 
+def test_merge_consecutive_drifts():
+
+    line = xt.Line(
+        elements = [xt.Drift(length=1) for _ in range(5)]
+    )
+    line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
+    line.merge_consecutive_drifts(inplace=True)
+    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert np.isclose(line[0].length, 3.3, rtol=0, atol=1e-12)
+    assert isinstance(line[1], xt.Cavity)
+    assert np.isclose(line[2].length, 1.7, rtol=0, atol=1e-12)
+
 def test_insert():
 
     line0 = xt.Line(

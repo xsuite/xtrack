@@ -206,7 +206,14 @@ class Line:
         return tuple([self.element_dict[nn] for nn in self.element_names])
 
     def __getitem__(self, ii):
-        return self.element_dict.__getitem__(ii)
+        if isinstance(ii, str):
+            return self.element_dict.__getitem__(ii)
+        else:
+            names = self.element_names.__getitem__(ii)
+            if isinstance(names, str):
+                return self.element_dict.__getitem__(names)
+            else:
+                return [self.element_dict[nn] for nn in names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
