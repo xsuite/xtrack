@@ -7,7 +7,7 @@ import xpart as xp
 from scipy.optimize import fsolve
 from scipy.constants import c as clight
 
-from .linear_normal_form import compute_linear_normal_form
+from . import linear_normal_form as lnf
 
 import xtrack as xt # To avoid circular imports
 
@@ -225,6 +225,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         eneloss_and_damping=False,
+        matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
+        matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False):
 
     if at_s is not None:
@@ -269,7 +271,9 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
     gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
 
-    W, Winv, Rot = compute_linear_normal_form(RR, symplectify=symplectify)
+    W, Winv, Rot = lnf.compute_linear_normal_form(RR, symplectify=symplectify,
+                                responsiveness_tol=matrix_responsiveness_tol,
+                                stability_tol=matrix_stability_tol)
 
     s = np.array(tracker.line.get_s_elements())
 

@@ -16,6 +16,8 @@ import xpart as xp
 from .beam_elements import Drift
 from .line import Line
 
+from . import linear_normal_form as lnf
+
 logger = logging.getLogger(__name__)
 
 def _check_is_collective(ele):
@@ -308,6 +310,8 @@ class Tracker:
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         eneloss_and_damping=False,
+        matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
+        matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False
         ):
 
@@ -336,6 +340,8 @@ class Tracker:
             co_search_settings=co_search_settings,
             at_elements=at_elements, at_s=at_s,
             eneloss_and_damping=eneloss_and_damping,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify)
 
 
