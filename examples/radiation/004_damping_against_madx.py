@@ -55,6 +55,7 @@ context = xo.ContextCpu()
 # Build tracker
 print('Build tracker ...')
 tracker = xt.Tracker(line=line, _context=context)
+tracker.matrix_stability_tol = 1e-2
 
 tracker.configure_radiation(mode='mean')
 
