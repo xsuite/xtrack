@@ -148,6 +148,10 @@ def compute_one_turn_matrix_finite_differences(
 
     return RR
 
+def _behaves_like_drift(ee):
+    return (hasattr(ee, 'behaves_like_drift') and ee.behaves_like_drift)
+
+
 def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
                                                 algorithm='auto'):
 
