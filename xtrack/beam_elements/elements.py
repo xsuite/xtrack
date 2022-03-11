@@ -36,6 +36,7 @@ class Drift(BeamElement):
     _xofields = {
         'length': xo.Float64}
     isthick=True
+    behaves_like_drift=True
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(length=-self.length,
@@ -139,7 +140,7 @@ Elens.XoStruct.extra_sources = [
 ## Wire Element
 
 class Wire(BeamElement):
-    
+
     _xofields={
                'wire_L_phy'  : xo.Float64,
                'wire_L_int'  : xo.Float64,
