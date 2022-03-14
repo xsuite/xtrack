@@ -14,7 +14,6 @@ from .beam_elements import element_classes, Multipole
 from . import beam_elements
 from .beam_elements import Drift
 
-
 log=logging.getLogger(__name__)
 
 def mk_class_namespace(extra_classes):
@@ -200,6 +199,14 @@ class Line:
 
         self._var_management = None
         self._needs_rng = False
+        self.tracker = None
+
+    def build_tracker(self, **kwargs):
+        assert self.tracker is None, 'The line already has as associated tracker'
+        import xtrack as xt # avoid circular import
+        self.tracker = xt.Tracker(line=self, **kwargs)
+        return self.tracker
+
 
     @property
     def elements(self):
