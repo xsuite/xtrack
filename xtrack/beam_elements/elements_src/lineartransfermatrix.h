@@ -45,10 +45,10 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const energy_ref_increment = 
         LinearTransferMatrixData_get_energy_ref_increment(el);
 
-    int64_t const radiate = LinearTransferMatrixData_get_radiate(el);
-    double const damping_rate_x = LinearTransferMatrixData_get_damping_rate_x(el);
-    double const damping_rate_y = LinearTransferMatrixData_get_damping_rate_y(el);
-    double const damping_rate_z = LinearTransferMatrixData_get_damping_rate_z(el);
+    int64_t const radiation_model = LinearTransferMatrixData_get_radiation_model(el);
+    double const damping_factor_x = LinearTransferMatrixData_get_damping_factor_x(el);
+    double const damping_factor_y = LinearTransferMatrixData_get_damping_factor_y(el);
+    double const damping_factor_z = LinearTransferMatrixData_get_damping_factor_z(el);
     double const equ_emit_x = LinearTransferMatrixData_get_equ_emit_x(el);
     double const equ_emit_y = LinearTransferMatrixData_get_equ_emit_y(el);
     double const equ_length = LinearTransferMatrixData_get_equ_length(el);
@@ -158,13 +158,16 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_scale_py(part,geo_emit_factor);
     }
 
-    if(radiate) {
-        LocalParticle_scale_x(part,damping_rate_x);
-        LocalParticle_scale_px(part,damping_rate_x);
-        LocalParticle_scale_y(part,damping_rate_y);
-        LocalParticle_scale_py(part,damping_rate_y);
-        LocalParticle_scale_zeta(part,damping_rate_z);
-        LocalParticle_scale_delta(part,damping_rate_z);
+    if(radiation_model == 1) {
+        LocalParticle_scale_x(part,damping_factor_x);
+        LocalParticle_scale_px(part,damping_factor_x);
+        LocalParticle_scale_y(part,damping_factor_y);
+        LocalParticle_scale_py(part,damping_factor_y);
+        LocalParticle_scale_zeta(part,damping_factor_z);
+        LocalParticle_scale_delta(part,damping_factor_z);
+
+        //TODO noise
+
     }
 
         

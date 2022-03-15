@@ -683,10 +683,10 @@ class LinearTransferMatrix(BeamElement):
         'px_ref_1': xo.Float64,
         'y_ref_1': xo.Float64,
         'py_ref_1': xo.Float64,
-        'radiate': xo.Int64,
-        'damping_rate_x':xo.Float64,
-        'damping_rate_y':xo.Float64,
-        'damping_rate_z':xo.Float64,
+        'radiation_model': xo.Int64,
+        'damping_factor_x':xo.Float64,
+        'damping_factor_y':xo.Float64,
+        'damping_factor_z':xo.Float64,
         'equ_emit_x':xo.Float64,
         'equ_emit_y':xo.Float64,
         'equ_length':xo.Float64,
@@ -703,7 +703,7 @@ class LinearTransferMatrix(BeamElement):
                      energy_increment=0.0, energy_ref_increment=0.0,
                      x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
                      y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
-                     radiate = False,
+                     radiation_model = 'none',
                      damping_rate_x = 1E-3, damping_rate_y = 1E-3, damping_rate_z = 1E-3,
                      equ_emit_x = 1E-9, equ_emit_y = 1E-9, equ_length = 1E-3,
                      **nargs):
@@ -772,10 +772,16 @@ class LinearTransferMatrix(BeamElement):
         nargs['energy_increment'] = energy_increment
 
 
-        nargs['radiate'] = radiate
-        nargs['damping_rate_x'] = damping_rate_x
-        nargs['damping_rate_y'] = damping_rate_y
-        nargs['damping_rate_z'] = damping_rate_z
+        if radiation_model == 'none':
+            nargs['radiation_model'] = 0
+        elif radiation_model == 'uncorrelated':
+            nargs['radiation_model'] = 1
+        else:
+            raise ValueError(f"Unrecognised radiation model: {radiation_model}")
+        
+        nargs['damping_factor_x'] = 1.0-damping_rate_x/2.0
+        nargs['damping_factor_y'] = 1.0-damping_rate_y/2.0
+        nargs['damping_factor_z'] = 1.0-damping_rate_z/2.0
         nargs['equ_emit_x'] = equ_emit_x
         nargs['equ_emit_y'] = equ_emit_y
         nargs['equ_length'] = equ_length
@@ -796,9 +802,9 @@ class LinearTransferMatrix(BeamElement):
         return self.beta_prod_y*self.beta_ratio_y
 
 LinearTransferMatrix.XoStruct.extra_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        _pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
 class EnergyChange(BeamElement):
