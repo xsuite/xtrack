@@ -116,6 +116,7 @@ def test_ring_with_radiation():
     for context in xo.context.get_test_contexts():
         # Build tracker
         tracker = xt.Tracker(line=line, _context=context)
+        tracker.matrix_stability_tol = 1e-2
 
         tracker.configure_radiation(mode='mean')
 

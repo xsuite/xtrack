@@ -42,6 +42,8 @@ def madx_sequence_to_xtrack_line(
         # Extract expressions from madx globals
         for name,par in mad.globals.cmdpar.items():
             if par.expr is not None:
+                if 'table(' in par.expr: # Cannot import expressions involving tables
+                    continue
                 _vref[name]=madeval(par.expr)
 
     elements = seq.elements
@@ -49,6 +51,7 @@ def madx_sequence_to_xtrack_line(
 
     old_pp = 0.0
     i_drift = 0
+    counters = {}
     for pp, ee in sorted(zip(ele_pos,elements),key=lambda x:x[0]):
         skiptilt=False
 
@@ -57,8 +60,15 @@ def madx_sequence_to_xtrack_line(
             old_pp = pp
             i_drift += 1
 
-        eename = ee.name
+        eename_mad = ee.name
         mad_etype = ee.base_type.name
+
+        if eename_mad not in counters.keys():
+            eename = eename_mad
+            counters[eename_mad] = 0
+        else:
+            counters[eename_mad] += 1
+            eename = eename_mad + f'_{counters[eename_mad]}'
 
         if mad_etype in [
             "marker",
@@ -179,7 +189,7 @@ def madx_sequence_to_xtrack_line(
                 if eepar.freq.expr is not None:
                     _lref[eename].frequency = madeval(eepar.freq.expr) * 1e6
                 if eepar.lag.expr is not None:
-                    _lref[eename].lag = madeval(eepar.lag.expr) * 3600
+                    _lref[eename].lag = madeval(eepar.lag.expr) * 360
                 for ii, _ in enumerate(knl):
                     if eepar.knl.expr[ii] is not None:
                         _lref[eename].knl[ii] = madeval(eepar.knl.expr[ii])
@@ -188,10 +198,10 @@ def madx_sequence_to_xtrack_line(
                         _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
                 for ii, _ in enumerate(ee.pnl):
                     if eepar.pn.expr[ii] is not None:
-                        _lref[eename].pn[ii] = madeval(eepar.pn.expr[ii]) * 360
+                        _lref[eename].pn[ii] = madeval(eepar.pnl.expr[ii]) * 360
                 for ii, _ in enumerate(ee.psl):
                     if eepar.ps.expr[ii] is not None:
-                        _lref[eename].ps[ii] = madeval(eepar.ps.expr[ii]) * 360
+                        _lref[eename].ps[ii] = madeval(eepar.psl.expr[ii]) * 360
 
 
         elif mad_etype == "wire":

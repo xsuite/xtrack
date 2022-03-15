@@ -96,6 +96,21 @@ def test_twiss():
                               atol=1e-7, rtol=0)
             assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
                               atol=1e-7, rtol=0)
+
+        # Test custom s locations
+        s_test = [2e3, 1e3, 3e3, 10e3]
+        twats = tracker.twiss(at_s = s_test)
+        for ii, ss in enumerate(s_test):
+            assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
+            assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
+                            rtol=1e-5, atol=0)
+            assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
+                            rtol=1e-5, atol=0)
+            assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
+                            rtol=1e-5, atol=0)
+            assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
+                            rtol=1e-5, atol=0)
+
 def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 
@@ -165,12 +180,21 @@ def test_line_import_from_madx():
             # Check if the relative error is small
             val_test = dtest[kk]
             val_ref = dref[kk]
-            if ((not np.isscalar(val_ref) and len(val_ref) != len(val_test))
-                    or norm(val_test) < 1e-14) :
-                diff_rel = 100
+            if not np.isscalar(val_ref):
+                if len(val_ref) != len(val_test):
+                    diff_rel = 100
+                else:
+                    for iiii, (vvr, vvt) in enumerate(list(zip(val_ref, val_test))):
+                        if not np.isclose(vvr, vvt, atol=atol, rtol=rtol):
+                            print(f'Issue found on `{kk}[{iiii}]`')
+                            diff_rel = 1000
+                        else:
+                            diff_rel = 0
             else:
-                diff_rel = norm(
-                    np.array(val_test) - np.array(val_ref)) / norm(val_test)
+                if val_ref > 0:
+                    diff_rel = np.abs((val_test - val_ref)/val_ref)
+                else:
+                    diff_rel = 100
             if diff_rel < rtol:
                 continue
 

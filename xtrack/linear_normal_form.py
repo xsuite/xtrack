@@ -1,5 +1,8 @@
 import numpy as np
 
+DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
+DEFAULT_MATRIX_STABILITY_TOL = 1e-3
+
 def healy_symplectify(M):
     # https://accelconf.web.cern.ch/e06/PAPERS/WEPCH152.PDF
     #print("Symplectifying linear One-Turn-Map...")
@@ -49,13 +52,16 @@ def Rot2D(mu):
     return np.array([[ np.cos(mu), np.sin(mu)],
                      [-np.sin(mu), np.cos(mu)]])
 
-def compute_linear_normal_form(M, symplectify=True, tol_det_M=0.05):
+def compute_linear_normal_form(M, symplectify=True,
+                        responsiveness_tol=DEFAULT_MATRIX_RESPONSIVENESS_TOL,
+                        stability_tol=DEFAULT_MATRIX_STABILITY_TOL):
 
-    if np.abs(np.linalg.det(M)-1) > tol_det_M:
-        raise ValueError('The determinant of M is out tolerance.')
+    if np.abs(np.linalg.det(M)-1) > stability_tol:
+        raise ValueError(
+            f'The determinant of M is out tolerance. det={np.linalg.det(M)}')
 
     for ii in range(6):
-        mask_non_zero = np.abs(M[ii, :])>1e-15
+        mask_non_zero = np.abs(M[ii, :]) > responsiveness_tol
         mask_non_zero[ii] = False
         if np.sum(mask_non_zero)<1:
             raise ValueError(
@@ -66,8 +72,9 @@ def compute_linear_normal_form(M, symplectify=True, tol_det_M=0.05):
         M = healy_symplectify(M)
 
     w0, v0 = np.linalg.eig(M)
-    if np.any(np.abs(w0) > 1. + 1e-4):
-        raise ValueError('One-turn matrix is unstable')
+    if np.any(np.abs(w0) > 1. + stability_tol):
+        raise ValueError('One-turn matrix is unstable. '
+                         f'Magnitudes of eigenvalues are:\n{repr(np.abs(w0))}')
 
     a0 = np.real(v0)
     b0 = np.imag(v0)
