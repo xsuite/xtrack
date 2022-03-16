@@ -683,13 +683,14 @@ class LinearTransferMatrix(BeamElement):
         'px_ref_1': xo.Float64,
         'y_ref_1': xo.Float64,
         'py_ref_1': xo.Float64,
-        'radiation_model': xo.Int64,
+        'uncorrelated_rad_damping': xo.Int64,
         'damping_factor_x':xo.Float64,
         'damping_factor_y':xo.Float64,
-        'damping_factor_z':xo.Float64,
-        'equ_emit_x':xo.Float64,
-        'equ_emit_y':xo.Float64,
-        'equ_length':xo.Float64,
+        'damping_factor_s':xo.Float64,
+        'uncorrelated_quantum_noise': xo.Int64,
+        'quantum_noise_x':xo.Float64,
+        'quantum_noise_y':xo.Float64,
+        'quantum_noise_s':xo.Float64,
 
         }
 
@@ -703,9 +704,8 @@ class LinearTransferMatrix(BeamElement):
                      energy_increment=0.0, energy_ref_increment=0.0,
                      x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
                      y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
-                     radiation_model = 'none',
-                     damping_rate_x = 1E-3, damping_rate_y = 1E-3, damping_rate_z = 1E-3,
-                     equ_emit_x = 1E-9, equ_emit_y = 1E-9, equ_length = 1E-3,
+                     damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
+                     equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
                      **nargs):
 
         if (chroma_x==0 and chroma_y==0
@@ -771,21 +771,24 @@ class LinearTransferMatrix(BeamElement):
         # acceleration without change of reference momentum
         nargs['energy_increment'] = energy_increment
 
-
-        if radiation_model == 'none':
-            nargs['radiation_model'] = 0
-        elif radiation_model == 'uncorrelated':
-            nargs['radiation_model'] = 1
+        if damping_rate_x < 0.0 or damping_rate_y < 0.0 or damping_rate_s < 0.0:
+            raise ValueError('Damping rates cannot be negative')
+        if damping_rate_x > 0.0 or damping_rate_y > 0.0 or damping_rate_s > 0.0:
+            nargs['uncorrelated_rad_damping'] = True
+            nargs['damping_factor_x'] = 1.0-damping_rate_x/2.0
+            nargs['damping_factor_y'] = 1.0-damping_rate_y/2.0
+            nargs['damping_factor_s'] = 1.0-damping_rate_s/2.0
         else:
-            raise ValueError(f"Unrecognised radiation model: {radiation_model}")
-        
-        nargs['damping_factor_x'] = 1.0-damping_rate_x/2.0
-        nargs['damping_factor_y'] = 1.0-damping_rate_y/2.0
-        nargs['damping_factor_z'] = 1.0-damping_rate_z/2.0
-        nargs['equ_emit_x'] = equ_emit_x
-        nargs['equ_emit_y'] = equ_emit_y
-        nargs['equ_length'] = equ_length
-
+            nargs['uncorrelated_rad_damping'] = False
+        if equ_emit_x < 0.0 or equ_emit_y < 0.0 or equ_emit_s < 0.0:
+            raise ValueError('Equilibrium emittances cannot be negative')
+        if equ_emit_x > 0.0 or equ_emit_y > 0.0 or equ_emit_s > 0.0:
+            nargs['uncorrelated_quantum_noise'] = True
+            nargs['quantum_noise_x'] = np.sqrt(2.0*equ_emit_x*damping_rate_x/beta_x_1)
+            nargs['quantum_noise_y'] = np.sqrt(2.0*equ_emit_y*damping_rate_y/beta_y_1)
+            nargs['quantum_noise_s'] = np.sqrt(2.0*equ_emit_s*damping_rate_s/beta_s)
+        else:
+            nargs['uncorrelated_quantum_noise'] = False
 
         super().__init__(**nargs)
 

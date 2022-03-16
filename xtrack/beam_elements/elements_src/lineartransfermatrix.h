@@ -1,6 +1,8 @@
 #ifndef XTRACK_LINEARTRANSFERMATRIX_H
 #define XTRACK_LINEARTRANSFERMATRIX_H
 
+#include<stdio.h>
+
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
 
@@ -45,13 +47,8 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const energy_ref_increment = 
         LinearTransferMatrixData_get_energy_ref_increment(el);
 
-    int64_t const radiation_model = LinearTransferMatrixData_get_radiation_model(el);
-    double const damping_factor_x = LinearTransferMatrixData_get_damping_factor_x(el);
-    double const damping_factor_y = LinearTransferMatrixData_get_damping_factor_y(el);
-    double const damping_factor_z = LinearTransferMatrixData_get_damping_factor_z(el);
-    double const equ_emit_x = LinearTransferMatrixData_get_equ_emit_x(el);
-    double const equ_emit_y = LinearTransferMatrixData_get_equ_emit_y(el);
-    double const equ_length = LinearTransferMatrixData_get_equ_length(el);
+    int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
+    int64_t const uncorrelated_quantum_noise = LinearTransferMatrixData_get_uncorrelated_quantum_noise(el);
 
     //start_per_particle_block (part0->part)
 
@@ -158,17 +155,32 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_scale_py(part,geo_emit_factor);
     }
 
-    if(radiation_model == 1) {
+    if(uncorrelated_rad_damping == 1) {
+        double const damping_factor_x = LinearTransferMatrixData_get_damping_factor_x(el);
+        double const damping_factor_y = LinearTransferMatrixData_get_damping_factor_y(el);
+        double const damping_factor_s = LinearTransferMatrixData_get_damping_factor_s(el);
+
         LocalParticle_scale_x(part,damping_factor_x);
         LocalParticle_scale_px(part,damping_factor_x);
         LocalParticle_scale_y(part,damping_factor_y);
         LocalParticle_scale_py(part,damping_factor_y);
-        LocalParticle_scale_zeta(part,damping_factor_z);
-        LocalParticle_scale_delta(part,damping_factor_z);
-
-        //TODO noise
-
+        LocalParticle_scale_zeta(part,damping_factor_s);
+        LocalParticle_scale_delta(part,damping_factor_s);
     }
+
+    if(uncorrelated_quantum_noise == 1) {
+        double const quantum_noise_x = LinearTransferMatrixData_get_quantum_noise_x(el);
+        double const quantum_noise_y = LinearTransferMatrixData_get_quantum_noise_y(el);
+        double const quantum_noise_s = LinearTransferMatrixData_get_quantum_noise_s(el);
+
+        double r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_px(part,r*quantum_noise_x);
+        r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_py(part,r*quantum_noise_y);
+        r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_delta(part,r*quantum_noise_s);
+    }
+
 
         
     // re-adding dispersion and closed orbit
