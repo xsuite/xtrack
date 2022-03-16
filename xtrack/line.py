@@ -310,7 +310,8 @@ class Line:
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
-    def insert_element(self, index=None, element=None, name=None, at_s=None):
+    def insert_element(self, index=None, element=None, name=None, at_s=None,
+                       s_tol=1e-6):
 
         assert name is not None
         if element is None:
@@ -329,7 +330,7 @@ class Line:
 
             if not _is_thick(element) or np.abs(element.length)==0:
                 i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
-                if np.abs(s_vect_upstream[i_closest] - at_s) < 1e-6:
+                if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                     return self.insert_element(index=i_closest,
                                             element=element, name=name)
 
