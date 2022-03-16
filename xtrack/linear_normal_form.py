@@ -61,7 +61,7 @@ def compute_linear_normal_form(M, symplectify=True,
             f'The determinant of M is out tolerance. det={np.linalg.det(M)}')
 
     for ii in range(6):
-        mask_non_zero = np.abs(M[ii, :]) > responsiveness_tol
+        mask_non_zero = np.abs(M[:, ii]) > responsiveness_tol
         mask_non_zero[ii] = False
         if np.sum(mask_non_zero)<1:
             raise ValueError(
