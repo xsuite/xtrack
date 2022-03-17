@@ -1,8 +1,6 @@
 #ifndef XTRACK_LINEARTRANSFERMATRIX_H
 #define XTRACK_LINEARTRANSFERMATRIX_H
 
-#include<stdio.h>
-
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
 
