@@ -1,7 +1,3 @@
-import sys
-sys.path.append('/afs/cern.ch/user/x/xbuffat/harpy')
-from harmonic_analysis import HarmonicAnalysis
-
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
