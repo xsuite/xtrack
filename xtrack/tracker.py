@@ -632,7 +632,22 @@ class Tracker:
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
 
+            moveback_to_buffer = None
             for ipp, pp in enumerate(self._parts):
+
+                # Move to CPU if needed
+                if hasattr(pp, 'needscpu') and pp.needscpu:
+                    if  moveback_to_buffer is None:
+                        moveback_to_buffer = particles._buffer
+                        moveback_to_offset = particles._offset
+                        particles._move_to(_context=xo.ContextCpu())
+                else:
+                    if moveback_to_buffer is not None:
+                        particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
+                        moveback_to_buffer = None
+                        moveback_to_offset = None
+
+                # Track!    
                 if (tt == 0 and ele_start > 0): # handle delayed start
                     if ipp < self._element_part[ele_start]:
                         continue
@@ -648,7 +663,12 @@ class Tracker:
                     pp.track(particles)
 
                 if not isinstance(pp, Tracker):
-                    self._zerodrift.track(particles, increment_at_element=True)
+                    if moveback_to_buffer is not None: # The particles object is temporarily on CPU
+                        if not hasattr(self, '_zerodrift_cpu'):
+                            self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
+                        self._zerodrift_cpu.track(particles)
+                    else:
+                        self._zerodrift.track(particles, increment_at_element=True)
 
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)
