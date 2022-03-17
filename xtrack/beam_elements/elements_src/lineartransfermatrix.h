@@ -163,7 +163,9 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_scale_y(part,damping_factor_y);
         LocalParticle_scale_py(part,damping_factor_y);
         LocalParticle_scale_zeta(part,damping_factor_s);
-        LocalParticle_scale_delta(part,damping_factor_s);
+        double delta = LocalParticle_get_delta(part);
+        delta *= damping_factor_s;
+        LocalParticle_update_delta(part,delta);
     }
 
     if(uncorrelated_gauss_noise == 1) {
@@ -176,7 +178,9 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         r = LocalParticle_generate_random_double_gauss(part);
         LocalParticle_add_to_py(part,r*gauss_noise_ampl_y);
         r = LocalParticle_generate_random_double_gauss(part);
-        LocalParticle_add_to_delta(part,r*gauss_noise_ampl_s);
+        double delta = LocalParticle_get_delta(part);
+        delta += r*gauss_noise_ampl_s;
+        LocalParticle_update_delta(part,delta);
     }
 
 
