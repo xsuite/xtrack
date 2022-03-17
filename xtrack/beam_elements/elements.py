@@ -107,22 +107,26 @@ class Elens(BeamElement):
                'residual_kick_y': xo.Float64
               }
 
-    def __init__(self,  inner_radius  = None,
-                        outer_radius  = None,
-                        current       = None,
-                        elens_length  = None,
-                        voltage       = None,
+    def __init__(self,  inner_radius = 1.,
+                        outer_radius = 1.,
+                        current      = 0.,
+                        elens_length = 0.,
+                        voltage      = 0.,
                         residual_kick_x = 0,
                         residual_kick_y = 0,
+                        _xobject = None,
                         **kwargs):
-        super().__init__(**kwargs)
-        self.inner_radius    = inner_radius
-        self.outer_radius    = outer_radius
-        self.current         = current
-        self.elens_length    = elens_length
-        self.voltage         = voltage
-        self.residual_kick_x   = residual_kick_x
-        self.residual_kick_y   = residual_kick_y
+        if _xobject is not None:
+            super().__init__(_xobject=_xobject)
+        else:
+            super().__init__(**kwargs)
+            self.inner_radius    = inner_radius
+            self.outer_radius    = outer_radius
+            self.current         = current
+            self.elens_length    = elens_length
+            self.voltage         = voltage
+            self.residual_kick_x   = residual_kick_x
+            self.residual_kick_y   = residual_kick_y
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -149,18 +153,22 @@ class Wire(BeamElement):
                'wire_yma'    : xo.Float64,
               }
 
-    def __init__(self,  wire_L_phy   = None,
-                        wire_L_int   = None,
-                        wire_current = None,
-                        wire_xma     = None,
-                        wire_yma     = None,
+    def __init__(self,  wire_L_phy   = 0,
+                        wire_L_int   = 0,
+                        wire_current = 0,
+                        wire_xma     = 0,
+                        wire_yma     = 0,
+                        _xobject = None,
                         **kwargs):
-        super().__init__(**kwargs)
-        self.wire_L_phy   = wire_L_phy
-        self.wire_L_int   = wire_L_int
-        self.wire_current = wire_current
-        self.wire_xma     = wire_xma
-        self.wire_yma     = wire_yma
+        if _xobject is not None:
+            super().__init__(_xobject=_xobject)
+        else:
+            super().__init__(**kwargs)
+            self.wire_L_phy   = wire_L_phy
+            self.wire_L_int   = wire_L_int
+            self.wire_current = wire_current
+            self.wire_xma     = wire_xma
+            self.wire_yma     = wire_yma
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -172,8 +180,8 @@ class Wire(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Wire.XoStruct.extra_sources = [
-     _pkg_root.joinpath('headers/constants.h'), 
-     _pkg_root.joinpath('beam_elements/elements_src/wire.h'), 
+     _pkg_root.joinpath('headers/constants.h'),
+     _pkg_root.joinpath('beam_elements/elements_src/wire.h'),
 ]
 
 
