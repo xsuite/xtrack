@@ -48,7 +48,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_energy_ref_increment(el);
 
     int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
-    int64_t const uncorrelated_quantum_noise = LinearTransferMatrixData_get_uncorrelated_quantum_noise(el);
+    int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
 
     //start_per_particle_block (part0->part)
 
@@ -168,17 +168,17 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_scale_delta(part,damping_factor_s);
     }
 
-    if(uncorrelated_quantum_noise == 1) {
-        double const quantum_noise_x = LinearTransferMatrixData_get_quantum_noise_x(el);
-        double const quantum_noise_y = LinearTransferMatrixData_get_quantum_noise_y(el);
-        double const quantum_noise_s = LinearTransferMatrixData_get_quantum_noise_s(el);
+    if(uncorrelated_gauss_noise == 1) {
+        double const gauss_noise_ampl_x = LinearTransferMatrixData_get_gauss_noise_ampl_x(el);
+        double const gauss_noise_ampl_y = LinearTransferMatrixData_get_gauss_noise_ampl_y(el);
+        double const gauss_noise_ampl_s = LinearTransferMatrixData_get_gauss_noise_ampl_s(el);
 
         double r = LocalParticle_generate_random_double_gauss(part);
-        LocalParticle_add_to_px(part,r*quantum_noise_x);
+        LocalParticle_add_to_px(part,r*gauss_noise_ampl_x);
         r = LocalParticle_generate_random_double_gauss(part);
-        LocalParticle_add_to_py(part,r*quantum_noise_y);
+        LocalParticle_add_to_py(part,r*gauss_noise_ampl_y);
         r = LocalParticle_generate_random_double_gauss(part);
-        LocalParticle_add_to_delta(part,r*quantum_noise_s);
+        LocalParticle_add_to_delta(part,r*gauss_noise_ampl_s);
     }
 
 

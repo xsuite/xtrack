@@ -687,10 +687,10 @@ class LinearTransferMatrix(BeamElement):
         'damping_factor_x':xo.Float64,
         'damping_factor_y':xo.Float64,
         'damping_factor_s':xo.Float64,
-        'uncorrelated_quantum_noise': xo.Int64,
-        'quantum_noise_x':xo.Float64,
-        'quantum_noise_y':xo.Float64,
-        'quantum_noise_s':xo.Float64,
+        'uncorrelated_gauss_noise': xo.Int64,
+        'gauss_noise_ampl_x':xo.Float64,
+        'gauss_noise_ampl_y':xo.Float64,
+        'gauss_noise_ampl_s':xo.Float64,
 
         }
 
@@ -706,6 +706,7 @@ class LinearTransferMatrix(BeamElement):
                      y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
                      damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
                      equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
+                     gauss_noise_ampl_x=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_s=0.0,
                      **nargs):
 
         if (chroma_x==0 and chroma_y==0
@@ -780,15 +781,26 @@ class LinearTransferMatrix(BeamElement):
             nargs['damping_factor_s'] = 1.0-damping_rate_s/2.0
         else:
             nargs['uncorrelated_rad_damping'] = False
+
         if equ_emit_x < 0.0 or equ_emit_y < 0.0 or equ_emit_s < 0.0:
             raise ValueError('Equilibrium emittances cannot be negative')
+        nargs['uncorrelated_gauss_noise'] = False
+        nargs['gauss_noise_ampl_x'] = 0.0
+        nargs['gauss_noise_ampl_y'] = 0.0
+        nargs['gauss_noise_ampl_s'] = 0.0
         if equ_emit_x > 0.0 or equ_emit_y > 0.0 or equ_emit_s > 0.0:
-            nargs['uncorrelated_quantum_noise'] = True
-            nargs['quantum_noise_x'] = np.sqrt(2.0*equ_emit_x*damping_rate_x/beta_x_1)
-            nargs['quantum_noise_y'] = np.sqrt(2.0*equ_emit_y*damping_rate_y/beta_y_1)
-            nargs['quantum_noise_s'] = np.sqrt(2.0*equ_emit_s*damping_rate_s/beta_s)
-        else:
-            nargs['uncorrelated_quantum_noise'] = False
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_x'] = np.sqrt(2.0*equ_emit_x*damping_rate_x/beta_x_1)
+            nargs['gauss_noise_ampl_y'] = np.sqrt(2.0*equ_emit_y*damping_rate_y/beta_y_1)
+            nargs['gauss_noise_ampl_s'] = np.sqrt(2.0*equ_emit_s*damping_rate_s/beta_s)
+
+        if gauss_noise_ampl_x < 0.0 or gauss_noise_ampl_y < 0.0 or gauss_noise_ampl_s < 0.0:
+            raise ValueError('Gaussian noise amplitude cannot be negative')
+        if gauss_noise_ampl_x > 0.0 or gauss_noise_ampl_y > 0.0 or gauss_noise_ampl_s > 0.0:
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_x'] = np.sqrt(nargs['gauss_noise_ampl_x']**2+gauss_noise_ampl_x**2)
+            nargs['gauss_noise_ampl_y'] = np.sqrt(nargs['gauss_noise_ampl_y']**2+gauss_noise_ampl_y**2)
+            nargs['gauss_noise_ampl_s'] = np.sqrt(nargs['gauss_noise_ampl_s']**2+gauss_noise_ampl_s**2)
 
         super().__init__(**nargs)
 
