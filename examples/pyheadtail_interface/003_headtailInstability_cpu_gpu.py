@@ -21,7 +21,7 @@ from PyHEADTAIL.trackers.transverse_tracking import TransverseSegmentMap
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningSegment
 
-context = xo.ContextCpu(omp_num_threads=1)
+context = xo.ContextCpu(omp_num_threads=0)
 
 nTurn = 5000  # int(1E4)
 bunch_intensity = 1.8e11
@@ -142,6 +142,7 @@ arc_longitudinal = LinearMap(
 
 turns = np.arange(nTurn)
 x = np.zeros(nTurn, dtype=float)
+t_pyht_start = time.time()
 for turn in range(nTurn):
     time0 = time.time()
     arc_transverse.track(particles)
@@ -156,6 +157,9 @@ for turn in range(nTurn):
         print(
             f"PyHt - turn {turn}: time for arc {time1-time0}s, for wake {time2-time1}s, for damper {time3-time2}s"
         )
+t_pyht_end = time.time()
+print(f'PyHT full loop: {t_pyht_end - t_pyht_start}s')
+
 x /= np.sqrt(normemit * beta_x / gamma / betar)
 plt.figure(0)
 plt.plot(turns, x, label=f"{i_oct}A")
@@ -188,22 +192,21 @@ particles = xp.Particles(
     x=np.zeros(2*len(x0))
 )
 
-# particles.x[::2] = x0
-# particles.px[::2] = px0
-# particles.y[::2] = y0
-# particles.py[::2] = py0
-# particles.zeta[::2] = zeta0
-# particles.delta[::2] = delta0
-# particles.state[1::2] = 0
+particles.x[::2] = x0
+particles.px[::2] = px0
+particles.y[::2] = y0
+particles.py[::2] = py0
+particles.zeta[::2] = zeta0
+particles.delta[::2] = delta0
+particles.state[1::2] = 0
 
-particles.x[:10000] = x0
-particles.px[:10000] = px0
-particles.y[:10000] = y0
-particles.py[:10000] = py0
-particles.zeta[:10000] = zeta0
-particles.delta[:10000] = delta0
-particles.state[10000:] = 0
-#particles.hide_lost_particles()
+#particles.x[:10000] = x0
+#particles.px[:10000] = px0
+#particles.y[:10000] = y0
+#particles.py[:10000] = py0
+#particles.zeta[:10000] = zeta0
+#particles.delta[:10000] = delta0
+#particles.state[10000:] = 0
 
 print(
     "PyHtXt size comp x",
@@ -250,7 +253,7 @@ tracker = xt.Tracker(
     line = xt.Line(elements=[arc, wake_field, damper],
                    element_names=['arc', 'wake_field', 'damper']))
 
-
+t_xt_start = time.time()
 turns = np.arange(nTurn)
 x = np.zeros(nTurn, dtype=float)
 for turn in range(nTurn):
@@ -262,6 +265,10 @@ for turn in range(nTurn):
         print(
             f"PyHtXt - turn {turn}: time for arc {time1-time0}s, for wake {time2-time1}s, for damper {time3-time2}s"
         )
+t_xt_end = time.time()
+
+print(f'Xt full loop: {t_xt_end - t_xt_start}s')
+
 x /= np.sqrt(normemit * beta_x / gamma / betar)
 plt.figure(1)
 plt.plot(turns, x, label=f"{i_oct}A")
