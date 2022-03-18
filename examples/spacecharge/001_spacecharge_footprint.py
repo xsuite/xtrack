@@ -29,7 +29,7 @@ tol_spacecharge_position = 1e-2
 
 mode = 'frozen'
 #mode = 'quasi-frozen'
-#mode = 'pic'
+mode = 'pic'
 
 #context = xo.ContextCpu()
 context = xo.ContextCupy()
@@ -43,7 +43,7 @@ print(context)
 
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
-line_no_sc = xt.Line.from_dict(input_data['line'])
+line= xt.Line.from_dict(input_data['line'])
 particle_ref = xp.Particles.from_dict(input_data['particle'])
 
 #############################################
@@ -56,7 +56,7 @@ lprofile = xf.LongitudinalProfileQGaussian(
         z0=0.,
         q_parameter=1.)
 
-line = xf.install_spacecharge_frozen(line=line_no_sc,
+xf.install_spacecharge_frozen(line=line,
                    particle_ref=particle_ref,
                    longitudinal_profile=lprofile,
                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
