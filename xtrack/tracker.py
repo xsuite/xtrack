@@ -635,8 +635,14 @@ class Tracker:
             moveback_to_buffer = None
             for ipp, pp in enumerate(self._parts):
 
+                if hasattr(self, '_slice_sets'):
+                    # If pyheadtail object, remove any stored slice sets
+                    # (they are made invalid by the xtrack elements changing zeta)
+                    self._slice_sets = {}
+
                 # Move to CPU if needed
-                if hasattr(pp, 'needscpu') and pp.needscpu:
+                if (hasattr(pp, 'needscpu') and pp.needscpu
+                    and not isinstance(particles._buffer.context, xo. ContextCpu)):
                     if  moveback_to_buffer is None:
                         moveback_to_buffer = particles._buffer
                         moveback_to_offset = particles._offset
@@ -647,7 +653,7 @@ class Tracker:
                         moveback_to_buffer = None
                         moveback_to_offset = None
 
-                # Track!    
+                # Track!
                 if (tt == 0 and ele_start > 0): # handle delayed start
                     if ipp < self._element_part[ele_start]:
                         continue
@@ -666,7 +672,7 @@ class Tracker:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
                         if not hasattr(self, '_zerodrift_cpu'):
                             self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
-                        self._zerodrift_cpu.track(particles)
+                        self._zerodrift_cpu.track(particles, increment_at_element=True)
                     else:
                         self._zerodrift.track(particles, increment_at_element=True)
 
