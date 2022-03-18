@@ -490,11 +490,14 @@ def test_linear_transfer_uncorrelated_damping_rate():
         emit_x = np.zeros(n_turns,dtype=float)
         emit_y = np.zeros_like(emit_x)
         emit_s = np.zeros_like(emit_x)
+        ctx2np = ctx.nparray_from_context_array
         for turn in range(n_turns):
             arc.track(particles)
-            emit_x[turn] = 0.5*(gamma_x*particles.x[0]**2+2*alpha_x_0*particles.x[0]*particles.px[0]+beta_x_0*particles.px[0]**2)
-            emit_y[turn] = 0.5*(gamma_y*particles.y[0]**2+2*alpha_y_0*particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2)
-            emit_s[turn] = 0.5*(particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2)
+            emit_x[turn] = ctx2np(0.5*(gamma_x*particles.x[0]**2
+                 + 2*alpha_x_0*particles.x[0]*particles.px[0]
+                 + beta_x_0*particles.px[0]**2))
+            emit_y[turn] = ctx2np(0.5*(gamma_y*particles.y[0]**2+2*alpha_y_0*particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2))
+            emit_s[turn] = ctx2np(0.5*(particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2))
         turns = np.arange(n_turns)
         fit_x = linregress(turns,np.log(emit_x))
         fit_y = linregress(turns,np.log(emit_y))
