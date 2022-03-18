@@ -26,9 +26,7 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
         double tau0 = LocalParticle_get_zeta(part)/LocalParticle_get_beta(part);
         double psigma0 = LocalParticle_get_psigma(part);
         double beta0 = LocalParticle_get_beta0(part);
-        double p0c = LocalParticle_get_p0c(part);
         double ptau0 = psigma * beta0;
-
 
         LocalParticle_set_x(FirstOrderTaylorMapData_get_m0(el,0) +
                             FirstOrderTaylorMapData_get_m1(el,0,0)*x0 +
