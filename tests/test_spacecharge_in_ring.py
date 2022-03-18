@@ -93,7 +93,8 @@ def test_ring_with_spacecharge():
             particles = particles.copy(_context=context)
 
             warnings.filterwarnings('ignore')
-            line = xf.install_spacecharge_frozen(line=line0_no_sc,
+            line = line0_no_sc.copy()
+            xf.install_spacecharge_frozen(line=line,
                            particle_ref=particle_ref,
                            longitudinal_profile=lprofile,
                            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
