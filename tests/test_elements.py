@@ -565,6 +565,59 @@ def test_linear_transfer_uncorrelated_damping_equilibrium():
         assert np.isclose(equ_emit_y,equ_emit_y_0, rtol=1e-1, atol=1e-10)
         assert np.isclose(equ_emit_s,equ_emit_s_0, rtol=1e-1, atol=1e-10)
 
+def test_linear_transfer_first_order_taylor_map():
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
+
+        dtk_particle = dtk.TestParticles(
+                p0c=25.92e9,
+                x=1e-3,
+                px=1e-5,
+                y=-2e-3,
+                py=-1.5e-5,
+                zeta=2.,
+                delta=2E-4)
+
+        particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                           _context=ctx)
+
+
+        m0 = np.arange(6,dtype=float)
+        m1 = np.ones((6,6),dtype=float)
+        for i in range(6):
+            for j in range(6):
+                m1[i,j] = 10*i+j
+        arc = xt.FirstOrderTaylorMap(_context=ctx,m0 = m0, m1 = m1)
+        arc.track(particles)
+        print('done')
+        exit()
+
+        dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
+        Q_x=Q_x, Q_y=Q_y,
+        beta_s=beta_s, Q_s=Q_s,
+        chroma_x=0.0, chroma_y=0.0,
+        detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+        energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
+        x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
+        y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
+        damping_rate_x = damping_rate_x,damping_rate_y = damping_rate_y,damping_rate_s = damping_rate_s)
+        dtk_arc.track(dtk_particle)
+
+        assert np.isclose(ctx.nparray_from_context_array(particles.x)[0],
+                          dtk_particle.x, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.px)[0],
+                          dtk_particle.px, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.y)[0],
+                          dtk_particle.y, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
+                          dtk_particle.py, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.zeta)[0],
+                          dtk_particle.zeta, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.delta)[0],
+                          dtk_particle.delta, rtol=1e-14, atol=1e-14)
 
 def test_cavity():
 
