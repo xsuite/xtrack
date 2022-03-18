@@ -658,10 +658,7 @@ class Tracker:
                 _need_unhide_lost_particles = False
                 if (hasattr(pp, 'needs_hidden_lost_particles')
                     and pp.needs_hidden_lost_particles):
-                    if isinstance(particles._buffer.context, xo.ContextCpu):
-                        assert particles._num_active_particles >= 0
-                        assert particles._num_lost_particles >= 0
-                    else:
+                    if particles._num_active_particles < 0:
                         _need_clean_active_lost_state = True
                     if not particles.lost_particles_are_hidden:
                         _need_unhide_lost_particles = True

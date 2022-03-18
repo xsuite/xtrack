@@ -22,6 +22,7 @@ from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningSegment
 
 context = xo.ContextCpu(omp_num_threads=0)
+context = xo.ContextCupy()
 
 nTurn = 5000  # int(1E4)
 bunch_intensity = 1.8e11
@@ -183,21 +184,22 @@ p_pht = particles
 ############ xsuite-PyHEADTAIL part (the WakeField instance is shared) ########################
 
 particles = xp.Particles(
+    _context=context,
     circumference=circumference,
     particlenumber_per_mp=bunch_intensity / n_macroparticles,
-    _context=context,
     q0=1,
     mass0=protonMass,
     gamma0=gamma,
     x=np.zeros(2*len(x0))
 )
 
-particles.x[::2] = x0
-particles.px[::2] = px0
-particles.y[::2] = y0
-particles.py[::2] = py0
-particles.zeta[::2] = zeta0
-particles.delta[::2] = delta0
+np2ctx = context.nparray_to_context_array
+particles.x[::2] = np2ctx(x0)
+particles.px[::2] = np2ctx(px0)
+particles.y[::2] = np2ctx(y0)
+particles.py[::2] = np2ctx(py0)
+particles.zeta[::2] = np2ctx(zeta0)
+particles.delta[::2] = np2ctx(delta0)
 particles.state[1::2] = 0
 
 #particles.x[:10000] = x0
@@ -208,18 +210,6 @@ particles.state[1::2] = 0
 #particles.delta[:10000] = delta0
 #particles.state[10000:] = 0
 
-print(
-    "PyHtXt size comp x",
-    particles.sigma_x(),
-    np.sqrt(normemit * beta_x / gamma / betar),
-)
-print(
-    "PyHtXt size comp y",
-    particles.sigma_y(),
-    np.sqrt(normemit * beta_y / gamma / betar),
-)
-print("PyHtXt size comp z", particles.sigma_z(), sigma_z)
-print("PyHtXt size comp delta", particles.sigma_dp(), sigma_delta)
 
 arc = xt.LinearTransferMatrix(
     _context=context,
@@ -249,7 +239,7 @@ arc = xt.LinearTransferMatrix(
     energy_increment=0,
 )
 
-tracker = xt.Tracker(
+tracker = xt.Tracker(_context=context,
     line = xt.Line(elements=[arc, wake_field, damper],
                    element_names=['arc', 'wake_field', 'damper']))
 
