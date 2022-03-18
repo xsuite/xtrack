@@ -45,6 +45,9 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const energy_ref_increment = 
         LinearTransferMatrixData_get_energy_ref_increment(el);
 
+    int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
+    int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
+
     //start_per_particle_block (part0->part)
 
     // Transverse linear uncoupled matrix
@@ -149,6 +152,38 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_scale_y(part,geo_emit_factor);
         LocalParticle_scale_py(part,geo_emit_factor);
     }
+
+    if(uncorrelated_rad_damping == 1) {
+        double const damping_factor_x = LinearTransferMatrixData_get_damping_factor_x(el);
+        double const damping_factor_y = LinearTransferMatrixData_get_damping_factor_y(el);
+        double const damping_factor_s = LinearTransferMatrixData_get_damping_factor_s(el);
+
+        LocalParticle_scale_x(part,damping_factor_x);
+        LocalParticle_scale_px(part,damping_factor_x);
+        LocalParticle_scale_y(part,damping_factor_y);
+        LocalParticle_scale_py(part,damping_factor_y);
+        LocalParticle_scale_zeta(part,damping_factor_s);
+        double delta = LocalParticle_get_delta(part);
+        delta *= damping_factor_s;
+        LocalParticle_update_delta(part,delta);
+    }
+
+    if(uncorrelated_gauss_noise == 1) {
+        double const gauss_noise_ampl_x = LinearTransferMatrixData_get_gauss_noise_ampl_x(el);
+        double const gauss_noise_ampl_y = LinearTransferMatrixData_get_gauss_noise_ampl_y(el);
+        double const gauss_noise_ampl_s = LinearTransferMatrixData_get_gauss_noise_ampl_s(el);
+
+        double r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_px(part,r*gauss_noise_ampl_x);
+        r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_py(part,r*gauss_noise_ampl_y);
+        r = LocalParticle_generate_random_double_gauss(part);
+        double delta = LocalParticle_get_delta(part);
+        delta += r*gauss_noise_ampl_s;
+        LocalParticle_update_delta(part,delta);
+    }
+
+
         
     // re-adding dispersion and closed orbit
     delta = LocalParticle_get_delta(part);
