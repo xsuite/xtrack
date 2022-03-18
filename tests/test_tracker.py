@@ -15,7 +15,7 @@ def test_ebe_monitor():
                                 xt.Drift(length=.5),
                                 xt.Drift(length=0)])
 
-        tracker = xt.Tracker(line=line, _context=context)
+        tracker = line.build_tracker(_context=context)
 
         particles = xp.Particles(x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
                                 zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
