@@ -6,6 +6,7 @@ protonMass = constants.value("proton mass energy equivalent in MeV") * 1e6
 from scipy.stats import linregress
 from scipy.signal import hilbert
 from matplotlib import pyplot as plt
+plt.close('all')
 
 import xobjects as xo
 import xtrack as xt
@@ -57,10 +58,12 @@ waketable = WakeTable(
 )
 wake_field = WakeField(slicer_for_wakefields, waketable)
 wake_field.needs_cpu = True
-wake_field.needs_hidden_lost_part = True
+wake_field.needs_hidden_lost_particles = True
 
 damping_time = 7000  # 33.
 damper = TransverseDamper(dampingrate_x=damping_time, dampingrate_y=damping_time)
+damper.needs_cpu = True
+damper.needs_hidden_lost_particles = True
 i_oct = 15.
 detx_x = 1.4e5 * i_oct / 550.0  # from PTC with ATS optics, telescopic factor 1.0
 detx_y = -1.0e5 * i_oct / 550.0
@@ -140,14 +143,6 @@ arc_longitudinal = LinearMap(
 turns = np.arange(nTurn)
 x = np.zeros(nTurn, dtype=float)
 for turn in range(nTurn):
-    if turn == checkTurn:
-        x1 = np.copy(particles.x)
-        px1 = np.copy(particles.xp)
-        y1 = np.copy(particles.y)
-        py1 = np.copy(particles.yp)
-        zeta1 = np.copy(particles.z)
-        delta1 = np.copy(particles.dp)
-
     time0 = time.time()
     arc_transverse.track(particles)
     arc_longitudinal.track(particles)
@@ -156,7 +151,7 @@ for turn in range(nTurn):
     time2 = time.time()
     damper.track(particles)
     time3 = time.time()
-    x[turn] = np.average(particles.x)
+    x[turn] = np.mean(particles.x)
     if turn % 1000 == 0:
         print(
             f"PyHt - turn {turn}: time for arc {time1-time0}s, for wake {time2-time1}s, for damper {time3-time2}s"
@@ -179,6 +174,8 @@ plt.legend(loc="upper left")
 plt.xlabel("Turn")
 plt.ylabel("x [$\sigma_x$]")
 
+p_pht = particles
+
 ############ xsuite-PyHEADTAIL part (the WakeField instance is shared) ########################
 
 particles = xp.Particles(
@@ -188,14 +185,25 @@ particles = xp.Particles(
     q0=1,
     mass0=protonMass,
     gamma0=gamma,
-    x=x0,
-    px=px0,
-    y=y0,
-    py=py0,
-    zeta=zeta0,
-    delta=delta0,
+    x=np.zeros(2*len(x0))
 )
 
+# particles.x[::2] = x0
+# particles.px[::2] = px0
+# particles.y[::2] = y0
+# particles.py[::2] = py0
+# particles.zeta[::2] = zeta0
+# particles.delta[::2] = delta0
+# particles.state[1::2] = 0
+
+particles.x[:10000] = x0
+particles.px[:10000] = px0
+particles.y[:10000] = y0
+particles.py[:10000] = py0
+particles.zeta[:10000] = zeta0
+particles.delta[:10000] = delta0
+particles.state[10000:] = 0
+#particles.hide_lost_particles()
 
 print(
     "PyHtXt size comp x",
@@ -246,17 +254,10 @@ tracker = xt.Tracker(
 turns = np.arange(nTurn)
 x = np.zeros(nTurn, dtype=float)
 for turn in range(nTurn):
-    if turn == checkTurn:
-        print("x", particles.x - x1)
-        print("px", particles.px - px1)
-        print("y", particles.y - y1)
-        print("py", particles.py - py1)
-        print("z", particles.zeta - zeta1)
-        print("delta", particles.delta - delta1)
 
     tracker.track(particles)
 
-    x[turn] = np.average(particles.x)
+    x[turn] = np.average(particles.x[particles.state>0])
     if turn % 1000 == 0:
         print(
             f"PyHtXt - turn {turn}: time for arc {time1-time0}s, for wake {time2-time1}s, for damper {time3-time2}s"
@@ -279,6 +280,7 @@ plt.legend(loc="upper left")
 plt.xlabel("Turn")
 plt.ylabel("x [$\sigma_x$]")
 
+print(f'{gr_pyht=}, {gr_xtpyht=} {gr_pyht-gr_xtpyht=}')
+plt.show()
 assert np.isclose(gr_xtpyht, gr_pyht, rtol=1e-3, atol=1e-100)
 
-plt.show()
