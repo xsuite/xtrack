@@ -641,8 +641,8 @@ class Tracker:
                     self._slice_sets = {}
 
                 # Move to CPU if needed
-                if (hasattr(pp, 'needscpu') and pp.needscpu
-                    and not isinstance(particles._buffer.context, xo. ContextCpu)):
+                if (hasattr(pp, 'needs_cpu') and pp.needs_cpu
+                    and not isinstance(particles._buffer.context, xo.ContextCpu)):
                     if  moveback_to_buffer is None:
                         moveback_to_buffer = particles._buffer
                         moveback_to_offset = particles._offset
@@ -652,6 +652,20 @@ class Tracker:
                         particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
                         moveback_to_buffer = None
                         moveback_to_offset = None
+
+                # Hide lost particles if required by element
+                _need_clean_active_lost_state = False
+                _need_unhide_lost_particles = False
+                if (hasattr(pp, 'needs_hidden_lost_particles')
+                    and pp.needs_hidden_lost_particles):
+                    if isinstance(particles._buffer.context, xo.ContextCpu):
+                        assert particles._num_active_particles >= 0
+                        assert particles._num_lost_particles >= 0
+                    else:
+                        _need_clean_active_lost_state = True
+                    if not particles.lost_particles_are_hidden:
+                        _need_unhide_lost_particles = True
+                    particles.hide_lost_particles()
 
                 # Track!
                 if (tt == 0 and ele_start > 0): # handle delayed start
@@ -675,6 +689,13 @@ class Tracker:
                         self._zerodrift_cpu.track(particles, increment_at_element=True)
                     else:
                         self._zerodrift.track(particles, increment_at_element=True)
+
+                if _need_unhide_lost_particles:
+                    particles.unhide_lost_particles()
+
+                if _need_clean_active_lost_state:
+                    particles._num_active_particle = -1
+                    particles._num_lost_particles = -1
 
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)

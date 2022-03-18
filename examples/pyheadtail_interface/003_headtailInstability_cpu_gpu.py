@@ -56,6 +56,8 @@ waketable = WakeTable(
     wakefile, ["time", "dipole_x", "dipole_y", "quadrupole_x", "quadrupole_y"]
 )
 wake_field = WakeField(slicer_for_wakefields, waketable)
+wake_field.needs_cpu = True
+wake_field.needs_hidden_lost_part = True
 
 damping_time = 7000  # 33.
 damper = TransverseDamper(dampingrate_x=damping_time, dampingrate_y=damping_time)

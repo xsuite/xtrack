@@ -270,7 +270,6 @@ for turn in range(nTurn):
     time0 = time.time()
     arc.track(particles)
     time1 = time.time()
-    import pdb; pdb.set_trace()
     wake_field.track(particles)
     time2 = time.time()
     damper.track(particles)
