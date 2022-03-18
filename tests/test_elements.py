@@ -16,15 +16,17 @@ def test_constructor():
             xt.Drift(_context=ctx),
             xt.Multipole(_context=ctx, knl=[2, 3]),
             xt.RFMultipole(_context=ctx, knl=[2]),
-            xt.Cavity(),
-            xt.SRotation(),
-            xt.XYShift(),
-            xt.DipoleEdge(),
-            xt.LimitRect(),
-            xt.LimitRectEllipse(),
-            xt.LimitEllipse(),
-            xt.LimitRacetrack(),
-            xt.LimitPolygon(x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1])
+            xt.Cavity(voltage=3.),
+            xt.SRotation(angle=4),
+            xt.XYShift(dx=1),
+            xt.DipoleEdge(h=1),
+            xt.LimitRect(min_x=5),
+            xt.LimitRectEllipse(max_x=6),
+            xt.LimitEllipse(a=10),
+            xt.LimitRacetrack(min_x=2),
+            xt.LimitPolygon(x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+            xt.Elens(inner_radius=0.1),
+            xt.Wire(wire_current=3.)
         ]
 
         # test to_dict / from_dict
@@ -32,9 +34,11 @@ def test_constructor():
             dd = ee.to_dict()
             nee = ee.__class__.from_dict(dd, _context=ctx)
             # Check that the two objects are bitwise identical
-            assert (ee.copy(_context=xo.ContextCpu())._xobject._buffer.buffer[
-                      ee._xobject._offset:ee._xobject._size]
-                    - nee.copy(_context=xo.ContextCpu())._xobject._buffer.buffer[
+            if not isinstance(ctx, xo.ContextCpu):
+                ee._move_to(_context=xo.ContextCpu())
+                nee._move_to(_context=xo.ContextCpu())
+            assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
+                    - nee._xobject._buffer.buffer[
                         nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 def test_drift():

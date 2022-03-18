@@ -6,7 +6,6 @@ from setuptools import setup, find_packages, Extension
 
 extensions = []
 
-
 #########
 # Setup #
 #########
