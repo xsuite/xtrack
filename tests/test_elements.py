@@ -558,11 +558,12 @@ def test_linear_transfer_uncorrelated_damping_equilibrium():
         emit_x = np.zeros(n_turns,dtype=float)
         emit_y = np.zeros_like(emit_x)
         emit_s = np.zeros_like(emit_x)
+        ctx2np = ctx.nparray_from_context_array
         for turn in range(n_turns):
             arc.track(particles)
-            emit_x[turn] = 0.5*np.average((gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px+beta_x_0*particles.px**2))
-            emit_y[turn] = 0.5*np.average((gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py+beta_y_0*particles.py**2))
-            emit_s[turn] = 0.5*np.average((particles.zeta**2/beta_s+beta_s*particles.delta**2))
+            emit_x[turn] = 0.5*np.average(ctx2np(gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px+beta_x_0*particles.px**2))
+            emit_y[turn] = 0.5*np.average(ctx2np(gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py+beta_y_0*particles.py**2))
+            emit_s[turn] = 0.5*np.average(ctx2np(particles.zeta**2/beta_s+beta_s*particles.delta**2))
         turns = np.arange(n_turns)
         equ_emit_x_0 = np.average(emit_x)
         equ_emit_y_0 = np.average(emit_y)
