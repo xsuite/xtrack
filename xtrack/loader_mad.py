@@ -81,7 +81,7 @@ def madx_sequence_to_xtrack_line(
             "elseparator",
             "instrument",
             "solenoid",
-            "drift",
+            "drift"
         ]:
             newele = myDrift(length=ee.l)
             old_pp += ee.l
@@ -332,6 +332,29 @@ def madx_sequence_to_xtrack_line(
                 newele = myDrift(length=ee.l)
                 old_pp += ee.l
             line.element_dict[eename] = newele
+        elif mad_etype == "matrix":
+            print('Loader_mad.py: matrix:',ee.__dict__)
+            #TODO
+
+            knl = ee.knl if hasattr(ee, "knl") else [0]
+            ksl = ee.ksl if hasattr(ee, "ksl") else [0]
+            newele = classes.Multipole(
+                knl=list(knl),
+                ksl=list(ksl),
+                hxl=knl[0],
+                hyl=ksl[0],
+                length=ee.lrad,
+            )
+            line.element_dict[eename] = newele
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                for ii, _ in enumerate(knl):
+                    if eepar.knl.expr[ii] is not None:
+                        _lref[eename].knl[ii] = madeval(eepar.knl.expr[ii])
+                for ii, _ in enumerate(ksl):
+                    if eepar.ksl.expr[ii] is not None:
+                        _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
+
         else:
             raise ValueError(f'MAD element "{mad_etype}" not recognized')
 
