@@ -100,15 +100,6 @@ py0 = np.copy(particles.yp)
 zeta0 = np.copy(particles.z)
 delta0 = np.copy(particles.dp)
 
-print(
-    "PyHt size comp x", particles.sigma_x(), np.sqrt(normemit * beta_x / gamma / betar)
-)
-print(
-    "PyHt size comp y", particles.sigma_y(), np.sqrt(normemit * beta_y / gamma / betar)
-)
-print("PyHt size comp z", particles.sigma_z(), sigma_z)
-print("PyHt size comp delta", particles.sigma_dp(), sigma_delta)
-
 chromatic_detuner = ChromaticitySegment(dQp_x=chroma, dQp_y=0.0)
 transverse_detuner = AmplitudeDetuningSegment(
     dapp_x=detx_x * p0,
@@ -253,8 +244,7 @@ for turn in range(nTurn):
     x[turn] = np.average(particles.x[particles.state>0])
     if turn % 1000 == 0:
         print(
-            f"PyHtXt - turn {turn}: time for arc {time1-time0}s, for wake {time2-time1}s, for damper {time3-time2}s"
-        )
+            f"PyHtXt - turn {turn}")
 t_xt_end = time.time()
 
 print(f'Xt full loop: {t_xt_end - t_xt_start}s')
