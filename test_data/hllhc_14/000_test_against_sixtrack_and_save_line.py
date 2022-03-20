@@ -65,8 +65,8 @@ xf.configure_orbit_dependent_parameters_for_bb(tracker,
 # Save to json #
 ################
 sixdump = sixdump_all[1::2]  # Particle with deviation from CO
-part_dict = xp.Particles(
-        **sixdump[0].get_minimal_beam()).to_dict()
+part_dict = xp.Particles.from_dict(
+        sixdump[0].get_minimal_beam()).to_dict()
 part_dict['state'] = 1
 
 with open('line_and_particle.json', 'w') as fid:

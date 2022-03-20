@@ -18,7 +18,7 @@ line = xt.Line.from_sixinput(six)
 # Get some particles #
 ######################
 sixdump = sixtracktools.SixDump101("res/dump3.dat")
-part0= xp.Particles(**sixdump[0::2][0].get_minimal_beam())
+part0= xp.Particles.from_dict(sixdump[0::2][0].get_minimal_beam())
 
 # Force active state
 part0.state = 1
