@@ -597,6 +597,7 @@ class DipoleEdge(BeamElement):
             }
 
     _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
+    _skip_in_to_dict = ['r21', 'r43']
 
     def __init__(
         self,
