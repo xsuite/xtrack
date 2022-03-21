@@ -581,7 +581,6 @@ def test_linear_transfer_first_order_taylor_map():
         particles = xp.Particles.from_dict(dtk_particle.to_dict(),
                                            _context=ctx)
 
-
         m0 = np.arange(6,dtype=float)
         m1 = np.ones((6,6),dtype=float)
         for i in range(6):
@@ -589,21 +588,8 @@ def test_linear_transfer_first_order_taylor_map():
                 m1[i,j] = 10*i+j
         arc = xt.FirstOrderTaylorMap(_context=ctx,m0 = m0, m1 = m1)
         arc.track(particles)
-        print('done')
-        exit()
 
-        dtk_arc = dtk.elements.LinearTransferMatrix(alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
-        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
-        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
-        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
-        Q_x=Q_x, Q_y=Q_y,
-        beta_s=beta_s, Q_s=Q_s,
-        chroma_x=0.0, chroma_y=0.0,
-        detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
-        energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
-        x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
-        y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1,
-        damping_rate_x = damping_rate_x,damping_rate_y = damping_rate_y,damping_rate_s = damping_rate_s)
+        dtk_arc = dtk.elements.FirstOrderTaylorMap(m0 = m0, m1 = m1)
         dtk_arc.track(dtk_particle)
 
         assert np.isclose(ctx.nparray_from_context_array(particles.x)[0],
