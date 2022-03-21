@@ -769,12 +769,12 @@ class FirstOrderTaylorMap(Element):
 
         beta = p._rvv*p.beta0
         coords0 = np.array([p.x,p.px,p.y,p.py,p.zeta/beta,p.psigma*p.beta0])
-        p.x = self.m0[0] + np.dot(self.m1[0,:],coords0)
-        p.px = self.m0[1] + np.dot(self.m1[1,:],coords0)
-        p.y = self.m0[2] + np.dot(self.m1[2,:],coords0)
-        p.py = self.m0[3] + np.dot(self.m1[3,:],coords0)
-        tau = self.m0[4] + np.dot(self.m1[4,:],coords0)
-        ptau = self.m0[5] + np.dot(self.m1[5,:],coords0)
+        p.x = self.m0[0] + self.m1[0,0]*coords0[0] + self.m1[0,1]*coords0[1] + self.m1[0,2]*coords0[2] + self.m1[0,3]*coords0[3] + self.m1[0,4]*coords0[4] + self.m1[0,5]*coords0[5]
+        p.px = self.m0[1] + self.m1[1,0]*coords0[0] + self.m1[1,1]*coords0[1] + self.m1[1,2]*coords0[2] + self.m1[1,3]*coords0[3] + self.m1[1,4]*coords0[4] + self.m1[1,5]*coords0[5]
+        p.y = self.m0[2] + self.m1[2,0]*coords0[0] + self.m1[2,1]*coords0[1] + self.m1[2,2]*coords0[2] + self.m1[2,3]*coords0[3] + self.m1[2,4]*coords0[4] + self.m1[2,5]*coords0[5]
+        p.py = self.m0[3] + self.m1[3,0]*coords0[0] + self.m1[3,1]*coords0[1] + self.m1[3,2]*coords0[2] + self.m1[3,3]*coords0[3] + self.m1[3,4]*coords0[4] + self.m1[3,5]*coords0[5]
+        tau = self.m0[4] + self.m1[4,0]*coords0[0] + self.m1[4,1]*coords0[1] + self.m1[4,2]*coords0[2] + self.m1[4,3]*coords0[3] + self.m1[4,4]*coords0[4] + self.m1[4,5]*coords0[5]
+        ptau = self.m0[5] + self.m1[5,0]*coords0[0] + self.m1[5,1]*coords0[1] + self.m1[5,2]*coords0[2] + self.m1[5,3]*coords0[3] + self.m1[5,4]*coords0[4] + self.m1[5,5]*coords0[5]
         p.delta = np.sqrt(ptau*ptau + 2.0*ptau/p.beta0+1.0)-1.0
         beta = p._rvv*p.beta0
         p.zeta = tau * beta
