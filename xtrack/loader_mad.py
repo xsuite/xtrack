@@ -152,7 +152,7 @@ def madx_sequence_to_xtrack_line(
 
         elif mad_etype == "rfcavity":
             if ee.freq == 0 and ee.harmon != 0:
-                frequency = sequence.beam.beta * clight / sequence.length
+                frequency = ee.harmon * sequence.beam.beta * clight / sequence.length
             else:
                 frequency = ee.freq * 1e6
             newele = classes.Cavity(
