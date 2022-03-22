@@ -297,14 +297,31 @@ class Tracker:
         if particle_ref is None and particle_co_guess is None:
             particle_ref = self.particle_ref
 
-        return find_closed_orbit(self, particle_co_guess=particle_co_guess,
+        if self.iscollective:
+            logger.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+
+        return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
                                  co_search_settings=co_search_settings)
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None):
-        return compute_one_turn_matrix_finite_differences(self, particle_on_co,
+        if self.iscollective:
+            logger.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+        return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
 
     def twiss(self, particle_ref=None, r_sigma=0.01,

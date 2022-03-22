@@ -243,8 +243,10 @@ class Line:
                 else:
                     new_elements.append(Drift(length=0))
 
-        return self.__class__(elements=new_elements,
+        new_line = self.__class__(elements=new_elements,
                               element_names=self.element_names)
+        new_line.particle_ref = self.particle_ref.copy()
+        return new_line
 
     def cycle(self, index_first_element=None, name_first_element=None):
 
