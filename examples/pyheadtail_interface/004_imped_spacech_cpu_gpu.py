@@ -27,7 +27,7 @@ bunch_intensity = 1* 1e11/3 # Need short bunch to avoid bucket non-linearity
 sigma_z = 22.5e-2/3
 nemitt_x=2.5e-6
 nemitt_y=2.5e-6
-n_part=int(1e2)
+n_part=int(1e4)
 num_turns=2
 
 num_spacecharge_interactions = 540
@@ -221,7 +221,7 @@ class PhaseMonitor:
    def qy(self):
        return np.mod(np.diff(np.array(self.phase_y), axis=0)/(2*np.pi), 1)
 
-phasem = PhaseMonitor(tracker, num_particles=n_part, twiss=tw)
+phasem = PhaseMonitor(tracker, num_particles=n_part, twiss=tracker_sc_off.twiss())
 
 for turn in range(num_turns):
    phasem.measure(particles)
