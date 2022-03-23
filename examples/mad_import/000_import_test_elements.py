@@ -145,6 +145,10 @@ assert np.isclose(line['cb0'].knl[0], 2*1e6/line.particle_ref.p0c[0],
 assert np.all(line['cb0'].ksl == 0)
 assert np.all(line['cb0'].pn == np.array([270]))
 assert np.all(line['cb0'].ps == 0.)
+assert line['cb0'].voltage == 0
+assert line['cb0'].order == 0
+assert line['cb0'].frequency == 100e6
+assert line['cb0'].lag == 0
 
 assert isinstance(line['cb1'], xt.RFMultipole)
 assert line.get_s_position('cb1') == 0.42
@@ -155,6 +159,10 @@ assert np.isclose(line['cb1'].ksl[0], -2*1e6/line.particle_ref.p0c[0],
 assert np.all(line['cb1'].knl == 0)
 assert np.all(line['cb1'].ps == np.array([270]))
 assert np.all(line['cb1'].pn == 0.)
+assert line['cb1'].voltage == 0
+assert line['cb1'].order == 0
+assert line['cb1'].frequency == 100e6
+assert line['cb1'].lag == 0
 
 
 assert isinstance(line['w'], xt.Wire)
