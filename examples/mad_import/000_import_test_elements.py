@@ -25,6 +25,7 @@ rfm0: rfmultipole, volt=2, lag=0.5, freq=100.,
              knl={2,3}, ksl={4,5},
              pnl={0.3, 0.4}, psl={0.5, 0.6};
 crab0: crabcavity, volt=2, lag=0.5, freq=100.;
+crab1: crabcavity, volt=2, lag=0.5, freq=100., tilt=pi/2;
 
 """)
 
@@ -42,7 +43,7 @@ k3: kick3, at=0.35;
 de0: dipedge0, at=0.38;
 r0: rfm0, at=0.4;
 cb0: crab0, at=0.41;
-
+cb1: crab1, at=0.42;
 w: wire1, at=1;
 
 endsequence;
@@ -144,6 +145,16 @@ assert np.isclose(line['cb0'].knl[0], 2*1e6/line.particle_ref.p0c[0],
 assert np.all(line['cb0'].ksl == 0)
 assert np.all(line['cb0'].pn == np.array([270]))
 assert np.all(line['cb0'].ps == 0.)
+
+assert isinstance(line['cb1'], xt.RFMultipole)
+assert line.get_s_position('cb1') == 0.42
+assert len(line['cb1'].knl) == 1
+assert len(line['cb1'].ksl) == 1
+assert np.isclose(line['cb1'].ksl[0], -2*1e6/line.particle_ref.p0c[0],
+                  rtol=0, atol=1e-12)
+assert np.all(line['cb1'].knl == 0)
+assert np.all(line['cb1'].ps == np.array([270]))
+assert np.all(line['cb1'].pn == 0.)
 
 
 assert isinstance(line['w'], xt.Wire)
