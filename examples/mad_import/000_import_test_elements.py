@@ -41,6 +41,9 @@ seq = mad.sequence['testseq']
 line = xt.Line.from_madx_sequence(sequence=seq)
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
+line = xt.Line.from_dict(line.to_dict()) # This calls the to_dict_method fot all
+                                         # elements
+
 
 assert len(line.element_names) == len(line.element_dict.keys())
 assert line.get_length() == 10
