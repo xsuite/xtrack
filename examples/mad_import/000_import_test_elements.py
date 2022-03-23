@@ -12,10 +12,17 @@ mad.input("""
 cav0: rfcavity, freq=10, lag=0.5, volt=6;
 cav1: rfcavity, lag=0.5, volt=6, harmon=8;
 wire1: wire, current=5, l=0, l_phy=1, l_int=2, xma=1e-3, yma=2e-3;
+
 mult0: multipole, knl={1,2,3}, ksl={4,5,6}, lrad=1.1;
 kick0: kicker, hkick=5, vkick=6, lrad=2.2;
 kick1: tkicker, hkick=7, vkick=8, lrad=2.3;
 kick2: hkicker, kick=3, lrad=2.4;
+kick3: vkicker, kick=4, lrad=2.5;
+
+rfm0: rfmultipole, volt=2, lag=0.5, freq=100.,
+             knl={2,3}, ksl={4,5},
+             pnl={0.3, 0.4}, psl={0.5, 0.6};
+
 """)
 
 # Sequence
@@ -28,6 +35,8 @@ c1: cav1, at=0.2, apertype=circle, aperture=0.01;
 k0: kick0, at=0.3;
 k1: kick1, at=0.33;
 k2: kick2, at=0.34;
+k3: kick3, at=0.35;
+r0: rfm0, at=0.4;
 
 w: wire1, at=1;
 
@@ -86,6 +95,14 @@ assert line['k2'].hxl == 0
 assert line['k2'].hyl == 0
 assert line['k2'].length == 2.4
 
+assert isinstance(line['k3'], xt.Multipole)
+assert line.get_s_position('k3') == 0.35
+assert np.all(line['k3'].knl == np.array([0]))
+assert np.all(line['k3'].ksl == np.array([4]))
+assert line['k3'].hxl == 0
+assert line['k3'].hyl == 0
+assert line['k3'].length == 2.5
+
 assert isinstance(line['c0'], xt.Cavity)
 assert line.get_s_position('c0') == 0.2
 assert line['c0'].frequency == 10e6
@@ -98,6 +115,13 @@ assert np.isclose(line['c1'].frequency, clight*line.particle_ref.beta0/10.*8,
                   rtol=0, atol=1e-7)
 assert line['c1'].lag == 180
 assert line['c1'].voltage == 6e6
+
+assert isinstance(line['r0'], xt.RFMultipole)
+assert line.get_s_position('r0') == 0.4
+assert np.all(line['r0'].knl == np.array([2,3]))
+assert np.all(line['r0'].ksl == np.array([4,5]))
+assert np.all(line['r0'].pn == np.array([0.3*360,0.4*360]))
+assert np.all(line['r0'].ps == np.array([0.5*360,0.6*360]))
 
 assert isinstance(line['w'], xt.Wire)
 assert line.get_s_position('w') == 1

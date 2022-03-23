@@ -171,6 +171,11 @@ def madx_sequence_to_xtrack_line(
                     _lref[eename].lag = madeval(eepar.lag.expr) * 360
 
         elif mad_etype == "rfmultipole":
+            if ee.harmon != 0 :
+                raise NotImplementedError
+            if ee.l != 0:
+                raise NotImplementedError
+
             newele = classes.RFMultipole(
                 voltage=ee.volt * 1e6,
                 frequency=ee.freq * 1e6,
