@@ -135,6 +135,10 @@ assert np.all(line['r0'].knl == np.array([2,3]))
 assert np.all(line['r0'].ksl == np.array([4,5]))
 assert np.all(line['r0'].pn == np.array([0.3*360,0.4*360]))
 assert np.all(line['r0'].ps == np.array([0.5*360,0.6*360]))
+assert line['r0'].voltage == 2e6
+assert line['r0'].order == 1
+assert line['r0'].frequency == 100e6
+assert line['r0'].lag == 180
 
 assert isinstance(line['cb0'], xt.RFMultipole)
 assert line.get_s_position('cb0') == 0.41
