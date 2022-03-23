@@ -213,6 +213,7 @@ def madx_sequence_to_xtrack_line(
                     wire_xma     = ee.xma[0],
                     wire_yma     = ee.yma[0]
                 )
+                line.element_dict[eename] = newele
             else:
                 # TODO: add multiple elements for multiwire configuration
                 raise ValueError("Multiwire configuration not supported")
@@ -344,6 +345,7 @@ def madx_sequence_to_xtrack_line(
         if abs(tilt)>0:
             line.append_element(classes.SRotation(angle=tilt), eename+"_pretilt")
 
+        assert eename in line.element_dict.keys()
         line.element_names.append(eename)
 
         if abs(tilt)>0:
