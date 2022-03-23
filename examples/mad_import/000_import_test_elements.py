@@ -19,9 +19,12 @@ kick1: tkicker, hkick=7, vkick=8, lrad=2.3;
 kick2: hkicker, kick=3, lrad=2.4;
 kick3: vkicker, kick=4, lrad=2.5;
 
+dipedge0: dipedge, h=0.1, e1=3, fint=4, hgap=0.02;
+
 rfm0: rfmultipole, volt=2, lag=0.5, freq=100.,
              knl={2,3}, ksl={4,5},
              pnl={0.3, 0.4}, psl={0.5, 0.6};
+crab0: crabcavity, volt=2, lag=0.5, freq=100.;
 
 """)
 
@@ -36,7 +39,9 @@ k0: kick0, at=0.3;
 k1: kick1, at=0.33;
 k2: kick2, at=0.34;
 k3: kick3, at=0.35;
+de0: dipedge0, at=0.38;
 r0: rfm0, at=0.4;
+cb0: crab0, at=0.41;
 
 w: wire1, at=1;
 
@@ -116,12 +121,30 @@ assert np.isclose(line['c1'].frequency, clight*line.particle_ref.beta0/10.*8,
 assert line['c1'].lag == 180
 assert line['c1'].voltage == 6e6
 
+assert isinstance(line['de0'], xt.DipoleEdge)
+assert line.get_s_position('de0') == 0.38
+assert line['de0'].h == 0.1
+assert line['de0'].e1 == 3
+assert line['de0'].fint == 4
+assert line['de0'].hgap == 0.02
+
 assert isinstance(line['r0'], xt.RFMultipole)
 assert line.get_s_position('r0') == 0.4
 assert np.all(line['r0'].knl == np.array([2,3]))
 assert np.all(line['r0'].ksl == np.array([4,5]))
 assert np.all(line['r0'].pn == np.array([0.3*360,0.4*360]))
 assert np.all(line['r0'].ps == np.array([0.5*360,0.6*360]))
+
+assert isinstance(line['cb0'], xt.RFMultipole)
+assert line.get_s_position('cb0') == 0.41
+assert len(line['cb0'].knl) == 1
+assert len(line['cb0'].ksl) == 1
+assert np.isclose(line['cb0'].knl[0], 2*1e6/line.particle_ref.p0c[0],
+                  rtol=0, atol=1e-12)
+assert np.all(line['cb0'].ksl == 0)
+assert np.all(line['cb0'].pn == np.array([270]))
+assert np.all(line['cb0'].ps == 0.)
+
 
 assert isinstance(line['w'], xt.Wire)
 assert line.get_s_position('w') == 1

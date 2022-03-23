@@ -208,7 +208,6 @@ def madx_sequence_to_xtrack_line(
                     if eepar.ps.expr[ii] is not None:
                         _lref[eename].ps[ii] = madeval(eepar.psl.expr[ii]) * 360
 
-
         elif mad_etype == "wire":
             if len(ee.L_phy) == 1:
                 newele = classes.Wire(
@@ -224,6 +223,13 @@ def madx_sequence_to_xtrack_line(
                 raise ValueError("Multiwire configuration not supported")
 
         elif mad_etype == "crabcavity":
+
+            for nn in ['l', 'harmon', 'lagf', 'rv1', 'rv2', 'rv3', 'rv4', 'rph1', 'rph2']:
+                if getattr(ee, nn) != 0:
+                    raise NotImplementedError(
+                        f'Invalid value {nn}={getattr(ee, nn)}'
+                    )
+
             #ee.volt in MV, sequence.beam.pc in GeV
             if abs(ee.tilt-np.pi/2)<1e-9:
                 newele = classes.RFMultipole(
@@ -314,23 +320,25 @@ def madx_sequence_to_xtrack_line(
 
         elif mad_etype == "placeholder":
             if ee.slot_id == 1:
-                newele = classes.SCCoasting()
+                raise ValueError('This feature is discontinued!')
+                #newele = classes.SCCoasting()
             elif ee.slot_id == 2:
                 # TODO Abstraction through `classes` to be introduced
-                import xfields as xf
-                lprofile = xf.LongitudinalProfileQGaussian(
-                        number_of_particles=0.,
-                        sigma_z=1.,
-                        z0=0.,
-                        q_parameter=1.)
-                newele = xf.SpaceChargeBiGaussian(
-                    length=0,
-                    apply_z_kick=False,
-                    longitudinal_profile=lprofile,
-                    mean_x=0.,
-                    mean_y=0.,
-                    sigma_x=1.,
-                    sigma_y=1.)
+                raise ValueError('This feature is discontinued!')
+                # import xfields as xf
+                # lprofile = xf.LongitudinalProfileQGaussian(
+                #         number_of_particles=0.,
+                #         sigma_z=1.,
+                #         z0=0.,
+                #         q_parameter=1.)
+                # newele = xf.SpaceChargeBiGaussian(
+                #     length=0,
+                #     apply_z_kick=False,
+                #     longitudinal_profile=lprofile,
+                #     mean_x=0.,
+                #     mean_y=0.,
+                #     sigma_x=1.,
+                #     sigma_y=1.)
 
             elif ee.slot_id == 3:
                 newele = classes.SCInterpolatedProfile()
