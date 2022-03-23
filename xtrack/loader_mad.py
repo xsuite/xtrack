@@ -333,27 +333,41 @@ def madx_sequence_to_xtrack_line(
                 old_pp += ee.l
             line.element_dict[eename] = newele
         elif mad_etype == "matrix":
-            print('Loader_mad.py: matrix:',ee.__dict__)
-            #TODO
+            length = 0.0
+            if hasattr(ee,"l"):
+                length = ee.l
+                old_pp += ee.l
+            m0 = np.zeros(6,dtype=float)
+            for m0_i in range(6):
+                att_name = f'kick{m0_i+1}'
+                if hasattr(ee,att_name):
+                    m0[m0_i] = eval(f'ee.{att_name}')
+            m1 = np.zeros((6,6),dtype=float)
+            for m1_i in range(6):
+                for m1_j in range(6):
+                    att_name = f'rm{m1_i+1}{m1_j+1}'
+                    if hasattr(ee,att_name):
+                        m1[m1_i,m1_j] = eval(f'ee.{att_name}')
 
-            knl = ee.knl if hasattr(ee, "knl") else [0]
-            ksl = ee.ksl if hasattr(ee, "ksl") else [0]
-            newele = classes.Multipole(
-                knl=list(knl),
-                ksl=list(ksl),
-                hxl=knl[0],
-                hyl=ksl[0],
-                length=ee.lrad,
-            )
+            newele = classes.FirstOrderTaylorMap(
+                length = length,
+                m0 = m0,
+                m1 = m1)
             line.element_dict[eename] = newele
             if deferred_expressions:
                 eepar = ee.cmdpar
-                for ii, _ in enumerate(knl):
-                    if eepar.knl.expr[ii] is not None:
-                        _lref[eename].knl[ii] = madeval(eepar.knl.expr[ii])
-                for ii, _ in enumerate(ksl):
-                    if eepar.ksl.expr[ii] is not None:
-                        _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
+                if eepar.L.expr is not None:
+                    _lref[eemame].length = madeval(eepar.L.expr)
+                for m0_i in range(6):
+                    att_name = f'kick{m0_i+1}'
+                    if hasattr(ee,att_name) and eval(f'eepar.{att_name}.expr') is not None:
+                        _lref[eename].m0[m0_i] = madeval(eval(f'eepar.{att_name}.expr'))
+                for m1_i in range(6):
+                    for m1_j in range(6):
+                        att_name = f'rm{m1_i+1}{m1_j+1}'
+                        if hasattr(ee,att_name) and eval(f'eepar.{att_name}.expr') is not None:
+                            _lref[eename].m1[6*m1_i+m1_j]= madeval(eval(f'eepar.{att_name}.expr')) # The array is flattened at instanciation of the element
+
 
         else:
             raise ValueError(f'MAD element "{mad_etype}" not recognized')

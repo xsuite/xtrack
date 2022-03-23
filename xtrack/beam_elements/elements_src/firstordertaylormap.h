@@ -6,7 +6,18 @@
 /*gpufun*/
 void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalParticle* part0){
 
-    int64_t radiation_flag = FirstOrderTaylorMapData_get_radiation_flag(el);
+    int64_t const radiation_flag = FirstOrderTaylorMapData_get_radiation_flag(el);
+    double const length = FirstOrderTaylorMapData_get_length(el); // m
+
+    //for(unsigned int i=0;i<6;i++){
+    //     printf("%i:%E\n",i,FirstOrderTaylorMapData_get_m0(el,i));
+    //}
+
+    //for(unsigned int i=0;i<6;i++){
+    //    for(unsigned int j=0;j<6;j++){
+    //        printf("%i,%i:%E\n",i,j,FirstOrderTaylorMapData_get_m1(el,i*6+j));
+    //    }
+    //}
 
     //start_per_particle_block (part0->part)
 
@@ -19,7 +30,7 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
         double tau0 = LocalParticle_get_zeta(part)/beta;
         double psigma0 = LocalParticle_get_psigma(part);
         double ptau0 = psigma0 * beta0;
-
+        
         LocalParticle_set_x(part,FirstOrderTaylorMapData_get_m0(el,0) +
                             FirstOrderTaylorMapData_get_m1(el,0)*x0 +
                             FirstOrderTaylorMapData_get_m1(el,1)*px0 +
@@ -62,9 +73,23 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
                             FirstOrderTaylorMapData_get_m1(el,33)*py0 +
                             FirstOrderTaylorMapData_get_m1(el,34)*tau0 +
                             FirstOrderTaylorMapData_get_m1(el,35)*ptau0;
+
         LocalParticle_update_delta(part,sqrt(ptau*ptau + 2.0*ptau/beta0+1.0)-1.0);
         beta = LocalParticle_get_rvv(part)*beta0;
         LocalParticle_set_zeta(part,tau*beta);
+
+        // Radiation
+        if (radiation_flag > 0 && length > 0){
+            double dpx = LocalParticle_get_px(part)-px0;
+            double dpy = LocalParticle_get_py(part)-py0;
+            double curv = sqrt(dpx*dpx+dpy*dpy);
+            if (radiation_flag == 1){
+                synrad_average_kick(part, curv, length);
+            }
+            else if (radiation_flag == 2){
+                synrad_emit_photons(part, curv, length);
+            }
+        }
 
     //end_per_particle_block
 }

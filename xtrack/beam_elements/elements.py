@@ -843,10 +843,9 @@ class FirstOrderTaylorMap(BeamElement):
         'm0': xo.Float64[6],
         'm1': xo.Float64[36]}
 
-    def __init__(self, length = 0.0, m0 = None, m1 = None,**nargs):
-        if length > 0.0:
-            nargs['radiation_flag'] = True
-            nargs['length'] = length
+    def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
+        nargs['radiation_flag'] = radiation_flag
+        nargs['length'] = length
         if m0 is None:
             nargs['m0'] = np.zeros(6,dtype=np.float64)
         else:
@@ -864,6 +863,10 @@ class FirstOrderTaylorMap(BeamElement):
         super().__init__(**nargs)
 
 FirstOrderTaylorMap.XoStruct.extra_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
 
 
