@@ -16,7 +16,7 @@ mad.input(f'''
 beam,particle=POSITRON;
 mat:matrix,l=1,rm11={m1[0,0]},rm12={m1[0,1]},rm13={m1[0,2]},rm14={m1[0,3]},rm15={m1[0,4]},rm16={m1[0,5]},rm21={m1[1,0]},rm22={m1[1,1]},rm23={m1[1,2]},rm24={m1[1,3]},rm25={m1[1,4]},rm26={m1[1,5]},rm31={m1[2,0]},rm32={m1[2,1]},rm33={m1[2,2]},rm34={m1[2,3]},rm35={m1[2,4]},rm36={m1[2,5]},rm41={m1[3,0]},rm42={m1[3,1]},rm43={m1[3,2]},rm44={m1[3,3]},rm45={m1[3,4]},rm46={m1[3,5]},rm51={m1[4,0]},rm52={m1[4,1]},rm53={m1[4,2]},rm54={m1[4,3]},rm55={m1[4,4]},rm56={m1[4,5]},rm61={m1[5,0]},rm62={m1[5,1]},rm63={m1[5,2]},rm64={m1[5,3]},rm65={m1[5,4]},rm66={m1[5,5]};
 matseq:sequence,l=1.0;
-mat1:mat, at=1.0;
+mat1:mat, at=0.5;
 endsequence;
 use,sequence=matseq;
 track,onepass;
