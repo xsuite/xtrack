@@ -837,6 +837,8 @@ EnergyChange.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/energychange.h')]
 
 class FirstOrderTaylorMap(BeamElement):
+    isthick = True
+
     _xofields={
         'radiation_flag': xo.Int64,
         'length': xo.Float64,
