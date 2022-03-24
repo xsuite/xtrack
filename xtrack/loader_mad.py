@@ -336,7 +336,6 @@ def madx_sequence_to_xtrack_line(
             length = 0.0
             if hasattr(ee,"l"):
                 length = ee.l
-                old_pp += ee.l
             m0 = np.zeros(6,dtype=float)
             for m0_i in range(6):
                 att_name = f'kick{m0_i+1}'
@@ -354,6 +353,7 @@ def madx_sequence_to_xtrack_line(
                 m0 = m0,
                 m1 = m1)
             line.element_dict[eename] = newele
+            old_pp += newele.length # This map is thick!
             if deferred_expressions:
                 eepar = ee.cmdpar
                 if eepar.L.expr is not None:
