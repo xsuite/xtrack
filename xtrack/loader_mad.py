@@ -224,7 +224,7 @@ def madx_sequence_to_xtrack_line(
 
         elif mad_etype == "crabcavity":
 
-            for nn in ['l', 'harmon', 'lagf', 'rv1', 'rv2', 'rv3', 'rv4', 'rph1', 'rph2']:
+            for nn in ['l', 'harmon', 'lagf', 'rv1', 'rv2', 'rph1', 'rph2']:
                 if getattr(ee, nn) != 0:
                     raise NotImplementedError(
                         f'Invalid value {nn}={getattr(ee, nn)}'

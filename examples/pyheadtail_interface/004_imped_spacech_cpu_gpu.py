@@ -184,7 +184,6 @@ for turn in range(num_turns):
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.ion()
 f,ax = plt.subplots()
 ax.plot(phasem.qx, phasem.qy,'b.',ms=1)
 ax.set_xlim(0, 0.5)
