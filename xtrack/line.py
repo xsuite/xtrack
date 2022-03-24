@@ -245,7 +245,9 @@ class Line:
 
         new_line = self.__class__(elements=new_elements,
                               element_names=self.element_names)
-        new_line.particle_ref = self.particle_ref.copy()
+        if self.particle_ref is not None:
+            new_line.particle_ref = self.particle_ref.copy()
+
         return new_line
 
     def cycle(self, index_first_element=None, name_first_element=None):
