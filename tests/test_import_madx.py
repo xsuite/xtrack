@@ -14,26 +14,25 @@ def test_mad_element_import():
     cav0: rfcavity, freq=10, lag=0.5, volt=6;
     cav1: rfcavity, lag=0.5, volt=6, harmon=8;
     wire1: wire, current=5, l=0, l_phy=1, l_int=2, xma=1e-3, yma=2e-3;
-
     mult0: multipole, knl={1,2,3}, ksl={4,5,6}, lrad=1.1;
     kick0: kicker, hkick=5, vkick=6, lrad=2.2;
     kick1: tkicker, hkick=7, vkick=8, lrad=2.3;
     kick2: hkicker, kick=3, lrad=2.4;
     kick3: vkicker, kick=4, lrad=2.5;
-
     dipedge0: dipedge, h=0.1, e1=3, fint=4, hgap=0.02;
-
     rfm0: rfmultipole, volt=2, lag=0.5, freq=100.,
                 knl={2,3}, ksl={4,5},
                 pnl={0.3, 0.4}, psl={0.5, 0.6};
     crab0: crabcavity, volt=2, lag=0.5, freq=100.;
     crab1: crabcavity, volt=2, lag=0.5, freq=100., tilt=pi/2;
-
     """)
+
+    matrix_m0 = np.random.randn(6)*1E-6
+    matrix_m1 = np.reshape(np.random.randn(36),(6,6))
+    mad.input(f"mat:matrix,l=0,kick1={matrix_m0[0]},kick2={matrix_m0[1]},kick3={matrix_m0[2]},kick4={matrix_m0[3]},kick5={matrix_m0[4]},kick6={matrix_m0[5]},rm11={matrix_m1[0,0]},rm12={matrix_m1[0,1]},rm13={matrix_m1[0,2]},rm14={matrix_m1[0,3]},rm15={matrix_m1[0,4]},rm16={matrix_m1[0,5]},rm21={matrix_m1[1,0]},rm22={matrix_m1[1,1]},rm23={matrix_m1[1,2]},rm24={matrix_m1[1,3]},rm25={matrix_m1[1,4]},rm26={matrix_m1[1,5]},rm31={matrix_m1[2,0]},rm32={matrix_m1[2,1]},rm33={matrix_m1[2,2]},rm34={matrix_m1[2,3]},rm35={matrix_m1[2,4]},rm36={matrix_m1[2,5]},rm41={matrix_m1[3,0]},rm42={matrix_m1[3,1]},rm43={matrix_m1[3,2]},rm44={matrix_m1[3,3]},rm45={matrix_m1[3,4]},rm46={matrix_m1[3,5]},rm51={matrix_m1[4,0]},rm52={matrix_m1[4,1]},rm53={matrix_m1[4,2]},rm54={matrix_m1[4,3]},rm55={matrix_m1[4,4]},rm56={matrix_m1[4,5]},rm61={matrix_m1[5,0]},rm62={matrix_m1[5,1]},rm63={matrix_m1[5,2]},rm64={matrix_m1[5,3]},rm65={matrix_m1[5,4]},rm66={matrix_m1[5,5]};")
 
     # Sequence
     mad.input("""
-
     testseq: sequence, l=10;
     m0: mult0 at=0.1;
     c0: cav0, at=0.2, apertype=circle, aperture=0.01;
@@ -47,7 +46,7 @@ def test_mad_element_import():
     cb0: crab0, at=0.41;
     cb1: crab1, at=0.42;
     w: wire1, at=1;
-
+    mat0:mat, at=2;
     endsequence;
     """
     )
@@ -177,3 +176,10 @@ def test_mad_element_import():
     assert line['w'].wire_L_int == 2
     assert line['w'].wire_xma == 1e-3
     assert line['w'].wire_yma == 2e-3
+
+    assert isinstance(line['mat0'],xt.FirstOrderTaylorMap)
+    assert line.get_s_position('mat0') == 2
+    assert np.allclose(line['mat0'].m0,matrix_m0)
+    assert np.allclose(line['mat0'].m1,matrix_m1.flatten('C'))
+
+

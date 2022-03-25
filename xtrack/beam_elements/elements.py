@@ -866,6 +866,8 @@ class FirstOrderTaylorMap(BeamElement):
         else:
             if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
                 nargs['m1'] = m1.flatten('C')
+            elif len(np.shape(m1)) == 1 and np.shape(m1)[0] == 36:
+                nargs['m1'] = m1
             else:
                 raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
         super().__init__(**nargs)

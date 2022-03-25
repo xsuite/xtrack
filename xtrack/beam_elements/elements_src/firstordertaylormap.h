@@ -30,7 +30,52 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
         double tau0 = LocalParticle_get_zeta(part)/beta;
         double psigma0 = LocalParticle_get_psigma(part);
         double ptau0 = psigma0 * beta0;
-        
+
+/*
+        LocalParticle_set_x(part,FirstOrderTaylorMapData_get_m0(el,0) +
+                            FirstOrderTaylorMapData_get_m1(el,0,0)*x0 +
+                            FirstOrderTaylorMapData_get_m1(el,0,1)*px0 +
+                            FirstOrderTaylorMapData_get_m1(el,0,2)*y0 +
+                            FirstOrderTaylorMapData_get_m1(el,0,3)*py0 +
+                            FirstOrderTaylorMapData_get_m1(el,0,4)*tau0 +
+                            FirstOrderTaylorMapData_get_m1(el,0,5)*ptau0);
+        LocalParticle_set_px(part,FirstOrderTaylorMapData_get_m0(el,1) +
+                            FirstOrderTaylorMapData_get_m1(el,1,0)*x0 +
+                            FirstOrderTaylorMapData_get_m1(el,1,1)*px0 +
+                            FirstOrderTaylorMapData_get_m1(el,1,2)*y0 +
+                            FirstOrderTaylorMapData_get_m1(el,1,3)*py0 +
+                            FirstOrderTaylorMapData_get_m1(el,1,4)*tau0 +
+                            FirstOrderTaylorMapData_get_m1(el,1,5)*ptau0);
+        LocalParticle_set_y(part,FirstOrderTaylorMapData_get_m0(el,2) +
+                            FirstOrderTaylorMapData_get_m1(el,2,0)*x0 +
+                            FirstOrderTaylorMapData_get_m1(el,2,1)*px0 +
+                            FirstOrderTaylorMapData_get_m1(el,2,2)*y0 +
+                            FirstOrderTaylorMapData_get_m1(el,2,3)*py0 +
+                            FirstOrderTaylorMapData_get_m1(el,2,4)*tau0 +
+                            FirstOrderTaylorMapData_get_m1(el,2,5)*ptau0);
+        LocalParticle_set_py(part,FirstOrderTaylorMapData_get_m0(el,3) +
+                            FirstOrderTaylorMapData_get_m1(el,3,0)*x0 +
+                            FirstOrderTaylorMapData_get_m1(el,3,1)*px0 +
+                            FirstOrderTaylorMapData_get_m1(el,3,2)*y0 +
+                            FirstOrderTaylorMapData_get_m1(el,3,3)*py0 +
+                            FirstOrderTaylorMapData_get_m1(el,3,4)*tau0 +
+                            FirstOrderTaylorMapData_get_m1(el,3,5)*ptau0);
+        double tau = FirstOrderTaylorMapData_get_m0(el,4) +
+                            FirstOrderTaylorMapData_get_m1(el,4,0)*x0 +
+                            FirstOrderTaylorMapData_get_m1(el,4,1)*px0 +
+                            FirstOrderTaylorMapData_get_m1(el,4,2)*y0 +
+                            FirstOrderTaylorMapData_get_m1(el,4,3)*py0 +
+                            FirstOrderTaylorMapData_get_m1(el,4,4)*tau0 +
+                            FirstOrderTaylorMapData_get_m1(el,4,5)*ptau0;
+        double ptau = FirstOrderTaylorMapData_get_m0(el,5) +
+                            FirstOrderTaylorMapData_get_m1(el,5,0)*x0 +
+                            FirstOrderTaylorMapData_get_m1(el,5,1)*px0 +
+                            FirstOrderTaylorMapData_get_m1(el,5,2)*y0 +
+                            FirstOrderTaylorMapData_get_m1(el,5,3)*py0 +
+                            FirstOrderTaylorMapData_get_m1(el,5,4)*tau0 +
+                            FirstOrderTaylorMapData_get_m1(el,5,5)*ptau0;
+*/        
+
         LocalParticle_set_x(part,FirstOrderTaylorMapData_get_m0(el,0) +
                             FirstOrderTaylorMapData_get_m1(el,0)*x0 +
                             FirstOrderTaylorMapData_get_m1(el,1)*px0 +
@@ -73,6 +118,7 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
                             FirstOrderTaylorMapData_get_m1(el,33)*py0 +
                             FirstOrderTaylorMapData_get_m1(el,34)*tau0 +
                             FirstOrderTaylorMapData_get_m1(el,35)*ptau0;
+
 
         LocalParticle_update_delta(part,sqrt(ptau*ptau + 2.0*ptau/beta0+1.0)-1.0);
         beta = LocalParticle_get_rvv(part)*beta0;
