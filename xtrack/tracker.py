@@ -292,7 +292,7 @@ class Tracker:
         self.track=self._track_no_collective
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}):
+                          co_search_settings={}, delta_zeta=0):
 
         if particle_ref is None and particle_co_guess is None:
             particle_ref = self.particle_ref
@@ -308,7 +308,7 @@ class Tracker:
 
         return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
-                                 co_search_settings=co_search_settings)
+                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta)
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,

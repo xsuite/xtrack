@@ -23,7 +23,7 @@ class ClosedOrbitSearchError(Exception):
     pass
 
 def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
-                      co_search_settings=None):
+                      co_search_settings=None, delta_zeta=0):
 
     if particle_co_guess is None:
         if particle_ref is None:
@@ -60,7 +60,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
         if shift_factor>0:
             log.warning('Need second attempt on closed orbit search')
         (res, infodict, ier, mesg
-            ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker),
+            ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker, delta_zeta),
                 x0=np.array([particle_co_guess._xobject.x[0] + shift_factor * 1e-5,
                             particle_co_guess._xobject.px[0] + shift_factor * 1e-7,
                             particle_co_guess._xobject.y[0] + shift_factor * 1e-5,
@@ -518,13 +518,13 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     return twiss_res
 
-def _one_turn_map(p, particle_ref, tracker):
+def _one_turn_map(p, particle_ref, tracker, delta_zeta):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
     part.y = p[2]
     part.py = p[3]
-    part.zeta = p[4]
+    part.zeta = p[4] + delta_zeta
     part.delta = p[5]
 
     tracker.track(part)
