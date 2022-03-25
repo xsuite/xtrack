@@ -849,7 +849,7 @@ class FirstOrderTaylorMap(BeamElement):
         'radiation_flag': xo.Int64,
         'length': xo.Float64,
         'm0': xo.Float64[6],
-        'm1': xo.Float64[36]}
+        'm1': xo.Float64[6:6]}
 
     def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
         nargs['radiation_flag'] = radiation_flag
@@ -862,11 +862,9 @@ class FirstOrderTaylorMap(BeamElement):
             else:
                 raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
         if m1 is None:
-            nargs['m1'] = np.zeros(36,dtype=np.float64)
+            nargs['m1'] = np.eye((6,6),dtype=np.float64)
         else:
             if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
-                nargs['m1'] = m1.flatten('C')
-            elif len(np.shape(m1)) == 1 and np.shape(m1)[0] == 36:
                 nargs['m1'] = m1
             else:
                 raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')

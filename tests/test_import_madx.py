@@ -180,6 +180,6 @@ def test_mad_element_import():
     assert isinstance(line['mat0'],xt.FirstOrderTaylorMap)
     assert line.get_s_position('mat0') == 2
     assert np.allclose(line['mat0'].m0,matrix_m0)
-    assert np.allclose(line['mat0'].m1,matrix_m1.flatten('C'))
+    assert np.allclose(line['mat0'].m1,matrix_m1)
 
 
