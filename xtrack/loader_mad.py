@@ -93,10 +93,14 @@ def madx_sequence_to_xtrack_line(
         elif mad_etype == "multipole":
             knl = ee.knl if hasattr(ee, "knl") else [0]
             ksl = ee.ksl if hasattr(ee, "ksl") else [0]
+            if hasattr(ee, 'angle') and ee.angle !=0:
+                hxl = ee.angle
+            else:
+                hxl = knl[0]
             newele = classes.Multipole(
                 knl=list(knl),
                 ksl=list(ksl),
-                hxl=knl[0],
+                hxl=hxl,
                 hyl=ksl[0],
                 length=ee.lrad,
             )
