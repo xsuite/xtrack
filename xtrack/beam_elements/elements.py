@@ -36,6 +36,7 @@ class Drift(BeamElement):
     _xofields = {
         'length': xo.Float64}
     isthick=True
+    behaves_like_drift=True
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(length=-self.length,
@@ -106,22 +107,26 @@ class Elens(BeamElement):
                'residual_kick_y': xo.Float64
               }
 
-    def __init__(self,  inner_radius  = None,
-                        outer_radius  = None,
-                        current       = None,
-                        elens_length  = None,
-                        voltage       = None,
+    def __init__(self,  inner_radius = 1.,
+                        outer_radius = 1.,
+                        current      = 0.,
+                        elens_length = 0.,
+                        voltage      = 0.,
                         residual_kick_x = 0,
                         residual_kick_y = 0,
+                        _xobject = None,
                         **kwargs):
-        super().__init__(**kwargs)
-        self.inner_radius    = inner_radius
-        self.outer_radius    = outer_radius
-        self.current         = current
-        self.elens_length    = elens_length
-        self.voltage         = voltage
-        self.residual_kick_x   = residual_kick_x
-        self.residual_kick_y   = residual_kick_y
+        if _xobject is not None:
+            super().__init__(_xobject=_xobject)
+        else:
+            super().__init__(**kwargs)
+            self.inner_radius    = inner_radius
+            self.outer_radius    = outer_radius
+            self.current         = current
+            self.elens_length    = elens_length
+            self.voltage         = voltage
+            self.residual_kick_x   = residual_kick_x
+            self.residual_kick_y   = residual_kick_y
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -139,7 +144,7 @@ Elens.XoStruct.extra_sources = [
 ## Wire Element
 
 class Wire(BeamElement):
-    
+
     _xofields={
                'wire_L_phy'  : xo.Float64,
                'wire_L_int'  : xo.Float64,
@@ -148,18 +153,22 @@ class Wire(BeamElement):
                'wire_yma'    : xo.Float64,
               }
 
-    def __init__(self,  wire_L_phy   = None,
-                        wire_L_int   = None,
-                        wire_current = None,
-                        wire_xma     = None,
-                        wire_yma     = None,
+    def __init__(self,  wire_L_phy   = 0,
+                        wire_L_int   = 0,
+                        wire_current = 0,
+                        wire_xma     = 0,
+                        wire_yma     = 0,
+                        _xobject = None,
                         **kwargs):
-        super().__init__(**kwargs)
-        self.wire_L_phy   = wire_L_phy
-        self.wire_L_int   = wire_L_int
-        self.wire_current = wire_current
-        self.wire_xma     = wire_xma
-        self.wire_yma     = wire_yma
+        if _xobject is not None:
+            super().__init__(_xobject=_xobject)
+        else:
+            super().__init__(**kwargs)
+            self.wire_L_phy   = wire_L_phy
+            self.wire_L_int   = wire_L_int
+            self.wire_current = wire_current
+            self.wire_xma     = wire_xma
+            self.wire_yma     = wire_yma
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -171,8 +180,8 @@ class Wire(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Wire.XoStruct.extra_sources = [
-     _pkg_root.joinpath('headers/constants.h'), 
-     _pkg_root.joinpath('beam_elements/elements_src/wire.h'), 
+     _pkg_root.joinpath('headers/constants.h'),
+     _pkg_root.joinpath('beam_elements/elements_src/wire.h'),
 ]
 
 
@@ -581,9 +590,14 @@ class DipoleEdge(BeamElement):
     _xofields = {
             'r21': xo.Float64,
             'r43': xo.Float64,
+            'hgap': xo.Float64,
+            'h': xo.Float64,
+            'e1': xo.Float64,
+            'fint': xo.Float64,
             }
 
     _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
+    _skip_in_to_dict = ['r21', 'r43']
 
     def __init__(
         self,
@@ -595,44 +609,36 @@ class DipoleEdge(BeamElement):
         fint=None,
         **kwargs
     ):
-        if r21 is None and r43 is None:
-            ZERO = np.float64(0.0)
-            if hgap is None:
-                hgap = ZERO
-            if h is None:
-                h = ZERO
-            if e1 is None:
-                e1 = ZERO
-            if fint is None:
-                fint = ZERO
 
-            # Check that the argument e1 is not too close to ( 2k + 1 ) * pi/2
-            # so that the cos in the denominator of the r43 calculation and
-            # the tan in the r21 calculations blow up
-            assert not np.isclose(np.absolute(np.cos(e1)), ZERO)
+        if r21 is not None or r43 is not None:
+            raise NoImplementedError(
+                "Please initialize using `h`, `e1`, `hgap` and `fint`")
 
-            corr = np.float64(2.0) * h * hgap * fint
-            r21 = h * np.tan(e1)
-            temp = corr / np.cos(e1) * (np.float64(1) + np.sin(e1) * np.sin(e1))
+        if hgap is None:
+            hgap = 0.
+        if h is None:
+            h = 0.
+        if e1 is None:
+            e1 = 0.
+        if fint is None:
+            fint = 0.
 
-            # again, the argument to the tan calculation should be limited
-            assert not np.isclose(np.absolute(np.cos(e1 - temp)), ZERO)
-            r43 = -h * np.tan(e1 - temp)
+        # Check that the argument e1 is not too close to ( 2k + 1 ) * pi/2
+        # so that the cos in the denominator of the r43 calculation and
+        # the tan in the r21 calculations blow up
+        assert not np.isclose(np.absolute(np.cos(e1)), 0)
 
-            self.h = h
-            self.e1 = e1
-            self.hgap = hgap
-            self.fint = fint
+        corr = np.float64(2.0) * h * hgap * fint
+        r21 = h * np.tan(e1)
+        temp = corr / np.cos(e1) * (np.float64(1) + np.sin(e1) * np.sin(e1))
 
-        if r21 is not None and r43 is not None:
-            kwargs['r21'] = r21
-            kwargs['r43'] = r43
-            super().__init__(**kwargs)
-        else:
-            raise ValueError(
-                "DipoleEdge needs either coefficiants r21 and r43"
-                " or suitable values for h, e1, hgap, and fint provided"
-            )
+        # again, the argument to the tan calculation should be limited
+        assert not np.isclose(np.absolute(np.cos(e1 - temp)), 0)
+        r43 = -h * np.tan(e1 - temp)
+
+        super().__init__(h=h, hgap=hgap, e1=e1, fint=fint, r21=r21, r43=r43,
+                         **kwargs)
+
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(

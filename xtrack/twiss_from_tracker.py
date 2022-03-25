@@ -26,7 +26,13 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None):
 
     if particle_co_guess is None:
-        assert particle_ref is not None
+        if particle_ref is None:
+            if tracker.particle_ref is not None:
+                particle_ref = tracker.particle_ref
+            else:
+                raise ValueError(
+                    "Either `particle_co_guess` or `particle_ref` must be provided")
+
         particle_co_guess = particle_ref.copy()
         particle_co_guess.x = 0
         particle_co_guess.px = 0
@@ -38,7 +44,6 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
         particle_co_guess.at_element = 0
         particle_co_guess.at_turn = 0
     else:
-        assert particle_ref is None
         particle_ref = particle_co_guess
 
     if co_search_settings is None:
@@ -148,6 +153,10 @@ def compute_one_turn_matrix_finite_differences(
 
     return RR
 
+def _behaves_like_drift(ee):
+    return (hasattr(ee, 'behaves_like_drift') and ee.behaves_like_drift)
+
+
 def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
                                                 algorithm='auto'):
 
@@ -176,7 +185,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         s_keep = []
         enames_keep = []
         for ss, nn in zip(s_elems, auxline.element_names):
-            if not (isinstance(auxline[nn], xt.Drift) and np.abs(auxline[nn].length)>0):
+            if not (_behaves_like_drift(auxline[nn]) and np.abs(auxline[nn].length)>0):
                 s_keep.append(ss)
                 enames_keep.append(nn)
                 assert not xt.line._is_thick(auxline[nn]) or auxline[nn].length == 0

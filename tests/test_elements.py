@@ -18,15 +18,17 @@ def test_constructor():
             xt.Drift(_context=ctx),
             xt.Multipole(_context=ctx, knl=[2, 3]),
             xt.RFMultipole(_context=ctx, knl=[2]),
-            xt.Cavity(),
-            xt.SRotation(),
-            xt.XYShift(),
-            xt.DipoleEdge(),
-            xt.LimitRect(),
-            xt.LimitRectEllipse(),
-            xt.LimitEllipse(),
-            xt.LimitRacetrack(),
-            xt.LimitPolygon(x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1])
+            xt.Cavity(voltage=3.),
+            xt.SRotation(angle=4),
+            xt.XYShift(dx=1),
+            xt.DipoleEdge(h=1),
+            xt.LimitRect(min_x=5),
+            xt.LimitRectEllipse(max_x=6),
+            xt.LimitEllipse(a=10),
+            xt.LimitRacetrack(min_x=2),
+            xt.LimitPolygon(x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+            xt.Elens(inner_radius=0.1),
+            xt.Wire(wire_current=3.)
         ]
 
         # test to_dict / from_dict
@@ -34,9 +36,11 @@ def test_constructor():
             dd = ee.to_dict()
             nee = ee.__class__.from_dict(dd, _context=ctx)
             # Check that the two objects are bitwise identical
-            assert (ee.copy(_context=xo.ContextCpu())._xobject._buffer.buffer[
-                      ee._xobject._offset:ee._xobject._size]
-                    - nee.copy(_context=xo.ContextCpu())._xobject._buffer.buffer[
+            if not isinstance(ctx, xo.ContextCpu):
+                ee._move_to(_context=xo.ContextCpu())
+                nee._move_to(_context=xo.ContextCpu())
+            assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
+                    - nee._xobject._buffer.buffer[
                         nee._xobject._offset:nee._xobject._size]).sum() == 0
 
 def test_drift():
@@ -486,11 +490,14 @@ def test_linear_transfer_uncorrelated_damping_rate():
         emit_x = np.zeros(n_turns,dtype=float)
         emit_y = np.zeros_like(emit_x)
         emit_s = np.zeros_like(emit_x)
+        ctx2np = ctx.nparray_from_context_array
         for turn in range(n_turns):
             arc.track(particles)
-            emit_x[turn] = 0.5*(gamma_x*particles.x[0]**2+2*alpha_x_0*particles.x[0]*particles.px[0]+beta_x_0*particles.px[0]**2)
-            emit_y[turn] = 0.5*(gamma_y*particles.y[0]**2+2*alpha_y_0*particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2)
-            emit_s[turn] = 0.5*(particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2)
+            emit_x[turn] = ctx2np(0.5*(gamma_x*particles.x[0]**2
+                 + 2*alpha_x_0*particles.x[0]*particles.px[0]
+                 + beta_x_0*particles.px[0]**2))
+            emit_y[turn] = ctx2np(0.5*(gamma_y*particles.y[0]**2+2*alpha_y_0*particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2))
+            emit_s[turn] = ctx2np(0.5*(particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2))
         turns = np.arange(n_turns)
         fit_x = linregress(turns,np.log(emit_x))
         fit_y = linregress(turns,np.log(emit_y))
@@ -551,11 +558,12 @@ def test_linear_transfer_uncorrelated_damping_equilibrium():
         emit_x = np.zeros(n_turns,dtype=float)
         emit_y = np.zeros_like(emit_x)
         emit_s = np.zeros_like(emit_x)
+        ctx2np = ctx.nparray_from_context_array
         for turn in range(n_turns):
             arc.track(particles)
-            emit_x[turn] = 0.5*np.average((gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px+beta_x_0*particles.px**2))
-            emit_y[turn] = 0.5*np.average((gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py+beta_y_0*particles.py**2))
-            emit_s[turn] = 0.5*np.average((particles.zeta**2/beta_s+beta_s*particles.delta**2))
+            emit_x[turn] = 0.5*np.average(ctx2np(gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px+beta_x_0*particles.px**2))
+            emit_y[turn] = 0.5*np.average(ctx2np(gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py+beta_y_0*particles.py**2))
+            emit_s[turn] = 0.5*np.average(ctx2np(particles.zeta**2/beta_s+beta_s*particles.delta**2))
         turns = np.arange(n_turns)
         equ_emit_x_0 = np.average(emit_x)
         equ_emit_y_0 = np.average(emit_y)

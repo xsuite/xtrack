@@ -1,0 +1,230 @@
+sps_save_optics(filename):macro={
+print,text="printing filename";
+set,format=28.16g;
+option,-echo, -info ;assign, echo=filename;
+
+print,text="! Tunes";
+show,qx0         ;
+show,qy0         ;
+
+print,text="! Main Dipoles";
+show,kMBA         ;
+show,kMBB         ;
+print,text="! Main Quadrupoles";
+show,kQD          ;
+show,kQDA         ;
+show,kQF          ;
+show,kQFA         ;
+show,kqf0;
+show,kqd0;
+show,qh_setvalue;
+show,qv_setvalue;
+show,dkqf_h;
+show,dkqd_h;
+print,text="! Main Sextupoles";
+show,kLSDA        ;
+show,kLSDB        ;
+show,kLSFA        ;
+show,kLSFB        ;
+show,kLSFC        ;
+show,klsda0;
+show,klsdb0;
+show,klsfa0;
+show,klsfb0;
+show,klsfc0;
+show,logical.LSDAQPH;
+show,logical.LSDBQPH;
+show,logical.LSFAQPH;
+show,logical.LSFBQPH;
+show,logical.LSFCQPH;
+show,logical.LSDAQPV;
+show,logical.LSDBQPV;
+show,logical.LSFAQPV;
+show,logical.LSFBQPV;
+show,logical.LSFCQPV;
+
+print,text="! Extraction Sextupoles";
+show,kLSE10602;
+show,kLSE22402;
+show,kLSE40602;
+show,kLSE52402;
+
+assign,echo=terminal ;
+option,-echo;
+set,format=24.12g;
+};
+
+
+sps_match_tunes(qqx,qqy): macro={
+
+match;
+global, q1=qqx;
+global, q2=qqy;
+vary, name=kqf;
+vary, name=kqd;
+jacobian, calls=10, tolerance=1e-25;
+endmatch;
+
+};
+
+
+
+sps_match_fractional_tunes(qqi,qqx,qqy) : macro = {
+ match, sequence=sps;
+        vary, name=kqd,  step=1.e-8;
+        vary, name=kqf,  step=1.e-8;
+        global, q1=qqi+qqx, q2=qqi+qqy;
+        jacobian, calls=10, tolerance=1e-25;
+ endmatch;
+};
+
+sps_define_quad_knobs: macro={
+     kqf :=  kqf0 + (qh_setvalue - qx0) * dkqf_h + (qv_setvalue - qy0) * dkqf_v;
+     kqd :=  kqd0 + (qh_setvalue - qx0) * dkqd_h + (qv_setvalue - qy0) * dkqd_v;
+};
+
+sps_define_sext_knobs: macro={
+        klsda:=klsda0+logical.lsdaqph*qph_setvalue+logical.lsdaqpv*qpv_setvalue;
+        klsdb:=klsdb0+logical.lsdbqph*qph_setvalue+logical.lsdbqpv*qpv_setvalue;
+        klsfa:=klsfa0+logical.lsfaqph*qph_setvalue+logical.lsfaqpv*qpv_setvalue;
+        klsfb:=klsfb0+logical.lsfbqph*qph_setvalue+logical.lsfbqpv*qpv_setvalue;
+        klsfc:=klsfc0+logical.lsfcqph*qph_setvalue+logical.lsfcqpv*qpv_setvalue;
+};
+
+sps_set_tune_weights_q20: macro={
+        dkqd_h =    -0.000116739321 ;
+        dkqf_h =    0.0003911951437 ;
+        dkqd_v =   -0.0003920071709 ;
+        dkqf_v =    0.0001170949059 ;
+        kqf0 = 0.01157957644;
+        kqd0 = -0.01158097147;
+};
+
+sps_set_tune_weights_q26: macro={
+        dkqd_h =    -7.127348119e-05 ;
+        dkqf_h =    0.0003701440969 ;
+        dkqd_v =   -0.0003705446173 ;
+        dkqf_v =    7.147226908e-05 ;
+
+        kqf0 = 0.01443603711;
+        kqd0 = -0.01443946072;
+};
+
+sps_set_tune_weights_q22: macro={
+        dkqd_h =    -0.0001004546891 ;
+        dkqf_h =    0.0003869133922 ;
+        dkqd_v =   -0.0003875753452 ;
+        dkqf_v =    0.0001007449219 ;
+
+        kqf0 =  0.01257544512 ;
+        kqd0 = -0.01257768331 ;
+};
+
+
+sps_set_chroma_weights_q20: macro = {
+        klsda0=-0.040896;
+        klsdb0=-0.063333733;
+        klsfa0=0.04516855;
+        klsfb0=0.026760516;
+        klsfc0=0.04516855;
+
+        logical.LSDAQPH=-0.0091548; !-0.0090643256;
+        logical.LSDBQPH=-0.0141835; !-0.0140406480;
+        logical.LSFAQPH=0.030244; !0.0300341594;
+        logical.LSFBQPH=0.017887; !0.0177853536;
+        logical.LSFCQPH=0.030244; !0.0300341594;
+
+        logical.LSDAQPV=-0.0272506; !-0.0272610246;
+        logical.LSDBQPV=-0.0422078; !-0.0422147313;
+        logical.LSFAQPV=0.01009727; !0.0100859900;
+        logical.LSFBQPV=0.0059637; !0.0059841919;
+        logical.LSFCQPV=0.01009727; !0.0100859900;
+};
+
+
+sps_set_chroma_weights_q26: macro = {
+        klsda0=-0.149628261;
+        klsdb0=-0.145613183;
+        klsfa0=0.063256459;
+        klsfb0=0.121416689;
+        klsfc0=0.063256459;
+
+        logical.lsdaqph=.011283;
+        logical.lsdbqph=-.040346;
+        logical.lsfaqph=.04135;
+        logical.lsfbqph=.079565;
+        logical.lsfcqph=.04135;
+
+        logical.lsdaqpv=-.11422;
+        logical.lsdbqpv=-.08606;
+        logical.lsfaqpv=.0097365;
+        logical.lsfbqpv=.016931;
+        logical.lsfcqpv=.0097365;
+};
+
+
+sps_set_chroma_weights_q22: macro = {
+        klsda0 =         -0.0268449 ;
+        klsdb0 =          -0.118119 ;
+        klsfa0 =          0.0594952 ;
+        klsfb0 =          0.0429914 ;
+        klsfc0 =          0.0594952 ;
+
+        logical.lsdaqph =     -0.01156955797 ;
+        logical.lsdbqph =     -0.01925665038 ;
+        logical.lsfaqph =      0.04232697265 ;
+        logical.lsfbqph =      0.02370989653 ;
+        logical.lsfcqph =      0.04232697265 ;
+
+        logical.lsdaqpv =     -0.03951301487 ;
+        logical.lsdbqpv =      -0.0657585618 ;
+        logical.lsfaqpv =      0.01250092378 ;
+        logical.lsfbqpv =     0.007011866493 ;
+        logical.lsfcqpv =      0.01250092378 ;
+};
+
+
+
+sps_set_chroma_weights_ft: macro = {
+        klsda0=-0.1385465397;
+        klsdb0=-0.165112681;
+        klsfa0=0.0792975892;
+        klsfb0=0.1029341842;
+        klsfc0=0.0792975892;
+
+        logical.lsdaqph=-0.000396;
+        logical.lsdbqph=-0.034375;
+        logical.lsfaqph=0.04363;
+        logical.lsfbqph=0.082312;
+        logical.lsfcqph=0.04363;
+
+        logical.lsdaqpv=-0.12722;
+        logical.lsdbqpv=-0.086332;
+        logical.lsfaqpv=0.0096088;
+        logical.lsfbqpv=0.017338;
+        logical.lsfcqpv=0.0096088;
+};
+
+
+twiss_qpp: macro={
+twiss,deltap=0;
+t_qx0=table(summ,q1);
+t_qy0=table(summ,q2);
+t_qx1=table(summ,dq1);
+t_qy1=table(summ,dq2);
+dpp=1e-4;
+twiss,deltap=dpp;
+t_qx2=(table(summ,dq1)-t_qx1)/dpp;
+t_qy2=(table(summ,dq2)-t_qy1)/dpp;
+dpp=-1e-4;
+twiss,deltap=dpp;
+t_qx2=(table(summ,dq1)-t_qx1)/dpp;
+t_qy2=(table(summ,dq2)-t_qy1)/dpp;
+}
+
+
+
+
+
+
+

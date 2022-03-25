@@ -14,7 +14,6 @@ from .beam_elements import element_classes, Multipole
 from . import beam_elements
 from .beam_elements import Drift
 
-
 log=logging.getLogger(__name__)
 
 def mk_class_namespace(extra_classes):
@@ -200,6 +199,14 @@ class Line:
 
         self._var_management = None
         self._needs_rng = False
+        self.tracker = None
+
+    def build_tracker(self, **kwargs):
+        assert self.tracker is None, 'The line already has as associated tracker'
+        import xtrack as xt # avoid circular import
+        self.tracker = xt.Tracker(line=self, **kwargs)
+        return self.tracker
+
 
     @property
     def elements(self):
@@ -236,8 +243,12 @@ class Line:
                 else:
                     new_elements.append(Drift(length=0))
 
-        return self.__class__(elements=new_elements,
+        new_line = self.__class__(elements=new_elements,
                               element_names=self.element_names)
+        if self.particle_ref is not None:
+            new_line.particle_ref = self.particle_ref.copy()
+
+        return new_line
 
     def cycle(self, index_first_element=None, name_first_element=None):
 
@@ -303,7 +314,8 @@ class Line:
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
 
-    def insert_element(self, index=None, element=None, name=None, at_s=None):
+    def insert_element(self, index=None, element=None, name=None, at_s=None,
+                       s_tol=1e-6):
 
         assert name is not None
         if element is None:
@@ -322,7 +334,7 @@ class Line:
 
             if not _is_thick(element) or np.abs(element.length)==0:
                 i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
-                if np.abs(s_vect_upstream[i_closest] - at_s) < 1e-6:
+                if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                     return self.insert_element(index=i_closest,
                                             element=element, name=name)
 

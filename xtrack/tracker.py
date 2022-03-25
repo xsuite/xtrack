@@ -297,14 +297,31 @@ class Tracker:
         if particle_ref is None and particle_co_guess is None:
             particle_ref = self.particle_ref
 
-        return find_closed_orbit(self, particle_co_guess=particle_co_guess,
+        if self.iscollective:
+            logger.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+
+        return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
                                  co_search_settings=co_search_settings)
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None):
-        return compute_one_turn_matrix_finite_differences(self, particle_on_co,
+        if self.iscollective:
+            logger.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+        return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
 
     def twiss(self, particle_ref=None, r_sigma=0.01,
@@ -632,7 +649,39 @@ class Tracker:
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
 
+            moveback_to_buffer = None
             for ipp, pp in enumerate(self._parts):
+
+                if hasattr(self, '_slice_sets'):
+                    # If pyheadtail object, remove any stored slice sets
+                    # (they are made invalid by the xtrack elements changing zeta)
+                    self._slice_sets = {}
+
+                # Move to CPU if needed
+                if (hasattr(pp, 'needs_cpu') and pp.needs_cpu
+                    and not isinstance(particles._buffer.context, xo.ContextCpu)):
+                    if  moveback_to_buffer is None:
+                        moveback_to_buffer = particles._buffer
+                        moveback_to_offset = particles._offset
+                        particles._move_to(_context=xo.ContextCpu())
+                else:
+                    if moveback_to_buffer is not None:
+                        particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
+                        moveback_to_buffer = None
+                        moveback_to_offset = None
+
+                # Hide lost particles if required by element
+                _need_clean_active_lost_state = False
+                _need_unhide_lost_particles = False
+                if (hasattr(pp, 'needs_hidden_lost_particles')
+                    and pp.needs_hidden_lost_particles):
+                    if particles._num_active_particles < 0:
+                        _need_clean_active_lost_state = True
+                    if not particles.lost_particles_are_hidden:
+                        _need_unhide_lost_particles = True
+                    particles.hide_lost_particles()
+
+                # Track!
                 if (tt == 0 and ele_start > 0): # handle delayed start
                     if ipp < self._element_part[ele_start]:
                         continue
@@ -648,7 +697,19 @@ class Tracker:
                     pp.track(particles)
 
                 if not isinstance(pp, Tracker):
-                    self._zerodrift.track(particles, increment_at_element=True)
+                    if moveback_to_buffer is not None: # The particles object is temporarily on CPU
+                        if not hasattr(self, '_zerodrift_cpu'):
+                            self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
+                        self._zerodrift_cpu.track(particles, increment_at_element=True)
+                    else:
+                        self._zerodrift.track(particles, increment_at_element=True)
+
+                if _need_unhide_lost_particles:
+                    particles.unhide_lost_particles()
+
+                if _need_clean_active_lost_state:
+                    particles._num_active_particle = -1
+                    particles._num_lost_particles = -1
 
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)
