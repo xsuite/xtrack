@@ -1,48 +1,53 @@
+import numpy as np
+
 from cpymad.madx import Madx
+
 import xpart as xp
 import xobjects as xo
 import xtrack as xt
 import xfields as xf
-import numpy as np
+
+###############################
+# Enable pyheadtail interface #
+###############################
+
 xp.enable_pyheadtail_interface()
 
+############
+# Settings #
+############
+
 gpu_device = 0
-
 seq_name = "sps"
-
-
 qx0,qy0 = 20.13, 20.18
 p0c = 26e9
 cavity_name = "actcse.31632"
 cavity_lag = 180
 frequency = 200e6
 rf_voltage = 4e6
-
 use_wakes = True
 n_slices_wakes = 100
 limit_z = 0.7
-
-bunch_intensity = 1* 1e11/3 # Need short bunch to avoid bucket non-linearity
-                        # to compare frozen/quasi-frozen and PIC
-sigma_z = 22.5e-2/3
+bunch_intensity = 1e1
+sigma_z = 22.5e
 nemitt_x=2.5e-6
 nemitt_y=2.5e-6
 n_part=int(1e4)
 num_turns=2
-
 num_spacecharge_interactions = 540
 tol_spacecharge_position = 1e-2
 
 mode = 'frozen' #
 #mode = 'pic'
-########
 
+#######################################################
+# Use cpymad to load the sequence and match the tunes #
+#######################################################
 
 mad = Madx()
 mad.call("./madx_sps/sps.seq")
 mad.call("./madx_sps/lhc_q20.str")
 mad.call("./madx_sps/macro.madx")
-
 mad.beam()
 mad.use(seq_name)
 
@@ -57,10 +62,6 @@ mad.exec(f"sps_match_tunes({qx0},{qy0});")
 
 
 
-####################
-# Choose a context #
-####################
-
 if gpu_device is None:
    context = xo.ContextCpu()
 else:
@@ -72,10 +73,19 @@ line = xt.Line.from_madx_sequence(sequence=mad.sequence[seq_name],
            apply_madx_errors=False)
 
 line.particle_ref = xp.Particles(p0c=p0c,mass0=xp.PROTON_MASS_EV)
+
+################
+# Switch on RF #
+################
+
 line[cavity_name].voltage = rf_voltage
 line[cavity_name].lag = cavity_lag
 line[cavity_name].frequency = frequency
 
+
+####################################################
+# Twiss (just to check that the lattice is stable) #
+####################################################
 
 tw = xt.Tracker(line=line.copy()).twiss()
 
@@ -120,20 +130,16 @@ elif mode == 'pic':
 else:
    raise ValueError(f'Invalid mode: {mode}')
 
+######################
+# Install wakefields #
+######################
 
 if use_wakes:
-   ##############################
-   # # install wakefields #######
    wakefields = np.genfromtxt('wakes/kickerSPSwake_2020_oldMKP.wake')
-   # # adapt to beta function at lattice start
-   X_dip_factor = 54.65/tw['betx'][0]
-   Y_dip_factor = 54.51/tw['bety'][0]
-   X_quad_factor = 54.65/tw['betx'][0]
-   Y_quad_factor = 54.51/tw['bety'][0]
-   wakefields[:,1] *= X_dip_factor
-   wakefields[:,2] *= Y_dip_factor
-   wakefields[:,3] *= X_quad_factor
-   wakefields[:,4] *= Y_quad_factor
+   wakefields[:,1] *= 54.65/tw['betx'][0] # adapt to beta function at lattice start
+   wakefields[:,2] *= 54.51/tw['bety'][0] # adapt to beta function at lattice start
+   wakefields[:,3] *= 54.65/tw['betx'][0] # adapt to beta function at lattice start
+   wakefields[:,4] *= 54.65/tw['betx'][0] # adapt to beta function at lattice start
 
    wakefile = 'wakes/wakefields.wake'
    np.savetxt(wakefile,wakefields,delimiter='\t')
@@ -146,14 +152,11 @@ if use_wakes:
 
    waketable = WakeTable(wakefile, ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y']) #, n_turns_wake=n_turns_wake)
    wakefield = WakeField(slicer_for_wakefields, waketable)
+
+   # Insert wakefield element in xtrack line
    wakefield.needs_cpu = True
    wakefield.needs_hidden_lost_particles = True
-   #line.append_element(element=wakefield,name="wakefield")
    line.insert_element(element=wakefield,name="wakefield", at_s=0)
-
-   ###############################
-
-
 
 #################
 # Build Tracker #
@@ -161,26 +164,41 @@ if use_wakes:
 
 tracker = xt.Tracker(_context=context,
                    line=line)
-tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
+
 
 ######################
 # Generate particles #
 ######################
 
 # (we choose to match the distribution without accounting for spacecharge)
+tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
+
 particles = xp.generate_matched_gaussian_bunch(_context=context,
         num_particles=n_part, total_intensity_particles=bunch_intensity,
         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
         particle_ref=tracker.particle_ref, tracker=tracker_sc_off)
 particles.circumference = line.get_length()
 
+###########################################################
+# We use a phase monitor to measure the tune turn by turn #
+###########################################################
+
 phasem = xp.PhaseMonitor(tracker,
                  num_particles=n_part, twiss=tracker_sc_off.twiss())
+
+
+#########
+# Track #
+#########
 
 for turn in range(num_turns):
    phasem.measure(particles)
    #import pdb; pdb.set_trace()
    tracker.track(particles)
+
+##################
+# Plot footprint #
+##################
 
 import matplotlib.pyplot as plt
 plt.close('all')
