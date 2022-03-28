@@ -38,7 +38,7 @@ tracker = xt.Tracker(line=line)
 ################################
 
 # we choose the `mean` mode in which the mean power loss is applied without
-# stochastic fluctuations (quatum excitation).
+# stochastic fluctuations (quantum excitation).
 tracker.configure_radiation(mode='mean')
 
 #########
@@ -56,39 +56,66 @@ tw = tracker.twiss(eneloss_and_damping=True)
 #  - tw['damping_constants_s'] provides the damping constants in x, y and zeta.
 #  - tw['partition_numbers'] provided the corresponding damping partion numbers.
 
+############################################
+# Generate particles and track (mean mode) #
+############################################
+
+# Build three particles (with action in x,y and zeta respectively)
 part_co = tw['particle_on_co']
 particles = xp.build_particles(tracker=tracker,
     x_norm=[500., 0, 0], y_norm=[0, 0.0001, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     scale_with_transverse_norm_emitt=(1e-9, 1e-9))
 
+# Save initial state
+particles_0 = particles.copy()
+
+# Track
+num_turns = 5000
+tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+
+# Save monitor
+mon_mean_mode = tracker.record_last_track
+
+############################
+# Switch to `quantum` mode #
+############################
+
+# We switch to the `quantum` mode in which the power loss from radiation is
+# applied including stochastic fluctuations (quantum excitation).
+# IMPORTANT: Note that this mode should not be used to compute twiss parameters
+#            nor to match particle distributions. For this reason we switch
+#            to quantum mode only after having generated the particles.
+
+
 tracker.configure_radiation(mode='quantum')
 
-print('Track 3 particles ...')
+# We reuse the initial state saved before
+particles = particles_0.copy()
+
 num_turns = 5000
-t1 = time.time()
 tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
-t2 = time.time()
-print(f'Track time: {(t2-t1)/num_turns:.2e} s/turn')
-mon = tracker.record_last_track
+mon_quantum_mode = tracker.record_last_track
 
 import matplotlib.pyplot as plt
 plt.close('all')
-fig = plt.figure()
-ax1 = fig.add_subplot(311)
-ax2 = fig.add_subplot(312, sharex=ax1)
-ax3 = fig.add_subplot(313, sharex=ax1)
+figs = []
+for ii, mon in enumerate([mon_mean_mode, mon_quantum_mode]):
+    fig = plt.figure(ii + 1)
+    ax1 = fig.add_subplot(311)
+    ax2 = fig.add_subplot(312, sharex=ax1)
+    ax3 = fig.add_subplot(313, sharex=ax1)
 
-ax1.plot(mon.x[0, :].T)
-ax2.plot(mon.y[1, :].T)
-ax3.plot(mon.delta[2, :].T)
-i_turn = np.arange(num_turns)
-ax1.plot(part_co.x[0]
-    +(mon.x[0,0]-part_co.x[0])*np.exp(-i_turn*tw['damping_constants_turns'][0]))
-ax2.plot(part_co.y[0]
-    +(mon.y[1,0]-part_co.y[0])*np.exp(-i_turn*tw['damping_constants_turns'][1]))
-ax3.plot(part_co.delta[0]
-    +(mon.delta[2,0]-part_co.delta[0])*np.exp(-i_turn*tw['damping_constants_turns'][2]))
+    ax1.plot(mon.x[0, :].T)
+    ax2.plot(mon.y[1, :].T)
+    ax3.plot(mon.delta[2, :].T)
+    i_turn = np.arange(num_turns)
+    ax1.plot(part_co.x[0]
+        +(mon.x[0,0]-part_co.x[0])*np.exp(-i_turn*tw['damping_constants_turns'][0]))
+    ax2.plot(part_co.y[0]
+        +(mon.y[1,0]-part_co.y[0])*np.exp(-i_turn*tw['damping_constants_turns'][1]))
+    ax3.plot(part_co.delta[0]
+        +(mon.delta[2,0]-part_co.delta[0])*np.exp(-i_turn*tw['damping_constants_turns'][2]))
 
 plt.show()
 
