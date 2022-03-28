@@ -601,7 +601,7 @@ def test_cavity():
         assert np.allclose(part.rpp, 1/(1+delta), atol=1e-14, rtol=0)
         assert np.allclose(part.rvv, beta/part.beta0, atol=1e-14, rtol=0)
         assert np.allclose(tau, tau0, atol=1e-14, rtol=0)
-        assert np.allclose((part.psigma - part0.psigma) * part0.beta0 * part0.p0c, 30, atol=1e-9, rtol=0)
+        assert np.allclose((part.ptau - part0.ptau) * part0.p0c, 30, atol=1e-9, rtol=0)
 
 
 

@@ -196,7 +196,7 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
             particles.zeta[mask_part] = part_refine.zeta[indx_sorted]
             particles.s[mask_part] = part_refine.s[indx_sorted]
             particles.delta[mask_part] = part_refine.delta[indx_sorted]
-            particles.psigma[mask_part] = part_refine.psigma[indx_sorted]
+            particles.ptau[mask_part] = part_refine.ptau[indx_sorted]
             particles.rvv[mask_part] = part_refine.rvv[indx_sorted]
             particles.rpp[mask_part] = part_refine.rpp[indx_sorted]
             particles.p0c[mask_part] = part_refine.p0c[indx_sorted]

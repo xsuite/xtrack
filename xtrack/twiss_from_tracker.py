@@ -320,7 +320,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     py_co = tracker.record_last_track.py[4, :].copy()
     zeta_co = tracker.record_last_track.zeta[4, :].copy()
     delta_co = tracker.record_last_track.delta[4, :].copy()
-    psigma_co = tracker.record_last_track.psigma[4, :].copy()
+    ptau_co = tracker.record_last_track.ptau[4, :].copy()
 
     x_disp_minus = tracker.record_last_track.x[5, :].copy()
     y_disp_minus = tracker.record_last_track.y[5, :].copy()
@@ -431,9 +431,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     T_rev = circumference/clight/beta0
 
     if eneloss_and_damping:
-        diff_psigma = np.diff(psigma_co)
-        energy0 = part_on_co.mass0 * part_on_co._xobject.gamma0[0]
-        eloss_turn = -(sum(diff_psigma[diff_psigma<0]) * energy0)
+        diff_ptau = np.diff(ptau_co)
+        eloss_turn = -sum(diff_ptau[diff_ptau<0]) * part_on_co._xobject.p0c[0]
 
         # Get eigenvalues
         w0, v0 = np.linalg.eig(RR)
@@ -444,6 +443,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         eigenvals = np.array([w0[ii*2] for ii in indx])
 
         # Damping constants and partition numbers
+        energy0 = part_on_co.mass0 * part_on_co._xobject.gamma0[0]
         damping_constants_turns = -np.log(np.abs(eigenvals))
         damping_constants_s = damping_constants_turns / T_rev
         partition_numbers = (
@@ -465,7 +465,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'py': py_co,
         'zeta': zeta_co,
         'delta': delta_co,
-        'psigma': psigma_co,
+        'ptau': ptau_co,
         'betx': betx,
         'bety': bety,
         'alfx': alfx,

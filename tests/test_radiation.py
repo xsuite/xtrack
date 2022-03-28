@@ -71,7 +71,7 @@ def test_radiation():
               dct_ave['beta0'][0]**4*dct_ave['gamma0'][0]**4)/(3*rho**2) # W
 
         Delta_E_eV = -Ps*(L_bend/clight) / qe
-        Delta_trk = (dct_ave['psigma']-dct_ave_before['psigma'])*dct_ave['p0c']*dct_ave['beta0']
+        Delta_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']
 
         assert np.allclose(Delta_E_eV, Delta_trk, atol=0, rtol=1e-6)
 
