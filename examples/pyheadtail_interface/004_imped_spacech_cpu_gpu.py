@@ -37,8 +37,8 @@ num_turns=2
 num_spacecharge_interactions = 540
 tol_spacecharge_position = 1e-2
 
-mode = 'frozen' #
-#mode = 'pic'
+# mode = 'frozen' 
+mode = 'pic'
 
 #######################################################
 # Use cpymad to load the sequence and match the tunes #
