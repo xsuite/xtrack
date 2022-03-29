@@ -37,7 +37,7 @@ num_turns=2
 num_spacecharge_interactions = 540
 tol_spacecharge_position = 1e-2
 
-# mode = 'frozen' 
+# mode = 'frozen'
 mode = 'pic'
 
 #######################################################
@@ -60,18 +60,23 @@ mad.input("""select, flag=makethin, slice=1, thick=false;
 mad.use(seq_name)
 mad.exec(f"sps_match_tunes({qx0},{qy0});")
 
-
+##################
+# Switch context #
+##################
 
 if gpu_device is None:
    context = xo.ContextCpu()
 else:
    context = xo.ContextCupy(device=gpu_device)
 
+#################################
+# Build line from MAD-X lattice #
+#################################
 
 line = xt.Line.from_madx_sequence(sequence=mad.sequence[seq_name],
            deferred_expressions=True, install_apertures=True,
            apply_madx_errors=False)
-
+# Define reference particle
 line.particle_ref = xp.Particles(p0c=p0c,mass0=xp.PROTON_MASS_EV)
 
 ################
@@ -82,11 +87,13 @@ line[cavity_name].voltage = rf_voltage
 line[cavity_name].lag = cavity_lag
 line[cavity_name].frequency = frequency
 
+############################################
+# Twiss (check that the lattice is stable) #
+############################################
 
-####################################################
-# Twiss (just to check that the lattice is stable) #
-####################################################
-
+# We make a copy of the line so that we can still insert elements in the
+# original one (would be prevented by the existance of a tracker linked to the
+# line).
 tw = xt.Tracker(line=line.copy()).twiss()
 
 #############################################
@@ -135,36 +142,41 @@ else:
 ######################
 
 if use_wakes:
-   wakefields = np.genfromtxt('wakes/kickerSPSwake_2020_oldMKP.wake')
-   wakefields[:,1] *= 54.65/tw['betx'][0] # adapt to beta function at lattice start
-   wakefields[:,2] *= 54.51/tw['bety'][0] # adapt to beta function at lattice start
-   wakefields[:,3] *= 54.65/tw['betx'][0] # adapt to beta function at lattice start
-   wakefields[:,4] *= 54.65/tw['betx'][0] # adapt to beta function at lattice start
 
+   # We rescale the waketable to take into account for the difference between
+   # the average beta functions (for which the table is calculated) and the beta
+   # functions at the location in the lattice at which the wake element is
+   # installed.
+   wakefields = np.genfromtxt('wakes/kickerSPSwake_2020_oldMKP.wake')
+   wakefields[:,1] *= 54.65/tw['betx'][0]
+   wakefields[:,2] *= 54.51/tw['bety'][0]
+   wakefields[:,3] *= 54.65/tw['betx'][0]
+   wakefields[:,4] *= 54.65/tw['betx'][0]
    wakefile = 'wakes/wakefields.wake'
    np.savetxt(wakefile,wakefields,delimiter='\t')
 
+   # Build PyHEADTAIL wakefield element
    from PyHEADTAIL.particles.slicing import UniformBinSlicer
    from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
-
-   n_slices_wakes = 500 # 500
+   n_slices_wakes = 500
    slicer_for_wakefields = UniformBinSlicer(n_slices_wakes, z_cuts=(-limit_z, limit_z))
-
-   waketable = WakeTable(wakefile, ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y']) #, n_turns_wake=n_turns_wake)
+   waketable = WakeTable(wakefile, ['time', 'dipole_x', 'dipole_y',
+                  'quadrupole_x', 'quadrupole_y'])
    wakefield = WakeField(slicer_for_wakefields, waketable)
 
-   # Insert wakefield element in xtrack line
+   # Specity that the wakefield element needs to run on CPU and that lost
+   # particles need to be hidden for this element (required by PyHEADTAIL)
    wakefield.needs_cpu = True
    wakefield.needs_hidden_lost_particles = True
+
+   # Insert element in the line
    line.insert_element(element=wakefield,name="wakefield", at_s=0)
 
 #################
 # Build Tracker #
 #################
 
-tracker = xt.Tracker(_context=context,
-                   line=line)
-
+tracker = xt.Tracker(_context=context, line=line)
 
 ######################
 # Generate particles #
@@ -177,7 +189,7 @@ particles = xp.generate_matched_gaussian_bunch(_context=context,
         num_particles=n_part, total_intensity_particles=bunch_intensity,
         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
         particle_ref=tracker.particle_ref, tracker=tracker_sc_off)
-particles.circumference = line.get_length()
+particles.circumference = line.get_length() # Needed by pyheadtail
 
 ###########################################################
 # We use a phase monitor to measure the tune turn by turn #
@@ -185,7 +197,6 @@ particles.circumference = line.get_length()
 
 phasem = xp.PhaseMonitor(tracker,
                  num_particles=n_part, twiss=tracker_sc_off.twiss())
-
 
 #########
 # Track #
