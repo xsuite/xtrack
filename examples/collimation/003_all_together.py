@@ -93,7 +93,7 @@ line = xt.Line(elements=[
 # Build tracker #
 #################
 
-tracker = xt.Tracker(line=line)
+tracker = xt.Tracker(line=line, global_xy_limit=1e3)
 
 ##########################
 # Build particles object #
