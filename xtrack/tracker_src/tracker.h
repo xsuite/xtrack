@@ -19,7 +19,7 @@ void global_aperture_check(LocalParticle* part0){
 
 	// I assume that if I am in the function is because
     	if (!is_alive){
-           LocalParticle_set_state(part, 0);
+           LocalParticle_set_state(part, -1);
 	}
     //end_per_particle_block
 
