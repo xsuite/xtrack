@@ -41,7 +41,8 @@ class LossLocationRefinement:
         self._trk_gen = trk_gen
 
         if backtracker is None:
-            backtracker = self.tracker.get_backtracker(_context=self._context)
+            backtracker = self.tracker.get_backtracker(_context=self._context,
+                                                       global_xy_limit=None)
         self.backtracker = backtracker
 
         self.i_apertures, self.apertures = find_apertures(self.tracker)
