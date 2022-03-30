@@ -34,6 +34,8 @@ class BeamInteraction:
             new_particles = xp.Particles(_context=particles._buffer.context,
                     p0c = particles.p0c[0], # TODO: Should we check that 
                                             #       they are all the same?
+                    mass0 = particles.mass0,
+                    q0 = particles.q0,
                     s = products['s'],
                     x = products['x'],
                     px = products['px'],
