@@ -1,23 +1,11 @@
 #ifndef XTRACK_FIRSTORDERTAYLORMAP_H
 #define XTRACK_FIRSTORDERTAYLORMAP_H
 
-#include <stdio.h>
-
 /*gpufun*/
 void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalParticle* part0){
 
     int64_t const radiation_flag = FirstOrderTaylorMapData_get_radiation_flag(el);
     double const length = FirstOrderTaylorMapData_get_length(el); // m
-
-    //for(unsigned int i=0;i<6;i++){
-    //     printf("%i:%E\n",i,FirstOrderTaylorMapData_get_m0(el,i));
-    //}
-
-    //for(unsigned int i=0;i<6;i++){
-    //    for(unsigned int j=0;j<6;j++){
-    //        printf("%i,%i:%E\n",i,j,FirstOrderTaylorMapData_get_m1(el,i*6+j));
-    //    }
-    //}
 
     //start_per_particle_block (part0->part)
 
