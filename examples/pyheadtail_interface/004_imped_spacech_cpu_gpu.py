@@ -96,9 +96,11 @@ line[cavity_name].frequency = frequency
 # line).
 tw = xt.Tracker(line=line.copy()).twiss()
 
-#############################################
-# Install spacecharge interactions (frozen) #
-#############################################
+#####################################
+# Install spacecharge interactions) #
+#####################################
+
+# Install frozen space-charge lenses
 
 lprofile = xf.LongitudinalProfileQGaussian(
        number_of_particles=bunch_intensity,
@@ -114,11 +116,7 @@ xf.install_spacecharge_frozen(line=line,
                   num_spacecharge_interactions=num_spacecharge_interactions,
                   tol_spacecharge_position=tol_spacecharge_position)
 
-
-#################################
-# Switch to PIC or quasi-frozen #
-#################################
-
+# Switch to PIC or quasi-frozen
 if mode == 'frozen':
    pass # Already configured in line
 elif mode == 'quasi-frozen':
