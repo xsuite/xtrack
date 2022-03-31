@@ -174,7 +174,9 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                     py=particles.py[mask_part],
                     zeta=particles.zeta[mask_part],
                     delta=particles.delta[mask_part],
-                    s=particles.s[mask_part])
+                    s=particles.s[mask_part],
+                    chi=particles.chi[mask_part],
+                    charge_ratio=particles.charge_ratio[mask_part])
     n_backtrack = i_aper_1 - (i_start_thin_0+1)
     num_elements = len(backtracker.line.elements)
     i_start_backtrack = num_elements-i_aper_1
