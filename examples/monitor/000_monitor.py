@@ -4,13 +4,17 @@ import numpy as np
 
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
+
+#context = xo.ContextPyopencl()
+context = xo.ContextCpu()
 
 with open('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json') as f:
     dct = json.load(f)
 line = xt.Line.from_dict(dct['line'])
 line.particle_ref = xp.Particles.from_dict(dct['particle'])
 
-tracker = line.build_tracker()
+tracker = line.build_tracker(_context=context)
 
 num_particles = 50
 particles0 = xp.generate_matched_gaussian_bunch(tracker=tracker,
@@ -35,8 +39,9 @@ mon = tracker.record_last_track
 ######################################
 
 # Build a monitor
-monitor = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
-                              num_particles=num_particles)
+monitor = xt.ParticlesMonitor(_context=context,
+                            start_at_turn=5, stop_at_turn=15,
+                            num_particles=num_particles)
 
 # (particles.at_turn must be 0 at the beginning)
 particles = particles0.copy()
@@ -48,10 +53,11 @@ tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=monitor)
 #######################
 
 # Repeated frames
-monitor_multiframe = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
-                                  n_repetitions=3,
-                                  repetition_period=100,
-                                  num_particles=num_particles)
+monitor_multiframe = xt.ParticlesMonitor(_context=context,
+                                    start_at_turn=5, stop_at_turn=15,
+                                    n_repetitions=3,
+                                    repetition_period=100,
+                                    num_particles=num_particles)
 
 
 # (particles.at_turn must be 0 at the beginning)
