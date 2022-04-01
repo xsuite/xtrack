@@ -42,10 +42,10 @@ particles = particles0.copy()
 num_turns = 500
 tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=monitor)
 
-#     #####################################################
-#     # Save 10 turns starting from turn 5 in ip5 and ip8 #
-#     #####################################################
-#     
+#####################################################
+# Save 10 turns starting from turn 5 in ip5 and ip8 #
+#####################################################
+
 #     # Build a monitor
 #     monitor_ip5 = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
 #                                       num_particles=num_particles)
