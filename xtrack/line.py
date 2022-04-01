@@ -317,6 +317,10 @@ class Line:
     def insert_element(self, index=None, element=None, name=None, at_s=None,
                        s_tol=1e-6):
 
+        if isinstance(index, str):
+            assert index in self.element_names
+            index = self.element_names.index(index)
+
         assert name is not None
         if element is None:
             assert name in self.element_names
