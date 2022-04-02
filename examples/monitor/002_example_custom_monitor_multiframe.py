@@ -27,9 +27,9 @@ monitor = xt.ParticlesMonitor(_context=context,
                               repetition_period=20, # <--
                               num_particles=num_particles)
 tracker.track(particles, num_turns=num_turns,
-              turn_by_turn_monitor=monitor
-             )
-# tracker.record_last_track` contains the measured data. For all particles
+              turn_by_turn_monitor=monitor)
+
+# tracker.record_last_track contains the measured data. For all particles
 # variables the first index provides the frame index.
 # For example, tracker.record_last_track.x[0, :, :] contains the recorded
 # x position for the turns 5 to 10, tracker.record_last_track.x[1, :, :]
