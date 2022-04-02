@@ -25,11 +25,11 @@ monitor = xt.ParticlesMonitor(_context=context,
                               start_at_turn=5, stop_at_turn=15,
                               num_particles=num_particles)
 tracker.track(particles, num_turns=num_turns,
-              turn_by_turn_monitor=monitor # enables all particles for all turns
+              turn_by_turn_monitor=monitor
              )
 # tracker.record_last_track contains the measured data. For example,
-#  tracker.record_last_track.x contains the x coordinate for all particles
-#  and the selected turns, e.g. tracker.record_last_track.x[3, 5] gives the
-#  x coordinates for the particle having particle_id = 3 and for the fifth
-#  recorded turn. The turn indeces that are recorded can be inspected in
-#  tracker.record_last_track.at_turn
+# tracker.record_last_track.x contains the x coordinate for all particles
+# and the selected turns, e.g. tracker.record_last_track.x[3, 5] gives the
+# x coordinates for the particle having particle_id = 3 and for the fifth
+# recorded turn. The turn indeces that are recorded can be inspected in
+# tracker.record_last_track.at_turn

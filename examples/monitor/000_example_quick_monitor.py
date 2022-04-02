@@ -25,6 +25,6 @@ tracker.track(particles, num_turns=num_turns,
               turn_by_turn_monitor=True # enables all particles for all turns
              )
 # tracker.record_last_track contains the measured data. For example,
-#  `tracker.record_last_track.x` contains the x coordinate for all particles
-#  and all turns, e.g. `tracker.record_last_track.x[3, 5]`` for the particle
-#  having particle_id = 3 and for the turn number 5.
+# tracker.record_last_track.x contains the x coordinate for all particles
+# and all turns, e.g. tracker.record_last_track.x[3, 5] for the particle
+# having particle_id = 3 and for the turn number 5.

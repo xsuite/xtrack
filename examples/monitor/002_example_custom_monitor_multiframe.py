@@ -20,16 +20,19 @@ particles = xp.generate_matched_gaussian_bunch(tracker=tracker,
                                                nemitt_y=2.5e-6,
                                                sigma_z=9e-2)
 
-num_turns = 30
+num_turns = 100
 monitor = xt.ParticlesMonitor(_context=context,
-                                    start_at_turn=5, stop_at_turn=15,
-                                    num_particles=num_particles)
+                              start_at_turn=5, stop_at_turn=10,
+                              n_repetitions=3,      # <--
+                              repetition_period=20, # <--
+                              num_particles=num_particles)
 tracker.track(particles, num_turns=num_turns,
-              turn_by_turn_monitor=monitor # enables all particles for all turns
+              turn_by_turn_monitor=monitor
              )
-# `tracker.record_last_track` contains the measured data. For example,
-#  `tracker.record_last_track.x` contains the x coordinate for all particles
-#  and the selected turns, i.e. `tracker.record_last_track.x[3, 5]` gives the
-#  x coordinates for the particle having particle_id = 3 and for the fifth
-#  recorded turn. The turn indeces that are recorded can be inspected in
-#  `tracker.record_last_track.at_turn`.
+# tracker.record_last_track` contains the measured data. For all particles
+# variables the first index provides the frame index.
+# For example, tracker.record_last_track.x[0, :, :] contains the recorded
+# x position for the turns 5 to 10, tracker.record_last_track.x[1, :, :]
+# contains the recorded x position for the turns 25 to 30, etc.
+# The turn indeces that are recorded can be inspected in
+# tracker.record_last_track.at_turn.
