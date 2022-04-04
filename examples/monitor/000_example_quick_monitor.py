@@ -22,7 +22,7 @@ particles = xp.generate_matched_gaussian_bunch(tracker=tracker,
 
 num_turns = 30
 tracker.track(particles, num_turns=num_turns,
-              turn_by_turn_monitor=True # enables all particles for all turns
+              turn_by_turn_monitor=True # <--
              )
 # tracker.record_last_track contains the measured data. For example,
 # tracker.record_last_track.x contains the x coordinate for all particles
