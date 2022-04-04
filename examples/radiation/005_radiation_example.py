@@ -50,7 +50,7 @@ tracker.configure_radiation(mode='mean')
 tracker.matrix_stability_tol = 1e-2
 tw = tracker.twiss(eneloss_and_damping=True)
 
-# By setting `eneloss_and_damping=True` we cen get additional information 
+# By setting `eneloss_and_damping=True` we can get additional information
 # from the twiss for example:
 #  - tw['eneloss_turn'] provides the energy loss per turn (in eV).
 #  - tw['damping_constants_s'] provides the damping constants in x, y and zeta.
