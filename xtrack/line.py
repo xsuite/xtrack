@@ -139,7 +139,8 @@ class Line:
         import xdeps as xd
 
         # Extract globals values from madx
-        _var_values=defaultdict(lambda :0)
+        _var_values = defaultdict(lambda :0)
+        _var_values.default_factory = None
 
         _ref_manager = manager=xd.Manager()
         _vref=manager.ref(_var_values,'vars')

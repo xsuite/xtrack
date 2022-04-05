@@ -30,6 +30,7 @@ def madx_sequence_to_xtrack_line(
 
         # Extract globals values from madx
         _var_values = line._var_management['data']['var_values']
+        _var_values.default_factory = lambda: 0
         for name,par in mad.globals.cmdpar.items():
             _var_values[name]=par.value
 
@@ -428,6 +429,10 @@ def madx_sequence_to_xtrack_line(
 
     if hasattr(seq, "length") and seq.length > old_pp:
         line.append_element(myDrift(length=(seq.length - old_pp)), f"drift_{i_drift}")
+
+    import pdb; pdb.set_trace()
+    if deferred_expressions:
+        line._var_management['data']['var_values'].default_factory = None
 
     return line
 
