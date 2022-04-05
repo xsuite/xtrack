@@ -70,6 +70,12 @@ print(tracker.vars['acbxh3.r1']._expr)
 #          +(3.769003853335184e-05*vars['on_ccpr1h']))
 #           +(1.197587664190056e-05*vars['on_ccmr1h']))
 
+# The list of variables cotrolling the selected variable can be found by:
+print(tracker.vars['acbxh3.r1']._expr._get_dependencies())
+# ---> returns {vars['on_ccpr1h'], vars['on_x1hs'], vars['on_x1hl'],
+#               vars['on_ccmr1h'], vars['on_sep1h'], vars['on_o1h'],
+#               vars['on_a1h']}
+
 # It is possible to get the list of all entities controlled by a given
 # variable by using the method `_find_dependant_targets`:
 tracker.vars['on_x1']._find_dependant_targets()
