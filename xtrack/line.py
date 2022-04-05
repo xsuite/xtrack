@@ -81,7 +81,7 @@ class Line:
             for kk in self._var_management['data'].keys():
                 self._var_management['data'][kk].update(
                                             dct['_var_management_data'][kk])
-            manager.reload(dct['_var_manager'])
+            manager.load(dct['_var_manager'])
 
         return self
 

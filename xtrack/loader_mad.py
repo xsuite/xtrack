@@ -430,7 +430,6 @@ def madx_sequence_to_xtrack_line(
     if hasattr(seq, "length") and seq.length > old_pp:
         line.append_element(myDrift(length=(seq.length - old_pp)), f"drift_{i_drift}")
 
-    import pdb; pdb.set_trace()
     if deferred_expressions:
         line._var_management['data']['var_values'].default_factory = None
 
