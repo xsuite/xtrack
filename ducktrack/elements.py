@@ -375,19 +375,19 @@ class Elens(Element):
 class Wire(Element):
     """Current-carrying wire"""
 
-    _description = [("wire_L_phy"  ,"m"," Physical length of the wire ",0),
-                    ("wire_L_int"  ,"m"," Integration length (embedding drift)",0),
-                    ("wire_current","A"," Current in the wire",0),
-                    ("wire_xma"    ,"m"," x position of the wire from reference trajectory",0),
-                    ("wire_yma"    ,"m"," y position of the wire from reference trajectory",0)
+    _description = [("L_phy"  ,"m"," Physical length of the wire ",0),
+                    ("L_int"  ,"m"," Integration length (embedding drift)",0),
+                    ("current","A"," Current in the wire",0),
+                    ("xma"    ,"m"," x position of the wire from reference trajectory",0),
+                    ("yma"    ,"m"," y position of the wire from reference trajectory",0)
                     ]
 
     def track(self, p):
         # Data from particle 
         x      = p.x
         y      = p.y
-        D_x    = x-self.wire_xma
-        D_y    = y-self.wire_yma
+        D_x    = x-self.xma
+        D_y    = y-self.yma
         R2     = D_x*D_x + D_y*D_y
 
 
@@ -400,9 +400,9 @@ class Wire(Element):
 
 
         # Computing the kick
-        L1   = self.wire_L_int + self.wire_L_phy
-        L2   = self.wire_L_int - self.wire_L_phy
-        N    = mu_0*self.wire_current*q0/(4*np.pi*p0c/clight)
+        L1   = self.L_int + self.L_phy
+        L2   = self.L_int - self.L_phy
+        N    = mu_0*self.current*q0/(4*np.pi*p0c/clight)
 
         dpx  =  -N*D_x*(np.sqrt(L1*L1 + 4.0*R2) - np.sqrt(L2*L2 + 4.0*R2))/R2
         dpy  =  -N*D_y*(np.sqrt(L1*L1 + 4.0*R2) - np.sqrt(L2*L2 + 4.0*R2))/R2

@@ -146,37 +146,37 @@ Elens.XoStruct.extra_sources = [
 class Wire(BeamElement):
 
     _xofields={
-               'wire_L_phy'  : xo.Float64,
-               'wire_L_int'  : xo.Float64,
-               'wire_current': xo.Float64,
-               'wire_xma'    : xo.Float64,
-               'wire_yma'    : xo.Float64,
+               'L_phy'  : xo.Float64,
+               'L_int'  : xo.Float64,
+               'current': xo.Float64,
+               'xma'    : xo.Float64,
+               'yma'    : xo.Float64,
               }
 
-    def __init__(self,  wire_L_phy   = 0,
-                        wire_L_int   = 0,
-                        wire_current = 0,
-                        wire_xma     = 0,
-                        wire_yma     = 0,
+    def __init__(self,  L_phy   = 0,
+                        L_int   = 0,
+                        current = 0,
+                        xma     = 0,
+                        yma     = 0,
                         _xobject = None,
                         **kwargs):
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
         else:
             super().__init__(**kwargs)
-            self.wire_L_phy   = wire_L_phy
-            self.wire_L_int   = wire_L_int
-            self.wire_current = wire_current
-            self.wire_xma     = wire_xma
-            self.wire_yma     = wire_yma
+            self.L_phy   = L_phy
+            self.L_int   = L_int
+            self.current = current
+            self.xma     = xma
+            self.yma     = yma
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              wire_L_phy   = self.wire_L_phy,
-                              wire_L_int   = self.wire_L_int,
-                              wire_current = -self.wire_current,
-                              wire_xma     = self.wire_xma,
-                              wire_yma     = self.wire_yma,
+                              L_phy   = self.L_phy,
+                              L_int   = self.L_int,
+                              current = -self.current,
+                              xma     = self.xma,
+                              yma     = self.yma,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Wire.XoStruct.extra_sources = [
