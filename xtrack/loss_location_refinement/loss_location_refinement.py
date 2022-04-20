@@ -24,8 +24,10 @@ class LossLocationRefinement:
                                         set(_default_allowed_backtrack_types)))
 
         if tracker.iscollective:
+            self._original_tracker = tracker
             self.tracker = tracker._supertracker
         else:
+            self._original_tracker = tracker
             self.tracker = tracker
 
         self._context = self.tracker._line_frozen._buffer.context
@@ -113,6 +115,7 @@ class LossLocationRefinement:
                                       self.n_theta, self.r_max, self.dr, self.ds,
                                       _trk_gen=self._trk_gen)
 
+                interp_tracker._original_tracker = self._original_tracker
                 part_refine = refine_loss_location_single_aperture(
                         particles,i_aper_1, i_start_thin_0,
                         self.backtracker, interp_tracker, inplace=True,
@@ -189,13 +192,16 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
     n_backtrack = i_aper_1 - (i_start_thin_0+1)
     num_elements = len(backtracker.line.element_names)
     i_start_backtrack = num_elements-i_aper_1
-    for nn in backtracker.line.element_names[
-            i_start_backtrack:i_start_backtrack+n_backtrack]:
-        if not isinstance(backtracker.line.element_dict[nn],
-                          tuple(allowed_backtrack_types)):
+
+    # Check that we are not backtracking through element types that are not allowed
+    for nn in interp_tracker._original_tracker.line.element_names[
+                                             i_aper_1 - n_backtrack : i_aper_1]:
+        ee = interp_tracker._original_tracker.line.element_dict[nn]
+        if not isinstance(ee, tuple(allowed_backtrack_types)):
             raise TypeError(
                 f'Cannot backtrack through element {nn} of type '
-                f'{backtracker.line.element_dict[nn].__class__.__name__}')
+                f'{ee.__class__.__name__}')
+
     backtracker.track(part_refine, ele_start=i_start_backtrack,
                       num_elements = n_backtrack)
     # Just for check
