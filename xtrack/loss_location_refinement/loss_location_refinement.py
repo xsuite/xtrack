@@ -11,11 +11,17 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
+_default_allowed_backtrack_types = [Drift, SRotation, XYShift]
+
 class LossLocationRefinement:
 
     def __init__(self, tracker, backtracker=None,
                  n_theta=None, r_max=None, dr=None, ds=None,
-                 save_refine_trackers=False):
+                 save_refine_trackers=False,
+                 allowed_backtrack_types=()):
+
+        allowed_backtrack_types = tuple(set(allowed_backtrack_types).union(
+                                        set(_default_allowed_backtrack_types)))
 
         if tracker.iscollective:
             self.tracker = tracker._supertracker
@@ -55,6 +61,7 @@ class LossLocationRefinement:
         self.r_max = r_max
         self.dr = dr
         self.ds = ds
+        self.allowed_backtrack_types = allowed_backtrack_types
 
     def refine_loss_location(self, particles, i_apertures=None):
 
@@ -107,8 +114,9 @@ class LossLocationRefinement:
                                       _trk_gen=self._trk_gen)
 
                 part_refine = refine_loss_location_single_aperture(
-                            particles,i_aper_1, i_start_thin_0,
-                            self.backtracker, interp_tracker, inplace=True)
+                        particles,i_aper_1, i_start_thin_0,
+                        self.backtracker, interp_tracker, inplace=True,
+                        allowed_backtrack_types=self.allowed_backtrack_types)
 
                 if self.save_refine_trackers:
                     interp_tracker.i_start_thin_0 = i_start_thin_0
@@ -159,8 +167,9 @@ def find_apertures(tracker):
     return i_apertures, apertures
 
 def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
-                                         backtracker, interp_tracker,
-                                         inplace=True):
+                    backtracker, interp_tracker,
+                    inplace=True,
+                    allowed_backtrack_types=_default_allowed_backtrack_types):
 
     mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
 
@@ -178,8 +187,15 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                     chi=particles.chi[mask_part],
                     charge_ratio=particles.charge_ratio[mask_part])
     n_backtrack = i_aper_1 - (i_start_thin_0+1)
-    num_elements = len(backtracker.line.elements)
+    num_elements = len(backtracker.line.element_names)
     i_start_backtrack = num_elements-i_aper_1
+    for nn in backtracker.line.element_names[
+            i_start_backtrack:i_start_backtrack+n_backtrack]:
+        if not isinstance(backtracker.line.element_dict[nn],
+                          tuple(allowed_backtrack_types)):
+            raise TypeError(
+                f'Cannot backtrack through element {nn} of type '
+                f'{backtracker.line.element_dict[nn].__class__.__name__}')
     backtracker.track(part_refine, ele_start=i_start_backtrack,
                       num_elements = n_backtrack)
     # Just for check

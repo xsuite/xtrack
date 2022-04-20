@@ -160,11 +160,12 @@ def test_aperture_refinement():
 
 
     loss_loc_refinement = xt.LossLocationRefinement(tracker,
-                                                n_theta = 360,
-                                                r_max = 0.5, # m
-                                                dr = 50e-6,
-                                                ds = 0.1,
-                                                save_refine_trackers=True)
+                            n_theta = 360,
+                            r_max = 0.5, # m
+                            dr = 50e-6,
+                            ds = 0.1,
+                            save_refine_trackers=True,
+                            allowed_backtrack_types=[xt.Multipole, xt.Cavity])
 
     import time
     t0 = time.time()
