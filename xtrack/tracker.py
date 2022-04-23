@@ -648,6 +648,8 @@ class Tracker:
                 ele_start = 0
         if isinstance(ele_start,str):
             ele_start = self.line.element_names.index(ele_start)
+        # Need to manually set particles starting positions, as we will
+        # skip tracking until ele_start
         particles.start_tracking_at_element = -1
         particles.at_element = ele_start
         particles.s = self.line.get_s_position(ele_start)
