@@ -168,6 +168,7 @@ class Tracker:
                     Drift(_buffer=_buffer, length=ldrift))
 
         # Build tracker for all non collective elements
+        # (with collective elements replaced by Drifts)
         supertracker = Tracker(_buffer=_buffer,
                 line=Line(elements=noncollective_xelements,
                           element_names=line.element_names),
@@ -638,28 +639,18 @@ class Tracker:
         num_turns=1,
         turn_by_turn_monitor=None,
     ):
-    # If num_elements is not None, we track from ele_start until (ele_start + num_elements).
-    # In that case, ele_stop has to be None, and num_turns has to be 1.
-    #
-    # On the other hand, if ele_stop is not None, we track from ele_start until ele_stop.
-    # In that case, num_elements has to be None, but num_turns can be anything. If num_turns
-    # is 1, we just track between the two elements, even if that means passing over s=0
-    # (internally the end particles will be already at turn 2 though).
-    #
-    # Example: ele_start=IP8, ele_stop=IP2, num_turns=2 means we start at IP8, make a
-    # full turn back to IP8, and then continue until IP2.
-    #
-    # The logic is that, when ele_stop is used, the last turn will be incomplete.
 
         if particles.start_tracking_at_element >= 0:
             assert ele_start is None
             ele_start = particles.start_tracking_at_element
-            particles.start_tracking_at_element = -1
         else:
             if ele_start is None:
                 ele_start = 0
         if isinstance(ele_start,str):
             ele_start = self.line.element_names.index(ele_start)
+        particles.start_tracking_at_element = -1
+        particles.at_element = ele_start
+        particles.s = self.line.get_s_position(ele_start)
 
         assert ele_start >= 0
         assert ele_start <= self.num_elements
@@ -669,20 +660,17 @@ class Tracker:
             assert num_turns == 1
             ele_stop = ele_start + num_elements
 
-        # Need to shift ele_stop by -1
         if isinstance(ele_stop,str):
-            ele_stop = self.line.element_names.index(ele_stop) - 1
-        elif ele_stop is not None:
-            ele_stop -=1
+            ele_stop = self.line.element_names.index(ele_stop)
 
         assert ele_stop < self.num_elements
 
         # If ele_stop comes before ele_start, we need to add a turn for overflow
         if ele_stop <= ele_start:
             num_turns += 1
-
+        
         assert num_turns >= 1
-
+        assert len(particles.state) > 0
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
@@ -691,7 +679,6 @@ class Tracker:
         stop_tracking = False
 
         for tt in range(num_turns):
-
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
 
@@ -731,34 +718,32 @@ class Tracker:
                 if tt == 0 and ele_start is not None and ipp < self._element_part[ele_start]:
                     # Do not track before ele_start
                     continue
-                elif tt == num_turns-1 and ele_stop is not None and ipp > self._element_part[ele_stop]:
-                    # Do not track after ele_stop
-                    stop_tracking = True
                 elif tt == 0 and ele_start is not None and self._element_part[ele_start] == ipp:
                     # We are in the part that contains the start element
                     i_start_in_part = self._element_index_in_part[ele_start]
                     if i_start_in_part is None:
+                        # The part is collective
                         pp.track(particles)
                     else:
                         if tt == num_turns-1 and ele_stop is not None and self._element_part[ele_stop] == ipp:
                             # The stop element is also in this part
                             i_stop_in_part = self._element_index_in_part[ele_stop]
-                            pp.track(particles, ele_start=i_start_in_part, num_elements=i_stop_in_part-i_start_in_part)
+                            pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
+                            stop_tracking = True
                         else:
                             pp.track(particles, ele_start=i_start_in_part)
                 elif tt == num_turns-1 and ele_stop is not None and self._element_part[ele_stop] == ipp:
                     # We are in the part that contains the stop element
                     i_stop_in_part = self._element_index_in_part[ele_stop]
-                    if i_stop_in_part is None:
-                        pp.track(particles)
-                    else:
+                    if i_stop_in_part is not None:
                         pp.track(particles, num_elements=i_stop_in_part)
+                    stop_tracking = True
                 else:
                     # We are in between the part that contains the start element,
-                    # and the one that contains the stop element
+                    # and the one that contains the stop element, so track normally
                     pp.track(particles)
 
-                if not isinstance(pp, Tracker):
+                if not isinstance(pp, Tracker) and not stop_tracking:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
                         if not hasattr(self, '_zerodrift_cpu'):
                             self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
@@ -770,18 +755,25 @@ class Tracker:
                     particles.unhide_lost_particles()
 
                 if _need_clean_active_lost_state:
-                    particles._num_active_particle = -1
+                    particles._num_active_particles = -1
                     particles._num_lost_particles = -1
 
+                if particles._num_active_particles == 0 or len(particles.state) == 0:
+                    stop_tracking = True
+
+                # Break from loop over particles if all are lost or if stop element reached
                 if stop_tracking:
                     break
 
-            if not stop_tracking:
-                # Increment at_turn and reset at_element
-                # (use the supertracker to perform only end-turn actions)
-                self._supertracker.track(particles,
-                                   ele_start=self._supertracker.num_elements,
-                                   num_elements=0)
+            # Break from loop over turns if all particles are lost or if stop element reached
+            if stop_tracking:
+                break
+
+            # Increment at_turn and reset at_element
+            # (use the supertracker to perform only end-turn actions)
+            self._supertracker.track(particles,
+                               ele_start=self._supertracker.num_elements,
+                               num_elements=0)
 
         self.record_last_track = monitor
 
@@ -795,18 +787,6 @@ class Tracker:
         num_turns=1,
         turn_by_turn_monitor=None,
     ):
-    # If num_elements is not None, we track from ele_start until (ele_start + num_elements).
-    # In that case, ele_stop has to be None, and num_turns has to be 1.
-    #
-    # On the other hand, if ele_stop is not None, we track from ele_start until ele_stop.
-    # In that case, num_elements has to be None, but num_turns can be anything. If num_turns
-    # is 1, we just track between the two elements, even if that means passing over s=0
-    # (internally the end particles will be already at turn 2 though).
-    #
-    # Example: ele_start=IP8, ele_stop=IP2, num_turns=2 means we start at IP8, make a
-    # full turn back to IP8, and then continue until IP2.
-    #
-    # The logic is that, when ele_stop is used, the last turn will be incomplete.
 
         if particles.start_tracking_at_element >= 0:
             assert ele_start is None
@@ -822,13 +802,14 @@ class Tracker:
         assert ele_start <= self.num_elements
 
         assert num_turns >= 1
+        assert len(particles.state) > 0
         num_middle_turns = num_turns - 1
         num_elements_last_turn = None
 
         if num_elements is not None:
             assert ele_stop is None
             assert num_turns == 1
-            assert num_elements > 0
+            assert num_elements >= 0
             assert num_elements + ele_start <= self.num_elements
             num_elements_first_turn = num_elements
         else:
@@ -838,7 +819,7 @@ class Tracker:
             else:
                 if isinstance(ele_stop, str):
                     ele_stop = self.line.element_names.index(ele_stop)
-                assert ele_stop > 0
+                assert ele_stop >= 0
                 assert ele_stop < self.num_elements
                 if ele_stop <= ele_start:
                     # Correct for overflow:
@@ -899,6 +880,7 @@ class Tracker:
                 offset_tbt_monitor=offset_monitor,
             )
 
+        # Last turn
         if num_elements_last_turn is not None:
             self.track_kernel(
                 buffer=self._line_frozen._buffer.buffer,
