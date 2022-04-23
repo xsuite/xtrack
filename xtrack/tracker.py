@@ -793,12 +793,15 @@ class Tracker:
         if particles.start_tracking_at_element >= 0:
             assert ele_start is None
             ele_start = particles.start_tracking_at_element
-            particles.start_tracking_at_element = -1
         else:
             if ele_start is None:
                 ele_start = 0
         if isinstance(ele_start,str):
             ele_start = self.line.element_names.index(ele_start)
+        # Need to manually set particles starting positions
+        particles.start_tracking_at_element = -1
+        particles.at_element = ele_start
+        particles.s = self.line.get_s_position(ele_start)
 
         assert ele_start >= 0
         assert ele_start <= self.num_elements
@@ -849,7 +852,6 @@ class Tracker:
 
         self.track_kernel.description.n_threads = particles._capacity
 
-        print(ele_start, ele_stop, num_elements, num_elements_first_turn, num_middle_turns, num_elements_last_turn)
         # First turn
         self.track_kernel(
             buffer=self._line_frozen._buffer.buffer,
