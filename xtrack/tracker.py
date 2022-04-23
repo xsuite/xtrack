@@ -633,19 +633,17 @@ class Tracker:
     def _track_with_collective(
         self,
         particles,
-        ele_start=None,
-        ele_stop=None,
+        ele_start=0,
+        ele_stop=0,
         num_elements=None,
         num_turns=1,
         turn_by_turn_monitor=None,
     ):
 
+        # Start position
         if particles.start_tracking_at_element >= 0:
             assert ele_start is None
             ele_start = particles.start_tracking_at_element
-        else:
-            if ele_start is None:
-                ele_start = 0
         if isinstance(ele_start,str):
             ele_start = self.line.element_names.index(ele_start)
         # Need to manually set particles starting positions, as we will
@@ -655,22 +653,23 @@ class Tracker:
         particles.s = self.line.get_s_position(ele_start)
 
         assert ele_start >= 0
-        assert ele_start <= self.num_elements
+        assert ele_start < self.num_elements
 
+        # Stop position
         if num_elements is not None:
-            assert ele_stop is None
+            assert ele_stop == 0
             assert num_turns == 1
             ele_stop = ele_start + num_elements
-
         if isinstance(ele_stop,str):
             ele_stop = self.line.element_names.index(ele_stop)
 
+        assert ele_stop >= 0
         assert ele_stop < self.num_elements
 
         # If ele_stop comes before ele_start, we need to add a turn for overflow
         if ele_stop <= ele_start:
             num_turns += 1
-        
+
         assert num_turns >= 1
         assert len(particles.state) > 0
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
@@ -717,24 +716,24 @@ class Tracker:
                     particles.hide_lost_particles()
 
                 # Track!
-                if tt == 0 and ele_start is not None and ipp < self._element_part[ele_start]:
+                if tt == 0 and ipp < self._element_part[ele_start]:
                     # Do not track before ele_start
                     continue
-                elif tt == 0 and ele_start is not None and self._element_part[ele_start] == ipp:
+                elif tt == 0 and self._element_part[ele_start] == ipp:
                     # We are in the part that contains the start element
                     i_start_in_part = self._element_index_in_part[ele_start]
                     if i_start_in_part is None:
                         # The part is collective
                         pp.track(particles)
                     else:
-                        if tt == num_turns-1 and ele_stop is not None and self._element_part[ele_stop] == ipp:
+                        if tt == num_turns-1 and self._element_part[ele_stop] == ipp:
                             # The stop element is also in this part
                             i_stop_in_part = self._element_index_in_part[ele_stop]
                             pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
                             stop_tracking = True
                         else:
                             pp.track(particles, ele_start=i_start_in_part)
-                elif tt == num_turns-1 and ele_stop is not None and self._element_part[ele_stop] == ipp:
+                elif tt == num_turns-1 and self._element_part[ele_stop] == ipp:
                     # We are in the part that contains the stop element
                     i_stop_in_part = self._element_index_in_part[ele_stop]
                     if i_stop_in_part is not None:
@@ -763,7 +762,7 @@ class Tracker:
                 if particles._num_active_particles == 0 or len(particles.state) == 0:
                     stop_tracking = True
 
-                # Break from loop over particles if all are lost or if stop element reached
+                # Break from loop over parts if all are lost or if stop element reached
                 if stop_tracking:
                     break
 
@@ -776,6 +775,7 @@ class Tracker:
             self._supertracker.track(particles,
                                ele_start=self._supertracker.num_elements,
                                num_elements=0)
+            print("End of turn actions done at turn", tt+1)
 
         self.record_last_track = monitor
 
@@ -849,6 +849,7 @@ class Tracker:
 
         self.track_kernel.description.n_threads = particles._capacity
 
+        print(ele_start, ele_stop, num_elements, num_elements_first_turn, num_middle_turns, num_elements_last_turn)
         # First turn
         self.track_kernel(
             buffer=self._line_frozen._buffer.buffer,
