@@ -199,10 +199,10 @@ def test_mad_element_import():
 
         assert isinstance(line['w'], xt.Wire)
         assert line.get_s_position('w') == 1
-        assert line['w'].wire_L_phy == 1
-        assert line['w'].wire_L_int == 2
-        assert line['w'].wire_xma == 1e-3
-        assert line['w'].wire_yma == 2e-3
+        assert line['w'].L_phy == 1
+        assert line['w'].L_int == 2
+        assert line['w'].xma == 1e-3
+        assert line['w'].yma == 2e-3
 
         assert isinstance(line['mat0'],xt.FirstOrderTaylorMap)
         assert line.get_s_position('mat0') == 2

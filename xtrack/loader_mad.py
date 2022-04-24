@@ -215,6 +215,8 @@ def madx_sequence_to_xtrack_line(
 
         elif mad_etype == "wire":
             if len(ee.L_phy) == 1:
+                # the index [0] is present because in MAD-X multiple wires can
+                # be defined within the same element
                 newele = classes.Wire(
                     L_phy   = ee.L_phy[0],
                     L_int   = ee.L_int[0],
@@ -226,15 +228,15 @@ def madx_sequence_to_xtrack_line(
                 if deferred_expressions:
                     eepar = ee.cmdpar
                     if eepar.L_phy.expr[0] is not None:
-                        _lref[eename].L_phy = madeval(eepar.L_phy.expr[0])                        
+                        _lref[eename].L_phy = madeval(eepar.L_phy.expr[0])
                     if eepar.L_int.expr[0] is not None:
-                        _lref[eename].L_int = madeval(eepar.L_int.expr[0])                        
+                        _lref[eename].L_int = madeval(eepar.L_int.expr[0])
                     if eepar.current.expr[0] is not None:
-                        _lref[eename].current = madeval(eepar.current.expr[0])                        
+                        _lref[eename].current = madeval(eepar.current.expr[0])
                     if eepar.xma.expr[0] is not None:
-                        _lref[eename].xma = madeval(eepar.xma.expr[0])                        
+                        _lref[eename].xma = madeval(eepar.xma.expr[0])
                     if eepar.yma.expr[0] is not None:
-                        _lref[eename].yma = madeval(eepar.yma.expr[0])                       
+                        _lref[eename].yma = madeval(eepar.yma.expr[0])
             else:
                 # TODO: add multiple elements for multiwire configuration
                 raise ValueError("Multiwire configuration not supported")
