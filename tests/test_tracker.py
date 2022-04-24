@@ -113,6 +113,7 @@ def test_partial_tracking_with_collective():
     _ele_start_to_ele_stop(tracker, particles_init)
     _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
 
+
 # Track, from any ele_start, until the end of the first, second, and tenth turn
 def _default_track(tracker, particles_init):
     n_elem = len(tracker.line.element_names)

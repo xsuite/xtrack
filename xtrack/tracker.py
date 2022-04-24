@@ -647,9 +647,10 @@ class Tracker:
         if isinstance(ele_start,str):
             ele_start = self.line.element_names.index(ele_start)
         # Need to manually set particles starting positions, as we will
-        # skip tracking until ele_start. If it would ever be that a
-        # collective tracker can be part of another tracker, this needs
-        # an if switch (as in the non-collective case).
+        # skip tracking until ele_start.
+        # If in the future new features are added, making that a collective
+        # tracker can be part of another tracker, this needs an if switch
+        # (like in the non-collective case).
         particles.start_tracking_at_element = -1
         particles.at_element = ele_start
         particles.s = self.line.get_s_position(ele_start)
@@ -661,38 +662,34 @@ class Tracker:
 
         # Stop position
         if num_elements is not None:
+            # We are using ele_start and num_elements
             if ele_stop is not None:
                 raise ValueError("Cannot use both num_elements and ele_stop!")
             if num_turns is not None:
                 raise ValueError("Cannot use both num_elements and num_turns!")
-#             num_turns = round(np.floor( (ele_start+num_elements)/self.num_elements )) + 1
-#             ele_stop = ele_start + num_elements - self.num_elements*(num_turns-1)
-            num_turns = round(np.floor( (ele_start+num_elements-1)/self.num_elements )) + 1
-            ele_stop = ele_start + num_elements - self.num_elements*(num_turns-1)
-#             ele_stop = 0 if ele_stop==self.num_elements else ele_stop
+            num_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
+            num_turns += 1
+
         else:
+            # We are using ele_start, ele_stop, and num_turns
             if num_turns is None:
                 num_turns = 1
+            else:
+                assert num_turns > 0
             if ele_stop is None:
                 ele_stop = 0
-        if isinstance(ele_stop,str):
-            ele_stop = self.line.element_names.index(ele_stop)
-
-        print('ele_start', 'ele_stop', 'num_turns', 'num_elements')
-        print(ele_start, ele_stop, num_turns, num_elements)
+            if isinstance(ele_stop,str):
+                ele_stop = self.line.element_names.index(ele_stop)
+            # If ele_stop comes before ele_start, we need to add a turn for overflow
+            if ele_stop <= ele_start:
+                num_turns += 1
 
         assert ele_stop >= 0
         assert ele_stop < self.num_elements
 
-        # If ele_stop comes before ele_start, we need to add a turn for overflow
-        # Because of the break logic below, this means that when ele_stop=default
-        # and num_turns=default, num_turns will be 2 (though only one turn will
-        # be tracked)
-        if ele_stop <= ele_start:
-            num_turns += 1
-
         assert num_turns >= 1
         assert len(particles.state) > 0
+
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
