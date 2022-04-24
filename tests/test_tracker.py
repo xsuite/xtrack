@@ -136,7 +136,6 @@ def _ele_start_until_end(tracker, particles_init):
             particles = particles_init.copy()
             tracker.track(particles, num_turns=turns, ele_start=start)
             check, end_turn, end_element = _get_at_turn_element(particles)
-            print("Expected: ",expected_end_turn,expected_end_element,"Got: ",end_turn,end_element)
             assert check and end_turn==expected_end_turn and end_element==expected_end_element
 
 # Track, from any ele_start, any shifts that stay within the first turn
@@ -146,11 +145,10 @@ def _ele_start_with_shift(tracker, particles_init):
         for shift in range(1,n_elem-start):
             expected_end_turn = 0
             expected_end_element = start+shift
-            print("Test start: ",start, "shift: ", shift)
+
             particles = particles_init.copy()
             tracker.track(particles, ele_start=start, num_elements=shift)
             check, end_turn, end_element = _get_at_turn_element(particles)
-            print("Expected: ",expected_end_turn,expected_end_element,"Got: ",end_turn,end_element)
             assert check and end_turn==expected_end_turn and end_element==expected_end_element
 
 # Track, from any ele_start, any shifts that are larger than one turn (up to 3 turns)
@@ -160,11 +158,10 @@ def _ele_start_with_shift_more_turns(tracker, particles_init):
         for shift in range(n_elem-start, 3*n_elem+1):
             expected_end_turn = round(np.floor( (start+shift)/n_elem ))
             expected_end_element = start + shift - n_elem*expected_end_turn
-            print("Test start: ",start, "shift: ", shift)
+
             particles = particles_init.copy()
             tracker.track(particles, ele_start=start, num_elements=shift)
             check, end_turn, end_element = _get_at_turn_element(particles)
-            print("Expected: ",expected_end_turn,expected_end_element,"Got: ",end_turn,end_element)
             assert check and end_turn==expected_end_turn and end_element==expected_end_element
 
 # Track from the start until any ele_stop in the first, second, and tenth turn
@@ -178,7 +175,6 @@ def _ele_stop_from_start(tracker, particles_init):
             particles = particles_init.copy()
             tracker.track(particles, num_turns=turns, ele_stop=stop)
             check, end_turn, end_element = _get_at_turn_element(particles)
-            print("Expected: ",expected_end_turn,expected_end_element,"Got: ",end_turn,end_element)
             assert check and end_turn==expected_end_turn and end_element==expected_end_element
 
 # Track from any ele_start until any ele_stop that is larger than ele_start (so no overflow)
@@ -190,11 +186,10 @@ def _ele_start_to_ele_stop(tracker, particles_init):
             for stop in range(start+1,n_elem):
                 expected_end_turn = turns-1
                 expected_end_element = stop
-                print("Test start: ",start, "stop: ", stop, turns)
+
                 particles = particles_init.copy()
                 tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop)
                 check, end_turn, end_element = _get_at_turn_element(particles)
-                print("Expected: ",expected_end_turn,expected_end_element,"Got: ",end_turn,end_element)
                 assert check and end_turn==expected_end_turn and end_element==expected_end_element
 
 # Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn overflow)
@@ -206,11 +201,10 @@ def _ele_start_to_ele_stop_with_overflow(tracker, particles_init):
             for stop in range(start+1):
                 expected_end_turn = turns
                 expected_end_element = stop
-                print("Test start: ",start, "stop: ", stop, turns)
+
                 particles = particles_init.copy()
                 tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop)
                 check, end_turn, end_element = _get_at_turn_element(particles)
-                print("Expected: ",expected_end_turn,expected_end_element,"Got: ",end_turn,end_element)
                 assert check and end_turn==expected_end_turn and end_element==expected_end_element
 
 
