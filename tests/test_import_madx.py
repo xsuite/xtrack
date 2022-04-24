@@ -29,7 +29,28 @@ def test_mad_element_import():
 
     matrix_m0 = np.random.randn(6)*1E-6
     matrix_m1 = np.reshape(np.random.randn(36),(6,6))
-    mad.input(f"mat:matrix,l=0,kick1={matrix_m0[0]},kick2={matrix_m0[1]},kick3={matrix_m0[2]},kick4={matrix_m0[3]},kick5={matrix_m0[4]},kick6={matrix_m0[5]},rm11={matrix_m1[0,0]},rm12={matrix_m1[0,1]},rm13={matrix_m1[0,2]},rm14={matrix_m1[0,3]},rm15={matrix_m1[0,4]},rm16={matrix_m1[0,5]},rm21={matrix_m1[1,0]},rm22={matrix_m1[1,1]},rm23={matrix_m1[1,2]},rm24={matrix_m1[1,3]},rm25={matrix_m1[1,4]},rm26={matrix_m1[1,5]},rm31={matrix_m1[2,0]},rm32={matrix_m1[2,1]},rm33={matrix_m1[2,2]},rm34={matrix_m1[2,3]},rm35={matrix_m1[2,4]},rm36={matrix_m1[2,5]},rm41={matrix_m1[3,0]},rm42={matrix_m1[3,1]},rm43={matrix_m1[3,2]},rm44={matrix_m1[3,3]},rm45={matrix_m1[3,4]},rm46={matrix_m1[3,5]},rm51={matrix_m1[4,0]},rm52={matrix_m1[4,1]},rm53={matrix_m1[4,2]},rm54={matrix_m1[4,3]},rm55={matrix_m1[4,4]},rm56={matrix_m1[4,5]},rm61={matrix_m1[5,0]},rm62={matrix_m1[5,1]},rm63={matrix_m1[5,2]},rm64={matrix_m1[5,3]},rm65={matrix_m1[5,4]},rm66={matrix_m1[5,5]};")
+    mad.input(f"mat:matrix,l=0,"
+              f"kick1={matrix_m0[0]},kick2={matrix_m0[1]},"
+              f"kick3={matrix_m0[2]},kick4={matrix_m0[3]},"
+              f"kick5={matrix_m0[4]},kick6={matrix_m0[5]},"
+              f"rm11={matrix_m1[0,0]},rm12={matrix_m1[0,1]},"
+              f"rm13={matrix_m1[0,2]},rm14={matrix_m1[0,3]},"
+              f"rm15={matrix_m1[0,4]},rm16={matrix_m1[0,5]},"
+              f"rm21={matrix_m1[1,0]},rm22={matrix_m1[1,1]},"
+              f"rm23={matrix_m1[1,2]},rm24={matrix_m1[1,3]},"
+              f"rm25={matrix_m1[1,4]},rm26={matrix_m1[1,5]},"
+              f"rm31={matrix_m1[2,0]},rm32={matrix_m1[2,1]},"
+              f"rm33={matrix_m1[2,2]},rm34={matrix_m1[2,3]},"
+              f"rm35={matrix_m1[2,4]},rm36={matrix_m1[2,5]},"
+              f"rm41={matrix_m1[3,0]},rm42={matrix_m1[3,1]},"
+              f"rm43={matrix_m1[3,2]},rm44={matrix_m1[3,3]},"
+              f"rm45={matrix_m1[3,4]},rm46={matrix_m1[3,5]},"
+              f"rm51={matrix_m1[4,0]},rm52={matrix_m1[4,1]},"
+              f"rm53={matrix_m1[4,2]},rm54={matrix_m1[4,3]},"
+              f"rm55={matrix_m1[4,4]},rm56={matrix_m1[4,5]},"
+              f"rm61={matrix_m1[5,0]},rm62={matrix_m1[5,1]},"
+              f"rm63={matrix_m1[5,2]},rm64={matrix_m1[5,3]},"
+              f"rm65={matrix_m1[5,4]},rm66={matrix_m1[5,5]};")
 
     # Sequence
     mad.input("""
