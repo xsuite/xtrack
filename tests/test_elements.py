@@ -28,7 +28,7 @@ def test_constructor():
             xt.LimitRacetrack(min_x=2),
             xt.LimitPolygon(x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
             xt.Elens(inner_radius=0.1),
-            xt.Wire(wire_current=3.)
+            xt.Wire(current=3.)
         ]
 
         # test to_dict / from_dict
@@ -130,20 +130,20 @@ def test_wire():
 
 
         wire = xt.Wire(_context    =  ctx,
-                       wire_L_phy  =  1.3,
-                       wire_L_int  =  1.3,
-                       wire_current=  250,
-                       wire_xma    = -8e-3,
-                       wire_yma    = -10e-3)
+                       L_phy  =  1.3,
+                       L_int  =  1.3,
+                       current=  250,
+                       xma    = -8e-3,
+                       yma    = -10e-3)
 
         wire.track(particles)
 
         dtk_wire = dtk.elements.Wire(
-                       wire_L_phy  =  1.3,
-                       wire_L_int  =  1.3,
-                       wire_current=  250,
-                       wire_xma    = -8e-3,
-                       wire_yma    = -10e-3)
+                       L_phy  =  1.3,
+                       L_int  =  1.3,
+                       current=  250,
+                       xma    = -8e-3,
+                       yma    = -10e-3)
 
         dtk_wire.track(dtk_particle)
 

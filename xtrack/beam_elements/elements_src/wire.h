@@ -5,12 +5,12 @@
 void Wire_track_local_particle(WireData el, LocalParticle* part0){
 
     // Data from wire
-    double const wire_L_phy = WireData_get_wire_L_phy(el);
-    double const wire_L_int = WireData_get_wire_L_int(el);
-    double const wire_current = WireData_get_wire_current(el);
+    double const L_phy = WireData_get_L_phy(el);
+    double const L_int = WireData_get_L_int(el);
+    double const current = WireData_get_current(el);
     
-    double const wire_xma = WireData_get_wire_xma(el);
-    double const wire_yma = WireData_get_wire_yma(el);
+    double const xma = WireData_get_xma(el);
+    double const yma = WireData_get_yma(el);
 
 
 
@@ -22,8 +22,8 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
         // Data from particle 
         double x      = LocalParticle_get_x(part);
         double y      = LocalParticle_get_y(part);
-        double D_x    = x-wire_xma;
-        double D_y    = y-wire_yma;
+        double D_x    = x-xma;
+        double D_y    = y-yma;
         double R2     = D_x*D_x + D_y*D_y;
 
         
@@ -36,9 +36,9 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
 
     
         // Computing the kick
-        double const L1   = wire_L_int + wire_L_phy;
-        double const L2   = wire_L_int - wire_L_phy;
-        double const N    = MU_0*wire_current*q0/(4*PI*p0c/C_LIGHT);
+        double const L1   = L_int + L_phy;
+        double const L2   = L_int - L_phy;
+        double const N    = MU_0*current*q0/(4*PI*p0c/C_LIGHT);
             
         double dpx  =  -N*D_x*(sqrt(L1*L1 + 4.0*R2) - sqrt(L2*L2 + 4.0*R2))/R2;
         double dpy  =  -N*D_y*(sqrt(L1*L1 + 4.0*R2) - sqrt(L2*L2 + 4.0*R2))/R2;
