@@ -870,10 +870,11 @@ class Tracker:
                 # Track only the first (potentially partial) turn
                 num_elements_first_turn = num_elements
             else:
+                # Track the first turn until the end of the lattice
                 num_elements_first_turn = self.num_elements - ele_start
+                # Middle turns and potential last turn
                 num_middle_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
                 num_elements_last_turn = ele_stop
-#                 if ele_stop == 0:
                 num_middle_turns -= 1              
 
         else:
@@ -906,7 +907,6 @@ class Tracker:
                     # Track the last turn until ele_stop
                     num_elements_last_turn = ele_stop
 
-        print(ele_start, num_elements_first_turn, num_middle_turns, num_elements_last_turn)
         assert len(particles.state) > 0
 
         if self.skip_end_turn_actions:
