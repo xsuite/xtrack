@@ -2,7 +2,7 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
-import xfields as xf
+import xcoll as xc
 
 
 def test_ebe_monitor():
