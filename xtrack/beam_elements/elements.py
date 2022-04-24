@@ -554,7 +554,7 @@ class RFMultipole(BeamElement):
     def _ps_setitem(self, indx, val):
         _ps = self.ps.copy()
         _ps[indx] = val
-        _update_phase_from_pn_ps(self.knl, _ps, self.phase,
+        _update_phase_from_pn_ps(self.pn, _ps, self.phase,
                                  context=self._buffer.context)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
