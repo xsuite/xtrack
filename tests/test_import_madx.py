@@ -11,46 +11,49 @@ def test_mad_element_import():
 
     # Element definitions
     mad.input("""
-    cav0: rfcavity, freq=10, lag=0.5, volt=6;
-    cav1: rfcavity, lag=0.5, volt=6, harmon=8;
-    wire1: wire, current=5, l=0, l_phy=1, l_int=2, xma=1e-3, yma=2e-3;
-    mult0: multipole, knl={1,2,3}, ksl={4,5,6}, lrad=1.1;
-    kick0: kicker, hkick=5, vkick=6, lrad=2.2;
-    kick1: tkicker, hkick=7, vkick=8, lrad=2.3;
-    kick2: hkicker, kick=3, lrad=2.4;
-    kick3: vkicker, kick=4, lrad=2.5;
-    dipedge0: dipedge, h=0.1, e1=3, fint=4, hgap=0.02;
-    rfm0: rfmultipole, volt=2, lag=0.5, freq=100.,
-                knl={2,3}, ksl={4,5},
-                pnl={0.3, 0.4}, psl={0.5, 0.6};
-    crab0: crabcavity, volt=2, lag=0.5, freq=100.;
-    crab1: crabcavity, volt=2, lag=0.5, freq=100., tilt=pi/2;
+
+    a = 1.;
+
+    cav0: rfcavity, freq:=a*10, lag:=a*0.5, volt:=a*6;
+    cav1: rfcavity, lag:=a*0.5, volt:=a*6, harmon:=a*8;
+    wire1: wire, current:=a*5, l:=a*0, l_phy:=a*1, l_int:=a*2, xma:=a*1e-3, yma:=a*2e-3;
+    mult0: multipole, knl:={a*1,a*2,a*3}, ksl:={a*4,a*5,a*6}, lrad:=a*1.1;
+    kick0: kicker, hkick:=a*5, vkick:=a*6, lrad:=a*2.2;
+    kick1: tkicker, hkick:=a*7, vkick:=a*8, lrad:=a*2.3;
+    kick2: hkicker, kick:=a*3, lrad:=a*2.4;
+    kick3: vkicker, kick:=a*4, lrad:=a*2.5;
+    dipedge0: dipedge, h:=a*0.1, e1:=a*3, fint:=a*4, hgap:=a*0.02;
+    rfm0: rfmultipole, volt:=a*2, lag:=a*0.5, freq:=a*100.,
+                knl:={a*2,a*3}, ksl:={a*4,a*5},
+                pnl:={a*0.3, a*0.4}, psl:={a*0.5, a*0.6};
+    crab0: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100.;
+    crab1: crabcavity, volt:=a*2, lag:=a*0.5, freq:=a*100., tilt:=a*pi/2;
     """)
 
     matrix_m0 = np.random.randn(6)*1E-6
     matrix_m1 = np.reshape(np.random.randn(36),(6,6))
-    mad.input(f"mat:matrix,l=0,"
-              f"kick1={matrix_m0[0]},kick2={matrix_m0[1]},"
-              f"kick3={matrix_m0[2]},kick4={matrix_m0[3]},"
-              f"kick5={matrix_m0[4]},kick6={matrix_m0[5]},"
-              f"rm11={matrix_m1[0,0]},rm12={matrix_m1[0,1]},"
-              f"rm13={matrix_m1[0,2]},rm14={matrix_m1[0,3]},"
-              f"rm15={matrix_m1[0,4]},rm16={matrix_m1[0,5]},"
-              f"rm21={matrix_m1[1,0]},rm22={matrix_m1[1,1]},"
-              f"rm23={matrix_m1[1,2]},rm24={matrix_m1[1,3]},"
-              f"rm25={matrix_m1[1,4]},rm26={matrix_m1[1,5]},"
-              f"rm31={matrix_m1[2,0]},rm32={matrix_m1[2,1]},"
-              f"rm33={matrix_m1[2,2]},rm34={matrix_m1[2,3]},"
-              f"rm35={matrix_m1[2,4]},rm36={matrix_m1[2,5]},"
-              f"rm41={matrix_m1[3,0]},rm42={matrix_m1[3,1]},"
-              f"rm43={matrix_m1[3,2]},rm44={matrix_m1[3,3]},"
-              f"rm45={matrix_m1[3,4]},rm46={matrix_m1[3,5]},"
-              f"rm51={matrix_m1[4,0]},rm52={matrix_m1[4,1]},"
-              f"rm53={matrix_m1[4,2]},rm54={matrix_m1[4,3]},"
-              f"rm55={matrix_m1[4,4]},rm56={matrix_m1[4,5]},"
-              f"rm61={matrix_m1[5,0]},rm62={matrix_m1[5,1]},"
-              f"rm63={matrix_m1[5,2]},rm64={matrix_m1[5,3]},"
-              f"rm65={matrix_m1[5,4]},rm66={matrix_m1[5,5]};")
+    mad.input(f"mat:matrix,l:=0.003*a,"
+              f"kick1:={matrix_m0[0]}*a,kick2:={matrix_m0[1]}*a,"
+              f"kick3:={matrix_m0[2]}*a,kick4:={matrix_m0[3]}*a,"
+              f"kick5:={matrix_m0[4]}*a,kick6:={matrix_m0[5]}*a,"
+              f"rm11:={matrix_m1[0,0]}*a,rm12:={matrix_m1[0,1]}*a,"
+              f"rm13:={matrix_m1[0,2]}*a,rm14:={matrix_m1[0,3]}*a,"
+              f"rm15:={matrix_m1[0,4]}*a,rm16:={matrix_m1[0,5]}*a,"
+              f"rm21:={matrix_m1[1,0]}*a,rm22:={matrix_m1[1,1]}*a,"
+              f"rm23:={matrix_m1[1,2]}*a,rm24:={matrix_m1[1,3]}*a,"
+              f"rm25:={matrix_m1[1,4]}*a,rm26:={matrix_m1[1,5]}*a,"
+              f"rm31:={matrix_m1[2,0]}*a,rm32:={matrix_m1[2,1]}*a,"
+              f"rm33:={matrix_m1[2,2]}*a,rm34:={matrix_m1[2,3]}*a,"
+              f"rm35:={matrix_m1[2,4]}*a,rm36:={matrix_m1[2,5]}*a,"
+              f"rm41:={matrix_m1[3,0]}*a,rm42:={matrix_m1[3,1]}*a,"
+              f"rm43:={matrix_m1[3,2]}*a,rm44:={matrix_m1[3,3]}*a,"
+              f"rm45:={matrix_m1[3,4]}*a,rm46:={matrix_m1[3,5]}*a,"
+              f"rm51:={matrix_m1[4,0]}*a,rm52:={matrix_m1[4,1]}*a,"
+              f"rm53:={matrix_m1[4,2]}*a,rm54:={matrix_m1[4,3]}*a,"
+              f"rm55:={matrix_m1[4,4]}*a,rm56:={matrix_m1[4,5]}*a,"
+              f"rm61:={matrix_m1[5,0]}*a,rm62:={matrix_m1[5,1]}*a,"
+              f"rm63:={matrix_m1[5,2]}*a,rm64:={matrix_m1[5,3]}*a,"
+              f"rm65:={matrix_m1[5,4]}*a,rm66={matrix_m1[5,5]}*a;")
 
     # Sequence
     mad.input("""
@@ -67,7 +70,7 @@ def test_mad_element_import():
     cb0: crab0, at=0.41;
     cb1: crab1, at=0.42;
     w: wire1, at=1;
-    mat0:mat, at=2;
+    mat0:mat, at=2+0.003/2;
     endsequence;
     """
     )

@@ -208,6 +208,7 @@ def madx_sequence_to_xtrack_line(
                         _lref[eename].ksl[ii] = madeval(eepar.ksl.expr[ii])
                 for ii, _ in enumerate(ee.pnl):
                     if eepar.pnl.expr[ii] is not None:
+                        import pdb; pdb.set_trace()
                         _lref[eename].pn[ii] = madeval(eepar.pnl.expr[ii]) * 360
                 for ii, _ in enumerate(ee.psl):
                     if eepar.psl.expr[ii] is not None:
@@ -376,7 +377,7 @@ def madx_sequence_to_xtrack_line(
             if deferred_expressions:
                 eepar = ee.cmdpar
                 if eepar.L.expr is not None:
-                    _lref[eemame].length = madeval(eepar.L.expr)
+                    _lref[eename].length = madeval(eepar.L.expr)
                 for m0_i in range(6):
                     att_name = f'kick{m0_i+1}'
                     if hasattr(ee,att_name) and getattr(eepar, att_name).expr is not None:
