@@ -827,3 +827,40 @@ LinearTransferMatrix.XoStruct.extra_sources = [
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
+
+class FirstOrderTaylorMap(BeamElement):
+    isthick = True
+
+    _xofields={
+        'radiation_flag': xo.Int64,
+        'length': xo.Float64,
+        'm0': xo.Float64[6],
+        'm1': xo.Float64[36]}
+
+    def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
+        nargs['radiation_flag'] = radiation_flag
+        nargs['length'] = length
+        if m0 is None:
+            nargs['m0'] = np.zeros(6,dtype=np.float64)
+        else:
+            if len(np.shape(m0)) == 1 and np.shape(m0)[0] == 6:
+                nargs['m0'] = m0
+            else:
+                raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
+        if m1 is None:
+            nargs['m1'] = np.zeros(36,dtype=np.float64)
+        else:
+            if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
+                nargs['m1'] = m1.flatten('C')
+            elif len(np.shape(m1)) == 1 and np.shape(m1)[0] == 36:
+                nargs['m1'] = m1
+            else:
+                raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
+        super().__init__(**nargs)
+
+FirstOrderTaylorMap.XoStruct.extra_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]

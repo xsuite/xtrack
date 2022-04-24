@@ -749,6 +749,39 @@ class LinearTransferMatrix(Element):
         p.y += self.disp_y_1 * p.delta + self.y_ref_1
         p.py += self.py_ref_1
 
+class FirstOrderTaylorMap(Element):
+    _description = [
+        ("length","","",0.0),
+        ("m0","","",0.0),
+        ("m1","","",0.0)]
+
+    def track(self,p):
+        if self.m0 is None:
+            self.m0 = np.zeros(6,dtype=np.float64)
+        else:
+            if len(np.shape(self.m0)) != 1 or np.shape(self.m0)[0] != 6:
+                raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
+        if self.m1 is None:
+            self.m1 = np.zeros((6,6),dtype=np.float64)
+        else:
+            if len(np.shape(self.m1)) != 2 or np.shape(self.m1)[0] != 6 or np.shape(self.m1)[1] != 6:
+                raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
+
+        beta = p._rvv*p.beta0
+        coords0 = np.array([p.x,p.px,p.y,p.py,p.zeta/beta,p.psigma*p.beta0])
+        p.x = self.m0[0] + self.m1[0,0]*coords0[0] + self.m1[0,1]*coords0[1] + self.m1[0,2]*coords0[2] + self.m1[0,3]*coords0[3] + self.m1[0,4]*coords0[4] + self.m1[0,5]*coords0[5]
+        p.px = self.m0[1] + self.m1[1,0]*coords0[0] + self.m1[1,1]*coords0[1] + self.m1[1,2]*coords0[2] + self.m1[1,3]*coords0[3] + self.m1[1,4]*coords0[4] + self.m1[1,5]*coords0[5]
+        p.y = self.m0[2] + self.m1[2,0]*coords0[0] + self.m1[2,1]*coords0[1] + self.m1[2,2]*coords0[2] + self.m1[2,3]*coords0[3] + self.m1[2,4]*coords0[4] + self.m1[2,5]*coords0[5]
+        p.py = self.m0[3] + self.m1[3,0]*coords0[0] + self.m1[3,1]*coords0[1] + self.m1[3,2]*coords0[2] + self.m1[3,3]*coords0[3] + self.m1[3,4]*coords0[4] + self.m1[3,5]*coords0[5]
+        tau = self.m0[4] + self.m1[4,0]*coords0[0] + self.m1[4,1]*coords0[1] + self.m1[4,2]*coords0[2] + self.m1[4,3]*coords0[3] + self.m1[4,4]*coords0[4] + self.m1[4,5]*coords0[5]
+        ptau = self.m0[5] + self.m1[5,0]*coords0[0] + self.m1[5,1]*coords0[1] + self.m1[5,2]*coords0[2] + self.m1[5,3]*coords0[3] + self.m1[5,4]*coords0[4] + self.m1[5,5]*coords0[5]
+        p.delta = np.sqrt(ptau*ptau + 2.0*ptau/p.beta0+1.0)-1.0
+        beta = p._rvv*p.beta0
+        p.zeta = tau * beta
+
+        if self.length > 0.0:
+            raise NotImplementedError('Radiation is not implemented')
+
 __all__ = [
     "BeamBeam4D",
     "BeamBeam6D",
@@ -768,5 +801,6 @@ __all__ = [
     "SCQGaussProfile",
     "SRotation",
     "XYShift",
-    "LinearTransferMatrix"
+    "LinearTransferMatrix",
+    "FirstOrderTaylorMap"
 ]

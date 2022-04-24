@@ -1,0 +1,31 @@
+circum=1000.0; // define the total length
+ncell = 8; // define number of cells 
+lcell = circum/ncell;
+quadklf = 1.5e-02;
+quadkld = -1.6e-02;
+ldrift = 0;
+// all magnets as multipoles
+dip: multipole, knl={2.0*pi/(4*ncell)};
+quadf: multipole, knl:={0.0, quadklf};
+quadd: multipole, knl:={0.0,quadkld};
+dr: drift,L:=ldrift;
+m1:    marker;
+m2:    marker;
+// sequence declaration;
+toy: sequence, refer=centre, l=circum;
+   n = 1;
+   matmark: marker, at=0;
+   while (n <= ncell) {
+   m1   : m1   ,   at=(n-1)*lcell;                   
+   quadf: quadf,   at=(n-1)*lcell;                   
+   dip: dip,   	   at=(n-1)*lcell+lcell/8;
+   dr:dr,          at=(n-1)*lcell+lcell/4;
+   dip: dip,       at=(n-1)*lcell+3*lcell/8;                 
+   m2   : m2   ,   at=(n-1)*lcell+lcell/2;                   
+   quadd: quadd,   at=(n-1)*lcell+lcell/2;                    
+   dip: dip,       at=(n-1)*lcell+5*lcell/8;
+   dr:dr,	   at=(n-1)*lcell+3*lcell/4;                  
+   dip: dip,       at=(n-1)*lcell+7*lcell/8;                 
+   n = n + 1;
+}
+endsequence;

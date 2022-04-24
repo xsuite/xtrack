@@ -82,7 +82,7 @@ def madx_sequence_to_xtrack_line(
             "elseparator",
             "instrument",
             "solenoid",
-            "drift",
+            "drift"
         ]:
             newele = myDrift(length=ee.l)
             old_pp += ee.l
@@ -351,6 +351,43 @@ def madx_sequence_to_xtrack_line(
                 newele = myDrift(length=ee.l)
                 old_pp += ee.l
             line.element_dict[eename] = newele
+        elif mad_etype == "matrix":
+            length = 0.0
+            if hasattr(ee,"l"):
+                length = ee.l
+            m0 = np.zeros(6,dtype=float)
+            for m0_i in range(6):
+                att_name = f'kick{m0_i+1}'
+                if hasattr(ee,att_name):
+                    m0[m0_i] = eval(f'ee.{att_name}')
+            m1 = np.zeros((6,6),dtype=float)
+            for m1_i in range(6):
+                for m1_j in range(6):
+                    att_name = f'rm{m1_i+1}{m1_j+1}'
+                    if hasattr(ee,att_name):
+                        m1[m1_i,m1_j] = eval(f'ee.{att_name}')
+
+            newele = classes.FirstOrderTaylorMap(
+                length = length,
+                m0 = m0,
+                m1 = m1)
+            line.element_dict[eename] = newele
+            old_pp += newele.length # This map is thick!
+            if deferred_expressions:
+                eepar = ee.cmdpar
+                if eepar.L.expr is not None:
+                    _lref[eemame].length = madeval(eepar.L.expr)
+                for m0_i in range(6):
+                    att_name = f'kick{m0_i+1}'
+                    if hasattr(ee,att_name) and eval(f'eepar.{att_name}.expr') is not None:
+                        _lref[eename].m0[m0_i] = madeval(eval(f'eepar.{att_name}.expr'))
+                for m1_i in range(6):
+                    for m1_j in range(6):
+                        att_name = f'rm{m1_i+1}{m1_j+1}'
+                        if hasattr(ee,att_name) and eval(f'eepar.{att_name}.expr') is not None:
+                            _lref[eename].m1[6*m1_i+m1_j]= madeval(eval(f'eepar.{att_name}.expr')) # The array is flattened at instanciation of the element
+
+
         else:
             raise ValueError(f'MAD element "{mad_etype}" not recognized')
 
