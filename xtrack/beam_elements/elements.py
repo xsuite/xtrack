@@ -827,19 +827,3 @@ LinearTransferMatrix.XoStruct.extra_sources = [
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
-
-class EnergyChange(BeamElement):
-    _xofields={
-        'energy_ref_increment': xo.Float64,
-        'energy_increment': xo.Float64
-        }
-
-    def __init__(self, energy_increment=0.0,energy_ref_increment=0.0, **nargs):
-        nargs['energy_ref_increment']=energy_ref_increment # acceleration with change of reference momentum (e.g. ramp)
-        nargs['energy_increment']=energy_increment # acceleration without change of reference momentum (e.g. compensation of energy loss)
-        super().__init__(**nargs)
-
-EnergyChange.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/energychange.h')]
-
-
