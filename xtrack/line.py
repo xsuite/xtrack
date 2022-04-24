@@ -18,9 +18,10 @@ log=logging.getLogger(__name__)
 
 def mk_class_namespace(extra_classes):
     try:
-       import xfields as xf
-       all_classes= element_classes + xf.element_classes + extra_classes
+        import xfields as xf
+        all_classes = element_classes + xf.element_classes + extra_classes
     except ImportError:
+        all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
 
     out=AttrDict()
