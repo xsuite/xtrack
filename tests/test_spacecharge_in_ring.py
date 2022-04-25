@@ -4,7 +4,6 @@ import numpy as np
 
 import xobjects as xo
 import xpart as xp
-xp.enable_pyheadtail_interface()
 import xtrack as xt
 import xfields as xf
 
