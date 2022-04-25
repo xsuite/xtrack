@@ -518,6 +518,7 @@ class Tracker:
             Particles_to_LocalParticle(particles, &lpart, part_id);
 
             int64_t isactive = check_is_active(&lpart);
+            crosscheck_at_element(&lpart, (int64_t)ele_start);
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
@@ -642,18 +643,10 @@ class Tracker:
         # Start position
         if particles.start_tracking_at_element >= 0:
             assert ele_start is None
-            assert _init_start is True
             ele_start = particles.start_tracking_at_element
+            particles.start_tracking_at_element = -1
         if isinstance(ele_start,str):
             ele_start = self.line.element_names.index(ele_start)
-        # Need to manually set particles starting positions, as we will
-        # skip tracking until ele_start.
-        # If in the future new features are added, making that a collective
-        # tracker can be part of another tracker, this needs an if switch
-        # (like in the non-collective case).
-        particles.start_tracking_at_element = -1
-        particles.at_element = ele_start
-        particles.s = self.line.get_s_position(ele_start)
 
         # ele_start can only have values of existing element id's,
         # but also allowed: all elements+1 (to perform end-turn actions)
@@ -688,7 +681,6 @@ class Tracker:
         assert ele_stop < self.num_elements
 
         assert num_turns >= 1
-        assert len(particles.state) > 0
 
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
 
@@ -749,27 +741,24 @@ class Tracker:
                         if tt == num_turns-1 and self._element_part[ele_stop] == ipp:
                             # The stop element is also in this part, so track until ele_stop
                             i_stop_in_part = self._element_index_in_part[ele_stop]
-                            pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part, _init_start=False)
+                            pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
                             stop_tracking = True
                         else:
                             # Track until end of part
-                            pp.track(particles, ele_start=i_start_in_part, _init_start=False)
+                            pp.track(particles, ele_start=i_start_in_part)
 
                 elif tt == num_turns-1 and self._element_part[ele_stop] == ipp:
                     # We are in the part that contains the stop element
                     i_stop_in_part = self._element_index_in_part[ele_stop]
                     if i_stop_in_part is not None:
                         # If not collective, track until ele_stop
-                        pp.track(particles, num_elements=i_stop_in_part, _init_start=False)
+                        pp.track(particles, num_elements=i_stop_in_part)
                     stop_tracking = True
 
                 else:
                     # We are in between the part that contains the start element,
                     # and the one that contains the stop element, so track normally
-                    if isinstance(pp, Tracker):
-                        pp.track(particles, _init_start=False)
-                    else:
-                        pp.track(particles)
+                    pp.track(particles)
 
                 if not isinstance(pp, Tracker) and not stop_tracking:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
@@ -801,7 +790,7 @@ class Tracker:
             # (use the supertracker to perform only end-turn actions)
             self._supertracker.track(particles,
                                ele_start=self._supertracker.num_elements,
-                               num_elements=0, _init_start=False)
+                               num_elements=0)
 
         self.record_last_track = monitor
 
@@ -813,28 +802,17 @@ class Tracker:
         ele_stop=None,     # defaults to full lattice
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
-        turn_by_turn_monitor=None,
-        _init_start=True
+        turn_by_turn_monitor=None
     ):
         # Start position
         if particles.start_tracking_at_element >= 0:
             if ele_start != 0:
                 raise ValueError("The argument ele_start is used, but particles.start_tracking_at_element is set as well. "
                                 + "Please use only one of those methods.")
-            if not _init_start:
-                raise Exception("The argument _init_start is an internal variable that should not be used by the user.")
             ele_start = particles.start_tracking_at_element
+            particles.start_tracking_at_element = -1
         if isinstance(ele_start,str):
             ele_start = self.line.element_names.index(ele_start)
-
-        if _init_start:
-            # Need to manually set particles starting positions
-            # However, if the tracker is called from within a deeper structure
-            # (e.g. inside another tracker), we don't want that as element indices are reset (so in that case
-            # _init_start should be set to False).
-            particles.start_tracking_at_element = -1
-            particles.at_element = ele_start
-            particles.s = self.line.get_s_position(ele_start)
 
         assert ele_start >= 0
         assert ele_start <= self.num_elements
@@ -903,8 +881,6 @@ class Tracker:
                     num_middle_turns = num_turns - 2
                     # Track the last turn until ele_stop
                     num_elements_last_turn = ele_stop
-
-        assert len(particles.state) > 0
 
         if self.skip_end_turn_actions:
             flag_end_first_turn_actions = False

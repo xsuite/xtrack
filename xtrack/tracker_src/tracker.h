@@ -28,6 +28,19 @@ void global_aperture_check(LocalParticle* part0){
 #endif
 
 /*gpufun*/
+void crosscheck_at_element(LocalParticle* part0, int64_t i_ele){
+
+   //start_per_particle_block (part0->part)
+        int64_t const part_ele = LocalParticle_get_at_element(part);
+        if (part_ele != i_ele){
+          LocalParticle_set_state(part, -555);
+        }
+   //end_per_particle_block
+
+
+}
+
+/*gpufun*/
 void increment_at_element(LocalParticle* part0){
 
    //start_per_particle_block (part0->part)
