@@ -7,8 +7,6 @@ import ducktrack as dtk
 
 from scipy.stats import linregress
 
-from xobjects.context import available
-
 def test_constructor():
 
     for ctx in xo.context.get_test_contexts():
@@ -110,8 +108,7 @@ def test_elens():
         assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
                           dtk_particle.py, rtol=1e-9, atol=1e-9)
 
-        
-        
+
 def test_wire():
 
     for ctx in xo.context.get_test_contexts():
@@ -151,8 +148,7 @@ def test_wire():
                           dtk_particle.px, rtol=1e-9, atol=1e-9)
         assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
                           dtk_particle.py, rtol=1e-9, atol=1e-9)
-        
-        
+
 def test_linked_arrays_in_multipole_and_rfmultipole():
 
     for ctx in xo.context.get_test_contexts():
