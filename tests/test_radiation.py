@@ -203,4 +203,4 @@ def test_ring_with_radiation():
                                 + tw['bety'][0]*nemitt_y/mad.sequence.ring.beam.gamma),
                         atol=0, rtol=1e-2)
 
-        assert np.isclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=1e-3)
+        assert np.isclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=5e-3)
