@@ -114,10 +114,11 @@ def _default_track(tracker, particles_init):
         expected_end_element = 0
 
         particles = particles_init.copy()
-        tracker.track(particles, num_turns=turns)
+        tracker.track(particles, num_turns=turns, turn_by_turn_monitor=True)
         check, end_turn, end_element, end_s = _get_at_turn_element(particles)
         assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                     and end_s==expected_end_element)
+        assert tracker.record_last_track.x.shape == (len(particles.x), turns)
 
 # Track, from any ele_start, until the end of the first, second, and tenth turn
 def _ele_start_until_end(tracker, particles_init):
