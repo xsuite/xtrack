@@ -72,7 +72,7 @@ print('Track a few turns...')
 n_turns = 10
 tracker.track(particles, num_turns=n_turns)
 
-for vv in ['psigma', 'delta', 'rpp', 'rvv', 'zeta']:
+for vv in ['ptau', 'delta', 'rpp', 'rvv', 'zeta']:
     vv_before = context.nparray_from_context_array(
                         getattr(particles_before_tracking, vv))
     vv_after= context.nparray_from_context_array(

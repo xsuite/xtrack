@@ -50,7 +50,6 @@ line.particle_ref = xp.Particles(
         gamma0=mad.sequence.ring.beam.gamma)
 
 context = xo.ContextCpu()
-#context = xo.ContextCpu()
 
 # Build tracker
 print('Build tracker ...')

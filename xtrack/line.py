@@ -81,7 +81,7 @@ class Line:
             for kk in self._var_management['data'].keys():
                 self._var_management['data'][kk].update(
                                             dct['_var_management_data'][kk])
-            manager.reload(dct['_var_manager'])
+            manager.load(dct['_var_manager'])
 
         return self
 
@@ -139,7 +139,8 @@ class Line:
         import xdeps as xd
 
         # Extract globals values from madx
-        _var_values=defaultdict(lambda :0)
+        _var_values = defaultdict(lambda :0)
+        _var_values.default_factory = None
 
         _ref_manager = manager=xd.Manager()
         _vref=manager.ref(_var_values,'vars')
@@ -202,7 +203,7 @@ class Line:
         self.tracker = None
 
     def build_tracker(self, **kwargs):
-        assert self.tracker is None, 'The line already has as associated tracker'
+        assert self.tracker is None, 'The line already has an associated tracker'
         import xtrack as xt # avoid circular import
         self.tracker = xt.Tracker(line=self, **kwargs)
         return self.tracker
@@ -316,6 +317,10 @@ class Line:
 
     def insert_element(self, index=None, element=None, name=None, at_s=None,
                        s_tol=1e-6):
+
+        if isinstance(index, str):
+            assert index in self.element_names
+            index = self.element_names.index(index)
 
         assert name is not None
         if element is None:

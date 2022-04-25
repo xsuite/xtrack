@@ -292,7 +292,7 @@ class Tracker:
         self.track=self._track_no_collective
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}):
+                          co_search_settings={}, delta_zeta=0):
 
         if particle_ref is None and particle_co_guess is None:
             particle_ref = self.particle_ref
@@ -308,7 +308,7 @@ class Tracker:
 
         return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
-                                 co_search_settings=co_search_settings)
+                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta)
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
@@ -406,7 +406,8 @@ class Tracker:
                 local_particle_src=self.local_particle_src,
             )
 
-    def get_backtracker(self, _context=None, _buffer=None):
+    def get_backtracker(self, _context=None, _buffer=None,
+                        global_xy_limit='from_tracker'):
 
         assert not self.iscollective
 
@@ -421,15 +422,23 @@ class Tracker:
             line.append_element(
                     ee.get_backtrack_element(_buffer=_buffer), nn)
 
+        if global_xy_limit == 'from_tracker':
+            global_xy_limit = self.global_xy_limit
+            track_kernel = self.track_kernel
+            element_classes = self.element_classes
+        else:
+            track_kernel = None
+            element_classes = None
+
         return self.__class__(
                     _buffer=_buffer,
                     line=line,
-                    track_kernel=self.track_kernel,
-                    element_classes=self.element_classes,
+                    track_kernel=track_kernel,
+                    element_classes=element_classes,
                     particles_class=self.particles_class,
                     skip_end_turn_actions=self.skip_end_turn_actions,
                     particles_monitor_class=self.particles_monitor_class,
-                    global_xy_limit=self.global_xy_limit,
+                    global_xy_limit=global_xy_limit,
                     local_particle_src=self.local_particle_src,
                 )
 
@@ -456,7 +465,8 @@ class Tracker:
         kernels = {}
         cdefs = []
 
-        sources.append(
+        if self.global_xy_limit is not None:
+            sources.append(
                 f"#define XTRACK_GLOBAL_POSLIMIT ({self.global_xy_limit})")
         sources.append(_pkg_root.joinpath("headers/constants.h"))
 
@@ -542,7 +552,9 @@ class Tracker:
             if ccnn == "Drift":
                 src_lines.append(
                     """
+                            #ifdef XTRACK_GLOBAL_POSLIMIT
                             global_aperture_check(&lpart);
+                            #endif
 
                             """
                 )

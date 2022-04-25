@@ -22,7 +22,7 @@ normemit_y = 25E-6
 sigma_z = 4.6E-2
 emit_z = 7.5E-3
 sigma_delta = emit_z/sigma_z/energy
-beta_s = sigma_z/sigma_delta # need to convert to sigma/psigma?
+beta_s = sigma_z/sigma_delta
 
 beta_x_IP1 = 10.0
 beta_y_IP1 = 10.0

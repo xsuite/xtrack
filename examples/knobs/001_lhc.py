@@ -70,6 +70,12 @@ print(tracker.vars['acbxh3.r1']._expr)
 #          +(3.769003853335184e-05*vars['on_ccpr1h']))
 #           +(1.197587664190056e-05*vars['on_ccmr1h']))
 
+# The list of variables cotrolling the selected variable can be found by:
+print(tracker.vars['acbxh3.r1']._expr._get_dependencies())
+# ---> returns {vars['on_ccpr1h'], vars['on_x1hs'], vars['on_x1hl'],
+#               vars['on_ccmr1h'], vars['on_sep1h'], vars['on_o1h'],
+#               vars['on_a1h']}
+
 # It is possible to get the list of all entities controlled by a given
 # variable by using the method `_find_dependant_targets`:
 tracker.vars['on_x1']._find_dependant_targets()
@@ -83,6 +89,34 @@ tracker.vars['on_x1']._find_dependant_targets()
 #          element_refs['mcbxfah.3l1'].knl[0],
 #          element_refs['mcbxfah.3l1'].knl,
 #            ...............
+
+# The _info() method can be used to get on overview of the information related
+# to a given variable:
+tracker.vars['acbxh3.r1']._info()
+# ---> prints:
+#          #  vars['acbxh3.r1']._get_value()
+#             vars['acbxh3.r1'] = 0.00010587001950271944
+#
+#          #  vars['acbxh3.r1']._expr
+#             vars['acbxh3.r1'] = (((((((-3.529000650090648e-07*vars['on_x1hs'])
+#                                 -(1.349958221397232e-07*vars['on_x1hl']))
+#                                 +(1.154711348310621e-05*vars['on_sep1h']))
+#                                 +(1.535247516521591e-05*vars['on_o1h']))
+#                                 -(9.919546388675102e-07*vars['on_a1h']))
+#                                 +(3.769003853335184e-05*vars['on_ccpr1h']))
+#                                 +(1.197587664190056e-05*vars['on_ccmr1h']))
+#
+#          #  vars['acbxh3.r1']._expr._get_dependencies()
+#             vars['on_x1hs'] = -300.0
+#             vars['on_a1h'] = -0.0
+#             vars['on_x1hl'] = -0.0
+#             vars['on_ccpr1h'] = 0.0
+#             vars['on_sep1h'] = -0.0
+#             vars['on_o1h'] = 0.0
+#             vars['on_ccmr1h'] = 0.0
+#
+#          #  vars['acbxh3.r1']._find_dependant_targets()
+#             element_refs['mcbxfah.3r1'].knl[0]
 
 #########################################################################
 # The Xtrack line including the related expressions can be saved in a   #

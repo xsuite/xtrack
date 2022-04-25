@@ -23,7 +23,7 @@ class ClosedOrbitSearchError(Exception):
     pass
 
 def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
-                      co_search_settings=None):
+                      co_search_settings=None, delta_zeta=0):
 
     if particle_co_guess is None:
         if particle_ref is None:
@@ -60,7 +60,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
         if shift_factor>0:
             log.warning('Need second attempt on closed orbit search')
         (res, infodict, ier, mesg
-            ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker),
+            ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker, delta_zeta),
                 x0=np.array([particle_co_guess._xobject.x[0] + shift_factor * 1e-5,
                             particle_co_guess._xobject.px[0] + shift_factor * 1e-7,
                             particle_co_guess._xobject.y[0] + shift_factor * 1e-5,
@@ -320,22 +320,24 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     py_co = tracker.record_last_track.py[4, :].copy()
     zeta_co = tracker.record_last_track.zeta[4, :].copy()
     delta_co = tracker.record_last_track.delta[4, :].copy()
-    psigma_co = tracker.record_last_track.psigma[4, :].copy()
+    ptau_co = tracker.record_last_track.ptau[4, :].copy()
 
     x_disp_minus = tracker.record_last_track.x[5, :].copy()
     y_disp_minus = tracker.record_last_track.y[5, :].copy()
     px_disp_minus = tracker.record_last_track.px[5, :].copy()
     py_disp_minus = tracker.record_last_track.py[5, :].copy()
+    delta_disp_minus = tracker.record_last_track.delta[5, :].copy()
 
     x_disp_plus = tracker.record_last_track.x[6, :].copy()
     y_disp_plus = tracker.record_last_track.y[6, :].copy()
     px_disp_plus = tracker.record_last_track.px[6, :].copy()
     py_disp_plus = tracker.record_last_track.py[6, :].copy()
+    delta_disp_plus = tracker.record_last_track.delta[6, :].copy()
 
-    dx = (x_disp_plus-x_disp_minus)/delta_disp/2
-    dy = (y_disp_plus-y_disp_minus)/delta_disp/2
-    dpx = (px_disp_plus-px_disp_minus)/delta_disp/2
-    dpy = (py_disp_plus-py_disp_minus)/delta_disp/2
+    dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
 
     W4 = np.zeros(shape=(4,4,len(s)), dtype=np.float64)
     W4[0, :, :] = (tracker.record_last_track.x[:4, :] - x_co) / scale_transverse_x
@@ -429,9 +431,8 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     T_rev = circumference/clight/beta0
 
     if eneloss_and_damping:
-        diff_psigma = np.diff(psigma_co)
-        energy0 = part_on_co.mass0 * part_on_co._xobject.gamma0[0]
-        eloss_turn = -(sum(diff_psigma[diff_psigma<0]) * energy0)
+        diff_ptau = np.diff(ptau_co)
+        eloss_turn = -sum(diff_ptau[diff_ptau<0]) * part_on_co._xobject.p0c[0]
 
         # Get eigenvalues
         w0, v0 = np.linalg.eig(RR)
@@ -442,6 +443,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         eigenvals = np.array([w0[ii*2] for ii in indx])
 
         # Damping constants and partition numbers
+        energy0 = part_on_co.mass0 * part_on_co._xobject.gamma0[0]
         damping_constants_turns = -np.log(np.abs(eigenvals))
         damping_constants_s = damping_constants_turns / T_rev
         partition_numbers = (
@@ -463,7 +465,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'py': py_co,
         'zeta': zeta_co,
         'delta': delta_co,
-        'psigma': psigma_co,
+        'ptau': ptau_co,
         'betx': betx,
         'bety': bety,
         'alfx': alfx,
@@ -516,13 +518,13 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     return twiss_res
 
-def _one_turn_map(p, particle_ref, tracker):
+def _one_turn_map(p, particle_ref, tracker, delta_zeta):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
     part.y = p[2]
     part.py = p[3]
-    part.zeta = p[4]
+    part.zeta = p[4] + delta_zeta
     part.delta = p[5]
 
     tracker.track(part)

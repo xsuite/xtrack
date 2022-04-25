@@ -174,7 +174,8 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
 
-    double const initial_energy = LocalParticle_get_energy0(part) + LocalParticle_get_psigma(part)*LocalParticle_get_p0c(part)*LocalParticle_get_beta0(part); // eV
+    double const initial_energy = LocalParticle_get_energy0(part)
+	                          + LocalParticle_get_ptau(part)*LocalParticle_get_p0c(part); // eV
     double energy = initial_energy;
     double gamma = energy / m0; //
     //double beta_gamma = sqrt(gamma*gamma-1); //

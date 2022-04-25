@@ -36,11 +36,13 @@ class LossLocationRefinement:
         # Build track kernel with all elements + polygon
         trk_gen = Tracker(_buffer=self.tracker._line_frozen._buffer,
                 line=Line(
-                    elements=self.tracker._line_frozen.elements + (temp_poly,)))
+                    elements=self.tracker._line_frozen.elements + (temp_poly,)),
+                    global_xy_limit=tracker.global_xy_limit)
         self._trk_gen = trk_gen
 
         if backtracker is None:
-            backtracker = self.tracker.get_backtracker(_context=self._context)
+            backtracker = self.tracker.get_backtracker(_context=self._context,
+                                                       global_xy_limit=None)
         self.backtracker = backtracker
 
         self.i_apertures, self.apertures = find_apertures(self.tracker)
@@ -161,15 +163,20 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                                          inplace=True):
 
     mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
+
     part_refine = xp.Particles(
                     p0c=particles.p0c[mask_part],
+                    mass0=particles.mass0,
+                    q0=particles.q0,
                     x=particles.x[mask_part],
                     px=particles.px[mask_part],
                     y=particles.y[mask_part],
                     py=particles.py[mask_part],
                     zeta=particles.zeta[mask_part],
                     delta=particles.delta[mask_part],
-                    s=particles.s[mask_part])
+                    s=particles.s[mask_part],
+                    chi=particles.chi[mask_part],
+                    charge_ratio=particles.charge_ratio[mask_part])
     n_backtrack = i_aper_1 - (i_start_thin_0+1)
     num_elements = len(backtracker.line.elements)
     i_start_backtrack = num_elements-i_aper_1
@@ -196,7 +203,7 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
             particles.zeta[mask_part] = part_refine.zeta[indx_sorted]
             particles.s[mask_part] = part_refine.s[indx_sorted]
             particles.delta[mask_part] = part_refine.delta[indx_sorted]
-            particles.psigma[mask_part] = part_refine.psigma[indx_sorted]
+            particles.ptau[mask_part] = part_refine.ptau[indx_sorted]
             particles.rvv[mask_part] = part_refine.rvv[indx_sorted]
             particles.rpp[mask_part] = part_refine.rpp[indx_sorted]
             particles.p0c[mask_part] = part_refine.p0c[indx_sorted]
@@ -336,7 +343,8 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
             line=Line(elements=ele_all),
             track_kernel=_trk_gen.track_kernel,
             element_classes=_trk_gen.element_classes,
-            reset_s_at_end_turn=0)
+            reset_s_at_end_turn=0,
+            global_xy_limit=_trk_gen.global_xy_limit)
 
     return interp_tracker
 

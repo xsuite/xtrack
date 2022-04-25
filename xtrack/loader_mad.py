@@ -30,6 +30,7 @@ def madx_sequence_to_xtrack_line(
 
         # Extract globals values from madx
         _var_values = line._var_management['data']['var_values']
+        _var_values.default_factory = lambda: 0
         for name,par in mad.globals.cmdpar.items():
             _var_values[name]=par.value
 
@@ -93,10 +94,14 @@ def madx_sequence_to_xtrack_line(
         elif mad_etype == "multipole":
             knl = ee.knl if hasattr(ee, "knl") else [0]
             ksl = ee.ksl if hasattr(ee, "ksl") else [0]
+            if hasattr(ee, 'angle') and ee.angle !=0:
+                hxl = ee.angle
+            else:
+                hxl = knl[0]
             newele = classes.Multipole(
                 knl=list(knl),
                 ksl=list(ksl),
-                hxl=knl[0],
+                hxl=hxl,
                 hyl=ksl[0],
                 length=ee.lrad,
             )
@@ -461,6 +466,9 @@ def madx_sequence_to_xtrack_line(
 
     if hasattr(seq, "length") and seq.length > old_pp:
         line.append_element(myDrift(length=(seq.length - old_pp)), f"drift_{i_drift}")
+
+    if deferred_expressions:
+        line._var_management['data']['var_values'].default_factory = None
 
     return line
 

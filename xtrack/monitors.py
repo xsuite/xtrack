@@ -12,6 +12,8 @@ def _monitor_init(
     _xobject=None,
     start_at_turn=None,
     stop_at_turn=None,
+    n_repetitions=None,
+    repetition_period=None,
     num_particles=None,
     particle_id_range=None,
     auto_to_numpy=True,
@@ -33,7 +35,18 @@ def _monitor_init(
         assert n_part_ids >= 0
 
         n_turns = int(stop_at_turn) - int(start_at_turn)
-        n_records = n_turns * n_part_ids
+
+        if repetition_period is not None:
+            assert n_repetitions is not None
+
+        if n_repetitions is not None:
+            assert repetition_period is not None
+
+        if repetition_period is None:
+            repetition_period = -1
+            n_repetitions = 1
+
+        n_records = n_turns * n_part_ids * n_repetitions
 
         data_init = {nn: n_records for tt, nn in
                         self._ParticlesClass._structure["per_particle_vars"]}
@@ -47,6 +60,8 @@ def _monitor_init(
             part_id_start=part_id_start,
             part_id_end=part_id_end,
             n_records=n_records,
+            n_repetitions=n_repetitions,
+            repetition_period=repetition_period,
             data=data_init,
         )
 
@@ -64,12 +79,19 @@ class _FieldOfMonitor:
 
     def __get__(self, container, ContainerType=None):
         vv = getattr(container.data, self.name)
-        n_cols = container.stop_at_turn - container.start_at_turn
-        n_rows = container.n_records // n_cols
         if container.auto_to_numpy:
             ctx = container._buffer.context
             vv = ctx.nparray_from_context_array(vv)
-        return vv.reshape(n_rows, n_cols)
+
+        n_cols = container.stop_at_turn - container.start_at_turn
+
+        if container.n_repetitions == 1:
+            n_rows = container.n_records // n_cols
+            return vv.reshape(n_rows, n_cols)
+        else:
+            n_rows = container.n_records // n_cols // container.n_repetitions
+            #return vv.reshape(container.n_repetitions, n_cols, n_rows)
+            return vv.reshape(container.n_repetitions, n_rows, n_cols)
 
 
 def generate_monitor_class(ParticlesClass):
@@ -84,6 +106,8 @@ def generate_monitor_class(ParticlesClass):
             'part_id_end': xo.Int64,
             'ebe_mode': xo.Int64,
             "n_records": xo.Int64,
+            "n_repetitions": xo.Int64,
+            "repetition_period": xo.Int64,
             "data": ParticlesClass.XoStruct,
         },
     )
