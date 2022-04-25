@@ -1,4 +1,3 @@
-from pathlib import Path
 import numpy as np
 import logging
 
@@ -168,6 +167,7 @@ class Tracker:
                     Drift(_buffer=_buffer, length=ldrift))
 
         # Build tracker for all non collective elements
+        # (with collective elements replaced by Drifts)
         supertracker = Tracker(_buffer=_buffer,
                 line=Line(elements=noncollective_xelements,
                           element_names=line.element_names),
@@ -632,32 +632,63 @@ class Tracker:
     def _track_with_collective(
         self,
         particles,
-        ele_start=None,
-        num_elements=None,
-        num_turns=1,
-        turn_by_turn_monitor=None,
+        ele_start=0,
+        ele_stop=None,     # defaults to full lattice
+        num_elements=None, # defaults to full lattice
+        num_turns=None,    # defaults to 1
+        turn_by_turn_monitor=None
     ):
 
+        # Start position
         if particles.start_tracking_at_element >= 0:
             assert ele_start is None
             ele_start = particles.start_tracking_at_element
             particles.start_tracking_at_element = -1
-        else:
-            if ele_start is None:
-                ele_start = 0
+        if isinstance(ele_start,str):
+            ele_start = self.line.element_names.index(ele_start)
 
+        # ele_start can only have values of existing element id's,
+        # but also allowed: all elements+1 (to perform end-turn actions)
         assert ele_start >= 0
         assert ele_start <= self.num_elements
 
-        assert num_elements is None
-        assert turn_by_turn_monitor != 'ONE_TURN_EBE'
+        # Stop position
+        if num_elements is not None:
+            # We are using ele_start and num_elements
+            if ele_stop is not None:
+                raise ValueError("Cannot use both num_elements and ele_stop!")
+            if num_turns is not None:
+                raise ValueError("Cannot use both num_elements and num_turns!")
+            num_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
+            num_turns += 1
 
+        else:
+            # We are using ele_start, ele_stop, and num_turns
+            if num_turns is None:
+                num_turns = 1
+            else:
+                assert num_turns > 0
+            if ele_stop is None:
+                ele_stop = 0
+            if isinstance(ele_stop,str):
+                ele_stop = self.line.element_names.index(ele_stop)
+            # If ele_stop comes before ele_start, we need to add a turn for overflow
+            if ele_stop <= ele_start:
+                num_turns += 1
+
+        assert ele_stop >= 0
+        assert ele_stop < self.num_elements
+
+        assert num_turns >= 1
+
+        assert turn_by_turn_monitor != 'ONE_TURN_EBE'
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
-        for tt in range(num_turns):
+        stop_tracking = False
 
+        for tt in range(num_turns):
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
 
@@ -694,21 +725,41 @@ class Tracker:
                     particles.hide_lost_particles()
 
                 # Track!
-                if (tt == 0 and ele_start > 0): # handle delayed start
-                    if ipp < self._element_part[ele_start]:
-                        continue
-                    if self._element_part[ele_start] == ipp:
-                        ii_in_part = self._element_index_in_part[ele_start]
-                        if ii_in_part is None:
-                            pp.track(particles)
-                        else:
-                            pp.track(particles, ele_start=ii_in_part)
-                    if ipp > self._element_part[ele_start]:
+                if tt == 0 and ipp < self._element_part[ele_start]:
+                    # Do not track before ele_start in the first turn
+                    continue
+
+                elif tt == 0 and self._element_part[ele_start] == ipp:
+                    # We are in the part that contains the start element
+                    i_start_in_part = self._element_index_in_part[ele_start]
+                    if i_start_in_part is None:
+                        # The start part is collective
                         pp.track(particles)
-                else: # not in first turn or no delayed start
+                    else:
+                        # The start part is a non-collective tracker
+                        if tt == num_turns-1 and self._element_part[ele_stop] == ipp:
+                            # The stop element is also in this part, so track until ele_stop
+                            i_stop_in_part = self._element_index_in_part[ele_stop]
+                            pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
+                            stop_tracking = True
+                        else:
+                            # Track until end of part
+                            pp.track(particles, ele_start=i_start_in_part)
+
+                elif tt == num_turns-1 and self._element_part[ele_stop] == ipp:
+                    # We are in the part that contains the stop element
+                    i_stop_in_part = self._element_index_in_part[ele_stop]
+                    if i_stop_in_part is not None:
+                        # If not collective, track until ele_stop
+                        pp.track(particles, num_elements=i_stop_in_part)
+                    stop_tracking = True
+
+                else:
+                    # We are in between the part that contains the start element,
+                    # and the one that contains the stop element, so track normally
                     pp.track(particles)
 
-                if not isinstance(pp, Tracker):
+                if not isinstance(pp, Tracker) and not stop_tracking:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
                         if not hasattr(self, '_zerodrift_cpu'):
                             self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
@@ -720,8 +771,19 @@ class Tracker:
                     particles.unhide_lost_particles()
 
                 if _need_clean_active_lost_state:
-                    particles._num_active_particle = -1
+                    particles._num_active_particles = -1
                     particles._num_lost_particles = -1
+
+                if particles._num_active_particles == 0 or len(particles.state) == 0:
+                    stop_tracking = True
+
+                # Break from loop over parts if all are lost or if stop element reached
+                if stop_tracking:
+                    break
+
+            # Break from loop over turns if all particles are lost or if stop element reached
+            if stop_tracking:
+                break
 
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)
@@ -735,37 +797,97 @@ class Tracker:
     def _track_no_collective(
         self,
         particles,
-        ele_start=None,
-        num_elements=None,
-        num_turns=1,
-        turn_by_turn_monitor=None,
+        ele_start=0,
+        ele_stop=None,     # defaults to full lattice
+        num_elements=None, # defaults to full lattice
+        num_turns=None,    # defaults to 1
+        turn_by_turn_monitor=None
     ):
-
-        if particles.start_tracking_at_element >=0:
-            assert ele_start is None
+        # Start position
+        if particles.start_tracking_at_element >= 0:
+            if ele_start != 0:
+                raise ValueError("The argument ele_start is used, but particles.start_tracking_at_element is set as well. "
+                                + "Please use only one of those methods.")
             ele_start = particles.start_tracking_at_element
             particles.start_tracking_at_element = -1
-        else:
-            if ele_start is None:
-                ele_start = 0
+        if isinstance(ele_start,str):
+            ele_start = self.line.element_names.index(ele_start)
 
         assert ele_start >= 0
         assert ele_start <= self.num_elements
 
-        if num_turns > 1:
-            assert num_elements is None
+        # Logic to split the tracking turns:
+        # Case 1: 0 <= start < stop <= L
+        #      Track first turn from start until stop (with num_elements_first_turn=stop-start)
+        # Case 2: 0 <= start < L < stop < 2L
+        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
+        #      Track last turn from 0 until stop      (with num_elements_last_turn=stop)
+        # Case 3: 0 <= start < L < stop=nL
+        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
+        #      Track middle turns from 0 until (n-1)L (with num_middle_turns=n-1)
+        # Case 4: 0 <= start < L < nL < stop
+        #      Track first turn from start until L    (with num_elements_first_turn=L-start)
+        #      Track middle turns from 0 until (n-1)L (with num_middle_turns=n-1)
+        #      Track last turn from 0 until stop      (with num_elements_last_turn=stop)
+        
+        num_middle_turns = 0
+        num_elements_last_turn = 0
 
-        if num_elements is None:
-            # get to the end of the turn
-            num_elements = self.num_elements - ele_start
+        if num_elements is not None:
+            # We are using ele_start and num_elements
+            assert num_elements >= 0
+            if ele_stop is not None:
+                raise ValueError("Cannot use both num_elements and ele_stop!")
+            if num_turns is not None:
+                raise ValueError("Cannot use both num_elements and num_turns!")
+            if num_elements + ele_start <= self.num_elements:
+                # Track only the first (potentially partial) turn
+                num_elements_first_turn = num_elements
+            else:
+                # Track the first turn until the end of the lattice
+                num_elements_first_turn = self.num_elements - ele_start
+                # Middle turns and potential last turn
+                num_middle_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
+                num_elements_last_turn = ele_stop
+                num_middle_turns -= 1              
 
-        assert num_elements + ele_start <= self.num_elements
+        else:
+            # We are using ele_start, ele_stop, and num_turns
+            if num_turns is None:
+                num_turns = 1
+            else:
+                assert num_turns > 0
+            if ele_stop is None:
+                # Track the first turn until the end of the lattice
+                # (last turn is also a full cycle, so will be treated as a middle turn)
+                num_elements_first_turn = self.num_elements - ele_start
+                num_middle_turns = num_turns - 1
+            else:
+                if isinstance(ele_stop, str):
+                    ele_stop = self.line.element_names.index(ele_stop)
+                assert ele_stop >= 0
+                assert ele_stop < self.num_elements
+                if ele_stop <= ele_start:
+                    # Correct for overflow:
+                    num_turns += 1
+                if num_turns == 1:
+                    # Track only the first partial turn
+                    num_elements_first_turn = ele_stop - ele_start
+                else:
+                    # Track the first turn until the end of the lattice
+                    num_elements_first_turn = self.num_elements - ele_start
+                    # Track the middle turns
+                    num_middle_turns = num_turns - 2
+                    # Track the last turn until ele_stop
+                    num_elements_last_turn = ele_stop
 
         if self.skip_end_turn_actions:
-            flag_end_turn_actions=False
+            flag_end_first_turn_actions = False
+            flag_end_middle_turn_actions = False
         else:
-            flag_end_turn_actions = (
-                    num_elements + ele_start == self.num_elements)
+            flag_end_first_turn_actions = (
+                    num_elements_first_turn + ele_start == self.num_elements)
+            flag_end_middle_turn_actions = True
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
@@ -775,33 +897,50 @@ class Tracker:
 
         self.track_kernel.description.n_threads = particles._capacity
 
-        if ele_start > 0 or num_elements < self.num_elements: # Handle first partial turn
+        # First turn
+        self.track_kernel(
+            buffer=self._line_frozen._buffer.buffer,
+            ele_offsets=self.ele_offsets_dev,
+            ele_typeids=self.ele_typeids_dev,
+            particles=particles._xobject,
+            num_turns=1,
+            ele_start=ele_start,
+            num_ele_track=num_elements_first_turn,
+            flag_end_turn_actions=flag_end_first_turn_actions,
+            flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
+            flag_monitor=flag_monitor,
+            buffer_tbt_monitor=buffer_monitor,
+            offset_tbt_monitor=offset_monitor,
+        )
+
+        # Middle turns
+        if num_middle_turns > 0:
+            self.track_kernel(
+                buffer=self._line_frozen._buffer.buffer,
+                ele_offsets=self.ele_offsets_dev,
+                ele_typeids=self.ele_typeids_dev,
+                particles=particles._xobject,
+                num_turns=num_middle_turns,
+                ele_start=0, # always full turn
+                num_ele_track=self.num_elements, # always full turn
+                flag_end_turn_actions=flag_end_middle_turn_actions,
+                flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
+                flag_monitor=flag_monitor,
+                buffer_tbt_monitor=buffer_monitor,
+                offset_tbt_monitor=offset_monitor,
+            )
+
+        # Last turn, only if incomplete
+        if num_elements_last_turn > 0:
             self.track_kernel(
                 buffer=self._line_frozen._buffer.buffer,
                 ele_offsets=self.ele_offsets_dev,
                 ele_typeids=self.ele_typeids_dev,
                 particles=particles._xobject,
                 num_turns=1,
-                ele_start=ele_start,
-                num_ele_track=num_elements,
-                flag_end_turn_actions=flag_end_turn_actions,
-                flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
-                flag_monitor=flag_monitor,
-                buffer_tbt_monitor=buffer_monitor,
-                offset_tbt_monitor=offset_monitor,
-            )
-            num_turns -= 1
-
-        if num_turns > 0:
-            self.track_kernel(
-                buffer=self._line_frozen._buffer.buffer,
-                ele_offsets=self.ele_offsets_dev,
-                ele_typeids=self.ele_typeids_dev,
-                particles=particles._xobject,
-                num_turns=num_turns,
-                ele_start=0, # always full turn
-                num_ele_track=self.num_elements, # always full turn
-                flag_end_turn_actions=flag_end_turn_actions,
+                ele_start=0,
+                num_ele_track=num_elements_last_turn,
+                flag_end_turn_actions=False,
                 flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
                 flag_monitor=flag_monitor,
                 buffer_tbt_monitor=buffer_monitor,

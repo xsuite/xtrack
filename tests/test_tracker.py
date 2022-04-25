@@ -3,6 +3,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
+
 def test_ebe_monitor():
 
     for context in xo.context.get_test_contexts():
@@ -61,3 +62,169 @@ def test_cycle():
                 assert ctracker.line.elements[1] is r0
                 assert ctracker.line.elements[2] is d0
                 assert ctracker.line.elements[3] is c0
+
+def test_partial_tracking():
+    
+    n_elem = 9
+    elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
+    line = xt.Line(elements=elements)
+    tracker = line.build_tracker()
+    assert not tracker.iscollective
+    particles_init = xp.Particles(x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
+                                zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
+                                at_turn=0, at_element=0)
+
+    _default_track(tracker, particles_init)
+    _ele_start_until_end(tracker, particles_init)
+    _ele_start_with_shift(tracker, particles_init)
+    _ele_start_with_shift_more_turns(tracker, particles_init)
+    _ele_stop_from_start(tracker, particles_init)
+    _ele_start_to_ele_stop(tracker, particles_init)
+    _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
+
+
+def test_partial_tracking_with_collective():
+    n_elem = 9
+    elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
+    # Make some elements collective
+    elements[3].iscollective = True
+    elements[7].iscollective = True
+    line = xt.Line(elements=elements)
+    tracker = line.build_tracker()
+    assert tracker.iscollective
+    assert len(tracker._parts) == 5
+    particles_init = xp.Particles(x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
+                                zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
+                                at_turn=0, at_element=0)
+
+    _default_track(tracker, particles_init)
+    _ele_start_until_end(tracker, particles_init)
+    _ele_start_with_shift(tracker, particles_init)
+    _ele_start_with_shift_more_turns(tracker, particles_init)
+    _ele_stop_from_start(tracker, particles_init)
+    _ele_start_to_ele_stop(tracker, particles_init)
+    _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
+
+
+# Track, from any ele_start, until the end of the first, second, and tenth turn
+def _default_track(tracker, particles_init):
+    n_elem = len(tracker.line.element_names)
+    for turns in [1, 2, 10]:
+        expected_end_turn = turns
+        expected_end_element = 0
+
+        particles = particles_init.copy()
+        tracker.track(particles, num_turns=turns)
+        check, end_turn, end_element, end_s = _get_at_turn_element(particles)
+        assert (check and end_turn==expected_end_turn and end_element==expected_end_element
+                    and end_s==expected_end_element)
+
+# Track, from any ele_start, until the end of the first, second, and tenth turn
+def _ele_start_until_end(tracker, particles_init):
+    n_elem = len(tracker.line.element_names)
+    for turns in [1, 2, 10]:
+        for start in range(n_elem):
+            expected_end_turn = turns
+            expected_end_element = 0
+
+            particles = particles_init.copy()
+            particles.at_element = start
+            particles.s = start
+            tracker.track(particles, num_turns=turns, ele_start=start)
+            check, end_turn, end_element, end_s = _get_at_turn_element(particles)
+            assert (check and end_turn==expected_end_turn and end_element==expected_end_element
+                        and end_s==expected_end_element)
+
+# Track, from any ele_start, any shifts that stay within the first turn
+def _ele_start_with_shift(tracker, particles_init):
+    n_elem = len(tracker.line.element_names)
+    for start in range(n_elem):
+        for shift in range(1,n_elem-start):
+            expected_end_turn = 0
+            expected_end_element = start+shift
+
+            particles = particles_init.copy()
+            particles.at_element = start
+            particles.s = start
+            tracker.track(particles, ele_start=start, num_elements=shift)
+            check, end_turn, end_element, end_s = _get_at_turn_element(particles)
+            assert (check and end_turn==expected_end_turn and end_element==expected_end_element
+                        and end_s==expected_end_element)
+
+# Track, from any ele_start, any shifts that are larger than one turn (up to 3 turns)
+def _ele_start_with_shift_more_turns(tracker, particles_init):
+    n_elem = len(tracker.line.element_names)
+    for start in range(n_elem):
+        for shift in range(n_elem-start, 3*n_elem+1):
+            expected_end_turn = round(np.floor( (start+shift)/n_elem ))
+            expected_end_element = start + shift - n_elem*expected_end_turn
+
+            particles = particles_init.copy()
+            particles.at_element = start
+            particles.s = start
+            tracker.track(particles, ele_start=start, num_elements=shift)
+            check, end_turn, end_element, end_s = _get_at_turn_element(particles)
+            assert (check and end_turn==expected_end_turn and end_element==expected_end_element
+                        and end_s==expected_end_element)
+
+# Track from the start until any ele_stop in the first, second, and tenth turn
+def _ele_stop_from_start(tracker, particles_init):
+    n_elem = len(tracker.line.element_names)
+    for turns in [1, 2, 10]:
+        for stop in range(1, n_elem):
+            expected_end_turn = turns-1
+            expected_end_element = stop
+
+            particles = particles_init.copy()
+            tracker.track(particles, num_turns=turns, ele_stop=stop)
+            check, end_turn, end_element, end_s = _get_at_turn_element(particles)
+            assert (check and end_turn==expected_end_turn and end_element==expected_end_element
+                        and end_s==expected_end_element)
+
+# Track from any ele_start until any ele_stop that is larger than ele_start (so no overflow)
+# for one, two, and ten turns
+def _ele_start_to_ele_stop(tracker, particles_init): 
+    n_elem = len(tracker.line.element_names)
+    for turns in [1, 2, 10]:
+        for start in range(n_elem):
+            for stop in range(start+1,n_elem):
+                expected_end_turn = turns-1
+                expected_end_element = stop
+
+                particles = particles_init.copy()
+                particles.at_element = start
+                particles.s = start
+                tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop)
+                check, end_turn, end_element, end_s = _get_at_turn_element(particles)
+                assert (check and end_turn==expected_end_turn and end_element==expected_end_element
+                            and end_s==expected_end_element)
+
+# Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn overflow)
+# for one, two, and ten turns
+def _ele_start_to_ele_stop_with_overflow(tracker, particles_init):
+    n_elem = len(tracker.line.element_names)
+    for turns in [1, 2, 10]:
+        for start in range(n_elem):
+            for stop in range(start+1):
+                expected_end_turn = turns
+                expected_end_element = stop
+
+                particles = particles_init.copy()
+                particles.at_element = start
+                particles.s = start
+                tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop)
+                check, end_turn, end_element, end_s = _get_at_turn_element(particles)
+                assert (check and end_turn==expected_end_turn and end_element==expected_end_element
+                            and end_s==expected_end_element)
+
+
+# Quick helper function to:
+#   1) check that all survived particles are at the same element and turn
+#   2) return that element and turn
+def _get_at_turn_element(particles):
+    at_element = np.unique(particles.at_element[particles.state>0])
+    at_turn = np.unique(particles.at_turn[particles.state>0])
+    at_s = np.unique(particles.s[particles.state>0])
+    all_together = len(at_turn)==1 and len(at_element)==1 and len(at_s)==1
+    return all_together, at_turn[0], at_element[0], at_s[0]
+
