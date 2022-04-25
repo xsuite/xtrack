@@ -190,6 +190,9 @@ def test_ring_with_radiation():
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
                 tracker=tracker)
 
+        assert pgen._buffer.context is context
+        pgen._move_to(_context=xo.ContextCpu())
+
         assert np.isclose(np.std(pgen.x),
                         np.sqrt(tw['dx'][0]**2*np.std(pgen.delta)**2
                                 + tw['betx'][0]*nemitt_x/mad.sequence.ring.beam.gamma),
