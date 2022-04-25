@@ -176,3 +176,28 @@ def test_ring_with_radiation():
             )
 
         assert np.all(mon.y[:] < 1e-15)
+
+        # Test particles generation (with electrons)
+        bunch_intensity = 1e11
+        sigma_z = 5e-3
+        n_part = int(5e5)
+        nemitt_x = 0.5e-6
+        nemitt_y = 0.5e-6
+
+        tracker.configure_radiation(mode='mean')
+        pgen = xp.generate_matched_gaussian_bunch(
+                num_particles=n_part, total_intensity_particles=bunch_intensity,
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+                tracker=tracker)
+
+        assert np.isclose(np.std(pgen.x),
+                        np.sqrt(tw['dx'][0]**2*np.std(pgen.delta)**2
+                                + tw['betx'][0]*nemitt_x/mad.sequence.ring.beam.gamma),
+                        atol=0, rtol=1e-2)
+
+        assert np.isclose(np.std(pgen.y),
+                        np.sqrt(tw['dy'][0]**2*np.std(pgen.delta)**2
+                                + tw['bety'][0]*nemitt_y/mad.sequence.ring.beam.gamma),
+                        atol=0, rtol=1e-2)
+
+        assert np.isclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=1e-3)
