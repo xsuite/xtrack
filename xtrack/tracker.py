@@ -641,7 +641,9 @@ class Tracker:
 
         # Start position
         if particles.start_tracking_at_element >= 0:
-            assert ele_start is None
+            if ele_start != 0:
+                raise ValueError("The argument ele_start is used, but particles.start_tracking_at_element is set as well. "
+                                + "Please use only one of those methods.")
             ele_start = particles.start_tracking_at_element
             particles.start_tracking_at_element = -1
         if isinstance(ele_start,str):
@@ -829,7 +831,7 @@ class Tracker:
         #      Track first turn from start until L    (with num_elements_first_turn=L-start)
         #      Track middle turns from 0 until (n-1)L (with num_middle_turns=n-1)
         #      Track last turn from 0 until stop      (with num_elements_last_turn=stop)
-        
+
         num_middle_turns = 0
         num_elements_last_turn = 0
 
