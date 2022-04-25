@@ -84,7 +84,6 @@ def test_mad_element_import():
     mad.use('testseq')
 
     seq = mad.sequence['testseq']
-<<<<<<< HEAD
 
     for test_expressions in [True, False]:
         line = xt.Line.from_madx_sequence(sequence=seq,
