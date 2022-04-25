@@ -398,9 +398,8 @@ def madx_sequence_to_xtrack_line(
                 for m1_i in range(6):
                     for m1_j in range(6):
                         att_name = f'rm{m1_i+1}{m1_j+1}'
-                        if hasattr(ee,att_name) and getattr(eepar, att_name).expr is not None:
-                            # The array is flattened at instantiation of the element
-                            _lref[eename].m1[6*m1_i+m1_j]= madeval(getattr(eepar, att_name).expr)
+                        if hasattr(ee,att_name) and eval(f'eepar.{att_name}.expr') is not None:
+                            _lref[eename].m1[m1_i,m1_j]= madeval(getattr(eepar, att_name).expr)
 
 
         else:
