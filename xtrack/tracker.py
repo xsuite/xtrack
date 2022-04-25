@@ -851,7 +851,7 @@ class Tracker:
                 # Middle turns and potential last turn
                 num_middle_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
                 num_elements_last_turn = ele_stop
-                num_middle_turns -= 1              
+                num_middle_turns -= 1
 
         else:
             # We are using ele_start, ele_stop, and num_turns

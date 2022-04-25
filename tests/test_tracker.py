@@ -64,7 +64,7 @@ def test_cycle():
                 assert ctracker.line.elements[3] is c0
 
 def test_partial_tracking():
-    
+
     n_elem = 9
     elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
     line = xt.Line(elements=elements)
@@ -183,7 +183,7 @@ def _ele_stop_from_start(tracker, particles_init):
 
 # Track from any ele_start until any ele_stop that is larger than ele_start (so no overflow)
 # for one, two, and ten turns
-def _ele_start_to_ele_stop(tracker, particles_init): 
+def _ele_start_to_ele_stop(tracker, particles_init):
     n_elem = len(tracker.line.element_names)
     for turns in [1, 2, 10]:
         for start in range(n_elem):
