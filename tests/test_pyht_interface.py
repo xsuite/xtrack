@@ -253,5 +253,8 @@ def test_instability_cpu_gpu():
         print(f'{gr_pyht=}, {gr_xtpyht=} {gr_pyht-gr_xtpyht=}')
         assert np.isclose(gr_xtpyht, gr_pyht, rtol=1e-3, atol=1e-100)
 
+    xp.disable_pyheadtail_interface() # would stay enabled for following tests
+                                      # called by pytest
+
 
 
