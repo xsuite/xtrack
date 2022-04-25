@@ -518,7 +518,6 @@ class Tracker:
             Particles_to_LocalParticle(particles, &lpart, part_id);
 
             int64_t isactive = check_is_active(&lpart);
-            crosscheck_at_element(&lpart, (int64_t)ele_start);
 
             for (int64_t iturn=0; iturn<num_turns; iturn++){
 
