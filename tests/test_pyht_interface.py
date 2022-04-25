@@ -255,6 +255,3 @@ def test_instability_cpu_gpu():
 
     xp.disable_pyheadtail_interface() # would stay enabled for following tests
                                       # called by pytest
-
-
-
