@@ -112,13 +112,14 @@ def _default_track(tracker, particles_init):
     for turns in [1, 2, 10]:
         expected_end_turn = turns
         expected_end_element = 0
+        expected_monitor = 0 if expected_end_turn==0 else len(particles_init.x)  # No monitor recorded if no end turn
 
         particles = particles_init.copy()
         tracker.track(particles, num_turns=turns, turn_by_turn_monitor=True)
         check, end_turn, end_element, end_s = _get_at_turn_element(particles)
         assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                     and end_s==expected_end_element)
-        assert tracker.record_last_track.x.shape == (len(particles.x), turns)
+        assert tracker.record_last_track.x.shape == (len(particles.x), expected_end_turn)
 
 # Track, from any ele_start, until the end of the first, second, and tenth turn
 def _ele_start_until_end(tracker, particles_init):
@@ -127,14 +128,16 @@ def _ele_start_until_end(tracker, particles_init):
         for start in range(n_elem):
             expected_end_turn = turns
             expected_end_element = 0
+            expected_monitor = 0 if expected_end_turn==0 else len(particles_init.x)  # No monitor recorded if no end turn
 
             particles = particles_init.copy()
             particles.at_element = start
             particles.s = start
-            tracker.track(particles, num_turns=turns, ele_start=start)
+            tracker.track(particles, num_turns=turns, ele_start=start, turn_by_turn_monitor=True)
             check, end_turn, end_element, end_s = _get_at_turn_element(particles)
             assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                         and end_s==expected_end_element)
+            assert tracker.record_last_track.x.shape==(expected_monitor, expected_end_turn)
 
 # Track, from any ele_start, any shifts that stay within the first turn
 def _ele_start_with_shift(tracker, particles_init):
@@ -143,14 +146,16 @@ def _ele_start_with_shift(tracker, particles_init):
         for shift in range(1,n_elem-start):
             expected_end_turn = 0
             expected_end_element = start+shift
+            expected_monitor = 0 if expected_end_turn==0 else len(particles_init.x)  # No monitor recorded if no end turn
 
             particles = particles_init.copy()
             particles.at_element = start
             particles.s = start
-            tracker.track(particles, ele_start=start, num_elements=shift)
+            tracker.track(particles, ele_start=start, num_elements=shift, turn_by_turn_monitor=True)
             check, end_turn, end_element, end_s = _get_at_turn_element(particles)
             assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                         and end_s==expected_end_element)
+            assert tracker.record_last_track.x.shape==(expected_monitor, expected_end_turn)
 
 # Track, from any ele_start, any shifts that are larger than one turn (up to 3 turns)
 def _ele_start_with_shift_more_turns(tracker, particles_init):
@@ -159,14 +164,16 @@ def _ele_start_with_shift_more_turns(tracker, particles_init):
         for shift in range(n_elem-start, 3*n_elem+1):
             expected_end_turn = round(np.floor( (start+shift)/n_elem ))
             expected_end_element = start + shift - n_elem*expected_end_turn
+            expected_monitor = 0 if expected_end_turn==0 else len(particles_init.x)  # No monitor recorded if no end turn
 
             particles = particles_init.copy()
             particles.at_element = start
             particles.s = start
-            tracker.track(particles, ele_start=start, num_elements=shift)
+            tracker.track(particles, ele_start=start, num_elements=shift, turn_by_turn_monitor=True)
             check, end_turn, end_element, end_s = _get_at_turn_element(particles)
             assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                         and end_s==expected_end_element)
+            assert tracker.record_last_track.x.shape==(expected_monitor, expected_end_turn)
 
 # Track from the start until any ele_stop in the first, second, and tenth turn
 def _ele_stop_from_start(tracker, particles_init):
@@ -175,12 +182,14 @@ def _ele_stop_from_start(tracker, particles_init):
         for stop in range(1, n_elem):
             expected_end_turn = turns-1
             expected_end_element = stop
+            expected_monitor = 0 if expected_end_turn==0 else len(particles_init.x)  # No monitor recorded if no end turn
 
             particles = particles_init.copy()
-            tracker.track(particles, num_turns=turns, ele_stop=stop)
+            tracker.track(particles, num_turns=turns, ele_stop=stop, turn_by_turn_monitor=True)
             check, end_turn, end_element, end_s = _get_at_turn_element(particles)
             assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                         and end_s==expected_end_element)
+            assert tracker.record_last_track.x.shape==(expected_monitor, expected_end_turn)
 
 # Track from any ele_start until any ele_stop that is larger than ele_start (so no overflow)
 # for one, two, and ten turns
@@ -191,14 +200,16 @@ def _ele_start_to_ele_stop(tracker, particles_init):
             for stop in range(start+1,n_elem):
                 expected_end_turn = turns-1
                 expected_end_element = stop
+                expected_monitor = 0 if expected_end_turn==0 else len(particles_init.x)  # No monitor recorded if no end turn
 
                 particles = particles_init.copy()
                 particles.at_element = start
                 particles.s = start
-                tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop)
+                tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop, turn_by_turn_monitor=True)
                 check, end_turn, end_element, end_s = _get_at_turn_element(particles)
                 assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                             and end_s==expected_end_element)
+                assert tracker.record_last_track.x.shape==(expected_monitor, expected_end_turn)
 
 # Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn overflow)
 # for one, two, and ten turns
@@ -209,14 +220,16 @@ def _ele_start_to_ele_stop_with_overflow(tracker, particles_init):
             for stop in range(start+1):
                 expected_end_turn = turns
                 expected_end_element = stop
+                expected_monitor = 0 if expected_end_turn==0 else len(particles_init.x)  # No monitor recorded if no end turn
 
                 particles = particles_init.copy()
                 particles.at_element = start
                 particles.s = start
-                tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop)
+                tracker.track(particles, num_turns=turns, ele_start=start, ele_stop=stop, turn_by_turn_monitor=True)
                 check, end_turn, end_element, end_s = _get_at_turn_element(particles)
                 assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                             and end_s==expected_end_element)
+                assert tracker.record_last_track.x.shape==(expected_monitor, expected_end_turn)
 
 
 # Quick helper function to:
