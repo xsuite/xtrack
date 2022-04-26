@@ -685,8 +685,13 @@ class Tracker:
 
         assert turn_by_turn_monitor != 'ONE_TURN_EBE'
 
+        if ele_stop == 0:
+            monitor_turns = num_turns - 1
+        else:
+            monitor_turns = num_turns
+
         (flag_monitor, monitor, buffer_monitor, offset_monitor
-             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns-1)
+             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
 
         stop_tracking = False
 
@@ -891,11 +896,13 @@ class Tracker:
                     num_elements_first_turn + ele_start == self.num_elements)
             flag_end_middle_turn_actions = True
 
-        # Do not add use monitor if less than one turn
-        if num_elements_first_turn + ele_start != self.num_elements:
-            monitor_turns = 0
+        if num_elements_last_turn > 0:
+            # One monitor record for the initial turn, num_middle_turns records for the middle turns,
+            # and one for the last turn
+            monitor_turns = num_middle_turns + 2
         else:
-            monitor_turns = num_middle_turns+1
+            # One monitor record for the initial turn, and num_middle_turns record for the middle turns
+            monitor_turns = num_middle_turns + 1
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
