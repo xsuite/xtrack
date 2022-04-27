@@ -98,11 +98,16 @@ def _expand_struct(sixinput, convert):
                 ksl[0] = hyl
             elem = Multipole(knl=knl, ksl=ksl, hxl=hxl, hyl=hyl, length=length)
         elif etype == 12:
-            e0=sixinput.initialconditions[-1]
+            e0=sixinput.e0
+            # Use proton mass from SYNC (pma) instead of that from SIMU (m0c2), as the settings
+            # in SYNC will have been calculated based on pma (in case the two are different)
             p0c=np.sqrt(e0**2-sixinput.pma**2)
             beta0=p0c/e0
             v = d1 * 1e6
-            freq = d2 * clight * beta0 / sixinput.tlen
+            if d2 != 0:
+                freq = d2 * clight * beta0 / sixinput.tlen
+            else:
+                freq = sixinput.harm * clight * beta0 / sixinput.tlen
             #print(v,freq)
             elem = Cavity(voltage=v, frequency=freq, lag=180 - d3)
         elif etype == 20:
@@ -111,7 +116,7 @@ def _expand_struct(sixinput, convert):
             if hasattr(thisbb, "sigma_x"):
                 from scipy.constants import e as qe
                 dct['n_particles'] = thisbb.charge/qe # ducktrack has it in coulumb
-                dct['q0'] = qe # TODO change implementation
+                dct['q0'] = sixinput.q0 # TODO change implementation
                 dct['beta0'] = thisbb.beta_r
                 dct['mean_x'] = thisbb.x_bb
                 dct['mean_y'] = thisbb.y_bb
@@ -129,7 +134,7 @@ def _expand_struct(sixinput, convert):
             voltage_V = d1 *1e6
             freq_Hz = d2 * 1e6
             phase_rad = d3
-            p0c_eV = sixinput.initialconditions[12]*1e6
+            p0c_eV = np.sqrt(sixinput.e0**2 - sixinput.m0c2**2)*1e6
             elem = RFMultipole(
                 frequency = freq_Hz,
                 knl= [voltage_V / p0c_eV],
@@ -139,7 +144,7 @@ def _expand_struct(sixinput, convert):
             voltage_V = d1 *1e6
             freq_Hz = d2 * 1e6
             phase_rad = d3
-            p0c_eV = sixinput.initialconditions[12]*1e6
+            p0c_eV = np.sqrt(sixinput.e0**2 - sixinput.m0c2**2)*1e6
             print(nnn, sixinput.single[nnn])
             print(f'p0c_eV: {p0c_eV}')
             elem = RFMultipole(
