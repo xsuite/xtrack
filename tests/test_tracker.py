@@ -243,9 +243,10 @@ def _ele_start_to_ele_stop_with_overflow(tracker, particles_init):
 #   1) check that all survived particles are at the same element and turn
 #   2) return that element and turn
 def _get_at_turn_element(particles):
-    at_element = np.unique(particles.at_element[particles.state>0])
-    at_turn = np.unique(particles.at_turn[particles.state>0])
-    at_s = np.unique(particles.s[particles.state>0])
+    part_cpu = particles.copy(_context=xo.ContextCpu())
+    at_element = np.unique(part_cpu.at_element[part_cpu.state>0])
+    at_turn = np.unique(part_cpu.at_turn[part_cpu.state>0])
+    at_s = np.unique(part_cpu.s[part_cpu.state>0])
     all_together = len(at_turn)==1 and len(at_element)==1 and len(at_s)==1
     return all_together, at_turn[0], at_element[0], at_s[0]
 
