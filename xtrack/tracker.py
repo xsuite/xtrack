@@ -716,9 +716,9 @@ class Tracker:
                     self._slice_sets = {}
 
                 # Move to CPU if needed
-                if (hasattr(pp, 'needs_cpu') and pp.needs_cpu
-                    and not isinstance(particles._buffer.context, xo.ContextCpu)):
-                    if  moveback_to_buffer is None:
+                if (hasattr(pp, 'needs_cpu') and pp.needs_cpu):
+                    if (moveback_to_buffer is None
+                        and not isinstance(particles._buffer.context, xo.ContextCpu)):
                         moveback_to_buffer = particles._buffer
                         moveback_to_offset = particles._offset
                         particles._move_to(_context=xo.ContextCpu())
@@ -729,7 +729,7 @@ class Tracker:
                         moveback_to_buffer = None
                         moveback_to_offset = None
                         if _context_needs_clean_active_lost_state:
-                            #particles._num_active_particles = -1
+                            particles._num_active_particles = -1
                             particles._num_lost_particles = -1
 
                 # Hide lost particles if required by element
@@ -777,6 +777,7 @@ class Tracker:
                     # and the one that contains the stop element, so track normally
                     pp.track(particles)
 
+                # For collective parts increment at_element
                 if not isinstance(pp, Tracker) and not stop_tracking:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
                         if not hasattr(self, '_zerodrift_cpu'):
@@ -799,6 +800,15 @@ class Tracker:
             ## Break from loop over turns if stop element reached
             if stop_tracking:
                 break
+
+            if moveback_to_buffer is not None:
+                particles._move_to(
+                        _buffer=moveback_to_buffer, _offset=moveback_to_offset)
+                moveback_to_buffer = None
+                moveback_to_offset = None
+                if _context_needs_clean_active_lost_state:
+                    particles._num_active_particles = -1
+                    particles._num_lost_particles = -1
 
             # Increment at_turn and reset at_element
             # (use the supertracker to perform only end-turn actions)
