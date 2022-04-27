@@ -652,7 +652,7 @@ class Tracker:
         # ele_start can only have values of existing element id's,
         # but also allowed: all elements+1 (to perform end-turn actions)
         assert ele_start >= 0
-        assert ele_start <= self.num_elements
+        assert ele_start < self.num_elements
 
         # Stop position
         if num_elements is not None:
@@ -662,36 +662,38 @@ class Tracker:
             if num_turns is not None:
                 raise ValueError("Cannot use both num_elements and num_turns!")
             num_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
-            num_turns += 1
-
+            if ele_stop == 0:
+                ele_stop = None
+            else:
+                num_turns += 1
         else:
             # We are using ele_start, ele_stop, and num_turns
             if num_turns is None:
                 num_turns = 1
             else:
                 assert num_turns > 0
-            if ele_stop is None:
-                ele_stop = 0
             if isinstance(ele_stop,str):
                 ele_stop = self.line.element_names.index(ele_stop)
-            # If ele_stop comes before ele_start, we need to add a turn for overflow
-            if ele_stop <= ele_start:
+
+            # If ele_stop comes before ele_start, we need to add an additional turn to
+            # reach the required ele_stop
+            if ele_stop == 0:
+                ele_stop = None
+
+            if ele_stop is not None and ele_stop <= ele_start:
                 num_turns += 1
 
-        assert ele_stop >= 0
-        assert ele_stop < self.num_elements
+        if ele_stop is not None:
+            assert ele_stop >= 0
+            assert ele_stop < self.num_elements
 
         assert num_turns >= 1
 
-        assert turn_by_turn_monitor != 'ONE_TURN_EBE'
-
-        if ele_stop == 0:
-            monitor_turns = num_turns - 1
-        else:
-            monitor_turns = num_turns
+        assert turn_by_turn_monitor != 'ONE_TURN_EBE', (
+            "Element-by-element monitor not available in collective mode")
 
         (flag_monitor, monitor, buffer_monitor, offset_monitor
-             ) = self._get_monitor(particles, turn_by_turn_monitor, monitor_turns)
+             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
         stop_tracking = False
 
@@ -744,7 +746,8 @@ class Tracker:
                         pp.track(particles)
                     else:
                         # The start part is a non-collective tracker
-                        if tt == num_turns-1 and self._element_part[ele_stop] == ipp:
+                        if (ele_stop is not None
+                            and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
                             # The stop element is also in this part, so track until ele_stop
                             i_stop_in_part = self._element_index_in_part[ele_stop]
                             pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
@@ -753,7 +756,8 @@ class Tracker:
                             # Track until end of part
                             pp.track(particles, ele_start=i_start_in_part)
 
-                elif tt == num_turns-1 and self._element_part[ele_stop] == ipp:
+                elif (ele_stop is not None
+                     and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
                     # We are in the part that contains the stop element
                     i_stop_in_part = self._element_index_in_part[ele_stop]
                     if i_stop_in_part is not None:

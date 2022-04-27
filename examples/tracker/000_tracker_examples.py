@@ -4,6 +4,8 @@ import xtrack as xt
 import xpart as xp
 
 elements = [xt.Drift(length=2.) for _ in range(10)]
+elements[5].iscollective = True
+
 tracker = xt.Tracker(
     line=xt.Line(elements=elements),
     reset_s_at_end_turn=False
@@ -64,4 +66,13 @@ tracker.track(p, num_turns=4, ele_start=5, ele_stop=2,
               turn_by_turn_monitor=True)
 assert np.all(p.s == 4 * 10 * 2. + 2 * 2.)
 assert np.all(p.at_turn == 4)
-assert tracker.record_last_track.x.shape == (3, 5)
+assert tracker.record_last_track.x.shape == (3, 5)# 0 <= ele_start < ele_stop -- num_turns > 1
+
+# Use ele_start and num_turns
+p = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=5 * 2., at_element=5)
+tracker.track(p, ele_start=5, num_elements=7,
+              turn_by_turn_monitor=True)
+assert np.all(p.s==5*2.+7*2.)
+assert np.all(p.at_turn == 1)
+
+
