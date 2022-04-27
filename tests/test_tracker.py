@@ -64,46 +64,53 @@ def test_cycle():
                 assert ctracker.line.elements[3] is c0
 
 def test_partial_tracking():
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
 
-    n_elem = 9
-    elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
-    line = xt.Line(elements=elements)
-    tracker = line.build_tracker()
-    assert not tracker.iscollective
-    particles_init = xp.Particles(x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
-                                zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
-                                at_turn=0, at_element=0)
+        n_elem = 9
+        elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
+        line = xt.Line(elements=elements)
+        tracker = line.build_tracker(_context=context)
+        assert not tracker.iscollective
+        particles_init = xp.Particles(_context=context,
+            x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
+            zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
+            at_turn=0, at_element=0)
 
-    _default_track(tracker, particles_init)
-    _ele_start_until_end(tracker, particles_init)
-    _ele_start_with_shift(tracker, particles_init)
-    _ele_start_with_shift_more_turns(tracker, particles_init)
-    _ele_stop_from_start(tracker, particles_init)
-    _ele_start_to_ele_stop(tracker, particles_init)
-    _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
-
+        _default_track(tracker, particles_init)
+        _ele_start_until_end(tracker, particles_init)
+        _ele_start_with_shift(tracker, particles_init)
+        _ele_start_with_shift_more_turns(tracker, particles_init)
+        _ele_stop_from_start(tracker, particles_init)
+        _ele_start_to_ele_stop(tracker, particles_init)
+        _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
 
 def test_partial_tracking_with_collective():
-    n_elem = 9
-    elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
-    # Make some elements collective
-    elements[3].iscollective = True
-    elements[7].iscollective = True
-    line = xt.Line(elements=elements)
-    tracker = line.build_tracker()
-    assert tracker.iscollective
-    assert len(tracker._parts) == 5
-    particles_init = xp.Particles(x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
-                                zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
-                                at_turn=0, at_element=0)
+     for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
 
-    _default_track(tracker, particles_init)
-    _ele_start_until_end(tracker, particles_init)
-    _ele_start_with_shift(tracker, particles_init)
-    _ele_start_with_shift_more_turns(tracker, particles_init)
-    _ele_stop_from_start(tracker, particles_init)
-    _ele_start_to_ele_stop(tracker, particles_init)
-    _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
+        n_elem = 9
+        elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
+        # Make some elements collective
+        elements[3].iscollective = True
+        elements[7].iscollective = True
+        line = xt.Line(elements=elements)
+        tracker = line.build_tracker(_context=context)
+        assert tracker.iscollective
+        assert len(tracker._parts) == 5
+        particles_init = xp.Particles(
+                _context=context,
+                x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
+                zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
+                at_turn=0, at_element=0)
+
+        _default_track(tracker, particles_init)
+        _ele_start_until_end(tracker, particles_init)
+        _ele_start_with_shift(tracker, particles_init)
+        _ele_start_with_shift_more_turns(tracker, particles_init)
+        _ele_stop_from_start(tracker, particles_init)
+        _ele_start_to_ele_stop(tracker, particles_init)
+        _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
 
 
 # Track from the start until the end of the first, second, and tenth turn
