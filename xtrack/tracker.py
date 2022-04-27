@@ -785,14 +785,14 @@ class Tracker:
                     particles._num_active_particles = -1
                     particles._num_lost_particles = -1
 
-                if particles._num_active_particles == 0 or len(particles.state) == 0:
-                    stop_tracking = True
+                #if particles._num_active_particles == 0 or len(particles.state) == 0:
+                #    stop_tracking = True
 
-                # Break from loop over parts if all are lost or if stop element reached
+                # Break from loop over parts if stop element reached
                 if stop_tracking:
                     break
 
-            # Break from loop over turns if all particles are lost or if stop element reached
+            ## Break from loop over turns if stop element reached
             if stop_tracking:
                 break
 
