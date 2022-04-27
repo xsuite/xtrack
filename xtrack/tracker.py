@@ -722,13 +722,14 @@ class Tracker:
                         moveback_to_buffer = particles._buffer
                         moveback_to_offset = particles._offset
                         particles._move_to(_context=xo.ContextCpu())
+                        particles.reorganize()
                 else:
                     if moveback_to_buffer is not None:
                         particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
                         moveback_to_buffer = None
                         moveback_to_offset = None
                         if _context_needs_clean_active_lost_state:
-                            particles._num_active_particles = -1
+                            #particles._num_active_particles = -1
                             particles._num_lost_particles = -1
 
                 # Hide lost particles if required by element
