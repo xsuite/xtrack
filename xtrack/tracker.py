@@ -697,6 +697,10 @@ class Tracker:
 
         stop_tracking = False
 
+
+        if particles._num_active_particles < 0:
+            _context_needs_clean_active_lost_state = True
+
         for tt in range(num_turns):
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
@@ -721,14 +725,14 @@ class Tracker:
                         particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
                         moveback_to_buffer = None
                         moveback_to_offset = None
+                    if _context_needs_clean_active_lost_state:
+                        particles._num_active_particles = -1
+                        particles._num_lost_particles = -1
 
                 # Hide lost particles if required by element
-                _need_clean_active_lost_state = False
                 _need_unhide_lost_particles = False
                 if (hasattr(pp, 'needs_hidden_lost_particles')
                     and pp.needs_hidden_lost_particles):
-                    if particles._num_active_particles < 0:
-                        _need_clean_active_lost_state = True
                     if not particles.lost_particles_are_hidden:
                         _need_unhide_lost_particles = True
                     particles.hide_lost_particles()
@@ -781,9 +785,6 @@ class Tracker:
                 if _need_unhide_lost_particles:
                     particles.unhide_lost_particles()
 
-                if _need_clean_active_lost_state:
-                    particles._num_active_particles = -1
-                    particles._num_lost_particles = -1
 
                 #if particles._num_active_particles == 0 or len(particles.state) == 0:
                 #    stop_tracking = True
