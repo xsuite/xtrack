@@ -90,7 +90,7 @@ def test_partial_tracking_with_collective():
         print(f"Test {context.__class__}")
 
         n_elem = 9
-        elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
+        elements = [xt.Drift(length=1., _context=context) for _ in range(n_elem)]
         # Make some elements collective
         elements[3].iscollective = True
         elements[7].iscollective = True
