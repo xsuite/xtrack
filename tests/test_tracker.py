@@ -172,7 +172,6 @@ def _ele_start_with_shift_more_turns(tracker, particles_init):
             expected_end_turn = round(np.floor( (start+shift)/n_elem ))
             expected_end_element = start + shift - n_elem*expected_end_turn
             expected_num_monitor = expected_end_turn if expected_end_element==0 else expected_end_turn+1
-           
 
             particles = particles_init.copy()
             particles.at_element = start
@@ -199,7 +198,7 @@ def _ele_stop_from_start(tracker, particles_init):
                         and end_s==expected_end_element)
             assert tracker.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
 
-# Track from any ele_start until any ele_stop that is larger than ele_start (so no overflow)
+# Track from any ele_start until any ele_stop that is larger than ele_start
 # for one, two, and ten turns
 def _ele_start_to_ele_stop(tracker, particles_init):
     n_elem = len(tracker.line.element_names)
@@ -219,7 +218,7 @@ def _ele_start_to_ele_stop(tracker, particles_init):
                             and end_s==expected_end_element)
                 assert tracker.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
 
-# Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn overflow)
+# Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn increses by one)
 # for one, two, and ten turns
 def _ele_start_to_ele_stop_with_overflow(tracker, particles_init):
     n_elem = len(tracker.line.element_names)
