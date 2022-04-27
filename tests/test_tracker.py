@@ -63,6 +63,36 @@ def test_cycle():
                 assert ctracker.line.elements[2] is d0
                 assert ctracker.line.elements[3] is c0
 
+def test_synrad_configuration():
+
+    for collective in [False, True]:
+        elements = [xt.Multipole(knl=[1]) for _ in range(10)]
+        if collective:
+            elements[5].iscollective = True
+
+        tracker = xt.Tracker(line=xt.Line(elements=elements))
+
+        tracker.configure_radiation(mode='mean')
+        for ee in tracker.line.elements:
+            assert ee.radiation_flag == 1
+        p = xp.Particles(x=[0.01, 0.02])
+        tracker.track(p)
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
+
+        tracker.configure_radiation(mode='quantum')
+        for ee in tracker.line.elements:
+            assert ee.radiation_flag == 2
+        p = xp.Particles(x=[0.01, 0.02])
+        tracker.track(p)
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
+
+        tracker.configure_radiation(mode=None)
+        for ee in tracker.line.elements:
+            assert ee.radiation_flag == 0
+        p = xp.Particles(x=[0.01, 0.02])
+        tracker.track(p)
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
+
 def test_partial_tracking():
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
