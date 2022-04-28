@@ -1,3 +1,4 @@
+from hashlib import new
 import numpy as np
 from scipy.constants import c as clight
 
@@ -405,7 +406,6 @@ def madx_sequence_to_xtrack_line(
         else:
             raise ValueError(f'MAD element "{mad_etype}" not recognized')
 
-
         if hasattr(ee,'tilt') and abs(ee.tilt)>0 and not skiptilt:
             tilt=np.rad2deg(ee.tilt)
         else:
@@ -423,60 +423,77 @@ def madx_sequence_to_xtrack_line(
         if (
             install_apertures
             and hasattr(ee, "aperture")
-            and (min(ee.aperture) > 0)
         ):
-            if ee.apertype == "rectangle":
-                newaperture = classes.LimitRect(
-                    min_x=-ee.aperture[0],
-                    max_x=ee.aperture[0],
-                    min_y=-ee.aperture[1],
-                    max_y=ee.aperture[1],
-                )
-            elif ee.apertype == "racetrack":
-                newaperture = classes.LimitRacetrack(
-                    min_x=-ee.aperture[0],
-                    max_x=ee.aperture[0],
-                    min_y=-ee.aperture[1],
-                    max_y=ee.aperture[1],
-                    a=ee.aperture[2],
-                    b=ee.aperture[3],
-                )
-            elif ee.apertype == "ellipse":
-                newaperture = classes.LimitEllipse(
-                    a=ee.aperture[0], b=ee.aperture[1]
-                )
-            elif ee.apertype == "circle":
-                newaperture = classes.LimitEllipse(
-                    a=ee.aperture[0], b=ee.aperture[0]
-                )
-            elif ee.apertype == "rectellipse":
-                newaperture = classes.LimitRectEllipse(
-                    max_x=ee.aperture[0],
-                    max_y=ee.aperture[1],
-                    a=ee.aperture[2],
-                    b=ee.aperture[3],
-                )
-            elif ee.apertype == "octagon":
-                a0 = ee.aperture[0]
-                a1 = ee.aperture[1]
-                a2 = ee.aperture[2]
-                a3 = ee.aperture[3]
-                V1 = (a0, a0*np.tan(a2))
-                V2 = (a1/np.tan(a3), a1)
-                newaperture = classes.LimitPolygon(
-                    x_vertices = [V1[0],  V2[0],
-                                 -V2[0], -V1[0],
-                                 -V1[0], -V2[0],
-                                  V2[0],  V1[0]],
-                    y_vertices = [V1[1],  V2[1],
-                                  V2[1],  V1[1],
-                                 -V1[1], -V2[1],
-                                 -V2[1], -V1[1]],
-                )
-            else:
-                raise ValueError("Aperture type not recognized")
+            if (hasattr(ee, "aper_vx") and len(ee.aper_vx) > 1):
+                # It's a polygon
+                assert len(ee.aper_vx) == len(ee.aper_vy)
+                assert len(ee.aper_vx) >= 3
+                try:
+                    newaperture = classes.LimitPolygon(
+                        x_vertices = list(ee.aper_vx),
+                        y_vertices = list(ee.aper_vy),
+                    )
+                except ValueError:
+                    newaperture = classes.LimitPolygon(
+                        x_vertices = list(ee.aper_vx)[::-1],
+                        y_vertices = list(ee.aper_vy)[::-1],
+                    )
 
-            line.append_element(newaperture, eename + "_aperture")
+                line.append_element(newaperture, eename + "_aperture")
+
+            if min(ee.aperture) > 0:
+                if ee.apertype == "rectangle":
+                    newaperture = classes.LimitRect(
+                        min_x=-ee.aperture[0],
+                        max_x=ee.aperture[0],
+                        min_y=-ee.aperture[1],
+                        max_y=ee.aperture[1],
+                    )
+                elif ee.apertype == "racetrack":
+                    newaperture = classes.LimitRacetrack(
+                        min_x=-ee.aperture[0],
+                        max_x=ee.aperture[0],
+                        min_y=-ee.aperture[1],
+                        max_y=ee.aperture[1],
+                        a=ee.aperture[2],
+                        b=ee.aperture[3],
+                    )
+                elif ee.apertype == "ellipse":
+                    newaperture = classes.LimitEllipse(
+                        a=ee.aperture[0], b=ee.aperture[1]
+                    )
+                elif ee.apertype == "circle":
+                    newaperture = classes.LimitEllipse(
+                        a=ee.aperture[0], b=ee.aperture[0]
+                    )
+                elif ee.apertype == "rectellipse":
+                    newaperture = classes.LimitRectEllipse(
+                        max_x=ee.aperture[0],
+                        max_y=ee.aperture[1],
+                        a=ee.aperture[2],
+                        b=ee.aperture[3],
+                    )
+                elif ee.apertype == "octagon":
+                    a0 = ee.aperture[0]
+                    a1 = ee.aperture[1]
+                    a2 = ee.aperture[2]
+                    a3 = ee.aperture[3]
+                    V1 = (a0, a0*np.tan(a2))
+                    V2 = (a1/np.tan(a3), a1)
+                    newaperture = classes.LimitPolygon(
+                        x_vertices = [V1[0],  V2[0],
+                                    -V2[0], -V1[0],
+                                    -V1[0], -V2[0],
+                                    V2[0],  V1[0]],
+                        y_vertices = [V1[1],  V2[1],
+                                    V2[1],  V1[1],
+                                    -V1[1], -V2[1],
+                                    -V2[1], -V1[1]],
+                    )
+                else:
+                    raise ValueError("Aperture type not recognized")
+
+                line.append_element(newaperture, eename + "_aperture")
 
     if hasattr(seq, "length") and seq.length > old_pp:
         line.append_element(myDrift(length=(seq.length - old_pp)), f"drift_{i_drift}")
