@@ -695,14 +695,15 @@ class Tracker:
         (flag_monitor, monitor, buffer_monitor, offset_monitor
              ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
-        stop_tracking = False
-
-
         if particles._num_active_particles < 0:
             _context_needs_clean_active_lost_state = True
         else:
-            _context_needs_clean_active_lost_state = True
+            _context_needs_clean_active_lost_state = False
 
+        if self.line._needs_rng and not particles._has_valid_rng_state():
+            particles._init_random_number_generator()
+
+        stop_tracking = False
         for tt in range(num_turns):
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
