@@ -13,6 +13,7 @@ context = xo.ContextCpu()
 
 sixinput = sixtracktools.SixInput(sixtrack_folder)
 line = xt.Line.from_sixinput(sixinput)
+#line = sixinput.generate_xtrack_line()
 tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 

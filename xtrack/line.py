@@ -8,7 +8,6 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from .loader_sixtrack import _expand_struct
 from .loader_mad import madx_sequence_to_xtrack_line
 from .beam_elements import element_classes, Multipole
 from . import beam_elements
@@ -88,21 +87,10 @@ class Line:
 
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
-        class_dict=mk_class_namespace(classes)
-
-        line_data, rest, iconv = _expand_struct(sixinput, convert=class_dict)
-
-        ele_names = [dd[0] for dd in line_data]
-        elements = [dd[2] for dd in line_data]
-
-        line = cls(elements=elements, element_names=ele_names)
-
-        other_info = {}
-        other_info["rest"] = rest
-        other_info["iconv"] = iconv
-
-        line.other_info = other_info
-
+        log.warning("\n"
+            "WARNING: xtrack.Line.from_sixinput(sixinput) will be removed in furure versions.\n"
+            "Please use sixinput.generate_xtrack_line()\n")
+        line = sixinput.generate_xtrack_line(classes=classes)
         return line
 
     @classmethod
