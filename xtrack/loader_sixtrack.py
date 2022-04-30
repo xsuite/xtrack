@@ -116,7 +116,7 @@ def _expand_struct(sixinput, convert):
             if hasattr(thisbb, "sigma_x"):
                 from scipy.constants import e as qe
                 dct['n_particles'] = thisbb.charge/qe # ducktrack has it in coulumb
-                dct['q0'] = sixinput.q0 # TODO change implementation
+                dct['q0'] = qe # TODO change implementation
                 dct['beta0'] = thisbb.beta_r
                 dct['mean_x'] = thisbb.x_bb
                 dct['mean_y'] = thisbb.y_bb
