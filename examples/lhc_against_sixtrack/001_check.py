@@ -12,8 +12,7 @@ sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
 context = xo.ContextCpu()
 
 sixinput = sixtracktools.SixInput(sixtrack_folder)
-line = xt.Line.from_sixinput(sixinput)
-#line = sixinput.generate_xtrack_line()
+line = sixinput.generate_xtrack_line()
 tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 

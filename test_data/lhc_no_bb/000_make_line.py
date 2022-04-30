@@ -11,7 +11,7 @@ import xtrack as xt
 ##################
 
 six = sixtracktools.SixInput(".")
-line = xt.Line.from_sixinput(six)
+line = six.generate_xtrack_line()
 
 
 ######################

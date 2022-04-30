@@ -19,7 +19,7 @@ sixinput = sixtracktools.SixInput(".")
 p0c_eV = sixinput.initialconditions[-3] * 1e6
 
 # Build line from sixtrack input
-line = xt.Line.from_sixinput(sixinput)
+line = sixinput.generate_xtrack_line()
 
 # Info on sixtrack->pyblep conversion
 iconv = line.other_info["iconv"]
