@@ -130,6 +130,7 @@ def test_mad_import():
         m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
         m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
         m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
+        m_polygon: marker, apertype="circle", aper_vx= {+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy= {+3.500e-2,-3.500e-2,+0.000e+0};
         beam;
         ss: sequence,l=1;
             m_circle, at=0;
@@ -138,6 +139,7 @@ def test_mad_import():
             m_rectellipse, at=0.03;
             m_racetrack, at=0.04;
             m_octagon, at=0.05;
+            m_polygon, at=0.06;
         endsequence;
 
         use,sequence=ss;
@@ -204,3 +206,12 @@ def test_mad_import():
     assert np.isclose(octag._xobject.x_vertices[6], 0.5/np.tan(1.), atol=1e-14, rtol=0)
     assert octag._xobject.x_vertices[7] == 0.4
     assert np.isclose(octag._xobject.y_vertices[7], -0.4*np.tan(0.5), atol=1e-14, rtol=0)
+
+    polyg = apertures[6]
+    assert polyg.__class__.__name__ == 'LimitPolygon'
+    assert len(polyg._xobject.x_vertices) == 3
+    assert len(polyg._xobject.y_vertices) == 3
+    assert polyg._xobject.x_vertices[0] == -8.8e-2
+    assert polyg._xobject.y_vertices[0] == 0
+    assert polyg._xobject.x_vertices[1] == 5.8e-2
+    assert polyg._xobject.y_vertices[1] == -3.5e-2
