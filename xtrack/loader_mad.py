@@ -48,19 +48,18 @@ def madx_sequence_to_xtrack_line(
                     continue
                 _vref[name]=madeval(par.expr)
 
-    elements = seq.elements
-    ele_pos = seq.element_positions()
+    if (not hasattr(seq, 'expanded_elements')
+        or len(seq.expanded_elements) < len(seq.elements)):
+        raise ValueError('The provided MAD-X sequence is not expanded. '
+            'Please use madx "use" command to expand the sequence before passing '
+            'it to xtrack. Note that the "use" command should be called before '
+            'setting or loading MAD-X errors (misalignments, multipolar errors) '
+            'as these are removed by the "use" command.\n')
+    elements = seq.expanded_elements
 
-    old_pp = 0.0
-    i_drift = 0
     counters = {}
-    for pp, ee in sorted(zip(ele_pos,elements),key=lambda x:x[0]):
+    for ee in elements:
         skiptilt=False
-
-        if pp > old_pp + drift_threshold:
-            line.append_element(myDrift(length=(pp - old_pp)), f"drift_{i_drift}")
-            old_pp = pp
-            i_drift += 1
 
         eename_mad = ee.name
         mad_etype = ee.base_type.name
@@ -83,10 +82,12 @@ def madx_sequence_to_xtrack_line(
             "elseparator",
             "instrument",
             "solenoid",
-            "drift"
         ]:
             newele = myDrift(length=ee.l)
-            old_pp += ee.l
+            line.element_dict[eename] = newele
+
+        elif mad_etype == 'drift':
+            newele = myDrift(length=ee.l)
             line.element_dict[eename] = newele
 
         elif mad_etype in ignored_madtypes:
@@ -364,7 +365,6 @@ def madx_sequence_to_xtrack_line(
                 newele = classes.SCInterpolatedProfile()
             else:
                 newele = myDrift(length=ee.l)
-                old_pp += ee.l
             line.element_dict[eename] = newele
         elif mad_etype == "matrix":
             length = 0.0
@@ -387,7 +387,6 @@ def madx_sequence_to_xtrack_line(
                 m0 = m0,
                 m1 = m1)
             line.element_dict[eename] = newele
-            old_pp += newele.length # This map is thick!
             if deferred_expressions:
                 eepar = ee.cmdpar
                 if eepar.L.expr is not None:
@@ -495,8 +494,8 @@ def madx_sequence_to_xtrack_line(
 
                 line.append_element(newaperture, eename + "_aperture")
 
-    if hasattr(seq, "length") and seq.length > old_pp:
-        line.append_element(myDrift(length=(seq.length - old_pp)), f"drift_{i_drift}")
+    if hasattr(seq, "length"):
+        assert np.isclose(seq.length, line.get_length(), rtol=0, atol=1e-6)
 
     if deferred_expressions:
         line._var_management['data']['var_values'].default_factory = None
