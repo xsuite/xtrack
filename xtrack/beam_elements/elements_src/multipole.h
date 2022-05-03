@@ -1,13 +1,19 @@
 #ifndef XTRACK_MULTIPOLE_H
 #define XTRACK_MULTIPOLE_H
 
-
-
-
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     int64_t radiation_flag = MultipoleData_get_radiation_flag(el);
+
+    // Photon data storage
+    int8_t* photon_emission_record = NULL;
+    if (radiation_flag == 2){
+        int8_t _io_offset_synrad_storage = MultipoleData_get__io_offset_synrad_storage(el);
+        if (_io_offset_synrad_storage >= 0){
+            photon_emission_record = LocalParticle_get_io_buffer(part0) + _io_offset_synrad_storage;
+        }
+    }
 
     //start_per_particle_block (part0->part)
         int64_t order = MultipoleData_get_order(el);
@@ -47,7 +53,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 synrad_average_kick(part, curv, L_path);
             }
             else if (radiation_flag == 2){
-                synrad_emit_photons(part, curv, L_path);
+                synrad_emit_photons(part, curv, L_path, photon_emission_record);
             }
         }
 
@@ -86,7 +92,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 synrad_average_kick(part, curv, L_path);
             }
             else if (radiation_flag == 2){
-                synrad_emit_photons(part, curv, L_path);
+                synrad_emit_photons(part, curv, L_path, photon_emission_record);
             }
         }
     //end_per_particle_block

@@ -162,12 +162,19 @@ double synrad_average_number_of_photons(
 
 /*gpufun*/
 int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
-                            double lpath /* m */ ){
+                            double lpath /* m */,
+                            int8_t* photon_emission_record){
 
     if (fabs(curv) < 1e-15)
         return 0;
 
     int64_t nphot = 0;
+
+    SynchrotronRadiationPhotonRecordData photon_record = NULL;
+    if (photon_emission_record){
+        photon_record =
+            (SynchrotronRadiationPhotonRecordData) photon_emission_record;
+    }
 
     // TODO Introduce effect of chi and mass_ratio!!!
     double const m0 = LocalParticle_get_mass0(part); // eV
@@ -193,6 +200,22 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
         gamma = energy / m0; //
         // beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
         n += LocalParticle_generate_random_double_exp(part);
+        if (photon_record){
+
+            // Get a slot 
+            //TODO: This is not thread safe!
+            int64_t i_record = SynchrotronRadiationPhotonRecordData_get_i_record(photon_record);
+            int64_t capacity = SynchrotronRadiationPhotonRecordData_get__capacity(photon_record);
+            if (i_record < capacity){
+               SynchrotronRadiationPhotonRecordData_set_i_record(photon_record, i_record+1);
+               SynchrotronRadiationPhotonRecordData_set_photon_energy(photon_record, i_record, energy_loss);
+               SynchrotronRadiationPhotonRecordData_set_at_element(photon_record, i_record,
+                  LocalParticle_get_at_element(part));
+               SynchrotronRadiationPhotonRecordData_set_at_turn(photon_record, i_record,
+                  LocalParticle_get_at_turn(part));
+            }
+
+        }
     }
 
     if (energy == 0.0)

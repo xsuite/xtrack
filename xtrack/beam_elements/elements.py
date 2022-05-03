@@ -218,6 +218,12 @@ class SRotation(BeamElement):
 SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
+class SynchrotronRadiationPhotonRecordData(xo.Struct):
+    _capacity = xo.Int64
+    i_record = xo.Int64
+    at_element = xo.Int64[:]
+    at_turn = xo.Int64[:]
+    photon_energy = xo.Float64[:]
 
 def _update_bal_from_knl_ksl(knl, ksl, bal, context=None):
     assert len(bal) == 2*len(knl) == 2*len(ksl)
@@ -254,6 +260,9 @@ class Multipole(BeamElement):
     _skip_in_to_dict = ['_io_offset_synrad_storage']
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
+
+        if '_io_offset_synrad_storage' not in kwargs:
+            kwargs['_io_offset_synrad_storage'] = -1
 
         if bal is None and (
             knl is not None or ksl is not None or order is not None
@@ -356,6 +365,7 @@ Multipole.XoStruct.extra_sources = [
     xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
     xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     _pkg_root.joinpath('headers/constants.h'),
+    SynchrotronRadiationPhotonRecordData._gen_c_api(),
     _pkg_root.joinpath('headers/synrad_spectrum.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
