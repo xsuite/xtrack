@@ -1,3 +1,4 @@
+import io
 import numpy as np
 import logging
 
@@ -41,6 +42,7 @@ class Tracker:
         global_xy_limit=1.0,
         local_particle_src=None,
         save_source_as=None,
+        io_buffer=None,
     ):
 
         if sequence is not None:
@@ -68,7 +70,8 @@ class Tracker:
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as)
+                save_source_as=save_source_as,
+                io_buffer=io_buffer)
         else:
             self._init_track_no_collective(
                 _context=_context,
@@ -83,7 +86,8 @@ class Tracker:
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as)
+                save_source_as=save_source_as,
+                io_buffer=io_buffer)
 
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
@@ -103,9 +107,12 @@ class Tracker:
         global_xy_limit=1.0,
         local_particle_src=None,
         save_source_as=None,
+        io_buffer=None,
     ):
 
         assert _offset is None
+
+        assert io_buffer is None
 
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
@@ -228,6 +235,7 @@ class Tracker:
         global_xy_limit=1.0,
         local_particle_src=None,
         save_source_as=None,
+        io_buffer=None,
     ):
         if particles_class is None:
             particles_class = xp.Particles
@@ -247,6 +255,10 @@ class Tracker:
                     line=line)
 
         context = frozenline._buffer.context
+
+        if io_buffer is None:
+            io_buffer = context.new_buffer()
+        self.io_buffer = io_buffer
 
         if track_kernel is None:
             # Kernel relies on element_classes ordering
@@ -498,10 +510,12 @@ class Tracker:
                              int flag_reset_s_at_end_turn,
                              int flag_monitor,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
-                             int64_t offset_tbt_monitor){
+                             int64_t offset_tbt_monitor,
+                /*gpuglmem*/ int8_t* io_buffer){
 
 
             LocalParticle lpart;
+            lpart.io_buffer = io_buffer;
 
             int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
@@ -602,6 +616,7 @@ class Tracker:
                     xo.Arg(xo.Int32, name="flag_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
+                    xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
                 ],
             )
         }
@@ -945,6 +960,7 @@ class Tracker:
             flag_monitor=flag_monitor,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
+            io_buffer=self.io_buffer.buffer,
         )
 
         # Middle turns
@@ -962,6 +978,7 @@ class Tracker:
                 flag_monitor=flag_monitor,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
+                io_buffer=self.io_buffer.buffer,
             )
 
         # Last turn, only if incomplete
@@ -979,6 +996,7 @@ class Tracker:
                 flag_monitor=flag_monitor,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
+                io_buffer=self.io_buffer.buffer,
             )
 
         self.record_last_track = monitor

@@ -234,7 +234,7 @@ class Multipole(BeamElement):
             - order [int]: Horizontal shift. Default is ``0``.
             - knl [m^-n, array]: Normalized integrated strength of the normal components.
             - ksl [m^-n, array]: Normalized integrated strength of the skew components.
-            - hxl [rad]: Rotation angle of the reference trajectoryin the horizzontal plane.
+            - hxl [rad]: Rotation angle of the reference trajectory in the horizontal plane.
             - hyl [rad]: Rotation angle of the reference trajectory in the vertical plane.
             - length [m]: Length of the originating thick multipole.
 
@@ -247,9 +247,11 @@ class Multipole(BeamElement):
         'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
         'bal': xo.Float64[:],
+        '_io_offset_synrad_storage': xo.Int64,
         }
 
     _store_in_to_dict = ['knl', 'ksl']
+    _skip_in_to_dict = ['_io_offset_synrad_storage']
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
 
