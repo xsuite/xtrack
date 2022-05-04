@@ -97,8 +97,7 @@ TestElement.XoStruct.extra_sources.append(r'''
                 if (i_slot>=0){
                     TestElementRecordData_set_at_element(record, i_slot,
                                                 LocalParticle_get_at_element(part));
-                    TestElementRecordData_set_generated_rr(record, i_slot,
-                                                LocalParticle_get_at_element(part));
+                    TestElementRecordData_set_generated_rr(record, i_slot, rr);
                 }
             }
 
@@ -112,6 +111,11 @@ tracker.line._needs_rng = True
 
 # We could do something like
 # tracker.start_internal_logging_for_elements_of_type(TestElement, num_records=10000)
+capacity = 10000
+record = TestElementRecord(_buffer=tracker.io_buffer,
+                generated_rr=capacity, at_element=capacity)
+record._record_index.capacity = capacity
+tracker.line.elements[0]._internal_record_id.offset = record._offset
 
 part = xp.Particles(p0c=6.5e12, x=[1,2,3])
 
