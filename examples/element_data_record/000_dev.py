@@ -50,7 +50,8 @@ class TestElementRecord(xo.DressedStruct):
     _xofields = {
         '_record_index': RecordIndex,
         'generated_rr': xo.Float64[:],
-        'at_element': xo.Int64[:]
+        'at_element': xo.Int64[:],
+        'at_turn': xo.Int64[:]
         }
 
 class TestElement(xt.BeamElement):
@@ -60,6 +61,9 @@ class TestElement(xt.BeamElement):
         }
 
     _skip_in_to_dict = ['_internal_record_id']
+
+
+TestElement.internal_record_class = TestElementRecord
 
 TestElement.XoStruct.extra_sources = [
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
@@ -106,17 +110,30 @@ TestElement.XoStruct.extra_sources.append(r'''
     }
     ''')
 
+
+
+def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
+
+    init_capacities = {}
+    for ff in element_type.internal_record_class.XoStruct._fields:
+        if hasattr(ff.ftype, 'to_nplike'): #is array
+            init_capacities[ff.name] = capacity
+
+    record = element_type.internal_record_class(_buffer=tracker.io_buffer, **init_capacities)
+    record._record_index.capacity = capacity
+
+    for ee in tracker.line.elements:
+        if isinstance(ee, element_type):
+            ee._internal_record_id.offset = record._offset
+
+    return record
+
 tracker = xt.Tracker(line=xt.Line(elements = [TestElement(n_iter=2)]))
 tracker.line._needs_rng = True
 
 # We could do something like
-# tracker.start_internal_logging_for_elements_of_type(TestElement, num_records=10000)
-capacity = 10000
-record = TestElementRecord(_buffer=tracker.io_buffer,
-                generated_rr=capacity, at_element=capacity)
-record._record_index.capacity = capacity
-tracker.line.elements[0]._internal_record_id.offset = record._offset
+record = start_internal_logging_for_elements_of_type(tracker, TestElement, capacity=10000)
 
 part = xp.Particles(p0c=6.5e12, x=[1,2,3])
 
-tracker.track(part)
+tracker.track(part, num_turns=10)
