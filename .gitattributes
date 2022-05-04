@@ -1,1 +1,4 @@
-test_data/hllhc_14/* linguist-vendored
+examples/** -linguist-detectable
+tests/** -linguist-detectable
+test_data/** -linguist-detectable
+
