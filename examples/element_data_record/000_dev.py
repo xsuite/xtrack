@@ -5,6 +5,21 @@ import xpart as xp
 class RecordIdentifier(xo.Struct):
     buffer_id = xo.Int64
     offset = xo.Int64
+RecordIdentifier.extra_sources = []
+RecordIdentifier.extra_sources.append('''
+
+int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
+    int8_t* io_buffer = LocalParticle_get_io_buffer(part);
+
+    // TODO Check buffer_id
+    // int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
+
+    int64_t offset = RecordIdentifier_get_offset(record_id);
+
+    return io_buffer + offset;
+    }
+
+''')
 
 class RecordIndex(xo.Struct):
     capacity = xo.Int64
@@ -28,7 +43,12 @@ class TestElement(xt.BeamElement):
 
 TestElement.XoStruct.extra_sources = [
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-    xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h')]
+    xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+    RecordIdentifier._gen_c_api(),
+    ]
+TestElement.XoStruct.extra_sources.append(RecordIndex._gen_c_api()) 
+TestElement.XoStruct.extra_sources += RecordIdentifier.extra_sources
+TestElement.XoStruct.extra_sources.append(TestElementRecord.XoStruct._gen_c_api())
 
 TestElement.XoStruct.extra_sources.append('''
     /*gpufun*/
@@ -38,8 +58,8 @@ TestElement.XoStruct.extra_sources.append('''
         RecordIdentifier record_id = TestElementData_getp__internal_record_id(el);
 
         // Extract record
-//        TestElementRecordData record =
-//            (TestElementRecordData) RecordIdentifier_getp_record(part0, record_id);
+        TestElementRecordData record =
+           (TestElementRecordData) RecordIdentifier_getp_record(part0, record_id);
 
         int64_t n_iter = TestElementData_get_n_iter(el);
 
