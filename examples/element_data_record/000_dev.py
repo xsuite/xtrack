@@ -25,6 +25,25 @@ class RecordIndex(xo.Struct):
     capacity = xo.Int64
     at_record = xo.Int64
     buffer_id = xo.Int64
+RecordIndex.extra_sources = []
+RecordIndex.extra_sources.append('''
+
+int64_t RecordIndex_get_slot(RecordIndex record_index){
+
+    int64_t capacity = RecordIndex_get_capacity(record_index);
+    int64_t* at_record = RecordIndex_getp_at_record(record_index);
+
+    if(*at_record >= capacity){
+        return -1;}
+
+    // TODO will have to be implemented with AtomicAdd, something like:
+    // int64_t slot = AtomicAdd(at_record, 1);
+    int64_t slot = *at_record;
+    *at_record = slot + 1;
+
+    return slot;
+
+''')
 
 class TestElementRecord(xo.DressedStruct):
     _xofields = {
@@ -46,20 +65,22 @@ TestElement.XoStruct.extra_sources = [
     xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     RecordIdentifier._gen_c_api(),
     ]
-TestElement.XoStruct.extra_sources.append(RecordIndex._gen_c_api()) 
+TestElement.XoStruct.extra_sources.append(RecordIdentifier._gen_c_api())
 TestElement.XoStruct.extra_sources += RecordIdentifier.extra_sources
+TestElement.XoStruct.extra_sources.append(RecordIndex._gen_c_api())
+#TestElement.XoStruct.extra_sources += RecordIndex.extra_sources
 TestElement.XoStruct.extra_sources.append(TestElementRecord.XoStruct._gen_c_api())
 
 TestElement.XoStruct.extra_sources.append('''
     /*gpufun*/
     void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
-        // Extract the record_id
+        // Extract the record_id, record and record_index
         RecordIdentifier record_id = TestElementData_getp__internal_record_id(el);
-
-        // Extract record
         TestElementRecordData record =
-           (TestElementRecordData) RecordIdentifier_getp_record(part0, record_id);
+           (TestElementRecordData) RecordIdentifier_getp_record(record_id, part0);
+        RecordIndex record_index = NULL;
+        if (record) record_index = TestElementRecordData_getp__record_index(record);
 
         int64_t n_iter = TestElementData_get_n_iter(el);
 
@@ -69,7 +90,7 @@ TestElement.XoStruct.extra_sources.append('''
                 double rr = LocalParticle_generate_random_double(part);
                 LocalParticle_add_to_x(part, rr);
 
-//                int64_t i_slot = RecordIndex_get_slot(record); // gives negative is record is NULL or if record is full
+                //int64_t i_slot = RecordIndex_get_slot(record_index); // gives negative is record is NULL or if record is full
 //                if (i_slot>=0){
 //                    TestElementRecordData_set_at_element(record, i_slot,
 //                                                LocalParticle_get_at_element(part));
