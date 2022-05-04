@@ -14,14 +14,14 @@ class RecordIndex(xo.Struct):
 class TestElementRecord(xo.DressedStruct):
     _xofields = {
         '_record_index': RecordIndex,
-        'myarray1': xo.Float64[:],
-        'myarray2': xo.Float64[:]
+        'generated_rr': xo.Float64[:],
+        'at_element': xo.Int64[:]
         }
 
 class TestElement(xt.BeamElement):
     _xofields={
         '_internal_record_id': RecordIdentifier,
-        'dummy': xo.Float64,
+        'n_iter': xo.Int64,
         }
 
     _skip_in_to_dict = ['_internal_record_id']
@@ -32,21 +32,32 @@ TestElement.XoStruct.extra_sources = [
 
 TestElement.XoStruct.extra_sources.append('''
     /*gpufun*/
-    void TestElement_track_local_particle(
-        TestElementData el, LocalParticle* part0){
+    void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
-        RecordIdentifier record_id= TestElementData_getp__internal_record_id(el);
+        // Extract the record_id
+        RecordIdentifier record_id = TestElementData_getp__internal_record_id(el);
+
+        // Extract record
+//        TestElementRecordData record =
+//            (TestElementRecordData) RecordIdentifier_getp_record(part0, record_id);
+
+        int64_t n_iter = TestElementData_get_n_iter(el);
 
         //start_per_particle_block (part0->part)
-            double rr = LocalParticle_generate_random_double(part);
-            LocalParticle_add_to_x(part, rr);
 
+            for (int64_t i = 0; i < n_iter; i++) {
+                double rr = LocalParticle_generate_random_double(part);
+                LocalParticle_add_to_x(part, rr);
 
-            rr = LocalParticle_generate_random_double(part);
-            LocalParticle_add_to_x(part, rr);
+//                int64_t i_slot = RecordIndex_get_slot(record); // gives negative is record is NULL or if record is full
+//                if (i_slot>=0){
+//                    TestElementRecordData_set_at_element(record, i_slot,
+//                                                LocalParticle_get_at_element(part));
+//                    TestElementRecordData_set_myarray1(record, i_slot,
+//                                                LocalParticle_get_at_element(part));
+//                }
+            }
 
-            rr = LocalParticle_generate_random_double(part);
-            LocalParticle_add_to_x(part, rr);
 
         //end_per_particle_block
     }
