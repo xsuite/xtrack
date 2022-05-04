@@ -42,6 +42,7 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
     *at_record = slot + 1;
 
     return slot;
+    }
 
 ''')
 
@@ -68,10 +69,10 @@ TestElement.XoStruct.extra_sources = [
 TestElement.XoStruct.extra_sources.append(RecordIdentifier._gen_c_api())
 TestElement.XoStruct.extra_sources += RecordIdentifier.extra_sources
 TestElement.XoStruct.extra_sources.append(RecordIndex._gen_c_api())
-#TestElement.XoStruct.extra_sources += RecordIndex.extra_sources
+TestElement.XoStruct.extra_sources += RecordIndex.extra_sources
 TestElement.XoStruct.extra_sources.append(TestElementRecord.XoStruct._gen_c_api())
 
-TestElement.XoStruct.extra_sources.append('''
+TestElement.XoStruct.extra_sources.append(r'''
     /*gpufun*/
     void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
@@ -83,6 +84,7 @@ TestElement.XoStruct.extra_sources.append('''
         if (record) record_index = TestElementRecordData_getp__record_index(record);
 
         int64_t n_iter = TestElementData_get_n_iter(el);
+        printf("n_iter %d\n", (int)n_iter);
 
         //start_per_particle_block (part0->part)
 
@@ -90,13 +92,14 @@ TestElement.XoStruct.extra_sources.append('''
                 double rr = LocalParticle_generate_random_double(part);
                 LocalParticle_add_to_x(part, rr);
 
-                //int64_t i_slot = RecordIndex_get_slot(record_index); // gives negative is record is NULL or if record is full
-//                if (i_slot>=0){
-//                    TestElementRecordData_set_at_element(record, i_slot,
-//                                                LocalParticle_get_at_element(part));
-//                    TestElementRecordData_set_myarray1(record, i_slot,
-//                                                LocalParticle_get_at_element(part));
-//                }
+                int64_t i_slot = RecordIndex_get_slot(record_index); // gives negative is record is NULL or if record is full
+                printf("Hello %d\n", (int)i_slot);
+                if (i_slot>=0){
+                    TestElementRecordData_set_at_element(record, i_slot,
+                                                LocalParticle_get_at_element(part));
+                    TestElementRecordData_set_generated_rr(record, i_slot,
+                                                LocalParticle_get_at_element(part));
+                }
             }
 
 
@@ -104,7 +107,7 @@ TestElement.XoStruct.extra_sources.append('''
     }
     ''')
 
-tracker = xt.Tracker(line=xt.Line(elements = [TestElement()]))
+tracker = xt.Tracker(line=xt.Line(elements = [TestElement(n_iter=2)]))
 tracker.line._needs_rng = True
 
 # We could do something like
