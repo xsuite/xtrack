@@ -510,10 +510,10 @@ class Tracker:
 
         # Elements
         for ee in self.element_classes:
+            if hasattr(ee, 'internal_record_class'):
+                sources.append(ee.internal_record_class.XoStruct._gen_c_api())
             for ss in ee.extra_sources:
                 sources.append(ss)
-            #if hasattr(ee, 'internal_record_class'):
-            #    sources.append(ee.internal_record_class.XoStruct._gen_c_api())
 
         src_lines = []
         src_lines.append(
