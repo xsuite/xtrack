@@ -135,3 +135,15 @@ assert np.sum((record.at_element[:num_recorded] == 1)) == (part._num_active_part
 for i_turn in range(num_turns):
     assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (part._num_active_particles
                                                         * (n_kicks0 + n_kicks1))
+
+# Collective
+n_kicks0 = 5
+n_kicks1 = 3
+elements = [
+    TestElement(n_kicks=n_kicks0), TestElement(n_kicks=n_kicks1)]
+elements[0].iscollective = True
+tracker = xt.Tracker(line=xt.Line(elements=elements))
+tracker.line._needs_rng = True
+
+record = tracker.start_internal_logging_for_elements_of_type(
+                                                    TestElement, capacity=10000)
