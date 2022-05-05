@@ -36,6 +36,9 @@ RecordIndex.extra_sources.append('''
 
 int64_t RecordIndex_get_slot(RecordIndex record_index){
 
+    if (record_index == NULL){
+        return -2;
+    }
     int64_t capacity = RecordIndex_get_capacity(record_index);
     int64_t* at_record = RecordIndex_getp_at_record(record_index);
 
