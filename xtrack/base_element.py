@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 
 import xobjects as xo
 import xpart as xp
@@ -67,8 +68,11 @@ def dress_element(XoElementData):
             f'               {name}Data el,\n'
 '''
                              ParticlesData particles,
-                             int64_t flag_increment_at_element){
+                             int64_t flag_increment_at_element,
+                /*gpuglmem*/ int8_t* io_buffer){
             LocalParticle lpart;
+            lpart.io_buffer = io_buffer;
+
             int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
             int64_t part_id = get_global_id(0);                    //only_for_context opencl
@@ -91,7 +95,8 @@ def dress_element(XoElementData):
     DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
                         xo.Arg(xp.Particles.XoStruct, name='particles'),
-                        xo.Arg(xo.Int64, name='flag_increment_at_element')])}
+                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
     DressedElement.iscollective = False
 
     def compile_track_kernel(self, save_source_as=None):
@@ -121,20 +126,26 @@ def dress_element(XoElementData):
 
         context.add_kernels(sources=sources,
                 kernels=self.track_kernel_description,
-                 save_source_as=save_source_as)
+                save_source_as=save_source_as)
 
 
     def track(self, particles, increment_at_element=False):
 
+        context = self._buffer.context
         if not hasattr(self, '_track_kernel'):
-            context = self._buffer.context
             if self._track_kernel_name not in context.kernels.keys():
                 self.compile_track_kernel()
             self._track_kernel = context.kernels[self._track_kernel_name]
 
+        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+            io_buffer_arr = self.io_buffer.buffer
+        else:
+            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
+
         self._track_kernel.description.n_threads = particles._capacity
         self._track_kernel(el=self._xobject, particles=particles,
-                           flag_increment_at_element=increment_at_element)
+                           flag_increment_at_element=increment_at_element,
+                           io_buffer=io_buffer_arr)
 
     DressedElement.compile_track_kernel = compile_track_kernel
     DressedElement.track = track
