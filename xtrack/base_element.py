@@ -4,6 +4,7 @@ import xobjects as xo
 import xpart as xp
 
 from .general import _pkg_root
+from .interal_record import RecordIdentifier, RecordIndex
 
 start_per_part_block = """
    int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp
@@ -96,11 +97,25 @@ def dress_element(XoElementData):
     def compile_track_kernel(self, save_source_as=None):
         context = self._buffer.context
 
-        sources=(
-                [xp.gen_local_particle_api(),
-                _pkg_root.joinpath("tracker_src/tracker.h")]
-                + self.XoStruct.extra_sources
-                + [self.track_kernel_source])
+        sources = []
+
+        # Local particles
+        sources.append(xp.gen_local_particle_api())
+
+        # Tracker auxiliary functions
+        sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
+
+        # Internal recording
+        sources.append(RecordIdentifier._gen_c_api())
+        sources += RecordIdentifier.extra_sources
+        sources.append(RecordIndex._gen_c_api())
+        sources += RecordIndex.extra_sources
+
+        if hasattr(self, '_internal_record_class'):
+            sources.append(self._internal_record_class.XoStruct._gen_c_api())
+
+        sources += self.XoStruct.extra_sources
+        sources.append(self.track_kernel_source)
 
         sources = _handle_per_particle_blocks(sources)
 
