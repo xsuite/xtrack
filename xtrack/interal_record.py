@@ -10,6 +10,9 @@ RecordIdentifier.extra_sources = []
 RecordIdentifier.extra_sources.append(r'''
 int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
     int8_t* io_buffer = LocalParticle_get_io_buffer(part);
+    if (io_buffer == NULL){
+        return NULL;
+    }
 
     int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
     int64_t* found_id = (int64_t*)io_buffer;
