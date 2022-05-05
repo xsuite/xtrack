@@ -1,0 +1,57 @@
+import xobjects as xo
+
+class RecordIdentifier(xo.Struct):
+    '''
+    To be inserted in the beam element.
+    '''
+    buffer_id = xo.Int64
+    offset = xo.Int64
+RecordIdentifier.extra_sources = []
+RecordIdentifier.extra_sources.append(r'''
+int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
+    int8_t* io_buffer = LocalParticle_get_io_buffer(part);
+
+    int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
+    int64_t* found_id = (int64_t*)io_buffer;
+    if (buffer_id != (*found_id)){
+        printf("Error: buffer_id mismatch: %lld != %lld\n", buffer_id, (*found_id));
+        return NULL;
+    }
+
+    int64_t offset = RecordIdentifier_get_offset(record_id);
+
+    return io_buffer + offset;
+    }
+
+''')
+
+class RecordIndex(xo.Struct):
+    '''
+    To be inserted in the record class.
+    '''
+    capacity = xo.Int64
+    at_record = xo.Int64
+    buffer_id = xo.Int64
+RecordIndex.extra_sources = []
+RecordIndex.extra_sources.append('''
+
+int64_t RecordIndex_get_slot(RecordIndex record_index){
+
+    if (record_index == NULL){
+        return -2;
+    }
+    int64_t capacity = RecordIndex_get_capacity(record_index);
+    int64_t* at_record = RecordIndex_getp_at_record(record_index);
+
+    if(*at_record >= capacity){
+        return -1;}
+
+    // TODO will have to be implemented with AtomicAdd, something like:
+    // int64_t slot = AtomicAdd(at_record, 1);
+    int64_t slot = *at_record;
+    *at_record = slot + 1;
+
+    return slot;
+    }
+
+''')
