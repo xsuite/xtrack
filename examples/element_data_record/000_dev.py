@@ -21,7 +21,7 @@ class TestElement(xt.BeamElement):
     _skip_in_to_dict = ['_internal_record_id']
 
 
-TestElement.XoStruct.internal_record_class = TestElementRecord
+TestElement.XoStruct._internal_record_class = TestElementRecord
 
 TestElement.XoStruct.extra_sources = [
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
@@ -79,11 +79,11 @@ TestElement.XoStruct.extra_sources.append(r'''
 def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
 
     init_capacities = {}
-    for ff in element_type.XoStruct.internal_record_class.XoStruct._fields:
+    for ff in element_type.XoStruct._internal_record_class.XoStruct._fields:
         if hasattr(ff.ftype, 'to_nplike'): #is array
             init_capacities[ff.name] = capacity
 
-    record = element_type.XoStruct.internal_record_class(_buffer=tracker.io_buffer, **init_capacities)
+    record = element_type.XoStruct._internal_record_class(_buffer=tracker.io_buffer, **init_capacities)
     record._record_index.capacity = capacity
 
     for ee in tracker.line.elements:
