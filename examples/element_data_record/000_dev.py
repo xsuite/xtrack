@@ -92,11 +92,14 @@ record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=10000)
 
 part = xp.Particles(p0c=6.5e12, x=[1,2,3])
-num_turns = 10
-tracker.track(part, num_turns=num_turns)
+num_turns0 = 10
+num_turns1 = 3
+tracker.track(part, num_turns=num_turns0)
+tracker.track(part, num_turns=num_turns1)
 
 # Checks
 num_recorded = record._record_index.num_recorded
+num_turns = num_turns0 + num_turns1
 assert num_recorded == (part._num_active_particles * num_turns
                                           * (n_kicks0 + n_kicks1))
 
