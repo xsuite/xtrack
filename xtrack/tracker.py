@@ -1,6 +1,6 @@
-import io
 import numpy as np
 import logging
+import time
 
 from .general import _pkg_root
 from .line_frozen import LineFrozen
@@ -23,6 +23,20 @@ logger = logging.getLogger(__name__)
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
     return iscoll
+
+class IOBufferHeader(xo.Struct):
+    buffer_id = xo.Int64
+
+def _make_io_buffer(context, capacity=1048576):
+    import pdb; pdb.set_trace()
+    iobuf = context.new_buffer(capacity=capacity)
+    head = IOBufferHeader(_buffer=iobuf)
+    assert head._offset == 0
+    assert head._buffer is iobuf
+    head.buffer_id = np.random.randint(0, 2**60)
+    return iobuf
+
+
 
 class Tracker:
 
@@ -257,7 +271,7 @@ class Tracker:
         context = frozenline._buffer.context
 
         if io_buffer is None:
-            io_buffer = context.new_buffer()
+            io_buffer = _make_io_buffer(context=context)
         self.io_buffer = io_buffer
 
         if track_kernel is None:

@@ -1,3 +1,4 @@
+from pyexpat.errors import XML_ERROR_INCORRECT_ENCODING
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
@@ -6,13 +7,18 @@ class RecordIdentifier(xo.Struct):
     buffer_id = xo.Int64
     offset = xo.Int64
 RecordIdentifier.extra_sources = []
-RecordIdentifier.extra_sources.append('''
+RecordIdentifier.extra_sources.append(r'''
 
 int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
     int8_t* io_buffer = LocalParticle_get_io_buffer(part);
 
     // TODO Check buffer_id
-    // int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
+    int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
+    int64_t* found_id = (int64_t*)io_buffer;
+    if (buffer_id != (*found_id)){
+        printf("Error: buffer_id mismatch: %lld != %lld\n", buffer_id, (*found_id));
+        return NULL;
+    }
 
     int64_t offset = RecordIdentifier_get_offset(record_id);
 
@@ -125,6 +131,8 @@ def start_internal_logging_for_elements_of_type(tracker, element_type, capacity)
     for ee in tracker.line.elements:
         if isinstance(ee, element_type):
             ee._internal_record_id.offset = record._offset
+            ee._internal_record_id.buffer_id = xo.Int64._from_buffer(
+                                                            record._buffer, 0)
 
     return record
 
