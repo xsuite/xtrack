@@ -8,7 +8,8 @@ from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
                                  find_closed_orbit,
                                 )
-from .interal_record import RecordIdentifier, RecordIndex
+from .interal_record import (RecordIdentifier, RecordIndex,
+                             start_internal_logging_for_elements_of_type)
 
 import xobjects as xo
 import xpart as xp
@@ -1055,3 +1056,8 @@ class Tracker:
             raise ValueError('Please provide a valid monitor object')
 
         return flag_monitor, monitor, buffer_monitor, offset_monitor
+
+    def start_internal_logging_for_elements_of_type(self,
+                                                    element_type, capacity):
+        return start_internal_logging_for_elements_of_type(self,
+                                                    element_type, capacity)

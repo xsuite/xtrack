@@ -1,6 +1,8 @@
-import xobjects as xo
+import numpy as np
+
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 
 from xtrack import RecordIdentifier, RecordIndex
 
@@ -15,7 +17,7 @@ class TestElementRecord(xo.DressedStruct):
 class TestElement(xt.BeamElement):
     _xofields={
         '_internal_record_id': RecordIdentifier,
-        'n_iter': xo.Int64,
+        'n_kicks': xo.Int64,
         }
 
     _skip_in_to_dict = ['_internal_record_id']
@@ -47,14 +49,14 @@ TestElement.XoStruct.extra_sources.append(r'''
             }
         }
 
-        int64_t n_iter = TestElementData_get_n_iter(el);
-        printf("n_iter %d\n", (int)n_iter);
+        int64_t n_kicks = TestElementData_get_n_kicks(el);
+        printf("n_kicks %d\n", (int)n_kicks);
 
         //start_per_particle_block (part0->part)
 
-            for (int64_t i = 0; i < n_iter; i++) {
-                double rr = LocalParticle_generate_random_double(part);
-                LocalParticle_add_to_x(part, rr);
+            for (int64_t i = 0; i < n_kicks; i++) {
+                double rr = 1e-6 * LocalParticle_generate_random_double(part);
+                LocalParticle_add_to_px(part, rr);
 
                 if (record_enabled){
                     int64_t i_slot = RecordIndex_get_slot(record_index);
@@ -64,6 +66,8 @@ TestElement.XoStruct.extra_sources.append(r'''
                     if (i_slot>=0){
                         TestElementRecordData_set_at_element(record, i_slot,
                                                     LocalParticle_get_at_element(part));
+                        TestElementRecordData_set_at_turn(record, i_slot,
+                                                    LocalParticle_get_at_turn(part));
                         TestElementRecordData_set_generated_rr(record, i_slot, rr);
                     }
                 }
@@ -76,30 +80,30 @@ TestElement.XoStruct.extra_sources.append(r'''
 
 
 
-def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
 
-    init_capacities = {}
-    for ff in element_type.XoStruct._internal_record_class.XoStruct._fields:
-        if hasattr(ff.ftype, 'to_nplike'): #is array
-            init_capacities[ff.name] = capacity
-
-    record = element_type.XoStruct._internal_record_class(_buffer=tracker.io_buffer, **init_capacities)
-    record._record_index.capacity = capacity
-
-    for ee in tracker.line.elements:
-        if isinstance(ee, element_type):
-            ee._internal_record_id.offset = record._offset
-            ee._internal_record_id.buffer_id = xo.Int64._from_buffer(
-                                                            record._buffer, 0)
-
-    return record
-
-tracker = xt.Tracker(line=xt.Line(elements = [TestElement(n_iter=2)]))
+n_kicks0 = 5
+n_kicks1 = 3
+tracker = xt.Tracker(line=xt.Line(elements = [
+    TestElement(n_kicks=n_kicks0), TestElement(n_kicks=n_kicks1)]))
 tracker.line._needs_rng = True
 
 # We could do something like
-record = start_internal_logging_for_elements_of_type(tracker, TestElement, capacity=10000)
+record = tracker.start_internal_logging_for_elements_of_type(
+                                                    TestElement, capacity=10000)
 
 part = xp.Particles(p0c=6.5e12, x=[1,2,3])
+num_turns = 10
+tracker.track(part, num_turns=num_turns)
 
-tracker.track(part, num_turns=10)
+# Checks
+num_recorded = record._record_index.num_recorded
+assert num_recorded == (part._num_active_particles * num_turns
+                                          * (n_kicks0 + n_kicks1))
+
+assert np.sum((record.at_element[:num_recorded] == 0)) == (part._num_active_particles * num_turns
+                                           * n_kicks0)
+assert np.sum((record.at_element[:num_recorded] == 1)) == (part._num_active_particles * num_turns
+                                           * n_kicks1)
+for i_turn in range(num_turns):
+    assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (part._num_active_particles
+                                                        * (n_kicks0 + n_kicks1))

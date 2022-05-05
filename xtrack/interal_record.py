@@ -30,7 +30,7 @@ class RecordIndex(xo.Struct):
     To be inserted in the record class.
     '''
     capacity = xo.Int64
-    at_record = xo.Int64
+    num_recorded = xo.Int64
     buffer_id = xo.Int64
 RecordIndex.extra_sources = []
 RecordIndex.extra_sources.append('''
@@ -41,17 +41,34 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
         return -2;
     }
     int64_t capacity = RecordIndex_get_capacity(record_index);
-    int64_t* at_record = RecordIndex_getp_at_record(record_index);
+    int64_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
 
-    if(*at_record >= capacity){
+    if(*num_recorded >= capacity){
         return -1;}
 
     // TODO will have to be implemented with AtomicAdd, something like:
-    // int64_t slot = AtomicAdd(at_record, 1);
-    int64_t slot = *at_record;
-    *at_record = slot + 1;
+    // int64_t slot = AtomicAdd(num_recorded, 1);
+    int64_t slot = *num_recorded;
+    *num_recorded = slot + 1;
 
     return slot;
     }
 
 ''')
+
+def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
+
+    init_capacities = {}
+    for ff in element_type.XoStruct._internal_record_class.XoStruct._fields:
+        if hasattr(ff.ftype, 'to_nplike'): #is array
+            init_capacities[ff.name] = capacity
+
+    record = element_type.XoStruct._internal_record_class(_buffer=tracker.io_buffer, **init_capacities)
+    record._record_index.capacity = capacity
+
+    for ee in tracker.line.elements:
+        if isinstance(ee, element_type):
+            ee._internal_record_id.offset = record._offset
+            ee._internal_record_id.buffer_id = xo.Int64._from_buffer(
+                                                            record._buffer, 0)
+    return record
