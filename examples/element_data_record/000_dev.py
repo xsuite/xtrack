@@ -26,12 +26,7 @@ TestElement.internal_record_class = TestElementRecord
 TestElement.XoStruct.extra_sources = [
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
     xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-    RecordIdentifier._gen_c_api(),
     ]
-TestElement.XoStruct.extra_sources.append(RecordIdentifier._gen_c_api())
-TestElement.XoStruct.extra_sources += RecordIdentifier.extra_sources
-TestElement.XoStruct.extra_sources.append(RecordIndex._gen_c_api())
-TestElement.XoStruct.extra_sources += RecordIndex.extra_sources
 TestElement.XoStruct.extra_sources.append(TestElementRecord.XoStruct._gen_c_api())
 
 TestElement.XoStruct.extra_sources.append(r'''

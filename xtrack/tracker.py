@@ -1,6 +1,5 @@
 import numpy as np
 import logging
-import time
 
 from .general import _pkg_root
 from .line_frozen import LineFrozen
@@ -9,6 +8,7 @@ from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
                                  find_closed_orbit,
                                 )
+from .interal_record import RecordIdentifier, RecordIndex
 
 import xobjects as xo
 import xpart as xp
@@ -499,13 +499,21 @@ class Tracker:
         # Local particles
         sources.append(self.local_particle_src)
 
-        # Elements
+        # Tracker auxiliary functions
         sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
 
+        # Internal recording
+        sources.append(RecordIdentifier._gen_c_api())
+        sources += RecordIdentifier.extra_sources
+        sources.append(RecordIndex._gen_c_api())
+        sources += RecordIndex.extra_sources
 
+        # Elements
         for ee in self.element_classes:
             for ss in ee.extra_sources:
                 sources.append(ss)
+            #if hasattr(ee, 'internal_record_class'):
+            #    sources.append(ee.internal_record_class.XoStruct._gen_c_api())
 
         src_lines = []
         src_lines.append(
