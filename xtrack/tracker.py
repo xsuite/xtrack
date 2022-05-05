@@ -9,7 +9,8 @@ from .twiss_from_tracker import (twiss_from_tracker,
                                  find_closed_orbit,
                                 )
 from .interal_record import (RecordIdentifier, RecordIndex,
-                             start_internal_logging_for_elements_of_type)
+                             start_internal_logging_for_elements_of_type,
+                             stop_internal_logging_for_elements_of_type)
 
 import xobjects as xo
 import xpart as xp
@@ -1061,3 +1062,6 @@ class Tracker:
                                                     element_type, capacity):
         return start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity)
+
+    def stop_internal_logging_for_elements_of_type(self, element_type):
+        stop_internal_logging_for_elements_of_type(self, element_type)

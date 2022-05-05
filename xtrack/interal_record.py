@@ -72,3 +72,10 @@ def start_internal_logging_for_elements_of_type(tracker, element_type, capacity)
             ee._internal_record_id.buffer_id = xo.Int64._from_buffer(
                                                             record._buffer, 0)
     return record
+
+def stop_internal_logging_for_elements_of_type(tracker, element_type):
+
+    for ee in tracker.line.elements:
+        if isinstance(ee, element_type):
+            ee._internal_record_id.offset = 0
+            ee._internal_record_id.buffer_id = 0
