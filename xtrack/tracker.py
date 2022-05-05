@@ -127,7 +127,6 @@ class Tracker:
 
         assert _offset is None
 
-        assert io_buffer is None
 
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
@@ -140,6 +139,10 @@ class Tracker:
                 _context = xo.context_default
             _buffer = _context.new_buffer()
         self._buffer = _buffer
+
+        if io_buffer is None:
+            io_buffer = _make_io_buffer(context=_buffer.context)
+        self.io_buffer = io_buffer
 
         # Split the sequence
         parts = []
@@ -200,7 +203,8 @@ class Tracker:
                 global_xy_limit=global_xy_limit,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as
+                save_source_as=save_source_as,
+                io_buffer=self.io_buffer
                 )
 
         # Build trackers for non collective parts
@@ -214,7 +218,8 @@ class Tracker:
                                 particles_monitor_class=particles_monitor_class,
                                 global_xy_limit=global_xy_limit,
                                 local_particle_src=local_particle_src,
-                                skip_end_turn_actions=True)
+                                skip_end_turn_actions=True,
+                                io_buffer=self.io_buffer)
 
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
