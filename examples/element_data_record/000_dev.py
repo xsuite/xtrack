@@ -22,8 +22,7 @@ class TestElement(xt.BeamElement):
 
     _skip_in_to_dict = ['_internal_record_id']
 
-
-TestElement.XoStruct._internal_record_class = TestElementRecord
+    _internal_record_class = TestElementRecord
 
 TestElement.XoStruct.extra_sources = [
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),

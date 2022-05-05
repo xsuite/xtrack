@@ -145,6 +145,10 @@ class MetaBeamElement(type):
 
         XoStruct._DressingClass = new_class
 
+        if '_internal_record_class' in data.keys():
+            XoStruct._internal_record_class = data['_internal_record_class']
+            new_class._internal_record_class = data['_internal_record_class']
+
         return new_class
 
 class BeamElement(metaclass=MetaBeamElement):
