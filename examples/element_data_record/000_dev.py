@@ -89,12 +89,20 @@ TestElement.XoStruct.extra_sources.append(r'''
     /*gpufun*/
     void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
-        // Extract the record_id, record and record_index
-        RecordIdentifier record_id = TestElementData_getp__internal_record_id(el);
-        TestElementRecordData record =
-           (TestElementRecordData) RecordIdentifier_getp_record(record_id, part0);
+        // Check if internal record is enabled
+        int record_enabled = TestElementData_get__internal_record_id_buffer_id(el) > 0;
+
+        TestElementRecordData record = NULL;
         RecordIndex record_index = NULL;
-        if (record) record_index = TestElementRecordData_getp__record_index(record);
+
+        // Extract the record_id, record and record_index
+        if (record_enabled){
+            RecordIdentifier record_id = TestElementData_getp__internal_record_id(el);
+            record = (TestElementRecordData) RecordIdentifier_getp_record(record_id, part0);
+            if (record){
+                record_index = TestElementRecordData_getp__record_index(record);
+            }
+        }
 
         int64_t n_iter = TestElementData_get_n_iter(el);
         printf("n_iter %d\n", (int)n_iter);
@@ -105,12 +113,16 @@ TestElement.XoStruct.extra_sources.append(r'''
                 double rr = LocalParticle_generate_random_double(part);
                 LocalParticle_add_to_x(part, rr);
 
-                int64_t i_slot = RecordIndex_get_slot(record_index); // gives negative is record is NULL or if record is full
-                printf("Hello %d\n", (int)i_slot);
-                if (i_slot>=0){
-                    TestElementRecordData_set_at_element(record, i_slot,
-                                                LocalParticle_get_at_element(part));
-                    TestElementRecordData_set_generated_rr(record, i_slot, rr);
+                if (record_enabled){
+                    int64_t i_slot = RecordIndex_get_slot(record_index);
+                    // gives negative is record is NULL or if record is full
+
+                    printf("Hello %d\n", (int)i_slot);
+                    if (i_slot>=0){
+                        TestElementRecordData_set_at_element(record, i_slot,
+                                                    LocalParticle_get_at_element(part));
+                        TestElementRecordData_set_generated_rr(record, i_slot, rr);
+                    }
                 }
             }
 

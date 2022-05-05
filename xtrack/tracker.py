@@ -28,7 +28,6 @@ class IOBufferHeader(xo.Struct):
     buffer_id = xo.Int64
 
 def _make_io_buffer(context, capacity=1048576):
-    import pdb; pdb.set_trace()
     iobuf = context.new_buffer(capacity=capacity)
     head = IOBufferHeader(_buffer=iobuf)
     assert head._offset == 0
