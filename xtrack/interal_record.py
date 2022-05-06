@@ -8,6 +8,7 @@ class RecordIdentifier(xo.Struct):
     offset = xo.Int64
 RecordIdentifier.extra_sources = []
 RecordIdentifier.extra_sources.append(r'''
+/*gpufun*/
 int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
     int8_t* io_buffer = LocalParticle_get_io_buffer(part);
     if (io_buffer == NULL){
@@ -38,6 +39,7 @@ class RecordIndex(xo.Struct):
 RecordIndex.extra_sources = []
 RecordIndex.extra_sources.append('''
 
+/*gpufun*/
 int64_t RecordIndex_get_slot(RecordIndex record_index){
 
     if (record_index == NULL){
@@ -50,9 +52,9 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
         return -1;}
 
     // TODO will have to be implemented with AtomicAdd, something like:
-    // int64_t slot = AtomicAdd(num_recorded, 1);
-    int64_t slot = *num_recorded;
-    *num_recorded = slot + 1;
+    int64_t slot = atomicInc(num_recorded);    //only_for_context cuda
+    int64_t slot = *num_recorded;              //only_for_context cpu
+    *num_recorded = slot + 1;                  //only_for_context cpu
 
     return slot;
     }

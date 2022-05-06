@@ -79,17 +79,17 @@ TestElement.XoStruct.extra_sources.append(r'''
 
 
 
-
+context = xo.ContextCupy()
 n_kicks0 = 5
 n_kicks1 = 3
-tracker = xt.Tracker(line=xt.Line(elements = [
+tracker = xt.Tracker(_context=context, line=xt.Line(elements = [
     TestElement(n_kicks=n_kicks0), TestElement(n_kicks=n_kicks1)]))
 tracker.line._needs_rng = True
 
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=10000)
 
-part = xp.Particles(p0c=6.5e12, x=[1,2,3])
+part = xp.Particles(_context=context, p0c=6.5e12, x=[1,2,3])
 num_turns0 = 10
 num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
@@ -120,7 +120,6 @@ tracker.track(part, num_turns=num_turns0)
 tracker.stop_internal_logging_for_elements_of_type(TestElement)
 tracker.track(part, num_turns=num_turns1)
 
-# Checks
 num_recorded = record._record_index.num_recorded
 num_turns = num_turns0
 assert np.all(part.at_turn == num_turns0 + num_turns1)
@@ -134,6 +133,8 @@ assert np.sum((record.at_element[:num_recorded] == 1)) == (part._num_active_part
 for i_turn in range(num_turns):
     assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (part._num_active_particles
                                                         * (n_kicks0 + n_kicks1))
+
+prrr
 
 # Collective
 n_kicks0 = 5
