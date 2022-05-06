@@ -52,10 +52,9 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
     if(*num_recorded >= capacity){
         return -1;}
 
-    // TODO will have to be implemented with AtomicAdd, something like:
-    uint32_t slot = atomicInc(num_recorded);    //only_for_context cuda
-    uint32_t slot = *num_recorded;              //only_for_context cpu_serial
-    *num_recorded = slot + 1;                  //only_for_context cpu_serial
+    uint32_t slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
+    uint32_t slot = *num_recorded;                 //only_for_context cpu_serial
+    *num_recorded = slot + 1;                      //only_for_context cpu_serial
 
     return (int64_t) slot;
     }
