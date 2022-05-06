@@ -16,12 +16,13 @@ class TestElementRecord(xo.DressedStruct):
         '_record_index': xt.RecordIndex,
         'generated_rr': xo.Float64[:],
         'at_element': xo.Int64[:],
-        'at_turn': xo.Int64[:]
+        'at_turn': xo.Int64[:],
+        'particle_id': xo.Int64[:]
         }
 
-# To allow a elements of a given type to sore data in a structure defined above
+# To allow elements of a given type to sore data in a structure defined above
 # we need to:
-# - add a in the beam element xofields a field called `_internal_record_id` of
+# - add in the beam element xofields a field called `_internal_record_id` of
 #   type `xtrack.RecordIdentifier`, which will be used internally to reference
 #   the data structure.
 # - add `internal_record_id` to the `_skip_in_to_dict` list, as the reference to
@@ -39,10 +40,17 @@ class TestElement(xt.BeamElement):
 
     _internal_record_class = TestElementRecord
 
+# The element uses the random number generator
 TestElement.XoStruct.extra_sources = [
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
     xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     ]
+
+# The defined data structure can be accessed in the C code of the beam elements
+# to log data. In this case the elements applies an assigned number of random
+# kicks to the horizontal momentum. The internal record is used to store the
+# kicks applied together with the corresponding particle_id, turn number and
+# element number.
 
 TestElement.XoStruct.extra_sources.append(r'''
     /*gpufun*/
@@ -51,10 +59,9 @@ TestElement.XoStruct.extra_sources.append(r'''
         // Check if internal record is enabled
         int record_enabled = TestElementData_get__internal_record_id_buffer_id(el) > 0;
 
+        // Extract the record_id, record and record_index
         TestElementRecordData record = NULL;
         RecordIndex record_index = NULL;
-
-        // Extract the record_id, record and record_index
         if (record_enabled){
             RecordIdentifier record_id = TestElementData_getp__internal_record_id(el);
             record = (TestElementRecordData) RecordIdentifier_getp_record(record_id, part0);
@@ -74,14 +81,15 @@ TestElement.XoStruct.extra_sources.append(r'''
 
                 if (record_enabled){
                     int64_t i_slot = RecordIndex_get_slot(record_index);
-                    // gives negative is record is NULL or if record is full
+                    // The returned slot id is negative if record is NULL or if record is full
 
-                    printf("Hello %d\n", (int)i_slot);
                     if (i_slot>=0){
                         TestElementRecordData_set_at_element(record, i_slot,
                                                     LocalParticle_get_at_element(part));
                         TestElementRecordData_set_at_turn(record, i_slot,
                                                     LocalParticle_get_at_turn(part));
+                        TestElementRecordData_set_particle_id(record, i_slot,
+                                                    LocalParticle_get_particle_id(part));
                         TestElementRecordData_set_generated_rr(record, i_slot, rr);
                     }
                 }
