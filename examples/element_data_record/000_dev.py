@@ -80,6 +80,7 @@ TestElement.XoStruct.extra_sources.append(r'''
 
 
 context = xo.ContextCpu()
+context = xo.ContextCupy()
 n_kicks0 = 5
 n_kicks1 = 3
 tracker = xt.Tracker(_context=context, line=xt.Line(elements = [
