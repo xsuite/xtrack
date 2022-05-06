@@ -4,19 +4,34 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-from xtrack import RecordIdentifier, RecordIndex
+# We define a data structure to allowing all elements of a new BeamElement type
+# to store data in one place. Such a data structure needs to contain a files called
+# `_record_index` of type `xtrack.RecordIndex`, which will be used internally to
+# keep count of the number of records stored in the data structure. Furthermore,
+# the structure can contain an arbitrary number of other fields where the data
+# will be stored.
 
 class TestElementRecord(xo.DressedStruct):
     _xofields = {
-        '_record_index': RecordIndex,
+        '_record_index': xt.RecordIndex,
         'generated_rr': xo.Float64[:],
         'at_element': xo.Int64[:],
         'at_turn': xo.Int64[:]
         }
 
+# To allow a elements of a given type to sore data in a structure defined above
+# we need to:
+# - add a in the beam element xofields a field called `_internal_record_id` of type
+#   `xtrack.RecordIdentifier`, which will be used internally to reference the
+#   data structure.
+# - add `internal_record_id` to the `_skip_in_to_dict` list, as the reference to
+#   the data structure cannot be exported to a dictionary.
+# - add an attribute called `_internal_recor_class` to which we bind the data
+#   structure type defined above.
+
 class TestElement(xt.BeamElement):
     _xofields={
-        '_internal_record_id': RecordIdentifier,
+        '_internal_record_id': xt.RecordIdentifier,
         'n_kicks': xo.Int64,
         }
 
@@ -80,8 +95,8 @@ TestElement.XoStruct.extra_sources.append(r'''
 
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-context = xo.ContextPyopencl()
+#context = xo.ContextCupy()
+#context = xo.ContextPyopencl()
 n_kicks0 = 5
 n_kicks1 = 3
 tracker = xt.Tracker(_context=context, line=xt.Line(elements = [
