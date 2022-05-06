@@ -79,7 +79,7 @@ TestElement.XoStruct.extra_sources.append(r'''
 
 
 
-context = xo.ContextCupy()
+context = xo.ContextCpu()
 n_kicks0 = 5
 n_kicks1 = 3
 tracker = xt.Tracker(_context=context, line=xt.Line(elements = [
@@ -133,8 +133,6 @@ assert np.sum((record.at_element[:num_recorded] == 1)) == (part._num_active_part
 for i_turn in range(num_turns):
     assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (part._num_active_particles
                                                         * (n_kicks0 + n_kicks1))
-
-prrr
 
 # Collective
 n_kicks0 = 5

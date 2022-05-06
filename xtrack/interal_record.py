@@ -34,7 +34,8 @@ class RecordIndex(xo.Struct):
     To be inserted in the record class.
     '''
     capacity = xo.Int64
-    num_recorded = xo.Int64
+    num_recorded = xo.Int32
+    _dummy = xo.Int32 # to make sure the size is a multiple of 64 bits (not really needed)
     buffer_id = xo.Int64
 RecordIndex.extra_sources = []
 RecordIndex.extra_sources.append('''
@@ -46,17 +47,17 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
         return -2;
     }
     int64_t capacity = RecordIndex_get_capacity(record_index);
-    int64_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
+    int32_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
 
     if(*num_recorded >= capacity){
         return -1;}
 
     // TODO will have to be implemented with AtomicAdd, something like:
-    int64_t slot = atomicInc(num_recorded);    //only_for_context cuda
-    int64_t slot = *num_recorded;              //only_for_context cpu
-    *num_recorded = slot + 1;                  //only_for_context cpu
+    int32_t slot = atomicInc(num_recorded);    //only_for_context cuda
+    int32_t slot = *num_recorded;              //only_for_context cpu_serial
+    *num_recorded = slot + 1;                  //only_for_context cpu_serial
 
-    return slot;
+    return (int64_t) slot;
     }
 
 ''')
