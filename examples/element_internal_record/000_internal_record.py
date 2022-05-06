@@ -80,6 +80,8 @@ TestElement.XoStruct.extra_sources.append(r'''
 
 
 context = xo.ContextCpu()
+context = xo.ContextCupy()
+context = xo.ContextPyopencl()
 n_kicks0 = 5
 n_kicks1 = 3
 tracker = xt.Tracker(_context=context, line=xt.Line(elements = [
@@ -98,55 +100,60 @@ tracker.track(part, num_turns=num_turns1)
 # Checks
 num_recorded = record._record_index.num_recorded
 num_turns = num_turns0 + num_turns1
-assert num_recorded == (part._num_active_particles * num_turns
-                                          * (n_kicks0 + n_kicks1))
+num_particles = len(part.x)
+part._move_to(_context=xo.ContextCpu())
+record._move_to(_context=xo.ContextCpu())
+assert num_recorded == (num_particles * num_turns * (n_kicks0 + n_kicks1))
 
-assert np.sum((record.at_element[:num_recorded] == 0)) == (part._num_active_particles * num_turns
+assert np.sum((record.at_element[:num_recorded] == 0)) == (num_particles * num_turns
                                            * n_kicks0)
-assert np.sum((record.at_element[:num_recorded] == 1)) == (part._num_active_particles * num_turns
+assert np.sum((record.at_element[:num_recorded] == 1)) == (num_particles * num_turns
                                            * n_kicks1)
 for i_turn in range(num_turns):
-    assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (part._num_active_particles
+    assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
 
 # Check stop
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=10000)
 
-part = xp.Particles(p0c=6.5e12, x=[1,2,3])
+part = xp.Particles(_context=context, p0c=6.5e12, x=[1,2,3])
 num_turns0 = 10
 num_turns1 = 3
+num_particles = len(part.x)
 tracker.track(part, num_turns=num_turns0)
 tracker.stop_internal_logging_for_elements_of_type(TestElement)
 tracker.track(part, num_turns=num_turns1)
 
 num_recorded = record._record_index.num_recorded
 num_turns = num_turns0
+part._move_to(_context=xo.ContextCpu())
+record._move_to(_context=xo.ContextCpu())
 assert np.all(part.at_turn == num_turns0 + num_turns1)
-assert num_recorded == (part._num_active_particles * num_turns
+assert num_recorded == (num_particles * num_turns
                                           * (n_kicks0 + n_kicks1))
 
-assert np.sum((record.at_element[:num_recorded] == 0)) == (part._num_active_particles * num_turns
+assert np.sum((record.at_element[:num_recorded] == 0)) == (num_particles * num_turns
                                            * n_kicks0)
-assert np.sum((record.at_element[:num_recorded] == 1)) == (part._num_active_particles * num_turns
+assert np.sum((record.at_element[:num_recorded] == 1)) == (num_particles * num_turns
                                            * n_kicks1)
 for i_turn in range(num_turns):
-    assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (part._num_active_particles
+    assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
 
 # Collective
 n_kicks0 = 5
 n_kicks1 = 3
 elements = [
-    TestElement(n_kicks=n_kicks0), TestElement(n_kicks=n_kicks1)]
+    TestElement(n_kicks=n_kicks0, _context=context), TestElement(n_kicks=n_kicks1)]
 elements[0].iscollective = True
-tracker = xt.Tracker(line=xt.Line(elements=elements))
+tracker = xt.Tracker(_context=context, line=xt.Line(elements=elements))
 tracker.line._needs_rng = True
 
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=10000)
 
-part = xp.Particles(p0c=6.5e12, x=[1,2,3])
+part = xp.Particles(_context=context, p0c=6.5e12, x=[1,2,3])
 num_turns0 = 10
 num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
@@ -154,16 +161,19 @@ tracker.stop_internal_logging_for_elements_of_type(TestElement)
 tracker.track(part, num_turns=num_turns1)
 
 # Checks
+part._move_to(_context=xo.ContextCpu())
+record._move_to(_context=xo.ContextCpu())
 num_recorded = record._record_index.num_recorded
 num_turns = num_turns0
+num_particles = len(part.x)
 assert np.all(part.at_turn == num_turns0 + num_turns1)
-assert num_recorded == (part._num_active_particles * num_turns
+assert num_recorded == (num_particles * num_turns
                                           * (n_kicks0 + n_kicks1))
 
-assert np.sum((record.at_element[:num_recorded] == 0)) == (part._num_active_particles * num_turns
+assert np.sum((record.at_element[:num_recorded] == 0)) == (num_particles * num_turns
                                            * n_kicks0)
-assert np.sum((record.at_element[:num_recorded] == 1)) == (part._num_active_particles * num_turns
+assert np.sum((record.at_element[:num_recorded] == 1)) == (num_particles * num_turns
                                            * n_kicks1)
 for i_turn in range(num_turns):
-    assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (part._num_active_particles
+    assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))

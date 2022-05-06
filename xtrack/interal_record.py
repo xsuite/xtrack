@@ -9,14 +9,14 @@ class RecordIdentifier(xo.Struct):
 RecordIdentifier.extra_sources = []
 RecordIdentifier.extra_sources.append(r'''
 /*gpufun*/
-int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
-    int8_t* io_buffer = LocalParticle_get_io_buffer(part);
+/*gpuglmem*/ int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
+    /*gpuglmem*/ int8_t* io_buffer = LocalParticle_get_io_buffer(part);
     if (io_buffer == NULL){
         return NULL;
     }
 
     int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
-    int64_t* found_id = (int64_t*)io_buffer;
+    /*gpuglmem*/ int64_t* found_id = (/*gpuglmem*/ int64_t*)io_buffer;
     if (buffer_id != (*found_id)){
         printf("Error: buffer_id mismatch!\n");
         return NULL;
@@ -35,7 +35,7 @@ class RecordIndex(xo.Struct):
     '''
     capacity = xo.Int64
     num_recorded = xo.UInt32
-    _dummy = xo.Int32 # to make sure the size is a multiple of 64 bits (not really needed)
+    _dummy = xo.UInt32 # to make sure the size is a multiple of 64 bits (not really needed)
     buffer_id = xo.Int64
 RecordIndex.extra_sources = []
 RecordIndex.extra_sources.append('''
@@ -47,15 +47,15 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
         return -2;
     }
     int64_t capacity = RecordIndex_get_capacity(record_index);
-    uint32_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
+    /*gpuglmem*/ uint32_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
 
     if(*num_recorded >= capacity){
         return -1;}
 
-    // TODO will have to be implemented with AtomicAdd, something like:
-    uint32_t slot = atomicInc(num_recorded);    //only_for_context cuda
-    uint32_t slot = *num_recorded;              //only_for_context cpu_serial
-    *num_recorded = slot + 1;                  //only_for_context cpu_serial
+    uint32_t slot = atomic_add(num_recorded, 1);   //only_for_context opencl
+    uint32_t slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
+    uint32_t slot = *num_recorded;                 //only_for_context cpu_serial
+    *num_recorded = slot + 1;                      //only_for_context cpu_serial
 
     return (int64_t) slot;
     }
