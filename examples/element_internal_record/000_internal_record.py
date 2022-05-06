@@ -22,7 +22,7 @@ class TestElementRecord(xo.DressedStruct):
 # To allow a elements of a given type to sore data in a structure defined above
 # we need to:
 # - add a in the beam element xofields a field called `_internal_record_id` of
-#   type `xtrack.RecordIdentifier`, which will be used internally to reference 
+#   type `xtrack.RecordIdentifier`, which will be used internally to reference
 #   the data structure.
 # - add `internal_record_id` to the `_skip_in_to_dict` list, as the reference to
 #   the data structure cannot be exported to a dictionary.
