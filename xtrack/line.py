@@ -282,6 +282,11 @@ class Line:
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
+    def unfreeze(self):
+        self.element_names = list(self.element_names)
+        if hasattr(self, 'tracker') and self.tracker is not None:
+            self.tracker._invalidate()
+
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
             raise ValueError(

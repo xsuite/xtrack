@@ -293,6 +293,7 @@ class Tracker:
 
         line._freeze()
         self.line = line
+        self.line.tracker = self
         self._line_frozen = frozenline
         ele_offsets = np.array(
             [ee._offset for ee in frozenline.elements], dtype=np.int64)
@@ -323,8 +324,25 @@ class Tracker:
 
         self.track=self._track_no_collective
 
+    def _invalidate(self):
+        if self.iscollective:
+            self._invalidated_parts  = self._parts
+            self._parts = None
+        else:
+            self._invalidated_line_frozen = self._line_frozen
+            self._line_frozen = None
+        self._is_invalidated = True
+
+    def _check_invalidated(self):
+        if hasattr(self, '_is_invalidated') and self._is_invalidated:
+            raise RuntimeError(
+                "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
+                "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
+
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
                           co_search_settings={}, delta_zeta=0):
+
+        self._check_invalidated()
 
         if particle_ref is None and particle_co_guess is None:
             particle_ref = self.particle_ref
@@ -345,6 +363,9 @@ class Tracker:
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None):
+
+        self._check_invalidated()
+
         if self.iscollective:
             logger.warning(
                 'The tracker has collective elements.\n'
@@ -366,6 +387,8 @@ class Tracker:
         matrix_stability_tol=None,
         symplectify=False
         ):
+
+        self._check_invalidated()
 
         if matrix_responsiveness_tol is None:
             matrix_responsiveness_tol = self.matrix_responsiveness_tol
@@ -403,6 +426,9 @@ class Tracker:
 
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
+
+        self._check_invalidated()
+
         return self.__class__(
                  _buffer=self._buffer,
                  line=self.line.filter_elements(mask=mask,
@@ -414,6 +440,8 @@ class Tracker:
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
+
+        self._check_invalidated()
 
         cline = self.line.cycle(index_first_element=index_first_element,
                                 name_first_element=name_first_element)
@@ -440,6 +468,8 @@ class Tracker:
 
     def get_backtracker(self, _context=None, _buffer=None,
                         global_xy_limit='from_tracker'):
+
+        self._check_invalidated()
 
         assert not self.iscollective
 
@@ -476,17 +506,23 @@ class Tracker:
 
     @property
     def particle_ref(self):
+        self._check_invalidated()
         return self.line.particle_ref
 
     @property
     def vars(self):
+        self._check_invalidated()
         return self.line.vars
 
     @property
     def element_refs(self):
+        self._check_invalidated()
         return self.line.element_refs
 
     def configure_radiation(self, mode=None):
+
+        self._check_invalidated()
+
         self.line.configure_radiation(mode=mode)
 
     def _build_kernel(self, save_source_as):
@@ -682,6 +718,8 @@ class Tracker:
         turn_by_turn_monitor=None
     ):
 
+        self._check_invalidated()
+
         # Start position
         if particles.start_tracking_at_element >= 0:
             if ele_start != 0:
@@ -872,6 +910,9 @@ class Tracker:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None
     ):
+
+        self._check_invalidated()
+
         # Start position
         if particles.start_tracking_at_element >= 0:
             if ele_start != 0:
@@ -1068,5 +1109,8 @@ class Tracker:
         return start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity)
 
+        self._check_invalidated()
+
     def stop_internal_logging_for_elements_of_type(self, element_type):
+        self._check_invalidated()
         stop_internal_logging_for_elements_of_type(self, element_type)
