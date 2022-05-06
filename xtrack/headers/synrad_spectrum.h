@@ -13,10 +13,10 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath){
 
     double const delta  = LocalParticle_get_delta(part);
 
-    double const r = 1/(6*PI*EPSILON_0)
-                        * QELEM / (mass0*q0*q0)
-                        * curv*curv
+    double const r = QELEM/(6*PI*EPSILON_0)
+                        * q0*q0 / mass0
                         * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
+	                * curv*curv
                         * lpath * (1 + delta);
 
     double const beta = beta0 * LocalParticle_get_rvv(part);
