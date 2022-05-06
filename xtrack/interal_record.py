@@ -17,7 +17,7 @@ int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* 
     int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
     int64_t* found_id = (int64_t*)io_buffer;
     if (buffer_id != (*found_id)){
-        printf("Error: buffer_id mismatch: %lld != %lld\n", buffer_id, (*found_id));
+        printf("Error: buffer_id mismatch!\n");
         return NULL;
     }
 
