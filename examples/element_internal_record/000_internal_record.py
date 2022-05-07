@@ -100,6 +100,24 @@ TestElement.XoStruct.extra_sources.append(r'''
     }
     ''')
 
+# At this poing the TestElement and its recording feature are ready and can be
+# used as follows.
+
+# Line, tracker, particles can be created as usual
+line=xt.Line(elements = [
+    xt.Drift(lenth=1.), TestElement(n_kicks=10),
+    xt.Drift(lenth=1.), TestElement(n_kicks=5)])
+tracker = line.build_tracker()
+tracker.line._needs_rng = True # Test elements use the random number generator
+
+# The internal record is by default disabled and can be enables by using the.
+# following dedicated method of the tracker object. The argument `capacity`
+# define the number of items that can be stored in each element of the internal
+# record (which is shared for all the elements of the same type). The recording
+# stops when the full capacity is reached.
+
+record = tracker.start_internal_logging_for_elements_of_type(
+                                                    TestElement, capacity=10000)
 
 
 context = xo.ContextCpu()
@@ -114,7 +132,7 @@ tracker.line._needs_rng = True
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=10000)
 
-part = xp.Particles(_context=context, p0c=6.5e12, x=[1,2,3])
+part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 num_turns0 = 10
 num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
@@ -140,7 +158,7 @@ for i_turn in range(num_turns):
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=10000)
 
-part = xp.Particles(_context=context, p0c=6.5e12, x=[1,2,3])
+part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 num_turns0 = 10
 num_turns1 = 3
 num_particles = len(part.x)
@@ -176,7 +194,7 @@ tracker.line._needs_rng = True
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=10000)
 
-part = xp.Particles(_context=context, p0c=6.5e12, x=[1,2,3])
+part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 num_turns0 = 10
 num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
