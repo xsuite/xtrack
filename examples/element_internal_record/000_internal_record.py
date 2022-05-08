@@ -143,6 +143,8 @@ tracker.track(part, num_turns=10)
 
 #!end-doc-part
 
+# Checks
+
 context = xo.ContextCpu()
 #context = xo.ContextCupy()
 #context = xo.ContextPyopencl()
@@ -161,7 +163,6 @@ num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
 tracker.track(part, num_turns=num_turns1)
 
-# Checks
 num_recorded = record._record_index.num_recorded
 num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
@@ -176,6 +177,20 @@ assert np.sum((record.at_element[:num_recorded] == 1)) == (num_particles * num_t
 for i_turn in range(num_turns):
     assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
+
+# Check reached capacity
+record = tracker.start_internal_logging_for_elements_of_type(
+                                                    TestElement, capacity=20)
+
+part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+num_turns0 = 10
+num_turns1 = 3
+tracker.track(part, num_turns=num_turns0)
+tracker.track(part, num_turns=num_turns1)
+
+num_recorded = record._record_index.num_recorded
+assert num_recorded == 20
+
 
 # Check stop
 record = tracker.start_internal_logging_for_elements_of_type(
