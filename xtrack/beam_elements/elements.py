@@ -8,6 +8,7 @@ import xpart as xp
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
+from ..interal_record import RecordIndex, RecordIdentifier
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -234,6 +235,18 @@ def _update_bal_from_knl_ksl(knl, ksl, bal, context=None):
     bal[0::2] = knl * inv_factorial
     bal[1::2] = ksl * inv_factorial
 
+
+class SynchrotronRadiationRecord(xo.DressedStruct):
+    _xofields = {
+        '_record_index': RecordIndex,
+        'photon_energy': xo.Float64[:],
+        'at_element': xo.Int64[:],
+        'at_turn': xo.Int64[:],
+        'particle_id': xo.Int64[:],
+        'particle_delta': xo.Float64[:]
+        }
+
+
 class Multipole(BeamElement):
     '''Beam element modeling a thin magnetic multipole. Parameters:
 
@@ -253,16 +266,14 @@ class Multipole(BeamElement):
         'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
         'bal': xo.Float64[:],
-        '_io_offset_synrad_storage': xo.Int64,
+        '_internal_record_id': RecordIdentifier,
         }
 
     _store_in_to_dict = ['knl', 'ksl']
-    _skip_in_to_dict = ['_io_offset_synrad_storage']
+    _skip_in_to_dict = ['_internal_record_id']
+    _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
-
-        if '_io_offset_synrad_storage' not in kwargs:
-            kwargs['_io_offset_synrad_storage'] = -1
 
         if bal is None and (
             knl is not None or ksl is not None or order is not None

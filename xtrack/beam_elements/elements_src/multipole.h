@@ -6,12 +6,16 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     int64_t radiation_flag = MultipoleData_get_radiation_flag(el);
 
-    // Photon data storage
-    int8_t* photon_emission_record = NULL;
-    if (radiation_flag == 2){
-        int8_t _io_offset_synrad_storage = MultipoleData_get__io_offset_synrad_storage(el);
-        if (_io_offset_synrad_storage >= 0){
-            photon_emission_record = LocalParticle_get_io_buffer(part0) + _io_offset_synrad_storage;
+    // Extract the record_id, record and record_index
+    SynchrotronRadiationRecordData record = NULL;
+    RecordIndex record_index = NULL;
+    if (radiation_flag==2
+            && MultipoleData_get__internal_record_id_buffer_id(el) > 0){
+
+        RecordIdentifier record_id = MultipoleData_getp__internal_record_id(el);
+        record = (SynchrotronRadiationRecordData) RecordIdentifier_getp_record(record_id, part0);
+        if (record){
+            record_index = SynchrotronRadiationRecordData_getp__record_index(record);
         }
     }
 
@@ -53,7 +57,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 synrad_average_kick(part, curv, L_path);
             }
             else if (radiation_flag == 2){
-                synrad_emit_photons(part, curv, L_path, photon_emission_record);
+                synrad_emit_photons(part, curv, L_path, record_index, record);
             }
         }
 
@@ -92,7 +96,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 synrad_average_kick(part, curv, L_path);
             }
             else if (radiation_flag == 2){
-                synrad_emit_photons(part, curv, L_path, photon_emission_record);
+                synrad_emit_photons(part, curv, L_path, record_index, record);
             }
         }
     //end_per_particle_block

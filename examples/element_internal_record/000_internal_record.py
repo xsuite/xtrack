@@ -4,6 +4,10 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
+################################################################
+# Definition of a beam element with an internal data recording #
+################################################################
+
 # We define a data structure to allow all elements of a new BeamElement type
 # to store data in one place. Such a data structure needs to contain a field called
 # `_record_index` of type `xtrack.RecordIndex`, which will be used internally to

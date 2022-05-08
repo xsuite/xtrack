@@ -29,7 +29,7 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath){
 
 /*gpufun*/
 double SynRad(double x)
-{ 
+{
   // x :    energy normalized to the critical energy
   // returns function value _SynRadC   photon spectrum dn/dx
   // (integral of modified 1/3 order Bessel function)
@@ -131,13 +131,13 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
   // initialize constants used in the approximate expressions
   // for SYNRAD   (integral over the modified Bessel function K5/3)
   //  xmin = 0.;
-  double const xlow = 1.; 
+  double const xlow = 1.;
   double const a1 = 2.149528241534391; // Synrad(1.e-38)/pow(1.e-38,-2./3.);
   double const a2 = 1.770750801624037; // Synrad(xlow)/exp(-xlow);
-  double const c1 = 0.; // 
+  double const c1 = 0.; //
   double const ratio = 0.908250405131381;
   double appr, exact, result;
-  do { 
+  do {
     if (LocalParticle_generate_random_double(part) < ratio) { // use low energy approximation
       result=c1+(1.-c1)*LocalParticle_generate_random_double(part);
       double tmp = result*result;
@@ -163,18 +163,14 @@ double synrad_average_number_of_photons(
 /*gpufun*/
 int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
                             double lpath /* m */,
-                            int8_t* photon_emission_record){
+                            RecordIndex record_index,
+                            SynchrotronRadiationRecordData record
+                            ){
 
     if (fabs(curv) < 1e-15)
         return 0;
 
     int64_t nphot = 0;
-
-    SynchrotronRadiationPhotonRecordData photon_record = NULL;
-    if (photon_emission_record){
-        photon_record =
-            (SynchrotronRadiationPhotonRecordData) photon_emission_record;
-    }
 
     // TODO Introduce effect of chi and mass_ratio!!!
     double const m0 = LocalParticle_get_mass0(part); // eV
@@ -200,21 +196,22 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
         gamma = energy / m0; //
         // beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
         n += LocalParticle_generate_random_double_exp(part);
-        if (photon_record){
+        if (record){
+          int64_t i_slot = RecordIndex_get_slot(record_index);
+          // The returned slot id is negative if record is NULL or if record is full
 
-            // Get a slot 
-            //TODO: This is not thread safe!
-            int64_t i_record = SynchrotronRadiationPhotonRecordData_get_i_record(photon_record);
-            int64_t capacity = SynchrotronRadiationPhotonRecordData_get__capacity(photon_record);
-            if (i_record < capacity){
-               SynchrotronRadiationPhotonRecordData_set_i_record(photon_record, i_record+1);
-               SynchrotronRadiationPhotonRecordData_set_photon_energy(photon_record, i_record, energy_loss);
-               SynchrotronRadiationPhotonRecordData_set_at_element(photon_record, i_record,
-                  LocalParticle_get_at_element(part));
-               SynchrotronRadiationPhotonRecordData_set_at_turn(photon_record, i_record,
-                  LocalParticle_get_at_turn(part));
-            }
-
+          if (i_slot>=0){
+              SynchrotronRadiationRecordData_set_photon_energy(record, i_slot,
+                                                               energy_loss);
+              SynchrotronRadiationRecordData_set_at_element(record, i_slot,
+                                          LocalParticle_get_at_element(part));
+              SynchrotronRadiationRecordData_set_at_turn(record, i_slot,
+                                          LocalParticle_get_at_turn(part));
+              SynchrotronRadiationRecordData_set_particle_id(record, i_slot,
+                                          LocalParticle_get_particle_id(part));
+              SynchrotronRadiationRecordData_set_particle_delta(record, i_slot,
+                                          LocalParticle_get_delta(part));
+          }
         }
     }
 
