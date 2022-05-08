@@ -138,7 +138,7 @@ tracker.track(part, num_turns=10)
 # The recording can be stopped with the following method:
 tracker.stop_internal_logging_for_elements_of_type(TestElement)
 
-# Track some more (without logging information in `record`)`):
+# Track more turns (without logging information in `record`)
 tracker.track(part, num_turns=10)
 
 #!end-doc-part

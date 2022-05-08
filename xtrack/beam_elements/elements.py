@@ -219,12 +219,6 @@ class SRotation(BeamElement):
 SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
-class SynchrotronRadiationPhotonRecordData(xo.Struct):
-    _capacity = xo.Int64
-    i_record = xo.Int64
-    at_element = xo.Int64[:]
-    at_turn = xo.Int64[:]
-    photon_energy = xo.Float64[:]
 
 def _update_bal_from_knl_ksl(knl, ksl, bal, context=None):
     assert len(bal) == 2*len(knl) == 2*len(ksl)
@@ -234,7 +228,6 @@ def _update_bal_from_knl_ksl(knl, ksl, bal, context=None):
         inv_factorial = context.nparray_to_context_array(inv_factorial)
     bal[0::2] = knl * inv_factorial
     bal[1::2] = ksl * inv_factorial
-
 
 class SynchrotronRadiationRecord(xo.DressedStruct):
     _xofields = {
@@ -376,7 +369,6 @@ Multipole.XoStruct.extra_sources = [
     xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
     xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     _pkg_root.joinpath('headers/constants.h'),
-    SynchrotronRadiationPhotonRecordData._gen_c_api(),
     _pkg_root.joinpath('headers/synrad_spectrum.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 

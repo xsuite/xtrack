@@ -35,18 +35,15 @@ tracker = xt.Tracker(line=line)
 
 tracker.configure_radiation(mode='quantum')
 
-from xtrack.beam_elements.elements import SynchrotronRadiationPhotonRecordData
-
-capacity = 100000
-photondata = SynchrotronRadiationPhotonRecordData(_capacity=capacity, i_record=0,
-                at_element=capacity, at_turn=capacity, photon_energy=capacity,
-                _buffer=tracker.io_buffer)
-
-
-for ee in tracker.line.elements:
-    if isinstance(ee, xt.Multipole):
-        ee._io_offset_synrad_storage = photondata._offset
+record = tracker.start_internal_logging_for_elements_of_type(
+                                                xt.Multipole, capacity=100000)
 
 particles = xp.build_particles(tracker=tracker, x=[0,0,0,0])
 
 tracker.track(particles, num_turns=10)
+
+import matplotlib.pyplot as plt
+hist, bin_edges = np.histogram(record.photon_energy[:record._record_index.num_recorded], bins=100)
+plt.close('all')
+plt.loglog(bin_edges[1:], hist)
+plt.show()
