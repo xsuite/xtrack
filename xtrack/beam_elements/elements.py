@@ -365,12 +365,12 @@ class Multipole(BeamElement):
                               bal=-self.bal, # TODO: maybe it can be made more efficient
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
-Multipole.XoStruct.extra_sources = [
+Multipole.XoStruct.extra_sources.extend([
     xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
     xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
     _pkg_root.joinpath('headers/constants.h'),
     _pkg_root.joinpath('headers/synrad_spectrum.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
+    _pkg_root.joinpath('beam_elements/elements_src/multipole.h')])
 
 def _update_phase_from_pn_ps(pn, ps, phase, context=None):
     assert len(phase) == 2*len(pn) == 2*len(ps)

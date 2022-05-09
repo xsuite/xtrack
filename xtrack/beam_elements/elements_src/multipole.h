@@ -6,14 +6,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     int64_t radiation_flag = MultipoleData_get_radiation_flag(el);
 
-    // Extract the record_id, record and record_index
+    // Extract record and record_index
     SynchrotronRadiationRecordData record = NULL;
     RecordIndex record_index = NULL;
-    if (radiation_flag==2
-            && MultipoleData_get__internal_record_id_buffer_id(el) > 0){
-
-        RecordIdentifier record_id = MultipoleData_getp__internal_record_id(el);
-        record = (SynchrotronRadiationRecordData) RecordIdentifier_getp_record(record_id, part0);
+    if (radiation_flag==2){
+        record = (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0);
         if (record){
             record_index = SynchrotronRadiationRecordData_getp__record_index(record);
         }
