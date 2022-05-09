@@ -59,30 +59,11 @@ TestElement.XoStruct.extra_sources.append(r'''
     /*gpufun*/
     void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
-        // Check if internal record is enabled
-        int record_enabled = TestElementData_get__internal_record_id_buffer_id(el) > 0;
-
-        // Extract the record_id, record and record_index
-        TestElementRecordData record = NULL;
+        // Extract the record and record_index
+        TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
         RecordIndex record_index = NULL;
-        if (record_enabled){
-            RecordIdentifier record_id = TestElementData_getp__internal_record_id(el);
-            record = (TestElementRecordData) RecordIdentifier_getp_record(record_id, part0);
-            if (record){
-                record_index = TestElementRecordData_getp__record_index(record);
-            }
-        }
-
-
-        TestElementRecordData record2 = NULL;
-        record2 = TestElementData_getp_internal_record(el, part0);
-        printf("record: %p\n", record);
-        printf("record2: %p\n", record2);
-        if (record2 == record){
-            printf("record2 == record\n");
-        }
-        else{
-            printf("record2 != record\n");
+        if (record){
+            record_index = TestElementRecordData_getp__record_index(record);
         }
 
         int64_t n_kicks = TestElementData_get_n_kicks(el);
@@ -94,7 +75,7 @@ TestElement.XoStruct.extra_sources.append(r'''
                 double rr = 1e-6 * LocalParticle_generate_random_double(part);
                 LocalParticle_add_to_px(part, rr);
 
-                if (record_enabled){
+                if (record){
                     int64_t i_slot = RecordIndex_get_slot(record_index);
                     // The returned slot id is negative if record is NULL or if record is full
 
@@ -188,7 +169,6 @@ for i_turn in range(num_turns):
     assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
 
-prrrrrrr
 # Check reached capacity
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=20)
