@@ -1,3 +1,4 @@
+from multiprocessing import ProcessError
 import numpy as np
 
 import xtrack as xt
@@ -70,6 +71,18 @@ TestElement.XoStruct.extra_sources.append(r'''
             if (record){
                 record_index = TestElementRecordData_getp__record_index(record);
             }
+        }
+
+
+        TestElementRecordData record2 = NULL;
+        record2 = TestElementData_getp_internal_record(el, part0);
+        printf("record: %p\n", record);
+        printf("record2: %p\n", record2);
+        if (record2 == record){
+            printf("record2 == record\n");
+        }
+        else{
+            printf("record2 != record\n");
         }
 
         int64_t n_kicks = TestElementData_get_n_kicks(el);
@@ -175,6 +188,7 @@ for i_turn in range(num_turns):
     assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
 
+prrrrrrr
 # Check reached capacity
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement, capacity=20)
