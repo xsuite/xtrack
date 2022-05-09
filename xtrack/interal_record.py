@@ -88,3 +88,13 @@ def stop_internal_logging_for_elements_of_type(tracker, element_type):
             ee._internal_record_id.offset = 0
             ee._internal_record_id.buffer_id = 0
             ee.io_buffer = None
+
+def generate_get_record(ele_classname, record_classname):
+    content = '''
+RECORDCLASSNAME ELECLASSNAME_get_internal_record(ELECLASSNAME el, LocalParticle* part){
+    RecordIdentifier record_id = ELECLASSNAME_getp__internal_record_id(el);
+    return (RECORDCLASSNAME) RecordIdentifier_getp_record(record_id, part);
+    }
+    '''.replace(
+        'RECORDCLASSNAME', record_classname).replace('ELECLASSNAME', ele_classname)
+    return content

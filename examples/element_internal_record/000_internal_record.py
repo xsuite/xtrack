@@ -42,10 +42,10 @@ class TestElement(xt.BeamElement):
     _internal_record_class = TestElementRecord
 
 # The element uses the random number generator
-TestElement.XoStruct.extra_sources = [
+TestElement.XoStruct.extra_sources.extend([
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
     xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-    ]
+    ])
 
 # The defined data structure can be accessed in the C code of the beam element
 # to log data.

@@ -5,7 +5,7 @@ import xobjects as xo
 import xpart as xp
 
 from .general import _pkg_root
-from .interal_record import RecordIdentifier, RecordIndex
+from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
    int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp
@@ -170,16 +170,21 @@ class MetaBeamElement(type):
             if '_skip_in_to_dict' not in data.keys():
                 data['_skip_in_to_dict'] = []
             data['_skip_in_to_dict'].append('_internal_record_id')
+
         XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
 
         bases = (dress_element(XoStruct),) + bases
         new_class = type.__new__(cls, name, bases, data)
 
         XoStruct._DressingClass = new_class
+        XoStruct.extra_sources = []
 
         if '_internal_record_class' in data.keys():
             XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
+            new_class.XoStruct.extra_sources.append(
+                generate_get_record(ele_classname=XoStruct_name,
+                    record_classname=data['_internal_record_class'].XoStruct.__name__))
 
         return new_class
 
