@@ -36,11 +36,8 @@ class TestElementRecord(xo.DressedStruct):
 
 class TestElement(xt.BeamElement):
     _xofields={
-        '_internal_record_id': xt.RecordIdentifier,
         'n_kicks': xo.Int64,
         }
-
-    _skip_in_to_dict = ['_internal_record_id']
 
     _internal_record_class = TestElementRecord
 

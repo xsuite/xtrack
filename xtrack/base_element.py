@@ -164,6 +164,12 @@ class MetaBeamElement(type):
                 if hasattr(bb,'_xofields'):
                     xofields = bb._xofields
                     break
+
+        if '_internal_record_class' in data.keys():
+            xofields['_internal_record_id'] = RecordIdentifier
+            if '_skip_in_to_dict' not in data.keys():
+                data['_skip_in_to_dict'] = []
+            data['_skip_in_to_dict'].append('_internal_record_id')
         XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
 
         bases = (dress_element(XoStruct),) + bases
