@@ -26,14 +26,8 @@ class TestElementRecord(xo.DressedStruct):
         }
 
 # To allow elements of a given type to store data in a structure of the type defined
-# above we need to:
-# - add in the beam element xofields a field called `_internal_record_id` of
-#   type `xtrack.RecordIdentifier`, which will be used internally to reference
-#   the data structure.
-# - add `internal_record_id` to the `_skip_in_to_dict` list, as the reference to
-#   the data structure cannot be exported to a dictionary.
-# - add an attribute called `_internal_recor_class` to which we bind the data
-#   structure type defined above.
+# above we need to add in the element class an attribute called
+# `_internal_record_class` to which we bind the data structure type defined above.
 
 class TestElement(xt.BeamElement):
     _xofields={
@@ -42,7 +36,7 @@ class TestElement(xt.BeamElement):
 
     _internal_record_class = TestElementRecord
 
-# The element uses the random number generator
+# The element uses the Xtrack random number generator
 TestElement.XoStruct.extra_sources.extend([
     xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
     xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
@@ -76,6 +70,7 @@ TestElement.XoStruct.extra_sources.append(r'''
                 LocalParticle_add_to_px(part, rr);
 
                 if (record){
+                    // Get a slot in the record (this is thread safe)
                     int64_t i_slot = RecordIndex_get_slot(record_index);
                     // The returned slot id is negative if record is NULL or if record is full
 
@@ -125,6 +120,7 @@ tracker.track(part, num_turns=10)
 #  - `record.at_element` contains the element number where the recording took place
 #  - `record.at_turn` contains the turn number where the recording took place
 #  - `record.particle_id` contains the particle id for which the recording took place
+# The number of used slots in `record` can be found in record._index.num_recorded
 
 # The recording can be stopped with the following method:
 tracker.stop_internal_logging_for_elements_of_type(TestElement)
