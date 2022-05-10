@@ -77,16 +77,16 @@ def start_internal_logging_for_elements_of_type(tracker, element_type, capacity)
             if ff.name in capacity.keys():
                 subtable_class = ff.ftype
                 init_dict[ff.name] = {}
-                for nn in subtable_class._fields:
-                    if hasattr(ff.ftype, 'to_nplike'): #is array
-                        init_dict[ff.name][nn] = capacity[ff.name]
+                for sff in subtable_class._fields:
+                    if hasattr(sff.ftype, 'to_nplike'): #is array
+                        init_dict[ff.name][sff.name] = capacity[ff.name]
     record = element_type.XoStruct._internal_record_class(_buffer=tracker.io_buffer, **init_dict)
 
     if np.isscalar(capacity):
         record._index.capacity = capacity
     else:
         for kk in capacity.keys():
-            record[kk]._index.capacity = capacity[kk]
+            getattr(record, kk)._index.capacity = capacity[kk]
 
     for ee in tracker.line.elements:
         if isinstance(ee, element_type):
