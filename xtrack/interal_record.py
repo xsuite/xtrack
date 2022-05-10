@@ -1,3 +1,4 @@
+import numpy as np
 import xobjects as xo
 
 class RecordIdentifier(xo.Struct):
@@ -64,13 +65,28 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
 
 def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
 
-    init_capacities = {}
-    for ff in element_type.XoStruct._internal_record_class.XoStruct._fields:
-        if hasattr(ff.ftype, 'to_nplike'): #is array
-            init_capacities[ff.name] = capacity
+    init_dict = {}
+    if np.isscalar(capacity):
+        capacity = int(capacity)
+        for ff in element_type._internal_record_class.XoStruct._fields:
+            if hasattr(ff.ftype, 'to_nplike'): #is array
+                init_dict[ff.name] = capacity
+    else:
+        init_dict = {}
+        for ff in element_type._internal_record_class.XoStruct._fields:
+            if ff.name in capacity.keys():
+                subtable_class = ff.ftype
+                init_dict[ff.name] = {}
+                for nn in subtable_class._fields:
+                    if hasattr(ff.ftype, 'to_nplike'): #is array
+                        init_dict[ff.name][nn] = capacity[ff.name]
+    record = element_type.XoStruct._internal_record_class(_buffer=tracker.io_buffer, **init_dict)
 
-    record = element_type.XoStruct._internal_record_class(_buffer=tracker.io_buffer, **init_capacities)
-    record._record_index.capacity = capacity
+    if np.isscalar(capacity):
+        record._index.capacity = capacity
+    else:
+        for kk in capacity.keys():
+            record[kk]._index.capacity = capacity[kk]
 
     for ee in tracker.line.elements:
         if isinstance(ee, element_type):

@@ -11,14 +11,14 @@ import xobjects as xo
 
 # We define a data structure to allow all elements of a new BeamElement type
 # to store data in one place. Such a data structure needs to contain a field called
-# `_record_index` of type `xtrack.RecordIndex`, which will be used internally to
+# `_index` of type `xtrack.RecordIndex`, which will be used internally to
 # keep count of the number of records stored in the data structure. Together with
 # the index, the structure can contain an arbitrary number of other fields (which
 # need to be arrays) where the data will be stored.
 
 class TestElementRecord(xo.DressedStruct):
     _xofields = {
-        '_record_index': xt.RecordIndex,
+        '_index': xt.RecordIndex,
         'generated_rr': xo.Float64[:],
         'at_element': xo.Int64[:],
         'at_turn': xo.Int64[:],
@@ -63,7 +63,7 @@ TestElement.XoStruct.extra_sources.append(r'''
         TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
         RecordIndex record_index = NULL;
         if (record){
-            record_index = TestElementRecordData_getp__record_index(record);
+            record_index = TestElementRecordData_getp__index(record);
         }
 
         int64_t n_kicks = TestElementData_get_n_kicks(el);
@@ -154,7 +154,7 @@ num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
 tracker.track(part, num_turns=num_turns1)
 
-num_recorded = record._record_index.num_recorded
+num_recorded = record._index.num_recorded
 num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
 part._move_to(_context=xo.ContextCpu())
@@ -179,7 +179,7 @@ num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
 tracker.track(part, num_turns=num_turns1)
 
-num_recorded = record._record_index.num_recorded
+num_recorded = record._index.num_recorded
 assert num_recorded == 20
 
 
@@ -195,7 +195,7 @@ tracker.track(part, num_turns=num_turns0)
 tracker.stop_internal_logging_for_elements_of_type(TestElement)
 tracker.track(part, num_turns=num_turns1)
 
-num_recorded = record._record_index.num_recorded
+num_recorded = record._index.num_recorded
 num_turns = num_turns0
 part._move_to(_context=xo.ContextCpu())
 record._move_to(_context=xo.ContextCpu())
@@ -233,7 +233,7 @@ tracker.track(part, num_turns=num_turns1)
 # Checks
 part._move_to(_context=xo.ContextCpu())
 record._move_to(_context=xo.ContextCpu())
-num_recorded = record._record_index.num_recorded
+num_recorded = record._index.num_recorded
 num_turns = num_turns0
 num_particles = len(part.x)
 assert np.all(part.at_turn == num_turns0 + num_turns1)
