@@ -116,9 +116,6 @@ def dress_element(XoElementData):
         sources.append(RecordIndex._gen_c_api())
         sources += RecordIndex.extra_sources
 
-        if hasattr(self, '_internal_record_class'):
-            sources.append(self._internal_record_class.XoStruct._gen_c_api())
-
         sources += self.XoStruct.extra_sources
         sources.append(self.track_kernel_source)
 
@@ -180,8 +177,11 @@ class MetaBeamElement(type):
         XoStruct.extra_sources = []
 
         if '_internal_record_class' in data.keys():
-            XoStruct._internal_record_class = data['_internal_record_class']
+            new_class.XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
+            new_class.XoStruct.extra_sources.extend(
+                xo.context.sources_from_classes(xo.context.sort_classes(
+                                            [data['_internal_record_class'].XoStruct])))
             new_class.XoStruct.extra_sources.append(
                 generate_get_record(ele_classname=XoStruct_name,
                     record_classname=data['_internal_record_class'].XoStruct.__name__))
