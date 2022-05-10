@@ -43,7 +43,7 @@ particles = xp.build_particles(tracker=tracker, x=[0,0,0,0])
 tracker.track(particles, num_turns=10)
 
 import matplotlib.pyplot as plt
-hist, bin_edges = np.histogram(record.photon_energy[:record._record_index.num_recorded], bins=100)
+hist, bin_edges = np.histogram(record.photon_energy[:record._index.num_recorded], bins=100)
 plt.close('all')
 plt.loglog(bin_edges[1:], hist)
 plt.show()

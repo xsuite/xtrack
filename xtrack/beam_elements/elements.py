@@ -231,7 +231,7 @@ def _update_bal_from_knl_ksl(knl, ksl, bal, context=None):
 
 class SynchrotronRadiationRecord(xo.DressedStruct):
     _xofields = {
-        '_record_index': RecordIndex,
+        '_index': RecordIndex,
         'photon_energy': xo.Float64[:],
         'at_element': xo.Int64[:],
         'at_turn': xo.Int64[:],
@@ -259,11 +259,9 @@ class Multipole(BeamElement):
         'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
         'bal': xo.Float64[:],
-        '_internal_record_id': RecordIdentifier,
         }
 
     _store_in_to_dict = ['knl', 'ksl']
-    _skip_in_to_dict = ['_internal_record_id']
     _internal_record_class = SynchrotronRadiationRecord
 
     def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):

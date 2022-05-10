@@ -12,7 +12,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     if (radiation_flag==2){
         record = (SynchrotronRadiationRecordData) MultipoleData_getp_internal_record(el, part0);
         if (record){
-            record_index = SynchrotronRadiationRecordData_getp__record_index(record);
+            record_index = SynchrotronRadiationRecordData_getp__index(record);
         }
     }
 
