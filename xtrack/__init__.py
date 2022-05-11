@@ -6,7 +6,8 @@ from .line_frozen import LineFrozen
 from .line import Line
 from .tracker import Tracker
 from .loss_location_refinement import LossLocationRefinement
-from .interal_record import RecordIdentifier, RecordIndex
+from .interal_record import (RecordIdentifier, RecordIndex,
+                             start_internal_logging, stop_internal_logging)
 
 from .monitors import generate_monitor_class
 from . import linear_normal_form

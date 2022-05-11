@@ -95,7 +95,14 @@ def init_internal_record(internal_record_class, capacity, io_buffer):
 
     return record
 
-def start_internal_logging(element, record, io_buffer):
+def start_internal_logging(element, record=None, io_buffer=None, capacity=None):
+
+    assert io_buffer is not None, ('io_buffer must be provided.')
+
+    if record is None:
+        assert capacity is not None
+        record = init_internal_record(element._internal_record_class, capacity,
+                                      io_buffer)
 
     assert record._buffer is io_buffer, (
         "The record should be stored in the specified io_buffer")
