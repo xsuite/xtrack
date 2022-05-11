@@ -38,7 +38,7 @@ def test_record_single_table():
             }
 
             int64_t n_kicks = TestElementData_get_n_kicks(el);
-            printf("n_kicks %d\n", (int)n_kicks);
+            //printf("n_kicks %d\n", (int)n_kicks);
 
             //start_per_particle_block (part0->part)
 
