@@ -130,13 +130,12 @@ TestElement.XoStruct.extra_sources.append(r'''
 # Once these steps are done, the TestElement and its recording feature are ready
 # and can be used as follows.
 
-# Line, tracker, particles can be created as usual
+# Beam elements can be created as usual
 test_element1 = TestElement(n_kicks=10)
 test_element2 = TestElement(n_kicks=5)
 
-
 # The recording is by default disabled and can be enabled using the following
-# dedicated function.# The capacity allocated for the two tables needs to be
+# dedicated function. The capacity allocated for the two tables needs to be
 # provided in a dictionary:
 
 io_buffer = xt.new_io_buffer()
@@ -302,7 +301,8 @@ for i_turn in range(num_turns0 + num_turns1):
     part.at_turn += 1
 
 part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+record0._move_to(_context=xo.ContextCpu())
+record1._move_to(_context=xo.ContextCpu())
 
 num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
