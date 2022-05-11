@@ -215,8 +215,6 @@ for i_turn in range(num_turns):
     assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
 
-
-
 # Check reached capacity
 io_buffer = xt.new_io_buffer(_context=context)
 record = xt.start_internal_logging(elements=elements, io_buffer=io_buffer,
@@ -241,18 +239,24 @@ assert num_recorded_tab2 == 15
 
 
 # Check stop
-record = tracker.start_internal_logging_for_elements_of_type(
-                                    TestElement,
-                                    capacity={'table1': 1000, 'table2': 1000})
+io_buffer = xt.new_io_buffer(_context=context)
+record = xt.start_internal_logging(elements=elements, io_buffer=io_buffer,
+                          capacity={'table1': 10000, 'table2': 10000})
 
 part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 num_turns0 = 10
 num_turns1 = 3
 num_particles = len(part.x)
 
-tracker.track(part, num_turns=num_turns0)
-tracker.stop_internal_logging_for_elements_of_type(TestElement)
-tracker.track(part, num_turns=num_turns1)
+
+for i_turn in range(num_turns0 + num_turns1):
+    if i_turn == num_turns0:
+        xt.stop_internal_logging(elements=elements)
+    for ee in elements:
+        ee.track(part, increment_at_element=True)
+    part.at_element[:] = 0
+    part.at_turn += 1
+
 
 part._move_to(_context=xo.ContextCpu())
 record._move_to(_context=xo.ContextCpu())
@@ -278,47 +282,64 @@ for i_turn in range(num_turns):
     assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
 
-# Collective
-n_kicks0 = 5
-n_kicks1 = 3
-elements = [
-    TestElement(n_kicks=n_kicks0, _context=context), TestElement(n_kicks=n_kicks1)]
-elements[0].iscollective = True
-tracker = xt.Tracker(_context=context, line=xt.Line(elements=elements))
-tracker.line._needs_rng = True
-
-record = tracker.start_internal_logging_for_elements_of_type(
-                                    TestElement,
-                                    capacity={'table1': 1000, 'table2': 1000})
+# Separate buffers
+io_buffer0 = xt.new_io_buffer(_context=context)
+record0 = xt.start_internal_logging(elements=elements[0], io_buffer=io_buffer0,
+                          capacity={'table1': 10000, 'table2': 10000})
+io_buffer1 = xt.new_io_buffer(_context=context)
+record1 = xt.start_internal_logging(elements=elements[1], io_buffer=io_buffer1,
+                          capacity={'table1': 10000, 'table2': 10000})
 
 part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 num_turns0 = 10
 num_turns1 = 3
-tracker.track(part, num_turns=num_turns0)
-tracker.stop_internal_logging_for_elements_of_type(TestElement)
-tracker.track(part, num_turns=num_turns1)
 
-# Checks
+for i_turn in range(num_turns0 + num_turns1):
+    for ee in elements:
+        ee.track(part, increment_at_element=True)
+    part.at_element[:] = 0
+    part.at_turn += 1
+
 part._move_to(_context=xo.ContextCpu())
 record._move_to(_context=xo.ContextCpu())
-num_turns = num_turns0
+
+num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
 
-table1 = record.table1
-table2 = record.table2
-num_recorded_tab1 = table1._index.num_recorded
-num_recorded_tab2 = table2._index.num_recorded
+table01 = record0.table1
+table02 = record0.table2
+num_recorded_tab01 = table01._index.num_recorded
+num_recorded_tab02 = table02._index.num_recorded
 
-assert num_recorded_tab1 == 2 * (num_particles * num_turns)
-assert num_recorded_tab2 == (num_particles * num_turns * (n_kicks0 + n_kicks1))
+assert num_recorded_tab01 == (num_particles * num_turns)
+assert num_recorded_tab02 == (num_particles * num_turns * (n_kicks0))
 
-assert np.sum((table1.at_element[:num_recorded_tab1] == 0)) == (num_particles * num_turns)
-assert np.sum((table1.at_element[:num_recorded_tab1] == 1)) == (num_particles * num_turns)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 0)) == (num_particles * num_turns
+assert np.sum((table01.at_element[:num_recorded_tab01] == 0)) == (num_particles * num_turns)
+assert np.sum((table01.at_element[:num_recorded_tab01] == 1)) == 0
+assert np.sum((table02.at_element[:num_recorded_tab02] == 0)) == (num_particles * num_turns
                                            * n_kicks0)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 1)) == (num_particles * num_turns
-                                           * n_kicks1)
+assert np.sum((table02.at_element[:num_recorded_tab02] == 1)) == 0
+
 for i_turn in range(num_turns):
-    assert np.sum((table1.at_turn[:num_recorded_tab1] == i_turn)) == 2 * num_particles
-    assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
-                                                        * (n_kicks0 + n_kicks1))
+    assert np.sum((table01.at_turn[:num_recorded_tab01] == i_turn)) == num_particles
+    assert np.sum((table02.at_turn[:num_recorded_tab02] == i_turn)) == (num_particles
+                                                        * (n_kicks0))
+
+table11 = record1.table1
+table12 = record1.table2
+num_recorded_tab11 = table11._index.num_recorded
+num_recorded_tab12 = table12._index.num_recorded
+
+assert num_recorded_tab11 == (num_particles * num_turns)
+assert num_recorded_tab12 == (num_particles * num_turns * (n_kicks1))
+
+assert np.sum((table11.at_element[:num_recorded_tab11] == 0)) == 0
+assert np.sum((table11.at_element[:num_recorded_tab11] == 1)) == (num_particles * num_turns)
+assert np.sum((table12.at_element[:num_recorded_tab12] == 0)) == 0
+assert np.sum((table12.at_element[:num_recorded_tab12] == 1)) == (num_particles * num_turns
+                                           * n_kicks1)
+
+for i_turn in range(num_turns):
+    assert np.sum((table11.at_turn[:num_recorded_tab11] == i_turn)) == num_particles
+    assert np.sum((table12.at_turn[:num_recorded_tab12] == i_turn)) == (num_particles
+                                                        * (n_kicks1))
