@@ -93,6 +93,10 @@ TestElement.XoStruct.extra_sources.append(r'''
 # Once these steps are done, the TestElement and its recording feature are ready
 # and can be used as follows.
 
+###########################################################
+# Usage of a beam element with an internal data recording #
+###########################################################
+
 # Line, tracker, particles can be created as usual
 line=xt.Line(elements = [
     xt.Drift(length=1.), TestElement(n_kicks=10),

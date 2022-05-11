@@ -4,9 +4,6 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-################################################################
-# Definition of a beam element with an internal data recording #
-################################################################
 
 # In this case the element internal record is made of two separate tables each
 # with its own record index.
@@ -58,7 +55,6 @@ TestElement.XoStruct.extra_sources.extend([
 TestElement.XoStruct.extra_sources.append(r'''
     /*gpufun*/
     void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
-
 
         // Extract the record and record_index
         TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
