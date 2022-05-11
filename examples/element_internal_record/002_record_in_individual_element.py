@@ -135,7 +135,7 @@ test_element1 = TestElement(n_kicks=10)
 test_element2 = TestElement(n_kicks=5)
 
 
-# The record is by default disabled and can be enabled using the following
+# The recording is by default disabled and can be enabled using the following
 # dedicated function.# The capacity allocated for the two tables needs to be
 # provided in a dictionary:
 
@@ -143,14 +143,15 @@ io_buffer = xt.new_io_buffer()
 xt.start_internal_logging(elements=[test_element1, test_element2],
                           io_buffer=io_buffer,
                           capacity={'table1':1000, 'table2':500})
+
+# Make some particles
 part = xp.Particles(p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+part._init_random_number_generator()
 
 # Track through the first element
 test_element1.track(part)
 # Track through the second element
 test_element2.track(part)
-
-part._init_random_number_generator()
 
 # We can now inspect the two tables in the `record`, e.g `record.table1.particle_x`,
 # `record.table2.generated_rr`. The number of used slots in each can be found in
