@@ -1,4 +1,3 @@
-from multiprocessing import ProcessError
 import numpy as np
 
 import xtrack as xt
