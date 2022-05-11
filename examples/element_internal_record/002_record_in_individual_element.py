@@ -131,33 +131,37 @@ TestElement.XoStruct.extra_sources.append(r'''
 # and can be used as follows.
 
 # Line, tracker, particles can be created as usual
-line=xt.Line(elements = [
-    xt.Drift(length=1.), TestElement(n_kicks=10),
-    xt.Drift(length=1.), TestElement(n_kicks=5)])
-tracker = line.build_tracker()
-tracker.line._needs_rng = True # Test elements use the random number generator
-part = xp.Particles(p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+test_element1 = TestElement(n_kicks=10)
+test_element2 = TestElement(n_kicks=5)
+
 
 # The record is by default disabled and can be enabled using the following
-# dedicated method of the tracker object.
-# The capacity allocated for the two tables needs to be provided in a dictionary:
-record = tracker.start_internal_logging_for_elements_of_type(
-                                                    TestElement,
-                                    capacity={'table1': 5000, 'table2': 10000})
+# dedicated function.# The capacity allocated for the two tables needs to be
+# provided in a dictionary:
 
-# Track!
-tracker.track(part, num_turns=10)
+io_buffer = xt.new_io_buffer()
+xt.start_internal_logging(elements=[test_element1, test_element2],
+                          io_buffer=io_buffer,
+                          capacity={'table1':1000, 'table2':500})
+part = xp.Particles(p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+
+# Track through the first element
+test_element1.track(part)
+# Track through the second element
+test_element2.track(part)
+
+part._init_random_number_generator()
 
 # We can now inspect the two tables in the `record`, e.g `record.table1.particle_x`,
 # `record.table2.generated_rr`. The number of used slots in each can be found in
 # the corresponding index object e.g. record.table1._index.num_recorded.
 
-
 # The recording can be stopped with the following method:
-tracker.stop_internal_logging_for_elements_of_type(TestElement)
+xt.stop_internal_logging(elements=[test_element1, test_element2])
 
-# Track more turns (without logging information in `record`)
-tracker.track(part, num_turns=10)
+# Track more times (without logging information in `record`)
+test_element1.track(part)
+test_element2.track(part)
 
 #!end-doc-part
 
@@ -168,18 +172,23 @@ context = xo.ContextCpu()
 #context = xo.ContextPyopencl()
 n_kicks0 = 5
 n_kicks1 = 3
-tracker = xt.Tracker(_context=context, line=xt.Line(elements = [
-    TestElement(n_kicks=n_kicks0), TestElement(n_kicks=n_kicks1)]))
-tracker.line._needs_rng = True
+elements = [
+    TestElement(_context=context, n_kicks=n_kicks0),
+    TestElement(_context=context, n_kicks=n_kicks1)]
 
-record = tracker.start_internal_logging_for_elements_of_type(TestElement,
-                            capacity={'table1': 10000, 'table2': 10000})
+io_buffer = xt.new_io_buffer(_context=context)
+record = xt.start_internal_logging(elements=elements, io_buffer=io_buffer,
+                          capacity={'table1': 10000, 'table2': 10000})
 
 part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 num_turns0 = 10
 num_turns1 = 3
-tracker.track(part, num_turns=num_turns0)
-tracker.track(part, num_turns=num_turns1)
+
+for i_turn in range(num_turns0 + num_turns1):
+    for ee in elements:
+        ee.track(part, increment_at_element=True)
+    part.at_element[:] = 0
+    part.at_turn += 1
 
 part._move_to(_context=xo.ContextCpu())
 record._move_to(_context=xo.ContextCpu())
@@ -205,6 +214,9 @@ for i_turn in range(num_turns):
     assert np.sum((table1.at_turn[:num_recorded_tab1] == i_turn)) == 2 * num_particles
     assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
+
+prrrrr
+
 # Check reached capacity
 record = tracker.start_internal_logging_for_elements_of_type(
                                                     TestElement,

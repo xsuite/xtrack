@@ -8,7 +8,7 @@ from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
                                  find_closed_orbit,
                                 )
-from .interal_record import (RecordIdentifier, RecordIndex,
+from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging_for_elements_of_type,
                              stop_internal_logging_for_elements_of_type)
 
@@ -25,19 +25,6 @@ logger = logging.getLogger(__name__)
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
     return iscoll
-
-class IOBufferHeader(xo.Struct):
-    buffer_id = xo.Int64
-
-def _make_io_buffer(context, capacity=1048576):
-    iobuf = context.new_buffer(capacity=capacity)
-    head = IOBufferHeader(_buffer=iobuf)
-    assert head._offset == 0
-    assert head._buffer is iobuf
-    head.buffer_id = np.random.randint(0, 2**60)
-    return iobuf
-
-
 
 class Tracker:
 
@@ -141,7 +128,7 @@ class Tracker:
         self._buffer = _buffer
 
         if io_buffer is None:
-            io_buffer = _make_io_buffer(context=_buffer.context)
+            io_buffer = new_io_buffer(_context=_buffer.context)
         self.io_buffer = io_buffer
 
         # Split the sequence
@@ -277,7 +264,7 @@ class Tracker:
         context = frozenline._buffer.context
 
         if io_buffer is None:
-            io_buffer = _make_io_buffer(context=context)
+            io_buffer = new_io_buffer(_context=context)
         self.io_buffer = io_buffer
 
         if track_kernel is None:

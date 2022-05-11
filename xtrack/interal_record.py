@@ -63,6 +63,22 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
 
 ''')
 
+class IOBufferHeader(xo.Struct):
+    buffer_id = xo.Int64
+
+def new_io_buffer(_context=None, capacity=1048576):
+
+    if _context is None:
+        _context = xo.ContextCpu()
+
+    iobuf = _context.new_buffer(capacity=capacity)
+    head = IOBufferHeader(_buffer=iobuf)
+    assert head._offset == 0
+    assert head._buffer is iobuf
+    head.buffer_id = np.random.randint(0, 2**60)
+
+    return iobuf
+
 def init_internal_record(internal_record_class, capacity, io_buffer):
 
     init_dict = {}
@@ -95,28 +111,43 @@ def init_internal_record(internal_record_class, capacity, io_buffer):
 
     return record
 
-def start_internal_logging(element, record=None, io_buffer=None, capacity=None):
+def start_internal_logging(elements, record=None, io_buffer=None, capacity=None):
 
     assert io_buffer is not None, ('io_buffer must be provided.')
 
+    if not isinstance (elements, (list, tuple)):
+        elements = [elements]
+
+    for ee in elements:
+        assert isinstance(ee, elements[0].__class__), (
+            'All elements must be of the same class.')
+
     if record is None:
         assert capacity is not None
-        record = init_internal_record(element._internal_record_class, capacity,
+        record = init_internal_record(elements[0]._internal_record_class, capacity,
                                       io_buffer)
 
     assert record._buffer is io_buffer, (
         "The record should be stored in the specified io_buffer")
 
-    element._internal_record_id.offset = record._offset
-    element._internal_record_id.buffer_id = xo.Int64._from_buffer(
-                                                    record._buffer, 0)
-    element.io_buffer = io_buffer
-    element.record = record
+    for ee in elements:
+        ee._internal_record_id.offset = record._offset
+        ee._internal_record_id.buffer_id = xo.Int64._from_buffer(
+                                                record._buffer, 0)
+        ee.io_buffer = io_buffer
+        ee.record = record
 
-def stop_internal_logging(element):
-    element._internal_record_id.offset = 0
-    element._internal_record_id.buffer_id = 0
-    element.io_buffer = None
+    return record
+
+def stop_internal_logging(elements):
+
+    if not isinstance (elements, (list, tuple)):
+        elements = [elements]
+
+    for ee in elements:
+        ee._internal_record_id.offset = 0
+        ee._internal_record_id.buffer_id = 0
+        ee.io_buffer = None
 
 def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
 
