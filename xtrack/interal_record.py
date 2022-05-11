@@ -63,19 +63,19 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
 
 ''')
 
-def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
+def init_internal_record(internal_record_class, capacity, io_buffer):
 
     init_dict = {}
     if np.isscalar(capacity):
         # One-level record
         capacity = int(capacity)
-        for ff in element_type._internal_record_class.XoStruct._fields:
+        for ff in internal_record_class.XoStruct._fields:
             if hasattr(ff.ftype, 'to_nplike'): #is array
                 init_dict[ff.name] = capacity
     else:
         # Record with multiple subrecords
         init_dict = {}
-        for ff in element_type._internal_record_class.XoStruct._fields:
+        for ff in internal_record_class.XoStruct._fields:
             if ff.name in capacity.keys():
                 subtable_class = ff.ftype
                 init_dict[ff.name] = {}
@@ -83,7 +83,7 @@ def start_internal_logging_for_elements_of_type(tracker, element_type, capacity)
                     if hasattr(sff.ftype, 'to_nplike'): #is array
                         init_dict[ff.name][sff.name] = capacity[ff.name]
 
-    record = element_type.XoStruct._internal_record_class(_buffer=tracker.io_buffer, **init_dict)
+    record = internal_record_class(_buffer=io_buffer, **init_dict)
 
     if np.isscalar(capacity):
         # One-level record
@@ -92,6 +92,13 @@ def start_internal_logging_for_elements_of_type(tracker, element_type, capacity)
         # Record with multiple subrecords
         for kk in capacity.keys():
             getattr(record, kk)._index.capacity = capacity[kk]
+
+    return record
+
+def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
+
+    record = init_internal_record(element_type._internal_record_class, capacity,
+                                  tracker.io_buffer)
 
     for ee in tracker.line.elements:
         if isinstance(ee, element_type):
