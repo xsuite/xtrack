@@ -58,6 +58,11 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
     uint32_t slot = *num_recorded;                 //only_for_context cpu_serial
     *num_recorded = slot + 1;                      //only_for_context cpu_serial
 
+    if (slot >= capacity){
+        *num_recorded = capacity;
+        return -1;
+        }
+
     return (int64_t) slot;
     }
 
