@@ -215,18 +215,21 @@ for i_turn in range(num_turns):
     assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
                                                         * (n_kicks0 + n_kicks1))
 
-prrrrr
+
 
 # Check reached capacity
-record = tracker.start_internal_logging_for_elements_of_type(
-                                                    TestElement,
-                                    capacity={'table1': 20, 'table2': 15})
+io_buffer = xt.new_io_buffer(_context=context)
+record = xt.start_internal_logging(elements=elements, io_buffer=io_buffer,
+                          capacity={'table1': 20, 'table2': 15})
 
 part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 num_turns0 = 10
 num_turns1 = 3
-tracker.track(part, num_turns=num_turns0)
-tracker.track(part, num_turns=num_turns1)
+for i_turn in range(num_turns0 + num_turns1):
+    for ee in elements:
+        ee.track(part, increment_at_element=True)
+    part.at_element[:] = 0
+    part.at_turn += 1
 
 table1 = record.table1
 table2 = record.table2
