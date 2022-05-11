@@ -705,6 +705,13 @@ class Tracker:
 
         self._check_invalidated()
 
+        if isinstance(self._buffer.context, xo.ContextCpu):
+            assert (particles._num_active_particles >= 0 and
+                    particles._num_lost_particles >= 0), (
+                        "Particles state is not valid to run on CPU, please "
+                        "call `particles.reorganize()` first."
+                    )
+
         # Start position
         if particles.start_tracking_at_element >= 0:
             if ele_start != 0:
@@ -897,6 +904,13 @@ class Tracker:
     ):
 
         self._check_invalidated()
+
+        if isinstance(self._buffer.context, xo.ContextCpu):
+            assert (particles._num_active_particles >= 0 and
+                    particles._num_lost_particles >= 0), (
+                        "Particles state is not valid to run on CPU, please "
+                        "call `particles.reorganize()` first."
+                    )
 
         # Start position
         if particles.start_tracking_at_element >= 0:
