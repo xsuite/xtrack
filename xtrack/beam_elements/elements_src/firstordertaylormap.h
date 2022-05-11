@@ -74,7 +74,7 @@ void FirstOrderTaylorMap_track_local_particle(FirstOrderTaylorMapData el, LocalP
                 synrad_average_kick(part, curv, length);
             }
             else if (radiation_flag == 2){
-                synrad_emit_photons(part, curv, length);
+                synrad_emit_photons(part, curv, length, NULL, NULL);
             }
         }
 

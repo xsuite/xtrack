@@ -710,7 +710,6 @@ class LinearTransferMatrix(BeamElement):
         'gauss_noise_ampl_x':xo.Float64,
         'gauss_noise_ampl_y':xo.Float64,
         'gauss_noise_ampl_s':xo.Float64,
-
         }
 
     def __init__(self, Q_x=0, Q_y=0,
@@ -850,6 +849,9 @@ class FirstOrderTaylorMap(BeamElement):
         'm0': xo.Float64[6],
         'm1': xo.Float64[6,6]}
 
+    _internal_record_class = SynchrotronRadiationRecord # not functional,
+    # included for compatibility with Multipole
+
     def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
         nargs['radiation_flag'] = radiation_flag
         nargs['length'] = length
@@ -869,9 +871,9 @@ class FirstOrderTaylorMap(BeamElement):
                 raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
         super().__init__(**nargs)
 
-FirstOrderTaylorMap.XoStruct.extra_sources = [
+FirstOrderTaylorMap.XoStruct.extra_sources.extend([
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')])
