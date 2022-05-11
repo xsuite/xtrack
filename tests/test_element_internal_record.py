@@ -679,7 +679,8 @@ def test_record_standalone_mode():
             part.at_turn += 1
 
         part._move_to(_context=xo.ContextCpu())
-        record._move_to(_context=xo.ContextCpu())
+        record0._move_to(_context=xo.ContextCpu())
+        record1._move_to(_context=xo.ContextCpu())
 
         num_turns = num_turns0 + num_turns1
         num_particles = len(part.x)
