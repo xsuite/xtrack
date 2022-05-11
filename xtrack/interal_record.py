@@ -95,27 +95,46 @@ def init_internal_record(internal_record_class, capacity, io_buffer):
 
     return record
 
+def start_internal_logging(element, record, io_buffer):
+
+    assert record._buffer is io_buffer, (
+        "The record should be stored in the specified io_buffer")
+
+    element._internal_record_id.offset = record._offset
+    element._internal_record_id.buffer_id = xo.Int64._from_buffer(
+                                                    record._buffer, 0)
+    element.io_buffer = io_buffer
+    element.record = record
+
+def stop_internal_logging(element):
+    element._internal_record_id.offset = 0
+    element._internal_record_id.buffer_id = 0
+    element.io_buffer = None
+
 def start_internal_logging_for_elements_of_type(tracker, element_type, capacity):
 
     record = init_internal_record(element_type._internal_record_class, capacity,
                                   tracker.io_buffer)
 
-    for ee in tracker.line.elements:
+    for nn in tracker.line.element_names:
+        ee = tracker.line.element_dict[nn]
+
+        if (hasattr(ee, 'io_buffer') and ee.io_buffer is not None
+            and ee.io_buffer is not tracker.io_buffer):
+            raise RuntimeError(f'The element `{nn}` has an io_buffer that is '
+                'incompatible with the io_buffer of the tracker. Please clear '
+                'the internal logging for the element using '
+                '`stop_internal_record(element=...)`.')
+
         if isinstance(ee, element_type):
-            ee._internal_record_id.offset = record._offset
-            ee._internal_record_id.buffer_id = xo.Int64._from_buffer(
-                                                            record._buffer, 0)
-            ee.io_buffer = tracker.io_buffer
-            ee.record = record
+            start_internal_logging(ee, record, tracker.io_buffer)
     return record
 
 def stop_internal_logging_for_elements_of_type(tracker, element_type):
 
     for ee in tracker.line.elements:
         if isinstance(ee, element_type):
-            ee._internal_record_id.offset = 0
-            ee._internal_record_id.buffer_id = 0
-            ee.io_buffer = None
+            stop_internal_logging(ee)
 
 def generate_get_record(ele_classname, record_classname):
     content = '''
