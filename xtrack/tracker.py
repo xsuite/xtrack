@@ -642,6 +642,9 @@ class Tracker:
                     }
                 }
             } // for turns
+
+            LocalParticle_to_Particles(&lpart, particles, part_id, 1);
+
             }// if partid
         }//kernel
         """
