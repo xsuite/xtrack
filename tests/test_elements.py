@@ -52,7 +52,8 @@ def test_drift():
                 px=1e-5,
                 y=-2e-3,
                 py=-1.5e-5,
-                zeta=2.)
+                delta=1e-2,
+                zeta=0) # TODO: Test on zeta != 0
 
         particles = xp.Particles.from_dict(dtk_particle.to_dict(),
                                            _context=ctx)
@@ -67,6 +68,9 @@ def test_drift():
                           dtk_particle.x, rtol=1e-14, atol=1e-14)
         assert np.isclose(ctx.nparray_from_context_array(particles.y)[0],
                           dtk_particle.y, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.zeta)[0],
+                          dtk_particle.zeta*dtk_particle.beta0/dtk_particle.beta,
+                          rtol=1e-14, atol=1e-14)
 
 
 
