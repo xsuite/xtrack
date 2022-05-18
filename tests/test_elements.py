@@ -629,8 +629,8 @@ def test_cavity():
         delta = Pc/part.p0c - 1
         beta = Pc/part.energy
 
-        tau0 = part0.zeta/(part0.beta0 * part0.rvv)
-        tau = part.zeta/(part.beta0 * part.rvv)
+        tau0 = part0.zeta/(part0.beta0)
+        tau = part.zeta/(part.beta0)
 
         assert np.allclose(part.delta, delta, atol=1e-14, rtol=0)
         assert np.allclose(part.rpp, 1/(1+delta), atol=1e-14, rtol=0)
