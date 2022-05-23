@@ -111,16 +111,16 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 
     if (cos_s < 2){
         // We set cos_s = 999 if long map is to be skipped
-        double new_zeta = LocalParticle_get_zeta(part);
-        double new_delta = delta; 
+        double const old_zeta = LocalParticle_get_zeta(part);
+        double const old_pzeta = LocalParticle_get_pzeta(part); // Use canonically conjugate variables
         tmp = new_zeta;
-        new_zeta = cos_s*tmp+beta_s*sin_s*new_delta;
-        new_delta = -sin_s*tmp/beta_s+cos_s*new_delta;
+        double const new_zeta = cos_s*old_zeta+beta_s*sin_s*old_pzeta;
+        double const new_pzeta = -sin_s*old_zeta/beta_s+cos_s*old_pzeta;
 
         LocalParticle_set_zeta(part, new_zeta);
-        LocalParticle_update_delta(part, new_delta);
+        LocalParticle_update_pzeta(part, new_pzeta);
     }
-        
+
     // Change energy without change of reference momentume
     double const energy_increment = 
         LinearTransferMatrixData_get_energy_increment(el);
