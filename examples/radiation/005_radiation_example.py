@@ -63,7 +63,7 @@ tw = tracker.twiss(eneloss_and_damping=True)
 # Build three particles (with action in x,y and zeta respectively)
 part_co = tw['particle_on_co']
 particles = xp.build_particles(tracker=tracker,
-    x_norm=[500., 0, 0], y_norm=[0, 0.0001, 0], zeta=part_co.zeta[0],
+    x_norm=[500., 0, 0], y_norm=[0, 500, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     scale_with_transverse_norm_emitt=(1e-9, 1e-9))
 
@@ -106,16 +106,21 @@ for ii, mon in enumerate([mon_mean_mode, mon_quantum_mode]):
     ax2 = fig.add_subplot(312, sharex=ax1)
     ax3 = fig.add_subplot(313, sharex=ax1)
 
-    ax1.plot(mon.x[0, :].T)
-    ax2.plot(mon.y[1, :].T)
-    ax3.plot(mon.delta[2, :].T)
+    ax1.plot(1e3*mon.x[0, :].T)
+    ax2.plot(1e3*mon.y[1, :].T)
+    ax3.plot(1e3*mon.delta[2, :].T)
     i_turn = np.arange(num_turns)
-    ax1.plot(part_co.x[0]
-        +(mon.x[0,0]-part_co.x[0])*np.exp(-i_turn*tw['damping_constants_turns'][0]))
-    ax2.plot(part_co.y[0]
-        +(mon.y[1,0]-part_co.y[0])*np.exp(-i_turn*tw['damping_constants_turns'][1]))
-    ax3.plot(part_co.delta[0]
-        +(mon.delta[2,0]-part_co.delta[0])*np.exp(-i_turn*tw['damping_constants_turns'][2]))
+    ax1.plot(1e3*(part_co.x[0]
+        +(mon.x[0,0]-part_co.x[0])*np.exp(-i_turn*tw['damping_constants_turns'][0])))
+    ax2.plot(1e3*(part_co.y[0]
+        +(mon.y[1,0]-part_co.y[0])*np.exp(-i_turn*tw['damping_constants_turns'][1])))
+    ax3.plot(1e3*(part_co.delta[0]
+        +(mon.delta[2,0]-part_co.delta[0])*np.exp(-i_turn*tw['damping_constants_turns'][2])))
+
+    ax1.set_ylabel('x [mm]')
+    ax2.set_ylabel('y [mm]')
+    ax3.set_ylabel('delta [-]')
+    ax3.set_xlabel('Turn')
 
 plt.show()
 

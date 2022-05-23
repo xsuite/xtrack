@@ -495,7 +495,7 @@ def madx_sequence_to_xtrack_line(
                 line.append_element(newaperture, eename + "_aperture")
 
     if hasattr(seq, "length"):
-        assert np.isclose(seq.length, line.get_length(), rtol=0, atol=1e-6)
+        assert np.isclose(seq.length, line.get_length(), rtol=0, atol=10e-6)
 
     if deferred_expressions:
         line._var_management['data']['var_values'].default_factory = None
