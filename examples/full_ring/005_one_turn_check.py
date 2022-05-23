@@ -150,6 +150,8 @@ diffs = []
 s_coord = []
 for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names)):
     vars_before = {vv :getattr(dtk_part, vv)[0] for vv in vars_to_check}
+    if nn.startswith('acta'):
+        import pdb; pdb.set_trace()
     with particles._bypass_linked_vars():
         particles.set_particle(ip_check, **dtk_part.to_dict())
 
