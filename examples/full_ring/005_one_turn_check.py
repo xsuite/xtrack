@@ -16,9 +16,9 @@ short_test = False # Short line (5 elements)
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
-fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
-rtol_10turns = 1e-9; atol_10turns=4e-11
-test_backtracker=True
+#fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
+#rtol_10turns = 1e-9; atol_10turns=4e-11
+#test_backtracker=True
 
 #fname_line_particles = test_data_folder.joinpath(
 #                                './lhc_with_bb/line_and_particle.json')
@@ -30,10 +30,10 @@ test_backtracker=True
 #rtol_10turns = 1e-9; atol_10turns=1e-11
 #test_backtracker = False
 
-#fname_line_particles = test_data_folder.joinpath(
-#                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
-#rtol_10turns = 2e-8; atol_10turns=7e-9
-#test_backtracker = False
+fname_line_particles = test_data_folder.joinpath(
+                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
+rtol_10turns = 2e-8; atol_10turns=7e-9
+test_backtracker = False
 
 ####################
 # Choose a context #
@@ -79,6 +79,11 @@ if test_backtracker:
 ######################
 particles = xp.Particles(_context=context, **input_data['particle'])
 
+
+# TEEETEEEEEEESST
+particles.delta = 1e-3
+input_data['particle'] = particles.to_dict()
+
 #########
 # Track #
 #########
@@ -95,7 +100,7 @@ testline = dtk.TestLine.from_dict(input_data['line'])
 
 ip_check = 0
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
+dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
 for _ in range(n_turns):
    testline.track(dtk_part)
 
@@ -108,7 +113,7 @@ for vv in vars_to_check:
         print(f'Not passend on var {vv}!\n'
               f'    dtk:   {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
-        raise ValueError
+        #raise ValueError
 
 #####################
 # Check backtracker #
@@ -117,10 +122,10 @@ for vv in vars_to_check:
 if test_backtracker:
     backtracker.track(particles, num_turns=n_turns)
 
-    dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
+    dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
 
     for vv in vars_to_check:
-        dtk_value = getattr(dtk_part, vv)
+        dtk_value = getattr(dtk_part, vv)[0]
         xt_value = context.nparray_from_context_array(getattr(particles, vv))[ip_check]
         passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns,
                             atol=atol_10turns)
@@ -132,13 +137,13 @@ if test_backtracker:
             print(f'Not passend on backtrack for var {vv}!\n'
                   f'    dtk:   {dtk_value: .7e}\n'
                   f'    xtrack: {xt_value: .7e}\n')
-            raise ValueError
+            #raise ValueError
 
 ##############
 # Check  ebe #
 ##############
 print('Check element-by-element against ducktrack...')
-dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
+dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 diffs = []
@@ -148,13 +153,17 @@ for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names))
     with particles._bypass_linked_vars():
         particles.set_particle(ip_check, **dtk_part.to_dict())
 
+    particles.zeta /= particles.rvv # TEMP, going to new zeta definition
+
     tracker.track(particles, ele_start=ii, num_elements=1)
+
+    particles.zeta *= particles.rvv # TEMP, going to back to old zeta definition (for comparison against ducktrack)
 
     eedtk.track(dtk_part)
     s_coord.append(dtk_part.s[0])
     diffs.append([])
     for vv in vars_to_check:
-        dtk_change = getattr(dtk_part, vv) - vars_before[vv]
+        dtk_change = getattr(dtk_part, vv)[0] - vars_before[vv]
         xt_change = (context.nparray_from_context_array(
                 getattr(particles, vv))[ip_check]- vars_before[vv])
         passed = np.isclose(xt_change, dtk_change, rtol=1e-10, atol=5e-14)
@@ -170,6 +179,7 @@ for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names))
 
     if not passed:
         print(f'\nelement {nn}')
+        prrrrr
         break
 
     if test_backtracker:

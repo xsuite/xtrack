@@ -68,7 +68,9 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             double const hxlx   = x * hxl;
             double const hyly   = y * hyl;
 
-            LocalParticle_add_to_zeta(part, chi * ( hyly - hxlx ) );
+            double const rv0v = 1./LocalParticle_get_rvv(part);
+
+            LocalParticle_add_to_zeta(part, rv0v*chi * ( hyly - hxlx ) );
 
             dpx += hxl + hxl * delta;
             dpy -= hyl + hyl * delta;

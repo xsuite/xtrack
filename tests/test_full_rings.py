@@ -84,7 +84,7 @@ def test_full_rings(element_by_element=False):
             print('Check against ...')
             ip_check = 0
             vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
-            dtk_part = dtk.TestParticles.from_dict(input_data['particle'])
+            dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
             for _ in range(n_turns):
                 testline.track(dtk_part)
 
@@ -109,7 +109,7 @@ def test_full_rings(element_by_element=False):
                 backtracker = tracker.get_backtracker(_context=context)
                 backtracker.track(particles, num_turns=n_turns)
 
-                dtk_part = dtk.TestParticles(**input_data['particle'])
+                dtk_part = dtk.TestParticles(**input_data['particle']).copy()
 
                 for vv in vars_to_check:
                     dtk_value = getattr(dtk_part, vv)[0]
