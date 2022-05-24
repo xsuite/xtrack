@@ -21,7 +21,7 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         double const q      = LocalParticle_get_q0(part)
                             * LocalParticle_get_charge_ratio(part);
         double const rvv    = LocalParticle_get_rvv(part);
-        double const ktau   = k * zeta / ( beta0 * rvv );
+        double const ktau   = k * zeta / beta0;
 
         double dpx = 0.0;
         double dpy = 0.0;
