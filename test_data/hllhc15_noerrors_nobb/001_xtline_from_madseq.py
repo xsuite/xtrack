@@ -24,4 +24,4 @@ particle = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
 import json
 with open('line_and_particle.json', 'w') as fid:
     json.dump({'line': line.to_dict(), 'particle': particle.to_dict()}, fid,
-              cls=xo.JEncoder)
+              cls=xo.JEncoder, indent=4)
