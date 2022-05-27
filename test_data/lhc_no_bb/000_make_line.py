@@ -27,5 +27,6 @@ with open('line_and_particle.json', 'w') as fid:
     json.dump({
         'line': line.to_dict(),
         'particle': part0.to_dict()},
-        fid, cls=xo.JEncoder)
+        fid, cls=xo.JEncoder,
+        indent=4)
 
