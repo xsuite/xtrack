@@ -37,7 +37,6 @@ sixdump_all = sixtracktools.SixDump101("res/dump3.dat")
 # Assume first particle to be on the closed orbit
 Nele_st = len(iconv)
 sixdump_CO = sixdump_all[::2][:Nele_st]
-
 # Get closed-orbit from sixtrack 
 part_on_CO = xp.Particles(
         p0c=p0c_eV,
@@ -45,7 +44,7 @@ part_on_CO = xp.Particles(
         px=sixdump_CO.px[0],
         y=sixdump_CO.y[0],
         py=sixdump_CO.py[0],
-        zeta=sixdump_CO.zeta[0],
+        zeta=sixdump_CO.tau[0]*sixdump_CO.beta0,
         delta=sixdump_CO.delta[0])
 
 print("Closed orbit at start machine:")
