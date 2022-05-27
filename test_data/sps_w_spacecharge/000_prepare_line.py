@@ -39,7 +39,7 @@ with open('line_no_spacecharge_and_particle.json', 'w') as fid:
     json.dump({
         'line': line.to_dict(),
         'particle': part.to_dict()},
-        fid, cls=xo.JEncoder)
+        fid, cls=xo.JEncoder, indent=4)
 
 lprofile = xf.LongitudinalProfileQGaussian(
         number_of_particles=bunch_intensity,
