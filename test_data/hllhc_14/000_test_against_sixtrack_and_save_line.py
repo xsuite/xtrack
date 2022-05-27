@@ -44,7 +44,7 @@ part_on_CO = xp.Particles(
         px=sixdump_CO.px[0],
         y=sixdump_CO.y[0],
         py=sixdump_CO.py[0],
-        zeta=sixdump_CO.tau[0]*sixdump_CO.beta0,
+        zeta=sixdump_CO.tau[0]*sixdump_CO.beta0[0],
         delta=sixdump_CO.delta[0])
 
 print("Closed orbit at start machine:")
@@ -72,5 +72,6 @@ with open('line_and_particle.json', 'w') as fid:
     json.dump({
         'line': line.to_dict(),
         'particle': part_dict},
-        fid, cls=xo.JEncoder)
+        fid, cls=xo.JEncoder,
+        indent=4)
 
