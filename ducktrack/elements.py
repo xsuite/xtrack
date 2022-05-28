@@ -53,7 +53,7 @@ class Drift(Element):
         yp = p.py * rpp
         p.x += xp * length
         p.y += yp * length
-        p.zeta += length * (p.rvv - (1 + (xp ** 2 + yp ** 2) / 2))
+        p.zeta += length * (1. - 1. / p.rvv * (1 + (xp ** 2 + yp ** 2) / 2))
         p.s += length
 
 
@@ -69,7 +69,7 @@ class DriftExact(Drift):
         lpzi = length / sqrt(opd ** 2 - p.px ** 2 - p.py ** 2)
         p.x += p.px * lpzi
         p.y += p.py * lpzi
-        p.zeta += p.rvv * length - opd * lpzi
+        p.zeta +=  length - 1 / p.rvv * opd * lpzi
         p.s += length
 
 
@@ -152,7 +152,7 @@ class Multipole(Element):
                 hyy = 0
             dpx += hxl + hxl * delta - b1l * hxx
             dpy -= hyl + hyl * delta - a1l * hyy
-            p.zeta -= chi * (hxlx - hyly)
+            p.zeta -= 1. / p.rvv * chi * (hxlx - hyly)
         p.px += dpx
         p.py += dpy
 
@@ -186,7 +186,7 @@ class RFMultipole(Element):
         pi = p._m.pi
         order = self.order
         k = 2 * pi * self.frequency / clight
-        tau = p.zeta / p.rvv / p.beta0
+        tau = p.zeta / p.beta0
         ktau = k * tau
         deg2rad = pi / 180
         knl = _arrayofsize(self.knl, order + 1)
@@ -241,7 +241,7 @@ class Cavity(Element):
         sin = p._m.sin
         pi = p._m.pi
         k = 2 * pi * self.frequency / clight
-        tau = p.zeta / p.rvv / p.beta0
+        tau = p.zeta / p.beta0
         phase = self.lag * pi / 180 - k * tau
         p.add_to_energy(p.charge_ratio * p.q0 * self.voltage * sin(phase))
 
@@ -258,7 +258,7 @@ class SawtoothCavity(Element):
     def track(self, p):
         pi = p._m.pi
         k = 2 * pi * self.frequency / clight
-        tau = p.zeta / p.rvv / p.beta0
+        tau = p.zeta / p.beta0
         phase = self.lag * pi / 180 - k * tau
         phase = (phase + pi) % (2 * pi) - pi
         p.add_to_energy(p.charge_ratio * p.q0 * self.voltage * phase)
@@ -369,8 +369,7 @@ class Elens(Element):
         # update px and py.
         p.px = xp/p.rpp
         p.py = yp/p.rpp
-        
-        
+
 
 class Wire(Element):
     """Current-carrying wire"""
@@ -383,7 +382,7 @@ class Wire(Element):
                     ]
 
     def track(self, p):
-        # Data from particle 
+        # Data from particle
         x      = p.x
         y      = p.y
         D_x    = x-self.xma
@@ -411,7 +410,6 @@ class Wire(Element):
         # Update the particle properties
         p.px += dpx
         p.py += dpy
-        
 
 
 
@@ -728,9 +726,7 @@ class LinearTransferMatrix(Element):
         if self.damping_rate_s > 0.0:
             factor = 1.0-self.damping_rate_s/2
             p.zeta *= factor
-            zeta0 = p.zeta
             p.delta *= factor
-            p.zeta = zeta0
             if self.equ_emit_s > 0.0:
                 p.delta += np.sqrt(2.0*self.equ_emit_s*self.damping_rate_s/self.beta_s)*np.random.randn(len(p.delta))
 
@@ -767,8 +763,8 @@ class FirstOrderTaylorMap(Element):
             if len(np.shape(self.m1)) != 2 or np.shape(self.m1)[0] != 6 or np.shape(self.m1)[1] != 6:
                 raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
 
-        beta = p._rvv*p.beta0
-        coords0 = np.array([p.x,p.px,p.y,p.py,p.zeta/beta,p.psigma*p.beta0])
+        beta0 = p.beta0
+        coords0 = np.array([p.x,p.px,p.y,p.py,p.zeta/beta0,p.psigma*p.beta0])
         p.x = self.m0[0] + self.m1[0,0]*coords0[0] + self.m1[0,1]*coords0[1] + self.m1[0,2]*coords0[2] + self.m1[0,3]*coords0[3] + self.m1[0,4]*coords0[4] + self.m1[0,5]*coords0[5]
         p.px = self.m0[1] + self.m1[1,0]*coords0[0] + self.m1[1,1]*coords0[1] + self.m1[1,2]*coords0[2] + self.m1[1,3]*coords0[3] + self.m1[1,4]*coords0[4] + self.m1[1,5]*coords0[5]
         p.y = self.m0[2] + self.m1[2,0]*coords0[0] + self.m1[2,1]*coords0[1] + self.m1[2,2]*coords0[2] + self.m1[2,3]*coords0[3] + self.m1[2,4]*coords0[4] + self.m1[2,5]*coords0[5]
@@ -776,8 +772,7 @@ class FirstOrderTaylorMap(Element):
         tau = self.m0[4] + self.m1[4,0]*coords0[0] + self.m1[4,1]*coords0[1] + self.m1[4,2]*coords0[2] + self.m1[4,3]*coords0[3] + self.m1[4,4]*coords0[4] + self.m1[4,5]*coords0[5]
         ptau = self.m0[5] + self.m1[5,0]*coords0[0] + self.m1[5,1]*coords0[1] + self.m1[5,2]*coords0[2] + self.m1[5,3]*coords0[3] + self.m1[5,4]*coords0[4] + self.m1[5,5]*coords0[5]
         p.delta = np.sqrt(ptau*ptau + 2.0*ptau/p.beta0+1.0)-1.0
-        beta = p._rvv*p.beta0
-        p.zeta = tau * beta
+        p.zeta = tau * beta0
 
         if self.length > 0.0:
             raise NotImplementedError('Radiation is not implemented')
