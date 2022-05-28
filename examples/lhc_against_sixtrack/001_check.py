@@ -6,7 +6,7 @@ import xobjects as xo
 import xpart as xp
 import xfields as xf
 
-sixtrack_folder = './sixtrack_lhc_no_bb'; atol = 1e-13
+sixtrack_folder = './sixtrack_lhc_no_bb'; atol = 2e-13
 #sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
 
 context = xo.ContextCpu()
@@ -29,7 +29,7 @@ if any(ee.__class__.__name__.startswith('BeamBeam') for ee in line.elements):
             px=sixdump_CO.px[0],
             y=sixdump_CO.y[0],
             py=sixdump_CO.py[0],
-            zeta=sixdump_CO.zeta[0],
+            zeta=sixdump_CO.tau[0]*sixdump_CO.beta0[0],
             delta=sixdump_CO.delta[0])
     xf.configure_orbit_dependent_parameters_for_bb(tracker,
                            particle_on_co=part_on_CO)
