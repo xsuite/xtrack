@@ -684,7 +684,7 @@ class LinearTransferMatrix(Element):
         p.x,p.px = M00_x*p.x + M01_x*p.px, M10_x*p.x + M11_x*p.px
         p.y,p.py = M00_y*p.y + M01_y*p.py, M10_y*p.y + M11_y*p.py
 
-        p.delta, p.zeta = -sin_s*p.zeta/self.beta_s+cos_s*p.delta,cos_s*p.zeta+self.beta_s*sin_s*p.delta
+        p.pzeta, p.zeta = -sin_s*p.zeta/self.beta_s+cos_s*p.delta,cos_s*p.zeta+self.beta_s*sin_s*p.delta
 
         if self.energy_increment !=0:
             p.add_to_energy(self.energy_increment)
