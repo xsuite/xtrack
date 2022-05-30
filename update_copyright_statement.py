@@ -26,9 +26,10 @@ for cc in config:
                         for line in copyright_statement.splitlines()]
 
     for root, dirs, files in os.walk("./"):
-        for file in files:
-            if file.endswith(extension):
-                print(os.path.join(root, file))
+        for fname in files:
+            if fname.endswith(extension):
+                file = os.path.join(root, file)
+                print(file)
                 with open(file, 'r') as fid:
                     lines = fid.readlines()
                 # Remove copyright statement if present
