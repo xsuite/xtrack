@@ -1,10 +1,15 @@
+# copyright ############################ #
+# This file is part of the Xtrack Package.  #
+# Copyright (c) CERN, 2020.                 #
+# ######################################### #
+
 import os
 
 copyright_statement = (
-"""copyright ############################
-This file is part of the Xtrack Package.
-Copyright (c) CERN, 2020.
-#########################################""")
+"""copyright ###############################
+This file is part of the Xtrack Package. 
+Copyright (c) CERN, 2020.                
+############################################""")
 
 config = [
     {'extension': '.py', 'comment_char': '#'},
@@ -15,9 +20,9 @@ for cc in config:
     extension =  cc['extension']
     comment_char = cc['comment_char']
 
-    cpright_lines = [comment_char + ' ' + line + '\n'
+    cpright_lines = [comment_char + ' ' + line + " " + comment_char + '\n'
                         for line in copyright_statement.splitlines()
-                        + " " + comment_char] + ['\n']
+                        ] + ['\n']
 
     for root, dirs, files in os.walk("./"):
         for fname in files:
