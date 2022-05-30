@@ -38,7 +38,7 @@ for cc in config:
                         if ll.startswith(comment_char + ' ' + '########'):
                             end_cpright = ill
                             break
-                    assert lines[end_cpright] == '\n'
+                    assert lines[end_cpright+1] == '\n'
                     lines = lines[end_cpright+2:]
 
                 lines = cpright_lines + lines
