@@ -30,7 +30,7 @@ for cc in config:
                     for ill, ll in lines:
                         assert ll.startswith(comment_char)
                         if ll.startswith(comment_char + ' ' + '########'):
-                            end_cpright = ill + 1
+                            end_cpright = ill
                             break
                     lines = lines[end_cpright:]
 
