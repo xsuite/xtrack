@@ -1,4 +1,4 @@
-# copyright ############################ #
+# copyright ############################### #
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2020.                 #
 # ######################################### #
@@ -9,7 +9,7 @@ copyright_statement = (
 """copyright ###############################
 This file is part of the Xtrack Package. 
 Copyright (c) CERN, 2020.                
-############################################""")
+#########################################""")
 
 config = [
     {'extension': '.py', 'comment_char': '#'},
