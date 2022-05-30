@@ -22,13 +22,13 @@ for cc in config:
     extension =  cc['extension']
     comment_char = cc['comment_char']
 
-    cpright_lines = [comment_char + ' ' + line
-                        for line in copyright_statement.splitlines()]
+    cpright_lines = [comment_char + ' ' + line + '\n'
+                        for line in copyright_statement.splitlines()] + ['\n']
 
     for root, dirs, files in os.walk("./"):
         for fname in files:
             if fname.endswith(extension):
-                file = os.path.join(root, file)
+                file = os.path.join(root, fname)
                 print(file)
                 with open(file, 'r') as fid:
                     lines = fid.readlines()
