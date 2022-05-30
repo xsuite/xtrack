@@ -32,7 +32,7 @@ for cc in config:
                         if ll.startswith(comment_char + ' ' + '########'):
                             end_cpright = ill
                             break
-                    lines = lines[end_cpright:]
+                    lines = lines[end_cpright+2:]
 
                 lines = cpright_lines + lines
 
