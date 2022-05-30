@@ -69,7 +69,7 @@ def test_drift():
         assert np.isclose(ctx.nparray_from_context_array(particles.y)[0],
                           dtk_particle.y, rtol=1e-14, atol=1e-14)
         assert np.isclose(ctx.nparray_from_context_array(particles.zeta)[0],
-                          dtk_particle.zeta*dtk_particle.beta0/dtk_particle.beta,
+                          dtk_particle.zeta,
                           rtol=1e-14, atol=1e-14)
 
 

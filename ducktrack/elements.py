@@ -684,7 +684,7 @@ class LinearTransferMatrix(Element):
         p.x,p.px = M00_x*p.x + M01_x*p.px, M10_x*p.x + M11_x*p.px
         p.y,p.py = M00_y*p.y + M01_y*p.py, M10_y*p.y + M11_y*p.py
 
-        p.pzeta, p.zeta = -sin_s*p.zeta/self.beta_s+cos_s*p.delta,cos_s*p.zeta+self.beta_s*sin_s*p.delta
+        p.pzeta, p.zeta = -sin_s*p.zeta/self.beta_s+cos_s*p.delta,cos_s*p.zeta+self.beta_s*sin_s*p.pzeta
 
         if self.energy_increment !=0:
             p.add_to_energy(self.energy_increment)
@@ -764,7 +764,7 @@ class FirstOrderTaylorMap(Element):
                 raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
 
         beta0 = p.beta0
-        coords0 = np.array([p.x,p.px,p.y,p.py,p.zeta/beta0,p.psigma*p.beta0])
+        coords0 = np.array([p.x,p.px,p.y,p.py,p.zeta/beta0,p.ptau])
         p.x = self.m0[0] + self.m1[0,0]*coords0[0] + self.m1[0,1]*coords0[1] + self.m1[0,2]*coords0[2] + self.m1[0,3]*coords0[3] + self.m1[0,4]*coords0[4] + self.m1[0,5]*coords0[5]
         p.px = self.m0[1] + self.m1[1,0]*coords0[0] + self.m1[1,1]*coords0[1] + self.m1[1,2]*coords0[2] + self.m1[1,3]*coords0[3] + self.m1[1,4]*coords0[4] + self.m1[1,5]*coords0[5]
         p.y = self.m0[2] + self.m1[2,0]*coords0[0] + self.m1[2,1]*coords0[1] + self.m1[2,2]*coords0[2] + self.m1[2,3]*coords0[3] + self.m1[2,4]*coords0[4] + self.m1[2,5]*coords0[5]

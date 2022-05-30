@@ -113,7 +113,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         // We set cos_s = 999 if long map is to be skipped
         double const old_zeta = LocalParticle_get_zeta(part);
         double const old_pzeta = LocalParticle_get_pzeta(part); // Use canonically conjugate variables
-        tmp = new_zeta;
         double const new_zeta = cos_s*old_zeta+beta_s*sin_s*old_pzeta;
         double const new_pzeta = -sin_s*old_zeta/beta_s+cos_s*old_pzeta;
 
