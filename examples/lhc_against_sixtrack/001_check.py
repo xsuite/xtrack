@@ -8,7 +8,8 @@ import xfields as xf
 
 sixtrack_folder = './sixtrack_lhc_no_bb';
 atol = {
-    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':2e-10, 'delta':1e-12}
+    #'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':2e-10, 'delta':1e-12}
+    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':10, 'delta':10}
 #sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
 
 context = xo.ContextCpu()
