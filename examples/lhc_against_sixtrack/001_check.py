@@ -6,7 +6,9 @@ import xobjects as xo
 import xpart as xp
 import xfields as xf
 
-sixtrack_folder = './sixtrack_lhc_no_bb'; atol = 1e-3
+sixtrack_folder = './sixtrack_lhc_no_bb';
+atol = {
+    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':2e-10, 'delta':1e-12}
 #sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
 
 context = xo.ContextCpu()
@@ -70,8 +72,13 @@ for ii in range(1, len(iconv)):
     out, out_all = compare(prun, pbench)
     print("-----------------------\n\n")
     diffs.append(out_all)
-    if out > atol:
-        print("Too large discrepancy")
+    issue_found = False
+    for ii, nn in enumerate('x px y py zeta delta'.split()):
+        if out_all[ii] > atol[nn]:
+            print("Too large discrepancy")
+            issue_found = True
+
+    if issue_found:
         break
 
 diffs = np.array(diffs)
