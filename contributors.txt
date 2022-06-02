@@ -1,0 +1,14 @@
+The following people contributed to the development of this package:
+
+- CERN contributors
+    - A. Abramov
+    - H. Bartosik
+    - X. Buffat
+    - R. De Maria
+    - G. Iadarola
+    - F. Van Der Veken
+    - P. Hermes
+    - A. Latina
+
+- External contributors
+    - P. Balanger (TRIUMF, Canada) - Development of wire beam element
