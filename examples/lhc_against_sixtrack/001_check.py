@@ -6,11 +6,13 @@ import xobjects as xo
 import xpart as xp
 import xfields as xf
 
-sixtrack_folder = './sixtrack_lhc_no_bb';
+sixtrack_folder = './sixtrack_lhc_no_bb/res_onmom';
 atol = {
-    #'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':2e-10, 'delta':1e-12}
-    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':10, 'delta':10}
+    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':5e-10, 'delta':1e-12}
 
+sixtrack_folder = './sixtrack_lhc_no_bb/res_offmom';
+atol = {
+    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':6e-9, 'delta':1e-10}
 #sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
 
 context = xo.ContextCpu()
@@ -20,7 +22,7 @@ line = sixinput.generate_xtrack_line()
 tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 
-sixdump_all = sixtracktools.SixDump101(sixtrack_folder + "/res/dump3.dat")
+sixdump_all = sixtracktools.SixDump101(sixtrack_folder + "/dump3.dat")
 
 if any(ee.__class__.__name__.startswith('BeamBeam') for ee in line.elements):
     Nele_st = len(iconv)
