@@ -13,7 +13,10 @@ atol = {
 sixtrack_folder = './sixtrack_lhc_no_bb/res_offmom';
 atol = {
     'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':6e-9, 'delta':1e-10}
-#sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
+
+sixtrack_folder = '../../test_data/hllhc_14/res'; atol = 5e-12
+atol = {
+    'x':1e-15, 'px':2e-12, 'y':1e-15, 'py':2e-12, 'zeta':5e-13, 'delta':5e-15}
 
 context = xo.ContextCpu()
 
