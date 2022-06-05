@@ -78,10 +78,9 @@ if test_backtracker:
 ######################
 particles = xp.Particles(_context=context, **input_data['particle'])
 
-
-# TEEETEEEEEEESST
-#particles.delta = 1e-3
-input_data['particle'] = particles.to_dict()
+# To test off momentum one can do the following:
+# #particles.delta = 1e-3
+# input_data['particle'] = particles.to_dict()
 
 #########
 # Track #
