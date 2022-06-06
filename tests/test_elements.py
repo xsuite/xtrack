@@ -53,7 +53,7 @@ def test_drift():
                 y=-2e-3,
                 py=-1.5e-5,
                 delta=1e-2,
-                zeta=0) # TODO: Test on zeta != 0
+                zeta=1.)
 
         particles = xp.Particles.from_dict(dtk_particle.to_dict(),
                                            _context=ctx)
