@@ -18,10 +18,6 @@ atol = {
 #atol = {
 #    'x':1e-15, 'px':2e-12, 'y':1e-15, 'py':2e-12, 'zeta':2e-14, 'delta':1e-15}
 
-sixtrack_folder = './sixtrack_psb/res_onmom';
-atol = {
-    'x':16, 'px':16, 'y':16, 'py':16, 'zeta':14, 'delta':15}
-
 context = xo.ContextCpu()
 
 sixinput = sixtracktools.SixInput(sixtrack_folder)
