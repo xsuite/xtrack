@@ -18,6 +18,10 @@ atol = {
 #atol = {
 #    'x':1e-15, 'px':2e-12, 'y':1e-15, 'py':2e-12, 'zeta':2e-14, 'delta':1e-15}
 
+sixtrack_folder = './sixtrack_psb/res_onmom';
+atol = {
+    'x':16, 'px':16, 'y':16, 'py':16, 'zeta':14, 'delta':15}
+
 context = xo.ContextCpu()
 
 sixinput = sixtracktools.SixInput(sixtrack_folder)
@@ -58,6 +62,10 @@ sixdump = sixdump_all[1::2]
 print("")
 diffs = []
 s_coord = []
+x_run = []
+x_bench = []
+s_run = []
+s_bench = []
 for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
@@ -74,6 +82,10 @@ for ii in range(1, len(iconv)):
         print(f"{jj} {label},{str(elem)[:50]}")
     pbench = xp.Particles.from_dict(sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)
+    x_run.append(prun.x)
+    x_bench.append(pbench.x)
+    s_run.append(prun.s)
+    s_bench.append(pbench.s)
     # print(f"sixdump {ii}, x={pbench.x}, px={pbench.px}")
     print("-----------------------")
     out, out_all = compare(prun, pbench)
