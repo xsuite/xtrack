@@ -6,8 +6,17 @@ import xobjects as xo
 import xpart as xp
 import xfields as xf
 
-sixtrack_folder = './sixtrack_lhc_no_bb'; atol = 2e-13
-#sixtrack_folder = '../../test_data/hllhc_14/'; atol = 5e-12
+sixtrack_folder = './sixtrack_lhc_no_bb/res_onmom';
+atol = {
+    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':6e-14, 'delta':1e-15}
+
+#sixtrack_folder = './sixtrack_lhc_no_bb/res_offmom';
+#atol = {
+#    'x':1e-16, 'px':1e-16, 'y':1e-16, 'py':1e-16, 'zeta':5e-14, 'delta':1e-15}
+
+#sixtrack_folder = '../../test_data/hllhc_14/res'; atol = 5e-12
+#atol = {
+#    'x':1e-15, 'px':2e-12, 'y':1e-15, 'py':2e-12, 'zeta':2e-14, 'delta':1e-15}
 
 context = xo.ContextCpu()
 
@@ -16,7 +25,7 @@ line = sixinput.generate_xtrack_line()
 tracker = xt.Tracker(_context=context, line=line)
 iconv = line.other_info["iconv"]
 
-sixdump_all = sixtracktools.SixDump101(sixtrack_folder + "/res/dump3.dat")
+sixdump_all = sixtracktools.SixDump101(sixtrack_folder + "/dump3.dat")
 
 if any(ee.__class__.__name__.startswith('BeamBeam') for ee in line.elements):
     Nele_st = len(iconv)
@@ -49,6 +58,10 @@ sixdump = sixdump_all[1::2]
 print("")
 diffs = []
 s_coord = []
+x_run = []
+x_bench = []
+s_run = []
+s_bench = []
 for ii in range(1, len(iconv)):
     jja = iconv[ii - 1]
     jjb = iconv[ii]
@@ -65,13 +78,22 @@ for ii in range(1, len(iconv)):
         print(f"{jj} {label},{str(elem)[:50]}")
     pbench = xp.Particles.from_dict(sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)
+    x_run.append(prun.x)
+    x_bench.append(pbench.x)
+    s_run.append(prun.s)
+    s_bench.append(pbench.s)
     # print(f"sixdump {ii}, x={pbench.x}, px={pbench.px}")
     print("-----------------------")
     out, out_all = compare(prun, pbench)
     print("-----------------------\n\n")
     diffs.append(out_all)
-    if out > atol:
-        print("Too large discrepancy")
+    issue_found = False
+    for ii, nn in enumerate('x px y py zeta delta'.split()):
+        if out_all[ii] > atol[nn]:
+            print("Too large discrepancy")
+            issue_found = True
+
+    if issue_found:
         break
 
 diffs = np.array(diffs)
