@@ -17,7 +17,7 @@ extensions = []
 
 setup(
     name='xtrack',
-    version='0.14.3',
+    version='0.14.4',
     description='Tracking library for particle accelerators',
     long_description='Tracking library for particle accelerators',
     url='https://xsuite.readthedocs.io/',
