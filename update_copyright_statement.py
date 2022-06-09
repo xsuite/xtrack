@@ -32,7 +32,8 @@ for cc in config:
                 with open(file, 'r') as fid:
                     lines = fid.readlines()
                 # Remove copyright statement if present
-                if lines[0].startswith(comment_char + ' ' + 'copyright ##'):
+                if (len(lines) > 0 and
+                    lines[0].startswith(comment_char + ' ' + 'copyright ##')):
                     for ill, ll in enumerate(lines):
                         assert ll.startswith(comment_char)
                         if ll.startswith(comment_char + ' ' + '########'):
