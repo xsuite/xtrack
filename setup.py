@@ -27,7 +27,7 @@ setup(
     project_urls={
             "Bug Tracker": "https://github.com/xsuite/xsuite/issues",
             "Documentation": 'https://xsuite.readthedocs.io/',
-            "Source Code": "https://github.com/xtrac/xtrack",
+            "Source Code": "https://github.com/xsuite/xtrack",
         },
     packages=find_packages(),
     ext_modules = extensions,
