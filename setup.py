@@ -17,10 +17,18 @@ extensions = []
 
 setup(
     name='xtrack',
-    version='0.14.1',
+    version='0.14.3',
     description='Tracking library for particle accelerators',
-    url='https://github.com/xsuite/xtrack',
-    author='Riccard De Maria, Giovanni Iadarola',
+    long_description='Tracking library for particle accelerators',
+    url='https://xsuite.readthedocs.io/',
+    author='G. Iadarola et al.',
+    license='Apache 2.0',
+    download_url="https://pypi.python.org/pypi/xtrack",
+    project_urls={
+            "Bug Tracker": "https://github.com/xsuite/xsuite/issues",
+            "Documentation": 'https://xsuite.readthedocs.io/',
+            "Source Code": "https://github.com/xtrac/xtrack",
+        },
     packages=find_packages(),
     ext_modules = extensions,
     include_package_data=True,
