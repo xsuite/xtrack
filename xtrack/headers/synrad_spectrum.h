@@ -1,8 +1,3 @@
-// copyright ############################### //
-// This file is part of the Xtrack Package.  //
-// Copyright (c) CERN, 2021.                 //
-// ######################################### //
-
 #ifndef XTRACK_SYNRAD_SPECTRUM_H
 #define XTRACK_SYNRAD_SPECTRUM_H
 

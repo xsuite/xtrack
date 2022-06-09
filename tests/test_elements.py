@@ -1,8 +1,3 @@
-# copyright ############################### #
-# This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
-# ######################################### #
-
 import numpy as np
 import xtrack as xt
 import xobjects as xo

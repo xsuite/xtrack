@@ -1,8 +1,3 @@
-# copyright ############################### #
-# This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
-# ######################################### #
-
 from .elements import *
 from .apertures import *
 from .beam_interaction import BeamInteraction

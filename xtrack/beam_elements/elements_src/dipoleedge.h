@@ -1,8 +1,3 @@
-// copyright ############################### //
-// This file is part of the Xtrack Package.  //
-// Copyright (c) CERN, 2021.                 //
-// ######################################### //
-
 #ifndef XTRACK_DIPOLEEDGE_H
 #define XTRACK_DIPOLEEDGE_H
 

@@ -1,8 +1,3 @@
-// copyright ############################### //
-// This file is part of the Xtrack Package.  //
-// Copyright (c) CERN, 2021.                 //
-// ######################################### //
-
 #ifndef XTRACK_WIRE_H
 #define XTRACK_WIRE_H
 

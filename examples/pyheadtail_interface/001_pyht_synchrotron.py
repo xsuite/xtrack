@@ -1,8 +1,3 @@
-# copyright ############################### #
-# This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
-# ######################################### #
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle

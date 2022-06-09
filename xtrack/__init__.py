@@ -1,8 +1,3 @@
-# copyright ############################### #
-# This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
-# ######################################### #
-
 from .general import _pkg_root
 
 from .base_element import dress_element, BeamElement
