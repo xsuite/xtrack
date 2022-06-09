@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xtrack Package.  #
+# Copyright (c) CERN, 2021.                 #
+# ######################################### #
+
 from . import elements as xstelems
 from .base_classes import Element
 from .be_beamfields import BeamBeam4D, BeamBeam6D, SCQGaussProfile
