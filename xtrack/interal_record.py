@@ -85,7 +85,7 @@ def new_io_buffer(_context=None, capacity=1048576):
     head = IOBufferHeader(_buffer=iobuf)
     assert head._offset == 0
     assert head._buffer is iobuf
-    head.buffer_id = np.random.randint(0, 2**60)
+    head.buffer_id = np.random.randint(0, 2**60, dtype=np.int64)
 
     return iobuf
 
