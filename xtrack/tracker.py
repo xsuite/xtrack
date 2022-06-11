@@ -50,6 +50,7 @@ class Tracker:
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
+        compile=True,
     ):
 
         if sequence is not None:
@@ -78,7 +79,8 @@ class Tracker:
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as,
-                io_buffer=io_buffer)
+                io_buffer=io_buffer,
+                compile=compile)
         else:
             self._init_track_no_collective(
                 _context=_context,
@@ -94,7 +96,8 @@ class Tracker:
                 global_xy_limit=global_xy_limit,
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as,
-                io_buffer=io_buffer)
+                io_buffer=io_buffer,
+                compile=compile)
 
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
@@ -115,10 +118,14 @@ class Tracker:
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
+        compile=True
     ):
 
         assert _offset is None
 
+        if not compile:
+            raise NotImplementedError("Skip compilation is not implemented in "
+                                      "collective mode")
 
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
@@ -248,6 +255,7 @@ class Tracker:
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
+        compile=True
     ):
         if particles_class is None:
             particles_class = xp.Particles
@@ -310,7 +318,7 @@ class Tracker:
         if track_kernel == 'skip':
             self.track_kernel = None
         elif track_kernel is None:
-            self._build_kernel(save_source_as)
+            self._build_kernel(save_source_as, compile=compile)
         else:
             self.track_kernel = track_kernel
 
@@ -517,7 +525,7 @@ class Tracker:
 
         self.line.configure_radiation(mode=mode)
 
-    def _build_kernel(self, save_source_as):
+    def _build_kernel(self, save_source_as, compile):
 
         context = self._line_frozen._buffer.context
 
@@ -696,6 +704,7 @@ class Tracker:
             extra_classes=self.element_classes,
             save_source_as=save_source_as,
             specialize=True,
+            compile=compile
         )
 
         self.track_kernel = context.kernels.track_line
