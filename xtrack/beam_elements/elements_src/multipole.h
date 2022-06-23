@@ -23,11 +23,16 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     //start_per_particle_block (part0->part)
         int64_t order = MultipoleData_get_order(el);
-        int64_t index_x = 2 * order;
-        int64_t index_y = index_x + 1;
+        int64_t index_x = order;
+        int64_t index_y = order;
 
-        double dpx = MultipoleData_get_bal(el, index_x);
-        double dpy = MultipoleData_get_bal(el, index_y);
+        int64_t factorial = 1;
+        for (int64_t i=1; i<=order; i++){
+            factorial *= i;
+        }
+
+        double dpx = MultipoleData_get_knl(el, index_x)/factorial;
+        double dpy = MultipoleData_get_ksl(el, index_y)/factorial;
 
         double const x   = LocalParticle_get_x(part);
         double const y   = LocalParticle_get_y(part);
@@ -41,11 +46,12 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             double const zre = dpx * x - dpy * y;
             double const zim = dpx * y + dpy * x;
 
-            index_x -= 2;
-            index_y -= 2;
+            factorial /= index_x;
+            index_x -= 1;
+            index_y -= 1;
 
-            dpx = MultipoleData_get_bal(el, index_x) + zre;
-            dpy = MultipoleData_get_bal(el, index_y) + zim;
+            dpx = MultipoleData_get_knl(el, index_x)/factorial + zre;
+            dpy = MultipoleData_get_ksl(el, index_y)/factorial + zim;
         }
 
 
@@ -82,8 +88,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
             if( length != 0)
             {
-                double const b1l = chi * MultipoleData_get_bal(el, 0 );
-                double const a1l = chi * MultipoleData_get_bal(el, 1 );
+                double const b1l = chi * MultipoleData_get_knl(el, 0 );
+                double const a1l = chi * MultipoleData_get_ksl(el, 0 );
 
                 dpx -= b1l * hxlx / length;
                 dpy += a1l * hyly / length;
