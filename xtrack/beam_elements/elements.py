@@ -377,12 +377,8 @@ Multipole.XoStruct.extra_sources.extend([
 
 def _update_phase_from_pn_ps(pn, ps, phase, context=None):
     assert len(phase) == 2*len(pn) == 2*len(ps)
-    idx = np.array([ii for ii in range(0, len(pn))])
-    inv_factorial = 1.0 / factorial(idx, exact=True)
-    if context is not None:
-        inv_factorial = context.nparray_to_context_array(inv_factorial)
-    phase[0::2] = pn * inv_factorial
-    phase[1::2] = ps * inv_factorial
+    phase[0::2] = pn
+    phase[1::2] = ps
 
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
