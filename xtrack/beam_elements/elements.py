@@ -260,6 +260,7 @@ class Multipole(BeamElement):
 
     _xofields={
         'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
         'length': xo.Float64,
         'hxl': xo.Float64,
         'hyl': xo.Float64,
@@ -304,6 +305,7 @@ class Multipole(BeamElement):
         kwargs["knl"] = knl
         kwargs["ksl"] = ksl
         kwargs["order"] = order
+        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         self.xoinitialize(**kwargs)
 
