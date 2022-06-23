@@ -33,7 +33,7 @@ n_part = 1
 particles0 = xp.build_particles(tracker=tracker, x_norm=np.linspace(-1, 1, n_part),
                                scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6))
 
-num_turns = 30
+num_turns = 1000
 particles = particles0.copy()
 t1 = time.time()
 for i_turn in range(num_turns):
