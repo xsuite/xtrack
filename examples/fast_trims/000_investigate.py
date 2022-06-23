@@ -1,0 +1,82 @@
+# copyright ############################### #
+# This file is part of the Xtrack Package.  #
+# Copyright (c) CERN, 2021.                 #
+# ######################################### #
+
+import time
+
+import json
+import numpy as np
+
+import xobjects as xo
+import xtrack as xt
+import xpart as xp
+
+###############
+# Load a line #
+###############
+
+fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json'
+
+with open(fname_line_particles, 'r') as fid:
+    input_data = json.load(fid)
+line = xt.Line.from_dict(input_data['line'])
+line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+#################
+# Build tracker #
+#################
+
+tracker = xt.Tracker(line=line)
+
+n_part = 1
+particles0 = xp.build_particles(tracker=tracker, x_norm=np.linspace(-1, 1, n_part),
+                               scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6))
+
+num_turns = 30
+particles = particles0.copy()
+t1 = time.time()
+for i_turn in range(num_turns):
+    tracker.track(particles)
+t2 = time.time()
+print('Time only track: {:.3f} ms/turn'.format((t2 - t1) / num_turns * 1e3))
+t_only_track = (t2-t1)
+
+particles = particles0.copy()
+t1 = time.time()
+for i_turn in range(num_turns):
+    tracker.vars['on_crab1'] = (num_turns - i_turn)/num_turns
+    tracker.track(particles)
+t2 = time.time()
+print('Overhead track with knob: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
+
+particles = particles0.copy()
+t1 = time.time()
+for i_turn in range(num_turns):
+    line['acfga.4bl1.b1'].knl[0] = 1e-11*i_turn
+    line['acfga.4ar1.b1'].ksl[0] = 1e-11*i_turn
+    line['acfga.4br1.b1'].ksl[0] = 1e-11*i_turn
+    line['acfga.4al1.b1'].ksl[0] = 1e-11*i_turn
+    line['acfga.4al1.b1'].knl[0] = 1e-11*i_turn
+    line['acfga.4bl1.b1'].ksl[0] = 1e-11*i_turn
+    line['acfga.4ar1.b1'].knl[0] = 1e-11*i_turn
+    line['acfga.4br1.b1'].knl[0] = 1e-11*i_turn
+    tracker.track(particles)
+t2 = time.time()
+print('Overhead track with k trim: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
+
+
+particles = particles0.copy()
+t1 = time.time()
+for i_turn in range(num_turns):
+    line['acfga.4bl1.b1'].bal[0] = 1e-11*i_turn
+    line['acfga.4ar1.b1'].bal[0] = 1e-11*i_turn
+    line['acfga.4br1.b1'].bal[0] = 1e-11*i_turn
+    line['acfga.4al1.b1'].bal[0] = 1e-11*i_turn
+    line['acfga.4al1.b1'].bal[0] = 1e-11*i_turn
+    line['acfga.4bl1.b1'].bal[0] = 1e-11*i_turn
+    line['acfga.4ar1.b1'].bal[0] = 1e-11*i_turn
+    line['acfga.4br1.b1'].bal[0] = 1e-11*i_turn
+    tracker.track(particles)
+t2 = time.time()
+print('Overhead track with bal trim: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))

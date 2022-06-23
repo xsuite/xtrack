@@ -30,3 +30,13 @@ import json
 with open('line_and_particle.json', 'w') as fid:
     json.dump({'line': line.to_dict(), 'particle': particle.to_dict()}, fid,
               cls=xo.JEncoder, indent=4)
+
+
+line_with_knobs = xt.Line.from_madx_sequence(mad.sequence['lhcb1'],
+                                  deferred_expressions=True
+                                  )
+with open('line_w_knobs_and_particle.json', 'w') as fid:
+    json.dump({'line': line_with_knobs.to_dict(),
+               'particle': particle.to_dict()},
+            fid,
+            cls=xo.JEncoder, indent=4)
