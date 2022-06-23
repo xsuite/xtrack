@@ -23,13 +23,12 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     //start_per_particle_block (part0->part)
         int64_t order = MultipoleData_get_order(el);
-        int64_t index_x = order;
-        int64_t index_y = order;
+        int64_t index = order;
 
         double inv_factorial = MultipoleData_get_inv_factorial_order(el);
 
-        double dpx = MultipoleData_get_knl(el, index_x) * inv_factorial;
-        double dpy = MultipoleData_get_ksl(el, index_y) * inv_factorial;
+        double dpx = MultipoleData_get_knl(el, index) * inv_factorial;
+        double dpy = MultipoleData_get_ksl(el, index) * inv_factorial;
 
         double const x   = LocalParticle_get_x(part);
         double const y   = LocalParticle_get_y(part);
@@ -38,17 +37,16 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         double const hxl = MultipoleData_get_hxl(el);
         double const hyl = MultipoleData_get_hyl(el);
 
-        while( index_x > 0 )
+        while( index > 0 )
         {
             double const zre = dpx * x - dpy * y;
             double const zim = dpx * y + dpy * x;
 
-            inv_factorial *= index_x;
-            index_x -= 1;
-            index_y -= 1;
+            inv_factorial *= index;
+            index -= 1;
 
-            dpx = MultipoleData_get_knl(el, index_x)*inv_factorial + zre;
-            dpy = MultipoleData_get_ksl(el, index_y)*inv_factorial + zim;
+            dpx = MultipoleData_get_knl(el, index)*inv_factorial + zre;
+            dpy = MultipoleData_get_ksl(el, index)*inv_factorial + zim;
         }
 
 
