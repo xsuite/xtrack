@@ -80,3 +80,12 @@ for i_turn in range(num_turns):
     tracker.track(particles)
 t2 = time.time()
 print('Overhead track with bal trim: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
+
+particles = particles0.copy()
+t1 = time.time()
+for i_turn in range(num_turns):
+    tracker.vars['vrf400'] = (num_turns - i_turn)/num_turns
+    tracker.vars['vrf400'] = (num_turns - i_turn)/num_turns
+    tracker.track(particles)
+t2 = time.time()
+print('Overhead track with voltage knob: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
