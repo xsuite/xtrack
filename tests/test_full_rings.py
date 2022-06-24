@@ -14,8 +14,6 @@ import xpart as xp
 
 import ducktrack as dtk
 
-from xobjects.context import available
-
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
