@@ -271,7 +271,7 @@ class Multipole(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
-    def __init__(self, order=None, knl=None, ksl=None, bal=None, **kwargs):
+    def __init__(self, order=None, knl=None, ksl=None, **kwargs):
 
         if order is not None:
             order = 0
@@ -354,14 +354,15 @@ class RFMultipole(BeamElement):
 
     _xofields={
         'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
-        'bal': xo.Float64[:],
-        'phase': xo.Float64[:],
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
+        'pn': xo.Float64[:],
+        'ps': xo.Float64[:],
     }
-
-    _store_in_to_dict = ['knl', 'ksl', 'pn', 'ps']
 
     def __init__(
         self,
@@ -370,30 +371,13 @@ class RFMultipole(BeamElement):
         ksl=None,
         pn=None,
         ps=None,
-        bal=None,
-        phase=None,
         **kwargs
     ):
 
         assert 'p' not in kwargs, "`p` in RF Multipole is not supported anymore"
 
-        if bal is None and (
-            knl is not None
-            or ksl is not None
-            or pn is not None
-            or ps is not None
-            or order is not None
-        ):
-            if knl is None:
-                knl = []
-            if ksl is None:
-                ksl = []
-            if pn is None:
-                pn = []
-            if ps is None:
-                ps = []
-            if order is None:
-                order = 0
+        if order is not None:
+            order = 0
 
             n = max((order + 1), max(len(knl), len(ksl), len(pn), len(ps)))
             assert n > 0
