@@ -403,10 +403,9 @@ class RFMultipole(BeamElement):
         kwargs["pn"] = pn
         kwargs["ps"] = ps
         kwargs["order"] = order
-        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
+        #kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
-        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            super().__init__(**kwargs)
+        self.xoinitialize(**kwargs)
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):

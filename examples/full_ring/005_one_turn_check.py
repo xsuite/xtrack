@@ -29,10 +29,10 @@ test_backtracker=True
 #rtol_10turns = 1e-9; atol_10turns=1e-11
 #test_backtracker = False
 
-#fname_line_particles = test_data_folder.joinpath(
-#                         './hllhc_14/line_and_particle.json')
-#rtol_10turns=1e-9; atol_10turns=1e-11 # 2e-10 needed for delta = 1e-3
-#test_backtracker = False
+fname_line_particles = test_data_folder.joinpath(
+                         './hllhc_14/line_and_particle.json')
+rtol_10turns=1e-9; atol_10turns=1e-11 # 2e-10 needed for delta = 1e-3
+test_backtracker = False
 
 #fname_line_particles = test_data_folder.joinpath(
 #                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')

@@ -9,8 +9,10 @@
 /*gpufun*/
 void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
 
-    /*gpuglmem*/ double const* bal = RFMultipoleData_getp1_bal(el, 0);
-    /*gpuglmem*/ double const* phase = RFMultipoleData_getp1_phase(el, 0);
+    /*gpuglmem*/ double const* knl = RFMultipoleData_getp1_knl(el, 0);
+    /*gpuglmem*/ double const* ksl = RFMultipoleData_getp1_ksl(el, 0);
+    /*gpuglmem*/ double const* pn = RFMultipoleData_getp1_pn(el, 0);
+    /*gpuglmem*/ double const* ps = RFMultipoleData_getp1_ps(el, 0);
     int64_t const order = RFMultipoleData_get_order(el);
     double const frequency = RFMultipoleData_get_frequency(el);
     double const voltage = RFMultipoleData_get_voltage(el);
@@ -33,13 +35,19 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
         double zre = 1.0;
         double zim = 0.0;
 
+        double factorial = 1.0;
         for (int64_t kk = 0; kk <= order; kk++)
         {
-            double const pn_kk = DEG2RAD * phase[2*kk] - ktau;
-            double const ps_kk = DEG2RAD * phase[2*kk+1] - ktau;
 
-            double const bal_n_kk = bal[2*kk];
-            double const bal_s_kk = bal[2*kk+1];
+            if (kk>0){
+                factorial *= kk;
+            }
+
+            double const pn_kk = DEG2RAD * pn[kk] - ktau;
+            double const ps_kk = DEG2RAD * ps[kk] - ktau;
+
+            double const bal_n_kk = knl[kk]/factorial;
+            double const bal_s_kk = ksl[kk]/factorial;
 
             double const cn = cos(pn_kk);
             double const cs = cos(ps_kk);
