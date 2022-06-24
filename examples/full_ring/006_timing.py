@@ -22,7 +22,7 @@ test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
-rtol_100turns = 1e-9; atol_100turns=3e-11
+rtol_100turns = 1e-9; atol_100turns=5e-11
 
 # fname_line_particles = test_data_folder.joinpath(
 #                                 './lhc_with_bb/line_and_particle.json')
@@ -53,8 +53,8 @@ num_turns = int(100)
 n_part = 200
 context = xo.ContextCpu(omp_num_threads=0)
 
-#n_part = 20000
-#context = xo.ContextCupy()
+n_part = 20000
+context = xo.ContextCupy()
 
 #n_part = 20000
 #context = xo.ContextPyopencl('0.0')
