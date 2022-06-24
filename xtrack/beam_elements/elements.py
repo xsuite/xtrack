@@ -226,15 +226,6 @@ SRotation.XoStruct.extra_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
 
-def _update_bal_from_knl_ksl(knl, ksl, bal, context=None):
-    assert len(bal) == 2*len(knl) == 2*len(ksl)
-    idx = np.array([ii for ii in range(0, len(knl))])
-    inv_factorial = 1.0 / factorial(idx, exact=True)
-    if context is not None:
-        inv_factorial = context.nparray_to_context_array(inv_factorial)
-    bal[0::2] = knl * inv_factorial
-    bal[1::2] = ksl * inv_factorial
-
 class SynchrotronRadiationRecord(xo.DressedStruct):
     _xofields = {
         '_index': RecordIndex,
@@ -273,11 +264,19 @@ class Multipole(BeamElement):
 
     def __init__(self, order=None, knl=None, ksl=None, **kwargs):
 
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if order is not None:
             order = 0
 
         if "bal" in kwargs.keys():
-            raise NotImplementedError("bal is not supported anymore")
+            if not "knl" in kwargs.keys() or not "ksl" in kwargs.keys():
+                _bal = kwargs['bal']
+                idxes = np.array([ii for ii in range(0, len(_bal), 2)])
+                knl = [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
+                ksl = [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
 
         n = max((order + 1), max(len(knl), len(ksl)))
         assert n > 0
@@ -286,24 +285,15 @@ class Multipole(BeamElement):
         nksl = np.zeros(n, dtype=np.float64)
 
         if knl is not None:
-            _knl = np.array(knl)
-            nknl[: len(knl)] = knl
-            knl = nknl
-            del _knl
-            assert len(knl) == n
+            nknl[: len(knl)] = np.array(knl)
 
         if ksl is not None:
-            _ksl = np.array(ksl)
-            nksl = np.zeros(n, dtype=_ksl.dtype)
-            nksl[: len(ksl)] = ksl
-            ksl = nksl
-            del _ksl
-            assert len(ksl) == n
+            nksl[: len(ksl)] = np.array(ksl)
 
         order = n - 1
 
-        kwargs["knl"] = knl
-        kwargs["ksl"] = ksl
+        kwargs["knl"] = nknl
+        kwargs["ksl"] = nksl
         kwargs["order"] = order
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
@@ -327,10 +317,6 @@ Multipole.XoStruct.extra_sources.extend([
     _pkg_root.joinpath('headers/synrad_spectrum.h'),
     _pkg_root.joinpath('beam_elements/elements_src/multipole.h')])
 
-def _update_phase_from_pn_ps(pn, ps, phase, context=None):
-    assert len(phase) == 2*len(pn) == 2*len(ps)
-    phase[0::2] = pn
-    phase[1::2] = ps
 
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
@@ -374,138 +360,54 @@ class RFMultipole(BeamElement):
         **kwargs
     ):
 
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         assert 'p' not in kwargs, "`p` in RF Multipole is not supported anymore"
 
         if order is not None:
             order = 0
 
-            n = max((order + 1), max(len(knl), len(ksl), len(pn), len(ps)))
-            assert n > 0
+        if "bal" in kwargs.keys():
+            if not "knl" in kwargs.keys() or not "ksl" in kwargs.keys():
+                _bal = kwargs['bal']
+                idxes = np.array([ii for ii in range(0, len(_bal), 2)])
+                knl = [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
+                ksl = [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
 
-            _knl = np.array(knl)
-            nknl = np.zeros(n, dtype=_knl.dtype)
-            nknl[: len(knl)] = knl
-            knl = nknl
-            del _knl
-            assert len(knl) == n
+        n = max((order + 1), max(len(knl), len(ksl), len(pn), len(ps)))
+        assert n > 0
 
-            _ksl = np.array(ksl)
-            nksl = np.zeros(n, dtype=_ksl.dtype)
-            nksl[: len(ksl)] = ksl
-            ksl = nksl
-            del _ksl
-            assert len(ksl) == n
+        nknl = np.zeros(n, dtype=np.float64)
+        nksl = np.zeros(n, dtype=np.float64)
+        npn = np.zeros(n, dtype=np.float64)
+        nps = np.zeros(n, dtype=np.float64)
 
-            _pn = np.array(pn)
-            npn = np.zeros(n, dtype=_pn.dtype)
-            npn[: len(pn)] = pn
-            pn = npn
-            del _pn
-            assert len(pn) == n
+        if knl is not None:
+            nknl[: len(knl)] = np.array(knl)
 
-            _ps = np.array(ps)
-            nps = np.zeros(n, dtype=_ps.dtype)
-            nps[: len(ps)] = ps
-            ps = nps
-            del _ps
-            assert len(ps) == n
+        if ksl is not None:
+            nksl[: len(ksl)] = np.array(ksl)
 
-            order = n - 1
-            bal = np.zeros(2 * order + 2)
-            phase = np.zeros(2 * order + 2)
+        if pn is not None:
+            npn[: len(pn)] = np.array(pn)
 
-            idx = np.array([ii for ii in range(0, len(knl))])
-            inv_factorial = 1.0 / factorial(idx, exact=True)
-            bal[0::2] = knl * inv_factorial
-            bal[1::2] = ksl * inv_factorial
+        if ps is not None:
+            nps[: len(ps)] = np.array(ps)
 
-            phase[0::2] = pn
-            phase[1::2] = ps
+        order = n - 1
 
-            kwargs["bal"] = bal
-            kwargs["phase"] = phase
-            kwargs["order"] = order
-
-        elif (
-            bal is not None
-            #and bal
-            and len(bal) >= 2
-            and ((len(bal) % 2) == 0)
-            and phase is not None
-            #and phase
-            and len(phase) >= 2
-            and ((len(phase) % 2) == 0)
-        ):
-            kwargs["bal"] = bal
-            kwargs["phase"] = phase
-            kwargs["order"] = (len(bal) - 2) / 2
-        elif '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
-            pass
-        else:
-            raise ValueError('RF Multipole Invalid input!')
-
+        kwargs["knl"] = nknl
+        kwargs["ksl"] = nksl
+        kwargs["pn"] = pn
+        kwargs["ps"] = ps
+        kwargs["order"] = order
+        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             super().__init__(**kwargs)
-        else:
-            temp_bal = kwargs["bal"]
-            temp_phase = kwargs["phase"]
 
-            kwargs["bal"] = len(temp_bal)
-            kwargs["phase"] = len(temp_phase)
-
-            super().__init__(**kwargs)
-
-            ctx = self._buffer.context
-            self.bal[:] = ctx.nparray_to_context_array(temp_bal)
-            self.phase[:] = ctx.nparray_to_context_array(temp_phase)
-
-
-    @property
-    def pn(self):
-        phase_length = len(self.phase)
-        idxes = np.array([ii for ii in range(0, phase_length, 2)])
-        _phase = self._buffer.context.nparray_from_context_array(self.phase)
-        _pn = self._buffer.context.nparray_to_context_array(np.array(
-            [_phase[idx] * factorial(idx // 2, exact=True) for idx in idxes]))
-        return self._buffer.context.linked_array_type.from_array(
-                                        _pn,
-                                        mode='setitem_from_container',
-                                        container=self,
-                                        container_setitem_name='_pn_setitem')
-
-    @pn.setter
-    def pn(self, value):
-        self.pn[:] = value
-
-    def _pn_setitem(self, indx, val):
-        _pn = self.pn.copy()
-        _pn[indx] = val
-        _update_phase_from_pn_ps(_pn, self.ps, self.phase,
-                                 context=self._buffer.context)
-
-    @property
-    def ps(self):
-        phase_length = len(self.phase)
-        idxes = np.array([ii for ii in range(0, phase_length, 2)])
-        _phase = self._buffer.context.nparray_from_context_array(self.phase)
-        _ps = self._buffer.context.nparray_to_context_array(np.array(
-            [_phase[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]))
-        return self._buffer.context.linked_array_type.from_array(
-                                        _ps,
-                                        mode='setitem_from_container',
-                                        container=self,
-                                        container_setitem_name='_ps_setitem')
-
-    @ps.setter
-    def ps(self, value):
-        self.ps[:] = value
-
-    def _ps_setitem(self, indx, val):
-        _ps = self.ps.copy()
-        _ps[indx] = val
-        _update_phase_from_pn_ps(self.pn, _ps, self.phase,
-                                 context=self._buffer.context)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
@@ -513,14 +415,12 @@ class RFMultipole(BeamElement):
                               voltage=-self.voltage,
                               frequency=self.frequency,
                               lag=self.lag,
-                              bal=[-bb for bb in self.bal], # TODO: maybe it can be made more efficient
-                              p = [pp for pp in self.phase],
+                              knl=-self.knl,
+                              ksl=-self.ksl,
+                              pn = self.pn,
+                              ps = self.ps,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
-#RFMultipole.knl = Multipole.knl
-#RFMultipole.ksl = Multipole.ksl
-#RFMultipole._knl_setitem = Multipole._knl_setitem
-#RFMultipole._ksl_setitem = Multipole._ksl_setitem
 
 RFMultipole.XoStruct.extra_sources = [
         _pkg_root.joinpath('headers/constants.h'),
