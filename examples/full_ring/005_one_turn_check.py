@@ -54,31 +54,6 @@ context = xo.ContextCpu()
 with open(fname_line_particles, 'r') as fid:
     input_data = json.load(fid)
 
-input_data['particle'] = {'start_tracking_at_element': -1,
- 'q0': 1.0,
- 'mass0': 938272048.020713,
- 'p0c': [6999999937117.54],
- 'gamma0': [7460.522792687383],
- 'beta0': [0.9999999910167915],
- 's': [0.0],
- 'x': [3.266331658291457e-05],
- 'y': [6.532663316582914e-05],
- 'px': [0.0],
- 'py': [0.0],
- 'zeta': [0.0],
- 'chi': [1.0],
- 'charge_ratio': [1.0],
- 'weight': [0.0],
- 'particle_id': [132],
- 'at_element': [0],
- 'at_turn': [0],
- 'state': [1],
- 'parent_particle_id': [132],
- 'delta': [0.0],
- 'ptau': [0.0],
- 'rvv': [1.0],
- 'rpp': [1.0]}
-
 ##############
 # Get a line #
 ##############
