@@ -12,6 +12,8 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
+context = xo.ContextCupy()
+
 ###############
 # Load a line #
 ###############
@@ -27,7 +29,7 @@ line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 # Build tracker #
 #################
 
-tracker = xt.Tracker(line=line)
+tracker = xt.Tracker(line=line, _context=context)
 
 n_part = 1
 particles0 = xp.build_particles(tracker=tracker, x_norm=np.linspace(-1, 1, n_part),
@@ -65,21 +67,6 @@ for i_turn in range(num_turns):
 t2 = time.time()
 print('Overhead track with k trim: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
 
-
-particles = particles0.copy()
-t1 = time.time()
-for i_turn in range(num_turns):
-    line['acfga.4bl1.b1'].bal[0] = 1e-11*i_turn
-    line['acfga.4ar1.b1'].bal[0] = 1e-11*i_turn
-    line['acfga.4br1.b1'].bal[0] = 1e-11*i_turn
-    line['acfga.4al1.b1'].bal[0] = 1e-11*i_turn
-    line['acfga.4al1.b1'].bal[0] = 1e-11*i_turn
-    line['acfga.4bl1.b1'].bal[0] = 1e-11*i_turn
-    line['acfga.4ar1.b1'].bal[0] = 1e-11*i_turn
-    line['acfga.4br1.b1'].bal[0] = 1e-11*i_turn
-    tracker.track(particles)
-t2 = time.time()
-print('Overhead track with bal trim: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
 
 particles = particles0.copy()
 t1 = time.time()
