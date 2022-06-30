@@ -300,7 +300,7 @@ class Multipole(BeamElement):
         self.xoinitialize(**kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer._context.nparray_from_context_array
+        ctx2np = self._buffer.context.nparray_from_context_array
         return self.__class__(
                               order=self.order,
                               length=-self.length,
