@@ -379,7 +379,12 @@ class RFMultipole(BeamElement):
                 knl = [_bal[idx] * factorial(idx // 2, exact=True) for idx in idxes]
                 ksl = [_bal[idx + 1] * factorial(idx // 2, exact=True) for idx in idxes]
 
-        n = max((order + 1), max(len(knl), len(ksl), len(pn), len(ps)))
+
+        len_knl = len(knl) if knl is not None else 0
+        len_ksl = len(ksl) if ksl is not None else 0
+        len_pn = len(pn) if pn is not None else 0
+        len_ps = len(ps) if ps is not None else 0
+        n = max((order + 1), max(len_knl, len_ksl, len_pn, len_ps))
         assert n > 0
 
         nknl = np.zeros(n, dtype=np.float64)
