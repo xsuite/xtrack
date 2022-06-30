@@ -285,10 +285,10 @@ class Multipole(BeamElement):
         nksl = np.zeros(n, dtype=np.float64)
 
         if knl is not None:
-            nknl[: len(knl)] = knl
+            nknl[: len(knl)] = np.array(knl)
 
         if ksl is not None:
-            nksl[: len(ksl)] = ksl
+            nksl[: len(ksl)] = np.array(ksl)
 
         order = n - 1
 
@@ -300,14 +300,15 @@ class Multipole(BeamElement):
         self.xoinitialize(**kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._buffer._context.nparray_from_context_array
         return self.__class__(
                               order=self.order,
                               length=-self.length,
                               hxl=-self.hxl,
                               hyl=-self.hyl,
                               radiation_flag=0, #TODO, I force radiation off for now
-                              knl=-self.knl, # TODO: maybe it can be made more efficient
-                              ksl=-self.ksl, # TODO: maybe it can be made more efficient
+                              knl=-ctx2np(self.knl), # TODO: maybe it can be made more efficient
+                              ksl=-ctx2np(self.ksl), # TODO: maybe it can be made more efficient
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 Multipole.XoStruct.extra_sources.extend([
