@@ -132,7 +132,7 @@ def compute_one_turn_matrix_finite_differences(
             delta = [0.,  0., 0.,  0.,    0., ddelta,  0.,   0.,  0.,   0.,     0., -ddelta],
             )
     dpzeta = float(context.nparray_from_context_array(
-        (part_temp.ptau[5] - part_temp.ptau[11])/2/part_temp.beta_0[0]))
+        (part_temp.ptau[5] - part_temp.ptau[11])/2/part_temp.beta0[0])
     if particle_on_co._xobject.at_element[0]>0:
         part_temp.s[:] = particle_on_co._xobject.s[0]
         part_temp.at_element[:] = particle_on_co._xobject.at_element[0]
@@ -152,7 +152,7 @@ def compute_one_turn_matrix_finite_differences(
     temp_mat[3, :] = context.nparray_from_context_array(part_temp.py)
     temp_mat[4, :] = context.nparray_from_context_array(part_temp.zeta)
     temp_mat[5, :] = context.nparray_from_context_array(
-                                part_temp.ptau/part_temp.beta_0) # pzeta
+                                part_temp.ptau/part_temp.beta0) # pzeta
 
     RR = np.zeros(shape=(6, 6), dtype=np.float64)
 
