@@ -285,10 +285,10 @@ class Multipole(BeamElement):
         nksl = np.zeros(n, dtype=np.float64)
 
         if knl is not None:
-            nknl[: len(knl)] = np.array(knl)
+            nknl[: len(knl)] = knl
 
         if ksl is not None:
-            nksl[: len(ksl)] = np.array(ksl)
+            nksl[: len(ksl)] = ksl
 
         order = n - 1
 
