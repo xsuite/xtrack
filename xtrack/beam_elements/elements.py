@@ -268,7 +268,7 @@ class Multipole(BeamElement):
             self.xoinitialize(**kwargs)
             return
 
-        if order is not None:
+        if order is None:
             order = 0
 
         if "bal" in kwargs.keys():
