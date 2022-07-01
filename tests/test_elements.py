@@ -158,34 +158,6 @@ def test_wire():
         assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
                           dtk_particle.py, rtol=1e-9, atol=1e-9)
 
-def test_linked_arrays_in_multipole_and_rfmultipole():
-
-    for ctx in xo.context.get_test_contexts():
-        print(f"Test {ctx.__class__}")
-
-        mult = xt.Multipole(_context=ctx, knl=[1,2,3,4], ksl=[10, 20, 30, 40])
-        rfmult = xt.RFMultipole(_context=ctx, knl=[1,2,3,4], ksl=[10, 20, 30, 40],
-                                frequency=10.)
-        for m in [mult, rfmult]:
-            assert np.allclose(ctx.nparray_from_context_array(m.bal),
-                            [ 1., 10.,  2., 20.,  1.5 , 15.,
-                                0.66666667,  6.66666667], rtol=0, atol=1e-8)
-
-            m.knl[2:] = m.knl[2:] + 2
-            assert np.allclose(ctx.nparray_from_context_array(m.bal),
-                            [ 1., 10.,  2., 20.,  2.5 , 15.,
-                                1.,  6.66666667], rtol=0, atol=1e-8)
-
-            m.ksl[2:] = m.ksl[2:] + 20
-            assert np.allclose(ctx.nparray_from_context_array(m.bal),
-                            [ 1., 10.,  2., 20.,  2.5 , 25.,
-                                1.,  10.], rtol=0, atol=1e-8)
-
-            assert np.allclose(ctx.nparray_from_context_array(m.knl),
-                            [1, 2, 5, 6], rtol=0, atol=1e-12)
-
-            assert np.allclose(ctx.nparray_from_context_array(m.ksl),
-                               [10, 20, 50, 60], rtol=0, atol=1e-12)
 
 def test_linear_transfer():
     for ctx in xo.context.get_test_contexts():
