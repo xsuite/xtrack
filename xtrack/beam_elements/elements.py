@@ -408,8 +408,8 @@ class RFMultipole(BeamElement):
 
         kwargs["knl"] = nknl
         kwargs["ksl"] = nksl
-        kwargs["pn"] = pn
-        kwargs["ps"] = ps
+        kwargs["pn"] = npn
+        kwargs["ps"] = nps
         kwargs["order"] = order
         #kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
