@@ -369,7 +369,7 @@ class RFMultipole(BeamElement):
 
         assert 'p' not in kwargs, "`p` in RF Multipole is not supported anymore"
 
-        if order is not None:
+        if order is None:
             order = 0
 
         if "bal" in kwargs.keys():
