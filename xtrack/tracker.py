@@ -868,7 +868,7 @@ class Tracker:
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
-        _resume_from_hold=False
+        _session_to_resume=None
     ):
 
         self._check_invalidated()
@@ -880,8 +880,16 @@ class Tracker:
                         "call `particles.reorganize()` first."
                     )
 
-        if _resume_from_hold:
-            raise NotImplementedError
+        if _session_to_resume is not None:
+            ele_start = _session_to_resume['ele_start']
+            ele_stop = _session_to_resume['ele_stop']
+            num_turns = _session_to_resume['num_turns']
+            flag_monitor = _session_to_resume['flag_monitor']
+            monitor = _session_to_resume['monitor']
+            _context_needs_clean_active_lost_state = _session_to_resume[
+                                    '_context_needs_clean_active_lost_state']
+            tt_resume = _session_to_resume['tt']
+            ipp_resume = _session_to_resume['ipp']
         else:
             (ele_start, ele_stop, num_turns, flag_monitor, monitor,
                 buffer_monitor, offset_monitor,
@@ -889,10 +897,16 @@ class Tracker:
                 ) = self._prepare_collective_track_session(
                                 particles, ele_start, ele_stop,
                                 num_elements, num_turns, turn_by_turn_monitor)
+            tt_resume = None
+            ipp_resume = None
 
         for tt in range(num_turns):
+            if tt_resume is not None and tt < tt_resume:
+                continue
+
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
-                monitor.track(particles)
+                if not(tt_resume is not None and tt == tt_resume):
+                    monitor.track(particles)
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -906,6 +920,27 @@ class Tracker:
                 # Track!
                 stop_tracking, skip, returned_by_track = self._track_part(
                         particles, pp, tt, ipp, ele_start, ele_stop, num_turns)
+
+                if returned_by_track is not None:
+                    if returned_by_track.on_hold:
+                        session_on_hold = {
+                            'particles': particles,
+                            'ele_start': ele_start,
+                            'ele_stop': ele_stop,
+                            'num_elements': num_elements,
+                            'num_turns': num_turns,
+                            'flag_monitor': flag_monitor,
+                            'monitor': monitor,
+                            '_context_needs_clean_active_lost_state':
+                                        _context_needs_clean_active_lost_state,
+                            '_need_unhide_lost_particles':
+                                        _need_unhide_lost_particles,
+                            'moveback_to_buffer': moveback_to_buffer,
+                            'moveback_to_offset': moveback_to_offset,
+                            'ipp': ipp,
+                            'tt': tt,
+                        }
+                    return session_on_hold
 
                 if skip:
                     continue
