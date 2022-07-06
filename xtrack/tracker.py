@@ -807,8 +807,8 @@ class Tracker:
                     # (they are made invalid by the xtrack elements changing zeta)
                     self._slice_sets = {}
 
-                # Move to CPU if needed
                 if (hasattr(pp, 'needs_cpu') and pp.needs_cpu):
+                    # Move to CPU if not already there
                     if (moveback_to_buffer is None
                         and not isinstance(particles._buffer.context, xo.ContextCpu)):
                         moveback_to_buffer = particles._buffer
@@ -816,6 +816,7 @@ class Tracker:
                         particles._move_to(_context=xo.ContextCpu())
                         particles.reorganize()
                 else:
+                    # Move to GPU if not already there
                     if moveback_to_buffer is not None:
                         particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
                         moveback_to_buffer = None
