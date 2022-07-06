@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from ast import operator
 import numpy as np
 import logging
 
@@ -911,11 +912,22 @@ class Tracker:
             moveback_to_buffer = None
             moveback_to_offset = None
             for ipp, pp in enumerate(self._parts):
-                (_need_unhide_lost_particles, moveback_to_buffer,
-                    moveback_to_offset) = self._prepare_particles_for_part(
-                                        particles, pp,
-                                        moveback_to_buffer, moveback_to_offset,
-                                        _context_needs_clean_active_lost_state)
+                if (ipp_resume is not None and ipp < ipp_resume):
+                    continue
+                elif (ipp_resume is not None and ipp == ipp_resume):
+                    assert particles is None
+                    particles = _session_to_resume['particles']
+                    pp = self._parts[ipp]
+                    moveback_to_buffer = _session_to_resume['moveback_to_buffer']
+                    moveback_to_offset = _session_to_resume['moveback_to_offset']
+                    _context_needs_clean_active_lost_state = _session_to_resume[
+                                    '_context_needs_clean_active_lost_state']
+                else:
+                    (_need_unhide_lost_particles, moveback_to_buffer,
+                        moveback_to_offset) = self._prepare_particles_for_part(
+                                            particles, pp,
+                                            moveback_to_buffer, moveback_to_offset,
+                                            _context_needs_clean_active_lost_state)
 
                 # Track!
                 stop_tracking, skip, returned_by_track = self._track_part(
