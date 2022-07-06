@@ -817,6 +817,47 @@ class Tracker:
 
         return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
 
+    def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns):
+
+        skip = False
+        stop_tracking = False
+        if tt == 0 and ipp < self._element_part[ele_start]:
+            # Do not track before ele_start in the first turn
+            skip = True
+
+        elif tt == 0 and self._element_part[ele_start] == ipp:
+            # We are in the part that contains the start element
+            i_start_in_part = self._element_index_in_part[ele_start]
+            if i_start_in_part is None:
+                # The start part is collective
+                pp.track(particles)
+            else:
+                # The start part is a non-collective tracker
+                if (ele_stop is not None
+                    and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
+                    # The stop element is also in this part, so track until ele_stop
+                    i_stop_in_part = self._element_index_in_part[ele_stop]
+                    pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
+                    stop_tracking = True
+                else:
+                    # Track until end of part
+                    pp.track(particles, ele_start=i_start_in_part)
+
+        elif (ele_stop is not None
+                and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
+            # We are in the part that contains the stop element
+            i_stop_in_part = self._element_index_in_part[ele_stop]
+            if i_stop_in_part is not None:
+                # If not collective, track until ele_stop
+                pp.track(particles, num_elements=i_stop_in_part)
+            stop_tracking = True
+
+        else:
+            # We are in between the part that contains the start element,
+            # and the one that contains the stop element, so track normally
+            pp.track(particles)
+
+        return stop_tracking, skip
 
     def _track_with_collective(
         self,
@@ -862,43 +903,12 @@ class Tracker:
                                         moveback_to_buffer, moveback_to_offset,
                                         _context_needs_clean_active_lost_state)
 
-
                 # Track!
-                if tt == 0 and ipp < self._element_part[ele_start]:
-                    # Do not track before ele_start in the first turn
+                stop_tracking, skip = self._track_part(
+                        particles, pp, tt, ipp, ele_start, ele_stop, num_turns)
+
+                if skip:
                     continue
-
-                elif tt == 0 and self._element_part[ele_start] == ipp:
-                    # We are in the part that contains the start element
-                    i_start_in_part = self._element_index_in_part[ele_start]
-                    if i_start_in_part is None:
-                        # The start part is collective
-                        pp.track(particles)
-                    else:
-                        # The start part is a non-collective tracker
-                        if (ele_stop is not None
-                            and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
-                            # The stop element is also in this part, so track until ele_stop
-                            i_stop_in_part = self._element_index_in_part[ele_stop]
-                            pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
-                            stop_tracking = True
-                        else:
-                            # Track until end of part
-                            pp.track(particles, ele_start=i_start_in_part)
-
-                elif (ele_stop is not None
-                     and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
-                    # We are in the part that contains the stop element
-                    i_stop_in_part = self._element_index_in_part[ele_stop]
-                    if i_stop_in_part is not None:
-                        # If not collective, track until ele_stop
-                        pp.track(particles, num_elements=i_stop_in_part)
-                    stop_tracking = True
-
-                else:
-                    # We are in between the part that contains the start element,
-                    # and the one that contains the stop element, so track normally
-                    pp.track(particles)
 
                 # For collective parts increment at_element
                 if not isinstance(pp, Tracker) and not stop_tracking:
