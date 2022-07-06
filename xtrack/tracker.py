@@ -710,7 +710,7 @@ class Tracker:
 
         self.track_kernel = context.kernels.track_line
 
-    def _init_collective_track_session(self, particles, ele_start, ele_stop,
+    def _prepare_collective_track_session(self, particles, ele_start, ele_stop,
                                        num_elements, num_turns, turn_by_turn_monitor):
 
         # Start position
@@ -807,7 +807,7 @@ class Tracker:
             (ele_start, ele_stop, num_turns, flag_monitor, monitor,
                 buffer_monitor, offset_monitor,
                 _context_needs_clean_active_lost_state
-                ) = self._init_collective_track_session(
+                ) = self._prepare_collective_track_session(
                                 particles, ele_start, ele_stop,
                                 num_elements, num_turns, turn_by_turn_monitor)
 
