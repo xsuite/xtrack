@@ -861,6 +861,10 @@ class Tracker:
 
         return stop_tracking, skip, ret
 
+    def resume(self, session):
+        return self._track_with_collective(particles=None, _session_to_resume=session)
+
+
     def _track_with_collective(
         self,
         particles,
@@ -874,7 +878,8 @@ class Tracker:
 
         self._check_invalidated()
 
-        if isinstance(self._buffer.context, xo.ContextCpu):
+        if (isinstance(self._buffer.context, xo.ContextCpu)
+            and _session_to_resume is None):
             assert (particles._num_active_particles >= 0 and
                     particles._num_lost_particles >= 0), (
                         "Particles state is not valid to run on CPU, please "
@@ -922,6 +927,11 @@ class Tracker:
                     moveback_to_offset = _session_to_resume['moveback_to_offset']
                     _context_needs_clean_active_lost_state = _session_to_resume[
                                     '_context_needs_clean_active_lost_state']
+                    _need_unhide_lost_particles = _session_to_resume[
+                                    '_need_unhide_lost_particles']
+                    # Clear
+                    tt_resume = None
+                    ipp_resume = None
                 else:
                     (_need_unhide_lost_particles, moveback_to_buffer,
                         moveback_to_offset) = self._prepare_particles_for_part(
