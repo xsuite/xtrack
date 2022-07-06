@@ -889,7 +889,6 @@ class Tracker:
                                 particles, ele_start, ele_stop,
                                 num_elements, num_turns, turn_by_turn_monitor)
 
-        stop_tracking = False
         for tt in range(num_turns):
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 monitor.track(particles)
@@ -921,10 +920,6 @@ class Tracker:
 
                 if _need_unhide_lost_particles:
                     particles.unhide_lost_particles()
-
-
-                #if particles._num_active_particles == 0 or len(particles.state) == 0:
-                #    stop_tracking = True
 
                 # Break from loop over parts if stop element reached
                 if stop_tracking:
