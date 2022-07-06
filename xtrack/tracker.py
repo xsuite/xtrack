@@ -819,6 +819,7 @@ class Tracker:
 
     def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns):
 
+        ret = None
         skip = False
         stop_tracking = False
         if tt == 0 and ipp < self._element_part[ele_start]:
@@ -830,18 +831,18 @@ class Tracker:
             i_start_in_part = self._element_index_in_part[ele_start]
             if i_start_in_part is None:
                 # The start part is collective
-                pp.track(particles)
+                ret = pp.track(particles)
             else:
                 # The start part is a non-collective tracker
                 if (ele_stop is not None
                     and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
                     # The stop element is also in this part, so track until ele_stop
                     i_stop_in_part = self._element_index_in_part[ele_stop]
-                    pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
+                    ret = pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
                     stop_tracking = True
                 else:
                     # Track until end of part
-                    pp.track(particles, ele_start=i_start_in_part)
+                    ret = pp.track(particles, ele_start=i_start_in_part)
 
         elif (ele_stop is not None
                 and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
@@ -849,15 +850,15 @@ class Tracker:
             i_stop_in_part = self._element_index_in_part[ele_stop]
             if i_stop_in_part is not None:
                 # If not collective, track until ele_stop
-                pp.track(particles, num_elements=i_stop_in_part)
+                ret = pp.track(particles, num_elements=i_stop_in_part)
             stop_tracking = True
 
         else:
             # We are in between the part that contains the start element,
             # and the one that contains the stop element, so track normally
-            pp.track(particles)
+            ret = pp.track(particles)
 
-        return stop_tracking, skip
+        return stop_tracking, skip, ret
 
     def _track_with_collective(
         self,
@@ -903,7 +904,7 @@ class Tracker:
                                         _context_needs_clean_active_lost_state)
 
                 # Track!
-                stop_tracking, skip = self._track_part(
+                stop_tracking, skip, returned_by_track = self._track_part(
                         particles, pp, tt, ipp, ele_start, ele_stop, num_turns)
 
                 if skip:
