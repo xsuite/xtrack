@@ -781,6 +781,43 @@ class Tracker:
                 buffer_monitor, offset_monitor,
                 _context_needs_clean_active_lost_state)
 
+    def _prepare_particles_for_part(self, particles, pp,
+                                    moveback_to_buffer, moveback_to_offset,
+                                    _context_needs_clean_active_lost_state):
+        if hasattr(self, '_slice_sets'):
+            # If pyheadtail object, remove any stored slice sets
+            # (they are made invalid by the xtrack elements changing zeta)
+            self._slice_sets = {}
+
+        if (hasattr(pp, 'needs_cpu') and pp.needs_cpu):
+            # Move to CPU if not already there
+            if (moveback_to_buffer is None
+                and not isinstance(particles._buffer.context, xo.ContextCpu)):
+                moveback_to_buffer = particles._buffer
+                moveback_to_offset = particles._offset
+                particles._move_to(_context=xo.ContextCpu())
+                particles.reorganize()
+        else:
+            # Move to GPU if not already there
+            if moveback_to_buffer is not None:
+                particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
+                moveback_to_buffer = None
+                moveback_to_offset = None
+                if _context_needs_clean_active_lost_state:
+                    particles._num_active_particles = -1
+                    particles._num_lost_particles = -1
+
+        # Hide lost particles if required by element
+        _need_unhide_lost_particles = False
+        if (hasattr(pp, 'needs_hidden_lost_particles')
+            and pp.needs_hidden_lost_particles):
+            if not particles.lost_particles_are_hidden:
+                _need_unhide_lost_particles = True
+            particles.hide_lost_particles()
+
+        return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
+
+
     def _track_with_collective(
         self,
         particles,
@@ -817,38 +854,14 @@ class Tracker:
                 monitor.track(particles)
 
             moveback_to_buffer = None
+            moveback_to_offset = None
             for ipp, pp in enumerate(self._parts):
+                (_need_unhide_lost_particles, moveback_to_buffer,
+                    moveback_to_offset) = self._prepare_particles_for_part(
+                                        particles, pp,
+                                        moveback_to_buffer, moveback_to_offset,
+                                        _context_needs_clean_active_lost_state)
 
-                if hasattr(self, '_slice_sets'):
-                    # If pyheadtail object, remove any stored slice sets
-                    # (they are made invalid by the xtrack elements changing zeta)
-                    self._slice_sets = {}
-
-                if (hasattr(pp, 'needs_cpu') and pp.needs_cpu):
-                    # Move to CPU if not already there
-                    if (moveback_to_buffer is None
-                        and not isinstance(particles._buffer.context, xo.ContextCpu)):
-                        moveback_to_buffer = particles._buffer
-                        moveback_to_offset = particles._offset
-                        particles._move_to(_context=xo.ContextCpu())
-                        particles.reorganize()
-                else:
-                    # Move to GPU if not already there
-                    if moveback_to_buffer is not None:
-                        particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
-                        moveback_to_buffer = None
-                        moveback_to_offset = None
-                        if _context_needs_clean_active_lost_state:
-                            particles._num_active_particles = -1
-                            particles._num_lost_particles = -1
-
-                # Hide lost particles if required by element
-                _need_unhide_lost_particles = False
-                if (hasattr(pp, 'needs_hidden_lost_particles')
-                    and pp.needs_hidden_lost_particles):
-                    if not particles.lost_particles_are_hidden:
-                        _need_unhide_lost_particles = True
-                    particles.hide_lost_particles()
 
                 # Track!
                 if tt == 0 and ipp < self._element_part[ele_start]:
