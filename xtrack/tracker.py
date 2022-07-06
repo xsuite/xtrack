@@ -718,7 +718,8 @@ class Tracker:
         ele_stop=None,     # defaults to full lattice
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
-        turn_by_turn_monitor=None
+        turn_by_turn_monitor=None,
+        _resume_from_hold=False
     ):
 
         self._check_invalidated()
@@ -730,69 +731,72 @@ class Tracker:
                         "call `particles.reorganize()` first."
                     )
 
-        # Start position
-        if particles.start_tracking_at_element >= 0:
-            if ele_start != 0:
-                raise ValueError("The argument ele_start is used, but particles.start_tracking_at_element is set as well. "
-                                + "Please use only one of those methods.")
-            ele_start = particles.start_tracking_at_element
-            particles.start_tracking_at_element = -1
-        if isinstance(ele_start,str):
-            ele_start = self.line.element_names.index(ele_start)
+        if _resume_from_hold:
+            raise NotImplementedError
+        else:
+            # Start position
+            if particles.start_tracking_at_element >= 0:
+                if ele_start != 0:
+                    raise ValueError("The argument ele_start is used, but particles.start_tracking_at_element is set as well. "
+                                    + "Please use only one of those methods.")
+                ele_start = particles.start_tracking_at_element
+                particles.start_tracking_at_element = -1
+            if isinstance(ele_start,str):
+                ele_start = self.line.element_names.index(ele_start)
 
-        # ele_start can only have values of existing element id's,
-        # but also allowed: all elements+1 (to perform end-turn actions)
-        assert ele_start >= 0
-        assert ele_start < self.num_elements
+            # ele_start can only have values of existing element id's,
+            # but also allowed: all elements+1 (to perform end-turn actions)
+            assert ele_start >= 0
+            assert ele_start < self.num_elements
 
-        # Stop position
-        if num_elements is not None:
-            # We are using ele_start and num_elements
+            # Stop position
+            if num_elements is not None:
+                # We are using ele_start and num_elements
+                if ele_stop is not None:
+                    raise ValueError("Cannot use both num_elements and ele_stop!")
+                if num_turns is not None:
+                    raise ValueError("Cannot use both num_elements and num_turns!")
+                num_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
+                if ele_stop == 0:
+                    ele_stop = None
+                else:
+                    num_turns += 1
+            else:
+                # We are using ele_start, ele_stop, and num_turns
+                if num_turns is None:
+                    num_turns = 1
+                else:
+                    assert num_turns > 0
+                if isinstance(ele_stop,str):
+                    ele_stop = self.line.element_names.index(ele_stop)
+
+                # If ele_stop comes before ele_start, we need to add an additional turn to
+                # reach the required ele_stop
+                if ele_stop == 0:
+                    ele_stop = None
+
+                if ele_stop is not None and ele_stop <= ele_start:
+                    num_turns += 1
+
             if ele_stop is not None:
-                raise ValueError("Cannot use both num_elements and ele_stop!")
-            if num_turns is not None:
-                raise ValueError("Cannot use both num_elements and num_turns!")
-            num_turns, ele_stop = np.divmod(ele_start + num_elements, self.num_elements)
-            if ele_stop == 0:
-                ele_stop = None
+                assert ele_stop >= 0
+                assert ele_stop < self.num_elements
+
+            assert num_turns >= 1
+
+            assert turn_by_turn_monitor != 'ONE_TURN_EBE', (
+                "Element-by-element monitor not available in collective mode")
+
+            (flag_monitor, monitor, buffer_monitor, offset_monitor
+                ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
+
+            if particles._num_active_particles < 0:
+                _context_needs_clean_active_lost_state = True
             else:
-                num_turns += 1
-        else:
-            # We are using ele_start, ele_stop, and num_turns
-            if num_turns is None:
-                num_turns = 1
-            else:
-                assert num_turns > 0
-            if isinstance(ele_stop,str):
-                ele_stop = self.line.element_names.index(ele_stop)
+                _context_needs_clean_active_lost_state = False
 
-            # If ele_stop comes before ele_start, we need to add an additional turn to
-            # reach the required ele_stop
-            if ele_stop == 0:
-                ele_stop = None
-
-            if ele_stop is not None and ele_stop <= ele_start:
-                num_turns += 1
-
-        if ele_stop is not None:
-            assert ele_stop >= 0
-            assert ele_stop < self.num_elements
-
-        assert num_turns >= 1
-
-        assert turn_by_turn_monitor != 'ONE_TURN_EBE', (
-            "Element-by-element monitor not available in collective mode")
-
-        (flag_monitor, monitor, buffer_monitor, offset_monitor
-             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
-
-        if particles._num_active_particles < 0:
-            _context_needs_clean_active_lost_state = True
-        else:
-            _context_needs_clean_active_lost_state = False
-
-        if self.line._needs_rng and not particles._has_valid_rng_state():
-            particles._init_random_number_generator()
+            if self.line._needs_rng and not particles._has_valid_rng_state():
+                particles._init_random_number_generator()
 
         stop_tracking = False
         for tt in range(num_turns):
