@@ -13,6 +13,7 @@ from .tracker import Tracker
 from .loss_location_refinement import LossLocationRefinement
 from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
+from .pipeline import PipelineStatus
 
 from .monitors import generate_monitor_class
 from . import linear_normal_form

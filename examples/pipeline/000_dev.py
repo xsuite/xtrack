@@ -1,7 +1,5 @@
+from xtrack import PipelineStatus
 
-class PipelineStatus:
-    def __init__(self, on_hold):
-        self.on_hold = on_hold
 
 class DummyPipelinedElement:
     def __init__(self, n_hold=0):

@@ -16,6 +16,7 @@ from .twiss_from_tracker import (twiss_from_tracker,
 from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging_for_elements_of_type,
                              stop_internal_logging_for_elements_of_type)
+from .pipeline import PipelineStatus
 
 import xobjects as xo
 import xpart as xp
