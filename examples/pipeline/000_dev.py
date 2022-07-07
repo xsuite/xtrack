@@ -22,7 +22,8 @@ import xpart as xp
 tracker = xt.Tracker(
     line=xt.Line(elements=[xt.Drift(length=1),
                            DummyPipelinedElement(n_hold=3),
-                           xt.Drift(length=1)]))
+                           xt.Drift(length=1)]),
+    enable_pipeline_hold=True)
 
 
 p = xp.Particles(p0c=7e12, x=[0,0,0])

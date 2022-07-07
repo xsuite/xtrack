@@ -978,6 +978,10 @@ class Tracker:
 
                 if returned_by_track is not None:
                     if returned_by_track.on_hold:
+
+                        assert self.enable_pipeline_hold, (
+                            "Hold session not enabled for this tracker.")
+
                         session_on_hold = {
                             'particles': particles,
                             'tracker': self,
