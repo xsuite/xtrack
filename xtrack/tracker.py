@@ -4,6 +4,7 @@
 # ######################################### #
 
 from ast import operator
+from tkinter import W
 import numpy as np
 import logging
 
@@ -53,6 +54,7 @@ class Tracker:
         save_source_as=None,
         io_buffer=None,
         compile=True,
+        enable_pipeline_hold=False,
     ):
 
         if sequence is not None:
@@ -82,7 +84,8 @@ class Tracker:
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as,
                 io_buffer=io_buffer,
-                compile=compile)
+                compile=compile,
+                enable_pipeline_hold=enable_pipeline_hold)
         else:
             self._init_track_no_collective(
                 _context=_context,
@@ -99,7 +102,8 @@ class Tracker:
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as,
                 io_buffer=io_buffer,
-                compile=compile)
+                compile=compile,
+                enable_pipeline_hold=enable_pipeline_hold)
 
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
@@ -120,7 +124,8 @@ class Tracker:
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
-        compile=True
+        compile=True,
+        enable_pipeline_hold=False
     ):
 
         assert _offset is None
@@ -134,6 +139,7 @@ class Tracker:
         self.global_xy_limit = global_xy_limit
         self.local_particle_src = local_particle_src
         self.save_source_as = save_source_as
+        self._enable_pipeline_hold = enable_pipeline_hold
 
         if _buffer is None:
             if _context is None:
@@ -257,8 +263,14 @@ class Tracker:
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
-        compile=True
+        compile=True,
+        enable_pipeline_hold=False
     ):
+
+        assert not(enable_pipeline_hold), (
+            "enable_pipeline_hold is not implemented in no collective mode")
+        self.enable_pipeline_hold = False
+
         if particles_class is None:
             particles_class = xp.Particles
 
@@ -520,6 +532,18 @@ class Tracker:
     def element_refs(self):
         self._check_invalidated()
         return self.line.element_refs
+
+    @property
+    def enable_pipeline_hold(self):
+        return self._enable_pipeline_hold
+
+    @enable_pipeline_hold.setter
+    def enable_pipeline_hold(self, value):
+        if self.iscollective:
+            raise ValueError(
+                'enable_pipeline_hold is not supported for collective elements')
+        else:
+            self._enable_pipeline_hold = value
 
     def configure_radiation(self, mode=None):
 
@@ -887,6 +911,15 @@ class Tracker:
                     )
 
         if _session_to_resume is not None:
+            if isinstance(_session_to_resume, PipelineStatus):
+                _session_to_resume = _session_to_resume.data
+
+            assert not(_session_to_resume['resumed']), (
+                "This session hase been already resumed")
+
+            assert _session_to_resume['tracker'] is self, (
+                "This session was not created by this tracker")
+
             ele_start = _session_to_resume['ele_start']
             ele_stop = _session_to_resume['ele_stop']
             num_turns = _session_to_resume['num_turns']
@@ -947,6 +980,7 @@ class Tracker:
                     if returned_by_track.on_hold:
                         session_on_hold = {
                             'particles': particles,
+                            'tracker': self,
                             'ele_start': ele_start,
                             'ele_stop': ele_stop,
                             'num_elements': num_elements,
@@ -961,8 +995,9 @@ class Tracker:
                             'moveback_to_offset': moveback_to_offset,
                             'ipp': ipp,
                             'tt': tt,
+                            'resumed': False
                         }
-                    return session_on_hold
+                    return PipelineStatus(on_hold=True, data=session_on_hold)
 
                 if skip:
                     continue
