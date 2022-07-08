@@ -196,3 +196,23 @@ class MetaBeamElement(type):
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
 
+    #TODO requires explicit call to super in child classes
+    def __init__(self,pipeline_number = 0,pipeline_max_size=1000,pipeline_max_particles_per_rank=100,communicator=None):
+        self.pipeline_number = pipeline_number
+        self.pipeline_max_size =pipeline_max_size
+        self.pipeline_max_particles_per_rank = pipeline_max_particles_per_rank
+
+        #self._max_tag = self._comm.Get_attr(MPI.TAG_UB) # 8388607 with OpenMPI on HPC photon
+
+        self._pending_requests = {}
+        self._last_requests_turn = {}
+
+        #TODO either MPI or fake MPI
+        self._communicator = communicator
+
+    def get_pipeline_message_tag(self,sender,reciever):
+        tag = self.pipeline_number+self.pipeline_max_size*sender.number+self.pipeline_max_size*self.pipeline_max_particles_per_rank*reciever.number
+        #if tag > self._max_tag:
+        #    print(f'PyPLINEDElement WARNING {self.name}: MPI message tag {tag} is larger than max ({self._max_tag})')
+        return tag
+
