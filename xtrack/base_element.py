@@ -5,6 +5,7 @@
 
 from pathlib import Path
 import numpy as np
+import uuid
 
 import xobjects as xo
 import xpart as xp
@@ -196,24 +197,11 @@ class MetaBeamElement(type):
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
 
-    def init_pipeline(self,pipeline_number = 0,pipeline_max_size=1000,pipeline_max_particles_per_rank=100,communicator=None,partners=[]):
-        self.pipeline_number = pipeline_number
-        self.pipeline_max_size =pipeline_max_size
-        self.pipeline_max_particles_per_rank = pipeline_max_particles_per_rank
-
-        #self._max_tag = self._comm.Get_attr(MPI.TAG_UB) # 8388607 with OpenMPI on HPC photon
-
+    def init_pipeline(self,pipeline_manager,name,partners_names=[]):
+        self._pipeline_manager = pipeline_manager
+        self.name = name
         self._pending_requests = {}
         self._last_requests_turn = {}
 
-        #TODO either MPI or fake MPI
-        self._communicator = communicator
-
-        self.partners = partners
-
-    def get_pipeline_message_tag(self,sender,reciever):
-        tag = self.pipeline_number+self.pipeline_max_size*sender.number+self.pipeline_max_size*self.pipeline_max_particles_per_rank*reciever.number
-        #if tag > self._max_tag:
-        #    print(f'PyPLINEDElement WARNING {self.name}: MPI message tag {tag} is larger than max ({self._max_tag})')
-        return tag
+        self.partners_names = partners_names
 
