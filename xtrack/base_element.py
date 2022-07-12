@@ -200,8 +200,5 @@ class BeamElement(metaclass=MetaBeamElement):
     def init_pipeline(self,pipeline_manager,name,partners_names=[]):
         self._pipeline_manager = pipeline_manager
         self.name = name
-        self._pending_requests = {}
-        self._last_requests_turn = {}
-
         self.partners_names = partners_names
 
