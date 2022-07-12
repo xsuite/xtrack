@@ -196,8 +196,7 @@ class MetaBeamElement(type):
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
 
-    #TODO requires explicit call to super in child classes
-    def __init__(self,pipeline_number = 0,pipeline_max_size=1000,pipeline_max_particles_per_rank=100,communicator=None):
+    def init_pipeline(self,pipeline_number = 0,pipeline_max_size=1000,pipeline_max_particles_per_rank=100,communicator=None,partners=[]):
         self.pipeline_number = pipeline_number
         self.pipeline_max_size =pipeline_max_size
         self.pipeline_max_particles_per_rank = pipeline_max_particles_per_rank
@@ -209,6 +208,8 @@ class BeamElement(metaclass=MetaBeamElement):
 
         #TODO either MPI or fake MPI
         self._communicator = communicator
+
+        self.partners = partners
 
     def get_pipeline_message_tag(self,sender,reciever):
         tag = self.pipeline_number+self.pipeline_max_size*sender.number+self.pipeline_max_size*self.pipeline_max_particles_per_rank*reciever.number
