@@ -137,21 +137,6 @@ def dress_element(XoElementData):
 
         sources = _handle_per_particle_blocks(sources)
 
-        if hasattr(self.XoStruct, 'per_particle_kernels'):
-            for kk in self.XoStruct.per_particle_kernels:
-                DressedElement.track_kernel_source += ('\n' +
-                    _generate_per_particle_kernel_from_local_particle_function(
-                        element_name=name, kernel_name=kk['kernel_name'],
-                        local_particle_function_name=kk['local_particle_function_name']))
-
-            DressedElement.track_kernel_description.update(
-                {kk['kernel_name']:
-                    xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
-                    xo.Arg(xp.Particles.XoStruct, name='particles'),
-                    xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                    xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
-        )
-
         context.add_kernels(sources=sources,
                 kernels=self.track_kernel_description,
                 save_source_as=save_source_as)
@@ -217,6 +202,23 @@ class MetaBeamElement(type):
                 generate_get_record(ele_classname=XoStruct_name,
                     record_classname=data['_internal_record_class'].XoStruct.__name__))
 
+        if 'extra_sources' in data.keys():
+            new_class.XoStruct.extra_sources.extend(data['extra_sources'])
+
+        if 'per_particle_kernels' in data.keys():
+            for kk in data['per_particle_kernels']:
+                new_class.track_kernel_source += ('\n' +
+                    _generate_per_particle_kernel_from_local_particle_function(
+                        element_name=name, kernel_name=kk['kernel_name'],
+                        local_particle_function_name=kk['local_particle_function_name']))
+
+            new_class.track_kernel_description.update(
+                {kk['kernel_name']:
+                    xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
+                    xo.Arg(xp.Particles.XoStruct, name='particles'),
+                    xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                    xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
+        )
         return new_class
 
 class BeamElement(metaclass=MetaBeamElement):

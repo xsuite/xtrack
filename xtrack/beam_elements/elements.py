@@ -26,12 +26,12 @@ class ReferenceEnergyIncrease(BeamElement):
     _xofields = {
         'Delta_p0c': xo.Float64}
 
+    extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(Delta_p0c=-self.Delta_p0c,
                               _context=_context, _buffer=_buffer, _offset=_offset)
-
-ReferenceEnergyIncrease.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
 
 
 class Drift(BeamElement):
@@ -45,12 +45,13 @@ class Drift(BeamElement):
     isthick=True
     behaves_like_drift=True
 
+    extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(length=-self.length,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
-Drift.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/drift.h')]
 
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity. Parameters:
@@ -66,16 +67,16 @@ class Cavity(BeamElement):
         'lag': xo.Float64,
         }
 
+    extra_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
                               voltage=-self.voltage,
                               frequency=self.frequency,
                               lag=self.lag,
                               _context=_context, _buffer=_buffer, _offset=_offset)
-
-Cavity.XoStruct.extra_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
 
 
 class XYShift(BeamElement):
@@ -90,16 +91,14 @@ class XYShift(BeamElement):
         'dy': xo.Float64,
         }
 
+    extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
                               dx=-self.dx, dy=-self.dy,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
-XYShift.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
-
-
-## ELECTRON LENS
 
 class Elens(BeamElement):
 # if array is needed we do it like this
@@ -113,6 +112,9 @@ class Elens(BeamElement):
                'residual_kick_x': xo.Float64,
                'residual_kick_y': xo.Float64
               }
+
+    extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
     def __init__(self,  inner_radius = 1.,
                         outer_radius = 1.,
@@ -144,11 +146,6 @@ class Elens(BeamElement):
                               voltage=self.voltage,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
-Elens.XoStruct.extra_sources = [
-    _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
-
-
-## Wire Element
 
 class Wire(BeamElement):
 
@@ -159,6 +156,11 @@ class Wire(BeamElement):
                'xma'    : xo.Float64,
                'yma'    : xo.Float64,
               }
+
+    extra_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wire.h'),
+    ]
 
     def __init__(self,  L_phy   = 0,
                         L_int   = 0,
@@ -186,12 +188,6 @@ class Wire(BeamElement):
                               yma     = self.yma,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
-Wire.XoStruct.extra_sources = [
-     _pkg_root.joinpath('headers/constants.h'),
-     _pkg_root.joinpath('beam_elements/elements_src/wire.h'),
-]
-
-
 
 class SRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the s axis. Parameters:
@@ -204,6 +200,9 @@ class SRotation(BeamElement):
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
         }
+
+    extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
     _store_in_to_dict = ['angle']
 
@@ -221,9 +220,6 @@ class SRotation(BeamElement):
         return self.__class__(
                               angle=-self.angle,
                               _context=_context, _buffer=_buffer, _offset=_offset)
-
-SRotation.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
 
 class SynchrotronRadiationRecord(xo.DressedStruct):
@@ -259,6 +255,13 @@ class Multipole(BeamElement):
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         }
+
+    extra_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
 
     _internal_record_class = SynchrotronRadiationRecord
 
@@ -313,13 +316,6 @@ class Multipole(BeamElement):
                               ksl=-ctx2np(self.ksl), # TODO: maybe it can be made more efficient
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
-Multipole.XoStruct.extra_sources.extend([
-    xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-    xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-    _pkg_root.joinpath('headers/constants.h'),
-    _pkg_root.joinpath('headers/synrad_spectrum.h'),
-    _pkg_root.joinpath('beam_elements/elements_src/multipole.h')])
-
 
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
@@ -352,6 +348,10 @@ class RFMultipole(BeamElement):
         'pn': xo.Float64[:],
         'ps': xo.Float64[:],
     }
+
+    extra_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
 
     def __init__(
         self,
@@ -429,11 +429,6 @@ class RFMultipole(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-RFMultipole.XoStruct.extra_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
-
-
 class DipoleEdge(BeamElement):
     '''Beam element modeling a dipole edge. Parameters:
 
@@ -452,6 +447,9 @@ class DipoleEdge(BeamElement):
             'e1': xo.Float64,
             'fint': xo.Float64,
             }
+
+    extra_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
 
     _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
     _skip_in_to_dict = ['r21', 'r43']
@@ -504,10 +502,6 @@ class DipoleEdge(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-DipoleEdge.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
-
-
 class LinearTransferMatrix(BeamElement):
     _xofields={
         'no_detuning': xo.Int64,
@@ -555,6 +549,12 @@ class LinearTransferMatrix(BeamElement):
         'gauss_noise_ampl_y':xo.Float64,
         'gauss_noise_ampl_s':xo.Float64,
         }
+
+    extra_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
     def __init__(self, Q_x=0, Q_y=0,
                      beta_x_0=1.0, beta_x_1=1.0, beta_y_0=1.0, beta_y_1=1.0,
@@ -678,11 +678,7 @@ class LinearTransferMatrix(BeamElement):
     def beta_y_1(self):
         return self.beta_prod_y*self.beta_ratio_y
 
-LinearTransferMatrix.XoStruct.extra_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
+
 
 class FirstOrderTaylorMap(BeamElement):
     isthick = True
@@ -692,6 +688,13 @@ class FirstOrderTaylorMap(BeamElement):
         'length': xo.Float64,
         'm0': xo.Float64[6],
         'm1': xo.Float64[6,6]}
+
+    extra_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
 
     _internal_record_class = SynchrotronRadiationRecord # not functional,
     # included for compatibility with Multipole
@@ -715,9 +718,4 @@ class FirstOrderTaylorMap(BeamElement):
                 raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
         super().__init__(**nargs)
 
-FirstOrderTaylorMap.XoStruct.extra_sources.extend([
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')])
+
