@@ -3,8 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from ast import operator
-from tkinter import W
 import numpy as np
 import logging
 
