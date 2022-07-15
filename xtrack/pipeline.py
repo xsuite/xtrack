@@ -54,17 +54,17 @@ class PipelineManager:
             return False
         return True
 
-    def send_message(self,send_buffer,element_name,sender_name,reciever_name,turn):
-        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=0)
+    def send_message(self,send_buffer,element_name,sender_name,reciever_name,turn,internal_tag=0):
+        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
         self._last_request_turn[tag] = turn
         self._pending_requests[tag] = self._communicator.Issend(send_buffer,dest=self.get_particles_rank(reciever_name),tag=tag)
 
     def is_ready_to_recieve(self,element_name,sender_name,reciever_name,internal_tag=0):
-        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name)
+        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
         return self._communicator.Iprobe(source=self.get_particles_rank(sender_name), tag=tag)
 
     def recieve_message(self,recieve_buffer,element_name,sender_name,reciever_name,internal_tag=0):
-        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name)
+        tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
         self._communicator.Recv(recieve_buffer,source=self.get_particles_rank(sender_name),tag=tag)
 
 class PipelineBranch:
