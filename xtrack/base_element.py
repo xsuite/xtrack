@@ -62,7 +62,13 @@ def _handle_per_particle_blocks(sources):
 
 def _generate_per_particle_kernel_from_local_particle_function(
                                                 element_name, kernel_name,
-                                                local_particle_function_name):
+                                                local_particle_function_name,
+                                                additional_args=[]):
+
+    if len(additional_args) > 0:
+        add_to_signature = ", ".join(
+            f"{arg.get_c_type()} {arg.name}" for arg in additional_args) + ", "
+        add_to_call = ", " + ", ".join(f"{arg.name}" for arg in additional_args)
 
     source = ('''
             /*gpukern*/
@@ -71,6 +77,9 @@ def _generate_per_particle_kernel_from_local_particle_function(
             f'               {element_name}Data el,\n'
 '''
                              ParticlesData particles,
+'''
+            f'{(add_to_signature if len(additional_args) > 0 else "")}'
+'''
                              int64_t flag_increment_at_element,
                 /*gpuglmem*/ int8_t* io_buffer){
             LocalParticle lpart;
@@ -85,7 +94,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
                 Particles_to_LocalParticle(particles, &lpart, part_id);
                 if (check_is_active(&lpart)>0){
 '''
-            f'      {local_particle_function_name}(el, &lpart);\n'
+            f'      {local_particle_function_name}(el, &lpart{(add_to_call if len(additional_args) > 0 else "")});\n'
 '''
                 }
                 if (check_is_active(&lpart)>0 && flag_increment_at_element){
@@ -210,12 +219,14 @@ class MetaBeamElement(type):
                 new_class.track_kernel_source += ('\n' +
                     _generate_per_particle_kernel_from_local_particle_function(
                         element_name=name, kernel_name=nn,
-                        local_particle_function_name=kk.c_name))
+                        local_particle_function_name=kk.c_name,
+                        additional_args=kk.args))
 
             new_class.track_kernel_description.update(
                 {nn:
                     xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
-                    xo.Arg(xp.Particles.XoStruct, name='particles'),
+                    xo.Arg(xp.Particles.XoStruct, name='particles')]
+                    + kk.args + [
                     xo.Arg(xo.Int64, name='flag_increment_at_element'),
                     xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
         )
