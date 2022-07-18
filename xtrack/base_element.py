@@ -206,14 +206,14 @@ class MetaBeamElement(type):
             new_class.XoStruct.extra_sources.extend(data['extra_sources'])
 
         if 'per_particle_kernels' in data.keys():
-            for kk in data['per_particle_kernels']:
+            for nn, kk in data['per_particle_kernels'].items():
                 new_class.track_kernel_source += ('\n' +
                     _generate_per_particle_kernel_from_local_particle_function(
-                        element_name=name, kernel_name=kk['kernel_name'],
-                        local_particle_function_name=kk['local_particle_function_name']))
+                        element_name=name, kernel_name=nn,
+                        local_particle_function_name=kk.c_name))
 
             new_class.track_kernel_description.update(
-                {kk['kernel_name']:
+                {nn:
                     xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
                     xo.Arg(xp.Particles.XoStruct, name='particles'),
                     xo.Arg(xo.Int64, name='flag_increment_at_element'),
