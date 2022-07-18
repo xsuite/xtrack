@@ -169,6 +169,7 @@ def dress_element(XoElementData):
                            flag_increment_at_element=increment_at_element,
                            io_buffer=io_buffer_arr)
 
+    # Attach methods to the class
     DressedElement.compile_track_kernel = compile_track_kernel
     DressedElement.track = track
 
@@ -229,9 +230,45 @@ class MetaBeamElement(type):
                     + kk.args + [
                     xo.Arg(xo.Int64, name='flag_increment_at_element'),
                     xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
-        )
+            )
+            setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
         return new_class
 
 class BeamElement(metaclass=MetaBeamElement):
     _xofields={}
 
+
+class PerParticleMethod:
+
+    def __init__(self, kernel, element):
+        self.kernel = kernel
+        self.element = element
+
+    def __call__(self, particles, increment_at_element=False, **kwargs):
+
+        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+            io_buffer_arr = self.io_buffer.buffer
+        else:
+            context = self.kernel.context
+            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
+
+        self.kernel.description.n_threads = particles._capacity
+        self.kernel(el=self.element._xobject, particles=particles,
+                           flag_increment_at_element=increment_at_element,
+                           io_buffer=io_buffer_arr,
+                           **kwargs)
+
+class PerParticleMethodDescriptor:
+
+    def __init__(self, kernel_name):
+        self.kernel_name = kernel_name
+
+    def __get__(self, instance, owner):
+        context = instance._buffer.context
+        if not hasattr(instance, '_track_kernel'):
+            if instance._track_kernel_name not in context.kernels.keys():
+                instance.compile_track_kernel()
+            instance._track_kernel = context.kernels[instance._track_kernel_name]
+
+        return PerParticleMethod(kernel=context.kernels[self.kernel_name],
+                                 element=instance)
