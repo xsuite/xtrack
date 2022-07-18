@@ -222,16 +222,17 @@ class MetaBeamElement(type):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
+                setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
 
-            new_class.track_kernel_description.update(
-                {nn:
-                    xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
-                    xo.Arg(xp.Particles.XoStruct, name='particles')]
-                    + kk.args + [
-                    xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                    xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
-            )
-            setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
+                new_class.track_kernel_description.update(
+                    {nn:
+                        xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
+                        xo.Arg(xp.Particles.XoStruct, name='particles')]
+                        + kk.args + [
+                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
+                )
+
         return new_class
 
 class BeamElement(metaclass=MetaBeamElement):
