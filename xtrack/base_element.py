@@ -54,26 +54,33 @@ def _handle_per_particle_blocks(sources):
                 if '//end_per_particle_block' in ll:
                     lines[ill] = end_part_part_block
 
-            # TODO: this is very dirty, just for check!!!!! 
+            # TODO: this is very dirty, just for check!!!!!
             out.append('\n'.join(lines))
         else:
             out.append(ss)
 
     return out
 
-def dress_element(XoElementData):
+def _generate_per_particle_kernel_from_local_particle_function(
+                                                element_name, kernel_name,
+                                                local_particle_function_name,
+                                                additional_args=[]):
 
-    DressedElement = xo.dress(XoElementData)
-    assert XoElementData.__name__.endswith('Data')
-    name = XoElementData.__name__[:-4]
+    if len(additional_args) > 0:
+        add_to_signature = ", ".join(
+            f"{arg.get_c_type()} {arg.name}" for arg in additional_args) + ", "
+        add_to_call = ", " + ", ".join(f"{arg.name}" for arg in additional_args)
 
-    DressedElement.track_kernel_source = ('''
+    source = ('''
             /*gpukern*/
             '''
-            f'void {name}_track_particles(\n'
-            f'               {name}Data el,\n'
+            f'void {kernel_name}(\n'
+            f'               {element_name}Data el,\n'
 '''
                              ParticlesData particles,
+'''
+            f'{(add_to_signature if len(additional_args) > 0 else "")}'
+'''
                              int64_t flag_increment_at_element,
                 /*gpuglmem*/ int8_t* io_buffer){
             LocalParticle lpart;
@@ -88,7 +95,7 @@ def dress_element(XoElementData):
                 Particles_to_LocalParticle(particles, &lpart, part_id);
                 if (check_is_active(&lpart)>0){
 '''
-            f'      {name}_track_local_particle(el, &lpart);\n'
+            f'      {local_particle_function_name}(el, &lpart{(add_to_call if len(additional_args) > 0 else "")});\n'
 '''
                 }
                 if (check_is_active(&lpart)>0 && flag_increment_at_element){
@@ -97,12 +104,25 @@ def dress_element(XoElementData):
             }
         }
 ''')
+    return source
+
+def dress_element(XoElementData):
+
+    DressedElement = xo.dress(XoElementData)
+    assert XoElementData.__name__.endswith('Data')
+    name = XoElementData.__name__[:-4]
+
+    DressedElement.track_kernel_source = _generate_per_particle_kernel_from_local_particle_function(
+        element_name=name, kernel_name=name+'_track_particles',
+        local_particle_function_name=name+'_track_local_particle')
+
     DressedElement._track_kernel_name = f'{name}_track_particles'
     DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
                         xo.Arg(xp.Particles.XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
+
     DressedElement.iscollective = False
 
     def compile_track_kernel(self, save_source_as=None):
@@ -150,6 +170,7 @@ def dress_element(XoElementData):
                            flag_increment_at_element=increment_at_element,
                            io_buffer=io_buffer_arr)
 
+    # Attach methods to the class
     DressedElement.compile_track_kernel = compile_track_kernel
     DressedElement.track = track
 
@@ -192,6 +213,27 @@ class MetaBeamElement(type):
                 generate_get_record(ele_classname=XoStruct_name,
                     record_classname=data['_internal_record_class'].XoStruct.__name__))
 
+        if 'extra_sources' in data.keys():
+            new_class.XoStruct.extra_sources.extend(data['extra_sources'])
+
+        if 'per_particle_kernels' in data.keys():
+            for nn, kk in data['per_particle_kernels'].items():
+                new_class.track_kernel_source += ('\n' +
+                    _generate_per_particle_kernel_from_local_particle_function(
+                        element_name=name, kernel_name=nn,
+                        local_particle_function_name=kk.c_name,
+                        additional_args=kk.args))
+                setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
+
+                new_class.track_kernel_description.update(
+                    {nn:
+                        xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
+                        xo.Arg(xp.Particles.XoStruct, name='particles')]
+                        + kk.args + [
+                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
+                )
+
         return new_class
 
 class BeamElement(metaclass=MetaBeamElement):
@@ -202,3 +244,38 @@ class BeamElement(metaclass=MetaBeamElement):
         self.name = name
         self.partners_names = partners_names
 
+
+class PerParticleMethod:
+
+    def __init__(self, kernel, element):
+        self.kernel = kernel
+        self.element = element
+
+    def __call__(self, particles, increment_at_element=False, **kwargs):
+
+        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+            io_buffer_arr = self.io_buffer.buffer
+        else:
+            context = self.kernel.context
+            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
+
+        self.kernel.description.n_threads = particles._capacity
+        self.kernel(el=self.element._xobject, particles=particles,
+                           flag_increment_at_element=increment_at_element,
+                           io_buffer=io_buffer_arr,
+                           **kwargs)
+
+class PerParticleMethodDescriptor:
+
+    def __init__(self, kernel_name):
+        self.kernel_name = kernel_name
+
+    def __get__(self, instance, owner):
+        context = instance._buffer.context
+        if not hasattr(instance, '_track_kernel'):
+            if instance._track_kernel_name not in context.kernels.keys():
+                instance.compile_track_kernel()
+            instance._track_kernel = context.kernels[instance._track_kernel_name]
+
+        return PerParticleMethod(kernel=context.kernels[self.kernel_name],
+                                 element=instance)
