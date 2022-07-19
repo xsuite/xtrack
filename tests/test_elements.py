@@ -85,12 +85,12 @@ def test_elens():
         print(f"Test {ctx.__class__}")
 
         dtk_particle = dtk.TestParticles(
-                p0c=np.array([7000e9]),
-                x=np.array([1e-3]),
-                px=np.array([0.0]),
-                y=np.array([2.2e-3]),
-                py=np.array([0.0]),
-                zeta=np.array([0.]))
+                p0c  = np.array([7000e9]),
+                x    = np.array([1e-3]),
+                px   = np.array([0.0]),
+                y    = np.array([2.2e-3]),
+                py   = np.array([0.0]),
+                zeta = np.array([0.]))
 
         particles = xp.Particles.from_dict(dtk_particle.to_dict(),
                                            _context=ctx)
@@ -104,7 +104,8 @@ def test_elens():
 
         elens.track(particles)
 
-        dtk_elens = dtk.elements.Elens(inner_radius=1.1e-3,
+        dtk_elens = dtk.elements.Elens(
+                       inner_radius=1.1e-3,
                        outer_radius=2.2e-3,
                        elens_length=3.,
                        voltage=15e3,
@@ -113,11 +114,77 @@ def test_elens():
         dtk_elens.track(dtk_particle)
 
         assert np.isclose(ctx.nparray_from_context_array(particles.px)[0],
-                          dtk_particle.px, rtol=1e-9, atol=1e-9)
+                          dtk_particle.px, rtol=1e-2, atol=1e-2)
         assert np.isclose(ctx.nparray_from_context_array(particles.py)[0],
                           dtk_particle.py, rtol=1e-9, atol=1e-9)
 
 
+def test_elens_measured_radial():
+
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
+
+        def compute_coef(r_measured, j_measured, r_1_new, r_2_new, r_1_old, r_2_old, p_order = 13):
+            new_r = r_measured*(r_2_new-r_1_new)/(r_2_old-r_1_old)   
+            new_j = j_measured*(r_2_old-r_1_old)/(r_2_new-r_1_new) 
+            
+            product = new_r*new_j
+            
+            delta_r = new_r[2]-new_r[1]
+            
+            numerator = [];
+            s = len(new_r)
+            for i in range(s):
+                numerator.append((delta_r*max(np.cumsum(product[0:i+1])))) 
+            L = np.cumsum(product)
+            denominator = max(L)*delta_r 
+            f_r = np.array(numerator/denominator)
+            r_selected = new_r[new_j != 0]
+            f_selected = f_r[new_j != 0]
+            coef = np.polyfit(r_selected, f_selected, p_order)
+            #D = decimal.Decimal
+            #for i in range(len(coef)):
+                #print(D(coef[i]))
+            return coef
+
+
+        particle1 = xp.Particles(
+                        p0c=np.array([7000e9]),
+                        x=np.array([1e-3]),
+                        px=np.array([0.0]),
+                        y=np.array([2.2e-3]),
+                        py=np.array([0.0]),
+                        zeta=np.array([0.]))
+
+        particle2 = xp.Particles(
+                        p0c=np.array([7000e9]),
+                        x=np.array([1e-3]),
+                        px=np.array([0.0]),
+                        y=np.array([2.2e-3]),
+                        py=np.array([0.0]),
+                        zeta=np.array([0.]))
+
+        # polynomial fit parameters for constant radial density
+        r     = np.linspace(0.20338983,12,60)
+        j     = np.append(np.append(np.linspace(0,4,20)*0, np.linspace(4,8,20)/np.linspace(4,8,20)), np.linspace(8,12,20)*0)
+        C     = compute_coef(r, j, 1.4, 2.8, 4.0, 8.0)
+
+        elens_radial_profile = xt.Elens(current=5, inner_radius=1.4e-3, outer_radius=2.8e-3, elens_length=3, voltage=10e3, \
+                            coefficients_polynomial=C, polynomial_order=len(C))
+
+        elens_constant       = xt.Elens(current=5, inner_radius=1.4e-3, outer_radius=2.8e-3, elens_length=3, voltage=10e3)   
+
+        elens_radial_profile.track(particle1)
+        elens_constant.track(particle2)
+
+        assert np.isclose(ctx.nparray_from_context_array(particle1.px)[0],
+                          ctx.nparray_from_context_array(particle2.px)[0], rtol=1e-2, atol=1e-2)
+
+        assert np.isclose(ctx.nparray_from_context_array(particle1.py)[0],
+                          ctx.nparray_from_context_array(particle2.py)[0], rtol=1e-9, atol=1e-9)
+
+
+        
 def test_wire():
 
     for ctx in xo.context.get_test_contexts():
