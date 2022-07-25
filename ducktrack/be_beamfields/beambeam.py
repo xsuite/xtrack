@@ -47,6 +47,29 @@ class BeamBeam4D(Element):
         ("enabled", "", "Switch for closed orbit search", True),
     ]
 
+    @classmethod
+    def from_dict(cls, dct):
+        if 'other_beam_Sigma_11' in dct.keys():
+            # Comes from xfields
+            assert dct['other_beam_Sigma_13'] == 0
+            assert dct['ref_shift_x'] == 0
+            assert dct['ref_shift_y'] == 0
+
+            kwargs = {
+            "charge": dct["q0_other_beam"],
+            "sigma_x": np.sqrt(dct["other_beam_Sigma_11"]),
+            "sigma_y": np.sqrt(dct["other_beam_Sigma_33"]),
+            "beta_r": dct["beta0_other_beam"],
+            "x_bb": dct["other_beam_shift_x"],
+            "y_bb": dct["other_beam_shift_y"],
+            "d_px": dct["post_subtract_x"],
+            "d_py": dct['post_subtract_y'],
+            }
+        else:
+            kwargs = dct
+
+        return cls(**kwargs)
+
     def track(self, p):
         if self.enabled:
             charge = p.charge_ratio * p.q0
