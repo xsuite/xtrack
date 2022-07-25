@@ -47,6 +47,29 @@ class BeamBeam4D(Element):
         ("enabled", "", "Switch for closed orbit search", True),
     ]
 
+    @classmethod
+    def from_dict(cls, dct):
+        if 'other_beam_Sigma_11' in dct.keys():
+            # Comes from xfields
+            assert dct['other_beam_Sigma_13'] == 0
+            assert dct['ref_shift_x'] == 0
+            assert dct['ref_shift_y'] == 0
+
+            kwargs = {
+            "charge": dct["q0_other_beam"],
+            "sigma_x": np.sqrt(dct["other_beam_Sigma_11"]),
+            "sigma_y": np.sqrt(dct["other_beam_Sigma_33"]),
+            "beta_r": dct["beta0_other_beam"],
+            "x_bb": dct["other_beam_shift_x"],
+            "y_bb": dct["other_beam_shift_y"],
+            "d_px": dct["post_subtract_px"],
+            "d_py": dct['post_subtract_py'],
+            }
+        else:
+            kwargs = dct
+
+        return cls(**kwargs)
+
     def track(self, p):
         if self.enabled:
             charge = p.charge_ratio * p.q0
@@ -237,28 +260,28 @@ class BeamBeam6D(Element):
                     py_st=0*x_st,
                     sigma_st=zeta_st,
                     delta_st=0*x_st,
-                    sphi=dct['sin_phi'],
-                    cphi=dct['cos_phi'],
-                    tphi=dct['tan_phi'],
-                    salpha=dct['sin_alpha'],
-                    calpha=dct['cos_alpha'])
+                    sphi=dct['_sin_phi'],
+                    cphi=dct['_cos_phi'],
+                    tphi=dct['_tan_phi'],
+                    salpha=dct['_sin_alpha'],
+                    calpha=dct['_cos_alpha'])
             kwargs = {
-                'phi': np.angle(dct['cos_phi'] + 1j * dct['sin_phi']),
-                'alpha': np.angle(dct['cos_alpha'] + 1j * dct['sin_alpha']),
+                'phi': np.angle(dct['_cos_phi'] + 1j * dct['_sin_phi']),
+                'alpha': np.angle(dct['_cos_alpha'] + 1j * dct['_sin_alpha']),
                 'x_bb_co': dct['other_beam_shift_x'],
                 'y_bb_co': dct['other_beam_shift_y'],
                 'charge_slices': np.array(dct['slices_other_beam_num_particles']),
                 'zeta_slices': z_slices,
                 'sigma_11': dct['slices_other_beam_Sigma_11_star'][0],
-                'sigma_12': dct['slices_other_beam_Sigma_12_star'][0]*dct['cos_phi'],
+                'sigma_12': dct['slices_other_beam_Sigma_12_star'][0]*dct['_cos_phi'],
                 'sigma_13': dct['slices_other_beam_Sigma_13_star'][0],
-                'sigma_14': dct['slices_other_beam_Sigma_14_star'][0]*dct['cos_phi'],
-                'sigma_22': dct['slices_other_beam_Sigma_22_star'][0]*dct['cos_phi']*dct['cos_phi'],
-                'sigma_23': dct['slices_other_beam_Sigma_23_star'][0]*dct['cos_phi'],
-                'sigma_24': dct['slices_other_beam_Sigma_24_star'][0]*dct['cos_phi']*dct['cos_phi'],
+                'sigma_14': dct['slices_other_beam_Sigma_14_star'][0]*dct['_cos_phi'],
+                'sigma_22': dct['slices_other_beam_Sigma_22_star'][0]*dct['_cos_phi']*dct['_cos_phi'],
+                'sigma_23': dct['slices_other_beam_Sigma_23_star'][0]*dct['_cos_phi'],
+                'sigma_24': dct['slices_other_beam_Sigma_24_star'][0]*dct['_cos_phi']*dct['_cos_phi'],
                 'sigma_33': dct['slices_other_beam_Sigma_33_star'][0],
-                'sigma_34': dct['slices_other_beam_Sigma_34_star'][0]*dct['cos_phi'],
-                'sigma_44': dct['slices_other_beam_Sigma_44_star'][0]*dct['cos_phi']*dct['cos_phi'],
+                'sigma_34': dct['slices_other_beam_Sigma_34_star'][0]*dct['_cos_phi'],
+                'sigma_44': dct['slices_other_beam_Sigma_44_star'][0]*dct['_cos_phi']*dct['_cos_phi'],
                 'x_co': dct['ref_shift_x'],
                 'px_co': dct['ref_shift_px'],
                 'y_co': dct['ref_shift_y'],
