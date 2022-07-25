@@ -24,10 +24,10 @@ fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.js
 rtol_10turns = 1e-9; atol_10turns=4e-11
 test_backtracker=True
 
-fname_line_particles = test_data_folder.joinpath(
-                                './lhc_with_bb/line_and_particle.json')
-rtol_10turns = 1e-9; atol_10turns=2e-11
-test_backtracker = False
+#fname_line_particles = test_data_folder.joinpath(
+#                                './lhc_with_bb/line_and_particle.json')
+#rtol_10turns = 1e-9; atol_10turns=2e-11
+#test_backtracker = False
 
 fname_line_particles = test_data_folder.joinpath(
                          './hllhc_14/line_and_particle.json')
@@ -146,6 +146,7 @@ if test_backtracker:
 ##############
 print('Check element-by-element against ducktrack...')
 dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
+particles = xp.Particles(_context=context, **input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 diffs = []
@@ -210,11 +211,11 @@ if not problem_found:
 import matplotlib.pyplot as plt
 plt.close('all')
 fig = plt.figure(1, figsize=(6.4*1.5, 4.8*1.3))
-for ii, (vv, uu) in enumerate(
+for ii_plt, (vv, uu) in enumerate(
         zip(['x', 'px', 'y', 'py', r'$\zeta$', r'$\delta$'],
             ['[m]', '[-]', '[m]', '[-]', '[m]', '[-]'])):
-    ax = fig.add_subplot(3, 2, ii+1)
-    ax.plot(s_coord, diffs[:, ii])
+    ax = fig.add_subplot(3, 2, ii_plt+1)
+    ax.plot(s_coord, diffs[:, ii_plt])
     ax.set_ylabel('Difference on '+ vv + ' ' + uu)
     ax.set_xlabel('s [m]')
 fig.subplots_adjust(hspace=.48)

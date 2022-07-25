@@ -56,7 +56,7 @@ class BeamBeam4D(Element):
             assert dct['ref_shift_y'] == 0
 
             kwargs = {
-            "charge": dct["q0_other_beam"],
+            "charge": dct["q0_other_beam"]*dct['other_beam_num_particles'],
             "sigma_x": np.sqrt(dct["other_beam_Sigma_11"]),
             "sigma_y": np.sqrt(dct["other_beam_Sigma_33"]),
             "beta_r": dct["beta0_other_beam"],
