@@ -112,7 +112,7 @@ for vv in vars_to_check:
     passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns, atol=atol_10turns)
 
     if not passed:
-        print(f'Not passend on var {vv}!\n'
+        print(f'Not passed on var {vv}!\n'
               f'    dtk:   {dtk_value: .7e}\n'
               f'    xtrack: {xt_value: .7e}\n')
         raise ValueError
