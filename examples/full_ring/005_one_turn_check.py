@@ -146,15 +146,13 @@ if test_backtracker:
 ##############
 print('Check element-by-element against ducktrack...')
 dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
-particles = xp.Particles(_context=context, **input_data['particle'])
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
 problem_found = False
 diffs = []
 s_coord = []
 for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names)):
-    vars_before = {vv :getattr(dtk_part, vv)[0] for vv in vars_to_check}
-    with particles._bypass_linked_vars():
-        particles.set_particle(ip_check, **dtk_part.to_dict())
+    vars_before = {vv: getattr(dtk_part, vv)[0] for vv in vars_to_check}
+    particles = xp.Particles.from_dict(dtk_part.to_dict(), _context=context)
 
     tracker.track(particles, ele_start=ii, num_elements=1)
 
