@@ -244,6 +244,15 @@ class BeamElement(metaclass=MetaBeamElement):
         self.name = name
         self.partners_names = partners_names
 
+    def _np2ctx(self, arr):
+        ctx = self._buffer.context
+        if isinstance(arr, ctx.nplike_array_type):
+            return arr
+        elif isinstance(arr, np.ndarray):
+            return ctx.nparray_to_context_array(arr)
+        else:
+            raise ValueError("Invalid array type")
+
 
 class PerParticleMethod:
 
