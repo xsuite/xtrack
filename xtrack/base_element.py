@@ -244,9 +244,18 @@ class BeamElement(metaclass=MetaBeamElement):
         self.name = name
         self.partners_names = partners_names
 
-    def _np2ctx(self, arr):
+    def _arr2ctx(self, arr):
         ctx = self._buffer.context
-        if isinstance(arr, ctx.nplike_array_type):
+
+        if isinstance(arr, list):
+            arr = np.array(arr)
+
+        if np.isscalar(arr):
+            if hasattr(arr, 'item'):
+                return arr.item()
+            else:
+                return arr
+        elif isinstance(arr, ctx.nplike_array_type):
             return arr
         elif isinstance(arr, np.ndarray):
             return ctx.nparray_to_context_array(arr)
