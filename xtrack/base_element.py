@@ -5,7 +5,6 @@
 
 from pathlib import Path
 import numpy as np
-import uuid
 
 import xobjects as xo
 import xpart as xp
