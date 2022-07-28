@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 import xtrack as xt
 import xpart as xp
@@ -11,7 +12,7 @@ class DummyPipelinedElement:
         self.iscollective = True
         self.i_hold = 0
 
-    def track(self, particles, **kwargs):
+    def track(self, particles):
         self.i_hold += 1
         if self.i_hold < self.n_hold:
             return PipelineStatus(on_hold=True,
@@ -35,6 +36,50 @@ tracker2 = xt.Tracker(
     enable_pipeline_hold=True,
     reset_s_at_end_turn=False)
 
+
+# We use a multitracker to track one two particles with the first tracker 
+# and one particle with the second one
+
+p1 = xp.Particles(p0c=7e12, x=[0,0,0])
+p2 = xp.Particles(p0c=7e12, x=[0,0,0])
+p3 = xp.Particles(p0c=7e12, x=[0,0,0])
+
+multitracker = xt.PipelineMultiTracker(
+    branches=[xt.PipelineBranch(tracker=tracker1, particles=p1),
+              xt.PipelineBranch(tracker=tracker1, particles=p2),
+              xt.PipelineBranch(tracker=tracker2, particles=p3),
+              ],
+    enable_debug_log=True)
+
+multitracker.track(num_turns=4)
+
+# The simulation was stopped multiple times byt the pipelined elements as one can
+# see from the debug log (can be loaded into a pandas dataframe)
+log_df = pd.DataFrame(multitracker.debug_log)
+
+#     branch  track_session_turn held_by_element                             info
+# 0        0                   0     pipelnd_el1  stopped by internal counter 1/2
+# 1        1                   1     pipelnd_el1  stopped by internal counter 1/2
+# 2        2                   0     pipelnd_el2  stopped by internal counter 1/3
+# 3        0                   1     pipelnd_el1  stopped by internal counter 1/2
+# 4        1                   2     pipelnd_el1  stopped by internal counter 1/2
+# 5        2                   0     pipelnd_el2  stopped by internal counter 2/3
+# 6        0                   2     pipelnd_el1  stopped by internal counter 1/2
+# [...]
+
+# All particles have been tracked for 4 turns
+assert np.all(p1.at_turn == 4)
+assert np.all(p2.at_turn == 4)
+assert np.all(p3.at_turn == 4)
+assert np.all(p1.s == 8.)
+assert np.all(p2.s == 8.)
+assert np.all(p3.s == 8.)
+
+# A simpler case for some extra checks
+
+# Reset the counters
+tracker1.line['pipelnd_el1'].i_hold = 0
+tracker2.line['pipelnd_el2'].i_hold = 0
 
 p1 = xp.Particles(p0c=7e12, x=[0,0,0])
 p2 = xp.Particles(p0c=7e12, x=[0,0,0])
@@ -76,3 +121,5 @@ assert p2.s[0] == 8.
 assert np.all(log_df['branch'] == np.array(4*[0, 1] + 4*[1]))
 assert np.all(log_df[log_df['branch']==0]['held_by_element'] == 'pipelnd_el1')
 assert np.all(log_df[log_df['branch']==1]['held_by_element'] == 'pipelnd_el2')
+
+
