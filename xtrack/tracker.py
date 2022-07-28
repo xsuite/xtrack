@@ -151,6 +151,7 @@ class Tracker:
 
         # Split the sequence
         parts = []
+        part_names = []
         _element_part = []
         _element_index_in_part=[]
         this_part = Line(elements=[], element_names=[])
@@ -166,8 +167,10 @@ class Tracker:
                 if len(this_part.elements)>0:
                     this_part.iscollective=False
                     parts.append(this_part)
+                    part_names.append(f'part_{i_part}_non_collective')
                     i_part += 1
                 parts.append(ee)
+                part_names.append(nn)
                 _element_part.append(i_part)
                 _element_index_in_part.append(None)
                 i_part += 1
@@ -176,6 +179,7 @@ class Tracker:
         if len(this_part.elements)>0:
             this_part.iscollective=False
             parts.append(this_part)
+            part_names.append(f'part_{i_part}_non_collective')
 
         # Transform non collective elements into xtrack elements
         noncollective_xelements = []
@@ -238,6 +242,7 @@ class Tracker:
         self.num_elements = len(line.element_names)
         self._supertracker = supertracker
         self._parts = parts
+        self._part_names = part_names
         self.track = self._track_with_collective
         self.particles_class = supertracker.particles_class
         self.particles_monitor_class = supertracker.particles_monitor_class
@@ -1001,6 +1006,7 @@ class Tracker:
                         }
                     return PipelineStatus(on_hold=True, data=session_on_hold)
 
+                # Do nothing before ele_start in the first turn
                 if skip:
                     continue
 

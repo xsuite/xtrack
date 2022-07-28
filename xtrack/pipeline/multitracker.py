@@ -8,8 +8,12 @@ class PipelineBranch:
 
 class PipelineMultiTracker:
 
-    def __init__(self, branches):
+    def __init__(self, branches, enable_debug_log=False):
         self.branches = branches
+        self.enable_debug_log = enable_debug_log
+
+        if self.enable_debug_log:
+            self.debug_log = []
 
     def track(self, **kwargs):
 
@@ -20,10 +24,18 @@ class PipelineMultiTracker:
         need_resume = True
         while need_resume:
             need_resume = False
-            for branch in self.branches:
+            for i_branch, branch in enumerate(self.branches):
                 if (branch.pipeline_status is not None
                         and branch.pipeline_status.on_hold):
-                    print('resumed')
+                    if self.enable_debug_log:
+                        self.debug_log.append({
+                            'branch': i_branch,
+                            'held_by_element': branch.tracker._part_names[
+                                            branch.pipeline_status.data['ipp']],
+                            'track_session_turn':
+                                            branch.pipeline_status.data['tt']
+                        })
+
                     branch.pipeline_status = branch.tracker.resume(
                                                         branch.pipeline_status)
                     need_resume = True
