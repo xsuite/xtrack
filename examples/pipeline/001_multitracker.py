@@ -6,6 +6,9 @@ import xpart as xp
 
 from xtrack import PipelineStatus
 
+# For example we build an element type that puts the simulation on hold based on
+# an internal counter.
+
 class DummyPipelinedElement:
     def __init__(self, n_hold=0):
         self.n_hold = n_hold
@@ -19,6 +22,8 @@ class DummyPipelinedElement:
                 info=f'stopped by internal counter {self.i_hold}/{self.n_hold}')
         else:
             self.i_hold = 0
+
+# We build two trackers, each with an element that puts the simulation on hold
 
 tracker1 = xt.Tracker(
     line=xt.Line(elements=[xt.Drift(length=1),
@@ -37,7 +42,7 @@ tracker2 = xt.Tracker(
     reset_s_at_end_turn=False)
 
 
-# We use a multitracker to track one two particles with the first tracker 
+# We use a multitracker to track one two particles with the first tracker
 # and one particle with the second one
 
 p1 = xp.Particles(p0c=7e12, x=[0,0,0])
@@ -53,10 +58,13 @@ multitracker = xt.PipelineMultiTracker(
 
 multitracker.track(num_turns=4)
 
-# The simulation was stopped multiple times byt the pipelined elements as one can
-# see from the debug log (can be loaded into a pandas dataframe)
+# The simulation switched multiple times from one brach to the other (due to the
+# pipelined elements as it can be seen by the debug log (it is convenient to use
+# a pandas dataframe to view the debug log).
+
 log_df = pd.DataFrame(multitracker.debug_log)
 
+# Contains:
 #     branch  track_session_turn held_by_element                             info
 # 0        0                   0     pipelnd_el1  stopped by internal counter 1/2
 # 1        1                   1     pipelnd_el1  stopped by internal counter 1/2
@@ -67,7 +75,7 @@ log_df = pd.DataFrame(multitracker.debug_log)
 # 6        0                   2     pipelnd_el1  stopped by internal counter 1/2
 # [...]
 
-# All particles have been tracked for 4 turns
+# Check that all particles have been tracked for 4 turns
 assert np.all(p1.at_turn == 4)
 assert np.all(p2.at_turn == 4)
 assert np.all(p3.at_turn == 4)
@@ -75,7 +83,7 @@ assert np.all(p1.s == 8.)
 assert np.all(p2.s == 8.)
 assert np.all(p3.s == 8.)
 
-# A simpler case for some extra checks
+############  A simpler case for some extra checks
 
 # Reset the counters
 tracker1.line['pipelnd_el1'].i_hold = 0
