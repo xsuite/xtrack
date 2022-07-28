@@ -8,10 +8,11 @@ class DummyPipelinedElement:
         self.iscollective = True
         self.i_hold = 0
 
-    def track(self, particles, **kwargs):
+    def track(self, particles):
         self.i_hold += 1
         if self.i_hold < self.n_hold:
-            return PipelineStatus(on_hold=True)
+            return PipelineStatus(on_hold=True,
+                info=f'stopped by internal counter {self.i_hold}/{self.n_hold}')
         else:
             self.i_hold = 0
 
