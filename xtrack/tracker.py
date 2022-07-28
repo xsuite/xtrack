@@ -266,8 +266,8 @@ class Tracker:
     ):
 
         assert not(enable_pipeline_hold), (
-            "enable_pipeline_hold is not implemented in no collective mode")
-        self.enable_pipeline_hold = False
+            "enable_pipeline_hold is not implemented in non collective mode")
+        self._enable_pipeline_hold = False
 
         if particles_class is None:
             particles_class = xp.Particles
@@ -537,9 +537,9 @@ class Tracker:
 
     @enable_pipeline_hold.setter
     def enable_pipeline_hold(self, value):
-        if self.iscollective:
+        if not self.iscollective:
             raise ValueError(
-                'enable_pipeline_hold is not supported for collective elements')
+                'enable_pipeline_hold is not supported non collective trackers')
         else:
             self._enable_pipeline_hold = value
 

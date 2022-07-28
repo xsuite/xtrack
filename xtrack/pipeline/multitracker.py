@@ -17,16 +17,15 @@ class PipelineMultiTracker:
                  branch.particles, **kwargs)
 
         while True:
-            need_to_continue = False
-
+            need_resume = False
             for branch in self.branches:
-                branch.pipeline_status = branch.tracker.track(
-                    branch.particles, **kwargs)
                 if (branch.pipeline_status is not None
                         and branch.pipeline_status.on_hold):
-                    need_to_continue = True
+                    branch.pipeline_status = branch.tracker.resume(
+                                                        branch.pipeline_status)
+                    need_resume = True
 
-            if not(need_to_continue):
+            if not(need_resume):
                 break
 
 
