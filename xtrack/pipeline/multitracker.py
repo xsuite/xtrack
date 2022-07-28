@@ -30,10 +30,11 @@ class PipelineMultiTracker:
                     if self.enable_debug_log:
                         self.debug_log.append({
                             'branch': i_branch,
+                            'track_session_turn':
+                                            branch.pipeline_status.data['tt'],
                             'held_by_element': branch.tracker._part_names[
                                             branch.pipeline_status.data['ipp']],
-                            'track_session_turn':
-                                            branch.pipeline_status.data['tt']
+                            'info': branch.pipeline_status.data['status_from_element'].info
                         })
 
                     branch.pipeline_status = branch.tracker.resume(

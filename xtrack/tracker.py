@@ -932,6 +932,7 @@ class Tracker:
                                     '_context_needs_clean_active_lost_state']
             tt_resume = _session_to_resume['tt']
             ipp_resume = _session_to_resume['ipp']
+            _session_to_resume['resumed'] = True
         else:
             (ele_start, ele_stop, num_turns, flag_monitor, monitor,
                 buffer_monitor, offset_monitor,
@@ -988,6 +989,7 @@ class Tracker:
                         session_on_hold = {
                             'particles': particles,
                             'tracker': self,
+                            'status_from_element': returned_by_track,
                             'ele_start': ele_start,
                             'ele_stop': ele_stop,
                             'num_elements': num_elements,
