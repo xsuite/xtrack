@@ -112,12 +112,12 @@ def dress_element(XoElementData):
     assert XoElementData.__name__.endswith('Data')
     name = XoElementData.__name__[:-4]
 
-    DressedElement.track_kernel_source = _generate_per_particle_kernel_from_local_particle_function(
+    DressedElement.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
         element_name=name, kernel_name=name+'_track_particles',
         local_particle_function_name=name+'_track_local_particle')
 
     DressedElement._track_kernel_name = f'{name}_track_particles'
-    DressedElement.track_kernel_description = {DressedElement._track_kernel_name:
+    DressedElement.per_particle_kernels_description = {DressedElement._track_kernel_name:
         xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
                         xo.Arg(xp.Particles.XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
@@ -125,7 +125,7 @@ def dress_element(XoElementData):
 
     DressedElement.iscollective = False
 
-    def compile_track_kernel(self, save_source_as=None):
+    def compile_per_particle_kernels(self, save_source_as=None):
         context = self._buffer.context
 
         sources = []
@@ -143,12 +143,12 @@ def dress_element(XoElementData):
         sources += RecordIndex.extra_sources
 
         sources += self.XoStruct.extra_sources
-        sources.append(self.track_kernel_source)
+        sources.append(self.per_particle_kernels_source)
 
         sources = _handle_per_particle_blocks(sources)
 
         context.add_kernels(sources=sources,
-                kernels=self.track_kernel_description,
+                kernels=self.per_particle_kernels_description,
                 save_source_as=save_source_as)
 
 
@@ -157,7 +157,7 @@ def dress_element(XoElementData):
         context = self._buffer.context
         if not hasattr(self, '_track_kernel'):
             if self._track_kernel_name not in context.kernels.keys():
-                self.compile_track_kernel()
+                self.compile_per_particle_kernels()
             self._track_kernel = context.kernels[self._track_kernel_name]
 
         if hasattr(self, 'io_buffer') and self.io_buffer is not None:
@@ -171,7 +171,7 @@ def dress_element(XoElementData):
                            io_buffer=io_buffer_arr)
 
     # Attach methods to the class
-    DressedElement.compile_track_kernel = compile_track_kernel
+    DressedElement.compile_per_particle_kernels = compile_per_particle_kernels
     DressedElement.track = track
 
     return DressedElement
@@ -218,14 +218,14 @@ class MetaBeamElement(type):
 
         if 'per_particle_kernels' in data.keys():
             for nn, kk in data['per_particle_kernels'].items():
-                new_class.track_kernel_source += ('\n' +
+                new_class.per_particle_kernels_source += ('\n' +
                     _generate_per_particle_kernel_from_local_particle_function(
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
                 setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
 
-                new_class.track_kernel_description.update(
+                new_class.per_particle_kernels_description.update(
                     {nn:
                         xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
                         xo.Arg(xp.Particles.XoStruct, name='particles')]
@@ -292,7 +292,7 @@ class PerParticleMethodDescriptor:
         context = instance._buffer.context
         if not hasattr(instance, '_track_kernel'):
             if instance._track_kernel_name not in context.kernels.keys():
-                instance.compile_track_kernel()
+                instance.compile_per_particle_kernels()
             instance._track_kernel = context.kernels[instance._track_kernel_name]
 
         return PerParticleMethod(kernel=context.kernels[self.kernel_name],
