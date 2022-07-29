@@ -4,7 +4,6 @@
 # ######################################### #
 
 import numpy as np
-from xobjects.context_cpu import dtype2ctype
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
