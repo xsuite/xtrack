@@ -52,7 +52,7 @@ def test_arr2ctx():
     for ctx in xo.context.get_test_contexts():
         print(f"Test {ctx.__class__}")
 
-        d = xt.Drift()
+        d = xt.Drift(_context=ctx)
 
         a = [1., 2., 3.]
         assert type(d._arr2ctx(a)) is ctx.nplike_array_type
