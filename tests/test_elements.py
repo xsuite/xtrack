@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from xobjects.context_cpu import dtype2ctype
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
@@ -45,6 +46,26 @@ def test_constructor():
             assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
                     - nee._xobject._buffer.buffer[
                         nee._xobject._offset:nee._xobject._size]).sum() == 0
+
+def test_arr2ctx():
+
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
+
+        d = xt.Drift()
+
+        a = [1., 2., 3.]
+        assert type(d._arr2ctx(a)) is ctx.nplike_array_type
+
+        a = ctx.zeros(shape=[20], dtype=np.int64)
+        assert type(d._arr2ctx(a)) is ctx.nplike_array_type
+        assert type(d._arr2ctx(a[1])) is int
+
+        a = np.array([1., 2., 3.])
+        assert type(d._arr2ctx(a)) is ctx.nplike_array_type
+        assert type(d._arr2ctx(a[1])) is float
+
+
 
 def test_drift():
 
