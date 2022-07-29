@@ -66,8 +66,9 @@ def _generate_per_particle_kernel_from_local_particle_function(
                                                 additional_args=[]):
 
     if len(additional_args) > 0:
-        add_to_signature = ", ".join(
-            f"{arg.get_c_type()} {arg.name}" for arg in additional_args) + ", "
+        add_to_signature = ", ".join([
+            f"{' /*gpuglmem*/ ' if arg.pointer else ''} {arg.get_c_type()} {arg.name}"
+                for arg in additional_args]) + ", "
         add_to_call = ", " + ", ".join(f"{arg.name}" for arg in additional_args)
 
     source = ('''
