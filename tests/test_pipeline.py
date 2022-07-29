@@ -10,7 +10,6 @@ from xtrack import PipelineStatus
 
 def test_multitracker():
 
-
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
 
@@ -81,6 +80,9 @@ def test_multitracker():
         # [...]
 
         # Check that all particles have been tracked for 4 turns
+        p1._move_to(_context=xo.ContextCpu()) # to use numpy for the tests
+        p2._move_to(_context=xo.ContextCpu()) # to use numpy for the tests
+        p3._move_to(_context=xo.ContextCpu()) # to use numpy for the tests
         assert np.all(p1.at_turn == 4)
         assert np.all(p2.at_turn == 4)
         assert np.all(p3.at_turn == 4)
@@ -125,6 +127,8 @@ def test_multitracker():
 
         # Some checks
         assert len(multitracker.debug_log) == 12
+        p1._move_to(_context=xo.ContextCpu()) # to use numpy for the tests
+        p2._move_to(_context=xo.ContextCpu()) # to use numpy for the tests
         assert p1.at_turn[0] == 4
         assert p2.at_turn[0] == 4
         assert p1.s[0] == 8.
