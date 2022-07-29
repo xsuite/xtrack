@@ -14,7 +14,7 @@ import xobjects as xo
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-def test_and_track_from_element():
+def test_match_and_track_from_element():
 
     for ctx in xo.context.get_test_contexts():
         print(f"Test {ctx.__class__}")
