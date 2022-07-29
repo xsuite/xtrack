@@ -59,13 +59,13 @@ def test_arr2ctx():
 
         a = ctx.zeros(shape=[20], dtype=np.int64)
         assert type(d._arr2ctx(a)) is ctx.nplike_array_type
-        assert type(d._arr2ctx(a[1])) is int
+        assert (type(d._arr2ctx(a[1])) is int
+                or (type(d._arr2ctx(a[1])) is ctx.nplike_array_type
+                    and d._arr2ctx(a[1]).shape == ()))
 
         a = np.array([1., 2., 3.])
         assert type(d._arr2ctx(a)) is ctx.nplike_array_type
         assert type(d._arr2ctx(a[1])) is float
-
-
 
 def test_drift():
 
