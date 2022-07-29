@@ -38,6 +38,6 @@ try:
 except Exception as err:
     print('No git info because of the following exception: ', err)
 
-print("\n-------- Available contexts: --------")
+print("\n-------- Enabled test contexts: --------")
 for cc in xobjects.context.get_test_contexts():
         print(cc)
