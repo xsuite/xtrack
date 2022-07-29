@@ -640,5 +640,72 @@ def test_cavity():
         assert np.allclose(tau, tau0, atol=1e-14, rtol=0)
         assert np.allclose((part.ptau - part0.ptau) * part0.p0c, 30, atol=1e-9, rtol=0)
 
+test_source = r"""
+/*gpufun*/
+void test_function(TestElementData el,
+                LocalParticle* part0,
+                /*gpuglmem*/ double* b){
+
+    double const a = TestElementData_get_a(el);
+
+    //start_per_particle_block (part0->part)
+
+        const int64_t ipart = part->ipart;
+        double const val = b[ipart];
+
+        LocalParticle_add_to_x(part, val + a);
+
+    //end_per_particle_block
+}
+
+/*gpufun*/
+void TestElement_track_local_particle(TestElementData el,
+                LocalParticle* part0){
+
+    double const a = TestElementData_get_a(el);
+
+    //start_per_particle_block (part0->part)
+
+        LocalParticle_set_x(part, a);
+
+    //end_per_particle_block
+}
+
+"""
+
+def test_per_particle_kernel():
+
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+
+        class TestElement(xt.BeamElement):
+            _xofields={
+                'a': xo.Float64
+            }
+
+            extra_sources=[
+                test_source
+            ]
+
+            per_particle_kernels={
+                'test_kernel': xo.Kernel(
+                    c_name='test_function',
+                    args=[
+                        xo.Arg(xo.Float64, pointer=True, name='b')
+                    ]),}
+
+        el = TestElement(_context=context, a=10)
+
+        p = xp.Particles(p0c=1e9, x=[1,2,3], _context=context)
+
+        el.track(p)
+
+        assert np.all(p.x == [10,10,10])
+
+        p = xp.Particles(p0c=1e9, x=[1,2,3], _context=context)
+        b = p.x*0.5
+        el.test_kernel(p, b=b)
+
+        assert np.all(p.x == np.array([11.5, 13, 14.5]))
 
 
