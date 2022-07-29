@@ -57,7 +57,7 @@ def test_arr2ctx():
         a = [1., 2., 3.]
         assert type(d._arr2ctx(a)) is ctx.nplike_array_type
 
-        a = ctx.zeros(shape=[20], dtype=np.int64)
+        a = ctx.zeros(shape=(20,), dtype=np.int64)
         assert type(d._arr2ctx(a)) is ctx.nplike_array_type
         assert (type(d._arr2ctx(a[1])) is int
                 or (type(d._arr2ctx(a[1])) is ctx.nplike_array_type
