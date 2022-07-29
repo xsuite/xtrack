@@ -699,13 +699,14 @@ def test_per_particle_kernel():
         p = xp.Particles(p0c=1e9, x=[1,2,3], _context=context)
 
         el.track(p)
-
+        p._move_to(_context=xo.ContextCpu())
         assert np.all(p.x == [10,10,10])
 
         p = xp.Particles(p0c=1e9, x=[1,2,3], _context=context)
         b = p.x*0.5
         el.test_kernel(p, b=b)
 
+        p._move_to(_context=xo.ContextCpu())
         assert np.all(p.x == np.array([11.5, 13, 14.5]))
 
 
