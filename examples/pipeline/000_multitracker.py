@@ -101,7 +101,6 @@ multitracker = xt.PipelineMultiTracker(
 multitracker.track(num_turns=4)
 
 # The debug log can be loaded in a dataframe
-import pandas as pd
 log_df = pd.DataFrame(multitracker.debug_log)
 
 # Looks like this
