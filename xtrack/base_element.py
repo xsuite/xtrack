@@ -106,76 +106,6 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
-def dress_element(XoElementData):
-
-    DressedElement = xo.dress(XoElementData)
-    assert XoElementData.__name__.endswith('Data')
-    name = XoElementData.__name__[:-4]
-
-    DressedElement.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
-        element_name=name, kernel_name=name+'_track_particles',
-        local_particle_function_name=name+'_track_local_particle')
-
-    DressedElement._track_kernel_name = f'{name}_track_particles'
-    DressedElement.per_particle_kernels_description = {DressedElement._track_kernel_name:
-        xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
-                        xo.Arg(xp.Particles.XoStruct, name='particles'),
-                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
-
-    DressedElement.iscollective = False
-
-    def compile_per_particle_kernels(self, save_source_as=None):
-        context = self._buffer.context
-
-        sources = []
-
-        # Local particles
-        sources.append(xp.gen_local_particle_api())
-
-        # Tracker auxiliary functions
-        sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
-
-        # Internal recording
-        sources.append(RecordIdentifier._gen_c_api())
-        sources += RecordIdentifier.extra_sources
-        sources.append(RecordIndex._gen_c_api())
-        sources += RecordIndex.extra_sources
-
-        sources += self.XoStruct.extra_sources
-        sources.append(self.per_particle_kernels_source)
-
-        sources = _handle_per_particle_blocks(sources)
-
-        context.add_kernels(sources=sources,
-                kernels=self.per_particle_kernels_description,
-                save_source_as=save_source_as)
-
-
-    def track(self, particles, increment_at_element=False):
-
-        context = self._buffer.context
-        if not hasattr(self, '_track_kernel'):
-            if self._track_kernel_name not in context.kernels.keys():
-                self.compile_per_particle_kernels()
-            self._track_kernel = context.kernels[self._track_kernel_name]
-
-        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
-            io_buffer_arr = self.io_buffer.buffer
-        else:
-            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
-
-        self._track_kernel.description.n_threads = particles._capacity
-        self._track_kernel(el=self._xobject, particles=particles,
-                           flag_increment_at_element=increment_at_element,
-                           io_buffer=io_buffer_arr)
-
-    # Attach methods to the class
-    DressedElement.compile_per_particle_kernels = compile_per_particle_kernels
-    DressedElement.track = track
-
-    return DressedElement
-
 # TODO Duplicated code with xo.DressedStruct, can it be avoided?
 class MetaBeamElement(type):
 
@@ -197,8 +127,19 @@ class MetaBeamElement(type):
 
         XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
 
-        bases = (dress_element(XoStruct),) + bases
+        bases = (xo.dress(XoStruct),) + bases
         new_class = type.__new__(cls, name, bases, data)
+
+        new_class.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
+            element_name=name, kernel_name=name+'_track_particles',
+            local_particle_function_name=name+'_track_local_particle')
+
+        new_class._track_kernel_name = f'{name}_track_particles'
+        new_class.per_particle_kernels_description = {new_class._track_kernel_name:
+            xo.Kernel(args=[xo.Arg(XoStruct, name='el'),
+                        xo.Arg(xp.Particles.XoStruct, name='particles'),
+                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
 
         XoStruct._DressingClass = new_class
         XoStruct.extra_sources = []
@@ -237,12 +178,58 @@ class MetaBeamElement(type):
         return new_class
 
 class BeamElement(metaclass=MetaBeamElement):
+
     _xofields={}
+    iscollective = None
 
     def init_pipeline(self,pipeline_manager,name,partners_names=[]):
         self._pipeline_manager = pipeline_manager
         self.name = name
         self.partners_names = partners_names
+
+    def compile_per_particle_kernels(self, save_source_as=None):
+        context = self._buffer.context
+
+        sources = []
+
+        # Local particles
+        sources.append(xp.gen_local_particle_api())
+
+        # Tracker auxiliary functions
+        sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
+
+        # Internal recording
+        sources.append(RecordIdentifier._gen_c_api())
+        sources += RecordIdentifier.extra_sources
+        sources.append(RecordIndex._gen_c_api())
+        sources += RecordIndex.extra_sources
+
+        sources += self.XoStruct.extra_sources
+        sources.append(self.per_particle_kernels_source)
+
+        sources = _handle_per_particle_blocks(sources)
+
+        context.add_kernels(sources=sources,
+                kernels=self.per_particle_kernels_description,
+                save_source_as=save_source_as)
+
+    def track(self, particles, increment_at_element=False):
+
+        context = self._buffer.context
+        if not hasattr(self, '_track_kernel'):
+            if self._track_kernel_name not in context.kernels.keys():
+                self.compile_per_particle_kernels()
+            self._track_kernel = context.kernels[self._track_kernel_name]
+
+        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+            io_buffer_arr = self.io_buffer.buffer
+        else:
+            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
+
+        self._track_kernel.description.n_threads = particles._capacity
+        self._track_kernel(el=self._xobject, particles=particles,
+                           flag_increment_at_element=increment_at_element,
+                           io_buffer=io_buffer_arr)
 
     def _arr2ctx(self, arr):
         ctx = self._buffer.context
