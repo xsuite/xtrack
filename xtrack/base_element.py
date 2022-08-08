@@ -106,8 +106,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
-# TODO Duplicated code with xo.DressedStruct, can it be avoided?
-class MetaBeamElement(type):
+class MetaBeamElement(xo.MetaDressedStruct):
 
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
@@ -125,10 +124,8 @@ class MetaBeamElement(type):
                 data['_skip_in_to_dict'] = []
             data['_skip_in_to_dict'].append('_internal_record_id')
 
-        XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
-
-        bases = (xo.dress(XoStruct),) + bases
-        new_class = type.__new__(cls, name, bases, data)
+        new_class = xo.MetaDressedStruct.__new__(cls, name, bases, data)
+        XoStruct = new_class.XoStruct
 
         new_class.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
             element_name=name, kernel_name=name+'_track_particles',
