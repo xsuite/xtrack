@@ -3,8 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from asyncio.format_helpers import extract_stack
-from tkinter import W
 import numpy as np
 
 import xtrack as xt

@@ -111,13 +111,14 @@ class MetaBeamElement(xo.MetaDressedStruct):
 
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
-        if '_xofields' in data.keys():
-            xofields = data['_xofields']
+
+        xofields = {}
+        if "_xofields" in data.keys():
+            xofields.update(data["_xofields"])
         else:
             for bb in bases:
-                if hasattr(bb,'_xofields'):
-                    xofields = bb._xofields
-                    break
+                if hasattr(bb, "_xofields"):
+                    xofields.update(bb._xofields)
 
         if '_internal_record_class' in data.keys():
             xofields['_internal_record_id'] = RecordIdentifier
@@ -178,9 +179,7 @@ class MetaBeamElement(xo.MetaDressedStruct):
 
 class BeamElement(metaclass=MetaBeamElement):
 
-    _xofields={}
     iscollective = None
-    extra_source = []
 
     def init_pipeline(self,pipeline_manager,name,partners_names=[]):
         self._pipeline_manager = pipeline_manager
