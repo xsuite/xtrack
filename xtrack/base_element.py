@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 
 import xobjects as xo
+from xobjects.context import sources_from_classes
 import xpart as xp
 
 from .general import _pkg_root
@@ -124,6 +125,16 @@ class MetaBeamElement(xo.MetaDressedStruct):
                 data['_skip_in_to_dict'] = []
             data['_skip_in_to_dict'].append('_internal_record_id')
 
+            sources_for_internal_record = []
+            sources_for_internal_record.extend(
+                xo.context.sources_from_classes(xo.context.sort_classes(
+                                            [data['_internal_record_class'].XoStruct])))
+            sources_for_internal_record.append(
+                generate_get_record(ele_classname=XoStruct_name,
+                    record_classname=data['_internal_record_class'].XoStruct.__name__))
+
+            data['extra_sources'] = sources_for_internal_record + data['extra_sources']
+
         new_class = xo.MetaDressedStruct.__new__(cls, name, bases, data)
         XoStruct = new_class.XoStruct
 
@@ -143,12 +154,6 @@ class MetaBeamElement(xo.MetaDressedStruct):
         if '_internal_record_class' in data.keys():
             new_class.XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
-            new_class.XoStruct.extra_sources.extend(
-                xo.context.sources_from_classes(xo.context.sort_classes(
-                                            [data['_internal_record_class'].XoStruct])))
-            new_class.XoStruct.extra_sources.append(
-                generate_get_record(ele_classname=XoStruct_name,
-                    record_classname=data['_internal_record_class'].XoStruct.__name__))
 
 
         if 'per_particle_kernels' in data.keys():
