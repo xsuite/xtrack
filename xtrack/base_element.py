@@ -112,16 +112,15 @@ class MetaBeamElement(xo.MetaDressedStruct):
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
 
-        xofields = {}
-        if "_xofields" in data.keys():
-            xofields.update(data["_xofields"])
-        else:
-            for bb in bases:
-                if hasattr(bb, "_xofields"):
-                    xofields.update(bb._xofields)
+        if '_xofields' not in data:
+            data['_xofields'] = {}
+
+        for bb in bases:
+            if hasattr(bb, "_xofields"):
+                data['_xofields'].update(bb._xofields)
 
         if '_internal_record_class' in data.keys():
-            xofields['_internal_record_id'] = RecordIdentifier
+            data['_xofields']['_internal_record_id'] = RecordIdentifier
             if '_skip_in_to_dict' not in data.keys():
                 data['_skip_in_to_dict'] = []
             data['_skip_in_to_dict'].append('_internal_record_id')
