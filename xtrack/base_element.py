@@ -180,6 +180,7 @@ class BeamElement(metaclass=MetaBeamElement):
 
     _xofields={}
     iscollective = None
+    extra_source = []
 
     def init_pipeline(self,pipeline_manager,name,partners_names=[]):
         self._pipeline_manager = pipeline_manager
