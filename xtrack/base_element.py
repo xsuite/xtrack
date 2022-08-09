@@ -139,7 +139,6 @@ class MetaBeamElement(xo.MetaDressedStruct):
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
 
         XoStruct._DressingClass = new_class
-        XoStruct.extra_sources = []
 
         if '_internal_record_class' in data.keys():
             new_class.XoStruct._internal_record_class = data['_internal_record_class']
@@ -151,8 +150,6 @@ class MetaBeamElement(xo.MetaDressedStruct):
                 generate_get_record(ele_classname=XoStruct_name,
                     record_classname=data['_internal_record_class'].XoStruct.__name__))
 
-        if 'extra_sources' in data.keys():
-            new_class.XoStruct.extra_sources.extend(data['extra_sources'])
 
         if 'per_particle_kernels' in data.keys():
             for nn, kk in data['per_particle_kernels'].items():
