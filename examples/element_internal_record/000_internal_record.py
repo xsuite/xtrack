@@ -20,7 +20,7 @@ import xobjects as xo
 # the index, the structure can contain an arbitrary number of other fields (which
 # need to be arrays) where the data will be stored.
 
-class TestElementRecord(xo.DressedStruct):
+class TestElementRecord(xo.HybridClass):
     _xofields = {
         '_index': xt.RecordIndex,
         'generated_rr': xo.Float64[:],

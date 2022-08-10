@@ -9,7 +9,7 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from xobjects.dressed_struct import DressedStruct, _build_xofields_dict
+from xobjects.dressed_struct import HybridClass, _build_xofields_dict
 
 from .general import _pkg_root
 from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
@@ -108,7 +108,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
-class MetaBeamElement(xo.MetaDressedStruct):
+class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
@@ -133,7 +133,7 @@ class MetaBeamElement(xo.MetaDressedStruct):
 
             data['extra_sources'] = sources_for_internal_record + data['extra_sources']
 
-        new_class = xo.MetaDressedStruct.__new__(cls, name, bases, data)
+        new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
         XoStruct = new_class.XoStruct
 
         new_class.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
@@ -174,7 +174,7 @@ class MetaBeamElement(xo.MetaDressedStruct):
 
         return new_class
 
-class BeamElement(xo.DressedStruct, metaclass=MetaBeamElement):
+class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     iscollective = None
 
