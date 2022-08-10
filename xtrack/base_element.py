@@ -7,8 +7,9 @@ from pathlib import Path
 import numpy as np
 
 import xobjects as xo
-from xobjects.context import sources_from_classes
 import xpart as xp
+
+from xobjects.dressed_struct import _build_xofields_dict
 
 from .general import _pkg_root
 from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
@@ -112,12 +113,9 @@ class MetaBeamElement(xo.MetaDressedStruct):
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
 
-        if '_xofields' not in data:
-            data['_xofields'] = {}
-
-        for bb in bases:
-            if hasattr(bb, "_xofields"):
-                data['_xofields'].update(bb._xofields)
+        xofields = _build_xofields_dict(bases, data)
+        data = data.copy()
+        data['_xofields'] = xofields
 
         if '_internal_record_class' in data.keys():
             data['_xofields']['_internal_record_id'] = RecordIdentifier

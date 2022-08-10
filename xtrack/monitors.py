@@ -117,6 +117,7 @@ def generate_monitor_class(ParticlesClass):
         _pkg_root.joinpath("monitors_src/monitors.h")
     ]
 
+    import pdb; pdb.set_trace()
     ParticlesMonitorClass = type(
         "ParticlesMonitor",
         (BeamElement,),
