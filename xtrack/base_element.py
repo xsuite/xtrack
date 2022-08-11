@@ -9,7 +9,7 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from xobjects.dressed_struct import HybridClass, _build_xofields_dict
+from xobjects.hybrid_class import HybridClass, _build_xofields_dict
 
 from .general import _pkg_root
 from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
