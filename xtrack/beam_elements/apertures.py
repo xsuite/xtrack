@@ -22,7 +22,7 @@ class LimitRect(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
-LimitRect.XoStruct.extra_sources = [
+    extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
 
@@ -93,7 +93,7 @@ class LimitEllipse(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
-LimitEllipse.XoStruct.extra_sources = [
+    extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
 
 
@@ -206,7 +206,7 @@ class LimitPolygon(BeamElement):
         cy = 1/(6*self.area)*np.sum((y[:-1]+y[1:])*(y[:-1]*x[1:]-y[1:]*x[:-1]))
         return (cx,cy)
 
-LimitPolygon.XoStruct.extra_sources = [
+    extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
 
 LimitPolygon.XoStruct.custom_kernels = {
@@ -289,6 +289,6 @@ class LimitRectEllipse(BeamElement):
         self.a_b_squ = a_squ * b_squ
         return self
 
-LimitRectEllipse.XoStruct.extra_sources = [
+    extra_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrectellipse.h')]
 

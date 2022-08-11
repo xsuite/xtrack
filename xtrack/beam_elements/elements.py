@@ -222,7 +222,7 @@ class SRotation(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-class SynchrotronRadiationRecord(xo.DressedStruct):
+class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
         '_index': RecordIndex,
         'photon_energy': xo.Float64[:],

@@ -5,7 +5,7 @@
 
 import xobjects as xo
 
-from .base_element import dress_element
+from .base_element import BeamElement
 from .general import _pkg_root
 
 
@@ -101,30 +101,29 @@ class _FieldOfMonitor:
 
 def generate_monitor_class(ParticlesClass):
 
-    ParticlesMonitorDataClass = type(
-        "ParticlesMonitorData",
-        (xo.Struct,),
-        {
-            "start_at_turn": xo.Int64,
-            "stop_at_turn": xo.Int64,
-            'part_id_start': xo.Int64,
-            'part_id_end': xo.Int64,
-            'ebe_mode': xo.Int64,
-            "n_records": xo.Int64,
-            "n_repetitions": xo.Int64,
-            "repetition_period": xo.Int64,
-            "data": ParticlesClass.XoStruct,
-        },
-    )
+    _xofields = {
+        "start_at_turn": xo.Int64,
+        "stop_at_turn": xo.Int64,
+        'part_id_start': xo.Int64,
+        'part_id_end': xo.Int64,
+        'ebe_mode': xo.Int64,
+        "n_records": xo.Int64,
+        "n_repetitions": xo.Int64,
+        "repetition_period": xo.Int64,
+        "data": ParticlesClass.XoStruct,
+    }
 
-    ParticlesMonitorDataClass.extra_sources = [
+    extra_sources = [
         _pkg_root.joinpath("monitors_src/monitors.h")
     ]
 
     ParticlesMonitorClass = type(
         "ParticlesMonitor",
-        (dress_element(ParticlesMonitorDataClass),),
-        {"_ParticlesClass": ParticlesClass},
+        (BeamElement,),
+        {"_ParticlesClass": ParticlesClass,
+        '_xofields': _xofields,
+        'extra_sources': extra_sources,
+        },
     )
 
     ParticlesMonitorClass.__init__ = _monitor_init

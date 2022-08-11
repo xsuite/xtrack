@@ -13,7 +13,7 @@ import xobjects as xo
 # In this case the element internal record is made of two separate tables each
 # with its own record index.
 
-class Table1(xo.DressedStruct):
+class Table1(xo.HybridClass):
     _xofields = {
         '_index': xt.RecordIndex,
         'particle_x': xo.Float64[:],
@@ -23,7 +23,7 @@ class Table1(xo.DressedStruct):
         'particle_id': xo.Int64[:]
         }
 
-class Table2(xo.DressedStruct):
+class Table2(xo.HybridClass):
     _xofields = {
         '_index': xt.RecordIndex,
         'generated_rr': xo.Float64[:],
@@ -32,7 +32,7 @@ class Table2(xo.DressedStruct):
         'particle_id': xo.Int64[:]
         }
 
-class TestElementRecord(xo.DressedStruct):
+class TestElementRecord(xo.HybridClass):
     _xofields = {
         'table1': Table1.XoStruct,
         'table2': Table2.XoStruct

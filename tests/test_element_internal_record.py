@@ -3,7 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from tkinter import W
 import numpy as np
 
 import xtrack as xt
@@ -11,7 +10,7 @@ import xpart as xp
 import xobjects as xo
 
 def test_record_single_table():
-    class TestElementRecord(xo.DressedStruct):
+    class TestElementRecord(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
             'generated_rr': xo.Float64[:],
@@ -20,19 +19,13 @@ def test_record_single_table():
             'particle_id': xo.Int64[:]
             }
 
-    class TestElement(xt.BeamElement):
-        _xofields={
-            'n_kicks': xo.Int64,
-            }
-
-        _internal_record_class = TestElementRecord
-
-    TestElement.XoStruct.extra_sources.extend([
+    extra_src = []
+    extra_src.extend([
         xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         ])
 
-    TestElement.XoStruct.extra_sources.append(r'''
+    extra_src.append(r'''
         /*gpufun*/
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
@@ -73,6 +66,16 @@ def test_record_single_table():
             //end_per_particle_block
         }
         ''')
+
+    class TestElement(xt.BeamElement):
+        _xofields={
+            'n_kicks': xo.Int64,
+            }
+
+        _internal_record_class = TestElementRecord
+
+        extra_sources = extra_src
+
 
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
@@ -187,7 +190,7 @@ def test_record_single_table():
 
 def test_record_multiple_tables():
 
-    class Table1(xo.DressedStruct):
+    class Table1(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
             'particle_x': xo.Float64[:],
@@ -197,7 +200,7 @@ def test_record_multiple_tables():
             'particle_id': xo.Int64[:]
             }
 
-    class Table2(xo.DressedStruct):
+    class Table2(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
             'generated_rr': xo.Float64[:],
@@ -206,24 +209,19 @@ def test_record_multiple_tables():
             'particle_id': xo.Int64[:]
             }
 
-    class TestElementRecord(xo.DressedStruct):
+    class TestElementRecord(xo.HybridClass):
         _xofields = {
             'table1': Table1.XoStruct,
             'table2': Table2.XoStruct
             }
 
-    class TestElement(xt.BeamElement):
-        _xofields={
-            'n_kicks': xo.Int64,
-            }
-        _internal_record_class = TestElementRecord
-
-    TestElement.XoStruct.extra_sources.extend([
+    extra_src = []
+    extra_src.extend([
         xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         ])
 
-    TestElement.XoStruct.extra_sources.append(r'''
+    extra_src.append(r'''
         /*gpufun*/
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
@@ -292,6 +290,15 @@ def test_record_multiple_tables():
             //end_per_particle_block
         }
         ''')
+
+    class TestElement(xt.BeamElement):
+        _xofields={
+            'n_kicks': xo.Int64,
+            }
+        _internal_record_class = TestElementRecord
+
+        extra_sources = extra_src
+
 
         # Checks
 
@@ -442,7 +449,7 @@ def test_record_multiple_tables():
 
 def test_record_standalone_mode():
 
-    class Table1(xo.DressedStruct):
+    class Table1(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
             'particle_x': xo.Float64[:],
@@ -452,7 +459,7 @@ def test_record_standalone_mode():
             'particle_id': xo.Int64[:]
             }
 
-    class Table2(xo.DressedStruct):
+    class Table2(xo.HybridClass):
         _xofields = {
             '_index': xt.RecordIndex,
             'generated_rr': xo.Float64[:],
@@ -461,24 +468,19 @@ def test_record_standalone_mode():
             'particle_id': xo.Int64[:]
             }
 
-    class TestElementRecord(xo.DressedStruct):
+    class TestElementRecord(xo.HybridClass):
         _xofields = {
             'table1': Table1.XoStruct,
             'table2': Table2.XoStruct
             }
 
-    class TestElement(xt.BeamElement):
-        _xofields={
-            'n_kicks': xo.Int64,
-            }
-        _internal_record_class = TestElementRecord
-
-    TestElement.XoStruct.extra_sources.extend([
+    extra_src = []
+    extra_src.extend([
         xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         ])
 
-    TestElement.XoStruct.extra_sources.append(r'''
+    extra_src.append(r'''
         /*gpufun*/
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
@@ -547,6 +549,15 @@ def test_record_standalone_mode():
             //end_per_particle_block
         }
         ''')
+
+    class TestElement(xt.BeamElement):
+        _xofields={
+            'n_kicks': xo.Int64,
+            }
+        _internal_record_class = TestElementRecord
+
+        extra_sources = extra_src
+
 
     # Checks
 

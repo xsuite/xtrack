@@ -9,6 +9,8 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
+from xobjects.hybrid_class import HybridClass, _build_xofields_dict
+
 from .general import _pkg_root
 from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
 
@@ -106,24 +108,80 @@ def _generate_per_particle_kernel_from_local_particle_function(
 ''')
     return source
 
-def dress_element(XoElementData):
+class MetaBeamElement(xo.MetaHybridClass):
 
-    DressedElement = xo.dress(XoElementData)
-    assert XoElementData.__name__.endswith('Data')
-    name = XoElementData.__name__[:-4]
+    def __new__(cls, name, bases, data):
+        XoStruct_name = name+'Data'
 
-    DressedElement.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
-        element_name=name, kernel_name=name+'_track_particles',
-        local_particle_function_name=name+'_track_local_particle')
+        xofields = _build_xofields_dict(bases, data)
+        data = data.copy()
+        data['_xofields'] = xofields
 
-    DressedElement._track_kernel_name = f'{name}_track_particles'
-    DressedElement.per_particle_kernels_description = {DressedElement._track_kernel_name:
-        xo.Kernel(args=[xo.Arg(XoElementData, name='el'),
+        if '_internal_record_class' in data.keys():
+            data['_xofields']['_internal_record_id'] = RecordIdentifier
+            if '_skip_in_to_dict' not in data.keys():
+                data['_skip_in_to_dict'] = []
+            data['_skip_in_to_dict'].append('_internal_record_id')
+
+            sources_for_internal_record = []
+            sources_for_internal_record.extend(
+                xo.context.sources_from_classes(xo.context.sort_classes(
+                                            [data['_internal_record_class'].XoStruct])))
+            sources_for_internal_record.append(
+                generate_get_record(ele_classname=XoStruct_name,
+                    record_classname=data['_internal_record_class'].XoStruct.__name__))
+
+            data['extra_sources'] = sources_for_internal_record + data['extra_sources']
+
+        new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
+        XoStruct = new_class.XoStruct
+
+        new_class.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
+            element_name=name, kernel_name=name+'_track_particles',
+            local_particle_function_name=name+'_track_local_particle')
+
+        new_class._track_kernel_name = f'{name}_track_particles'
+        new_class.per_particle_kernels_description = {new_class._track_kernel_name:
+            xo.Kernel(args=[xo.Arg(XoStruct, name='el'),
                         xo.Arg(xp.Particles.XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
 
-    DressedElement.iscollective = False
+        XoStruct._DressingClass = new_class
+
+        if '_internal_record_class' in data.keys():
+            new_class.XoStruct._internal_record_class = data['_internal_record_class']
+            new_class._internal_record_class = data['_internal_record_class']
+
+
+        if 'per_particle_kernels' in data.keys():
+            for nn, kk in data['per_particle_kernels'].items():
+                new_class.per_particle_kernels_source += ('\n' +
+                    _generate_per_particle_kernel_from_local_particle_function(
+                        element_name=name, kernel_name=nn,
+                        local_particle_function_name=kk.c_name,
+                        additional_args=kk.args))
+                setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
+
+                new_class.per_particle_kernels_description.update(
+                    {nn:
+                        xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
+                        xo.Arg(xp.Particles.XoStruct, name='particles')]
+                        + kk.args + [
+                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
+                )
+
+        return new_class
+
+class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
+
+    iscollective = None
+
+    def init_pipeline(self,pipeline_manager,name,partners_names=[]):
+        self._pipeline_manager = pipeline_manager
+        self.name = name
+        self.partners_names = partners_names
 
     def compile_per_particle_kernels(self, save_source_as=None):
         context = self._buffer.context
@@ -151,7 +209,6 @@ def dress_element(XoElementData):
                 kernels=self.per_particle_kernels_description,
                 save_source_as=save_source_as)
 
-
     def track(self, particles, increment_at_element=False):
 
         context = self._buffer.context
@@ -169,80 +226,6 @@ def dress_element(XoElementData):
         self._track_kernel(el=self._xobject, particles=particles,
                            flag_increment_at_element=increment_at_element,
                            io_buffer=io_buffer_arr)
-
-    # Attach methods to the class
-    DressedElement.compile_per_particle_kernels = compile_per_particle_kernels
-    DressedElement.track = track
-
-    return DressedElement
-
-# TODO Duplicated code with xo.DressedStruct, can it be avoided?
-class MetaBeamElement(type):
-
-    def __new__(cls, name, bases, data):
-        XoStruct_name = name+'Data'
-        if '_xofields' in data.keys():
-            xofields = data['_xofields']
-        else:
-            for bb in bases:
-                if hasattr(bb,'_xofields'):
-                    xofields = bb._xofields
-                    break
-
-        if '_internal_record_class' in data.keys():
-            xofields['_internal_record_id'] = RecordIdentifier
-            if '_skip_in_to_dict' not in data.keys():
-                data['_skip_in_to_dict'] = []
-            data['_skip_in_to_dict'].append('_internal_record_id')
-
-        XoStruct = type(XoStruct_name, (xo.Struct,), xofields)
-
-        bases = (dress_element(XoStruct),) + bases
-        new_class = type.__new__(cls, name, bases, data)
-
-        XoStruct._DressingClass = new_class
-        XoStruct.extra_sources = []
-
-        if '_internal_record_class' in data.keys():
-            new_class.XoStruct._internal_record_class = data['_internal_record_class']
-            new_class._internal_record_class = data['_internal_record_class']
-            new_class.XoStruct.extra_sources.extend(
-                xo.context.sources_from_classes(xo.context.sort_classes(
-                                            [data['_internal_record_class'].XoStruct])))
-            new_class.XoStruct.extra_sources.append(
-                generate_get_record(ele_classname=XoStruct_name,
-                    record_classname=data['_internal_record_class'].XoStruct.__name__))
-
-        if 'extra_sources' in data.keys():
-            new_class.XoStruct.extra_sources.extend(data['extra_sources'])
-
-        if 'per_particle_kernels' in data.keys():
-            for nn, kk in data['per_particle_kernels'].items():
-                new_class.per_particle_kernels_source += ('\n' +
-                    _generate_per_particle_kernel_from_local_particle_function(
-                        element_name=name, kernel_name=nn,
-                        local_particle_function_name=kk.c_name,
-                        additional_args=kk.args))
-                setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
-
-                new_class.per_particle_kernels_description.update(
-                    {nn:
-                        xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
-                        xo.Arg(xp.Particles.XoStruct, name='particles')]
-                        + kk.args + [
-                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                        xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
-                )
-
-        return new_class
-
-class BeamElement(metaclass=MetaBeamElement):
-    _xofields={}
-
-    def init_pipeline(self,pipeline_manager,name,partners_names=[]):
-        self._pipeline_manager = pipeline_manager
-        self.name = name
-        self.partners_names = partners_names
 
     def _arr2ctx(self, arr):
         ctx = self._buffer.context

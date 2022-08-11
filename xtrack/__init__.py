@@ -5,7 +5,7 @@
 
 from .general import _pkg_root
 
-from .base_element import dress_element, BeamElement
+from .base_element import BeamElement
 from .beam_elements import *
 from .line_frozen import LineFrozen
 from .line import Line
