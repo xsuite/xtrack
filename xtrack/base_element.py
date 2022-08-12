@@ -9,7 +9,7 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from xobjects.hybrid_class import HybridClass, _build_xofields_dict
+from xobjects.hybrid_class import _build_xofields_dict
 
 from .general import _pkg_root
 from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
@@ -161,7 +161,7 @@ class MetaBeamElement(xo.MetaHybridClass):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                setattr(new_class, nn, PerParticleMethodDescriptor(kernel_name=nn))
+                setattr(new_class, nn, PerParticlePyMethodDescriptor(kernel_name=nn))
 
                 new_class.per_particle_kernels_description.update(
                     {nn:
@@ -246,7 +246,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             raise ValueError("Invalid array type")
 
 
-class PerParticleMethod:
+class PerParticlePyMethod:
 
     def __init__(self, kernel, element):
         self.kernel = kernel
@@ -266,7 +266,7 @@ class PerParticleMethod:
                            io_buffer=io_buffer_arr,
                            **kwargs)
 
-class PerParticleMethodDescriptor:
+class PerParticlePyMethodDescriptor:
 
     def __init__(self, kernel_name):
         self.kernel_name = kernel_name
@@ -278,5 +278,5 @@ class PerParticleMethodDescriptor:
                 instance.compile_per_particle_kernels()
             instance._track_kernel = context.kernels[instance._track_kernel_name]
 
-        return PerParticleMethod(kernel=context.kernels[self.kernel_name],
+        return PerParticlePyMethod(kernel=context.kernels[self.kernel_name],
                                  element=instance)
