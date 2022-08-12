@@ -33,8 +33,8 @@ class Table2(xo.HybridClass):
 
 class TestElementRecord(xo.HybridClass):
     _xofields = {
-        'table1': Table1._XoStruct,
-        'table2': Table2._XoStruct
+        'table1': Table1,
+        'table2': Table2
         }
 
 # The two tables in the internal record can be accessed independently in the C
