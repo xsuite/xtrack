@@ -34,7 +34,7 @@ class LineFrozen:
 
         num_elements = len(line.element_names)
 
-        element_data_types = set(ee.XoStruct for ee in line.elements)
+        element_data_types = set(ee._XoStruct for ee in line.elements)
         sorted_element_data_types = sorted(
 			element_data_types, key = lambda cc:cc.__name__)
 
@@ -50,7 +50,7 @@ class LineFrozen:
 
         for ii, (ee, nn) in enumerate(zip(line.elements,
                                       line.element_names)):
-            assert hasattr(ee, 'XoStruct') # is already xobject
+            assert hasattr(ee, '_XoStruct') # is already xobject
             if ee._buffer != line_data._buffer:
                 if ee._xobject._has_refs:
                     raise ValueError(

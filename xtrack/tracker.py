@@ -305,7 +305,7 @@ class Tracker:
             # Kernel relies on element_classes ordering
             assert track_kernel=='skip' or track_kernel is None
             element_classes = frozenline._ElementRefClass._reftypes + [
-                particles_monitor_class.XoStruct,
+                particles_monitor_class._XoStruct,
             ]
 
         line._freeze()
@@ -681,7 +681,7 @@ class Tracker:
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(xo.Int64, pointer=True, name="ele_offsets"),
                     xo.Arg(xo.Int64, pointer=True, name="ele_typeids"),
-                    xo.Arg(self.particles_class.XoStruct, name="particles"),
+                    xo.Arg(self.particles_class._XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
                     xo.Arg(xo.Int32, name="num_ele_track"),
@@ -703,7 +703,7 @@ class Tracker:
         # Random number generator init kernel
         kernels.update(self.particles_class._kernels)
 
-        self.particles_class.XoStruct._extra_c_sources.append(self.local_particle_src)
+        self.particles_class._XoStruct._extra_c_sources.append(self.local_particle_src)
 
         try:
             # Compile!
@@ -717,9 +717,9 @@ class Tracker:
                 specialize=True,
                 compile=compile
             )
-            self.particles_class.XoStruct._extra_c_sources.pop()
+            self.particles_class._XoStruct._extra_c_sources.pop()
         except Exception as e:
-            self.particles_class.XoStruct._extra_c_sources.pop()
+            self.particles_class._XoStruct._extra_c_sources.pop()
             raise e
 
         self.track_kernel = context.kernels.track_line

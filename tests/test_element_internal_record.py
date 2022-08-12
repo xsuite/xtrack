@@ -211,8 +211,8 @@ def test_record_multiple_tables():
 
     class TestElementRecord(xo.HybridClass):
         _xofields = {
-            'table1': Table1.XoStruct,
-            'table2': Table2.XoStruct
+            'table1': Table1._XoStruct,
+            'table2': Table2._XoStruct
             }
 
     extra_src = []
@@ -470,8 +470,8 @@ def test_record_standalone_mode():
 
     class TestElementRecord(xo.HybridClass):
         _xofields = {
-            'table1': Table1.XoStruct,
-            'table2': Table2.XoStruct
+            'table1': Table1._XoStruct,
+            'table2': Table2._XoStruct
             }
 
     extra_src = []

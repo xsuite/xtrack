@@ -68,7 +68,7 @@ class Line:
             eltype = class_dict[el["__class__"]]
             eldct=el.copy()
             del eldct['__class__']
-            if hasattr(eltype,'XoStruct'):
+            if hasattr(eltype,'_XoStruct'):
                newel = eltype.from_dict(eldct,_buffer=_buffer)
             else:
                newel = eltype.from_dict(eldct)

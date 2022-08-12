@@ -120,7 +120,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
 class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
-        XoStruct_name = name+'Data'
+        _XoStruct_name = name+'Data'
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
@@ -139,10 +139,10 @@ class MetaBeamElement(xo.MetaHybridClass):
             data['_skip_in_to_dict'].append('_internal_record_id')
 
             depends_on.append(RecordIndex)
-            depends_on.append(data['_internal_record_class'].XoStruct)
+            depends_on.append(data['_internal_record_class']._XoStruct)
             extra_c_source.append(
-                generate_get_record(ele_classname=XoStruct_name,
-                    record_classname=data['_internal_record_class'].XoStruct.__name__))
+                generate_get_record(ele_classname=_XoStruct_name,
+                    record_classname=data['_internal_record_class']._XoStruct.__name__))
 
         # Get user-defined source, dependencies and kernels
         if '_extra_c_sources' in data.keys():
@@ -161,13 +161,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                 local_particle_function_name=name+'_track_local_particle'))
 
         # Add dependency on Particles class
-        depends_on.append(xp.Particles.XoStruct)
+        depends_on.append(xp.Particles._XoStruct)
 
         # Define track kernel
         track_kernel_name = f'{name}_track_particles'
         kernels[track_kernel_name] = xo.Kernel(
                     args=[xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(xp.Particles.XoStruct, name='particles'),
+                        xo.Arg(xp.Particles._XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
                     )
@@ -180,13 +180,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                if xp.Particles.XoStruct not in depends_on:
-                    depends_on.append(xp.Particles.XoStruct)
+                if xp.Particles._XoStruct not in depends_on:
+                    depends_on.append(xp.Particles._XoStruct)
 
                 kernels.update(
                     {nn:
                         xo.Kernel(args=[xo.Arg(xo.ThisClass, name='el'),
-                            xo.Arg(xp.Particles.XoStruct, name='particles')]
+                            xo.Arg(xp.Particles._XoStruct, name='particles')]
                             + kk.args + [
                             xo.Arg(xo.Int64, name='flag_increment_at_element'),
                             xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
@@ -202,7 +202,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         # Attach some information to the class
         new_class._track_kernel_name = track_kernel_name
         if '_internal_record_class' in data.keys():
-            new_class.XoStruct._internal_record_class = data['_internal_record_class']
+            new_class._XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
 
         # Attach methods corresponding to per-particle kernels
@@ -224,7 +224,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     def compile_kernels(self, *args, **kwargs):
 
         # Attach local particle code
-        xp.Particles.XoStruct._extra_c_sources.append(xp.gen_local_particle_api())
+        xp.Particles._XoStruct._extra_c_sources.append(xp.gen_local_particle_api())
 
         try:
             if 'apply_to_source' not in kwargs.keys():
@@ -234,10 +234,10 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             xo.HybridClass.compile_kernels(self, *args, **kwargs)
 
             # Remove local particle code
-            xp.Particles.XoStruct._extra_c_sources.pop()
+            xp.Particles._XoStruct._extra_c_sources.pop()
         except Exception as e:
             # Clean up local particle code
-            xp.Particles.XoStruct._extra_c_sources.pop()
+            xp.Particles._XoStruct._extra_c_sources.pop()
             raise e
 
     def track(self, particles, increment_at_element=False):

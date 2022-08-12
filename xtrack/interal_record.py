@@ -67,7 +67,7 @@ class RecordIdentifier(xo.Struct):
     offset = xo.Int64
 
     _extra_c_sources = [_RecordIdentifier_getp_record_source]
-    _depends_on = [xp.Particles.XoStruct]
+    _depends_on = [xp.Particles._XoStruct]
 
 
 class RecordIndex(xo.Struct):
@@ -104,13 +104,13 @@ def init_internal_record(internal_record_class, capacity, io_buffer):
     if np.isscalar(capacity):
         # One-level record
         capacity = int(capacity)
-        for ff in internal_record_class.XoStruct._fields:
+        for ff in internal_record_class._XoStruct._fields:
             if hasattr(ff.ftype, 'to_nplike'): #is array
                 init_dict[ff.name] = capacity
     else:
         # Record with multiple subrecords
         init_dict = {}
-        for ff in internal_record_class.XoStruct._fields:
+        for ff in internal_record_class._XoStruct._fields:
             if ff.name in capacity.keys():
                 subtable_class = ff.ftype
                 init_dict[ff.name] = {}

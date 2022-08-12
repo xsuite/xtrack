@@ -110,7 +110,7 @@ def generate_monitor_class(ParticlesClass):
         "n_records": xo.Int64,
         "n_repetitions": xo.Int64,
         "repetition_period": xo.Int64,
-        "data": ParticlesClass.XoStruct,
+        "data": ParticlesClass._XoStruct,
     }
 
     _extra_c_sources = [
