@@ -682,7 +682,7 @@ def test_per_particle_kernel():
                 'a': xo.Float64
             }
 
-            _extra_c_source=[test_source]
+            _extra_c_sources=[test_source]
 
             _per_particle_kernels={
                 'test_kernel': xo.Kernel(

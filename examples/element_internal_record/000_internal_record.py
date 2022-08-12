@@ -89,7 +89,7 @@ class TestElement(xt.BeamElement):
 
     _internal_record_class = TestElementRecord
 
-    _extra_c_source = [
+    _extra_c_sources = [
         # The element uses the Xtrack random number generator
         xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),

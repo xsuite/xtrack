@@ -703,7 +703,7 @@ class Tracker:
         # Random number generator init kernel
         kernels.update(self.particles_class._kernels)
 
-        self.particles_class.XoStruct._extra_c_source.append(self.local_particle_src)
+        self.particles_class.XoStruct._extra_c_sources.append(self.local_particle_src)
 
         try:
             # Compile!
@@ -717,9 +717,9 @@ class Tracker:
                 specialize=True,
                 compile=compile
             )
-            self.particles_class.XoStruct._extra_c_source.pop()
+            self.particles_class.XoStruct._extra_c_sources.pop()
         except Exception as e:
-            self.particles_class.XoStruct._extra_c_source.pop()
+            self.particles_class.XoStruct._extra_c_sources.pop()
             raise e
 
         self.track_kernel = context.kernels.track_line

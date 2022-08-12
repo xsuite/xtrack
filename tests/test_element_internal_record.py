@@ -74,7 +74,7 @@ def test_record_single_table():
 
         _internal_record_class = TestElementRecord
 
-        _extra_c_source = extra_src
+        _extra_c_sources = extra_src
 
 
     for context in xo.context.get_test_contexts():
@@ -297,7 +297,7 @@ def test_record_multiple_tables():
             }
         _internal_record_class = TestElementRecord
 
-        _extra_c_source = extra_src
+        _extra_c_sources = extra_src
 
 
         # Checks
@@ -556,7 +556,7 @@ def test_record_standalone_mode():
             }
         _internal_record_class = TestElementRecord
 
-        _extra_c_source = extra_src
+        _extra_c_sources = extra_src
 
 
     # Checks

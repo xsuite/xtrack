@@ -22,7 +22,7 @@ class LimitRect(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
-    _extra_c_source = [
+    _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
 
@@ -36,7 +36,7 @@ class LimitRacetrack(BeamElement):
         'b': xo.Float64,
         }
 
-    _extra_c_source = [
+    _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
@@ -94,7 +94,7 @@ class LimitEllipse(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
-    _extra_c_source = [
+    _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
 
 
@@ -107,7 +107,7 @@ class LimitPolygon(BeamElement):
         'resc_fac': xo.Float64
         }
 
-    _extra_c_source = [
+    _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
 
     _kernels = {
@@ -287,6 +287,6 @@ class LimitRectEllipse(BeamElement):
         self.a_b_squ = a_squ * b_squ
         return self
 
-    _extra_c_source = [
+    _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrectellipse.h')]
 

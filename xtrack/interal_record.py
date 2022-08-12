@@ -66,7 +66,7 @@ class RecordIdentifier(xo.Struct):
     buffer_id = xo.Int64
     offset = xo.Int64
 
-    _extra_c_source = [_RecordIdentifier_getp_record_source]
+    _extra_c_sources = [_RecordIdentifier_getp_record_source]
     _depends_on = [xp.Particles.XoStruct]
 
 
@@ -79,7 +79,7 @@ class RecordIndex(xo.Struct):
     _dummy = xo.UInt32 # to make sure the size is a multiple of 64 bits (not really needed)
     buffer_id = xo.Int64
 
-    _extra_c_source = [_RecordIndex_get_slot_source]
+    _extra_c_sources = [_RecordIndex_get_slot_source]
 
 
 class IOBufferHeader(xo.Struct):

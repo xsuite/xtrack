@@ -145,8 +145,8 @@ class MetaBeamElement(xo.MetaHybridClass):
                     record_classname=data['_internal_record_class'].XoStruct.__name__))
 
         # Get user-defined source, dependencies and kernels
-        if '_extra_c_source' in data.keys():
-            extra_c_source.extend(data['_extra_c_source'])
+        if '_extra_c_sources' in data.keys():
+            extra_c_source.extend(data['_extra_c_sources'])
 
         if '_depends_on' in data.keys():
             depends_on.extend(data['_depends_on'])
@@ -195,7 +195,7 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         # Call HybridClass metaclass
         data['_depends_on'] = depends_on
-        data['_extra_c_source'] = extra_c_source
+        data['_extra_c_sources'] = extra_c_source
         data['_kernels'] = kernels
         new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
 
@@ -224,7 +224,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     def compile_kernels(self, *args, **kwargs):
 
         # Attach local particle code
-        xp.Particles.XoStruct._extra_c_source.append(xp.gen_local_particle_api())
+        xp.Particles.XoStruct._extra_c_sources.append(xp.gen_local_particle_api())
 
         try:
             if 'apply_to_source' not in kwargs.keys():
@@ -234,10 +234,10 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             xo.HybridClass.compile_kernels(self, *args, **kwargs)
 
             # Remove local particle code
-            xp.Particles.XoStruct._extra_c_source.pop()
+            xp.Particles.XoStruct._extra_c_sources.pop()
         except Exception as e:
             # Clean up local particle code
-            xp.Particles.XoStruct._extra_c_source.pop()
+            xp.Particles.XoStruct._extra_c_sources.pop()
             raise e
 
     def track(self, particles, increment_at_element=False):

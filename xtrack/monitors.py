@@ -113,7 +113,7 @@ def generate_monitor_class(ParticlesClass):
         "data": ParticlesClass.XoStruct,
     }
 
-    _extra_c_source = [
+    _extra_c_sources = [
         _pkg_root.joinpath("monitors_src/monitors.h")
     ]
 
@@ -122,7 +122,7 @@ def generate_monitor_class(ParticlesClass):
         (BeamElement,),
         {"_ParticlesClass": ParticlesClass,
         '_xofields': _xofields,
-        '_extra_c_source': _extra_c_source,
+        '_extra_c_sources': _extra_c_sources,
         },
     )
 

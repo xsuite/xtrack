@@ -22,7 +22,7 @@ class TestElement(xt.BeamElement):
         'dummy': xo.Float64,
         }
 
-    _extra_c_source = [
+    _extra_c_sources = [
         xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         '''
