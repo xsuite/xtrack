@@ -558,32 +558,13 @@ class Tracker:
 
         context = self._line_frozen._buffer.context
 
-        sources = []
         kernels = {}
-        cdefs = []
+        headers = []
 
         if self.global_xy_limit is not None:
-            sources.append(
+            headers.append(
                 f"#define XTRACK_GLOBAL_POSLIMIT ({self.global_xy_limit})")
-        sources.append(_pkg_root.joinpath("headers/constants.h"))
-
-
-        # Local particles
-        sources.append(self.local_particle_src)
-
-        # Tracker auxiliary functions
-        sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
-
-        # Internal recording
-        sources.append(RecordIdentifier._gen_c_api())
-        sources += RecordIdentifier.extra_sources
-        sources.append(RecordIndex._gen_c_api())
-        sources += RecordIndex.extra_sources
-
-        # Elements
-        for ee in self.element_classes:
-            for ss in ee.extra_sources:
-                sources.append(ss)
+        headers.append(_pkg_root.joinpath("headers/constants.h"))
 
         src_lines = []
         src_lines.append(
@@ -693,7 +674,6 @@ class Tracker:
         )
 
         source_track = "\n".join(src_lines)
-        sources.append(source_track)
 
         kernel_descriptions = {
             "track_line": xo.Kernel(
@@ -721,20 +701,24 @@ class Tracker:
         kernels.update(kernel_descriptions)
 
         # Random number generator init kernel
-        sources.extend(self.particles_class.XoStruct.extra_sources)
+        #sources.extend(self.particles_class.XoStruct.extra_sources)
         kernels.update(self.particles_class.XoStruct.custom_kernels)
 
-        sources = _handle_per_particle_blocks(sources)
+        self.particles_class.XoStruct._extra_c_source.append(self.local_particle_src)
 
         # Compile!
         context.add_kernels(
-            sources,
+            [source_track],
             kernels,
+            extra_headers=headers,
             extra_classes=self.element_classes,
+            apply_to_source=[_handle_per_particle_blocks],
             save_source_as=save_source_as,
             specialize=True,
             compile=compile
         )
+
+        self.particles_class.XoStruct._extra_c_source.pop()
 
         self.track_kernel = context.kernels.track_line
 
