@@ -126,69 +126,80 @@ class MetaBeamElement(xo.MetaHybridClass):
         data = data.copy()
         data['_xofields'] = xofields
 
+        depends_on = []
+        extra_c_source = []
+        kernels = {}
+
         if '_internal_record_class' in data.keys():
             data['_xofields']['_internal_record_id'] = RecordIdentifier
             if '_skip_in_to_dict' not in data.keys():
                 data['_skip_in_to_dict'] = []
             data['_skip_in_to_dict'].append('_internal_record_id')
 
-        new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
-        XoStruct = new_class.XoStruct
-
-        XoStruct._extra_c_source = []
-
-        XoStruct._depends_on = []
-
-        if '_internal_record_class' in data.keys():
-            XoStruct._depends_on.append(RecordIndex)
-            XoStruct._depends_on.append(data['_internal_record_class'].XoStruct)
-            XoStruct._extra_c_source.append(
+            depends_on.append(RecordIndex)
+            depends_on.append(data['_internal_record_class'].XoStruct)
+            extra_c_source.append(
                 generate_get_record(ele_classname=XoStruct_name,
                     record_classname=data['_internal_record_class'].XoStruct.__name__))
 
         if '_extra_c_source' in data.keys():
-            new_class.XoStruct._extra_c_source.extend(data['_extra_c_source'])
+            extra_c_source.extend(data['_extra_c_source'])
 
-        new_class.XoStruct._extra_c_source.append(
+        if '_depends_on' in data.keys():
+            depends_on.extend(data['_depends_on'])
+
+        if '_kernels' in data.keys():
+            kernels.update(data['_kernels'])
+
+        extra_c_source.append(
             _generate_per_particle_kernel_from_local_particle_function(
                 element_name=name, kernel_name=name+'_track_particles',
                 local_particle_function_name=name+'_track_local_particle'))
 
-        XoStruct._depends_on.append(xp.Particles.XoStruct)
+        depends_on.append(xp.Particles.XoStruct)
 
-        new_class._track_kernel_name = f'{name}_track_particles'
-        XoStruct._kernels[new_class._track_kernel_name] = xo.Kernel(
-                    args=[xo.Arg(XoStruct, name='el'),
+        track_kernel_name = f'{name}_track_particles'
+        kernels[track_kernel_name] = xo.Kernel(
+                    args=[xo.Arg(xo.ThisClass, name='el'),
                         xo.Arg(xp.Particles.XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
                     )
 
-        XoStruct._DressingClass = new_class
-
-        if '_internal_record_class' in data.keys():
-            new_class.XoStruct._internal_record_class = data['_internal_record_class']
-            new_class._internal_record_class = data['_internal_record_class']
-
-        if 'per_particle_kernels' in data.keys():
-            for nn, kk in data['per_particle_kernels'].items():
-                XoStruct._extra_c_source.append(
+        if '_per_particle_kernels' in data.keys():
+            for nn, kk in data['_per_particle_kernels'].items():
+                extra_c_source.append(
                     _generate_per_particle_kernel_from_local_particle_function(
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                if xp.Particles.XoStruct not in XoStruct._depends_on:
-                    XoStruct._depends_on.append(xp.Particles.XoStruct)
-                setattr(new_class, nn, PerParticlePyMethodDescriptor(kernel_name=nn))
+                if xp.Particles.XoStruct not in depends_on:
+                    depends_on.append(xp.Particles.XoStruct)
 
-                XoStruct._kernels.update(
+                kernels.update(
                     {nn:
-                        xo.Kernel(args=[xo.Arg(new_class.XoStruct, name='el'),
+                        xo.Kernel(args=[xo.Arg(xo.ThisClass, name='el'),
                             xo.Arg(xp.Particles.XoStruct, name='particles')]
                             + kk.args + [
                             xo.Arg(xo.Int64, name='flag_increment_at_element'),
                             xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
                 )
+
+        data['_depends_on'] = depends_on
+        data['_extra_c_source'] = extra_c_source
+        data['_kernels'] = kernels
+
+        new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
+
+        new_class._track_kernel_name = track_kernel_name
+
+        if '_internal_record_class' in data.keys():
+            new_class.XoStruct._internal_record_class = data['_internal_record_class']
+            new_class._internal_record_class = data['_internal_record_class']
+
+        if '_per_particle_kernels' in data.keys():
+            for nn in data['_per_particle_kernels'].keys():
+                setattr(new_class, nn, PerParticlePyMethodDescriptor(kernel_name=nn))
 
         return new_class
 
