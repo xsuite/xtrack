@@ -212,14 +212,16 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         self.name = name
         self.partners_names = partners_names
 
-    def compile_kernels(self, save_source_as=None):
+    def compile_kernels(self, *args, **kwargs):
 
         # Local particles
         xp.Particles.XoStruct._extra_c_source.append(xp.gen_local_particle_api())
 
-        xo.HybridClass.compile_kernels(self,
-            apply_to_source=[_handle_per_particle_blocks],
-            save_source_as=save_source_as)
+        if 'apply_to_source' not in kwargs.keys():
+            kwargs['apply_to_source'] = []
+        kwargs['apply_to_source'].append(_handle_per_particle_blocks)
+
+        xo.HybridClass.compile_kernels(self, *args, **kwargs)
 
         # Remove local particle API
         xp.Particles.XoStruct._extra_c_source.pop()

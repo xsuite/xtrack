@@ -192,10 +192,7 @@ class LimitPolygon(BeamElement):
         ctx = self._buffer.context
 
         if 'LimitPolygon_impact_point_and_normal' not in ctx.kernels.keys():
-            ctx.add_kernels(
-                sources = (['#define NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE']
-                             + self.XoStruct._extra_c_source),
-                kernels =  self.XoStruct.custom_kernels)
+            self.compile_kernels(only_if_needed=True)
 
         x_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
         y_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
@@ -227,10 +224,6 @@ class LimitPolygon(BeamElement):
         cx = 1/(6*self.area)*np.sum((x[:-1]+x[1:])*(x[:-1]*y[1:]-x[1:]*y[:-1]))
         cy = 1/(6*self.area)*np.sum((y[:-1]+y[1:])*(y[:-1]*x[1:]-y[1:]*x[:-1]))
         return (cx,cy)
-
-
-
-
 
 class LimitRectEllipse(BeamElement):
     _xofields = {
