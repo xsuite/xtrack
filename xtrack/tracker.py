@@ -809,12 +809,12 @@ class Tracker:
                 and not isinstance(particles._buffer.context, xo.ContextCpu)):
                 moveback_to_buffer = particles._buffer
                 moveback_to_offset = particles._offset
-                particles._move_to(_context=xo.ContextCpu())
+                particles.move(_context=xo.ContextCpu())
                 particles.reorganize()
         else:
             # Move to GPU if not already there
             if moveback_to_buffer is not None:
-                particles._move_to(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
+                particles.move(_buffer=moveback_to_buffer, _offset=moveback_to_offset)
                 moveback_to_buffer = None
                 moveback_to_offset = None
                 if _context_needs_clean_active_lost_state:
@@ -1019,7 +1019,7 @@ class Tracker:
                 break
 
             if moveback_to_buffer is not None:
-                particles._move_to(
+                particles.move(
                         _buffer=moveback_to_buffer, _offset=moveback_to_offset)
                 moveback_to_buffer = None
                 moveback_to_offset = None

@@ -183,8 +183,8 @@ num_turns1 = 3
 tracker.track(part, num_turns=num_turns0)
 tracker.track(part, num_turns=num_turns1)
 
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 
 num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
@@ -241,8 +241,8 @@ tracker.track(part, num_turns=num_turns0)
 tracker.stop_internal_logging_for_elements_of_type(TestElement)
 tracker.track(part, num_turns=num_turns1)
 
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 
 num_turns = num_turns0
 
@@ -286,8 +286,8 @@ tracker.stop_internal_logging_for_elements_of_type(TestElement)
 tracker.track(part, num_turns=num_turns1)
 
 # Checks
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 num_turns = num_turns0
 num_particles = len(part.x)
 

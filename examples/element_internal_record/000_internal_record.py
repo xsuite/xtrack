@@ -162,8 +162,8 @@ tracker.track(part, num_turns=num_turns1)
 num_recorded = record._index.num_recorded
 num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 assert num_recorded == (num_particles * num_turns * (n_kicks0 + n_kicks1))
 
 assert np.sum((record.at_element[:num_recorded] == 0)) == (num_particles * num_turns
@@ -202,8 +202,8 @@ tracker.track(part, num_turns=num_turns1)
 
 num_recorded = record._index.num_recorded
 num_turns = num_turns0
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 assert np.all(part.at_turn == num_turns0 + num_turns1)
 assert num_recorded == (num_particles * num_turns
                                           * (n_kicks0 + n_kicks1))
@@ -236,8 +236,8 @@ tracker.stop_internal_logging_for_elements_of_type(TestElement)
 tracker.track(part, num_turns=num_turns1)
 
 # Checks
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 num_recorded = record._index.num_recorded
 num_turns = num_turns0
 num_particles = len(part.x)

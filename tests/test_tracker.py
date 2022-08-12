@@ -76,7 +76,7 @@ def test_synrad_configuration():
             elements = [xt.Multipole(knl=[1]) for _ in range(10)]
             if collective:
                 elements[5].iscollective = True
-                elements[5]._move_to(_context=context)
+                elements[5].move(_context=context)
 
             tracker = xt.Tracker(line=xt.Line(elements=elements),
                                  _context=context)
@@ -86,7 +86,7 @@ def test_synrad_configuration():
                 assert ee.radiation_flag == 1
             p = xp.Particles(x=[0.01, 0.02], _context=context)
             tracker.track(p)
-            p._move_to(_context=xo.ContextCpu())
+            p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
 
             tracker.configure_radiation(mode='quantum')
@@ -94,7 +94,7 @@ def test_synrad_configuration():
                 assert ee.radiation_flag == 2
             p = xp.Particles(x=[0.01, 0.02], _context=context)
             tracker.track(p)
-            p._move_to(_context=xo.ContextCpu())
+            p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
 
             tracker.configure_radiation(mode=None)
@@ -102,7 +102,7 @@ def test_synrad_configuration():
                 assert ee.radiation_flag == 0
             p = xp.Particles(x=[0.01, 0.02], _context=context)
             tracker.track(p)
-            p._move_to(_context=xo.ContextCpu())
+            p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
 
 def test_partial_tracking():

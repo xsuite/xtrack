@@ -76,7 +76,7 @@ def test_radiation():
         dct_test = ptest.to_dict()
         Delta_E_on_part = np.sum((dct_test['ptau']-dct_ave_before['ptau'])
                                  * dct_ave['p0c'])
-        sr_photon_record._move_to(_context=xo.ContextCpu())
+        sr_photon_record.move(_context=xo.ContextCpu())
         assert np.isclose(-Delta_E_on_part, np.sum(sr_photon_record.photon_energy),
                           atol=0, rtol=1e-6)
 
@@ -196,7 +196,7 @@ def test_ring_with_radiation():
                 tracker=tracker)
 
         assert pgen._buffer.context is context
-        pgen._move_to(_context=xo.ContextCpu())
+        pgen.move(_context=xo.ContextCpu())
 
         assert np.isclose(np.std(pgen.x),
                         np.sqrt(tw['dx'][0]**2*np.std(pgen.delta)**2

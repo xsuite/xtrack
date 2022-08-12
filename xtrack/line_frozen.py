@@ -59,7 +59,7 @@ class LineFrozen:
                 "Elements containing references should be placed directly in the"
                 " same buffer as the tracker."
                 )
-                ee._move_to(_buffer=line_data._buffer)
+                ee.move(_buffer=line_data._buffer)
 
             line_data[ii] = ee._xobject
 

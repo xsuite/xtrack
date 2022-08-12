@@ -40,8 +40,8 @@ def test_constructor():
             nee = ee.__class__.from_dict(dd, _context=ctx)
             # Check that the two objects are bitwise identical
             if not isinstance(ctx, xo.ContextCpu):
-                ee._move_to(_context=xo.ContextCpu())
-                nee._move_to(_context=xo.ContextCpu())
+                ee.move(_context=xo.ContextCpu())
+                nee.move(_context=xo.ContextCpu())
             assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
                     - nee._xobject._buffer.buffer[
                         nee._xobject._offset:nee._xobject._size]).sum() == 0
@@ -695,13 +695,13 @@ def test_per_particle_kernel():
 
         # p = xp.Particles(p0c=1e9, x=[1,2,3], _context=context)
         # el.track(p)
-        # p._move_to(_context=xo.ContextCpu())
+        # p.move(_context=xo.ContextCpu())
         # assert np.all(p.x == [10,10,10])
 
         p = xp.Particles(p0c=1e9, x=[1,2,3], _context=context)
         b = p.x*0.5
         el.test_kernel(p, b=b)
-        p._move_to(_context=xo.ContextCpu())
+        p.move(_context=xo.ContextCpu())
         assert np.all(p.x == np.array([11.5, 13, 14.5]))
 
 

@@ -190,8 +190,8 @@ for i_turn in range(num_turns0 + num_turns1):
     part.at_element[:] = 0
     part.at_turn += 1
 
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 
 num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
@@ -258,8 +258,8 @@ for i_turn in range(num_turns0 + num_turns1):
     part.at_turn += 1
 
 
-part._move_to(_context=xo.ContextCpu())
-record._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record.move(_context=xo.ContextCpu())
 
 num_turns = num_turns0
 
@@ -300,9 +300,9 @@ for i_turn in range(num_turns0 + num_turns1):
     part.at_element[:] = 0
     part.at_turn += 1
 
-part._move_to(_context=xo.ContextCpu())
-record0._move_to(_context=xo.ContextCpu())
-record1._move_to(_context=xo.ContextCpu())
+part.move(_context=xo.ContextCpu())
+record0.move(_context=xo.ContextCpu())
+record1.move(_context=xo.ContextCpu())
 
 num_turns = num_turns0 + num_turns1
 num_particles = len(part.x)
