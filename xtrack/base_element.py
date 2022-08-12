@@ -38,6 +38,12 @@ end_part_part_block = """
 
 def _handle_per_particle_blocks(sources):
 
+    if isinstance(sources, str):
+        sources = (sources, )
+        wasstring = True
+    else:
+        wasstring = False
+
     out = []
     for ii, ss in enumerate(sources):
         if isinstance(ss, Path):
@@ -59,6 +65,9 @@ def _handle_per_particle_blocks(sources):
             out.append('\n'.join(lines))
         else:
             out.append(ss)
+
+    if wasstring:
+        out = out[0]
 
     return out
 
@@ -189,24 +198,28 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         sources = []
 
         # Local particles
-        sources.append(xp.gen_local_particle_api())
+        # sources.append(xp.gen_local_particle_api())
+        xp.Particles.XoStruct._extra_c_source = xp.gen_local_particle_api()
 
         # Tracker auxiliary functions
         sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
 
         # Internal recording
-        sources.append(RecordIdentifier._gen_c_api())
-        sources += RecordIdentifier.extra_sources
-        sources.append(RecordIndex._gen_c_api())
-        sources += RecordIndex.extra_sources
+        # sources.append(RecordIdentifier._gen_c_api())
+        # sources += RecordIdentifier.extra_sources
+        # sources.append(RecordIndex._gen_c_api())
+        # sources += RecordIndex.extra_sources
 
-        sources += self.XoStruct.extra_sources
+        self.XoStruct._depends_on = [RecordIdentifier, RecordIndex, xp.Particles.XoStruct]
+
+        #sources += self.XoStruct.extra_sources
         sources.append(self.per_particle_kernels_source)
 
-        sources = _handle_per_particle_blocks(sources)
+        #sources = _handle_per_particle_blocks(sources)
 
         context.add_kernels(sources=sources,
                 kernels=self.per_particle_kernels_description,
+                apply_to_source=[_handle_per_particle_blocks],
                 save_source_as=save_source_as)
 
     def track(self, particles, increment_at_element=False):
