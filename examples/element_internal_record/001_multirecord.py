@@ -38,26 +38,10 @@ class TestElementRecord(xo.HybridClass):
         'table2': Table2.XoStruct
         }
 
-# To allow elements of a given type to store data in a structure of the type defined
-# above we need to add in the element class an attribute called
-# `_internal_record_class` to which we bind the data structure type defined above.
-
-class TestElement(xt.BeamElement):
-    _xofields={
-        'n_kicks': xo.Int64,
-        }
-    _internal_record_class = TestElementRecord
-
-# The element uses the random number generator
-TestElement.XoStruct.extra_sources.extend([
-    xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-    xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-    ])
-
 # The two tables in the internal record can be accessed independently in the C
 # code of the beam element.
 
-TestElement.XoStruct.extra_sources.append(r'''
+TestElement_track_method_source = r'''
     /*gpufun*/
     void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
 
@@ -125,8 +109,25 @@ TestElement.XoStruct.extra_sources.append(r'''
 
         //end_per_particle_block
     }
-    ''')
+    '''
 
+# To allow elements of a given type to store data in a structure of the type defined
+# above we need to add in the element class an attribute called
+# `_internal_record_class` to which we bind the data structure type defined above.
+
+class TestElement(xt.BeamElement):
+    _xofields={
+        'n_kicks': xo.Int64,
+        }
+
+    _internal_record_class = TestElementRecord
+
+    _extra_c_source = [
+        # The element uses the random number generator
+        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        TestElement_track_method_source
+    ]
 
 # Once these steps are done, the TestElement and its recording feature are ready
 # and can be used as follows.
