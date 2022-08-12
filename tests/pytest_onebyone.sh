@@ -1,0 +1,20 @@
+echo "Test results" > allres.xml
+pytest -v --junitxml="results.xml" test_acceleration.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_apertures.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_aperture_turn_ele_and_monitor.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_collective_tracker.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_collimation.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_element_internal_record.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_elements.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_full_rings.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_import_madx.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_line.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_match_and_track_from_element.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_monitor.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_pipeline.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_pyht_interface.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_pyopencl.sh; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_radiation.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_spacecharge_in_ring.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_tracker.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
+pytest -v --junitxml="results.xml" test_vs_madx.py; cat results.xml >> allres.xml; echo "\n" >> allres.xml
