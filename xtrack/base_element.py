@@ -132,22 +132,27 @@ class MetaBeamElement(xo.MetaHybridClass):
                 data['_skip_in_to_dict'] = []
             data['_skip_in_to_dict'].append('_internal_record_id')
 
-            sources_for_internal_record = []
-            sources_for_internal_record.extend(
-                xo.context.sources_from_classes(xo.context.sort_classes(
-                                            [data['_internal_record_class'].XoStruct])))
-            sources_for_internal_record.append(
-                generate_get_record(ele_classname=XoStruct_name,
-                    record_classname=data['_internal_record_class'].XoStruct.__name__))
-
-            data['extra_sources'] = sources_for_internal_record + data['extra_sources']
-
         new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
         XoStruct = new_class.XoStruct
 
-        new_class.per_particle_kernels_source = _generate_per_particle_kernel_from_local_particle_function(
-            element_name=name, kernel_name=name+'_track_particles',
-            local_particle_function_name=name+'_track_local_particle')
+        XoStruct._depends_on = []
+
+        if '_internal_record_class' in data.keys():
+            XoStruct._depends_on.append(RecordIndex)
+            XoStruct._depends_on.append(data['_internal_record_class'].XoStruct)
+            XoStruct._extra_c_source.append(
+                generate_get_record(ele_classname=XoStruct_name,
+                    record_classname=data['_internal_record_class'].XoStruct.__name__))
+
+        if '_extra_c_source' in data.keys():
+            new_class.XoStruct._extra_c_source.extend(data['_extra_c_source'])
+
+        new_class.XoStruct._extra_c_source.append(
+            _generate_per_particle_kernel_from_local_particle_function(
+                element_name=name, kernel_name=name+'_track_particles',
+                local_particle_function_name=name+'_track_local_particle'))
+
+        XoStruct._depends_on.append(xp.Particles.XoStruct)
 
         new_class._track_kernel_name = f'{name}_track_particles'
         new_class.per_particle_kernels_description = {new_class._track_kernel_name:
@@ -161,7 +166,6 @@ class MetaBeamElement(xo.MetaHybridClass):
         if '_internal_record_class' in data.keys():
             new_class.XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
-
 
         if 'per_particle_kernels' in data.keys():
             for nn, kk in data['per_particle_kernels'].items():
@@ -195,32 +199,16 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     def compile_per_particle_kernels(self, save_source_as=None):
         context = self._buffer.context
 
-        sources = []
-
         # Local particles
-        # sources.append(xp.gen_local_particle_api())
-        xp.Particles.XoStruct._extra_c_source = xp.gen_local_particle_api()
+        xp.Particles.XoStruct._extra_c_source.append(xp.gen_local_particle_api())
 
-        # Tracker auxiliary functions
-        sources.append(_pkg_root.joinpath("tracker_src/tracker.h"))
-
-        # Internal recording
-        # sources.append(RecordIdentifier._gen_c_api())
-        # sources += RecordIdentifier.extra_sources
-        # sources.append(RecordIndex._gen_c_api())
-        # sources += RecordIndex.extra_sources
-
-        self.XoStruct._depends_on = [RecordIdentifier, RecordIndex, xp.Particles.XoStruct]
-
-        #sources += self.XoStruct.extra_sources
-        sources.append(self.per_particle_kernels_source)
-
-        #sources = _handle_per_particle_blocks(sources)
-
-        context.add_kernels(sources=sources,
+        context.add_kernels(sources=[],
                 kernels=self.per_particle_kernels_description,
                 apply_to_source=[_handle_per_particle_blocks],
                 save_source_as=save_source_as)
+
+        # Remove local particle API
+        xp.Particles.XoStruct._extra_c_source.pop()
 
     def track(self, particles, increment_at_element=False):
 

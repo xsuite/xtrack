@@ -22,7 +22,7 @@ class LimitRect(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
-    extra_sources = [
+    _extra_c_source = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
 
@@ -36,11 +36,12 @@ class LimitRacetrack(BeamElement):
         'b': xo.Float64,
         }
 
+    _extra_c_source = [
+        _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
-LimitRacetrack.XoStruct.extra_sources = [
-        _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
 
 class LimitEllipse(BeamElement):
     _xofields = {
@@ -93,7 +94,7 @@ class LimitEllipse(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
-    extra_sources = [
+    _extra_c_source = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
 
 
@@ -172,7 +173,7 @@ class LimitPolygon(BeamElement):
         if 'LimitPolygon_impact_point_and_normal' not in ctx.kernels.keys():
             ctx.add_kernels(
                 sources = (['#define NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE']
-                             + self.XoStruct.extra_sources),
+                             + self.XoStruct._extra_c_source),
                 kernels =  self.XoStruct.custom_kernels)
 
         x_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
@@ -206,7 +207,7 @@ class LimitPolygon(BeamElement):
         cy = 1/(6*self.area)*np.sum((y[:-1]+y[1:])*(y[:-1]*x[1:]-y[1:]*x[:-1]))
         return (cx,cy)
 
-    extra_sources = [
+    _extra_c_source = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
 
 LimitPolygon.XoStruct.custom_kernels = {
@@ -289,6 +290,6 @@ class LimitRectEllipse(BeamElement):
         self.a_b_squ = a_squ * b_squ
         return self
 
-    extra_sources = [
+    _extra_c_source = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrectellipse.h')]
 

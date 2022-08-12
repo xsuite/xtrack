@@ -5,15 +5,10 @@
 
 import numpy as np
 import xobjects as xo
+import xpart as xp
 
-class RecordIdentifier(xo.Struct):
-    '''
-    To be inserted in the beam element.
-    '''
-    buffer_id = xo.Int64
-    offset = xo.Int64
-RecordIdentifier.extra_sources = []
-RecordIdentifier.extra_sources.append(r'''
+
+_RecordIdentifier_getp_record_source = r'''
 /*gpufun*/
 /*gpuglmem*/ int8_t* RecordIdentifier_getp_record(RecordIdentifier record_id, LocalParticle* part){
     /*gpuglmem*/ int8_t* io_buffer = LocalParticle_get_io_buffer(part);
@@ -33,18 +28,9 @@ RecordIdentifier.extra_sources.append(r'''
     return io_buffer + offset;
     }
 
-''')
+'''
 
-class RecordIndex(xo.Struct):
-    '''
-    To be inserted in the record class.
-    '''
-    capacity = xo.Int64
-    num_recorded = xo.UInt32
-    _dummy = xo.UInt32 # to make sure the size is a multiple of 64 bits (not really needed)
-    buffer_id = xo.Int64
-RecordIndex.extra_sources = []
-RecordIndex.extra_sources.append('''
+_RecordIndex_get_slot_source = r'''
 
 /*gpufun*/
 int64_t RecordIndex_get_slot(RecordIndex record_index){
@@ -70,8 +56,31 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
 
     return (int64_t) slot;
     }
+'''
 
-''')
+
+class RecordIdentifier(xo.Struct):
+    '''
+    To be inserted in the beam element.
+    '''
+    buffer_id = xo.Int64
+    offset = xo.Int64
+
+    _extra_c_source = [_RecordIdentifier_getp_record_source]
+    _depends_on = [xp.Particles.XoStruct]
+
+
+class RecordIndex(xo.Struct):
+    '''
+    To be inserted in the record class.
+    '''
+    capacity = xo.Int64
+    num_recorded = xo.UInt32
+    _dummy = xo.UInt32 # to make sure the size is a multiple of 64 bits (not really needed)
+    buffer_id = xo.Int64
+
+    _extra_c_source = [_RecordIndex_get_slot_source]
+
 
 class IOBufferHeader(xo.Struct):
     buffer_id = xo.Int64
