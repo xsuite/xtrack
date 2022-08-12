@@ -705,19 +705,22 @@ class Tracker:
 
         self.particles_class.XoStruct._extra_c_source.append(self.local_particle_src)
 
-        # Compile!
-        context.add_kernels(
-            [source_track],
-            kernels,
-            extra_headers=headers,
-            extra_classes=self.element_classes,
-            apply_to_source=[_handle_per_particle_blocks],
-            save_source_as=save_source_as,
-            specialize=True,
-            compile=compile
-        )
-
-        self.particles_class.XoStruct._extra_c_source.pop()
+        try:
+            # Compile!
+            context.add_kernels(
+                [source_track],
+                kernels,
+                extra_headers=headers,
+                extra_classes=self.element_classes,
+                apply_to_source=[_handle_per_particle_blocks],
+                save_source_as=save_source_as,
+                specialize=True,
+                compile=compile
+            )
+            self.particles_class.XoStruct._extra_c_source.pop()
+        except Exception as e:
+            self.particles_class.XoStruct._extra_c_source.pop()
+            raise e
 
         self.track_kernel = context.kernels.track_line
 

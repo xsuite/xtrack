@@ -214,17 +214,21 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def compile_kernels(self, *args, **kwargs):
 
-        # Local particles
+        # Attach local particle code
         xp.Particles.XoStruct._extra_c_source.append(xp.gen_local_particle_api())
 
-        if 'apply_to_source' not in kwargs.keys():
-            kwargs['apply_to_source'] = []
-        kwargs['apply_to_source'].append(_handle_per_particle_blocks)
+        try:
+            if 'apply_to_source' not in kwargs.keys():
+                kwargs['apply_to_source'] = []
+            kwargs['apply_to_source'].append(_handle_per_particle_blocks)
 
-        xo.HybridClass.compile_kernels(self, *args, **kwargs)
+            xo.HybridClass.compile_kernels(self, *args, **kwargs)
 
-        # Remove local particle API
-        xp.Particles.XoStruct._extra_c_source.pop()
+            # Remove local particle API
+            xp.Particles.XoStruct._extra_c_source.pop()
+        except Exception as e:
+            xp.Particles.XoStruct._extra_c_source.pop()
+            raise e
 
     def track(self, particles, increment_at_element=False):
 
