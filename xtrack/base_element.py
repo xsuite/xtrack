@@ -122,6 +122,7 @@ class MetaBeamElement(xo.MetaHybridClass):
     def __new__(cls, name, bases, data):
         XoStruct_name = name+'Data'
 
+        # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
         data = data.copy()
         data['_xofields'] = xofields
@@ -130,6 +131,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         extra_c_source = []
         kernels = {}
 
+        # Handle internal record
         if '_internal_record_class' in data.keys():
             data['_xofields']['_internal_record_id'] = RecordIdentifier
             if '_skip_in_to_dict' not in data.keys():
@@ -142,6 +144,7 @@ class MetaBeamElement(xo.MetaHybridClass):
                 generate_get_record(ele_classname=XoStruct_name,
                     record_classname=data['_internal_record_class'].XoStruct.__name__))
 
+        # Get user-defined source, dependencies and kernels
         if '_extra_c_source' in data.keys():
             extra_c_source.extend(data['_extra_c_source'])
 
@@ -151,13 +154,16 @@ class MetaBeamElement(xo.MetaHybridClass):
         if '_kernels' in data.keys():
             kernels.update(data['_kernels'])
 
+        # Generate track kernel
         extra_c_source.append(
             _generate_per_particle_kernel_from_local_particle_function(
                 element_name=name, kernel_name=name+'_track_particles',
                 local_particle_function_name=name+'_track_local_particle'))
 
+        # Add dependency on Particles class
         depends_on.append(xp.Particles.XoStruct)
 
+        # Define track kernel
         track_kernel_name = f'{name}_track_particles'
         kernels[track_kernel_name] = xo.Kernel(
                     args=[xo.Arg(xo.ThisClass, name='el'),
@@ -166,6 +172,7 @@ class MetaBeamElement(xo.MetaHybridClass):
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
                     )
 
+        # Generate per-particle kernels
         if '_per_particle_kernels' in data.keys():
             for nn, kk in data['_per_particle_kernels'].items():
                 extra_c_source.append(
@@ -185,18 +192,20 @@ class MetaBeamElement(xo.MetaHybridClass):
                             xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
                 )
 
+
+        # Call HybridClass metaclass
         data['_depends_on'] = depends_on
         data['_extra_c_source'] = extra_c_source
         data['_kernels'] = kernels
-
         new_class = xo.MetaHybridClass.__new__(cls, name, bases, data)
 
+        # Attach some information to the class
         new_class._track_kernel_name = track_kernel_name
-
         if '_internal_record_class' in data.keys():
             new_class.XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
 
+        # Attach methods corresponding to per-particle kernels
         if '_per_particle_kernels' in data.keys():
             for nn in data['_per_particle_kernels'].keys():
                 setattr(new_class, nn, PerParticlePyMethodDescriptor(kernel_name=nn))
@@ -224,9 +233,10 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
             xo.HybridClass.compile_kernels(self, *args, **kwargs)
 
-            # Remove local particle API
+            # Remove local particle code
             xp.Particles.XoStruct._extra_c_source.pop()
         except Exception as e:
+            # Clean up local particle code
             xp.Particles.XoStruct._extra_c_source.pop()
             raise e
 
