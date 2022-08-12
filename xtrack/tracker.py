@@ -702,7 +702,7 @@ class Tracker:
 
         # Random number generator init kernel
         #sources.extend(self.particles_class.XoStruct.extra_sources)
-        kernels.update(self.particles_class.XoStruct.custom_kernels)
+        kernels.update(self.particles_class._kernels)
 
         self.particles_class.XoStruct._extra_c_source.append(self.local_particle_src)
 
