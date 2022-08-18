@@ -24,13 +24,13 @@ test_data_folder = pathlib.Path(
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
 rtol_100turns = 1e-9; atol_100turns=5e-11
 
-# fname_line_particles = test_data_folder.joinpath(
-#                                  './lhc_with_bb/line_and_particle.json')
-# rtol_100turns = 1e-9; atol_100turns=2e-10
+fname_line_particles = test_data_folder.joinpath(
+                                  './lhc_with_bb/line_and_particle.json')
+rtol_100turns = 1e-9; atol_100turns=2e-10
 
-# fname_line_particles = test_data_folder.joinpath(
+#fname_line_particles = test_data_folder.joinpath(
 #                          './hllhc_14/line_and_particle.json')
-# rtol_100turns = 1e-9; atol_100turns=8e-11
+#rtol_100turns = 1e-9; atol_100turns=8e-11
 
 # fname_line_particles = test_data_folder.joinpath(
 #                  './sps_w_spacecharge/line_no_spacecharge_and_particle.json')

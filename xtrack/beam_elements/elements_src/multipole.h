@@ -9,9 +9,9 @@
 /*gpufun*/
 void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     int64_t radiation_flag = MultipoleData_get_radiation_flag(el);
 
-    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     // Extract record and record_index
     SynchrotronRadiationRecordData record = NULL;
     RecordIndex record_index = NULL;
