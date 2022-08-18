@@ -48,6 +48,7 @@ class Tracker:
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
+        extra_headers=(),
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
@@ -79,6 +80,7 @@ class Tracker:
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
+                extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as,
                 io_buffer=io_buffer,
@@ -97,6 +99,7 @@ class Tracker:
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
+                extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as,
                 io_buffer=io_buffer,
@@ -119,6 +122,7 @@ class Tracker:
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
+        extra_headers=(),
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
@@ -135,6 +139,7 @@ class Tracker:
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
         self.global_xy_limit = global_xy_limit
+        self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
         self.save_source_as = save_source_as
         self._enable_pipeline_hold = enable_pipeline_hold
@@ -210,6 +215,7 @@ class Tracker:
                 particles_class=particles_class,
                 particles_monitor_class=particles_monitor_class,
                 global_xy_limit=global_xy_limit,
+                extra_headers=extra_headers,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
                 save_source_as=save_source_as,
@@ -226,6 +232,7 @@ class Tracker:
                                 particles_class=particles_class,
                                 particles_monitor_class=particles_monitor_class,
                                 global_xy_limit=global_xy_limit,
+                                extra_headers=extra_headers,
                                 local_particle_src=local_particle_src,
                                 skip_end_turn_actions=True,
                                 io_buffer=self.io_buffer)
@@ -263,6 +270,7 @@ class Tracker:
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
         global_xy_limit=1.0,
+        extra_headers=(),
         local_particle_src=None,
         save_source_as=None,
         io_buffer=None,
@@ -286,6 +294,7 @@ class Tracker:
             local_particle_src = xp.gen_local_particle_api()
 
         self.global_xy_limit = global_xy_limit
+        self.extra_headers = extra_headers
 
         frozenline = LineFrozen(
                     _context=_context, _buffer=_buffer, _offset=_offset,
@@ -326,6 +335,7 @@ class Tracker:
         self.ele_typeids_dev = ele_typeids_dev
         self.num_elements = len(frozenline.elements)
         self.global_xy_limit = global_xy_limit
+        self.extra_headers = extra_headers
         self.skip_end_turn_actions = skip_end_turn_actions
         self.reset_s_at_end_turn = reset_s_at_end_turn
         self.local_particle_src = local_particle_src
@@ -480,6 +490,7 @@ class Tracker:
                 skip_end_turn_actions=self.skip_end_turn_actions,
                 particles_monitor_class=self.particles_monitor_class,
                 global_xy_limit=self.global_xy_limit,
+                extra_headers=self.extra_headers,
                 local_particle_src=self.local_particle_src,
             )
 
@@ -518,6 +529,7 @@ class Tracker:
                     skip_end_turn_actions=self.skip_end_turn_actions,
                     particles_monitor_class=self.particles_monitor_class,
                     global_xy_limit=global_xy_limit,
+                    extra_headers=self.extra_headers,
                     local_particle_src=self.local_particle_src,
                 )
 
@@ -560,6 +572,8 @@ class Tracker:
 
         kernels = {}
         headers = []
+
+        headers.extend(self.extra_headers)
 
         if self.global_xy_limit is not None:
             headers.append(

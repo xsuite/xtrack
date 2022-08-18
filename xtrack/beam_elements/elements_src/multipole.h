@@ -11,6 +11,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
     int64_t radiation_flag = MultipoleData_get_radiation_flag(el);
 
+    #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
     // Extract record and record_index
     SynchrotronRadiationRecordData record = NULL;
     RecordIndex record_index = NULL;
@@ -20,6 +21,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             record_index = SynchrotronRadiationRecordData_getp__index(record);
         }
     }
+    #endif
 
     //start_per_particle_block (part0->part)
         int64_t order = MultipoleData_get_order(el);
@@ -51,9 +53,10 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
 
         double const length = MultipoleData_get_length(el); // m
-        double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
 
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
+        double const curv = sqrt(dpx*dpx + dpy*dpy) / length;
         if (radiation_flag > 0 && length > 0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
             if (radiation_flag == 1){
@@ -63,6 +66,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 synrad_emit_photons(part, curv, L_path, record_index, record);
             }
         }
+        #endif
 
         dpx = -chi * dpx; // rad
         dpy =  chi * dpy; // rad
@@ -95,6 +99,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         LocalParticle_add_to_py(part, dpy);
 
         // Radiation at exit
+        #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         if (radiation_flag > 0 && length > 0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
             if (radiation_flag == 1){
@@ -104,6 +109,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 synrad_emit_photons(part, curv, L_path, record_index, record);
             }
         }
+        #endif
     //end_per_particle_block
 }
 
