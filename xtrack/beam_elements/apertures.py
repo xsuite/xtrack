@@ -287,6 +287,17 @@ class LimitRectEllipse(BeamElement):
         self.a_b_squ = a_squ * b_squ
         return self
 
+class LimitRectLongitudinal(BeamElement):
+    _xofields = {
+        'min_zeta': xo.Float64,
+        'max_zeta': xo.Float64,
+        'min_pzeta': xo.Float64,
+        'max_pzeta': xo.Float64,
+        }
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
+
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/apertures_src/limitrectellipse.h')]
+        _pkg_root.joinpath('beam_elements/apertures_src/limitrectlongitudinal.h')]
 
