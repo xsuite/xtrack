@@ -234,7 +234,7 @@ class Line:
                 new_elements.append(ee)
             else:
                 if _is_thick(ee) and not _is_drift(ee):
-                    new_elements.append(Drift(length==ee.length))
+                    new_elements.append(Drift(length=ee.length))
                 else:
                     new_elements.append(Drift(length=0))
 
