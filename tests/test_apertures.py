@@ -221,7 +221,7 @@ def test_mad_import():
     assert polyg._xobject.x_vertices[1] == 5.8e-2
     assert polyg._xobject.y_vertices[1] == -3.5e-2
 
-def test_rect_longitudinal():
+def test_longitudinal_rect():
 
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
@@ -229,7 +229,7 @@ def test_rect_longitudinal():
         np2ctx = context.nparray_to_context_array
         ctx2np = context.nparray_from_context_array
 
-        aper_rect_longitudinal = xt.LimitRectLongitudinal(_context=context,
+        aper_rect_longitudinal = xt.LongitudinalLimitRect(_context=context,
                 min_zeta=-10E-3,max_zeta=20E-3, min_pzeta=-1E-3, max_pzeta = 4E-3)
 
         coords = np.array([
@@ -254,4 +254,4 @@ def test_rect_longitudinal():
                                zeta=coords[:,0], pzeta=coords[:,1])
 
         aper_rect_longitudinal.track(particles)
-        assert np.all(particles.state == 0)
+        assert np.all(particles.state == -2)

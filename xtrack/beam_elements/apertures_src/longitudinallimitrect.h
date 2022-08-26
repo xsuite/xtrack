@@ -3,16 +3,16 @@
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
 
-#ifndef XTRACK_LIMITRECTLONGITUDINAL_H
-#define XTRACK_LIMITRECTLONGITUDINAL_H
+#ifndef XTRACK_LONGITUDINALLIMITRECT_H
+#define XTRACK_LONGITUDINALLIMITRECT_H
 
 /*gpufun*/
-void LimitRectLongitudinal_track_local_particle(LimitRectLongitudinalData el, LocalParticle* part0){
+void LongitudinalLimitRect_track_local_particle(LongitudinalLimitRectData el, LocalParticle* part0){
 
-    double const min_zeta = LimitRectLongitudinalData_get_min_zeta(el);
-    double const max_zeta = LimitRectLongitudinalData_get_max_zeta(el);
-    double const min_pzeta = LimitRectLongitudinalData_get_min_pzeta(el);
-    double const max_pzeta = LimitRectLongitudinalData_get_max_pzeta(el);
+    double const min_zeta = LongitudinalLimitRectData_get_min_zeta(el);
+    double const max_zeta = LongitudinalLimitRectData_get_max_zeta(el);
+    double const min_pzeta = LongitudinalLimitRectData_get_min_pzeta(el);
+    double const max_pzeta = LongitudinalLimitRectData_get_max_pzeta(el);
 
     //start_per_particle_block (part0->part)
 
@@ -27,7 +27,7 @@ void LimitRectLongitudinal_track_local_particle(LimitRectLongitudinalData el, Lo
 
 	// I assume that if I am in the function is because
     	if (!is_alive){
-           LocalParticle_set_state(part, 0);
+           LocalParticle_set_state(part, -2);
 	}
 
     //end_per_particle_block

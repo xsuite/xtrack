@@ -291,7 +291,7 @@ class LimitRectEllipse(BeamElement):
         _pkg_root.joinpath('beam_elements/apertures_src/limitrectellipse.h')]
 
 
-class LimitRectLongitudinal(BeamElement):
+class LongitudinalLimitRect(BeamElement):
     _xofields = {
         'min_zeta': xo.Float64,
         'max_zeta': xo.Float64,
@@ -303,6 +303,6 @@ class LimitRectLongitudinal(BeamElement):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/apertures_src/limitrectlongitudinal.h')]
+        _pkg_root.joinpath('beam_elements/apertures_src/longitudinallimitrect.h')]
 
 
