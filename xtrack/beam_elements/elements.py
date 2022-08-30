@@ -472,7 +472,7 @@ class DipoleEdge(BeamElement):
     ):
 
         if r21 is not None or r43 is not None:
-            raise NoImplementedError(
+            raise NotImplementedError(
                 "Please initialize using `h`, `e1`, `hgap` and `fint`")
 
         if hgap is None:
