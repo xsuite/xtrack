@@ -8,3 +8,4 @@ norepository_*
 build
 CyFPPS.cpp
 examples/*/res/*
+*.egg-info
