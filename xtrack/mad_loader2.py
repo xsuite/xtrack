@@ -737,9 +737,9 @@ class MadLoader:
         return self.convert_thin_element([el], ee)
 
     def convert_beambeam(self, ee):
-        if ee.slot_id == 6 or ee.slot_id == 60:
-            import xfields as xf
+        import xfields as xf
 
+        if ee.slot_id == 6 or ee.slot_id == 60:
             el = ElementBuilder(
                 el.name,
                 xf.BeamBeamBiGaussian3D,
@@ -776,8 +776,6 @@ class MadLoader:
             )
         else:
             # BB interaction is 4D
-            import xfields as xf
-
             el = ElementBuilder(
                 el.name,
                 xf.BeamBeamBiGaussian2D,
@@ -820,4 +818,23 @@ def convert_placeholder(self, ee):
         el = ElementBuilder(ee.name, self.classes.SCInterpolatedProfile)
     else:
         el = ElementBuilder(ee.name, self._drift, length=ee.l)
+    return self.convert_thin_element([el], ee)
+
+
+def convert_matrix(self, ee):
+    length = ee.l
+    m0 = np.zeros(6, dtype=float)
+    for m0_i in range(6):
+        att_name = f"kick{m0_i+1}"
+        if hasattr(ee, att_name):
+            m0[m0_i] = getattr(ee, att_name)
+    m1 = np.zeros((6, 6), dtype=float)
+    for m1_i in range(6):
+        for m1_j in range(6):
+            att_name = f"rm{m1_i+1}{m1_j+1}"
+            if hasattr(ee, att_name):
+                m1[m1_i, m1_j] = getattr(ee, att_name)
+    el = ElementBuilder(
+        ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
+    )
     return self.convert_thin_element([el], ee)
