@@ -9,13 +9,11 @@ MadLooder.iter_elements() iterates over the elements of the sequence,
 
 Developers:
 
-- MadElem encapsulate a mad element, it behaves like an elemenent from the expanded sequence but returns as attributes
-a value, or an expression if present.
+- MadElem encapsulate a mad element, it behaves like an elemenent from the expanded sequence
+but returns as attributes a value, or an expression if present.
 
-- When checking for zero values, remember that expressions checks false, but return expressions if checked explicitly for zero
-E.g.
-if MadElem(mad).l:
-    print("l is not zero or is an expression")
+- Use `if MadElem(mad).l: to check for no zero value and NOT `if MadElem(mad).l!=0:` because if l is an expression it will create the expression l!=0 and return True
+
 
 - ElementBuilder, is a class that buildes an xtrack element from a definition. If a values is expression, the value calculated from the expression, the expression if present is attached to the line.
 
@@ -30,11 +28,7 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 if the want to control how the xobject is created
 """
 
-from collections import namedtuple
-from curses import KEY_SAVE
-from tkinter import E
-from typing import Iterable, List, Tuple, Dict, Any
-from unittest.mock import NonCallableMagicMock
+from typing import List
 
 import numpy as np
 
@@ -74,12 +68,15 @@ def get_value(x):
         return x
 
 
-def add_lists(a, b):
+def add_lists(a, b, length=None):
     out = [a + b for a, b in zip(a, b)]
     for ii in range(len(a), len(b)):
         out.append(b[ii])
     for ii in range(len(b), len(a)):
         out.append(a[ii])
+    if length is not None:
+        for ii in range(len(out), length):
+            out.append(0)
     return out
 
 
