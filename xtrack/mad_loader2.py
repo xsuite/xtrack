@@ -15,7 +15,7 @@ but returns as attributes a value, or an expression if present.
 - Use `if MadElem(mad).l: to check for no zero value and NOT `if MadElem(mad).l!=0:` because if l is an expression it will create the expression l!=0 and return True
 
 
-- ElementBuilder, is a class that buildes an xtrack element from a definition. If a values is expression, the value calculated from the expression, the expression if present is attached to the line.
+- ElementBuilder, is a class that builds an xtrack element from a definition. If a values is expression, the value calculated from the expression, the expression if present is attached to the line.
 
 
 Developer should write
@@ -239,19 +239,26 @@ class ElementBuilder:
         else:
             super().__setattr__(k, v)
 
-    def add_to_line(self, line, buffer, enable_expressions):
+    def add_to_line(self, line, buffer):
+        xtel = self.type(**self.attrs, _buffer=buffer)
+        line.append_element(xtel, self.name)
+
+class ElementBuilderWithExpr(ElementBuilder):
+
+    def add_to_line(self, line, buffer):
         attr_values = {k: get_value(v) for k, v in self.attrs.items()}
         xtel = self.type(**attr_values, _buffer=buffer)
         line.append_element(xtel, self.name)
-        if enable_expressions:
-            elref = line.element_refs[self.name]
-            for k, p in self.attrs.items():
-                set_expr(elref, k ,p)
+        elref = line.element_refs[self.name]
+        for k, p in self.attrs.items():
+            set_expr(elref, k ,p)
         return xtel
 
 
+
+
 class Aperture:
-    def __init__(self, mad_el, enable_errors, classes):
+    def __init__(self, mad_el, enable_errors, classes, Builder):
         self.mad_el = mad_el
         self.aper_tilt = rad2deg(self.aper_tilt)
         self.aper_offset = self.mad_elem.aper_offset
@@ -266,12 +273,13 @@ class Aperture:
             self.dx += mad_el.align_errors.arey
         self.apertype = self.mad_el.apertype
         self.classes = classes
+        self.Builder = Builder
 
     def entry(self):
         out = []
         if self.aper_tilt:
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_tilt_entry",
                     self.classes.SRotation,
                     angle=self.aper_tilt,
@@ -279,7 +287,7 @@ class Aperture:
             )
         if self.aper_offset[0] and self.aper_offset[1]:
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_offset_entry",
                     self.classes.XYShift,
                     dx=self.dx,
@@ -291,7 +299,7 @@ class Aperture:
         out = []
         if self.dx or self.dy:
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_offset_exit",
                     self.classes.XYShift,
                     dx=-self.dx,
@@ -300,7 +308,7 @@ class Aperture:
             )
         if not_zero(self.aper_tilt):
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_tilt_exit",
                     self.classes.SRotation,
                     angle=self.aper_tilt,
@@ -309,7 +317,7 @@ class Aperture:
 
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
-            aperture = ElementBuilder(
+            aperture = self.Builder(
                 self.name + "_aper",
                 self.classes.LimitPolygon,
                 x_vertices=self.mad_el.aper_vx,
@@ -323,7 +331,7 @@ class Aperture:
 
 
 class Alignment:
-    def __init__(self, mad_el, enable_errors, classes):
+    def __init__(self, mad_el, enable_errors, classes, Builder):
         self.mad_el = mad_el
         self.tilt = mad_el.get("tilt", 0)  # some elements do not have tilt
         if self.tilt:
@@ -337,12 +345,13 @@ class Alignment:
             self.dy = self.align_errors.dy
             self.tilt += rad2deg(self.align_errors.dpsi)
         self.classes = classes
+        self.Builder = Builder
 
     def entry(self):
         out = []
         if self.tilt:
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_tilt_entry",
                     self.classes.SRotation,
                     angle=self.tilt,
@@ -350,7 +359,7 @@ class Alignment:
             )
         if self.dx or self.dy:
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_offset_entry",
                     self.classes.XYShift,
                     dx=self.dx,
@@ -363,7 +372,7 @@ class Alignment:
         out = []
         if self.dx or self.dy:
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_offset_exit",
                     self.classes.XYShift,
                     dx=-self.dx,
@@ -372,7 +381,7 @@ class Alignment:
             )
         if self.tilt:
             out.append(
-                ElementBuilder(
+                self.Builder(
                     self.name + "_aper_tilt_exit",
                     self.classes.SRotation,
                     angle=-self.tilt,
@@ -441,6 +450,7 @@ class MadLoader:
             self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
 
+
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
         last_element = Dummy
@@ -479,8 +489,10 @@ class MadLoader:
 
         if self.enable_expressions:
             madeval = MadLoader.init_line_expressions(line, mad)
+            self.Builder=ElementBuilderWithExpr
         else:
             madeval = None
+            self.Builder=ElementBuilder
 
         for el in self.iter_elements(madeval=madeval):
             # for each mad element create xtract elements in a buffer and add to a line
@@ -504,7 +516,7 @@ class MadLoader:
     ):
         out = {}  # tbc
         for el in elements:
-            xtel = el.add_to_line(line, buffer, self.enable_expressions)
+            xtel = el.add_to_line(line, buffer)
             out[el.name] = xtel  # tbc
         return out  # tbc
 
@@ -512,12 +524,12 @@ class MadLoader:
         """add aperture and transformations to a thin element
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
         """
-        align = Alignment(mad_el, self.enable_errors, self.classes)
+        align = Alignment(mad_el, self.enable_errors, self.classes, self.Builder)
         # perm=self.permanent_alignement(mad_el) #to be implemented
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
-            aper = Aperture(mad_el, self.enable_error,self.classes)
+            aper = Aperture(mad_el, self.enable_error,self.classes, self.Builder)
             elem_list.extend(aper.entry())
             elem_list.extend(aper.aperture())
             elem_list.extend(aper.exit())
@@ -531,7 +543,7 @@ class MadLoader:
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
         return [
-            ElementBuilder(
+            self.Builder(
                 mad_el.name + "_aper",
                 self.classes.LimitRect,
                 x_min=-h,
@@ -544,7 +556,7 @@ class MadLoader:
     def convert_racetrack(self, mad_el):
         h, v, a, b = mad_el.aperture[:4]
         return [
-            ElementBuilder(
+            self.Builder(
                 mad_el.name + "_aper",
                 self.classes.LimitRacetrack,
                 x_min=-h,
@@ -559,13 +571,13 @@ class MadLoader:
     def convert_ellipse(self, mad_el):
         a, b = mad_el.aperture[:2]
         return [
-            ElementBuilder(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=b)
+            self.Builder(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=b)
         ]
 
     def convert_circle(self, mad_el):
         a = mad_el.aperture[0]
         return [
-            ElementBuilder(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=a)
+            self.Builder(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=a)
         ]
 
     def convert_octagon(self, ee):
@@ -575,7 +587,7 @@ class MadLoader:
         a3 = ee.aperture[3]
         V1 = (a0, a0 * np.tan(a2))  # expression will fail
         V2 = (a1 / np.tan(a3), a1)  # expression will fail
-        el = ElementBuilder(
+        el = self.Builder(
             ee.name + "_aper",
             self.classes.LimitPolygon,
             x_vertices=[V1[0], V2[0], -V2[0], -V1[0], -V1[0], -V2[0], V2[0], V1[0]],
@@ -584,14 +596,14 @@ class MadLoader:
         return [el]
 
     def convert_drift(self, mad_elem):
-        return [ElementBuilder(mad_elem.name, self._drift, length=mad_elem.l)]
+        return [self.Builder(mad_elem.name, self._drift, length=mad_elem.l)]
 
     def convert_marker(self, mad_elem):
-        el = ElementBuilder(mad_elem.name, self._drift, length=0)
+        el = self.Builder(mad_elem.name, self._drift, length=0)
         return self.convert_thin_element([el], mad_elem)
 
     def convert_drift_like(self, mad_elem):
-        el = ElementBuilder(mad_elem.name, self._drift, length=mad_elem.l)
+        el = self.Builder(mad_elem.name, self._drift, length=mad_elem.l)
         return self.convert_thin_element([el], mad_elem)
 
     convert_monitor = convert_drift_like
@@ -615,7 +627,7 @@ class MadLoader:
             lmax = max(lmax, non_zero_len(dkn), non_zero_len(dks))
             knl = add_lists(knl, dkn, lmax)
             ksl = add_lists(ksl, dks, lmax)
-        el = ElementBuilder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
+        el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl
         el.ksl = ksl
         if mad_elem.angle:  # NB !=0 creates an expression
@@ -628,7 +640,7 @@ class MadLoader:
     def convert_kicker(self, mad_elem):
         hkick = [mad_elem.hkick] if mad_elem.hkick else []
         vkick = [mad_elem.vkick] if mad_elem.vkick else []
-        el = ElementBuilder(
+        el = self.Builder(
             mad_elem.name,
             self.classes.Multipole,
             knl=hkick,
@@ -642,7 +654,7 @@ class MadLoader:
     def convert_hkicker(self, mad_elem):
         hkick = [mad_elem.kick] if mad_elem.kick else []
         vkick = []
-        el = ElementBuilder(
+        el = self.Builder(
             mad_elem.name,
             self.classes.Multipole,
             knl=hkick,
@@ -656,7 +668,7 @@ class MadLoader:
     def convert_vkicker(self, mad_elem):
         vkick = [mad_elem.kick] if mad_elem.kick else []
         hkick = []
-        el = ElementBuilder(
+        el = self.Builder(
             mad_elem.name,
             self.classes.Multipole,
             knl=hkick,
@@ -669,7 +681,7 @@ class MadLoader:
 
     def convert_dipedge(self, mad_elem):
         # TODO LRAD
-        el = ElementBuilder(
+        el = self.Builder(
             mad_elem.name,
             self.classes.DipoleEdge,
             h=mad_elem.h,
@@ -687,7 +699,7 @@ class MadLoader:
             )
         else:
             frequency = ee.freq * 1e6
-        el = ElementBuilder(
+        el = self.Builder(
             ee.name,
             self.classes.Cavity(),
             voltage=ee.volt * 1e6,
@@ -702,7 +714,7 @@ class MadLoader:
             raise NotImplementedError
         if ee.l:
             raise NotImplementedError
-        el = ElementBuilder(
+        el = self.Builder(
             ee.name,
             self.classes.RFMultipole,
             voltage=ee.volt * 1e6,
@@ -719,7 +731,7 @@ class MadLoader:
         if len(ee.L_phy) == 1:
             # the index [0] is present because in MAD-X multiple wires can
             # be defined within the same element
-            el = ElementBuilder(
+            el = self.Builder(
                 ee.name,
                 self.classes.Wire,
                 L_phy=ee.L_phy[0],
@@ -739,7 +751,7 @@ class MadLoader:
                 raise NotImplementedError(f"Invalid value {nn}={getattr(ee, nn)}")
         # ee.volt in MV, sequence.beam.pc in GeV
         if abs(ee.tilt - np.pi / 2) < 1e-9:
-            el = ElementBuilder(
+            el = self.Builder(
                 el.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
@@ -748,7 +760,7 @@ class MadLoader:
             )
             ee.tilt = 0
         else:
-            el = ElementBuilder(
+            el = self.Builder(
                 el.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
@@ -762,7 +774,7 @@ class MadLoader:
         import xfields as xf
 
         if ee.slot_id == 6 or ee.slot_id == 60:
-            el = ElementBuilder(
+            el = self.Builder(
                 el.name,
                 xf.BeamBeamBiGaussian3D,
                 old_interface={
@@ -798,7 +810,7 @@ class MadLoader:
             )
         else:
             # BB interaction is 4D
-            el = ElementBuilder(
+            el = self.Builder(
                 el.name,
                 xf.BeamBeamBiGaussian2D,
                 n_particles=0.0,
@@ -837,9 +849,9 @@ def convert_placeholder(self, ee):
         #     sigma_y=1.)
 
     elif ee.slot_id == 3:
-        el = ElementBuilder(ee.name, self.classes.SCInterpolatedProfile)
+        el = self.Builder(ee.name, self.classes.SCInterpolatedProfile)
     else:
-        el = ElementBuilder(ee.name, self._drift, length=ee.l)
+        el = self.Builder(ee.name, self._drift, length=ee.l)
     return self.convert_thin_element([el], ee)
 
 
@@ -856,7 +868,7 @@ def convert_matrix(self, ee):
             att_name = f"rm{m1_i+1}{m1_j+1}"
             if hasattr(ee, att_name):
                 m1[m1_i, m1_j] = getattr(ee, att_name)
-    el = ElementBuilder(
+    el = self.Builder(
         ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
     )
     return self.convert_thin_element([el], ee)
