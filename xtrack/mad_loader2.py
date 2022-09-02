@@ -26,9 +26,6 @@ or in alternative
 Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 
 if the want to control how the xobject is created
-
-
-TODO: max order knl
 """
 
 from typing import List
@@ -75,7 +72,7 @@ def set_expr(target, key, expr):
     """
     Assumes target is either a struct supporting attr assignment or an array supporint item assignment.
 
-    
+
     """
     if isinstance(expr, list):
         for ii,ex in enumerate(expr):
