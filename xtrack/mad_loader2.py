@@ -167,6 +167,10 @@ class MadElem:
     def type(self):
         return self.elem.base_type.name
 
+    @property
+    def slot_id(self):
+        return self.elem.slot_id
+
     def __getattr__(self, k):
         try:
             par = self.elem.cmdpar[k]
