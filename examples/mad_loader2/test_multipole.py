@@ -27,4 +27,5 @@ print(line.to_dict())
 
 ml=xtrack.mad_loader2.MadLoader(mad.sequence.seq,enable_expressions=True)
 line=ml.make_line()
+print(line.elements)
 print(line.to_dict())
