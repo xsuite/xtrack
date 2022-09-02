@@ -228,7 +228,7 @@ class ElementBuilder:
 
 
 class Aperture:
-    def __init__(self, mad_el, enable_errors):
+    def __init__(self, mad_el, enable_errors, classes):
         self.mad_el = mad_el
         self.aper_tilt = rad2deg(self.aper_tilt)
         self.aper_offset = self.mad_elem.aper_offset
@@ -238,10 +238,11 @@ class Aperture:
             self.dy = self.aper_offset[1]
         else:
             self.dy = 0
-        if self.enable_errors and self.mad_el.align_errors is not None:
+        if enable_errors and self.mad_el.align_errors is not None:
             self.dx += mad_el.align_errors.arex
             self.dx += mad_el.align_errors.arey
         self.apertype = self.mad_el.apertype
+        self.classes = classes
 
     def entry(self):
         out = []
@@ -299,7 +300,7 @@ class Aperture:
 
 
 class Alignment:
-    def __init__(self, mad_el, enable_errors):
+    def __init__(self, mad_el, enable_errors, classes):
         self.mad_el = mad_el
         self.tilt = mad_el.get("tilt", 0)  # some elements do not have tilt
         if self.tilt:
@@ -312,6 +313,7 @@ class Alignment:
             self.dx = self.align_errors.dx
             self.dy = self.align_errors.dy
             self.tilt += rad2deg(self.align_errors.dpsi)
+        self.classes = classes
 
     def entry(self):
         out = []
@@ -487,12 +489,12 @@ class MadLoader:
         """add aperture and transformations to a thin element
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
         """
-        align = Alignment(mad_el, self.enable_errors)
+        align = Alignment(mad_el, self.enable_errors, self.classes)
         # perm=self.permanent_alignement(mad_el) #to be implemented
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
-            aper = Aperture(mad_el, self.enable_error)
+            aper = Aperture(mad_el, self.enable_error,self.classes)
             elem_list.extend(aper.entry())
             elem_list.extend(aper.aperture())
             elem_list.extend(aper.exit())
