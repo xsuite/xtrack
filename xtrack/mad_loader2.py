@@ -149,12 +149,18 @@ class MadElem:
         self.elem = elem
         self.sequence = sequence
         self.madeval = madeval
-    
-    @property
-    def field_errors(self):
-        elem=self.elem
+        ### needed for merge multipoles
         if hasattr(elem, "field_errors") and elem.field_errors is not None:
-            return FieldErrors(elem.field_errors)
+            self.field_errors = FieldErrors(elem.field_errors)
+        else:
+            self.field_errors = None
+
+    
+    #@property
+    #def field_errors(self):
+    #    elem=self.elem
+    #    if hasattr(elem, "field_errors") and elem.field_errors is not None:
+    #        return FieldErrors(elem.field_errors)
 
     @property
     def phase_errors(self):
@@ -210,7 +216,7 @@ class MadElem:
     def same_aperture(self, other):
         return (
             self.aperture == other.aperture
-            and self.aperture_offset == other.aperture_offset
+            and self.aper_offset == other.aper_offset
             and self.aper_tilt == other.aper_tilt
             and self.aper_vx == other.aper_vx
             and self.aper_vy == other.aper_vy
@@ -222,8 +228,9 @@ class MadElem:
             self.knl += other.knl
             self.ksl += other.ksl
             if self.field_errors is not None and other.field_errors is not None:
-                for ii in range(len(self.field_errors["knl"])):
-                    self.field_errors.knl[ii] += other.field_errors[ii]
+                for ii in range(len(self.field_errors.dkn)):
+                    self.field_errors.dkn[ii] += other.field_errors.dkn[ii]
+                    self.field_errors.dks[ii] += other.field_errors.dks[ii]
             self.name = self.name + "_" + other.name
 
 
@@ -402,7 +409,7 @@ class Alignment:
 
 
 class Dummy:
-    type = None
+    type = "None"
 
 
 class MadLoader:
@@ -472,16 +479,16 @@ class MadLoader:
             elif (
                 self.merge_drifts
                 and last_element.type == "drift"
-                and el.type == "drift"
+                and madelem.type == "drift"
             ):
                 last_element.l += el.l
             elif (
                 self.merge_multipoles
                 and last_element.type == "multipole"
-                and el.type == "multipole"
+                and madelem.type == "multipole"
             ):
-                self.merge_multipole(last_element, el)
-            elif el.type in self.ignore_madtypes:
+                last_element.merge_multipole(madelem)
+            elif madelem.type in self.ignore_madtypes:
                 pass
             else:
                 if last_element is not Dummy:

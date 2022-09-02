@@ -14,8 +14,13 @@ elm: multipole,
           aper_offset=0.2;
 
 seq: sequence, l=1;
-elm, at=0,dx=0.1,dy=0.2,ds=0.3,dphi=0.4,dpsi=0.5,dtheta=0.6;
+elm1:elm, at=0,dx=0.1,dy=0.2,ds=0.3,dphi=0.4,dpsi=0.5,dtheta=0.6;
+mk:marker, at=0.1;
+mk2:marker, at=0.1,aperture={0.1,0.2,0.11,0.22},apertype="rectellipse";
+elm2:elm, at=0.5,dx=0.1,dy=0.2,ds=0.3,dphi=0.4,dpsi=0.5,dtheta=0.6;
+elm3:elm, at=0.5,dx=0.1,dy=0.2,ds=0.3,dphi=0.4,dpsi=0.5,dtheta=0.6;
 endsequence;
+
 
 beam;
 use,sequence=seq;
