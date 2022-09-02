@@ -26,6 +26,9 @@ or in alternative
 Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 
 if the want to control how the xobject is created
+
+
+TODO: max order knl
 """
 
 from typing import List
@@ -68,6 +71,17 @@ def get_value(x):
         return x
 
 
+def set_expr(self, target, key, expr):
+    if isinstance(expr, list):
+        for ii,ex in enumerate(expr):
+           set_expr(target[key],ii, ex)
+    elif isinstance(expr, dict):
+        for kk, ex in expr.items():
+            set_expr(target[key],kk, ex)
+    elif expr is not None:
+        target[key] = expr
+
+
 def add_lists(a, b, length=None):
     out = [a + b for a, b in zip(a, b)]
     for ii in range(len(a), len(b)):
@@ -79,6 +93,12 @@ def add_lists(a, b, length=None):
             out.append(0)
     return out
 
+def non_zero_len(lst):
+    for ii, x in enumerate(lst[::-1]):
+        if x : # could be expression
+            return len(lst) - ii
+    return 0
+    
 
 def trim_trailing_zeros(lst):
     for ii in range(len(lst) - 1, 0, -1):
@@ -218,12 +238,7 @@ class ElementBuilder:
         if enable_expressions:
             elref = line.element_refs[self.name]
             for k, p in self.attrs.items():
-                if iterable(p):
-                    for pi in p:
-                        if is_expr(pi):
-                            setattr(elref, k, pi)
-                if is_expr(p):
-                    setattr(elref, k, p)
+                set_expr(elref, k ,p)
         return xtel
 
 
@@ -581,15 +596,15 @@ class MadLoader:
 
     def convert_multipole(self, mad_elem):
         # getting max length of knl and ksl
-        knl = trim_trailing_zeros(mad_elem.knl)
-        ksl = trim_trailing_zeros(mad_elem.ksl)
-        lmax = max(len(knl), len(ksl))
+        knl=mad_elem.knl
+        ksl=mad_elem.ksl
+        lmax = max(non_zero_len(knl), non_zero_len(ksl))
         if mad_elem.field_errors is not None and self.enable_errors:
-            dkn = trim_trailing_zeros(mad_elem.field_errors.dkn)
-            dks = trim_trailing_zeros(mad_elem.field_errors.dks)
-            lmax = max(lmax, len(dkn), len(dks))
-            knl = add_lists(knl, dkn)
-            ksl = add_lists(ksl, dks)
+            dkn = mad_elem.field_errors.dkn
+            dks = mad_elem.field_errors.dks
+            lmax = max(lmax, non_zero_len(dkn), non_zero_len(dks))
+            knl = add_lists(knl, dkn, lmax)
+            ksl = add_lists(ksl, dks, lmax)
         el = ElementBuilder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl
         el.ksl = ksl
