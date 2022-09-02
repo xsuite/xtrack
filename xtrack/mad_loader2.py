@@ -71,15 +71,26 @@ def get_value(x):
         return x
 
 
-def set_expr(self, target, key, expr):
+def set_expr(target, key, expr):
+    """
+    Assumes target is either a struct supporting attr assignment or an array supporint item assignment.
+
+    
+    """
     if isinstance(expr, list):
         for ii,ex in enumerate(expr):
-           set_expr(target[key],ii, ex)
+           set_expr(getattr(target,key),ii, ex)
+    elif isinstance(expr, np.ndarray):
+        for ii,ex in np.ndindex(*expr.shape):
+           set_expr(getattr(target,key),ii, ex)
     elif isinstance(expr, dict):
         for kk, ex in expr.items():
             set_expr(target[key],kk, ex)
     elif expr is not None:
-        target[key] = expr
+        if isinstance(key,int) or isinstance(key,tuple):
+            target[key] = expr
+        else:
+            setattr(target,key,expr) # issue if target is not a structure
 
 
 def add_lists(a, b, length=None):
