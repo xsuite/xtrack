@@ -149,16 +149,25 @@ class MadElem:
         self.elem = elem
         self.sequence = sequence
         self.madeval = madeval
+    
+    @property
+    def field_errors(self):
+        elem=self.elem
         if hasattr(elem, "field_errors") and elem.field_errors is not None:
-            self.field_errors = FieldErrors(elem.field_errors)
-        else:
-            self.field_errors = None
+            return FieldErrors(elem.field_errors)
+
+    @property
+    def phase_errors(self):
+        elem=self.elem
         if hasattr(elem, "phase_errors") and elem.phase_errors is not None:
-            self.phase_errors = PhaseErrors(elem.phase_errors)
-        else:
-            self.phase_errors = None
+            return PhaseErrors(elem.phase_errors)
+
+    @property
+    def align_errors(self):
+        elem=self.elem
         if hasattr(elem, "align_errors") and elem.align_errors is not None:
-            self.align_errors = elem.align_errors
+            return elem.align_errors
+
 
     def __repr__(self):
         return f"<{self.name}: {self.type}>"
@@ -168,9 +177,8 @@ class MadElem:
         return self.elem.base_type.name
 
     def __getattr__(self, k):
-        try:
-            par = self.elem.cmdpar[k]
-        except KeyError:
+        par=self.elem.cmdpar.get(k)
+        if par is None:
             raise AttributeError(
                 f"Element `{self.name}: {self.type}` has no attribute `{k}`"
             )
@@ -258,10 +266,10 @@ class ElementBuilderWithExpr(ElementBuilder):
 
 
 class Aperture:
-    def __init__(self, mad_el, enable_errors, classes, Builder):
+    def __init__(self, mad_el, enable_errors, loader):
         self.mad_el = mad_el
-        self.aper_tilt = rad2deg(self.aper_tilt)
-        self.aper_offset = self.mad_elem.aper_offset
+        self.aper_tilt = rad2deg(mad_el.aper_tilt)
+        self.aper_offset = mad_el.aper_offset
         self.name = self.mad_el.name
         self.dx = self.aper_offset[0]
         if len(self.aper_offset) > 1:
@@ -272,8 +280,9 @@ class Aperture:
             self.dx += mad_el.align_errors.arex
             self.dx += mad_el.align_errors.arey
         self.apertype = self.mad_el.apertype
-        self.classes = classes
-        self.Builder = Builder
+        self.loader = loader
+        self.classes = loader.classes
+        self.Builder = loader.Builder
 
     def entry(self):
         out = []
@@ -283,78 +292,6 @@ class Aperture:
                     self.name + "_aper_tilt_entry",
                     self.classes.SRotation,
                     angle=self.aper_tilt,
-                )
-            )
-        if self.aper_offset[0] and self.aper_offset[1]:
-            out.append(
-                self.Builder(
-                    self.name + "_aper_offset_entry",
-                    self.classes.XYShift,
-                    dx=self.dx,
-                    dy=self.dy,
-                )
-            )
-
-    def exit(self):
-        out = []
-        if self.dx or self.dy:
-            out.append(
-                self.Builder(
-                    self.name + "_aper_offset_exit",
-                    self.classes.XYShift,
-                    dx=-self.dx,
-                    dy=-self.dy,
-                )
-            )
-        if not_zero(self.aper_tilt):
-            out.append(
-                self.Builder(
-                    self.name + "_aper_tilt_exit",
-                    self.classes.SRotation,
-                    angle=self.aper_tilt,
-                )
-            )
-
-    def aperture(self):
-        if len(self.mad_el.aper_vx) > 2:
-            aperture = self.Builder(
-                self.name + "_aper",
-                self.classes.LimitPolygon,
-                x_vertices=self.mad_el.aper_vx,
-                y_vertices=self.mad_el.aper_vy,
-            )
-        else:
-            conveter = getattr(self, "convert_" + self.apertype, None)
-            if conveter is None:
-                raise ValueError(f"Aperture type {self.apertype} not supported")
-            return conveter(self.mad_el)
-
-
-class Alignment:
-    def __init__(self, mad_el, enable_errors, classes, Builder):
-        self.mad_el = mad_el
-        self.tilt = mad_el.get("tilt", 0)  # some elements do not have tilt
-        if self.tilt:
-            self.tilt = rad2deg(self.tilt)
-        self.name = mad_el.name
-        self.dx = 0
-        self.dy = 0
-        if enable_errors and hasattr(mad_el, "align_errors"):
-            self.align_errors = mad_el.align_errors
-            self.dx = self.align_errors.dx
-            self.dy = self.align_errors.dy
-            self.tilt += rad2deg(self.align_errors.dpsi)
-        self.classes = classes
-        self.Builder = Builder
-
-    def entry(self):
-        out = []
-        if self.tilt:
-            out.append(
-                self.Builder(
-                    self.name + "_aper_tilt_entry",
-                    self.classes.SRotation,
-                    angle=self.tilt,
                 )
             )
         if self.dx or self.dy:
@@ -379,10 +316,84 @@ class Alignment:
                     dy=-self.dy,
                 )
             )
-        if self.tilt:
+        if not_zero(self.aper_tilt):
             out.append(
                 self.Builder(
                     self.name + "_aper_tilt_exit",
+                    self.classes.SRotation,
+                    angle=self.aper_tilt,
+                )
+            )
+        return out
+
+    def aperture(self):
+        if len(self.mad_el.aper_vx) > 2:
+            return self.Builder(
+                self.name + "_aper",
+                self.classes.LimitPolygon,
+                x_vertices=self.mad_el.aper_vx,
+                y_vertices=self.mad_el.aper_vy,
+            )
+        else:
+            conveter = getattr(self.loader, "convert_" + self.apertype, None)
+            if conveter is None:
+                raise ValueError(f"Aperture type `{self.apertype}` not supported")
+            return conveter(self.mad_el)
+
+
+class Alignment:
+    def __init__(self, mad_el, enable_errors, classes, Builder):
+        self.mad_el = mad_el
+        self.tilt = mad_el.get("tilt", 0)  # some elements do not have tilt
+        if self.tilt:
+            self.tilt = rad2deg(self.tilt)
+        self.name = mad_el.name
+        self.dx = 0
+        self.dy = 0
+        if enable_errors and hasattr(mad_el, "align_errors") and mad_el.align_errors is not None:
+            self.align_errors = mad_el.align_errors
+            self.dx = self.align_errors.dx
+            self.dy = self.align_errors.dy
+            self.tilt += rad2deg(self.align_errors.dpsi)
+        self.classes = classes
+        self.Builder = Builder
+
+    def entry(self):
+        out = []
+        if self.tilt:
+            out.append(
+                self.Builder(
+                    self.name + "_tilt_entry",
+                    self.classes.SRotation,
+                    angle=self.tilt,
+                )
+            )
+        if self.dx or self.dy:
+            out.append(
+                self.Builder(
+                    self.name + "_offset_entry",
+                    self.classes.XYShift,
+                    dx=self.dx,
+                    dy=self.dy,
+                )
+            )
+        return out
+
+    def exit(self):
+        out = []
+        if self.dx or self.dy:
+            out.append(
+                self.Builder(
+                    self.name + "_offset_exit",
+                    self.classes.XYShift,
+                    dx=-self.dx,
+                    dy=-self.dy,
+                )
+            )
+        if self.tilt:
+            out.append(
+                self.Builder(
+                    self.name + "_tilt_exit",
                     self.classes.SRotation,
                     angle=-self.tilt,
                 )
@@ -456,7 +467,7 @@ class MadLoader:
         last_element = Dummy
         for el in self.sequence.expanded_elements:
             madelem = MadElem(el.name, el, self.sequence, madeval)
-            if self.skip_markers and el.is_empty_marker():
+            if self.skip_markers and madelem.is_empty_marker():
                 pass
             elif (
                 self.merge_drifts
@@ -494,7 +505,11 @@ class MadLoader:
             madeval = None
             self.Builder=ElementBuilder
 
-        for el in self.iter_elements(madeval=madeval):
+        nelem=int(len(self.sequence.elements)/50)+1
+
+        print(f'Converting (.={nelem} mad elements):', end='', flush=True)
+
+        for ii,el in enumerate(self.iter_elements(madeval=madeval)):
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
@@ -504,8 +519,11 @@ class MadLoader:
                 self.add_elements(converter(el), line, buffer)
             else:
                 raise ValueError(
-                    f"Element {el.type} not supported,\n implement add_{el.type} function in MadLoader"
+                    f"Element {el.type} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
                 )
+            if ii%nelem==0:
+                print(end='.',flush=True)
+        print()
         return line
 
     def add_elements(
@@ -529,7 +547,7 @@ class MadLoader:
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
-            aper = Aperture(mad_el, self.enable_error,self.classes, self.Builder)
+            aper = Aperture(mad_el, self.enable_errors,self)
             elem_list.extend(aper.entry())
             elem_list.extend(aper.aperture())
             elem_list.extend(aper.exit())
@@ -578,6 +596,19 @@ class MadLoader:
         a = mad_el.aperture[0]
         return [
             self.Builder(mad_el.name + "_aper", self.classes.LimitEllipse, a=a, b=a)
+        ]
+
+    def convert_rectellipse(self, mad_el):
+        h, v, a, b = mad_el.aperture[:4]
+        return [
+            self.Builder(
+                mad_el.name + "_aper",
+                self.classes.LimitRectEllipse,
+                max_x=h,
+                max_y=v,
+                a=a,
+                b=b,
+            )
         ]
 
     def convert_octagon(self, ee):
@@ -651,6 +682,8 @@ class MadLoader:
         )
         return self.convert_thin_element([el], mad_elem)
 
+    convert_tkicker=convert_kicker
+
     def convert_hkicker(self, mad_elem):
         hkick = [mad_elem.kick] if mad_elem.kick else []
         vkick = []
@@ -664,6 +697,7 @@ class MadLoader:
             hyl=0,
         )
         return self.convert_thin_element([el], mad_elem)
+
 
     def convert_vkicker(self, mad_elem):
         vkick = [mad_elem.kick] if mad_elem.kick else []
@@ -695,13 +729,13 @@ class MadLoader:
         # TODO LRAD
         if ee.freq == 0 and ee.harmon:
             frequency = (
-                ee.harmon * self.sequence.beam.beta * clight / self.sequence.lenght
+                ee.harmon * self.sequence.beam.beta * clight / self.sequence.length
             )
         else:
             frequency = ee.freq * 1e6
         el = self.Builder(
             ee.name,
-            self.classes.Cavity(),
+            self.classes.Cavity,
             voltage=ee.volt * 1e6,
             frequency=frequency,
             lag=ee.lag * 360,
@@ -826,49 +860,49 @@ class MadLoader:
         return self.convert_thin_element([el], ee)
 
 
-def convert_placeholder(self, ee):
-    if ee.slot_id == 1:
-        raise ValueError("This feature is discontinued!")
-        # newele = classes.SCCoasting()
-    elif ee.slot_id == 2:
-        # TODO Abstraction through `classes` to be introduced
-        raise ValueError("This feature is discontinued!")
-        # import xfields as xf
-        # lprofile = xf.LongitudinalProfileQGaussian(
-        #         number_of_particles=0.,
-        #         sigma_z=1.,
-        #         z0=0.,
-        #         q_parameter=1.)
-        # newele = xf.SpaceChargeBiGaussian(
-        #     length=0,
-        #     apply_z_kick=False,
-        #     longitudinal_profile=lprofile,
-        #     mean_x=0.,
-        #     mean_y=0.,
-        #     sigma_x=1.,
-        #     sigma_y=1.)
+    def convert_placeholder(self, ee):
+        if ee.slot_id == 1:
+            raise ValueError("This feature is discontinued!")
+            # newele = classes.SCCoasting()
+        elif ee.slot_id == 2:
+            # TODO Abstraction through `classes` to be introduced
+            raise ValueError("This feature is discontinued!")
+            # import xfields as xf
+            # lprofile = xf.LongitudinalProfileQGaussian(
+            #         number_of_particles=0.,
+            #         sigma_z=1.,
+            #         z0=0.,
+            #         q_parameter=1.)
+            # newele = xf.SpaceChargeBiGaussian(
+            #     length=0,
+            #     apply_z_kick=False,
+            #     longitudinal_profile=lprofile,
+            #     mean_x=0.,
+            #     mean_y=0.,
+            #     sigma_x=1.,
+            #     sigma_y=1.)
 
-    elif ee.slot_id == 3:
-        el = self.Builder(ee.name, self.classes.SCInterpolatedProfile)
-    else:
-        el = self.Builder(ee.name, self._drift, length=ee.l)
-    return self.convert_thin_element([el], ee)
+        elif ee.slot_id == 3:
+            el = self.Builder(ee.name, self.classes.SCInterpolatedProfile)
+        else:
+            el = self.Builder(ee.name, self._drift, length=ee.l)
+        return self.convert_thin_element([el], ee)
 
 
-def convert_matrix(self, ee):
-    length = ee.l
-    m0 = np.zeros(6, dtype=float)
-    for m0_i in range(6):
-        att_name = f"kick{m0_i+1}"
-        if hasattr(ee, att_name):
-            m0[m0_i] = getattr(ee, att_name)
-    m1 = np.zeros((6, 6), dtype=float)
-    for m1_i in range(6):
-        for m1_j in range(6):
-            att_name = f"rm{m1_i+1}{m1_j+1}"
+    def convert_matrix(self, ee):
+        length = ee.l
+        m0 = np.zeros(6, dtype=float)
+        for m0_i in range(6):
+            att_name = f"kick{m0_i+1}"
             if hasattr(ee, att_name):
-                m1[m1_i, m1_j] = getattr(ee, att_name)
-    el = self.Builder(
-        ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
-    )
-    return self.convert_thin_element([el], ee)
+                m0[m0_i] = getattr(ee, att_name)
+        m1 = np.zeros((6, 6), dtype=float)
+        for m1_i in range(6):
+            for m1_j in range(6):
+                att_name = f"rm{m1_i+1}{m1_j+1}"
+                if hasattr(ee, att_name):
+                    m1[m1_i, m1_j] = getattr(ee, att_name)
+        el = self.Builder(
+            ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
+        )
+        return self.convert_thin_element([el], ee)
