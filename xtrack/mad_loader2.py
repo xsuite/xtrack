@@ -872,6 +872,7 @@ class MadLoader:
 
 
     def convert_placeholder(self, ee):
+        #assert not is_expr(ee.slot_id) can be done only after release MADX 5.09
         if ee.slot_id == 1:
             raise ValueError("This feature is discontinued!")
             # newele = classes.SCCoasting()
