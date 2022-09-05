@@ -75,38 +75,43 @@ def set_expr(target, key, expr):
 
     """
     if isinstance(expr, list):
-        for ii,ex in enumerate(expr):
-           set_expr(getattr(target,key),ii, ex)
+        for ii, ex in enumerate(expr):
+            set_expr(getattr(target, key), ii, ex)
     elif isinstance(expr, np.ndarray):
-        for ii,ex in np.ndindex(*expr.shape):
-           set_expr(getattr(target,key),ii, ex)
+        for ii, ex in np.ndindex(*expr.shape):
+            set_expr(getattr(target, key), ii, ex)
     elif isinstance(expr, dict):
         for kk, ex in expr.items():
-            set_expr(target[key],kk, ex)
+            set_expr(target[key], kk, ex)
     elif expr is not None:
-        if isinstance(key,int) or isinstance(key,tuple):
+        if isinstance(key, int) or isinstance(key, tuple):
             target[key] = expr
         else:
-            setattr(target,key,expr) # issue if target is not a structure
+            setattr(target, key, expr)  # issue if target is not a structure
 
 
-def add_lists(a, b, length=None):
-    out = [a + b for a, b in zip(a, b)]
-    for ii in range(len(a), len(b)):
-        out.append(b[ii])
-    for ii in range(len(b), len(a)):
-        out.append(a[ii])
-    if length is not None:
-        for ii in range(len(out), length):
-            out.append(0)
+# needed because cannot used += with numpy arrays of expressions
+def add_lists(a, b, length):
+    out=[]
+    for ii in range(length):
+        if ii<len(a) and ii < len(b):
+            c=a[ii]+b[ii]
+        elif ii<len(a):
+            c=a[ii]
+        elif ii<len(b):
+            c=b[ii]
+        else:
+            c=0
+        out.append(c)
     return out
+
 
 def non_zero_len(lst):
     for ii, x in enumerate(lst[::-1]):
-        if x : # could be expression
+        if x:  # could be expression
             return len(lst) - ii
     return 0
-    
+
 
 def trim_trailing_zeros(lst):
     for ii in range(len(lst) - 1, 0, -1):
@@ -155,25 +160,23 @@ class MadElem:
         else:
             self.field_errors = None
 
-    
-    #@property
-    #def field_errors(self):
+    # @property
+    # def field_errors(self):
     #    elem=self.elem
     #    if hasattr(elem, "field_errors") and elem.field_errors is not None:
     #        return FieldErrors(elem.field_errors)
 
     @property
     def phase_errors(self):
-        elem=self.elem
+        elem = self.elem
         if hasattr(elem, "phase_errors") and elem.phase_errors is not None:
             return PhaseErrors(elem.phase_errors)
 
     @property
     def align_errors(self):
-        elem=self.elem
+        elem = self.elem
         if hasattr(elem, "align_errors") and elem.align_errors is not None:
             return elem.align_errors
-
 
     def __repr__(self):
         return f"<{self.name}: {self.type}>"
@@ -187,7 +190,7 @@ class MadElem:
         return self.elem.slot_id
 
     def __getattr__(self, k):
-        par=self.elem.cmdpar.get(k)
+        par = self.elem.cmdpar.get(k)
         if par is None:
             raise AttributeError(
                 f"Element `{self.name}: {self.type}` has no attribute `{k}`"
@@ -210,8 +213,9 @@ class MadElem:
 
     def has_aperture(self):
         el = self.elem
-        has_aper= hasattr(el, "aperture") and (
-            el.aperture[0] != 0.0 or len(el.aperture) > 1)
+        has_aper = hasattr(el, "aperture") and (
+            el.aperture[0] != 0.0 or len(el.aperture) > 1
+        )
         has_aper = has_aper or (hasattr(el, "aper_vx") and len(el.aper_vx) > 2)
         return has_aper
 
@@ -263,18 +267,16 @@ class ElementBuilder:
         xtel = self.type(**self.attrs, _buffer=buffer)
         line.append_element(xtel, self.name)
 
-class ElementBuilderWithExpr(ElementBuilder):
 
+class ElementBuilderWithExpr(ElementBuilder):
     def add_to_line(self, line, buffer):
         attr_values = {k: get_value(v) for k, v in self.attrs.items()}
         xtel = self.type(**attr_values, _buffer=buffer)
         line.append_element(xtel, self.name)
         elref = line.element_refs[self.name]
         for k, p in self.attrs.items():
-            set_expr(elref, k ,p)
+            set_expr(elref, k, p)
         return xtel
-
-
 
 
 class Aperture:
@@ -340,12 +342,14 @@ class Aperture:
 
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
-            return [self.Builder(
-                self.name + "_aper",
-                self.classes.LimitPolygon,
-                x_vertices=self.mad_el.aper_vx,
-                y_vertices=self.mad_el.aper_vy,
-            )]
+            return [
+                self.Builder(
+                    self.name + "_aper",
+                    self.classes.LimitPolygon,
+                    x_vertices=self.mad_el.aper_vx,
+                    y_vertices=self.mad_el.aper_vy,
+                )
+            ]
         else:
             conveter = getattr(self.loader, "convert_" + self.apertype, None)
             if conveter is None:
@@ -362,7 +366,11 @@ class Alignment:
         self.name = mad_el.name
         self.dx = 0
         self.dy = 0
-        if enable_errors and hasattr(mad_el, "align_errors") and mad_el.align_errors is not None:
+        if (
+            enable_errors
+            and hasattr(mad_el, "align_errors")
+            and mad_el.align_errors is not None
+        ):
             self.align_errors = mad_el.align_errors
             self.dx = self.align_errors.dx
             self.dy = self.align_errors.dy
@@ -473,7 +481,6 @@ class MadLoader:
             self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
 
-
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
         last_element = Dummy
@@ -512,16 +519,14 @@ class MadLoader:
 
         if self.enable_expressions:
             madeval = MadLoader.init_line_expressions(line, mad)
-            self.Builder=ElementBuilderWithExpr
+            self.Builder = ElementBuilderWithExpr
         else:
             madeval = None
-            self.Builder=ElementBuilder
+            self.Builder = ElementBuilder
 
-        nelem=int(len(self.sequence.elements)/50)+1
+        nelem = len(self.sequence.expanded_elements)
 
-        print(f'Converting (.={nelem} mad elements):', end='', flush=True)
-
-        for ii,el in enumerate(self.iter_elements(madeval=madeval)):
+        for ii, el in enumerate(self.iter_elements(madeval=madeval)):
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
@@ -531,10 +536,14 @@ class MadLoader:
                 self.add_elements(converter(el), line, buffer)
             else:
                 raise ValueError(
-                    f"Element {el.type} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
+                    f"Element {el.ty:wpe} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
                 )
-            if ii%nelem==0:
-                print(end='.',flush=True)
+            if ii % 100 == 0:
+                print(
+                    f"Converting {self.sequence.name}: {round(ii/nelem*100):2d}%     ",
+                    end="\r",
+                    flush=True,
+                )
         print()
         return line
 
@@ -559,7 +568,7 @@ class MadLoader:
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
-            aper = Aperture(mad_el, self.enable_errors,self)
+            aper = Aperture(mad_el, self.enable_errors, self)
             elem_list.extend(aper.entry())
             elem_list.extend(aper.aperture())
             elem_list.extend(aper.exit())
@@ -672,15 +681,15 @@ class MadLoader:
 
     def convert_multipole(self, mad_elem):
         # getting max length of knl and ksl
-        knl=mad_elem.knl
-        ksl=mad_elem.ksl
-        lmax = max(non_zero_len(knl), non_zero_len(ksl))
+        knl = mad_elem.knl
+        ksl = mad_elem.ksl
+        lmax = max(len(knl), len(ksl))  # keep length even if zero
         if mad_elem.field_errors is not None and self.enable_errors:
             dkn = mad_elem.field_errors.dkn
             dks = mad_elem.field_errors.dks
             lmax = max(lmax, non_zero_len(dkn), non_zero_len(dks))
-            knl = add_lists(knl, dkn, lmax)
-            ksl = add_lists(ksl, dks, lmax)
+            knl=add_lists(knl, dkn,lmax)
+            ksl=add_lists(ksl, dks,lmax)
         el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl
         el.ksl = ksl
@@ -692,7 +701,7 @@ class MadLoader:
         return self.convert_thin_element([el], mad_elem)
 
     def convert_kicker(self, mad_elem):
-        hkick = [mad_elem.hkick] if mad_elem.hkick else []
+        hkick = [-mad_elem.hkick] if mad_elem.hkick else []
         vkick = [mad_elem.vkick] if mad_elem.vkick else []
         el = self.Builder(
             mad_elem.name,
@@ -705,10 +714,10 @@ class MadLoader:
         )
         return self.convert_thin_element([el], mad_elem)
 
-    convert_tkicker=convert_kicker
+    convert_tkicker = convert_kicker
 
     def convert_hkicker(self, mad_elem):
-        hkick = [mad_elem.kick] if mad_elem.kick else []
+        hkick = [-mad_elem.kick] if mad_elem.kick else []
         vkick = []
         el = self.Builder(
             mad_elem.name,
@@ -721,10 +730,9 @@ class MadLoader:
         )
         return self.convert_thin_element([el], mad_elem)
 
-
     def convert_vkicker(self, mad_elem):
-        vkick = [mad_elem.kick] if mad_elem.kick else []
         hkick = []
+        vkick = [mad_elem.kick] if mad_elem.kick else []
         el = self.Builder(
             mad_elem.name,
             self.classes.Multipole,
@@ -809,7 +817,7 @@ class MadLoader:
         # ee.volt in MV, sequence.beam.pc in GeV
         if abs(ee.tilt - np.pi / 2) < 1e-9:
             el = self.Builder(
-                el.name,
+                ee.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
                 ksl=[-ee.volt / self.sequence.beam.pc * 1e-3],
@@ -818,7 +826,7 @@ class MadLoader:
             ee.tilt = 0
         else:
             el = self.Builder(
-                el.name,
+                ee.name,
                 self.classes.RFMultipole,
                 frequency=ee.freq * 1e6,
                 knl=[ee.volt / self.sequence.beam.pc * 1e-3],
@@ -831,8 +839,9 @@ class MadLoader:
         import xfields as xf
 
         if ee.slot_id == 6 or ee.slot_id == 60:
-            el = self.Builder(
-                el.name,
+            # force no expression by using ElementBuilder and not self.Builder
+            el = ElementBuilder(
+                ee.name,
                 xf.BeamBeamBiGaussian3D,
                 old_interface={
                     "phi": 0.0,
@@ -867,8 +876,9 @@ class MadLoader:
             )
         else:
             # BB interaction is 4D
-            el = self.Builder(
-                el.name,
+            # force no expression by using ElementBuilder and not self.Builder
+            el = ElementBuilder(
+                ee.name,
                 xf.BeamBeamBiGaussian2D,
                 n_particles=0.0,
                 q0=0.0,
@@ -882,9 +892,8 @@ class MadLoader:
             )
         return self.convert_thin_element([el], ee)
 
-
     def convert_placeholder(self, ee):
-        #assert not is_expr(ee.slot_id) can be done only after release MADX 5.09
+        # assert not is_expr(ee.slot_id) can be done only after release MADX 5.09
         if ee.slot_id == 1:
             raise ValueError("This feature is discontinued!")
             # newele = classes.SCCoasting()
@@ -911,7 +920,6 @@ class MadLoader:
         else:
             el = self.Builder(ee.name, self._drift, length=ee.l)
         return self.convert_thin_element([el], ee)
-
 
     def convert_matrix(self, ee):
         length = ee.l
