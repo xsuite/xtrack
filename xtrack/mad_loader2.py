@@ -60,34 +60,39 @@ def is_expr(x):
 def get_value(x):
     if is_expr(x):
         return x._get_value()
-    elif isinstance(x, list) or isinstance(x, np.ndarray) or isinstance(x, tuple):
+    elif isinstance(x, list) or isinstance(x, tuple):
         return [get_value(xx) for xx in x]
+    elif isinstance(x, np.ndarray):
+        arr=np.zeros_like(x,dtype=float)
+        for ii in np.ndindex(*x.shape):
+            arr[ii]=get_value(x[ii])
     elif isinstance(x, dict):
         return {k: get_value(v) for k, v in x.items()}
     else:
         return x
 
 
-def set_expr(target, key, expr):
+def set_expr(target, key, xx):
     """
     Assumes target is either a struct supporting attr assignment or an array supporint item assignment.
 
-
     """
-    if isinstance(expr, list):
-        for ii, ex in enumerate(expr):
-            set_expr(getattr(target, key), ii, ex)
-    elif isinstance(expr, np.ndarray):
-        for ii, ex in np.ndindex(*expr.shape):
-            set_expr(getattr(target, key), ii, ex)
-    elif isinstance(expr, dict):
-        for kk, ex in expr.items():
+    if isinstance(xx, list):
+        out=getattr(target, key)
+        for ii, ex in enumerate(xx):
+            set_expr(out, ii, ex)
+    elif isinstance(xx, np.ndarray):
+        out=getattr(target, key)
+        for ii  in np.ndindex(*xx.shape):
+            set_expr(out, ii, xx[ii])
+    elif isinstance(xx, dict):
+        for kk, ex in xx.items():
             set_expr(target[key], kk, ex)
-    elif expr is not None:
+    elif xx is not None:
         if isinstance(key, int) or isinstance(key, tuple):
-            target[key] = expr
+            target[key] = xx
         else:
-            setattr(target, key, expr)  # issue if target is not a structure
+            setattr(target, key, xx)  # issue if target is not a structure
 
 
 # needed because cannot used += with numpy arrays of expressions
@@ -923,12 +928,12 @@ class MadLoader:
 
     def convert_matrix(self, ee):
         length = ee.l
-        m0 = np.zeros(6, dtype=float)
+        m0 = np.zeros(6, dtype=object)
         for m0_i in range(6):
             att_name = f"kick{m0_i+1}"
             if hasattr(ee, att_name):
                 m0[m0_i] = getattr(ee, att_name)
-        m1 = np.zeros((6, 6), dtype=float)
+        m1 = np.zeros((6, 6), dtype=object)
         for m1_i in range(6):
             for m1_j in range(6):
                 att_name = f"rm{m1_i+1}{m1_j+1}"
