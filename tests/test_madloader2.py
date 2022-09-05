@@ -130,7 +130,4 @@ def test_matrix():
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
     line.vars['a11']=2.0
-    assert line[1].m1[0,0]==2.0
-
-
-
+    assert line[1].m1[0,0]==line.vars['a11']._value
