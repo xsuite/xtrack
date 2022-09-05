@@ -13,8 +13,7 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from .loader_mad import madx_sequence_to_xtrack_line
-from .mad_loader2 import MadLoader
+from .mad_loader import MadLoader
 from .beam_elements import element_classes, Multipole
 from . import beam_elements
 from .beam_elements import Drift
@@ -114,6 +113,9 @@ class Line:
         merge_drifts=False,
         merge_multipoles=False,
     ):
+
+        if not (exact_drift is False):
+            raise NotImplementedError("Exact drifts not implemented yet")
 
         class_namespace=mk_class_namespace(classes)
 
@@ -606,187 +608,6 @@ class Line:
 
         return elements, names
 
-    def _find_element_ids(self, element_name):
-        """Find element_name in this Line instance's
-        self.elements_name list. Assumes the names are unique.
-
-        Return index before and after the element, taking into account
-        attached _aperture instances (LimitRect, LimitEllipse, ...)
-        which would follow the element occurrence in the list.
-
-        Raises IndexError if element_name not found in this Line.
-        """
-        # will raise error if element not present:
-        idx_el = self.element_names.index(element_name)
-        try:
-            # if aperture marker is present
-            idx_after_el = self.element_names.index(element_name + "_aperture") + 1
-        except ValueError:
-            # if aperture marker is not present
-            idx_after_el = idx_el + 1
-        return idx_el, idx_after_el
-
-    def _add_offset_error_to(self, element_name, dx=0, dy=0):
-        idx_el, idx_after_el = self._find_element_ids(element_name)
-        xyshift = beam_elements.XYShift(dx=dx, dy=dy)
-        inv_xyshift = beam_elements.XYShift(dx=-dx, dy=-dy)
-        self.insert_element(idx_el, xyshift, element_name + "_offset_in")
-        self.insert_element(
-            idx_after_el + 1, inv_xyshift, element_name + "_offset_out"
-        )
-
-    def _add_aperture_offset_error_to(self, element_name, arex=0, arey=0):
-        idx_el, idx_after_el = self._find_element_ids(element_name)
-        idx_el_aper = idx_after_el - 1
-        if not self.element_names[idx_el_aper] == element_name + "_aperture":
-            # it is allowed to provide arex/arey without providing an aperture
-            print('Info: Element', element_name, ': arex/y provided without aperture -> arex/y ignored')
-            return
-        xyshift = beam_elements.XYShift(dx=arex, dy=arey)
-        inv_xyshift = beam_elements.XYShift(dx=-arex, dy=-arey)
-        self.insert_element(idx_el_aper, xyshift, element_name + "_aperture_offset_in")
-        self.insert_element(
-            idx_after_el + 1, inv_xyshift, element_name + "_aperture_offset_out"
-        )
-
-    def _add_tilt_error_to(self, element_name, angle):
-        '''Alignment error of transverse rotation around s-axis.
-        The element corresponding to the given `element_name`
-        gets wrapped by SRotation elements with rotation angle
-        `angle`.
-
-        In the case of a thin dipole component, the corresponding
-        curvature terms in the Multipole (hxl and hyl) are rotated
-        by `angle` as well.
-        '''
-        idx_el, idx_after_el = self._find_element_ids(element_name)
-        element = self.elements[self.element_names.index(element_name)]
-        if isinstance(element, beam_elements.Multipole) and (
-                element.hxl or element.hyl):
-            dpsi = angle * deg2rad
-
-            hxl0 = element.hxl
-            hyl0 = element.hyl
-
-            hxl1 = hxl0 * np.cos(dpsi) - hyl0 * np.sin(dpsi)
-            hyl1 = hxl0 * np.sin(dpsi) + hyl0 * np.cos(dpsi)
-
-            element.hxl = hxl1
-            element.hyl = hyl1
-        srot = beam_elements.SRotation(angle=angle)
-        inv_srot = beam_elements.SRotation(angle=-angle)
-        self.insert_element(idx_el, srot, element_name + "_tilt_in")
-        self.insert_element(idx_after_el + 1, inv_srot, element_name + "_tilt_out")
-
-    def _add_multipole_error_to(self, element_name, knl=[], ksl=[]):
-        # will raise error if element not present:
-        assert element_name in self.element_names
-        element_index = self.element_names.index(element_name)
-        element = self.elements[element_index]
-
-        new_order = max([len(knl), len(ksl), len(element.knl), len(element.ksl)])
-        new_knl = new_order*[0]
-        new_ksl = new_order*[0]
-
-        # Original strengths
-        for ii, vv in enumerate(element.knl):
-            new_knl[ii] += element.knl[ii]
-        for ii, vv in enumerate(element.ksl):
-            new_ksl[ii] += element.ksl[ii]
-
-        new_element = Multipole(knl=new_knl, ksl=new_ksl,
-                length=element.length, hxl=element.hxl,
-                hyl=element.hyl, radiation_flag=element.radiation_flag)
-
-        self.element_dict[element_name] = new_element
-
-        # Errors
-        if self._var_management is not None:
-            # Handle deferred expressions
-            lref = self._var_management['lref']
-            for ii, vv in enumerate(knl):
-                lref[element_name].knl[ii] += knl[ii]
-            for ii, vv in enumerate(ksl):
-                lref[element_name].ksl[ii] += ksl[ii]
-        else:
-            for ii, vv in enumerate(knl):
-                new_element.knl[ii] += knl[ii]
-            for ii, vv in enumerate(ksl):
-                new_element.ksl[ii] += ksl[ii]
-
-    def _apply_madx_errors(self, madx_sequence):
-        """Applies errors from MAD-X sequence to existing
-        elements in this Line instance.
-
-        Return names of MAD-X elements with existing align_errors
-        or field_errors which were not found in the elements of
-        this Line instance (and thus not treated).
-
-        Example via cpymad:
-            madx = cpymad.madx.Madx()
-
-            # (...set up lattice and errors in cpymad...)
-
-            seq = madx.sequence.some_lattice
-            line = Line.from_madx_sequence(
-                                    seq,
-                                    apply_madx_errors=True
-                              )
-        """
-        elements_not_found = []
-        for element, element_name in zip(
-                madx_sequence.expanded_elements,
-                madx_sequence.expanded_element_names()
-        ):
-            if element_name not in self.element_names:
-                if element.align_errors or element.field_errors:
-                    elements_not_found.append(element_name)
-                    continue
-
-            if element.align_errors:
-                # add offset
-                dx = element.align_errors.dx
-                dy = element.align_errors.dy
-                if dx or dy:
-                    self._add_offset_error_to(element_name, dx, dy)
-
-                # add tilt
-                dpsi = element.align_errors.dpsi
-                if dpsi:
-                    self._add_tilt_error_to(element_name, angle=dpsi / deg2rad)
-
-                # add aperture-only offset
-                arex = element.align_errors.arex
-                arey = element.align_errors.arey
-                if arex or arey:
-                    self._add_aperture_offset_error_to(element_name, arex, arey)
-
-                # check for errors which cannot be treated yet:
-                #for error_type in dir(element.align_errors):
-                 #   if not error_type[0] == '_' and \
-                  #          error_type not in ['dx', 'dy', 'dpsi', 'arex',
-                   #                            'arey', 'count', 'index']:
-                        #print(
-                        #    f'Warning: MAD-X error type "{error_type}"'
-                        #    " not implemented yet."
-                        #)
-
-            if element.field_errors:
-                # add multipole error
-                if any(element.field_errors.dkn) or \
-                            any(element.field_errors.dks):
-                    knl = element.field_errors.dkn
-                    ksl = element.field_errors.dks
-                    on=np.where(knl)[0]
-                    os=np.where(ksl)[0]
-                    on = on[-1] if len(on)>0 else 0
-                    os = os[-1] if len(os)>0 else 0
-                    oo = max(os,on)+1
-                    knl = knl[:oo]  # delete trailing zeros
-                    ksl = ksl[:oo]  # to keep order low
-                    self._add_multipole_error_to(element_name, knl, ksl)
-
-        return elements_not_found
 
 mathfunctions = type('math', (), {})
 mathfunctions.sqrt=math.sqrt
