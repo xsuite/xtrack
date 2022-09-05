@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 
-import xtrack.mad_loader2
+import xtrack.mad_loader
 from xtrack import MadLoader
 
 from cpymad.madx import Madx

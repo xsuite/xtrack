@@ -19,7 +19,7 @@ from .pipeline import (PipelineStatus, PipelineMultiTracker, PipelineBranch,
 from .monitors import generate_monitor_class
 from . import linear_normal_form
 
-from .mad_loader2 import MadLoader
+from .mad_loader import MadLoader
 
 import xpart as _xp
 ParticlesMonitor = generate_monitor_class(_xp.Particles)
