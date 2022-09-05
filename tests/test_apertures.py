@@ -135,7 +135,7 @@ def test_mad_import():
         m_rectellipse: marker, apertype="rectellipse", aperture={.2, .4, .25, .45};
         m_racetrack: marker, apertype="racetrack", aperture={.6,.4,.2,.1};
         m_octagon: marker, apertype="octagon", aperture={.4, .5, 0.5, 1.};
-        m_polygon: marker, apertype="circle", aper_vx= {+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy= {+3.500e-2,-3.500e-2,+0.000e+0};
+        m_polygon: marker, apertype="circle", aperture={0.001}, aper_vx= {+5.800e-2,+5.800e-2,-8.800e-2}, aper_vy= {+3.500e-2,-3.500e-2,+0.000e+0};
         beam;
         ss: sequence,l=1;
             m_circle, at=0;

@@ -9,12 +9,12 @@ mad.use("lhcb1")
 
 from xtrack import MadLoader
 
-ml=MadLoader(mad.sequence.lhcb1)
-line=list(ml.iter_elements())
+ml=MadLoader(mad.sequence.lhcb1,enable_expressions=True)
+#line=list(ml.iter_elements())
 
-#ml.make_line()
+ml.make_line()
 
-
+"""
 import cProfile
 from pstats import Stats
 
@@ -28,4 +28,4 @@ with open('profiling_stats.txt', 'w') as stream:
     stats.sort_stats('time')
     stats.dump_stats('.prof_stats')
     stats.print_stats()
-
+"""

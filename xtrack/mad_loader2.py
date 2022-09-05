@@ -210,9 +210,10 @@ class MadElem:
 
     def has_aperture(self):
         el = self.elem
-        return hasattr(el, "aperture") and (
-            el.aperture[0] != 0.0 or len(el.aperture) > 1
-        )
+        has_aper= hasattr(el, "aperture") and (
+            el.aperture[0] != 0.0 or len(el.aperture) > 1)
+        has_aper = has_aper or (hasattr(el, "aper_vx") and len(el.aper_vx) > 2)
+        return has_aper
 
     def is_empty_marker(self):
         return self.type == "marker" and not self.has_aperture()
@@ -339,12 +340,12 @@ class Aperture:
 
     def aperture(self):
         if len(self.mad_el.aper_vx) > 2:
-            return self.Builder(
+            return [self.Builder(
                 self.name + "_aper",
                 self.classes.LimitPolygon,
                 x_vertices=self.mad_el.aper_vx,
                 y_vertices=self.mad_el.aper_vy,
-            )
+            )]
         else:
             conveter = getattr(self.loader, "convert_" + self.apertype, None)
             if conveter is None:
@@ -575,10 +576,10 @@ class MadLoader:
             self.Builder(
                 mad_el.name + "_aper",
                 self.classes.LimitRect,
-                x_min=-h,
-                x_max=h,
-                y_min=-v,
-                y_max=v,
+                min_x=-h,
+                max_x=h,
+                min_y=-v,
+                max_y=v,
             )
         ]
 
@@ -588,10 +589,10 @@ class MadLoader:
             self.Builder(
                 mad_el.name + "_aper",
                 self.classes.LimitRacetrack,
-                x_min=-h,
-                x_max=h,
-                y_min=-v,
-                y_max=v,
+                min_x=-h,
+                max_x=h,
+                min_y=-v,
+                max_y=v,
                 a=a,
                 b=b,
             )
@@ -634,6 +635,17 @@ class MadLoader:
             self.classes.LimitPolygon,
             x_vertices=[V1[0], V2[0], -V2[0], -V1[0], -V1[0], -V2[0], V2[0], V1[0]],
             y_vertices=[V1[1], V2[1], V2[1], V1[1], -V1[1], -V2[1], -V2[1], -V1[1]],
+        )
+        return [el]
+
+    def convert_polygon(self, ee):
+        x_vertices = ee.aper_vx[0::2]
+        y_vertices = ee.aper_vy[1::2]
+        el = self.Builder(
+            ee.name + "_aper",
+            self.classes.LimitPolygon,
+            x_vertices=x_vertices,
+            y_vertices=y_vertices,
         )
         return [el]
 
