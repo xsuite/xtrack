@@ -14,6 +14,7 @@ import xobjects as xo
 import xpart as xp
 
 from .loader_mad import madx_sequence_to_xtrack_line
+from .mad_loader2 import MadLoader
 from .beam_elements import element_classes, Multipole
 from . import beam_elements
 from .beam_elements import Drift
@@ -23,7 +24,7 @@ log=logging.getLogger(__name__)
 def mk_class_namespace(extra_classes):
     try:
         import xfields as xf
-        all_classes = element_classes + xf.element_classes + extra_classes
+        all_classes = element_classes + xf.element_classes + extra_classes + (Line,)
     except ImportError:
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
@@ -103,28 +104,32 @@ class Line:
         cls,
         sequence,
         classes=(),
-        ignored_madtypes=[],
+        ignored_madtypes=(),
         exact_drift=False,
-        drift_threshold=1e-6,
+#        drift_threshold=1e-6, # not used anymore with expanded sequences
         deferred_expressions=False,
         install_apertures=False,
         apply_madx_errors=False,
+        skip_markers=False,
+        merge_drifts=False,
+        merge_multipoles=False,
     ):
 
-        class_dict=mk_class_namespace(classes)
+        class_namespace=mk_class_namespace(classes)
 
-        line = madx_sequence_to_xtrack_line(
-            sequence,
-            class_dict,
-            ignored_madtypes=ignored_madtypes,
-            exact_drift=exact_drift,
-            drift_threshold=drift_threshold,
-            install_apertures=install_apertures,
-            deferred_expressions=deferred_expressions)
-
-        if apply_madx_errors:
-            line._apply_madx_errors(sequence)
-
+        loader = MadLoader(sequence,
+            classes=class_namespace,
+            ignore_madtypes=ignored_madtypes,
+            exact_drift=False,
+            enable_errors=apply_madx_errors,
+            enable_apertures=install_apertures,
+            enable_expressions=deferred_expressions,
+            skip_markers=skip_markers,
+            merge_drifts=merge_drifts,
+            merge_multipoles=merge_multipoles,
+            error_table=None,  # not implemented yet
+            )
+        line=loader.make_line()
         return line
 
     def _init_var_management(self):
@@ -234,7 +239,7 @@ class Line:
                 new_elements.append(ee)
             else:
                 if _is_thick(ee) and not _is_drift(ee):
-                    new_elements.append(Drift(length==ee.length))
+                    new_elements.append(Drift(length=ee.length))
                 else:
                     new_elements.append(Drift(length=0))
 

@@ -156,9 +156,11 @@ class LimitPolygon(BeamElement):
 
 
             if self.area < 0:
-                raise ValueError(
-                        "The area of the polygon is negative!\n"
-                        "Vertices must be provided with counter-clockwise order!")
+                self.x_vertices = self.x_vertices[::-1]
+                self.y_vertices = self.y_vertices[::-1]
+                #raise ValueError(
+                #        "The area of the polygon is negative!\n"
+                #        "Vertices must be provided with counter-clockwise order!")
 
             Nx = -np.diff(self.y_closed)
             Ny = np.diff(self.x_closed)

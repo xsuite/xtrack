@@ -216,6 +216,12 @@ class SRotation(BeamElement):
     def angle(self):
         return np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
 
+    @angle.setter
+    def angle(self, value):
+        anglerad = value / 180 * np.pi
+        self.cos_z = np.cos(anglerad)
+        self.sin_z = np.sin(anglerad)
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
                               angle=-self.angle,
@@ -466,7 +472,7 @@ class DipoleEdge(BeamElement):
     ):
 
         if r21 is not None or r43 is not None:
-            raise NoImplementedError(
+            raise NotImplementedError(
                 "Please initialize using `h`, `e1`, `hgap` and `fint`")
 
         if hgap is None:
