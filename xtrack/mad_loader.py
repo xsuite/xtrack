@@ -362,7 +362,7 @@ class Aperture:
                 self.Builder(
                     self.name + "_aper_tilt_exit",
                     self.classes.SRotation,
-                    angle=self.aper_tilt,
+                    angle=-self.aper_tilt,
                 )
             )
         return out
