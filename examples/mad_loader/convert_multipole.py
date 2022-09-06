@@ -3,7 +3,7 @@ import itertools
 from cpymad.madx import Madx
 
 mad = Madx()
-mad.call("examples/mad_loader2/test_multipole.madx")
+mad.call("multipole.madx")
 
 from xtrack import MadLoader
 
