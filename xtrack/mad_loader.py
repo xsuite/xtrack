@@ -174,7 +174,7 @@ class MadElem:
             self.field_errors = FieldErrors(elem.field_errors)
         else:
             self.field_errors = None
-        if elem.dphi or elem.dtheta or elem.dpis or elem.dx or elem.dy or elem.ds:
+        if elem.dphi or elem.dtheta or elem.dpsi or elem.dx or elem.dy or elem.ds:
             raise NotImplementedError
 
     # @property
