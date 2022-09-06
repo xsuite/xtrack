@@ -698,10 +698,11 @@ class MadLoader:
         el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl
         el.ksl = ksl
-        if mad_elem.angle:  # NB !=0 creates an expression
+        if mad_elem.angle:  # testing for non-zero (cannot use !=0 as it creates an expression)
             el.hxl = mad_elem.angle
         else:
-            el.hxl = mad_elem.knl[0]
+            el.hxl = mad_elem.knl[0] #in madx angle=0 -> dipole
+            el.hyl = mad_elem.ksl[0] #in madx angle=0 -> dipole
         el.length = mad_elem.lrad
         return self.convert_thin_element([el], mad_elem)
 
