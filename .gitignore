@@ -9,3 +9,5 @@ build
 CyFPPS.cpp
 examples/*/res/*
 *.egg-info
+__pycache__
+.pytest_cache

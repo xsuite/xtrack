@@ -141,6 +141,15 @@ def eval_list(par, madeval):
         ]
 
 
+def generate_repeated_name(line, name):
+    if name in line.element_dict:
+       ii=0
+       while f"{name}:{ii}" in line.element_dict:
+          ii += 1
+       return f"{name}:{ii}"
+    else:
+       return name
+
 class FieldErrors:
     def __init__(self, field_errors):
         self.dkn = np.array(field_errors.dkn)
@@ -270,15 +279,17 @@ class ElementBuilder:
 
     def add_to_line(self, line, buffer):
         xtel = self.type(**self.attrs, _buffer=buffer)
-        line.append_element(xtel, self.name)
+        name=generate_repeated_name(line, self.name)
+        line.append_element(xtel, name)
 
 
 class ElementBuilderWithExpr(ElementBuilder):
     def add_to_line(self, line, buffer):
         attr_values = {k: get_value(v) for k, v in self.attrs.items()}
         xtel = self.type(**attr_values, _buffer=buffer)
-        line.append_element(xtel, self.name)
-        elref = line.element_refs[self.name]
+        name=generate_repeated_name(line, self.name)
+        line.append_element(xtel, name)
+        elref = line.element_refs[name]
         for k, p in self.attrs.items():
             set_expr(elref, k, p)
         return xtel
