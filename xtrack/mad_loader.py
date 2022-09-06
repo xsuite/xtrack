@@ -63,9 +63,9 @@ def get_value(x):
     elif isinstance(x, list) or isinstance(x, tuple):
         return [get_value(xx) for xx in x]
     elif isinstance(x, np.ndarray):
-        arr=np.zeros_like(x,dtype=float)
+        arr = np.zeros_like(x, dtype=float)
         for ii in np.ndindex(*x.shape):
-            arr[ii]=get_value(x[ii])
+            arr[ii] = get_value(x[ii])
     elif isinstance(x, dict):
         return {k: get_value(v) for k, v in x.items()}
     else:
@@ -78,12 +78,12 @@ def set_expr(target, key, xx):
 
     """
     if isinstance(xx, list):
-        out=getattr(target, key)
+        out = getattr(target, key)
         for ii, ex in enumerate(xx):
             set_expr(out, ii, ex)
     elif isinstance(xx, np.ndarray):
-        out=getattr(target, key)
-        for ii  in np.ndindex(*xx.shape):
+        out = getattr(target, key)
+        for ii in np.ndindex(*xx.shape):
             set_expr(out, ii, xx[ii])
     elif isinstance(xx, dict):
         for kk, ex in xx.items():
@@ -97,16 +97,16 @@ def set_expr(target, key, xx):
 
 # needed because cannot used += with numpy arrays of expressions
 def add_lists(a, b, length):
-    out=[]
+    out = []
     for ii in range(length):
-        if ii<len(a) and ii < len(b):
-            c=a[ii]+b[ii]
-        elif ii<len(a):
-            c=a[ii]
-        elif ii<len(b):
-            c=b[ii]
+        if ii < len(a) and ii < len(b):
+            c = a[ii] + b[ii]
+        elif ii < len(a):
+            c = a[ii]
+        elif ii < len(b):
+            c = b[ii]
         else:
-            c=0
+            c = 0
         out.append(c)
     return out
 
@@ -143,12 +143,13 @@ def eval_list(par, madeval):
 
 def generate_repeated_name(line, name):
     if name in line.element_dict:
-       ii=0
-       while f"{name}:{ii}" in line.element_dict:
-          ii += 1
-       return f"{name}:{ii}"
+        ii = 0
+        while f"{name}:{ii}" in line.element_dict:
+            ii += 1
+        return f"{name}:{ii}"
     else:
-       return name
+        return name
+
 
 class FieldErrors:
     def __init__(self, field_errors):
@@ -173,6 +174,8 @@ class MadElem:
             self.field_errors = FieldErrors(elem.field_errors)
         else:
             self.field_errors = None
+        if elem.dphi or elem.dtheta or elem.dpis or elem.dx or elem.dy or elem.ds:
+            raise NotImplementedError
 
     # @property
     # def field_errors(self):
@@ -247,7 +250,12 @@ class MadElem:
         )
 
     def merge_multipole(self, other):
-        if self.same_aperture(other) and self.align_errors == other.align_errors and    self.tilt == other.tilt and self.angle==other.angle:
+        if (
+            self.same_aperture(other)
+            and self.align_errors == other.align_errors
+            and self.tilt == other.tilt
+            and self.angle == other.angle
+        ):
             self.knl += other.knl
             self.ksl += other.ksl
             if self.field_errors is not None and other.field_errors is not None:
@@ -282,7 +290,7 @@ class ElementBuilder:
 
     def add_to_line(self, line, buffer):
         xtel = self.type(**self.attrs, _buffer=buffer)
-        name=generate_repeated_name(line, self.name)
+        name = generate_repeated_name(line, self.name)
         line.append_element(xtel, name)
 
 
@@ -290,7 +298,7 @@ class ElementBuilderWithExpr(ElementBuilder):
     def add_to_line(self, line, buffer):
         attr_values = {k: get_value(v) for k, v in self.attrs.items()}
         xtel = self.type(**attr_values, _buffer=buffer)
-        name=generate_repeated_name(line, self.name)
+        name = generate_repeated_name(line, self.name)
         line.append_element(xtel, name)
         elref = line.element_refs[name]
         for k, p in self.attrs.items():
@@ -710,16 +718,18 @@ class MadLoader:
             dkn = mad_elem.field_errors.dkn
             dks = mad_elem.field_errors.dks
             lmax = max(lmax, non_zero_len(dkn), non_zero_len(dks))
-            knl=add_lists(knl, dkn,lmax)
-            ksl=add_lists(ksl, dks,lmax)
+            knl = add_lists(knl, dkn, lmax)
+            ksl = add_lists(ksl, dks, lmax)
         el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
         el.knl = knl
         el.ksl = ksl
-        if mad_elem.angle:  # testing for non-zero (cannot use !=0 as it creates an expression)
+        if (
+            mad_elem.angle
+        ):  # testing for non-zero (cannot use !=0 as it creates an expression)
             el.hxl = mad_elem.angle
         else:
-            el.hxl = mad_elem.knl[0] #in madx angle=0 -> dipole
-            el.hyl = mad_elem.ksl[0] #in madx angle=0 -> dipole
+            el.hxl = mad_elem.knl[0]  # in madx angle=0 -> dipole
+            el.hyl = mad_elem.ksl[0]  # in madx angle=0 -> dipole
         el.length = mad_elem.lrad
         return self.convert_thin_element([el], mad_elem)
 
