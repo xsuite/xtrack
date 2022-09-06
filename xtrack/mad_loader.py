@@ -247,7 +247,7 @@ class MadElem:
         )
 
     def merge_multipole(self, other):
-        if self.same_aperture(other) and self.align_errors == other.align_errors and    self.tilt == other.tilt:
+        if self.same_aperture(other) and self.align_errors == other.align_errors and    self.tilt == other.tilt and self.angle==other.angle:
             self.knl += other.knl
             self.ksl += other.ksl
             if self.field_errors is not None and other.field_errors is not None:
