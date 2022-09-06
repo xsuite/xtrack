@@ -3,6 +3,7 @@ import numpy as np
 
 import xtrack.mad_loader
 from xtrack import MadLoader
+import xtrack as xt
 
 from cpymad.madx import Madx
 
@@ -94,7 +95,7 @@ def test_multipole():
     from xtrack import MadLoader
 
     def gen_options(opt1):
-        for v in itertools.product(*([[False,True]]*len(opt1))):
+        for v in itertools.product(*([[True, False]]*len(opt1))):
             yield dict(zip(opt1,v))
 
     opt1=["enable_expressions",
@@ -108,9 +109,59 @@ def test_multipole():
         ml=MadLoader(mad.sequence.seq,**opt)
         line=ml.make_line()
 
+        if opt['enable_apertures'] and opt['enable_errors']:
+            line.element_names == (
+                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
+                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
+                'elm1_tilt_entry', 'elm1_offset_entry', 'elm1', 'elm1_offset_exit',
+                'elm1_tilt_exit', 'drift_0', 'mk', 'mk2_aper', 'mk2', 'drift_1',
+                'elm2_aper_tilt_entry', 'elm2_aper_offset_entry', 'elm2_aper',
+                'elm2_aper_offset_exit', 'elm2_aper_tilt_exit', 'elm2_tilt_entry',
+                'elm2_offset_entry', 'elm2', 'elm2_offset_exit', 'elm2_tilt_exit',
+                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
+                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit', 'elm3_tilt_entry',
+                'elm3_offset_entry', 'elm3', 'elm3_offset_exit', 'elm3_tilt_exit',
+                'drift_2', 'seq$end')
+
+            prrrr
+        elif opt['enable_apertures'] and not(opt['enable_errors']):
+            line.element_names == (
+                'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
+                'elm1_aper', 'elm1_aper_offset_exit', 'elm1_aper_tilt_exit',
+                'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit', 'drift_0', 'mk',
+                'mk2_aper', 'mk2', 'drift_1', 'elm2_aper_tilt_entry',
+                'elm2_aper_offset_entry', 'elm2_aper', 'elm2_aper_offset_exit',
+                'elm2_aper_tilt_exit', 'elm2_tilt_entry', 'elm2', 'elm2_tilt_exit',
+                'elm3_aper_tilt_entry', 'elm3_aper_offset_entry', 'elm3_aper',
+                'elm3_aper_offset_exit', 'elm3_aper_tilt_exit',
+                'elm3_tilt_entry','elm3', 'elm3_tilt_exit', 'drift_2', 'seq$end'
+                )
+        elif not(opt['enable_apertures']) and opt['enable_errors']:
+            line.element_names == (
+                'seq$start', 'elm1_tilt_entry', 'elm1_offset_entry', 'elm1',
+                'elm1_offset_exit', 'elm1_tilt_exit', 'drift_0', 'mk', 'mk2',
+                'drift_1', 'elm2_tilt_entry', 'elm2_offset_entry', 'elm2',
+                'elm2_offset_exit', 'elm2_tilt_exit', 'elm3_tilt_entry',
+                'elm3_offset_entry', 'elm3', 'elm3_offset_exit',
+                'elm3_tilt_exit', 'drift_2', 'seq$end')
+        elif not(opt['enable_apertures']) and not(opt['enable_errors']):
+            line.element_names == (
+                'seq$start', 'elm1_tilt_entry', 'elm1', 'elm1_tilt_exit',
+                'drift_0', 'mk', 'mk2', 'drift_1', 'elm2_tilt_entry', 'elm2',
+                'elm2_tilt_exit', 'elm3_tilt_entry', 'elm3', 'elm3_tilt_exit',
+                'drift_2', 'seq$end')
+
+        for nn in line.element_names:
+            if 'tilt' in nn:
+                assert isinstance(line[nn], xt.SRotation)
+            elif 'offset' in nn:
+                assert isinstance(line[nn], xt.XYShift)
+
+
     for opt in gen_options(opt2):
         ml=MadLoader(mad.sequence.seq,**opt)
         line=list(ml.iter_elements())
+
 
 
 def test_matrix():
