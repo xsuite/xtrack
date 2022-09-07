@@ -572,7 +572,7 @@ class MadLoader:
                 )
             if ii % 100 == 0:
                 print(
-                    f"Converting {self.sequence.name}: {round(ii/nelem*100):2d}%     ",
+                    f'Converting sequence "{self.sequence.name}": {round(ii/nelem*100):2d}%     ',
                     end="\r",
                     flush=True,
                 )
