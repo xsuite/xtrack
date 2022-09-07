@@ -53,8 +53,7 @@ def rad2deg(rad):
     return rad * 180 / np.pi
 
 
-def is_expr(x):
-    return hasattr(x, "_get_value")
+
 
 
 def get_value(x):
@@ -124,6 +123,9 @@ def trim_trailing_zeros(lst):
             return lst[: ii + 1]
     return []
 
+
+def is_expr(x):
+    return hasattr(x, "_get_value")
 
 def not_zero(x):
     if is_expr(x):
@@ -362,7 +364,7 @@ class Aperture:
                 self.Builder(
                     self.name + "_aper_tilt_exit",
                     self.classes.SRotation,
-                    angle=self.aper_tilt,
+                    angle=-self.aper_tilt,
                 )
             )
         return out
