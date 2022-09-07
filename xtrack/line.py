@@ -62,7 +62,7 @@ class Line:
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         class_dict=mk_class_namespace(classes)
 
-        _buffer, _ =xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
+        _buffer, _ = xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
         elements = []
         for el in dct["elements"]:
             eltype = class_dict[el["__class__"]]
@@ -317,6 +317,21 @@ class Line:
             out['_var_management_data'] = deepcopy(self._var_management['data'])
             out['_var_manager'] = self._var_management['manager'].dump()
         return out
+
+    def to_pandas(self):
+        elements = self.elements
+        s_elements = np.array(self.get_s_elements())
+        element_types = list(map(lambda e: e.__class__.__name__, elements))
+
+        import pandas as pd
+
+        elements_df = pd.DataFrame({
+            'element_type': element_types,
+            's': s_elements,
+            'name': self.element_names,
+            'element': elements
+        })
+        return elements_df
 
     def copy(self):
         return self.__class__.from_dict(self.to_dict())
