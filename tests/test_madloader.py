@@ -1,3 +1,4 @@
+from distutils.errors import PreprocessError
 import itertools
 import numpy as np
 
@@ -51,11 +52,11 @@ def test_multipole():
             aper_offset=0.2;
 
     seq: sequence, l=1;
-    elm1:elm, at=0,dx=0.1,dy=0.2,ds=0.3,dphi=0.4,dpsi=0.5,dtheta=0.6;
+    elm1:elm, at=0;
     mk:marker, at=0.1;
     mk2:marker, at=0.1,aperture={0.1,0.2,0.11,0.22},apertype="rectellipse";
-    elm2:elm, at=0.5,dx=0.1,dy=0.2,ds=0.3,dphi=0.4,dpsi=0.5,dtheta=0.6;
-    elm3:elm, at=0.5,dx=0.1,dy=0.2,ds=0.3,dphi=0.4,dpsi=0.5,dtheta=0.6;
+    elm2:elm, at=0.5;
+    elm3:elm, at=0.5;
     endsequence;
 
 
@@ -123,7 +124,13 @@ def test_multipole():
                 'elm3_offset_entry', 'elm3', 'elm3_offset_exit', 'elm3_tilt_exit',
                 'drift_2', 'seq$end')
 
+            assert np.isclose(line['elm2_aper_tilt_entry'].angle, 0.1/np.pi*180,
+                                rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_aper_tilt_entry'].angle, -0.1/np.pi*180,
+                                rtol=0, atol=1e-13)
+
             prrrr
+
         elif opt['enable_apertures'] and not(opt['enable_errors']):
             line.element_names == (
                 'seq$start', 'elm1_aper_tilt_entry', 'elm1_aper_offset_entry',
