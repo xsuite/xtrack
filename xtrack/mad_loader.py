@@ -321,7 +321,7 @@ class Aperture:
             self.dy = 0
         if enable_errors and self.mad_el.align_errors is not None:
             self.dx += mad_el.align_errors.arex
-            self.dx += mad_el.align_errors.arey
+            self.dy += mad_el.align_errors.arey
         self.apertype = self.mad_el.apertype
         self.loader = loader
         self.classes = loader.classes

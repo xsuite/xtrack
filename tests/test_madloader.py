@@ -49,7 +49,7 @@ def test_multipole():
             aperture={0.1,0.2,0.11,0.22},
             aper_tol={0.1,0.2,0.3},
             aper_tilt:=tilt,
-            aper_offset=0.2;
+            aper_offset={0.2, 0.3};
 
     seq: sequence, l=1;
     elm1:elm, at=0;
@@ -123,13 +123,25 @@ def test_multipole():
                 'elm3_aper_offset_exit', 'elm3_aper_tilt_exit', 'elm3_tilt_entry',
                 'elm3_offset_entry', 'elm3', 'elm3_offset_exit', 'elm3_tilt_exit',
                 'drift_2', 'seq$end')
-
-            assert np.isclose(line['elm2_aper_tilt_entry'].angle, 0.1/np.pi*180,
-                                rtol=0, atol=1e-13)
-            assert np.isclose(line['elm2_aper_tilt_entry'].angle, -0.1/np.pi*180,
-                                rtol=0, atol=1e-13)
-
-            prrrr
+            mad_elm2 = mad.sequence['seq'].expanded_elements['elm2']
+            assert np.isclose(line['elm2_aper_tilt_entry'].angle,
+                              mad_elm2.aper_tilt/np.pi*180,
+                              rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_aper_tilt_exit'].angle,
+                              -mad_elm2.aper_tilt/np.pi*180,
+                              rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_aper_offset_entry'].dx,
+                        mad_elm2.align_errors.arex + mad_elm2.aper_offset[0],
+                        rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_aper_offset_entry'].dy,
+                        mad_elm2.align_errors.arey + mad_elm2.aper_offset[1],
+                        rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_aper_offset_exit'].dx,
+                        -(mad_elm2.align_errors.arex + mad_elm2.aper_offset[0]),
+                        rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_aper_offset_exit'].dy,
+                        -(mad_elm2.align_errors.arey + mad_elm2.aper_offset[1]),
+                        rtol=0, atol=1e-13)
 
         elif opt['enable_apertures'] and not(opt['enable_errors']):
             line.element_names == (
