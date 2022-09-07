@@ -42,7 +42,7 @@ def test_multipole():
     elm: multipole,
             knl:={0.1,-k1,0.3},
             ksl={-0.1,0.2,-0.3,4},
-            angle=0.1,tilt=0.2,
+            angle=0.1,
             tilt=0.2,
             lrad=1,
             apertype="rectellipse",
@@ -72,7 +72,7 @@ def test_multipole():
 
     ealign,
     DX=0.1, DY=0.3, DS=0.0,
-    DPHI=0.0, DTHETA=0.0, DPSI=0.1,
+    DPHI=0.0, DTHETA=0.0, DPSI=0.3,
     AREX=0.2, AREY=0.3;
 
     twiss,betx=1,bety=1,x=0.1,y=0.2,t=0.3;
@@ -124,12 +124,15 @@ def test_multipole():
                 'elm3_offset_entry', 'elm3', 'elm3_offset_exit', 'elm3_tilt_exit',
                 'drift_2', 'seq$end')
             mad_elm2 = mad.sequence['seq'].expanded_elements['elm2']
+
             assert np.isclose(line['elm2_aper_tilt_entry'].angle,
                               mad_elm2.aper_tilt/np.pi*180,
                               rtol=0, atol=1e-13)
             assert np.isclose(line['elm2_aper_tilt_exit'].angle,
                               -mad_elm2.aper_tilt/np.pi*180,
                               rtol=0, atol=1e-13)
+
+
             assert np.isclose(line['elm2_aper_offset_entry'].dx,
                         mad_elm2.align_errors.arex + mad_elm2.aper_offset[0],
                         rtol=0, atol=1e-13)
@@ -142,6 +145,25 @@ def test_multipole():
             assert np.isclose(line['elm2_aper_offset_exit'].dy,
                         -(mad_elm2.align_errors.arey + mad_elm2.aper_offset[1]),
                         rtol=0, atol=1e-13)
+
+            # Add a check on the aperture
+
+            assert np.isclose(line['elm2_tilt_entry'].angle,
+                        (mad_elm2.tilt + mad_elm2.align_errors.dpsi)/np.pi*180,
+                        rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_tilt_exit'].angle,
+                        -(mad_elm2.tilt + mad_elm2.align_errors.dpsi)/np.pi*180,
+                        rtol=0, atol=1e-13)
+
+            assert np.isclose(line['elm2_offset_entry'].dx,
+                              mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_offset_entry'].dy,
+                                mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_offset_exit'].dx,
+                                -mad_elm2.align_errors.dx, rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_offset_exit'].dy,
+                                -mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
+
 
         elif opt['enable_apertures'] and not(opt['enable_errors']):
             line.element_names == (
