@@ -164,6 +164,21 @@ def test_multipole():
             assert np.isclose(line['elm2_offset_exit'].dy,
                                 -mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
 
+            for ii in range(line['elm2'].order+1):
+                ref = 0
+                if len(mad_elm2.knl)>ii:
+                    ref += mad_elm2.knl[ii]
+                if len(mad_elm2.field_errors.dkn)>ii:
+                    ref += mad_elm2.field_errors.dkn[ii]
+                assert np.isclose(line['elm2'].knl[ii], ref, rtol=0, atol=1e-13)
+
+            for ii in range(line['elm2'].order+1):
+                ref = 0
+                if len(mad_elm2.ksl)>ii:
+                    ref += mad_elm2.ksl[ii]
+                if len(mad_elm2.field_errors.dks)>ii:
+                    ref += mad_elm2.field_errors.dks[ii]
+                assert np.isclose(line['elm2'].ksl[ii], ref, rtol=0, atol=1e-13)
 
         elif opt['enable_apertures'] and not(opt['enable_errors']):
             line.element_names == (
