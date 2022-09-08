@@ -3,10 +3,10 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
 import math
 import logging
 from copy import deepcopy
+from pprint import pp
 
 import numpy as np
 
@@ -63,8 +63,15 @@ class Line:
         class_dict=mk_class_namespace(classes)
 
         _buffer, _ = xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
+        num_elements = len(dct['element_names'])
         elements = []
-        for el in dct["elements"]:
+        for ii, el in enumerate(dct["elements"]):
+
+            if ii % 100 == 0:
+                print(
+                    f'Loading line from dict: {round(ii/num_elements*100):2d}%  ',
+                    end="\r", flush=True)
+
             eltype = class_dict[el["__class__"]]
             eldct=el.copy()
             del eldct['__class__']
@@ -72,6 +79,7 @@ class Line:
                newel = eltype.from_dict(eldct,_buffer=_buffer)
             else:
                newel = eltype.from_dict(eldct)
+
             elements.append(newel)
 
         self = cls(elements=elements, element_names=dct['element_names'])
@@ -87,6 +95,8 @@ class Line:
                 self._var_management['data'][kk].update(
                                             dct['_var_management_data'][kk])
             manager.load(dct['_var_manager'])
+
+        print('Done loading line from dict.           ')
 
         return self
 
@@ -622,6 +632,63 @@ class Line:
                     elements.append(ee)
 
         return elements, names
+
+    def check_aperture(self):
+
+        elements_df = self.to_pandas()
+
+        elements_df['is_aperture'] = elements_df.element_type.map(lambda s: s.startswith('Limit'))
+        elements_df['i_aperture_upstream'] = np.nan
+        elements_df['s_aperture_upstream'] = np.nan
+        elements_df['i_aperture_downstream'] = np.nan
+        elements_df['s_aperture_downstream'] = np.nan
+
+        num_elements = len(self.element_names)
+
+        i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
+        i_next_aperture = 0
+
+        for iee in range(i_prev_aperture, num_elements):
+
+            if iee % 100 == 0:
+                print(
+                    f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
+                    end="\r", flush=True)
+
+            if elements_df.loc[iee, 'element_type'] == 'Drift':
+                continue
+
+            if elements_df.loc[iee, 'element_type'] == 'XYShift':
+                continue
+
+            if elements_df.loc[iee, 'element_type'] == 'SRotation':
+                continue
+
+            if elements_df.loc[iee, 'is_aperture']:
+                i_prev_aperture = iee
+                continue
+
+            if i_next_aperture < iee:
+                for ii in range(iee, num_elements):
+                    if elements_df.loc[ii, 'is_aperture']:
+                        i_next_aperture = ii
+                        break
+
+            elements_df.at[iee, 'i_aperture_upstream'] = i_prev_aperture
+            elements_df.at[iee, 'i_aperture_downstream'] = i_next_aperture
+
+            elements_df.at[iee, 's_aperture_upstream'] = elements_df.loc[i_prev_aperture, 's']
+            elements_df.at[iee, 's_aperture_downstream'] = elements_df.loc[i_next_aperture, 's']
+
+            elements_df['misses_aperture_upstream'] = ((elements_df['s_aperture_upstream'] != elements_df['s'])
+                & ~(np.isnan(elements_df['i_aperture_upstream'])))
+
+        print('Done checking aperture.           ')
+
+        print(f'{elements_df.misses_aperture_upstream.sum()} elements miss associated aperture:')
+        pp(list(elements_df[elements_df.misses_aperture_upstream].name))
+
+        return elements_df
 
 
 mathfunctions = type('math', (), {})
