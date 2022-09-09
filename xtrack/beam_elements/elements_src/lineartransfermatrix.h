@@ -174,16 +174,25 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 
     if(uncorrelated_gauss_noise == 1) {
         double const gauss_noise_ampl_x = LinearTransferMatrixData_get_gauss_noise_ampl_x(el);
+        double const gauss_noise_ampl_px = LinearTransferMatrixData_get_gauss_noise_ampl_px(el);
         double const gauss_noise_ampl_y = LinearTransferMatrixData_get_gauss_noise_ampl_y(el);
-        double const gauss_noise_ampl_s = LinearTransferMatrixData_get_gauss_noise_ampl_s(el);
+        double const gauss_noise_ampl_py = LinearTransferMatrixData_get_gauss_noise_ampl_py(el);
+        double const gauss_noise_ampl_zeta = LinearTransferMatrixData_get_gauss_noise_ampl_zeta(el);
+        double const gauss_noise_ampl_delta = LinearTransferMatrixData_get_gauss_noise_ampl_delta(el);
 
         double r = LocalParticle_generate_random_double_gauss(part);
-        LocalParticle_add_to_px(part,r*gauss_noise_ampl_x);
+        LocalParticle_add_to_x(part,r*gauss_noise_ampl_x);
         r = LocalParticle_generate_random_double_gauss(part);
-        LocalParticle_add_to_py(part,r*gauss_noise_ampl_y);
+        LocalParticle_add_to_px(part,r*gauss_noise_ampl_px);
+        r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_y(part,r*gauss_noise_ampl_y);
+        r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_py(part,r*gauss_noise_ampl_py);
+        r = LocalParticle_generate_random_double_gauss(part);
+        LocalParticle_add_to_zeta(part,r*gauss_noise_ampl_zeta);
         r = LocalParticle_generate_random_double_gauss(part);
         double delta = LocalParticle_get_delta(part);
-        delta += r*gauss_noise_ampl_s;
+        delta += r*gauss_noise_ampl_delta;
         LocalParticle_update_delta(part,delta);
     }
 
