@@ -60,19 +60,27 @@ class Line:
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
-        class_dict=mk_class_namespace(classes)
+        class_dict = mk_class_namespace(classes)
 
-        _buffer, _ =xo.get_a_buffer(size=8,context=_context, buffer=_buffer)
-        elements = []
-        for el in dct["elements"]:
-            eltype = class_dict[el["__class__"]]
-            eldct=el.copy()
-            del eldct['__class__']
-            if hasattr(eltype,'_XoStruct'):
-               newel = eltype.from_dict(eldct,_buffer=_buffer)
+        def _deserialize_element(el):
+            eldct = el.copy()
+            eltype = class_dict[eldct.pop('__class__')]
+            if hasattr(eltype, '_XoStruct'):
+                return eltype.from_dict(eldct, _buffer=_buffer)
             else:
-               newel = eltype.from_dict(eldct)
-            elements.append(newel)
+                return eltype.from_dict(eldct)
+
+        _buffer, _ = xo.get_a_buffer(size=8, context=_context, buffer=_buffer)
+
+        if isinstance(dct['elements'], dict):
+            elements = {
+                k: _deserialize_element(el)
+                for k, el in dct['elements'].items()
+            }
+        elif isinstance(dct['elements'], list):
+            elements = [_deserialize_element(el) for el in dct['elements']]
+        else:
+            raise ValueError('Field `elements` must be a dict or a list')
 
         self = cls(elements=elements, element_names=dct['element_names'])
 
@@ -302,7 +310,7 @@ class Line:
 
     def to_dict(self):
         out = {}
-        out["elements"] = [el.to_dict() for el in self.elements]
+        out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
