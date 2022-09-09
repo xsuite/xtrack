@@ -332,6 +332,7 @@ class Line:
         elements = self.elements
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
+        isthick = np.array(list(map(_is_thick, elements)))
 
         import pandas as pd
 
@@ -339,6 +340,7 @@ class Line:
             'element_type': element_types,
             's': s_elements,
             'name': self.element_names,
+            'isthick': isthick,
             'element': elements
         })
         return elements_df
@@ -680,13 +682,35 @@ class Line:
             elements_df.at[iee, 's_aperture_upstream'] = elements_df.loc[i_prev_aperture, 's']
             elements_df.at[iee, 's_aperture_downstream'] = elements_df.loc[i_next_aperture, 's']
 
-            elements_df['misses_aperture_upstream'] = ((elements_df['s_aperture_upstream'] != elements_df['s'])
-                & ~(np.isnan(elements_df['i_aperture_upstream'])))
+        elements_df['misses_aperture_upstream'] = ((elements_df['s_aperture_upstream'] != elements_df['s'])
+            & ~(np.isnan(elements_df['i_aperture_upstream'])))
+
+
 
         print('Done checking aperture.           ')
 
-        print(f'{elements_df.misses_aperture_upstream.sum()} elements miss associated aperture:')
-        pp(list(elements_df[elements_df.misses_aperture_upstream].name))
+        df_thin_missing_aper = elements_df[elements_df['misses_aperture_upstream'] & ~elements_df['isthick']]
+        print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
+        pp(list(df_thin_missing_aper.name))
+
+        df_thick_to_check = elements_df[elements_df['isthick'] & ~(elements_df.i_aperture_upstream.isna())].copy()
+
+        s_downstream = df_thick_to_check.s + np.array(
+            [ee.length for ee in df_thick_to_check.element])
+
+        df_thick_to_check['misses_aperture_downstream'] = (
+            (np.abs(df_thick_to_check['s_aperture_downstream'] - s_downstream) > 1e-6)
+            & ~(np.isnan(df_thick_to_check['i_aperture_upstream'])))
+
+        elements_df['misses_aperture_downstream'] = False
+        elements_df.loc[df_thick_to_check.index, 'misses_aperture_downstream'] = (
+            df_thick_to_check['misses_aperture_downstream'])
+
+        df_thick_missing_aper = elements_df[
+            (elements_df['misses_aperture_upstream'] | elements_df['misses_aperture_downstream'])
+            & elements_df['isthick']]
+        print(f'{len(df_thick_missing_aper)} thick elements miss associated aperture (upstream or downstream):')
+        pp(list(df_thick_missing_aper.name))
 
         return elements_df
 
