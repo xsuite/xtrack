@@ -19,8 +19,8 @@ Q_s_set = 0.025
 
 beta_x = 1.0
 beta_y = 10.0
-alpha_x = -10.0
-alpha_y = 1000.0
+alpha_x = 0.0
+alpha_y = 0.0
 energy = 45.6
 
 gamma_x = (1.0+alpha_x**2)/beta_x

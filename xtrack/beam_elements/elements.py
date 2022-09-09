@@ -662,10 +662,12 @@ class LinearTransferMatrix(BeamElement):
         assert equ_emit_s >= 0.0
 
         if equ_emit_x > 0.0:
+            assert alpha_x_1 == 0
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/beta_x_1)
             nargs['gauss_noise_ampl_x'] = beta_x_1*nargs['gauss_noise_ampl_px']
         if equ_emit_y > 0.0:
+            assert alpha_y_1 == 0
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/beta_y_1)
             nargs['gauss_noise_ampl_y'] = beta_y_1*nargs['gauss_noise_ampl_py']
