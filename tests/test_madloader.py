@@ -185,7 +185,11 @@ def test_tilt_shift_and_errors():
                         -(on_err * mad_elm2.align_errors.arey + mad_elm2.aper_offset[1]),
                         rtol=0, atol=1e-13)
 
-        # Add a check on the aperture
+            assert isinstance(line['elm2_aper'], xt.LimitRectEllipse)
+            assert line['elm2_aper'].max_x == .1
+            assert line['elm2_aper'].max_y == .2
+            assert line['elm2_aper'].a_squ == .11**2
+            assert line['elm2_aper'].b_squ == .22**2
 
         assert np.isclose(line['elm2_tilt_entry'].angle,
                     (mad_elm2.tilt + on_err * mad_elm2.align_errors.dpsi)/np.pi*180,
