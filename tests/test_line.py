@@ -159,14 +159,28 @@ def test_check_aperture():
 
     line = xt.Line(
         elements={
+            'dum': xt.Drift(length=0),
             'dr1': xt.Drift(length=1),
             'm1_ap': xt.LimitEllipse(a=1e-2, b=1e-2),
-            'dum': xt.Drift(length=0),
             'm1': xt.Multipole(knl=[1]),
             'dr2': xt.Drift(length=1),
             'm2': xt.Multipole(knl=[1]),
+            'dr3': xt.Drift(length=1),
+            'th1_ap_front': xt.LimitEllipse(a=1e-2, b=1e-2),
+            'th1': ThickElement(),
+            'th1_ap_back': xt.LimitEllipse(a=1e-2, b=1e-2),
+            'dr4': xt.Drift(length=1),
+            'th2': ThickElement(),
+            'th2_ap_back': xt.LimitEllipse(a=1e-2, b=1e-2),
+            'dr5': xt.Drift(length=1),
+            'th3_ap_front': xt.LimitEllipse(a=1e-2, b=1e-2),
+            'th3': ThickElement(),
+            'dr6': xt.Drift(length=1),
         },
-        element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2'])
+        element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2',
+                       'th1_ap_front', 'dum', 'th1', 'dum', 'th1_ap_back',
+                       'dr4', 'th2', 'th2_ap_back',
+                       'dr5', 'th3_ap_front', 'th3'])
     df = line.check_aperture()
 
     prrrr
