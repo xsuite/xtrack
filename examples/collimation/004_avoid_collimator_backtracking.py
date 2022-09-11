@@ -6,7 +6,6 @@
 import time                          #!skip-doc
 import numpy as np
 
-import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
@@ -70,6 +69,7 @@ class DummyInteractionProcess:
 # Create a beam interaction from the process defined above #
 ############################################################
 
+# kick_x is large so that the particles are lost on the first aperture element
 interaction_process=DummyInteractionProcess(length=1., kick_x=4e-2,
                                             fraction_lost=0.0,
                                             fraction_secondary=0.2)
@@ -119,6 +119,8 @@ print(f'{t2-t1=:.2f}')                                    #!skip-doc
 # Loss location refinement #
 ############################
 
+part_before = particles.copy()
+
 loss_loc_refinement = xt.LossLocationRefinement(tracker,
                                             n_theta = 360,
                                             r_max = 0.5, # m
@@ -128,4 +130,4 @@ loss_loc_refinement = xt.LossLocationRefinement(tracker,
 
 loss_loc_refinement.refine_loss_location(particles)
 
-
+assert np.all(part_before.s == particles.s)
