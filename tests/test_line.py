@@ -138,3 +138,14 @@ def test_insert():
                 ['d0_part0', 'inserted_drift', 'd1_part1', 'm1', 'd2', 'm2', 'd3',
                 'm3', 'd4', 'm4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+
+def test_to_pandas():
+
+    line = xt.Line(elements=[
+        xt.Drift(length=1), xt.Cavity(), xt.Drift(length=1)])
+
+    df = line.to_pandas()
+
+    assert tuple(df.columns) == (
+                            'element_type', 's', 'name', 'isthick', 'element')
+    assert len(df) == 3
