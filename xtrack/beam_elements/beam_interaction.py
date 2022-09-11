@@ -10,6 +10,9 @@ import xpart as xp
 
 
 class BeamInteraction:
+
+    skip_in_loss_location_refinement = True
+
     def __init__(self, name=None, interaction_process=None,
                  length=0, isthick=None):
 

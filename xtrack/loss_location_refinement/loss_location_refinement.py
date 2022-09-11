@@ -203,6 +203,9 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                                              i_aper_1 - n_backtrack : i_aper_1]:
         ee = interp_tracker._original_tracker.line.element_dict[nn]
         if not isinstance(ee, tuple(allowed_backtrack_types)):
+            if (hasattr(ee, 'skip_in_loss_location_refinement')
+                    and ee.skip_in_loss_location_refinement):
+                return 'skipped'
             raise TypeError(
                 f'Cannot backtrack through element {nn} of type '
                 f'{ee.__class__.__name__}')
@@ -210,15 +213,14 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
     backtracker.track(part_refine, ele_start=i_start_backtrack,
                       num_elements = n_backtrack)
     # Just for check
-    elem_backtrack = backtracker.line.elements[
-                        i_start_backtrack:i_start_backtrack + n_backtrack]
+    # elem_backtrack = backtracker.line.elements[
+    #                     i_start_backtrack:i_start_backtrack + n_backtrack]
 
     # Track with extra apertures
     interp_tracker.track(part_refine)
     # There is a small fraction of particles that are not lost.
     # We verified that they are really at the edge. Their coordinates
     # correspond to the end fo the short line, which is correct
-
 
     if inplace:
         indx_sorted = np.argsort(part_refine.particle_id)
