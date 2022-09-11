@@ -150,3 +150,23 @@ def test_to_pandas():
                             'element_type', 's', 'name', 'isthick', 'element')
     assert len(df) == 3
 
+def test_check_aperture():
+
+    class ThickElement:
+
+        length = 2.
+        isthick = True
+
+    line = xt.Line(
+        elements={
+            'dr1': xt.Drift(length=1),
+            'm1_ap': xt.LimitEllipse(a=1e-2, b=1e-2),
+            'dum': xt.Drift(length=0),
+            'm1': xt.Multipole(knl=[1]),
+            'dr2': xt.Drift(length=1),
+            'm2': xt.Multipole(knl=[1]),
+        },
+        element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2'])
+    df = line.check_aperture()
+
+    prrrr
