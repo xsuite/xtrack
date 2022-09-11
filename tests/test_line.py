@@ -149,3 +149,4 @@ def test_to_pandas():
     assert tuple(df.columns) == (
                             'element_type', 's', 'name', 'isthick', 'element')
     assert len(df) == 3
+

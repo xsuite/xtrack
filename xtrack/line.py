@@ -689,10 +689,16 @@ class Line:
 
         print('Done checking aperture.           ')
 
+        # Identify issues with apertures associate with thin elements
         df_thin_missing_aper = elements_df[elements_df['misses_aperture_upstream'] & ~elements_df['isthick']]
         print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
         pp(list(df_thin_missing_aper.name))
 
+        elements_df['problem_in_aperture_model'] = False
+        elements_df.loc [df_thin_missing_aper.index, 'problem_in_aperture_model'] = True
+
+
+        # Identify issues with apertures associate with thin elements
         df_thick_to_check = elements_df[elements_df['isthick'] & ~(elements_df.i_aperture_upstream.isna())].copy()
 
         s_downstream = df_thick_to_check.s + np.array(
@@ -711,6 +717,8 @@ class Line:
             & elements_df['isthick']]
         print(f'{len(df_thick_missing_aper)} thick elements miss associated aperture (upstream or downstream):')
         pp(list(df_thick_missing_aper.name))
+
+        elements_df.loc[df_thick_missing_aper.index, 'problem_in_aperture_model'] = True
 
         return elements_df
 
