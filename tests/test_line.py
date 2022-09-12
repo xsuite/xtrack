@@ -183,4 +183,11 @@ def test_check_aperture():
                        'dr5', 'th3_ap_front', 'th3'])
     df = line.check_aperture()
 
-    prrrr
+    expected_miss_upstream = [nn in ('m2', 'th2') for nn in df['name'].values]
+    expected_miss_downstream = [nn in ('th3') for nn in df['name'].values]
+    expected_problem_flag = np.array(expected_miss_upstream) | (df.isthick &
+                                        np.array(expected_miss_downstream))
+
+    assert np.all(df['misses_aperture_upstream'].values == expected_miss_upstream)
+    assert np.all(df['misses_aperture_downstream'].values == expected_miss_downstream)
+    assert np.all(df['problem_in_aperture_model'].values == expected_problem_flag)
