@@ -177,17 +177,17 @@ def test_check_aperture():
             'th3': ThickElement(),
             'dr6': xt.Drift(length=1),
         },
-        element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2',
+        element_names=['dr1', 'm1_ap', 'dum', 'm1', 'dr2', 'm2', 'dr3',
                        'th1_ap_front', 'dum', 'th1', 'dum', 'th1_ap_back',
                        'dr4', 'th2', 'th2_ap_back',
                        'dr5', 'th3_ap_front', 'th3'])
     df = line.check_aperture()
 
     expected_miss_upstream = [nn in ('m2', 'th2') for nn in df['name'].values]
-    expected_miss_downstream = [nn in ('th3') for nn in df['name'].values]
+    expected_miss_downstream = [nn in ('m1', 'm2', 'th3') for nn in df['name'].values]
     expected_problem_flag = np.array(expected_miss_upstream) | (df.isthick &
                                         np.array(expected_miss_downstream))
 
     assert np.all(df['misses_aperture_upstream'].values == expected_miss_upstream)
     assert np.all(df['misses_aperture_downstream'].values == expected_miss_downstream)
-    assert np.all(df['problem_in_aperture_model'].values == expected_problem_flag)
+    assert np.all(df['has_aperture_problem'].values == expected_problem_flag)
