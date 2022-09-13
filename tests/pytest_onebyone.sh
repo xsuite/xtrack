@@ -3,4 +3,5 @@ for ff in ./test_*.py ; do
     echo "Running $ff"
     pytest $ff --junitxml=one.xml
     cat one.xml >> allres.xml
+    echo "\n" >> allres.xml
 done
