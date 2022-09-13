@@ -13,11 +13,12 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
     double const L_phy = WireData_get_L_phy(el);
     double const L_int = WireData_get_L_int(el);
     double const current = WireData_get_current(el);
-    
+
     double const xma = WireData_get_xma(el);
     double const yma = WireData_get_yma(el);
 
-
+    double const post_subtract_px = WireData_get_post_subtract_px(el);
+    double const post_subtract_py = WireData_get_post_subtract_py(el);
 
     //start_per_particle_block (part0->part)
 
@@ -50,8 +51,8 @@ void Wire_track_local_particle(WireData el, LocalParticle* part0){
     
     
         // Update the particle properties
-        LocalParticle_add_to_px(part, dpx );
-        LocalParticle_add_to_py(part, dpy );
+        LocalParticle_add_to_px(part, dpx - post_subtract_px);
+        LocalParticle_add_to_py(part, dpy - post_subtract_py);
 
 
     //end_per_particle_block
