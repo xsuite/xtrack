@@ -155,6 +155,9 @@ class Wire(BeamElement):
                'current': xo.Float64,
                'xma'    : xo.Float64,
                'yma'    : xo.Float64,
+
+               'post_subtract_px': xo.Float64,
+               'post_subtract_py': xo.Float64,
               }
 
     _extra_c_sources = [
@@ -167,8 +170,11 @@ class Wire(BeamElement):
                         current = 0,
                         xma     = 0,
                         yma     = 0,
+                        post_subtract_px = 0,
+                        post_subtract_py = 0,
                         _xobject = None,
                         **kwargs):
+
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
         else:
@@ -178,15 +184,12 @@ class Wire(BeamElement):
             self.current = current
             self.xma     = xma
             self.yma     = yma
+            self.post_subtract_px = post_subtract_px
+            self.post_subtract_py = post_subtract_py
+
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              L_phy   = self.L_phy,
-                              L_int   = self.L_int,
-                              current = -self.current,
-                              xma     = self.xma,
-                              yma     = self.yma,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
+        raise NotImplementedError
 
 
 class SRotation(BeamElement):
