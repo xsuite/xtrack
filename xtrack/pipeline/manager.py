@@ -1,13 +1,17 @@
+from xtrack.pipeline.core import PipelineID, PipelineCommunicator
+
 class PipelineManager:
-    def __init__(self,communicator):
+    def __init__(self,communicator = None):
         self._IDs = {}
         self._particles_per_rank = {}
         self._elements = {}
         self._pending_requests = {}
         self._last_request_turn = {}
 
-        self._communicator = communicator
-        #self._max_tag = self._comm.Get_attr(MPI.TAG_UB) # 8388607 with OpenMPI on HPC photon
+        if communicator is not None:
+            self._communicator = communicator
+        else:
+            self._communicator = PipelineCommunicator()
 
     def add_particles(self,particles_name,rank):
         if rank in self._particles_per_rank.keys():
