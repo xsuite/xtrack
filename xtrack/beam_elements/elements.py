@@ -555,8 +555,11 @@ class LinearTransferMatrix(BeamElement):
         'damping_factor_s':xo.Float64,
         'uncorrelated_gauss_noise': xo.Int64,
         'gauss_noise_ampl_x':xo.Float64,
+        'gauss_noise_ampl_px':xo.Float64,
         'gauss_noise_ampl_y':xo.Float64,
-        'gauss_noise_ampl_s':xo.Float64,
+        'gauss_noise_ampl_py':xo.Float64,
+        'gauss_noise_ampl_zeta':xo.Float64,
+        'gauss_noise_ampl_delta':xo.Float64,
         }
 
     _extra_c_sources = [
@@ -577,7 +580,7 @@ class LinearTransferMatrix(BeamElement):
                      y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
                      damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
                      equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
-                     gauss_noise_ampl_x=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_s=0.0,
+                     gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
                      **nargs):
 
         if (chroma_x==0 and chroma_y==0
@@ -657,21 +660,46 @@ class LinearTransferMatrix(BeamElement):
             raise ValueError('Equilibrium emittances cannot be negative')
         nargs['uncorrelated_gauss_noise'] = False
         nargs['gauss_noise_ampl_x'] = 0.0
+        nargs['gauss_noise_ampl_px'] = 0.0
         nargs['gauss_noise_ampl_y'] = 0.0
-        nargs['gauss_noise_ampl_s'] = 0.0
-        if equ_emit_x > 0.0 or equ_emit_y > 0.0 or equ_emit_s > 0.0:
-            nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_x'] = np.sqrt(2.0*equ_emit_x*damping_rate_x/beta_x_1)
-            nargs['gauss_noise_ampl_y'] = np.sqrt(2.0*equ_emit_y*damping_rate_y/beta_y_1)
-            nargs['gauss_noise_ampl_s'] = np.sqrt(2.0*equ_emit_s*damping_rate_s/beta_s)
+        nargs['gauss_noise_ampl_py'] = 0.0
+        nargs['gauss_noise_ampl_zeta'] = 0.0
+        nargs['gauss_noise_ampl_delta'] = 0.0
 
-        if gauss_noise_ampl_x < 0.0 or gauss_noise_ampl_y < 0.0 or gauss_noise_ampl_s < 0.0:
-            raise ValueError('Gaussian noise amplitude cannot be negative')
-        if gauss_noise_ampl_x > 0.0 or gauss_noise_ampl_y > 0.0 or gauss_noise_ampl_s > 0.0:
+        assert equ_emit_x >= 0.0
+        assert equ_emit_y >= 0.0
+        assert equ_emit_s >= 0.0
+
+        if equ_emit_x > 0.0:
+            assert alpha_x_1 == 0
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/beta_x_1)
+            nargs['gauss_noise_ampl_x'] = beta_x_1*nargs['gauss_noise_ampl_px']
+        if equ_emit_y > 0.0:
+            assert alpha_y_1 == 0
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/beta_y_1)
+            nargs['gauss_noise_ampl_y'] = beta_y_1*nargs['gauss_noise_ampl_py']
+        if equ_emit_s > 0.0:
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_delta'] = np.sqrt(equ_emit_s*damping_rate_s/beta_s)
+            nargs['gauss_noise_ampl_zeta'] = beta_s*nargs['gauss_noise_ampl_delta']
+
+        assert gauss_noise_ampl_x >= 0.0
+        assert gauss_noise_ampl_px >= 0.0
+        assert gauss_noise_ampl_y >= 0.0
+        assert gauss_noise_ampl_py >= 0.0
+        assert gauss_noise_ampl_zeta >= 0.0
+        assert gauss_noise_ampl_delta >= 0.0
+
+        if gauss_noise_ampl_x > 0.0 or gauss_noise_ampl_px > 0.0 or gauss_noise_ampl_y > 0.0 or gauss_noise_ampl_py > 0.0 or gauss_noise_ampl_zeta > 0.0 or gauss_noise_ampl_delta > 0.0:
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_ampl_x'] = np.sqrt(nargs['gauss_noise_ampl_x']**2+gauss_noise_ampl_x**2)
+            nargs['gauss_noise_ampl_px'] = np.sqrt(nargs['gauss_noise_ampl_px']**2+gauss_noise_ampl_px**2)
             nargs['gauss_noise_ampl_y'] = np.sqrt(nargs['gauss_noise_ampl_y']**2+gauss_noise_ampl_y**2)
-            nargs['gauss_noise_ampl_s'] = np.sqrt(nargs['gauss_noise_ampl_s']**2+gauss_noise_ampl_s**2)
+            nargs['gauss_noise_ampl_py'] = np.sqrt(nargs['gauss_noise_ampl_py']**2+gauss_noise_ampl_py**2)
+            nargs['gauss_noise_ampl_zeta'] = np.sqrt(nargs['gauss_noise_ampl_zeta']**2+gauss_noise_ampl_zeta**2)
+            nargs['gauss_noise_ampl_delta'] = np.sqrt(nargs['gauss_noise_ampl_delta']**2+gauss_noise_ampl_delta**2)
 
         super().__init__(**nargs)
 

@@ -508,9 +508,9 @@ def test_linear_transfer_uncorrelated_damping_equilibrium():
     for ctx in xo.context.get_test_contexts():
         print(f"Test {ctx.__class__}")
 
-        alpha_x_0 = -0.5
+        alpha_x_0 = 0.0
         beta_x_0 = 100.0
-        alpha_y_0 = -0.4
+        alpha_y_0 = 0.0
         beta_y_0 = 8.0
         Q_x = 0.18
         Q_y = 0.22
