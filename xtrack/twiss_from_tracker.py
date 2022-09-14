@@ -12,6 +12,7 @@ import xpart as xp
 from scipy.optimize import fsolve
 from scipy.constants import c as clight
 
+from .line import _is_thick
 from . import linear_normal_form as lnf
 
 import xtrack as xt # To avoid circular imports
@@ -245,6 +246,11 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
         matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False):
+
+    if _is_thick(tracker.line[-1]) and tracker.line[-1].length > 0:
+        line = xt.Line(elements=tracker.line.element_dict.copy(),
+                       element_names=tracker.line.element_names)
+        line[-1].length = 0
 
     if at_s is not None:
 

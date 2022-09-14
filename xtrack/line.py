@@ -525,11 +525,19 @@ class Line:
 
         newline = Line(elements=[], element_names=[])
 
+        # We keep the first marker (if present)
+        if _is_drift(self[0]) and self[0].length == 0:
+            newline.append_element(self[0], self.element_names[0])
+
         for ee, nn in zip(self.elements, self.element_names):
             if _is_drift(ee):
                 if ee.length == 0.0:
                     continue
             newline.append_element(ee, nn)
+
+        # We keep the last marker (if present)
+        if _is_drift(self[-1]) and self[-1].length == 0:
+            newline.append_element(self[-1], self.element_names[-1])
 
         if inplace:
             self.element_names = newline.element_names
@@ -543,8 +551,8 @@ class Line:
 
         newline = Line(elements=[], element_names=[])
 
-        for ee, nn in zip(self.elements, self.element_names):
-            if len(newline.elements) == 0:
+        for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
+            if ii <= 1: # will preserve the first marker if present
                 newline.append_element(ee, nn)
                 continue
 
@@ -553,11 +561,14 @@ class Line:
                 prev_ee = newline.element_dict[prev_nn]
                 if _is_drift(prev_ee):
                     prev_ee.length += ee.length
-                    newline.element_names[-1] = prev_nn
                 else:
                     newline.append_element(ee, nn)
             else:
                 newline.append_element(ee, nn)
+
+        # Preserve last marker if present
+        if _is_drift(self[-1]) and self[-1].length == 0:
+            newline.append_element(self[-1], self.element_names[-1])
 
         if inplace:
             self.element_dict.update(newline.element_dict)
