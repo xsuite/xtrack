@@ -85,7 +85,7 @@ class LossLocationRefinement:
 
                 i_aper_1 = i_ap
                 i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
-                logger.debug(f'{i_aper_1=}, {i_aper_0=}')
+                logger.debug(f'i_aper_1={i_aper_1}, i_aper_0={i_aper_0}')
 
                 s0, s1, _ = generate_interp_aperture_locations(self.tracker,
                                                    i_aper_0, i_aper_1, self.ds)
@@ -96,7 +96,7 @@ class LossLocationRefinement:
 
                 presence_shifts_rotations = check_for_active_shifts_and_rotations(
                                                     self.tracker, i_aper_0, i_aper_1)
-                logger.debug(f'{presence_shifts_rotations=}')
+                logger.debug(f'presence_shifts_rotations={presence_shifts_rotations}')
 
                 if (not(presence_shifts_rotations) and
                    apertures_are_identical(self.tracker.line.elements[i_aper_0],
@@ -423,7 +423,7 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
         x_test = RR.flatten()*np.cos(TT.flatten())
         y_test = RR.flatten()*np.sin(TT.flatten())
 
-        logger.info(f'{iteration=} num_part={x_test.shape[0]}')
+        logger.info(f'iteration={iteration} num_part={x_test.shape[0]}')
 
         ptest = xp.Particles(p0c=1,
                 x = x_test.copy(),
