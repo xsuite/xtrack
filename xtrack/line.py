@@ -103,7 +103,7 @@ class Line:
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
         log.warning("\n"
-            "WARNING: xtrack.Line.from_sixinput(sixinput) will be removed in furure versions.\n"
+            "WARNING: xtrack.Line.from_sixinput(sixinput) will be removed in future versions.\n"
             "Please use sixinput.generate_xtrack_line()\n")
         line = sixinput.generate_xtrack_line(classes=classes)
         return line
