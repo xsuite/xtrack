@@ -43,17 +43,12 @@ def _is_thick(element):
     return  ((hasattr(element, "isthick") and element.isthick) or
              (isinstance(element, _thick_element_types)))
 
-
-
-
-# missing access to particles._m:
-deg2rad = np.pi / 180.
+DEG2RAD = np.pi / 180.
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
-
 
 
 class Line:
@@ -65,12 +60,21 @@ class Line:
         _buffer, _ = xo.get_a_buffer(size=8, context=_context, buffer=_buffer)
 
         if isinstance(dct['elements'], dict):
-            elements = {
-                k: _deserialize_element(el, class_dict, _buffer)
-                for k, el in dct['elements'].items()
-            }
+            elements = {}
+            num_elements = len(dct['elements'].keys())
+            for ii, (kk, ee) in enumerate(dct['elements'].items()):
+                if ii % 100 == 0:
+                    print('Loading line from dict: '
+                        f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
+                elements[kk] = _deserialize_element(ee, class_dict, _buffer)
         elif isinstance(dct['elements'], list):
-            elements = [_deserialize_element(el, class_dict, _buffer) for el in dct['elements']]
+            elements = []
+            num_elements = len(dct['elements'])
+            for ii, ee in enumerate(dct['elements']):
+                if ii % 100 == 0:
+                    print('Loading line from dict: '
+                        f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
+                elements.append(_deserialize_element(ee, class_dict, _buffer))
         else:
             raise ValueError('Field `elements` must be a dict or a list')
 
