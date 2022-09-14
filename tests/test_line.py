@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import pytest
 import xtrack as xt
 
 def test_simplification_methods():
@@ -195,3 +196,78 @@ def test_check_aperture():
     assert np.all(df['misses_aperture_upstream'].values == expected_miss_upstream)
     assert np.all(df['misses_aperture_downstream'].values == expected_miss_downstream)
     assert np.all(df['has_aperture_problem'].values == expected_problem_flag)
+
+def test_to_dict():
+    line = xt.Line(
+        elements={
+            'm': xt.Multipole(knl=[1, 2]),
+            'd': xt.Drift(length=1),
+        },
+        element_names=['m', 'd', 'm', 'd']
+    )
+    result = line.to_dict()
+
+    assert len(result['elements']) == 2
+    assert result['element_names'] == ['m', 'd', 'm', 'd']
+
+    assert result['elements']['m']['__class__'] == 'Multipole'
+    assert (result['elements']['m']['knl'] == [1, 2]).all()
+
+    assert result['elements']['d']['__class__'] == 'Drift'
+    assert result['elements']['d']['length'] == 1
+
+
+def test_from_dict_legacy():
+    test_dict = {
+        'elements': [
+            {'__class__': 'Multipole', 'knl': [1, 2]},
+            {'__class__': 'Drift', 'length': 1},
+        ],
+        'element_names': ['mn1', 'd1'],
+    }
+    result = xt.Line.from_dict(test_dict)
+
+    assert len(result.elements) == 2
+
+    assert isinstance(result.elements[0], xt.Multipole)
+    assert (result.elements[0].knl == [1, 2]).all()
+
+    assert isinstance(result.elements[1], xt.Drift)
+    assert result.elements[1].length == 1
+
+    assert result.element_names == ['mn1', 'd1']
+
+
+def test_from_dict_current():
+    test_dict = {
+        'elements': {
+            'mn': {
+                '__class__': 'Multipole',
+                'knl': [1, 2],
+            },
+            'ms': {
+                '__class__': 'Multipole',
+                'ksl': [3],
+            },
+            'd': {
+                '__class__': 'Drift',
+                'length': 4,
+            },
+        },
+        'element_names': ['mn', 'd', 'ms', 'd']
+    }
+    line = xt.Line.from_dict(test_dict)
+
+    assert line.element_names == ['mn', 'd', 'ms', 'd']
+    mn, d1, ms, d2 = line.elements
+
+    assert isinstance(mn, xt.Multipole)
+    assert (mn.knl == [1, 2]).all()
+
+    assert isinstance(ms, xt.Multipole)
+    assert (ms.ksl == [3]).all()
+
+    assert isinstance(d1, xt.Drift)
+    assert d1.length == 4
+
+    assert d2 is d1
