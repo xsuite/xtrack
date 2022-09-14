@@ -144,27 +144,25 @@ def test_elens_measured_radial():
     for ctx in xo.context.get_test_contexts():
         print(f"Test {ctx.__class__}")
 
-        def compute_coef(r_measured, j_measured, r_1_new, r_2_new, r_1_old, r_2_old, p_order = 13):
-            new_r = r_measured*(r_2_new-r_1_new)/(r_2_old-r_1_old)   
-            new_j = j_measured*(r_2_old-r_1_old)/(r_2_new-r_1_new) 
-            
+        def compute_coef(r_measured, j_measured, r_1_new, r_2_new,
+                         r_1_old, r_2_old, p_order = 13):
+            new_r = r_measured*(r_2_new-r_1_new)/(r_2_old-r_1_old)
+            new_j = j_measured*(r_2_old-r_1_old)/(r_2_new-r_1_new)
+
             product = new_r*new_j
-            
+
             delta_r = new_r[2]-new_r[1]
-            
+
             numerator = [];
             s = len(new_r)
             for i in range(s):
-                numerator.append((delta_r*max(np.cumsum(product[0:i+1])))) 
+                numerator.append((delta_r*max(np.cumsum(product[0:i+1]))))
             L = np.cumsum(product)
-            denominator = max(L)*delta_r 
+            denominator = max(L)*delta_r
             f_r = np.array(numerator/denominator)
             r_selected = new_r[new_j != 0]
             f_selected = f_r[new_j != 0]
             coef = np.polyfit(r_selected, f_selected, p_order)
-            #D = decimal.Decimal
-            #for i in range(len(coef)):
-                #print(D(coef[i]))
             return coef
 
 
@@ -190,7 +188,7 @@ def test_elens_measured_radial():
         C     = compute_coef(r, j, 1.4, 2.8, 4.0, 8.0)
 
         elens_radial_profile = xt.Elens(current=5, inner_radius=1.4e-3, outer_radius=2.8e-3, elens_length=3, voltage=10e3, \
-                            coefficients_polynomial=C, polynomial_order=len(C))
+                            coefficients_polynomial=C)
 
         elens_constant       = xt.Elens(current=5, inner_radius=1.4e-3, outer_radius=2.8e-3, elens_length=3, voltage=10e3)   
 
@@ -204,7 +202,7 @@ def test_elens_measured_radial():
                           ctx.nparray_from_context_array(particle2.py)[0], rtol=1e-9, atol=1e-9)
 
 
-        
+
 def test_wire():
 
     for ctx in xo.context.get_test_contexts():
