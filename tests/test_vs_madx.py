@@ -63,6 +63,8 @@ def test_twiss():
             atol=1e-8, rtol=0)
         assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
+        assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
+
         for name in ['mb.b19r5.b1', 'mb.b19r1.b1',
                     'ip1', 'ip2', 'ip5', 'ip8',
                     'mbxf.4l1', 'mbxf.4l5']:

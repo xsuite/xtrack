@@ -466,7 +466,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         }
 
     twiss_res = {
-        'name': tracker.line.element_names,
+        'name': tracker.line.element_names + ('_end_point',),
         's': s,
         'x': x_co,
         'px': px_co,
