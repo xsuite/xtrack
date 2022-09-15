@@ -18,12 +18,9 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
     double const residual_kick_y = ElensData_get_residual_kick_y(el);
 
     int const polynomial_order = ElensData_get_polynomial_order(el);
-    double* coefficients_polynomial = (double*)malloc((polynomial_order+1)*sizeof(double));
-    for(int i=0; i<(polynomial_order+1); ++i){
-      coefficients_polynomial[i] = ElensData_get_coefficients_polynomial(el,i);
-    }
 
-    // double const cos_z = SRotationData_get_cos_z(el);
+    double const* coefficients_polynomial =
+                                ElensData_getp1_coefficients_polynomial(el, 0);
 
     //start_per_particle_block (part0->part)
 
@@ -165,7 +162,6 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
         // LocalParticle_set_py(part, py_hat);
     //end_per_particle_block
-    free((void*)coefficients_polynomial);
 }
 
 #endif
