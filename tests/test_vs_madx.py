@@ -116,6 +116,17 @@ def test_twiss():
             assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
                             rtol=1e-5, atol=0)
 
+        # Test twiss on line with no marker at the end
+        line_no_marker = line.remove_zero_length_drifts()
+        line_no_marker.merge_consecutive_drifts(inplace=True)
+
+        tracker_no_marker = xt.Tracker(_context=context, line=line_no_marker)
+        twxt_no_marker = tracker_no_marker.twiss()
+
+        assert np.isclose(twxt_no_marker['qx'], twxt['qx'], rtol=0, atol=1e-8)
+        assert np.isclose(twxt_no_marker['qy'], twxt['qy'], rtol=0, atol=1e-8)
+
+
 def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 

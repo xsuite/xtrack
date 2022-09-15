@@ -673,6 +673,10 @@ class Tracker:
                     }
                     increment_at_element(&lpart);
                 } // for elements
+                if (flag_monitor==2){
+                    // End of turn (element-by-element mode)
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                }
                 if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn);
@@ -1247,7 +1251,7 @@ class Tracker:
         elif turn_by_turn_monitor == 'ONE_TURN_EBE':
             (_, monitor, buffer_monitor, offset_monitor
                 ) = self._get_monitor(particles, turn_by_turn_monitor=True,
-                                      num_turns=len(self.line.elements))
+                                      num_turns=len(self.line.elements)+1)
             monitor.ebe_mode = 1
             flag_monitor = 2
         elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):

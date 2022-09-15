@@ -248,7 +248,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         symplectify=False):
 
     if _is_thick(tracker.line[-1]) and tracker.line[-1].length > 0:
-        raise ValueError('The last element of the line must have length 0'
+        raise ValueError('The last element of the line must have length 0.'
                          ' Please add a marker at the end of the line')
 
     if at_s is not None:
@@ -297,7 +297,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
 
-    s = np.array(tracker.line.get_s_elements())
+    s = np.array(tracker.line.get_s_elements() + [tracker.line.get_length()])
 
     scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
     scale_transverse_y = np.sqrt(gemitt_y)*r_sigma

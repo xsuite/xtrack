@@ -23,7 +23,9 @@ def test_match_and_track_from_element():
         filename = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
         with open(filename, 'r') as fid:
             input_data = json.load(fid)
-        tracker = xt.Tracker(_context=ctx, line=xt.Line.from_dict(input_data['line']),
+        line=xt.Line.from_dict(input_data['line'])
+        line.append_element(element=xt.Drift(length=0.), name='end_of_line')
+        tracker = xt.Tracker(_context=ctx, line=line,
                             reset_s_at_end_turn=False)
         assert not tracker.iscollective
         tracker.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
@@ -88,6 +90,7 @@ def test_match_and_track_from_element():
 
         # Check collective case
         line_w_collective = xt.Line.from_dict(input_data['line'], _context=ctx)
+        line_w_collective.append_element(element=xt.Drift(length=0.), name='end_of_line')
         for ip in range(8):
             line_w_collective.element_dict[f'ip{ip+1}'].iscollective = True
         tracker = xt.Tracker(_context=ctx, line=line_w_collective,

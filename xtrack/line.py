@@ -509,10 +509,12 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
+
         if inplace:
             self.element_names = newline.element_names
             return self
         else:
+            newline.particle_ref = self.particle_ref
             return newline
 
     def remove_zero_length_drifts(self, inplace=False):
@@ -539,6 +541,7 @@ class Line:
             self.element_names = newline.element_names
             return self
         else:
+            newline.particle_ref = self.particle_ref
             return newline
 
     def merge_consecutive_drifts(self, inplace=False):
@@ -571,6 +574,7 @@ class Line:
             self.element_names = newline.element_names
             return self
         else:
+            newline.particle_ref = self.particle_ref
             return newline
 
     def merge_consecutive_multipoles(self, inplace=False):
@@ -624,6 +628,7 @@ class Line:
             self.element_names = newline.element_names
             return self
         else:
+            newline.particle_ref = self.particle_ref
             return newline
 
     def get_elements_of_type(self, types):
