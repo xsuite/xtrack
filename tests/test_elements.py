@@ -166,40 +166,39 @@ def test_elens_measured_radial():
             return coef
 
 
-        particle1 = xp.Particles(
+        particle_ref = xp.Particles(
                         p0c=np.array([7000e9]),
                         x=np.array([1e-3]),
                         px=np.array([0.0]),
                         y=np.array([2.2e-3]),
                         py=np.array([0.0]),
                         zeta=np.array([0.]))
-
-        particle2 = xp.Particles(
-                        p0c=np.array([7000e9]),
-                        x=np.array([1e-3]),
-                        px=np.array([0.0]),
-                        y=np.array([2.2e-3]),
-                        py=np.array([0.0]),
-                        zeta=np.array([0.]))
+        particle_test = particle_ref.copy(_context=context)
 
         # polynomial fit parameters for constant radial density
         r     = np.linspace(0.20338983,12,60)
-        j     = np.append(np.append(np.linspace(0,4,20)*0, np.linspace(4,8,20)/np.linspace(4,8,20)), np.linspace(8,12,20)*0)
+        j     = np.append(np.append(np.linspace(0,4,20)*0,
+               np.linspace(4,8,20)/np.linspace(4,8,20)), np.linspace(8,12,20)*0)
         C     = compute_coef(r, j, 1.4, 2.8, 4.0, 8.0)
 
-        elens_radial_profile = xt.Elens(current=5, inner_radius=1.4e-3, outer_radius=2.8e-3, elens_length=3, voltage=10e3, \
-                            coefficients_polynomial=C)
+        elens_radial_profile = xt.Elens(current=5, inner_radius=1.4e-3,
+                    outer_radius=2.8e-3, elens_length=3, voltage=10e3,
+                    coefficients_polynomial=C, _context=ctx)
 
-        elens_constant       = xt.Elens(current=5, inner_radius=1.4e-3, outer_radius=2.8e-3, elens_length=3, voltage=10e3)   
+        elens_constant = xt.Elens(current=5, inner_radius=1.4e-3,
+                        outer_radius=2.8e-3, elens_length=3, voltage=10e3,
+                        )
 
-        elens_radial_profile.track(particle1)
-        elens_constant.track(particle2)
+        elens_radial_profile.track(particle_test)
+        elens_constant.track(particle_ref)
 
-        assert np.isclose(ctx.nparray_from_context_array(particle1.px)[0],
-                          ctx.nparray_from_context_array(particle2.px)[0], rtol=1e-2, atol=1e-2)
+        particle_test.move(_context=xo.ContextCpu())
 
-        assert np.isclose(ctx.nparray_from_context_array(particle1.py)[0],
-                          ctx.nparray_from_context_array(particle2.py)[0], rtol=1e-9, atol=1e-9)
+        assert np.isclose(particle_test.px[0], particle_ref.px[0],
+                          rtol=1e-2, atol=1e-2)
+        assert np.isclose(particle_test.py[0], particle_ref.py[0],
+                          rtol=1e-2, atol=1e-2)
+
 
 
 
