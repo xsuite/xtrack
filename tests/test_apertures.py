@@ -242,6 +242,7 @@ def test_longitudinal_rect():
                                zeta=coords[:,0], pzeta=coords[:,1])
 
         aper_rect_longitudinal.track(particles)
+        particles.move(_context=xo.ContextCpu())
         assert np.all(particles.state == 1)
 
         coords = np.array([
@@ -254,4 +255,5 @@ def test_longitudinal_rect():
                                zeta=coords[:,0], pzeta=coords[:,1])
 
         aper_rect_longitudinal.track(particles)
+        particles.move(_context=xo.ContextCpu())
         assert np.all(particles.state == -2)
