@@ -496,9 +496,12 @@ class Line:
         else:
             return s
 
-    def remove_inactive_multipoles(self, inplace=False):
+    def remove_inactive_multipoles(self, inplace=True):
 
         self._frozen_check()
+
+        if not inplace:
+            raise NotImplementedError
 
         newline = Line(elements=[], element_names=[])
 
@@ -510,16 +513,15 @@ class Line:
             newline.append_element(ee, nn)
 
 
-        if inplace:
-            self.element_names = newline.element_names
-            return self
-        else:
-            newline.particle_ref = self.particle_ref
-            return newline
+        self.element_names = newline.element_names
+        return self
 
-    def remove_zero_length_drifts(self, inplace=False):
+    def remove_zero_length_drifts(self, inplace=True):
 
         self._frozen_check()
+
+        if not inplace:
+            raise NotImplementedError
 
         newline = Line(elements=[], element_names=[])
 
@@ -529,16 +531,15 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
-        if inplace:
-            self.element_names = newline.element_names
-            return self
-        else:
-            newline.particle_ref = self.particle_ref
-            return newline
+        self.element_names = newline.element_names
+        return self
 
-    def merge_consecutive_drifts(self, inplace=False):
+    def merge_consecutive_drifts(self, inplace=True):
 
         self._frozen_check()
+
+        if not inplace:
+            raise NotImplementedError
 
         newline = Line(elements=[], element_names=[])
 
@@ -557,21 +558,20 @@ class Line:
             else:
                 newline.append_element(ee, nn)
 
-        if inplace:
-            self.element_dict.update(newline.element_dict)
-            self.element_names = newline.element_names
-            return self
-        else:
-            newline.particle_ref = self.particle_ref
-            return newline
+        self.element_dict.update(newline.element_dict)
+        self.element_names = newline.element_names
+        return self
 
-    def merge_consecutive_multipoles(self, inplace=False):
+    def merge_consecutive_multipoles(self, inplace=True):
 
         self._frozen_check()
         if self._var_management is not None:
             raise NotImplementedError('`merge_consecutive_multipoles` not'
                                       ' available when deferred expressions are'
                                       ' used')
+
+        if not inplace:
+            raise NotImplementedError
 
         newline = Line(elements=[], element_names=[])
 
@@ -611,13 +611,9 @@ class Line:
             else:
                 newline.append_element(ee, nn)
 
-        if inplace:
-            self.element_dict.update(newline.element_dict)
-            self.element_names = newline.element_names
-            return self
-        else:
-            newline.particle_ref = self.particle_ref
-            return newline
+        self.element_dict.update(newline.element_dict)
+        self.element_names = newline.element_names
+        return self
 
     def get_elements_of_type(self, types):
         if not hasattr(types, "__iter__"):
