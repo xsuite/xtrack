@@ -482,7 +482,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'alfy': alfy,
         'gamx': gamx,
         'gamy': gamy,
-        'betz0': betz0,
         'dx': dx,
         'dpx': dpx,
         'dy': dy,
@@ -501,12 +500,14 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'dqy': dqy,
         'slip_factor': eta,
         'momentum_compaction_factor': alpha,
+        'betz0': betz0,
         'circumference': circumference,
         'T_rev': T_rev,
         'R_matrix': RR,
         'particle_on_co':part_on_co.copy(_context=xo.context_default)
     })
     twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
+    twiss_res['_element_by_element_fields'] = list(twiss_res_element_by_element.keys())
 
     if eneloss_and_damping:
         twiss_res.update(eneloss_damp_res)

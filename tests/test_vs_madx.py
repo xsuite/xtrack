@@ -55,20 +55,28 @@ def test_twiss():
         tracker_full = xt.Tracker(_context=context, line=line)
         assert tracker_full.iscollective
 
-        # Test twiss on simplified line
+        # Test twiss also on simplified line
         line_simplified = line.copy()
-
+        print('Simplifying line...')
         line_simplified.remove_inactive_multipoles()
         line_simplified.merge_consecutive_multipoles()
         line_simplified.remove_zero_length_drifts()
         line_simplified.merge_consecutive_drifts()
-
+        print('Done simplifying line')
         tracker_simplified = line_simplified.build_tracker(_context=context)
 
         for tracker in [tracker_full, tracker_simplified]:
 
             twxt = tracker.twiss()
 
+            # Check value_at_element_exit
+            twxt_exit = tracker.twiss(values_at_element_exit=True)
+            for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
+                    'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
+                    'dpy','mux','muy', 'name']:
+                assert np.all(twxt[nn][1:] == twxt_exit[nn])
+
+            # Check against mad
             assert np.isclose(mad.table.summ.q1[0], twxt['qx'], rtol=1e-4, atol=0)
             assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4, atol=0)
             assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
