@@ -465,7 +465,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
             'partition_numbers': partition_numbers
         }
 
-    twiss_res = {
+    twiss_res_element_by_element = {
         'name': tracker.line.element_names + ('_end_point',),
         's': s,
         'x': x_co,
@@ -488,6 +488,11 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'dpy': dpy,
         'mux': mux,
         'muy': muy,
+    }
+
+    twiss_res = {}
+    twiss_res.update(twiss_res_element_by_element)
+    twiss_res.update({
         'qx': mux[-1],
         'qy': muy[-1],
         'qs': qs,
@@ -499,7 +504,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         'T_rev': T_rev,
         'R_matrix': RR,
         'particle_on_co':part_on_co.copy(_context=xo.context_default)
-    }
+    })
     twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
 
     if eneloss_and_damping:
@@ -516,7 +521,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                 assert nn in tracker.line.element_names
                 indx_twiss.append(enames.index(nn))
 
-        for kk, vv in twiss_res.items():
+        for kk, vv in twiss_res_element_by_element.items():
             if eneloss_and_damping and kk in eneloss_damp_res.keys():
                 continue
             if hasattr(vv, '__len__') and len(vv) == len(s):
