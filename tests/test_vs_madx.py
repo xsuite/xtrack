@@ -42,14 +42,14 @@ def test_twiss():
     mad = mad_with_errors
     twmad = mad.twiss(chrom=True)
 
-    line = xt.Line.from_madx_sequence(
+    line_full = xt.Line.from_madx_sequence(
             mad.sequence['lhcb1'], apply_madx_errors=True)
-    line.elements[10].iscollective = True # we make it artificially collective to test this option
-    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+    line_full.elements[10].iscollective = True # we make it artificially collective to test this option
+    line_full.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                             gamma0=mad.sequence.lhcb1.beam.gamma)
 
     # Test twiss also on simplified line
-    line_simplified = line.copy()
+    line_simplified = line_full.copy()
 
     print('Simplifying line...')
     line_simplified.remove_inactive_multipoles()
@@ -64,7 +64,7 @@ def test_twiss():
         line_full.tracker = None
         line_simplified.tracker = None
 
-        tracker_full = xt.Tracker(_context=context, line=line)
+        tracker_full = xt.Tracker(_context=context, line=line_full)
         assert tracker_full.iscollective
 
         tracker_simplified = line_simplified.build_tracker(_context=context)
