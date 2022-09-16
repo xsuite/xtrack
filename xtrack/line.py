@@ -316,26 +316,26 @@ class Line:
     def __len__(self):
         return len(self.element_names)
 
-    def copy(self):
-        return self.__class__.from_dict(self.to_dict())
+    #def copy(self):
+    #    return self.__class__.from_dict(self.to_dict())
 
     # This seems not to work ???
-    # def copy(self, _context=None, _buffer=None):
+    def copy(self, _context=None, _buffer=None):
 
-    #     elements = {ee.copy(_context=_context, _buffer=_buffer)
-    #                                                     for ee in self.elements}
-    #     element_names = [nn for nn in self.element_names]
+        elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
+                                    for nn, ee in self.element_dict.items()}
+        element_names = [nn for nn in self.element_names]
 
-    #     out = self.__class__(elements=elements, element_names=element_names)
+        out = self.__class__(elements=elements, element_names=element_names)
 
-    #     if self.particle_ref is not None:
-    #         out.particle_ref = self.particle_ref.copy(
-    #                                     _context=_context, _buffer=_buffer)
+        if self.particle_ref is not None:
+            out.particle_ref = self.particle_ref.copy(
+                                        _context=_context, _buffer=_buffer)
 
-    #     if self._var_management is not None:
-    #         out._init_var_management(dct=self._var_manager_to_dict())
+        if self._var_management is not None:
+            out._init_var_management(dct=self._var_manager_to_dict())
 
-    #     return out
+        return out
 
 
     def _var_management_to_dict(self):

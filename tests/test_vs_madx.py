@@ -48,20 +48,22 @@ def test_twiss():
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                             gamma0=mad.sequence.lhcb1.beam.gamma)
 
+    # Test twiss also on simplified line
+    line_simplified = line.copy()
+
+    print('Simplifying line...')
+    line_simplified.remove_inactive_multipoles()
+    line_simplified.merge_consecutive_multipoles()
+    line_simplified.remove_zero_length_drifts()
+    line_simplified.merge_consecutive_drifts()
+    print('Done simplifying line')
+
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
 
         tracker_full = xt.Tracker(_context=context, line=line)
         assert tracker_full.iscollective
 
-        # Test twiss also on simplified line
-        line_simplified = line.copy()
-        print('Simplifying line...')
-        line_simplified.remove_inactive_multipoles()
-        line_simplified.merge_consecutive_multipoles()
-        line_simplified.remove_zero_length_drifts()
-        line_simplified.merge_consecutive_drifts()
-        print('Done simplifying line')
         tracker_simplified = line_simplified.build_tracker(_context=context)
 
         for tracker in [tracker_full, tracker_simplified]:
