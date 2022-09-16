@@ -173,7 +173,7 @@ def test_elens_measured_radial():
                         y=np.array([2.2e-3]),
                         py=np.array([0.0]),
                         zeta=np.array([0.]))
-        particle_test = particle_ref.copy(_context=context)
+        particle_test = particle_ref.copy(_context=ctx)
 
         # polynomial fit parameters for constant radial density
         r     = np.linspace(0.20338983,12,60)
