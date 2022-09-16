@@ -14,6 +14,8 @@ import xfields as xf
 
 from cpymad.madx import Madx
 
+seq_name = 'lhcb1'
+
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
@@ -21,7 +23,7 @@ path = test_data_folder.joinpath('hllhc14_input_mad/')
 
 mad_with_errors = Madx(command_log="mad_final.log")
 mad_with_errors.call(str(path.joinpath("final_seq.madx")))
-mad_with_errors.use(sequence="lhcb1")
+mad_with_errors.use(sequence=seq_name)
 mad_with_errors.twiss()
 mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
                           table="errtab")
@@ -31,7 +33,7 @@ mad_with_errors.set(format=".15g")
 mad_no_errors = Madx(command_log="mad_final.log")
 mad_no_errors.call(str(test_data_folder.joinpath(
                                'hllhc15_noerrors_nobb/sequence.madx')))
-mad_no_errors.use(sequence="lhcb1")
+mad_no_errors.use(sequence=seq_name)
 mad_no_errors.globals['vrf400'] = 16
 mad_no_errors.globals['lagrf400.b1'] = 0.5
 mad_no_errors.twiss()
@@ -53,15 +55,13 @@ def test_twiss():
         tracker_full = xt.Tracker(_context=context, line=line)
         assert tracker_full.iscollective
 
-        line._var_management = None # TEEEEEEEEST
-
         # Test twiss on simplified line
         line_simplified = line.copy()
 
-        #line_simplified.remove_inactive_multipoles()
-        #line_simplified.merge_consecutive_multipoles()
-        #line_simplified.remove_zero_length_drifts()
-        #ine_simplified.merge_consecutive_drifts()
+        line_simplified.remove_inactive_multipoles()
+        line_simplified.merge_consecutive_multipoles()
+        line_simplified.remove_zero_length_drifts()
+        line_simplified.merge_consecutive_drifts()
 
         tracker_simplified = line_simplified.build_tracker(_context=context)
 
@@ -80,7 +80,8 @@ def test_twiss():
             assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
 
             test_at_elements = ['mb.b19r5.b1..1', 'mb.b19r1.b1..2',
-                                'mbxf.4l1..1', 'mbxf.4l5..2']
+                                'mbxf.4l1..1', 'mbxf.4l5..2',
+                                ]
             if tracker is tracker_full:
                 test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
 
@@ -88,6 +89,11 @@ def test_twiss():
 
                 imad = list(twmad['name']).index(name+':1') - 1 # MAD measures at exit
                 ixt = list(twxt['name']).index(name)
+
+                eemad = mad.sequence[seq_name].expanded_elements[name]
+
+                mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
+                mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
 
                 assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
                                 atol=0, rtol=3e-4)
@@ -112,9 +118,11 @@ def test_twiss():
 
                 assert np.isclose(twxt['s'][ixt], twmad['s'][imad],
                                 atol=5e-6, rtol=0)
-                assert np.isclose(twxt['x'][ixt], twmad['x'][imad],
+                assert np.isclose(twxt['x'][ixt],
+                                (twmad['x'][imad] - mad_shift_x),
                                 atol=5e-6, rtol=0)
-                assert np.isclose(twxt['y'][ixt], twmad['y'][imad],
+                assert np.isclose(twxt['y'][ixt],
+                                (twmad['y'][imad] - mad_shift_y),
                                 atol=5e-6, rtol=0)
                 assert np.isclose(twxt['px'][ixt], twmad['px'][imad],
                                 atol=1e-7, rtol=0)
