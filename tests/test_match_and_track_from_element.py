@@ -53,7 +53,7 @@ def test_match_and_track_from_element():
         i_ele_start = tracker.line.element_names.index(at_element)
         assert np.all(mon.at_element[:, :i_ele_start] == 0)
         assert np.all(mon.at_element[:, i_ele_start] == i_ele_start)
-        assert np.all(mon.at_element[:, -1] == len(tracker.line.element_names) -1)
+        assert np.all(mon.at_element[:, -1] == len(tracker.line.element_names))
 
         # Check that distribution is matched at the end of the turn
         tw0 = tracker.twiss(at_elements=[0])
