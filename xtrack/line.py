@@ -85,12 +85,7 @@ class Line:
                                     _context=_buffer.context)
 
         if '_var_manager' in dct.keys():
-            self._init_var_management()
-            manager = self._var_management['manager']
-            for kk in self._var_management['data'].keys():
-                self._var_management['data'][kk].update(
-                                            dct['_var_management_data'][kk])
-            manager.load(dct['_var_manager'])
+            self._init_var_management(dct=dct)
 
         print('Done loading line from dict.           ')
 
@@ -140,7 +135,7 @@ class Line:
         line=loader.make_line()
         return line
 
-    def _init_var_management(self):
+    def _init_var_management(self, dct=None):
 
         from collections import defaultdict
         import xdeps as xd
@@ -162,6 +157,14 @@ class Line:
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
+
+        if dct is not None:
+            manager = self._var_management['manager']
+            for kk in self._var_management['data'].keys():
+                self._var_management['data'][kk].update(
+                                            dct['_var_management_data'][kk])
+            manager.load(dct['_var_manager'])
+
 
     @property
     def vars(self):
@@ -313,6 +316,34 @@ class Line:
     def __len__(self):
         return len(self.element_names)
 
+    def copy(self):
+        return self.__class__.from_dict(self.to_dict())
+
+    # This seems not to work ???
+    # def copy(self, _context=None, _buffer=None):
+
+    #     elements = {ee.copy(_context=_context, _buffer=_buffer)
+    #                                                     for ee in self.elements}
+    #     element_names = [nn for nn in self.element_names]
+
+    #     out = self.__class__(elements=elements, element_names=element_names)
+
+    #     if self.particle_ref is not None:
+    #         out.particle_ref = self.particle_ref.copy(
+    #                                     _context=_context, _buffer=_buffer)
+
+    #     if self._var_management is not None:
+    #         out._init_var_management(dct=self._var_manager_to_dict())
+
+    #     return out
+
+
+    def _var_management_to_dict(self):
+        out = {}
+        out['_var_management_data'] = deepcopy(self._var_management['data'])
+        out['_var_manager'] = self._var_management['manager'].dump()
+        return out
+
     def to_dict(self):
         out = {}
         out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
@@ -320,8 +351,7 @@ class Line:
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None:
-            out['_var_management_data'] = deepcopy(self._var_management['data'])
-            out['_var_manager'] = self._var_management['manager'].dump()
+            out.update(self._var_management_to_dict())
         return out
 
     def to_pandas(self):
@@ -340,9 +370,6 @@ class Line:
             'element': elements
         })
         return elements_df
-
-    def copy(self):
-        return self.__class__.from_dict(self.to_dict())
 
     def insert_element(self, index=None, element=None, name=None, at_s=None,
                        s_tol=1e-6):

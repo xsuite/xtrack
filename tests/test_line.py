@@ -18,30 +18,31 @@ def test_simplification_methods():
 
     line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
     line.merge_consecutive_drifts(inplace=True)
+    assert len(line.element_names) == 3
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    assert np.isclose(line[1].length, 3.3, rtol=0, atol=1e-12)
-    assert isinstance(line[2], xt.Cavity)
-    assert np.isclose(line[3].length, 1.7, rtol=0, atol=1e-12)
+    assert np.isclose(line[0].length, 3.3, rtol=0, atol=1e-12)
+    assert isinstance(line[1], xt.Cavity)
+    assert np.isclose(line[2].length, 1.7, rtol=0, atol=1e-12)
 
     line.insert_element(element=xt.Drift(length=0), name="marker", at_s=3.3)
-    assert len(line.element_names) == 6
+    assert len(line.element_names) == 4
     line.remove_zero_length_drifts(inplace=True)
-    assert len(line.element_names) == 5
+    assert len(line.element_names) == 3
 
     line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name="m1", at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name="m2", at_s=3.3)
-    assert len(line.element_names) == 7
+    assert len(line.element_names) == 5
     line.merge_consecutive_multipoles(inplace=True)
-    assert len(line.element_names) == 6
-    assert np.allclose(line[2].knl, [5,2,3], rtol=0, atol=1e-15)
-    assert np.allclose(line[2].ksl, [10,60,0], rtol=0, atol=1e-15)
+    assert len(line.element_names) == 4
+    assert np.allclose(line[1].knl, [5,2,3], rtol=0, atol=1e-15)
+    assert np.allclose(line[1].ksl, [10,60,0], rtol=0, atol=1e-15)
 
     line.remove_inactive_multipoles(inplace=True)
-    assert len(line.element_names) == 6
-    line[2].knl[:] = 0
-    line[2].ksl[:] = 0
+    assert len(line.element_names) == 4
+    line[1].knl[:] = 0
+    line[1].ksl[:] = 0
     line.remove_inactive_multipoles(inplace=True)
-    assert len(line.element_names) == 5
+    assert len(line.element_names) == 3
 
 def test_insert():
 

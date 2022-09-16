@@ -242,6 +242,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
+        values_at_element_exit=False,
         eneloss_and_damping=False,
         matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
         matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
@@ -509,6 +510,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     if eneloss_and_damping:
         twiss_res.update(eneloss_damp_res)
+
+    if values_at_element_exit:
+        for nn, vv in twiss_res_element_by_element.items():
+            twiss_res[nn] = vv[1:]
 
     # Downselect based on at_element
     enames = tracker.line.element_names

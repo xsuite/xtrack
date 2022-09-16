@@ -50,83 +50,91 @@ def test_twiss():
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
 
-        tracker = xt.Tracker(_context=context, line=line)
-        assert tracker.iscollective
+        tracker_full = xt.Tracker(_context=context, line=line)
+        assert tracker_full.iscollective
 
-        twxt = tracker.twiss()
-        assert np.isclose(mad.table.summ.q1[0], twxt['qx'], rtol=1e-4, atol=0)
-        assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4, atol=0)
-        assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
-        assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
-        assert np.isclose(mad.table.summ.alfa[0],
-            twxt['momentum_compaction_factor'],
-            atol=1e-8, rtol=0)
-        assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
+        line._var_management = None # TEEEEEEEEST
 
-        assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
+        # Test twiss on simplified line
+        line_simplified = line.copy()
 
-        for name in ['mb.b19r5.b1', 'mb.b19r1.b1',
-                    'ip1', 'ip2', 'ip5', 'ip8',
-                    'mbxf.4l1', 'mbxf.4l5']:
+        #line_simplified.remove_inactive_multipoles()
+        #line_simplified.merge_consecutive_multipoles()
+        #line_simplified.remove_zero_length_drifts()
+        #ine_simplified.merge_consecutive_drifts()
 
-            imad = list(twmad['name']).index(name+':1')
-            ixt = list(twxt['name']).index(name)
+        tracker_simplified = line_simplified.build_tracker(_context=context)
 
-            assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
-                            atol=0, rtol=3e-4)
-            assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
-                            atol=0, rtol=3e-4)
-            assert np.isclose(twxt['alfx'][ixt], twmad['alfx'][imad],
-                              atol=1e-1, rtol=0)
-            assert np.isclose(twxt['alfy'][ixt], twmad['alfy'][imad],
-                              atol=1e-1, rtol=0)
-            assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad],
-                              atol=1e-2, rtol=0)
-            assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad],
-                              atol=1e-2, rtol=0)
-            assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad],
-                              atol=3e-4, rtol=0)
-            assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad],
-                              atol=3e-4, rtol=0)
-            assert np.isclose(twxt['mux'][ixt], twmad['mux'][imad],
-                              atol=1e-4, rtol=0)
-            assert np.isclose(twxt['muy'][ixt], twmad['muy'][imad],
-                              atol=1e-4, rtol=0)
+        for tracker in [tracker_full, tracker_simplified]:
 
-            assert np.isclose(twxt['s'][ixt], twmad['s'][imad],
-                              atol=5e-6, rtol=0)
-            assert np.isclose(twxt['x'][ixt], twmad['x'][imad],
-                              atol=5e-6, rtol=0)
-            assert np.isclose(twxt['y'][ixt], twmad['y'][imad],
-                              atol=5e-6, rtol=0)
-            assert np.isclose(twxt['px'][ixt], twmad['px'][imad],
-                              atol=1e-7, rtol=0)
-            assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
-                              atol=1e-7, rtol=0)
+            twxt = tracker.twiss()
 
-        # Test custom s locations
-        s_test = [2e3, 1e3, 3e3, 10e3]
-        twats = tracker.twiss(at_s = s_test)
-        for ii, ss in enumerate(s_test):
-            assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
-            assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
-                            rtol=1e-5, atol=0)
-            assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
-                            rtol=1e-5, atol=0)
-            assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
-                            rtol=1e-5, atol=0)
-            assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
-                            rtol=1e-5, atol=0)
+            assert np.isclose(mad.table.summ.q1[0], twxt['qx'], rtol=1e-4, atol=0)
+            assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4, atol=0)
+            assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
+            assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
+            assert np.isclose(mad.table.summ.alfa[0],
+                twxt['momentum_compaction_factor'], atol=1e-8, rtol=0)
+            assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
-        # Test twiss on line with no marker at the end
-        line_no_marker = line.remove_zero_length_drifts()
-        line_no_marker.merge_consecutive_drifts(inplace=True)
+            assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
 
-        tracker_no_marker = xt.Tracker(_context=context, line=line_no_marker)
-        twxt_no_marker = tracker_no_marker.twiss()
+            test_at_elements = ['mb.b19r5.b1..1', 'mb.b19r1.b1..2',
+                                'mbxf.4l1..1', 'mbxf.4l5..2']
+            if tracker is tracker_full:
+                test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
 
-        assert np.isclose(twxt_no_marker['qx'], twxt['qx'], rtol=0, atol=1e-8)
-        assert np.isclose(twxt_no_marker['qy'], twxt['qy'], rtol=0, atol=1e-8)
+            for name in test_at_elements:
+
+                imad = list(twmad['name']).index(name+':1') - 1 # MAD measures at exit
+                ixt = list(twxt['name']).index(name)
+
+                assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
+                                atol=0, rtol=3e-4)
+                assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
+                                atol=0, rtol=3e-4)
+                assert np.isclose(twxt['alfx'][ixt], twmad['alfx'][imad],
+                                atol=1e-1, rtol=0)
+                assert np.isclose(twxt['alfy'][ixt], twmad['alfy'][imad],
+                                atol=1e-1, rtol=0)
+                assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad],
+                                atol=1e-2, rtol=0)
+                assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad],
+                                atol=1e-2, rtol=0)
+                assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad],
+                                atol=3e-4, rtol=0)
+                assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad],
+                                atol=3e-4, rtol=0)
+                assert np.isclose(twxt['mux'][ixt], twmad['mux'][imad],
+                                atol=1e-4, rtol=0)
+                assert np.isclose(twxt['muy'][ixt], twmad['muy'][imad],
+                                atol=1e-4, rtol=0)
+
+                assert np.isclose(twxt['s'][ixt], twmad['s'][imad],
+                                atol=5e-6, rtol=0)
+                assert np.isclose(twxt['x'][ixt], twmad['x'][imad],
+                                atol=5e-6, rtol=0)
+                assert np.isclose(twxt['y'][ixt], twmad['y'][imad],
+                                atol=5e-6, rtol=0)
+                assert np.isclose(twxt['px'][ixt], twmad['px'][imad],
+                                atol=1e-7, rtol=0)
+                assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
+                                atol=1e-7, rtol=0)
+
+            # Test custom s locations
+            s_test = [2e3, 1e3, 3e3, 10e3]
+            twats = tracker.twiss(at_s = s_test)
+            for ii, ss in enumerate(s_test):
+                assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
+                assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
+                                rtol=1e-5, atol=0)
+                assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
+                                rtol=1e-5, atol=0)
+                assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
+                                rtol=1e-5, atol=0)
+                assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
+                                rtol=1e-5, atol=0)
+
 
 
 def norm(x):
@@ -137,7 +145,6 @@ def test_line_import_from_madx():
     mad = mad_with_errors
 
     rtol = 1e-7
-    strict = True
     atol = 1e-14
 
     print('Build line with expressions...')
