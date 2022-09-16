@@ -316,10 +316,6 @@ class Line:
     def __len__(self):
         return len(self.element_names)
 
-    #def copy(self):
-    #    return self.__class__.from_dict(self.to_dict())
-
-    # This seems not to work ???
     def copy(self, _context=None, _buffer=None):
 
         elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
