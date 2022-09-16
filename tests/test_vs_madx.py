@@ -61,6 +61,9 @@ def test_twiss():
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
 
+        line_full.tracker = None
+        line_simplified.tracker = None
+
         tracker_full = xt.Tracker(_context=context, line=line)
         assert tracker_full.iscollective
 
