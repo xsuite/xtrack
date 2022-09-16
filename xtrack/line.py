@@ -329,7 +329,7 @@ class Line:
                                         _context=_context, _buffer=_buffer)
 
         if self._var_management is not None:
-            out._init_var_management(dct=self._var_manager_to_dict())
+            out._init_var_management(dct=self._var_management_to_dict())
 
         return out
 
