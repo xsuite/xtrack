@@ -143,8 +143,7 @@ class Elens(BeamElement):
             self.residual_kick_x   = residual_kick_x
             self.residual_kick_y   = residual_kick_y
 
-            ctx                    = self._buffer.context
-            self.coefficients_polynomial[:] = ctx.nparray_to_context_array(coefficients_polynomial)
+            self.coefficients_polynomial[:] = self._arr2ctx(coefficients_polynomial)
             polynomial_order = len(coefficients_polynomial)-1
             self.polynomial_order = polynomial_order
 
