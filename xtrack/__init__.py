@@ -21,6 +21,8 @@ from . import linear_normal_form
 
 from .mad_loader import MadLoader
 
+from .custom_setter import CustomSetter
+
 import xpart as _xp
 ParticlesMonitor = generate_monitor_class(_xp.Particles)
 
