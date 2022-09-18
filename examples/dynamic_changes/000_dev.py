@@ -3,6 +3,56 @@ import numpy as np
 from cpymad.madx import Madx
 
 import xtrack as xt
+import xobjects as xo
+
+
+source = """
+
+void get_values_at_offsets(
+    CustomSetterData data,
+    uint8_t* buffer,
+    uint8_t* out){
+
+    int64_t num_offsets = CustomSetterData_len_offsets(data);
+    int64_t element_size = CustomSetterData_get_element_size(data);
+
+    int64_t iout = 0;
+    for (int64_t ii = 0; ii < num_offsets; ii++) {
+        int64_t oo = CustomSetterData_get_offsets(data, ii);
+
+        for (int64_t jj = 0; jj < element_size; jj++) {
+            out[iout] = buffer[oo + jj];
+            iout++;
+        }
+
+    }
+    }
+
+"""
+
+class CustomSetter(xo.HybridClass):
+    _xofields = {
+        'element_size': xo.Int64,
+        'offsets': xo.Int64[:],
+    }
+
+    _extra_c_sources = [
+        source,
+    ]
+
+    _kernels = {
+        'get_values_at_offsets': xo.Kernel(
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.UInt8, pointer=True, name='buffer'),
+                xo.Arg(xo.UInt8, pointer=True, name='out'),
+            ],
+        )
+    }
+
+cs = CustomSetter(offsets=3)
+
+prrrr
 
 # Import SPS lattice
 mad = Madx()
