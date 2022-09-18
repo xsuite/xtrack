@@ -6,33 +6,48 @@ import xtrack as xt
 import xobjects as xo
 
 
+# TODO: vectorize on GPU
+
 source = """
 
 void get_values_at_offsets(
     CustomSetterData data,
-    uint8_t* buffer,
-    uint8_t* out){
+    int8_t* buffer,
+    double* out){
 
     int64_t num_offsets = CustomSetterData_len_offsets(data);
-    int64_t element_size = CustomSetterData_get_element_size(data);
 
     int64_t iout = 0;
     for (int64_t ii = 0; ii < num_offsets; ii++) {
-        int64_t oo = CustomSetterData_get_offsets(data, ii);
+        int64_t offs = CustomSetterData_get_offsets(data, ii);
 
-        for (int64_t jj = 0; jj < element_size; jj++) {
-            out[iout] = buffer[oo + jj];
-            iout++;
-        }
+        double val = *((double*)(buffer + offs));
+        out[iout] = val;
+        iout++;
+    }
+}
 
+void set_values_at_offsets(
+    CustomSetterData data,
+    int8_t* buffer,
+    double* in){
+
+    int64_t num_offsets = CustomSetterData_len_offsets(data);
+
+    int64_t iin = 0;
+    for (int64_t ii = 0; ii < num_offsets; ii++) {
+        int64_t offs = CustomSetterData_get_offsets(data, ii);
+
+        double val = in[iin];
+        *((double*)(buffer + offs)) = val;
+        iin++;
     }
-    }
+}
 
 """
 
 class CustomSetter(xo.HybridClass):
     _xofields = {
-        'element_size': xo.Int64,
         'offsets': xo.Int64[:],
     }
 
@@ -44,15 +59,28 @@ class CustomSetter(xo.HybridClass):
         'get_values_at_offsets': xo.Kernel(
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
-                xo.Arg(xo.UInt8, pointer=True, name='buffer'),
-                xo.Arg(xo.UInt8, pointer=True, name='out'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Float64, pointer=True, name='out'),
             ],
-        )
+        ),
+        'set_values_at_offsets': xo.Kernel(
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Float64, pointer=True, name='in'),
+            ],
+        ),
     }
 
-cs = CustomSetter(offsets=3)
+    def get_values(self, buffer):
+        out = np.zeros(len(self.offsets), dtype=np.float64)
+        # TODO set num_threads
+        self.compile_kernels(only_if_needed=True)
+        kernel = self._context.kernels.get_values_at_offsets
+        kernel.description.n_threads = len(self.offsets)
+        kernel(data=self, buffer=buffer, out=out)
+        return out
 
-prrrr
 
 # Import SPS lattice
 mad = Madx()
@@ -83,3 +111,7 @@ def _extract_offset(obj, field_name, index):
         return getattr(obj._xobject, field_name)._get_offset(index)
 
 offsets = [_extract_offset(line[nn], field_to_trim, index_to_trim) for nn in elements_to_trim]
+
+cs = CustomSetter(offsets=offsets)
+values = cs.get_values(tracker_buffer.buffer)
+
