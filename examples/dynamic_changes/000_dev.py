@@ -18,30 +18,30 @@ void get_values_at_offsets(
     int64_t num_offsets = CustomSetterData_len_offsets(data);
 
     int64_t iout = 0;
-    for (int64_t ii = 0; ii < num_offsets; ii++) {
+    for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
         int64_t offs = CustomSetterData_get_offsets(data, ii);
 
         double val = *((double*)(buffer + offs));
         out[iout] = val;
         iout++;
-    }
+    } //end_vectorize
 }
 
 void set_values_at_offsets(
     CustomSetterData data,
     int8_t* buffer,
-    double* in){
+    double* input){
 
     int64_t num_offsets = CustomSetterData_len_offsets(data);
 
     int64_t iin = 0;
-    for (int64_t ii = 0; ii < num_offsets; ii++) {
+    for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
         int64_t offs = CustomSetterData_get_offsets(data, ii);
 
-        double val = in[iin];
+        double val = input[iin];
         *((double*)(buffer + offs)) = val;
         iin++;
-    }
+    } //end_vectorize
 }
 
 """
@@ -67,20 +67,39 @@ class CustomSetter(xo.HybridClass):
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),
-                xo.Arg(xo.Float64, pointer=True, name='in'),
+                xo.Arg(xo.Float64, pointer=True, name='input'),
             ],
         ),
     }
 
-    def get_values(self, buffer):
+    def __init__(self, tracker, elements, field, index=None):
+
+        context = tracker._context
+
+        tracker_buffer = tracker._buffer
+        line = tracker.line
+        assert np.all([line[nn]._buffer is tracker_buffer for nn in elements])
+        offsets = [_extract_offset(line[nn], field, index) for nn in elements]
+
+        self.xoinitialize(_context=context, offsets=offsets)
+
+        self.offsets = offsets
+        self.tracker = tracker
+        self._tracker_buffer = tracker_buffer
+
+    def get_values(self):
         out = np.zeros(len(self.offsets), dtype=np.float64)
-        # TODO set num_threads
         self.compile_kernels(only_if_needed=True)
         kernel = self._context.kernels.get_values_at_offsets
         kernel.description.n_threads = len(self.offsets)
-        kernel(data=self, buffer=buffer, out=out)
+        kernel(data=self, buffer=self._tracker_buffer.buffer, out=out)
         return out
 
+    def set_values(self, values):
+        self.compile_kernels(only_if_needed=True)
+        kernel = self._context.kernels.set_values_at_offsets
+        kernel.description.n_threads = len(self.offsets)
+        kernel(data=self, buffer=self._tracker_buffer.buffer, input=values)
 
 # Import SPS lattice
 mad = Madx()
@@ -98,20 +117,15 @@ elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf.')]
 field_to_trim = 'knl'
 index_to_trim = 1
 
-# Check all in the tracker buffer
-tracker_buffer = tracker._buffer
-assert np.all([line[nn]._buffer is tracker_buffer for nn in elements_to_trim])
-
-# Extract offsets
-
 def _extract_offset(obj, field_name, index):
     if index is None:
         return obj._xobject._get_offset(field_name)
     else:
         return getattr(obj._xobject, field_name)._get_offset(index)
 
-offsets = [_extract_offset(line[nn], field_to_trim, index_to_trim) for nn in elements_to_trim]
 
-cs = CustomSetter(offsets=offsets)
-values = cs.get_values(tracker_buffer.buffer)
+cs = CustomSetter(tracker=tracker, elements=elements_to_trim,
+                  field=field_to_trim, index=index_to_trim)
+values = cs.get_values()
+cs.set_values(values*1.1)
 

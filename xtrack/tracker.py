@@ -562,6 +562,10 @@ class Tracker:
         else:
             self._enable_pipeline_hold = value
 
+    @property
+    def _context(self):
+        return self._buffer.context
+
     def configure_radiation(self, mode=None):
 
         self._check_invalidated()
