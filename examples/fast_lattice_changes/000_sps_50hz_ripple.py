@@ -51,7 +51,7 @@ particles = xp.generate_matched_gaussian_bunch(_context=ctx,
 f_quad = 50. # Hz
 A_quad = 0.01 # relative amplitude
 
-# Track the particles
+# Track the particles and apply turn-by-turn change to all selected quads
 num_turns = 2000
 
 check_trim  = []
