@@ -12,13 +12,11 @@ void get_values_at_offsets(
 
     int64_t num_offsets = CustomSetterData_len_offsets(data);
 
-    int64_t iout = 0;
     for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
         int64_t offs = CustomSetterData_get_offsets(data, ii);
 
         double val = *((/*gpuglmem*/ double*)(buffer + offs));
-        out[iout] = val;
-        iout++;
+        out[ii] = val;
     } //end_vectorize
 }
 
@@ -30,13 +28,11 @@ void set_values_at_offsets(
 
     int64_t num_offsets = CustomSetterData_len_offsets(data);
 
-    int64_t iin = 0;
     for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
         int64_t offs = CustomSetterData_get_offsets(data, ii);
 
-        double val = input[iin];
+        double val = input[ii];
         *((/*gpuglmem*/ double*)(buffer + offs)) = val;
-        iin++;
     } //end_vectorize
 }
 
