@@ -80,7 +80,7 @@ class CustomSetter(xo.HybridClass):
         self.xoinitialize(_context=context, offsets=offsets)
         self.compile_kernels(only_if_needed=True)
 
-        self.offsets = offsets
+        self.offsets = context.nparray_to_context_array(np.array(offsets))
         self.tracker = tracker
         self._tracker_buffer = tracker_buffer
 
