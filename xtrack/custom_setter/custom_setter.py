@@ -85,7 +85,7 @@ class CustomSetter(xo.HybridClass):
         self._tracker_buffer = tracker_buffer
 
     def get_values(self):
-        out = np.zeros(len(self.offsets), dtype=np.float64)
+        out = self._context.zeros(len(self.offsets), dtype=np.float64)
         kernel = self._context.kernels.get_values_at_offsets
         kernel.description.n_threads = len(self.offsets)
         kernel(data=self, buffer=self._tracker_buffer.buffer, out=out)
