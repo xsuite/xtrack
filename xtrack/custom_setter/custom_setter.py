@@ -1,6 +1,7 @@
 import numpy as np
 
 import xobjects as xo
+import xtrack as xt
 
 source = """
 
@@ -90,7 +91,8 @@ class CustomSetter(xo.HybridClass):
     def set_values(self, values):
         kernel = self._context.kernels.set_values_at_offsets
         kernel.description.n_threads = len(self.offsets)
-        kernel(data=self, buffer=self._tracker_buffer.buffer, input=values)
+        kernel(data=self, buffer=self._tracker_buffer.buffer,
+               input=xt.BeamElement._arr2ctx(self,values))
 
 
 def _extract_offset(obj, field_name, index):
