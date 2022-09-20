@@ -28,7 +28,7 @@ def test_custom_setter_array_element():
         assert np.all(ctx2np(values) == np.array([0.1, 0.2, 0.3]))
 
         qf_setter.set_values(np.array([10., 100., 1000.]))
-        assert np.all(qf_setter.get_values() == np.array([10., 100., 1000.]))
+        assert np.all(ctx2np(qf_setter.get_values()) == np.array([10., 100., 1000.]))
         assert line['qf1'].knl[1] == 10.
         assert line['qf2'].knl[1] == 100.
         assert line['qf3'].knl[1] == 1000.
