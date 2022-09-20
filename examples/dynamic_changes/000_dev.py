@@ -19,8 +19,13 @@ line = xt.Line.from_madx_sequence(mad.sequence[seq_name])
 line.particle_ref = xp.Particles(p0c=400e9, mass0=xp.PROTON_MASS_EV)
 tracker = line.build_tracker(_context=ctx)
 
+# Switch on RF and twiss
 line['acta.31637'].voltage = 7e9
 line['acta.31637'].lag = 180.
+twxt = tracker.twiss()
+
+# Get revolution period
+T_rev = twxt['T_rev']
 
 # Extract list of elements to trim (all focusing quads)
 elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf.')]
@@ -32,15 +37,36 @@ qf_setter = xt.CustomSetter(tracker, elements_to_trim,
                             field='knl', index=1 # we want to change knl[1]
                             )
 
-# Get the initial values of the quand strength
+# Get the initial values of the quad strength
 k1l_0 = qf_setter.get_values()
 
 # Generate particles to be tracked
 # (we choose to match the distribution without accounting for spacecharge)
 particles = xp.generate_matched_gaussian_bunch(_context=ctx,
-         num_particles=1000, total_intensity_particles=1e10,
+         num_particles=100, total_intensity_particles=1e10,
          nemitt_x=3e-6, nemitt_y=3e-6, sigma_z=15e-2,
          tracker=tracker)
+
+# Define amplitude and phase of the quadrupole ripple
+f_quad = 50. # Hz
+A_quad = 0.01 # relative amplitude
+
+# Track the particles
+num_turns = 2000
+
+check_trim  = []
+
+for ii in range(num_turns):
+    if ii % 100 == 0: print(f'Turn {ii} of {num_turns}')
+
+    # Change the strength of the quads
+    k1l = k1l_0 * (1 + A_quad * np.sin(2*np.pi*f_quad*ii*T_rev))
+    qf_setter.set_values(k1l)
+
+    # Track one turn
+    tracker.track(particles)
+
+    check_trim.append(line['qf.52010'].knl[1])
 
 
 
