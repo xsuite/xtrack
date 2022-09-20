@@ -3,9 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from pathlib import Path
-from tkinter import N
-
 import numpy as np
 from scipy.special import factorial
 
