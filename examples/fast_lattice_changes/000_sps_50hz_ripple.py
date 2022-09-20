@@ -1,4 +1,3 @@
-from calendar import c
 import numpy as np
 from cpymad.madx import Madx
 
