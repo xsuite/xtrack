@@ -4,10 +4,11 @@ import xobjects as xo
 
 source = """
 
+/*gpukern*/
 void get_values_at_offsets(
     CustomSetterData data,
-    int8_t* buffer,
-    double* out){
+    /*gpuglmem*/ int8_t* buffer,
+    /*gpuglmem*/ double* out){
 
     int64_t num_offsets = CustomSetterData_len_offsets(data);
 
@@ -15,16 +16,17 @@ void get_values_at_offsets(
     for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
         int64_t offs = CustomSetterData_get_offsets(data, ii);
 
-        double val = *((double*)(buffer + offs));
+        double val = *((/*gpuglmem*/ double*)(buffer + offs));
         out[iout] = val;
         iout++;
     } //end_vectorize
 }
 
+/*gpukern*/
 void set_values_at_offsets(
     CustomSetterData data,
-    int8_t* buffer,
-    double* input){
+    /*gpuglmem*/ int8_t* buffer,
+    /*gpuglmem*/ double* input){
 
     int64_t num_offsets = CustomSetterData_len_offsets(data);
 
@@ -33,7 +35,7 @@ void set_values_at_offsets(
         int64_t offs = CustomSetterData_get_offsets(data, ii);
 
         double val = input[iin];
-        *((double*)(buffer + offs)) = val;
+        *((/*gpuglmem*/ double*)(buffer + offs)) = val;
         iin++;
     } //end_vectorize
 }
