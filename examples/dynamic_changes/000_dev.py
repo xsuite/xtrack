@@ -1,3 +1,4 @@
+from calendar import c
 import numpy as np
 from cpymad.madx import Madx
 
@@ -66,8 +67,13 @@ for ii in range(num_turns):
     # Track one turn
     tracker.track(particles)
 
+    # Log the strength of one quad to check
     check_trim.append(line['qf.52010'].knl[1])
 
+# Plot the evolution of the quad strength
+import matplotlib.pyplot as plt
+plt.plot(check_trim)
+plt.show()
 
 
 
