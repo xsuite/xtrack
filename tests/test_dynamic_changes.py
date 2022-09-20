@@ -22,8 +22,10 @@ def test_custom_setter_array_element():
                                     field='knl', index=1 # we want to change knl[1]
                                     )
 
+        ctx2np = context.nparray_from_context_array
+
         values = qf_setter.get_values()
-        assert np.all(values == np.array([0.1, 0.2, 0.3]))
+        assert np.all(ctx2np(values) == np.array([0.1, 0.2, 0.3]))
 
         qf_setter.set_values(np.array([10., 100., 1000.]))
         assert np.all(qf_setter.get_values() == np.array([10., 100., 1000.]))
