@@ -19,7 +19,7 @@ def test_custom_setter_array_element():
 
         elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf')]
 
-        qf_setter = xt.CustomSetter(tracker, elements_to_trim,
+        qf_setter = xt.MultiSetter(tracker, elements_to_trim,
                                     field='knl', index=1 # we want to change knl[1]
                                     )
 
@@ -49,7 +49,7 @@ def test_custom_setter_scalar():
 
         elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf')]
 
-        qf_setter = xt.CustomSetter(tracker, elements_to_trim,
+        qf_setter = xt.MultiSetter(tracker, elements_to_trim,
                                     field='length',
                                     )
 

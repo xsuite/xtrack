@@ -7,14 +7,14 @@ source = """
 
 /*gpukern*/
 void get_values_at_offsets(
-    CustomSetterData data,
+    MultiSetterData data,
     /*gpuglmem*/ int8_t* buffer,
     /*gpuglmem*/ double* out){
 
-    int64_t num_offsets = CustomSetterData_len_offsets(data);
+    int64_t num_offsets = MultiSetterData_len_offsets(data);
 
     for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
-        int64_t offs = CustomSetterData_get_offsets(data, ii);
+        int64_t offs = MultiSetterData_get_offsets(data, ii);
 
         double val = *((/*gpuglmem*/ double*)(buffer + offs));
         out[ii] = val;
@@ -23,14 +23,14 @@ void get_values_at_offsets(
 
 /*gpukern*/
 void set_values_at_offsets(
-    CustomSetterData data,
+    MultiSetterData data,
     /*gpuglmem*/ int8_t* buffer,
     /*gpuglmem*/ double* input){
 
-    int64_t num_offsets = CustomSetterData_len_offsets(data);
+    int64_t num_offsets = MultiSetterData_len_offsets(data);
 
     for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
-        int64_t offs = CustomSetterData_get_offsets(data, ii);
+        int64_t offs = MultiSetterData_get_offsets(data, ii);
 
         double val = input[ii];
         *((/*gpuglmem*/ double*)(buffer + offs)) = val;
@@ -39,7 +39,7 @@ void set_values_at_offsets(
 
 """
 
-class CustomSetter(xo.HybridClass):
+class MultiSetter(xo.HybridClass):
     _xofields = {
         'offsets': xo.Int64[:],
     }
