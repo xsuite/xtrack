@@ -846,9 +846,12 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
-        for nn in ["l", "harmon", "lagf", "rv1", "rv2", "rph1", "rph2"]:
-            if getattr(ee, nn):
-                raise NotImplementedError(f"Invalid value {nn}={getattr(ee, nn)}")
+        # This has to be disabled, as it raises an error when l is assigned to an
+        # expression:
+        # for nn in ["l", "harmon", "lagf", "rv1", "rv2", "rph1", "rph2"]:
+        #     if getattr(ee, nn):
+        #         raise NotImplementedError(f"Invalid value {nn}={getattr(ee, nn)}")
+
         # ee.volt in MV, sequence.beam.pc in GeV
         if abs(ee.tilt - np.pi / 2) < 1e-9:
             el = self.Builder(
