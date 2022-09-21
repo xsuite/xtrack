@@ -67,7 +67,7 @@ for ii in range(num_turns):
     tracker.track(particles)
 
     # Log the strength of one quad to check
-    check_trim.append(line['qf.52010'].knl[1])
+    check_trim.append(ctx.nparray_from_context_array(line['qf.52010'].knl)[1])
 
 # Plot the evolution of the quad strength
 import matplotlib.pyplot as plt
