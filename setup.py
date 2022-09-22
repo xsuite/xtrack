@@ -38,5 +38,8 @@ setup(
         'xobjects',
         'xpart',
         'xdeps'
-        ]
+        ],
+    extras_require={
+        'tests': ['cpymad', 'PyHEADTAIL'],
+        },
     )
