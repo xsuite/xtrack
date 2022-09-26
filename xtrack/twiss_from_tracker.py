@@ -413,6 +413,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
     gemitt_y = nemitt_y/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
     scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
     scale_transverse_y = np.sqrt(gemitt_y)*r_sigma
+    scale_longitudinal = delta_disp
 
 
     context = tracker._context
@@ -422,9 +423,10 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
                         px= list(W_matrix[1, :4] * scale_transverse_x) + [0],
                         y=  list(W_matrix[2, :4] * scale_transverse_y) + [0],
                         py= list(W_matrix[3, :4] * scale_transverse_y) + [0],
-                        zeta = 0,
-                        delta = 0,
+                        zeta = list(W_matrix[4, :4] * scale_longitudinal) + [0],
+                        delta = list(W_matrix[5, :4] * scale_longitudinal) + [0],
                         )
+
 
     part_disp = xp.build_particles(
         _context=context,
@@ -471,23 +473,25 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
     dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
 
-    W4 = np.zeros(shape=(4,4,len(s_co)), dtype=np.float64)
-    W4[0, :, :] = (tracker.record_last_track.x[:4, :] - x_co) / scale_transverse_x
-    W4[1, :, :] = (tracker.record_last_track.px[:4, :] - px_co) / scale_transverse_x
-    W4[2, :, :] = (tracker.record_last_track.y[:4, :]  - y_co) / scale_transverse_y
-    W4[3, :, :] = (tracker.record_last_track.py[:4, :] - py_co) / scale_transverse_y
+    Ws = np.zeros(shape=(6, 6, len(s_co)), dtype=np.float64)
+    Ws[0, :, :] = (tracker.record_last_track.x[:6, :] - x_co) / scale_transverse_x
+    Ws[1, :, :] = (tracker.record_last_track.px[:6, :] - px_co) / scale_transverse_x
+    Ws[2, :, :] = (tracker.record_last_track.y[:6, :]  - y_co) / scale_transverse_y
+    Ws[3, :, :] = (tracker.record_last_track.py[:6, :] - py_co) / scale_transverse_y
+    Ws[4, :, :] = (tracker.record_last_track.zeta[:6, :]  - zeta_co) / scale_longitudinal
+    Ws[5, :, :] = (tracker.record_last_track.ptau[:6, :] - ptau_co)/particle_on_co.beta0/ scale_longitudinal
 
-    betx = W4[0, 0, :]**2 + W4[0, 1, :]**2
-    bety = W4[2, 2, :]**2 + W4[2, 3, :]**2
+    betx = Ws[0, 0, :]**2 + Ws[0, 1, :]**2
+    bety = Ws[2, 2, :]**2 + Ws[2, 3, :]**2
 
-    gamx = W4[1, 0, :]**2 + W4[1, 1, :]**2
-    gamy = W4[3, 2, :]**2 + W4[3, 3, :]**2
+    gamx = Ws[1, 0, :]**2 + Ws[1, 1, :]**2
+    gamy = Ws[3, 2, :]**2 + Ws[3, 3, :]**2
 
-    alfx = - W4[0, 0, :] * W4[1, 0, :] - W4[0, 1, :] * W4[1, 1, :]
-    alfy = - W4[2, 2, :] * W4[3, 2, :] - W4[2, 3, :] * W4[3, 3, :]
+    alfx = - Ws[0, 0, :] * Ws[1, 0, :] - Ws[0, 1, :] * Ws[1, 1, :]
+    alfy = - Ws[2, 2, :] * Ws[3, 2, :] - Ws[2, 3, :] * Ws[3, 3, :]
 
-    mux = np.unwrap(np.arctan2(W4[0, 1, :], W4[0, 0, :]))/2/np.pi
-    muy = np.unwrap(np.arctan2(W4[2, 3, :], W4[2, 2, :]))/2/np.pi
+    mux = np.unwrap(np.arctan2(Ws[0, 1, :], Ws[0, 0, :]))/2/np.pi
+    muy = np.unwrap(np.arctan2(Ws[2, 3, :], Ws[2, 2, :]))/2/np.pi
 
 
     twiss_res_element_by_element = {
