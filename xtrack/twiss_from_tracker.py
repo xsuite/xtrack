@@ -331,30 +331,12 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     T_rev = circumference/clight/beta0
 
     if eneloss_and_damping:
-        diff_ptau = np.diff(ptau_co)
-        eloss_turn = -sum(diff_ptau[diff_ptau<0]) * part_on_co._xobject.p0c[0]
-
-        # Get eigenvalues
-        w0, v0 = np.linalg.eig(RR)
-
-        # Sort eigenvalues
-        indx = [
-            int(np.floor(np.argmax(np.abs(v0[:, 2*ii]))/2)) for ii in range(3)]
-        eigenvals = np.array([w0[ii*2] for ii in indx])
-
-        # Damping constants and partition numbers
-        energy0 = part_on_co.mass0 * part_on_co._xobject.gamma0[0]
-        damping_constants_turns = -np.log(np.abs(eigenvals))
-        damping_constants_s = damping_constants_turns / T_rev
-        partition_numbers = (
-            damping_constants_turns* 2 * energy0/eloss_turn)
-
-        eneloss_damp_res = {
-            'eneloss_turn': eloss_turn,
-            'damping_constants_turns': damping_constants_turns,
-            'damping_constants_s':damping_constants_s,
-            'partition_numbers': partition_numbers
-        }
+        eneloss_damp_res = _compute_eneloss_and_damping_rates(
+            particle_on_co=part_on_co,
+            R_matrix=RR,
+            ptau_co=ptau_co,
+            T_rev=T_rev,
+        )
 
     twiss_res = {}
     twiss_res.update(twiss_res_element_by_element)
@@ -605,3 +587,32 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
         dqy = -dqy
 
     return dqx, dqy
+
+
+def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev):
+    diff_ptau = np.diff(ptau_co)
+    eloss_turn = -sum(diff_ptau[diff_ptau<0]) * particle_on_co._xobject.p0c[0]
+
+    # Get eigenvalues
+    w0, v0 = np.linalg.eig(R_matrix)
+
+    # Sort eigenvalues
+    indx = [
+        int(np.floor(np.argmax(np.abs(v0[:, 2*ii]))/2)) for ii in range(3)]
+    eigenvals = np.array([w0[ii*2] for ii in indx])
+
+    # Damping constants and partition numbers
+    energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
+    damping_constants_turns = -np.log(np.abs(eigenvals))
+    damping_constants_s = damping_constants_turns / T_rev
+    partition_numbers = (
+        damping_constants_turns* 2 * energy0/eloss_turn)
+
+    eneloss_damp_res = {
+        'eneloss_turn': eloss_turn,
+        'damping_constants_turns': damping_constants_turns,
+        'damping_constants_s':damping_constants_s,
+        'partition_numbers': partition_numbers
+    }
+
+    return eneloss_damp_res
