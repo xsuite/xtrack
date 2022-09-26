@@ -313,66 +313,16 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     eta = -dzeta[-1]/tracker.line.get_length()
     alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
-    part_chrom_plus = xp.build_particles(
-                _context=context,
-                x_norm=0,
-                zeta=part_on_co._xobject.zeta[0], delta=delta_chrom,
-                particle_on_co=part_on_co,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR,
-                matrix_stability_tol=matrix_stability_tol,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                symplectify=symplectify)
-    RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
-                                            particle_on_co=part_chrom_plus.copy(),
-                                            steps_r_matrix=steps_r_matrix)
-    (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
-                                        responsiveness_tol=matrix_responsiveness_tol,
-                                        stability_tol=matrix_stability_tol,
-                                        symplectify=symplectify)
-    qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
-    qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
-
-    part_chrom_minus = xp.build_particles(
-                _context=context,
-                x_norm=0,
-                zeta=part_on_co._xobject.zeta[0], delta=-delta_chrom,
-                particle_on_co=part_on_co,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                R_matrix=RR,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                symplectify=symplectify)
-    RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_minus.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-    (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
-                                          symplectify=symplectify,
-                                          stability_tol=matrix_stability_tol,
-                                          responsiveness_tol=matrix_responsiveness_tol)
-    qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
-    qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
-
-    dist_from_half_integer_x = np.modf(mux[-1])[0] - 0.5
-    dist_from_half_integer_y = np.modf(muy[-1])[0] - 0.5
-
-    if np.abs(qx_chrom_plus - qx_chrom_minus) > np.abs(dist_from_half_integer_x):
-        raise NotImplementedError(
-                "Qx too close to half integer, impossible to evaluate Q'x")
-    if np.abs(qy_chrom_plus - qy_chrom_minus) > np.abs(dist_from_half_integer_y):
-        raise NotImplementedError(
-                "Qy too close to half integer, impossible to evaluate Q'y")
-
-    dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
-    dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
-
-    if dist_from_half_integer_x > 0:
-        dqx = -dqx
-
-    if dist_from_half_integer_y > 0:
-        dqy = -dqy
+    dqx, dqy = _compute_chromaticity(
+        tracker=tracker,
+        W_matrix=W,
+        particle_on_co=part_on_co,
+        delta_chrom=delta_chrom,
+        tune_x=mux[-1], tune_y=muy[-1],
+        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+        matrix_responsiveness_tol=matrix_responsiveness_tol,
+        matrix_stability_tol=matrix_stability_tol,
+        symplectify=symplectify, steps_r_matrix=steps_r_matrix)
 
     qs = np.angle(np.linalg.eig(Rot)[0][4])/(2*np.pi)
 
@@ -584,3 +534,74 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
     }
 
     return twiss_res_element_by_element
+
+def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
+                    tune_x, tune_y,
+                    nemitt_x, nemitt_y, matrix_responsiveness_tol,
+                    matrix_stability_tol, symplectify, steps_r_matrix
+                    ):
+
+    context = tracker._context
+
+    part_chrom_plus = xp.build_particles(
+                _context=context,
+                x_norm=0,
+                zeta=particle_on_co._xobject.zeta[0], delta=delta_chrom,
+                particle_on_co=particle_on_co,
+                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+                W_matrix=W_matrix,
+                matrix_stability_tol=matrix_stability_tol,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                symplectify=symplectify)
+    RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
+                                            particle_on_co=part_chrom_plus.copy(),
+                                            steps_r_matrix=steps_r_matrix)
+    (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
+        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
+                                        responsiveness_tol=matrix_responsiveness_tol,
+                                        stability_tol=matrix_stability_tol,
+                                        symplectify=symplectify)
+    qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
+    qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
+
+    part_chrom_minus = xp.build_particles(
+                _context=context,
+                x_norm=0,
+                zeta=particle_on_co._xobject.zeta[0], delta=-delta_chrom,
+                particle_on_co=particle_on_co,
+                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+                W_matrix=W_matrix,
+                matrix_responsiveness_tol=matrix_responsiveness_tol,
+                matrix_stability_tol=matrix_stability_tol,
+                symplectify=symplectify)
+    RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
+                                        particle_on_co=part_chrom_minus.copy(),
+                                        steps_r_matrix=steps_r_matrix)
+    (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
+        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
+                                          symplectify=symplectify,
+                                          stability_tol=matrix_stability_tol,
+                                          responsiveness_tol=matrix_responsiveness_tol)
+    qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
+    qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
+
+    dist_from_half_integer_x = np.modf(tune_x)[0] - 0.5
+    dist_from_half_integer_y = np.modf(tune_y)[0] - 0.5
+
+    if np.abs(qx_chrom_plus - qx_chrom_minus) > np.abs(dist_from_half_integer_x):
+        raise NotImplementedError(
+                "Qx too close to half integer, impossible to evaluate Q'x")
+    if np.abs(qy_chrom_plus - qy_chrom_minus) > np.abs(dist_from_half_integer_y):
+        raise NotImplementedError(
+                "Qy too close to half integer, impossible to evaluate Q'y")
+
+    dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
+    dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
+
+    if dist_from_half_integer_x > 0:
+        dqx = -dqx
+
+    if dist_from_half_integer_y > 0:
+        dqy = -dqy
+
+    return dqx, dqy
