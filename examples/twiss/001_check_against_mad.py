@@ -12,15 +12,19 @@ import xobjects as xo
 
 from cpymad.madx import Madx
 
-path = '../../test_data/hllhc14_input_mad/'
+# path = '../../test_data/hllhc14_input_mad/'
+# mad = Madx(command_log="mad_final.log")
+# mad.call(path + "final_seq.madx")
+# mad.use(sequence="lhcb1")
+# mad.twiss()
+# mad.readtable(file=path + "final_errors.tfs", table="errtab")
+# mad.seterr(table="errtab")
+# mad.set(format=".15g")
 
-mad = Madx(command_log="mad_final.log")
-mad.call(path + "final_seq.madx")
-mad.use(sequence="lhcb1")
-mad.twiss()
-mad.readtable(file=path + "final_errors.tfs", table="errtab")
-mad.seterr(table="errtab")
-mad.set(format=".15g")
+mad = Madx()
+mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
+mad.use('lhcb1')
+
 twmad = mad.twiss(rmatrix=True, chrom=True)
 
 line = xt.Line.from_madx_sequence(
