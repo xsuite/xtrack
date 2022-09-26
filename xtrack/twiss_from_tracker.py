@@ -368,11 +368,10 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     alfx = - W4[0, 0, :] * W4[1, 0, :] - W4[0, 1, :] * W4[1, 1, :]
     alfy = - W4[2, 2, :] * W4[3, 2, :] - W4[2, 3, :] * W4[3, 3, :]
 
-    betz0 = W[4, 4]**2 + W[4, 5]**2
-
     mux = np.unwrap(np.arctan2(W4[0, 1, :], W4[0, 0, :]))/2/np.pi
     muy = np.unwrap(np.arctan2(W4[2, 3, :], W4[2, 2, :]))/2/np.pi
 
+    betz0 = W[4, 4]**2 + W[4, 5]**2
     eta = -dzeta[-1]/tracker.line.get_length()
     alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
@@ -559,3 +558,114 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
            part._xobject.delta[0]])
     return p_res
 
+
+def _propagate_optics(tracker, W, part_on_co, nemitt_x, nemitt_y, r_sigma,
+                      delta_disp, matrix_responsiveness_tol, matrix_stability_tol,
+                      symplectify):
+
+    gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+    gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+    scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
+    scale_transverse_y = np.sqrt(gemitt_y)*r_sigma
+
+
+    context = tracker._context
+    part_for_twiss = xp.build_particles(_context=context,
+                        particle_ref=part_on_co, mode='shift',
+                        x=  list(W[0, :4] * scale_transverse_x) + [0],
+                        px= list(W[1, :4] * scale_transverse_x) + [0],
+                        y=  list(W[2, :4] * scale_transverse_y) + [0],
+                        py= list(W[3, :4] * scale_transverse_y) + [0],
+                        zeta = 0,
+                        delta = 0,
+                        )
+
+    part_disp = xp.build_particles(
+        _context=context,
+        x_norm=0,
+        zeta=part_on_co._xobject.zeta[0],
+        delta=np.array([-delta_disp, +delta_disp])+part_on_co._xobject.delta[0],
+        particle_on_co=part_on_co,
+        scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+        W_matrix=W,
+        matrix_responsiveness_tol=matrix_responsiveness_tol,
+        matrix_stability_tol=matrix_stability_tol,
+        symplectify=symplectify)
+
+    part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
+
+    tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE')
+
+    x_co = tracker.record_last_track.x[4, :].copy()
+    y_co = tracker.record_last_track.y[4, :].copy()
+    px_co = tracker.record_last_track.px[4, :].copy()
+    py_co = tracker.record_last_track.py[4, :].copy()
+    zeta_co = tracker.record_last_track.zeta[4, :].copy()
+    delta_co = tracker.record_last_track.delta[4, :].copy()
+    ptau_co = tracker.record_last_track.ptau[4, :].copy()
+    s_co = tracker.record_last_track.s[4, :].copy()
+
+    x_disp_minus = tracker.record_last_track.x[5, :].copy()
+    y_disp_minus = tracker.record_last_track.y[5, :].copy()
+    zeta_disp_minus = tracker.record_last_track.zeta[5, :].copy()
+    px_disp_minus = tracker.record_last_track.px[5, :].copy()
+    py_disp_minus = tracker.record_last_track.py[5, :].copy()
+    delta_disp_minus = tracker.record_last_track.delta[5, :].copy()
+
+    x_disp_plus = tracker.record_last_track.x[6, :].copy()
+    y_disp_plus = tracker.record_last_track.y[6, :].copy()
+    zeta_disp_plus = tracker.record_last_track.zeta[6, :].copy()
+    px_disp_plus = tracker.record_last_track.px[6, :].copy()
+    py_disp_plus = tracker.record_last_track.py[6, :].copy()
+    delta_disp_plus = tracker.record_last_track.delta[6, :].copy()
+
+    dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dzeta = (zeta_disp_plus-zeta_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
+
+    W4 = np.zeros(shape=(4,4,len(s)), dtype=np.float64)
+    W4[0, :, :] = (tracker.record_last_track.x[:4, :] - x_co) / scale_transverse_x
+    W4[1, :, :] = (tracker.record_last_track.px[:4, :] - px_co) / scale_transverse_x
+    W4[2, :, :] = (tracker.record_last_track.y[:4, :]  - y_co) / scale_transverse_y
+    W4[3, :, :] = (tracker.record_last_track.py[:4, :] - py_co) / scale_transverse_y
+
+    betx = W4[0, 0, :]**2 + W4[0, 1, :]**2
+    bety = W4[2, 2, :]**2 + W4[2, 3, :]**2
+
+    gamx = W4[1, 0, :]**2 + W4[1, 1, :]**2
+    gamy = W4[3, 2, :]**2 + W4[3, 3, :]**2
+
+    alfx = - W4[0, 0, :] * W4[1, 0, :] - W4[0, 1, :] * W4[1, 1, :]
+    alfy = - W4[2, 2, :] * W4[3, 2, :] - W4[2, 3, :] * W4[3, 3, :]
+
+    mux = np.unwrap(np.arctan2(W4[0, 1, :], W4[0, 0, :]))/2/np.pi
+    muy = np.unwrap(np.arctan2(W4[2, 3, :], W4[2, 2, :]))/2/np.pi
+
+
+    twiss_res_element_by_element = {
+        'name': tracker.line.element_names + ('_end_point',),
+        's': s_co,
+        'x': x_co,
+        'px': px_co,
+        'y': y_co,
+        'py': py_co,
+        'zeta': zeta_co,
+        'delta': delta_co,
+        'ptau': ptau_co,
+        'betx': betx,
+        'bety': bety,
+        'alfx': alfx,
+        'alfy': alfy,
+        'gamx': gamx,
+        'gamy': gamy,
+        'dx': dx,
+        'dpx': dpx,
+        'dy': dy,
+        'dpy': dpy,
+        'mux': mux,
+        'muy': muy,
+    }
+
+    return twiss_res_element_by_element
