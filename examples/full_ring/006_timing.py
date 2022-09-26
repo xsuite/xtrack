@@ -26,7 +26,7 @@ rtol_100turns = 1e-9; atol_100turns=5e-11
 
 fname_line_particles = test_data_folder.joinpath(
                                   './lhc_with_bb/line_and_particle.json')
-rtol_100turns = 1e-9; atol_100turns=2e-10
+rtol_100turns = 1e-9; atol_100turns=9e-10
 
 #fname_line_particles = test_data_folder.joinpath(
 #                          './hllhc_14/line_and_particle.json')
@@ -108,8 +108,8 @@ part_ref = xp.Particles(**input_data['particle'])
 
 particles = xp.build_particles(_context=context,
     particle_ref=part_ref,
-    x=np.linspace(-1e-4, 1e-4, n_part),
-    y=np.linspace(-2e-4, 2e-4, n_part))
+    x=np.arange(-1e-4, 1e-4, 2e-4/n_part),
+    y=np.arange(-2e-4, 2e-4, 4e-4/n_part))
 
 #########
 # Track #
@@ -131,7 +131,7 @@ print(f'Time {(t2-t1)*1e6/num_turns/n_part:.2f} us/part/turn')
 
 testline = dtk.TestLine.from_dict(input_data['line'])
 
-ip_check = n_part//3*2
+ip_check = n_part//4*3
 
 print(f'\nTest against ducktrack over {num_turns} turns on particle {ip_check}:')
 vars_to_check = ['x', 'px', 'y', 'py', 'zeta', 'delta', 's']
