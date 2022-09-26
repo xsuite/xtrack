@@ -65,6 +65,9 @@ assert np.isclose(mad.table.summ.q1[0], twxt['qx'], rtol=1e-4)
 assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4)
 assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
 assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
+assert np.isclose(mad.table.summ.alfa[0],
+    twxt['momentum_compaction_factor'], atol=1e-8, rtol=0)
+assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
 for name in ['mb.b19r5.b1', 'mb.b19r1.b1', 'ip1', 'ip2', 'ip5', 'ip8',
              'mbxf.4l1', 'mbxf.4l5']:

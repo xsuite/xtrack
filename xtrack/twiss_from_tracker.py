@@ -287,8 +287,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)
 
-    gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
-    gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
 
     W, Winv, Rot = lnf.compute_linear_normal_form(RR, symplectify=symplectify,
                                 responsiveness_tol=matrix_responsiveness_tol,
@@ -296,8 +294,11 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     s = np.array(tracker.line.get_s_elements() + [tracker.line.get_length()])
 
+    gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+    gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
     scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
     scale_transverse_y = np.sqrt(gemitt_y)*r_sigma
+
     part_for_twiss = xp.build_particles(_context=context,
                         particle_ref=part_on_co, mode='shift',
                         x=  list(W[0, :4] * scale_transverse_x) + [0],
