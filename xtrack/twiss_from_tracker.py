@@ -441,11 +441,11 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
             else:
                 assert nn in tracker.line.element_names
                 indx_twiss.append(enames.index(nn))
-
+        s_co = twiss_res['s']
         for kk, vv in twiss_res_element_by_element.items():
             if eneloss_and_damping and kk in eneloss_damp_res.keys():
                 continue
-            if hasattr(vv, '__len__') and len(vv) == len(s):
+            if hasattr(vv, '__len__') and len(vv) == len(s_co):
                 if isinstance(vv, np.ndarray):
                     twiss_res[kk] = vv[indx_twiss]
                 else:
