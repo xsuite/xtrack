@@ -419,12 +419,12 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
     context = tracker._context
     part_for_twiss = xp.build_particles(_context=context,
                         particle_ref=particle_on_co, mode='shift',
-                        x=  list(W_matrix[0, :4] * scale_transverse_x) + [0],
-                        px= list(W_matrix[1, :4] * scale_transverse_x) + [0],
-                        y=  list(W_matrix[2, :4] * scale_transverse_y) + [0],
-                        py= list(W_matrix[3, :4] * scale_transverse_y) + [0],
-                        zeta = list(W_matrix[4, :4] * scale_longitudinal) + [0],
-                        delta = list(W_matrix[5, :4] * scale_longitudinal) + [0],
+                        x=  list(W_matrix[0, :] * scale_transverse_x) + [0],
+                        px= list(W_matrix[1, :] * scale_transverse_x) + [0],
+                        y=  list(W_matrix[2, :] * scale_transverse_y) + [0],
+                        py= list(W_matrix[3, :] * scale_transverse_y) + [0],
+                        zeta = list(W_matrix[4, :] * scale_longitudinal) + [0],
+                        delta = list(W_matrix[5, :] * scale_longitudinal) + [0],
                         )
 
 
@@ -444,28 +444,28 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
 
     tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE')
 
-    x_co = tracker.record_last_track.x[4, :].copy()
-    y_co = tracker.record_last_track.y[4, :].copy()
-    px_co = tracker.record_last_track.px[4, :].copy()
-    py_co = tracker.record_last_track.py[4, :].copy()
-    zeta_co = tracker.record_last_track.zeta[4, :].copy()
-    delta_co = tracker.record_last_track.delta[4, :].copy()
-    ptau_co = tracker.record_last_track.ptau[4, :].copy()
-    s_co = tracker.record_last_track.s[4, :].copy()
+    x_co = tracker.record_last_track.x[6, :].copy()
+    y_co = tracker.record_last_track.y[6, :].copy()
+    px_co = tracker.record_last_track.px[6, :].copy()
+    py_co = tracker.record_last_track.py[6, :].copy()
+    zeta_co = tracker.record_last_track.zeta[6, :].copy()
+    delta_co = tracker.record_last_track.delta[6, :].copy()
+    ptau_co = tracker.record_last_track.ptau[6, :].copy()
+    s_co = tracker.record_last_track.s[6, :].copy()
 
-    x_disp_minus = tracker.record_last_track.x[5, :].copy()
-    y_disp_minus = tracker.record_last_track.y[5, :].copy()
-    zeta_disp_minus = tracker.record_last_track.zeta[5, :].copy()
-    px_disp_minus = tracker.record_last_track.px[5, :].copy()
-    py_disp_minus = tracker.record_last_track.py[5, :].copy()
-    delta_disp_minus = tracker.record_last_track.delta[5, :].copy()
+    x_disp_minus = tracker.record_last_track.x[7, :].copy()
+    y_disp_minus = tracker.record_last_track.y[7, :].copy()
+    zeta_disp_minus = tracker.record_last_track.zeta[7, :].copy()
+    px_disp_minus = tracker.record_last_track.px[7, :].copy()
+    py_disp_minus = tracker.record_last_track.py[7, :].copy()
+    delta_disp_minus = tracker.record_last_track.delta[7, :].copy()
 
-    x_disp_plus = tracker.record_last_track.x[6, :].copy()
-    y_disp_plus = tracker.record_last_track.y[6, :].copy()
-    zeta_disp_plus = tracker.record_last_track.zeta[6, :].copy()
-    px_disp_plus = tracker.record_last_track.px[6, :].copy()
-    py_disp_plus = tracker.record_last_track.py[6, :].copy()
-    delta_disp_plus = tracker.record_last_track.delta[6, :].copy()
+    x_disp_plus = tracker.record_last_track.x[8, :].copy()
+    y_disp_plus = tracker.record_last_track.y[8, :].copy()
+    zeta_disp_plus = tracker.record_last_track.zeta[8, :].copy()
+    px_disp_plus = tracker.record_last_track.px[8, :].copy()
+    py_disp_plus = tracker.record_last_track.py[8, :].copy()
+    delta_disp_plus = tracker.record_last_track.delta[8, :].copy()
 
     dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
