@@ -335,18 +335,21 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
 
     x_disp_minus = tracker.record_last_track.x[5, :].copy()
     y_disp_minus = tracker.record_last_track.y[5, :].copy()
+    zeta_disp_minus = tracker.record_last_track.zeta[5, :].copy()
     px_disp_minus = tracker.record_last_track.px[5, :].copy()
     py_disp_minus = tracker.record_last_track.py[5, :].copy()
     delta_disp_minus = tracker.record_last_track.delta[5, :].copy()
 
     x_disp_plus = tracker.record_last_track.x[6, :].copy()
     y_disp_plus = tracker.record_last_track.y[6, :].copy()
+    zeta_disp_plus = tracker.record_last_track.zeta[6, :].copy()
     px_disp_plus = tracker.record_last_track.px[6, :].copy()
     py_disp_plus = tracker.record_last_track.py[6, :].copy()
     delta_disp_plus = tracker.record_last_track.delta[6, :].copy()
 
     dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    dzeta = (zeta_disp_plus-zeta_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
 
@@ -370,8 +373,7 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
     mux = np.unwrap(np.arctan2(W4[0, 1, :], W4[0, 0, :]))/2/np.pi
     muy = np.unwrap(np.arctan2(W4[2, 3, :], W4[2, 2, :]))/2/np.pi
 
-    eta = -((part_for_twiss._xobject.zeta[6] - part_for_twiss._xobject.zeta[5])
-                /(2*delta_disp)/tracker.line.get_length())
+    eta = -dzeta[-1]/tracker.line.get_length()
     alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
     part_chrom_plus = xp.build_particles(
