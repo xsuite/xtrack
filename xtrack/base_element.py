@@ -5,13 +5,13 @@
 
 from pathlib import Path
 import numpy as np
+from functools import partial
 
 import xobjects as xo
 import xpart as xp
 
 from xobjects.hybrid_class import _build_xofields_dict
 
-from .general import _pkg_root
 from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
@@ -36,7 +36,7 @@ end_part_part_block = """
    }   //only_for_context cpu_serial cpu_openmp
 """
 
-def _handle_per_particle_blocks(sources):
+def _handle_per_particle_blocks(sources, local_particle_src):
 
     if isinstance(sources, str):
         sources = (sources, )
@@ -52,6 +52,9 @@ def _handle_per_particle_blocks(sources):
         else:
             strss = ss
 
+        strss = strss.replace('/*placeholder_for_local_particle_src*/',
+                                local_particle_src,
+                                )
         if '//start_per_particle_block' in strss:
 
             lines = strss.splitlines()
@@ -65,6 +68,7 @@ def _handle_per_particle_blocks(sources):
             out.append('\n'.join(lines))
         else:
             out.append(ss)
+
 
     if wasstring:
         out = out[0]
@@ -223,22 +227,14 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def compile_kernels(self, *args, **kwargs):
 
-        # Attach local particle code
-        xp.Particles._XoStruct._extra_c_sources.append(xp.gen_local_particle_api())
+        if 'apply_to_source' not in kwargs.keys():
+            kwargs['apply_to_source'] = []
+        kwargs['apply_to_source'].append(
+            partial(_handle_per_particle_blocks,
+                    local_particle_src=xp.gen_local_particle_api()))
 
-        try:
-            if 'apply_to_source' not in kwargs.keys():
-                kwargs['apply_to_source'] = []
-            kwargs['apply_to_source'].append(_handle_per_particle_blocks)
+        xo.HybridClass.compile_kernels(self, *args, **kwargs)
 
-            xo.HybridClass.compile_kernels(self, *args, **kwargs)
-
-            # Remove local particle code
-            xp.Particles._XoStruct._extra_c_sources.pop()
-        except Exception as e:
-            # Clean up local particle code
-            xp.Particles._XoStruct._extra_c_sources.pop()
-            raise e
 
     def track(self, particles, increment_at_element=False):
 
