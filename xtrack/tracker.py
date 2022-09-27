@@ -736,7 +736,7 @@ class Tracker:
             extra_classes=self.element_classes,
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
-                        local_particle_src=xp.gen_local_particle_api())],
+                        local_particle_src=self.local_particle_src)],
             save_source_as=save_source_as,
             specialize=True,
             compile=compile
