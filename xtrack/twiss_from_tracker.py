@@ -473,25 +473,25 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
     dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
 
-    Ws = np.zeros(shape=(6, 6, len(s_co)), dtype=np.float64)
-    Ws[0, :, :] = (tracker.record_last_track.x[:6, :] - x_co) / scale_transverse_x
-    Ws[1, :, :] = (tracker.record_last_track.px[:6, :] - px_co) / scale_transverse_x
-    Ws[2, :, :] = (tracker.record_last_track.y[:6, :]  - y_co) / scale_transverse_y
-    Ws[3, :, :] = (tracker.record_last_track.py[:6, :] - py_co) / scale_transverse_y
-    Ws[4, :, :] = (tracker.record_last_track.zeta[:6, :]  - zeta_co) / scale_longitudinal
-    Ws[5, :, :] = (tracker.record_last_track.ptau[:6, :] - ptau_co)/particle_on_co.beta0/ scale_longitudinal
+    Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
+    Ws[:, 0, :] = (tracker.record_last_track.x[:6, :] - x_co).T / scale_transverse_x
+    Ws[:, 1, :] = (tracker.record_last_track.px[:6, :] - px_co).T / scale_transverse_x
+    Ws[:, 2, :] = (tracker.record_last_track.y[:6, :] - y_co).T / scale_transverse_y
+    Ws[:, 3, :] = (tracker.record_last_track.py[:6, :] - py_co).T / scale_transverse_y
+    Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, :] - zeta_co).T / scale_longitudinal
+    Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, :] - ptau_co).T/particle_on_co.beta0/ scale_longitudinal
 
-    betx = Ws[0, 0, :]**2 + Ws[0, 1, :]**2
-    bety = Ws[2, 2, :]**2 + Ws[2, 3, :]**2
+    betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
+    bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
 
-    gamx = Ws[1, 0, :]**2 + Ws[1, 1, :]**2
-    gamy = Ws[3, 2, :]**2 + Ws[3, 3, :]**2
+    gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
+    gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
 
-    alfx = - Ws[0, 0, :] * Ws[1, 0, :] - Ws[0, 1, :] * Ws[1, 1, :]
-    alfy = - Ws[2, 2, :] * Ws[3, 2, :] - Ws[2, 3, :] * Ws[3, 3, :]
+    alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
+    alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
 
-    mux = np.unwrap(np.arctan2(Ws[0, 1, :], Ws[0, 0, :]))/2/np.pi
-    muy = np.unwrap(np.arctan2(Ws[2, 3, :], Ws[2, 2, :]))/2/np.pi
+    mux = np.unwrap(np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0]))/2/np.pi
+    muy = np.unwrap(np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2]))/2/np.pi
 
 
     twiss_res_element_by_element = {
