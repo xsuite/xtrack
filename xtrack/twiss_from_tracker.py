@@ -239,7 +239,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
 def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=2.5e-6,
-        n_theta=1000, delta_disp=1e-5, delta_chrom = 1e-4,
+        delta_disp=1e-5, delta_chrom = 1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
@@ -264,7 +264,6 @@ def twiss_from_tracker(tracker, particle_ref, r_sigma=0.01,
             r_sigma=r_sigma,
             nemitt_x=nemitt_x,
             nemitt_y=nemitt_y,
-            n_theta=n_theta,
             delta_disp=delta_disp,
             delta_chrom=delta_chrom,
             particle_co_guess=particle_co_guess,
@@ -493,6 +492,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
     mux = np.unwrap(np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0]))/2/np.pi
     muy = np.unwrap(np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2]))/2/np.pi
 
+    W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
 
     twiss_res_element_by_element = {
         'name': tracker.line.element_names + ('_end_point',),
@@ -517,6 +517,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
         'dpy': dpy,
         'mux': mux,
         'muy': muy,
+        'W_matrix': W_matrix,
     }
 
     return twiss_res_element_by_element
