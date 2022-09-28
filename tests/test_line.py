@@ -272,3 +272,20 @@ def test_from_dict_current():
     assert d1.length == 4
 
     assert d2 is d1
+
+
+def test_line_frozen_serialization():
+    line = xt.Line(
+        elements={
+            'm': xt.Multipole(knl=[1, 2]),
+            'd': xt.Drift(length=1),
+        },
+        element_names=['m', 'd', 'm', 'd']
+    )
+
+    frozen = xt.LineFrozen(line=line)
+
+    buffer = frozen.serialize()
+    new_frozen = frozen.deserialize(buffer)
+
+    assert frozen.element_names == new_frozen.element_names

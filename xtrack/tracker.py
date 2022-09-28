@@ -171,8 +171,8 @@ class Tracker:
                 _element_index_in_part.append(ii_in_part)
                 ii_in_part += 1
             else:
-                if len(this_part.elements)>0:
-                    this_part.iscollective=False
+                if len(this_part.elements) > 0:
+                    this_part.iscollective = False
                     parts.append(this_part)
                     part_names.append(f'part_{i_part}_non_collective')
                     i_part += 1
@@ -183,8 +183,8 @@ class Tracker:
                 i_part += 1
                 this_part = Line(elements=[], element_names=[])
                 ii_in_part = 0
-        if len(this_part.elements)>0:
-            this_part.iscollective=False
+        if len(this_part.elements) > 0:
+            this_part.iscollective = False
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
 
@@ -314,7 +314,7 @@ class Tracker:
 
         if element_classes is None:
             # Kernel relies on element_classes ordering
-            assert track_kernel=='skip' or track_kernel is None
+            assert track_kernel == 'skip' or track_kernel is None
             element_classes = frozenline._ElementRefClass._reftypes + [
                 particles_monitor_class._XoStruct,
             ]

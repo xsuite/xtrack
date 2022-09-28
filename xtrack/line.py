@@ -18,7 +18,7 @@ from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift
 
-log=logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 def mk_class_namespace(extra_classes):
     try:
@@ -28,9 +28,9 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
 
-    out=AttrDict()
+    out = AttrDict()
     for cl in all_classes:
-        out[cl.__name__]=cl
+        out[cl.__name__] = cl
     return out
 
 
@@ -141,19 +141,19 @@ class Line:
         import xdeps as xd
 
         # Extract globals values from madx
-        _var_values = defaultdict(lambda :0)
+        _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
 
-        _ref_manager = manager=xd.Manager()
-        _vref=manager.ref(_var_values,'vars')
-        _fref=manager.ref(mathfunctions,'f')
+        manager = xd.Manager()
+        _vref = manager.ref(_var_values, 'vars')
+        _fref = manager.ref(mathfunctions, 'f')
         _lref = manager.ref(self.element_dict, 'element_refs')
 
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
 
-        self._var_management['manager'] = _ref_manager
+        self._var_management['manager'] = manager
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
@@ -177,14 +177,14 @@ class Line:
             return self._var_management['lref']
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
-        if isinstance(elements,dict):
-            element_dict=elements
+        if isinstance(elements, dict):
+            element_dict = elements
             if element_names is None:
-                raise ValueError('`element_names must be provided'
+                raise ValueError('`element_names` must be provided'
                                  ' if `elements` is a dictionary.')
         else:
             if element_names is None:
-                element_names = [ f"e{ii}" for ii in range(len(elements))]
+                element_names = [f"e{ii}" for ii in range(len(elements))]
             if len(element_names) > len(set(element_names)):
                 log.warning("Repetition found in `element_names` -> renaming")
                 old_element_names = element_names
@@ -192,7 +192,7 @@ class Line:
                 counters = {nn: 0 for nn in old_element_names}
                 for nn in old_element_names:
                     if counters[nn] > 0:
-                        new_nn = nn + '_'+  str(counters[nn])
+                        new_nn = nn + '_' + str(counters[nn])
                     else:
                         new_nn = nn
                     counters[nn] += 1
@@ -203,8 +203,8 @@ class Line:
             )
             element_dict = dict(zip(element_names, elements))
 
-        self.element_dict=element_dict.copy() # avoid modifications if user provided
-        self.element_names=list(element_names).copy()
+        self.element_dict = element_dict.copy()  # avoid modifications if user provided
+        self.element_names = list(element_names).copy()
 
         self.particle_ref = particle_ref
 
