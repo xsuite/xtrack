@@ -137,7 +137,7 @@ def twiss_from_tracker(tracker, particle_ref,
             T_rev=T_rev,
         )
 
-    twiss_res = {}
+    twiss_res = TwissTable()
     twiss_res.update(twiss_res_element_by_element)
     twiss_res.update({
         'qx': mux[-1],
@@ -635,3 +635,29 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
     )
 
     return auxtracker, names_inserted_markers
+
+class TwissInit:
+    def __init__(self, particle_on_co=None, W_matrix=None):
+        self.particle_on_co = particle_on_co
+        self.W_matrix = W_matrix
+
+class TwissTable(dict):
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+        self.__dict__ = self
+
+    def get_twiss_init(self, at_element):
+        if isinstance(at_element, str):
+            at_element = self.name.index(at_element)
+        part = self.particle_on_co.copy()
+        part.x[:] = self.x[at_element]
+        part.px[:] = self.px[at_element]
+        part.y[:] = self.y[at_element]
+        part.py[:] = self.py[at_element]
+        part.zeta[:] = self.zeta[at_element]
+        part.ptau[:] = self.ptau[at_element]
+        part.s[:] = self.s[at_element]
+
+        W = self.W_matrix[at_element]
+
+        return TwissInit(particle_on_co=part, W_matrix=W)
