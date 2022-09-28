@@ -277,10 +277,11 @@ def test_from_dict_current():
 def test_line_frozen_serialization():
     line = xt.Line(
         elements={
-            'm': xt.Multipole(knl=[1, 2]),
-            'd': xt.Drift(length=1),
+            'mn': xt.Multipole(knl=[1, 2]),
+            'ms': xt.Multipole(ksl=[3]),
+            'd': xt.Drift(length=4),
         },
-        element_names=['m', 'd', 'm', 'd']
+        element_names=['mn', 'd', 'ms', 'd', 'mn']
     )
 
     frozen = xt.LineFrozen(line=line)
@@ -289,3 +290,17 @@ def test_line_frozen_serialization():
     new_frozen = frozen.deserialize(buffer)
 
     assert frozen.element_names == new_frozen.element_names
+
+    assert [elem.__class__.__name__ for elem in frozen.elements] == \
+           ['Multipole', 'Drift', 'Multipole', 'Drift', 'Multipole']
+    assert new_frozen.elements[0]._xobject._offset == \
+           new_frozen.elements[4]._xobject._offset
+    assert new_frozen.elements[1]._xobject._offset == \
+           new_frozen.elements[3]._xobject._offset
+
+    assert len(set(elem._xobject._buffer for elem in new_frozen.elements)) == 1
+    assert frozen._buffer is not new_frozen._buffer
+
+    assert (new_frozen.elements[0].knl == [1, 2]).all()
+    assert new_frozen.elements[1].length == 4
+    assert (new_frozen.elements[2].ksl == [3]).all()

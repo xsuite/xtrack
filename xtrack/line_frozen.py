@@ -63,7 +63,11 @@ class LineFrozen:
 
         return common_buffer
 
-    def serialize(self, context=xo.context_default):
+    def serialize(self, context=xo.context_default) -> xo.context.XBuffer:
+        """
+        Create a buffer containing a binary representation of the LineFrozen,
+        from which it can be recreated quickly.
+        """
         buffer = context.new_buffer(0)
 
         # As the first element in the buffer we have element type names.
@@ -83,10 +87,21 @@ class LineFrozen:
             names = xo.String[:]
 
         line_data = LineData(
-            elements=self._line_data,
+            elements=len(self.line.elements),
             names=list(self.line.element_names),
             _buffer=buffer,
         )
+
+        # Move all the elements into buffer, so they don't get copied.
+        # We only do it now, as we need to make sure line_data is already
+        # allocated after reftype_names.
+        moved_element_dict = {
+            name: elem._XoStruct(elem._xobject, _buffer=buffer)
+            for name, elem in self.line.element_dict.items()
+        }
+        line_data.elements = [
+            moved_element_dict[name] for name in self.line.element_names
+        ]
 
         return buffer
 
@@ -115,15 +130,18 @@ class LineFrozen:
             getattr(beam_elements, reftype)._XoStruct:
                 getattr(beam_elements, reftype) for reftype in reftype_names
         }
-        elements = [
-            hybrid_cls_for_struct[elem.__class__](
-                _xobject=elem,
-                _buffer=buffer,
-            ) for elem in line_data.elements
-        ]
+
+        element_dict = {}
+        for ii, elem in enumerate(line_data.elements):
+            name = line_data.names[ii]
+            if name in element_dict:
+                continue
+
+            hybrid_cls = hybrid_cls_for_struct[elem.__class__]
+            element_dict[name] = hybrid_cls(_xobject=elem, _buffer=buffer)
 
         line = Line(
-            elements=elements,
+            elements=element_dict,
             element_names=line_data.names,
         )
         return LineFrozen(line=line)
