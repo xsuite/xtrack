@@ -4,7 +4,7 @@
 # ######################################### #
 
 import numpy as np
-import pytest
+
 import xtrack as xt
 
 def test_simplification_methods():

@@ -3,6 +3,8 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+import numpy as np
+
 import xobjects as xo
 
 from .line import Line
@@ -10,6 +12,16 @@ from . import beam_elements
 
 
 class LineFrozen:
+    class SerializationHeader(xo.Struct):
+        """
+        In a predetermined place in the buffer we have the metadata
+        offset and the element type names. These have to be separate,
+        because in order to rebuild LineData we need to first build
+        ElementRefClass.
+        """
+        metadata_start = xo.UInt64
+        reftype_names = xo.String[:]
+
     def __init__(self, line, _context=None, _buffer=None,  _offset=None):
         self.line = line
 
@@ -63,25 +75,52 @@ class LineFrozen:
 
         return common_buffer
 
-    def serialize(self, context=xo.context_default) -> xo.context.XBuffer:
+    def serialize(self, context=xo.context_default) \
+            -> xo.context.XBuffer:
         """
         Create a buffer containing a binary representation of the LineFrozen,
         from which it can be recreated quickly.
         """
-        buffer = context.new_buffer(0)
+        existing_buffer = self._line_data._buffer
+        line_data = self.build_line_data(buffer=existing_buffer)
+        target_buffer = context.new_buffer(0)
+        # Put the pointer to the metadata at the beginning
+        header = self.build_header(
+            buffer=target_buffer,
+            metadata_start=line_data._offset,
+        )
+        # Expand the buffer to allow the copy
+        target_buffer.grow(header._size + existing_buffer.capacity)
+        # Follow the header by the contents of the existing buffer
+        target_buffer.update_from_xbuffer(
+            offset=header._size,
+            source=existing_buffer,
+            source_offset=0,
+            nbytes=existing_buffer.capacity,
+        )
+        return target_buffer
 
-        # As the first element in the buffer we have element type names.
-        # These have to be separate, because in order to rebuild LineData
-        # we need to first build ElementRefClass.
-        reftype_names = xo.String[:](
-            [
+    def build_header(self, buffer, metadata_start) -> SerializationHeader:
+        """
+        Build a serialization header in the buffer. This should be in a
+        predetermined location, as the data is necessary for decoding
+        the line metadata.
+        """
+        return self.SerializationHeader(
+            metadata_start=metadata_start,
+            reftype_names=[
                 reftype._DressingClass.__name__
                 for reftype in self._ElementRefClass._reftypes
             ],
             _buffer=buffer,
         )
 
-        # Then, we write the actual line metadata
+    def build_line_data(self, buffer):
+        """
+        Ensure all the elements of the line are in the buffer, and write
+        the line metadata to it. If the buffer is empty, the metadata will
+        be at the beginning. Returns the metadata xobject.
+        """
         class LineData(xo.Struct):
             elements = self._ElementRefClass[:]
             names = xo.String[:]
@@ -92,25 +131,30 @@ class LineFrozen:
             _buffer=buffer,
         )
 
-        # Move all the elements into buffer, so they don't get copied.
+        # Move all the elements into buffer, so they don't get duplicated.
         # We only do it now, as we need to make sure line_data is already
         # allocated after reftype_names.
-        moved_element_dict = {
-            name: elem._XoStruct(elem._xobject, _buffer=buffer)
-            for name, elem in self.line.element_dict.items()
-        }
+        moved_element_dict = {}
+        for name, elem in self.line.element_dict.items():
+            if elem._buffer is not buffer:
+                moved_element_dict[name] = elem._XoStruct(
+                    elem._xobject, _buffer=buffer
+                )
+            else:
+                moved_element_dict[name] = elem._xobject
+
         line_data.elements = [
             moved_element_dict[name] for name in self.line.element_names
         ]
 
-        return buffer
+        return line_data
 
     @classmethod
-    def deserialize(cls, buffer):
-        reftype_names = xo.String[:]._from_buffer(buffer, 0)
+    def deserialize(cls, buffer: xo.context.XBuffer) -> 'LineFrozen':
+        header = cls.SerializationHeader._from_buffer(buffer, 0)
         reftypes = [
             getattr(beam_elements, reftype)._XoStruct
-            for reftype in reftype_names
+            for reftype in header.reftype_names
         ]
 
         # With the reftypes loaded we can create our classes
@@ -122,13 +166,27 @@ class LineFrozen:
             names = xo.String[:]
 
         # Read the line data
-        start_offset = reftype_names._get_size()
-        line_data = LineData._from_buffer(buffer, start_offset)
+        start_offset = header._size
+
+        # Since the offset is relative to the first position after the
+        # header, we need to shift the buffer. This is done to avoid
+        # copying the buffer into the new one.
+        # TODO: This is hacky solution, and needs to be improved (XView?)
+        shifted_buffer = buffer.context.new_buffer(0)
+        shifted_buffer.buffer = buffer.buffer[start_offset:]
+        shifted_buffer.capacity = buffer.capacity - start_offset
+        shifted_buffer.chunks = []  # mark whole buffer as allocated,
+                                    # it is editable but any previous
+                                    # free space is lost forever
+
+        # We can now load the line from the shifted buffer
+        line_data = LineData._from_buffer(shifted_buffer, int(header.metadata_start))
 
         # Recreate and redress line elements
         hybrid_cls_for_struct = {
             getattr(beam_elements, reftype)._XoStruct:
-                getattr(beam_elements, reftype) for reftype in reftype_names
+                getattr(beam_elements, reftype)
+            for reftype in header.reftype_names
         }
 
         element_dict = {}
@@ -138,7 +196,7 @@ class LineFrozen:
                 continue
 
             hybrid_cls = hybrid_cls_for_struct[elem.__class__]
-            element_dict[name] = hybrid_cls(_xobject=elem, _buffer=buffer)
+            element_dict[name] = hybrid_cls(_xobject=elem, _buffer=shifted_buffer)
 
         line = Line(
             elements=element_dict,
