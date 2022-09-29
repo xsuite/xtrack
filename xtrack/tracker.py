@@ -5,6 +5,7 @@
 
 import numpy as np
 import logging
+from functools import partial
 
 from .general import _pkg_root
 from .line_frozen import LineFrozen
@@ -727,24 +728,19 @@ class Tracker:
         # Random number generator init kernel
         kernels.update(self.particles_class._kernels)
 
-        self.particles_class._XoStruct._extra_c_sources.append(self.local_particle_src)
-
-        try:
-            # Compile!
-            context.add_kernels(
-                [source_track],
-                kernels,
-                extra_headers=headers,
-                extra_classes=self.element_classes,
-                apply_to_source=[_handle_per_particle_blocks],
-                save_source_as=save_source_as,
-                specialize=True,
-                compile=compile
-            )
-            self.particles_class._XoStruct._extra_c_sources.pop()
-        except Exception as e:
-            self.particles_class._XoStruct._extra_c_sources.pop()
-            raise e
+        # Compile!
+        context.add_kernels(
+            [source_track],
+            kernels,
+            extra_headers=headers,
+            extra_classes=self.element_classes,
+            apply_to_source=[
+                partial(_handle_per_particle_blocks,
+                        local_particle_src=self.local_particle_src)],
+            save_source_as=save_source_as,
+            specialize=True,
+            compile=compile
+        )
 
         self.track_kernel = context.kernels.track_line
 
