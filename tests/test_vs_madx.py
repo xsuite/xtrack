@@ -99,8 +99,8 @@ def test_twiss():
 
             for name in test_at_elements:
 
-                imad = list(twmad['name']).index(name+':1') - 1 # MAD measures at exit
-                ixt = list(twxt['name']).index(name)
+                imad = list(twmad['name']).index(name+':1')
+                ixt = list(twxt['name']).index(name) + 1 # MAD measures at exit
 
                 eemad = mad.sequence[seq_name].expanded_elements[name]
 

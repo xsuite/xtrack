@@ -38,35 +38,21 @@ def twiss_from_tracker(tracker, particle_ref,
         matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False):
 
-    if at_s is not None:
+    # Get all arguments
+    kwargs = locals()
 
+    if at_s is not None:
         if np.isscalar(at_s):
             at_s = [at_s]
-
         assert at_elements is None
         (auxtracker, names_inserted_markers
             ) = _build_auxiliary_tracker_with_extra_markers(
             tracker=tracker, at_s=at_s, marker_prefix='inserted_twiss_marker')
+        kwargs.pop('tracker')
+        kwargs.pop('at_s')
+        return twiss_from_tracker(tracker=auxtracker, at_s=None, **kwargs)
 
-        twres = twiss_from_tracker(
-            tracker=auxtracker,
-            particle_on_co=particle_on_co,
-            R_matrix=R_matrix,
-            W_matrix=W_matrix,
-            particle_ref=particle_ref,
-            r_sigma=r_sigma,
-            nemitt_x=nemitt_x,
-            nemitt_y=nemitt_y,
-            delta_disp=delta_disp,
-            delta_chrom=delta_chrom,
-            particle_co_guess=particle_co_guess,
-            steps_r_matrix=steps_r_matrix,
-            co_search_settings=co_search_settings,
-            at_elements=names_inserted_markers,
-            at_s=None,
-            eneloss_and_damping=eneloss_and_damping,
-            symplectify=symplectify)
-        return twres
+    twiss_res = TwissTable()
 
     if particle_on_co is not None:
         part_on_co = particle_on_co
@@ -102,6 +88,8 @@ def twiss_from_tracker(tracker, particle_ref,
         matrix_responsiveness_tol=matrix_responsiveness_tol,
         matrix_stability_tol=matrix_stability_tol,
         symplectify=symplectify)
+    twiss_res.update(twiss_res_element_by_element)
+    twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
     dzeta = twiss_res_element_by_element['dzeta']
     mux = twiss_res_element_by_element['mux']
@@ -137,8 +125,7 @@ def twiss_from_tracker(tracker, particle_ref,
             T_rev=T_rev,
         )
 
-    twiss_res = TwissTable()
-    twiss_res.update(twiss_res_element_by_element)
+
     twiss_res.update({
         'qx': mux[-1],
         'qy': muy[-1],
@@ -636,10 +623,13 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     return auxtracker, names_inserted_markers
 
+
+
 class TwissInit:
-    def __init__(self, particle_on_co=None, W_matrix=None):
+    def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,):
         self.particle_on_co = particle_on_co
         self.W_matrix = W_matrix
+        self.element_name = element_name
 
 class TwissTable(dict):
     def __init__(self, *args, **kwargs):
@@ -657,7 +647,29 @@ class TwissTable(dict):
         part.zeta[:] = self.zeta[at_element]
         part.ptau[:] = self.ptau[at_element]
         part.s[:] = self.s[at_element]
+        part.at_element[:] = at_element
 
         W = self.W_matrix[at_element]
 
-        return TwissInit(particle_on_co=part, W_matrix=W)
+        return TwissInit(particle_on_co=part, W_matrix=W,
+                        element_name=self.name[at_element])
+
+    def _keep_only_elements(self, at_elements):
+        enames = self.name
+        if at_elements is not None:
+            indx_twiss = []
+            for nn in at_elements:
+                if isinstance(nn, (int, np.integer)):
+                    indx_twiss.append(int(nn))
+                else:
+                    assert nn in enames
+                    indx_twiss.append(enames.index(nn))
+            s_co = self['s']
+            for kk, vv in self.items():
+                if kk not in self._ebe_fields:
+                    continue
+                if hasattr(vv, '__len__') and len(vv) == len(s_co):
+                    if isinstance(vv, np.ndarray):
+                        self[kk] = vv[indx_twiss]
+                    else:
+                        self[kk] = [vv[ii] for ii in indx_twiss]
