@@ -34,7 +34,8 @@ def twiss_from_tracker(tracker, particle_ref,
         co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
         eneloss_and_damping=False,
-        ele_start=None, ele_stop=None,
+        ele_start=0, ele_stop=None, twiss_init=None,
+        skip_global_quantities=False,
         matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
         matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False):
@@ -54,6 +55,26 @@ def twiss_from_tracker(tracker, particle_ref,
         kwargs.pop('at_elements')
         return twiss_from_tracker(tracker=auxtracker,
                         at_elements=names_inserted_markers, **kwargs)
+
+    if ele_start !=0 or ele_stop is not None:
+        if ele_start !=0 and ele_stop is None:
+            raise ValueError(
+                'ele_stop must be specified if ele_start is not 0')
+        elif ele_start == 0 and ele_stop is not None:
+            raise ValueError(
+                'ele_start must be specified if ele_stop is not None')
+        assert twiss_init is not None, (
+            'twiss_init must be provided if ele_start and ele_stop are used')
+
+        if isinstance(ele_start, str):
+            ele_start = tracker.line.element_names.index(ele_start)
+        if isinstance(ele_stop, str):
+            ele_stop = tracker.line.element_names.index(ele_stop)
+
+        assert twiss_init.element_name == tracker.line.element_names[ele_start]
+        particle_on_co = twiss_init.particle_on_co
+        W_matrix = twiss_init.W_matrix
+        skip_global_quantities = True
 
     twiss_res = TwissTable()
 
@@ -85,6 +106,7 @@ def twiss_from_tracker(tracker, particle_ref,
         tracker=tracker,
         W_matrix=W,
         particle_on_co=part_on_co,
+        ele_start=ele_start, ele_stop=ele_stop,
         nemitt_x=nemitt_x,
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
@@ -95,45 +117,47 @@ def twiss_from_tracker(tracker, particle_ref,
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
-    mux = twiss_res_element_by_element['mux']
-    muy = twiss_res_element_by_element['muy']
 
-    dqx, dqy = _compute_chromaticity(
-        tracker=tracker,
-        W_matrix=W,
-        particle_on_co=part_on_co,
-        delta_chrom=delta_chrom,
-        tune_x=mux[-1], tune_y=muy[-1],
-        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-        matrix_responsiveness_tol=matrix_responsiveness_tol,
-        matrix_stability_tol=matrix_stability_tol,
-        symplectify=symplectify, steps_r_matrix=steps_r_matrix)
+    if not skip_global_quantities:
+        mux = twiss_res_element_by_element['mux']
+        muy = twiss_res_element_by_element['muy']
 
-    dzeta = twiss_res_element_by_element['dzeta']
-    qs = np.abs(twiss_res_element_by_element['muzeta'][-1])
-    eta = -dzeta[-1]/tracker.line.get_length()
-    alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
+        dqx, dqy = _compute_chromaticity(
+            tracker=tracker,
+            W_matrix=W,
+            particle_on_co=part_on_co,
+            delta_chrom=delta_chrom,
+            tune_x=mux[-1], tune_y=muy[-1],
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            matrix_stability_tol=matrix_stability_tol,
+            symplectify=symplectify, steps_r_matrix=steps_r_matrix)
 
-    beta0 = part_on_co._xobject.beta0[0]
-    circumference = tracker.line.get_length()
-    T_rev = circumference/clight/beta0
-    betz0 = W[4, 4]**2 + W[4, 5]**2
-    ptau_co = twiss_res_element_by_element['ptau']
+        dzeta = twiss_res_element_by_element['dzeta']
+        qs = np.abs(twiss_res_element_by_element['muzeta'][-1])
+        eta = -dzeta[-1]/tracker.line.get_length()
+        alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
-    twiss_res.update({
-        'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
-        'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
-        'circumference': circumference, 'T_rev': T_rev,
-        'particle_on_co':part_on_co.copy(_context=xo.context_default)
-    })
-    twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
-    twiss_res['R_matrix'] = RR
+        beta0 = part_on_co._xobject.beta0[0]
+        circumference = tracker.line.get_length()
+        T_rev = circumference/clight/beta0
+        betz0 = W[4, 4]**2 + W[4, 5]**2
+        ptau_co = twiss_res_element_by_element['ptau']
 
-    if eneloss_and_damping:
-        assert RR is not None
-        eneloss_damp_res = _compute_eneloss_and_damping_rates(
-            particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev=T_rev)
-        twiss_res.update(eneloss_damp_res)
+        twiss_res.update({
+            'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
+            'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
+            'circumference': circumference, 'T_rev': T_rev,
+            'particle_on_co':part_on_co.copy(_context=xo.context_default)
+        })
+        twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
+        twiss_res['R_matrix'] = RR
+
+        if eneloss_and_damping:
+            assert RR is not None
+            eneloss_damp_res = _compute_eneloss_and_damping_rates(
+                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev=T_rev)
+            twiss_res.update(eneloss_damp_res)
 
     if values_at_element_exit:
         for nn, vv in twiss_res_element_by_element.items():
@@ -164,8 +188,9 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
     return p_res
 
 
-def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_sigma,
-                      delta_disp, matrix_responsiveness_tol, matrix_stability_tol,
+def _propagate_optics(tracker, W_matrix, particle_on_co, ele_start, ele_stop,
+                      nemitt_x, nemitt_y, r_sigma, delta_disp,
+                      matrix_responsiveness_tol, matrix_stability_tol,
                       symplectify):
 
     gemitt_x = nemitt_x/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
@@ -201,7 +226,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
 
-    tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE')
+    tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
+                  ele_start=ele_start, ele_stop=ele_stop)
 
     x_co = tracker.record_last_track.x[6, :].copy()
     y_co = tracker.record_last_track.y[6, :].copy()
