@@ -200,19 +200,19 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, nemitt_x, nemitt_y, r_s
     scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
     scale_transverse_y = np.sqrt(gemitt_y)*r_sigma
     scale_longitudinal = delta_disp
+    scale_eigen = min(scale_transverse_x, scale_transverse_y, scale_longitudinal)
 
 
     context = tracker._context
     part_for_twiss = xp.build_particles(_context=context,
                         particle_ref=particle_on_co, mode='shift',
-                        x=  list(W_matrix[0, :] * scale_transverse_x) + [0],
-                        px= list(W_matrix[1, :] * scale_transverse_x) + [0],
-                        y=  list(W_matrix[2, :] * scale_transverse_y) + [0],
-                        py= list(W_matrix[3, :] * scale_transverse_y) + [0],
-                        zeta = list(W_matrix[4, :] * scale_longitudinal) + [0],
-                        delta = list(W_matrix[5, :] * scale_longitudinal) + [0],
+                        x=  list(W_matrix[0, :] * scale_eigen) + [0],
+                        px= list(W_matrix[1, :] * scale_eigen) + [0],
+                        y=  list(W_matrix[2, :] * scale_eigen) + [0],
+                        py= list(W_matrix[3, :] * scale_eigen) + [0],
+                        zeta = list(W_matrix[4, :] * scale_eigen) + [0],
+                        delta = list(W_matrix[5, :] * scale_eigen) + [0],
                         )
-
 
     part_disp = xp.build_particles(
         _context=context,
