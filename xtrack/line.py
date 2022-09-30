@@ -57,7 +57,7 @@ class Line:
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         class_dict = mk_class_namespace(classes)
 
-        _buffer, _ = xo.allocate_on_buffer(size=8, context=_context, buffer=_buffer)
+        _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
 
         if isinstance(dct['elements'], dict):
             elements = {}
