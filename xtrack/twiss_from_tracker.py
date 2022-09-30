@@ -34,14 +34,15 @@ def twiss_from_tracker(tracker, particle_ref,
         co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
         eneloss_and_damping=False,
+        ele_start=None, ele_stop=None,
         matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
         matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False):
 
-    # Get all arguments
-    kwargs = locals()
 
     if at_s is not None:
+        # Get all arguments
+        kwargs = locals().copy()
         if np.isscalar(at_s):
             at_s = [at_s]
         assert at_elements is None
@@ -50,7 +51,9 @@ def twiss_from_tracker(tracker, particle_ref,
             tracker=tracker, at_s=at_s, marker_prefix='inserted_twiss_marker')
         kwargs.pop('tracker')
         kwargs.pop('at_s')
-        return twiss_from_tracker(tracker=auxtracker, at_s=None, **kwargs)
+        kwargs.pop('at_elements')
+        return twiss_from_tracker(tracker=auxtracker,
+                        at_elements=names_inserted_markers, **kwargs)
 
     twiss_res = TwissTable()
 
@@ -64,6 +67,7 @@ def twiss_from_tracker(tracker, particle_ref,
 
     if W_matrix is not None:
         W = W_matrix
+        RR = None
     else:
         if R_matrix is not None:
             RR = R_matrix
@@ -91,14 +95,8 @@ def twiss_from_tracker(tracker, particle_ref,
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
-    dzeta = twiss_res_element_by_element['dzeta']
     mux = twiss_res_element_by_element['mux']
     muy = twiss_res_element_by_element['muy']
-    ptau_co = twiss_res_element_by_element['ptau']
-
-    betz0 = W[4, 4]**2 + W[4, 5]**2
-    eta = -dzeta[-1]/tracker.line.get_length()
-    alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
     dqx, dqy = _compute_chromaticity(
         tracker=tracker,
@@ -111,63 +109,38 @@ def twiss_from_tracker(tracker, particle_ref,
         matrix_stability_tol=matrix_stability_tol,
         symplectify=symplectify, steps_r_matrix=steps_r_matrix)
 
+    dzeta = twiss_res_element_by_element['dzeta']
     qs = np.abs(twiss_res_element_by_element['muzeta'][-1])
+    eta = -dzeta[-1]/tracker.line.get_length()
+    alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
     beta0 = part_on_co._xobject.beta0[0]
     circumference = tracker.line.get_length()
     T_rev = circumference/clight/beta0
-
-    if eneloss_and_damping:
-        eneloss_damp_res = _compute_eneloss_and_damping_rates(
-            particle_on_co=part_on_co,
-            R_matrix=RR,
-            ptau_co=ptau_co,
-            T_rev=T_rev,
-        )
-
+    betz0 = W[4, 4]**2 + W[4, 5]**2
+    ptau_co = twiss_res_element_by_element['ptau']
 
     twiss_res.update({
-        'qx': mux[-1],
-        'qy': muy[-1],
-        'qs': qs,
-        'dqx': dqx,
-        'dqy': dqy,
-        'slip_factor': eta,
-        'momentum_compaction_factor': alpha,
-        'betz0': betz0,
-        'circumference': circumference,
-        'T_rev': T_rev,
-        'R_matrix': RR,
+        'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
+        'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
+        'circumference': circumference, 'T_rev': T_rev,
         'particle_on_co':part_on_co.copy(_context=xo.context_default)
     })
     twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
+    twiss_res['R_matrix'] = RR
 
     if eneloss_and_damping:
+        assert RR is not None
+        eneloss_damp_res = _compute_eneloss_and_damping_rates(
+            particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev=T_rev)
         twiss_res.update(eneloss_damp_res)
 
     if values_at_element_exit:
         for nn, vv in twiss_res_element_by_element.items():
             twiss_res[nn] = vv[1:]
 
-    # Downselect based on at_element
-    enames = tracker.line.element_names
     if at_elements is not None:
-        indx_twiss = []
-        for nn in at_elements:
-            if isinstance(nn, (int, np.integer)):
-                indx_twiss.append(int(nn))
-            else:
-                assert nn in tracker.line.element_names
-                indx_twiss.append(enames.index(nn))
-        s_co = twiss_res['s']
-        for kk, vv in twiss_res_element_by_element.items():
-            if eneloss_and_damping and kk in eneloss_damp_res.keys():
-                continue
-            if hasattr(vv, '__len__') and len(vv) == len(s_co):
-                if isinstance(vv, np.ndarray):
-                    twiss_res[kk] = vv[indx_twiss]
-                else:
-                    twiss_res[kk] = [vv[ii] for ii in indx_twiss]
+        twiss_res._keep_only_elements(at_elements)
 
     return twiss_res
 
