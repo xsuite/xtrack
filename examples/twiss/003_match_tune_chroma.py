@@ -15,17 +15,6 @@ tracker=line.build_tracker()
 
 tw0 = tracker.twiss()
 
-vary = ['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1']
-
-targets = [
-    ('qx', 62.315),
-    #('qy', 60.325),
-    (lambda tw: tw['qx'] - tw['qy'], 62.315 - 60.325),
-    ('dqx', 10.0),
-    ('dqy', 12.0),
-]
-
-
 def error(knob_values, vary, targets, tracker):
     for kk, vv in zip(vary, knob_values):
         tracker.vars[kk] = vv
@@ -48,15 +37,25 @@ def match(tracker, vary, targets):
             'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
     return fsolve_info
 
+print('\nInitial twiss parameters')
+tw_before = tracker.twiss()
+print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
+      f"Q'x = {tw_before['dqx']:.5f} Q'y = {tw_before['dqy']:.5f}")
 
 from scipy.optimize import fsolve
 #time fsolve
 t1 = time.time()
-fsolve_info = match(tracker, vary, targets)
+match(tracker, vary= ['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
+    targets = [
+        ('qx', 62.315),
+        (lambda tw: tw['qx'] - tw['qy'], 1.99), # equivalent to ('qy', 60.325)
+        ('dqx', 10.0),
+        ('dqy', 12.0),])
 t2 = time.time()
 
-print('Time fsolve: ', t2-t1)
+print('\nTime fsolve: ', t2-t1)
 
 tw_final = tracker.twiss()
+print('\nFinal twiss parameters')
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
