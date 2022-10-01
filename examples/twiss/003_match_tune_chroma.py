@@ -19,7 +19,8 @@ vary = ['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1']
 
 targets = [
     ('qx', 62.315),
-    ('qy', 60.325),
+    #('qy', 60.325),
+    (lambda tw: tw['qx'] - tw['qy'], 62.315 - 60.325),
     ('dqx', 10.0),
     ('dqy', 12.0),
 ]
@@ -31,7 +32,10 @@ def error(knob_values, vary, targets, tracker):
     tw = tracker.twiss()
     res = []
     for tt in targets:
-        res.append(tw[tt[0]] - tt[1])
+        if isinstance(tt[0], str):
+            res.append(tw[tt[0]] - tt[1])
+        else:
+            res.append(tt[0](tw) - tt[1])
     return np.array(res)
 
 from scipy.optimize import fsolve
