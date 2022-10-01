@@ -5,6 +5,7 @@
 
 import logging
 from functools import partial
+from operator import ne
 import numpy as np
 
 import xobjects as xo
@@ -687,6 +688,46 @@ class TwissTable(dict):
     def to_pandas(self):
         import pandas as pd
         return pd.DataFrame({k: v for k, v in self.items() if k in self._ebe_fields})
+
+    def mirror(self):
+        new = TwissTable()
+        for kk, vv in self.items():
+            new[kk] = vv
+
+        for kk in self._ebe_fields:
+            new[kk] = new[kk][::-1]
+
+        s = None # To be implemented
+
+        new.x = -new.x
+        new.px = new.px # Dx/Ds
+        new.y = new.y
+        new.py = -new.py # Dy/Ds
+        new.zeta = -new.zeta
+        new.delta = new.delta
+        new.ptau = new.ptau
+
+        new.betx = new.betx
+        new.bety = new.bety
+        new.alfx = -new.alfx # Dpx/Dx
+        new.alfy = -new.alfy # Dpy/Dy
+        new.gamx = new.gamx
+        new.gamy = new.gamy
+
+        new.dx = -new.dx
+        new.dpx = new.dpx
+        new.dy = new.dy
+        new.dpy = -new.dpy
+        new.dzeta = -new.dzeta
+        new.mux = None # To be implemented
+        new.muy = None # To be implemented
+        new.muzeta = None # To be implemented
+        new.W_matrix = None # To be implemented
+
+        if hasattr(new, 'R_matrix'): new.R_matrix = None # To be implemented
+        if hasattr(new, 'particle_on_co'): new.particle_on_co = None # To be implemented
+
+        return new
 
     def _keep_only_elements(self, at_elements):
         enames = self.name
