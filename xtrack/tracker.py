@@ -413,6 +413,7 @@ class Tracker:
         values_at_element_exit=False,
         eneloss_and_damping=False,
         ele_start=0, ele_stop=None, twiss_init=None,
+        particle_on_co=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
         symplectify=False
@@ -450,6 +451,7 @@ class Tracker:
             co_search_settings=co_search_settings,
             at_elements=at_elements, at_s=at_s,
             values_at_element_exit=values_at_element_exit,
+            particle_on_co=particle_on_co,
             eneloss_and_damping=eneloss_and_damping,
             ele_start=ele_start, ele_stop=ele_stop, twiss_init=twiss_init,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
