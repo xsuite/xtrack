@@ -38,18 +38,22 @@ def error(knob_values, vary, targets, tracker):
             res.append(tt[0](tw) - tt[1])
     return np.array(res)
 
+def match(tracker, vary, targets):
+    _err = partial(error, vary=vary, targets=targets, tracker=tracker)
+    x0 = [tracker.vars[vv]._value for vv in vary]
+    (res, infodict, ier, mesg) = fsolve(_err, x0=x0, full_output=True)
+    for kk, vv in zip(vary, res):
+        tracker.vars[kk] = vv
+    fsolve_info = {
+            'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+    return fsolve_info
+
+
 from scipy.optimize import fsolve
 #time fsolve
 t1 = time.time()
-ff = partial(error, vary=vary, targets=targets, tracker=tracker)
-
-x0 = [tracker.vars[vv]._value for vv in vary]
-
-(res, infodict, ier, mesg) = fsolve(ff, x0=x0, full_output=True)
+fsolve_info = match(tracker, vary, targets)
 t2 = time.time()
-
-for kk, vv in zip(vary, res):
-    tracker.vars[kk] = vv
 
 print('Time fsolve: ', t2-t1)
 
