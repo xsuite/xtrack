@@ -1,5 +1,6 @@
 import json
 import time
+from functools import partial
 import numpy as np
 import xtrack as xt
 import xpart as xp
@@ -14,16 +15,40 @@ tracker=line.build_tracker()
 
 tw0 = tracker.twiss()
 
+vary = ['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1']
 
-def error(knob_values):
-    tracker.vars['kqtf.b1'] = knob_values[0]
-    tracker.vars['kqtd.b1'] = knob_values[1]
+targets = [
+    ('qx', 62.315),
+    ('qy', 60.325),
+    ('dqx', 10.0),
+    ('dqy', 12.0),
+]
+
+
+def error(knob_values, vary, targets, tracker):
+    for kk, vv in zip(vary, knob_values):
+        tracker.vars[kk] = vv
     tw = tracker.twiss()
-    return np.array([tw['qx'] - 62.315, tw['qy'] - 60.325])
+    res = []
+    for tt in targets:
+        res.append(tw[tt[0]] - tt[1])
+    return np.array(res)
 
 from scipy.optimize import fsolve
 #time fsolve
 t1 = time.time()
-fsolve(error, x0=[tracker.vars['kqtf.b1']._value, tracker.vars['kqtd.b1']._value])
+ff = partial(error, vary=vary, targets=targets, tracker=tracker)
+
+x0 = [tracker.vars[vv]._value for vv in vary]
+
+(res, infodict, ier, mesg) = fsolve(ff, x0=x0, full_output=True)
 t2 = time.time()
+
+for kk, vv in zip(vary, res):
+    tracker.vars[kk] = vv
+
 print('Time fsolve: ', t2-t1)
+
+tw_final = tracker.twiss()
+print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
+      f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
