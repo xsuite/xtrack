@@ -72,7 +72,7 @@ def twiss_from_tracker(tracker, particle_ref,
             ele_stop = tracker.line.element_names.index(ele_stop)
 
         assert twiss_init.element_name == tracker.line.element_names[ele_start]
-        particle_on_co = twiss_init.particle_on_co
+        particle_on_co = twiss_init.particle_on_co.copy()
         W_matrix = twiss_init.W_matrix
         skip_global_quantities = True
 
@@ -101,6 +101,8 @@ def twiss_from_tracker(tracker, particle_ref,
                                 RR, symplectify=symplectify,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
+
+    if ele_stop is not None: import pdb; pdb.set_trace()
 
     twiss_res_element_by_element = _propagate_optics(
         tracker=tracker,
@@ -193,6 +195,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, ele_start, ele_stop,
                       matrix_responsiveness_tol, matrix_stability_tol,
                       symplectify):
 
+    ctx2np = tracker._context.nparray_from_context_array
+
     gemitt_x = nemitt_x/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
     gemitt_y = nemitt_y/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
     scale_transverse_x = np.sqrt(gemitt_x)*r_sigma
@@ -225,32 +229,38 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, ele_start, ele_stop,
         symplectify=symplectify)
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
+    part_for_twiss.s = particle_on_co.s[0]
+    part_for_twiss.at_element = particle_on_co.at_element[0]
+    i_start = part_for_twiss.at_element[0]
 
     tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
                   ele_start=ele_start, ele_stop=ele_stop)
+    assert np.all(ctx2np(part_for_twiss.state) == 1, 
+        ('Some test particles were lost during twiss!'))
+    i_stop = part_for_twiss.at_element[0]
 
-    x_co = tracker.record_last_track.x[6, :].copy()
-    y_co = tracker.record_last_track.y[6, :].copy()
-    px_co = tracker.record_last_track.px[6, :].copy()
-    py_co = tracker.record_last_track.py[6, :].copy()
-    zeta_co = tracker.record_last_track.zeta[6, :].copy()
-    delta_co = tracker.record_last_track.delta[6, :].copy()
-    ptau_co = tracker.record_last_track.ptau[6, :].copy()
-    s_co = tracker.record_last_track.s[6, :].copy()
+    x_co = tracker.record_last_track.x[6, i_start:i_stop+1].copy()
+    y_co = tracker.record_last_track.y[6, i_start:i_stop+1].copy()
+    px_co = tracker.record_last_track.px[6, i_start:i_stop+1].copy()
+    py_co = tracker.record_last_track.py[6, i_start:i_stop+1].copy()
+    zeta_co = tracker.record_last_track.zeta[6, i_start:i_stop+1].copy()
+    delta_co = tracker.record_last_track.delta[6, i_start:i_stop+1].copy()
+    ptau_co = tracker.record_last_track.ptau[6, i_start:i_stop+1].copy()
+    s_co = tracker.record_last_track.s[6, i_start:i_stop+1].copy()
 
-    x_disp_minus = tracker.record_last_track.x[7, :].copy()
-    y_disp_minus = tracker.record_last_track.y[7, :].copy()
-    zeta_disp_minus = tracker.record_last_track.zeta[7, :].copy()
-    px_disp_minus = tracker.record_last_track.px[7, :].copy()
-    py_disp_minus = tracker.record_last_track.py[7, :].copy()
-    delta_disp_minus = tracker.record_last_track.delta[7, :].copy()
+    x_disp_minus = tracker.record_last_track.x[7, i_start:i_stop+1].copy()
+    y_disp_minus = tracker.record_last_track.y[7, i_start:i_stop+1].copy()
+    zeta_disp_minus = tracker.record_last_track.zeta[7, i_start:i_stop+1].copy()
+    px_disp_minus = tracker.record_last_track.px[7, i_start:i_stop+1].copy()
+    py_disp_minus = tracker.record_last_track.py[7, i_start:i_stop+1].copy()
+    delta_disp_minus = tracker.record_last_track.delta[7, i_start:i_stop+1].copy()
 
-    x_disp_plus = tracker.record_last_track.x[8, :].copy()
-    y_disp_plus = tracker.record_last_track.y[8, :].copy()
-    zeta_disp_plus = tracker.record_last_track.zeta[8, :].copy()
-    px_disp_plus = tracker.record_last_track.px[8, :].copy()
-    py_disp_plus = tracker.record_last_track.py[8, :].copy()
-    delta_disp_plus = tracker.record_last_track.delta[8, :].copy()
+    x_disp_plus = tracker.record_last_track.x[8, i_start:i_stop+1].copy()
+    y_disp_plus = tracker.record_last_track.y[8, i_start:i_stop+1].copy()
+    zeta_disp_plus = tracker.record_last_track.zeta[8, i_start:i_stop+1].copy()
+    px_disp_plus = tracker.record_last_track.px[8, i_start:i_stop+1].copy()
+    py_disp_plus = tracker.record_last_track.py[8, i_start:i_stop+1].copy()
+    delta_disp_plus = tracker.record_last_track.delta[8, i_start:i_stop+1].copy()
 
     dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
@@ -259,12 +269,12 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, ele_start, ele_stop,
     dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
-    Ws[:, 0, :] = (tracker.record_last_track.x[:6, :] - x_co).T / scale_transverse_x
-    Ws[:, 1, :] = (tracker.record_last_track.px[:6, :] - px_co).T / scale_transverse_x
-    Ws[:, 2, :] = (tracker.record_last_track.y[:6, :] - y_co).T / scale_transverse_y
-    Ws[:, 3, :] = (tracker.record_last_track.py[:6, :] - py_co).T / scale_transverse_y
-    Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, :] - zeta_co).T / scale_longitudinal
-    Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, :] - ptau_co).T/particle_on_co.beta0/ scale_longitudinal
+    Ws[:, 0, :] = (tracker.record_last_track.x[:6, i_start:i_stop+1] - x_co).T / scale_eigen
+    Ws[:, 1, :] = (tracker.record_last_track.px[:6, i_start:i_stop+1] - px_co).T / scale_eigen
+    Ws[:, 2, :] = (tracker.record_last_track.y[:6, i_start:i_stop+1] - y_co).T / scale_eigen
+    Ws[:, 3, :] = (tracker.record_last_track.py[:6, i_start:i_stop+1] - py_co).T / scale_eigen
+    Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
+    Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co.beta0 / scale_eigen
 
     betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
     bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2

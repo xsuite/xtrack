@@ -412,6 +412,7 @@ class Tracker:
         co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
         eneloss_and_damping=False,
+        ele_start=0, ele_stop=None, twiss_init=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
         symplectify=False
@@ -450,10 +451,10 @@ class Tracker:
             at_elements=at_elements, at_s=at_s,
             values_at_element_exit=values_at_element_exit,
             eneloss_and_damping=eneloss_and_damping,
+            ele_start=ele_start, ele_stop=ele_stop, twiss_init=twiss_init,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify)
-
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
