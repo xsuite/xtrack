@@ -12,7 +12,7 @@ from .line_frozen import LineFrozen
 from .base_element import _handle_per_particle_blocks
 from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
-                                 find_closed_orbit,
+                                 find_closed_orbit, match_tracker
                                 )
 from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging_for_elements_of_type,
@@ -457,6 +457,9 @@ class Tracker:
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify)
+
+    def match(self, vary, targets):
+        return match_tracker(self, vary, targets)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
@@ -1273,8 +1276,6 @@ class Tracker:
                                                     element_type, capacity):
         return start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity)
-
-        self._check_invalidated()
 
     def stop_internal_logging_for_elements_of_type(self, element_type):
         self._check_invalidated()

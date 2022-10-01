@@ -4,6 +4,7 @@
 # ######################################### #
 
 import logging
+from functools import partial
 import numpy as np
 
 import xobjects as xo
@@ -682,3 +683,25 @@ class TwissTable(dict):
                         self[kk] = vv[indx_twiss]
                     else:
                         self[kk] = [vv[ii] for ii in indx_twiss]
+
+def _error_for_match(knob_values, vary, targets, tracker):
+    for kk, vv in zip(vary, knob_values):
+        tracker.vars[kk] = vv
+    tw = tracker.twiss()
+    res = []
+    for tt in targets:
+        if isinstance(tt[0], str):
+            res.append(tw[tt[0]] - tt[1])
+        else:
+            res.append(tt[0](tw) - tt[1])
+    return np.array(res)
+
+def match_tracker(tracker, vary, targets):
+    _err = partial(_error_for_match, vary=vary, targets=targets, tracker=tracker)
+    x0 = [tracker.vars[vv]._value for vv in vary]
+    (res, infodict, ier, mesg) = fsolve(_err, x0=x0, full_output=True)
+    for kk, vv in zip(vary, res):
+        tracker.vars[kk] = vv
+    fsolve_info = {
+            'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+    return fsolve_info
