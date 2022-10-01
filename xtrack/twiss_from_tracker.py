@@ -306,7 +306,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
 
     twiss_res_element_by_element = {
-        'name': tracker.line.element_names + ('_end_point',),
+        'name': tracker.line.element_names[i_start:i_stop] + ('_end_point',),
         's': s_co,
         'x': x_co,
         'px': px_co,
@@ -683,6 +683,10 @@ class TwissTable(dict):
                         mux=self.mux[at_element],
                         muy=self.muy[at_element],
                         muzeta=self.muzeta[at_element])
+
+    def to_pandas(self):
+        import pandas as pd
+        return pd.DataFrame({k: v for k, v in self.items() if k in self._ebe_fields})
 
     def _keep_only_elements(self, at_elements):
         enames = self.name
