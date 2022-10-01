@@ -57,6 +57,9 @@ def twiss_from_tracker(tracker, particle_ref,
         return twiss_from_tracker(tracker=auxtracker,
                         at_elements=names_inserted_markers, **kwargs)
 
+    mux0 = 0
+    muy0 = 0
+    muzeta0 = 0
     if ele_start !=0 or ele_stop is not None:
         if ele_start !=0 and ele_stop is None:
             raise ValueError(
@@ -76,6 +79,9 @@ def twiss_from_tracker(tracker, particle_ref,
         particle_on_co = twiss_init.particle_on_co.copy()
         W_matrix = twiss_init.W_matrix
         skip_global_quantities = True
+        mux0 = twiss_init.mux
+        muy0 = twiss_init.muy
+        muzeta0 = twiss_init.muzeta
 
     twiss_res = TwissTable()
 
@@ -107,6 +113,7 @@ def twiss_from_tracker(tracker, particle_ref,
         tracker=tracker,
         W_matrix=W,
         particle_on_co=part_on_co,
+        mux0=mux0, muy0=muy0, muzeta0=muzeta0,
         ele_start=ele_start, ele_stop=ele_stop,
         nemitt_x=nemitt_x,
         nemitt_y=nemitt_y,
@@ -189,7 +196,9 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
     return p_res
 
 
-def _propagate_optics(tracker, W_matrix, particle_on_co, ele_start, ele_stop,
+def _propagate_optics(tracker, W_matrix, particle_on_co,
+                      mux0, muy0, muzeta0,
+                      ele_start, ele_stop,
                       nemitt_x, nemitt_y, r_sigma, delta_disp,
                       matrix_responsiveness_tol, matrix_stability_tol,
                       symplectify):
@@ -289,6 +298,10 @@ def _propagate_optics(tracker, W_matrix, particle_on_co, ele_start, ele_stop,
     mux = np.unwrap(np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0]))/2/np.pi
     muy = np.unwrap(np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2]))/2/np.pi
     muzeta = np.unwrap(np.arctan2(Ws[:, 4, 5], Ws[:, 4, 4]))/2/np.pi
+
+    mux = mux - mux[0] + mux0
+    muy = muy - muy[0] + muy0
+    muzeta = muzeta - muzeta[0] + muzeta0
 
     W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
 
@@ -636,10 +649,14 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
 
 class TwissInit:
-    def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,):
+    def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
+                 mux=0, muy=0, muzeta=0.):
         self.particle_on_co = particle_on_co
         self.W_matrix = W_matrix
         self.element_name = element_name
+        self.mux = mux
+        self.muy = muy
+        self.muzeta = muzeta
 
 class TwissTable(dict):
     def __init__(self, *args, **kwargs):
@@ -662,7 +679,10 @@ class TwissTable(dict):
         W = self.W_matrix[at_element]
 
         return TwissInit(particle_on_co=part, W_matrix=W,
-                        element_name=self.name[at_element])
+                        element_name=self.name[at_element],
+                        mux=self.mux[at_element],
+                        muy=self.muy[at_element],
+                        muzeta=self.muzeta[at_element])
 
     def _keep_only_elements(self, at_elements):
         enames = self.name
