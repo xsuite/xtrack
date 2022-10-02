@@ -695,9 +695,14 @@ class TwissTable(dict):
             new[kk] = vv
 
         for kk in self._ebe_fields:
-            new[kk] = new[kk][::-1]
+            if kk == 'name':
+                new[kk] = new[kk][::-1]
+            elif kk == 'W_matrix':
+                continue
+            else:
+                new[kk] = new[kk][::-1].copy()
 
-        s = None # To be implemented
+        new.s = new.circumference - new.s
 
         new.x = -new.x
         new.px = new.px # Dx/Ds
@@ -719,10 +724,18 @@ class TwissTable(dict):
         new.dy = new.dy
         new.dpy = -new.dpy
         new.dzeta = -new.dzeta
-        new.mux = None # To be implemented
-        new.muy = None # To be implemented
-        new.muzeta = None # To be implemented
-        new.W_matrix = None # To be implemented
+        new.mux = new.qx - new.mux
+        new.muy = new.qy - new.muy
+        new.muzeta = new.qs - new.muzeta
+
+        # To be checked
+        new.W_matrix = new.W_matrix[::-1, :, :].copy()
+        new.W_matrix[:, 0, :] = -new.W_matrix[:, 0, :]
+        new.W_matrix[:, 1, :] = new.W_matrix[:, 1, :]
+        new.W_matrix[:, 2, :] = new.W_matrix[:, 2, :]
+        new.W_matrix[:, 3, :] = -new.W_matrix[:, 3, :]
+        new.W_matrix[:, 4, :] = -new.W_matrix[:, 4, :]
+        new.W_matrix[:, 5, :] = new.W_matrix[:, 5, :]
 
         if hasattr(new, 'R_matrix'): new.R_matrix = None # To be implemented
         if hasattr(new, 'particle_on_co'): new.particle_on_co = None # To be implemented
