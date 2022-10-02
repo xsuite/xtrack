@@ -729,6 +729,7 @@ class TwissTable(dict):
         new.muzeta = new.qs - new.muzeta
 
         # To be checked
+        new.W_matrix = np.array(new.W_matrix)
         new.W_matrix = new.W_matrix[::-1, :, :].copy()
         new.W_matrix[:, 0, :] = -new.W_matrix[:, 0, :]
         new.W_matrix[:, 1, :] = new.W_matrix[:, 1, :]
@@ -736,6 +737,7 @@ class TwissTable(dict):
         new.W_matrix[:, 3, :] = -new.W_matrix[:, 3, :]
         new.W_matrix[:, 4, :] = -new.W_matrix[:, 4, :]
         new.W_matrix[:, 5, :] = new.W_matrix[:, 5, :]
+        new.W_matrix = [new.W_matrix[ii, :, :] for ii in range(len(new.x))]
 
         if hasattr(new, 'R_matrix'): new.R_matrix = None # To be implemented
         if hasattr(new, 'particle_on_co'): new.particle_on_co = None # To be implemented
