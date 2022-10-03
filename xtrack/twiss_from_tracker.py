@@ -331,6 +331,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'muy': muy,
         'muzeta': muzeta,
         'W_matrix': W_matrix,
+        #'delta_disp_minus': delta_disp_minus,  # for debug
+        #'delta_disp_plus': delta_disp_plus,    # for debug
     }
 
     return twiss_res_element_by_element
