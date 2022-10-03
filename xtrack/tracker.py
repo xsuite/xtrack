@@ -351,7 +351,7 @@ class Tracker:
         else:
             self.track_kernel = track_kernel
 
-        self.track=self._track_no_collective
+        self.track = self._track_no_collective
 
     def _invalidate(self):
         if self.iscollective:
@@ -576,6 +576,7 @@ class Tracker:
                 /*gpuglmem*/ int8_t* buffer,
                 /*gpuglmem*/ int64_t* ele_offsets,
                 /*gpuglmem*/ int64_t* ele_typeids,
+                             TrackerData tracker_data,
                              ParticlesData particles,
                              int num_turns,
                              int ele_start,
@@ -623,8 +624,8 @@ class Tracker:
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
 
-                        /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
-                        int64_t ee_type = ele_typeids[ee];
+                        /*gpuglmem*/ void* el = TrackerData_member_elements(tracker_data, ee);
+                        int64_t ee_type = TrackerData_typeid_elements(tracker_data, ee);
 
                         switch(ee_type){
         """
@@ -687,6 +688,7 @@ class Tracker:
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(xo.Int64, pointer=True, name="ele_offsets"),
                     xo.Arg(xo.Int64, pointer=True, name="ele_typeids"),
+                    xo.Arg(self._line_frozen._tracker_data.__class__, name="tracker_data"),
                     xo.Arg(self.particles_class._XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
@@ -1163,6 +1165,7 @@ class Tracker:
             buffer=self._line_frozen._buffer.buffer,
             ele_offsets=self.ele_offsets_dev,
             ele_typeids=self.ele_typeids_dev,
+            tracker_data=self._line_frozen._tracker_data,
             particles=particles._xobject,
             num_turns=1,
             ele_start=ele_start,
@@ -1181,6 +1184,7 @@ class Tracker:
                 buffer=self._line_frozen._buffer.buffer,
                 ele_offsets=self.ele_offsets_dev,
                 ele_typeids=self.ele_typeids_dev,
+                tracker_data=self._line_frozen._tracker_data,
                 particles=particles._xobject,
                 num_turns=num_middle_turns,
                 ele_start=0, # always full turn
@@ -1199,6 +1203,7 @@ class Tracker:
                 buffer=self._line_frozen._buffer.buffer,
                 ele_offsets=self.ele_offsets_dev,
                 ele_typeids=self.ele_typeids_dev,
+                tracker_data=self._line_frozen._tracker_data,
                 particles=particles._xobject,
                 num_turns=1,
                 ele_start=0,

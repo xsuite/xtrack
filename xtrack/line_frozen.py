@@ -61,6 +61,8 @@ class LineFrozen:
         self._LineDataClass = LineDataClass
         self._ElementRefClass = ElementRefClass
 
+        self._tracker_data = self.build_tracker_data(line_data._buffer)
+
     def common_buffer_for_elements(self):
         """If all `self.line` elements are in the same buffer,
         returns said buffer, otherwise returns `None`."""
@@ -82,12 +84,12 @@ class LineFrozen:
         from which it can be recreated quickly.
         """
         existing_buffer = self._line_data._buffer
-        line_data = self.build_line_data(buffer=existing_buffer)
+        tracker_data = self.build_tracker_data(buffer=existing_buffer)
         target_buffer = context.new_buffer(0)
         # Put the pointer to the metadata at the beginning
         header = self.build_header(
             buffer=target_buffer,
-            metadata_start=line_data._offset,
+            metadata_start=tracker_data._offset,
         )
         # Expand the buffer to allow the copy
         target_buffer.grow(header._size + existing_buffer.capacity)
@@ -115,17 +117,17 @@ class LineFrozen:
             _buffer=buffer,
         )
 
-    def build_line_data(self, buffer):
+    def build_tracker_data(self, buffer):
         """
         Ensure all the elements of the line are in the buffer, and write
         the line metadata to it. If the buffer is empty, the metadata will
         be at the beginning. Returns the metadata xobject.
         """
-        class LineData(xo.Struct):
+        class TrackerData(xo.Struct):
             elements = self._ElementRefClass[:]
             names = xo.String[:]
 
-        line_data = LineData(
+        tracker_data = TrackerData(
             elements=len(self.line.elements),
             names=list(self.line.element_names),
             _buffer=buffer,
@@ -143,11 +145,11 @@ class LineFrozen:
             else:
                 moved_element_dict[name] = elem._xobject
 
-        line_data.elements = [
+        tracker_data.elements = [
             moved_element_dict[name] for name in self.line.element_names
         ]
 
-        return line_data
+        return tracker_data
 
     @classmethod
     def deserialize(cls, buffer: xo.context.XBuffer) -> 'LineFrozen':
@@ -161,7 +163,7 @@ class LineFrozen:
         class ElementRefClass(xo.UnionRef):
             _reftypes = reftypes
 
-        class LineData(xo.Struct):
+        class TrackerData(xo.Struct):
             elements = ElementRefClass[:]
             names = xo.String[:]
 
@@ -180,7 +182,10 @@ class LineFrozen:
                                     # free space is lost forever
 
         # We can now load the line from the shifted buffer
-        line_data = LineData._from_buffer(shifted_buffer, int(header.metadata_start))
+        line_data = TrackerData._from_buffer(
+            buffer=shifted_buffer,
+            offset=int(header.metadata_start)
+        )
 
         # Recreate and redress line elements
         hybrid_cls_for_struct = {
@@ -202,7 +207,10 @@ class LineFrozen:
             elements=element_dict,
             element_names=line_data.names,
         )
-        return LineFrozen(line=line)
+        line_frozen = LineFrozen(line=line)
+        line_frozen._ElementRefClass = ElementRefClass
+
+        return line_frozen
 
     @property
     def elements(self):
