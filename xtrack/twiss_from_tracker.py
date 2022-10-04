@@ -27,7 +27,6 @@ DEFAULT_STEPS_R_MATRIX = {
 log = logging.getLogger(__name__)
 
 
-@profile
 def twiss_from_tracker(tracker, particle_ref,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
@@ -198,7 +197,6 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
            part._xobject.delta[0]])
     return p_res
 
-@profile
 def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
