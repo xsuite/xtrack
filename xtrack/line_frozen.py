@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import numpy as np
+from typing import Tuple
 
 import xobjects as xo
 
@@ -21,6 +21,14 @@ class LineFrozen:
         """
         metadata_start = xo.UInt64
         reftype_names = xo.String[:]
+
+    @staticmethod
+    def tracker_data_factory(element_ref_class) -> 'TrackerData':
+        class TrackerData(xo.Struct):
+            elements = element_ref_class[:]
+            names = xo.String[:]
+
+        return TrackerData
 
     def __init__(self, line, _context=None, _buffer=None,  _offset=None):
         self.line = line
@@ -77,36 +85,25 @@ class LineFrozen:
 
         return common_buffer
 
-    def serialize(self, context=xo.context_default) \
-            -> xo.context.XBuffer:
+    def serialize(self) -> Tuple[xo.context.XBuffer, int]:
         """
-        Create a buffer containing a binary representation of the LineFrozen,
-        from which it can be recreated quickly.
+        Return a buffer containing a binary representation of the LineFrozen,
+        together with the offset to the header in the buffer.
+        These two are sufficient for recreating the line.
         """
-        existing_buffer = self._line_data._buffer
-        tracker_data = self.build_tracker_data(buffer=existing_buffer)
-        target_buffer = context.new_buffer(0)
-        # Put the pointer to the metadata at the beginning
+        buffer = self._line_data._buffer
+        tracker_data = self.build_tracker_data(buffer=buffer)
         header = self.build_header(
-            buffer=target_buffer,
+            buffer=buffer,
             metadata_start=tracker_data._offset,
         )
-        # Expand the buffer to allow the copy
-        target_buffer.grow(header._size + existing_buffer.capacity)
-        # Follow the header by the contents of the existing buffer
-        target_buffer.update_from_xbuffer(
-            offset=header._size,
-            source=existing_buffer,
-            source_offset=0,
-            nbytes=existing_buffer.capacity,
-        )
-        return target_buffer
+
+        return buffer, header._offset
 
     def build_header(self, buffer, metadata_start) -> SerializationHeader:
         """
-        Build a serialization header in the buffer. This should be in a
-        predetermined location, as the data is necessary for decoding
-        the line metadata.
+        Build a serialization header in the buffer. This contains all
+        the necessary for decoding the line metadata.
         """
         return self.SerializationHeader(
             metadata_start=metadata_start,
@@ -123,11 +120,9 @@ class LineFrozen:
         the line metadata to it. If the buffer is empty, the metadata will
         be at the beginning. Returns the metadata xobject.
         """
-        class TrackerData(xo.Struct):
-            elements = self._ElementRefClass[:]
-            names = xo.String[:]
+        tracker_data_cls = self.tracker_data_factory(self._ElementRefClass)
 
-        tracker_data = TrackerData(
+        tracker_data = tracker_data_cls(
             elements=len(self.line.elements),
             names=list(self.line.element_names),
             _buffer=buffer,
@@ -152,8 +147,12 @@ class LineFrozen:
         return tracker_data
 
     @classmethod
-    def deserialize(cls, buffer: xo.context.XBuffer) -> 'LineFrozen':
-        header = cls.SerializationHeader._from_buffer(buffer, 0)
+    def deserialize(cls, buffer: xo.context.XBuffer, header_offset: int) \
+            -> 'LineFrozen':
+        header = cls.SerializationHeader._from_buffer(
+            buffer=buffer,
+            offset=header_offset,
+        )
         reftypes = [
             getattr(beam_elements, reftype)._XoStruct
             for reftype in header.reftype_names
@@ -163,27 +162,11 @@ class LineFrozen:
         class ElementRefClass(xo.UnionRef):
             _reftypes = reftypes
 
-        class TrackerData(xo.Struct):
-            elements = ElementRefClass[:]
-            names = xo.String[:]
-
-        # Read the line data
-        start_offset = header._size
-
-        # Since the offset is relative to the first position after the
-        # header, we need to shift the buffer. This is done to avoid
-        # copying the buffer into the new one.
-        # TODO: This is hacky solution, and needs to be improved (XView?)
-        shifted_buffer = buffer.context.new_buffer(0)
-        shifted_buffer.buffer = buffer.buffer[start_offset:]
-        shifted_buffer.capacity = buffer.capacity - start_offset
-        shifted_buffer.chunks = []  # mark whole buffer as allocated,
-                                    # it is editable but any previous
-                                    # free space is lost forever
+        tracker_data_cls = cls.tracker_data_factory(ElementRefClass)
 
         # We can now load the line from the shifted buffer
-        line_data = TrackerData._from_buffer(
-            buffer=shifted_buffer,
+        line_data = tracker_data_cls._from_buffer(
+            buffer=buffer,
             offset=int(header.metadata_start)
         )
 
@@ -201,7 +184,7 @@ class LineFrozen:
                 continue
 
             hybrid_cls = hybrid_cls_for_struct[elem.__class__]
-            element_dict[name] = hybrid_cls(_xobject=elem, _buffer=shifted_buffer)
+            element_dict[name] = hybrid_cls(_xobject=elem, _buffer=buffer)
 
         line = Line(
             elements=element_dict,

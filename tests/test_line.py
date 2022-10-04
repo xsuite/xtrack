@@ -286,8 +286,8 @@ def test_line_frozen_serialization():
 
     frozen = xt.LineFrozen(line=line)
 
-    buffer = frozen.serialize()
-    new_frozen = frozen.deserialize(buffer)
+    buffer, header_offset = frozen.serialize()
+    new_frozen = frozen.deserialize(buffer, header_offset)
 
     assert frozen.element_names == new_frozen.element_names
 
