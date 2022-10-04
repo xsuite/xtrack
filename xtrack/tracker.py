@@ -368,7 +368,8 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0):
+                          co_search_settings={}, delta_zeta=0,
+                          continue_on_closed_orbit_error=False):
 
         self._check_invalidated()
 
@@ -386,7 +387,8 @@ class Tracker:
 
         return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta)
+                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
+                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
@@ -411,6 +413,7 @@ class Tracker:
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
+        continue_on_closed_orbit_error=False,
         eneloss_and_damping=False,
         ele_start=0, ele_stop=None, twiss_init=None,
         particle_on_co=None,
@@ -451,6 +454,7 @@ class Tracker:
             co_search_settings=co_search_settings,
             at_elements=at_elements, at_s=at_s,
             values_at_element_exit=values_at_element_exit,
+            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
             particle_on_co=particle_on_co,
             eneloss_and_damping=eneloss_and_damping,
             ele_start=ele_start, ele_stop=ele_stop, twiss_init=twiss_init,

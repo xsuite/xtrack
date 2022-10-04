@@ -27,13 +27,14 @@ DEFAULT_STEPS_R_MATRIX = {
 log = logging.getLogger(__name__)
 
 
-
+@profile
 def twiss_from_tracker(tracker, particle_ref,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
         delta_disp=1e-5, delta_chrom = 1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
+        continue_on_closed_orbit_error=False,
         values_at_element_exit=False,
         eneloss_and_damping=False,
         ele_start=0, ele_stop=None, twiss_init=None,
@@ -92,7 +93,8 @@ def twiss_from_tracker(tracker, particle_ref,
         part_on_co = tracker.find_closed_orbit(
                                 particle_co_guess=particle_co_guess,
                                 particle_ref=particle_ref,
-                                co_search_settings=co_search_settings)
+                                co_search_settings=co_search_settings,
+                                continue_on_closed_orbit_error=continue_on_closed_orbit_error)
 
     if W_matrix is not None:
         W = W_matrix
@@ -196,7 +198,7 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
            part._xobject.delta[0]])
     return p_res
 
-
+@profile
 def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
@@ -441,7 +443,8 @@ class ClosedOrbitSearchError(Exception):
     pass
 
 def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
-                      co_search_settings=None, delta_zeta=0):
+                      co_search_settings=None, delta_zeta=0,
+                      continue_on_closed_orbit_error=False):
 
     if particle_co_guess is None:
         if particle_ref is None:
@@ -492,7 +495,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
         if ier == 1:
             break
 
-    if ier != 1:
+    if ier != 1 and not(continue_on_closed_orbit_error):
         raise ClosedOrbitSearchError
 
     particle_on_co = particle_co_guess.copy()
@@ -690,6 +693,12 @@ class TwissTable(dict):
     def to_pandas(self):
         import pandas as pd
         return pd.DataFrame({k: v for k, v in self.items() if k in self._ebe_fields})
+
+    def get_summary(self):
+        import pandas as pd
+        dct = {k: v for k, v in self.items() if k not in self._ebe_fields}
+        dct.pop('_ebe_fields')
+        return pd.Series(dct)
 
     def mirror(self):
         new = TwissTable()
