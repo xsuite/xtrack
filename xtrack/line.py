@@ -491,6 +491,17 @@ class Line:
 
     def get_s_elements(self, mode="upstream"):
         return self.get_s_position(mode=mode)
+    
+    
+    def get_length_elements(self):
+        lengths = []
+        for ee in self.elements:
+            if _is_thick(ee):
+                lengths.append(ee.length)
+            else:
+                lengths.append(0.0)
+        return lengths
+
 
     def get_s_position(self, at_elements=None, mode="upstream"):
 

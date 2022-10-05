@@ -14,6 +14,7 @@ from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
                                  find_closed_orbit, match_tracker
                                 )
+from .survey_from_tracker import survey_from_tracker
 from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging_for_elements_of_type,
                              stop_internal_logging_for_elements_of_type)
@@ -461,6 +462,9 @@ class Tracker:
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify)
+
+    def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0):
+        return survey_from_tracker(self,X0=X0,Y0=Y0,Z0=Z0,theta0=theta0,phi0=phi0,psi0=psi0)
 
     def match(self, vary, targets):
         return match_tracker(self, vary, targets)
