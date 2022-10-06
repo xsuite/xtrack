@@ -49,6 +49,6 @@ exec,check_ip(b2);
 """)
 mad_b4.use(sequence="lhcb2")
 mad_b4.globals['vrf400'] = 16
-mad_b4.globals['lagrf400.b2'] = 0.5
+mad_b4.globals['lagrf400.b2'] = 0
 mad_b4.twiss()
 mad_b4.save(sequence=['lhcb2'], beam=True, file="sequence_b4.madx")
