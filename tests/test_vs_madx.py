@@ -157,6 +157,28 @@ def test_twiss():
 
 
 
+def test_survey():
+    mad = mad_no_errors
+    mad.survey()
+
+    madsurvey = mad.table.survey.dframe()
+
+    line_full = xt.Line.from_madx_sequence(mad.sequence['lhcb1'])
+    line_full.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+                            gamma0=mad.sequence.lhcb1.beam.gamma)
+
+    tracker = xt.Tracker(line=line_full)
+    xsurvey = tracker.survey().to_pandas(index='name')
+
+    for ridof in ['drift','#']:
+        madsurvey  =  madsurvey[np.invert(madsurvey.index.str.contains(ridof,regex=False))]
+
+    for coord in ['X','Z']:
+        idx = madsurvey[coord.lower()].index
+        assert np.all(np.isclose(xsurvey.loc[idx,coord],madsurvey.loc[idx,coord.lower()], atol=1e-9, rtol=0))
+
+        
+
 def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
 
