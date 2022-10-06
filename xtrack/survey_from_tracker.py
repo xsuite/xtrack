@@ -7,21 +7,8 @@
 # https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/2dcd046b1f6ca2b44ef67c8d572ff74370deee25/src/survey.f90
 
 
-
-
 import logging
 import numpy as np
-
-import xobjects as xo
-import xpart as xp
-
-from scipy.optimize import fsolve
-from scipy.constants import c as clight
-
-from .line import _is_thick
-from . import linear_normal_form as lnf
-
-import xtrack as xt # To avoid circular imports
 
 
 log = logging.getLogger(__name__)
@@ -59,7 +46,7 @@ def get_angles_from_w(w):
     # w[1, 2]/w[1, 1] = (sinphi)/(cosphi * cospsi)
 
     theta = np.arctan2(w[0, 2], w[2, 2])
-    psi   = np.arctan2(w[1, 0], w[1, 1])    
+    psi   = np.arctan2(w[1, 0], w[1, 1])
     phi   = np.arctan2(w[1, 2],w[1, 1]/np.cos(psi))
 
     # TODO: arctan2 returns angle between [-pi,pi]. Hence theta ends up not at 2pi after a full survey
@@ -113,8 +100,6 @@ def advance_element(v,w,length=0,angle=0,tilt=0):
                         [0  , 0 ,  1]])
 
         return advance_bend(v,w,np.dot(T,R),np.dot(T,np.dot(S,Tinv)))
-        
-
 
 class SurveyTable(dict):
     def __init__(self, *args, **kwargs):
