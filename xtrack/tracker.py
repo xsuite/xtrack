@@ -323,18 +323,9 @@ class Tracker:
         self.line = line
         self.line.tracker = self
         self._line_frozen = frozenline
-        ele_offsets = np.array(
-            [ee._offset for ee in frozenline.elements], dtype=np.int64)
-        ele_typeids = np.array(
-            [element_classes.index(ee._xobject.__class__)
-                for ee in frozenline.elements], dtype=np.int64)
-        ele_offsets_dev = context.nparray_to_context_array(ele_offsets)
-        ele_typeids_dev = context.nparray_to_context_array(ele_typeids)
 
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
-        self.ele_offsets_dev = ele_offsets_dev
-        self.ele_typeids_dev = ele_typeids_dev
         self.num_elements = len(frozenline.elements)
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
@@ -574,8 +565,6 @@ class Tracker:
             /*gpukern*/
             void track_line(
                 /*gpuglmem*/ int8_t* buffer,
-                /*gpuglmem*/ int64_t* ele_offsets,
-                /*gpuglmem*/ int64_t* ele_typeids,
                              TrackerData tracker_data,
                              ParticlesData particles,
                              int num_turns,
@@ -626,8 +615,6 @@ class Tracker:
 
                         void* el = TrackerData_member_elements(tracker_data, ee);
                         int64_t ee_type = TrackerData_typeid_elements(tracker_data, ee);
-                        int64_t ee_type2 = ele_typeids[ee];
-                        printf("uref type = %ld, ee_type = %ld\n", ee_type2, ee_type);
 
                         switch(ee_type){
         """
@@ -688,8 +675,6 @@ class Tracker:
             "track_line": xo.Kernel(
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
-                    xo.Arg(xo.Int64, pointer=True, name="ele_offsets"),
-                    xo.Arg(xo.Int64, pointer=True, name="ele_typeids"),
                     xo.Arg(self._line_frozen._tracker_data.__class__, name="tracker_data"),
                     xo.Arg(self.particles_class._XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
@@ -1165,8 +1150,6 @@ class Tracker:
         # First turn
         self.track_kernel(
             buffer=self._line_frozen._buffer.buffer,
-            ele_offsets=self.ele_offsets_dev,
-            ele_typeids=self.ele_typeids_dev,
             tracker_data=self._line_frozen._tracker_data,
             particles=particles._xobject,
             num_turns=1,
@@ -1184,8 +1167,6 @@ class Tracker:
         if num_middle_turns > 0:
             self.track_kernel(
                 buffer=self._line_frozen._buffer.buffer,
-                ele_offsets=self.ele_offsets_dev,
-                ele_typeids=self.ele_typeids_dev,
                 tracker_data=self._line_frozen._tracker_data,
                 particles=particles._xobject,
                 num_turns=num_middle_turns,
@@ -1203,8 +1184,6 @@ class Tracker:
         if num_elements_last_turn > 0:
             self.track_kernel(
                 buffer=self._line_frozen._buffer.buffer,
-                ele_offsets=self.ele_offsets_dev,
-                ele_typeids=self.ele_typeids_dev,
                 tracker_data=self._line_frozen._tracker_data,
                 particles=particles._xobject,
                 num_turns=1,
