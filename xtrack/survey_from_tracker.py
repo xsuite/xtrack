@@ -180,5 +180,12 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0):
     for _key in ["X", "Y", "Z", "theta", "phi", "psi"]:
         survey_el_by_el[_key].append(survey_el_by_el[_key][-1])
 
+    survey_el_by_el["X"] = np.array(survey_el_by_el["X"])
+    survey_el_by_el["Y"] = np.array(survey_el_by_el["Y"])
+    survey_el_by_el["Z"] = np.array(survey_el_by_el["Z"])
+    survey_el_by_el["theta"] = np.unwrap(np.array(survey_el_by_el["theta"]))
+    survey_el_by_el["phi"] = np.unwrap(np.array(survey_el_by_el["phi"]))
+    survey_el_by_el["psi"] = np.unwrap(np.array(survey_el_by_el["psi"]))
+
     # Returns as SurveyTable object
     return survey_el_by_el

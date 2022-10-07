@@ -32,8 +32,8 @@ gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
 gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
 alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
 alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
-mux = np.unwrap(np.arctan2(-Ws[:, 0, 1], Ws[:, 0, 0]))/2/np.pi
-muy = np.unwrap(np.arctan2(-Ws[:, 2, 3], Ws[:, 2, 2]))/2/np.pi
+mux = np.unwrap(np.arctan2(-Ws[:, 0, 1], Ws[:, 0, 0]))/2/np.pi #PAAAAAATCH, to be fixed
+muy = np.unwrap(np.arctan2(-Ws[:, 2, 3], Ws[:, 2, 2]))/2/np.pi #PAAAAAATCH, to be fixed
 
 mux -= mux[0]
 muy -= muy[0]
