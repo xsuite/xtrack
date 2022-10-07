@@ -16,7 +16,7 @@ class LineFrozen:
         """
         In a predetermined place in the buffer we have the metadata
         offset and the element type names. These have to be separate,
-        because in order to rebuild LineData we need to first build
+        because in order to rebuild TrackerData we need to first build
         ElementRefClass.
         """
         metadata_start = xo.UInt64
@@ -30,7 +30,7 @@ class LineFrozen:
 
         return TrackerData
 
-    def __init__(self, line, _context=None, _buffer=None,  _offset=None):
+    def __init__(self, line, element_classes=None, _context=None, _buffer=None,  _offset=None):
         self.line = line
 
         if _buffer is None:
@@ -40,12 +40,12 @@ class LineFrozen:
 
         num_elements = len(line.element_names)
 
-        element_data_types = set(ee._XoStruct for ee in line.elements)
-        sorted_element_data_types = sorted(
-            element_data_types, key=lambda cc: cc.__name__)
+        if not element_classes:
+            element_classes = set(ee._XoStruct for ee in line.elements)
+        self.element_classes = sorted(element_classes, key=lambda cc: cc.__name__)
 
         class ElementRefClass(xo.UnionRef):
-            _reftypes = sorted_element_data_types
+            _reftypes = self.element_classes
 
         LineDataClass = ElementRefClass[num_elements]
 
@@ -153,14 +153,14 @@ class LineFrozen:
             buffer=buffer,
             offset=header_offset,
         )
-        reftypes = [
+        element_classes = [
             getattr(beam_elements, reftype)._XoStruct
             for reftype in header.reftype_names
         ]
 
         # With the reftypes loaded we can create our classes
         class ElementRefClass(xo.UnionRef):
-            _reftypes = reftypes
+            _reftypes = element_classes
 
         tracker_data_cls = cls.tracker_data_factory(ElementRefClass)
 
@@ -190,7 +190,7 @@ class LineFrozen:
             elements=element_dict,
             element_names=line_data.names,
         )
-        line_frozen = LineFrozen(line=line)
+        line_frozen = LineFrozen(line=line, element_classes=element_classes)
         line_frozen._ElementRefClass = ElementRefClass
 
         return line_frozen

@@ -192,7 +192,7 @@ class Tracker:
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
-                tempxtline = LineFrozen(_buffer=_buffer,
+                tempxtline = LineFrozen(_buffer=_buffer, element_classes=element_classes,
                                    line=pp)
                 pp.element_dict = dict(zip(
                     tempxtline.element_names, tempxtline.elements))
@@ -299,8 +299,8 @@ class Tracker:
         self.extra_headers = extra_headers
 
         frozenline = LineFrozen(
-                    _context=_context, _buffer=_buffer, _offset=_offset,
-                    line=line)
+                    line=line, element_classes=element_classes,
+                    _context=_context, _buffer=_buffer, _offset=_offset)
 
         context = frozenline._buffer.context
 
@@ -624,18 +624,20 @@ class Tracker:
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
 
-                        /*gpuglmem*/ void* el = TrackerData_member_elements(tracker_data, ee);
+                        void* el = TrackerData_member_elements(tracker_data, ee);
                         int64_t ee_type = TrackerData_typeid_elements(tracker_data, ee);
+                        int64_t ee_type2 = ele_typeids[ee];
+                        printf("uref type = %ld, ee_type = %ld\n", ee_type2, ee_type);
 
                         switch(ee_type){
         """
         )
 
-        for ii, cc in enumerate(self.element_classes):
-            ccnn = cc.__name__.replace("Data", "")
+        for type_id, element_cls in enumerate(self._line_frozen._ElementRefClass._reftypes):
+            ccnn = element_cls.__name__.replace("Data", "")
             src_lines.append(
                 f"""
-                        case {ii}:
+                        case {type_id}:
 """
             )
             if ccnn == "Drift":
