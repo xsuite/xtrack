@@ -111,6 +111,15 @@ class SurveyTable(dict):
             df.set_index(index, inplace=True)
         return df
 
+    def mirror(self):
+        new = SurveyTable()
+        for kk, vv in self.items():
+            new[kk] = vv
+
+        for kk in new.keys():
+            new[kk] = new[kk][::-1]
+
+        return new
 
 # ==================================================
 
