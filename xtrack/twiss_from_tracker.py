@@ -704,14 +704,51 @@ class TwissTable(dict):
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y):
 
-        for ii in range(len(self.name)):
-            v1 = Ws[ii, :, 0] + 1j * Ws[ii, :, 1]
-            v2 = Ws[ii, :, 2] + 1j * Ws[ii, :, 3]
+        beta0 = self.particle_on_co.beta0
+        gamma0 = self.particle_on_co.gamma0
+        gemitt_x = nemitt_x / (beta0 * gamma0)
+        gemitt_y = nemitt_y / (beta0 * gamma0)
 
-        Sigma_1 = np.matmul(v1, v1.T.conj(), axis=0)
+        Ws = np.array(self.W_matrix)
+        v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
+        v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
 
-        prrrr
+        Sigma1 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
+        Sigma2 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
 
+        for ii in range(6):
+            for jj in range(6):
+                Sigma1[:, ii, jj] = np.real(v1[:,ii] * v1[:,jj].conj())
+                Sigma2[:, ii, jj] = np.real(v2[:,ii] * v2[:,jj].conj())
+
+        Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2
+
+        res = TwissTable()
+        res['s'] = self.s.copy()
+        res['name'] = self.name
+
+        res['Sigma'] = [Sigma[ii, :, :] for ii in range(len(self.s))]
+        res['Sigma11'] = Sigma[:, 0, 0]
+        res['Sigma12'] = Sigma[:, 0, 1]
+        res['Sigma13'] = Sigma[:, 0, 2]
+        res['Sigma14'] = Sigma[:, 0, 3]
+        res['Sigma21'] = Sigma[:, 1, 0]
+        res['Sigma22'] = Sigma[:, 1, 1]
+        res['Sigma23'] = Sigma[:, 1, 2]
+        res['Sigma24'] = Sigma[:, 1, 3]
+        res['Sigma31'] = Sigma[:, 2, 0]
+        res['Sigma32'] = Sigma[:, 2, 1]
+        res['Sigma33'] = Sigma[:, 2, 2]
+        res['Sigma34'] = Sigma[:, 2, 3]
+        res['Sigma41'] = Sigma[:, 3, 0]
+        res['Sigma42'] = Sigma[:, 3, 1]
+        res['Sigma43'] = Sigma[:, 3, 2]
+        res['Sigma44'] = Sigma[:, 3, 3]
+
+        res['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
+        res['sigma_y'] = np.sqrt(Sigma[:, 1, 1])
+
+        return res
 
     def mirror(self):
         new = TwissTable()

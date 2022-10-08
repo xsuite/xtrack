@@ -101,31 +101,10 @@ for name in ['mb.b19r5.b1', 'mb.b19r1.b1', 'ip1', 'ip2', 'ip5', 'ip8',
     assert np.isclose(twxt['px'][ixt], twmad['px'][imad], atol=1e-7)
     assert np.isclose(twxt['py'][ixt], twmad['py'][imad], atol=1e-7)
 
-# v1 = np.atleast_2d(twxt.W_matrix[0][:,0] + 1j *twxt.W_matrix[0][:,1]).T
-# v2 = np.atleast_2d(twxt.W_matrix[0][:,2] + 1j *twxt.W_matrix[0][:,3]).T
-# Sigma1 = np.matmul(v1, v1.T.conj()).real
-# Sigma2 = np.matmul(v2, v2.T.conj()).real
-
 nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6
-gemitt_x = nemitt_x / (line.particle_ref.beta0 * line.particle_ref.gamma0)
-gemitt_y = nemitt_x / (line.particle_ref.beta0 * line.particle_ref.gamma0)
 
-Ws = np.array(twxt.W_matrix)
-v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
-v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
-
-Sigma1 = np.zeros(shape=(len(twxt.s), 6, 6), dtype=np.float64)
-Sigma2 = np.zeros(shape=(len(twxt.s), 6, 6), dtype=np.float64)
-
-for ii in range(6):
-    for jj in range(6):
-        Sigma1[:, ii, jj] = np.real(v1[:,ii] * v1[:,jj].conj())
-        Sigma2[:, ii, jj] = np.real(v2[:,ii] * v2[:,jj].conj())
-
-Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2
-
-
+Sigmas = twxt.get_betatron_sigmas(nemitt_x, nemitt_y)
 
 
 plt.show()
