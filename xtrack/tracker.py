@@ -12,8 +12,9 @@ from .line_frozen import LineFrozen
 from .base_element import _handle_per_particle_blocks
 from .twiss_from_tracker import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
-                                 find_closed_orbit,
+                                 find_closed_orbit, match_tracker
                                 )
+from .survey_from_tracker import survey_from_tracker
 from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging_for_elements_of_type,
                              stop_internal_logging_for_elements_of_type)
@@ -368,7 +369,8 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0):
+                          co_search_settings={}, delta_zeta=0,
+                          continue_on_closed_orbit_error=False):
 
         self._check_invalidated()
 
@@ -386,7 +388,8 @@ class Tracker:
 
         return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta)
+                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
+                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
@@ -407,11 +410,14 @@ class Tracker:
 
     def twiss(self, particle_ref=None, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=1e-6,
-        n_theta=1000, delta_disp=1e-5, delta_chrom=1e-4,
+        delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
+        continue_on_closed_orbit_error=False,
         eneloss_and_damping=False,
+        ele_start=0, ele_stop=None, twiss_init=None,
+        particle_on_co=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
         symplectify=False
@@ -443,17 +449,25 @@ class Tracker:
 
         return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-            n_theta=n_theta, delta_disp=delta_disp, delta_chrom=delta_chrom,
+            delta_disp=delta_disp, delta_chrom=delta_chrom,
             particle_co_guess=particle_co_guess,
             steps_r_matrix=steps_r_matrix,
             co_search_settings=co_search_settings,
             at_elements=at_elements, at_s=at_s,
             values_at_element_exit=values_at_element_exit,
+            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+            particle_on_co=particle_on_co,
             eneloss_and_damping=eneloss_and_damping,
+            ele_start=ele_start, ele_stop=ele_stop, twiss_init=twiss_init,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify)
 
+    def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0):
+        return survey_from_tracker(self,X0=X0,Y0=Y0,Z0=Z0,theta0=theta0,phi0=phi0,psi0=psi0)
+
+    def match(self, vary, targets):
+        return match_tracker(self, vary, targets)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
@@ -1270,8 +1284,6 @@ class Tracker:
                                                     element_type, capacity):
         return start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity)
-
-        self._check_invalidated()
 
     def stop_internal_logging_for_elements_of_type(self, element_type):
         self._check_invalidated()

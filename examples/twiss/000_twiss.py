@@ -52,6 +52,11 @@ for ii, ss in enumerate(s_test):
                       rtol=0, atol=1e-9)
 
 
+twmb19r5 = tw.get_twiss_init(at_element='mb.b19l5.b1')
+
+tw_part = tracker.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
+                        twiss_init=twmb19r5)
+
 
 
 import matplotlib.pyplot as plt
@@ -84,5 +89,4 @@ fig1.suptitle(
 )
 
 fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
-
 plt.show()
