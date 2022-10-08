@@ -89,5 +89,4 @@ fig1.suptitle(
 )
 
 fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
-
 plt.show()

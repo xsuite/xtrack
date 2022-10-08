@@ -688,15 +688,30 @@ class TwissTable(dict):
                         muy=self.muy[at_element],
                         muzeta=self.muzeta[at_element])
 
-    def to_pandas(self):
+    def to_pandas(self, index=None):
         import pandas as pd
-        return pd.DataFrame({k: v for k, v in self.items() if k in self._ebe_fields})
+
+        df = pd.DataFrame(self)
+        if index is not None:
+            df.set_index(index, inplace=True)
+        return df
 
     def get_summary(self):
         import pandas as pd
         dct = {k: v for k, v in self.items() if k not in self._ebe_fields}
         dct.pop('_ebe_fields')
         return pd.Series(dct)
+
+    def get_betatron_sigmas(self, nemitt_x, nemitt_y):
+
+        for ii in range(len(self.name)):
+            v1 = Ws[ii, :, 0] + 1j * Ws[ii, :, 1]
+            v2 = Ws[ii, :, 2] + 1j * Ws[ii, :, 3]
+
+        Sigma_1 = np.matmul(v1, v1.T.conj(), axis=0)
+
+        prrrr
+
 
     def mirror(self):
         new = TwissTable()
