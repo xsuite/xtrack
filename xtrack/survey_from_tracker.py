@@ -116,10 +116,24 @@ class SurveyTable(dict):
         for kk, vv in self.items():
             new[kk] = vv
 
+        # inverting
         for kk in new.keys():
             new[kk] = new[kk][::-1]
 
+        # Reshuffling #s/#e/_end_point/ip3 markers
+        new.name = new.name[-2:][::-1] + new.name[2:-2] + new.name[:2][::-1]
+
+        # Reflection about the starting point for all cartesian coordinates
+        new.s = new.s[0] - new.s
+        new.X = 2 * new.X[0] - new.X
+        new.Y = 2 * new.Y[0] - new.Y
+        new.Z = 2 * new.Z[0] - new.Z
+
+        # Offsetting theta by 2pi because of the inversion
+        new.theta = new.theta - 2 * np.pi
+
         return new
+
 
 # ==================================================
 
@@ -128,12 +142,12 @@ class SurveyTable(dict):
 def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0):
     """Execute SURVEY command. Based on MADX equivalent.
     Attributes, must be given in this order in the dictionary:
-    X0        (real)    Initial X position.
-    Y0        (real)    Initial Y position.
-    Z0        (real)    Initial Z position.
-    theta0    (real)    Initial azimuthal angle.
-    phi0      (real)    Initial elevation angle.
-    psi0      (real)    Initial roll angle."""
+    X0        (float)    Initial X position.
+    Y0        (float)    Initial Y position.
+    Z0        (float)    Initial Z position.
+    theta0    (float)    Initial azimuthal angle.
+    phi0      (float)    Initial elevation angle.
+    psi0      (float)    Initial roll angle."""
 
     # Initializing dictionary
     survey_el_by_el = SurveyTable(
