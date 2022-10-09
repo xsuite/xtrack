@@ -1,6 +1,3 @@
-#%%
-2 + 2
-#%%
 import numpy as np
 import matplotlib.pyplot as plt
 from cpymad.madx import Madx
@@ -34,278 +31,38 @@ survb4xt = tracker_b4.survey().to_pandas(index="name")
 
 survb2xt = tracker_b4.survey().mirror().to_pandas(index="name")
 
-#%%
-
-# ORIGINAL:
 # ================================
-
+plt.close('all')
 plt.figure(1, figsize=(6, 10))
-plt.subplot(6, 1, 1)
-coordi = "X"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb4xt["s"], survb4xt[coordi], "-", color="k")
-plt.plot(survb4xt.loc["ip2", "s"], survb4xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
 
-plt.subplot(6, 1, 2)
-coordi = "Y"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb4xt["s"], survb4xt[coordi], "-", color="k")
-plt.plot(survb4xt.loc["ip2", "s"], survb4xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-plt.subplot(6, 1, 3)
-coordi = "Z"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb4xt["s"], survb4xt[coordi], "-", color="k")
-plt.plot(survb4xt.loc["ip2", "s"], survb4xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-plt.subplot(6, 1, 4)
-coordi = "theta"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb4xt["s"], survb4xt[coordi], "-", color="k")
-plt.plot(survb4xt.loc["ip2", "s"], survb4xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-plt.subplot(6, 1, 5)
-coordi = "phi"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb4xt["s"], survb4xt[coordi], "-", color="k")
-plt.plot(survb4xt.loc["ip2", "s"], survb4xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-
-plt.subplot(6, 1, 6)
-coordi = "psi"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb4xt["s"], survb4xt[coordi], "-", color="k")
-plt.plot(survb4xt.loc["ip2", "s"], survb4xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
+for ii, coordi in enumerate("X Y Z theta phi psi".split()):
+    plt.subplot(6, 1, ii+1)
+    plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
+    plt.plot(survb2mad.loc["ip2", "s"], survb2mad.loc["ip2", coordi.lower()],
+            marker="o", color="red", ms=10)
+    plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
+    plt.plot(survb4mad.loc["ip2", "s"], survb4mad.loc["ip2", coordi.lower()],
+            marker="o", color="blue", ms=10)
+    plt.plot(survb4xt["s"], survb4xt[coordi], "-", color="k")
+    plt.plot(survb4xt.loc["ip2", "s"], survb4xt.loc["ip2", coordi], ".", color="k")
+    plt.ylabel(coordi)
 
 
 plt.figure(2, figsize=(6, 10))
-plt.subplot(6, 1, 1)
-coordi = "X"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb2xt["s"], survb2xt[coordi], "-", color="k")
-plt.plot(survb2xt.loc["ip2", "s"], survb2xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
+for ii, coordi in enumerate("X Y Z theta phi psi".split()):
+    plt.subplot(6, 1, ii+1)
+    plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
+    plt.plot(survb2mad.loc["ip2", "s"], survb2mad.loc["ip2", coordi.lower()],
+            marker="o", color="red", ms=10)
+    plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
+    plt.plot(survb4mad.loc["ip2", "s"], survb4mad.loc["ip2", coordi.lower()],
+            marker="o", color="blue", ms=10)
+    plt.plot(survb2xt["s"], survb2xt[coordi], "-", color="k")
+    plt.plot(survb2xt.loc["ip2", "s"], survb2xt.loc["ip2", coordi], ".", color="k")
+    plt.ylabel(coordi)
 
-plt.subplot(6, 1, 2)
-coordi = "Y"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb2xt["s"], survb2xt[coordi], "-", color="k")
-plt.plot(survb2xt.loc["ip2", "s"], survb2xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-plt.subplot(6, 1, 3)
-coordi = "Z"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb2xt["s"], survb2xt[coordi], "-", color="k")
-plt.plot(survb2xt.loc["ip2", "s"], survb2xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-plt.subplot(6, 1, 4)
-coordi = "theta"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb2xt["s"], survb2xt[coordi], "-", color="k")
-plt.plot(survb2xt.loc["ip2", "s"], survb2xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-plt.subplot(6, 1, 5)
-coordi = "phi"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb2xt["s"], survb2xt[coordi], "-", color="k")
-plt.plot(survb2xt.loc["ip2", "s"], survb2xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
-
-plt.subplot(6, 1, 6)
-coordi = "psi"
-plt.plot(survb2mad["s"], survb2mad[coordi.lower()], "r", lw=8)
-plt.plot(
-    survb2mad.loc["ip2", "s"],
-    survb2mad.loc["ip2", coordi.lower()],
-    "o",
-    color="r",
-    ms=10,
-)
-plt.plot(survb4mad["s"], survb4mad[coordi.lower()], "b", lw=5)
-plt.plot(
-    survb4mad.loc["ip2", "s"],
-    survb4mad.loc["ip2", coordi.lower()],
-    "o",
-    color="b",
-    ms=10,
-)
-plt.plot(survb2xt["s"], survb2xt[coordi], "-", color="k")
-plt.plot(survb2xt.loc["ip2", "s"], survb2xt.loc["ip2", coordi], ".", color="k")
-plt.ylabel(coordi)
+plt.show()
+prrrr
 
 # ================================
 
