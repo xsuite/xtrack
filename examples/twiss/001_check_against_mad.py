@@ -116,6 +116,35 @@ for name in ['mb.b19r5.b1', 'mb.b19r1.b1', 'ip1', 'ip2', 'ip5', 'ip8',
     assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
     assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
 
+    # check matrix is symmetric
+    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
+
+    # check matrix consistency with Sigma.Sigma
+    assert np.isclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
+    assert np.isclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
+
+    # Check sigma_x, sigma_y
+    assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
+    assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
 
 
 

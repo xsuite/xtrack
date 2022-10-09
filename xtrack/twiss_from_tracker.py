@@ -746,7 +746,7 @@ class TwissTable(dict):
         res['Sigma44'] = Sigma[:, 3, 3]
 
         res['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
-        res['sigma_y'] = np.sqrt(Sigma[:, 1, 1])
+        res['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
 
         return res
 
