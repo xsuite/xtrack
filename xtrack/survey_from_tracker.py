@@ -145,7 +145,7 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     line = tracker.line
 
     # Extract drift lengths
-    drift_length = np.array(_get_s_increments(line.elements))
+    drift_length = _get_s_increments(line.elements)
 
     # Extract angle and tilt from elements
     angle = []
@@ -175,6 +175,10 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     out["name"] = line.element_names + ("_end_point",)
     out["s"] = np.array(line.get_s_elements() + [line.get_length()])
+
+    out['drift_length'] = np.array(drift_length + [0.])
+    out['angle'] = np.array(angle + [0.])
+    out['tilt'] = np.array(tilt + [0.])
 
     return out
 
