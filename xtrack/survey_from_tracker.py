@@ -7,14 +7,10 @@
 # https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/2dcd046b1f6ca2b44ef67c8d572ff74370deee25/src/survey.f90
 
 
-import logging
 import numpy as np
 
-
-log = logging.getLogger(__name__)
-# Example of log call:
-# log.warning('Need second attempt on closed orbit search')
-
+from .general import Table
+import xtrack as xt
 
 # Required functions
 # ==================================================
@@ -98,18 +94,7 @@ def advance_element(v, w, length=0, angle=0, tilt=0):
         return advance_bend(v, w, np.dot(T, R), np.dot(T, np.dot(S, Tinv)))
 
 
-class SurveyTable(dict):
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-        self.__dict__ = self
-
-    def to_pandas(self, index=None):
-        import pandas as pd
-
-        df = pd.DataFrame(self)
-        if index is not None:
-            df.set_index(index, inplace=True)
-        return df
+class SurveyTable(Table):
 
     def mirror(self):
         new = SurveyTable()
@@ -119,9 +104,6 @@ class SurveyTable(dict):
         # inverting
         for kk in new.keys():
             new[kk] = new[kk][::-1]
-
-        # Reshuffling #s/#e/_end_point/ip3 markers
-        new.name = new.name[-2:][::-1] + new.name[2:-2] + new.name[:2][::-1]
 
         # Reflection about the starting point for all cartesian coordinates
         new.s = new.s[0] - new.s
@@ -134,12 +116,21 @@ class SurveyTable(dict):
 
         return new
 
+def _get_s_increments(elements):
+    lengths = []
+    for ee in elements:
+        if xt.line._is_thick(ee):
+            lengths.append(ee.length)
+        else:
+            lengths.append(0.0)
+    return lengths
 
 # ==================================================
 
 # Main function
 # ==================================================
-def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0):
+def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
+                        values_at_element_exit=False):
     """Execute SURVEY command. Based on MADX equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position.
@@ -149,12 +140,16 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0):
     phi0      (float)    Initial elevation angle.
     psi0      (float)    Initial roll angle."""
 
+    assert not values_at_element_exit, "Not implemented yet"
+
+    elements = tracker.line.elements
+
     # Initializing dictionary
-    survey_el_by_el = SurveyTable(
+    out = SurveyTable(
         {
             "name": tracker.line.element_names + ("_end_point",),
             "s": np.array(tracker.line.get_s_elements() + [tracker.line.get_length()]),
-            "l": np.array(tracker.line.get_length_elements() + [0.0]),
+            "l": np.array(_get_s_increments(elements) + [0.0]),
             "X": [X0],
             "Y": [Y0],
             "Z": [Z0],
@@ -167,23 +162,19 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0):
     v = np.array([X0, Y0, Z0])
     w = get_w_from_angles(theta=theta0, phi=phi0, psi=psi0)
     # Advancing element by element
-    for ee, length, name in zip(
-        tracker.line.elements[1:],
-        survey_el_by_el["l"][1:-1],
-        survey_el_by_el["name"][1:-1],
+    for ee, length, name in zip(tracker.line.elements[1:],
+        out["l"][1:-1],
+        out["name"][1:-1],
     ):
 
         hxl, hyl = (ee.hxl, ee.hyl) if hasattr(ee, "hxl") else (0, 0)
 
-        ##############
         # TODO Generalize for non-flat machines
-        assert (
-            hyl == 0
-        ), f"Survey of machines with tilt not yet implemented, {name} has hyl={hyl} "
+        assert hyl == 0, ("Survey of machines with tilt not yet implemented, "
+                          f"{name} has hyl={hyl} ")
 
         angle = hxl
         tilt = 0
-        ##############
 
         # Advancing
         v, w = advance_element(v, w, length=length, angle=angle, tilt=tilt)
@@ -191,24 +182,24 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0):
         # Unpacking results
         theta, phi, psi = get_angles_from_w(w)
         # ----
-        survey_el_by_el["X"].append(v[0])
-        survey_el_by_el["Y"].append(v[1])
-        survey_el_by_el["Z"].append(v[2])
+        out["X"].append(v[0])
+        out["Y"].append(v[1])
+        out["Z"].append(v[2])
         # ----
-        survey_el_by_el["theta"].append(theta)
-        survey_el_by_el["phi"].append(phi)
-        survey_el_by_el["psi"].append(psi)
+        out["theta"].append(theta)
+        out["phi"].append(phi)
+        out["psi"].append(psi)
 
     # Repeating for endpoint
     for _key in ["X", "Y", "Z", "theta", "phi", "psi"]:
-        survey_el_by_el[_key].append(survey_el_by_el[_key][-1])
+        out[_key].append(out[_key][-1])
 
-    survey_el_by_el["X"] = np.array(survey_el_by_el["X"])
-    survey_el_by_el["Y"] = np.array(survey_el_by_el["Y"])
-    survey_el_by_el["Z"] = np.array(survey_el_by_el["Z"])
-    survey_el_by_el["theta"] = np.unwrap(np.array(survey_el_by_el["theta"]))
-    survey_el_by_el["phi"] = np.unwrap(np.array(survey_el_by_el["phi"]))
-    survey_el_by_el["psi"] = np.unwrap(np.array(survey_el_by_el["psi"]))
+    out["X"] = np.array(out["X"])
+    out["Y"] = np.array(out["Y"])
+    out["Z"] = np.array(out["Z"])
+    out["theta"] = np.unwrap(np.array(out["theta"]))
+    out["phi"] = np.unwrap(np.array(out["phi"]))
+    out["psi"] = np.unwrap(np.array(out["psi"]))
 
     # Returns as SurveyTable object
-    return survey_el_by_el
+    return out

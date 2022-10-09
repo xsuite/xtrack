@@ -15,6 +15,7 @@ from scipy.optimize import fsolve
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
+from .general import Table
 
 import xtrack as xt # To avoid circular imports
 
@@ -662,10 +663,7 @@ class TwissInit:
         self.muy = muy
         self.muzeta = muzeta
 
-class TwissTable(dict):
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-        self.__dict__ = self
+class TwissTable(Table):
 
     def get_twiss_init(self, at_element):
         if isinstance(at_element, str):
@@ -687,14 +685,6 @@ class TwissTable(dict):
                         mux=self.mux[at_element],
                         muy=self.muy[at_element],
                         muzeta=self.muzeta[at_element])
-
-    def to_pandas(self, index=None):
-        import pandas as pd
-
-        df = pd.DataFrame(self)
-        if index is not None:
-            df.set_index(index, inplace=True)
-        return df
 
     def get_summary(self):
         import pandas as pd
@@ -723,7 +713,7 @@ class TwissTable(dict):
 
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2
 
-        res = TwissTable()
+        res = Table()
         res['s'] = self.s.copy()
         res['name'] = self.name
 

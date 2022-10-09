@@ -6,3 +6,16 @@
 from pathlib import Path
 
 _pkg_root = Path(__file__).parent.absolute()
+
+class Table(dict):
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+        self.__dict__ = self
+
+    def to_pandas(self, index=None):
+        import pandas as pd
+
+        df = pd.DataFrame(self)
+        if index is not None:
+            df.set_index(index, inplace=True)
+        return df
