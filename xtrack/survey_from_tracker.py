@@ -147,9 +147,7 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     # Initializing dictionary
     out = SurveyTable(
         {
-            "name": tracker.line.element_names + ("_end_point",),
-            "s": np.array(tracker.line.get_s_elements() + [tracker.line.get_length()]),
-            "drift_length": np.array(_get_s_increments(elements) + [0.0]),
+            "drift_length": [],
             "tilt": [],
             "angle": [],
             "X": [],
@@ -161,22 +159,35 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
         }
     )
 
+    line = tracker.line
+
+    # Extract drift lengths
+    drift_length = np.array(_get_s_increments(elements))
+
+    # Extract angle and tilt from elements
+    angle = []
+    tilt = []
+    for nn in line.element_names:
+        ee = line[nn]
+        hxl, hyl = (ee.hxl, ee.hyl) if hasattr(ee, "hxl") else (0, 0)
+        assert hyl == 0, ("Survey of machines with tilt not yet implemented, "
+                          f"{name} has hyl={hyl} ")
+        this_angle = hxl  # TODO: generalize for non-flat lines
+        this_tilt = 0     # TODO: generalize for non-flat lines
+
+        angle.append(this_angle)
+        tilt.append(this_tilt)
+
     v = np.array([X0, Y0, Z0])
     w = get_w_from_angles(theta=theta0, phi=phi0, psi=psi0)
     # Advancing element by element
-    for ee, length, name in zip(elements, out.drift_length, out.name):
-
-        hxl, hyl = (ee.hxl, ee.hyl) if hasattr(ee, "hxl") else (0, 0)
-
-        assert hyl == 0, ("Survey of machines with tilt not yet implemented, "
-                          f"{name} has hyl={hyl} ")
-        angle = hxl  # TODO: generalize for non-flat lines
-        tilt = 0     # TODO: generalize for non-flat lines
+    for ll, aa, tt in zip(drift_length, angle, tilt):
 
         theta, phi, psi = get_angles_from_w(w)
 
-        out.tilt.append(tilt)
-        out.angle.append(angle)
+        out.drift_length.append(ll)
+        out.tilt.append(tt)
+        out.angle.append(aa)
         out.X.append(v[0])
         out.Y.append(v[1])
         out.Z.append(v[2])
@@ -185,10 +196,11 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
         out.psi.append(psi)
 
         # Advancing
-        v, w = advance_element(v, w, length=length, angle=angle, tilt=tilt)
+        v, w = advance_element(v, w, length=ll, angle=aa, tilt=tt)
 
     # Last marker
     theta, phi, psi = get_angles_from_w(w)
+    out.drift_length.append(0)
     out.tilt.append(0)
     out.angle.append(0)
     out.X.append(v[0])
@@ -204,6 +216,9 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     out["theta"] = np.unwrap(np.array(out["theta"]))
     out["phi"] = np.unwrap(np.array(out["phi"]))
     out["psi"] = np.unwrap(np.array(out["psi"]))
+
+    out["name"] = line.element_names + ("_end_point",)
+    out["s"] = np.array(tracker.line.get_s_elements() + [tracker.line.get_length()])
 
     # Returns as SurveyTable object
     return out
