@@ -149,50 +149,54 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
         {
             "name": tracker.line.element_names + ("_end_point",),
             "s": np.array(tracker.line.get_s_elements() + [tracker.line.get_length()]),
-            "l": np.array(_get_s_increments(elements) + [0.0]),
-            "X": [X0],
-            "Y": [Y0],
-            "Z": [Z0],
-            "theta": [theta0],
-            "phi": [phi0],
-            "psi": [psi0],
+            "drift_length": np.array(_get_s_increments(elements) + [0.0]),
+            "tilt": [],
+            "angle": [],
+            "X": [],
+            "Y": [],
+            "Z": [],
+            "theta": [],
+            "phi": [],
+            "psi": [],
         }
     )
 
     v = np.array([X0, Y0, Z0])
     w = get_w_from_angles(theta=theta0, phi=phi0, psi=psi0)
     # Advancing element by element
-    for ee, length, name in zip(tracker.line.elements[1:],
-        out["l"][1:-1],
-        out["name"][1:-1],
-    ):
+    for ee, length, name in zip(elements, out.drift_length, out.name):
 
         hxl, hyl = (ee.hxl, ee.hyl) if hasattr(ee, "hxl") else (0, 0)
 
-        # TODO Generalize for non-flat machines
         assert hyl == 0, ("Survey of machines with tilt not yet implemented, "
                           f"{name} has hyl={hyl} ")
+        angle = hxl  # TODO: generalize for non-flat lines
+        tilt = 0     # TODO: generalize for non-flat lines
 
-        angle = hxl
-        tilt = 0
+        theta, phi, psi = get_angles_from_w(w)
+
+        out.tilt.append(tilt)
+        out.angle.append(angle)
+        out.X.append(v[0])
+        out.Y.append(v[1])
+        out.Z.append(v[2])
+        out.theta.append(theta)
+        out.phi.append(phi)
+        out.psi.append(psi)
 
         # Advancing
         v, w = advance_element(v, w, length=length, angle=angle, tilt=tilt)
 
-        # Unpacking results
-        theta, phi, psi = get_angles_from_w(w)
-        # ----
-        out["X"].append(v[0])
-        out["Y"].append(v[1])
-        out["Z"].append(v[2])
-        # ----
-        out["theta"].append(theta)
-        out["phi"].append(phi)
-        out["psi"].append(psi)
-
-    # Repeating for endpoint
-    for _key in ["X", "Y", "Z", "theta", "phi", "psi"]:
-        out[_key].append(out[_key][-1])
+    # Last marker
+    theta, phi, psi = get_angles_from_w(w)
+    out.tilt.append(0)
+    out.angle.append(0)
+    out.X.append(v[0])
+    out.Y.append(v[1])
+    out.Z.append(v[2])
+    out.theta.append(theta)
+    out.phi.append(phi)
+    out.psi.append(psi)
 
     out["X"] = np.array(out["X"])
     out["Y"] = np.array(out["Y"])
