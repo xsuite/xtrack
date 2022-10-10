@@ -96,25 +96,36 @@ def advance_element(v, w, length=0, angle=0, tilt=0):
 
 class SurveyTable(Table):
 
-    def mirror(self):
-        new = SurveyTable()
-        for kk, vv in self.items():
-            new[kk] = vv
+    def mirror(self, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,):
 
-        # inverting
-        for kk in new.keys():
-            new[kk] = new[kk][::-1]
+        # We cut away the last marker (added by survey) and reverse the order
+        out_drift_length = list(self.drift_length[:-1][::-1])
+        out_angle = list(-self.angle[:-1][::-1])
+        out_tilt = list(-self.tilt[:-1][::-1])
+        out_name = list(self.name[:-1][::-1])
+        out_s = list(self.s[-1] - self.s[:-1][::-1])
 
-        # Reflection about the starting point for all cartesian coordinates
-        new.s = new.s[0] - new.s
-        new.X = 2 * new.X[0] - new.X
-        new.Y = 2 * new.Y[0] - new.Y
-        new.Z = 2 * new.Z[0] - new.Z
+        X, Y, Z, theta, phi, psi = compute_survey(
+                                        X0, Y0, Z0, theta0, phi0, psi0,
+                                        out_drift_length, out_angle, out_tilt)
 
-        # Offsetting theta by 2pi because of the inversion
-        new.theta = new.theta - 2 * np.pi
+        # Initializing dictionary
+        out = SurveyTable()
+        out["X"] = np.array(X)
+        out["Y"] = np.array(Y)
+        out["Z"] = np.array(Z)
+        out["theta"] = np.unwrap(theta)
+        out["phi"] = np.unwrap(phi)
+        out["psi"] = np.unwrap(psi)
 
-        return new
+        out["name"] = list(out_name) + ["_end_point"]
+        out["s"] = np.array(list(out_s) + [self.s[-1]])
+
+        out['drift_length'] = np.array(out_drift_length + [0.])
+        out['angle'] = np.array(out_angle + [0.])
+        out['tilt'] = np.array(out_tilt + [0.])
+
+        return out
 
 def _get_s_increments(elements):
     lengths = []
