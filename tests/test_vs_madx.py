@@ -47,6 +47,10 @@ mad_b4_no_errors.globals['lagrf400.b2'] = 0
 mad_b4_no_errors.use(sequence='lhcb2')
 mad_b4_no_errors.twiss()
 
+mad_with_errors.sequence.lhcb1.beam.sigt = 1e-10
+mad_with_errors.sequence.lhcb1.beam.sige = 1e-10
+mad_with_errors.sequence.lhcb1.beam.et = 1e-10
+
 def test_twiss():
 
     for configuration in ['b1_with_errors', 'b2_no_errors']:
@@ -69,6 +73,15 @@ def test_twiss():
         if use:
             mad_ref.use(sequence=seq_name)
             mad_load.use(sequence=seq_name)
+
+        # I want only the betatron part in the sigma matrix
+        mad_ref.sequence[seq_name].beam.sigt = 1e-10
+        mad_ref.sequence[seq_name].beam.sige = 1e-10
+        mad_ref.sequence[seq_name].beam.et = 1e-10
+
+        # I set asymmetric emittances
+        mad_ref.sequence[seq_name].beam.exn = 2.5e-6
+        mad_ref.sequence[seq_name].beam.eyn = 3.5e-6
 
         twmad = mad_ref.twiss(chrom=True)
 
@@ -106,6 +119,10 @@ def test_twiss():
                 twxt = tracker.twiss()
                 if reverse:
                     twxt = twxt.reverse()
+
+                nemitt_x = mad_ref.sequence[seq_name].beam.exn
+                nemitt_y = mad_ref.sequence[seq_name].beam.eyn
+                Sigmas = twxt.get_betatron_sigmas(nemitt_x, nemitt_y)
 
                 # Check value_at_element_exit
                 if not reverse: # TODO: to be generalized...
@@ -190,6 +207,49 @@ def test_twiss():
                                     atol=1e-7, rtol=0)
                     assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
                                     atol=1e-7, rtol=0)
+
+
+                    assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
+                    assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=1e-12)
+                    assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=1e-10)
+                    assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=1e-12)
+                    assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
+                    assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
+                    assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
+                    assert np.isclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
+                    assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
+                    assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
+
+                    # check matrix is symmetric
+                    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
+
+                    # check matrix consistency with Sigma.Sigma
+                    assert np.isclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
+                    assert np.isclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
+
+                    # Check sigma_x, sigma_y
+                    assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
+                    assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
+
 
                 # Test custom s locations
                 if not reversed:
