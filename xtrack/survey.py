@@ -103,7 +103,6 @@ class SurveyTable(Table):
         out_angle = list(-self.angle[:-1][::-1])
         out_tilt = list(-self.tilt[:-1][::-1])
         out_name = list(self.name[:-1][::-1])
-        out_s = list(self.s[-1] - self.s[:-1][::-1])
 
         X, Y, Z, theta, phi, psi = compute_survey(
                                         X0, Y0, Z0, theta0, phi0, psi0,
@@ -119,7 +118,7 @@ class SurveyTable(Table):
         out["psi"] = np.unwrap(psi)
 
         out["name"] = list(out_name) + ["_end_point"]
-        out["s"] = np.array(list(out_s) + [self.s[-1]])
+        out["s"] = self.s[-1] - self.s[::-1]
 
         out['drift_length'] = np.array(out_drift_length + [0.])
         out['angle'] = np.array(out_angle + [0.])
