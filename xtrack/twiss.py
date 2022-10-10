@@ -800,7 +800,11 @@ class TwissTable(Table):
         new.W_matrix = [new.W_matrix[ii, :, :] for ii in range(len(new.x))]
 
         if hasattr(new, 'R_matrix'): new.R_matrix = None # To be implemented
-        if hasattr(new, 'particle_on_co'): new.particle_on_co = None # To be implemented
+        if hasattr(new, 'particle_on_co'):
+            new.particle_on_co = self.particle_on_co.copy()
+            new.particle_on_co.x = -new.particle_on_co.x
+            new.particle_on_co.py = -new.particle_on_co.py
+            new.particle_on_co.zeta = -new.particle_on_co.zeta
 
         return new
 
