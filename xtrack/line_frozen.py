@@ -30,7 +30,15 @@ class LineFrozen:
 
         return TrackerData
 
-    def __init__(self, line, element_classes=None, _context=None, _buffer=None,  _offset=None):
+    def __init__(
+            self,
+            line,
+            element_classes=None,
+            extra_element_classes=[],
+            _context=None,
+            _buffer=None,
+            _offset=None
+    ):
         self.line = line
 
         if _buffer is None:
@@ -42,7 +50,9 @@ class LineFrozen:
 
         if not element_classes:
             element_classes = set(ee._XoStruct for ee in line.elements)
-        self.element_classes = sorted(element_classes, key=lambda cc: cc.__name__)
+            element_classes |= set(extra_element_classes)
+            element_classes = sorted(element_classes, key=lambda cc: cc.__name__)
+        self.element_classes = element_classes
 
         class ElementRefClass(xo.UnionRef):
             _reftypes = self.element_classes
@@ -205,8 +215,8 @@ class LineFrozen:
 
     @property
     def _buffer(self):
-        return self._line_data._buffer
+        return self._tracker_data._buffer
 
     @property
     def _offset(self):
-        return self._line_data._offset
+        return self._tracker_data._offset

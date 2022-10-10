@@ -69,6 +69,9 @@ class Tracker:
                 self.iscollective = True
                 break
 
+        if not particles_monitor_class:
+            particles_monitor_class = self._get_default_monitor_class()
+
         if self.iscollective:
             self._init_track_with_collective(
                 _context=_context,
@@ -192,8 +195,11 @@ class Tracker:
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
-                tempxtline = LineFrozen(_buffer=_buffer, element_classes=element_classes,
-                                   line=pp)
+                tempxtline = LineFrozen(
+                    _buffer=_buffer,
+                    element_classes=element_classes,
+                    extra_element_classes=[particles_monitor_class._XoStruct],
+                    line=pp)
                 pp.element_dict = dict(zip(
                     tempxtline.element_names, tempxtline.elements))
                 pp.element_names = tempxtline.element_names
@@ -287,11 +293,6 @@ class Tracker:
         if particles_class is None:
             particles_class = xp.Particles
 
-        if particles_monitor_class is None:
-            import xtrack as xt  # I have to do it like this
-                                 # to avoid circular import #TODO to be solved
-            particles_monitor_class = xt.ParticlesMonitor
-
         if local_particle_src is None:
             local_particle_src = xp.gen_local_particle_api()
 
@@ -299,8 +300,12 @@ class Tracker:
         self.extra_headers = extra_headers
 
         frozenline = LineFrozen(
-                    line=line, element_classes=element_classes,
-                    _context=_context, _buffer=_buffer, _offset=_offset)
+            line=line,
+            element_classes=element_classes,
+            extra_element_classes=[particles_monitor_class._XoStruct],
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset)
 
         context = frozenline._buffer.context
 
@@ -315,9 +320,7 @@ class Tracker:
         if element_classes is None:
             # Kernel relies on element_classes ordering
             assert track_kernel == 'skip' or track_kernel is None
-            element_classes = frozenline._ElementRefClass._reftypes + [
-                particles_monitor_class._XoStruct,
-            ]
+            element_classes = frozenline.element_classes
 
         line._freeze()
         self.line = line
@@ -620,11 +623,11 @@ class Tracker:
         """
         )
 
-        for type_id, element_cls in enumerate(self._line_frozen._ElementRefClass._reftypes):
-            ccnn = element_cls.__name__.replace("Data", "")
+        for ii, cc in enumerate(self.element_classes):
+            ccnn = cc.__name__.replace("Data", "")
             src_lines.append(
                 f"""
-                        case {type_id}:
+                        case {ii}:
 """
             )
             if ccnn == "Drift":
@@ -1198,6 +1201,12 @@ class Tracker:
             )
 
         self.record_last_track = monitor
+
+    @staticmethod
+    def _get_default_monitor_class():
+        import xtrack as xt  # I have to do it like this
+        # to avoid circular import #TODO to be solved
+        return xt.ParticlesMonitor
 
     def _get_monitor(self, particles, turn_by_turn_monitor, num_turns):
 
