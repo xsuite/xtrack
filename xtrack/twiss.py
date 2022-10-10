@@ -747,7 +747,7 @@ class TwissTable(Table):
 
         for kk in self._ebe_fields:
             if kk == 'name':
-                new[kk] = new[kk][::-1]
+                new[kk] = new[kk][:-1][::-1] + self.name[-1:]
             elif kk == 'W_matrix':
                 continue
             else:

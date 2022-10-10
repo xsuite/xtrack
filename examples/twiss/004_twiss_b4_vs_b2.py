@@ -75,7 +75,7 @@ assert np.isclose(twb2xt['qs'], 0.0021, atol=1e-4, rtol=0)
 for name in ['mb.b19r5.b2', 'mb.b19r1.b2', 'ip1', 'ip2', 'ip5', 'ip8',
              'mbxf.4l1', 'mbxf.4l5']:
     imad = list(twb2mad['name']).index(name+':1')
-    ixt = list(twb2xt['name']).index(name)
+    ixt = list(twb2xt['name']).index(name) + 1 # MAD measures at exit
 
     for sp in [spbet, spco, spdisp]:
         sp.axvline(x=twb2xt['s'][imad])

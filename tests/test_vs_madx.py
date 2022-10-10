@@ -13,152 +13,199 @@ import xfields as xf
 
 from cpymad.madx import Madx
 
-seq_name = 'lhcb1'
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 path = test_data_folder.joinpath('hllhc14_input_mad/')
 
-mad_with_errors = Madx(command_log="mad_final.log")
-mad_with_errors.call(str(path.joinpath("final_seq.madx")))
-mad_with_errors.use(sequence=seq_name)
-mad_with_errors.twiss()
-mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
-                          table="errtab")
-mad_with_errors.seterr(table="errtab")
-mad_with_errors.set(format=".15g")
+# mad_with_errors = Madx()
+# mad_with_errors.call(str(path.joinpath("final_seq.madx")))
+# mad_with_errors.use(sequence='lhcb1')
+# mad_with_errors.twiss()
+# mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
+#                           table="errtab")
+# mad_with_errors.seterr(table="errtab")
+# mad_with_errors.set(format=".15g")
 
-mad_no_errors = Madx(command_log="mad_final.log")
-mad_no_errors.call(str(test_data_folder.joinpath(
+mad_b12_no_errors = Madx()
+mad_b12_no_errors.call(str(test_data_folder.joinpath(
                                'hllhc15_noerrors_nobb/sequence.madx')))
-mad_no_errors.use(sequence=seq_name)
-mad_no_errors.globals['vrf400'] = 16
-mad_no_errors.globals['lagrf400.b1'] = 0.5
-mad_no_errors.twiss()
+mad_b12_no_errors.globals['vrf400'] = 16
+mad_b12_no_errors.globals['lagrf400.b1'] = 0.5
+mad_b12_no_errors.globals['lagrf400.b2'] = 0
+mad_b12_no_errors.use(sequence='lhcb1')
+mad_b12_no_errors.twiss()
+mad_b12_no_errors.use(sequence='lhcb2')
+mad_b12_no_errors.twiss()
+
+mad_b4_no_errors = Madx()
+mad_b4_no_errors.call(str(test_data_folder.joinpath(
+                               'hllhc15_noerrors_nobb/sequence_b4.madx')))
+mad_b4_no_errors.globals['vrf400'] = 16
+mad_b4_no_errors.globals['lagrf400.b2'] = 0
+mad_b4_no_errors.use(sequence='lhcb2')
+mad_b4_no_errors.twiss()
 
 def test_twiss():
 
-    mad = mad_with_errors
-    twmad = mad.twiss(chrom=True)
+    #for configuration in ['b1_with_errors', 'b2_no_errors']:
+    for configuration in ['b2_no_errors']:
 
-    line_full = xt.Line.from_madx_sequence(
-            mad.sequence['lhcb1'], apply_madx_errors=True)
-    line_full.elements[10].iscollective = True # we make it artificially collective to test this option
-    line_full.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
-                            gamma0=mad.sequence.lhcb1.beam.gamma)
+        print(f"Test configuration: {configuration}")
 
-    # Test twiss also on simplified line
-    line_simplified = line_full.copy()
+        if configuration == 'b1_with_errors':
+            mad_load = mad_with_errors
+            mad_ref = mad_with_errors
+            seq_name = 'lhcb1'
+            reverse = False
+            use = False
+        elif configuration == 'b2_no_errors':
+            mad_load = mad_b4_no_errors
+            mad_ref = mad_b12_no_errors
+            seq_name = 'lhcb2'
+            reverse = True
+            use = True
 
-    print('Simplifying line...')
-    line_simplified.remove_inactive_multipoles()
-    line_simplified.merge_consecutive_multipoles()
-    line_simplified.remove_zero_length_drifts()
-    line_simplified.merge_consecutive_drifts()
-    print('Done simplifying line')
+        if use:
+            mad_ref.use(sequence=seq_name)
+            mad_load.use(sequence=seq_name)
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
+        twmad = mad_ref.twiss(chrom=True)
 
-        line_full.tracker = None
-        line_simplified.tracker = None
+        line_full = xt.Line.from_madx_sequence(
+                mad_load.sequence[seq_name], apply_madx_errors=True)
+        line_full.elements[10].iscollective = True # we make it artificially collective to test this option
+        line_full.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+                                gamma0=mad_load.sequence[seq_name].beam.gamma)
 
-        tracker_full = xt.Tracker(_context=context, line=line_full)
-        assert tracker_full.iscollective
+        # Test twiss also on simplified line
+        line_simplified = line_full.copy()
 
-        tracker_simplified = line_simplified.build_tracker(_context=context)
+        print('Simplifying line...')
+        line_simplified.remove_inactive_multipoles()
+        line_simplified.merge_consecutive_multipoles()
+        line_simplified.remove_zero_length_drifts()
+        line_simplified.merge_consecutive_drifts()
+        print('Done simplifying line')
 
-        for tracker in [tracker_full, tracker_simplified]:
+        for context in xo.context.get_test_contexts():
+            print(f"Test {context.__class__}")
 
-            twxt = tracker.twiss()
+            line_full.tracker = None
+            line_simplified.tracker = None
 
-            # Check value_at_element_exit
-            twxt_exit = tracker.twiss(values_at_element_exit=True)
-            for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
-                    'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
-                    'dpy','mux','muy', 'name']:
-                assert np.all(twxt[nn][1:] == twxt_exit[nn])
+            tracker_full = xt.Tracker(_context=context, line=line_full)
+            assert tracker_full.iscollective
 
-            # Check against mad
-            assert np.isclose(mad.table.summ.q1[0], twxt['qx'], rtol=1e-4, atol=0)
-            assert np.isclose(mad.table.summ.q2[0], twxt['qy'], rtol=1e-4, atol=0)
-            assert np.isclose(mad.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
-            assert np.isclose(mad.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
-            assert np.isclose(mad.table.summ.alfa[0],
-                twxt['momentum_compaction_factor'], atol=1e-8, rtol=0)
-            assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
+            tracker_simplified = line_simplified.build_tracker(_context=context)
 
-            assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
+            for simplified, tracker in zip((False, True), [tracker_full, tracker_simplified]):
 
-            test_at_elements = ['mb.b19r5.b1..1', 'mb.b19r1.b1..2',
-                                'mbxf.4l1..1', 'mbxf.4l5..2',
-                                ]
-            if tracker is tracker_full:
-                test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
+                print(f"Simplified: {simplified}")
 
-            for name in test_at_elements:
+                twxt = tracker.twiss()
+                if reverse:
+                    twxt = twxt.reverse()
 
-                imad = list(twmad['name']).index(name+':1')
-                ixt = list(twxt['name']).index(name) + 1 # MAD measures at exit
+                # Check value_at_element_exit
+                if not reverse: # TODO: to be generalized...
+                    twxt_exit = tracker.twiss(values_at_element_exit=True)
+                    for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
+                            'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
+                            'dpy','mux','muy', 'name']:
+                        assert np.all(twxt[nn][1:] == twxt_exit[nn])
 
-                eemad = mad.sequence[seq_name].expanded_elements[name]
+                # Check against mad
+                assert np.isclose(mad_ref.table.summ.q1[0], twxt['qx'], rtol=1e-4, atol=0)
+                assert np.isclose(mad_ref.table.summ.q2[0], twxt['qy'], rtol=1e-4, atol=0)
+                assert np.isclose(mad_ref.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
+                assert np.isclose(mad_ref.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
+                assert np.isclose(mad_ref.table.summ.alfa[0],
+                    twxt['momentum_compaction_factor'], atol=7e-8, rtol=0)
+                assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
-                mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
-                mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
+                assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
 
-                assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
-                                atol=0, rtol=3e-4)
-                assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
-                                atol=0, rtol=3e-4)
-                assert np.isclose(twxt['alfx'][ixt], twmad['alfx'][imad],
-                                atol=1e-1, rtol=0)
-                assert np.isclose(twxt['alfy'][ixt], twmad['alfy'][imad],
-                                atol=1e-1, rtol=0)
-                assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad],
-                                atol=1e-2, rtol=0)
-                assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad],
-                                atol=1e-2, rtol=0)
-                assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad],
-                                atol=3e-4, rtol=0)
-                assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad],
-                                atol=3e-4, rtol=0)
-                assert np.isclose(twxt['mux'][ixt], twmad['mux'][imad],
-                                atol=1e-4, rtol=0)
-                assert np.isclose(twxt['muy'][ixt], twmad['muy'][imad],
-                                atol=1e-4, rtol=0)
 
-                assert np.isclose(twxt['s'][ixt], twmad['s'][imad],
-                                atol=5e-6, rtol=0)
-                assert np.isclose(twxt['x'][ixt],
-                                (twmad['x'][imad] - mad_shift_x),
-                                atol=5e-6, rtol=0)
-                assert np.isclose(twxt['y'][ixt],
-                                (twmad['y'][imad] - mad_shift_y),
-                                atol=5e-6, rtol=0)
-                assert np.isclose(twxt['px'][ixt], twmad['px'][imad],
-                                atol=1e-7, rtol=0)
-                assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
-                                atol=1e-7, rtol=0)
+                #TODO: these are all markers, need to reintroduce check at actual magnets
+                #       also, it wouldn't work on simplified line
 
-            # Test custom s locations
-            s_test = [2e3, 1e3, 3e3, 10e3]
-            twats = tracker.twiss(at_s = s_test)
-            for ii, ss in enumerate(s_test):
-                assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
-                assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
-                                rtol=1e-5, atol=0)
-                assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
-                                rtol=1e-5, atol=0)
-                assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
-                                rtol=1e-5, atol=0)
-                assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
-                                rtol=1e-5, atol=0)
+
+                test_at_elements = []
+                test_at_elements.extend(['mbxf.4l1', 'mbxf.4l5'])
+
+                if seq_name.endswith('b1'):
+                    test_at_elements.extend(['mb.b19r5.b1', 'mb.b19r1.b1'])
+                elif seq_name.endswith('b2'):
+                    test_at_elements.extend(['mb.b19r5.b2', 'mb.b19r1.b2'])
+
+                if tracker is tracker_full:
+                    test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
+
+                for name in test_at_elements:
+
+                    imad = list(twmad['name']).index(name+':1')
+                    ixt = list(twxt['name']).index(name) + 1 # MAD measures at exit
+
+                    eemad = mad_ref.sequence[seq_name].expanded_elements[name]
+
+                    mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
+                    mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
+
+                    assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
+                                    atol=0, rtol=3e-4)
+                    assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
+                                    atol=0, rtol=3e-4)
+                    assert np.isclose(twxt['alfx'][ixt], twmad['alfx'][imad],
+                                    atol=1e-1, rtol=0)
+                    assert np.isclose(twxt['alfy'][ixt], twmad['alfy'][imad],
+                                    atol=1e-1, rtol=0)
+                    assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad],
+                                    atol=1e-2, rtol=0)
+                    assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad],
+                                    atol=1e-2, rtol=0)
+                    assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad],
+                                    atol=3e-4, rtol=0)
+                    assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad],
+                                    atol=3e-4, rtol=0)
+                    assert np.isclose(twxt['mux'][ixt], twmad['mux'][imad],
+                                    atol=1e-4, rtol=0)
+                    assert np.isclose(twxt['muy'][ixt], twmad['muy'][imad],
+                                    atol=1e-4, rtol=0)
+
+                    assert np.isclose(twxt['s'][ixt], twmad['s'][imad],
+                                    atol=5e-6, rtol=0)
+                    assert np.isclose(twxt['x'][ixt],
+                                    (twmad['x'][imad] - mad_shift_x),
+                                    atol=5e-6, rtol=0)
+                    assert np.isclose(twxt['y'][ixt],
+                                    (twmad['y'][imad] - mad_shift_y),
+                                    atol=5e-6, rtol=0)
+                    assert np.isclose(twxt['px'][ixt], twmad['px'][imad],
+                                    atol=1e-7, rtol=0)
+                    assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
+                                    atol=1e-7, rtol=0)
+
+                # Test custom s locations
+                if not reversed:
+                    s_test = [2e3, 1e3, 3e3, 10e3]
+                    twats = tracker.twiss(at_s = s_test)
+                    for ii, ss in enumerate(s_test):
+                        assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
+                        assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
+                                        rtol=1e-5, atol=0)
+                        assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
+                                        rtol=1e-5, atol=0)
+                        assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
+                                        rtol=1e-5, atol=0)
+                        assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
+                                        rtol=1e-5, atol=0)
 
 
 
 def test_survey():
-    mad = mad_no_errors
+    mad = mad_b12_no_errors
     mad.survey()
 
     madsurvey = mad.table.survey.dframe()
@@ -176,8 +223,6 @@ def test_survey():
     for coord in ['X','Z']:
         idx = madsurvey[coord.lower()].index
         assert np.all(np.isclose(xsurvey.loc[idx,coord],madsurvey.loc[idx,coord.lower()], atol=1e-9, rtol=0))
-
-        
 
 def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))
@@ -334,7 +379,7 @@ def test_line_import_from_madx():
 
 def test_orbit_knobs():
 
-    mad = mad_no_errors
+    mad = mad_b12_no_errors
 
     line = xt.Line.from_madx_sequence(
         mad.sequence['lhcb1'], apply_madx_errors=False,
