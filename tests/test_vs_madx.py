@@ -19,14 +19,14 @@ test_data_folder = pathlib.Path(
 
 path = test_data_folder.joinpath('hllhc14_input_mad/')
 
-# mad_with_errors = Madx()
-# mad_with_errors.call(str(path.joinpath("final_seq.madx")))
-# mad_with_errors.use(sequence='lhcb1')
-# mad_with_errors.twiss()
-# mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
-#                           table="errtab")
-# mad_with_errors.seterr(table="errtab")
-# mad_with_errors.set(format=".15g")
+mad_with_errors = Madx()
+mad_with_errors.call(str(path.joinpath("final_seq.madx")))
+mad_with_errors.use(sequence='lhcb1')
+mad_with_errors.twiss()
+mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
+                          table="errtab")
+mad_with_errors.seterr(table="errtab")
+mad_with_errors.set(format=".15g")
 
 mad_b12_no_errors = Madx()
 mad_b12_no_errors.call(str(test_data_folder.joinpath(
@@ -49,8 +49,7 @@ mad_b4_no_errors.twiss()
 
 def test_twiss():
 
-    #for configuration in ['b1_with_errors', 'b2_no_errors']:
-    for configuration in ['b2_no_errors']:
+    for configuration in ['b1_with_errors', 'b2_no_errors']:
 
         print(f"Test configuration: {configuration}")
 
@@ -127,25 +126,30 @@ def test_twiss():
 
                 assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
 
-
-                #TODO: these are all markers, need to reintroduce check at actual magnets
-                #       also, it wouldn't work on simplified line
-
-
                 test_at_elements = []
-                test_at_elements.extend(['mbxf.4l1', 'mbxf.4l5'])
+                test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
 
                 if seq_name.endswith('b1'):
-                    test_at_elements.extend(['mb.b19r5.b1', 'mb.b19r1.b1'])
+                    test_at_elements.extend(['mb.b19r5.b1..1', 'mb.b19r1.b1..1'])
                 elif seq_name.endswith('b2'):
-                    test_at_elements.extend(['mb.b19r5.b2', 'mb.b19r1.b2'])
+                    test_at_elements.extend(['mb.b19r5.b2..1', 'mb.b19r1.b2..1'])
 
                 if tracker is tracker_full:
                     test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
 
                 for name in test_at_elements:
 
-                    imad = list(twmad['name']).index(name+':1')
+                    if reverse:
+                        name_mad = {
+                            'mbxf.4l1..1': 'mbxf.4l1..4',
+                            'mbxf.4l5..1': 'mbxf.4l5..4',
+                            'mb.b19r5.b2..1': 'mb.b19r5.b2..2',
+                            'mb.b19r1.b2..1': 'mb.b19r1.b2..2',
+                        }.get(name, name)
+                    else:
+                        name_mad = name
+
+                    imad = list(twmad['name']).index(name_mad+':1')
                     ixt = list(twxt['name']).index(name) + 1 # MAD measures at exit
 
                     eemad = mad_ref.sequence[seq_name].expanded_elements[name]

@@ -163,6 +163,7 @@ def twiss_from_tracker(tracker, particle_ref,
         })
         twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
         twiss_res['R_matrix'] = RR
+        twiss_res['values_at'] = 'entry'
 
         if eneloss_and_damping:
             assert RR is not None
@@ -173,6 +174,8 @@ def twiss_from_tracker(tracker, particle_ref,
     if values_at_element_exit:
         for nn, vv in twiss_res_element_by_element.items():
             twiss_res[nn] = vv[1:]
+            twiss_res['values_at'] = 'exit'
+
 
     if at_elements is not None:
         twiss_res._keep_only_elements(at_elements)
@@ -666,6 +669,9 @@ class TwissInit:
 class TwissTable(Table):
 
     def get_twiss_init(self, at_element):
+
+        assert self.values_at == 'entry', 'Not yet implemented for exit'
+
         if isinstance(at_element, str):
             at_element = self.name.index(at_element)
         part = self.particle_on_co.copy()
@@ -741,6 +747,9 @@ class TwissTable(Table):
         return res
 
     def reverse(self):
+
+        assert self.values_at == 'entry', 'Not yet implemented for exit'
+
         new = TwissTable()
         for kk, vv in self.items():
             new[kk] = vv
