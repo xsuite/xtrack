@@ -740,7 +740,7 @@ class TwissTable(Table):
 
         return res
 
-    def mirror(self):
+    def reverse(self):
         new = TwissTable()
         for kk, vv in self.items():
             new[kk] = vv

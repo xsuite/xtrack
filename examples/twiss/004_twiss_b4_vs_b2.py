@@ -22,7 +22,7 @@ line_b4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 tracker_b4 = xt.Tracker(line=line_b4)
 twb4xt = tracker_b4.twiss()
 
-twb2xt = twb4xt.mirror()
+twb2xt = twb4xt.reverse()
 
 # Compute twiss also from W matrix to check the W matrix
 Ws = np.array(twb2xt.W_matrix)

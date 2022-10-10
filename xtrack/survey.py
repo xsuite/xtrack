@@ -96,7 +96,7 @@ def advance_element(v, w, length=0, angle=0, tilt=0):
 
 class SurveyTable(Table):
 
-    def mirror(self, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,):
+    def reverse(self, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,):
 
         # We cut away the last marker (added by survey) and reverse the order
         out_drift_length = list(self.drift_length[:-1][::-1])

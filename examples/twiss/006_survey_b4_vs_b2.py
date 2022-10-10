@@ -41,7 +41,7 @@ starting = {
 survb4mad = mad_b4.survey(**starting).dframe()
 survb2mad = mad_b2.survey(**starting).dframe()
 survb4xt = tracker_b4.survey(**starting).to_pandas(index="name")
-survb2xt = tracker_b4.survey().mirror(**starting).to_pandas(index="name")
+survb2xt = tracker_b4.survey().reverse(**starting).to_pandas(index="name")
 
 # ================================
 plt.close('all')

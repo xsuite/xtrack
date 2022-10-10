@@ -10,11 +10,11 @@ from functools import partial
 from .general import _pkg_root
 from .line_frozen import LineFrozen
 from .base_element import _handle_per_particle_blocks
-from .twiss_from_tracker import (twiss_from_tracker,
+from .twiss import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
                                  find_closed_orbit, match_tracker
                                 )
-from .survey_from_tracker import survey_from_tracker
+from .survey import survey_from_tracker
 from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging_for_elements_of_type,
                              stop_internal_logging_for_elements_of_type)
