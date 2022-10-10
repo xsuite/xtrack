@@ -51,6 +51,10 @@ mad_with_errors.sequence.lhcb1.beam.sigt = 1e-10
 mad_with_errors.sequence.lhcb1.beam.sige = 1e-10
 mad_with_errors.sequence.lhcb1.beam.et = 1e-10
 
+surv_starting_point = {
+    "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
+    "X0": -300, "Y0": 150, "Z0": -100}
+
 def test_twiss():
 
     for configuration in ['b1_with_errors', 'b2_no_errors']:
@@ -84,6 +88,7 @@ def test_twiss():
         mad_ref.sequence[seq_name].beam.eyn = 3.5e-6
 
         twmad = mad_ref.twiss(chrom=True)
+        survmad = mad_ref.survey(**surv_starting_point)
 
         line_full = xt.Line.from_madx_sequence(
                 mad_load.sequence[seq_name], apply_madx_errors=True)
@@ -117,8 +122,10 @@ def test_twiss():
                 print(f"Simplified: {simplified}")
 
                 twxt = tracker.twiss()
+                survxt = tracker.survey(**surv_starting_point)
                 if reverse:
                     twxt = twxt.reverse()
+                    survxt = survxt.reverse(**surv_starting_point)
 
                 nemitt_x = mad_ref.sequence[seq_name].beam.exn
                 nemitt_y = mad_ref.sequence[seq_name].beam.eyn
@@ -250,6 +257,19 @@ def test_twiss():
                     assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
                     assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
 
+                    # Check survey
+                    assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
+                    assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
+                    assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
+                    assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
+                    assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
+                    assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
+                    assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
+
+                    # angle and tilt are assovciated to the element itself (ixt - 1)
+                    assert np.isclose(survxt.angle[ixt-1], survmad['angle'][imad], atol=1e-10)
+                    assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
+
 
                 # Test custom s locations
                 if not reversed:
@@ -267,26 +287,6 @@ def test_twiss():
                                         rtol=1e-5, atol=0)
 
 
-
-def test_survey():
-    mad = mad_b12_no_errors
-    mad.survey()
-
-    madsurvey = mad.table.survey.dframe()
-
-    line_full = xt.Line.from_madx_sequence(mad.sequence['lhcb1'])
-    line_full.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
-                            gamma0=mad.sequence.lhcb1.beam.gamma)
-
-    tracker = xt.Tracker(line=line_full)
-    xsurvey = tracker.survey().to_pandas(index='name')
-
-    for ridof in ['drift','#']:
-        madsurvey  =  madsurvey[np.invert(madsurvey.index.str.contains(ridof,regex=False))]
-
-    for coord in ['X','Z']:
-        idx = madsurvey[coord.lower()].index
-        assert np.all(np.isclose(xsurvey.loc[idx,coord],madsurvey.loc[idx,coord.lower()], atol=1e-9, rtol=0))
 
 def norm(x):
     return np.sqrt(np.sum(np.array(x) ** 2))

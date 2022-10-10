@@ -184,7 +184,7 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     out["phi"] = np.unwrap(phi)
     out["psi"] = np.unwrap(psi)
 
-    out["name"] = line.element_names + ("_end_point",)
+    out["name"] = list(line.element_names) + ["_end_point"]
     out["s"] = np.array(line.get_s_elements() + [line.get_length()])
 
     out['drift_length'] = np.array(drift_length + [0.])
