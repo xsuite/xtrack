@@ -292,3 +292,40 @@ def _get_at_turn_element(particles):
     all_together = len(at_turn)==1 and len(at_element)==1 and len(at_s)==1
     return all_together, at_turn[0], at_element[0], at_s[0]
 
+
+def test_tracker_binary_serialization(tmp_path):
+    tmp_file = tmp_path / 'test_tracker_binary_serialization.npy'
+    file_path = tmp_file.resolve()
+
+    line = xt.Line(
+        elements={
+            'mn': xt.Multipole(knl=[1, 2]),
+            'ms': xt.Multipole(ksl=[3]),
+            'd': xt.Drift(length=4),
+        },
+        element_names=['mn', 'd', 'ms', 'd', 'mn'],
+    )
+
+    tracker = line.build_tracker(_context=xo.context_default)
+
+    tracker.to_binary_file(file_path)
+    new_tracker = xt.Tracker.from_binary_file(file_path)
+
+    assert new_tracker._buffer is not tracker._buffer
+
+    new_line = new_tracker.line
+
+    assert line.element_names == new_line.element_names
+
+    assert [elem.__class__.__name__ for elem in line.elements] == \
+           ['Multipole', 'Drift', 'Multipole', 'Drift', 'Multipole']
+    assert line.elements[0]._xobject._offset == \
+           new_line.elements[4]._xobject._offset
+    assert line.elements[1]._xobject._offset == \
+           new_line.elements[3]._xobject._offset
+
+    assert len(set(elem._xobject._buffer for elem in new_line.elements)) == 1
+
+    assert (new_line.elements[0].knl == [1, 2]).all()
+    assert new_line.elements[1].length == 4
+    assert (new_line.elements[2].ksl == [3]).all()

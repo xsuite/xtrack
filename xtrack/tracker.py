@@ -1250,3 +1250,41 @@ class Tracker:
     def stop_internal_logging_for_elements_of_type(self, element_type):
         self._check_invalidated()
         stop_internal_logging_for_elements_of_type(self, element_type)
+
+    def to_binary_file(self, path):
+        try:
+            frozen_line = self._line_frozen
+        except AttributeError:
+            raise TypeError("Only non-collective trackers can be binary serialized.")
+
+        if not isinstance(frozen_line._context, xo.ContextCpu):
+            buffer = xo.ContextCpu().new_buffer(0)
+        else:
+            buffer = None
+
+        buffer, header_offset = frozen_line.serialize(buffer)
+
+        with open(path, 'wb') as f:
+            np.save(f, header_offset)
+            np.save(f, buffer.buffer)
+
+    @classmethod
+    def from_binary_file(cls, path, particles_monitor_class=None) -> 'Tracker':
+        if not particles_monitor_class:
+            particles_monitor_class = cls._get_default_monitor_class()
+
+        with open(path, 'rb') as f:
+            header_offset = np.load(f)
+            np_buffer = np.load(f)
+
+        xbuffer = xo.ContextCpu().new_buffer(np_buffer.nbytes)
+        # make sure that if we carry on using the buffer we
+        # don't overwrite things, by marking everything as used
+        xbuffer.allocate(np_buffer.nbytes)
+        xbuffer.buffer = np_buffer
+        frozen_line = LineFrozen.deserialize(
+            xbuffer,
+            header_offset,
+            extra_element_classes=[particles_monitor_class]
+        )
+        return Tracker(line=frozen_line.line)

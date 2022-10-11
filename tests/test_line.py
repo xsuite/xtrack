@@ -5,6 +5,7 @@
 
 import numpy as np
 
+import xobjects
 import xtrack as xt
 
 def test_simplification_methods():
@@ -281,7 +282,7 @@ def test_line_frozen_serialization():
             'ms': xt.Multipole(ksl=[3]),
             'd': xt.Drift(length=4),
         },
-        element_names=['mn', 'd', 'ms', 'd', 'mn']
+        element_names=['mn', 'd', 'ms', 'd', 'mn'],
     )
 
     frozen = xt.LineFrozen(line=line)
@@ -299,8 +300,114 @@ def test_line_frozen_serialization():
            new_frozen.elements[3]._xobject._offset
 
     assert len(set(elem._xobject._buffer for elem in new_frozen.elements)) == 1
-    assert frozen._buffer is not new_frozen._buffer
 
     assert (new_frozen.elements[0].knl == [1, 2]).all()
     assert new_frozen.elements[1].length == 4
     assert (new_frozen.elements[2].ksl == [3]).all()
+
+
+def test_line_frozen_serialization_same_buffer():
+    buffer = xobjects.context_default.new_buffer(0)
+    line = xt.Line(
+        elements={
+            'mn': xt.Multipole(knl=[1, 2], _buffer=buffer),
+            'ms': xt.Multipole(ksl=[3], _buffer=buffer),
+            'd': xt.Drift(length=4, _buffer=buffer),
+        },
+        element_names=['mn', 'd', 'ms', 'd', 'mn'],
+    )
+
+    frozen = xt.LineFrozen(line=line)
+
+    assert frozen._buffer is buffer
+
+    out_buffer, header_offset = frozen.serialize()
+    new_frozen = frozen.deserialize(out_buffer, header_offset)
+
+    assert frozen.element_names == new_frozen.element_names
+
+    assert [elem.__class__.__name__ for elem in frozen.elements] == \
+           ['Multipole', 'Drift', 'Multipole', 'Drift', 'Multipole']
+    assert new_frozen.elements[0]._xobject._offset == \
+           new_frozen.elements[4]._xobject._offset
+    assert new_frozen.elements[1]._xobject._offset == \
+           new_frozen.elements[3]._xobject._offset
+
+    assert len(set(elem._xobject._buffer for elem in new_frozen.elements)) == 1
+
+    assert (new_frozen.elements[0].knl == [1, 2]).all()
+    assert new_frozen.elements[1].length == 4
+    assert (new_frozen.elements[2].ksl == [3]).all()
+
+
+def test_line_frozen_serialization_across_contexts():
+    buffer = xobjects.ContextCpu().new_buffer(0)
+    line = xt.Line(
+        elements={
+            'mn': xt.Multipole(knl=[1, 2], _buffer=buffer),
+            'ms': xt.Multipole(ksl=[3], _buffer=buffer),
+            'd': xt.Drift(length=4, _buffer=buffer),
+        },
+        element_names=['mn', 'd', 'ms', 'd', 'mn'],
+    )
+
+    fresh_buffer = xobjects.ContextCpu().new_buffer(0)
+
+    frozen = xt.LineFrozen(line=line, _buffer=fresh_buffer)
+
+    assert frozen._buffer is not buffer
+    assert frozen._buffer is fresh_buffer
+
+    out_buffer, header_offset = frozen.serialize()
+    new_frozen = frozen.deserialize(out_buffer, header_offset)
+
+    assert out_buffer is fresh_buffer
+    assert frozen.element_names == new_frozen.element_names
+
+    assert [elem.__class__.__name__ for elem in frozen.elements] == \
+           ['Multipole', 'Drift', 'Multipole', 'Drift', 'Multipole']
+    assert new_frozen.elements[0]._xobject._offset == \
+           new_frozen.elements[4]._xobject._offset
+    assert new_frozen.elements[1]._xobject._offset == \
+           new_frozen.elements[3]._xobject._offset
+
+    assert len(set(elem._xobject._buffer for elem in new_frozen.elements)) == 1
+
+    assert (new_frozen.elements[0].knl == [1, 2]).all()
+    assert new_frozen.elements[1].length == 4
+    assert (new_frozen.elements[2].ksl == [3]).all()
+
+
+
+def test_line_frozen_serialization_into_new_buffer():
+    line = xt.Line(
+        elements={
+            'mn': xt.Multipole(knl=[1, 2]),
+            'ms': xt.Multipole(ksl=[3]),
+            'd': xt.Drift(length=4),
+        },
+        element_names=['mn', 'd', 'ms', 'd', 'mn'],
+    )
+
+    frozen = xt.LineFrozen(line=line)
+    fresh_buffer = xobjects.ContextCpu().new_buffer(0)
+
+    out_buffer, header_offset = frozen.serialize(buffer=fresh_buffer)
+    new_frozen = frozen.deserialize(out_buffer, header_offset)
+
+    assert out_buffer is fresh_buffer
+    assert frozen.element_names == new_frozen.element_names
+
+    assert [elem.__class__.__name__ for elem in frozen.elements] == \
+           ['Multipole', 'Drift', 'Multipole', 'Drift', 'Multipole']
+    assert new_frozen.elements[0]._xobject._offset == \
+           new_frozen.elements[4]._xobject._offset
+    assert new_frozen.elements[1]._xobject._offset == \
+           new_frozen.elements[3]._xobject._offset
+
+    assert len(set(elem._xobject._buffer for elem in new_frozen.elements)) == 1
+
+    assert (new_frozen.elements[0].knl == [1, 2]).all()
+    assert new_frozen.elements[1].length == 4
+    assert (new_frozen.elements[2].ksl == [3]).all()
+
