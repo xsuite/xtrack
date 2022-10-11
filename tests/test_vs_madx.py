@@ -55,7 +55,7 @@ surv_starting_point = {
     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
     "X0": -300, "Y0": 150, "Z0": -100}
 
-def test_twiss():
+def test_twiss_and_survey():
 
     for configuration in ['b1_with_errors', 'b2_no_errors']:
 
@@ -67,12 +67,14 @@ def test_twiss():
             seq_name = 'lhcb1'
             reverse = False
             use = False
+            range_for_partial_twiss = ('mb.b19r3.b1..1', 'mb.b19l3.b1..1')
         elif configuration == 'b2_no_errors':
             mad_load = mad_b4_no_errors
             mad_ref = mad_b12_no_errors
             seq_name = 'lhcb2'
             reverse = True
             use = True
+            range_for_partial_twiss = ('mb.b19l3.b2..1', 'mb.b19r3.b2..1')
 
         if use:
             mad_ref.use(sequence=seq_name)
@@ -127,9 +129,7 @@ def test_twiss():
                     twxt = twxt.reverse()
                     survxt = survxt.reverse(**surv_starting_point)
 
-                nemitt_x = mad_ref.sequence[seq_name].beam.exn
-                nemitt_y = mad_ref.sequence[seq_name].beam.eyn
-                Sigmas = twxt.get_betatron_sigmas(nemitt_x, nemitt_y)
+
 
                 # Check value_at_element_exit
                 if not reverse: # TODO: to be generalized...
@@ -148,129 +148,144 @@ def test_twiss():
                     twxt['momentum_compaction_factor'], atol=7e-8, rtol=0)
                 assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
-                assert len(twxt['name']) == len(twxt['s'] == len(twxt['betx']))
+                # Twiss a part of the machine
+                tw_init = twxt.get_twiss_init(at_element=range_for_partial_twiss[0])
+                tw_part = tracker.twiss(ele_start=range_for_partial_twiss[0],
+                                        ele_stop='mb.b19l3.b1..1', twiss_init=tw_init)
 
-                test_at_elements = []
-                test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
+                ipart_start = tracker.line.element_names.index(range_for_partial_twiss[0])
+                ipart_stop = tracker.line.element_names.index(range_for_partial_twiss[1])
+                assert len(tw_part.name) == ipart_stop - ipart_start + 1
 
-                if seq_name.endswith('b1'):
-                    test_at_elements.extend(['mb.b19r5.b1..1', 'mb.b19r1.b1..1'])
-                elif seq_name.endswith('b2'):
-                    test_at_elements.extend(['mb.b19r5.b2..1', 'mb.b19r1.b2..1'])
+                for twtst in [twxt, tw_part]:
 
-                if tracker is tracker_full:
-                    test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
+                    nemitt_x = mad_ref.sequence[seq_name].beam.exn
+                    nemitt_y = mad_ref.sequence[seq_name].beam.eyn
+                    Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
 
-                for name in test_at_elements:
+                    for nn in twtst._ebe_fields:
+                        assert len(twtst[nn]) == len(twtst['name'])
 
-                    if reverse:
-                        name_mad = {
-                            'mbxf.4l1..1': 'mbxf.4l1..4',
-                            'mbxf.4l5..1': 'mbxf.4l5..4',
-                            'mb.b19r5.b2..1': 'mb.b19r5.b2..2',
-                            'mb.b19r1.b2..1': 'mb.b19r1.b2..2',
-                        }.get(name, name)
-                    else:
-                        name_mad = name
+                    test_at_elements = []
+                    test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
 
-                    imad = list(twmad['name']).index(name_mad+':1')
-                    ixt = list(twxt['name']).index(name) + 1 # MAD measures at exit
+                    if seq_name.endswith('b1'):
+                        test_at_elements.extend(['mb.b19r5.b1..1', 'mb.b19r1.b1..1'])
+                    elif seq_name.endswith('b2'):
+                        test_at_elements.extend(['mb.b19r5.b2..1', 'mb.b19r1.b2..1'])
 
-                    eemad = mad_ref.sequence[seq_name].expanded_elements[name]
+                    if tracker is tracker_full:
+                        test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
 
-                    mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
-                    mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
+                    for name in test_at_elements:
 
-                    assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
-                                    atol=0, rtol=3e-4)
-                    assert np.isclose(twxt['bety'][ixt], twmad['bety'][imad],
-                                    atol=0, rtol=3e-4)
-                    assert np.isclose(twxt['alfx'][ixt], twmad['alfx'][imad],
-                                    atol=1e-1, rtol=0)
-                    assert np.isclose(twxt['alfy'][ixt], twmad['alfy'][imad],
-                                    atol=1e-1, rtol=0)
-                    assert np.isclose(twxt['dx'][ixt], twmad['dx'][imad],
-                                    atol=1e-2, rtol=0)
-                    assert np.isclose(twxt['dy'][ixt], twmad['dy'][imad],
-                                    atol=1e-2, rtol=0)
-                    assert np.isclose(twxt['dpx'][ixt], twmad['dpx'][imad],
-                                    atol=3e-4, rtol=0)
-                    assert np.isclose(twxt['dpy'][ixt], twmad['dpy'][imad],
-                                    atol=3e-4, rtol=0)
-                    assert np.isclose(twxt['mux'][ixt], twmad['mux'][imad],
-                                    atol=1e-4, rtol=0)
-                    assert np.isclose(twxt['muy'][ixt], twmad['muy'][imad],
-                                    atol=1e-4, rtol=0)
+                        if reverse:
+                            name_mad = {
+                                'mbxf.4l1..1': 'mbxf.4l1..4',
+                                'mbxf.4l5..1': 'mbxf.4l5..4',
+                                'mb.b19r5.b2..1': 'mb.b19r5.b2..2',
+                                'mb.b19r1.b2..1': 'mb.b19r1.b2..2',
+                            }.get(name, name)
+                        else:
+                            name_mad = name
 
-                    assert np.isclose(twxt['s'][ixt], twmad['s'][imad],
-                                    atol=5e-6, rtol=0)
-                    assert np.isclose(twxt['x'][ixt],
-                                    (twmad['x'][imad] - mad_shift_x),
-                                    atol=5e-6, rtol=0)
-                    assert np.isclose(twxt['y'][ixt],
-                                    (twmad['y'][imad] - mad_shift_y),
-                                    atol=5e-6, rtol=0)
-                    assert np.isclose(twxt['px'][ixt], twmad['px'][imad],
-                                    atol=1e-7, rtol=0)
-                    assert np.isclose(twxt['py'][ixt], twmad['py'][imad],
-                                    atol=1e-7, rtol=0)
+                        imad = list(twmad['name']).index(name_mad+':1')
+                        ixt = list(twtst['name']).index(name) + 1 # MAD measures at exit
 
+                        eemad = mad_ref.sequence[seq_name].expanded_elements[name]
 
-                    assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
-                    assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=1e-10)
-                    assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
-                    assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
-                    assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
+                        mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
+                        mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
 
-                    # check matrix is symmetric
-                    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
+                        assert np.isclose(twtst['betx'][ixt], twmad['betx'][imad],
+                                        atol=0, rtol=3e-4)
+                        assert np.isclose(twtst['bety'][ixt], twmad['bety'][imad],
+                                        atol=0, rtol=3e-4)
+                        assert np.isclose(twtst['alfx'][ixt], twmad['alfx'][imad],
+                                        atol=1e-1, rtol=0)
+                        assert np.isclose(twtst['alfy'][ixt], twmad['alfy'][imad],
+                                        atol=1e-1, rtol=0)
+                        assert np.isclose(twtst['dx'][ixt], twmad['dx'][imad],
+                                        atol=1e-2, rtol=0)
+                        assert np.isclose(twtst['dy'][ixt], twmad['dy'][imad],
+                                        atol=1e-2, rtol=0)
+                        assert np.isclose(twtst['dpx'][ixt], twmad['dpx'][imad],
+                                        atol=3e-4, rtol=0)
+                        assert np.isclose(twtst['dpy'][ixt], twmad['dpy'][imad],
+                                        atol=3e-4, rtol=0)
+                        assert np.isclose(twtst['mux'][ixt], twmad['mux'][imad],
+                                        atol=1e-4, rtol=0)
+                        assert np.isclose(twtst['muy'][ixt], twmad['muy'][imad],
+                                        atol=1e-4, rtol=0)
 
-                    # check matrix consistency with Sigma.Sigma
-                    assert np.isclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
+                        assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
+                                        atol=5e-6, rtol=0)
+                        assert np.isclose(twtst['x'][ixt],
+                                        (twmad['x'][imad] - mad_shift_x),
+                                        atol=5e-6, rtol=0)
+                        assert np.isclose(twtst['y'][ixt],
+                                        (twmad['y'][imad] - mad_shift_y),
+                                        atol=5e-6, rtol=0)
+                        assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
+                                        atol=1e-7, rtol=0)
+                        assert np.isclose(twtst['py'][ixt], twmad['py'][imad],
+                                        atol=1e-7, rtol=0)
 
-                    # Check sigma_x, sigma_y
-                    assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
-                    assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
+                        assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=1e-12)
+                        assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=1e-10)
+                        assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=1e-12)
+                        assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
+                        assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
+                        assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
+                        assert np.isclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
+                        assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
+                        assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
 
-                    # Check survey
-                    assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
-                    assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
-                    assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
-                    assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
-                    assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
-                    assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
-                    assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
+                        # check matrix is symmetric
+                        assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
 
-                    # angle and tilt are associated to the element itself (ixt - 1)
-                    # For now not checking the sign of the angles, convetion in mad-X to be calrified
-                    assert np.isclose(np.abs(survxt.angle[ixt-1]),
-                            np.abs(survmad['angle'][imad]), atol=1e-10)
-                    assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
+                        # check matrix consistency with Sigma.Sigma
+                        assert np.isclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
+                        assert np.isclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
+
+                        # Check sigma_x, sigma_y
+                        assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
+                        assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
+
+                        # Check survey
+                        assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
+                        assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
+                        assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
+                        assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
+                        assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
+                        assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
+                        assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
+
+                        # angle and tilt are associated to the element itself (ixt - 1)
+                        # For now not checking the sign of the angles, convetion in mad-X to be calrified
+                        assert np.isclose(np.abs(survxt.angle[ixt-1]),
+                                np.abs(survmad['angle'][imad]), atol=1e-10)
+                        assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
 
                 # Test custom s locations
