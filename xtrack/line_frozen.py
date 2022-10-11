@@ -56,7 +56,7 @@ class LineFrozen:
             common_buffer = self.common_buffer_for_elements()
             if common_buffer is not None and _context in [common_buffer.context, None]:
                 _buffer = common_buffer
-            _buffer = _buffer or xo.get_a_buffer(context=_context, size=0)
+            _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
 
         num_elements = len(line.element_names)
 
