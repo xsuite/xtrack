@@ -128,6 +128,8 @@ def twiss_from_tracker(tracker, particle_ref,
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
+    twiss_res.particle_on_co = part_on_co.copy()
+
 
     if not skip_global_quantities:
         mux = twiss_res_element_by_element['mux']

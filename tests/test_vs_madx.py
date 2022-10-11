@@ -151,7 +151,7 @@ def test_twiss_and_survey():
                 # Twiss a part of the machine
                 tw_init = twxt.get_twiss_init(at_element=range_for_partial_twiss[0])
                 tw_part = tracker.twiss(ele_start=range_for_partial_twiss[0],
-                                        ele_stop='mb.b19l3.b1..1', twiss_init=tw_init)
+                                        ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
 
                 ipart_start = tracker.line.element_names.index(range_for_partial_twiss[0])
                 ipart_stop = tracker.line.element_names.index(range_for_partial_twiss[1])
@@ -272,20 +272,21 @@ def test_twiss_and_survey():
                         assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
                         assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
 
-                        # Check survey
-                        assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
-                        assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
-                        assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
-                        assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
-                        assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
-                        assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
-                        assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
+                        if twtst is not tw_part: # We don't have survey on a part of the machine
+                            # Check survey
+                            assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
+                            assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
+                            assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
+                            assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
+                            assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
+                            assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
+                            assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
 
-                        # angle and tilt are associated to the element itself (ixt - 1)
-                        # For now not checking the sign of the angles, convetion in mad-X to be calrified
-                        assert np.isclose(np.abs(survxt.angle[ixt-1]),
-                                np.abs(survmad['angle'][imad]), atol=1e-10)
-                        assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
+                            # angle and tilt are associated to the element itself (ixt - 1)
+                            # For now not checking the sign of the angles, convetion in mad-X to be calrified
+                            assert np.isclose(np.abs(survxt.angle[ixt-1]),
+                                    np.abs(survmad['angle'][imad]), atol=1e-10)
+                            assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
 
                 # Test custom s locations
