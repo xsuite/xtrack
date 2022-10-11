@@ -266,8 +266,10 @@ def test_twiss():
                     assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
                     assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
 
-                    # angle and tilt are assovciated to the element itself (ixt - 1)
-                    assert np.isclose(survxt.angle[ixt-1], survmad['angle'][imad], atol=1e-10)
+                    # angle and tilt are associated to the element itself (ixt - 1)
+                    # For now not checking the sign of the angles, convetion in mad-X to be calrified
+                    assert np.isclose(np.abs(survxt.angle[ixt-1]),
+                            np.abs(survmad['angle'][imad]), atol=1e-10)
                     assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
 
