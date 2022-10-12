@@ -71,6 +71,7 @@ def test_twiss_and_survey():
         if configuration == 'b1_with_errors':
             mad_load = mad_with_errors
             mad_ref = mad_with_errors
+            ref_element_for_mu = 'acsca.d5l4.b1'
             seq_name = 'lhcb1'
             reverse = False
             use = False
