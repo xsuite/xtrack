@@ -130,6 +130,8 @@ def twiss_from_tracker(tracker, particle_ref,
 
     twiss_res.particle_on_co = part_on_co.copy()
 
+    circumference = tracker.line.get_length()
+    twiss_res['circumference'] = circumference
 
     if not skip_global_quantities:
         mux = twiss_res_element_by_element['mux']
@@ -152,7 +154,6 @@ def twiss_from_tracker(tracker, particle_ref,
         alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
         beta0 = part_on_co._xobject.beta0[0]
-        circumference = tracker.line.get_length()
         T_rev = circumference/clight/beta0
         betz0 = W[4, 4]**2 + W[4, 5]**2
         ptau_co = twiss_res_element_by_element['ptau']
@@ -165,7 +166,6 @@ def twiss_from_tracker(tracker, particle_ref,
         })
         twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
         twiss_res['R_matrix'] = RR
-        twiss_res['values_at'] = 'entry'
 
         if eneloss_and_damping:
             assert RR is not None
@@ -176,8 +176,9 @@ def twiss_from_tracker(tracker, particle_ref,
     if values_at_element_exit:
         for nn, vv in twiss_res_element_by_element.items():
             twiss_res[nn] = vv[1:]
-            twiss_res['values_at'] = 'exit'
-
+        twiss_res['values_at'] = 'exit'
+    else:
+        twiss_res['values_at'] = 'entry'
 
     if at_elements is not None:
         twiss_res._keep_only_elements(at_elements)
@@ -530,7 +531,6 @@ def compute_one_turn_matrix_finite_differences(
     else:
         steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
 
-
     context = tracker._buffer.context
 
     particle_on_co = particle_on_co.copy(
@@ -764,7 +764,9 @@ class TwissTable(Table):
             else:
                 new[kk] = new[kk][::-1].copy()
 
-        new.s = new.circumference - new.s
+        circumference = (
+            new.circumference if hasattr(new, 'circumference') else np.max(new.s))
+        new.s = circumference - new.s
 
         new.x = -new.x
         new.px = new.px # Dx/Ds
@@ -781,16 +783,20 @@ class TwissTable(Table):
         new.gamx = new.gamx
         new.gamy = new.gamy
 
+        qx = (new.qx if hasattr(new, 'qx') else np.max(new.mux))
+        qy = (new.qy if hasattr(new, 'qy') else np.max(new.muy))
+        qs = (new.qs if hasattr(new, 'qs') else np.max(new.muzeta))
+
+        new.mux = qx - new.mux
+        new.muy = qy - new.muy
+        new.muzeta = qs - new.muzeta
+
         new.dx = -new.dx
         new.dpx = new.dpx
         new.dy = new.dy
         new.dpy = -new.dpy
         new.dzeta = -new.dzeta
-        new.mux = new.qx - new.mux
-        new.muy = new.qy - new.muy
-        new.muzeta = new.qs - new.muzeta
 
-        # To be checked
         new.W_matrix = np.array(new.W_matrix)
         new.W_matrix = new.W_matrix[::-1, :, :].copy()
         new.W_matrix[:, 0, :] = -new.W_matrix[:, 0, :]

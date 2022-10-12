@@ -55,6 +55,13 @@ surv_starting_point = {
     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
     "X0": -300, "Y0": 150, "Z0": -100}
 
+b4_b2_mapping = {
+    'mbxf.4l1..1': 'mbxf.4l1..4',
+    'mbxf.4l5..1': 'mbxf.4l5..4',
+    'mb.b19r5.b2..1': 'mb.b19r5.b2..2',
+    'mb.b19r1.b2..1': 'mb.b19r1.b2..2',
+    }
+
 def test_twiss_and_survey():
 
     for configuration in ['b1_with_errors', 'b2_no_errors']:
@@ -71,6 +78,7 @@ def test_twiss_and_survey():
         elif configuration == 'b2_no_errors':
             mad_load = mad_b4_no_errors
             mad_ref = mad_b12_no_errors
+            ref_element_for_mu = 'acsca.d5r4.b2'
             seq_name = 'lhcb2'
             reverse = True
             use = True
@@ -129,7 +137,7 @@ def test_twiss_and_survey():
                     twxt = twxt.reverse()
                     survxt = survxt.reverse(**surv_starting_point)
 
-
+                assert len(twxt.name) == len(tracker.line.element_names) + 1
 
                 # Check value_at_element_exit
                 if not reverse: # TODO: to be generalized...
@@ -149,7 +157,7 @@ def test_twiss_and_survey():
                 assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
                 # Twiss a part of the machine
-                tw_init = twxt.get_twiss_init(at_element=range_for_partial_twiss[0])
+                tw_init = tracker.twiss().get_twiss_init(at_element=range_for_partial_twiss[0])
                 tw_part = tracker.twiss(ele_start=range_for_partial_twiss[0],
                                         ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
 
@@ -157,7 +165,10 @@ def test_twiss_and_survey():
                 ipart_stop = tracker.line.element_names.index(range_for_partial_twiss[1])
                 assert len(tw_part.name) == ipart_stop - ipart_start + 1
 
-                for twtst in [twxt, tw_part]:
+                if reverse:
+                    tw_part = tw_part.reverse()
+
+                for is_part, twtst in zip([False, True], [twxt, tw_part]):
 
                     nemitt_x = mad_ref.sequence[seq_name].beam.exn
                     nemitt_y = mad_ref.sequence[seq_name].beam.eyn
@@ -180,12 +191,7 @@ def test_twiss_and_survey():
                     for name in test_at_elements:
 
                         if reverse:
-                            name_mad = {
-                                'mbxf.4l1..1': 'mbxf.4l1..4',
-                                'mbxf.4l5..1': 'mbxf.4l5..4',
-                                'mb.b19r5.b2..1': 'mb.b19r5.b2..2',
-                                'mb.b19r1.b2..1': 'mb.b19r1.b2..2',
-                            }.get(name, name)
+                            name_mad = b4_b2_mapping.get(name, name)
                         else:
                             name_mad = name
 
@@ -213,10 +219,25 @@ def test_twiss_and_survey():
                                         atol=3e-4, rtol=0)
                         assert np.isclose(twtst['dpy'][ixt], twmad['dpy'][imad],
                                         atol=3e-4, rtol=0)
-                        assert np.isclose(twtst['mux'][ixt], twmad['mux'][imad],
-                                        atol=1e-4, rtol=0)
-                        assert np.isclose(twtst['muy'][ixt], twmad['muy'][imad],
-                                        atol=1e-4, rtol=0)
+
+                        if is_part:
+                            # I chck the phase advance w.r.t. ip1
+                            mux0_mad = twmad['mux'][list(twmad.name).index(ref_element_for_mu + ':1')]
+                            muy0_mad = twmad['muy'][list(twmad.name).index(ref_element_for_mu + ':1')]
+                            mux0_tst = twtst['mux'][list(twtst.name).index(ref_element_for_mu)]
+                            muy0_tst = twtst['muy'][list(twtst.name).index(ref_element_for_mu)]
+                        else:
+                            # I check the absolute phase advance
+                            mux0_mad = 0
+                            muy0_mad = 0
+                            mux0_tst = 0
+                            muy0_tst = 0
+                        assert np.isclose(twtst['mux'][ixt] - mux0_tst,
+                                          twmad['mux'][imad] - mux0_mad,
+                                          atol=1e-4, rtol=0)
+                        assert np.isclose(twtst['muy'][ixt] - muy0_tst,
+                                          twmad['muy'][imad] - muy0_mad,
+                                          atol=1e-4, rtol=0)
 
                         assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
                                         atol=5e-6, rtol=0)
