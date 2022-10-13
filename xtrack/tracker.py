@@ -369,7 +369,7 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0,
+                          co_search_settings={}, delta_zeta=0, delta0=None,
                           continue_on_closed_orbit_error=False):
 
         self._check_invalidated()
@@ -387,7 +387,7 @@ class Tracker:
             tracker = self
 
         return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
-                                 particle_ref=particle_ref,
+                                 particle_ref=particle_ref, delta0=delta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error)
 
@@ -408,7 +408,7 @@ class Tracker:
         return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
 
-    def twiss(self, particle_ref=None, r_sigma=0.01,
+    def twiss(self, particle_ref=None, delta0=None, r_sigma=0.01,
         nemitt_x=1e-6, nemitt_y=1e-6,
         delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, steps_r_matrix=None,
@@ -448,7 +448,7 @@ class Tracker:
                 "Either `particle_ref` or `particle_co_guess` must be provided")
 
         return twiss_from_tracker(tracker, particle_ref, r_sigma=r_sigma,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, delta0=delta0,
             delta_disp=delta_disp, delta_chrom=delta_chrom,
             particle_co_guess=particle_co_guess,
             steps_r_matrix=steps_r_matrix,
