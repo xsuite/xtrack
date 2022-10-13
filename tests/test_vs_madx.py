@@ -133,9 +133,11 @@ def test_twiss_and_survey():
                 print(f"Simplified: {simplified}")
 
                 twxt = tracker.twiss()
+                twxt4d = tracker.twiss(mode_4d=True)
                 survxt = tracker.survey(**surv_starting_point)
                 if reverse:
                     twxt = twxt.reverse()
+                    twxt4d = twxt4d.reverse()
                     survxt = survxt.reverse(**surv_starting_point)
 
                 assert len(twxt.name) == len(tracker.line.element_names) + 1
@@ -148,28 +150,37 @@ def test_twiss_and_survey():
                             'dpy','mux','muy', 'name']:
                         assert np.all(twxt[nn][1:] == twxt_exit[nn])
 
-                # Check against mad
-                assert np.isclose(mad_ref.table.summ.q1[0], twxt['qx'], rtol=1e-4, atol=0)
-                assert np.isclose(mad_ref.table.summ.q2[0], twxt['qy'], rtol=1e-4, atol=0)
-                assert np.isclose(mad_ref.table.summ.dq1, twxt['dqx'], atol=0.1, rtol=0)
-                assert np.isclose(mad_ref.table.summ.dq2, twxt['dqy'], atol=0.1, rtol=0)
-                assert np.isclose(mad_ref.table.summ.alfa[0],
-                    twxt['momentum_compaction_factor'], atol=7e-8, rtol=0)
-                assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
-
                 # Twiss a part of the machine
                 tw_init = tracker.twiss().get_twiss_init(at_element=range_for_partial_twiss[0])
+                tw4d_init = tracker.twiss(mode_4d=True).get_twiss_init(at_element=range_for_partial_twiss[0])
                 tw_part = tracker.twiss(ele_start=range_for_partial_twiss[0],
                                         ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
+                tw4d_part = tracker.twiss(mode_4d=True, ele_start=range_for_partial_twiss[0],
+                                        ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
+
+                if reverse:
+                    tw_part = tw_part.reverse()
+                    tw4d_part = tw4d_part.reverse()
 
                 ipart_start = tracker.line.element_names.index(range_for_partial_twiss[0])
                 ipart_stop = tracker.line.element_names.index(range_for_partial_twiss[1])
                 assert len(tw_part.name) == ipart_stop - ipart_start + 1
+                assert len(tw4d_part.name) == ipart_stop - ipart_start + 1
 
-                if reverse:
-                    tw_part = tw_part.reverse()
+                # Check against mad
+                for twtst in [twxt, twxt4d]:
+                    assert np.isclose(mad_ref.table.summ.q1[0], twtst['qx'], rtol=1e-4, atol=0)
+                    assert np.isclose(mad_ref.table.summ.q2[0], twtst['qy'], rtol=1e-4, atol=0)
+                    assert np.isclose(mad_ref.table.summ.dq1, twtst['dqx'], atol=0.1, rtol=0)
+                    assert np.isclose(mad_ref.table.summ.dq2, twtst['dqy'], atol=0.1, rtol=0)
+                    assert np.isclose(mad_ref.table.summ.alfa[0],
+                        twtst['momentum_compaction_factor'], atol=7e-8, rtol=0)
+                    if twtst is not tw4d_part:
+                        assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
-                for is_part, twtst in zip([False, True], [twxt, tw_part]):
+
+                for is_part, twtst in zip([False, False, True, True],
+                                           [twxt, twxt4d, tw_part, tw4d_part]):
 
                     nemitt_x = mad_ref.sequence[seq_name].beam.exn
                     nemitt_y = mad_ref.sequence[seq_name].beam.eyn

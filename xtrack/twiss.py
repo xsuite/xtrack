@@ -887,6 +887,11 @@ class TwissTable(Table):
             new.particle_on_co.py = -new.particle_on_co.py
             new.particle_on_co.zeta = -new.particle_on_co.zeta
 
+        if 'qs' in self.keys() and self.qs == 0:
+            # 4d calculation
+            new.qs = 0
+            new.muzeta[:] = 0
+
         return new
 
     def _keep_only_elements(self, at_elements):
