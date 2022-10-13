@@ -25,6 +25,8 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta':1e-6, 'ddelta':1e-7
 }
 
+DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
+
 log = logging.getLogger(__name__)
 
 
@@ -485,14 +487,23 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
     for shift_factor in [0, 1.]: # if not found at first attempt we shift slightly the starting point
         if shift_factor>0:
             log.warning('Need second attempt on closed orbit search')
-        (res, infodict, ier, mesg
-            ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker, delta_zeta),
-                x0=np.array([particle_co_guess._xobject.x[0] + shift_factor * 1e-5,
+
+        x0=np.array([particle_co_guess._xobject.x[0] + shift_factor * 1e-5,
                             particle_co_guess._xobject.px[0] + shift_factor * 1e-7,
                             particle_co_guess._xobject.y[0] + shift_factor * 1e-5,
                             particle_co_guess._xobject.py[0] + shift_factor * 1e-7,
                             particle_co_guess._xobject.zeta[0] + shift_factor * 1e-4,
-                            particle_co_guess._xobject.delta[0] + shift_factor * 1e-5]),
+                            particle_co_guess._xobject.delta[0] + shift_factor * 1e-5])
+        if np.all(np.abs(x0 - _one_turn_map(x0, particle_co_guess, tracker, delta_zeta))
+                    < DEFAULT_CO_SEARCH_TOL):
+            res = x0
+            fsolve_info = 'taken_guess'
+            ier = 1
+            break
+
+        (res, infodict, ier, mesg
+            ) = fsolve(lambda p: p - _one_turn_map(p, particle_co_guess, tracker, delta_zeta),
+                x0=x0,
                 full_output=True,
                 **co_search_settings)
         fsolve_info = {

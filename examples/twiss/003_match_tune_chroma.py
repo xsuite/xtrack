@@ -27,7 +27,6 @@ tracker.match(vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
         ('dqx', 10.0),
         ('dqy', 12.0),])
 t2 = time.time()
-
 print('\nTime fsolve: ', t2-t1)
 
 tw_final = tracker.twiss()
