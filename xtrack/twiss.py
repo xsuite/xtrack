@@ -294,7 +294,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 2, :] = (tracker.record_last_track.y[:6, i_start:i_stop+1] - y_co).T / scale_eigen
     Ws[:, 3, :] = (tracker.record_last_track.py[:6, i_start:i_stop+1] - py_co).T / scale_eigen
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
-    Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co.beta0 / scale_eigen
+    Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
     betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
     bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
