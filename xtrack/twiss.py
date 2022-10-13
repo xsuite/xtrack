@@ -836,10 +836,10 @@ class TwissTable(Table):
                     else:
                         self[kk] = [vv[ii] for ii in indx_twiss]
 
-def _error_for_match(knob_values, vary, targets, tracker):
+def _error_for_match(knob_values, vary, targets, tracker, tw_kwargs):
     for kk, vv in zip(vary, knob_values):
         tracker.vars[kk] = vv
-    tw = tracker.twiss()
+    tw = tracker.twiss(**tw_kwargs)
     res = []
     for tt in targets:
         if isinstance(tt[0], str):
@@ -848,8 +848,9 @@ def _error_for_match(knob_values, vary, targets, tracker):
             res.append(tt[0](tw) - tt[1])
     return np.array(res)
 
-def match_tracker(tracker, vary, targets):
-    _err = partial(_error_for_match, vary=vary, targets=targets, tracker=tracker)
+def match_tracker(tracker, vary, targets, tw_kwargs=None):
+    _err = partial(_error_for_match, vary=vary, targets=targets,
+                   tracker=tracker, tw_kwargs=tw_kwargs)
     x0 = [tracker.vars[vv]._value for vv in vary]
     (res, infodict, ier, mesg) = fsolve(_err, x0=x0, full_output=True)
     for kk, vv in zip(vary, res):

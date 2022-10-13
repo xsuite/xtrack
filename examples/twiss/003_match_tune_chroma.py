@@ -16,6 +16,9 @@ tw_before = tracker.twiss()
 print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
       f"Q'x = {tw_before['dqx']:.5f} Q'y = {tw_before['dqy']:.5f}")
 
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+
 t1 = time.time()
 tracker.match(vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
     targets = [

@@ -466,8 +466,8 @@ class Tracker:
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0):
         return survey_from_tracker(self,X0=X0,Y0=Y0,Z0=Z0,theta0=theta0,phi0=phi0,psi0=psi0)
 
-    def match(self, vary, targets):
-        return match_tracker(self, vary, targets)
+    def match(self, vary, targets, tw_kwargs={}):
+        return match_tracker(self, vary, targets, tw_kwargs=tw_kwargs)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
