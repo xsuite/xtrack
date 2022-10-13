@@ -26,6 +26,8 @@ from .multisetter import MultiSetter
 import xpart as _xp
 ParticlesMonitor = generate_monitor_class(_xp.Particles)
 
+from ._version import __version__
+
 def Particles(*args, **kwargs):
     raise ValueError(
     "`xtrack.Particles` not available anymore, please use `xpart.Particles`")

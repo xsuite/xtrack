@@ -4,6 +4,7 @@
 # ######################################### #
 
 from setuptools import setup, find_packages, Extension
+from pathlib import Path
 
 #######################################
 # Prepare list of compiled extensions #
@@ -15,9 +16,15 @@ extensions = []
 # Setup #
 #########
 
+version_file = Path(__file__).parent / 'xtrack/_version.py'
+dd = {}
+with open(version_file.absolute(), 'r') as fp:
+    exec(fp.read(), dd)
+__version__ = dd['__version__']
+
 setup(
     name='xtrack',
-    version='0.19.4',
+    version=__version__,
     description='Tracking library for particle accelerators',
     long_description='Tracking library for particle accelerators',
     url='https://xsuite.readthedocs.io/',
@@ -40,6 +47,6 @@ setup(
         'xdeps'
         ],
     extras_require={
-        'tests': ['cpymad', 'PyHEADTAIL'],
+        'tests': ['cpymad', 'PyHEADTAIL', 'pytest'],
         },
     )
