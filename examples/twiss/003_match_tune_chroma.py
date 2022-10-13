@@ -18,6 +18,8 @@ print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
 
 print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
 print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
 t1 = time.time()
 tracker.match(vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
@@ -33,3 +35,26 @@ tw_final = tracker.twiss()
 print('\nFinal twiss parameters')
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
+
+t1 = time.time()
+tracker.match(vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
+    targets = [
+        ('qx', 62.27),
+        ('qy', 60.28),
+        ('dqx', -5.0),
+        ('dqy', -7.0),])
+t2 = time.time()
+print('\nTime fsolve: ', t2-t1)
+
+tw_final = tracker.twiss()
+print('\nFinal twiss parameters')
+print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
+      f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
