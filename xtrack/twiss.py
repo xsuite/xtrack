@@ -247,17 +247,17 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         symplectify=symplectify)
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
-    part_for_twiss.s = particle_on_co.s[0]
-    part_for_twiss.at_element = particle_on_co.at_element[0]
-    i_start = part_for_twiss.at_element[0]
+    part_for_twiss.s = particle_on_co._xobject.s[0]
+    part_for_twiss.at_element = particle_on_co._xobject.at_element[0]
+    i_start = part_for_twiss._xobject.at_element[0]
 
     assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
     tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
                   ele_start=ele_start, ele_stop=ele_stop)
     assert np.all(ctx2np(part_for_twiss.state) == 1), (
         'Some test particles were lost during twiss!')
-    i_stop = part_for_twiss.at_element[0] + (
-        part_for_twiss.at_turn[0] * len(tracker.line.element_names))
+    i_stop = part_for_twiss._xobject.at_element[0] + (
+        part_for_twiss._xobject.at_turn[0] * len(tracker.line.element_names))
 
     x_co = tracker.record_last_track.x[6, i_start:i_stop+1].copy()
     y_co = tracker.record_last_track.y[6, i_start:i_stop+1].copy()
