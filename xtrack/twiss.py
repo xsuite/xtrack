@@ -30,7 +30,7 @@ DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 log = logging.getLogger(__name__)
 
 
-def twiss_from_tracker(tracker, particle_ref,
+def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
         particle_on_co=None, R_matrix=None, W_matrix=None, delta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
         delta_disp=1e-5, delta_chrom = 1e-4,
@@ -110,10 +110,42 @@ def twiss_from_tracker(tracker, particle_ref,
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)
 
-        W, Winv, Rot = lnf.compute_linear_normal_form(
-                                RR, symplectify=symplectify,
+        W, _, _ = lnf.compute_linear_normal_form(
+                                RR, only_4d_block=mode_4d, symplectify=symplectify,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
+
+    if mode_4d:
+        p_disp_minus = tracker.find_closed_orbit(
+                            particle_co_guess=particle_co_guess,
+                            particle_ref=particle_ref,
+                            co_search_settings=co_search_settings,
+                            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                            delta0=delta0-delta_disp)
+        p_disp_plus = tracker.find_closed_orbit(particle_co_guess=particle_co_guess,
+                            particle_ref=particle_ref,
+                            co_search_settings=co_search_settings,
+                            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                            delta0=delta0+delta_disp)
+
+        dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
+                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))/part_on_co._xobject.beta0[0]
+        dpx_dpzeta = ((p_disp_plus.px[0] - p_disp_minus.px[0])
+                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))/part_on_co._xobject.beta0[0]
+        dy_dpzeta = ((p_disp_plus.y[0] - p_disp_minus.y[0])
+                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))/part_on_co._xobject.beta0[0]
+        dpy_dpzeta = ((p_disp_plus.py[0] - p_disp_minus.py[0])
+                      /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))/part_on_co._xobject.beta0[0]
+
+        W[4:, :] = 0
+        W[:, 4:] = 0
+        W[4, 4] = 1
+        W[5, 5] = 1
+        W[5, 0] = dx_dpzeta
+        W[5, 1] = dpx_dpzeta
+        W[5, 2] = dy_dpzeta
+        W[5, 3] = dpy_dpzeta
+
 
     twiss_res_element_by_element = _propagate_optics(
         tracker=tracker,
