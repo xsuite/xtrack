@@ -141,10 +141,10 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
         W[:, 4:] = 0
         W[4, 4] = 1
         W[5, 5] = 1
-        W[5, 0] = dx_dpzeta
-        W[5, 1] = dpx_dpzeta
-        W[5, 2] = dy_dpzeta
-        W[5, 3] = dpy_dpzeta
+        W[0, 5] = dx_dpzeta
+        W[1, 5] = dpx_dpzeta
+        W[2, 5] = dy_dpzeta
+        W[3, 5] = dpy_dpzeta
 
 
     twiss_res_element_by_element = _propagate_optics(
