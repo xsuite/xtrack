@@ -45,6 +45,8 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
         matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False):
 
+    if mode_4d and delta0 is None:
+        delta0 = 0
 
     if at_s is not None:
         # Get all arguments
@@ -174,7 +176,7 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
 
         dqx, dqy = _compute_chromaticity(
             tracker=tracker,
-            W_matrix=W,
+            W_matrix=W, mode_4d=mode_4d,
             particle_on_co=part_on_co,
             delta_chrom=delta_chrom,
             tune_x=mux[-1], tune_y=muy[-1],
@@ -201,6 +203,10 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
         })
         twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
         twiss_res['R_matrix'] = RR
+
+        if mode_4d:
+            twiss_res.qs = 0
+            twiss_res.muzeta[:] = 0
 
         if eneloss_and_damping:
             assert RR is not None
@@ -367,7 +373,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                     tune_x, tune_y,
                     nemitt_x, nemitt_y, matrix_responsiveness_tol,
-                    matrix_stability_tol, symplectify, steps_r_matrix
+                    matrix_stability_tol, symplectify, steps_r_matrix,
+                    mode_4d=False
                     ):
 
     context = tracker._context
@@ -386,7 +393,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                                             particle_on_co=part_chrom_plus.copy(),
                                             steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
+        ) = lnf.compute_linear_normal_form(RR_chrom_plus, only_4d_block=mode_4d,
                                         responsiveness_tol=matrix_responsiveness_tol,
                                         stability_tol=matrix_stability_tol,
                                         symplectify=symplectify)
@@ -407,7 +414,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                                         particle_on_co=part_chrom_minus.copy(),
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
+        ) = lnf.compute_linear_normal_form(RR_chrom_minus, only_4d_block=mode_4d,
                                           symplectify=symplectify,
                                           stability_tol=matrix_stability_tol,
                                           responsiveness_tol=matrix_responsiveness_tol)
