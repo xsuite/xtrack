@@ -316,6 +316,24 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    # Rotate eigenvectors to the Courant-Snyder basis
+    phix = np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0])
+    phiy = np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2])
+    phizeta = np.arctan2(Ws[:, 4, 5], Ws[:, 4, 4])
+    v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
+    v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
+    v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
+    for ii in range(6):
+        v1[:, ii] *= np.exp(-1j * phix)
+        v2[:, ii] *= np.exp(-1j * phiy)
+        v3[:, ii] *= np.exp(-1j * phizeta)
+    Ws[:, :, 0] = np.real(v1)
+    Ws[:, :, 1] = np.imag(v1)
+    Ws[:, :, 2] = np.real(v2)
+    Ws[:, :, 3] = np.imag(v2)
+    Ws[:, :, 4] = np.real(v3)
+    Ws[:, :, 5] = np.imag(v3)
+
     betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
     bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
 
@@ -325,9 +343,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
     alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
 
-    mux = np.unwrap(np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0]))/2/np.pi
-    muy = np.unwrap(np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2]))/2/np.pi
-    muzeta = np.unwrap(np.arctan2(Ws[:, 4, 5], Ws[:, 4, 4]))/2/np.pi
+    mux = np.unwrap(phix)/2/np.pi
+    muy = np.unwrap(phiy)/2/np.pi
+    muzeta = np.unwrap(phizeta)/2/np.pi
 
     mux = mux - mux[0] + mux0
     muy = muy - muy[0] + muy0

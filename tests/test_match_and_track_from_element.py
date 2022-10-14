@@ -117,7 +117,7 @@ def test_match_and_track_from_element():
         particles.move(_context=xo.context_default)
         assert np.isclose(
             np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
-            np.max(np.abs(particles.x - np.mean(particles.x))), rtol=2e-3, atol=0)
+            np.max(np.abs(particles.x - np.mean(particles.x))), rtol=3e-3, atol=0)
         assert np.all(particles.at_turn==3)
         assert np.allclose(particles.s, 3*tracker.line.get_length(), rtol=0, atol=1e-7)
 
