@@ -216,9 +216,9 @@ def test_twiss_and_survey():
                         mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
 
                         assert np.isclose(twtst['betx'][ixt], twmad['betx'][imad],
-                                        atol=0, rtol=3e-4)
+                                        atol=0, rtol=5e-4)
                         assert np.isclose(twtst['bety'][ixt], twmad['bety'][imad],
-                                        atol=0, rtol=3e-4)
+                                        atol=0, rtol=5e-4)
                         assert np.isclose(twtst['alfx'][ixt], twmad['alfx'][imad],
                                         atol=1e-1, rtol=0)
                         assert np.isclose(twtst['alfy'][ixt], twmad['alfy'][imad],
@@ -253,19 +253,25 @@ def test_twiss_and_survey():
 
                         assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
                                         atol=5e-6, rtol=0)
+
+                        # I check the orbit relative to sigmas to be more accurate at the IP
+                        sigx = np.sqrt(twmad['sig11'][imad])
+                        sigy = np.sqrt(twmad['sig33'][imad])
+
                         assert np.isclose(twtst['x'][ixt],
                                         (twmad['x'][imad] - mad_shift_x),
-                                        atol=5e-6, rtol=0)
+                                        atol=0.01*sigx, rtol=0)
                         assert np.isclose(twtst['y'][ixt],
                                         (twmad['y'][imad] - mad_shift_y),
-                                        atol=5e-6, rtol=0)
+                                        atol=0.01*sigy, rtol=0)
+
                         assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
                                         atol=1e-7, rtol=0)
                         assert np.isclose(twtst['py'][ixt], twmad['py'][imad],
                                         atol=1e-7, rtol=0)
 
                         assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
-                        assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=1e-12)
+                        assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
                         assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=1e-10)
                         assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=1e-12)
                         assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
