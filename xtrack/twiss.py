@@ -117,7 +117,7 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
 
-    if mode_4d:
+    if mode_4d and W_matrix is None: # the matrix was not provided by the user
         p_disp_minus = tracker.find_closed_orbit(
                             particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
@@ -129,7 +129,6 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                             delta0=delta0+delta_disp)
-
         dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
                      /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))/part_on_co._xobject.beta0[0]
         dpx_dpzeta = ((p_disp_plus.px[0] - p_disp_minus.px[0])

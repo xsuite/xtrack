@@ -216,9 +216,9 @@ def test_twiss_and_survey():
                         mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
 
                         assert np.isclose(twtst['betx'][ixt], twmad['betx'][imad],
-                                        atol=0, rtol=5e-4)
+                                        atol=0, rtol=7e-4)
                         assert np.isclose(twtst['bety'][ixt], twmad['bety'][imad],
-                                        atol=0, rtol=5e-4)
+                                        atol=0, rtol=7e-4)
                         assert np.isclose(twtst['alfx'][ixt], twmad['alfx'][imad],
                                         atol=1e-1, rtol=0)
                         assert np.isclose(twtst['alfy'][ixt], twmad['alfy'][imad],
@@ -254,21 +254,20 @@ def test_twiss_and_survey():
                         assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
                                         atol=5e-6, rtol=0)
 
-                        # I check the orbit relative to sigmas to be more accurate at the IP
+                        # I check the orbit relative to sigma to be more accurate at the IP
                         sigx = np.sqrt(twmad['sig11'][imad])
                         sigy = np.sqrt(twmad['sig33'][imad])
 
-                        assert np.isclose(twtst['x'][ixt],
-                                        (twmad['x'][imad] - mad_shift_x),
-                                        atol=0.01*sigx, rtol=0)
+                        assert np.isclose(twtst['x'][ixt], (twmad['x'][imad] - mad_shift_x),
+                                        atol=0.03*sigx, rtol=0)
                         assert np.isclose(twtst['y'][ixt],
                                         (twmad['y'][imad] - mad_shift_y),
-                                        atol=0.01*sigy, rtol=0)
+                                        atol=0.03*sigy, rtol=0)
 
                         assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
-                                        atol=1e-7, rtol=0)
+                                        atol=2e-7, rtol=0)
                         assert np.isclose(twtst['py'][ixt], twmad['py'][imad],
-                                        atol=1e-7, rtol=0)
+                                        atol=2e-7, rtol=0)
 
                         assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
                         assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
@@ -311,7 +310,7 @@ def test_twiss_and_survey():
                         assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
                         assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
 
-                        if twtst is not tw_part: # We don't have survey on a part of the machine
+                        if not(is_part): # We don't have survey on a part of the machine
                             # Check survey
                             assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
                             assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
