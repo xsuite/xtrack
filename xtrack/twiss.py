@@ -925,9 +925,9 @@ def _error_for_match(knob_values, vary, targets, tracker, tw_kwargs):
             res.append(tt[0](tw) - tt[1])
     return np.array(res)
 
-def match_tracker(tracker, vary, targets, tw_kwargs=None):
+def match_tracker(tracker, vary, targets, **kwargs):
     _err = partial(_error_for_match, vary=vary, targets=targets,
-                   tracker=tracker, tw_kwargs=tw_kwargs)
+                   tracker=tracker, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv]._value for vv in vary]
     (res, infodict, ier, mesg) = fsolve(_err, x0=x0, full_output=True)
     for kk, vv in zip(vary, res):
