@@ -411,8 +411,8 @@ class Tracker:
     def twiss(self, particle_ref=None, delta0=None, mode_4d=False,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
         delta_disp=1e-5, delta_chrom=1e-4,
-        particle_co_guess=None, steps_r_matrix=None,
-        co_search_settings=None, at_elements=None, at_s=None,
+        particle_co_guess=None, R_matrix=None, W_matrix=None,
+        steps_r_matrix=None, co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
         continue_on_closed_orbit_error=False,
         eneloss_and_damping=False,
@@ -448,6 +448,7 @@ class Tracker:
                 "Either `particle_ref` or `particle_co_guess` must be provided")
 
         return twiss_from_tracker(tracker, particle_ref,
+            R_matrix=R_matrix, W_matrix=W_matrix,
             mode_4d=mode_4d, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, delta0=delta0,
             delta_disp=delta_disp, delta_chrom=delta_chrom,

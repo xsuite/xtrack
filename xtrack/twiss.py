@@ -264,10 +264,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         delta=np.array([-delta_disp, +delta_disp])+particle_on_co._xobject.delta[0],
         particle_on_co=particle_on_co,
         scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-        W_matrix=W_matrix,
-        matrix_responsiveness_tol=matrix_responsiveness_tol,
-        matrix_stability_tol=matrix_stability_tol,
-        symplectify=symplectify)
+        W_matrix=W_matrix)
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
     part_for_twiss.s = particle_on_co._xobject.s[0]
@@ -384,10 +381,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                 zeta=particle_on_co._xobject.zeta[0], delta=delta_chrom,
                 particle_on_co=particle_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                W_matrix=W_matrix,
-                matrix_stability_tol=matrix_stability_tol,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                symplectify=symplectify)
+                W_matrix=W_matrix)
     RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
                                             particle_on_co=part_chrom_plus.copy(),
                                             steps_r_matrix=steps_r_matrix)
@@ -405,10 +399,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                 zeta=particle_on_co._xobject.zeta[0], delta=-delta_chrom,
                 particle_on_co=particle_on_co,
                 scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
-                W_matrix=W_matrix,
-                matrix_responsiveness_tol=matrix_responsiveness_tol,
-                matrix_stability_tol=matrix_stability_tol,
-                symplectify=symplectify)
+                W_matrix=W_matrix)
     RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=part_chrom_minus.copy(),
                                         steps_r_matrix=steps_r_matrix)
