@@ -271,7 +271,7 @@ def test_twiss_and_survey():
 
                         assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
                         assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
-                        assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=1e-10)
+                        assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=2e-10)
                         assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=1e-12)
                         assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
                         assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
