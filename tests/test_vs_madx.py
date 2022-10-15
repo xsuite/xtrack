@@ -133,7 +133,7 @@ def test_twiss_and_survey():
                 print(f"Simplified: {simplified}")
 
                 twxt = tracker.twiss()
-                twxt4d = tracker.twiss(mode_4d=True)
+                twxt4d = tracker.twiss(method='4d')
                 survxt = tracker.survey(**surv_starting_point)
                 if reverse:
                     twxt = twxt.reverse()
@@ -152,10 +152,10 @@ def test_twiss_and_survey():
 
                 # Twiss a part of the machine
                 tw_init = tracker.twiss().get_twiss_init(at_element=range_for_partial_twiss[0])
-                tw4d_init = tracker.twiss(mode_4d=True).get_twiss_init(at_element=range_for_partial_twiss[0])
+                tw4d_init = tracker.twiss(method='4d').get_twiss_init(at_element=range_for_partial_twiss[0])
                 tw_part = tracker.twiss(ele_start=range_for_partial_twiss[0],
                                         ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
-                tw4d_part = tracker.twiss(mode_4d=True, ele_start=range_for_partial_twiss[0],
+                tw4d_part = tracker.twiss(method='4d', ele_start=range_for_partial_twiss[0],
                                         ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
 
                 if reverse:
