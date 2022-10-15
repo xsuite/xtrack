@@ -193,7 +193,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
-    twiss_res.particle_on_co = part_on_co.copy()
+    twiss_res.particle_on_co = part_on_co.copy(_context=xo.context_default)
 
     circumference = tracker.line.get_length()
     twiss_res['circumference'] = circumference
