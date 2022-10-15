@@ -425,23 +425,10 @@ class Tracker:
 
         self._check_invalidated()
 
-        return twiss_from_tracker(self, particle_ref,
-            R_matrix=R_matrix, W_matrix=W_matrix,
-            method=method, r_sigma=r_sigma,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y, delta0=delta0,
-            delta_disp=delta_disp, delta_chrom=delta_chrom,
-            particle_co_guess=particle_co_guess,
-            steps_r_matrix=steps_r_matrix,
-            co_search_settings=co_search_settings,
-            at_elements=at_elements, at_s=at_s,
-            values_at_element_exit=values_at_element_exit,
-            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-            particle_on_co=particle_on_co,
-            eneloss_and_damping=eneloss_and_damping,
-            ele_start=ele_start, ele_stop=ele_stop, twiss_init=twiss_init,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify)
+        kwargs = locals().copy()
+        kwargs.pop('self')
+
+        return twiss_from_tracker(self, **kwargs)
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0):
         return survey_from_tracker(self,X0=X0,Y0=Y0,Z0=Z0,theta0=theta0,phi0=phi0,psi0=psi0)
