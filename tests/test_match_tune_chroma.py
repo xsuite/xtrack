@@ -85,3 +85,32 @@ def test_match_tune_chromaticity():
         assert np.isclose(tw_final['qy'], 60.28, atol=1e-7)
         assert np.isclose(tw_final['dqx'], -5.0, atol=1e-4)
         assert np.isclose(tw_final['dqy'], -7.0, atol=1e-4)
+
+        # Trying 4d matching
+        for ee in line.elements:
+            if isinstance(ee, xt.Cavity):
+                ee.voltage = 0.0
+
+        tracker.match(method='4d', # <-- 4d matching
+            vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
+            targets = [
+                ('qx', 62.29),
+                ('qy', 60.31),
+                ('dqx', 6.0),
+                ('dqy', 4.0),])
+        t2 = time.time()
+        print('\nTime fsolve: ', t2-t1)
+
+        tw_final = tracker.twiss(method='4d')
+        print('\nFinal twiss parameters')
+        print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
+            f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
+        print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")
+        print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
+        print(f"ksf.b1 = {line.vars['ksf.b1']._value}")
+        print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
+
+        assert np.isclose(tw_final['qx'], 62.29, atol=1e-7)
+        assert np.isclose(tw_final['qy'], 60.31, atol=1e-7)
+        assert np.isclose(tw_final['dqx'],  6.0, atol=1e-4)
+        assert np.isclose(tw_final['dqy'],  4.0, atol=1e-4)
