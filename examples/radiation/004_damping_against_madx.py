@@ -101,8 +101,7 @@ part_co = tw['particle_on_co']
 particles = xp.build_particles(tracker=tracker, _context=context,
     x_norm=[500., 0, 0], y_norm=[0, 0.0001, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
-    scale_with_transverse_norm_emitt=(1e-9, 1e-9))
-#particles._init_random_number_generator(3*[4e9])
+    nemitt_x=1e-9, nemitt_y=1e-9)
 
 tracker.configure_radiation(mode='quantum')
 

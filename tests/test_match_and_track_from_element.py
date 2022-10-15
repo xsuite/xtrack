@@ -36,7 +36,7 @@ def test_match_and_track_from_element():
         at_element = 'ip2'
         particles = xp.build_particles(tracker=tracker, _context=ctx,
                         x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
-                        scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6),
+                        nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                         at_element=at_element)
 
         tw = tracker.twiss(at_elements=[at_element])
@@ -66,7 +66,7 @@ def test_match_and_track_from_element():
         at_element = 'ip2'
         particles = xp.build_particles(tracker=tracker, _context=ctx,
                         x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
-                        scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6),
+                        nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                         at_element=at_element)
 
         tw = tracker.twiss(at_elements=[at_element])
@@ -100,7 +100,7 @@ def test_match_and_track_from_element():
         at_element = 'ip2'
         particles = xp.build_particles(tracker=tracker, _context=ctx,
                         x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
-                        scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6),
+                        nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                         at_element=at_element)
 
         tw = tracker.twiss(at_elements=[at_element])
@@ -125,7 +125,7 @@ def test_match_and_track_from_element():
         at_element = 'ip6'
         particles = xp.build_particles(tracker=tracker, _context=ctx,
                         x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
-                        scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6),
+                        nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                         at_element=at_element,
                         match_at_s=tracker.line.get_s_position('ip6') + 100
                         )

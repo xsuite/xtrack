@@ -124,7 +124,7 @@ particles_fp = xp.build_particles(_context=context,
             zeta=0, delta=0,
             x_norm=x_norm_fp, px_norm=0,
             y_norm=y_norm_fp, py_norm=0,
-            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
 # I add explicitly a probe particle at1.5 sigma
 particle_probe = xp.build_particles(_context=context,
@@ -134,7 +134,7 @@ particle_probe = xp.build_particles(_context=context,
             zeta=0, delta=0,
             x_norm=1.5, px_norm=0,
             y_norm=1.5, py_norm=0,
-            scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
 particles_gaussian = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,

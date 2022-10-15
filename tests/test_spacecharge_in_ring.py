@@ -61,7 +61,7 @@ def test_ring_with_spacecharge():
                 zeta=0, delta=0,
                 x_norm=2, px_norm=0,
                 y_norm=2, py_norm=0,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y))
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
     particles_gaussian = xp.generate_matched_gaussian_bunch(
              num_particles=n_part, total_intensity_particles=bunch_intensity,

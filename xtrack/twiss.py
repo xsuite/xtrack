@@ -30,7 +30,7 @@ DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 log = logging.getLogger(__name__)
 
 
-def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
+def twiss_from_tracker(tracker, particle_ref, method='6d',
         particle_on_co=None, R_matrix=None, W_matrix=None, delta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
         delta_disp=1e-5, delta_chrom = 1e-4,
@@ -45,7 +45,9 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
         matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
         symplectify=False):
 
-    if mode_4d and delta0 is None:
+    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
+
+    if method == '4d' and delta0 is None:
         delta0 = 0
 
     if at_s is not None:
@@ -113,11 +115,12 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
                                                 particle_on_co=part_on_co)
 
         W, _, _ = lnf.compute_linear_normal_form(
-                                RR, only_4d_block=mode_4d, symplectify=symplectify,
+                                RR, only_4d_block=(method == '4d'),
+                                symplectify=symplectify,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
 
-    if mode_4d and W_matrix is None: # the matrix was not provided by the user
+    if method == '4d' and W_matrix is None: # the matrix was not provided by the user
         p_disp_minus = tracker.find_closed_orbit(
                             particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
@@ -175,7 +178,7 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
 
         dqx, dqy = _compute_chromaticity(
             tracker=tracker,
-            W_matrix=W, mode_4d=mode_4d,
+            W_matrix=W, method=method,
             particle_on_co=part_on_co,
             delta_chrom=delta_chrom,
             tune_x=mux[-1], tune_y=muy[-1],
@@ -203,7 +206,7 @@ def twiss_from_tracker(tracker, particle_ref, mode_4d=False,
         twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
         twiss_res['R_matrix'] = RR
 
-        if mode_4d:
+        if method == '4d':
             twiss_res.qs = 0
             twiss_res.muzeta[:] = 0
 
@@ -263,7 +266,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         zeta=particle_on_co._xobject.zeta[0],
         delta=np.array([-delta_disp, +delta_disp])+particle_on_co._xobject.delta[0],
         particle_on_co=particle_on_co,
-        scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
         W_matrix=W_matrix)
 
     part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
@@ -388,7 +391,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                     tune_x, tune_y,
                     nemitt_x, nemitt_y, matrix_responsiveness_tol,
                     matrix_stability_tol, symplectify, steps_r_matrix,
-                    mode_4d=False
+                    method='6d'
                     ):
 
     context = tracker._context
@@ -398,16 +401,17 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                 x_norm=0,
                 zeta=particle_on_co._xobject.zeta[0], delta=delta_chrom,
                 particle_on_co=particle_on_co,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=W_matrix)
     RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
-                                            particle_on_co=part_chrom_plus.copy(),
-                                            steps_r_matrix=steps_r_matrix)
+                                        particle_on_co=part_chrom_plus.copy(),
+                                        steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = lnf.compute_linear_normal_form(RR_chrom_plus, only_4d_block=mode_4d,
-                                        responsiveness_tol=matrix_responsiveness_tol,
-                                        stability_tol=matrix_stability_tol,
-                                        symplectify=symplectify)
+        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
+                            only_4d_block=method=='4d',
+                            responsiveness_tol=matrix_responsiveness_tol,
+                            stability_tol=matrix_stability_tol,
+                            symplectify=symplectify)
     qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
     qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
 
@@ -416,16 +420,17 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                 x_norm=0,
                 zeta=particle_on_co._xobject.zeta[0], delta=-delta_chrom,
                 particle_on_co=particle_on_co,
-                scale_with_transverse_norm_emitt=(nemitt_x, nemitt_y),
+                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=W_matrix)
     RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=part_chrom_minus.copy(),
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = lnf.compute_linear_normal_form(RR_chrom_minus, only_4d_block=mode_4d,
-                                          symplectify=symplectify,
-                                          stability_tol=matrix_stability_tol,
-                                          responsiveness_tol=matrix_responsiveness_tol)
+        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
+                            only_4d_block=(method=='4d'),
+                            symplectify=symplectify,
+                            stability_tol=matrix_stability_tol,
+                            responsiveness_tol=matrix_responsiveness_tol)
     qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
     qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
 

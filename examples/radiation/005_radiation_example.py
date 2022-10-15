@@ -70,7 +70,7 @@ part_co = tw['particle_on_co']
 particles = xp.build_particles(tracker=tracker,
     x_norm=[500., 0, 0], y_norm=[0, 500, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
-    scale_with_transverse_norm_emitt=(1e-9, 1e-9))
+    nemitt_x=1e-9, nemitt_y=1e-9)
 
 # Save initial state
 particles_0 = particles.copy()

@@ -33,7 +33,7 @@ tracker = xt.Tracker(line=line, _context=context)
 
 n_part = 1
 particles0 = xp.build_particles(tracker=tracker, x_norm=np.linspace(-1, 1, n_part),
-                               scale_with_transverse_norm_emitt=(2.5e-6, 2.5e-6))
+                                nemitt_x=2.5e-6, nemitt_y=2.5e-6)
 
 num_turns = 1000
 particles = particles0.copy()
