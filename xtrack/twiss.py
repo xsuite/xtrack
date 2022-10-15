@@ -971,9 +971,14 @@ def match_tracker(tracker, vary, targets, **kwargs):
     _err = partial(_error_for_match, vary=vary, targets=targets,
                    tracker=tracker, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv]._value for vv in vary]
-    (res, infodict, ier, mesg) = fsolve(_err, x0=x0, full_output=True)
-    for kk, vv in zip(vary, res):
-        tracker.vars[kk] = vv
-    fsolve_info = {
-            'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+    try:
+        (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(), full_output=True)
+        for kk, vv in zip(vary, res):
+            tracker.vars[kk] = vv
+        fsolve_info = {
+                'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+    except Exception as err:
+        for ii, vv in enumerate(vary):
+            tracker.vars[vv] = x0[ii]
+        raise err
     return fsolve_info
