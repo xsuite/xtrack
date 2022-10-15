@@ -973,6 +973,8 @@ def match_tracker(tracker, vary, targets, **kwargs):
     x0 = [tracker.vars[vv]._value for vv in vary]
     try:
         (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(), full_output=True)
+        if ier != 1:
+            raise RuntimeError("fsolve failed: %s" % mesg)
         for kk, vv in zip(vary, res):
             tracker.vars[kk] = vv
         fsolve_info = {
