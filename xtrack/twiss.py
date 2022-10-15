@@ -53,16 +53,16 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     if matrix_stability_tol is None:
         matrix_stability_tol = tracker.matrix_stability_tol
 
+    if particle_ref is None:
+        if particle_co_guess is None and hasattr(tracker, 'particle_ref'):
+            particle_ref = tracker.particle_ref
+
     if tracker.iscollective:
         warnings.warn(
             'The tracker has collective elements.\n'
             'In the twiss computation collective elements are'
             ' replaced by drifts')
         tracker = tracker._supertracker
-
-    if particle_ref is None:
-        if particle_co_guess is None and hasattr(tracker, 'particle_ref'):
-            particle_ref = tracker.particle_ref
 
     if particle_ref is None and particle_co_guess is None:
         raise ValueError(
