@@ -158,6 +158,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                             delta0=delta0+delta_disp)
+        p_disp_minus.move(_context=xo.context_default)
+        p_disp_plus.move(_context=xo.context_default)
         dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
                      /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))/part_on_co._xobject.beta0[0]
         dpx_dpzeta = ((p_disp_plus.px[0] - p_disp_minus.px[0])
