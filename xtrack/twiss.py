@@ -41,11 +41,16 @@ def twiss_from_tracker(tracker, particle_ref, method='6d',
         eneloss_and_damping=False,
         ele_start=0, ele_stop=None, twiss_init=None,
         skip_global_quantities=False,
-        matrix_responsiveness_tol=lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL,
-        matrix_stability_tol=lnf.DEFAULT_MATRIX_STABILITY_TOL,
+        matrix_responsiveness_tol=None,
+        matrix_stability_tol=None,
         symplectify=False):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
+
+    if matrix_responsiveness_tol is None:
+        matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
+    if matrix_stability_tol is None:
+        matrix_stability_tol = tracker.matrix_stability_tol
 
     if method == '4d' and delta0 is None:
         delta0 = 0
@@ -62,8 +67,13 @@ def twiss_from_tracker(tracker, particle_ref, method='6d',
         kwargs.pop('tracker')
         kwargs.pop('at_s')
         kwargs.pop('at_elements')
+        kwargs.pop('matrix_responsiveness_tol')
+        kwargs.pop('matrix_stability_tol')
         return twiss_from_tracker(tracker=auxtracker,
-                        at_elements=names_inserted_markers, **kwargs)
+                        at_elements=names_inserted_markers,
+                        matrix_responsiveness_tol=matrix_responsiveness_tol,
+                        matrix_stability_tol=matrix_stability_tol,
+                        **kwargs)
 
     mux0 = 0
     muy0 = 0

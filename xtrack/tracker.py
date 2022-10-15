@@ -425,11 +425,6 @@ class Tracker:
 
         self._check_invalidated()
 
-        if matrix_responsiveness_tol is None:
-            matrix_responsiveness_tol = self.matrix_responsiveness_tol
-        if matrix_stability_tol is None:
-            matrix_stability_tol = self.matrix_stability_tol
-
         if self.iscollective:
             logger.warning(
                 'The tracker has collective elements.\n'
