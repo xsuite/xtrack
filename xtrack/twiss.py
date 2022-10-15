@@ -4,6 +4,7 @@
 # ######################################### #
 
 import logging
+import warnings
 from functools import partial
 from operator import ne
 import numpy as np
@@ -30,7 +31,7 @@ DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 log = logging.getLogger(__name__)
 
 
-def twiss_from_tracker(tracker, particle_ref, method='6d',
+def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         particle_on_co=None, R_matrix=None, W_matrix=None, delta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
         delta_disp=1e-5, delta_chrom = 1e-4,
@@ -51,6 +52,21 @@ def twiss_from_tracker(tracker, particle_ref, method='6d',
         matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
     if matrix_stability_tol is None:
         matrix_stability_tol = tracker.matrix_stability_tol
+
+    if tracker.iscollective:
+        warnings.warn(
+            'The tracker has collective elements.\n'
+            'In the twiss computation collective elements are'
+            ' replaced by drifts')
+        tracker = tracker._supertracker
+
+    if particle_ref is None:
+        if particle_co_guess is None and hasattr(tracker, 'particle_ref'):
+            particle_ref = tracker.particle_ref
+
+    if particle_ref is None and particle_co_guess is None:
+        raise ValueError(
+            "Either `particle_ref` or `particle_co_guess` must be provided")
 
     if method == '4d' and delta0 is None:
         delta0 = 0

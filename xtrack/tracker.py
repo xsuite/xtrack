@@ -425,24 +425,7 @@ class Tracker:
 
         self._check_invalidated()
 
-        if self.iscollective:
-            logger.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            tracker = self._supertracker
-        else:
-            tracker = self
-
-        if particle_ref is None:
-            if particle_co_guess is None:
-                particle_ref = self.particle_ref
-
-        if particle_ref is None and particle_co_guess is None:
-            raise ValueError(
-                "Either `particle_ref` or `particle_co_guess` must be provided")
-
-        return twiss_from_tracker(tracker, particle_ref,
+        return twiss_from_tracker(self, particle_ref,
             R_matrix=R_matrix, W_matrix=W_matrix,
             method=method, r_sigma=r_sigma,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, delta0=delta0,
