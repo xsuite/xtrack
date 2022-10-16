@@ -12,7 +12,6 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-from make_short_line import make_short_line
 
 short_test = False # Short line (5 elements)
 
@@ -27,8 +26,8 @@ fname_line_particles = test_data_folder.joinpath(
 ####################
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-context = xo.ContextPyopencl('0.0')
+#context = xo.ContextCupy()
+#context = xo.ContextPyopencl('0.0')
 
 #############
 # Load file #
@@ -46,8 +45,7 @@ elif str(fname_line_particles).endswith('.json'):
 ##############
 
 line = xt.Line.from_dict(input_data['line'])
-if short_test:
-    line = make_short_line(line)
+line.particle_ref = xp.Particles(**input_data['particle'])
 
 #################
 # Build Tracker #
@@ -60,13 +58,21 @@ tracker = xt.Tracker(_context=context,
                                                 freeze_vars=freeze_vars),
             )
 
-######################
-# Get some particles #
-######################
-part0 = xp.Particles(_context=context, **input_data['particle'])
-particles = xp.build_particles(_context=context,
-        x=np.linspace(-1e-4, 1e-4, 10), particle_ref=part0)
+#########
+# Twiss #
+#########
 
+tw = tracker.twiss(method='4d') # <-- Need to choose 4d method when longitudinal
+                                #     variables are frozen
+
+##################################
+# Match a particles distribution #
+##################################
+
+particles = xp.build_particles(_context=context, tracker=tracker,
+                               method = '4d', # <--- 4d
+                               x_norm=np.linspace(0, 10, 11),
+                               nemitt_x=3e-6, nemitt_y=3e-6)
 
 particles_before_tracking = particles.copy()
 
@@ -85,3 +91,6 @@ for vv in ['ptau', 'delta', 'rpp', 'rvv', 'zeta']:
     assert np.all(vv_before == vv_after)
 
 print('Check passed')
+
+######################
+# Particles matching #
