@@ -91,6 +91,3 @@ for vv in ['ptau', 'delta', 'rpp', 'rvv', 'zeta']:
     assert np.all(vv_before == vv_after)
 
 print('Check passed')
-
-######################
-# Particles matching #
