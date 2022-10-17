@@ -29,7 +29,7 @@ class LineFrozen:
                         all_in_first_buffer = False
                         break
             if all_in_first_buffer:
-                if _context is not None and _first_buffer.context is _context:
+                if _context is None or _first_buffer.context is _context:
                     _buffer = _first_buffer
 
         num_elements = len(line.element_names)
