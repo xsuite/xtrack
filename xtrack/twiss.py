@@ -814,6 +814,11 @@ class TwissTable(Table):
         dct.pop('_ebe_fields')
         return pd.Series(dct)
 
+    def to_pandas(self, index=None, columns=None):
+        if columns is None:
+            columns = self._ebe_fields
+        return Table.to_pandas(self, index=index,columns=columns)
+
     def get_betatron_sigmas(self, nemitt_x, nemitt_y):
 
         beta0 = self.particle_on_co.beta0
