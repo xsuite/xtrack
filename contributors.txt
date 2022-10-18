@@ -13,5 +13,5 @@ CERN contributors:
  - F. Van Der Veken
 
 External contributors:
- - P. Balanger (TRIUMF, Canada) - Development of wire beam element
+ - P. Balanger (TRIUMF, Canada) - Development of wire beam element and Tracker.survey
  - M. Boucard (EPFL, Switzwerland) - Development of the electron lens beam element
