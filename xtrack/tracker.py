@@ -1264,9 +1264,14 @@ class Tracker:
 
         buffer, header_offset = frozen_line.serialize(buffer)
 
+        var_management = {}
+        if frozen_line.line._var_management:
+            var_management = frozen_line.line._var_management_to_dict()
+
         with open(path, 'wb') as f:
             np.save(f, header_offset)
             np.save(f, buffer.buffer)
+            np.save(f, var_management, allow_pickle=True)
 
     @classmethod
     def from_binary_file(cls, path, particles_monitor_class=None) -> 'Tracker':
@@ -1276,6 +1281,7 @@ class Tracker:
         with open(path, 'rb') as f:
             header_offset = np.load(f)
             np_buffer = np.load(f)
+            var_management_dict = np.load(f, allow_pickle=True).item()
 
         xbuffer = xo.ContextCpu().new_buffer(np_buffer.nbytes)
         # make sure that if we carry on using the buffer we
@@ -1287,4 +1293,7 @@ class Tracker:
             header_offset,
             extra_element_classes=[particles_monitor_class]
         )
+        if var_management_dict:
+            frozen_line.line._init_var_management(var_management_dict)
+
         return Tracker(line=frozen_line.line)

@@ -2,11 +2,14 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
+import json
 
 import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
+
+from pathlib import Path
 
 
 def test_ebe_monitor():
@@ -329,3 +332,37 @@ def test_tracker_binary_serialization(tmp_path):
     assert (new_line.elements[0].knl == [1, 2]).all()
     assert new_line.elements[1].length == 4
     assert (new_line.elements[2].ksl == [3]).all()
+
+
+def test_tracker_binary_serialisation_with_knobs(tmp_path):
+    tmp_file = tmp_path / 'test_tracker_binary_serialization.npy'
+    tmp_file_path = tmp_file.resolve()
+
+    line_with_knobs_path = (Path(__file__).parent /
+                            '../test_data/hllhc15_noerrors_nobb' /
+                            'line_w_knobs_and_particle.json')
+    with open(line_with_knobs_path.resolve(), 'r') as line_file:
+        line_dict = json.load(line_file)
+    line_with_knobs = xt.Line.from_dict(line_dict['line'])
+
+    tracker = line_with_knobs.build_tracker(_context=xo.context_default)
+    tracker.to_binary_file(tmp_file_path)
+    new_tracker = xt.Tracker.from_binary_file(tmp_file_path)
+    new_tracker.line.particle_ref = xp.Particles(
+        mass0=xp.PROTON_MASS_EV, q0=1, gamma0=line_dict['particle']['gamma0'])
+
+    assert tracker.line._var_management.keys() == new_tracker.line._var_management.keys()
+
+    new_tracker.vars['on_x1'] = 250
+    assert np.isclose(new_tracker.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+                      atol=1e-6, rtol=0)
+    new_tracker.vars['on_x1'] = -300
+    assert np.isclose(new_tracker.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+                      atol=1e-6, rtol=0)
+
+    new_tracker.vars['on_x5'] = 130
+    assert np.isclose(new_tracker.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+                      atol=1e-6, rtol=0)
+    new_tracker.vars['on_x5'] = -270
+    assert np.isclose(new_tracker.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+                      atol=1e-6, rtol=0)
