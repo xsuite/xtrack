@@ -3,6 +3,7 @@ import numpy as np
 
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 from cpymad.madx import Madx
 
 mad = Madx()
@@ -43,5 +44,5 @@ assert np.isclose(tw.dqx, summad_6d.dq1, atol=0.5)
 assert np.isclose(tw.dqy, summad_6d.dq2, atol=0.5)
 
 with open('line.json', 'w') as f:
-    json.dump(line.to_dict(), f)
+    json.dump(line.to_dict(), f, cls=xo.JEncoder, indent=4)
 
