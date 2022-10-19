@@ -1,4 +1,8 @@
+import json
+import numpy as np
+
 import xtrack as xt
+import xpart as xp
 from cpymad.madx import Madx
 
 mad = Madx()
@@ -23,8 +27,21 @@ summad_6d = mad.table.summ.dframe()
 mad.emit()
 qs_mad = mad.table.emitsumm.qs[0]
 
-# Make xsuite line
+# Make xsuite line and tracker
 line = xt.Line.from_madx_sequence(mad.sequence.sps, deferred_expressions=True)
+line.particle_ref = xp.Particles(mass0=mad.sequence.sps.beam.mass*1e9,
+                                 q0=mad.sequence.sps.beam.charge,
+                                 gamma0=mad.sequence.sps.beam.gamma)
+tracker = line.build_tracker()
 
+tw = tracker.twiss()
 
+assert np.isclose(tw.qs, qs_mad, atol=1e-6)
+assert np.isclose(tw.qx, summad_4d.q1, atol=1e-5)
+assert np.isclose(tw.qy, summad_4d.q2, atol=1e-5)
+assert np.isclose(tw.dqx, summad_6d.dq1, atol=0.5)
+assert np.isclose(tw.dqy, summad_6d.dq2, atol=0.5)
+
+with open('line.json', 'w') as f:
+    json.dump(line.to_dict(), f)
 
