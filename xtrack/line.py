@@ -638,6 +638,41 @@ class Line:
         self.element_names = newline.element_names
         return self
 
+    def optimize_quadrupoles(self):
+        self._frozen_check()
+
+        def is_simple_quadrupole(el):
+            if not isinstance(el, beam_elements.Multipole):
+                return False
+            return (el.order == 1 and
+                    el.knl[0] == 0 and
+                    el.length == 0 and
+                    not np.any(el.ksl) and
+                    not el.hxl and
+                    not el.hyl)
+
+        for name, element in self.element_dict.items():
+            if is_simple_quadrupole(element):
+                fast_quad = beam_elements.FastQuadrupole(knl=element.knl)
+                self.element_dict[name] = fast_quad
+
+    def optimize_dipoles(self):
+        self._frozen_check()
+
+        def is_simple_dipole(el):
+            if not isinstance(el, beam_elements.Multipole):
+                return False
+            return el.order == 0 and not np.any(el.ksl) and not el.hyl
+
+        for name, element in self.element_dict.items():
+            if is_simple_dipole(element):
+                fast_di = beam_elements.FastDipole(
+                    knl=element.knl,
+                    hxl=element.hxl,
+                    length=element.length
+                )
+                self.element_dict[name] = fast_di
+
     def get_elements_of_type(self, types):
         if not hasattr(types, "__iter__"):
             type_list = [types]
