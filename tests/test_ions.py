@@ -1,4 +1,4 @@
-import json
+import pathlib
 import numpy as np
 
 import xtrack as xt
@@ -6,11 +6,15 @@ import xpart as xp
 import xobjects as xo
 from cpymad.madx import Madx
 
+test_data_folder = pathlib.Path(
+        __file__).parent.joinpath('../test_data').absolute()
+
 
 def test_ions():
 
     mad = Madx()
-    mad.call('../test_data/sps_ions/SPS_2021_Pb_ions_thin_test.seq')
+    mad.call(str(test_data_folder.joinpath(
+        'sps_ions/SPS_2021_Pb_ions_thin_test.seq')))
     mad.use('sps')
     mad.twiss()
 
