@@ -15,7 +15,7 @@ from .twiss import (twiss_from_tracker,
                                  find_closed_orbit, match_tracker
                                 )
 from .survey import survey_from_tracker
-from .interal_record import (new_io_buffer,
+from .internal_record import (new_io_buffer,
                              start_internal_logging_for_elements_of_type,
                              stop_internal_logging_for_elements_of_type)
 from .pipeline import PipelineStatus
