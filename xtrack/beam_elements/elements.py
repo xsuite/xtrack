@@ -11,7 +11,7 @@ import xpart as xp
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
-from ..interal_record import RecordIndex, RecordIdentifier
+from ..internal_record import RecordIndex, RecordIdentifier
 
 class ReferenceEnergyIncrease(BeamElement):
 

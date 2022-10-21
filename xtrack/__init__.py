@@ -11,7 +11,7 @@ from .line_frozen import LineFrozen
 from .line import Line
 from .tracker import Tracker
 from .loss_location_refinement import LossLocationRefinement
-from .interal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
+from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
 from .pipeline import (PipelineStatus, PipelineMultiTracker, PipelineBranch,
                         PipelineManager)

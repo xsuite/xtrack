@@ -326,6 +326,11 @@ def test_twiss_and_survey():
                                     np.abs(survmad['angle'][imad]), atol=1e-10)
                             assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
+                # Check to_pandas (not extensively for now)
+                dftw = twtst.to_pandas()
+                dfsurv = survxt.to_pandas()
+                assert np.all(dftw['s'] == twtst['s'])
+                assert np.all(dfsurv['s'] == survxt['s'])
 
                 # Test custom s locations
                 if not reversed:

@@ -12,7 +12,7 @@ import xpart as xp
 
 from xobjects.hybrid_class import _build_xofields_dict
 
-from .interal_record import RecordIdentifier, RecordIndex, generate_get_record
+from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
    int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp

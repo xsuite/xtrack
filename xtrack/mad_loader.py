@@ -799,10 +799,15 @@ class MadLoader:
             )
         else:
             frequency = ee.freq * 1e6
+        if (hasattr(self.sequence, 'beam')
+            and self.sequence.beam.particle == 'ion'):
+            scale_voltage = 1./self.sequence.beam.charge
+        else:
+            scale_voltage = 1.
         el = self.Builder(
             ee.name,
             self.classes.Cavity,
-            voltage=ee.volt * 1e6,
+            voltage=scale_voltage * ee.volt * 1e6,
             frequency=frequency,
             lag=ee.lag * 360,
         )
