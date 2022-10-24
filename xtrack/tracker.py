@@ -619,9 +619,11 @@ class Tracker:
 
                 for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
 
+                        #ifndef DISABLE_EBE_MONITOR
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
+                        #endif
 
                         /*gpuglmem*/ int8_t* el = buffer + ele_offsets[ee];
                         int64_t ee_type = ele_typeids[ee];
@@ -655,11 +657,13 @@ class Tracker:
         src_lines.append(
             """
                         } //switch
+                    #ifndef SKIP_ACTIVE_CHECK_AND_SWAPS
                     isactive = check_is_active(&lpart);
                     if (!isactive){
                         break;
                     }
                     increment_at_element(&lpart);
+                    #endif
                 } // for elements
                 if (flag_monitor==2){
                     // End of turn (element-by-element mode)
