@@ -272,3 +272,32 @@ def test_from_dict_current():
     assert d1.length == 4
 
     assert d2 is d1
+
+
+def test_optimize_multipoles():
+    elements = {
+        'q1': xt.Multipole(knl=[0, 1], length=0),
+        'q2': xt.Multipole(knl=[1, 2], length=0),
+        'q3': xt.Multipole(knl=[0, 1], length=1),
+        'q4': xt.Multipole(knl=[0, 1], ksl=[1, 2], length=0),
+        'd1': xt.Multipole(knl=[1], hxl=0.0, length=2),
+        'd2': xt.Multipole(knl=[1], hxl=0.1, length=0),
+        'd3': xt.Multipole(knl=[1], hyl=1, length=2),
+        'd4': xt.Multipole(knl=[1], ksl=[3], length=2),
+    }
+
+    test_line = xt.Line(
+        elements=elements,
+        element_names=elements.keys(),
+    )
+
+    test_line.optimize_dipoles()
+    test_line.optimize_quadrupoles()
+
+    def keys_for_elements_of_type(type_):
+        for kk, vv in test_line.element_dict.items():
+            if isinstance(vv, type_):
+                yield kk
+
+    assert set(keys_for_elements_of_type(xt.FastDipole)) == {'d1', 'd2'}
+    assert set(keys_for_elements_of_type(xt.FastQuadrupole)) == {'q1'}

@@ -736,6 +736,7 @@ void TestElement_track_local_particle(TestElementData el,
 
 """
 
+
 def test_per_particle_kernel():
 
     for context in xo.context.get_test_contexts():
