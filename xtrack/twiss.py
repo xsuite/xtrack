@@ -231,7 +231,11 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             'circumference': circumference, 'T_rev': T_rev,
             'particle_on_co':part_on_co.copy(_context=xo.context_default)
         })
-        twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
+        if hasattr(part_on_co, '_fsolve_info'):
+            twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
+        else:
+            twiss_res['particle_on_co']._fsolve_info = None
+
         twiss_res['R_matrix'] = RR
 
         if method == '4d':

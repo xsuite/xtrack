@@ -57,7 +57,7 @@ def Rot2D(mu):
     return np.array([[ np.cos(mu), np.sin(mu)],
                      [-np.sin(mu), np.cos(mu)]])
 
-def compute_linear_normal_form(M, symplectify=True, only_4d_block=False,
+def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
                         responsiveness_tol=DEFAULT_MATRIX_RESPONSIVENESS_TOL,
                         stability_tol=DEFAULT_MATRIX_STABILITY_TOL):
 
