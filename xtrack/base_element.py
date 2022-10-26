@@ -281,8 +281,8 @@ class PerParticlePyMethod:
 
     def __call__(self, particles, increment_at_element=False, **kwargs):
 
-        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
-            io_buffer_arr = self.io_buffer.buffer
+        if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
+            io_buffer_arr = self.element.io_buffer.buffer
         else:
             context = self.kernel.context
             io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
