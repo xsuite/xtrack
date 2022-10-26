@@ -8,7 +8,7 @@ import logging
 from functools import partial
 
 from .general import _pkg_root
-from .line_frozen import LineFrozen
+from .tracker_data import TrackerData
 from .base_element import _handle_per_particle_blocks
 from .twiss import (twiss_from_tracker,
                                  compute_one_turn_matrix_finite_differences,
@@ -195,7 +195,7 @@ class Tracker:
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
-                tempxtline = LineFrozen(
+                tempxtline = TrackerData(
                     _buffer=_buffer,
                     element_classes=element_classes,
                     extra_element_classes=[particles_monitor_class._XoStruct],
@@ -299,7 +299,7 @@ class Tracker:
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
 
-        frozenline = LineFrozen(
+        tracker_data = TrackerData(
             line=line,
             element_classes=element_classes,
             extra_element_classes=[particles_monitor_class._XoStruct],
@@ -307,7 +307,7 @@ class Tracker:
             _buffer=_buffer,
             _offset=_offset)
 
-        context = frozenline._buffer.context
+        context = tracker_data._buffer.context
 
         if io_buffer is None:
             io_buffer = new_io_buffer(_context=context)
@@ -320,23 +320,23 @@ class Tracker:
         if element_classes is None:
             # Kernel relies on element_classes ordering
             assert track_kernel == 'skip' or track_kernel is None
-            element_classes = frozenline.element_classes
+            element_classes = tracker_data.element_classes
 
         line._freeze()
         self.line = line
         self.line.tracker = self
-        self._line_frozen = frozenline
+        self._tracker_data = tracker_data
 
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
-        self.num_elements = len(frozenline.elements)
+        self.num_elements = len(tracker_data.elements)
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
         self.skip_end_turn_actions = skip_end_turn_actions
         self.reset_s_at_end_turn = reset_s_at_end_turn
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
-        self._buffer = frozenline._buffer
+        self._buffer = tracker_data._buffer
 
         if track_kernel == 'skip':
             self.track_kernel = None
@@ -352,8 +352,8 @@ class Tracker:
             self._invalidated_parts  = self._parts
             self._parts = None
         else:
-            self._invalidated_line_frozen = self._line_frozen
-            self._line_frozen = None
+            self._invalidated_tracker_data = self._tracker_data
+            self._tracker_data = None
         self._is_invalidated = True
 
     def _check_invalidated(self):
@@ -550,7 +550,7 @@ class Tracker:
 
     def _build_kernel(self, save_source_as, compile):
 
-        context = self._line_frozen._buffer.context
+        context = self._tracker_data._buffer.context
 
         kernels = {}
         headers = []
@@ -568,7 +568,7 @@ class Tracker:
             /*gpukern*/
             void track_line(
                 /*gpuglmem*/ int8_t* buffer,
-                             TrackerData tracker_data,
+                             ElementRefData elem_ref_data,
                              ParticlesData particles,
                              int num_turns,
                              int ele_start,
@@ -610,16 +610,17 @@ class Tracker:
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
-                for (int64_t ee=ele_start; ee<ele_start+num_ele_track; ee++){
+                int64_t elem_idx = ele_start;
+                for (; elem_idx < ele_start+num_ele_track; elem_idx++){
 
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
 
-                        void* el = TrackerData_member_elements(tracker_data, ee);
-                        int64_t ee_type = TrackerData_typeid_elements(tracker_data, ee);
+                        void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
+                        int64_t elem_type = ElementRefData_typeid_elements(elem_ref_data, elem_idx);
 
-                        switch(ee_type){
+                        switch(elem_type){
         """
         )
 
@@ -678,7 +679,7 @@ class Tracker:
             "track_line": xo.Kernel(
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
-                    xo.Arg(self._line_frozen._tracker_data.__class__, name="tracker_data"),
+                    xo.Arg(self._tracker_data._element_ref_data.__class__, name="tracker_data"),
                     xo.Arg(self.particles_class._XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
@@ -1152,8 +1153,8 @@ class Tracker:
 
         # First turn
         self.track_kernel(
-            buffer=self._line_frozen._buffer.buffer,
-            tracker_data=self._line_frozen._tracker_data,
+            buffer=self._tracker_data._buffer.buffer,
+            tracker_data=self._tracker_data._element_ref_data,
             particles=particles._xobject,
             num_turns=1,
             ele_start=ele_start,
@@ -1169,8 +1170,8 @@ class Tracker:
         # Middle turns
         if num_middle_turns > 0:
             self.track_kernel(
-                buffer=self._line_frozen._buffer.buffer,
-                tracker_data=self._line_frozen._tracker_data,
+                buffer=self._tracker_data._buffer.buffer,
+                tracker_data=self._tracker_data._element_ref_data,
                 particles=particles._xobject,
                 num_turns=num_middle_turns,
                 ele_start=0, # always full turn
@@ -1186,8 +1187,8 @@ class Tracker:
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
             self.track_kernel(
-                buffer=self._line_frozen._buffer.buffer,
-                tracker_data=self._line_frozen._tracker_data,
+                buffer=self._tracker_data._buffer.buffer,
+                tracker_data=self._tracker_data._element_ref_data,
                 particles=particles._xobject,
                 num_turns=1,
                 ele_start=0,
@@ -1253,20 +1254,20 @@ class Tracker:
 
     def to_binary_file(self, path):
         try:
-            frozen_line = self._line_frozen
+            tracker_data = self._tracker_data
         except AttributeError:
             raise TypeError("Only non-collective trackers can be binary serialized.")
 
-        if not isinstance(frozen_line._context, xo.ContextCpu):
+        if not isinstance(tracker_data._context, xo.ContextCpu):
             buffer = xo.ContextCpu().new_buffer(0)
         else:
             buffer = None
 
-        buffer, header_offset = frozen_line.serialize(buffer)
+        buffer, header_offset = tracker_data.to_binary(buffer)
 
         var_management = {}
-        if frozen_line.line._var_management:
-            var_management = frozen_line.line._var_management_to_dict()
+        if tracker_data.line._var_management:
+            var_management = tracker_data.line._var_management_to_dict()
 
         with open(path, 'wb') as f:
             np.save(f, header_offset)
@@ -1288,12 +1289,12 @@ class Tracker:
         # don't overwrite things, by marking everything as used
         xbuffer.allocate(np_buffer.nbytes)
         xbuffer.buffer = np_buffer
-        frozen_line = LineFrozen.deserialize(
+        tracker_data = TrackerData.from_binary(
             xbuffer,
             header_offset,
             extra_element_classes=[particles_monitor_class]
         )
         if var_management_dict:
-            frozen_line.line._init_var_management(var_management_dict)
+            tracker_data.line._init_var_management(var_management_dict)
 
-        return Tracker(line=frozen_line.line)
+        return Tracker(line=tracker_data.line)

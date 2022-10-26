@@ -3,33 +3,33 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from collections import OrderedDict
 from typing import Tuple
 
 import xobjects as xo
 
-from .line import Line
 from . import beam_elements
+from .line import Line
 
 
-class LineFrozen:
-    class SerializationHeader(xo.Struct):
-        """
-        In a predetermined place in the buffer we have the metadata
-        offset and the element type names. These have to be separate,
-        because in order to rebuild TrackerData we need to first build
-        ElementRefClass.
-        """
-        metadata_start = xo.UInt64
-        reftype_names = xo.String[:]
+class SerializationHeader(xo.Struct):
+    """
+    In a predetermined place in the buffer we have the metadata
+    offset and the element type names. These have to be separate,
+    because in order to rebuild TrackerData we need to first build
+    ElementRefClass.
+    """
+    element_ref_data_offset = xo.UInt64
+    reftype_names = xo.String[:]
 
+
+class TrackerData:
     @staticmethod
-    def tracker_data_factory(element_ref_class) -> 'TrackerData':
-        class TrackerData(xo.Struct):
+    def generate_element_ref_data(element_ref_class) -> 'ElementRefData':
+        class ElementRefData(xo.Struct):
             elements = element_ref_class[:]
             names = xo.String[:]
 
-        return TrackerData
+        return ElementRefData
 
     def __init__(
             self,
@@ -73,7 +73,7 @@ class LineFrozen:
         line.element_names = tuple(line.element_names)
         self.element_s_locations = tuple(line.get_s_elements())
         self._ElementRefClass = ElementRefClass
-        self._tracker_data = self.build_tracker_data(_buffer)
+        self._element_ref_data = self.move_elements_and_build_ref_data(_buffer)
 
     def common_buffer_for_elements(self):
         """If all `self.line` elements are in the same buffer,
@@ -89,33 +89,33 @@ class LineFrozen:
 
         return common_buffer
 
-    def serialize(self, buffer=None) -> Tuple[xo.context.XBuffer, int]:
+    def to_binary(self, buffer=None) -> Tuple[xo.context.XBuffer, int]:
         """
         Return a buffer containing a binary representation of the LineFrozen,
         together with the offset to the header in the buffer.
         These two are sufficient for recreating the line.
         """
-        _tracker_data = self._tracker_data
+        _element_ref_data = self._element_ref_data
         if not buffer:
-            buffer = _tracker_data._buffer
+            buffer = _element_ref_data._buffer
 
-        if buffer is not _tracker_data._buffer:
-            _tracker_data = self.build_tracker_data(buffer)
+        if buffer is not _element_ref_data._buffer:
+            _element_ref_data = self.move_elements_and_build_ref_data(buffer)
 
         header = self.build_header(
             buffer=buffer,
-            metadata_start=_tracker_data._offset,
+            element_ref_data_offset=_element_ref_data._offset,
         )
 
         return buffer, header._offset
 
-    def build_header(self, buffer, metadata_start) -> SerializationHeader:
+    def build_header(self, buffer, element_ref_data_offset) -> SerializationHeader:
         """
         Build a serialization header in the buffer. This contains all
         the necessary for decoding the line metadata.
         """
-        return self.SerializationHeader(
-            metadata_start=metadata_start,
+        return SerializationHeader(
+            element_ref_data_offset=element_ref_data_offset,
             reftype_names=[
                 reftype._DressingClass.__name__
                 for reftype in self._ElementRefClass._reftypes
@@ -123,23 +123,23 @@ class LineFrozen:
             _buffer=buffer,
         )
 
-    def build_tracker_data(self, buffer):
+    def move_elements_and_build_ref_data(self, buffer):
         """
         Ensure all the elements of the line are in the buffer (which will be
         created if `buffer` is equal to `None`), and write the line metadata
         to it. If the buffer is empty, the metadata will be at the beginning.
         Returns the metadata xobject.
         """
-        tracker_data_cls = self.tracker_data_factory(self._ElementRefClass)
+        element_refs_cls = self.generate_element_ref_data(self._ElementRefClass)
 
-        tracker_data = tracker_data_cls(
+        element_ref_data = element_refs_cls(
             elements=len(self.line.elements),
             names=list(self.line.element_names),
             _buffer=buffer,
         )
 
         # Move all the elements into buffer, so they don't get duplicated.
-        # We only do it now, as we need to make sure tracker_data is already
+        # We only do it now, as we need to make sure element_ref_data is already
         # allocated after reftype_names.
         moved_element_dict = {}
         for name, elem in self.line.element_dict.items():
@@ -147,20 +147,20 @@ class LineFrozen:
                 elem.move(_buffer=buffer)
             moved_element_dict[name] = elem._xobject
 
-        tracker_data.elements = [
+        element_ref_data.elements = [
             moved_element_dict[name] for name in self.line.element_names
         ]
 
-        return tracker_data
+        return element_ref_data
 
     @classmethod
-    def deserialize(
+    def from_binary(
         cls,
         buffer: xo.context.XBuffer,
         header_offset: int,
         extra_element_classes=[],
-    ) -> 'LineFrozen':
-        header = cls.SerializationHeader._from_buffer(
+    ) -> 'TrackerData':
+        header = SerializationHeader._from_buffer(
             buffer=buffer,
             offset=header_offset,
         )
@@ -186,10 +186,10 @@ class LineFrozen:
             _reftypes = element_classes
 
         # We can now load the line from the buffer
-        tracker_data_cls = cls.tracker_data_factory(ElementRefClass)
-        tracker_data = tracker_data_cls._from_buffer(
+        element_refs_cls = cls.generate_element_ref_data(ElementRefClass)
+        element_ref_data = element_refs_cls._from_buffer(
             buffer=buffer,
-            offset=int(header.metadata_start)
+            offset=int(header.element_ref_data_offset)
         )
 
         # Recreate and redress line elements
@@ -198,8 +198,8 @@ class LineFrozen:
         }
 
         element_dict = {}
-        for ii, elem in enumerate(tracker_data.elements):
-            name = tracker_data.names[ii]
+        for ii, elem in enumerate(element_ref_data.elements):
+            name = element_ref_data.names[ii]
             if name in element_dict:
                 continue
 
@@ -208,12 +208,12 @@ class LineFrozen:
 
         line = Line(
             elements=element_dict,
-            element_names=tracker_data.names,
+            element_names=element_ref_data.names,
         )
-        line_frozen = LineFrozen(line=line, element_classes=element_classes)
-        line_frozen._ElementRefClass = ElementRefClass
+        tracker_data = TrackerData(line=line, element_classes=element_classes)
+        tracker_data._ElementRefClass = ElementRefClass
 
-        return line_frozen
+        return tracker_data
 
     @property
     def elements(self):
@@ -225,12 +225,12 @@ class LineFrozen:
 
     @property
     def _buffer(self):
-        return self._tracker_data._buffer
+        return self._element_ref_data._buffer
 
     @property
     def _offset(self):
-        return self._tracker_data._offset
+        return self._element_ref_data._offset
 
     @property
     def _context(self):
-        return self._tracker_data._context
+        return self._element_ref_data._context
