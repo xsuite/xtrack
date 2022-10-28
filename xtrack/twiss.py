@@ -30,7 +30,6 @@ DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 
 log = logging.getLogger(__name__)
 
-
 def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         particle_on_co=None, R_matrix=None, W_matrix=None, delta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
@@ -197,7 +196,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
     twiss_res.particle_on_co = part_on_co.copy(_context=xo.context_default)
 
-    circumference = tracker.line.get_length()
+    circumference = tracker._line_frozen.line_length
     twiss_res['circumference'] = circumference
 
     if not skip_global_quantities:
@@ -217,7 +216,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
         dzeta = twiss_res_element_by_element['dzeta']
         qs = np.abs(twiss_res_element_by_element['muzeta'][-1])
-        eta = -dzeta[-1]/tracker.line.get_length()
+        eta = -dzeta[-1]/circumference
         alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
         beta0 = part_on_co._xobject.beta0[0]
@@ -259,10 +258,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res._keep_only_elements(at_elements)
 
     return twiss_res
-
-
-
-
 
 def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,

@@ -69,6 +69,7 @@ class LineFrozen:
         self.line = line
 
         self.element_s_locations = tuple(line.get_s_elements())
+        self.line_length = line.get_length()
         self._line_data = line_data
         self._LineDataClass = LineDataClass
         self._ElementRefClass = ElementRefClass
