@@ -56,6 +56,7 @@ class Tracker:
         io_buffer=None,
         compile=True,
         enable_pipeline_hold=False,
+        _element_ref_data=None,
     ):
 
         if sequence is not None:
@@ -73,6 +74,10 @@ class Tracker:
             particles_monitor_class = self._get_default_monitor_class()
 
         if self.iscollective:
+            if _element_ref_data:
+                raise ValueError('The argument element_ref_data is not '
+                                 'supported in collective mode.')
+
             self._init_track_with_collective(
                 _context=_context,
                 _buffer=_buffer,
@@ -92,6 +97,7 @@ class Tracker:
                 compile=compile,
                 enable_pipeline_hold=enable_pipeline_hold)
         else:
+            self._element_ref_data = _element_ref_data
             self._init_track_no_collective(
                 _context=_context,
                 _buffer=_buffer,
@@ -198,7 +204,7 @@ class Tracker:
                 tempxtline = TrackerData(
                     _buffer=_buffer,
                     element_classes=element_classes,
-                    extra_element_classes=[particles_monitor_class._XoStruct],
+                    extra_element_classes=(particles_monitor_class._XoStruct,),
                     line=pp)
                 pp.element_dict = dict(zip(
                     tempxtline.element_names, tempxtline.elements))
@@ -302,7 +308,8 @@ class Tracker:
         tracker_data = TrackerData(
             line=line,
             element_classes=element_classes,
-            extra_element_classes=[particles_monitor_class._XoStruct],
+            extra_element_classes=(particles_monitor_class._XoStruct,),
+            element_ref_data=self._element_ref_data,
             _context=_context,
             _buffer=_buffer,
             _offset=_offset)
@@ -1292,9 +1299,12 @@ class Tracker:
         tracker_data = TrackerData.from_binary(
             xbuffer,
             header_offset,
-            extra_element_classes=[particles_monitor_class]
+            extra_element_classes=(particles_monitor_class,),
         )
         if var_management_dict:
             tracker_data.line._init_var_management(var_management_dict)
 
-        return Tracker(line=tracker_data.line)
+        return Tracker(
+            line=tracker_data.line,
+            _element_ref_data=tracker_data._element_ref_data,
+        )

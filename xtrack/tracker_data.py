@@ -7,8 +7,7 @@ from typing import Tuple
 
 import xobjects as xo
 
-from . import beam_elements
-from .line import Line
+from .line import Line, mk_class_namespace
 
 
 class SerializationHeader(xo.Struct):
@@ -35,7 +34,8 @@ class TrackerData:
             self,
             line,
             element_classes=None,
-            extra_element_classes=[],
+            extra_element_classes=(),
+            element_ref_data=None,
             _context=None,
             _buffer=None,
             _offset=None,
@@ -46,7 +46,7 @@ class TrackerData:
         :param xt.Line line: a line
         :param List[xo.Struct] element_classes: explicit list of classes of
             elements of the line; if `None`, will be inferred from list.
-        :param List[xo.Struct] extra_element_classes: if `element_classes`
+        :param Tuple[xo.Struct] extra_element_classes: if `element_classes`
             is `None`, this list will be used to augment the inferred list
             of element classes.
         """
@@ -73,7 +73,10 @@ class TrackerData:
         line.element_names = tuple(line.element_names)
         self.element_s_locations = tuple(line.get_s_elements())
         self._ElementRefClass = ElementRefClass
-        self._element_ref_data = self.move_elements_and_build_ref_data(_buffer)
+        if element_ref_data and element_ref_data._buffer is _buffer:
+            self._element_ref_data = element_ref_data
+        else:
+            self._element_ref_data = self.move_elements_and_build_ref_data(_buffer)
 
     def common_buffer_for_elements(self):
         """If all `self.line` elements are in the same buffer,
@@ -158,26 +161,22 @@ class TrackerData:
         cls,
         buffer: xo.context.XBuffer,
         header_offset: int,
-        extra_element_classes=[],
+        extra_element_classes: tuple = (),
     ) -> 'TrackerData':
         header = SerializationHeader._from_buffer(
             buffer=buffer,
             offset=header_offset,
         )
 
-        extra_classes_dict = {
-            elem_cls.__name__: elem_cls
-            for elem_cls in extra_element_classes
-        }
-
         element_hybrid_classes = []
+        element_namespace = mk_class_namespace(extra_classes=extra_element_classes)
         for reftype in header.reftype_names:
-            if reftype in extra_classes_dict:
-                element_hybrid_classes.append(extra_classes_dict[reftype])
-            elif hasattr(beam_elements, reftype):
-                element_hybrid_classes.append(getattr(beam_elements, reftype))
+            if hasattr(element_namespace, reftype):
+                element_hybrid_classes.append(getattr(element_namespace, reftype))
             else:
-                ValueError(f"Cannot find the type `{reftype}`")
+                ValueError(f'Cannot find the type `{reftype}`. Is it custom '
+                           f'and you forgot to include the class in '
+                           f'`extra_element_classes`?')
 
         # With the reftypes loaded we can create our classes
         element_classes = [elem._XoStruct for elem in element_hybrid_classes]
@@ -210,7 +209,11 @@ class TrackerData:
             elements=element_dict,
             element_names=element_ref_data.names,
         )
-        tracker_data = TrackerData(line=line, element_classes=element_classes)
+        tracker_data = TrackerData(
+            line=line,
+            element_classes=element_classes,
+            element_ref_data=element_ref_data,
+        )
         tracker_data._ElementRefClass = ElementRefClass
 
         return tracker_data
