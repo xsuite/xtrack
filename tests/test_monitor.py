@@ -49,7 +49,7 @@ def test_monitor():
         assert np.all(mon.at_turn[3, :] == np.arange(0, num_turns))
         assert np.all(mon.particle_id[:, 3] == np.arange(0, num_particles))
         assert np.all(mon.at_element[:, :] == 0)
-        assert np.all(mon.pzeta[:, 0] == particles0.pzeta) #new
+        assert np.all(mon.pzeta[:, 0] == particles0.pzeta)
 
         # Test explicit monitor passed to track
         monitor = xt.ParticlesMonitor(_context=context,
