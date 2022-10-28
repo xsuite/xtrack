@@ -13,7 +13,7 @@ surv_mad = mad.survey()
 line = xt.Line.from_madx_sequence(mad.sequence['lhcb1'],
                                      deferred_expressions=True)
 tracker = line.build_tracker()
-surv_xt = tracker.survey()
+surv_xt = tracker.survey(element0='ip5')
 
 import matplotlib.pyplot as plt
 plt.figure(1)
