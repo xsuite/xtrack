@@ -43,7 +43,7 @@ for reverse in [False, True]:
     sv_c = tracker_c.survey(**starting, reverse=reverse).to_pandas()
 
 
-    for ename in ['ip8', 'ip1', 'mb.c12r8.b1..1',
+    for ename in ['ip5', 'ip8', 'ip1', 'mb.c12r8.b1..1',
                 'mb.c12r1.b1..1', 'mb.c12l5.b1..1', 'drift_10', 'drift_10000']:
         svc_at_e = sv_c[sv_c.name==ename]
         sv0_at_e = sv0[sv0.name==ename]

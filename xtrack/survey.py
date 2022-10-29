@@ -109,13 +109,16 @@ class SurveyTable(Table):
     def reverse(self, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0, element0=None):
 
         if element0 is None:
-            element0 = self.element0
+            element0 = len(self.name) - self.element0 - 1
 
         # We cut away the last marker (added by survey) and reverse the order
         out_drift_length = list(self.drift_length[:-1][::-1])
         out_angle = list(-self.angle[:-1][::-1])
         out_tilt = list(-self.tilt[:-1][::-1])
         out_name = list(self.name[:-1][::-1])
+
+        if type(element0) is str:
+            element0 = out_name.index(element0)
 
         X, Y, Z, theta, phi, psi = compute_survey(
                                         X0, Y0, Z0, theta0, phi0, psi0,
@@ -213,8 +216,8 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     out['element0'] = element0
 
     if reverse:
-        out = out.reverse(X0=X0, Y0=Y0, Z0=Z0, theta0=theta0, phi0=phi0,
-                          psi0=psi0, element0=element0)
+        out = out.reverse(X0=X0, Y0=Y0, Z0=Z0,
+                          theta0=theta0, phi0=phi0, psi0=psi0)
 
     return out
 
