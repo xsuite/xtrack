@@ -420,7 +420,8 @@ class Tracker:
         particle_on_co=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
-        symplectify=False
+        symplectify=False,
+        reverse=False,
         ):
 
         self._check_invalidated()
@@ -430,9 +431,10 @@ class Tracker:
 
         return twiss_from_tracker(self, **kwargs)
 
-    def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0, element0=0):
+    def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0, element0=0, reverse=False):
         return survey_from_tracker(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
-                                   phi0=phi0, psi0=psi0, element0=element0)
+                                   phi0=phi0, psi0=psi0, element0=element0,
+                                   reverse=reverse)
 
     def match(self, vary, targets, **kwargs):
         return match_tracker(self, vary, targets, **kwargs)

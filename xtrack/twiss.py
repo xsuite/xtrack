@@ -43,7 +43,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         skip_global_quantities=False,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
-        symplectify=False):
+        symplectify=False,
+        reverse=False):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
@@ -256,6 +257,9 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
     if at_elements is not None:
         twiss_res._keep_only_elements(at_elements)
+
+    if reverse:
+        twiss_res = twiss_res.reverse()
 
     return twiss_res
 

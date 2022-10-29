@@ -155,7 +155,8 @@ def _get_s_increments(elements):
 # ==================================================
 def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
                         element0=0,
-                        values_at_element_exit=False):
+                        values_at_element_exit=False,
+                        reverse=True):
     """Execute SURVEY command. Based on MADX equivalent.
     Attributes, must be given in this order in the dictionary:
     X0        (float)    Initial X position.
@@ -210,6 +211,10 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     out['tilt'] = np.array(tilt + [0.])
 
     out['element0'] = element0
+
+    if reverse:
+        out = out.reverse(X0=X0, Y0=Y0, Z0=Z0, theta0=theta0, phi0=phi0,
+                          psi0=psi0, element0=element0)
 
     return out
 

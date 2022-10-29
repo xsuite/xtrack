@@ -22,7 +22,7 @@ line_b4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 tracker_b4 = xt.Tracker(line=line_b4)
 twb4xt = tracker_b4.twiss()
 
-twb2xt = twb4xt.reverse()
+twb2xt = tracker_b4.twiss(reverse=True)
 
 # Compute twiss also from W matrix to check the W matrix
 Ws = np.array(twb2xt.W_matrix)
@@ -32,13 +32,6 @@ gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
 gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
 alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
 alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
-mux = np.unwrap(np.arctan2(-Ws[:, 0, 1], Ws[:, 0, 0]))/2/np.pi #PAAAAAATCH, to be fixed
-muy = np.unwrap(np.arctan2(-Ws[:, 2, 3], Ws[:, 2, 2]))/2/np.pi #PAAAAAATCH, to be fixed
-
-mux -= mux[0]
-muy -= muy[0]
-
-muzeta = np.unwrap(np.arctan2(-Ws[:, 4, 5], Ws[:, 4, 4]))/2/np.pi
 
 import matplotlib.pyplot as plt
 
@@ -104,8 +97,6 @@ for name in ['mb.b19r5.b2', 'mb.b19r1.b2', 'ip1', 'ip2', 'ip5', 'ip8',
     assert np.isclose(twb2xt['py'][ixt], twb2mad['py'][imad], atol=1e-7)
 
     assert np.isclose(twb2xt['mux'][ixt], twb2mad['mux'][imad], atol=1e-7)
-    assert np.isclose(mux[ixt], twb2mad['mux'][imad], atol=1e-7)
     assert np.isclose(twb2xt['muy'][ixt], twb2mad['muy'][imad], atol=1e-7)
-    assert np.isclose(muy[ixt], twb2mad['muy'][imad], atol=1e-7)
 
 plt.show()
