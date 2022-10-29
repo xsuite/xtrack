@@ -268,6 +268,10 @@ class Line:
              raise ValueError(
                 "Plaese provide either `index_first_element` or `name_first_element`.")
 
+        if type(index_first_element) is str:
+            name_first_element = index_first_element
+            index_first_element = None
+
         if name_first_element is not None:
             assert self.element_names.count(name_first_element) == 1, (
                 f"name_first_element={name_first_element} occurs more than once!"
