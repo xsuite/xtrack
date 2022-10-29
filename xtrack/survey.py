@@ -205,6 +205,8 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
     out['angle'] = np.array(angle + [0.])
     out['tilt'] = np.array(tilt + [0.])
 
+    out['element0'] = element0
+
     return out
 
 
