@@ -624,6 +624,8 @@ class Tracker:
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
 
+                        // Get the pointer to and the type id of the `elem_idx`th
+                        // element in `element_ref_data.elements`:
                         void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
                         int64_t elem_type = ElementRefData_typeid_elements(elem_ref_data, elem_idx);
 
