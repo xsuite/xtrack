@@ -647,13 +647,16 @@ class Line:
             return (el.order == 1 and
                     el.knl[0] == 0 and
                     el.length == 0 and
-                    not np.any(el.ksl) and
+                    not any(el.ksl) and
                     not el.hxl and
                     not el.hyl)
 
         for name, element in self.element_dict.items():
             if is_simple_quadrupole(element):
-                fast_quad = beam_elements.SimpleThinQuadrupole(knl=element.knl)
+                fast_quad = beam_elements.SimpleThinQuadrupole(
+                    knl=element.knl,
+                    _context=element._context,
+                )
                 self.element_dict[name] = fast_quad
 
     def use_simple_bends(self):
@@ -662,14 +665,15 @@ class Line:
         def is_simple_dipole(el):
             if not isinstance(el, beam_elements.Multipole):
                 return False
-            return el.order == 0 and not np.any(el.ksl) and not el.hyl # and el.hxl == el.knl[0]
+            return el.order == 0 and not any(el.ksl) and not el.hyl
 
         for name, element in self.element_dict.items():
             if is_simple_dipole(element):
                 fast_di = beam_elements.SimpleThinBend(
                     knl=element.knl,
                     hxl=element.hxl,
-                    length=element.length
+                    length=element.length,
+                    _context=element._context,
                 )
                 self.element_dict[name] = fast_di
 

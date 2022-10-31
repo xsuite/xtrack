@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import xobjects as xo
 import xtrack as xt
 
 def test_simplification_methods():
@@ -274,29 +275,30 @@ def test_from_dict_current():
 
 
 def test_optimize_multipoles():
-    elements = {
-        'q1': xt.Multipole(knl=[0, 1], length=0),
-        'q2': xt.Multipole(knl=[1, 2], length=0),
-        'q3': xt.Multipole(knl=[0, 1], length=1),
-        'q4': xt.Multipole(knl=[0, 1], ksl=[1, 2], length=0),
-        'd1': xt.Multipole(knl=[1], hxl=0.0, length=2),
-        'd2': xt.Multipole(knl=[1], hxl=0.1, length=0),
-        'd3': xt.Multipole(knl=[1], hyl=1, length=2),
-        'd4': xt.Multipole(knl=[1], ksl=[3], length=2),
-    }
+    for context in xo.context.get_test_contexts():
+        elements = {
+            'q1': xt.Multipole(knl=[0, 1], length=0, _context=context),
+            'q2': xt.Multipole(knl=[1, 2], length=0, _context=context),
+            'q3': xt.Multipole(knl=[0, 1], length=1, _context=context),
+            'q4': xt.Multipole(knl=[0, 1], ksl=[1, 2], length=0, _context=context),
+            'd1': xt.Multipole(knl=[1], hxl=0.0, length=2, _context=context),
+            'd2': xt.Multipole(knl=[1], hxl=0.1, length=0, _context=context),
+            'd3': xt.Multipole(knl=[1], hyl=1, length=2, _context=context),
+            'd4': xt.Multipole(knl=[1], ksl=[3], length=2, _context=context),
+        }
 
-    test_line = xt.Line(
-        elements=elements,
-        element_names=elements.keys(),
-    )
+        test_line = xt.Line(
+            elements=elements,
+            element_names=elements.keys(),
+        )
 
-    test_line.use_simple_bends()
-    test_line.use_simple_quadrupoles()
+        test_line.use_simple_bends()
+        test_line.use_simple_quadrupoles()
 
-    for nn in test_line.element_names:
-        if nn in ('d1', 'd2'):
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinBend
-        elif nn == 'q1':
-            assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
-        else:
-            assert type(test_line.element_dict[nn]) is xt.Multipole
+        for nn in test_line.element_names:
+            if nn in ('d1', 'd2'):
+                assert type(test_line.element_dict[nn]) is xt.SimpleThinBend
+            elif nn == 'q1':
+                assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
+            else:
+                assert type(test_line.element_dict[nn]) is xt.Multipole
