@@ -49,6 +49,7 @@ def test_monitor():
         assert np.all(mon.at_turn[3, :] == np.arange(0, num_turns))
         assert np.all(mon.particle_id[:, 3] == np.arange(0, num_particles))
         assert np.all(mon.at_element[:, :] == 0)
+        assert np.all(mon.pzeta[:, 0] == particles0.pzeta)
 
         # Test explicit monitor passed to track
         monitor = xt.ParticlesMonitor(_context=context,
@@ -61,6 +62,7 @@ def test_monitor():
         assert np.all(monitor.at_turn[3, :] == np.arange(5, 15))
         assert np.all(monitor.particle_id[:, 3] == np.arange(0, num_particles))
         assert np.all(monitor.at_element[:, :] == 0)
+        assert np.all(monitor.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
 
         # Test explicit monitor used in in stand-alone mode
@@ -76,6 +78,7 @@ def test_monitor():
         assert np.all(mon2.at_turn[3, :] == np.arange(5, 15))
         assert np.all(mon2.particle_id[:, 3] == np.arange(0, num_particles))
         assert np.all(mon2.at_element[:, :] == 0)
+        assert np.all(mon2.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
         # Test monitors with multiple frames
         monitor_multiframe = xt.ParticlesMonitor(_context=context,
@@ -92,6 +95,7 @@ def test_monitor():
         assert np.all(monitor_multiframe.particle_id[2, :, 3] == np.arange(0,
                                                                  num_particles))
         assert np.all(monitor_multiframe.at_element[:, :, :] == 0)
+        assert np.all(monitor_multiframe.pzeta[0, :, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
         # Test monitors installed in a line
         monitor_ip5 = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,

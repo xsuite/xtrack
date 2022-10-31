@@ -132,4 +132,7 @@ def generate_monitor_class(ParticlesClass):
     for tt, nn in per_particle_vars:
         setattr(ParticlesMonitorClass, nn, _FieldOfMonitor(name=nn))
 
+    for nn in ['pzeta']:
+        setattr(ParticlesMonitorClass, nn, _FieldOfMonitor(name=nn))
+
     return ParticlesMonitorClass
