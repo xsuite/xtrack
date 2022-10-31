@@ -336,6 +336,117 @@ class Multipole(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
+class SimpleThinQuadrupole(BeamElement):
+    """An optimised version of a quadrupole with zero knl[0], ksl, hxl, hyl, and length.
+    Parameters:
+
+            - knl [m^-n, array]: Normalized integrated strength of the normal components.
+
+    """
+
+    _xofields={
+        'knl': xo.Float64[2],
+    }
+
+    _extra_c_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
+
+    def __init__(self, knl=None, **kwargs):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        if len(knl) != 2:
+            raise ValueError("For a quadrupole, len(knl) must be 2.")
+
+        kwargs["knl"] = knl
+        self.xoinitialize(**kwargs)
+
+    @property
+    def hxl(self): return 0.0
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def length(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @property
+    def order(self): return 1
+
+    @property
+    def inv_factorial_order(self): return 1.0
+
+    @property
+    def ksl(self): return np.array([0.0, 0.0])
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._buffer.context.nparray_from_context_array
+        return self.__class__(knl=-ctx2np(self.knl), _context=_context,
+                              _buffer=_buffer, _offset=_offset)
+
+
+class SimpleThinBend(BeamElement):
+    """An optimised version of a dipole with zero ksl and hyl. Parameters:
+
+            - knl [m^-n, array]: Normalized integrated strength of the normal components.
+            - hxl [rad]: Rotation angle of the reference trajectory in the horizontal plane.
+            - length [m]: Length of the originating thick multipole.
+
+    """
+
+    _xofields={
+        'knl': xo.Float64[1],
+        'hxl': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
+        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
+
+    def __init__(self, knl=None, **kwargs):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        if len(knl) != 1:
+            raise ValueError("For a quadrupole, len(knl) must be 1.")
+
+        kwargs["knl"] = knl
+        self.xoinitialize(**kwargs)
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @property
+    def order(self): return 0
+
+    @property
+    def inv_factorial_order(self): return 1.0
+
+    @property
+    def ksl(self): return np.array([0.0])
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._buffer.context.nparray_from_context_array
+        return self.__class__(knl=-ctx2np(self.knl),
+                              hxl=-self.hxl,
+                              length=-self.length,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
+
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
 
