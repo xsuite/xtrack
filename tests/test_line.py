@@ -4,7 +4,6 @@
 # ######################################### #
 
 import numpy as np
-import pytest
 import xtrack as xt
 
 def test_simplification_methods():
@@ -291,13 +290,13 @@ def test_optimize_multipoles():
         element_names=elements.keys(),
     )
 
-    test_line.optimize_dipoles()
-    test_line.optimize_quadrupoles()
+    test_line.use_simple_bends()
+    test_line.use_simple_quadrupoles()
 
-    def keys_for_elements_of_type(type_):
-        for kk, vv in test_line.element_dict.items():
-            if isinstance(vv, type_):
-                yield kk
-
-    assert set(keys_for_elements_of_type(xt.FastDipole)) == {'d1', 'd2'}
-    assert set(keys_for_elements_of_type(xt.FastQuadrupole)) == {'q1'}
+    for nn in test_line.element_names:
+        if nn in ('d1', 'd2'):
+            assert type(test_line.element_dict[nn]) is xt.SimpleThinBend
+        elif nn == 'q1':
+            assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
+        else:
+            assert type(test_line.element_dict[nn]) is xt.Multipole

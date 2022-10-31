@@ -336,7 +336,7 @@ class Multipole(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-class FastQuadrupole(BeamElement):
+class SimpleThinQuadrupole(BeamElement):
     """An optimised version of a quadrupole with zero knl[0], ksl, hxl, hyl, and length.
     Parameters:
 
@@ -351,7 +351,7 @@ class FastQuadrupole(BeamElement):
     _extra_c_sources = [
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fastquadrupole.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
 
@@ -365,13 +365,34 @@ class FastQuadrupole(BeamElement):
         kwargs["knl"] = knl
         self.xoinitialize(**kwargs)
 
+    @property
+    def hxl(self): return 0.0
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def length(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @property
+    def order(self): return 1
+
+    @property
+    def inv_factorial_order(self): return 1.0
+
+    @property
+    def ksl(self): return np.array([0.0, 0.0])
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array
         return self.__class__(knl=-ctx2np(self.knl), _context=_context,
                               _buffer=_buffer, _offset=_offset)
 
 
-class FastDipole(BeamElement):
+class SimpleThinBend(BeamElement):
     """An optimised version of a dipole with zero ksl and hyl. Parameters:
 
             - knl [m^-n, array]: Normalized integrated strength of the normal components.
@@ -389,7 +410,7 @@ class FastDipole(BeamElement):
     _extra_c_sources = [
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/fastdipole.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
 
@@ -402,6 +423,21 @@ class FastDipole(BeamElement):
 
         kwargs["knl"] = knl
         self.xoinitialize(**kwargs)
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @property
+    def order(self): return 0
+
+    @property
+    def inv_factorial_order(self): return 1.0
+
+    @property
+    def ksl(self): return np.array([0.0])
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array

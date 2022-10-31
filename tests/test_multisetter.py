@@ -71,9 +71,9 @@ def test_custom_setter_fast_quadrupole():
     for context in xo.context.get_test_contexts():
 
         line = xt.Line(elements=dict(
-                    qf1=xt.FastQuadrupole(knl=[0, 1]),
-                    qf2=xt.FastQuadrupole(knl=[0, 1]),
-                    qf3=xt.FastQuadrupole(knl=[0, 1]),
+                    qf1=xt.SimpleThinQuadrupole(knl=[0, 1]),
+                    qf2=xt.SimpleThinQuadrupole(knl=[0, 1]),
+                    qf3=xt.SimpleThinQuadrupole(knl=[0, 1]),
                     dr=xt.Drift(length=1.)),
                 element_names=['qf1', 'qf2', 'qf3', 'dr'])
 
@@ -101,9 +101,9 @@ def test_custom_setter_fast_dipole():
     for context in xo.context.get_test_contexts():
 
         line = xt.Line(elements=dict(
-                    df1=xt.FastDipole(knl=[1], length=0.1, hxl=0.1),
-                    df2=xt.FastDipole(knl=[1], length=0.2, hxl=0.1),
-                    df3=xt.FastDipole(knl=[1], length=0.3, hxl=0.1),
+                    df1=xt.SimpleThinBend(knl=[1], length=0.1, hxl=0.1),
+                    df2=xt.SimpleThinBend(knl=[1], length=0.2, hxl=0.1),
+                    df3=xt.SimpleThinBend(knl=[1], length=0.3, hxl=0.1),
                     dr=xt.Drift(length=1.)),
                 element_names=['df1', 'df2', 'df3', 'dr'])
 

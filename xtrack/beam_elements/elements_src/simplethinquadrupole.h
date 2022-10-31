@@ -7,13 +7,13 @@
 #define XTRACK_FASTQUADRUPOLE_H
 
 /*gpufun*/
-void FastQuadrupole_track_local_particle(FastQuadrupoleData el, LocalParticle* part0){
+void SimpleThinQuadrupole_track_local_particle(SimpleThinQuadrupoleData el, LocalParticle* part0){
     //start_per_particle_block (part0->part)
         double const x = LocalParticle_get_x(part);
         double const y = LocalParticle_get_y(part);
         double const chi = LocalParticle_get_chi(part);
 
-        double const knl1 = FastQuadrupoleData_get_knl(el, 1);
+        double const knl1 = SimpleThinQuadrupoleData_get_knl(el, 1);
 
         double const dpx = - chi * knl1 * x;
         double const dpy = chi * knl1 * y;

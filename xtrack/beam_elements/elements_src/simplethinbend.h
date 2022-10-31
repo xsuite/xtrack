@@ -7,14 +7,14 @@
 #define XTRACK_FASTDIPOLE_H
 
 /*gpufun*/
-void FastDipole_track_local_particle(FastDipoleData el, LocalParticle* part0){
+void SimpleThinBend_track_local_particle(SimpleThinBendData el, LocalParticle* part0){
         // Horizontal bend
 
         //start_per_particle_block (part0->part)
             double const chi = LocalParticle_get_chi(part);
-            double const knl0 = FastDipoleData_get_knl(el, 0);
-            double const hxl = FastDipoleData_get_hxl(el);
-            double const length = FastDipoleData_get_length(el); // m
+            double const knl0 = SimpleThinBendData_get_knl(el, 0);
+            double const hxl = SimpleThinBendData_get_hxl(el);
+            double const length = SimpleThinBendData_get_length(el); // m
 
             double dpx = - chi * knl0;
 
