@@ -384,7 +384,11 @@ class SimpleThinQuadrupole(BeamElement):
     def inv_factorial_order(self): return 1.0
 
     @property
-    def ksl(self): return np.array([0.0, 0.0])
+    def ksl(self): return self._buffer.context.linked_array_type.from_array(
+        np.array([0., 0.]),
+        mode='readonly',
+        container=self,
+    )
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array
@@ -437,7 +441,11 @@ class SimpleThinBend(BeamElement):
     def inv_factorial_order(self): return 1.0
 
     @property
-    def ksl(self): return np.array([0.0])
+    def ksl(self): return self._buffer.context.linked_array_type.from_array(
+        np.array([0., 0.]),
+        mode='readonly',
+        container=self,
+    )
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array
