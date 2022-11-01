@@ -641,18 +641,8 @@ class Line:
     def use_simple_quadrupoles(self):
         self._frozen_check()
 
-        def is_simple_quadrupole(el):
-            if not isinstance(el, beam_elements.Multipole):
-                return False
-            return (el.order == 1 and
-                    el.knl[0] == 0 and
-                    el.length == 0 and
-                    not any(el.ksl) and
-                    not el.hxl and
-                    not el.hyl)
-
         for name, element in self.element_dict.items():
-            if is_simple_quadrupole(element):
+            if _is_simple_quadrupole(element):
                 fast_quad = beam_elements.SimpleThinQuadrupole(
                     knl=element.knl,
                     _context=element._context,
@@ -662,13 +652,8 @@ class Line:
     def use_simple_bends(self):
         self._frozen_check()
 
-        def is_simple_dipole(el):
-            if not isinstance(el, beam_elements.Multipole):
-                return False
-            return el.order == 0 and not any(el.ksl) and not el.hyl
-
         for name, element in self.element_dict.items():
-            if is_simple_dipole(element):
+            if _is_simple_dipole(element):
                 fast_di = beam_elements.SimpleThinBend(
                     knl=element.knl,
                     hxl=element.hxl,
@@ -775,27 +760,28 @@ class Line:
 
 
 mathfunctions = type('math', (), {})
-mathfunctions.sqrt=math.sqrt
-mathfunctions.log=math.log
-mathfunctions.log10=math.log10
-mathfunctions.exp=math.exp
-mathfunctions.sin=math.sin
-mathfunctions.cos=math.cos
-mathfunctions.tan=math.tan
-mathfunctions.asin=math.asin
-mathfunctions.acos=math.acos
-mathfunctions.atan=math.atan
-mathfunctions.sinh=math.sinh
-mathfunctions.cosh=math.cosh
-mathfunctions.tanh=math.tanh
-mathfunctions.sinc=np.sinc
-mathfunctions.abs=math.fabs
-mathfunctions.erf=math.erf
-mathfunctions.erfc=math.erfc
-mathfunctions.floor=math.floor
-mathfunctions.ceil=math.ceil
-mathfunctions.round=np.round
-mathfunctions.frac=lambda x: (x%1)
+mathfunctions.sqrt = math.sqrt
+mathfunctions.log = math.log
+mathfunctions.log10 = math.log10
+mathfunctions.exp = math.exp
+mathfunctions.sin = math.sin
+mathfunctions.cos = math.cos
+mathfunctions.tan = math.tan
+mathfunctions.asin = math.asin
+mathfunctions.acos = math.acos
+mathfunctions.atan = math.atan
+mathfunctions.sinh = math.sinh
+mathfunctions.cosh = math.cosh
+mathfunctions.tanh = math.tanh
+mathfunctions.sinc = np.sinc
+mathfunctions.abs = math.fabs
+mathfunctions.erf = math.erf
+mathfunctions.erfc = math.erfc
+mathfunctions.floor = math.floor
+mathfunctions.ceil = math.ceil
+mathfunctions.round = np.round
+mathfunctions.frac = lambda x: (x % 1)
+
 
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
@@ -804,3 +790,20 @@ def _deserialize_element(el, class_dict, _buffer):
         return eltype.from_dict(eldct, _buffer=_buffer)
     else:
         return eltype.from_dict(eldct)
+
+
+def _is_simple_quadrupole(el):
+    if not isinstance(el, beam_elements.Multipole):
+        return False
+    return (el.order == 1 and
+            el.knl[0] == 0 and
+            el.length == 0 and
+            not any(el.ksl) and
+            not el.hxl and
+            not el.hyl)
+
+
+def _is_simple_dipole(el):
+    if not isinstance(el, beam_elements.Multipole):
+        return False
+    return el.order == 0 and not any(el.ksl) and not el.hyl
