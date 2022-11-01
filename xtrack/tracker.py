@@ -660,13 +660,16 @@ class Tracker:
         src_lines.append(
             """
                         } //switch
-                    #ifndef SKIP_ACTIVE_CHECK_AND_SWAPS
+
+                    // Setting the below flag will break particle losses
+                    #ifndef DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
                     isactive = check_is_active(&lpart);
                     if (!isactive){
                         break;
                     }
                     increment_at_element(&lpart);
                     #endif
+
                 } // for elements
                 if (flag_monitor==2){
                     // End of turn (element-by-element mode)
