@@ -3,15 +3,18 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import pathlib
 import json
-import numpy as np
+import pathlib
 
+import numpy as np
+import xfields as xf
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-import xfields as xf
+from xpart.test_helpers import retry
 
+
+@retry(on=AssertionError)
 def test_ring_with_spacecharge():
 
     test_data_folder = pathlib.Path(
