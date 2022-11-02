@@ -15,28 +15,27 @@ import xpart as xp
 import ducktrack as dtk
 
 test_data_folder = pathlib.Path(
-        __file__).parent.joinpath('../test_data').absolute()
+    __file__).parent.joinpath('../test_data').absolute()
 
 
+def test_full_rings(tmp_path):
+    test_fnames = [
+        test_data_folder.joinpath('lhc_no_bb/line_and_particle.json'),
+        test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
+        test_data_folder.joinpath('sps_w_spacecharge/'
+                                  'line_no_spacecharge_and_particle.json'),
+    ]
 
-def test_full_rings(element_by_element=False):
-     test_fnames =  [
-            test_data_folder.joinpath('lhc_no_bb/line_and_particle.json'),
-            test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
-            test_data_folder.joinpath('sps_w_spacecharge/'
-                                      'line_no_spacecharge_and_particle.json'),
-            ]
+    tolerances_10_turns = [
+        (1e-9, 3e-11),
+        (1e-9, 3e-11),
+        (2e-8, 7e-9)]
+    test_backtracker_flags = [True, False, False]
 
-     tolerances_10_turns = [
-                    (1e-9, 3e-11),
-                    (1e-9, 3e-11),
-                    (2e-8, 7e-9)]
-     test_backtracker_flags = [True, False, False]
-
-     for icase, fname_line_particles in enumerate(test_fnames):
+    for icase, fname_line_particles in enumerate(test_fnames):
 
         rtol_10turns, atol_10turns = tolerances_10_turns[icase]
-        test_backtracker= test_backtracker_flags[icase]
+        test_backtracker = test_backtracker_flags[icase]
 
         print('Case:', fname_line_particles)
         for context in xo.context.get_test_contexts():
@@ -94,7 +93,7 @@ def test_full_rings(element_by_element=False):
             for vv in vars_to_check:
                 dtk_value = getattr(dtk_part, vv)[0]
                 xt_value = context.nparray_from_context_array(
-                                                  getattr(particles, vv))[ip_check]
+                    getattr(particles, vv))[ip_check]
                 passed = np.isclose(xt_value, dtk_value,
                                     rtol=rtol_10turns, atol=atol_10turns)
                 print(f'Varable {vv}:\n'
@@ -117,18 +116,18 @@ def test_full_rings(element_by_element=False):
                 for vv in vars_to_check:
                     dtk_value = getattr(dtk_part, vv)[0]
                     xt_value = context.nparray_from_context_array(
-                                                getattr(particles, vv))[ip_check]
+                        getattr(particles, vv))[ip_check]
                     passed = np.isclose(xt_value, dtk_value, rtol=rtol_10turns,
                                         atol=atol_10turns)
-                    if not passed and vv=='s':
+                    if not passed and vv == 's':
                         passed = np.isclose(xt_value, dtk_value,
-                                rtol=rtol_10turns, atol=1e-8)
+                                            rtol=rtol_10turns, atol=1e-8)
 
                     if not passed:
                         print(f'Not passend on backtrack for var {vv}!\n'
                               f'    dtk:    {dtk_value: .7e}\n'
                               f'    xtrack: {xt_value: .7e}\n')
-                        #raise ValueError
+                        # raise ValueError
                         print('Test passed!')
 
             ######################
@@ -136,19 +135,35 @@ def test_full_rings(element_by_element=False):
             ######################
 
             part_co = tracker.find_closed_orbit(particle_co_guess=xp.Particles(
-                                        _context=context,
-                                        p0c=input_data['particle']['p0c']))
+                _context=context,
+                p0c=input_data['particle']['p0c']))
 
             parttest = part_co.copy()
             for _ in range(10):
-               tracker.track(parttest)
-               assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
-                                 rtol=0, atol=1e-11)
-               assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
-                                 rtol=0, atol=1e-11)
-               assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
-                                 rtol=0, atol=5e-11)
+                tracker.track(parttest)
+                assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
+                                  rtol=0, atol=1e-11)
+                assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
+                                  rtol=0, atol=1e-11)
+                assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
+                                  rtol=0, atol=5e-11)
 
+            ###############################
+            # Verify binary serialization #
+            ###############################
+
+            tmp_file = tmp_path / 'test_full_rings.npy'
+            tmp_file_path = tmp_file.resolve()
+            tracker.to_binary_file(tmp_file_path)
+            new_tracker = xt.Tracker.from_binary_file(tmp_file_path)
+
+            assert np.all(new_tracker._buffer.buffer == new_tracker._buffer.buffer)
+            if tracker.line._var_management:
+                assert tracker._tracker_data.line._var_management_to_dict() == \
+                    new_tracker._tracker_data.line._var_management_to_dict()
+            else:
+                assert tracker.line._var_management is \
+                    new_tracker.line._var_management is None
 
 
 def test_freeze_vars():
@@ -158,7 +173,7 @@ def test_freeze_vars():
         test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
 
         fname_line_particles = test_data_folder.joinpath(
-                                './hllhc_14/line_and_particle.json')
+            './hllhc_14/line_and_particle.json')
 
         #############
         # Load file #
@@ -178,19 +193,19 @@ def test_freeze_vars():
         print('Build tracker...')
         freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
         tracker = xt.Tracker(_context=context,
-                    line=line,
-                    local_particle_src=xp.gen_local_particle_api(
-                                                        freeze_vars=freeze_vars),
-                    reset_s_at_end_turn=False
-                    )
+                             line=line,
+                             local_particle_src=xp.gen_local_particle_api(
+                                 freeze_vars=freeze_vars),
+                             reset_s_at_end_turn=False
+                             )
 
         ######################
         # Get some particles #
         ######################
-        particle_ref=xp.Particles.from_dict(input_data['particle'])
+        particle_ref = xp.Particles.from_dict(input_data['particle'])
         particles = xp.build_particles(_context=context,
-                particle_ref=particle_ref,
-                x=np.linspace(-1e-4, 1e-4, 10))
+                                       particle_ref=particle_ref,
+                                       x=np.linspace(-1e-4, 1e-4, 10))
 
         particles_before_tracking = particles.copy()
 
@@ -203,9 +218,9 @@ def test_freeze_vars():
 
         for vv in ['ptau', 'delta', 'rpp', 'rvv', 'zeta']:
             vv_before = context.nparray_from_context_array(
-                                getattr(particles_before_tracking, vv))
-            vv_after= context.nparray_from_context_array(
-                                getattr(particles, vv))
+                getattr(particles_before_tracking, vv))
+            vv_after = context.nparray_from_context_array(
+                getattr(particles, vv))
             assert np.all(vv_before == vv_after)
 
         print('Check passed')

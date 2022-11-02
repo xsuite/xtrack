@@ -115,6 +115,8 @@ def test_twiss_and_survey():
         line_simplified.merge_consecutive_multipoles()
         line_simplified.remove_zero_length_drifts()
         line_simplified.merge_consecutive_drifts()
+        line_simplified.use_simple_bends()
+        line_simplified.use_simple_quadrupoles()
         print('Done simplifying line')
 
         for context in xo.context.get_test_contexts():
