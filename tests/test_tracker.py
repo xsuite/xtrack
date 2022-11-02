@@ -40,6 +40,7 @@ def test_ebe_monitor():
             ee.track(particles)
             particles.at_element += 1
 
+
 def test_cycle():
 
     for context in xo.context.get_test_contexts():
@@ -49,13 +50,14 @@ def test_cycle():
         c0 = xt.Cavity()
         d1 = xt.Drift()
         r0 = xt.SRotation()
-
+        particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
         for collective in [True, False]:
             line = xt.Line(elements=[d0, c0, d1, r0])
             d1.iscollective = collective
 
             tracker = xt.Tracker(line=line, _context=context)
+            tracker.particle_ref = particle_ref
 
             ctracker_name = tracker.cycle(name_first_element='e2')
             ctracker_index = tracker.cycle(index_first_element=2)
@@ -70,6 +72,10 @@ def test_cycle():
                 assert ctracker.line.elements[1] is r0
                 assert ctracker.line.elements[2] is d0
                 assert ctracker.line.elements[3] is c0
+
+                assert ctracker.particle_ref.mass0 == xp.PROTON_MASS_EV
+                assert ctracker.particle_ref.gamma0 == 1.05
+
 
 def test_synrad_configuration():
 
@@ -108,6 +114,7 @@ def test_synrad_configuration():
             p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
 
+
 def test_partial_tracking():
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")
@@ -129,6 +136,7 @@ def test_partial_tracking():
         _ele_stop_from_start(tracker, particles_init)
         _ele_start_to_ele_stop(tracker, particles_init)
         _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
+
 
 def test_partial_tracking_with_collective():
      for context in xo.context.get_test_contexts():
@@ -173,6 +181,7 @@ def _default_track(tracker, particles_init):
                     and end_s==expected_end_element)
         assert tracker.record_last_track.x.shape == (len(particles.x), expected_num_monitor)
 
+
 # Track, from any ele_start, until the end of the first, second, and tenth turn
 def _ele_start_until_end(tracker, particles_init):
     n_elem = len(tracker.line.element_names)
@@ -190,6 +199,7 @@ def _ele_start_until_end(tracker, particles_init):
             assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                         and end_s==expected_end_element)
             assert tracker.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
+
 
 # Track, from any ele_start, any shifts that stay within the first turn
 def _ele_start_with_shift(tracker, particles_init):
@@ -227,6 +237,7 @@ def _ele_start_with_shift_more_turns(tracker, particles_init):
                         and end_s==expected_end_element)
             assert tracker.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
 
+
 # Track from the start until any ele_stop in the first, second, and tenth turn
 def _ele_stop_from_start(tracker, particles_init):
     n_elem = len(tracker.line.element_names)
@@ -242,6 +253,7 @@ def _ele_stop_from_start(tracker, particles_init):
             assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                         and end_s==expected_end_element)
             assert tracker.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
+
 
 # Track from any ele_start until any ele_stop that is larger than ele_start
 # for one, two, and ten turns
@@ -262,6 +274,7 @@ def _ele_start_to_ele_stop(tracker, particles_init):
                 assert (check and end_turn==expected_end_turn and end_element==expected_end_element
                             and end_s==expected_end_element)
                 assert tracker.record_last_track.x.shape==(len(particles.x), expected_num_monitor)
+
 
 # Track from any ele_start until any ele_stop that is smaller than or equal to ele_start (turn increses by one)
 # for one, two, and ten turns
@@ -346,10 +359,9 @@ def test_tracker_binary_serialisation_with_knobs(tmp_path):
     line_with_knobs = xt.Line.from_dict(line_dict['line'])
 
     tracker = line_with_knobs.build_tracker(_context=xo.context_default)
+    tracker.particle_ref = xp.Particles.from_dict(line_dict['particle'])
     tracker.to_binary_file(tmp_file_path)
     new_tracker = xt.Tracker.from_binary_file(tmp_file_path)
-    new_tracker.line.particle_ref = xp.Particles(
-        mass0=xp.PROTON_MASS_EV, q0=1, gamma0=line_dict['particle']['gamma0'])
 
     assert tracker.line._var_management.keys() == new_tracker.line._var_management.keys()
 
