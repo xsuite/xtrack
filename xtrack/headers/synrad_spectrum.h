@@ -11,7 +11,8 @@
 
 /*gpufun*/
 void synrad_average_kick(LocalParticle* part, double curv, double lpath,
-                         double* ft_record){
+                         double* dp_record, double* dpx_record, double* dpy_record
+                        ){
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
     double const mass0 = LocalParticle_get_mass0(part);
@@ -30,16 +31,31 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
 
     #ifdef XSUITE_SYNRAD_TWISS_MODE
     if (part -> ipart == 0){
-      *ft_record = f_t;
+      *dp_record = LocalParticle_get_delta(part);
+      *dpx_record = LocalParticle_get_px(part);
+      *dpy_record = LocalParticle_get_py(part);
     }
-    else {
-      f_t = *ft_record;
+    else{
+      f_t = 1.0;
     }
     #endif
 
     LocalParticle_update_delta(part, (delta+1) * f_t - 1);
     LocalParticle_scale_px(part, f_t);
     LocalParticle_scale_py(part, f_t);
+
+    #ifdef XSUITE_SYNRAD_TWISS_MODE
+    if (part -> ipart == 0){
+      *dp_record = LocalParticle_get_delta(part) - *dp_record;
+      *dpx_record = LocalParticle_get_px(part) - *dpx_record;
+      *dpy_record = LocalParticle_get_py(part) - *dpy_record;
+    }
+    else{
+      LocalParticle_update_delta(part, LocalParticle_get_delta(part) + *dp_record);
+      LocalParticle_add_to_px(part, *dpx_record);
+      LocalParticle_add_to_py(part, *dpy_record);
+    }
+    #endif
 }
 
 /*gpufun*/

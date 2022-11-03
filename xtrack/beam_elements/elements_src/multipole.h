@@ -23,7 +23,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     }
     #endif
 
-    double f_record_entry, f_record_exit;
+    double dp_record_entry, dpx_record_entry, dpy_record_entry;
+    double dp_record_exit, dpx_record_exit, dpy_record_exit;
 
     //start_per_particle_block (part0->part)
         int64_t order = MultipoleData_get_order(el);
@@ -76,7 +77,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         if (radiation_flag > 0 && length > 0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
             if (radiation_flag == 1){
-                synrad_average_kick(part, curv, L_path, &f_record_entry);
+                synrad_average_kick(part, curv, L_path,
+                        &dp_record_entry, &dpx_record_entry, &dpy_record_entry);
             }
             else if (radiation_flag == 2){
                 synrad_emit_photons(part, curv, L_path, record_index, record);
@@ -124,7 +126,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         if (radiation_flag > 0 && length > 0){
             double const L_path = 0.5*length*(1 + (hxl*x - hyl*y)/length); //CHECK!!!!
             if (radiation_flag == 1){
-                synrad_average_kick(part, curv, L_path, &f_record_exit);
+                synrad_average_kick(part, curv, L_path,
+                        &dp_record_exit, &dpx_record_exit, &dpy_record_exit);
             }
             else if (radiation_flag == 2){
                 synrad_emit_photons(part, curv, L_path, record_index, record);
