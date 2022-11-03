@@ -417,7 +417,7 @@ class Tracker:
         values_at_element_exit=False,
         continue_on_closed_orbit_error=False,
         eneloss_and_damping=False,
-        ele_start=0, ele_stop=None, twiss_init=None,
+        ele_start=None, ele_stop=None, twiss_init=None,
         particle_on_co=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
@@ -1294,7 +1294,7 @@ class Tracker:
             np.save(f, var_management, allow_pickle=True)
 
     @classmethod
-    def from_binary_file(cls, path, particles_monitor_class=None) -> 'Tracker':
+    def from_binary_file(cls, path, particles_monitor_class=None, **kwargs) -> 'Tracker':
         if not particles_monitor_class:
             particles_monitor_class = cls._get_default_monitor_class()
 
@@ -1319,4 +1319,5 @@ class Tracker:
         return Tracker(
             line=tracker_data.line,
             _element_ref_data=tracker_data._element_ref_data,
+            **kwargs,
         )

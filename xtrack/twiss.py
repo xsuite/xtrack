@@ -39,7 +39,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         continue_on_closed_orbit_error=False,
         values_at_element_exit=False,
         eneloss_and_damping=False,
-        ele_start=0, ele_stop=None, twiss_init=None,
+        ele_start=None, ele_stop=None, twiss_init=None,
         skip_global_quantities=False,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
@@ -94,11 +94,11 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     mux0 = 0
     muy0 = 0
     muzeta0 = 0
-    if ele_start !=0 or ele_stop is not None:
-        if ele_start !=0 and ele_stop is None:
+    if ele_start is not None or ele_stop is not None:
+        if ele_start is not None and ele_stop is None:
             raise ValueError(
                 'ele_stop must be specified if ele_start is not 0')
-        elif ele_start == 0 and ele_stop is not None:
+        elif ele_start is None and ele_stop is not None:
             raise ValueError(
                 'ele_start must be specified if ele_stop is not None')
         assert twiss_init is not None, (
@@ -116,6 +116,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         mux0 = twiss_init.mux
         muy0 = twiss_init.muy
         muzeta0 = twiss_init.muzeta
+    else:
+        ele_start = 0
 
     twiss_res = TwissTable()
 
@@ -197,7 +199,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
     twiss_res.particle_on_co = part_on_co.copy(_context=xo.context_default)
 
-    circumference = tracker._line_frozen.line_length
+    circumference = tracker._tracker_data.line_length
     twiss_res['circumference'] = circumference
 
     if not skip_global_quantities:
