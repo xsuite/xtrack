@@ -46,6 +46,13 @@ use, sequence = fccee_p_ring;
 
 tw_thin = mad.twiss().dframe()
 
+# Restore rf_voltage
+mad.input('''
+    voltca1 = voltca1save;
+    voltca2 = voltca2save;
+'''
+)
+
 import xtrack as xt
 import xpart as xp
 line = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring)
@@ -54,6 +61,5 @@ line.particle_ref = xp.Particles(mass0=xp.ELECTRON_MASS_EV,
 
 import json
 import xobjects as xo
-
 with open('line_no_radiation.json', 'w') as f:
     json.dump(line.to_dict(), f, cls=xo.JEncoder)
