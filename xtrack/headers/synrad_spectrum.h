@@ -10,7 +10,8 @@
 #define ALPHA_EM 0.0072973525693
 
 /*gpufun*/
-void synrad_average_kick(LocalParticle* part, double curv, double lpath){
+void synrad_average_kick(LocalParticle* part, double curv, double lpath,
+                         double* ft_record){
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
     double const mass0 = LocalParticle_get_mass0(part);
@@ -25,7 +26,16 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath){
                         * lpath * (1 + delta);
 
     double const beta = beta0 * LocalParticle_get_rvv(part);
-    double const f_t = sqrt(1 + r*(r-2)/(beta*beta));
+    double f_t = sqrt(1 + r*(r-2)/(beta*beta));
+
+    #ifdef XSUITE_SYNRAD_TWISS_MODE
+    if (part -> ipart == 0){
+      *ft_record = f_t;
+    }
+    else {
+      f_t = *ft_record;
+    }
+    #endif
 
     LocalParticle_update_delta(part, (delta+1) * f_t - 1);
     LocalParticle_scale_px(part, f_t);
