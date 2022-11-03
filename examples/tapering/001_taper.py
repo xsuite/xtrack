@@ -1,4 +1,7 @@
 import json
+
+import numpy as np
+from scipy.constants import c as clight
 import xtrack as xt
 
 with open('line_no_radiation.json', 'r') as f:
@@ -55,9 +58,16 @@ for nn, dd in zip(multipoles['name'].values, delta_taper):
     line[nn].knl *= (1 + dd)
     line[nn].ksl *= (1 + dd)
 
-tw_taper = tracker.twiss(method='4d', matrix_stability_tol=0.5)
+prrr
 
+beta0 = p_test.beta0[0]
 for icav in cavities.index:
-    inst_phase = 2*np.pi*freq*zeta
+    inst_phase = np.arcsin(cavities.loc[icav, 'element'].voltage / cavities.loc[icav, 'voltage'])
+    freq = cavities.loc[icav, 'frequency']
 
+    zeta = mon.zeta[0, icav]
+    lag = 360.*(inst_phase / (2*np.pi) - freq*zeta/beta0/clight)
+    prrrr
+
+tw_taper = tracker.twiss(method='4d', matrix_stability_tol=0.5)
 tracker_twiss = xt.Tracker(line = line, extra_headers=["#define XSUITE_SYNRAD_TWISS_MODE"])
