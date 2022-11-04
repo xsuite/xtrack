@@ -1,5 +1,12 @@
 import json
 
+# TODO:
+# - Put lag on the stable slope
+# - Assert that calculated enekick is smaller than voltage at each cavity
+# - Check 6d kick
+# - Assert no collective
+# - Assert no ions
+
 import numpy as np
 from scipy.constants import c as clight
 import xtrack as xt
@@ -82,8 +89,6 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].lag = lag
     cavities.loc[icav, 'element'].frequency = freq
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
-
-    import pdb; pdb.set_trace()
 
 
 tw_damp = tracker.twiss(method='4d', matrix_stability_tol=0.5)
