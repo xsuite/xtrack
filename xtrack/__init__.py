@@ -7,7 +7,7 @@ from .general import _pkg_root
 
 from .base_element import BeamElement
 from .beam_elements import *
-from .line_frozen import LineFrozen
+from .tracker_data import TrackerData
 from .line import Line
 from .tracker import Tracker
 from .loss_location_refinement import LossLocationRefinement

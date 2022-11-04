@@ -18,7 +18,7 @@ from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift
 
-log=logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 def mk_class_namespace(extra_classes):
     try:
@@ -28,9 +28,9 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
 
-    out=AttrDict()
+    out = AttrDict()
     for cl in all_classes:
-        out[cl.__name__]=cl
+        out[cl.__name__] = cl
     return out
 
 
@@ -141,19 +141,19 @@ class Line:
         import xdeps as xd
 
         # Extract globals values from madx
-        _var_values = defaultdict(lambda :0)
+        _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
 
-        _ref_manager = manager=xd.Manager()
-        _vref=manager.ref(_var_values,'vars')
-        _fref=manager.ref(mathfunctions,'f')
+        manager = xd.Manager()
+        _vref = manager.ref(_var_values, 'vars')
+        _fref = manager.ref(mathfunctions, 'f')
         _lref = manager.ref(self.element_dict, 'element_refs')
 
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
 
-        self._var_management['manager'] = _ref_manager
+        self._var_management['manager'] = manager
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
@@ -177,14 +177,14 @@ class Line:
             return self._var_management['lref']
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
-        if isinstance(elements,dict):
-            element_dict=elements
+        if isinstance(elements, dict):
+            element_dict = elements
             if element_names is None:
-                raise ValueError('`element_names must be provided'
+                raise ValueError('`element_names` must be provided'
                                  ' if `elements` is a dictionary.')
         else:
             if element_names is None:
-                element_names = [ f"e{ii}" for ii in range(len(elements))]
+                element_names = [f"e{ii}" for ii in range(len(elements))]
             if len(element_names) > len(set(element_names)):
                 log.warning("Repetition found in `element_names` -> renaming")
                 old_element_names = element_names
@@ -192,7 +192,7 @@ class Line:
                 counters = {nn: 0 for nn in old_element_names}
                 for nn in old_element_names:
                     if counters[nn] > 0:
-                        new_nn = nn + '_'+  str(counters[nn])
+                        new_nn = nn + '_' + str(counters[nn])
                     else:
                         new_nn = nn
                     counters[nn] += 1
@@ -203,8 +203,8 @@ class Line:
             )
             element_dict = dict(zip(element_names, elements))
 
-        self.element_dict=element_dict.copy() # avoid modifications if user provided
-        self.element_names=list(element_names).copy()
+        self.element_dict = element_dict.copy()  # avoid modifications if user provided
+        self.element_names = list(element_names).copy()
 
         self.particle_ref = particle_ref
 
@@ -638,6 +638,30 @@ class Line:
         self.element_names = newline.element_names
         return self
 
+    def use_simple_quadrupoles(self):
+        self._frozen_check()
+
+        for name, element in self.element_dict.items():
+            if _is_simple_quadrupole(element):
+                fast_quad = beam_elements.SimpleThinQuadrupole(
+                    knl=element.knl,
+                    _context=element._context,
+                )
+                self.element_dict[name] = fast_quad
+
+    def use_simple_bends(self):
+        self._frozen_check()
+
+        for name, element in self.element_dict.items():
+            if _is_simple_dipole(element):
+                fast_di = beam_elements.SimpleThinBend(
+                    knl=element.knl,
+                    hxl=element.hxl,
+                    length=element.length,
+                    _context=element._context,
+                )
+                self.element_dict[name] = fast_di
+
     def get_elements_of_type(self, types):
         if not hasattr(types, "__iter__"):
             type_list = [types]
@@ -736,27 +760,28 @@ class Line:
 
 
 mathfunctions = type('math', (), {})
-mathfunctions.sqrt=math.sqrt
-mathfunctions.log=math.log
-mathfunctions.log10=math.log10
-mathfunctions.exp=math.exp
-mathfunctions.sin=math.sin
-mathfunctions.cos=math.cos
-mathfunctions.tan=math.tan
-mathfunctions.asin=math.asin
-mathfunctions.acos=math.acos
-mathfunctions.atan=math.atan
-mathfunctions.sinh=math.sinh
-mathfunctions.cosh=math.cosh
-mathfunctions.tanh=math.tanh
-mathfunctions.sinc=np.sinc
-mathfunctions.abs=math.fabs
-mathfunctions.erf=math.erf
-mathfunctions.erfc=math.erfc
-mathfunctions.floor=math.floor
-mathfunctions.ceil=math.ceil
-mathfunctions.round=np.round
-mathfunctions.frac=lambda x: (x%1)
+mathfunctions.sqrt = math.sqrt
+mathfunctions.log = math.log
+mathfunctions.log10 = math.log10
+mathfunctions.exp = math.exp
+mathfunctions.sin = math.sin
+mathfunctions.cos = math.cos
+mathfunctions.tan = math.tan
+mathfunctions.asin = math.asin
+mathfunctions.acos = math.acos
+mathfunctions.atan = math.atan
+mathfunctions.sinh = math.sinh
+mathfunctions.cosh = math.cosh
+mathfunctions.tanh = math.tanh
+mathfunctions.sinc = np.sinc
+mathfunctions.abs = math.fabs
+mathfunctions.erf = math.erf
+mathfunctions.erfc = math.erfc
+mathfunctions.floor = math.floor
+mathfunctions.ceil = math.ceil
+mathfunctions.round = np.round
+mathfunctions.frac = lambda x: (x % 1)
+
 
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
@@ -765,3 +790,20 @@ def _deserialize_element(el, class_dict, _buffer):
         return eltype.from_dict(eldct, _buffer=_buffer)
     else:
         return eltype.from_dict(eldct)
+
+
+def _is_simple_quadrupole(el):
+    if not isinstance(el, beam_elements.Multipole):
+        return False
+    return (el.order == 1 and
+            el.knl[0] == 0 and
+            el.length == 0 and
+            not any(el.ksl) and
+            not el.hxl and
+            not el.hyl)
+
+
+def _is_simple_dipole(el):
+    if not isinstance(el, beam_elements.Multipole):
+        return False
+    return el.order == 0 and not any(el.ksl) and not el.hyl

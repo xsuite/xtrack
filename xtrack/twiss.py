@@ -771,6 +771,8 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         global_xy_limit=tracker.global_xy_limit,
         local_particle_src=tracker.local_particle_src
     )
+    auxtracker.matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
+    auxtracker.matrix_stability_tol = tracker.matrix_stability_tol
 
     return auxtracker, names_inserted_markers
 
