@@ -14,6 +14,8 @@ cavities = line_df[line_df['element_type'] == 'Cavity'].copy()
 # save voltages
 cavities['voltage'] = [cc.voltage for cc in cavities.element.values]
 cavities['frequency'] = [cc.frequency for cc in cavities.element.values]
+cavities['eneloss_partitioning'] = cavities['voltage'] / cavities['voltage'].sum()
+
 
 # set voltages to zero
 for cc in cavities.element.values:
@@ -34,6 +36,13 @@ tracker_taper = xt.Tracker(line = line, extra_headers=["#define XTRACK_MULTIPOLE
 
 import matplotlib.pyplot as plt
 
+rtot_eneloss = 1e-10
+
+# Put all cavities on crest and at zero frequency
+for cc in cavities.element.values:
+    cc.lag = 90
+    cc.frequency = 0
+
 while True:
     p_test = tw_no_rad.particle_on_co.copy()
     tracker_taper.configure_radiation(mode='mean')
@@ -43,31 +52,40 @@ while True:
     eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
     print(f"Energy loss: {eloss:.3f} eV")
 
-    if eloss < p_test.energy0[0]*1e-6:
+    if eloss < p_test.energy0[0]*rtot_eneloss:
         break
 
-    for cc in cavities.element:
-        cc.lag = 90.0
-        cc.frequency = 0.0000001
-        cc.voltage += eloss/n_cavities
+    for ii in cavities.index:
+        cc = cavities.loc[ii, 'element']
+        eneloss_partitioning = cavities.loc[ii, 'eneloss_partitioning']
+        cc.voltage += eloss * eneloss_partitioning
 
     plt.plot(mon.s.T, mon.ptau.T)
 
+i_multipoles = multipoles.index.values
 delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
 for nn, dd in zip(multipoles['name'].values, delta_taper):
     line[nn].knl *= (1 + dd)
     line[nn].ksl *= (1 + dd)
 
-prrr
 
 beta0 = p_test.beta0[0]
+v_ratio = []
 for icav in cavities.index:
+    v_ratio.append(cavities.loc[icav, 'element'].voltage / cavities.loc[icav, 'voltage'])
     inst_phase = np.arcsin(cavities.loc[icav, 'element'].voltage / cavities.loc[icav, 'voltage'])
     freq = cavities.loc[icav, 'frequency']
 
     zeta = mon.zeta[0, icav]
     lag = 360.*(inst_phase / (2*np.pi) - freq*zeta/beta0/clight)
-    prrrr
 
-tw_taper = tracker.twiss(method='4d', matrix_stability_tol=0.5)
+    cavities.loc[icav, 'element'].lag = lag
+    cavities.loc[icav, 'element'].frequency = freq
+    cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
+
+    import pdb; pdb.set_trace()
+
+
+tw_damp = tracker.twiss(method='4d', matrix_stability_tol=0.5)
 tracker_twiss = xt.Tracker(line = line, extra_headers=["#define XSUITE_SYNRAD_TWISS_MODE"])
+tw_nodamp = tracker_twiss.twiss(method='4d')
