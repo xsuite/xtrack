@@ -198,7 +198,10 @@ class TrackerData:
         }
 
         element_dict = {}
+        num_elements = len(element_ref_data.elements)
         for ii, elem in enumerate(element_ref_data.elements):
+            print('Loading line from binary: '
+                f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
             name = element_ref_data.names[ii]
             if name in element_dict:
                 continue

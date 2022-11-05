@@ -287,7 +287,7 @@ class Line:
                          elements=new_elements, element_names=new_element_names)
 
     def configure_radiation(self, mode=None):
-        assert mode in [None, 'mean', 'quantum']
+        assert mode in [None, 'mean', 'quantum', 'twiss']
         if mode == 'mean':
             radiation_flag = 1
             rescale_pxpy = 0
