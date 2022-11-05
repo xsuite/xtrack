@@ -9,13 +9,7 @@
 /*gpufun*/
 void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
-    double const new_p0c = CavityData_get_new_p0c(el);
-    if (new_p0c > 0.0){
-        //start_per_particle_block (part0->part)
-            LocalParticle_update_p0c(part, new_p0c);
-        //end_per_particle_block
-    }
-
+    int64_t const rescale_pxpy = CavityData_get_rescale_pxpy(el); //used in twiss mode with radiation
 
     //start_per_particle_block (part0->part)
         double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
@@ -31,11 +25,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
         double const energy   = q * CavityData_get_voltage(el) * sin(phase);
 
-        #ifdef XTRACK_CAVITY_TWISS_MODE
-            LocalParticle_add_to_energy(part, energy, 0);
-        #else
-            LocalParticle_add_to_energy(part, energy, 1);
-        #endif
+        LocalParticle_add_to_energy(part, energy, (rescale_pxpy) ? 0 : 1);
     //end_per_particle_block
 }
 

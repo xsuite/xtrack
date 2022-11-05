@@ -62,7 +62,7 @@ class Cavity(BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
-        'new_p0c': xo.Float64,
+        'rescale_pxpy': xo.Int64
         }
 
     _extra_c_sources = [
@@ -272,7 +272,6 @@ class Multipole(BeamElement):
         'hxl': xo.Float64,
         'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
-        'new_p0c': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         }

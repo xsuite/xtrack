@@ -80,21 +80,9 @@ while True:
 
 i_multipoles = multipoles.index.values
 delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
-#delta_taper = mon.delta[0,:][i_multipoles]
 for nn, dd in zip(multipoles['name'].values, delta_taper):
     line[nn].knl *= (1 + dd)
     line[nn].ksl *= (1 + dd)
-
-# i_multipoles = multipoles.index.values
-# delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
-# for nn, dd in zip(multipoles['name'].values, delta_taper):
-#     #line[nn].knl *= (1 + dd)
-#     #line[nn].ksl *= (1 + dd)
-#     line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
-
-# delta_taper_cavities = ((mon.delta[0,:][cavities.index.values+1] + mon.delta[0,:][cavities.index.values]) / 2)
-# for nn, dd in zip(cavities['name'].values, delta_taper_cavities):
-#     line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
 
 beta0 = p_test.beta0[0]
 v_ratio = []
@@ -111,34 +99,28 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].frequency = freq
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
-tracker._temp_anti_damping = True
-tw_no_kernel = tracker.twiss(method='6d', matrix_stability_tol=0.5)
+tracker.configure_radiation(mode='twiss')
+tw = tracker.twiss(method='6d', matrix_stability_tol=0.5)
 
-tracker_twiss_accurate = xt.Tracker(line = line, extra_headers=["#define XTRACK_CAVITY_TWISS_MODE"])
-tw_accurate = tracker_twiss_accurate.twiss(method='6d', matrix_stability_tol=0.5)
-
-print(f'Tune error no kernel: H: {tw_no_kernel.qx - tw_no_rad.qx:.3e} V: {tw_no_kernel.qy - tw_no_rad.qy:.3e}')
-print(f'Tune error accurate: H: {tw_accurate.qx - tw_no_rad.qx:.3e} V: {tw_accurate.qy - tw_no_rad.qy:.3e}')
+print(f'Tune error =  error_qx: {abs(tw.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw.qy - tw_no_rad.qy):.3e}')
 plt.figure(2)
 
 plt.subplot(2,1,1)
-plt.plot(tw_no_rad.s, tw_no_kernel.betx/tw_no_rad.betx - 1, 'b')
-plt.plot(tw_no_rad.s, tw_accurate.betx/tw_no_rad.betx - 1, 'r')
+plt.plot(tw_no_rad.s, tw.betx/tw_no_rad.betx - 1)
+plt.ylabel(r'$\Delta \beta_x / \beta_x$')
 
 plt.subplot(2,1,2)
-plt.plot(tw_no_rad.s, tw_no_kernel.bety/tw_no_rad.bety - 1, 'b')
-plt.plot(tw_no_rad.s, tw_accurate.bety/tw_no_rad.bety - 1, 'r')
+plt.plot(tw_no_rad.s, tw.bety/tw_no_rad.bety - 1)
+plt.ylabel(r'$\Delta \beta_y / \beta_y$')
 
 plt.figure(10)
 plt.subplot(2,1,1)
 plt.plot(tw_no_rad.s, tw_no_rad.x, 'k')
-plt.plot(tw_no_rad.s, tw_no_kernel.x, 'b')
-plt.plot(tw_no_rad.s, tw_accurate.x, 'r')
+plt.plot(tw_no_rad.s, tw.x, 'b')
 
 plt.subplot(2,1,2)
 plt.plot(tw_no_rad.s, tw_no_rad.y, 'k')
-plt.plot(tw_no_rad.s, tw_no_kernel.y, 'b')
-plt.plot(tw_no_rad.s, tw_accurate.y, 'r')
+plt.plot(tw_no_rad.s, tw.y, 'b')
 
 
 plt.show()
