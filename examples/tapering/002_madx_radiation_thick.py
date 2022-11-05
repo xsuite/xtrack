@@ -31,9 +31,12 @@ voltca2save = voltca2;
 voltca1 = 0;
 voltca2 = 0;
 SAVEBETA, LABEL=B.IP, PLACE=#s, SEQUENCE=FCCEE_P_RING;
-twiss, file = "twiss_rf.tfs", tolerance=1e-12;
+''')
+
+tw_0 = mad.twiss().dframe()
 
 
+mad.input('''
 ! radiation on
 
 voltca1 = voltca1save;
@@ -62,3 +65,5 @@ ENDMATCH;
 
 use, sequence = fccee_p_ring;
 ''')
+
+tw_1 = mad.twiss().dframe()

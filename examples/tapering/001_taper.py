@@ -85,6 +85,7 @@ for icav in cavities.index:
 
     zeta = mon.zeta[0, icav]
     lag = 360.*(inst_phase / (2*np.pi) - freq*zeta/beta0/clight)
+    lag = 180. - lag # we are above transition
 
     cavities.loc[icav, 'element'].lag = lag
     cavities.loc[icav, 'element'].frequency = freq
