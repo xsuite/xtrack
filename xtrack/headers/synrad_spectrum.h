@@ -29,7 +29,7 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     double const beta = beta0 * LocalParticle_get_rvv(part);
     double f_t = sqrt(1 + r*(r-2)/(beta*beta));
 
-    #ifdef XSUITE_SYNRAD_TWISS_MODE
+    #ifdef XSUITE_SYNRAD_SAME_AS_FIRST
     if (part -> ipart == 0){
       *dp_record = LocalParticle_get_delta(part);
       *dpx_record = LocalParticle_get_px(part);
@@ -44,7 +44,7 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     LocalParticle_scale_px(part, f_t);
     LocalParticle_scale_py(part, f_t);
 
-    #ifdef XSUITE_SYNRAD_TWISS_MODE
+    #ifdef XSUITE_SYNRAD_SAME_AS_FIRST
     if (part -> ipart == 0){
       *dp_record = LocalParticle_get_delta(part) - *dp_record;
       *dpx_record = LocalParticle_get_px(part) - *dpx_record;

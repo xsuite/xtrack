@@ -113,8 +113,6 @@ for icav in cavities.index:
 
 
 tw_damp = tracker.twiss(method='6d', matrix_stability_tol=0.5)
-tracker_twiss = xt.Tracker(line = line, extra_headers=["#define XSUITE_SYNRAD_TWISS_MODE"])
-tw_nodamp = tracker_twiss.twiss(method='6d')
 
 tracker_twiss_cav = xt.Tracker(line = line, extra_headers=["#define XTRACK_CAVITY_TWISS_MODE"])
 tw_nodamp = tracker_twiss_cav.twiss(method='6d', matrix_stability_tol=0.5)
@@ -122,6 +120,8 @@ tw_nodamp = tracker_twiss_cav.twiss(method='6d', matrix_stability_tol=0.5)
 print(f'{tw_no_rad.qx=}\n{tw_damp.qx=}\n{tw_nodamp.qx=}')
 print(f'{tw_no_rad.qy=}\n{tw_damp.qy=}\n{tw_nodamp.qy=}')
 
+print(f'qx error naive = {tw_damp.qx - tw_no_rad.qx:.2e}')
+print(f'qx error twiss = {tw_nodamp.qx - tw_no_rad.qx:.2e}')
 plt.figure(2)
 
 plt.subplot(2,1,1)

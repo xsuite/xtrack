@@ -370,6 +370,15 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, :, 4] = np.real(v3)
     Ws[:, :, 5] = np.imag(v3)
 
+    # TEEEEEMP
+    if hasattr(tracker, '_temp_anti_damping') and tracker._temp_anti_damping:
+        positive_d_delta = np.diff(delta_co)
+        positive_d_delta[positive_d_delta < 0] = 0
+        d_delta_correction = 1 + np.cumsum(positive_d_delta)
+        for ii in range(6):
+            for jj in range(6):
+                Ws[1:, ii, jj] *= np.sqrt(d_delta_correction)
+
     betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
     bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
 
