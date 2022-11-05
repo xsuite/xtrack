@@ -26,6 +26,13 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
     double dp_record_entry, dpx_record_entry, dpy_record_entry;
     double dp_record_exit, dpx_record_exit, dpy_record_exit;
 
+    double const new_p0c = MultipoleData_get_new_p0c(el);
+    if (new_p0c > 0.0){
+        //start_per_particle_block (part0->part)
+            LocalParticle_update_p0c(part, new_p0c);
+        //end_per_particle_block
+    }
+
     //start_per_particle_block (part0->part)
         int64_t order = MultipoleData_get_order(el);
         int64_t index = order;

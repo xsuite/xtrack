@@ -9,6 +9,14 @@
 /*gpufun*/
 void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
+    double const new_p0c = CavityData_get_new_p0c(el);
+    if (new_p0c > 0.0){
+        //start_per_particle_block (part0->part)
+            LocalParticle_update_p0c(part, new_p0c);
+        //end_per_particle_block
+    }
+
+
     //start_per_particle_block (part0->part)
         double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
 

@@ -72,9 +72,13 @@ while True:
 i_multipoles = multipoles.index.values
 delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
 for nn, dd in zip(multipoles['name'].values, delta_taper):
-    line[nn].knl *= (1 + dd)
-    line[nn].ksl *= (1 + dd)
+    #line[nn].knl *= (1 + dd)
+    #line[nn].ksl *= (1 + dd)
+    line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
 
+delta_taper_cavities = ((mon.delta[0,:][cavities.index.values+1] + mon.delta[0,:][cavities.index.values]) / 2)
+for nn, dd in zip(cavities['name'].values, delta_taper_cavities):
+    line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
 
 beta0 = p_test.beta0[0]
 v_ratio = []
@@ -95,3 +99,13 @@ for icav in cavities.index:
 tw_damp = tracker.twiss(method='4d', matrix_stability_tol=0.5)
 tracker_twiss = xt.Tracker(line = line, extra_headers=["#define XSUITE_SYNRAD_TWISS_MODE"])
 tw_nodamp = tracker_twiss.twiss(method='4d')
+
+plt.figure(2)
+print(f'{tw_no_rad.qx=}\n{tw_damp.qx=}\n{tw_nodamp.qx=}')
+print(f'{tw_no_rad.qy=}\n{tw_damp.qy=}\n{tw_nodamp.qy=}')
+
+plt.plot(tw_no_rad.s, tw_damp.bety/tw_no_rad.bety - 1, 'b')
+plt.plot(tw_no_rad.s, tw_nodamp.bety/tw_no_rad.bety - 1, 'r')
+
+
+plt.show()
