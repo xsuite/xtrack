@@ -111,7 +111,7 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].frequency = freq
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
-tracker._temp_anti_damping = Trie
+tracker._temp_anti_damping = True
 tw_no_kernel = tracker.twiss(method='6d', matrix_stability_tol=0.5)
 
 tracker_twiss_accurate = xt.Tracker(line = line, extra_headers=["#define XTRACK_CAVITY_TWISS_MODE"])
