@@ -7,6 +7,14 @@ import json
 # - Assert no collective
 # - Assert no ions
 
+# Some considerations:
+# - One preserves angles not normalized momenta (in this sense the right beta to be
+# preserved is in the plane x-x' and not x-px)
+# - I observe the right tune on v on the real tracker and not with the one with the
+# eneloss of the closed orbit.
+# On the real tracker I see that the beta beating is introduced by the cavities
+# not by the multipoles.
+
 import numpy as np
 from scipy.constants import c as clight
 import xtrack as xt
@@ -72,13 +80,19 @@ while True:
 i_multipoles = multipoles.index.values
 delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
 for nn, dd in zip(multipoles['name'].values, delta_taper):
-    #line[nn].knl *= (1 + dd)
-    #line[nn].ksl *= (1 + dd)
-    line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
+    line[nn].knl *= (1 + dd)
+    line[nn].ksl *= (1 + dd)
 
-delta_taper_cavities = ((mon.delta[0,:][cavities.index.values+1] + mon.delta[0,:][cavities.index.values]) / 2)
-for nn, dd in zip(cavities['name'].values, delta_taper_cavities):
-    line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
+# i_multipoles = multipoles.index.values
+# delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
+# for nn, dd in zip(multipoles['name'].values, delta_taper):
+#     #line[nn].knl *= (1 + dd)
+#     #line[nn].ksl *= (1 + dd)
+#     line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
+
+# delta_taper_cavities = ((mon.delta[0,:][cavities.index.values+1] + mon.delta[0,:][cavities.index.values]) / 2)
+# for nn, dd in zip(cavities['name'].values, delta_taper_cavities):
+#     line[nn].new_p0c = p_test.p0c[0] * (1 + dd)
 
 beta0 = p_test.beta0[0]
 v_ratio = []
