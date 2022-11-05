@@ -111,37 +111,34 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].frequency = freq
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
+tracker._temp_anti_damping = Trie
+tw_no_kernel = tracker.twiss(method='6d', matrix_stability_tol=0.5)
 
-tw_damp = tracker.twiss(method='6d', matrix_stability_tol=0.5)
+tracker_twiss_accurate = xt.Tracker(line = line, extra_headers=["#define XTRACK_CAVITY_TWISS_MODE"])
+tw_accurate = tracker_twiss_accurate.twiss(method='6d', matrix_stability_tol=0.5)
 
-tracker_twiss_cav = xt.Tracker(line = line, extra_headers=["#define XTRACK_CAVITY_TWISS_MODE"])
-tw_nodamp = tracker_twiss_cav.twiss(method='6d', matrix_stability_tol=0.5)
-
-print(f'{tw_no_rad.qx=}\n{tw_damp.qx=}\n{tw_nodamp.qx=}')
-print(f'{tw_no_rad.qy=}\n{tw_damp.qy=}\n{tw_nodamp.qy=}')
-
-print(f'qx error naive = {tw_damp.qx - tw_no_rad.qx:.2e}')
-print(f'qx error twiss = {tw_nodamp.qx - tw_no_rad.qx:.2e}')
+print(f'Tune error no kernel: H: {tw_no_kernel.qx - tw_no_rad.qx:.3e} V: {tw_no_kernel.qy - tw_no_rad.qy:.3e}')
+print(f'Tune error accurate: H: {tw_accurate.qx - tw_no_rad.qx:.3e} V: {tw_accurate.qy - tw_no_rad.qy:.3e}')
 plt.figure(2)
 
 plt.subplot(2,1,1)
-plt.plot(tw_no_rad.s, tw_damp.betx/tw_no_rad.betx - 1, 'b')
-plt.plot(tw_no_rad.s, tw_nodamp.betx/tw_no_rad.betx - 1, 'r')
+plt.plot(tw_no_rad.s, tw_no_kernel.betx/tw_no_rad.betx - 1, 'b')
+plt.plot(tw_no_rad.s, tw_accurate.betx/tw_no_rad.betx - 1, 'r')
 
 plt.subplot(2,1,2)
-plt.plot(tw_no_rad.s, tw_damp.bety/tw_no_rad.bety - 1, 'b')
-plt.plot(tw_no_rad.s, tw_nodamp.bety/tw_no_rad.bety - 1, 'r')
+plt.plot(tw_no_rad.s, tw_no_kernel.bety/tw_no_rad.bety - 1, 'b')
+plt.plot(tw_no_rad.s, tw_accurate.bety/tw_no_rad.bety - 1, 'r')
 
 plt.figure(10)
 plt.subplot(2,1,1)
 plt.plot(tw_no_rad.s, tw_no_rad.x, 'k')
-plt.plot(tw_no_rad.s, tw_damp.x, 'b')
-plt.plot(tw_no_rad.s, tw_nodamp.x, 'r')
+plt.plot(tw_no_rad.s, tw_no_kernel.x, 'b')
+plt.plot(tw_no_rad.s, tw_accurate.x, 'r')
 
 plt.subplot(2,1,2)
 plt.plot(tw_no_rad.s, tw_no_rad.y, 'k')
-plt.plot(tw_no_rad.s, tw_damp.y, 'b')
-plt.plot(tw_no_rad.s, tw_nodamp.y, 'r')
+plt.plot(tw_no_rad.s, tw_no_kernel.y, 'b')
+plt.plot(tw_no_rad.s, tw_accurate.y, 'r')
 
 
 plt.show()
