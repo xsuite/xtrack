@@ -50,6 +50,7 @@ n_cavities = len(cavities)
 tracker_taper = xt.Tracker(line = line, extra_headers=["#define XTRACK_MULTIPOLE_TAPER"])
 
 import matplotlib.pyplot as plt
+plt.close('all')
 
 rtot_eneloss = 1e-10
 
@@ -79,6 +80,7 @@ while True:
 
 i_multipoles = multipoles.index.values
 delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
+#delta_taper = mon.delta[0,:][i_multipoles]
 for nn, dd in zip(multipoles['name'].values, delta_taper):
     line[nn].knl *= (1 + dd)
     line[nn].ksl *= (1 + dd)
@@ -110,16 +112,33 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
 
-tw_damp = tracker.twiss(method='4d', matrix_stability_tol=0.5)
+tw_damp = tracker.twiss(method='6d', matrix_stability_tol=0.5)
 tracker_twiss = xt.Tracker(line = line, extra_headers=["#define XSUITE_SYNRAD_TWISS_MODE"])
-tw_nodamp = tracker_twiss.twiss(method='4d')
+tw_nodamp = tracker_twiss.twiss(method='6d')
 
-plt.figure(2)
 print(f'{tw_no_rad.qx=}\n{tw_damp.qx=}\n{tw_nodamp.qx=}')
 print(f'{tw_no_rad.qy=}\n{tw_damp.qy=}\n{tw_nodamp.qy=}')
 
+plt.figure(2)
+
+plt.subplot(2,1,1)
+plt.plot(tw_no_rad.s, tw_damp.betx/tw_no_rad.betx - 1, 'b')
+plt.plot(tw_no_rad.s, tw_nodamp.betx/tw_no_rad.betx - 1, 'r')
+
+plt.subplot(2,1,2)
 plt.plot(tw_no_rad.s, tw_damp.bety/tw_no_rad.bety - 1, 'b')
 plt.plot(tw_no_rad.s, tw_nodamp.bety/tw_no_rad.bety - 1, 'r')
+
+plt.figure(10)
+plt.subplot(2,1,1)
+plt.plot(tw_no_rad.s, tw_no_rad.x, 'k')
+plt.plot(tw_no_rad.s, tw_damp.x, 'b')
+plt.plot(tw_no_rad.s, tw_nodamp.x, 'r')
+
+plt.subplot(2,1,2)
+plt.plot(tw_no_rad.s, tw_no_rad.y, 'k')
+plt.plot(tw_no_rad.s, tw_damp.y, 'b')
+plt.plot(tw_no_rad.s, tw_nodamp.y, 'r')
 
 
 plt.show()
