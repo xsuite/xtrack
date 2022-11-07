@@ -292,7 +292,7 @@ class Line:
             radiation_flag = 1
             rescale_pxpy = 0
         elif mode == 'twiss':
-            radiation_flag = 2
+            radiation_flag = 1
             rescale_pxpy = 1
         elif mode == 'quantum':
             radiation_flag = 2
