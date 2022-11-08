@@ -29,16 +29,23 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     double const beta = beta0 * LocalParticle_get_rvv(part);
     double f_t = sqrt(1 + r*(r-2)/(beta*beta));
 
-    #ifdef XSUITE_SYNRAD_SAME_AS_FIRST
+    #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
-      //*dp_record = LocalParticle_get_delta(part);
-      //*dpx_record = LocalParticle_get_px(part);
-      //*dpy_record = LocalParticle_get_py(part);
       *dp_record = f_t;
     }
     else{
       f_t = *dp_record;
-      //f_t = 1.0;
+    }
+    #endif
+
+    #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+    if (part -> ipart == 0){
+      *dp_record = LocalParticle_get_delta(part);
+      *dpx_record = LocalParticle_get_px(part);
+      *dpy_record = LocalParticle_get_py(part);
+    }
+    else{
+      f_t = 1.0;
     }
     #endif
 
@@ -46,16 +53,16 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     LocalParticle_scale_px(part, f_t);
     LocalParticle_scale_py(part, f_t);
 
-    #ifdef XSUITE_SYNRAD_SAME_AS_FIRST
+    #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
     if (part -> ipart == 0){
-      //*dp_record = LocalParticle_get_delta(part) - *dp_record;
-      //*dpx_record = LocalParticle_get_px(part) - *dpx_record;
-      //*dpy_record = LocalParticle_get_py(part) - *dpy_record;
+      *dp_record = LocalParticle_get_delta(part) - *dp_record;
+      *dpx_record = LocalParticle_get_px(part) - *dpx_record;
+      *dpy_record = LocalParticle_get_py(part) - *dpy_record;
     }
     else{
-      //LocalParticle_update_delta(part, LocalParticle_get_delta(part) + *dp_record);
-      //LocalParticle_add_to_px(part, *dpx_record);
-      //LocalParticle_add_to_py(part, *dpy_record);
+      LocalParticle_update_delta(part, LocalParticle_get_delta(part) + *dp_record);
+      LocalParticle_add_to_px(part, *dpx_record);
+      LocalParticle_add_to_py(part, *dpy_record);
     }
     #endif
 }

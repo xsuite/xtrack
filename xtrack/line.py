@@ -287,25 +287,19 @@ class Line:
                          elements=new_elements, element_names=new_element_names)
 
     def configure_radiation(self, mode=None):
-        assert mode in [None, 'mean', 'quantum', 'twiss']
+        assert mode in [None, 'mean', 'quantum']
         if mode == 'mean':
             radiation_flag = 1
-            rescale_pxpy = 0
         elif mode == 'twiss':
             radiation_flag = 1
-            rescale_pxpy = 1
         elif mode == 'quantum':
             radiation_flag = 2
-            rescale_pxpy = 0
         else:
             radiation_flag = 0
-            rescale_pxpy = 0
 
         for kk, ee in self.element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
-            if hasattr(ee, 'rescale_pxpy'):
-                ee.rescale_pxpy = rescale_pxpy
 
         if radiation_flag == 2:
             self._needs_rng = True

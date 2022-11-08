@@ -62,7 +62,6 @@ class Cavity(BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
-        'rescale_pxpy': xo.Int64
         }
 
     _extra_c_sources = [
