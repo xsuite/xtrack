@@ -378,3 +378,95 @@ def test_tracker_binary_serialisation_with_knobs(tmp_path):
     new_tracker.vars['on_x5'] = -270
     assert np.isclose(new_tracker.twiss(at_elements=['ip5'])['py'][0], -270e-6,
                       atol=1e-6, rtol=0)
+
+
+def test_tracker_hashable_config():
+    tracker = xt.Tracker(line=xt.Line([]))
+    tracker.config.TEST_FLAG_BOOL = True
+    tracker.config.TEST_FLAG_INT = 42
+    tracker.config.TEST_FLAG_FALSE = False
+    tracker.config.ZZZ = 'lorem'
+    tracker.config.AAA = 'ipsum'
+
+    expected = (
+        ('AAA', 'ipsum'),
+        ('TEST_FLAG_BOOL', True),
+        ('TEST_FLAG_INT', 42),
+        ('ZZZ', 'lorem'),
+    )
+
+    assert tracker._hashable_config() == expected
+
+
+def test_tracker_config_to_headers():
+    tracker = xt.Tracker(line=xt.Line([]))
+
+    tracker.config.clear()
+    tracker.config.TEST_FLAG_BOOL = True
+    tracker.config.TEST_FLAG_INT = 42
+    tracker.config.TEST_FLAG_FALSE = False
+    tracker.config.ZZZ = 'lorem'
+    tracker.config.AAA = 'ipsum'
+
+    expected = [
+        '#define TEST_FLAG_BOOL',
+        '#define TEST_FLAG_INT 42',
+        '#undef TEST_FLAG_FALSE',
+        '#define ZZZ lorem',
+        '#define AAA ipsum',
+    ]
+
+    assert set(tracker._config_to_headers()) == set(expected)
+
+
+def test_tracker_config():
+    class TestElement(xt.BeamElement):
+        _xofields = {
+            'dummy': xo.Float64,
+        }
+        _extra_c_sources = ["""
+            /*gpufun*/
+            void TestElement_track_local_particle(
+                    TestElementData el,
+                    LocalParticle* part0)
+            {
+                //start_per_particle_block (part0->part)
+
+                    #if TEST_FLAG == 2
+                    LocalParticle_set_x(part, 7);
+                    #endif
+
+                    #ifdef TEST_FLAG_BOOL
+                    LocalParticle_set_y(part, 42);
+                    #endif
+
+                //end_per_particle_block
+            }
+            """]
+
+    for context in xo.context.get_test_contexts():
+        test_element = TestElement(_context=context)
+        line = xt.Line([test_element])
+        tracker = xt.Tracker(line=line)
+
+        particles = xp.Particles(p0c=1e9, x=[0], y=[0], _context=context)
+
+        p = particles.copy()
+        tracker.config.TEST_FLAG = 2
+        tracker.track(p)
+        assert p.x[0] == 7.0
+        assert p.y[0] == 0.0
+        first_kernel = tracker._current_track_kernel
+
+        p = particles.copy()
+        tracker.config.TEST_FLAG = False
+        tracker.config.TEST_FLAG_BOOL = True
+        tracker.track(p)
+        assert p.x[0] == 0.0
+        assert p.y[0] == 42.0
+        assert tracker._current_track_kernel is not first_kernel
+
+        tracker.config.TEST_FLAG = 2
+        tracker.config.TEST_FLAG_BOOL = False
+        assert len(tracker.track_kernel) == 2
+        assert tracker._current_track_kernel is first_kernel
