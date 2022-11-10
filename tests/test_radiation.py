@@ -12,9 +12,11 @@ from scipy.constants import epsilon_0
 import xpart as xp
 import xtrack as xt
 import xobjects as xo
+from xpart.test_helpers import retry
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
+
 
 def test_radiation():
 
@@ -81,6 +83,7 @@ def test_radiation():
                           atol=0, rtol=1e-6)
 
 
+@retry(on=AssertionError)
 def test_ring_with_radiation():
 
     from cpymad.madx import Madx
