@@ -266,7 +266,7 @@ class Line:
         if ((index_first_element is not None and name_first_element is not None)
                or (index_first_element is None and name_first_element is None)):
              raise ValueError(
-                "Plaese provide either `index_first_element` or `name_first_element`.")
+                "Please provide either `index_first_element` or `name_first_element`.")
 
         if type(index_first_element) is str:
             name_first_element = index_first_element
@@ -278,13 +278,14 @@ class Line:
             )
             index_first_element = self.element_names.index(name_first_element)
 
-        new_elements = (list(self.elements[index_first_element:])
-                        + list(self.elements[:index_first_element]))
         new_element_names = (list(self.element_names[index_first_element:])
-                        + list(self.element_names[:index_first_element]))
+                             + list(self.element_names[:index_first_element]))
 
         return self.__class__(
-                         elements=new_elements, element_names=new_element_names)
+            elements=self.element_dict,
+            element_names=new_element_names,
+            particle_ref=self.particle_ref,
+        )
 
     def configure_radiation(self, mode=None):
         assert mode in [None, 'mean', 'quantum']

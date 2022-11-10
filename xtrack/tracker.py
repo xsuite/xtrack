@@ -522,9 +522,13 @@ class Tracker:
                 )
 
     @property
-    def particle_ref(self):
+    def particle_ref(self) -> xp.Particles:
         self._check_invalidated()
         return self.line.particle_ref
+
+    @particle_ref.setter
+    def particle_ref(self, value: xp.Particles):
+        self.line.particle_ref = value
 
     @property
     def vars(self):
@@ -1277,6 +1281,7 @@ class Tracker:
         except AttributeError:
             raise TypeError("Only non-collective trackers can be binary serialized.")
 
+        # Serialise the tracker_data (line)
         if not isinstance(tracker_data._context, xo.ContextCpu):
             buffer = xo.ContextCpu().new_buffer(0)
         else:
@@ -1284,14 +1289,21 @@ class Tracker:
 
         buffer, header_offset = tracker_data.to_binary(buffer)
 
+        # Serialise the knobs
         var_management = {}
         if tracker_data.line._var_management:
             var_management = tracker_data.line._var_management_to_dict()
+
+        # Serialise the reference particle
+        particle_ref = None
+        if self.particle_ref:
+            particle_ref = self.particle_ref.to_dict()
 
         with open(path, 'wb') as f:
             np.save(f, header_offset)
             np.save(f, buffer.buffer)
             np.save(f, var_management, allow_pickle=True)
+            np.save(f, particle_ref, allow_pickle=True)
 
     @classmethod
     def from_binary_file(cls, path, particles_monitor_class=None, **kwargs) -> 'Tracker':
@@ -1302,6 +1314,7 @@ class Tracker:
             header_offset = np.load(f)
             np_buffer = np.load(f)
             var_management_dict = np.load(f, allow_pickle=True).item()
+            particle_ref = np.load(f, allow_pickle=True).item()
 
         xbuffer = xo.ContextCpu().new_buffer(np_buffer.nbytes)
         # make sure that if we carry on using the buffer we
@@ -1316,8 +1329,13 @@ class Tracker:
         if var_management_dict:
             tracker_data.line._init_var_management(var_management_dict)
 
-        return Tracker(
+        tracker = Tracker(
             line=tracker_data.line,
             _element_ref_data=tracker_data._element_ref_data,
             **kwargs,
         )
+
+        if particle_ref is not None:
+            tracker.particle_ref = xp.Particles.from_dict(particle_ref)
+
+        return tracker
