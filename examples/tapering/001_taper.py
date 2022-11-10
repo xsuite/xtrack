@@ -20,8 +20,18 @@ import xtrack as xt
 with open('line_no_radiation.json', 'r') as f:
     line = xt.Line.from_dict(json.load(f))
 
+# Introduce some closed orbit
 line[3].knl[0] += 1e-6
 line[3].ksl[0] += 1e-6
+
+
+# # Kill all non-linear elements
+# for ee in line.elements:
+#     if hasattr(ee, 'knl'):
+#         ee.knl[2:] = 0
+#         ee.ksl[2:] = 0
+
+delta_chrom = 1e-7 # to be compatible with natural chromaticity
 
 #line_no_rad = line.copy()
 
@@ -40,7 +50,7 @@ for cc in cavities.element.values:
     cc.voltage = 0
 
 tracker = xt.Tracker(line = line)
-tw_no_rad = tracker.twiss(method='4d')
+tw_no_rad = tracker.twiss(method='4d', delta_chrom=delta_chrom)
 
 p_test = tw_no_rad.particle_on_co.copy()
 tracker.configure_radiation(mode='mean')
@@ -105,19 +115,20 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
 tracker.configure_radiation(mode='mean')
-tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=0.5,
-                    eneloss_and_damping=True) # Completely wrong in y when
+tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
+                    eneloss_and_damping=True,
+                    delta_chrom=delta_chrom) # Completely wrong in y when
                                               # closed orbit is not zero
 
 tracker_sympl = xt.Tracker(line = line, extra_headers=["#define XTRACK_SYNRAD_KICK_SAME_AS_FIRST"])
 tracker_sympl.configure_radiation(mode='mean')
-tw_sympl = tracker_sympl.twiss(method='6d')
+tw_sympl = tracker_sympl.twiss(method='6d', delta_chrom=delta_chrom)
 
 tracker_preserve_angles = xt.Tracker(line = line,
     extra_headers=["#define XTRACK_SYNRAD_SCALE_SAME_AS_FIRST",
                    "#define XTRACK_CAVITY_PRESERVE_ANGLE"])
 tracker_preserve_angles.configure_radiation(mode='mean')
-tw_preserve_angles = tracker_preserve_angles.twiss(method='6d', matrix_stability_tol=0.5)
+tw_preserve_angles = tracker_preserve_angles.twiss(method='6d', matrix_stability_tol=0.5, delta_chrom=delta_chrom)
 
 
 
@@ -125,6 +136,8 @@ print('Non sympltectic tracker:')
 print(f'Tune error =  error_qx: {abs(tw_real_tracking.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_real_tracking.qy - tw_no_rad.qy):.3e}')
 print('Sympltectic tracker:')
 print(f'Tune error =  error_qx: {abs(tw_sympl.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_sympl.qy - tw_no_rad.qy):.3e}')
+print ('Preserve angles:')
+print(f'Tune error =  error_qx: {abs(tw_preserve_angles.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_preserve_angles.qy - tw_no_rad.qy):.3e}')
 plt.figure(2)
 
 plt.subplot(2,1,1)
@@ -144,11 +157,16 @@ plt.ylabel(r'$\Delta \beta_y / \beta_y$')
 plt.figure(10)
 plt.subplot(2,1,1)
 plt.plot(tw_no_rad.s, tw_no_rad.x, 'k')
-plt.plot(tw_no_rad.s, tw_real_tracking.x, 'b')
+#plt.plot(tw_no_rad.s, tw_real_tracking.x, 'b')
+plt.plot(tw_no_rad.s, tw_sympl.x, 'r')
+plt.plot(tw_no_rad.s, tw_preserve_angles.x, 'g')
 
 plt.subplot(2,1,2)
 plt.plot(tw_no_rad.s, tw_no_rad.y, 'k')
-plt.plot(tw_no_rad.s, tw_real_tracking.y, 'b')
+#plt.plot(tw_no_rad.s, tw_real_tracking.y, 'b')
+plt.plot(tw_no_rad.s, tw_sympl.y, 'r')
+plt.plot(tw_no_rad.s, tw_preserve_angles.y, 'g')
+
 
 
 plt.show()
