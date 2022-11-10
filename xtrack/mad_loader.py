@@ -568,7 +568,7 @@ class MadLoader:
                 self.add_elements(converter(el), line, buffer)
             else:
                 raise ValueError(
-                    f"Element {el.ty:wpe} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
+                    f"Element {el.type} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
                 )
             if ii % 100 == 0:
                 print(
