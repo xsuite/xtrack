@@ -290,8 +290,6 @@ class Line:
         assert mode in [None, 'mean', 'quantum']
         if mode == 'mean':
             radiation_flag = 1
-        elif mode == 'twiss':
-            radiation_flag = 1
         elif mode == 'quantum':
             radiation_flag = 2
         else:
