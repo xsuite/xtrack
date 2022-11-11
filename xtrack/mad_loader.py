@@ -715,7 +715,7 @@ class MadLoader:
         # getting max length of knl and ksl
         knl = mad_elem.knl
         ksl = mad_elem.ksl
-        lmax = max(non_zero_len(knl), non_zero_len(ksl))
+        lmax = max(non_zero_len(knl), non_zero_len(ksl), 1)
         if mad_elem.field_errors is not None and self.enable_errors:
             dkn = mad_elem.field_errors.dkn
             dks = mad_elem.field_errors.dks
