@@ -201,7 +201,6 @@ class TrackerData:
         num_elements = len(element_ref_data.elements)
         elements = element_ref_data.elements
         names = element_ref_data.names
-        import pdb; pdb.set_trace()
         for ii, elem in enumerate(elements):
             print('Loading line from binary: '
                 f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)

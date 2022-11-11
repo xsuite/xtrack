@@ -114,24 +114,15 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].frequency = freq
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
-tracker.configure_radiation(mode='mean')
 tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True,
-                    delta_chrom=delta_chrom) # Completely wrong in y when
-                                              # closed orbit is not zero
-
-#tracker_sympl = xt.Tracker(line = line, extra_headers=["#define XTRACK_SYNRAD_KICK_SAME_AS_FIRST"])
-#tracker_sympl.configure_radiation(mode='mean')
+                    delta_chrom=delta_chrom)
 tw_sympl = tracker.twiss(model_radiation='kick_as_co', method='6d',
-                         delta_chrom=delta_chrom)
-
-tracker_preserve_angles = xt.Tracker(line = line,
-    extra_headers=["#define XTRACK_SYNRAD_SCALE_SAME_AS_FIRST",
-                   "#define XTRACK_CAVITY_PRESERVE_ANGLE"])
-tracker_preserve_angles.configure_radiation(mode='mean')
-tw_preserve_angles = tracker_preserve_angles.twiss(method='6d', matrix_stability_tol=0.5, delta_chrom=delta_chrom)
-
-
+                        delta_chrom=delta_chrom)
+tw_preserve_angles = tracker.twiss(
+                        model_radiation='preserve_angles',
+                        method='6d',
+                        matrix_stability_tol=0.5, delta_chrom=delta_chrom)
 
 print('Non sympltectic tracker:')
 print(f'Tune error =  error_qx: {abs(tw_real_tracking.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_real_tracking.qy - tw_no_rad.qy):.3e}')

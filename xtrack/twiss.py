@@ -72,10 +72,10 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     if method == '4d' and delta0 is None:
         delta0 = 0
 
-    if model_radiation is not None:
+    if model_radiation != 'full':
         kwargs = locals().copy()
         kwargs.pop('model_radiation')
-        assert model_radiation in ['full', 'kick_as_co']
+        assert model_radiation in ['full', 'kick_as_co', 'preserve_angles']
 
         if model_radiation == 'kick_as_co':
             assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
@@ -87,8 +87,17 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                 tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
                 raise e
             tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
-
-            return res
+        elif model_radiation == 'preserve_angles':
+            assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
+            tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
+            tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = True
+            try:
+                res = twiss_from_tracker(**kwargs)
+            except Exception as e:
+                tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
+                tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
+                raise e
+        return res
 
     if at_s is not None:
         # Get all arguments
