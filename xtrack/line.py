@@ -287,24 +287,6 @@ class Line:
             particle_ref=self.particle_ref,
         )
 
-    def configure_radiation(self, mode=None):
-        assert mode in [None, 'mean', 'quantum']
-        if mode == 'mean':
-            radiation_flag = 1
-        elif mode == 'quantum':
-            radiation_flag = 2
-        else:
-            radiation_flag = 0
-
-        for kk, ee in self.element_dict.items():
-            if hasattr(ee, 'radiation_flag'):
-                ee.radiation_flag = radiation_flag
-
-        if radiation_flag == 2:
-            self._needs_rng = True
-        else:
-            self._needs_rng = False
-
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 

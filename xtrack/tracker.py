@@ -58,7 +58,7 @@ class Tracker:
         _element_ref_data=None,
     ):
         self.config = AttrDict(
-            XTRACK_MULTIPOLE_NO_SYNRAD=False,
+            XTRACK_MULTIPOLE_NO_SYNRAD=True,
             DISABLE_EBE_MONITOR=False,
         )
 
@@ -365,6 +365,9 @@ class Tracker:
 
         self.track = self._track_no_collective
 
+        if compile:
+            _ = self._current_track_kernel # This triggers compilation
+
     def _invalidate(self):
         if self.iscollective:
             self._invalidated_parts = self._parts
@@ -463,6 +466,30 @@ class Tracker:
                                     else self._supertracker.track_kernel),
                  element_classes=(self.element_classes if not self.iscollective
                                     else self._supertracker.element_classes))
+
+    def configure_radiation(self, mode=None):
+
+        self._check_invalidated()
+
+        assert mode in [None, 'mean', 'quantum']
+        if mode == 'mean':
+            radiation_flag = 1
+        elif mode == 'quantum':
+            radiation_flag = 2
+        else:
+            radiation_flag = 0
+
+        for kk, ee in self.line.element_dict.items():
+            if hasattr(ee, 'radiation_flag'):
+                ee.radiation_flag = radiation_flag
+
+        if radiation_flag == 2:
+            self._needs_rng = True
+        else:
+            self._needs_rng = False
+
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
@@ -566,12 +593,6 @@ class Tracker:
     @property
     def _context(self):
         return self._buffer.context
-
-    def configure_radiation(self, mode=None):
-
-        self._check_invalidated()
-
-        self.line.configure_radiation(mode=mode)
 
     def _build_kernel(self, save_source_as, compile):
 
