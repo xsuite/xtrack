@@ -263,6 +263,9 @@ def test_mad_elements_import():
     cav1: rfcavity, lag:=a*0.5, volt:=a*6, harmon:=a*8;
     wire1: wire, current:=a*5, l:=a*0, l_phy:=a*1, l_int:=a*2, xma:=a*1e-3, yma:=a*2e-3;
     mult0: multipole, knl:={a*1,a*2,a*3}, ksl:={a*4,a*5,a*6}, lrad:=a*1.1;
+    mult1: multipole, knl={1,2,3,0}, ksl:={1,2,3};
+    mult2: multipole, knl={1,2,3,0}, ksl={1,2,0,0,0};
+    mult3: multipole, knl={1,2,3,0}, ksl:={1,2,0,b,0};
     kick0: kicker, hkick:=a*5, vkick:=a*6, lrad:=a*2.2;
     kick1: tkicker, hkick:=a*7, vkick:=a*8, lrad:=a*2.3;
     kick2: hkicker, kick:=a*3, lrad:=a*2.4;
@@ -304,6 +307,9 @@ def test_mad_elements_import():
     mad.input("""
     testseq: sequence, l=10;
     m0: mult0 at=0.1;
+    m1: mult1 at=0.11;
+    m2: mult2 at=0.12;
+    m3: mult3 at=0.13;
     c0: cav0, at=0.2, apertype=circle, aperture=0.01;
     c1: cav1, at=0.2, apertype=circle, aperture=0.01;
     k0: kick0, at=0.3;
@@ -349,6 +355,17 @@ def test_mad_elements_import():
         assert line['m0'].hxl == 1
         assert line['m0'].hyl == 4
         assert line['m0'].length == 1.1
+        assert len(line['m1'].knl)==3
+        assert len(line['m1'].ksl)==3
+        assert len(line['m2'].knl)==3
+        assert len(line['m2'].ksl)==3
+        if test_expressions:
+          assert len(line['m3'].knl)==4
+          assert len(line['m3'].ksl)==4
+        else:
+          assert len(line['m3'].knl)==3
+          assert len(line['m3'].ksl)==3
+
 
         assert isinstance(line['k0'], xt.Multipole)
         assert line.get_s_position('k0') == 0.3
