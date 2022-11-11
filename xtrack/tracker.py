@@ -3,36 +3,35 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import numpy as np
 import logging
 from functools import partial
 
-from .general import _pkg_root
-from .tracker_data import TrackerData
-from .base_element import _handle_per_particle_blocks
-from .twiss import (twiss_from_tracker,
-                                 compute_one_turn_matrix_finite_differences,
-                                 find_closed_orbit, match_tracker
-                                )
-from .survey import survey_from_tracker
-from .internal_record import (new_io_buffer,
-                             start_internal_logging_for_elements_of_type,
-                             stop_internal_logging_for_elements_of_type)
-from .pipeline import PipelineStatus
-
+import numpy as np
 import xobjects as xo
 import xpart as xp
-
-from .beam_elements import Drift
-from .line import Line
+from xdeps.utils import AttrDict
 
 from . import linear_normal_form as lnf
+from .base_element import _handle_per_particle_blocks
+from .beam_elements import Drift
+from .general import _pkg_root
+from .internal_record import (new_io_buffer,
+                              start_internal_logging_for_elements_of_type,
+                              stop_internal_logging_for_elements_of_type)
+from .line import Line
+from .pipeline import PipelineStatus
+from .survey import survey_from_tracker
+from .tracker_data import TrackerData
+from .twiss import (compute_one_turn_matrix_finite_differences,
+                    find_closed_orbit, match_tracker, twiss_from_tracker)
 
 logger = logging.getLogger(__name__)
+
 
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
     return iscoll
+
 
 class Tracker:
 
@@ -58,6 +57,10 @@ class Tracker:
         enable_pipeline_hold=False,
         _element_ref_data=None,
     ):
+        self.config = AttrDict(
+            XTRACK_MULTIPOLE_NO_SYNRAD=False,
+            DISABLE_EBE_MONITOR=False,
+        )
 
         if sequence is not None:
             raise ValueError(
@@ -235,6 +238,7 @@ class Tracker:
                 save_source_as=save_source_as,
                 io_buffer=self.io_buffer
                 )
+        supertracker.config = self.config
 
         # Build trackers for non collective parts
         for ii, pp in enumerate(parts):
@@ -250,6 +254,7 @@ class Tracker:
                                 local_particle_src=local_particle_src,
                                 skip_end_turn_actions=True,
                                 io_buffer=self.io_buffer)
+                parts[ii].config = self.config
 
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
@@ -291,9 +296,14 @@ class Tracker:
         compile=True,
         enable_pipeline_hold=False
     ):
+        if track_kernel == 'skip':
+            raise ValueError('Value `skip` for track kernel is deprecated for '
+                             'non-collective trackers, as all (re)compilation '
+                             'is done on demand.')
 
-        assert not(enable_pipeline_hold), (
-            "enable_pipeline_hold is not implemented in non collective mode")
+        if enable_pipeline_hold:
+            raise ValueError("`enable_pipeline_hold` is not implemented in "
+                             "non-collective mode")
         self._enable_pipeline_hold = False
 
         if particles_class is None:
@@ -320,13 +330,17 @@ class Tracker:
             io_buffer = new_io_buffer(_context=context)
         self.io_buffer = io_buffer
 
-        if track_kernel is None:
-            # Kernel relies on element_classes ordering
-            assert element_classes is None
+        if track_kernel is None and element_classes is not None:
+            raise ValueError('The kernel relies on `element_classes` ordering, '
+                             'so `element_classes` must be given if '
+                             '`track_kernel` is None.')
 
         if element_classes is None:
-            # Kernel relies on element_classes ordering
-            assert track_kernel == 'skip' or track_kernel is None
+            if track_kernel is not None:
+                raise ValueError(
+                    'The kernel relies on `element_classes` ordering, so '
+                    '`track_kernel` must be given if `element_classes` is None.'
+                )
             element_classes = tracker_data.element_classes
 
         line._freeze()
@@ -345,18 +359,15 @@ class Tracker:
         self.element_classes = element_classes
         self._buffer = tracker_data._buffer
 
-        if track_kernel == 'skip':
-            self.track_kernel = None
-        elif track_kernel is None:
-            self._build_kernel(save_source_as, compile=compile)
-        else:
-            self.track_kernel = track_kernel
+        if track_kernel is None:
+            track_kernel = {}
+        self.track_kernel = track_kernel
 
         self.track = self._track_no_collective
 
     def _invalidate(self):
         if self.iscollective:
-            self._invalidated_parts  = self._parts
+            self._invalidated_parts = self._parts
             self._parts = None
         else:
             self._invalidated_tracker_data = self._tracker_data
@@ -729,7 +740,7 @@ class Tracker:
         context.add_kernels(
             [source_track],
             kernels,
-            extra_headers=headers,
+            extra_headers=self._config_to_headers() + headers,
             extra_classes=self.element_classes,
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
@@ -739,7 +750,7 @@ class Tracker:
             compile=compile
         )
 
-        self.track_kernel = context.kernels.track_line
+        self._current_track_kernel = context.kernels.track_line
 
     def _prepare_collective_track_session(self, particles, ele_start, ele_stop,
                                        num_elements, num_turns, turn_by_turn_monitor):
@@ -748,10 +759,10 @@ class Tracker:
         if particles.start_tracking_at_element >= 0:
             if ele_start != 0:
                 raise ValueError("The argument ele_start is used, but particles.start_tracking_at_element is set as well. "
-                                + "Please use only one of those methods.")
+                                 "Please use only one of those methods.")
             ele_start = particles.start_tracking_at_element
             particles.start_tracking_at_element = -1
-        if isinstance(ele_start,str):
+        if isinstance(ele_start, str):
             ele_start = self.line.element_names.index(ele_start)
 
         # ele_start can only have values of existing element id's,
@@ -894,6 +905,13 @@ class Tracker:
     def resume(self, session):
         return self._track_with_collective(particles=None, _session_to_resume=session)
 
+    def freeze_vars(self, variable_names):
+        for name in variable_names:
+            self.config[f'FREEZE_VAR_{name}'] = True
+
+    def unfreeze_vars(self, variable_names):
+        for name in variable_names:
+            self.config[f'FREEZE_VAR_{name}'] = False
 
     def _track_with_collective(
         self,
@@ -1076,10 +1094,10 @@ class Tracker:
         if particles.start_tracking_at_element >= 0:
             if ele_start != 0:
                 raise ValueError("The argument ele_start is used, but particles.start_tracking_at_element is set as well. "
-                                + "Please use only one of those methods.")
+                                 "Please use only one of those methods.")
             ele_start = particles.start_tracking_at_element
             particles.start_tracking_at_element = -1
-        if isinstance(ele_start,str):
+        if isinstance(ele_start, str):
             ele_start = self.line.element_names.index(ele_start)
 
         assert ele_start >= 0
@@ -1172,10 +1190,10 @@ class Tracker:
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
-        self.track_kernel.description.n_threads = particles._capacity
+        self._current_track_kernel.description.n_threads = particles._capacity
 
         # First turn
-        self.track_kernel(
+        self._current_track_kernel(
             buffer=self._tracker_data._buffer.buffer,
             tracker_data=self._tracker_data._element_ref_data,
             particles=particles._xobject,
@@ -1192,7 +1210,7 @@ class Tracker:
 
         # Middle turns
         if num_middle_turns > 0:
-            self.track_kernel(
+            self._current_track_kernel(
                 buffer=self._tracker_data._buffer.buffer,
                 tracker_data=self._tracker_data._element_ref_data,
                 particles=particles._xobject,
@@ -1209,7 +1227,7 @@ class Tracker:
 
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
-            self.track_kernel(
+            self._current_track_kernel(
                 buffer=self._tracker_data._buffer.buffer,
                 tracker_data=self._tracker_data._element_ref_data,
                 particles=particles._xobject,
@@ -1229,6 +1247,7 @@ class Tracker:
     @staticmethod
     def _get_default_monitor_class():
         import xtrack as xt  # I have to do it like this
+
         # to avoid circular import #TODO to be solved
         return xt.ParticlesMonitor
 
@@ -1339,3 +1358,30 @@ class Tracker:
             tracker.particle_ref = xp.Particles.from_dict(particle_ref)
 
         return tracker
+
+    def _hashable_config(self):
+        items = ((k, v) for k, v in self.config.items() if v is not False)
+        return tuple(sorted(items))
+
+    def _config_to_headers(self):
+        headers = []
+        for k, v in self.config.items():
+            if not isinstance(v, bool):
+                headers.append(f'#define {k} {v}')
+            elif v is True:
+                headers.append(f'#define {k}')
+            else:
+                headers.append(f'#undef {k}')
+        return headers
+
+    @property
+    def _current_track_kernel(self):
+        try:
+            return self.track_kernel[self._hashable_config()]
+        except KeyError:
+            self._build_kernel(save_source_as=None, compile=True)
+            return self._current_track_kernel
+
+    @_current_track_kernel.setter
+    def _current_track_kernel(self, value):
+        self.track_kernel[self._hashable_config()] = value

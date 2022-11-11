@@ -53,24 +53,22 @@ line.particle_ref = xp.Particles(**input_data['particle'])
 print('Build tracker...')
 freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
 tracker = xt.Tracker(_context=context,
-            line=line,
-            local_particle_src=xp.gen_local_particle_api(
-                                                freeze_vars=freeze_vars),
-            )
+            line=line)
+tracker.freeze_vars(freeze_vars)
 
 #########
 # Twiss #
 #########
 
-tw = tracker.twiss(method='4d') # <-- Need to choose 4d method when longitudinal
-                                #     variables are frozen
+tw = tracker.twiss(method='4d')  # <-- Need to choose 4d method when longitudinal
+                                 #     variables are frozen
 
 ##################################
 # Match a particles distribution #
 ##################################
 
 particles = xp.build_particles(_context=context, tracker=tracker,
-                               method = '4d', # <--- 4d
+                               method = '4d',  # <--- 4d
                                x_norm=np.linspace(0, 10, 11),
                                nemitt_x=3e-6, nemitt_y=3e-6)
 
@@ -81,6 +79,9 @@ particles_before_tracking = particles.copy()
 #########
 print('Track a few turns...')
 n_turns = 10
+tracker.track(particles, num_turns=n_turns)
+
+print('Track again (no compile)')
 tracker.track(particles, num_turns=n_turns)
 
 for vv in ['ptau', 'delta', 'rpp', 'rvv', 'zeta']:
