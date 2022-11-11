@@ -199,15 +199,18 @@ class TrackerData:
 
         element_dict = {}
         num_elements = len(element_ref_data.elements)
-        for ii, elem in enumerate(element_ref_data.elements):
+        elements = element_ref_data.elements
+        names = element_ref_data.names
+        import pdb; pdb.set_trace()
+        for ii, elem in enumerate(elements):
             print('Loading line from binary: '
                 f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
-            name = element_ref_data.names[ii]
+            name = names[ii]
             if name in element_dict:
                 continue
 
             hybrid_cls = hybrid_cls_for_xstruct[elem.__class__]
-            element_dict[name] = hybrid_cls(_xobject=elem, _buffer=buffer)
+            element_dict[name] = hybrid_cls(_xobject=elem)
 
         line = Line(
             elements=element_dict,
