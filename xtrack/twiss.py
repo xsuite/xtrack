@@ -38,7 +38,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=False,
         values_at_element_exit=False,
-        simplify_radiation=None,
+        model_radiation='full',
         eneloss_and_damping=False,
         ele_start=None, ele_stop=None, twiss_init=None,
         skip_global_quantities=False,
@@ -72,20 +72,23 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     if method == '4d' and delta0 is None:
         delta0 = 0
 
-    if simplify_radiation is not None:
+    if model_radiation is not None:
         kwargs = locals().copy()
-        kwargs.pop('symplify_radiation')
-        assert simplify_radiation in ['kick_as_first_particle']
+        kwargs.pop('model_radiation')
+        assert model_radiation in ['full', 'kick_as_co']
 
-        if simplify_radiation == 'kick_as_first_particle':
+        if model_radiation == 'kick_as_co':
             assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
+            assert eneloss_and_damping is False
             tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
             try:
-                twiss_from_tracker(**kwargs)
+                res = twiss_from_tracker(**kwargs)
             except Exception as e:
                 tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
                 raise e
             tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+
+            return res
 
     if at_s is not None:
         # Get all arguments

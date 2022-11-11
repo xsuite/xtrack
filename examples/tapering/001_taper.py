@@ -120,9 +120,10 @@ tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
                     delta_chrom=delta_chrom) # Completely wrong in y when
                                               # closed orbit is not zero
 
-tracker_sympl = xt.Tracker(line = line, extra_headers=["#define XTRACK_SYNRAD_KICK_SAME_AS_FIRST"])
-tracker_sympl.configure_radiation(mode='mean')
-tw_sympl = tracker_sympl.twiss(method='6d', delta_chrom=delta_chrom)
+#tracker_sympl = xt.Tracker(line = line, extra_headers=["#define XTRACK_SYNRAD_KICK_SAME_AS_FIRST"])
+#tracker_sympl.configure_radiation(mode='mean')
+tw_sympl = tracker.twiss(model_radiation='kick_as_co', method='6d',
+                         delta_chrom=delta_chrom)
 
 tracker_preserve_angles = xt.Tracker(line = line,
     extra_headers=["#define XTRACK_SYNRAD_SCALE_SAME_AS_FIRST",
