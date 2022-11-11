@@ -934,6 +934,14 @@ class Tracker:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
+    def freeze_longitudinal(self, state=True):
+        assert state in (True, False)
+        if state:
+            self.freeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
+        else:
+            self.unfreeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
+
+
     def _track_with_collective(
         self,
         particles,

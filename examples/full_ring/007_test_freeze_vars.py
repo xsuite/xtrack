@@ -33,12 +33,8 @@ context = xo.ContextCpu()
 # Load file #
 #############
 
-if str(fname_line_particles).endswith('.pkl'):
-    with open(fname_line_particles, 'rb') as fid:
-        input_data = pickle.load(fid)
-elif str(fname_line_particles).endswith('.json'):
-    with open(fname_line_particles, 'r') as fid:
-        input_data = json.load(fid)
+with open(fname_line_particles, 'r') as fid:
+    input_data = json.load(fid)
 
 ##############
 # Get a line #
@@ -54,7 +50,8 @@ print('Build tracker...')
 freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
 tracker = xt.Tracker(_context=context,
             line=line)
-tracker.freeze_vars(freeze_vars)
+
+tracker.freeze_longitudinal()
 
 #########
 # Twiss #
