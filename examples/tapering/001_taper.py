@@ -1,7 +1,6 @@
 import json
 
 # TODO:
-# - Put lag on the stable slope
 # - Assert that calculated enekick is smaller than voltage at each cavity
 # - Check 6d kick
 # - Assert no collective
@@ -29,7 +28,6 @@ tracker = line.build_tracker()
 tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
 
 tracker.configure_radiation(mode='mean')
-
 tracker.compensate_radiation_energy_loss()
 
 tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
