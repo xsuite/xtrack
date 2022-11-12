@@ -273,7 +273,6 @@ class Tracker:
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
 
-
     def _init_track_no_collective(
         self,
         _context=None,
@@ -383,7 +382,15 @@ class Tracker:
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
                           co_search_settings={}, delta_zeta=0, delta0=None,
-                          continue_on_closed_orbit_error=False):
+                          continue_on_closed_orbit_error=False,
+                          freeze_longitudinal=False):
+
+        if freeze_longitudinal:
+            kwargs = locals().copy()
+            kwargs.pop('self')
+            kwargs.pop('freeze_longitudinal')
+            with freeze_longitudinal(self):
+                return self.find_closed_orbit(**kwargs)
 
         self._check_invalidated()
 
@@ -948,6 +955,8 @@ class Tracker:
 
     def freeze_longitudinal(self, state=True):
         assert state in (True, False)
+        assert self.iscollective is False, ('Cannot freeze longitudinal '
+                        'variables in collective mode (not yet implemented)')
         if state:
             self.freeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
         else:
@@ -961,8 +970,12 @@ class Tracker:
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
+        freeze_longitudinal=False,
         _session_to_resume=None
     ):
+        if freeze_longitudinal:
+            raise NotImplementedError('freeze_longitudinal not implemented yet'
+                                      ' for collective tracking')
 
         self._check_invalidated()
 
@@ -1110,7 +1123,6 @@ class Tracker:
 
         self.record_last_track = monitor
 
-
     def _track_no_collective(
         self,
         particles,
@@ -1118,8 +1130,17 @@ class Tracker:
         ele_stop=None,     # defaults to full lattice
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
-        turn_by_turn_monitor=None
+        turn_by_turn_monitor=None,
+        freeze_longitudinal=False
     ):
+
+        if freeze_longitudinal:
+            kwargs = locals().copy()
+            kwargs.pop('self')
+            kwargs.pop('freeze_longitudinal')
+
+            with freeze_longitudinal(self):
+                return self._track_no_collective(**kwargs)
 
         self._check_invalidated()
 
