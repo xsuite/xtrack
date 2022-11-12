@@ -40,7 +40,7 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
             mon = tracker.record_last_track
 
             eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
-            print(f"Energy loss: {eloss:.3f} eV", end='\r', flush=True)
+            print(f"Energy loss: {eloss:.3f} eV             ", end='\r', flush=True)
 
             if eloss < p_test.energy0[0]*rtot_eneloss:
                 break
@@ -62,7 +62,7 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
 
     tracker.config.XTRACK_MULTIPOLE_TAPER = False
 
-    print("  - Adjust multipole strengthes")
+    print("  - Adjust multipole strengths")
     i_multipoles = multipoles.index.values
     delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
     for nn, dd in zip(multipoles['name'].values, delta_taper):
