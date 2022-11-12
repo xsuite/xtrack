@@ -24,6 +24,7 @@ from .survey import survey_from_tracker
 from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
                     find_closed_orbit, match_tracker, twiss_from_tracker)
+from .tapering import compensate_radiation_energy_loss
 
 logger = logging.getLogger(__name__)
 
@@ -491,6 +492,12 @@ class Tracker:
 
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
+    def compensate_radiation_energy_loss(self, rtot_eneloss=1e-10, max_iter=100,
+                                         **kwargs):
+
+        kwargs = locals().copy()
+        kwargs.pop('self')
+        compensate_radiation_energy_loss(self, **kwargs)
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
