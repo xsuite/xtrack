@@ -1438,11 +1438,13 @@ def _preserve_config(tracker):
 @contextmanager
 def freeze_longitudinal(tracker):
     """Context manager to freeze longitudinal motion in a tracker."""
+    config = TrackerConfig()
+    config.update(tracker.config)
     tracker.freeze_longitudinal(True)
     try:
         yield None
     finally:
-        tracker.freeze_longitudinal(False)
+        tracker.config = config
 
 class TrackerConfig(dict):
     def __init__(self, *args, **kwargs):
