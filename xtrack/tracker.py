@@ -431,6 +431,7 @@ class Tracker:
         steps_r_matrix=None, co_search_settings=None, at_elements=None, at_s=None,
         values_at_element_exit=False,
         continue_on_closed_orbit_error=False,
+        freeze_longitudinal=False,
         model_radiation='full',
         eneloss_and_damping=False,
         ele_start=None, ele_stop=None, twiss_init=None,
@@ -495,9 +496,11 @@ class Tracker:
     def compensate_radiation_energy_loss(self, rtot_eneloss=1e-10, max_iter=100,
                                          **kwargs):
 
-        kwargs = locals().copy()
-        kwargs.pop('self')
-        compensate_radiation_energy_loss(self, **kwargs)
+        all_kwargs = locals().copy()
+        all_kwargs.pop('self')
+        all_kwargs.pop('kwargs')
+        all_kwargs.update(kwargs)
+        compensate_radiation_energy_loss(self, **all_kwargs)
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):

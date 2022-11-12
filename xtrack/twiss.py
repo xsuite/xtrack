@@ -37,6 +37,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=False,
+        freeze_longitudinal=False,
         values_at_element_exit=False,
         model_radiation='full',
         eneloss_and_damping=False,
@@ -72,11 +73,24 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     if method == '4d' and delta0 is None:
         delta0 = 0
 
+    if freeze_longitudinal:
+        
+        kwargs = locals().copy()
+        kwargs.pop('freeze_longitudinal')
+        tracker.freeze_longitudinal(True)
+        try:
+            res = twiss_from_tracker(**kwargs)
+        except Exception as e:
+            tracker.freeze_longitudinal(False)
+            raise e
+        tracker.freeze_longitudinal(False)
+        return res
+
     if model_radiation != 'full':
         kwargs = locals().copy()
         kwargs.pop('model_radiation')
         assert model_radiation in ['full', 'kick_as_co', 'preserve_angles']
-
+        assert freeze_longitudinal is False
         if model_radiation == 'kick_as_co':
             assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
             assert eneloss_and_damping is False
@@ -218,10 +232,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         nemitt_x=nemitt_x,
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
-        delta_disp=delta_disp,
-        matrix_responsiveness_tol=matrix_responsiveness_tol,
-        matrix_stability_tol=matrix_stability_tol,
-        symplectify=symplectify)
+        delta_disp=delta_disp)
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
@@ -296,9 +307,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
-                      nemitt_x, nemitt_y, r_sigma, delta_disp,
-                      matrix_responsiveness_tol, matrix_stability_tol,
-                      symplectify):
+                      nemitt_x, nemitt_y, r_sigma, delta_disp):
 
     ctx2np = tracker._context.nparray_from_context_array
 
