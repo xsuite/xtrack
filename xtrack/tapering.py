@@ -2,19 +2,20 @@ import numpy as np
 from scipy.constants import c as clight
 
 import xtrack as xt
+import xobjects as xo
 
 def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, **kwargs):
 
     line = tracker.line
-    assert isinstance(tracker._context, xt.CpuContext), "Only CPU context is supported"
+    assert isinstance(tracker._context, xo.ContextCpu), "Only CPU context is supported"
     assert line.particle_ref is not None, "Particle reference is not set"
     assert line.particle_ref.q0 == 1, "Only q0 = 1 is supported (for now)"
 
     print("Compensating energy loss:")
 
     print("  - Twiss with no radiation")
-    tracker.configure_radiation(mode=None)
-    tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True, **kwargs)
+    tracker.configure_radiation(model=None)
+    tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True, **kwargs)
 
     print("  - Identify multipoles and cavities")
     line_df = line.to_pandas()
@@ -35,13 +36,13 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
 
     print("Share energy loss among cavities (repeat until energy loss is zero)")
     with xt.tracker._preserve_config(tracker):
-        tracker.configure_radiation(mode='mean')
+        tracker.configure_radiation(model='mean')
         tracker.config.XTRACK_MULTIPOLE_TAPER = True
 
         i_iter = 0
         while True:
             p_test = tw_no_rad.particle_on_co.copy()
-            tracker.configure_radiation(mode='mean')
+            tracker.configure_radiation(model='mean')
             tracker.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
             mon = tracker.record_last_track
 

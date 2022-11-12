@@ -15,22 +15,22 @@ line[3].ksl[0] += 1e-6
 
 # Initial twiss (no radiation)
 tracker.configure_radiation(mode=None)
-tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
+tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True)
 
 # Enable radiation
-tracker.configure_radiation(mode='mean')
+tracker.configure_radiation(model='mean')
 
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
 tracker.compensate_radiation_energy_loss()
 
 # Twiss(es) with radiation
-tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
+tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True)
-tw_sympl = tracker.twiss(model_radiation='kick_as_co', method='6d')
+tw_sympl = tracker.twiss(model_radiation='kick_as_co', mode='6d')
 tw_preserve_angles = tracker.twiss(
                         model_radiation='preserve_angles',
-                        method='6d',
+                        mode='6d',
                         matrix_stability_tol=0.5)
 
 import matplotlib.pyplot as plt

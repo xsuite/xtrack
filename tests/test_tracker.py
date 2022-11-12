@@ -90,7 +90,7 @@ def test_synrad_configuration():
             tracker = xt.Tracker(line=xt.Line(elements=elements),
                                  _context=context)
 
-            tracker.configure_radiation(mode='mean')
+            tracker.configure_radiation(model='mean')
             for ee in tracker.line.elements:
                 assert ee.radiation_flag == 1
             p = xp.Particles(x=[0.01, 0.02], _context=context)
@@ -98,7 +98,7 @@ def test_synrad_configuration():
             p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
 
-            tracker.configure_radiation(mode='quantum')
+            tracker.configure_radiation(model='quantum')
             for ee in tracker.line.elements:
                 assert ee.radiation_flag == 2
             p = xp.Particles(x=[0.01, 0.02], _context=context)
@@ -106,7 +106,7 @@ def test_synrad_configuration():
             p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
 
-            tracker.configure_radiation(mode=None)
+            tracker.configure_radiation(model=None)
             for ee in tracker.line.elements:
                 assert ee.radiation_flag == 0
             p = xp.Particles(x=[0.01, 0.02], _context=context)

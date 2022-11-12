@@ -57,7 +57,7 @@ tracker.freeze_longitudinal()
 # Twiss #
 #########
 
-tw = tracker.twiss(method='4d')  # <-- Need to choose 4d method when longitudinal
+tw = tracker.twiss(mode='4d')  # <-- Need to choose 4d mode when longitudinal
                                  #     variables are frozen
 
 ##################################
@@ -65,7 +65,7 @@ tw = tracker.twiss(method='4d')  # <-- Need to choose 4d method when longitudina
 ##################################
 
 particles = xp.build_particles(_context=context, tracker=tracker,
-                               method = '4d',  # <--- 4d
+                               mode = '4d',  # <--- 4d
                                x_norm=np.linspace(0, 10, 11),
                                nemitt_x=3e-6, nemitt_y=3e-6)
 

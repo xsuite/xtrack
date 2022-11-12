@@ -27,7 +27,7 @@ def test_twiss_4d_fodo_vs_beta_rel():
         tw_4d_list = []
         for p0c in p0c_list:
             tracker.particle_ref=xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=p0c)
-            tw = tracker.twiss(method="4d", at_s = np.linspace(0, line.get_length(), 500))
+            tw = tracker.twiss(mode="4d", at_s = np.linspace(0, line.get_length(), 500))
             tw_4d_list.append(tw)
 
         for tw in tw_4d_list:

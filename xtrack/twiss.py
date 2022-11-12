@@ -30,7 +30,7 @@ DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 
 log = logging.getLogger(__name__)
 
-def twiss_from_tracker(tracker, particle_ref=None, method='6d',
+def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
         particle_on_co=None, R_matrix=None, W_matrix=None, delta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
         delta_disp=1e-5, delta_chrom = 1e-4,
@@ -46,9 +46,14 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
         symplectify=False,
-        reverse=False):
+        reverse=False,
+        method=None):
 
-    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
+    assert mode in ['6d', '4d'], 'Method must be `6d` or `4d`'
+
+    if method is not None:
+        raise NameError(
+            '`method` is not a valid argument anymore. Use `mode` instead.')
 
     if matrix_responsiveness_tol is None:
         matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
@@ -70,7 +75,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         raise ValueError(
             "Either `particle_ref` or `particle_co_guess` must be provided")
 
-    if method == '4d' and delta0 is None:
+    if mode == '4d' and delta0 is None:
         delta0 = 0
 
     if freeze_longitudinal:
@@ -169,12 +174,12 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                                                 particle_on_co=part_on_co)
 
         W, _, _ = lnf.compute_linear_normal_form(
-                                RR, only_4d_block=(method == '4d'),
+                                RR, only_4d_block=(mode == '4d'),
                                 symplectify=symplectify,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
 
-    if method == '4d' and W_matrix is None: # the matrix was not provided by the user
+    if mode == '4d' and W_matrix is None: # the matrix was not provided by the user
         p_disp_minus = tracker.find_closed_orbit(
                             particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
@@ -231,7 +236,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
         dqx, dqy = _compute_chromaticity(
             tracker=tracker,
-            W_matrix=W, method=method,
+            W_matrix=W, mode=mode,
             particle_on_co=part_on_co,
             delta_chrom=delta_chrom,
             tune_x=mux[-1], tune_y=muy[-1],
@@ -263,7 +268,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
         twiss_res['R_matrix'] = RR
 
-        if method == '4d':
+        if mode == '4d':
             twiss_res.qs = 0
             twiss_res.muzeta[:] = 0
 
@@ -445,7 +450,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                     tune_x, tune_y,
                     nemitt_x, nemitt_y, matrix_responsiveness_tol,
                     matrix_stability_tol, symplectify, steps_r_matrix,
-                    method='6d'
+                    mode='6d'
                     ):
 
     context = tracker._context
@@ -462,7 +467,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
         ) = lnf.compute_linear_normal_form(RR_chrom_plus,
-                            only_4d_block=method=='4d',
+                            only_4d_block=mode=='4d',
                             responsiveness_tol=matrix_responsiveness_tol,
                             stability_tol=matrix_stability_tol,
                             symplectify=symplectify)
@@ -481,7 +486,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
         ) = lnf.compute_linear_normal_form(RR_chrom_minus,
-                            only_4d_block=(method=='4d'),
+                            only_4d_block=(mode=='4d'),
                             symplectify=symplectify,
                             stability_tol=matrix_stability_tol,
                             responsiveness_tol=matrix_responsiveness_tol)

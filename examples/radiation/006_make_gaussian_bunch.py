@@ -44,7 +44,7 @@ tracker = xt.Tracker(line=line)
 
 # we choose the `mean` mode in which the mean power loss is applied without
 # stochastic fluctuations (quantum excitation).
-tracker.configure_radiation(mode='mean')
+tracker.configure_radiation(model='mean')
 
 #########
 # Twiss #

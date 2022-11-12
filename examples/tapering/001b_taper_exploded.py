@@ -50,10 +50,10 @@ for cc in cavities.element.values:
     cc.voltage = 0
 
 tracker = xt.Tracker(line = line)
-tw_no_rad = tracker.twiss(method='4d', delta_chrom=delta_chrom)
+tw_no_rad = tracker.twiss(mode='4d', delta_chrom=delta_chrom)
 
 p_test = tw_no_rad.particle_on_co.copy()
-tracker.configure_radiation(mode='mean')
+tracker.configure_radiation(model='mean')
 
 tracker.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
 mon = tracker.record_last_track
@@ -74,7 +74,7 @@ for cc in cavities.element.values:
 
 while True:
     p_test = tw_no_rad.particle_on_co.copy()
-    tracker_taper.configure_radiation(mode='mean')
+    tracker_taper.configure_radiation(model='mean')
     tracker_taper.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
     mon = tracker_taper.record_last_track
 
@@ -114,14 +114,14 @@ for icav in cavities.index:
     cavities.loc[icav, 'element'].frequency = freq
     cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
-tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
+tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True,
                     delta_chrom=delta_chrom)
-tw_sympl = tracker.twiss(model_radiation='kick_as_co', method='6d',
+tw_sympl = tracker.twiss(model_radiation='kick_as_co', mode='6d',
                         delta_chrom=delta_chrom)
 tw_preserve_angles = tracker.twiss(
                         model_radiation='preserve_angles',
-                        method='6d',
+                        mode='6d',
                         matrix_stability_tol=0.5, delta_chrom=delta_chrom)
 
 print('Non sympltectic tracker:')

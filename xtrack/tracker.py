@@ -421,7 +421,7 @@ class Tracker:
         return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
 
-    def twiss(self, particle_ref=None, delta0=None, method='6d',
+    def twiss(self, particle_ref=None, delta0=None, mode='6d',
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
         delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, R_matrix=None, W_matrix=None,
@@ -437,6 +437,7 @@ class Tracker:
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
+        method=None
         ):
 
         self._check_invalidated()
@@ -467,14 +468,17 @@ class Tracker:
                  element_classes=(self.element_classes if not self.iscollective
                                     else self._supertracker.element_classes))
 
-    def configure_radiation(self, mode=None):
+    def configure_radiation(self, model=None, mode=None):
+
+        if mode is not None:
+            raise NameError('mode is deprecated, use model instead')
 
         self._check_invalidated()
 
-        assert mode in [None, 'mean', 'quantum']
-        if mode == 'mean':
+        assert model in [None, 'mean', 'quantum']
+        if model == 'mean':
             radiation_flag = 1
-        elif mode == 'quantum':
+        elif model == 'quantum':
             radiation_flag = 2
         else:
             radiation_flag = 0
