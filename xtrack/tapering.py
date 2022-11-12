@@ -9,7 +9,7 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
     line = tracker.line
     assert isinstance(tracker._context, xo.ContextCpu), "Only CPU context is supported"
     assert line.particle_ref is not None, "Particle reference is not set"
-    assert line.particle_ref.q0 == 1, "Only q0 = 1 is supported (for now)"
+    assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
 
     print("Compensating energy loss:")
 
@@ -61,11 +61,12 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
             if i_iter > max_iter:
                 raise RuntimeError("Maximum number of iterations reached")
     print()
+    delta_taper = mon.delta[0,:]
 
     print("  - Adjust multipole strengths")
     i_multipoles = multipoles.index.values
-    delta_taper = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
-    for nn, dd in zip(multipoles['name'].values, delta_taper):
+    delta_taper_multipoles = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
+    for nn, dd in zip(multipoles['name'].values, delta_taper_multipoles):
         line[nn].knl *= (1 + dd)
         line[nn].ksl *= (1 + dd)
 
@@ -84,3 +85,5 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
         cavities.loc[icav, 'element'].lag = lag
         cavities.loc[icav, 'element'].frequency = freq
         cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
+
+    tracker.delta_taper = delta_taper
