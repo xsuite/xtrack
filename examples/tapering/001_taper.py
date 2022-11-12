@@ -1,35 +1,29 @@
 import json
-
-# TODO:
-# - Assert that calculated enekick is smaller than voltage at each cavity
-# - Check 6d kick
-# - Assert no collective
-# - Assert no ions
-
-# Some considerations:
-# - I observe the right tune on v on the real tracker and not with the one with the
-# eneloss of the closed orbit. --> forget, works only when orbit is zero
-# On the real tracker I see that the beta beating is introduced by the cavities
-# not by the multipoles --> forget, works only when orbit is zero
-
 import numpy as np
 from scipy.constants import c as clight
 import xtrack as xt
 
+# Build line and tracker
 with open('line_no_radiation.json', 'r') as f:
     line = xt.Line.from_dict(json.load(f))
+
+tracker = line.build_tracker()
 
 # Introduce some closed orbit
 line[3].knl[0] += 1e-6
 line[3].ksl[0] += 1e-6
 
-tracker = line.build_tracker()
-
+# Initial twiss (no radiation)
+tracker.configure_radiation(mode=None)
 tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
 
+# Enable radiation
 tracker.configure_radiation(mode='mean')
+
+# Set cavity lags to compensate energy loss and taper magnet strengths
 tracker.compensate_radiation_energy_loss()
 
+# Twiss(es) with radiation
 tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True)
 tw_sympl = tracker.twiss(model_radiation='kick_as_co', method='6d')

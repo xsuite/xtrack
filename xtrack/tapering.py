@@ -6,6 +6,9 @@ import xtrack as xt
 def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, **kwargs):
 
     line = tracker.line
+    assert isinstance(tracker._context, xt.CpuContext), "Only CPU context is supported"
+    assert line.particle_ref is not None, "Particle reference is not set"
+    assert line.particle_ref.q0 == 1, "Only q0 = 1 is supported (for now)"
 
     print("Compensating energy loss:")
 
