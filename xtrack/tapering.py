@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.constants import c as clight
 
+import xtrack as xt
+
 def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, **kwargs):
 
     line = tracker.line
@@ -29,9 +31,10 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
         cc.frequency = 0.
 
     print("Share energy loss among cavities (repeat until energy loss is zero)")
-    tracker.configure_radiation(mode='mean')
-    tracker.config.XTRACK_MULTIPOLE_TAPER = True
-    try:
+    with xt.tracker._preserve_config(tracker):
+        tracker.configure_radiation(mode='mean')
+        tracker.config.XTRACK_MULTIPOLE_TAPER = True
+
         i_iter = 0
         while True:
             p_test = tw_no_rad.particle_on_co.copy()
@@ -53,14 +56,7 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
             i_iter += 1
             if i_iter > max_iter:
                 raise RuntimeError("Maximum number of iterations reached")
-
-    except Exception as e:
-        tracker.config.XTRACK_MULTIPOLE_TAPER = False
-        raise e
-
     print()
-
-    tracker.config.XTRACK_MULTIPOLE_TAPER = False
 
     print("  - Adjust multipole strengths")
     i_multipoles = multipoles.index.values

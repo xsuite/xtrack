@@ -10,7 +10,6 @@ from contextlib import contextmanager
 import numpy as np
 import xobjects as xo
 import xpart as xp
-from xdeps.utils import AttrDict
 
 from . import linear_normal_form as lnf
 from .base_element import _handle_per_particle_blocks
@@ -58,10 +57,8 @@ class Tracker:
         enable_pipeline_hold=False,
         _element_ref_data=None,
     ):
-        self.config = AttrDict(
-            XTRACK_MULTIPOLE_NO_SYNRAD=True,
-            DISABLE_EBE_MONITOR=False,
-        )
+        self.config = TrackerConfig()
+        self.XTRACK_MULTIPOLE_NO_SYNRAD=True
 
         if sequence is not None:
             raise ValueError(
@@ -1427,7 +1424,7 @@ class Tracker:
 
 @contextmanager
 def _preserve_config(tracker):
-    config = AttrDict()
+    config = TrackerConfig()
     config.update(tracker.config)
     try:
         yield
@@ -1442,3 +1439,17 @@ def freeze_longitudinal(tracker):
         yield None
     finally:
         tracker.freeze_longitudinal(False)
+
+class TrackerConfig(dict):
+    def __init__(self, *args, **kwargs):
+        super(TrackerConfig, self).__init__(*args, **kwargs)
+        object.__setattr__(self, '__dict__', self)
+
+    def __setitem__(self, idx, val):
+        if val is False and idx in self:
+            del(self[idx]) # We don't want to store flags that are False
+        else:
+            super(TrackerConfig, self).__setitem__(idx, val)
+
+    def __setattr__(self, idx, val):
+        self[idx] = val
