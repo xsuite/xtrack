@@ -117,10 +117,10 @@ for icav in cavities.index:
 tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True,
                     delta_chrom=delta_chrom)
-tw_sympl = tracker.twiss(model_radiation='kick_as_co', mode='6d',
+tw_sympl = tracker.twiss(radiation_treatment='kick_as_co', mode='6d',
                         delta_chrom=delta_chrom)
 tw_preserve_angles = tracker.twiss(
-                        model_radiation='preserve_angles',
+                        radiation_treatment='preserve_angles',
                         mode='6d',
                         matrix_stability_tol=0.5, delta_chrom=delta_chrom)
 

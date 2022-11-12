@@ -1,6 +1,4 @@
 import json
-import numpy as np
-from scipy.constants import c as clight
 import xtrack as xt
 
 # Build line and tracker
@@ -10,11 +8,11 @@ with open('line_no_radiation.json', 'r') as f:
 tracker = line.build_tracker()
 
 # Introduce some closed orbit
-line[3].knl[0] += 1e-6
-line[3].ksl[0] += 1e-6
+line['qc1l1.1..1'].knl[0] += 1e-6
+line['qc1l1.1..1'].ksl[0] += 1e-6
 
 # Initial twiss (no radiation)
-tracker.configure_radiation(mode=None)
+tracker.configure_radiation(model=None)
 tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True)
 
 # Enable radiation
@@ -27,9 +25,9 @@ tracker.compensate_radiation_energy_loss()
 # Twiss(es) with radiation
 tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True)
-tw_sympl = tracker.twiss(model_radiation='kick_as_co', mode='6d')
+tw_sympl = tracker.twiss(radiation_treatment='kick_as_co', mode='6d')
 tw_preserve_angles = tracker.twiss(
-                        model_radiation='preserve_angles',
+                        radiation_treatment='preserve_angles',
                         mode='6d',
                         matrix_stability_tol=0.5)
 

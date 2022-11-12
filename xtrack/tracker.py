@@ -429,7 +429,7 @@ class Tracker:
         values_at_element_exit=False,
         continue_on_closed_orbit_error=False,
         freeze_longitudinal=False,
-        model_radiation='full',
+        radiation_treatment='full',
         eneloss_and_damping=False,
         ele_start=None, ele_stop=None, twiss_init=None,
         particle_on_co=None,
