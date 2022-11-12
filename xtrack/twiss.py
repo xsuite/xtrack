@@ -74,43 +74,27 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         delta0 = 0
 
     if freeze_longitudinal:
-        
         kwargs = locals().copy()
         kwargs.pop('freeze_longitudinal')
-        tracker.freeze_longitudinal(True)
-        try:
-            res = twiss_from_tracker(**kwargs)
-        except Exception as e:
-            tracker.freeze_longitudinal(False)
-            raise e
-        tracker.freeze_longitudinal(False)
-        return res
+
+        with xt.freeze_longitudinal(tracker):
+            return twiss_from_tracker(**kwargs)
 
     if model_radiation != 'full':
         kwargs = locals().copy()
         kwargs.pop('model_radiation')
         assert model_radiation in ['full', 'kick_as_co', 'preserve_angles']
         assert freeze_longitudinal is False
-        if model_radiation == 'kick_as_co':
-            assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
-            assert eneloss_and_damping is False
-            tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-            try:
-                res = twiss_from_tracker(**kwargs)
-            except Exception as e:
-                tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
-                raise e
-            tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
-        elif model_radiation == 'preserve_angles':
-            assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
-            tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-            tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = True
-            try:
-                res = twiss_from_tracker(**kwargs)
-            except Exception as e:
-                tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
-                tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
-                raise e
+        with xt.tracker._preserve_config(tracker):
+            if model_radiation == 'kick_as_co':
+                assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
+                assert eneloss_and_damping is False
+                tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
+            elif model_radiation == 'preserve_angles':
+                assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
+                tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
+                tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = True
+            res = twiss_from_tracker(**kwargs)
         return res
 
     if at_s is not None:

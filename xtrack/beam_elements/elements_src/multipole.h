@@ -21,10 +21,9 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             record_index = SynchrotronRadiationRecordData_getp__index(record);
         }
     }
-    #endif
-
     double dp_record_entry, dpx_record_entry, dpy_record_entry;
     double dp_record_exit, dpx_record_exit, dpy_record_exit;
+    #endif
 
     //start_per_particle_block (part0->part)
         int64_t order = MultipoleData_get_order(el);

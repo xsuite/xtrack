@@ -5,6 +5,7 @@
 
 import logging
 from functools import partial
+from contextlib import contextmanager
 
 import numpy as np
 import xobjects as xo
@@ -32,7 +33,6 @@ logger = logging.getLogger(__name__)
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
     return iscoll
-
 
 class Tracker:
 
@@ -952,7 +952,6 @@ class Tracker:
         else:
             self.unfreeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
 
-
     def _track_with_collective(
         self,
         particles,
@@ -1425,3 +1424,21 @@ class Tracker:
     @_current_track_kernel.setter
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
+
+@contextmanager
+def _preserve_config(tracker):
+    config = AttrDict()
+    config.update(tracker.config)
+    try:
+        yield
+    finally:
+        tracker.config = config
+
+@contextmanager
+def freeze_longitudinal(tracker):
+    """Context manager to freeze longitudinal motion in a tracker."""
+    tracker.freeze_longitudinal(True)
+    try:
+        yield None
+    finally:
+        tracker.freeze_longitudinal(False)
