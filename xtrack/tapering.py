@@ -4,7 +4,7 @@ from scipy.constants import c as clight
 import xtrack as xt
 import xobjects as xo
 
-def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, **kwargs):
+def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_iter=100, **kwargs):
 
     line = tracker.line
     assert isinstance(tracker._context, xo.ContextCpu), "Only CPU context is supported"
@@ -44,6 +44,7 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
         i_iter = 0
         while True:
             p_test = tw_no_rad.particle_on_co.copy()
+            p_test.delta = delta0
             tracker.configure_radiation(model='mean')
             tracker.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
             mon = tracker.record_last_track

@@ -501,8 +501,8 @@ class Tracker:
 
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
-    def compensate_radiation_energy_loss(self, rtot_eneloss=1e-10, max_iter=100,
-                                         **kwargs):
+    def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
+                                    max_iter=100, **kwargs):
 
         all_kwargs = locals().copy()
         all_kwargs.pop('self')

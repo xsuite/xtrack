@@ -64,7 +64,7 @@ tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True)
 tracker.configure_radiation(model='mean')
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
-tracker.compensate_radiation_energy_loss()
+tracker.compensate_radiation_energy_loss(delta0=0.0055)
 
 # Twiss(es) with radiation
 tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
