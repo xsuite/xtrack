@@ -22,17 +22,32 @@ line = xt.Line.from_madx_sequence(mad.sequence['RING'])
 line.particle_ref = xp.Particles(
         mass0=xp.ELECTRON_MASS_EV,
         q0=-1,
-        gamma0=mad.sequence.ring.beam.gamma*3 # I push up the energy loss
+        gamma0=15000 # I push up the energy loss
         )
+
+#line0 = line.copy()
 
 line['rf'].voltage *= 100 # I push up the voltage
 
 c0 = line['rf']
-line.insert_element(at_s=0., element=c0.copy(), name='rf1')
-line.insert_element(at_s=40., element=c0.copy(), name='rf11')
-line.insert_element(at_s=211., element=c0.copy(), name='rf2')
-line.insert_element(at_s=250., element=c0.copy(), name='rf21')
-line.insert_element(at_s=295., element=c0.copy(), name='rf3')
+v0 = c0.voltage
+s0 = line.get_s_position('rf')
+
+line.insert_element(at_s=line.get_length()/2-s0, element=c0.copy(), name='rf1')
+line.insert_element(at_s=line.get_length()/2+s0, element=c0.copy(), name='rf2')
+line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf3')
+#line.insert_element(at_s=0., element=c0.copy(), name='rf1')
+#line.insert_element(at_s=40., element=c0.copy(), name='rf11')
+#line.insert_element(at_s=211., element=c0.copy(), name='rf2')
+#line.insert_element(at_s=250., element=c0.copy(), name='rf21')
+#line.insert_element(at_s=295., element=c0.copy(), name='rf3')
+#line.insert_element(at_s=425., element=c0.copy(), name='rf4')
+#
+#line['rf2'].voltage *= 2
+#line['rf'].voltage *= 2
+#line['rf3'].voltage *= 2
+#line['rf1'].voltage *= 1
+#line['rf4'].voltage *= 1
 
 
 tracker = line.build_tracker()
@@ -47,7 +62,6 @@ tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True)
 
 # Enable radiation
 tracker.configure_radiation(model='mean')
-
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
 tracker.compensate_radiation_energy_loss()
@@ -62,6 +76,7 @@ tw_preserve_angles = tracker.twiss(
                         matrix_stability_tol=0.5)
 
 import matplotlib.pyplot as plt
+plt.close('all')
 
 print('Non sympltectic tracker:')
 print(f'Tune error =  error_qx: {abs(tw_real_tracking.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_real_tracking.qy - tw_no_rad.qy):.3e}')
