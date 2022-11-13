@@ -2,6 +2,8 @@ from cpymad.madx import Madx
 import xtrack as xt
 import xpart as xp
 
+import numpy as np
+
 # Import a thick sequence
 mad = Madx()
 mad.call('../../test_data/clic_dr/sequence.madx')
@@ -120,6 +122,32 @@ plt.figure(3)
 plt.subplot()
 plt.plot(tw_no_rad.s, tracker.delta_taper)
 plt.plot(tw_real_tracking.s, tw_real_tracking.delta)
+
+assert np.isclose(tracker.delta_taper[0], 0, rtol=0, atol=1e-10)
+assert np.isclose(tracker.delta_taper[-1], 0, rtol=0, atol=1e-10)
+assert np.isclose(np.max(tracker.delta_taper), 0.0070174, rtol=1e04, atol=0)
+assert np.isclose(np.min(tracker.delta_taper), -0.00556288, rtol=1e04, atol=0)
+
+assert np.allclose(tw_real_tracking.delta, tracker.delta_taper, rtol=0, atol=1e-6)
+assert np.allclose(tw_sympl.delta, tracker.delta_taper, rtol=0, atol=1e-6)
+assert np.allclose(tw_preserve_angles.delta, tracker.delta_taper, rtol=0, atol=1e-6)
+
+assert np.isclose(tw_real_tracking.qx, tw_no_rad.qx, rtol=0, atol=5e-3)
+assert np.isclose(tw_sympl.qx, tw_no_rad.qx, rtol=0, atol=1e-2)
+assert np.isclose(tw_preserve_angles.qx, tw_no_rad.qx, rtol=0, atol=5e-3)
+
+assert np.isclose(tw_real_tracking.qy, tw_no_rad.qy, rtol=0, atol=8e-3)
+assert np.isclose(tw_sympl.qy, tw_no_rad.qy, rtol=0, atol=1e-2)
+assert np.isclose(tw_preserve_angles.qy, tw_no_rad.qy, rtol=0, atol=5e-3)
+
+assert np.isclose(tw_real_tracking.dqx, tw_no_rad.dqx, rtol=0, atol=0.5)
+assert np.isclose(tw_sympl.dqx, tw_no_rad.dqx, rtol=0, atol=0.5)
+assert np.isclose(tw_preserve_angles.dqx, tw_no_rad.dqx, rtol=0, atol=0.5)
+
+assert np.isclose(tw_real_tracking.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
+assert np.isclose(tw_sympl.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
+assert np.isclose(tw_preserve_angles.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
+
 
 
 plt.show()
