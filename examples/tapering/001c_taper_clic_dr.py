@@ -36,6 +36,9 @@ s0 = line.get_s_position('rf')
 line.insert_element(at_s=line.get_length()/2-s0, element=c0.copy(), name='rf1')
 line.insert_element(at_s=line.get_length()/2+s0, element=c0.copy(), name='rf2')
 line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf3')
+
+line = line.cycle('qdw1..1:38')
+
 #line.insert_element(at_s=0., element=c0.copy(), name='rf1')
 #line.insert_element(at_s=40., element=c0.copy(), name='rf11')
 #line.insert_element(at_s=211., element=c0.copy(), name='rf2')
@@ -64,7 +67,7 @@ tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True)
 tracker.configure_radiation(model='mean')
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
-tracker.compensate_radiation_energy_loss(delta0=0.0055)
+tracker.compensate_radiation_energy_loss()
 
 # Twiss(es) with radiation
 tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
@@ -113,6 +116,10 @@ plt.plot(tw_no_rad.s, tw_no_rad.y, 'k')
 plt.plot(tw_no_rad.s, tw_sympl.y, 'r')
 plt.plot(tw_no_rad.s, tw_preserve_angles.y, 'g')
 
+plt.figure(3)
+plt.subplot()
+plt.plot(tw_no_rad.s, tracker.delta_taper)
+plt.plot(tw_real_tracking.s, tw_real_tracking.delta)
 
 
 plt.show()
