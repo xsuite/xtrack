@@ -29,10 +29,11 @@ line.particle_ref = xp.Particles(
 
 #line0 = line.copy()
 
-line['rf'].voltage *= 100 # I push up the voltage
+line['rf'].voltage *= 20 # I push up the voltage
 
 c0 = line['rf']
 v0 = c0.voltage
+c0.frequency /= 100
 s0 = line.get_s_position('rf')
 
 line.insert_element(at_s=line.get_length()/2-s0, element=c0.copy(), name='rf1')
@@ -148,6 +149,20 @@ assert np.isclose(tw_real_tracking.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
 assert np.isclose(tw_sympl.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
 assert np.isclose(tw_preserve_angles.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
 
+assert np.allclose(tw_real_tracking.x, tw_no_rad.x, rtol=0, atol=1e-7)
+assert np.allclose(tw_sympl.x, tw_no_rad.x, rtol=0, atol=1e-7)
+assert np.allclose(tw_preserve_angles.x, tw_no_rad.x, rtol=0, atol=1e-7)
 
+assert np.allclose(tw_real_tracking.y, tw_no_rad.y, rtol=0, atol=1e-7)
+assert np.allclose(tw_sympl.y, tw_no_rad.y, rtol=0, atol=1e-7)
+assert np.allclose(tw_preserve_angles.y, tw_no_rad.y, rtol=0, atol=1e-7)
+
+assert np.allclose(tw_sympl.betx, tw_no_rad.betx, rtol=0.04, atol=0)
+assert np.allclose(tw_preserve_angles.betx, tw_no_rad.betx, rtol=0.003, atol=0)
+
+assert np.allclose(tw_sympl.bety, tw_no_rad.bety, rtol=0.04, atol=0)
+assert np.allclose(tw_preserve_angles.bety, tw_no_rad.bety, rtol=0.003, atol=0)
+
+#CHECK dispersion
 
 plt.show()
