@@ -20,6 +20,7 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
     print("  - Identify multipoles and cavities")
     line_df = line.to_pandas()
     multipoles = line_df[line_df['element_type'] == 'Multipole']
+    dipole_edges = line_df[line_df['element_type'] == 'DipoleEdge']
     cavities = line_df[line_df['element_type'] == 'Cavity'].copy()
 
     # save voltages
@@ -38,6 +39,7 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
     with xt.tracker._preserve_config(tracker):
         tracker.configure_radiation(model='mean')
         tracker.config.XTRACK_MULTIPOLE_TAPER = True
+        tracker.config.XTRACK_DIPOLEEDGE_TAPER =True
 
         i_iter = 0
         while True:
@@ -69,6 +71,15 @@ def compensate_radiation_energy_loss(tracker, rtot_eneloss=1e-10, max_iter=100, 
     for nn, dd in zip(multipoles['name'].values, delta_taper_multipoles):
         line[nn].knl *= (1 + dd)
         line[nn].ksl *= (1 + dd)
+
+    print("  - Adjust dipole edge strengths")
+    i_dipole_edges = dipole_edges.index.values
+    delta_taper_dipole_edges = ((mon.delta[0,:][i_dipole_edges+1] + mon.delta[0,:][i_dipole_edges]) / 2)
+    for nn, dd in zip(dipole_edges['name'].values, delta_taper_dipole_edges):
+        line[nn].r21 *= (1 + dd)
+        line[nn].r43 *= (1 + dd)
+        line[nn].h *= (1 + dd)
+
 
     print("  - Restore cavity voltage and frequency. Set cavity lag")
     beta0 = p_test.beta0[0]
