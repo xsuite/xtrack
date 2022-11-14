@@ -31,7 +31,9 @@ tw_scale_as_co = tracker.twiss(
                         mode='6d',
                         matrix_stability_tol=0.5)
 
+
 import matplotlib.pyplot as plt
+plt.close('all')
 
 print('Non sympltectic tracker:')
 print(f'Tune error =  error_qx: {abs(tw_real_tracking.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_real_tracking.qy - tw_no_rad.qy):.3e}')
@@ -68,6 +70,9 @@ plt.plot(tw_no_rad.s, tw_no_rad.y, 'k')
 plt.plot(tw_no_rad.s, tw_sympl.y, 'r')
 plt.plot(tw_no_rad.s, tw_scale_as_co.y, 'g')
 
-
+plt.figure(3)
+plt.subplot()
+plt.plot(tw_no_rad.s, tracker.delta_taper)
+plt.plot(tw_real_tracking.s, tw_real_tracking.delta)
 
 plt.show()
