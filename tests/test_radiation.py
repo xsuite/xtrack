@@ -12,7 +12,7 @@ from scipy.constants import epsilon_0
 import xpart as xp
 import xtrack as xt
 import xobjects as xo
-from xpart.test_helpers import retry
+from xpart.test_helpers import flaky_assertions, retry
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -83,7 +83,7 @@ def test_radiation():
                           atol=0, rtol=1e-6)
 
 
-@retry(on=AssertionError)
+@retry()
 def test_ring_with_radiation():
 
     from cpymad.madx import Madx
@@ -133,33 +133,35 @@ def test_ring_with_radiation():
 
         # Checks
         met = mad_emit_table
-        assert np.isclose(tw['eneloss_turn'], mad_emit_summ.u0[0]*1e9,
-                        rtol=3e-3, atol=0)
-        assert np.isclose(tw['damping_constants_s'][0],
-            met[met.loc[:, 'parameter']=='damping_constant']['mode1'][0],
-            rtol=3e-3, atol=0
-            )
-        assert np.isclose(tw['damping_constants_s'][1],
-            met[met.loc[:, 'parameter']=='damping_constant']['mode2'][0],
-            rtol=1e-3, atol=0
-            )
-        assert np.isclose(tw['damping_constants_s'][2],
-            met[met.loc[:, 'parameter']=='damping_constant']['mode3'][0],
-            rtol=3e-3, atol=0
-            )
 
-        assert np.isclose(tw['partition_numbers'][0],
-            met[met.loc[:, 'parameter']=='damping_partion']['mode1'][0],
-            rtol=3e-3, atol=0
-            )
-        assert np.isclose(tw['partition_numbers'][1],
-            met[met.loc[:, 'parameter']=='damping_partion']['mode2'][0],
-            rtol=1e-3, atol=0
-            )
-        assert np.isclose(tw['partition_numbers'][2],
-            met[met.loc[:, 'parameter']=='damping_partion']['mode3'][0],
-            rtol=3e-3, atol=0
-            )
+        with flaky_assertions():
+            assert np.isclose(tw['eneloss_turn'], mad_emit_summ.u0[0]*1e9,
+                            rtol=3e-3, atol=0)
+            assert np.isclose(tw['damping_constants_s'][0],
+                met[met.loc[:, 'parameter']=='damping_constant']['mode1'][0],
+                rtol=3e-3, atol=0
+                )
+            assert np.isclose(tw['damping_constants_s'][1],
+                met[met.loc[:, 'parameter']=='damping_constant']['mode2'][0],
+                rtol=1e-3, atol=0
+                )
+            assert np.isclose(tw['damping_constants_s'][2],
+                met[met.loc[:, 'parameter']=='damping_constant']['mode3'][0],
+                rtol=3e-3, atol=0
+                )
+
+            assert np.isclose(tw['partition_numbers'][0],
+                met[met.loc[:, 'parameter']=='damping_partion']['mode1'][0],
+                rtol=3e-3, atol=0
+                )
+            assert np.isclose(tw['partition_numbers'][1],
+                met[met.loc[:, 'parameter']=='damping_partion']['mode2'][0],
+                rtol=1e-3, atol=0
+                )
+            assert np.isclose(tw['partition_numbers'][2],
+                met[met.loc[:, 'parameter']=='damping_partion']['mode3'][0],
+                rtol=3e-3, atol=0
+                )
 
         tracker.configure_radiation(mode='mean')
         part_co = tracker.find_closed_orbit()
@@ -173,17 +175,18 @@ def test_ring_with_radiation():
         tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
         mon = tracker.record_last_track
 
-        assert np.isclose(np.std(mon.zeta[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),
-            rtol=0.2, atol=0
-            )
+        with flaky_assertions():
+            assert np.isclose(np.std(mon.zeta[:, 750:]),
+                np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),
+                rtol=0.2, atol=0
+                )
 
-        assert np.isclose(np.std(mon.x[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0]*tw['betx'][0]),
-            rtol=0.2, atol=0
-            )
+            assert np.isclose(np.std(mon.x[:, 750:]),
+                np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0]*tw['betx'][0]),
+                rtol=0.2, atol=0
+                )
 
-        assert np.all(mon.y[:] < 1e-15)
+            assert np.all(mon.y[:] < 1e-15)
 
         # Test particles generation (with electrons)
         bunch_intensity = 1e11
@@ -201,14 +204,15 @@ def test_ring_with_radiation():
         assert pgen._buffer.context is context
         pgen.move(_context=xo.ContextCpu())
 
-        assert np.isclose(np.std(pgen.x),
-                        np.sqrt(tw['dx'][0]**2*np.std(pgen.delta)**2
-                                + tw['betx'][0]*nemitt_x/mad.sequence.ring.beam.gamma),
-                        atol=0, rtol=1e-2)
+        with flaky_assertions():
+            assert np.isclose(np.std(pgen.x),
+                            np.sqrt(tw['dx'][0]**2*np.std(pgen.delta)**2
+                                    + tw['betx'][0]*nemitt_x/mad.sequence.ring.beam.gamma),
+                            atol=0, rtol=1e-2)
 
-        assert np.isclose(np.std(pgen.y),
-                        np.sqrt(tw['dy'][0]**2*np.std(pgen.delta)**2
-                                + tw['bety'][0]*nemitt_y/mad.sequence.ring.beam.gamma),
-                        atol=0, rtol=1e-2)
+            assert np.isclose(np.std(pgen.y),
+                            np.sqrt(tw['dy'][0]**2*np.std(pgen.delta)**2
+                                    + tw['bety'][0]*nemitt_y/mad.sequence.ring.beam.gamma),
+                            atol=0, rtol=1e-2)
 
-        assert np.isclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=5e-3)
+            assert np.isclose(np.std(pgen.zeta), sigma_z, atol=0, rtol=5e-3)
