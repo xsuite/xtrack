@@ -35,14 +35,17 @@ line = line.cycle('qdw1..1:38')
 
 c0 = line['rf']
 v0 = c0.voltage
-c0.frequency /= 100
+#c0.frequency /= 100
 s0 = line.get_s_position('rf')
 
 
 line.insert_element(at_s=41., element=c0.copy(), name='rf1')
-line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf2')
+line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf2a')
+line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf2b')
 line.insert_element(at_s=line.get_length()-41, element=c0.copy(), name='rf3')
 
+line['rf2a'].voltage *= 0.6 # I split the voltage unevenly to test the partitioning
+line['rf2b'].voltage *= 0.4
 
 tracker = line.build_tracker()
 
@@ -126,13 +129,13 @@ assert np.isclose(tw_real_tracking.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
 assert np.isclose(tw_sympl.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
 assert np.isclose(tw_scale_as_co.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
 
-assert np.isclose(tw_real_tracking.dqx, tw_no_rad.dqx, rtol=0, atol=0.1)
-assert np.isclose(tw_sympl.dqx, tw_no_rad.dqx, rtol=0, atol=0.1)
-assert np.isclose(tw_scale_as_co.dqx, tw_no_rad.dqx, rtol=0, atol=0.1)
+assert np.isclose(tw_real_tracking.dqx, tw_no_rad.dqx, rtol=0, atol=0.2)
+assert np.isclose(tw_sympl.dqx, tw_no_rad.dqx, rtol=0, atol=0.2)
+assert np.isclose(tw_scale_as_co.dqx, tw_no_rad.dqx, rtol=0, atol=0.2)
 
-assert np.isclose(tw_real_tracking.dqy, tw_no_rad.dqy, rtol=0, atol=0.1)
-assert np.isclose(tw_sympl.dqy, tw_no_rad.dqy, rtol=0, atol=0.1)
-assert np.isclose(tw_scale_as_co.dqy, tw_no_rad.dqy, rtol=0, atol=0.1)
+assert np.isclose(tw_real_tracking.dqy, tw_no_rad.dqy, rtol=0, atol=0.2)
+assert np.isclose(tw_sympl.dqy, tw_no_rad.dqy, rtol=0, atol=0.2)
+assert np.isclose(tw_scale_as_co.dqy, tw_no_rad.dqy, rtol=0, atol=0.2)
 
 assert np.allclose(tw_real_tracking.x, tw_no_rad.x, rtol=0, atol=1e-7)
 assert np.allclose(tw_sympl.x, tw_no_rad.x, rtol=0, atol=1e-7)
