@@ -157,4 +157,10 @@ assert np.allclose(tw_scale_as_co.dx, tw_no_rad.dx, rtol=0.00, atol=0.1e-3)
 assert np.allclose(tw_sympl.dy, tw_no_rad.dy, rtol=0.00, atol=0.1e-3)
 assert np.allclose(tw_scale_as_co.dy, tw_no_rad.dy, rtol=0.00, atol=0.1e-3)
 
+eneloss_real_tracking = tw_real_tracking.eneloss_turn
+assert np.isclose(line['rf'].voltage*np.sin(line['rf'].lag/180*np.pi), eneloss_real_tracking/4, rtol=1e-5)
+assert np.isclose(line['rf1'].voltage*np.sin(line['rf1'].lag/180*np.pi), eneloss_real_tracking/4, rtol=1e-5)
+assert np.isclose(line['rf2a'].voltage*np.sin(line['rf2a'].lag/180*np.pi), eneloss_real_tracking/4*0.6, rtol=1e-5)
+assert np.isclose(line['rf2b'].voltage*np.sin(line['rf2b'].lag/180*np.pi), eneloss_real_tracking/4*0.4, rtol=1e-5)
+assert np.isclose(line['rf3'].voltage*np.sin(line['rf3'].lag/180*np.pi), eneloss_real_tracking/4, rtol=1e-5)
 plt.show()
