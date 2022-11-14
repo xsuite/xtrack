@@ -25,9 +25,9 @@ tracker.compensate_radiation_energy_loss()
 # Twiss(es) with radiation
 tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True)
-tw_sympl = tracker.twiss(radiation_treatment='kick_as_co', mode='6d')
+tw_sympl = tracker.twiss(radiation_mode='kick_as_co', mode='6d')
 tw_preserve_angles = tracker.twiss(
-                        radiation_treatment='preserve_angles',
+                        radiation_mode='preserve_angles',
                         mode='6d',
                         matrix_stability_tol=0.5)
 

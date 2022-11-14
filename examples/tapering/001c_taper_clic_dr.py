@@ -29,18 +29,21 @@ line.particle_ref = xp.Particles(
 
 #line0 = line.copy()
 
-line['rf'].voltage *= 20 # I push up the voltage
+line['rf'].voltage *= 20*10 # I push up the voltage
+
+line = line.cycle('qdw1..1:38')
 
 c0 = line['rf']
 v0 = c0.voltage
 c0.frequency /= 100
 s0 = line.get_s_position('rf')
 
-line.insert_element(at_s=line.get_length()/2-s0, element=c0.copy(), name='rf1')
-line.insert_element(at_s=line.get_length()/2+s0, element=c0.copy(), name='rf2')
-line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf3')
 
-line = line.cycle('qdw1..1:38')
+line.insert_element(at_s=41., element=c0.copy(), name='rf1')
+line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf2')
+line.insert_element(at_s=line.get_length()-41, element=c0.copy(), name='rf3')
+
+
 
 #line.insert_element(at_s=0., element=c0.copy(), name='rf1')
 #line.insert_element(at_s=40., element=c0.copy(), name='rf11')
@@ -75,9 +78,9 @@ tracker.compensate_radiation_energy_loss()
 # Twiss(es) with radiation
 tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True)
-tw_sympl = tracker.twiss(radiation_treatment='kick_as_co', mode='6d')
+tw_sympl = tracker.twiss(radiation_mode='kick_as_co', mode='6d')
 tw_preserve_angles = tracker.twiss(
-                        radiation_treatment='preserve_angles',
+                        radiation_mode='preserve_angles',
                         mode='6d',
                         matrix_stability_tol=0.5)
 
@@ -126,28 +129,28 @@ plt.plot(tw_real_tracking.s, tw_real_tracking.delta)
 
 assert np.isclose(tracker.delta_taper[0], 0, rtol=0, atol=1e-10)
 assert np.isclose(tracker.delta_taper[-1], 0, rtol=0, atol=1e-10)
-assert np.isclose(np.max(tracker.delta_taper), 0.0070174, rtol=1e04, atol=0)
-assert np.isclose(np.min(tracker.delta_taper), -0.00556288, rtol=1e04, atol=0)
+assert np.isclose(np.max(tracker.delta_taper), 0.00568948, rtol=1e-4, atol=0)
+assert np.isclose(np.min(tracker.delta_taper), -0.00556288, rtol=1e-4, atol=0)
 
 assert np.allclose(tw_real_tracking.delta, tracker.delta_taper, rtol=0, atol=1e-6)
 assert np.allclose(tw_sympl.delta, tracker.delta_taper, rtol=0, atol=1e-6)
 assert np.allclose(tw_preserve_angles.delta, tracker.delta_taper, rtol=0, atol=1e-6)
 
-assert np.isclose(tw_real_tracking.qx, tw_no_rad.qx, rtol=0, atol=5e-3)
-assert np.isclose(tw_sympl.qx, tw_no_rad.qx, rtol=0, atol=1e-2)
-assert np.isclose(tw_preserve_angles.qx, tw_no_rad.qx, rtol=0, atol=5e-3)
+assert np.isclose(tw_real_tracking.qx, tw_no_rad.qx, rtol=0, atol=5e-4)
+assert np.isclose(tw_sympl.qx, tw_no_rad.qx, rtol=0, atol=5e-4)
+assert np.isclose(tw_preserve_angles.qx, tw_no_rad.qx, rtol=0, atol=5e-4)
 
-assert np.isclose(tw_real_tracking.qy, tw_no_rad.qy, rtol=0, atol=8e-3)
-assert np.isclose(tw_sympl.qy, tw_no_rad.qy, rtol=0, atol=1e-2)
-assert np.isclose(tw_preserve_angles.qy, tw_no_rad.qy, rtol=0, atol=5e-3)
+assert np.isclose(tw_real_tracking.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
+assert np.isclose(tw_sympl.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
+assert np.isclose(tw_preserve_angles.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
 
-assert np.isclose(tw_real_tracking.dqx, tw_no_rad.dqx, rtol=0, atol=0.5)
-assert np.isclose(tw_sympl.dqx, tw_no_rad.dqx, rtol=0, atol=0.5)
-assert np.isclose(tw_preserve_angles.dqx, tw_no_rad.dqx, rtol=0, atol=0.5)
+assert np.isclose(tw_real_tracking.dqx, tw_no_rad.dqx, rtol=0, atol=0.1)
+assert np.isclose(tw_sympl.dqx, tw_no_rad.dqx, rtol=0, atol=0.1)
+assert np.isclose(tw_preserve_angles.dqx, tw_no_rad.dqx, rtol=0, atol=0.1)
 
-assert np.isclose(tw_real_tracking.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
-assert np.isclose(tw_sympl.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
-assert np.isclose(tw_preserve_angles.dqy, tw_no_rad.dqy, rtol=0, atol=1.)
+assert np.isclose(tw_real_tracking.dqy, tw_no_rad.dqy, rtol=0, atol=0.1)
+assert np.isclose(tw_sympl.dqy, tw_no_rad.dqy, rtol=0, atol=0.1)
+assert np.isclose(tw_preserve_angles.dqy, tw_no_rad.dqy, rtol=0, atol=0.1)
 
 assert np.allclose(tw_real_tracking.x, tw_no_rad.x, rtol=0, atol=1e-7)
 assert np.allclose(tw_sympl.x, tw_no_rad.x, rtol=0, atol=1e-7)
@@ -157,12 +160,16 @@ assert np.allclose(tw_real_tracking.y, tw_no_rad.y, rtol=0, atol=1e-7)
 assert np.allclose(tw_sympl.y, tw_no_rad.y, rtol=0, atol=1e-7)
 assert np.allclose(tw_preserve_angles.y, tw_no_rad.y, rtol=0, atol=1e-7)
 
-assert np.allclose(tw_sympl.betx, tw_no_rad.betx, rtol=0.04, atol=0)
+assert np.allclose(tw_sympl.betx, tw_no_rad.betx, rtol=0.02, atol=0)
 assert np.allclose(tw_preserve_angles.betx, tw_no_rad.betx, rtol=0.003, atol=0)
 
 assert np.allclose(tw_sympl.bety, tw_no_rad.bety, rtol=0.04, atol=0)
 assert np.allclose(tw_preserve_angles.bety, tw_no_rad.bety, rtol=0.003, atol=0)
 
-#CHECK dispersion
+assert np.allclose(tw_sympl.dx, tw_no_rad.dx, rtol=0.00, atol=0.1e-3)
+assert np.allclose(tw_preserve_angles.dx, tw_no_rad.dx, rtol=0.00, atol=0.1e-3)
+
+assert np.allclose(tw_sympl.dy, tw_no_rad.dy, rtol=0.00, atol=0.1e-3)
+assert np.allclose(tw_preserve_angles.dy, tw_no_rad.dy, rtol=0.00, atol=0.1e-3)
 
 plt.show()
