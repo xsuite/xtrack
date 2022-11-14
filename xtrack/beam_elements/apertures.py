@@ -12,12 +12,23 @@ from ..general import _pkg_root
 
 
 class LimitRect(BeamElement):
+    """A rectangular aperture
+    Parameters:
+        - min_x [m]: Lower x limit
+        - max_x [m]: Upper x limit
+        - min_y [m]: Lower y limit
+        - max_y [m]: Upper y limit
+    """
+    
     _xofields = {
         'min_x': xo.Float64,
         'max_x': xo.Float64,
         'min_y': xo.Float64,
         'max_y': xo.Float64,
         }
+    
+    def __init__(self, min_x=-np.inf, max_x=np.inf, min_y=-np.inf, max_y=np.inf, **kwargs):
+        super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, **kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
