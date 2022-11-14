@@ -119,8 +119,8 @@ tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
                     delta_chrom=delta_chrom)
 tw_sympl = tracker.twiss(radiation_mode='kick_as_co', mode='6d',
                         delta_chrom=delta_chrom)
-tw_preserve_angles = tracker.twiss(
-                        radiation_mode='preserve_angles',
+tw_scale_as_co = tracker.twiss(
+                        radiation_mode='scale_as_co',
                         mode='6d',
                         matrix_stability_tol=0.5, delta_chrom=delta_chrom)
 
@@ -129,19 +129,19 @@ print(f'Tune error =  error_qx: {abs(tw_real_tracking.qx - tw_no_rad.qx):.3e} er
 print('Sympltectic tracker:')
 print(f'Tune error =  error_qx: {abs(tw_sympl.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_sympl.qy - tw_no_rad.qy):.3e}')
 print ('Preserve angles:')
-print(f'Tune error =  error_qx: {abs(tw_preserve_angles.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_preserve_angles.qy - tw_no_rad.qy):.3e}')
+print(f'Tune error =  error_qx: {abs(tw_scale_as_co.qx - tw_no_rad.qx):.3e} error_qy: {abs(tw_scale_as_co.qy - tw_no_rad.qy):.3e}')
 plt.figure(2)
 
 plt.subplot(2,1,1)
 plt.plot(tw_no_rad.s, tw_sympl.betx/tw_no_rad.betx - 1)
-plt.plot(tw_no_rad.s, tw_preserve_angles.betx/tw_no_rad.betx - 1)
+plt.plot(tw_no_rad.s, tw_scale_as_co.betx/tw_no_rad.betx - 1)
 #tw.betx *= (1 + delta_beta_corr)
 #plt.plot(tw_no_rad.s, tw.betx/tw_no_rad.betx - 1)
 plt.ylabel(r'$\Delta \beta_x / \beta_x$')
 
 plt.subplot(2,1,2)
 plt.plot(tw_no_rad.s, tw_sympl.bety/tw_no_rad.bety - 1)
-plt.plot(tw_no_rad.s, tw_preserve_angles.bety/tw_no_rad.bety - 1)
+plt.plot(tw_no_rad.s, tw_scale_as_co.bety/tw_no_rad.bety - 1)
 #tw.bety *= (1 + delta_beta_corr)
 #plt.plot(tw_no_rad.s, tw.bety/tw_no_rad.bety - 1)
 plt.ylabel(r'$\Delta \beta_y / \beta_y$')
@@ -151,13 +151,13 @@ plt.subplot(2,1,1)
 plt.plot(tw_no_rad.s, tw_no_rad.x, 'k')
 #plt.plot(tw_no_rad.s, tw_real_tracking.x, 'b')
 plt.plot(tw_no_rad.s, tw_sympl.x, 'r')
-plt.plot(tw_no_rad.s, tw_preserve_angles.x, 'g')
+plt.plot(tw_no_rad.s, tw_scale_as_co.x, 'g')
 
 plt.subplot(2,1,2)
 plt.plot(tw_no_rad.s, tw_no_rad.y, 'k')
 #plt.plot(tw_no_rad.s, tw_real_tracking.y, 'b')
 plt.plot(tw_no_rad.s, tw_sympl.y, 'r')
-plt.plot(tw_no_rad.s, tw_preserve_angles.y, 'g')
+plt.plot(tw_no_rad.s, tw_scale_as_co.y, 'g')
 
 
 

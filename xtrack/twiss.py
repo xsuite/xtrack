@@ -88,14 +88,14 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
     if radiation_mode != 'full':
         kwargs = locals().copy()
         kwargs.pop('radiation_mode')
-        assert radiation_mode in ['full', 'kick_as_co', 'preserve_angles']
+        assert radiation_mode in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
         with xt.tracker._preserve_config(tracker):
             if radiation_mode == 'kick_as_co':
                 assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
                 assert eneloss_and_damping is False
                 tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-            elif radiation_mode == 'preserve_angles':
+            elif radiation_mode == 'scale_as_co':
                 assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
                 tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
                 tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = True
