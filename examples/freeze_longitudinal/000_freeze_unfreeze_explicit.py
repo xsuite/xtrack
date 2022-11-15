@@ -21,6 +21,8 @@ tracker.freeze_longitudinal()
 particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
 tracker.track(particles, num_turns=10)
 
+print(particles.delta) # gives [0.001 0.001 0.001]
+
 # Twiss with frozen longitudinal coordinates (needs to be 4d)
 twiss = tracker.twiss(mode='4d')
 
@@ -33,3 +35,5 @@ tracker.track(particles, num_turns=10)
 
 # Twiss with unfrozen longitudinal coordinates (can be 6d)
 twiss = tracker.twiss(mode='6d')
+
+print(particles.delta) # gives [0.00099218 0.00099218 0.00099219]
