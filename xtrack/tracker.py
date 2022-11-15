@@ -389,7 +389,7 @@ class Tracker:
             kwargs = locals().copy()
             kwargs.pop('self')
             kwargs.pop('freeze_longitudinal')
-            with freeze_longitudinal(self):
+            with _freeze_longitudinal(self):
                 return self.find_closed_orbit(**kwargs)
 
         self._check_invalidated()
@@ -1143,7 +1143,7 @@ class Tracker:
             kwargs.pop('self')
             kwargs.pop('freeze_longitudinal')
 
-            with freeze_longitudinal(self):
+            with _freeze_longitudinal(self):
                 return self._track_no_collective(**kwargs)
 
         self._check_invalidated()
@@ -1470,6 +1470,7 @@ def freeze_longitudinal(tracker):
         yield None
     finally:
         tracker.config = config
+_freeze_longitudinal = freeze_longitudinal # to avoid name clash with function argument
 
 class TrackerConfig(dict):
     def __init__(self, *args, **kwargs):
