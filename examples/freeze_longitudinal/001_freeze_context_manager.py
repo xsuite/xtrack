@@ -14,20 +14,18 @@ line.particle_ref = xp.Particles.from_dict(line_dict['particle'])
 # Build the tracker
 tracker = line.build_tracker()
 
-# Freeze longitudinal coordinates
-tracker.freeze_longitudinal()
+# Perform a set of operations with frozen longitudinal coordinates
+with xt.freeze_longitudinal(tracker):
+    # Track some particles with frozen longitudinal coordinates
+    particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
+    tracker.track(particles, num_turns=10)
+    print(particles.delta) # gives [0.001 0.001 0.001], same as initial value
 
-# Track some particles with frozen longitudinal coordinates
-particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
-tracker.track(particles, num_turns=10)
-print(particles.delta) # gives [0.001 0.001 0.001], same as initial value
+    # Twiss with frozen longitudinal coordinates (needs to be 4d)
+    twiss = tracker.twiss(mode='4d')
+    print(twiss.slip_factor) # gives 0 (no longitudinal motion)
 
-# Twiss with frozen longitudinal coordinates (needs to be 4d)
-twiss = tracker.twiss(mode='4d')
-print(twiss.slip_factor) # gives 0 (no longitudinal motion)
-
-# Unfreeze longitudinal coordinates
-tracker.freeze_longitudinal(False)
+# 6d tracking is automatically restored when the with block is exited
 
 # Track some particles with unfrozen longitudinal coordinates
 particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
