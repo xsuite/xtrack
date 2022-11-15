@@ -15,7 +15,7 @@ line.particle_ref = xp.Particles.from_dict(line_dict['particle'])
 tracker = line.build_tracker()
 
 # Track some particles with frozen longitudinal coordinates
-particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
+particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
 tracker.track(particles, num_turns=10, freeze_longitudinal=True)
 print(particles.delta) # gives [0.001 0.001 0.001], same as initial value
 

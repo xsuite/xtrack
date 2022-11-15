@@ -30,7 +30,7 @@ def test_freeze_longitudinal_explicit():
             tracker.freeze_longitudinal()
 
             # Track some particles with frozen longitudinal coordinates
-            particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
+            particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
             tracker.track(particles, num_turns=10)
             particles.move(_context=xo.context_default)
             assert np.allclose(particles.delta, 1e-3, rtol=0, atol=1e-12)
@@ -71,7 +71,7 @@ def test_freeze_longitudinal_context_manager():
 
             with xt.freeze_longitudinal(tracker):
                 # Track some particles with frozen longitudinal coordinates
-                particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
+                particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
                 tracker.track(particles, num_turns=10)
                 particles.move(_context=xo.context_default)
                 assert np.allclose(particles.delta, 1e-3, rtol=0, atol=1e-12)
@@ -108,7 +108,7 @@ def test_freeze_longitudinal_individual_methods():
             tracker = line.build_tracker(_context=context)
 
             # Track some particles with frozen longitudinal coordinates
-            particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
+            particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
             tracker.track(particles, num_turns=10, freeze_longitudinal=True)
             particles.move(_context=xo.context_default)
             assert np.allclose(particles.delta, 1e-3, rtol=0, atol=1e-12)
