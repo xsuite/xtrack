@@ -5,9 +5,31 @@ import xpart as xp
 
 fname_line = '../../test_data/lhc_no_bb/line_and_particle.json'
 
-# import a line
+# import a line and add reference particle
 with open(fname_line) as fid:
     line_dict = json.load(fid)
-
-line = xt.Line.from_dict(line_dict)
+line = xt.Line.from_dict(line_dict['line'])
 line.particle_ref = xp.Particles.from_dict(line_dict['particle'])
+
+# Build the tracker
+tracker = line.build_tracker()
+
+# Freeze longitudinal coordinates
+tracker.freeze_longitudinal()
+
+# Track some particles with frozen longitudinal coordinates
+particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e3])
+tracker.track(particles, num_turns=10)
+
+# Twiss with frozen longitudinal coordinates (needs to be 4d)
+twiss = tracker.twiss(mode='4d')
+
+# Unfreeze longitudinal coordinates
+tracker.freeze_longitudinal(False)
+
+# Track some particles with unfrozen longitudinal coordinates
+particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
+tracker.track(particles, num_turns=10)
+
+# Twiss with unfrozen longitudinal coordinates (can be 6d)
+twiss = tracker.twiss(mode='6d')

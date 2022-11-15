@@ -539,6 +539,10 @@ class Tracker:
                 local_particle_src=self.local_particle_src,
             )
 
+    def build_particles(self, *args, **kwargs):
+        res = xp.build_particles(*args, tracker=self, **kwargs)
+        return res
+
     def get_backtracker(self, _context=None, _buffer=None,
                         global_xy_limit='from_tracker'):
 
