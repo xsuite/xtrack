@@ -394,7 +394,31 @@ def test_line_import_from_madx():
         dtest = ee_test.to_dict()
         dref = ee_six.to_dict()
 
+        skip_order = False
+        if isinstance(ee_test, xt.Multipole):
+            if ee_test.order != ee_six.order:
+                min_order = min(ee_test.order, ee_six.order)
+                if len(dtest['knl']) > min_order+1:
+                    assert np.all(dtest['knl'][min_order+1]  == 0)
+                    dtest['knl'] = dtest['knl'][:min_order+1]
+                if len(dref['knl']) > min_order+1:
+                    assert np.all(dref['knl'][min_order+1]  == 0)
+                    dref['knl'] = dref['knl'][:min_order+1]
+                if len(dtest['ksl']) > min_order+1:
+                    assert np.all(dtest['ksl'][min_order+1]  == 0)
+                    dtest['ksl'] = dtest['ksl'][:min_order+1]
+                if len(dref['ksl']) > min_order+1:
+                    assert np.all(dref['ksl'][min_order+1]  == 0)
+                    dref['ksl'] = dref['ksl'][:min_order+1]
+                skip_order = True
+
         for kk in dtest.keys():
+
+            if skip_order and kk == 'order':
+                continue
+
+            if skip_order and kk == 'inv_factorial_order':
+                continue
 
             # Check if they are identical
             if np.isscalar(dref[kk]) and dtest[kk] == dref[kk]:
