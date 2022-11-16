@@ -306,7 +306,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 
     context = tracker._context
     part_for_twiss = xp.build_particles(_context=context,
-                        particle_ref=particle_on_co, method='shift',
+                        particle_ref=particle_on_co, mode='shift',
                         x=  list(W_matrix[0, :] * scale_eigen) + [0],
                         px= list(W_matrix[1, :] * scale_eigen) + [0],
                         y=  list(W_matrix[2, :] * scale_eigen) + [0],
@@ -684,7 +684,7 @@ def compute_one_turn_matrix_finite_differences(
     dzeta = steps_r_matrix["dzeta"]
     ddelta = steps_r_matrix["ddelta"]
     part_temp = xp.build_particles(_context=context,
-            particle_ref=particle_on_co, method='shift',
+            particle_ref=particle_on_co, mode='shift',
             x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
             px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
             y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],
