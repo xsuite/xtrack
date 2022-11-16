@@ -494,9 +494,7 @@ class Tracker:
                 ee.radiation_flag = radiation_flag
 
         if radiation_flag == 2:
-            self._needs_rng = True
-        else:
-            self._needs_rng = False
+            self.line._needs_rng = True
 
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
