@@ -112,7 +112,7 @@ def test_synrad_configuration():
             p = xp.Particles(x=[0.01, 0.02], _context=context)
             tracker.track(p)
             p.move(_context=xo.ContextCpu())
-            assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
+            assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
 
 
 def test_partial_tracking():
