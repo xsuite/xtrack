@@ -30,7 +30,7 @@ DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 
 log = logging.getLogger(__name__)
 
-def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
+def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         particle_on_co=None, R_matrix=None, W_matrix=None, delta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
         delta_disp=1e-5, delta_chrom = 1e-4,
@@ -39,7 +39,7 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
         continue_on_closed_orbit_error=False,
         freeze_longitudinal=False,
         values_at_element_exit=False,
-        radiation_mode='full',
+        radiation_method='full',
         eneloss_and_damping=False,
         ele_start=None, ele_stop=None, twiss_init=None,
         skip_global_quantities=False,
@@ -47,13 +47,9 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
-        method=None):
+        ):
 
-    assert mode in ['6d', '4d'], 'Method must be `6d` or `4d`'
-
-    if method is not None:
-        raise NameError(
-            '`method` is not a valid argument anymore. Use `mode` instead.')
+    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
     if matrix_responsiveness_tol is None:
         matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
@@ -75,7 +71,7 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
         raise ValueError(
             "Either `particle_ref` or `particle_co_guess` must be provided")
 
-    if mode == '4d' and delta0 is None:
+    if method == '4d' and delta0 is None:
         delta0 = 0
 
     if freeze_longitudinal:
@@ -85,17 +81,17 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
         with xt.freeze_longitudinal(tracker):
             return twiss_from_tracker(**kwargs)
 
-    if radiation_mode != 'full':
+    if radiation_method != 'full':
         kwargs = locals().copy()
-        kwargs.pop('radiation_mode')
-        assert radiation_mode in ['full', 'kick_as_co', 'scale_as_co']
+        kwargs.pop('radiation_method')
+        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
         with xt.tracker._preserve_config(tracker):
-            if radiation_mode == 'kick_as_co':
+            if radiation_method == 'kick_as_co':
                 assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
                 assert eneloss_and_damping is False
                 tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-            elif radiation_mode == 'scale_as_co':
+            elif radiation_method == 'scale_as_co':
                 assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
                 tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
                 tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = True
@@ -174,12 +170,12 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
                                                 particle_on_co=part_on_co)
 
         W, _, _ = lnf.compute_linear_normal_form(
-                                RR, only_4d_block=(mode == '4d'),
+                                RR, only_4d_block=(method == '4d'),
                                 symplectify=symplectify,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
 
-    if mode == '4d' and W_matrix is None: # the matrix was not provided by the user
+    if method == '4d' and W_matrix is None: # the matrix was not provided by the user
         p_disp_minus = tracker.find_closed_orbit(
                             particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
@@ -236,7 +232,7 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
 
         dqx, dqy = _compute_chromaticity(
             tracker=tracker,
-            W_matrix=W, mode=mode,
+            W_matrix=W, method=method,
             particle_on_co=part_on_co,
             delta_chrom=delta_chrom,
             tune_x=mux[-1], tune_y=muy[-1],
@@ -268,7 +264,7 @@ def twiss_from_tracker(tracker, particle_ref=None, mode='6d',
 
         twiss_res['R_matrix'] = RR
 
-        if mode == '4d':
+        if method == '4d':
             twiss_res.qs = 0
             twiss_res.muzeta[:] = 0
 
@@ -310,7 +306,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 
     context = tracker._context
     part_for_twiss = xp.build_particles(_context=context,
-                        particle_ref=particle_on_co, mode='shift',
+                        particle_ref=particle_on_co, method='shift',
                         x=  list(W_matrix[0, :] * scale_eigen) + [0],
                         px= list(W_matrix[1, :] * scale_eigen) + [0],
                         y=  list(W_matrix[2, :] * scale_eigen) + [0],
@@ -450,7 +446,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                     tune_x, tune_y,
                     nemitt_x, nemitt_y, matrix_responsiveness_tol,
                     matrix_stability_tol, symplectify, steps_r_matrix,
-                    mode='6d'
+                    method='6d'
                     ):
 
     context = tracker._context
@@ -467,7 +463,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
         ) = lnf.compute_linear_normal_form(RR_chrom_plus,
-                            only_4d_block=mode=='4d',
+                            only_4d_block=method=='4d',
                             responsiveness_tol=matrix_responsiveness_tol,
                             stability_tol=matrix_stability_tol,
                             symplectify=symplectify)
@@ -486,7 +482,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
         ) = lnf.compute_linear_normal_form(RR_chrom_minus,
-                            only_4d_block=(mode=='4d'),
+                            only_4d_block=(method=='4d'),
                             symplectify=symplectify,
                             stability_tol=matrix_stability_tol,
                             responsiveness_tol=matrix_responsiveness_tol)
@@ -688,7 +684,7 @@ def compute_one_turn_matrix_finite_differences(
     dzeta = steps_r_matrix["dzeta"]
     ddelta = steps_r_matrix["ddelta"]
     part_temp = xp.build_particles(_context=context,
-            particle_ref=particle_on_co, mode='shift',
+            particle_ref=particle_on_co, method='shift',
             x  =    [dx,  0., 0.,  0.,    0.,     0., -dx,   0.,  0.,   0.,     0.,      0.],
             px =    [0., dpx, 0.,  0.,    0.,     0.,  0., -dpx,  0.,   0.,     0.,      0.],
             y  =    [0.,  0., dy,  0.,    0.,     0.,  0.,   0., -dy,   0.,     0.,      0.],

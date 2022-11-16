@@ -13,7 +13,7 @@ line['qc1l1.1..1'].ksl[0] += 1e-6
 
 # Initial twiss (no radiation)
 tracker.configure_radiation(model=None)
-tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True)
+tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
 
 # Enable radiation
 tracker.configure_radiation(model='mean')
@@ -23,12 +23,12 @@ tracker.configure_radiation(model='mean')
 tracker.compensate_radiation_energy_loss()
 
 # Twiss(es) with radiation
-tw_real_tracking = tracker.twiss(mode='6d', matrix_stability_tol=3.,
+tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
                     eneloss_and_damping=True)
-tw_sympl = tracker.twiss(radiation_mode='kick_as_co', mode='6d')
+tw_sympl = tracker.twiss(radiation_method='kick_as_co', method='6d')
 tw_scale_as_co = tracker.twiss(
-                        radiation_mode='scale_as_co',
-                        mode='6d',
+                        radiation_method='scale_as_co',
+                        method='6d',
                         matrix_stability_tol=0.5)
 
 

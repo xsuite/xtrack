@@ -91,7 +91,7 @@ def test_match_tune_chromaticity():
             if isinstance(ee, xt.Cavity):
                 ee.voltage = 0.0
 
-        tracker.match(mode='4d', # <-- 4d matching
+        tracker.match(method='4d', # <-- 4d matching
             vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
             targets = [
                 ('qx', 62.29),
@@ -101,7 +101,7 @@ def test_match_tune_chromaticity():
         t2 = time.time()
         print('\nTime fsolve: ', t2-t1)
 
-        tw_final = tracker.twiss(mode='4d')
+        tw_final = tracker.twiss(method='4d')
         print('\nFinal twiss parameters')
         print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
             f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")

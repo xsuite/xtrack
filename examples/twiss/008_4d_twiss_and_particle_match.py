@@ -37,13 +37,13 @@ tracker = xt.Tracker(line=line)
 # Twiss #
 #########
 
-tw = tracker.twiss(mode='4d')
+tw = tracker.twiss(method='4d')
 
 # Match a particle to distribution
 
 r_sigma = 1.5
 theta = np.linspace(0, 2*np.pi, 1000)
-particles = xp.build_particles(tracker=tracker, mode='4d',
+particles = xp.build_particles(tracker=tracker, method='4d',
                     x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6)
 

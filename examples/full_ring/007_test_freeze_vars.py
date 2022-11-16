@@ -57,7 +57,7 @@ tracker.freeze_longitudinal()
 # Twiss #
 #########
 
-tw = tracker.twiss(mode='4d')  # <-- Need to choose 4d mode when longitudinal
+tw = tracker.twiss(method='4d')  # <-- Need to choose 4d mode when longitudinal
                                  #     variables are frozen
 
 ##################################

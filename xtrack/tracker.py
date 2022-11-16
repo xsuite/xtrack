@@ -428,7 +428,7 @@ class Tracker:
         return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
 
-    def twiss(self, particle_ref=None, delta0=None, mode='6d',
+    def twiss(self, particle_ref=None, delta0=None, method='6d',
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
         delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, R_matrix=None, W_matrix=None,
@@ -436,7 +436,7 @@ class Tracker:
         values_at_element_exit=False,
         continue_on_closed_orbit_error=False,
         freeze_longitudinal=False,
-        radiation_mode='full',
+        radiation_method='full',
         eneloss_and_damping=False,
         ele_start=None, ele_stop=None, twiss_init=None,
         particle_on_co=None,
@@ -444,7 +444,6 @@ class Tracker:
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
-        method=None
         ):
 
         self._check_invalidated()

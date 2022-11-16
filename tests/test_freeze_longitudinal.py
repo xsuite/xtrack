@@ -38,7 +38,7 @@ def test_freeze_longitudinal_explicit():
         assert np.allclose(particles.zeta, 0, rtol=9, atol=1e-12)
 
         # Twiss with frozen longitudinal coordinates (needs to be 4d)
-        twiss = tracker.twiss(mode='4d')
+        twiss = tracker.twiss(method='4d')
         assert twiss.slip_factor == 0
 
         # Unfreeze longitudinal coordinates
@@ -51,7 +51,7 @@ def test_freeze_longitudinal_explicit():
         assert np.allclose(particles.delta, 0.00099218, rtol=0, atol=1e-6)
 
         # Twiss with unfrozen longitudinal coordinates (can be 6d)
-        twiss = tracker.twiss(mode='6d')
+        twiss = tracker.twiss(method='6d')
         assert np.isclose(twiss.slip_factor, 0.00032151, rtol=0, atol=1e-6)
 
 def test_freeze_longitudinal_context_manager():
@@ -80,7 +80,7 @@ def test_freeze_longitudinal_context_manager():
             assert np.allclose(particles.zeta, 0, rtol=9, atol=1e-12)
 
             # Twiss with frozen longitudinal coordinates (needs to be 4d)
-            twiss = tracker.twiss(mode='4d')
+            twiss = tracker.twiss(method='4d')
             assert twiss.slip_factor == 0
 
         # Track some particles with unfrozen longitudinal coordinates
@@ -90,7 +90,7 @@ def test_freeze_longitudinal_context_manager():
         assert np.allclose(particles.delta, 0.00099218, rtol=0, atol=1e-6)
 
         # Twiss with unfrozen longitudinal coordinates (can be 6d)
-        twiss = tracker.twiss(mode='6d')
+        twiss = tracker.twiss(method='6d')
         assert np.isclose(twiss.slip_factor, 0.00032151, rtol=0, atol=1e-6)
 
 def test_freeze_longitudinal_individual_methods():
@@ -118,7 +118,7 @@ def test_freeze_longitudinal_individual_methods():
         assert np.allclose(particles.zeta, 0, rtol=9, atol=1e-12)
 
         # Twiss with frozen longitudinal coordinates (needs to be 4d)
-        twiss = tracker.twiss(mode='4d', freeze_longitudinal=True)
+        twiss = tracker.twiss(method='4d', freeze_longitudinal=True)
         assert twiss.slip_factor == 0
 
         # Track some particles with unfrozen longitudinal coordinates
@@ -128,5 +128,5 @@ def test_freeze_longitudinal_individual_methods():
         assert np.allclose(particles.delta, 0.00099218, rtol=0, atol=1e-6)
 
         # Twiss with unfrozen longitudinal coordinates (can be 6d)
-        twiss = tracker.twiss(mode='6d')
+        twiss = tracker.twiss(method='6d')
         assert np.isclose(twiss.slip_factor, 0.00032151, rtol=0, atol=1e-6)

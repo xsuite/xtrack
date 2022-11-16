@@ -20,7 +20,7 @@ tracker.track(particles, num_turns=10, freeze_longitudinal=True)
 print(particles.delta) # gives [0.001 0.001 0.001], same as initial value
 
 # Twiss with frozen longitudinal coordinates (needs to be 4d)
-twiss = tracker.twiss(mode='4d', freeze_longitudinal=True)
+twiss = tracker.twiss(method='4d', freeze_longitudinal=True)
 print(twiss.slip_factor) # gives 0 (no longitudinal motion)
 
 # 6d tracking is automatically restored when the with block is exited
@@ -31,5 +31,5 @@ tracker.track(particles, num_turns=10)
 print(particles.delta) # gives [0.00099218, ...], different from initial value
 
 # Twiss with unfrozen longitudinal coordinates (can be 6d)
-twiss = tracker.twiss(mode='6d')
+twiss = tracker.twiss(method='6d')
 print(twiss.slip_factor) # gives 0.00032151, from longitudinal motion
