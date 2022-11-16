@@ -468,5 +468,6 @@ def test_tracker_config():
 
         tracker.config.TEST_FLAG = 2
         tracker.config.TEST_FLAG_BOOL = False
-        assert len(tracker.track_kernel) == 2
+        assert len(tracker.track_kernel) == 3 # As tracker.track_kernel.keys() =
+                                              # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
         assert tracker._current_track_kernel is first_kernel
