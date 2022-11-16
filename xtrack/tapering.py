@@ -15,7 +15,7 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
 
     print("  - Twiss with no radiation")
     tracker.configure_radiation(model=None)
-    tw_no_rad = tracker.twiss(mode='4d', freeze_longitudinal=True, **kwargs)
+    tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True, **kwargs)
 
     print("  - Identify multipoles and cavities")
     line_df = line.to_pandas()
