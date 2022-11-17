@@ -58,7 +58,7 @@ class Tracker:
         _element_ref_data=None,
     ):
         self.config = TrackerConfig()
-        self.XTRACK_MULTIPOLE_NO_SYNRAD=True
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD=True
 
         if sequence is not None:
             raise ValueError(

@@ -374,8 +374,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
-    # Re normalize eigenvalues
-    print('Re-normalizing eigenvalues...')
+    # Re normalize eigenvectors
     v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
     v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
     v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
@@ -408,8 +407,6 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         v1[:, ii] /= nux
         v2[:, ii] /= nuy
         v3[:, ii] /= nuzeta
-
-    print('Done re-normalizing eigenvalues.')
 
     Ws[:, :, 0] = np.real(v1)
     Ws[:, :, 1] = np.imag(v1)
