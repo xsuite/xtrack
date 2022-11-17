@@ -411,14 +411,6 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 
     print('Done re-normalizing eigenvalues.')
 
-    #for ii in range(n_elem):
-    #    print(f'renormalizing eigenvalues for element {ii}/{n_elem}', end='\r', flush=True)
-    #    nux[ii] = np.sqrt(np.matmul(np.matmul(v1[ii, :].real, lnf.S[:, :]), v1[ii, :].imag))
-    #    v1[ii, :] = v1[ii, :] / nux[ii]
-    #    nuy[ii] = np.sqrt(np.matmul(np.matmul(v2[ii, :].real, lnf.S[:, :]), v2[ii, :].imag))
-    #    v2[ii, :] = v2[ii, :] / nuy[ii]
-    #    nuzeta[ii] = np.sqrt(np.matmul(np.matmul(v3[ii, :].real, lnf.S), v3[ii, :].imag))
-    #    v3[ii, :] = v3[ii, :] / nuzeta[ii]
     Ws[:, :, 0] = np.real(v1)
     Ws[:, :, 1] = np.imag(v1)
     Ws[:, :, 2] = np.real(v2)
