@@ -94,7 +94,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             elif radiation_method == 'scale_as_co':
                 assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
                 tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-                tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = True
             res = twiss_from_tracker(**kwargs)
         return res
 
