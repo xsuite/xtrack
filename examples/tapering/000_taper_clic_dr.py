@@ -12,9 +12,15 @@ configs = [
     {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5},
 ]
 
-# case_name = 'fcc-ee'
-# filename = 'line_no_radiation.json'
-
+case_name = 'fcc-ee'
+filename = 'line_no_radiation.json'
+configs = [
+    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2},
+    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 3e-3},
+    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5},
+    {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-3},
+    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5},
+]
 
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
@@ -31,9 +37,6 @@ tracker.configure_radiation(model='mean')
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
 tracker.compensate_radiation_energy_loss()
-
-
-
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -74,6 +77,8 @@ for conf in configs:
 
     plt.subplots_adjust(hspace=0.35, top=.85)
 
+    plt.savefig(f'./{case_name}_fig{ifig}.png', dpi=200)
+
     assert np.isclose(tracker.delta_taper[0], 0, rtol=0, atol=1e-10)
     assert np.isclose(tracker.delta_taper[-1], 0, rtol=0, atol=1e-10)
 
@@ -82,8 +87,8 @@ for conf in configs:
     assert np.isclose(tw.qx, tw_no_rad.qx, rtol=0, atol=5e-4)
     assert np.isclose(tw.qy, tw_no_rad.qy, rtol=0, atol=5e-4)
 
-    assert np.isclose(tw.dqx, tw_no_rad.dqx, rtol=0, atol=0.2)
-    assert np.isclose(tw.dqy, tw_no_rad.dqy, rtol=0, atol=0.2)
+    assert np.isclose(tw.dqx, tw_no_rad.dqx, rtol=0, atol=1e-2*tw.qx)
+    assert np.isclose(tw.dqy, tw_no_rad.dqy, rtol=0, atol=1e-2*tw.qy)
 
     assert np.allclose(tw.x, tw_no_rad.x, rtol=0, atol=1e-7)
     assert np.allclose(tw.y, tw_no_rad.y, rtol=0, atol=1e-7)
