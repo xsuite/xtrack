@@ -12,7 +12,6 @@ def test_tapering():
 
     tracker = line.build_tracker()
 
-
     # Initial twiss (no radiation)
     tracker.configure_radiation(model=None)
     tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
