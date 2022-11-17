@@ -374,6 +374,58 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    # Re normalize eigenvalues
+    print('Re-normalizing eigenvalues...')
+    v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
+    v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
+    v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
+
+    S = lnf.S
+    S_v1_imag = v1 * 0.0
+    S_v2_imag = v2 * 0.0
+    S_v3_imag = v3 * 0.0
+    for ii in range(6):
+        for jj in range(6):
+            if S[ii, jj] !=0:
+                S_v1_imag[:, ii] +=  S[ii, jj] * v1.imag[:, jj]
+                S_v2_imag[:, ii] +=  S[ii, jj] * v2.imag[:, jj]
+                S_v3_imag[:, ii] +=  S[ii, jj] * v3.imag[:, jj]
+
+    nux = x_co * 0.0 + 0j
+    nuy = x_co * 0.0 + 0j
+    nuzeta = x_co * 0.0 + 0j
+
+    for ii in range(6):
+        nux += v1.real[:, ii] * S_v1_imag[:, ii]
+        nuy += v2.real[:, ii] * S_v2_imag[:, ii]
+        nuzeta += v3.real[:, ii] * S_v3_imag[:, ii]
+
+    nux = np.sqrt(nux)
+    nuy = np.sqrt(nuy)
+    nuzeta = np.sqrt(nuzeta)
+
+    for ii in range(6):
+        v1[:, ii] /= nux
+        v2[:, ii] /= nuy
+        v3[:, ii] /= nuzeta
+
+    print('Done re-normalizing eigenvalues.')
+
+    #for ii in range(n_elem):
+    #    print(f'renormalizing eigenvalues for element {ii}/{n_elem}', end='\r', flush=True)
+    #    nux[ii] = np.sqrt(np.matmul(np.matmul(v1[ii, :].real, lnf.S[:, :]), v1[ii, :].imag))
+    #    v1[ii, :] = v1[ii, :] / nux[ii]
+    #    nuy[ii] = np.sqrt(np.matmul(np.matmul(v2[ii, :].real, lnf.S[:, :]), v2[ii, :].imag))
+    #    v2[ii, :] = v2[ii, :] / nuy[ii]
+    #    nuzeta[ii] = np.sqrt(np.matmul(np.matmul(v3[ii, :].real, lnf.S), v3[ii, :].imag))
+    #    v3[ii, :] = v3[ii, :] / nuzeta[ii]
+    Ws[:, :, 0] = np.real(v1)
+    Ws[:, :, 1] = np.imag(v1)
+    Ws[:, :, 2] = np.real(v2)
+    Ws[:, :, 3] = np.imag(v2)
+    Ws[:, :, 4] = np.real(v3)
+    Ws[:, :, 5] = np.imag(v3)
+
     # Rotate eigenvectors to the Courant-Snyder basis
     phix = np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0])
     phiy = np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2])

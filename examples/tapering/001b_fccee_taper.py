@@ -5,11 +5,13 @@ import xtrack as xt
 with open('line_no_radiation.json', 'r') as f:
     line = xt.Line.from_dict(json.load(f))
 
+
+
 tracker = line.build_tracker()
 
 # Introduce some closed orbit
-line['qc1l1.1..1'].knl[0] += 1e-6
-line['qc1l1.1..1'].ksl[0] += 1e-6
+#line['qc1l1.1..1'].knl[0] += 1e-6
+#line['qc1l1.1..1'].ksl[0] += 1e-6
 
 # Initial twiss (no radiation)
 tracker.configure_radiation(model=None)
@@ -24,6 +26,8 @@ tracker.compensate_radiation_energy_loss()
 
 # Twiss(es) with radiation
 tw_real_tracking = tracker.twiss(method='6d', matrix_stability_tol=3.,
+                    eneloss_and_damping=True)
+tw_real_tracking_4d = tracker.twiss(method='4d', matrix_stability_tol=3.,
                     eneloss_and_damping=True)
 tw_sympl = tracker.twiss(radiation_method='kick_as_co', method='6d')
 tw_scale_as_co = tracker.twiss(
@@ -46,15 +50,13 @@ plt.figure(2)
 plt.subplot(2,1,1)
 plt.plot(tw_no_rad.s, tw_sympl.betx/tw_no_rad.betx - 1)
 plt.plot(tw_no_rad.s, tw_scale_as_co.betx/tw_no_rad.betx - 1)
-#tw.betx *= (1 + delta_beta_corr)
-#plt.plot(tw_no_rad.s, tw.betx/tw_no_rad.betx - 1)
+plt.plot(tw_no_rad.s, tw_real_tracking.betx/tw_no_rad.betx - 1)
 plt.ylabel(r'$\Delta \beta_x / \beta_x$')
 
 plt.subplot(2,1,2)
 plt.plot(tw_no_rad.s, tw_sympl.bety/tw_no_rad.bety - 1)
 plt.plot(tw_no_rad.s, tw_scale_as_co.bety/tw_no_rad.bety - 1)
-#tw.bety *= (1 + delta_beta_corr)
-#plt.plot(tw_no_rad.s, tw.bety/tw_no_rad.bety - 1)
+plt.plot(tw_no_rad.s, tw_real_tracking.bety/tw_no_rad.bety - 1)
 plt.ylabel(r'$\Delta \beta_y / \beta_y$')
 
 plt.figure(10)
