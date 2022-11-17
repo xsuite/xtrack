@@ -12,28 +12,27 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-#context = xo.ContextPyopencl()
-context = xo.ContextCpu()
-
-test_data_folder = pathlib.Path(
-        __file__).parent.joinpath('../test_data').absolute()
-
-with open(test_data_folder.joinpath(
-        'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
-    dct = json.load(f)
-line = xt.Line.from_dict(dct['line'])
-line.particle_ref = xp.Particles.from_dict(dct['particle'])
-
-tracker0 = line.build_tracker()
-
-num_particles = 50
-particles0 = xp.generate_matched_gaussian_bunch(tracker=tracker0,
-                                               num_particles=num_particles,
-                                               nemitt_x=2.5e-6,
-                                               nemitt_y=2.5e-6,
-                                               sigma_z=9e-2)
 
 def test_monitor():
+    context = xo.ContextCpu()
+
+    test_data_folder = pathlib.Path(
+            __file__).parent.joinpath('../test_data').absolute()
+
+    with open(test_data_folder.joinpath(
+            'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
+        dct = json.load(f)
+    line = xt.Line.from_dict(dct['line'])
+    line.particle_ref = xp.Particles.from_dict(dct['particle'])
+
+    tracker0 = line.build_tracker()
+
+    num_particles = 50
+    particles0 = xp.generate_matched_gaussian_bunch(tracker=tracker0,
+                                                   num_particles=num_particles,
+                                                   nemitt_x=2.5e-6,
+                                                   nemitt_y=2.5e-6,
+                                                   sigma_z=9e-2)
 
     for context in xo.context.get_test_contexts():
         print(f"Test {context.__class__}")

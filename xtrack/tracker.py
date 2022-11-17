@@ -5,8 +5,9 @@
 
 from time import perf_counter
 import logging
-from functools import partial
 from contextlib import contextmanager
+from functools import partial
+from typing import Literal, Optional, Union
 
 import numpy as np
 import xobjects as xo
@@ -19,13 +20,15 @@ from .general import _pkg_root
 from .internal_record import (new_io_buffer,
                               start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type)
-from .line import Line
+from .line import Line, mk_class_namespace
 from .pipeline import PipelineStatus
+from .prebuild_kernels import (PrebuiltKernelNotFound,
+                               get_ffi_module_for_configuration)
 from .survey import survey_from_tracker
+from .tapering import compensate_radiation_energy_loss
 from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
                     find_closed_orbit, match_tracker, twiss_from_tracker)
-from .tapering import compensate_radiation_energy_loss
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +61,7 @@ class Tracker:
         _element_ref_data=None,
     ):
         self.config = TrackerConfig()
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD=True
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
 
         if sequence is not None:
             raise ValueError(
@@ -409,7 +412,7 @@ class Tracker:
         self.num_elements = len(tracker_data.elements)
 
         if compile:
-            _ = self._current_track_kernel # This triggers compilation
+            _ = self._current_track_kernel  # This triggers compilation
 
     def _invalidate(self):
         if self.iscollective:
@@ -664,13 +667,86 @@ class Tracker:
     def _context(self):
         return self._buffer.context
 
-    def _build_kernel(self, compile):
+    def _build_kernel(
+            self,
+            compile: Union[bool, Literal['force']],
+            built_ffi_module_name: Optional[str] = None
+    ):
+        """
+        Build the kernel for the tracker as necessary for the current config.
 
+        Args:
+            save_source_as: if specified, the source will be saved to file
+            compile: if False, the kernel will not be built, unless it is
+                already available. If True, the kernel will be built, unless it
+                is available, in which case the precompiled kernel will be used.
+                If 'force', the kernel will be recompiled no matter what.
+        """
         context = self._tracker_data._buffer.context
+        on_cpu = isinstance(context, xo.ContextCpu)
+        if built_ffi_module_name and not on_cpu:
+            raise ValueError('Prebuilding kernels is not supported on non-CPU '
+                             'contexts.')
 
-        kernels = {}
+        kernels = {
+            "track_line": xo.Kernel(
+                args=[
+                    xo.Arg(xo.Int8, pointer=True, name="buffer"),
+                    xo.Arg(self._tracker_data._element_ref_data.__class__, name="tracker_data"),
+                    xo.Arg(self.particles_class._XoStruct, name="particles"),
+                    xo.Arg(xo.Int32, name="num_turns"),
+                    xo.Arg(xo.Int32, name="ele_start"),
+                    xo.Arg(xo.Int32, name="num_ele_track"),
+                    xo.Arg(xo.Int32, name="flag_end_turn_actions"),
+                    xo.Arg(xo.Int32, name="flag_reset_s_at_end_turn"),
+                    xo.Arg(xo.Int32, name="flag_monitor"),
+                    xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
+                    xo.Arg(xo.Int64, name="offset_tbt_monitor"),
+                    xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
+                ],
+            )
+        }
+
+        # Random number generator init kernel
+        kernels.update(self.particles_class._kernels)
+
+        if compile != 'force' and on_cpu:
+            # If we want to avoid compiling, first we look for a prebuilt kernel
+            try:
+                desired_classes = [xo_elem._DressingClass.__name__
+                           for xo_elem in self.element_classes]
+                ffi_module_name, class_names = get_ffi_module_for_configuration(
+                    desired_classes,
+                    self.config,
+                )
+
+                builtin_classes = mk_class_namespace((self.particles_monitor_class,))
+                prebuilt_element_classes = [builtin_classes[name]._XoStruct
+                                            for name in class_names]
+                if self.element_classes != prebuilt_element_classes:
+                    # If the element classes for the prebuilt kernel are different,
+                    # we update the tracker data to make it compatible, and
+                    # discard the kernels we have so far, as they won't be
+                    # compatible.
+                    self.element_classes = prebuilt_element_classes
+                    self.track_kernel = {}
+                    self._tracker_data = TrackerData(
+                        line=self._tracker_data.line,
+                        element_classes=self.element_classes,
+                    )
+
+                context.add_kernels(
+                    kernels=kernels,
+                    built_ffi_module_name=ffi_module_name,
+                    compile=False,
+                )
+                self._current_track_kernel = context.kernels.track_line
+                return
+            except PrebuiltKernelNotFound:
+                # Carry on building the source
+                pass
+
         headers = []
-
         headers.extend(self.extra_headers)
 
         if self.global_xy_limit is not None:
@@ -800,34 +876,12 @@ class Tracker:
 
         source_track = "\n".join(src_lines)
 
-        kernel_descriptions = {
-            "track_line": xo.Kernel(
-                args=[
-                    xo.Arg(xo.Int8, pointer=True, name="buffer"),
-                    xo.Arg(self._tracker_data._element_ref_data.__class__, name="tracker_data"),
-                    xo.Arg(self.particles_class._XoStruct, name="particles"),
-                    xo.Arg(xo.Int32, name="num_turns"),
-                    xo.Arg(xo.Int32, name="ele_start"),
-                    xo.Arg(xo.Int32, name="num_ele_track"),
-                    xo.Arg(xo.Int32, name="flag_end_turn_actions"),
-                    xo.Arg(xo.Int32, name="flag_reset_s_at_end_turn"),
-                    xo.Arg(xo.Int32, name="flag_monitor"),
-                    xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
-                    xo.Arg(xo.Int64, name="offset_tbt_monitor"),
-                    xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
-                ],
-            )
-        }
+        if on_cpu:
+            cpu_kwarg = {'built_ffi_module_name': built_ffi_module_name}
+        else:
+            cpu_kwarg = {}
 
-        # Internal API can be exposed only on CPU
-        if not isinstance(context, xo.ContextCpu):
-            kernels = {}
-        kernels.update(kernel_descriptions)
-
-        # Random number generator init kernel
-        kernels.update(self.particles_class._kernels)
-
-        # Compile!
+        # Compile! (if `compile` is specified, otherwise just attach the source)
         context.add_kernels(
             [source_track],
             kernels,
@@ -837,7 +891,8 @@ class Tracker:
                 partial(_handle_per_particle_blocks,
                         local_particle_src=self.local_particle_src)],
             specialize=True,
-            compile=compile
+            compile=bool(compile),
+            **cpu_kwarg,
         )
 
         self._current_track_kernel = context.kernels.track_line
@@ -1520,6 +1575,7 @@ class Tracker:
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
 
+
 @contextmanager
 def _preserve_config(tracker):
     config = TrackerConfig()
@@ -1528,6 +1584,7 @@ def _preserve_config(tracker):
         yield
     finally:
         tracker.config = config
+
 
 @contextmanager
 def freeze_longitudinal(tracker):
@@ -1541,6 +1598,7 @@ def freeze_longitudinal(tracker):
         tracker.config = config
 _freeze_longitudinal = freeze_longitudinal # to avoid name clash with function argument
 
+
 class TrackerConfig(dict):
     def __init__(self, *args, **kwargs):
         super(TrackerConfig, self).__init__(*args, **kwargs)
@@ -1548,7 +1606,7 @@ class TrackerConfig(dict):
 
     def __setitem__(self, idx, val):
         if val is False and idx in self:
-            del(self[idx]) # We don't want to store flags that are False
+            del(self[idx])  # We don't want to store flags that are False
         else:
             super(TrackerConfig, self).__setitem__(idx, val)
 

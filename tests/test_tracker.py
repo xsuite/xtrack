@@ -385,6 +385,7 @@ def test_tracker_binary_serialisation_with_knobs(tmp_path):
 
 def test_tracker_hashable_config():
     tracker = xt.Tracker(line=xt.Line([]))
+
     tracker.config.TEST_FLAG_BOOL = True
     tracker.config.TEST_FLAG_INT = 42
     tracker.config.TEST_FLAG_FALSE = False

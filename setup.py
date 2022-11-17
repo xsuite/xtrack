@@ -37,9 +37,10 @@ setup(
             "Source Code": "https://github.com/xsuite/xtrack",
         },
     packages=find_packages(),
-    ext_modules = extensions,
+    ext_modules=extensions,
     include_package_data=True,
     install_requires=[
+        'cffi>=1.0.0',
         'numpy>=1.0',
         'scipy',
         'xobjects',
@@ -47,6 +48,6 @@ setup(
         'xdeps'
         ],
     extras_require={
-        'tests': ['cpymad', 'PyHEADTAIL', 'pytest'],
+        'tests': ['cpymad', 'PyHEADTAIL', 'pytest', 'pytest-mock'],
         },
     )
