@@ -9,18 +9,18 @@ configs = [
     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5, 'q_atol': 5e-4},
     {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-3, 'q_atol': 5e-4},
-    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5}, 'q_atol': 5e-4,
+    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5, 'q_atol': 5e-4},
 ]
 
-case_name = 'fcc-ee'
-filename = 'line_no_radiation.json'
-configs = [
-    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4},
-    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 5e-3, 'q_atol': 5e-4},
-    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-4, 'q_atol': 5e-4},
-    {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-3, 'q_atol': 7e-4},
-    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-4, 'q_atol': 1e-4},
-]
+# case_name = 'fcc-ee'
+# filename = 'line_no_radiation.json'
+# configs = [
+#     {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4},
+#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 5e-3, 'q_atol': 5e-4},
+#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-4, 'q_atol': 5e-4},
+#     {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-3, 'q_atol': 7e-4},
+#     {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-4, 'q_atol': 1e-4},
+# ]
 
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
@@ -87,8 +87,8 @@ for conf in configs:
     assert np.isclose(tw.qx, tw_no_rad.qx, rtol=0, atol=conf['q_atol'])
     assert np.isclose(tw.qy, tw_no_rad.qy, rtol=0, atol=conf['q_atol'])
 
-    assert np.isclose(tw.dqx, tw_no_rad.dqx, rtol=0, atol=1e-2*tw.qx)
-    assert np.isclose(tw.dqy, tw_no_rad.dqy, rtol=0, atol=1e-2*tw.qy)
+    assert np.isclose(tw.dqx, tw_no_rad.dqx, rtol=0, atol=1.5e-2*tw.qx)
+    assert np.isclose(tw.dqy, tw_no_rad.dqy, rtol=0, atol=1.5e-2*tw.qy)
 
     assert np.allclose(tw.x, tw_no_rad.x, rtol=0, atol=1e-7)
     assert np.allclose(tw.y, tw_no_rad.y, rtol=0, atol=1e-7)
@@ -96,9 +96,9 @@ for conf in configs:
     assert np.allclose(tw.betx*p0corr, tw_no_rad.betx, rtol=conf['beta_rtol'], atol=0)
     assert np.allclose(tw.bety*p0corr, tw_no_rad.bety, rtol=conf['beta_rtol'], atol=0)
 
-    assert np.allclose(tw.dx, tw.dx, rtol=0.00, atol=0.1e-3)
+    assert np.allclose(tw.dx, tw.dx, rtol=0.0, atol=0.1e-3)
 
-    assert np.allclose(tw.dy, tw.dy, rtol=0.00, atol=0.1e-3)
+    assert np.allclose(tw.dy, tw.dy, rtol=0.0, atol=0.1e-3)
 
     if case_name == 'clic_dr' and conf['radiation_method'] != 'kick_as_co':
         eneloss = tw.eneloss_turn
