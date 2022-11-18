@@ -444,6 +444,7 @@ class Tracker:
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
+        use_full_inverse=None
         ):
 
         self._check_invalidated()

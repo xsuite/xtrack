@@ -6,7 +6,7 @@
 import numpy as np
 
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
-DEFAULT_MATRIX_STABILITY_TOL = None
+DEFAULT_MATRIX_STABILITY_TOL = 1e-3
 
 def healy_symplectify(M):
     # https://accelconf.web.cern.ch/e06/PAPERS/WEPCH152.PDF

@@ -47,6 +47,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
+        use_full_inverse=None
         ):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
@@ -206,7 +207,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
 
-
     twiss_res_element_by_element = _propagate_optics(
         tracker=tracker,
         W_matrix=W,
@@ -216,7 +216,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         nemitt_x=nemitt_x,
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
-        delta_disp=delta_disp)
+        delta_disp=delta_disp,
+        use_full_inverse=use_full_inverse)
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
@@ -291,7 +292,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
-                      nemitt_x, nemitt_y, r_sigma, delta_disp):
+                      nemitt_x, nemitt_y, r_sigma, delta_disp,
+                      use_full_inverse):
 
     ctx2np = tracker._context.nparray_from_context_array
 
@@ -395,14 +397,19 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, :, 4] = np.real(v3)
     Ws[:, :, 5] = np.imag(v3)
 
-    betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
-    bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
+    # Computation of twiss parameters
 
-    gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
-    gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
+    if use_full_inverse:
+        betx, alfx, gamx, bety, alfy, gamy = _extract_twiss_parameters_with_inverse(Ws)
+    else:
+        betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
+        bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
 
-    alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
-    alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
+        gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
+        gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
+
+        alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
+        alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
 
     mux = np.unwrap(phix)/2/np.pi
     muy = np.unwrap(phiy)/2/np.pi
@@ -412,38 +419,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     muy = muy - muy[0] + muy0
     muzeta = muzeta - muzeta[0] + muzeta0
 
-    ####
-    # Forest method
-
-    BB = np.zeros(shape=(3, len(s_co), 6, 6), dtype=np.float64)
-
-    for ii in range(3):
-        Iii = np.zeros(shape=(6, 6))
-        Iii[2*ii, 2*ii] = 1
-        Iii[2*ii+1, 2*ii+1] = 1
-        Sii = lnf.S @ Iii
-
-        Ws_inv = np.linalg.inv(Ws)
-
-        BB[ii, :, :, :] = Ws @ Sii @ Ws_inv
-
-    betx_forest = BB[0, :, 0, 1]
-    bety_forest = BB[1, :, 2, 3]
-    alfx_forest = BB[0, :, 0, 0]
-    alfy_forest = BB[1, :, 2, 2]
-    gamx_forest = -BB[0, :, 1, 0]
-    gamy_forest = -BB[1, :, 3, 2]
-
-    sign_x = np.sign(betx_forest)
-    sign_y = np.sign(bety_forest)
-    betx_forest *= sign_x
-    alfx_forest *= sign_x
-    gamx_forest *= sign_x
-    bety_forest *= sign_y
-    alfy_forest *= sign_y
-    gamy_forest *= sign_y
-
-    ####
+    mux = np.abs(mux)
+    muy = np.abs(muy)
 
     W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
 
@@ -472,15 +449,6 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'muy': muy,
         'muzeta': muzeta,
         'W_matrix': W_matrix,
-        #'delta_disp_minus': delta_disp_minus,  # for debug
-        #'delta_disp_plus': delta_disp_plus,    # for debug
-        'betx_forest': betx_forest,
-        'bety_forest': bety_forest,
-        'alfx_forest': alfx_forest,
-        'alfy_forest': alfy_forest,
-        'gamx_forest': gamx_forest,
-        'gamy_forest': gamy_forest,
-        'BB': BB,
     }
 
     return twiss_res_element_by_element
@@ -1103,3 +1071,36 @@ def _renormalize_eigenvectors(Ws):
     Ws[:, :, 3] = np.imag(v2)
     Ws[:, :, 4] = np.real(v3)
     Ws[:, :, 5] = np.imag(v3)
+
+
+def _extract_twiss_parameters_with_inverse(Ws):
+
+    BB = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
+
+    for ii in range(3):
+        Iii = np.zeros(shape=(6, 6))
+        Iii[2*ii, 2*ii] = 1
+        Iii[2*ii+1, 2*ii+1] = 1
+        Sii = lnf.S @ Iii
+
+        Ws_inv = np.linalg.inv(Ws)
+
+        BB[ii, :, :, :] = Ws @ Sii @ Ws_inv
+
+    betx = BB[0, :, 0, 1]
+    bety = BB[1, :, 2, 3]
+    alfx = BB[0, :, 0, 0]
+    alfy = BB[1, :, 2, 2]
+    gamx = -BB[0, :, 1, 0]
+    gamy = -BB[1, :, 3, 2]
+
+    sign_x = np.sign(betx)
+    sign_y = np.sign(bety)
+    betx *= sign_x
+    alfx *= sign_x
+    gamx *= sign_x
+    bety *= sign_y
+    alfy *= sign_y
+    gamy *= sign_y
+
+    return betx, alfx, gamx, bety, alfy, gamy
