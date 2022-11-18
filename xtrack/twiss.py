@@ -380,6 +380,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     phix = np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0])
     phiy = np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2])
     phizeta = np.arctan2(Ws[:, 4, 5], Ws[:, 4, 4])
+
     v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
     v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
     v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
@@ -411,6 +412,32 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     muy = muy - muy[0] + muy0
     muzeta = muzeta - muzeta[0] + muzeta0
 
+    ####
+    # Forrest method
+
+    BB = np.zeros(shape=(3, len(s_co), 6, 6), dtype=np.float64)
+
+
+    for ii in range(3):
+        Iii = np.zeros(shape=(6, 6))
+        Iii[2*ii, 2*ii] = 1
+        Iii[2*ii+1, 2*ii+1] = 1
+        Sii = lnf.S @ Iii
+
+        Ws_inv = np.linalg.inv(Ws)
+
+        #BB = Ws@ Sii @ Ws_inv
+        BB[ii, :, :, :] = Ws @ Sii @ Ws_inv
+
+    ####
+
+    betx_forest = BB[0, :, 0, 1]
+    bety_forest = BB[1, :, 2, 3]
+    alfx_forest = BB[0, :, 0, 0]
+    alfy_forest = BB[1, :, 2, 2]
+    gamx_forest = -BB[0, :, 1, 1]
+    gamy_forest = -BB[1, :, 3, 3]
+
     W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
 
     twiss_res_element_by_element = {
@@ -440,6 +467,13 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'W_matrix': W_matrix,
         #'delta_disp_minus': delta_disp_minus,  # for debug
         #'delta_disp_plus': delta_disp_plus,    # for debug
+        'betx_forest': betx_forest,
+        'bety_forest': bety_forest,
+        'alfx_forest': alfx_forest,
+        'alfy_forest': alfy_forest,
+        'gamx_forest': gamx_forest,
+        'gamy_forest': gamy_forest,
+        'BB': BB,
     }
 
     return twiss_res_element_by_element

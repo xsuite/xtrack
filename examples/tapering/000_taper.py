@@ -6,11 +6,15 @@ import xtrack as xt
 # Load line and twiss with no radiation #
 #########################################
 
-filename = '../../test_data/clic_dr/line_for_taper.json'
+#filename = '../../test_data/clic_dr/line_for_taper.json'
+filename = 'line_no_radiation.json'
+
 
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
 tracker = line.build_tracker()
+
+line['qc1l1.1..1'].ksl[0] += 1e-6
 
 tracker.configure_radiation(model=None)
 tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
