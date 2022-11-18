@@ -413,10 +413,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     muzeta = muzeta - muzeta[0] + muzeta0
 
     ####
-    # Forrest method
+    # Forest method
 
     BB = np.zeros(shape=(3, len(s_co), 6, 6), dtype=np.float64)
-
 
     for ii in range(3):
         Iii = np.zeros(shape=(6, 6))
@@ -426,17 +425,25 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 
         Ws_inv = np.linalg.inv(Ws)
 
-        #BB = Ws@ Sii @ Ws_inv
         BB[ii, :, :, :] = Ws @ Sii @ Ws_inv
-
-    ####
 
     betx_forest = BB[0, :, 0, 1]
     bety_forest = BB[1, :, 2, 3]
     alfx_forest = BB[0, :, 0, 0]
     alfy_forest = BB[1, :, 2, 2]
-    gamx_forest = -BB[0, :, 1, 1]
-    gamy_forest = -BB[1, :, 3, 3]
+    gamx_forest = -BB[0, :, 1, 0]
+    gamy_forest = -BB[1, :, 3, 2]
+
+    sign_x = np.sign(betx_forest)
+    sign_y = np.sign(bety_forest)
+    betx_forest *= sign_x
+    alfx_forest *= sign_x
+    gamx_forest *= sign_x
+    bety_forest *= sign_y
+    alfy_forest *= sign_y
+    gamy_forest *= sign_y
+
+    ####
 
     W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
 
