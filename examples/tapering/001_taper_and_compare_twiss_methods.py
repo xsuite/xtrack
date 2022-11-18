@@ -2,25 +2,26 @@ import json
 import numpy as np
 import xtrack as xt
 
-case_name = 'clic_dr'
-filename = '../../test_data/clic_dr/line_for_taper.json'
+# case_name = 'clic_dr'
+# filename = '../../test_data/clic_dr/line_for_taper.json'
+# configs = [
+#     {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
+#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
+#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5, 'q_atol': 5e-4},
+#     {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-3, 'q_atol': 5e-4},
+#     {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5, 'q_atol': 5e-4},
+# ]
+
+case_name = 'fcc-ee'
+filename = 'line_no_radiation.json'
 configs = [
-    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
-    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
-    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5, 'q_atol': 5e-4},
-    {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-3, 'q_atol': 5e-4},
-    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5, 'q_atol': 5e-4},
+    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4},
+    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 5e-3, 'q_atol': 5e-4},
+    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-4, 'q_atol': 5e-4},
+    {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-3, 'q_atol': 7e-4},
+    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-4, 'q_atol': 1e-4},
 ]
 
-# case_name = 'fcc-ee'
-# filename = 'line_no_radiation.json'
-# configs = [
-#     {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4},
-#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 5e-3, 'q_atol': 5e-4},
-#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-4, 'q_atol': 5e-4},
-#     {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-3, 'q_atol': 7e-4},
-#     {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-4, 'q_atol': 1e-4},
-# ]
 
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
