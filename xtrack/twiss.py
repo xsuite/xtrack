@@ -57,6 +57,11 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     if matrix_stability_tol is None:
         matrix_stability_tol = tracker.matrix_stability_tol
 
+    if tracker._radiation_model is not None:
+        matrix_stability_tol = None
+        if use_full_inverse is None:
+            use_full_inverse = True
+
     if particle_ref is None:
         if particle_co_guess is None and hasattr(tracker, 'particle_ref'):
             particle_ref = tracker.particle_ref
