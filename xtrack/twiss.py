@@ -47,6 +47,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
+        use_full_inverse=None
         ):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
@@ -55,6 +56,11 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
     if matrix_stability_tol is None:
         matrix_stability_tol = tracker.matrix_stability_tol
+
+    if tracker._radiation_model is not None:
+        matrix_stability_tol = None
+        if use_full_inverse is None:
+            use_full_inverse = True
 
     if particle_ref is None:
         if particle_co_guess is None and hasattr(tracker, 'particle_ref'):
@@ -94,7 +100,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             elif radiation_method == 'scale_as_co':
                 assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
                 tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-                tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = True
             res = twiss_from_tracker(**kwargs)
         return res
 
@@ -207,7 +212,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
 
-
     twiss_res_element_by_element = _propagate_optics(
         tracker=tracker,
         W_matrix=W,
@@ -217,7 +221,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         nemitt_x=nemitt_x,
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
-        delta_disp=delta_disp)
+        delta_disp=delta_disp,
+        use_full_inverse=use_full_inverse)
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
@@ -292,7 +297,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
-                      nemitt_x, nemitt_y, r_sigma, delta_disp):
+                      nemitt_x, nemitt_y, r_sigma, delta_disp,
+                      use_full_inverse):
 
     ctx2np = tracker._context.nparray_from_context_array
 
@@ -374,10 +380,14 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    # Re normalize eigenvectors (needed when radiation is present)
+    _renormalize_eigenvectors(Ws)
+
     # Rotate eigenvectors to the Courant-Snyder basis
     phix = np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0])
     phiy = np.arctan2(Ws[:, 2, 3], Ws[:, 2, 2])
     phizeta = np.arctan2(Ws[:, 4, 5], Ws[:, 4, 4])
+
     v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
     v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
     v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
@@ -392,14 +402,19 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, :, 4] = np.real(v3)
     Ws[:, :, 5] = np.imag(v3)
 
-    betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
-    bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
+    # Computation of twiss parameters
 
-    gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
-    gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
+    if use_full_inverse:
+        betx, alfx, gamx, bety, alfy, gamy = _extract_twiss_parameters_with_inverse(Ws)
+    else:
+        betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
+        bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
 
-    alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
-    alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
+        gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
+        gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
+
+        alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
+        alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
 
     mux = np.unwrap(phix)/2/np.pi
     muy = np.unwrap(phiy)/2/np.pi
@@ -408,6 +423,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     mux = mux - mux[0] + mux0
     muy = muy - muy[0] + muy0
     muzeta = muzeta - muzeta[0] + muzeta0
+
+    mux = np.abs(mux)
+    muy = np.abs(muy)
 
     W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
 
@@ -436,8 +454,6 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'muy': muy,
         'muzeta': muzeta,
         'W_matrix': W_matrix,
-        #'delta_disp_minus': delta_disp_minus,  # for debug
-        #'delta_disp_plus': delta_disp_plus,    # for debug
     }
 
     return twiss_res_element_by_element
@@ -1018,3 +1034,78 @@ def match_tracker(tracker, vary, targets, **kwargs):
             tracker.vars[vv] = x0[ii]
         raise err
     return fsolve_info
+
+def _renormalize_eigenvectors(Ws):
+    # Re normalize eigenvectors
+    v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
+    v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
+    v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
+
+    S = lnf.S
+    S_v1_imag = v1 * 0.0
+    S_v2_imag = v2 * 0.0
+    S_v3_imag = v3 * 0.0
+    for ii in range(6):
+        for jj in range(6):
+            if S[ii, jj] !=0:
+                S_v1_imag[:, ii] +=  S[ii, jj] * v1.imag[:, jj]
+                S_v2_imag[:, ii] +=  S[ii, jj] * v2.imag[:, jj]
+                S_v3_imag[:, ii] +=  S[ii, jj] * v3.imag[:, jj]
+
+    nux = np.squeeze(Ws[:, 0, 0]) * (0.0 + 0j)
+    nuy = nux * 0.0
+    nuzeta = nux * 0.0
+
+    for ii in range(6):
+        nux += v1.real[:, ii] * S_v1_imag[:, ii]
+        nuy += v2.real[:, ii] * S_v2_imag[:, ii]
+        nuzeta += v3.real[:, ii] * S_v3_imag[:, ii]
+
+    nux = np.sqrt(nux)
+    nuy = np.sqrt(nuy)
+    nuzeta = np.sqrt(nuzeta)
+
+    for ii in range(6):
+        v1[:, ii] /= nux
+        v2[:, ii] /= nuy
+        v3[:, ii] /= nuzeta
+
+    Ws[:, :, 0] = np.real(v1)
+    Ws[:, :, 1] = np.imag(v1)
+    Ws[:, :, 2] = np.real(v2)
+    Ws[:, :, 3] = np.imag(v2)
+    Ws[:, :, 4] = np.real(v3)
+    Ws[:, :, 5] = np.imag(v3)
+
+
+def _extract_twiss_parameters_with_inverse(Ws):
+
+    BB = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
+
+    for ii in range(3):
+        Iii = np.zeros(shape=(6, 6))
+        Iii[2*ii, 2*ii] = 1
+        Iii[2*ii+1, 2*ii+1] = 1
+        Sii = lnf.S @ Iii
+
+        Ws_inv = np.linalg.inv(Ws)
+
+        BB[ii, :, :, :] = Ws @ Sii @ Ws_inv
+
+    betx = BB[0, :, 0, 1]
+    bety = BB[1, :, 2, 3]
+    alfx = BB[0, :, 0, 0]
+    alfy = BB[1, :, 2, 2]
+    gamx = -BB[0, :, 1, 0]
+    gamy = -BB[1, :, 3, 2]
+
+    sign_x = np.sign(betx)
+    sign_y = np.sign(bety)
+    betx *= sign_x
+    alfx *= sign_x
+    gamx *= sign_x
+    bety *= sign_y
+    alfy *= sign_y
+    gamy *= sign_y
+
+    return betx, alfx, gamx, bety, alfy, gamy

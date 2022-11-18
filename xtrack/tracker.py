@@ -58,7 +58,7 @@ class Tracker:
         _element_ref_data=None,
     ):
         self.config = TrackerConfig()
-        self.XTRACK_MULTIPOLE_NO_SYNRAD=True
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD=True
 
         if sequence is not None:
             raise ValueError(
@@ -272,6 +272,7 @@ class Tracker:
         self.particles_monitor_class = supertracker.particles_monitor_class
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
+        self._radiation_model = None
 
     def _init_track_no_collective(
         self,
@@ -361,6 +362,7 @@ class Tracker:
         self.track_kernel = track_kernel
 
         self.track = self._track_no_collective
+        self._radiation_model = None
 
         if compile:
             _ = self._current_track_kernel # This triggers compilation
@@ -444,6 +446,7 @@ class Tracker:
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
+        use_full_inverse=None
         ):
 
         self._check_invalidated()
@@ -484,10 +487,13 @@ class Tracker:
         assert model in [None, 'mean', 'quantum']
         if model == 'mean':
             radiation_flag = 1
+            self._radiation_model = 'mean'
         elif model == 'quantum':
             radiation_flag = 2
+            self._radiation_model = 'quantum'
         else:
             radiation_flag = 0
+            self._radiation_model = None
 
         for kk, ee in self.line.element_dict.items():
             if hasattr(ee, 'radiation_flag'):
