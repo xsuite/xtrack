@@ -61,19 +61,27 @@ for conf in configs:
                     f"p0 correction: {conf['p0_correction']}, "
                     f"cavity preserve angle: {conf['cavity_preserve_angle']}")
 
-    plt.subplot(2,1,1)
+    betx_beat = tw.betx*p0corr/tw_no_rad.betx-1
+    bety_beat = tw.bety*p0corr/tw_no_rad.bety-1
+    max_betx_beat = np.max(np.abs(betx_beat))
+    max_bety_beat = np.max(np.abs(bety_beat))
+    spx = plt.subplot(2,1,1)
     plt.title(f'error on Qx: {abs(tw.qx - tw_no_rad.qx):.2e}     '
                 r'$(\Delta \beta_x / \beta_x)_{max}$ = '
-                f'{np.max(tw.betx*p0corr/tw_no_rad.betx-1):.2e}')
-    plt.plot(tw.s, tw.betx*p0corr/tw_no_rad.betx-1)
+                f'{max_betx_beat:.2e}')
+    plt.plot(tw.s, betx_beat)
     plt.ylabel(r'$\Delta \beta_x / \beta_x$')
+    plt.ylim(np.max([0.01, 1.1 * max_betx_beat])*np.array([-1, 1]))
+    plt.xlim([0, tw.s[-1]])
 
-    plt.subplot(2,1,2)
+    plt.subplot(2,1,2, sharex=spx)
     plt.title(f'error on Qy: {abs(tw.qy - tw_no_rad.qy):.2e}     '
                 r'$(\Delta \beta_y / \beta_y)_{max}$ = '
-                f'{np.max(tw.bety*p0corr/tw_no_rad.bety-1):.2e}')
-    plt.plot(tw.s, tw.bety*p0corr/tw_no_rad.bety-1)
+                f'{max_bety_beat:.2e}')
+    plt.plot(tw.s, bety_beat)
     plt.ylabel(r'$\Delta \beta_y / \beta_y$')
+    plt.ylim(np.max([0.01, 1.1 * max_bety_beat])*np.array([-1, 1]))
+    plt.xlabel('s [m]')
 
     plt.subplots_adjust(hspace=0.35, top=.85)
 
