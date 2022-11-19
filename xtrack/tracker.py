@@ -375,6 +375,8 @@ class Tracker:
                                       "collective trackers")
 
         self.track_kernel = {} # Remove all kernels
+
+        print("Disable xdeps expressions")
         self.line._var_management = None # Disable expressions
 
         line = self.line
