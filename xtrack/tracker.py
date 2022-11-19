@@ -367,6 +367,51 @@ class Tracker:
         if compile:
             _ = self._current_track_kernel # This triggers compilation
 
+    def optimize_for_tracking(self, compile=True):
+        """Optimize the tracker for tracking speed.
+        """
+        if self.iscollective:
+            raise NotImplementedError("Optimization is not implemented for "
+                                      "collective trackers")
+
+        self.track_kernel = {} # Remove all kernels
+        self.line._var_management = None # Disable expressions
+
+        line = self.line
+
+        # Unfreeze the line
+        line.element_names = list(line.element_names)
+
+        print("Remove inactive multipoles")
+        line.remove_inactive_multipoles()
+
+        print("Merge consecutive multipoles")
+        line.merge_consecutive_multipoles()
+
+        print("Remove zero length drifts")
+        line.remove_zero_length_drifts()
+
+        print("Merge consecutive drifts")
+        line.merge_consecutive_drifts()
+
+        print("Use simple bends")
+        line.use_simple_bends()
+
+        print("Use simple quadrupoles")
+        line.use_simple_quadrupoles()
+
+        print("Rebuild tracker data")
+        tracker_data = TrackerData(
+            line=line,
+            extra_element_classes=(self.particles_monitor_class._XoStruct,),
+            element_ref_data=self._element_ref_data,
+            _buffer=self._buffer)
+
+        self.element_classes = tracker_data.element_classes
+
+        if compile:
+            _ = self._current_track_kernel # This triggers compilation
+
     def _invalidate(self):
         if self.iscollective:
             self._invalidated_parts = self._parts

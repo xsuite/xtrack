@@ -14,7 +14,6 @@ import xpart as xp
 
 import ducktrack as dtk
 
-from make_short_line import make_short_line
 import time
 
 
