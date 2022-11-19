@@ -497,7 +497,7 @@ def test_optimize_for_tracking():
     p_no_optimized = particles.copy()
     p_optimized = particles.copy()
 
-    num_turns = 1
+    num_turns = 10
 
     tracker.track(p_no_optimized, num_turns=num_turns, time=True)
 
