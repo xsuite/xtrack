@@ -391,11 +391,11 @@ class Tracker:
         print("Merge consecutive drifts")
         line.merge_consecutive_drifts()
 
-        # print("Use simple bends")
-        # line.use_simple_bends()
+        print("Use simple bends")
+        line.use_simple_bends()
 
-        # print("Use simple quadrupoles")
-        # line.use_simple_quadrupoles()
+        print("Use simple quadrupoles")
+        line.use_simple_quadrupoles()
 
         print("Rebuild tracker data")
         tracker_data = TrackerData(
