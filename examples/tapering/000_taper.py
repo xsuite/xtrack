@@ -31,7 +31,7 @@ tracker.compensate_radiation_energy_loss()
 
 tw = tracker.twiss(method='6d')
 
-tw.delta # contains the momentum decviation along the ring
+tw.delta # contains the momentum deviation along the ring
 
 #!end-doc-part
 
