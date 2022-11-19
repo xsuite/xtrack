@@ -51,7 +51,6 @@ class Tracker:
         global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
-        save_source_as=None,
         io_buffer=None,
         compile=True,
         enable_pipeline_hold=False,
@@ -93,7 +92,6 @@ class Tracker:
                 global_xy_limit=global_xy_limit,
                 extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as,
                 io_buffer=io_buffer,
                 compile=compile,
                 enable_pipeline_hold=enable_pipeline_hold)
@@ -113,7 +111,6 @@ class Tracker:
                 global_xy_limit=global_xy_limit,
                 extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as,
                 io_buffer=io_buffer,
                 compile=compile,
                 enable_pipeline_hold=enable_pipeline_hold)
@@ -136,7 +133,6 @@ class Tracker:
         global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
-        save_source_as=None,
         io_buffer=None,
         compile=True,
         enable_pipeline_hold=False
@@ -289,7 +285,6 @@ class Tracker:
         global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
-        save_source_as=None,
         io_buffer=None,
         compile=True,
         enable_pipeline_hold=False
@@ -345,17 +340,17 @@ class Tracker:
         self.line = line
         self.line.tracker = self
         self._tracker_data = tracker_data
+        self.num_elements = len(tracker_data.elements)
+        self._buffer = tracker_data._buffer
 
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
-        self.num_elements = len(tracker_data.elements)
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
         self.skip_end_turn_actions = skip_end_turn_actions
         self.reset_s_at_end_turn = reset_s_at_end_turn
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
-        self._buffer = tracker_data._buffer
 
         if track_kernel is None:
             track_kernel = {}
@@ -396,23 +391,23 @@ class Tracker:
         print("Merge consecutive drifts")
         line.merge_consecutive_drifts()
 
-        print("Use simple bends")
-        line.use_simple_bends()
+        # print("Use simple bends")
+        # line.use_simple_bends()
 
-        print("Use simple quadrupoles")
-        line.use_simple_quadrupoles()
+        # print("Use simple quadrupoles")
+        # line.use_simple_quadrupoles()
 
         print("Rebuild tracker data")
         tracker_data = TrackerData(
             line=line,
             extra_element_classes=(self.particles_monitor_class._XoStruct,),
-            element_ref_data=self._element_ref_data,
             _buffer=self._buffer)
 
         self.line._freeze()
 
         self._tracker_data = tracker_data
         self.element_classes = tracker_data.element_classes
+        self.num_elements = len(tracker_data.elements)
 
         if compile:
             _ = self._current_track_kernel # This triggers compilation
