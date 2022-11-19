@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from time import perf_counter
 import logging
 from functools import partial
 from contextlib import contextmanager
@@ -1023,8 +1024,13 @@ class Tracker:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
+        time=False,
         _session_to_resume=None
     ):
+
+        if time:
+            t0 = perf_counter()
+
         if freeze_longitudinal:
             raise NotImplementedError('freeze_longitudinal not implemented yet'
                                       ' for collective tracking')
@@ -1175,6 +1181,13 @@ class Tracker:
 
         self.record_last_track = monitor
 
+        if time:
+            self._context.synchronize()
+            t1 = perf_counter()
+            self.time_last_track = t1 - t0
+        else:
+            self.time_last_track = None
+
     def _track_no_collective(
         self,
         particles,
@@ -1183,8 +1196,12 @@ class Tracker:
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
-        freeze_longitudinal=False
+        freeze_longitudinal=False,
+        time=False
     ):
+
+        if time:
+            t0 = perf_counter()
 
         if freeze_longitudinal:
             kwargs = locals().copy()
@@ -1356,6 +1373,13 @@ class Tracker:
             )
 
         self.record_last_track = monitor
+
+        if time:
+            t1 = perf_counter()
+            self._context.synchronize()
+            self.time_last_track = t1 - t0
+        else:
+            self.time_last_track = None
 
     @staticmethod
     def _get_default_monitor_class():

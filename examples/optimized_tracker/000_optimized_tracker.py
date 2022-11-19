@@ -35,17 +35,26 @@ particles = tracker.build_particles(
 p_no_optimized = particles.copy()
 p_optimized = particles.copy()
 
-t1 = time.time()
-tracker.track(p_no_optimized)
-t2 = time.time()
-t_no_optimized = t2-t1
+num_turns = 1
+
+tracker.track(p_no_optimized, num_turns=num_turns, time=True)
+t_not_optimized = tracker.time_last_track
 
 tracker.optimize_for_tracking()
 
-t1 = time.time()
-tracker.track(p_optimized)
-t2 = time.time()
-t_optimized = t2-t1
+tracker.track(p_optimized, num_turns=num_turns, time=True)
+t_optimized = tracker.time_last_track
 
-print(f'Time no optimized {t_no_optimized*1e6/len(p_no_optimized.x)} us/particle')
-print(f'Time optimized {t_optimized*1e6/len(p_no_optimized.x)} us/particle')
+num_particles = len(p_no_optimized.x)
+print(f'Time not optimized {t_not_optimized*1e6/num_particles/num_turns:.1f} us/part/turn')
+print(f'Time optimized {t_optimized*1e6/num_particles/num_turns:.1f} us/part/turn')
+
+assert np.all(p_no_optimized.state == 1)
+assert np.all(p_optimized.state == 1)
+
+assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
+assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
+assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
+assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
+assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-14)
+assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
