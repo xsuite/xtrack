@@ -517,7 +517,9 @@ class Line:
 
         for ee, nn in zip(self.elements, self.element_names):
             if isinstance(ee, (beam_elements.Multipole)):
-                aux = [ee.hxl, ee.hyl] + list(ee.knl) + list(ee.ksl)
+                ctx2np = ee._context.nparray_from_context_array
+                aux = ([ee.hxl, ee.hyl]
+                        + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
             newline.append_element(ee, nn)
