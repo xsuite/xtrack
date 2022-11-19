@@ -31,6 +31,10 @@ tracker.compensate_radiation_energy_loss()
 
 tw = tracker.twiss(method='6d')
 
+tw.delta # contains the momentum decviation along the ring
+
+#!end-doc-part
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
