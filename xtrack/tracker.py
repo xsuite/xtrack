@@ -407,6 +407,9 @@ class Tracker:
             element_ref_data=self._element_ref_data,
             _buffer=self._buffer)
 
+        self.line._freeze()
+
+        self._tracker_data = tracker_data
         self.element_classes = tracker_data.element_classes
 
         if compile:
