@@ -21,6 +21,10 @@ tracker=line.build_tracker()
 print('\nInitial twiss parameters')                                             #!skip-doc
 tw_before = tracker.twiss()
 
+####################################################
+# Tunes, chromaticities, and knobs before matching #
+####################################################
+
 # Initial tune and chromaticity values
 print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
       f"Q'x = {tw_before['dqx']:.5f} Q'y = {tw_before['dqy']:.5f}")
@@ -39,13 +43,18 @@ t1 = time.time()                                                                
 tracker.match(vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
     targets = [
         ('qx', 62.315),
-        (lambda tw: tw['qx'] - tw['qy'], 1.99), # equivalent to ('qy', 60.325)
+        #(lambda tw: tw['qx'] - tw['qy'], 1.99), # equivalent to ('qy', 60.325) #!skip-doc
+        ('qy', 60.325),
         ('dqx', 10.0),
         ('dqy', 12.0),])
 t2 = time.time()                                                                #!skip-doc
 print('\nTime fsolve: ', t2-t1)                                                 #!skip-doc
 
-tw_final = tracker.twiss()                                                      #!skip-doc
+###################################################
+# Tunes, chromaticities, and knobs after matching #
+###################################################
+
+tw_final = tracker.twiss()
 print('\nFinal twiss parameters')                                               #!skip-doc
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
