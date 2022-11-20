@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 import json
+import pathlib
 
 import numpy as np
 import xobjects as xo
@@ -11,6 +12,8 @@ import xpart as xp
 
 from pathlib import Path
 
+test_data_folder = pathlib.Path(
+    __file__).parent.joinpath('../test_data').absolute()
 
 def test_ebe_monitor():
 
@@ -472,3 +475,45 @@ def test_tracker_config():
         assert len(tracker.track_kernel) == 3 # As tracker.track_kernel.keys() =
                                               # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
         assert tracker._current_track_kernel is first_kernel
+
+def test_optimize_for_tracking():
+    fname_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(fname_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+
+        line = xt.Line.from_dict(input_data['line'])
+        line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+        tracker = line.build_tracker(_context=context)
+
+        particles = tracker.build_particles(
+            x_norm=np.linspace(-2, 2, 1000), y_norm=0.1, delta=3e-4,
+            nemitt_x=2.5e-6, nemitt_y=2.5e-6)
+
+        p_no_optimized = particles.copy()
+        p_optimized = particles.copy()
+
+        num_turns = 10
+
+        tracker.track(p_no_optimized, num_turns=num_turns, time=True)
+
+        tracker.optimize_for_tracking()
+
+        tracker.track(p_optimized, num_turns=num_turns, time=True)
+
+        p_no_optimized.move(xo.context_default)
+        p_optimized.move(xo.context_default)
+
+        assert np.all(p_no_optimized.state == 1)
+        assert np.all(p_optimized.state == 1)
+
+        assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
+        assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)

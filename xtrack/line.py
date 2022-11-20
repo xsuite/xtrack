@@ -517,7 +517,9 @@ class Line:
 
         for ee, nn in zip(self.elements, self.element_names):
             if isinstance(ee, (beam_elements.Multipole)):
-                aux = [ee.hxl, ee.hyl] + list(ee.knl) + list(ee.ksl)
+                ctx2np = ee._context.nparray_from_context_array
+                aux = ([ee.hxl, ee.hyl]
+                        + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
             newline.append_element(ee, nn)
@@ -601,13 +603,13 @@ class Line:
                            len(ee.knl), len(ee.ksl))
                     knl=np.zeros(oo,dtype=float)
                     ksl=np.zeros(oo,dtype=float)
-                    for ii,kk in enumerate(prev_ee.knl):
+                    for ii,kk in enumerate(prev_ee._xobject.knl):
                         knl[ii]+=kk
-                    for ii,kk in enumerate(ee.knl):
+                    for ii,kk in enumerate(ee._xobject.knl):
                         knl[ii]+=kk
-                    for ii,kk in enumerate(prev_ee.ksl):
+                    for ii,kk in enumerate(prev_ee._xobject.ksl):
                         ksl[ii]+=kk
-                    for ii,kk in enumerate(ee.ksl):
+                    for ii,kk in enumerate(ee._xobject.ksl):
                         ksl[ii]+=kk
                     newee = beam_elements.Multipole(
                             knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,

@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+from time import perf_counter
 import logging
 from functools import partial
 from contextlib import contextmanager
@@ -51,7 +52,6 @@ class Tracker:
         global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
-        save_source_as=None,
         io_buffer=None,
         compile=True,
         enable_pipeline_hold=False,
@@ -93,7 +93,6 @@ class Tracker:
                 global_xy_limit=global_xy_limit,
                 extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as,
                 io_buffer=io_buffer,
                 compile=compile,
                 enable_pipeline_hold=enable_pipeline_hold)
@@ -113,7 +112,6 @@ class Tracker:
                 global_xy_limit=global_xy_limit,
                 extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as,
                 io_buffer=io_buffer,
                 compile=compile,
                 enable_pipeline_hold=enable_pipeline_hold)
@@ -136,7 +134,6 @@ class Tracker:
         global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
-        save_source_as=None,
         io_buffer=None,
         compile=True,
         enable_pipeline_hold=False
@@ -153,7 +150,6 @@ class Tracker:
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
-        self.save_source_as = save_source_as
         self._enable_pipeline_hold = enable_pipeline_hold
 
         if _buffer is None:
@@ -233,7 +229,6 @@ class Tracker:
                 extra_headers=extra_headers,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as,
                 io_buffer=self.io_buffer
                 )
         supertracker.config = self.config
@@ -289,7 +284,6 @@ class Tracker:
         global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
-        save_source_as=None,
         io_buffer=None,
         compile=True,
         enable_pipeline_hold=False
@@ -345,17 +339,17 @@ class Tracker:
         self.line = line
         self.line.tracker = self
         self._tracker_data = tracker_data
+        self.num_elements = len(tracker_data.elements)
+        self._buffer = tracker_data._buffer
 
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
-        self.num_elements = len(tracker_data.elements)
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
         self.skip_end_turn_actions = skip_end_turn_actions
         self.reset_s_at_end_turn = reset_s_at_end_turn
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
-        self._buffer = tracker_data._buffer
 
         if track_kernel is None:
             track_kernel = {}
@@ -363,6 +357,56 @@ class Tracker:
 
         self.track = self._track_no_collective
         self._radiation_model = None
+
+        if compile:
+            _ = self._current_track_kernel # This triggers compilation
+
+    def optimize_for_tracking(self, compile=True):
+        """Optimize the tracker for tracking speed.
+        """
+        if self.iscollective:
+            raise NotImplementedError("Optimization is not implemented for "
+                                      "collective trackers")
+
+        self.track_kernel = {} # Remove all kernels
+
+        print("Disable xdeps expressions")
+        self.line._var_management = None # Disable expressions
+
+        line = self.line
+
+        # Unfreeze the line
+        line.element_names = list(line.element_names)
+
+        print("Remove inactive multipoles")
+        line.remove_inactive_multipoles()
+
+        print("Merge consecutive multipoles")
+        line.merge_consecutive_multipoles()
+
+        print("Remove zero length drifts")
+        line.remove_zero_length_drifts()
+
+        print("Merge consecutive drifts")
+        line.merge_consecutive_drifts()
+
+        print("Use simple bends")
+        line.use_simple_bends()
+
+        print("Use simple quadrupoles")
+        line.use_simple_quadrupoles()
+
+        print("Rebuild tracker data")
+        tracker_data = TrackerData(
+            line=line,
+            extra_element_classes=(self.particles_monitor_class._XoStruct,),
+            _buffer=self._buffer)
+
+        self.line._freeze()
+
+        self._tracker_data = tracker_data
+        self.element_classes = tracker_data.element_classes
+        self.num_elements = len(tracker_data.elements)
 
         if compile:
             _ = self._current_track_kernel # This triggers compilation
@@ -620,7 +664,7 @@ class Tracker:
     def _context(self):
         return self._buffer.context
 
-    def _build_kernel(self, save_source_as, compile):
+    def _build_kernel(self, compile):
 
         context = self._tracker_data._buffer.context
 
@@ -792,7 +836,6 @@ class Tracker:
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
                         local_particle_src=self.local_particle_src)],
-            save_source_as=save_source_as,
             specialize=True,
             compile=compile
         )
@@ -978,8 +1021,13 @@ class Tracker:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
+        time=False,
         _session_to_resume=None
     ):
+
+        if time:
+            t0 = perf_counter()
+
         if freeze_longitudinal:
             raise NotImplementedError('freeze_longitudinal not implemented yet'
                                       ' for collective tracking')
@@ -1130,6 +1178,13 @@ class Tracker:
 
         self.record_last_track = monitor
 
+        if time:
+            self._context.synchronize()
+            t1 = perf_counter()
+            self.time_last_track = t1 - t0
+        else:
+            self.time_last_track = None
+
     def _track_no_collective(
         self,
         particles,
@@ -1138,8 +1193,12 @@ class Tracker:
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
-        freeze_longitudinal=False
+        freeze_longitudinal=False,
+        time=False
     ):
+
+        if time:
+            t0 = perf_counter()
 
         if freeze_longitudinal:
             kwargs = locals().copy()
@@ -1312,6 +1371,13 @@ class Tracker:
 
         self.record_last_track = monitor
 
+        if time:
+            t1 = perf_counter()
+            self._context.synchronize()
+            self.time_last_track = t1 - t0
+        else:
+            self.time_last_track = None
+
     @staticmethod
     def _get_default_monitor_class():
         import xtrack as xt  # I have to do it like this
@@ -1447,7 +1513,7 @@ class Tracker:
         try:
             return self.track_kernel[self._hashable_config()]
         except KeyError:
-            self._build_kernel(save_source_as=None, compile=True)
+            self._build_kernel(compile=True)
             return self._current_track_kernel
 
     @_current_track_kernel.setter
