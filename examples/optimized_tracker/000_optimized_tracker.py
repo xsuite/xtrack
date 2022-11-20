@@ -48,6 +48,13 @@ t_not_optimized = tracker.time_last_track
 
 tracker.optimize_for_tracking()
 
+# This performs the following actions (physics model is unchanged):
+# - Disables xdeps expressions
+# - Removes inactive multipoles
+# - Merges consecutive multipoles
+# - Removes drifts with zero length
+# - Merges consecutive drifts
+
 ###########################
 # Track with optimization #
 ###########################
