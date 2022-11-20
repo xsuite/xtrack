@@ -90,6 +90,33 @@ print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")                               
 print(f"ksf.b1 = {line.vars['ksf.b1']._value}")                                 #!skip-doc
 print(f"ksd.b1 = {line.vars['ksd.b1']._value}")                                 #!skip-doc
 
+##############################################
+# Match custom function of the twiss results #
+##############################################
+
+# The match method can also be used to match any user-defined function of
+# the twiss results. For example, to match the difference between the tunes,
+# instead of the vertical tune:
+
+t1 = time.time()                                                                #!skip-doc
+tracker.match(
+    vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
+    targets = [
+        ('qx', 62.27),
+        (lambda tw: tw['qx'] - tw['qy'], 1.98), # equivalent to ('qy', 60.325)
+        ('dqx', 6.0),
+        ('dqy', 4.0),])
+t2 = time.time()                                                                #!skip-doc
+print('\nTime match with function: ', t2-t1)                                    #!skip-doc
+
+print('\nFinal twiss parameters')                                               #!skip-doc
+print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "                   #!skip-doc
+      f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")               #!skip-doc
+print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")                               #!skip-doc
+print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")                               #!skip-doc
+print(f"ksf.b1 = {line.vars['ksf.b1']._value}")                                 #!skip-doc
+print(f"ksd.b1 = {line.vars['ksd.b1']._value}")                                 #!skip-doc
+
 #!end-doc-part
 
 t1 = time.time()
