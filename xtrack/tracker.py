@@ -150,7 +150,6 @@ class Tracker:
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
-        self.save_source_as = save_source_as
         self._enable_pipeline_hold = enable_pipeline_hold
 
         if _buffer is None:
@@ -230,7 +229,6 @@ class Tracker:
                 extra_headers=extra_headers,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
-                save_source_as=save_source_as,
                 io_buffer=self.io_buffer
                 )
         supertracker.config = self.config
@@ -666,7 +664,7 @@ class Tracker:
     def _context(self):
         return self._buffer.context
 
-    def _build_kernel(self, save_source_as, compile):
+    def _build_kernel(self, compile):
 
         context = self._tracker_data._buffer.context
 
@@ -838,7 +836,6 @@ class Tracker:
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
                         local_particle_src=self.local_particle_src)],
-            save_source_as=save_source_as,
             specialize=True,
             compile=compile
         )
@@ -1516,7 +1513,7 @@ class Tracker:
         try:
             return self.track_kernel[self._hashable_config()]
         except KeyError:
-            self._build_kernel(save_source_as=None, compile=True)
+            self._build_kernel(compile=True)
             return self._current_track_kernel
 
     @_current_track_kernel.setter

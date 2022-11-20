@@ -43,7 +43,7 @@ telem.track(part)
 
 tracker = xt.Tracker(_buffer=telem._buffer,
         line=xt.Line(elements=[telem]),
-            save_source_as='source.c')
+        )
 
 tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
 
