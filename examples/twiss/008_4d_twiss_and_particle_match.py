@@ -10,9 +10,9 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-###############
-# Load a line #
-###############
+#####################################
+# Load a line and build the tracker #
+#####################################
 
 fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
 #fname_line_particles = '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json' #!skip-doc
@@ -22,30 +22,37 @@ with open(fname_line_particles, 'r') as fid:
 line = xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-# Switch off RF cavities
+tracker = line.build_tracker()
+
+# We consider a case in which all RF cavities are off
 for ee in line.elements:
     if isinstance(ee, xt.Cavity):
         ee.voltage = 0
 
-#################
-# Build tracker #
-#################
 
-tracker = xt.Tracker(line=line)
 
-#########
-# Twiss #
-#########
+##################
+# Twiss(4d mode) #
+##################
+
+# For this configuration, `tracker.twiss()` gives an exception because the
+# longitudinal motion is not stable.
+# In this case, the '4d' method of `tracker.twiss()` can be used to compute the
+# twiss parameters.
 
 tw = tracker.twiss(method='4d')
 
-# Match a particle to distribution
+#################################
+# Match a particle distribution #
+#################################
 
-r_sigma = 1.5
-theta = np.linspace(0, 2*np.pi, 1000)
-particles = xp.build_particles(tracker=tracker, method='4d',
-                    x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
+# The '4d' method can also be used to match a particle distribution:
+
+particles = tracker.build_particles(method='4d',
+                    x_norm=[1,2,3,4], # sigmas
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6)
+
+#!end-doc-part
 
 import matplotlib.pyplot as plt
 
