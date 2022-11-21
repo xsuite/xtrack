@@ -287,24 +287,6 @@ class Line:
             particle_ref=self.particle_ref,
         )
 
-    def configure_radiation(self, mode=None):
-        assert mode in [None, 'mean', 'quantum']
-        if mode == 'mean':
-            radiation_flag = 1
-        elif mode == 'quantum':
-            radiation_flag = 2
-        else:
-            radiation_flag = 0
-
-        for kk, ee in self.element_dict.items():
-            if hasattr(ee, 'radiation_flag'):
-                ee.radiation_flag = radiation_flag
-
-        if radiation_flag == 2:
-            self._needs_rng = True
-        else:
-            self._needs_rng = False
-
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
@@ -535,7 +517,9 @@ class Line:
 
         for ee, nn in zip(self.elements, self.element_names):
             if isinstance(ee, (beam_elements.Multipole)):
-                aux = [ee.hxl, ee.hyl] + list(ee.knl) + list(ee.ksl)
+                ctx2np = ee._context.nparray_from_context_array
+                aux = ([ee.hxl, ee.hyl]
+                        + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
             newline.append_element(ee, nn)
@@ -619,13 +603,13 @@ class Line:
                            len(ee.knl), len(ee.ksl))
                     knl=np.zeros(oo,dtype=float)
                     ksl=np.zeros(oo,dtype=float)
-                    for ii,kk in enumerate(prev_ee.knl):
+                    for ii,kk in enumerate(prev_ee._xobject.knl):
                         knl[ii]+=kk
-                    for ii,kk in enumerate(ee.knl):
+                    for ii,kk in enumerate(ee._xobject.knl):
                         knl[ii]+=kk
-                    for ii,kk in enumerate(prev_ee.ksl):
+                    for ii,kk in enumerate(prev_ee._xobject.ksl):
                         ksl[ii]+=kk
-                    for ii,kk in enumerate(ee.ksl):
+                    for ii,kk in enumerate(ee._xobject.ksl):
                         ksl[ii]+=kk
                     newee = beam_elements.Multipole(
                             knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,

@@ -38,7 +38,7 @@ line.particle_ref = xp.Particles(
 print('Build tracker ...')
 tracker = xt.Tracker(line=line)
 
-tracker.configure_radiation(mode='quantum')
+tracker.configure_radiation(model='quantum')
 
 record = tracker.start_internal_logging_for_elements_of_type(
                                                 xt.Multipole, capacity=100000)

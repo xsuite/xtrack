@@ -194,10 +194,9 @@ def test_freeze_vars():
         freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
         tracker = xt.Tracker(_context=context,
                              line=line,
-                             local_particle_src=xp.gen_local_particle_api(
-                                 freeze_vars=freeze_vars),
-                             reset_s_at_end_turn=False
+                             reset_s_at_end_turn=False,
                              )
+        tracker.freeze_vars(freeze_vars)
 
         ######################
         # Get some particles #

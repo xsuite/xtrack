@@ -3,6 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 import json
+import pathlib
 
 import numpy as np
 import xobjects as xo
@@ -11,6 +12,8 @@ import xpart as xp
 
 from pathlib import Path
 
+test_data_folder = pathlib.Path(
+    __file__).parent.joinpath('../test_data').absolute()
 
 def test_ebe_monitor():
 
@@ -90,7 +93,7 @@ def test_synrad_configuration():
             tracker = xt.Tracker(line=xt.Line(elements=elements),
                                  _context=context)
 
-            tracker.configure_radiation(mode='mean')
+            tracker.configure_radiation(model='mean')
             for ee in tracker.line.elements:
                 assert ee.radiation_flag == 1
             p = xp.Particles(x=[0.01, 0.02], _context=context)
@@ -98,7 +101,7 @@ def test_synrad_configuration():
             p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
 
-            tracker.configure_radiation(mode='quantum')
+            tracker.configure_radiation(model='quantum')
             for ee in tracker.line.elements:
                 assert ee.radiation_flag == 2
             p = xp.Particles(x=[0.01, 0.02], _context=context)
@@ -106,13 +109,13 @@ def test_synrad_configuration():
             p.move(_context=xo.ContextCpu())
             assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
 
-            tracker.configure_radiation(mode=None)
+            tracker.configure_radiation(model=None)
             for ee in tracker.line.elements:
                 assert ee.radiation_flag == 0
             p = xp.Particles(x=[0.01, 0.02], _context=context)
             tracker.track(p)
             p.move(_context=xo.ContextCpu())
-            assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
+            assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
 
 
 def test_partial_tracking():
@@ -378,3 +381,139 @@ def test_tracker_binary_serialisation_with_knobs(tmp_path):
     new_tracker.vars['on_x5'] = -270
     assert np.isclose(new_tracker.twiss(at_elements=['ip5'])['py'][0], -270e-6,
                       atol=1e-6, rtol=0)
+
+
+def test_tracker_hashable_config():
+    tracker = xt.Tracker(line=xt.Line([]))
+    tracker.config.TEST_FLAG_BOOL = True
+    tracker.config.TEST_FLAG_INT = 42
+    tracker.config.TEST_FLAG_FALSE = False
+    tracker.config.ZZZ = 'lorem'
+    tracker.config.AAA = 'ipsum'
+
+    expected = (
+        ('AAA', 'ipsum'),
+        ('TEST_FLAG_BOOL', True),
+        ('TEST_FLAG_INT', 42),
+        ('XTRACK_MULTIPOLE_NO_SYNRAD', True), # active by default
+        ('ZZZ', 'lorem'),
+    )
+
+    assert tracker._hashable_config() == expected
+
+
+def test_tracker_config_to_headers():
+    tracker = xt.Tracker(line=xt.Line([]))
+
+    tracker.config.clear()
+    tracker.config.TEST_FLAG_BOOL = True
+    tracker.config.TEST_FLAG_INT = 42
+    tracker.config.TEST_FLAG_FALSE = False
+    tracker.config.ZZZ = 'lorem'
+    tracker.config.AAA = 'ipsum'
+
+    expected = [
+        '#define TEST_FLAG_BOOL',
+        '#define TEST_FLAG_INT 42',
+        '#undef TEST_FLAG_FALSE',
+        '#define ZZZ lorem',
+        '#define AAA ipsum',
+    ]
+
+    assert set(tracker._config_to_headers()) == set(expected)
+
+
+def test_tracker_config():
+    class TestElement(xt.BeamElement):
+        _xofields = {
+            'dummy': xo.Float64,
+        }
+        _extra_c_sources = ["""
+            /*gpufun*/
+            void TestElement_track_local_particle(
+                    TestElementData el,
+                    LocalParticle* part0)
+            {
+                //start_per_particle_block (part0->part)
+
+                    #if TEST_FLAG == 2
+                    LocalParticle_set_x(part, 7);
+                    #endif
+
+                    #ifdef TEST_FLAG_BOOL
+                    LocalParticle_set_y(part, 42);
+                    #endif
+
+                //end_per_particle_block
+            }
+            """]
+
+    for context in xo.context.get_test_contexts():
+        test_element = TestElement(_context=context)
+        line = xt.Line([test_element])
+        tracker = xt.Tracker(line=line)
+
+        particles = xp.Particles(p0c=1e9, x=[0], y=[0], _context=context)
+
+        p = particles.copy()
+        tracker.config.TEST_FLAG = 2
+        tracker.track(p)
+        assert p.x[0] == 7.0
+        assert p.y[0] == 0.0
+        first_kernel = tracker._current_track_kernel
+
+        p = particles.copy()
+        tracker.config.TEST_FLAG = False
+        tracker.config.TEST_FLAG_BOOL = True
+        tracker.track(p)
+        assert p.x[0] == 0.0
+        assert p.y[0] == 42.0
+        assert tracker._current_track_kernel is not first_kernel
+
+        tracker.config.TEST_FLAG = 2
+        tracker.config.TEST_FLAG_BOOL = False
+        assert len(tracker.track_kernel) == 3 # As tracker.track_kernel.keys() =
+                                              # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
+        assert tracker._current_track_kernel is first_kernel
+
+def test_optimize_for_tracking():
+    fname_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(fname_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+
+        line = xt.Line.from_dict(input_data['line'])
+        line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+        tracker = line.build_tracker(_context=context)
+
+        particles = tracker.build_particles(
+            x_norm=np.linspace(-2, 2, 1000), y_norm=0.1, delta=3e-4,
+            nemitt_x=2.5e-6, nemitt_y=2.5e-6)
+
+        p_no_optimized = particles.copy()
+        p_optimized = particles.copy()
+
+        num_turns = 10
+
+        tracker.track(p_no_optimized, num_turns=num_turns, time=True)
+
+        tracker.optimize_for_tracking()
+
+        tracker.track(p_optimized, num_turns=num_turns, time=True)
+
+        p_no_optimized.move(xo.context_default)
+        p_optimized.move(xo.context_default)
+
+        assert np.all(p_no_optimized.state == 1)
+        assert np.all(p_optimized.state == 1)
+
+        assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
+        assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
+        assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)

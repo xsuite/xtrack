@@ -39,7 +39,7 @@ line = xt.Line(elements=
                 n_slices*[xt.Drift(length=tot_length/n_slices)],
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
-tracker = xt.Tracker(_context=context, line=line, save_source_as='source.c')
+tracker = xt.Tracker(_context=context, line=line)
 
 # Track
 n_turns = 3
