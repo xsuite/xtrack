@@ -92,6 +92,38 @@ class Line:
         return self
 
     @classmethod
+    def from_thin_elements_at(cls, loc_elements, line_length, **kwargs):
+        """Constructs a line from thin elements at fixed locations, inserting drift spaces as needed
+        
+        Args:
+            loc_elements: List of (loc, element) tuples with location and element.
+            line_length: Total length of line to determine drift behind last element.
+            kwargs: Arguments passed to constructor of the line
+        
+        Returns:
+            An instance of Line
+        
+        Examples:
+            >>> line = xt.Line.from_thin_elements_at((
+                        (0.7, xt.Multipole(length=0.3, knl=[0, +0.50], ksl=[0, 0])),
+                        (1.4, xt.Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12])),
+                        (1.8, xt.Multipole(length=0.2, knl=[0, 0, 0.1])),
+                        (2.1, xt.Multipole(length=0.3, knl=[0, -0.50], ksl=[0, 0])),
+                        (2.8, xt.Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12])),
+                    ), line_length = 5)
+        """
+        elements = []
+        last_at = 0
+        for at, el in loc_elements:
+            if at < last_at:
+                raise ValueError(f'Negative drift space from {last_at} to {at} (element {el})')
+            elements.append(Drift(length=at - last_at))
+            elements.append(el)
+            last_at = at
+        elements.append(Drift(length=line_length - last_at))
+        return cls(elements=elements, **kwargs)
+
+    @classmethod
     def from_sixinput(cls, sixinput, classes=()):
         log.warning("\n"
             "WARNING: xtrack.Line.from_sixinput(sixinput) will be removed in future versions.\n"
