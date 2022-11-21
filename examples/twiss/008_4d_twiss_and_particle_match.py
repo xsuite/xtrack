@@ -29,8 +29,6 @@ for ee in line.elements:
     if isinstance(ee, xt.Cavity):
         ee.voltage = 0
 
-
-
 ##################
 # Twiss(4d mode) #
 ##################
@@ -42,9 +40,9 @@ for ee in line.elements:
 
 tw = tracker.twiss(method='4d')
 
-#################################
-# Match a particle distribution #
-#################################
+###########################################
+# Match a particle distribution (4d mode) #
+###########################################
 
 # The '4d' method can also be used to match a particle distribution:
 
