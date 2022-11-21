@@ -120,6 +120,8 @@ class Line:
             elements.append(Drift(length=at - last_at))
             elements.append(el)
             last_at = at
+        if line_length < last_at:
+            raise ValueError(f'Negative drift space from {last_at} to {line_length} (line_length)')
         elements.append(Drift(length=line_length - last_at))
         return cls(elements=elements, **kwargs)
 

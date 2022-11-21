@@ -275,6 +275,35 @@ def test_from_dict_current():
     assert d2 is d1
 
 
+def test_from_thin_elements_at():
+    line = xt.Line.from_thin_elements_at((
+        (0.7, xt.Multipole(length=0.3, knl=[0, +0.50], ksl=[0, 0])),
+        (1.4, xt.Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12])),
+        (1.8, xt.Multipole(length=0.2, knl=[0, 0, 0.1])),
+        (2.1, xt.Multipole(length=0.3, knl=[0, -0.50], ksl=[0, 0])),
+        (2.8, xt.Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12])),
+    ), line_length = 5)
+
+    assert line.get_length() == 5
+    assert len(line.elements) == 11
+
+    for i, l in enumerate([0.7, 0.3, 0.7, 0.5, 0.4, 0.2, 0.3, 0.3, 0.7, 0.5, 2.2]):
+        cls = xt.Multipole if i%2 else xt.Drift
+        assert isinstance(line.elements[i], cls)
+        assert np.isclose(line.elements[i].length, l)
+
+    for loc in (0.1, 3.5):
+        try:
+            line = xt.Line.from_thin_elements_at((
+                (1.5, xt.Multipole(length=0.3, knl=[0, +0.50])),
+                (loc, xt.Multipole(length=0.3, knl=[0, -0.50])),
+            ), line_length = 2)
+        except ValueError:
+            pass # expected
+        else:
+            raise AssertionError('Expected exception not raised')
+
+
 def test_optimize_multipoles():
     for context in xo.context.get_test_contexts():
         elements = {
