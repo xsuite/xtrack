@@ -23,6 +23,7 @@ tracker.configure_radiation(model='mean')
 
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths to avoid optis and orbit distortions
+
 tracker.compensate_radiation_energy_loss()
 
 ##############################
