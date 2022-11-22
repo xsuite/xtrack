@@ -58,7 +58,8 @@ class Tracker:
         _element_ref_data=None,
     ):
         self.config = TrackerConfig()
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD=True
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = True
 
         if sequence is not None:
             raise ValueError(
@@ -521,14 +522,17 @@ class Tracker:
                  element_classes=(self.element_classes if not self.iscollective
                                     else self._supertracker.element_classes))
 
-    def configure_radiation(self, model=None, mode=None):
+    def configure_radiation(self, model=None, model_beamstrahlung=None,
+                            mode='deprecated'):
 
-        if mode is not None:
+        if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
 
         self._check_invalidated()
 
         assert model in [None, 'mean', 'quantum']
+        assert model_beamstrahlung in [None, 'mean', 'quantum']
+
         if model == 'mean':
             radiation_flag = 1
             self._radiation_model = 'mean'
@@ -539,14 +543,29 @@ class Tracker:
             radiation_flag = 0
             self._radiation_model = None
 
+        if model_beamstrahlung == 'mean':
+            beamstrahlung_flag = 1
+            self._beamstrahlung_model = 'mean'
+        elif model_beamstrahlung == 'quantum':
+            beamstrahlung_flag = 2
+            self._beamstrahlung_model = 'quantum'
+        else:
+            beamstrahlung_flag = 0
+            self._beamstrahlung_model = None
+
         for kk, ee in self.line.element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
-        if radiation_flag == 2:
+        for kk, ee in self.line.element_dict.items():
+            if hasattr(ee, 'flag_beamstrahlung'):
+                ee.flag_beamstrahlung = beamstrahlung_flag
+
+        if radiation_flag == 2 or beamstrahlung_flag == 2:
             self.line._needs_rng = True
 
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
 
     def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
                                     max_iter=100, **kwargs):
