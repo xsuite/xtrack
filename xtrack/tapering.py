@@ -86,6 +86,8 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
     print("  - Restore cavity voltage and frequency. Set cavity lag")
     beta0 = p_test.beta0[0]
     for icav in cavities.index:
+        if cavities.loc[icav, 'voltage'] == 0:
+            continue
         vvrr = cavities.loc[icav, 'element'].voltage / cavities.loc[icav, 'voltage']
         assert np.abs(vvrr) < 1.
         inst_phase = np.arcsin(vvrr)
