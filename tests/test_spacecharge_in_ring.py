@@ -11,10 +11,10 @@ import xfields as xf
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-from xpart.test_helpers import retry
+from xpart.test_helpers import flaky_assertions, retry
 
 
-@retry(on=AssertionError)
+@retry()
 def test_ring_with_spacecharge():
 
     test_data_folder = pathlib.Path(
@@ -183,5 +183,7 @@ def test_ring_with_spacecharge():
 
             print(f'ex={(qx_probe - qx_target)/1e-3:.6f}e-3 '
                   f'ey={(qy_probe - qy_target)/1e-3:.6f}e-3')
-            assert np.isclose(qx_probe, qx_target, atol=5e-4, rtol=0)
-            assert np.isclose(qy_probe, qy_target, atol=5e-4, rtol=0)
+
+            with flaky_assertions():
+                assert np.isclose(qx_probe, qx_target, atol=5e-4, rtol=0)
+                assert np.isclose(qy_probe, qy_target, atol=5e-4, rtol=0)
