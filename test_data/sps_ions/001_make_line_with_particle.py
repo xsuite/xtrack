@@ -5,9 +5,8 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 from cpymad.madx import Madx
-from cpymad import libmadx
 
-mad = Madx(libmadx=libmadx, stdout=False)
+mad = Madx()
 mad.call('SPS_2021_Pb_ions_thin_test.seq')
 mad.use('sps')
 mad.twiss()
@@ -29,12 +28,11 @@ summad_6d = mad.table.summ.dframe()
 mad.emit()
 qs_mad = mad.table.emitsumm.qs[0]
 
-# Build particles, make xsuite line and tracker
-part = xp.Particles(mass0=mad.sequence.sps.beam.mass*1e9,
+# Make xsuite line and tracker
+line = xt.Line.from_madx_sequence(mad.sequence.sps, deferred_expressions=True)
+line.particle_ref = xp.Particles(mass0=mad.sequence.sps.beam.mass*1e9,
                                  q0=mad.sequence.sps.beam.charge,
                                  gamma0=mad.sequence.sps.beam.gamma)
-line = xt.Line.from_madx_sequence(mad.sequence.sps, deferred_expressions=True)
-line.particle_ref = part
 tracker = line.build_tracker()
 
 tw = tracker.twiss()
@@ -45,8 +43,6 @@ assert np.isclose(tw.qy, summad_4d.q2, atol=1e-5)
 assert np.isclose(tw.dqx, summad_6d.dq1, atol=0.5)
 assert np.isclose(tw.dqy, summad_6d.dq2, atol=0.5)
 
-with open('line_with_particle.json', 'w') as fid:
-    json.dump({
-        'line': line.to_dict(),
-        'particle': part.to_dict()},
-        fid, cls=xo.JEncoder, indent=4)
+with open('line.json', 'w') as f:
+    json.dump(line.to_dict(), f, cls=xo.JEncoder, indent=4)
+
