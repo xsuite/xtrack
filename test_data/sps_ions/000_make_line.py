@@ -43,6 +43,6 @@ assert np.isclose(tw.qy, summad_4d.q2, atol=1e-5)
 assert np.isclose(tw.dqx, summad_6d.dq1, atol=0.5)
 assert np.isclose(tw.dqy, summad_6d.dq2, atol=0.5)
 
-with open('line.json', 'w') as f:
+with open('line_and_particle.json', 'w') as f:
     json.dump(line.to_dict(), f, cls=xo.JEncoder, indent=4)
 
