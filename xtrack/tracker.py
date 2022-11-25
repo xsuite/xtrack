@@ -428,7 +428,8 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0, delta0=None,
+                          co_search_settings={}, delta_zeta=0,
+                          delta0=None, zeta0=0,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False):
 
@@ -454,7 +455,7 @@ class Tracker:
             tracker = self
 
         return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
-                                 particle_ref=particle_ref, delta0=delta0,
+                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error)
 
