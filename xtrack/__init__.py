@@ -9,7 +9,7 @@ from .base_element import BeamElement
 from .beam_elements import *
 from .tracker_data import TrackerData
 from .line import Line
-from .tracker import Tracker
+from .tracker import Tracker, freeze_longitudinal
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)

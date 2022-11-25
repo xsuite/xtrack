@@ -69,7 +69,7 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
         M[4:, 4:] = np.array([[np.cos(muz_dummy), np.sin(muz_dummy)],
                               [-np.sin(muz_dummy), np.cos(muz_dummy)]])
 
-    if np.abs(np.linalg.det(M)-1) > stability_tol:
+    if stability_tol is not None and np.abs(np.linalg.det(M)-1) > stability_tol:
         raise ValueError(
             f'The determinant of M is out tolerance. det={np.linalg.det(M)}')
 
@@ -85,7 +85,7 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
         M = healy_symplectify(M)
 
     w0, v0 = np.linalg.eig(M)
-    if np.any(np.abs(w0) > 1. + stability_tol):
+    if stability_tol is not None and  np.any(np.abs(w0) > 1. + stability_tol):
         raise ValueError('One-turn matrix is unstable. '
                          f'Magnitudes of eigenvalues are:\n{repr(np.abs(w0))}')
 
