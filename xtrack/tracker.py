@@ -476,7 +476,7 @@ class Tracker:
         return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
 
-    def twiss(self, particle_ref=None, delta0=None, method='6d',
+    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
         delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, R_matrix=None, W_matrix=None,
