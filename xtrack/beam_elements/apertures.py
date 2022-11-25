@@ -11,6 +11,9 @@ from ..base_element import BeamElement
 from ..general import _pkg_root
 
 
+UNLIMITED = 1e50  # could use np.inf but better save than sorry
+
+
 class LimitRect(BeamElement):
     """A rectangular aperture
     Parameters:
@@ -27,7 +30,7 @@ class LimitRect(BeamElement):
         'max_y': xo.Float64,
         }
     
-    def __init__(self, min_x=-np.inf, max_x=np.inf, min_y=-np.inf, max_y=np.inf, **kwargs):
+    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, **kwargs):
         super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, **kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
@@ -50,6 +53,9 @@ class LimitRacetrack(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
 
+    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, a=0, b=0, **kwargs):
+        super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, a=a, b=b, **kwargs)
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
@@ -70,10 +76,10 @@ class LimitEllipse(BeamElement):
     def __init__(self, a=None, b=None, a_squ=None, b_squ=None, **kwargs):
 
         if a is None and a_squ is None:
-            a = 1.
+            raise ValueError("Horizontal semi-axis of ellipse not specified.")
 
         if b is None and b_squ is None:
-            b = 1.
+            raise ValueError("Horizontal semi-axis of ellipse not specified.")
 
         if a is not None:
             a_squ = a * a
@@ -248,19 +254,15 @@ class LimitRectEllipse(BeamElement):
             }
 
     def __init__(
-        self, max_x=None, max_y=None, a_squ=None, b_squ=None,
+        self, max_x=UNLIMITED, max_y=UNLIMITED, a_squ=None, b_squ=None,
         a=None, b=None, **kwargs
     ):
-        if max_x is None:
-            max_x = 1.0
-        if max_y is None:
-            max_y = 1.0
 
         if a is None and a_squ is None:
-            a = 1.
+            raise ValueError("Horizontal semi-axis of ellipse not specified.")
 
         if b is None and b_squ is None:
-            b = 1.
+            raise ValueError("Horizontal semi-axis of ellipse not specified.")
 
         if a is not None:
             a_squ = a * a
@@ -311,6 +313,9 @@ class LongitudinalLimitRect(BeamElement):
         'min_pzeta': xo.Float64,
         'max_pzeta': xo.Float64,
         }
+
+    def __init__(self, min_zeta=-UNLIMITED, max_zeta=UNLIMITED, min_pzeta=-UNLIMITED, max_pzeta=UNLIMITED, **kwargs):
+        super().__init__(min_zeta=min_zeta, max_zeta=max_zeta, min_pzeta=min_pzeta, max_pzeta=max_pzeta, **kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
