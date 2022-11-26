@@ -30,7 +30,9 @@ betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
 r1 = np.sqrt(bety1)/np.sqrt(tw.betx)
 r2 = np.sqrt(betx2)/np.sqrt(tw.bety)
 
-cmin = np.sqrt(r1*r2)*np.abs(np.mod(tw.qx, 1) - np.mod(tw.qy,1))/(1+r1*r2)
+cmin_arr = 2*np.sqrt(r1*r2)*np.abs(np.mod(tw.qx, 1) - np.mod(tw.qy,1))/(1+r1*r2)
+
+cmin = np.trapz(cmin_arr, tw.s)/(tw.s[-1]-tw.s[0])
 
 import matplotlib.pyplot as plt
 plt.close('all')
