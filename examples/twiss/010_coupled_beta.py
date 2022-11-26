@@ -29,6 +29,8 @@ betx2 = tw.betx2
 
 cmin = tw.c_minus
 
+assert np.isclose(cmin, mad.table.summ.dqmin[0], rtol=0, atol=1e-5)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
