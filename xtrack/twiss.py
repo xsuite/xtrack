@@ -405,7 +405,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     # Computation of twiss parameters
 
     if use_full_inverse:
-        betx, alfx, gamx, bety, alfy, gamy = _extract_twiss_parameters_with_inverse(Ws)
+        betx, alfx, gamx, bety, alfy, gamy, bety1, betx2 = _extract_twiss_parameters_with_inverse(Ws)
     else:
         betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
         bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
@@ -415,6 +415,10 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 
         alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
         alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
+
+        bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
+        betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
+
 
     mux = np.unwrap(phix)/2/np.pi
     muy = np.unwrap(phiy)/2/np.pi
@@ -454,6 +458,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'muy': muy,
         'muzeta': muzeta,
         'W_matrix': W_matrix,
+        'bety1': bety1,
+        'betx2': betx2,
     }
 
     return twiss_res_element_by_element
@@ -1099,6 +1105,9 @@ def _extract_twiss_parameters_with_inverse(Ws):
     gamx = -BB[0, :, 1, 0]
     gamy = -BB[1, :, 3, 2]
 
+    bety1 = BB[0, :, 2, 3]
+    betx2 = BB[1, :, 0, 1]
+
     sign_x = np.sign(betx)
     sign_y = np.sign(bety)
     betx *= sign_x
@@ -1108,4 +1117,4 @@ def _extract_twiss_parameters_with_inverse(Ws):
     alfy *= sign_y
     gamy *= sign_y
 
-    return betx, alfx, gamx, bety, alfy, gamy
+    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2

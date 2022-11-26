@@ -24,8 +24,8 @@ tw = tracker.twiss()
 
 Ws = np.array(tw.W_matrix)
 
-bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
-betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
+bety1 = tw.bety1
+betx2 = tw.betx2
 
 r1 = np.sqrt(bety1)/np.sqrt(tw.betx)
 r2 = np.sqrt(betx2)/np.sqrt(tw.bety)
@@ -38,11 +38,11 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 sp1 = plt.subplot(211)
-plt.plot(tw.s, bety1, label='bety1')
+plt.plot(tw.s, tw.bety1, label='bety1')
 plt.plot(tw_mad_coupling.s, tw_mad_coupling.beta21, '--')
 plt.ylabel(r'$\beta_{1,y}$')
 plt.subplot(212, sharex=sp1)
-plt.plot(tw.s, betx2, label='betx2')
+plt.plot(tw.s, tw.betx2, label='betx2')
 plt.plot(tw_mad_coupling.s, tw_mad_coupling.beta12, '--')
 plt.ylabel(r'$\beta_{2,x}$')
 
