@@ -264,6 +264,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         r2 = (np.sqrt(twiss_res_element_by_element['betx2'])/
               np.sqrt(twiss_res_element_by_element['bety2']))
 
+        # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
         cmin_arr = (2 * np.sqrt(r1*r2) *
                     np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                     /(1 + r1 * r2))
@@ -1102,6 +1103,8 @@ def _renormalize_eigenvectors(Ws):
 
 
 def _extract_twiss_parameters_with_inverse(Ws):
+
+    # From E. Forest, "From tracking code to analysis", Sec 4.1.2
 
     BB = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
 
