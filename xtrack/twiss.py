@@ -419,6 +419,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
         betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
 
+    betx1 = betx
+    bety2 = bety
 
     mux = np.unwrap(phix)/2/np.pi
     muy = np.unwrap(phiy)/2/np.pi
@@ -458,8 +460,10 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'muy': muy,
         'muzeta': muzeta,
         'W_matrix': W_matrix,
+        'betx1': betx1,
         'bety1': bety1,
         'betx2': betx2,
+        'bety2': bety2,
     }
 
     return twiss_res_element_by_element
