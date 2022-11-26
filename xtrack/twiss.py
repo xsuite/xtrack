@@ -31,7 +31,8 @@ DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 log = logging.getLogger(__name__)
 
 def twiss_from_tracker(tracker, particle_ref=None, method='6d',
-        particle_on_co=None, R_matrix=None, W_matrix=None, delta0=None,
+        particle_on_co=None, R_matrix=None, W_matrix=None,
+        delta0=None, zeta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
         delta_disp=1e-5, delta_chrom = 1e-4,
         particle_co_guess=None, steps_r_matrix=None,
@@ -161,7 +162,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                                 particle_ref=particle_ref,
                                 co_search_settings=co_search_settings,
                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                delta0=delta0)
+                                delta0=delta0,
+                                zeta0=zeta0)
 
     if W_matrix is not None:
         W = W_matrix
@@ -186,12 +188,14 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                             particle_ref=particle_ref,
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                            delta0=delta0-delta_disp)
+                            delta0=delta0-delta_disp,
+                            zeta0=zeta0)
         p_disp_plus = tracker.find_closed_orbit(particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                            delta0=delta0+delta_disp)
+                            delta0=delta0+delta_disp,
+                            zeta0=zeta0)
         p_disp_minus.move(_context=xo.context_default)
         p_disp_plus.move(_context=xo.context_default)
         dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
@@ -583,7 +587,8 @@ class ClosedOrbitSearchError(Exception):
     pass
 
 def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
-                      co_search_settings=None, delta_zeta=0, delta0=None,
+                      co_search_settings=None, delta_zeta=0,
+                      delta0=None, zeta0=None,
                       continue_on_closed_orbit_error=False):
 
     if particle_co_guess is None:
@@ -627,12 +632,19 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
                     particle_co_guess._xobject.py[0] + shift_factor * 1e-7,
                     particle_co_guess._xobject.zeta[0] + shift_factor * 1e-4,
                     particle_co_guess._xobject.delta[0] + shift_factor * 1e-5])
-        if delta0 is not None:
+        if delta0 is not None and zeta0 is None:
             x0[5] = delta0
-            _error_for_co = _error_for_co_search_4d
+            _error_for_co = _error_for_co_search_4d_delta0
+        elif delta0 is None and zeta0 is not None:
+            x0[4] = zeta0
+            _error_for_co = _error_for_co_search_4d_zeta0
+        elif delta0 is not None and zeta0 is not None:
+            _error_for_co = _error_for_co_search_4d_delta0_zeta0
         else:
             _error_for_co = _error_for_co_search_6d
-        if np.all(np.abs(_error_for_co(x0, particle_co_guess, tracker, delta_zeta, delta0))
+        if zeta0 is not None:
+            x0[4] = zeta0
+        if np.all(np.abs(_error_for_co(x0, particle_co_guess, tracker, delta_zeta, delta0, zeta0))
                     < DEFAULT_CO_SEARCH_TOL):
             res = x0
             fsolve_info = 'taken_guess'
@@ -640,7 +652,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
             break
 
         (res, infodict, ier, mesg
-            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, tracker, delta_zeta, delta0),
+            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0),
                 x0=x0,
                 full_output=True,
                 **co_search_settings)
@@ -683,10 +695,10 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, particle_co_guess, tracker, delta_zeta, delta0):
+def _error_for_co_search_6d(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
     return p - _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
 
-def _error_for_co_search_4d(p, particle_co_guess, tracker, delta_zeta, delta0):
+def _error_for_co_search_4d_delta0(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
     one_turn_res = _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
     return np.array([
         p[0] - one_turn_res[0],
@@ -694,6 +706,26 @@ def _error_for_co_search_4d(p, particle_co_guess, tracker, delta_zeta, delta0):
         p[2] - one_turn_res[2],
         p[3] - one_turn_res[3],
         0,
+        p[5] - delta0])
+
+def _error_for_co_search_4d_zeta0(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
+    one_turn_res = _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
+    return np.array([
+        p[0] - one_turn_res[0],
+        p[1] - one_turn_res[1],
+        p[2] - one_turn_res[2],
+        p[3] - one_turn_res[3],
+        p[4] - zeta0,
+        0])
+
+def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
+    one_turn_res = _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
+    return np.array([
+        p[0] - one_turn_res[0],
+        p[1] - one_turn_res[1],
+        p[2] - one_turn_res[2],
+        p[3] - one_turn_res[3],
+        p[4] - zeta0,
         p[5] - delta0])
 
 def compute_one_turn_matrix_finite_differences(

@@ -30,6 +30,9 @@ mad.globals['lagrf400.b1'] = 0.5
 mad.globals['lagrf400.b2'] = 0.
 mad.twiss()
 mad.save(sequence=['lhcb1', 'lhcb2'], beam=True, file="sequence.madx")
+mad.call('../../../hllhc15/toolkit/enable_crabcavities.madx')
+mad.twiss()
+mad.save(sequence=['lhcb1'], beam=True, file="sequence_with_crabs.madx")
 
 mad_b4 = Madx()
 
