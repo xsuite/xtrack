@@ -22,10 +22,22 @@ tracker = line.build_tracker()
 
 tw = tracker.twiss()
 
-Ws = np.array(tw.W_matrix)
-
 bety1 = tw.bety1
 betx2 = tw.betx2
+
+twdf = tw.to_pandas()
+twdf.set_index('name', inplace=True)
+
+ips = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7', 'ip8']
+betx2_at_ips = twdf.loc[ips, 'betx2'].values
+bety1_at_ips = twdf.loc[ips, 'bety1'].values
+
+tw_mad_coupling.set_index('name', inplace=True)
+beta12_mad_at_ips = tw_mad_coupling.loc[[ip+':1' for ip in ips], 'beta12'].values
+beta21_mad_at_ips = tw_mad_coupling.loc[[ip+':1' for ip in ips], 'beta21'].values
+
+assert np.allclose(betx2_at_ips, beta12_mad_at_ips, rtol=1e-4, atol=0)
+assert np.allclose(bety1_at_ips, beta21_mad_at_ips, rtol=1e-4, atol=0)
 
 cmin = tw.c_minus
 
