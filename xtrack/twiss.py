@@ -232,6 +232,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     twiss_res['circumference'] = circumference
 
     if not skip_global_quantities:
+
+        s_vect = twiss_res_element_by_element['s']
         mux = twiss_res_element_by_element['mux']
         muy = twiss_res_element_by_element['muy']
 
@@ -256,11 +258,23 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         betz0 = W[4, 4]**2 + W[4, 5]**2
         ptau_co = twiss_res_element_by_element['ptau']
 
+        # Coupling
+        r1 = (np.sqrt(twiss_res_element_by_element['bety1'])/
+              np.sqrt(twiss_res_element_by_element['betx1']))
+        r2 = (np.sqrt(twiss_res_element_by_element['betx2'])/
+              np.sqrt(twiss_res_element_by_element['bety2']))
+
+        # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
+        cmin_arr = (2 * np.sqrt(r1*r2) *
+                    np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
+                    /(1 + r1 * r2))
+        c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
         twiss_res.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev': T_rev,
-            'particle_on_co':part_on_co.copy(_context=xo.context_default)
+            'particle_on_co':part_on_co.copy(_context=xo.context_default),
+            'c_minus': c_minus,
         })
         if hasattr(part_on_co, '_fsolve_info'):
             twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
@@ -405,7 +419,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     # Computation of twiss parameters
 
     if use_full_inverse:
-        betx, alfx, gamx, bety, alfy, gamy = _extract_twiss_parameters_with_inverse(Ws)
+        betx, alfx, gamx, bety, alfy, gamy, bety1, betx2 = _extract_twiss_parameters_with_inverse(Ws)
     else:
         betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
         bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
@@ -415,6 +429,12 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 
         alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
         alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
+
+        bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
+        betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
+
+    betx1 = betx
+    bety2 = bety
 
     mux = np.unwrap(phix)/2/np.pi
     muy = np.unwrap(phiy)/2/np.pi
@@ -454,6 +474,10 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'muy': muy,
         'muzeta': muzeta,
         'W_matrix': W_matrix,
+        'betx1': betx1,
+        'bety1': bety1,
+        'betx2': betx2,
+        'bety2': bety2,
     }
 
     return twiss_res_element_by_element
@@ -1080,6 +1104,8 @@ def _renormalize_eigenvectors(Ws):
 
 def _extract_twiss_parameters_with_inverse(Ws):
 
+    # From E. Forest, "From tracking code to analysis", Sec 4.1.2
+
     BB = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
 
     for ii in range(3):
@@ -1099,6 +1125,9 @@ def _extract_twiss_parameters_with_inverse(Ws):
     gamx = -BB[0, :, 1, 0]
     gamy = -BB[1, :, 3, 2]
 
+    bety1 = np.abs(BB[0, :, 2, 3])
+    betx2 = np.abs(BB[1, :, 0, 1])
+
     sign_x = np.sign(betx)
     sign_y = np.sign(bety)
     betx *= sign_x
@@ -1108,4 +1137,4 @@ def _extract_twiss_parameters_with_inverse(Ws):
     alfy *= sign_y
     gamy *= sign_y
 
-    return betx, alfx, gamx, bety, alfy, gamy
+    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
