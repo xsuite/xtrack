@@ -232,6 +232,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     twiss_res['circumference'] = circumference
 
     if not skip_global_quantities:
+
+        s_vect = twiss_res_element_by_element['s']
         mux = twiss_res_element_by_element['mux']
         muy = twiss_res_element_by_element['muy']
 
@@ -256,11 +258,22 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         betz0 = W[4, 4]**2 + W[4, 5]**2
         ptau_co = twiss_res_element_by_element['ptau']
 
+        # Coupling
+        r1 = (np.sqrt(twiss_res_element_by_element['bety1'])/
+              np.sqrt(twiss_res_element_by_element['betx1']))
+        r2 = (np.sqrt(twiss_res_element_by_element['betx2'])/
+              np.sqrt(twiss_res_element_by_element['bety2']))
+
+        cmin_arr = (2 * np.sqrt(r1*r2) *
+                    np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
+                    /(1 + r1 * r2))
+        c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
         twiss_res.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev': T_rev,
-            'particle_on_co':part_on_co.copy(_context=xo.context_default)
+            'particle_on_co':part_on_co.copy(_context=xo.context_default),
+            'c_minus': c_minus,
         })
         if hasattr(part_on_co, '_fsolve_info'):
             twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
@@ -1109,8 +1122,8 @@ def _extract_twiss_parameters_with_inverse(Ws):
     gamx = -BB[0, :, 1, 0]
     gamy = -BB[1, :, 3, 2]
 
-    bety1 = BB[0, :, 2, 3]
-    betx2 = BB[1, :, 0, 1]
+    bety1 = np.abs(BB[0, :, 2, 3])
+    betx2 = np.abs(BB[1, :, 0, 1])
 
     sign_x = np.sign(betx)
     sign_y = np.sign(bety)

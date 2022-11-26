@@ -11,7 +11,7 @@ mad.use('lhcb1')
 tw_mad_no_coupling = mad.twiss(ripken=True).dframe()
 
 # introduce coupling
-mad.sequence.lhcb1.expanded_elements[7].ksl = [0,1e-3]
+mad.sequence.lhcb1.expanded_elements[7].ksl = [0,1e-4]
 
 tw_mad_coupling = mad.twiss(ripken=True).dframe()
 
@@ -27,12 +27,7 @@ Ws = np.array(tw.W_matrix)
 bety1 = tw.bety1
 betx2 = tw.betx2
 
-r1 = np.sqrt(bety1)/np.sqrt(tw.betx)
-r2 = np.sqrt(betx2)/np.sqrt(tw.bety)
-
-cmin_arr = 2*np.sqrt(r1*r2)*np.abs(np.mod(tw.qx, 1) - np.mod(tw.qy,1))/(1+r1*r2)
-
-cmin = np.trapz(cmin_arr, tw.s)/(tw.s[-1]-tw.s[0])
+cmin = tw.c_minus
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -45,5 +40,9 @@ plt.subplot(212, sharex=sp1)
 plt.plot(tw.s, tw.betx2, label='betx2')
 plt.plot(tw_mad_coupling.s, tw_mad_coupling.beta12, '--')
 plt.ylabel(r'$\beta_{2,x}$')
-
+plt.suptitle(r'Xsuite: $C^{-}$'
+             f" = {cmin:.2e} "
+             r"MAD-X: $C^{-}$ = "
+             f"{mad.table.summ.dqmin[0]:.2e}"
+             )
 plt.show()
