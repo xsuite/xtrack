@@ -36,8 +36,8 @@ mode = 'pic'
 # Choose a context #
 ####################
 
-#context = xo.ContextCpu()
-context = xo.ContextCupy()
+context = xo.ContextCpu()
+#context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 print(context)
@@ -96,8 +96,7 @@ else:
 # Build Tracker #
 #################
 
-tracker = xt.Tracker(_context=context,
-                    line=line)
+tracker = line.build_tracker(_context=context)
 tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################

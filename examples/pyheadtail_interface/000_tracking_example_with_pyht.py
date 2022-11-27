@@ -44,7 +44,7 @@ line.append_element(damper, 'Damper')
 #################
 # Build tracker #
 #################
-tracker = line.build_tracker(_context=context, line=line)
+tracker = line.build_tracker(_context=context)
 
 ######################
 # Get some particles #
