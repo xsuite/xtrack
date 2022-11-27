@@ -28,7 +28,7 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                                  gamma0=mad.sequence.lhcb1.beam.gamma)
 
 # Build tracker
-tracker = xt.Tracker(line=line)
+tracker = line.build_tracker()
 
 #########################################################################
 # MAD-X variables can be found in `tracker.vars` or, equivalently, in   #
