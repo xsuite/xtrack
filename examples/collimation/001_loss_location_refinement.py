@@ -58,16 +58,15 @@ trk_aper_1 = xt.Tracker(_buffer=buf, line=xt.Line(
 # Build tracker #
 #################
 
-tracker = xt.Tracker(_buffer=buf, line=xt.Line(
+line=xt.Line(
     elements = ((xt.Drift(_buffer=buf, length=0.5),)
                 + trk_aper_0.line.elements
                 + (xt.Drift(_buffer=buf, length=1),
-                   xt.Multipole(_buffer=buf, knl=[1e-3]),
                    xt.Drift(_buffer=buf, length=1),
-                   xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
                    xt.Drift(_buffer=buf, length=1.),)
-                + trk_aper_1.line.elements)))
-num_elements = len(tracker.line.elements)
+                + trk_aper_1.line.elements))
+tracker = line.build_tracker(_buffer=buf)
+num_elements = len(tracker.line.element_names)
 
 # Generate test particles
 particles = xp.Particles(_context=ctx,
