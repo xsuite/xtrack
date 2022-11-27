@@ -36,7 +36,6 @@ line.particle_ref = xp.Particles(
 
 # Build tracker
 print('Build tracker ...')
-tracker = xt.Tracker(line=line)
 line.build_tracker()
 
 ################################
