@@ -1,0 +1,69 @@
+{
+    "default_only_xtrack": {
+        "config": {
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
+        ]
+    },
+    "default_bb3d": {
+        "config": {
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole",
+            "BeamBeamBiGaussian2D",
+            "BeamBeamBiGaussian3D"
+        ]
+    },
+    "default_spacecharge": {
+        "config": {
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole",
+            "BeamBeamBiGaussian2D",
+            "SpaceChargeBiGaussian"
+        ]
+    }
+}

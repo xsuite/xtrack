@@ -4,6 +4,7 @@
 # ######################################### #
 
 from time import perf_counter
+from typing import Literal, Union
 import logging
 from functools import partial
 from contextlib import contextmanager
@@ -26,6 +27,7 @@ from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
                     find_closed_orbit, match_tracker, twiss_from_tracker)
 from .tapering import compensate_radiation_energy_loss
+from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ logger = logging.getLogger(__name__)
 def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
     return iscoll
+
 
 class Tracker:
 
@@ -352,15 +355,13 @@ class Tracker:
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
 
-        if track_kernel is None:
-            track_kernel = {}
-        self.track_kernel = track_kernel
+        self.track_kernel = track_kernel or {}
 
         self.track = self._track_no_collective
         self._radiation_model = None
 
         if compile:
-            _ = self._current_track_kernel # This triggers compilation
+            _ = self._current_track_kernel  # This triggers compilation
 
     def optimize_for_tracking(self, compile=True):
         """Optimize the tracker for tracking speed.
@@ -684,11 +685,37 @@ class Tracker:
     def _context(self):
         return self._buffer.context
 
-    def _build_kernel(self, compile):
+    def _build_kernel(
+            self,
+            compile: Union[bool, Literal['force']],
+            module_name=None,
+            containing_dir='.',
+    ):
+        if compile != 'force' and isinstance(self._context, xo.ContextCpu):
+            kernel_info = get_suitable_kernel(
+                self.config, self.element_classes
+            )
+            if kernel_info:
+                module_name, modules_classes = kernel_info
+                kernel_description = self.get_kernel_descriptions()['track_line']
+                kernels = self._context.kernels_from_file(
+                    module_name=module_name,
+                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    kernel_descriptions={'track_line': kernel_description},
+                )
+                self._context.kernels.update(kernels)
+                self._current_track_kernel = self._context.kernels['track_line']
+                self.element_classes = [cls._XoStruct for cls in modules_classes]
+                self._tracker_data = TrackerData(
+                    line=self.line,
+                    element_classes=self.element_classes,
+                    _context=self._context,
+                    _buffer=self._buffer,
+                )
+                return
 
         context = self._tracker_data._buffer.context
 
-        kernels = {}
         headers = []
 
         headers.extend(self.extra_headers)
@@ -820,8 +847,42 @@ class Tracker:
 
         source_track = "\n".join(src_lines)
 
+        kernels = self.get_kernel_descriptions(context)
+
+        # Compile!
+        if isinstance(self._context, xo.ContextCpu):
+            kwargs = {
+                'containing_dir': containing_dir,
+                'module_name': module_name,
+            }
+        else:
+            # Saving kernels is unsupported on GPU
+            kwargs = {}
+
+        out_kernels = context.build_kernels(
+            sources=[source_track],
+            kernel_descriptions=kernels,
+            extra_headers=self._config_to_headers() + headers,
+            extra_classes=self.element_classes,
+            apply_to_source=[
+                partial(_handle_per_particle_blocks,
+                        local_particle_src=self.local_particle_src)],
+            specialize=True,
+            compile=compile,
+            save_source_as=f'{module_name}.c' if module_name else None,
+            **kwargs,
+        )
+        context.kernels.update(out_kernels)
+
+        self._current_track_kernel = context.kernels.track_line
+
+    def get_kernel_descriptions(self, _context=None):
+        if not _context:
+            _context = self._context
+
         kernel_descriptions = {
             "track_line": xo.Kernel(
+                c_name='track_line',
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(self._tracker_data._element_ref_data.__class__, name="tracker_data"),
@@ -839,28 +900,10 @@ class Tracker:
             )
         }
 
-        # Internal API can be exposed only on CPU
-        if not isinstance(context, xo.ContextCpu):
-            kernels = {}
-        kernels.update(kernel_descriptions)
-
         # Random number generator init kernel
-        kernels.update(self.particles_class._kernels)
+        kernel_descriptions.update(self.particles_class._kernels)
 
-        # Compile!
-        context.add_kernels(
-            [source_track],
-            kernels,
-            extra_headers=self._config_to_headers() + headers,
-            extra_classes=self.element_classes,
-            apply_to_source=[
-                partial(_handle_per_particle_blocks,
-                        local_particle_src=self.local_particle_src)],
-            specialize=True,
-            compile=compile
-        )
-
-        self._current_track_kernel = context.kernels.track_line
+        return kernel_descriptions
 
     def _prepare_collective_track_session(self, particles, ele_start, ele_stop,
                                        num_elements, num_turns, turn_by_turn_monitor):
@@ -1559,7 +1602,10 @@ def freeze_longitudinal(tracker):
         yield None
     finally:
         tracker.config = config
-_freeze_longitudinal = freeze_longitudinal # to avoid name clash with function argument
+
+
+_freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
+
 
 class TrackerConfig(dict):
     def __init__(self, *args, **kwargs):

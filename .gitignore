@@ -11,3 +11,5 @@ examples/*/res/*
 *.egg-info
 __pycache__
 .pytest_cache
+xtrack/prebuilt_kernels
+!xtrack/prebuilt_kernels/_kernel_definitions.json
