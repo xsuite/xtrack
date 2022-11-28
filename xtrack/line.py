@@ -244,6 +244,7 @@ class Line:
         # add drifts
         element_objects = []
         element_names = []
+        drifts = {}
         last_s = 0
         for node in node:
             if node.s < last_s:
@@ -251,10 +252,12 @@ class Line:
             if _is_thick(node.what):
                 raise NotImplementedError(f'Thick elements currently not implemented: {node.name}')
 
-            # insert drift if needed
+            # insert drift as needed (re-use if possible)
             if node.s > last_s:
-                # TODO: re-use drifts of same length if possible
-                element_objects.append(Drift(length=node.s - last_s))
+                ds = node.s - last_s
+                if ds not in drifts:
+                    drifts[ds] = Drift(length=ds)
+                element_objects.append(drifts[ds])
                 element_names.append(_next_name('drift', element_names, naming_scheme))
 
             # insert element
