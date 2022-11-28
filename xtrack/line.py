@@ -685,6 +685,20 @@ class Line:
         else:
             return s
 
+    def remove_marker(self, inplace=True):
+        if not inplace:
+            raise NotImplementedError
+        self._frozen_check()
+
+        names = []
+        for ee, nn in zip(self.elements, self.element_names):
+            if isinstance(ee, Marker):
+                continue
+            names.append(nn)
+
+        self.element_names = names
+        return self
+
     def remove_inactive_multipoles(self, inplace=True):
 
         self._frozen_check()

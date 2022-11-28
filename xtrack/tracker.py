@@ -378,6 +378,9 @@ class Tracker:
         # Unfreeze the line
         line.element_names = list(line.element_names)
 
+        print("Remove marker")
+        line.remove_marker()
+
         print("Remove inactive multipoles")
         line.remove_inactive_multipoles()
 

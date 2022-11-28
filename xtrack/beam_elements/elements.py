@@ -30,6 +30,23 @@ class ReferenceEnergyIncrease(BeamElement):
         return self.__class__(Delta_p0c=-self.Delta_p0c,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+class Marker(BeamElement):
+    """A marker beam element with no effect on the particles.
+
+    Parameters:
+        - name (str): Name of the element
+    """
+
+    _fields = []  # TODO: workaround for https://github.com/xsuite/xobjects/pull/78
+    _xofields = {}
+
+    _extra_c_sources = [
+        "/*gpufun*/\n"
+        "void Marker_track_local_particle(MarkerData el, LocalParticle* part0){}"
+    ]
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(_context=_context, _buffer=_buffer, _offset=_offset)
 
 class Drift(BeamElement):
     '''Beam element modeling a drift section. Parameters:
