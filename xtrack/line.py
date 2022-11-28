@@ -16,7 +16,7 @@ import xpart as xp
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
-from .beam_elements import Drift, BeamElement
+from .beam_elements import Drift, BeamElement, Marker
 
 log = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, nami
 
         # place nested sequences by recursion
         if sequence is not None:
-            #TODO: insert marker to be able to use sequence name with from_
+            flat_nodes.append(Node(s, Marker(), name=name))
             for sub in flatten_sequence(sequence, elements=elements, sequences=sequences, copy_elements=copy_elements, naming_scheme=naming_scheme):
                 sub_name = naming_scheme.format(name, sub.name)
                 flat_nodes.append(Node(s + sub.s, sub.what, name=sub_name))
