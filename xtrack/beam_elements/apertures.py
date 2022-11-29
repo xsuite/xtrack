@@ -11,7 +11,7 @@ from ..base_element import BeamElement
 from ..general import _pkg_root
 
 
-UNLIMITED = 1e50  # could use np.inf but better save than sorry
+UNLIMITED = 1e10  # could use np.inf but better save than sorry
 
 
 class LimitRect(BeamElement):
@@ -21,10 +21,10 @@ class LimitRect(BeamElement):
         'min_y': xo.Float64,
         'max_y': xo.Float64,
         }
-    
+
     def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, **kwargs):
         """A rectangular aperture
-        
+
         Args:
             min_x (float): Lower x limit in m
             max_x (float): Upper x limit in m
@@ -55,9 +55,9 @@ class LimitRacetrack(BeamElement):
 
     def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, a=0, b=0, **kwargs):
         """A racetrack shaped aperture
-        
+
         This is a rectangular aperture with rounded corners
-        
+
         Args:
             min_x (float): Lower x limit in m
             max_x (float): Upper x limit in m
@@ -87,17 +87,17 @@ class LimitEllipse(BeamElement):
 
     def __init__(self, a=None, b=None, a_squ=None, b_squ=None, **kwargs):
         """An elliptical aperture
-        
+
         Args:
             a (float): Horizontal semi-axis of ellipse in m
             b (float): Vertical semi-axis of ellipse in m
         """
 
         if a is None and a_squ is None:
-            raise ValueError("Horizontal semi-axis of ellipse not specified.")
+            a = UNLIMITED
 
         if b is None and b_squ is None:
-            raise ValueError("Horizontal semi-axis of ellipse not specified.")
+            b = UNLIMITED
 
         if a is not None:
             a_squ = a * a
@@ -165,9 +165,9 @@ class LimitPolygon(BeamElement):
 
     def __init__(self, x_vertices=None, y_vertices=None, **kwargs):
         """An aperture of arbitrary shape described by a polygon
-        
+
         Note: The polygon is closed automatically by connecting the last and first vertices.
-        
+
         Args:
             x_vertices (list of float): Horizontal coordinates of the vertices in m
             y_vertices (list of float): Vertical coordinates of the vertices in m
@@ -284,9 +284,9 @@ class LimitRectEllipse(BeamElement):
         a=None, b=None, **kwargs
     ):
         """An intersection of a symmetric LimitRect and a LimitEllipse
-        
+
         The particles are lost if they exceed either the rect or ellipse aperture
-        
+
         Args:
             max_x (float): Horizontal semi-axis of rect in m
             max_y (float): Vertical semi-axis of rect in m
@@ -295,10 +295,10 @@ class LimitRectEllipse(BeamElement):
         """
 
         if a is None and a_squ is None:
-            raise ValueError("Horizontal semi-axis of ellipse not specified.")
+            a = UNLIMITED
 
         if b is None and b_squ is None:
-            raise ValueError("Horizontal semi-axis of ellipse not specified.")
+            b = UNLIMITED
 
         if a is not None:
             a_squ = a * a
@@ -352,9 +352,9 @@ class LongitudinalLimitRect(BeamElement):
 
     def __init__(self, min_zeta=-UNLIMITED, max_zeta=UNLIMITED, min_pzeta=-UNLIMITED, max_pzeta=UNLIMITED, **kwargs):
         """A limit on longitudinal coordinates
-        
+
         Particles are lost if they exceed either of the limits placed on the longitudinal coordinates
-        
+
         Args:
             min_zeta (float): lower limit on zeta coordinate in m
             max_zeta (float): upper limit on zeta coordinate in m
