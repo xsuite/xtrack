@@ -429,7 +429,7 @@ class Tracker:
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
                           co_search_settings={}, delta_zeta=0,
-                          delta0=None, zeta0=0,
+                          delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False):
 
