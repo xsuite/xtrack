@@ -12,9 +12,11 @@ from scipy.constants import epsilon_0
 import xpart as xp
 import xtrack as xt
 import xobjects as xo
+from xpart.test_helpers import retry
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
+
 
 def test_radiation():
 
@@ -81,6 +83,7 @@ def test_radiation():
                           atol=0, rtol=1e-6)
 
 
+@retry(on=AssertionError)
 def test_ring_with_radiation():
 
     from cpymad.madx import Madx
@@ -123,7 +126,7 @@ def test_ring_with_radiation():
         tracker = xt.Tracker(line=line, _context=context)
         tracker.matrix_stability_tol = 1e-2
 
-        tracker.configure_radiation(mode='mean')
+        tracker.configure_radiation(model='mean')
 
         # Twiss
         tw = tracker.twiss(eneloss_and_damping=True)
@@ -158,13 +161,13 @@ def test_ring_with_radiation():
             rtol=3e-3, atol=0
             )
 
-        tracker.configure_radiation(mode='mean')
+        tracker.configure_radiation(model='mean')
         part_co = tracker.find_closed_orbit()
         par_for_emit = xp.build_particles(tracker=tracker, _context=context,
                                         x_norm=50*[0],
                                         zeta=part_co.zeta[0], delta=part_co.delta[0],
                                         )
-        tracker.configure_radiation(mode='quantum')
+        tracker.configure_radiation(model='quantum')
 
         num_turns=1500
         tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
@@ -189,7 +192,7 @@ def test_ring_with_radiation():
         nemitt_x = 0.5e-6
         nemitt_y = 0.5e-6
 
-        tracker.configure_radiation(mode='mean')
+        tracker.configure_radiation(model='mean')
         pgen = xp.generate_matched_gaussian_bunch(
                 num_particles=n_part, total_intensity_particles=bunch_intensity,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,

@@ -10,7 +10,9 @@
 #define ALPHA_EM 0.0072973525693
 
 /*gpufun*/
-void synrad_average_kick(LocalParticle* part, double curv, double lpath){
+void synrad_average_kick(LocalParticle* part, double curv, double lpath,
+                         double* dp_record, double* dpx_record, double* dpy_record
+                        ){
     double const gamma0  = LocalParticle_get_gamma0(part);
     double const beta0  = LocalParticle_get_beta0(part);
     double const mass0 = LocalParticle_get_mass0(part);
@@ -25,11 +27,44 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath){
                         * lpath * (1 + delta);
 
     double const beta = beta0 * LocalParticle_get_rvv(part);
-    double const f_t = sqrt(1 + r*(r-2)/(beta*beta));
+    double f_t = sqrt(1 + r*(r-2)/(beta*beta));
+
+    #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
+    if (part -> ipart == 0){
+      *dp_record = f_t;
+    }
+    else{
+      f_t = *dp_record;
+    }
+    #endif
+
+    #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+    if (part -> ipart == 0){
+      *dp_record = LocalParticle_get_delta(part);
+      *dpx_record = LocalParticle_get_px(part);
+      *dpy_record = LocalParticle_get_py(part);
+    }
+    else{
+      f_t = 1.0;
+    }
+    #endif
 
     LocalParticle_update_delta(part, (delta+1) * f_t - 1);
     LocalParticle_scale_px(part, f_t);
     LocalParticle_scale_py(part, f_t);
+
+    #ifdef XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+    if (part -> ipart == 0){
+      *dp_record = LocalParticle_get_delta(part) - *dp_record;
+      *dpx_record = LocalParticle_get_px(part) - *dpx_record;
+      *dpy_record = LocalParticle_get_py(part) - *dpy_record;
+    }
+    else{
+      LocalParticle_update_delta(part, LocalParticle_get_delta(part) + *dp_record);
+      LocalParticle_add_to_px(part, *dpx_record);
+      LocalParticle_add_to_py(part, *dpy_record);
+    }
+    #endif
 }
 
 /*gpufun*/

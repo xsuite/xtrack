@@ -163,6 +163,8 @@ xt.stop_internal_logging(elements=[test_element1, test_element2])
 test_element1.track(part)
 test_element2.track(part)
 
+# The record can be accessed from test_element1.record and test_element2.record
+
 #!end-doc-part
 
 # Checks

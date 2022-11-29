@@ -23,7 +23,12 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
 
         double const energy   = q * CavityData_get_voltage(el) * sin(phase);
 
+        #ifdef XTRACK_CAVITY_PRESERVE_ANGLE
+        LocalParticle_add_to_energy(part, energy, 0);
+        #else
         LocalParticle_add_to_energy(part, energy, 1);
+        #endif
+
     //end_per_particle_block
 }
 

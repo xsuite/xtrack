@@ -36,7 +36,7 @@ line.particle_ref = xp.Particles(
 
 # Build tracker
 print('Build tracker ...')
-tracker = xt.Tracker(line=line)
+line.build_tracker()
 
 ################################
 # Enable synchrotron radiation #
@@ -44,15 +44,12 @@ tracker = xt.Tracker(line=line)
 
 # we choose the `mean` mode in which the mean power loss is applied without
 # stochastic fluctuations (quantum excitation).
-tracker.configure_radiation(mode='mean')
+tracker.configure_radiation(model='mean')
 
 #########
 # Twiss #
 #########
 
-# In the presence of radiation the stability tolerance needs to be increded to
-# allow twiss matrix determinant to be different from one.
-tracker.matrix_stability_tol = 1e-2
 tw = tracker.twiss(eneloss_and_damping=True)
 
 # By setting `eneloss_and_damping=True` we can get additional information
@@ -67,7 +64,7 @@ tw = tracker.twiss(eneloss_and_damping=True)
 
 # Build three particles (with action in x,y and zeta respectively)
 part_co = tw['particle_on_co']
-particles = xp.build_particles(tracker=tracker,
+particles = tracker.build_particles(
     x_norm=[500., 0, 0], y_norm=[0, 500, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     nemitt_x=1e-9, nemitt_y=1e-9)
@@ -93,7 +90,7 @@ mon_mean_mode = tracker.record_last_track
 #            to quantum mode only after having generated the particles.
 
 
-tracker.configure_radiation(mode='quantum')
+tracker.configure_radiation(model='quantum')
 
 # We reuse the initial state saved before
 particles = particles_0.copy()

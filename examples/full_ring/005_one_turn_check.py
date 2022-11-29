@@ -13,8 +13,6 @@ import xpart as xp
 
 import ducktrack as dtk
 
-from make_short_line import make_short_line
-
 short_test = False # Short line (5 elements)
 
 test_data_folder = pathlib.Path(
@@ -69,8 +67,6 @@ if short_test:
 print('Build tracker...')
 tracker = xt.Tracker(_context=context,
             line=line,
-            particles_class=xp.Particles,
-            save_source_as='source.c',
             reset_s_at_end_turn=False
             )
 

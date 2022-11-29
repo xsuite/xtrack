@@ -134,13 +134,9 @@ def test_twiss_and_survey():
 
                 print(f"Simplified: {simplified}")
 
-                twxt = tracker.twiss()
-                twxt4d = tracker.twiss(method='4d')
-                survxt = tracker.survey(**surv_starting_point)
-                if reverse:
-                    twxt = twxt.reverse()
-                    twxt4d = twxt4d.reverse()
-                    survxt = survxt.reverse(**surv_starting_point)
+                twxt = tracker.twiss(reverse=reverse)
+                twxt4d = tracker.twiss(method='4d', reverse=reverse)
+                survxt = tracker.survey(**surv_starting_point, reverse=reverse)
 
                 assert len(twxt.name) == len(tracker.line.element_names) + 1
 
@@ -156,13 +152,9 @@ def test_twiss_and_survey():
                 tw_init = tracker.twiss().get_twiss_init(at_element=range_for_partial_twiss[0])
                 tw4d_init = tracker.twiss(method='4d').get_twiss_init(at_element=range_for_partial_twiss[0])
                 tw_part = tracker.twiss(ele_start=range_for_partial_twiss[0],
-                                        ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
+                                        ele_stop=range_for_partial_twiss[1], twiss_init=tw_init, reverse=reverse)
                 tw4d_part = tracker.twiss(method='4d', ele_start=range_for_partial_twiss[0],
-                                        ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
-
-                if reverse:
-                    tw_part = tw_part.reverse()
-                    tw4d_part = tw4d_part.reverse()
+                                        ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init, reverse=reverse)
 
                 ipart_start = tracker.line.element_names.index(range_for_partial_twiss[0])
                 ipart_stop = tracker.line.element_names.index(range_for_partial_twiss[1])
@@ -402,7 +394,31 @@ def test_line_import_from_madx():
         dtest = ee_test.to_dict()
         dref = ee_six.to_dict()
 
+        skip_order = False
+        if isinstance(ee_test, xt.Multipole):
+            if ee_test.order != ee_six.order:
+                min_order = min(ee_test.order, ee_six.order)
+                if len(dtest['knl']) > min_order+1:
+                    assert np.all(dtest['knl'][min_order+1]  == 0)
+                    dtest['knl'] = dtest['knl'][:min_order+1]
+                if len(dref['knl']) > min_order+1:
+                    assert np.all(dref['knl'][min_order+1]  == 0)
+                    dref['knl'] = dref['knl'][:min_order+1]
+                if len(dtest['ksl']) > min_order+1:
+                    assert np.all(dtest['ksl'][min_order+1]  == 0)
+                    dtest['ksl'] = dtest['ksl'][:min_order+1]
+                if len(dref['ksl']) > min_order+1:
+                    assert np.all(dref['ksl'][min_order+1]  == 0)
+                    dref['ksl'] = dref['ksl'][:min_order+1]
+                skip_order = True
+
         for kk in dtest.keys():
+
+            if skip_order and kk == 'order':
+                continue
+
+            if skip_order and kk == 'inv_factorial_order':
+                continue
 
             # Check if they are identical
             if np.isscalar(dref[kk]) and dtest[kk] == dref[kk]:

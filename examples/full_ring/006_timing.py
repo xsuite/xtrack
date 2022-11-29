@@ -14,7 +14,6 @@ import xpart as xp
 
 import ducktrack as dtk
 
-from make_short_line import make_short_line
 import time
 
 
@@ -63,21 +62,8 @@ context = xo.ContextCpu(omp_num_threads=0)
 # Load file #
 #############
 
-if str(fname_line_particles).endswith('.pkl'):
-    with open(fname_line_particles, 'rb') as fid:
-        input_data = pickle.load(fid)
-elif str(fname_line_particles).endswith('.json'):
-    with open(fname_line_particles, 'r') as fid:
-        input_data = json.load(fid)
-
-# # Force remove bb
-# line_dict = input_data['line']
-# for ii, ee in enumerate(line_dict['elements']):
-#     if ee['__class__'] == 'BeamBeam6D' or ee['__class__'] == 'BeamBeam4D':
-#         line_dict['elements'][ii] = {}
-#         ee = line_dict['elements'][ii]
-#         ee['__class__'] = 'Drift'
-#         ee['length'] = 0.
+with open(fname_line_particles, 'r') as fid:
+    input_data = json.load(fid)
 
 ##############
 # Get a line #
@@ -85,17 +71,13 @@ elif str(fname_line_particles).endswith('.json'):
 
 print('Import line')
 line= xt.Line.from_dict(input_data['line'])
-if short_test:
-    line = make_short_line(line)
 
 ##################
 # Build TrackJob #
 ##################
 
 print('Build tracker')
-tracker = xt.Tracker(_context=context,
-                     line=line,
-                     reset_s_at_end_turn=False)
+tracker = line.build_tracker(_context=context, reset_s_at_end_turn=False)
 
 ######################
 # Get some particles #
@@ -117,13 +99,9 @@ particles = xp.build_particles(_context=context,
 particles_before_tracking = particles.copy(_context=xo.ContextCpu())
 print('Track!')
 print(f'context: {tracker._buffer.context}')
-t1 = time.time()
-tracker.track(particles, num_turns=num_turns)
-context.synchronize()
-t2 = time.time()
-print(f'Time {(t2-t1)*1000:.2f} ms')
-print(f'Time {(t2-t1)*1e6/num_turns/n_part:.2f} us/part/turn')
-
+tracker.track(particles, num_turns=num_turns, time=True)
+print(f'Time {(tracker.time_last_track)*1000:.2f} ms')
+print(f'Time {(tracker.time_last_track)*1e6/num_turns/n_part:.2f} us/part/turn')
 
 ###########################
 # Check against ducktrack #

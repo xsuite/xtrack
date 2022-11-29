@@ -66,7 +66,7 @@ tracker = xt.Tracker(_context=context,
              xt.Drift(length=1.0),
              xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend)
             ]))
-tracker.line.configure_radiation(mode='quantum')
+tracker.configure_radiation(model='quantum')
 record = tracker.start_internal_logging_for_elements_of_type(xt.Multipole,
                                                             capacity=int(10e6))
 particles_test = xp.Particles(

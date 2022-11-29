@@ -3,15 +3,18 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import pathlib
 import json
-import numpy as np
+import pathlib
 
+import numpy as np
+import xfields as xf
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-import xfields as xf
+from xpart.test_helpers import retry
 
+
+@retry(on=AssertionError)
 def test_ring_with_spacecharge():
 
     test_data_folder = pathlib.Path(
@@ -20,11 +23,11 @@ def test_ring_with_spacecharge():
                       'line_no_spacecharge_and_particle.json')
 
     # Test settings (fast but inaccurate)
-    bunch_intensity = 1e11/3 # Need short bunch to avoid bucket non-linearity
+    bunch_intensity = 1e11/3  # Need short bunch to avoid bucket non-linearity
     sigma_z = 22.5e-2/3
-    nemitt_x=2.5e-6
-    nemitt_y=2.5e-6
-    n_part=int(1e6/10)*10
+    nemitt_x = 2.5e-6
+    nemitt_y = 2.5e-6
+    n_part = int(1e6/10)*10
     nz_grid = 100//20
     z_range = (-3*sigma_z/40, 3*sigma_z/40)
 
@@ -46,18 +49,17 @@ def test_ring_with_spacecharge():
         z0=0.,
         q_parameter=1.)
 
-
     ##################
     # Make particles #
     ##################
-    tracker_temp=xt.Tracker(# I make a temp tracker to gen. particles only once 
+    tracker_temp = xt.Tracker(  # I make a temp tracker to gen. particles only once
             line=line0_no_sc.filter_elements(exclude_types_starting_with='SpaceCh'))
     import warnings
     warnings.filterwarnings('ignore')
     particle_probe = xp.build_particles(
                 tracker=tracker_temp,
                 particle_ref=particle_ref,
-                weight=0, # pure probe particles
+                weight=0,  # pure probe particles
                 zeta=0, delta=0,
                 x_norm=2, px_norm=0,
                 y_norm=2, py_norm=0,
@@ -99,13 +101,14 @@ def test_ring_with_spacecharge():
 
             warnings.filterwarnings('ignore')
             line = line0_no_sc.copy()
-            xf.install_spacecharge_frozen(line=line,
-                           particle_ref=particle_ref,
-                           longitudinal_profile=lprofile,
-                           nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                           sigma_z=sigma_z,
-                           num_spacecharge_interactions=num_spacecharge_interactions,
-                           tol_spacecharge_position=tol_spacecharge_position)
+            xf.install_spacecharge_frozen(
+                    line=line,
+                    particle_ref=particle_ref,
+                    longitudinal_profile=lprofile,
+                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                    sigma_z=sigma_z,
+                    num_spacecharge_interactions=num_spacecharge_interactions,
+                    tol_spacecharge_position=tol_spacecharge_position)
             warnings.filterwarnings('default')
 
             ##########################
@@ -134,7 +137,7 @@ def test_ring_with_spacecharge():
             # Build Tracker #
             #################
             tracker = xt.Tracker(_context=context,
-                                line=line)
+                                 line=line)
 
             ###############################
             # Tune shift from single turn #
@@ -158,8 +161,8 @@ def test_ring_with_spacecharge():
             alfx = tw['alfx'][0]
             print(f'{alfx=} {betx=}')
             phasex_0 = np.angle(p_probe_before['x'] / np.sqrt(betx) -
-                               1j*(p_probe_before['x'] * alfx / np.sqrt(betx) +
-                                   p_probe_before['px'] * np.sqrt(betx)))[0]
+                                1j*(p_probe_before['x'] * alfx / np.sqrt(betx) +
+                                p_probe_before['px'] * np.sqrt(betx)))[0]
             phasex_1 = np.angle(p_probe_after['x'] / np.sqrt(betx) -
                                1j*(p_probe_after['x'] * alfx / np.sqrt(betx) +
                                    p_probe_after['px'] * np.sqrt(betx)))[0]
@@ -167,11 +170,11 @@ def test_ring_with_spacecharge():
             alfy = tw['alfy'][0]
             print(f'{alfy=} {bety=}')
             phasey_0 = np.angle(p_probe_before['y'] / np.sqrt(bety) -
-                               1j*(p_probe_before['y'] * alfy / np.sqrt(bety) +
-                                   p_probe_before['py'] * np.sqrt(bety)))[0]
+                                1j*(p_probe_before['y'] * alfy / np.sqrt(bety) +
+                                p_probe_before['py'] * np.sqrt(bety)))[0]
             phasey_1 = np.angle(p_probe_after['y'] / np.sqrt(bety) -
-                               1j*(p_probe_after['y'] * alfy / np.sqrt(bety) +
-                                   p_probe_after['py'] * np.sqrt(bety)))[0]
+                                1j*(p_probe_after['y'] * alfy / np.sqrt(bety) +
+                                p_probe_after['py'] * np.sqrt(bety)))[0]
             qx_probe = (phasex_1 - phasex_0)/(2*np.pi)
             qy_probe = (phasey_1 - phasey_0)/(2*np.pi)
 
@@ -182,4 +185,3 @@ def test_ring_with_spacecharge():
                   f'ey={(qy_probe - qy_target)/1e-3:.6f}e-3')
             assert np.isclose(qx_probe, qx_target, atol=5e-4, rtol=0)
             assert np.isclose(qy_probe, qy_target, atol=5e-4, rtol=0)
-

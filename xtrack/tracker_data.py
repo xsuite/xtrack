@@ -72,6 +72,7 @@ class TrackerData:
         # freeze line
         line.element_names = tuple(line.element_names)
         self.element_s_locations = tuple(line.get_s_elements())
+        self.line_length = line.get_length()
         self._ElementRefClass = ElementRefClass
         if element_ref_data and element_ref_data._buffer is _buffer:
             self._element_ref_data = element_ref_data
@@ -197,13 +198,18 @@ class TrackerData:
         }
 
         element_dict = {}
-        for ii, elem in enumerate(element_ref_data.elements):
-            name = element_ref_data.names[ii]
+        num_elements = len(element_ref_data.elements)
+        elements = element_ref_data.elements
+        names = element_ref_data.names
+        for ii, elem in enumerate(elements):
+            print('Loading line from binary: '
+                f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
+            name = names[ii]
             if name in element_dict:
                 continue
 
             hybrid_cls = hybrid_cls_for_xstruct[elem.__class__]
-            element_dict[name] = hybrid_cls(_xobject=elem, _buffer=buffer)
+            element_dict[name] = hybrid_cls(_xobject=elem)
 
         line = Line(
             elements=element_dict,

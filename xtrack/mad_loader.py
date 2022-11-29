@@ -568,7 +568,7 @@ class MadLoader:
                 self.add_elements(converter(el), line, buffer)
             else:
                 raise ValueError(
-                    f"Element {el.ty:wpe} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
+                    f"Element {el.type} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
                 )
             if ii % 100 == 0:
                 print(
@@ -715,7 +715,7 @@ class MadLoader:
         # getting max length of knl and ksl
         knl = mad_elem.knl
         ksl = mad_elem.ksl
-        lmax = max(len(knl), len(ksl))  # keep length even if zero
+        lmax = max(non_zero_len(knl), non_zero_len(ksl), 1)
         if mad_elem.field_errors is not None and self.enable_errors:
             dkn = mad_elem.field_errors.dkn
             dks = mad_elem.field_errors.dks
@@ -723,8 +723,8 @@ class MadLoader:
             knl = add_lists(knl, dkn, lmax)
             ksl = add_lists(ksl, dks, lmax)
         el = self.Builder(mad_elem.name, self.classes.Multipole, order=lmax - 1)
-        el.knl = knl
-        el.ksl = ksl
+        el.knl = knl[:lmax]
+        el.ksl = ksl[:lmax]
         if (
             mad_elem.angle
         ):  # testing for non-zero (cannot use !=0 as it creates an expression)
