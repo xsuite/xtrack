@@ -757,7 +757,7 @@ class Tracker:
 
                         // Get the pointer to and the type id of the `elem_idx`th
                         // element in `element_ref_data.elements`:
-                        /*gpuglmem*/ char* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
+                        /*gpuglmem*/ void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
                         int64_t elem_type = ElementRefData_typeid_elements(elem_ref_data, elem_idx);
 
                         switch(elem_type){
