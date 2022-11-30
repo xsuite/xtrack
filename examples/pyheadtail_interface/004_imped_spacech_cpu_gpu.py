@@ -97,9 +97,11 @@ line[cavity_name].frequency = frequency
 ############################################
 
 # We make a copy of the line so that we can still insert elements in the
-# original one (would be prevented by the existance of a tracker linked to the
+# original one (would be prevented by the existence of a tracker linked to the
 # line).
-tw = xt.Tracker(line=line.copy()).twiss()
+
+tracker_twiss = line.copy().build_tracker()
+tw = tracker_twiss.twiss()
 
 #####################################
 # Install spacecharge interactions) #
@@ -179,7 +181,7 @@ if use_wakes:
 # Build Tracker #
 #################
 
-tracker = xt.Tracker(_context=context, line=line)
+tracker = line.build_tracker(_context=context)
 
 ######################
 # Generate particles #

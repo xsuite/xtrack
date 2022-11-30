@@ -22,7 +22,7 @@ line = xt.Line.from_dict(input_data['line'])
 energy_increase = xt.ReferenceEnergyIncrease(Delta_p0c=Delta_p0c)
 line.append_element(energy_increase, 'energy_increase')
 
-tracker = xt.Tracker(line=line)
+tracker = line.build_tracker()
 
 particles = xp.Particles(p0c=26e9, zeta=np.linspace(-1, 1, 40))
 
