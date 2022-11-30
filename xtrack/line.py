@@ -89,7 +89,8 @@ At = Node
 def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, naming_scheme='{}{}'):
     """Flatten the sequence definition
 
-    Named elements and nested sequences are replaced by the elements and locations are made absolute.
+    Named elements and nested sequences are replaced recursively.
+    Node locations are made absolute.
 
     See Line.from_sequence for details
     """
@@ -188,12 +189,12 @@ class Line:
         return self
 
     @classmethod
-    def from_sequence(cls, node, length, *, elements=None, sequences=None, copy_elements=False,
+    def from_sequence(cls, nodes, length, *, elements=None, sequences=None, copy_elements=False,
                       naming_scheme='{}{}', auto_reorder=False, **kwargs):
         """Constructs a line from a sequence definition, inserting drift spaces as needed
 
         Args:
-            node (list of Node): Sequence definition.
+            nodes (list of Node): Sequence definition.
             length: Total length (in m) of line. Determines drift behind last element.
             elements: Dictionary with named elements, which can be refered to in the sequence definion by name.
             sequences: Dictionary with named sub-sequences, which can be refered to in the sequence definion by name.
@@ -237,16 +238,16 @@ class Line:
         """
 
         # flatten the sequence
-        node = flatten_sequence(node, elements=elements, sequences=sequences, copy_elements=copy_elements, naming_scheme=naming_scheme)
+        nodes = flatten_sequence(nodes, elements=elements, sequences=sequences, copy_elements=copy_elements, naming_scheme=naming_scheme)
         if auto_reorder:
-            node = sorted(node, key=lambda node: node.s)
+            nodes = sorted(nodes, key=lambda node: node.s)
 
         # add drifts
         element_objects = []
         element_names = []
         drifts = {}
         last_s = 0
-        for node in node:
+        for node in nodes:
             if node.s < last_s:
                 raise ValueError(f'Negative drift space from {last_s} to {node.s} ({node.name}). Fix or set auto_reorder=True')
             if _is_thick(node.what):
