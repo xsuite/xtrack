@@ -37,7 +37,6 @@ class Marker(BeamElement):
         - name (str): Name of the element
     """
 
-    _fields = []  # TODO: workaround for https://github.com/xsuite/xobjects/pull/78
     _xofields = {}
 
     _extra_c_sources = [
