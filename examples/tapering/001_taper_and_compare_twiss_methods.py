@@ -16,6 +16,7 @@ case_name = 'fcc-ee'
 filename = 'line_no_radiation.json'
 configs = [
     {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4},
+    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4, 'delta_in_beta':True},
     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 5e-3, 'q_atol': 5e-4},
     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-4, 'q_atol': 5e-4},
     {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-3, 'q_atol': 7e-4},
@@ -71,6 +72,8 @@ for conf in configs:
                 r'$(\Delta \beta_x / \beta_x)_{max}$ = '
                 f'{max_betx_beat:.2e}')
     plt.plot(tw.s, betx_beat)
+    if 'delta_in_beta' in conf:
+        plt.plot(tw.s, -tracker.delta_taper, 'k')
     plt.ylabel(r'$\Delta \beta_x / \beta_x$')
     plt.ylim(np.max([0.01, 1.1 * max_betx_beat])*np.array([-1, 1]))
     plt.xlim([0, tw.s[-1]])
@@ -80,6 +83,8 @@ for conf in configs:
                 r'$(\Delta \beta_y / \beta_y)_{max}$ = '
                 f'{max_bety_beat:.2e}')
     plt.plot(tw.s, bety_beat)
+    if 'delta_in_beta' in conf:
+        plt.plot(tw.s, -tracker.delta_taper, 'k')
     plt.ylabel(r'$\Delta \beta_y / \beta_y$')
     plt.ylim(np.max([0.01, 1.1 * max_bety_beat])*np.array([-1, 1]))
     plt.xlabel('s [m]')
