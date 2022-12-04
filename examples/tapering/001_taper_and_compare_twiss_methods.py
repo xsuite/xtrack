@@ -38,7 +38,7 @@ tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
 tracker.configure_radiation(model='mean')
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
-tracker.compensate_radiation_energy_loss()
+tracker.compensate_radiation_energy_loss(record_iterations=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -123,5 +123,16 @@ for conf in configs:
         assert np.isclose(line['rf2b'].voltage*np.sin(line['rf2b'].lag/180*np.pi), eneloss/4*0.4, rtol=1e-5)
         assert np.isclose(line['rf3'].voltage*np.sin(line['rf3'].lag/180*np.pi), eneloss/4, rtol=1e-5)
 
+plt.figure(100)
+for i_iter, mon in enumerate(tracker._tapering_iterations):
+    plt.plot(mon.s.T, mon.delta.T,
+             label=f'iter {i_iter} - Ene. loss: {-mon.delta[-1, -1]*100:.2f} %')
+    plt.legend(loc='lower left')
+    plt.grid(True)
+    plt.ylim(top=0.01)
+    plt.xlim(left=0, right=mon.s[-1, -1])
+    plt.xlabel('s [m]')
+    plt.ylabel(r'$\delta$')
+    plt.savefig(f'./{case_name}_taper_iter_{i_iter}.png', dpi=200)
 
 plt.show()
