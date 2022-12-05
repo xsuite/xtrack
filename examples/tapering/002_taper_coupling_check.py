@@ -67,19 +67,19 @@ max_bety1_beat = np.max(np.abs(bety1_beat))
 max_betx2_beat = np.max(np.abs(betx2_beat))
 spx = plt.subplot(2,1,1)
 plt.title(f'error on Qx: {abs(tw.qx - tw_no_rad.qx):.2e}     '
-            r'$(\Delta \beta_x / \beta_x)_{max}$ = '
+            r'$(\Delta \beta_y1 / \beta_y1)_{max}$ = '
             f'{max_bety1_beat:.2e}')
 plt.plot(tw.s, bety1_beat)
-plt.ylabel(r'$\Delta \beta_x / \beta_x$')
+plt.ylabel(r'$\Delta \beta_y1 / \beta_y1$')
 plt.ylim(np.max([0.01, 1.1 * max_bety1_beat])*np.array([-1, 1]))
 plt.xlim([0, tw.s[-1]])
 
 plt.subplot(2,1,2, sharex=spx)
 plt.title(f'error on Qy: {abs(tw.qy - tw_no_rad.qy):.2e}     '
-            r'$(\Delta \beta_y / \beta_y)_{max}$ = '
+            r'$(\Delta \beta_x2 / \beta_x2)_{max}$ = '
             f'{max_betx2_beat:.2e}')
 plt.plot(tw.s, betx2_beat)
-plt.ylabel(r'$\Delta \beta_y / \beta_y$')
+plt.ylabel(r'$\Delta \beta_x2 / \beta_x2$')
 plt.ylim(np.max([0.01, 1.1 * max_betx2_beat])*np.array([-1, 1]))
 plt.xlabel('s [m]')
 
