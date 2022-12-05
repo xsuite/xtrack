@@ -9,6 +9,10 @@ filename = 'line_no_radiation.json'
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
 
+#line['qc1l1.1..1'].knl[0] += 1e-6
+#line['qc1l1.1..1'].ksl[0] += 1e-6/5
+line['qc1l1.1..1'].ksl[1] = 1e-4
+
 tracker = line.build_tracker()
 
 # Initial twiss (no radiation)
@@ -39,8 +43,6 @@ plt.title(f'error on Qx: {abs(tw.qx - tw_no_rad.qx):.2e}     '
             r'$(\Delta \beta_x / \beta_x)_{max}$ = '
             f'{max_betx_beat:.2e}')
 plt.plot(tw.s, betx_beat)
-if 'delta_in_beta' in conf:
-    plt.plot(tw.s, -tracker.delta_taper, 'k')
 plt.ylabel(r'$\Delta \beta_x / \beta_x$')
 plt.ylim(np.max([0.01, 1.1 * max_betx_beat])*np.array([-1, 1]))
 plt.xlim([0, tw.s[-1]])
@@ -50,10 +52,35 @@ plt.title(f'error on Qy: {abs(tw.qy - tw_no_rad.qy):.2e}     '
             r'$(\Delta \beta_y / \beta_y)_{max}$ = '
             f'{max_bety_beat:.2e}')
 plt.plot(tw.s, bety_beat)
-if 'delta_in_beta' in conf:
-    plt.plot(tw.s, -tracker.delta_taper, 'k')
 plt.ylabel(r'$\Delta \beta_y / \beta_y$')
 plt.ylim(np.max([0.01, 1.1 * max_bety_beat])*np.array([-1, 1]))
+plt.xlabel('s [m]')
+
+plt.subplots_adjust(hspace=0.35, top=.85)
+
+
+plt.figure(2, figsize=(6.4*1.3, 4.8))
+
+bety1_beat = tw.bety1*p0corr/tw_no_rad.bety1-1
+betx2_beat = tw.betx2*p0corr/tw_no_rad.betx2-1
+max_bety1_beat = np.max(np.abs(bety1_beat))
+max_betx2_beat = np.max(np.abs(betx2_beat))
+spx = plt.subplot(2,1,1)
+plt.title(f'error on Qx: {abs(tw.qx - tw_no_rad.qx):.2e}     '
+            r'$(\Delta \beta_x / \beta_x)_{max}$ = '
+            f'{max_bety1_beat:.2e}')
+plt.plot(tw.s, bety1_beat)
+plt.ylabel(r'$\Delta \beta_x / \beta_x$')
+plt.ylim(np.max([0.01, 1.1 * max_bety1_beat])*np.array([-1, 1]))
+plt.xlim([0, tw.s[-1]])
+
+plt.subplot(2,1,2, sharex=spx)
+plt.title(f'error on Qy: {abs(tw.qy - tw_no_rad.qy):.2e}     '
+            r'$(\Delta \beta_y / \beta_y)_{max}$ = '
+            f'{max_betx2_beat:.2e}')
+plt.plot(tw.s, betx2_beat)
+plt.ylabel(r'$\Delta \beta_y / \beta_y$')
+plt.ylim(np.max([0.01, 1.1 * max_betx2_beat])*np.array([-1, 1]))
 plt.xlabel('s [m]')
 
 plt.subplots_adjust(hspace=0.35, top=.85)
