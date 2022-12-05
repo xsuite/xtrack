@@ -635,8 +635,10 @@ class DipoleEdge(BeamElement):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              r21=-self.r21,
-                              r43=-self.r43,
+                              h=self.h,
+                              hgap=self.hgap,
+                              e1=-self.e1,
+                              fint=-self.fint,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
