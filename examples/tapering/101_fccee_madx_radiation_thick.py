@@ -33,7 +33,8 @@ voltca2 = 0;
 SAVEBETA, LABEL=B.IP, PLACE=#s, SEQUENCE=FCCEE_P_RING;
 ''')
 
-tw_0 = mad.twiss().dframe()
+tw_0 = mad.twiss(chrom=True).dframe()
+summ_0 = mad.table.summ.dframe()
 
 
 mad.input('''
@@ -66,4 +67,5 @@ ENDMATCH;
 use, sequence = fccee_p_ring;
 ''')
 
-tw_1 = mad.twiss().dframe()
+tw_1 = mad.twiss(chrom=True).dframe()
+summ_1 = mad.table.summ.dframe()
