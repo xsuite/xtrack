@@ -1137,8 +1137,9 @@ def _renormalize_eigenvectors(Ws):
 def _extract_twiss_parameters_with_inverse(Ws):
 
     # From E. Forest, "From tracking code to analysis", Sec 4.1.2
+    
 
-    BB = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
+    EE = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
 
     for ii in range(3):
         Iii = np.zeros(shape=(6, 6))
@@ -1148,17 +1149,17 @@ def _extract_twiss_parameters_with_inverse(Ws):
 
         Ws_inv = np.linalg.inv(Ws)
 
-        BB[ii, :, :, :] = Ws @ Sii @ Ws_inv
+        EE[ii, :, :, :] = - Ws @ Sii @ Ws_inv @ lnf.S
 
-    betx = BB[0, :, 0, 1]
-    bety = BB[1, :, 2, 3]
-    alfx = BB[0, :, 0, 0]
-    alfy = BB[1, :, 2, 2]
-    gamx = -BB[0, :, 1, 0]
-    gamy = -BB[1, :, 3, 2]
+    betx = EE[0, :, 0, 0]
+    bety = EE[1, :, 2, 2]
+    alfx = -EE[0, :, 0, 1]
+    alfy = -EE[1, :, 2, 3]
+    gamx = EE[0, :, 1, 1]
+    gamy = EE[1, :, 3, 3]
 
-    bety1 = np.abs(BB[0, :, 2, 3])
-    betx2 = np.abs(BB[1, :, 0, 1])
+    bety1 = np.abs(EE[0, :, 2, 2])
+    betx2 = np.abs(EE[1, :, 0, 0])
 
     sign_x = np.sign(betx)
     sign_y = np.sign(bety)

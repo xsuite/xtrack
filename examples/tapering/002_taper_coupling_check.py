@@ -9,9 +9,9 @@ filename = 'line_no_radiation.json'
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
 
-line['qc1l1.1..1'].knl[0] += 1e-5
-line['qc1l1.1..1'].ksl[0] += 1e-6/5
-#line['qc1l1.1..1'].ksl[1] = 1e-4
+#line['qc1l1.1..1'].knl[0] += 1e-5
+#line['qc1l1.1..1'].ksl[0] += 1e-6/5
+line['qc1l1.1..1'].ksl[1] = 1e-4
 
 tracker = line.build_tracker()
 
