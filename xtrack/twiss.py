@@ -1136,8 +1136,8 @@ def _renormalize_eigenvectors(Ws):
 
 def _extract_twiss_parameters_with_inverse(Ws):
 
-    # From E. Forest, "From tracking code to analysis", Sec 4.1.2
-    
+    # From E. Forest, "From tracking code to analysis", Sec 4.1.2 or better
+    # https://iopscience.iop.org/article/10.1088/1748-0221/7/07/P07012
 
     EE = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
 
