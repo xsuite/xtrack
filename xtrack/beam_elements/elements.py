@@ -49,7 +49,6 @@ class Drift(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity. Parameters:
 
