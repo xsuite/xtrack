@@ -362,8 +362,12 @@ class Tracker:
         if compile:
             _ = self._current_track_kernel # This triggers compilation
 
-    def optimize_for_tracking(self, compile=True):
+    def optimize_for_tracking(self, compile=True, verbose=True):
         """Optimize the tracker for tracking speed.
+        
+        Args:
+            compile (bool): If true, trigger kernel compilation after optimization
+            verbose (bool): If true, print information on optimization steps
         """
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
@@ -371,7 +375,7 @@ class Tracker:
 
         self.track_kernel = {} # Remove all kernels
 
-        print("Disable xdeps expressions")
+        if verbose: print("Disable xdeps expressions")
         self.line._var_management = None # Disable expressions
 
         line = self.line
@@ -379,25 +383,25 @@ class Tracker:
         # Unfreeze the line
         line.element_names = list(line.element_names)
 
-        print("Remove inactive multipoles")
+        if verbose: print("Remove inactive multipoles")
         line.remove_inactive_multipoles()
 
-        print("Merge consecutive multipoles")
+        if verbose: print("Merge consecutive multipoles")
         line.merge_consecutive_multipoles()
 
-        print("Remove zero length drifts")
+        if verbose: print("Remove zero length drifts")
         line.remove_zero_length_drifts()
 
-        print("Merge consecutive drifts")
+        if verbose: print("Merge consecutive drifts")
         line.merge_consecutive_drifts()
 
-        print("Use simple bends")
+        if verbose: print("Use simple bends")
         line.use_simple_bends()
 
-        print("Use simple quadrupoles")
+        if verbose: print("Use simple quadrupoles")
         line.use_simple_quadrupoles()
 
-        print("Rebuild tracker data")
+        if verbose: print("Rebuild tracker data")
         tracker_data = TrackerData(
             line=line,
             extra_element_classes=(self.particles_monitor_class._XoStruct,),
