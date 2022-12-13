@@ -30,13 +30,16 @@ void Drift_track_local_particle(DriftData el, LocalParticle* part0){
 
         double const px = LocalParticle_get_px(part);
         double const py = LocalParticle_get_py(part);
-        double const rvv = LocalParticle_get_rvv(part);
+        double const rv0v    = 1./LocalParticle_get_rvv(part);
+        double const one_plus_delta = 1. + LocalParticle_get_delta(part);
 
-        double const opd = 1 + LocalParticle_get_delta(part);
-        double const lpzi = length / sqrt(opd * opd - px * px - py * py);
-        LocalParticle_add_to_x(part, px * lpzi);
-        LocalParticle_add_to_y(part, py * lpzi);
-        LocalParticle_add_to_zeta(part, length - 1 / rvv * opd * lpzi);
+        double const one_over_pz = 1./sqrt(one_plus_delta*one_plus_delta
+                                           - px * px - py * py);
+        double const dzeta = 1 - rv0v * one_plus_delta * one_over_pz;
+
+        LocalParticle_add_to_x(part, px * one_over_pz * length);
+        LocalParticle_add_to_y(part, py * one_over_pz * length);
+        LocalParticle_add_to_zeta(part, dzeta * length);
         LocalParticle_add_to_s(part, length);
 
     #endif
