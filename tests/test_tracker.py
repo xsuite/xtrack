@@ -395,6 +395,7 @@ def test_tracker_hashable_config():
         ('AAA', 'ipsum'),
         ('TEST_FLAG_BOOL', True),
         ('TEST_FLAG_INT', 42),
+        ('XFIELDS_BB3D_NO_BEAMSTR', True), # active by default
         ('XTRACK_MULTIPOLE_NO_SYNRAD', True), # active by default
         ('ZZZ', 'lorem'),
     )

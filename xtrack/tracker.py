@@ -58,7 +58,8 @@ class Tracker:
         _element_ref_data=None,
     ):
         self.config = TrackerConfig()
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD=True
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = True
 
         if sequence is not None:
             raise ValueError(
@@ -361,8 +362,12 @@ class Tracker:
         if compile:
             _ = self._current_track_kernel # This triggers compilation
 
-    def optimize_for_tracking(self, compile=True):
+    def optimize_for_tracking(self, compile=True, verbose=True):
         """Optimize the tracker for tracking speed.
+        
+        Args:
+            compile (bool): If true, trigger kernel compilation after optimization
+            verbose (bool): If true, print information on optimization steps
         """
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
@@ -370,7 +375,7 @@ class Tracker:
 
         self.track_kernel = {} # Remove all kernels
 
-        print("Disable xdeps expressions")
+        if verbose: print("Disable xdeps expressions")
         self.line._var_management = None # Disable expressions
 
         line = self.line
@@ -378,28 +383,28 @@ class Tracker:
         # Unfreeze the line
         line.element_names = list(line.element_names)
 
-        print("Remove marker")
+        if verbose: print("Remove marker")
         line.remove_marker()
 
-        print("Remove inactive multipoles")
+        if verbose: print("Remove inactive multipoles")
         line.remove_inactive_multipoles()
 
-        print("Merge consecutive multipoles")
+        if verbose: print("Merge consecutive multipoles")
         line.merge_consecutive_multipoles()
 
-        print("Remove zero length drifts")
+        if verbose: print("Remove zero length drifts")
         line.remove_zero_length_drifts()
 
-        print("Merge consecutive drifts")
+        if verbose: print("Merge consecutive drifts")
         line.merge_consecutive_drifts()
 
-        print("Use simple bends")
+        if verbose: print("Use simple bends")
         line.use_simple_bends()
 
-        print("Use simple quadrupoles")
+        if verbose: print("Use simple quadrupoles")
         line.use_simple_quadrupoles()
 
-        print("Rebuild tracker data")
+        if verbose: print("Rebuild tracker data")
         tracker_data = TrackerData(
             line=line,
             extra_element_classes=(self.particles_monitor_class._XoStruct,),
@@ -430,7 +435,8 @@ class Tracker:
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0, delta0=None,
+                          co_search_settings={}, delta_zeta=0,
+                          delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False):
 
@@ -456,7 +462,7 @@ class Tracker:
             tracker = self
 
         return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
-                                 particle_ref=particle_ref, delta0=delta0,
+                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error)
 
@@ -477,7 +483,7 @@ class Tracker:
         return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
 
-    def twiss(self, particle_ref=None, delta0=None, method='6d',
+    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
         delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, R_matrix=None, W_matrix=None,
@@ -524,14 +530,17 @@ class Tracker:
                  element_classes=(self.element_classes if not self.iscollective
                                     else self._supertracker.element_classes))
 
-    def configure_radiation(self, model=None, mode=None):
+    def configure_radiation(self, model=None, model_beamstrahlung=None,
+                            mode='deprecated'):
 
-        if mode is not None:
+        if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
 
         self._check_invalidated()
 
         assert model in [None, 'mean', 'quantum']
+        assert model_beamstrahlung in [None, 'mean', 'quantum']
+
         if model == 'mean':
             radiation_flag = 1
             self._radiation_model = 'mean'
@@ -542,14 +551,29 @@ class Tracker:
             radiation_flag = 0
             self._radiation_model = None
 
+        if model_beamstrahlung == 'mean':
+            beamstrahlung_flag = 1
+            self._beamstrahlung_model = 'mean'
+        elif model_beamstrahlung == 'quantum':
+            beamstrahlung_flag = 2
+            self._beamstrahlung_model = 'quantum'
+        else:
+            beamstrahlung_flag = 0
+            self._beamstrahlung_model = None
+
         for kk, ee in self.line.element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
-        if radiation_flag == 2:
+        for kk, ee in self.line.element_dict.items():
+            if hasattr(ee, 'flag_beamstrahlung'):
+                ee.flag_beamstrahlung = beamstrahlung_flag
+
+        if radiation_flag == 2 or beamstrahlung_flag == 2:
             self.line._needs_rng = True
 
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
 
     def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
                                     max_iter=100, **kwargs):
@@ -740,7 +764,7 @@ class Tracker:
 
                         // Get the pointer to and the type id of the `elem_idx`th
                         // element in `element_ref_data.elements`:
-                        void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
+                        /*gpuglmem*/ void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
                         int64_t elem_type = ElementRefData_typeid_elements(elem_ref_data, elem_idx);
 
                         switch(elem_type){

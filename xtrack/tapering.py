@@ -11,6 +11,13 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
     assert line.particle_ref is not None, "Particle reference is not set"
     assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
 
+    if 'record_iterations' in kwargs:
+        record_iterations = kwargs['record_iterations']
+        kwargs.pop('record_iterations')
+        tracker._tapering_iterations = []
+    else:
+        record_iterations = False
+
     print("Compensating energy loss:")
 
     print("  - Twiss with no radiation")
@@ -35,11 +42,12 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
         cc.voltage = 0.
         cc.frequency = 0.
 
+    tracker.configure_radiation(model='mean')
+
     print("Share energy loss among cavities (repeat until energy loss is zero)")
     with xt.tracker._preserve_config(tracker):
-        tracker.configure_radiation(model='mean')
         tracker.config.XTRACK_MULTIPOLE_TAPER = True
-        tracker.config.XTRACK_DIPOLEEDGE_TAPER =True
+        tracker.config.XTRACK_DIPOLEEDGE_TAPER = True
 
         i_iter = 0
         while True:
@@ -48,6 +56,9 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
             tracker.configure_radiation(model='mean')
             tracker.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
             mon = tracker.record_last_track
+
+            if record_iterations:
+                tracker._tapering_iterations.append(mon)
 
             eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
             print(f"Energy loss: {eloss:.3f} eV             ", end='\r', flush=True)
@@ -85,7 +96,11 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
     print("  - Restore cavity voltage and frequency. Set cavity lag")
     beta0 = p_test.beta0[0]
     for icav in cavities.index:
-        vvrr = cavities.loc[icav, 'element'].voltage / cavities.loc[icav, 'voltage']
+        if cavities.loc[icav, 'voltage'] == 0:
+            vvrr = 0
+        else:
+            vvrr = (cavities.loc[icav, 'element'].voltage
+                    / cavities.loc[icav, 'voltage'])
         assert np.abs(vvrr) < 1.
         inst_phase = np.arcsin(vvrr)
         freq = cavities.loc[icav, 'frequency']

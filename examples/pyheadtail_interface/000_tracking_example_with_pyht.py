@@ -13,7 +13,6 @@ import xpart as xp
 
 xp.enable_pyheadtail_interface()
 
-
 fname_line = '../../test_data/lhc_no_bb/line_and_particle.json'
 
 num_turns = int(100)
@@ -42,10 +41,10 @@ from PyHEADTAIL.feedback.transverse_damper import TransverseDamper
 damper = TransverseDamper(dampingrate_x=10., dampingrate_y=15.)
 line.append_element(damper, 'Damper')
 
-##################
-# Build TrackJob #
-##################
-tracker = xt.Tracker(_context=context, line=line)
+#################
+# Build tracker #
+#################
+tracker = line.build_tracker(_context=context)
 
 ######################
 # Get some particles #

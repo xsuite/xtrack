@@ -15,3 +15,4 @@ CERN contributors:
 External contributors:
  - P. Balanger (TRIUMF, Canada) - Development of wire beam element and Tracker.survey
  - M. Boucard (EPFL, Switzwerland) - Development of the electron lens beam element
+ - P. Niedermayer (GSI, Germany) - Improve apertures API and docstrings

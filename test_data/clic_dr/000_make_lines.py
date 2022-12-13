@@ -54,9 +54,11 @@ line.insert_element(at_s=41., element=c0.copy(), name='rf1')
 line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf2a')
 line.insert_element(at_s=line.get_length()-s0, element=c0.copy(), name='rf2b')
 line.insert_element(at_s=line.get_length()-41, element=c0.copy(), name='rf3')
+line.insert_element(at_s=line.get_length()-41, element=c0.copy(), name='rf_off')
 
 line['rf2a'].voltage *= 0.6 # I split the voltage unevenly to test the partitioning
 line['rf2b'].voltage *= 0.4
+line['rf_off'].voltage *= 0.0
 
 with open('line_for_taper.json', 'w') as f:
     json.dump(line.to_dict(), f, cls=xo.JEncoder)

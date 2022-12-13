@@ -11,6 +11,9 @@ from ..base_element import BeamElement
 from ..general import _pkg_root
 
 
+UNLIMITED = 1e10  # could use np.inf but better save than sorry
+
+
 class LimitRect(BeamElement):
     _xofields = {
         'min_x': xo.Float64,
@@ -18,6 +21,17 @@ class LimitRect(BeamElement):
         'min_y': xo.Float64,
         'max_y': xo.Float64,
         }
+
+    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, **kwargs):
+        """A rectangular aperture
+
+        Args:
+            min_x (float): Lower x limit in m
+            max_x (float): Upper x limit in m
+            min_y (float): Lower y limit in m
+            max_y (float): Upper y limit in m
+        """
+        super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, **kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
@@ -39,6 +53,21 @@ class LimitRacetrack(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
 
+    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, a=0, b=0, **kwargs):
+        """A racetrack shaped aperture
+
+        This is a rectangular aperture with rounded corners
+
+        Args:
+            min_x (float): Lower x limit in m
+            max_x (float): Upper x limit in m
+            min_y (float): Lower y limit in m
+            max_y (float): Upper y limit in m
+            a (float): Horizontal semi-axis of ellipse in m for the rounding of the corners
+            b (float): Vertical semi-axis of ellipse in m for the rounding of the corners
+        """
+        super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, a=a, b=b, **kwargs)
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
@@ -57,12 +86,18 @@ class LimitEllipse(BeamElement):
         return dct
 
     def __init__(self, a=None, b=None, a_squ=None, b_squ=None, **kwargs):
+        """An elliptical aperture
+
+        Args:
+            a (float): Horizontal semi-axis of ellipse in m
+            b (float): Vertical semi-axis of ellipse in m
+        """
 
         if a is None and a_squ is None:
-            a = 1.
+            a = UNLIMITED
 
         if b is None and b_squ is None:
-            b = 1.
+            b = UNLIMITED
 
         if a is not None:
             a_squ = a * a
@@ -129,6 +164,14 @@ class LimitPolygon(BeamElement):
             n_threads='n_impacts')}
 
     def __init__(self, x_vertices=None, y_vertices=None, **kwargs):
+        """An aperture of arbitrary shape described by a polygon
+
+        Note: The polygon is closed automatically by connecting the last and first vertices.
+
+        Args:
+            x_vertices (list of float): Horizontal coordinates of the vertices in m
+            y_vertices (list of float): Vertical coordinates of the vertices in m
+        """
 
         if '_xobject' in kwargs.keys():
             super().__init__(**kwargs)
@@ -237,19 +280,25 @@ class LimitRectEllipse(BeamElement):
             }
 
     def __init__(
-        self, max_x=None, max_y=None, a_squ=None, b_squ=None,
+        self, max_x=UNLIMITED, max_y=UNLIMITED, a_squ=None, b_squ=None,
         a=None, b=None, **kwargs
     ):
-        if max_x is None:
-            max_x = 1.0
-        if max_y is None:
-            max_y = 1.0
+        """An intersection of a symmetric LimitRect and a LimitEllipse
+
+        The particles are lost if they exceed either the rect or ellipse aperture
+
+        Args:
+            max_x (float): Horizontal semi-axis of rect in m
+            max_y (float): Vertical semi-axis of rect in m
+            a (float): Horizontal semi-axis of ellipse in m
+            b (float): Vertical semi-axis of ellipse in m
+        """
 
         if a is None and a_squ is None:
-            a = 1.
+            a = UNLIMITED
 
         if b is None and b_squ is None:
-            b = 1.
+            b = UNLIMITED
 
         if a is not None:
             a_squ = a * a
@@ -300,6 +349,19 @@ class LongitudinalLimitRect(BeamElement):
         'min_pzeta': xo.Float64,
         'max_pzeta': xo.Float64,
         }
+
+    def __init__(self, min_zeta=-UNLIMITED, max_zeta=UNLIMITED, min_pzeta=-UNLIMITED, max_pzeta=UNLIMITED, **kwargs):
+        """A limit on longitudinal coordinates
+
+        Particles are lost if they exceed either of the limits placed on the longitudinal coordinates
+
+        Args:
+            min_zeta (float): lower limit on zeta coordinate in m
+            max_zeta (float): upper limit on zeta coordinate in m
+            min_pzeta (float): lower limit on pzeta coordinate
+            max_pzeta (float): upper limit on pzeta coordinate
+        """
+        super().__init__(min_zeta=min_zeta, max_zeta=max_zeta, min_pzeta=min_pzeta, max_pzeta=max_pzeta, **kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
