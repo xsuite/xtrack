@@ -46,6 +46,53 @@ def test_constructor():
                     - nee._xobject._buffer.buffer[
                         nee._xobject._offset:nee._xobject._size]).sum() == 0
 
+
+
+def test_backtrack():
+
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
+
+        elements = [
+            xt.Drift(_context=ctx),
+            xt.Multipole(_context=ctx, knl=[2, 3]),
+            xt.RFMultipole(_context=ctx, knl=[2]),
+            xt.ReferenceEnergyIncrease(_context=ctx, Delta_p0c=42),
+            xt.Cavity(_context=ctx, voltage=3.),
+            xt.SRotation(_context=ctx, angle=4),
+            xt.XYShift(_context=ctx, dx=1),
+            xt.DipoleEdge(_context=ctx, h=1),
+            xt.LimitRect(_context=ctx, min_x=5),
+            xt.LimitRectEllipse(_context=ctx, max_x=6),
+            xt.LimitEllipse(_context=ctx, a=10),
+            xt.LimitRacetrack(_context=ctx, min_x=2),
+            xt.LimitPolygon(_context=ctx, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+            xt.Elens(_context=ctx, inner_radius=0.1),
+        ]
+
+        dtk_particle = dtk.TestParticles(
+                p0c=25.92e9,
+                x=1e-3,
+                px=1e-5,
+                y=-2e-3,
+                py=-1.5e-5,
+                delta=1e-2,
+                zeta=1.)
+
+        for element in elements:
+            element_backtrack = element.get_backtrack_element(_context=ctx)
+
+            # track forth and back
+            new_particles = xp.Particles.from_dict(dtk_particle.to_dict(), _context=ctx)
+            element.track(new_particles)
+            element_backtrack.track(new_particles)
+
+            # assert that nothing changed
+            for k in 'x,px,y,py,zeta,delta'.split(','):
+                assert np.isclose(ctx.nparray_from_context_array(getattr(new_particles, k))[0],
+                          getattr(dtk_particle, k), rtol=1e-14, atol=1e-14)
+
+
 def test_arr2ctx():
 
     for ctx in xo.context.get_test_contexts():
