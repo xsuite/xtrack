@@ -66,6 +66,7 @@ def test_arr2ctx():
         assert type(d._arr2ctx(a)) is ctx.nplike_array_type
         assert type(d._arr2ctx(a[1])) is float
 
+
 def test_drift():
 
     for ctx in xo.context.get_test_contexts():
@@ -97,6 +98,43 @@ def test_drift():
                           dtk_particle.zeta,
                           rtol=1e-14, atol=1e-14)
 
+
+def test_drift_exact():
+
+    for ctx in xo.context.get_test_contexts():
+        print(f"Test {ctx.__class__}")
+
+        dtk_particle = dtk.TestParticles(
+                p0c=25.92e9,
+                x=1e-3,
+                px=1e-5,
+                y=-2e-3,
+                py=-1.5e-5,
+                delta=1e-2,
+                zeta=1.)
+
+        particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                           _context=ctx)
+
+        drift = xt.Drift(_context=ctx, length=10.)
+        tracker = xt.Tracker(
+            line=xt.Line(elements=[drift]),
+            compile=False,
+            _context=ctx,
+        )
+        tracker.config.XTRACK_USE_EXACT_DRIFTS = True
+        tracker.track(particles)
+
+        dtk_drift = dtk.elements.DriftExact(length=10.)
+        dtk_drift.track(dtk_particle)
+
+        assert np.isclose(ctx.nparray_from_context_array(particles.x)[0],
+                          dtk_particle.x, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.y)[0],
+                          dtk_particle.y, rtol=1e-14, atol=1e-14)
+        assert np.isclose(ctx.nparray_from_context_array(particles.zeta)[0],
+                          dtk_particle.zeta,
+                          rtol=1e-14, atol=1e-14)
 
 
 def test_elens():

@@ -74,7 +74,7 @@ class DriftExact(Drift):
         lpzi = length / sqrt(opd ** 2 - p.px ** 2 - p.py ** 2)
         p.x += p.px * lpzi
         p.y += p.py * lpzi
-        p.zeta +=  length - 1 / p.rvv * opd * lpzi
+        p.zeta += length - 1 / p.rvv * opd * lpzi
         p.s += length
 
 
