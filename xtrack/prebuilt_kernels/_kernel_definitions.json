@@ -73,7 +73,8 @@
         "config": {
             "XFIELDS_BB3D_NO_BEAMSTR": true,
             "XTRACK_DIPOLEEDGE_TAPER": true,
-            "XTRACK_MULTIPOLE_TAPER": true
+            "XTRACK_MULTIPOLE_TAPER": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": false
         },
         "classes": [
             "Drift",
@@ -89,6 +90,27 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole"
+        ]
+    },
+    "only_xtrack_with_synrad": {
+        "config": {
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": false
+        },
+        "classes": [
+            "Cavity",
+            "DipoleEdge",
+            "Drift",
+            "Elens",
+            "LinearTransferMatrix",
+            "Multipole",
+            "RFMultipole",
+            "ReferenceEnergyIncrease",
+            "SRotation",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole",
+            "Wire",
+            "XYShift"
         ]
     }
 }

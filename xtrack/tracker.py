@@ -1626,4 +1626,13 @@ class TrackerConfig(dict):
             super(TrackerConfig, self).__setitem__(idx, val)
 
     def __setattr__(self, idx, val):
-        self[idx] = val
+        if val is not False:
+            self[idx] = val
+        elif idx in self:
+            del(self[idx])
+
+    def update(self, other, **kwargs):
+        super().update(other, **kwargs)
+        keys_for_none_vals = [k for k, v in self.items() if v is False]
+        for k in keys_for_none_vals:
+            del self[k]
