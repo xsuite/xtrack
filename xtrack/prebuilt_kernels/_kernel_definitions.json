@@ -43,10 +43,15 @@
             "BeamBeamBiGaussian3D"
         ]
     },
-    "default_spacecharge": {
+    "only_xtrack_frozen_longitudinal": {
         "config": {
-            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
-            "XFIELDS_BB3D_NO_BEAMSTR": true
+            "FREEZE_VAR_delta": true,
+            "FREEZE_VAR_ptau": true,
+            "FREEZE_VAR_rpp": true,
+            "FREEZE_VAR_rvv": true,
+            "FREEZE_VAR_zeta": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true
         },
         "classes": [
             "Drift",
@@ -61,9 +66,29 @@
             "DipoleEdge",
             "LinearTransferMatrix",
             "SimpleThinBend",
-            "SimpleThinQuadrupole",
-            "BeamBeamBiGaussian2D",
-            "SpaceChargeBiGaussian"
+            "SimpleThinQuadrupole"
+        ]
+    },
+    "only_xtrack_taper": {
+        "config": {
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_DIPOLEEDGE_TAPER": true,
+            "XTRACK_MULTIPOLE_TAPER": true
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
         ]
     }
 }

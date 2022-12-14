@@ -185,6 +185,7 @@ def regenerate_kernels():
 
         line = xt.Line(elements=elements)
         tracker = xt.Tracker(line=line, compile=False)
+        tracker.config.clear()
         tracker.config.update(config)
         tracker._build_kernel(module_name=module_name,
                               containing_dir=XT_PREBUILT_KERNELS_LOCATION,
@@ -193,6 +194,13 @@ def regenerate_kernels():
         save_kernel_metadata(module_name=module_name,
                              config=tracker.config,
                              element_classes=tracker.element_classes)
+
+
+def clear_kernels():
+    for metadata_file in XT_PREBUILT_KERNELS_LOCATION.glob('*.json'):
+        if metadata_file.name.startswith('_'):
+            continue
+        metadata_file.unlink()
 
 
 if __name__ == '__main__':
