@@ -37,7 +37,8 @@ class Marker(BeamElement):
         - name (str): Name of the element
     """
 
-    _xofields = {}
+    _xofields = {
+	'_dummy': xo.Int64}
 
     _extra_c_sources = [
         "/*gpufun*/\n"
