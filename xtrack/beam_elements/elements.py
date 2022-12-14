@@ -571,15 +571,16 @@ class RFMultipole(BeamElement):
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._context.nparray_from_context_array
         return self.__class__(
                               order=self.order,
                               voltage=-self.voltage,
                               frequency=self.frequency,
                               lag=self.lag,
-                              knl=-self.knl,
-                              ksl=-self.ksl,
-                              pn = self.pn,
-                              ps = self.ps,
+                              knl=-ctx2np(self.knl),
+                              ksl=-ctx2np(self.ksl),
+                              pn = ctx2np(self.pn),
+                              ps = ctx2np(self.ps),
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
