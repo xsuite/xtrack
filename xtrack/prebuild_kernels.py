@@ -153,6 +153,7 @@ def get_suitable_kernel(
                 get_element_class_by_name(class_name)
                 for class_name in available_classes_names
             ]
+            print(f'Found suitable prebuilt kernel `{module_name}`.')
             return module_name, available_classes
 
 
@@ -197,10 +198,12 @@ def regenerate_kernels():
 
 
 def clear_kernels():
-    for metadata_file in XT_PREBUILT_KERNELS_LOCATION.glob('*.json'):
-        if metadata_file.name.startswith('_'):
+    for file in XT_PREBUILT_KERNELS_LOCATION.iterdir():
+        if file.name.startswith('_'):
             continue
-        metadata_file.unlink()
+        if file.suffix not in ('.c', '.so', '.json'):
+            continue
+        file.unlink()
 
 
 if __name__ == '__main__':
