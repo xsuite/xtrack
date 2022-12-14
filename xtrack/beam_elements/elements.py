@@ -369,6 +369,8 @@ class SimpleThinQuadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
+        if knl is None:
+            knl = np.zeros(2)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -432,6 +434,8 @@ class SimpleThinBend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
+        if knl is None:
+            knl = np.zeros(1)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
