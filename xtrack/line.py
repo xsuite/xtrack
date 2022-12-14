@@ -189,7 +189,7 @@ class Line:
         return self
 
     @classmethod
-    def from_sequence(cls, nodes, length, *, elements=None, sequences=None, copy_elements=False,
+    def from_sequence(cls, nodes=None, length=None, elements=None, sequences=None, copy_elements=False,
                       naming_scheme='{}{}', auto_reorder=False, **kwargs):
         """Constructs a line from a sequence definition, inserting drift spaces as needed
 
