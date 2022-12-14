@@ -298,7 +298,7 @@ def test_from_sequence():
         'quad': Multipole(length=0.3, knl=[0, +0.50]),
         'bend': Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12]),
     }
-    line = Line.from_sequence(length=10, node=[
+    line = Line.from_sequence(length=10, nodes=[
         Node(1, 'quad'),
         Node(1, 'quad', name='quad3', from_=3),
         Node(2, 'bend', from_='quad3', name='bend2'),
