@@ -1117,6 +1117,9 @@ class Tracker:
         return stop_tracking, skip, ret
 
     def resume(self, session):
+        """
+        Resume a track session that had been placed on hold.
+        """
         return self._track_with_collective(particles=None, _session_to_resume=session)
 
     def freeze_vars(self, variable_names):
