@@ -1027,7 +1027,8 @@ def _deserialize_element(el, class_dict, _buffer):
 def _is_simple_quadrupole(el):
     if not isinstance(el, beam_elements.Multipole):
         return False
-    return (el.order == 1 and
+    return (el.radiation_flag == 0 and
+            el.order == 1 and
             el.knl[0] == 0 and
             el.length == 0 and
             not any(el.ksl) and
@@ -1038,4 +1039,5 @@ def _is_simple_quadrupole(el):
 def _is_simple_dipole(el):
     if not isinstance(el, beam_elements.Multipole):
         return False
-    return el.order == 0 and not any(el.ksl) and not el.hyl
+    return (el.radiation_flag == 0 and el.order == 0
+            and not any(el.ksl) and not el.hyl)
