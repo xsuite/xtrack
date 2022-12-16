@@ -39,6 +39,12 @@ def _check_is_collective(ele):
 
 class Tracker:
 
+    '''
+    Xsuite tracker class. It is the core of the xsuite package, allows tracking
+    particles in a given beam line. Methods to match particle distributions
+    and to compute twiss parameters are also available.
+    '''
+
     def __init__(
         self,
         _context=None,
