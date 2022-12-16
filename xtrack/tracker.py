@@ -379,11 +379,8 @@ class Tracker:
             _ = self._current_track_kernel  # This triggers compilation
 
     def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
-        """Optimize the tracker for tracking speed.
-
-        Args:
-            compile (bool): If true, trigger kernel compilation after optimization
-            verbose (bool): If true, print information on optimization steps
+        """
+        Optimize the tracker for tracking speed.
         """
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
@@ -539,9 +536,17 @@ class Tracker:
                                    reverse=reverse)
 
     def match(self, vary, targets, **kwargs):
+        '''
+        Change a set of knobs in the beamline in order to match assigned targets.
+        See corresponding section is the Xsuite User's guide.
+        '''
         return match_tracker(self, vary, targets, **kwargs)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
+
+        """
+        Replace with Drifts all elements satisfying a given condition.
+        """
 
         self._check_invalidated()
 
@@ -556,6 +561,12 @@ class Tracker:
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             mode='deprecated'):
+
+        """
+        Configure synchrotron radiation and beamstrahlung models.
+        Choose among: None / "mean"/ "quantum".
+        See corresponding section is the Xsuite User's guide.
+        """
 
         if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
@@ -602,6 +613,12 @@ class Tracker:
     def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
+        """
+        Compensate beam energy loss from synchrotron radiation by configuring
+        RF cavities and Multipole elements (tapering).
+        See corresponding section is the Xsuite User's guide.
+        """
+
         all_kwargs = locals().copy()
         all_kwargs.pop('self')
         all_kwargs.pop('kwargs')
@@ -610,6 +627,10 @@ class Tracker:
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
+
+        """
+        Cycle the line to start from a given element.
+        """
 
         self._check_invalidated()
 
@@ -638,11 +659,20 @@ class Tracker:
             )
 
     def build_particles(self, *args, **kwargs):
+
+        """
+        Generate a particle distribution. Equivalent to xp.Particles(tracker=tracker, ...)
+        See corresponding section is the Xsuite User's guide.
+        """
         res = xp.build_particles(*args, tracker=self, **kwargs)
         return res
 
     def get_backtracker(self, _context=None, _buffer=None,
                         global_xy_limit='from_tracker'):
+
+        """
+        Build a Tracker object that backtracks in the same line.
+        """
 
         self._check_invalidated()
 
