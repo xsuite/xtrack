@@ -57,6 +57,7 @@ class Tracker:
         local_particle_src=None,
         io_buffer=None,
         compile=True,
+        use_prebuilt_kernels=True,
         enable_pipeline_hold=False,
         _element_ref_data=None,
     ):
@@ -99,6 +100,7 @@ class Tracker:
                 local_particle_src=local_particle_src,
                 io_buffer=io_buffer,
                 compile=compile,
+                use_prebuilt_kernels=use_prebuilt_kernels,
                 enable_pipeline_hold=enable_pipeline_hold)
         else:
             self._element_ref_data = _element_ref_data
@@ -118,6 +120,7 @@ class Tracker:
                 local_particle_src=local_particle_src,
                 io_buffer=io_buffer,
                 compile=compile,
+                use_prebuilt_kernels=use_prebuilt_kernels,
                 enable_pipeline_hold=enable_pipeline_hold)
 
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
@@ -140,6 +143,7 @@ class Tracker:
         local_particle_src=None,
         io_buffer=None,
         compile=True,
+        use_prebuilt_kernels=True,
         enable_pipeline_hold=False
     ):
 
@@ -155,6 +159,7 @@ class Tracker:
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
         self._enable_pipeline_hold = enable_pipeline_hold
+        self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if _buffer is None:
             if _context is None:
@@ -233,7 +238,8 @@ class Tracker:
                 extra_headers=extra_headers,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
-                io_buffer=self.io_buffer
+                io_buffer=self.io_buffer,
+                use_prebuilt_kernels=use_prebuilt_kernels,
                 )
         supertracker.config = self.config
 
@@ -250,7 +256,8 @@ class Tracker:
                                 extra_headers=extra_headers,
                                 local_particle_src=local_particle_src,
                                 skip_end_turn_actions=True,
-                                io_buffer=self.io_buffer)
+                                io_buffer=self.io_buffer,
+                                use_prebuilt_kernels=use_prebuilt_kernels,)
                 parts[ii].config = self.config
 
         # Make a "marker" element to increase at_element
@@ -290,6 +297,7 @@ class Tracker:
         local_particle_src=None,
         io_buffer=None,
         compile=True,
+        use_prebuilt_kernels=True,
         enable_pipeline_hold=False
     ):
         if track_kernel == 'skip':
@@ -359,13 +367,14 @@ class Tracker:
 
         self.track = self._track_no_collective
         self._radiation_model = None
+        self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if compile:
             _ = self._current_track_kernel  # This triggers compilation
 
     def optimize_for_tracking(self, compile=True, verbose=True):
         """Optimize the tracker for tracking speed.
-        
+
         Args:
             compile (bool): If true, trigger kernel compilation after optimization
             verbose (bool): If true, print information on optimization steps
@@ -416,6 +425,8 @@ class Tracker:
         self._tracker_data = tracker_data
         self.element_classes = tracker_data.element_classes
         self.num_elements = len(tracker_data.elements)
+
+        self.use_prebuilt_kernels = False
 
         if compile:
             _ = self._current_track_kernel # This triggers compilation
@@ -698,7 +709,8 @@ class Tracker:
             module_name=None,
             containing_dir='.',
     ):
-        if compile != 'force' and isinstance(self._context, xo.ContextCpu):
+        if (self.use_prebuilt_kernels and compile != 'force'
+                and isinstance(self._context, xo.ContextCpu)):
             kernel_info = get_suitable_kernel(
                 self.config, self.element_classes
             )
