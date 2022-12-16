@@ -2,6 +2,7 @@
 # This file is part of the Xobjects Package.  #
 # Copyright (c) CERN, 2022.                   #
 # ########################################### #
+import os
 import json
 import logging
 from pathlib import Path
@@ -139,6 +140,11 @@ def get_suitable_kernel(
     the name of a suitable prebuilt kernel module together with the list of
     element classes that were used to build it.
     """
+
+    env_var = os.environ.get("XSUITE_PREBUILT_KERNELS")
+    if env_var and env_var == '0':
+        return
+
     requested_class_names = [
         cls._DressingClass.__name__ for cls in element_classes
     ]
