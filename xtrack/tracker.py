@@ -372,7 +372,7 @@ class Tracker:
         if compile:
             _ = self._current_track_kernel  # This triggers compilation
 
-    def optimize_for_tracking(self, compile=True, verbose=True):
+    def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
         """Optimize the tracker for tracking speed.
 
         Args:
@@ -393,8 +393,14 @@ class Tracker:
         # Unfreeze the line
         line.element_names = list(line.element_names)
 
-        if verbose: print("Remove marker")
-        line.remove_markers()
+        if keep_markers is True:
+            if verbose: print('Markers are kept')
+        elif keep_markers is False:
+            if verbose: print("Remove markers")
+            line.remove_markers()
+        else:
+            if verbose: print('Keeping only selected markers')
+            line.remove_markers(keep=keep_markers)
 
         if verbose: print("Remove inactive multipoles")
         line.remove_inactive_multipoles()

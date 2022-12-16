@@ -689,7 +689,7 @@ class Line:
         else:
             return s
 
-    def remove_markers(self, inplace=True):
+    def remove_markers(self, inplace=True, keep=None):
         if not inplace:
             raise NotImplementedError
         self._frozen_check()
@@ -697,7 +697,8 @@ class Line:
         names = []
         for ee, nn in zip(self.elements, self.element_names):
             if isinstance(ee, Marker):
-                continue
+                if keep is None or nn not in keep:
+                    continue
             names.append(nn)
 
         self.element_names = names
