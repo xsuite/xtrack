@@ -150,8 +150,18 @@ def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, nami
 
 class Line:
 
+    '''
+    Beam line object. `Line.element_names` contains the ordered list of beam
+    elements, `Line.element_dict` is a dictionary associating to each name the
+    corresponding beam element object.
+    '''
+
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+        '''
+        Build a Line from a dictionary. `_context` and `_buffer` can be
+        optionally specified.
+        '''
         class_dict = mk_class_namespace(classes)
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
@@ -238,7 +248,8 @@ class Line:
         """
 
         # flatten the sequence
-        nodes = flatten_sequence(nodes, elements=elements, sequences=sequences, copy_elements=copy_elements, naming_scheme=naming_scheme)
+        nodes = flatten_sequence(nodes, elements=elements, sequences=sequences,
+            copy_elements=copy_elements, naming_scheme=naming_scheme)
         if auto_reorder:
             nodes = sorted(nodes, key=lambda node: node.s)
 
@@ -249,9 +260,11 @@ class Line:
         last_s = 0
         for node in nodes:
             if node.s < last_s:
-                raise ValueError(f'Negative drift space from {last_s} to {node.s} ({node.name}). Fix or set auto_reorder=True')
+                raise ValueError(f'Negative drift space from {last_s} to {node.s}'
+                    f' ({node.name}). Fix or set auto_reorder=True')
             if _is_thick(node.what):
-                raise NotImplementedError(f'Thick elements currently not implemented: {node.name}')
+                raise NotImplementedError(
+                    f'Thick elements currently not implemented: {node.name}')
 
             # insert drift as needed (re-use if possible)
             if node.s > last_s:
@@ -297,6 +310,10 @@ class Line:
         merge_drifts=False,
         merge_multipoles=False,
     ):
+
+        """
+        Build a Line from a MAD-X sequence object.
+        """
 
         if not (exact_drift is False):
             raise NotImplementedError("Exact drifts not implemented yet")
@@ -396,11 +413,11 @@ class Line:
         self.tracker = None
 
     def build_tracker(self, **kwargs):
+        "Build a tracker associated for the line."
         assert self.tracker is None, 'The line already has an associated tracker'
         import xtrack as xt # avoid circular import
         self.tracker = xt.Tracker(line=self, **kwargs)
         return self.tracker
-
 
     @property
     def elements(self):
@@ -419,6 +436,10 @@ class Line:
                 return [self.element_dict[nn] for nn in names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
+
+        """
+        Replace with Drifts all elements satisfying a given condition.
+        """
 
         if mask is None:
             assert exclude_types_starting_with is not None
@@ -447,6 +468,10 @@ class Line:
         return new_line
 
     def cycle(self, index_first_element=None, name_first_element=None):
+
+        """
+        Cycle the line to start from a given element.
+        """
 
         if ((index_first_element is not None and name_first_element is not None)
                or (index_first_element is None and name_first_element is None)):
@@ -662,9 +687,12 @@ class Line:
         return ll
 
     def get_s_elements(self, mode="upstream"):
+        '''Get s position for all elements'''
         return self.get_s_position(mode=mode)
 
     def get_s_position(self, at_elements=None, mode="upstream"):
+
+        '''Get s position for given elements'''
 
         assert mode in ["upstream", "downstream"]
         s_prev = 0
@@ -831,6 +859,11 @@ class Line:
         return self
 
     def use_simple_quadrupoles(self):
+        '''
+        Replace multipoles having only the normal quadrupolar component
+        with quadrupole elements. The element is not replaced when synchrotron
+        radiation is active.
+        '''
         self._frozen_check()
 
         for name, element in self.element_dict.items():
@@ -842,6 +875,11 @@ class Line:
                 self.element_dict[name] = fast_quad
 
     def use_simple_bends(self):
+        '''
+        Replace multipoles having only the horizontal dipolar component
+        with dipole elements. The element is not replaced when synchrotron
+        radiation is active.
+        '''
         self._frozen_check()
 
         for name, element in self.element_dict.items():
