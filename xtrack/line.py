@@ -910,6 +910,8 @@ class Line:
 
     def check_aperture(self):
 
+        '''Check that all active elements have an associated aperture.'''
+
         elements_df = self.to_pandas()
 
         elements_df['is_aperture'] = elements_df.element_type.map(lambda s: s.startswith('Limit'))
@@ -979,7 +981,7 @@ class Line:
         print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
         pp(list(df_thin_missing_aper.name))
 
-        # Identify issues with apertures associate with thin elements
+        # Identify issues with apertures associate with thick elements
         df_thick_missing_aper = elements_df[
             (elements_df['misses_aperture_upstream'] | elements_df['misses_aperture_downstream'])
             & elements_df['isthick']]
