@@ -1123,14 +1123,20 @@ class Tracker:
         return self._track_with_collective(particles=None, _session_to_resume=session)
 
     def freeze_vars(self, variable_names):
+        """Freeze assigned coordinates in tracked Particles objects."""
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = True
 
     def unfreeze_vars(self, variable_names):
+        """Unfreeze variables previously frozen with `freeze_vars`."""
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
     def freeze_longitudinal(self, state=True):
+        """
+        Freeze longitudinal coordinates in tracked Particles objects.
+        See corresponding section is the Xsuite User's guide.
+        """
         assert state in (True, False)
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
@@ -1548,10 +1554,18 @@ class Tracker:
 
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):
+        """
+        Start internal logging for all elements of a given type.
+        See corresponding section is the Xsuite User's guide.
+        """
         return start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity)
 
     def stop_internal_logging_for_elements_of_type(self, element_type):
+        """
+        Stop internal logging for all elements of a given type.
+        See corresponding section is the Xsuite User's guide.
+        """
         self._check_invalidated()
         stop_internal_logging_for_elements_of_type(self, element_type)
 
