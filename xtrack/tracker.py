@@ -394,7 +394,7 @@ class Tracker:
         line.element_names = list(line.element_names)
 
         if verbose: print("Remove marker")
-        line.remove_marker()
+        line.remove_markers()
 
         if verbose: print("Remove inactive multipoles")
         line.remove_inactive_multipoles()

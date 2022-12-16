@@ -689,7 +689,7 @@ class Line:
         else:
             return s
 
-    def remove_marker(self, inplace=True):
+    def remove_markers(self, inplace=True):
         if not inplace:
             raise NotImplementedError
         self._frozen_check()
