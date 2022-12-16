@@ -6,6 +6,7 @@
         },
         "classes": [
             "Drift",
+            "Marker",
             "Multipole",
             "ReferenceEnergyIncrease",
             "Cavity",
@@ -27,6 +28,7 @@
         },
         "classes": [
             "Drift",
+            "Marker",
             "Multipole",
             "ReferenceEnergyIncrease",
             "Cavity",
@@ -55,6 +57,7 @@
         },
         "classes": [
             "Drift",
+            "Marker",
             "Multipole",
             "ReferenceEnergyIncrease",
             "Cavity",
@@ -79,6 +82,7 @@
         "classes": [
             "Drift",
             "Multipole",
+            "Marker",
             "ReferenceEnergyIncrease",
             "Cavity",
             "XYShift",
@@ -98,19 +102,20 @@
             "XTRACK_MULTIPOLE_NO_SYNRAD": false
         },
         "classes": [
-            "Cavity",
-            "DipoleEdge",
             "Drift",
-            "Elens",
-            "LinearTransferMatrix",
             "Multipole",
-            "RFMultipole",
+            "Marker",
             "ReferenceEnergyIncrease",
-            "SRotation",
-            "SimpleThinBend",
-            "SimpleThinQuadrupole",
+            "Cavity",
+            "XYShift",
+            "Elens",
             "Wire",
-            "XYShift"
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
         ]
     }
 }
