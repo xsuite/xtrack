@@ -501,8 +501,29 @@ def test_optimize_for_tracking():
         num_turns = 10
 
         tracker.track(p_no_optimized, num_turns=num_turns, time=True)
+        df_before_optimize = tracker.line.to_pandas()
+        n_markers_before_optimize = len(
+            df_before_optimize[df_before_optimize.element_type == 'Marker'])
+        assert n_markers_before_optimize > 4 # There are at least the IPs
+
+        tracker.optimize_for_tracking(keep_markers=True)
+        df_optimize_keep_markers = tracker.line.to_pandas()
+        n_markers_optimize_keep = len(
+            df_optimize_keep_markers[df_optimize_keep_markers.element_type == 'Marker'])
+        assert n_markers_optimize_keep == n_markers_before_optimize
+
+        tracker.optimize_for_tracking(keep_markers=['ip1', 'ip5'])
+        df_optimize_ip15 = tracker.line.to_pandas()
+        n_markers_optimize_ip15 = len(
+            df_optimize_ip15[df_optimize_ip15.element_type == 'Marker'])
+        assert n_markers_optimize_ip15 == 2
 
         tracker.optimize_for_tracking()
+        df_optimize = tracker.line.to_pandas()
+        n_markers_optimize = len(
+            df_optimize[df_optimize.element_type == 'Marker'])
+        assert n_markers_optimize == 0
+
 
         tracker.track(p_optimized, num_turns=num_turns, time=True)
 
