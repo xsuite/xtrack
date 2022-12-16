@@ -46,6 +46,25 @@ def test_simplification_methods():
     line.remove_inactive_multipoles(inplace=True)
     assert len(line.element_names) == 3
 
+    line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
+    line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
+    assert 'marker1' in line.element_names
+    assert 'marker2' in line.element_names
+    line.remove_markers(keep='marker2')
+    assert 'marker1' not in line.element_names
+    assert 'marker2' in line.element_names
+
+    line.insert_element(element=xt.Marker(), name='marker4', at_s=3.3)
+    line.insert_element(element=xt.Marker(), name='marker3', at_s=3.3)
+    assert 'marker2' in line.element_names
+    assert 'marker3' in line.element_names
+    assert 'marker4' in line.element_names
+    line.remove_markers()
+    assert 'marker2' not in line.element_names
+    assert 'marker3' not in line.element_names
+    assert 'marker4' not in line.element_names
+
+
 def test_insert():
 
     line0 = xt.Line(

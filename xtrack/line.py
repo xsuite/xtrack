@@ -408,6 +408,8 @@ class Line:
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
+            if ii not in self.element_names:
+                raise IndexError(f'No installed element with name {ii}')
             return self.element_dict.__getitem__(ii)
         else:
             names = self.element_names.__getitem__(ii)
@@ -693,6 +695,9 @@ class Line:
         if not inplace:
             raise NotImplementedError
         self._frozen_check()
+
+        if isinstance(keep, str):
+            keep = [keep]
 
         names = []
         for ee, nn in zip(self.elements, self.element_names):
