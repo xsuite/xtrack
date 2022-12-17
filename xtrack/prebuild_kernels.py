@@ -42,16 +42,18 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
     },
 }
 
-try:
-    from xfields import LongitudinalProfileQGaussian
+# SpaceChargeBiGaussian is not included for now (different issues -
+# circular import, incompatible compiletion flags)
+# try:
+#     from xfields import LongitudinalProfileQGaussian
 
-    BEAM_ELEMENTS_INIT_DEFAULTS['SpaceChargeBiGaussian'] = {
-        'longitudinal_profile': LongitudinalProfileQGaussian(
-            number_of_particles=0, sigma_z=1),
-    }
-except ModuleNotFoundError:
-    LOGGER.warning('Prebuilding kernels might fail, as xfields is not '
-                   'installed.')
+#     BEAM_ELEMENTS_INIT_DEFAULTS['SpaceChargeBiGaussian'] = {
+#         'longitudinal_profile': LongitudinalProfileQGaussian(
+#             number_of_particles=0, sigma_z=1),
+#     }
+# except ModuleNotFoundError:
+#     LOGGER.warning('Prebuilding kernels might fail, as xfields is not '
+#                    'installed.')
 
 
 def get_element_class_by_name(name: str) -> type:
