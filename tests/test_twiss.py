@@ -57,6 +57,7 @@ def test_coupled_beta(test_context):
 
     # introduce coupling
     mad.sequence.lhcb1.expanded_elements[7].ksl = [0, 1e-4]
+    mad.twiss() # I see to need to do it twice to get the right coupling in madx?!
 
     tw_mad_coupling = mad.twiss(ripken=True).dframe()
 

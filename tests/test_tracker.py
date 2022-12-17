@@ -416,7 +416,6 @@ def test_tracker_config_to_headers():
     expected = [
         '#define TEST_FLAG_BOOL',
         '#define TEST_FLAG_INT 42',
-        '#undef TEST_FLAG_FALSE',
         '#define ZZZ lorem',
         '#define AAA ipsum',
     ]
