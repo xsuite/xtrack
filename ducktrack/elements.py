@@ -45,6 +45,12 @@ _factorial = np.array(
     ]
 )
 
+class Marker(Element):
+
+    _description = []
+
+    def track(self, p):
+        pass
 
 class Drift(Element):
     """Drift in expanded form"""
