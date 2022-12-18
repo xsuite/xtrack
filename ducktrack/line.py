@@ -27,7 +27,13 @@ class TestLine:
     def from_dict(cls, dct):
 
         self = cls(elements=[], element_names=[])
-        for el in dct["elements"]:
+
+        if isinstance(dct['elements'], dict):
+            el_dct_list = list(dct["elements"][nn] for nn in dct["element_names"])
+        else:
+            el_dct_list = dct["elements"]
+
+        for el in el_dct_list:
             eltype = class_dict[el["__class__"]]
             eldct=el.copy()
             del eldct['__class__']
