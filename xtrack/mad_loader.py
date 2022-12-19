@@ -505,7 +505,9 @@ class MadLoader:
         self.enable_apertures = enable_apertures
         self.classes = classes
         if exact_drift:
-            self._drift = self.classes.DriftExact
+            self._drift = self.classes.DriftExact # will probably be removed
+                                                  # DriftExact is implemented
+                                                  # with compile flag
         else:
             self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
@@ -694,7 +696,7 @@ class MadLoader:
         return [self.Builder(mad_elem.name, self._drift, length=mad_elem.l)]
 
     def convert_marker(self, mad_elem):
-        el = self.Builder(mad_elem.name, self._drift, length=0)
+        el = self.Builder(mad_elem.name, self.classes.Marker)
         return self.convert_thin_element([el], mad_elem)
 
     def convert_drift_like(self, mad_elem):

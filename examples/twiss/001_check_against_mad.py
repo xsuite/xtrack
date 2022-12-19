@@ -12,18 +12,18 @@ import xobjects as xo
 
 from cpymad.madx import Madx
 
-path = '../../test_data/hllhc14_input_mad/'
-mad = Madx(command_log="mad_final.log")
-mad.call(path + "final_seq.madx")
-mad.use(sequence="lhcb1")
-mad.twiss()
-mad.readtable(file=path + "final_errors.tfs", table="errtab")
-mad.seterr(table="errtab")
-mad.set(format=".15g")
+# path = '../../test_data/hllhc14_input_mad/'
+# mad = Madx(command_log="mad_final.log")
+# mad.call(path + "final_seq.madx")
+# mad.use(sequence="lhcb1")
+# mad.twiss()
+# mad.readtable(file=path + "final_errors.tfs", table="errtab")
+# mad.seterr(table="errtab")
+# mad.set(format=".15g")
 
-# mad = Madx()
-# mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
-# mad.use('lhcb1')
+mad = Madx()
+mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
+mad.use('lhcb1')
 
 # I want only the betatron part in the sigma matrix
 mad.sequence.lhcb1.beam.sigt = 1e-10
@@ -46,25 +46,32 @@ import matplotlib.pyplot as plt
 
 plt.close('all')
 
-fig1 = plt.figure(1)
+fig1 = plt.figure(1, figsize=(6.4, 4.8*1.5))
 spbet = plt.subplot(3,1,1)
 spco = plt.subplot(3,1,2, sharex=spbet)
 spdisp = plt.subplot(3,1,3, sharex=spbet)
 
-spbet.plot(twmad['s'], twmad['betx'], 'b')
-spbet.plot(twxt['s'], twxt['betx'], '--', color='lightblue')
-spbet.plot(twmad['s'], twmad['bety'], 'r')
-spbet.plot(twxt['s'], twxt['bety'], '--', color='darkred')
+spbet.plot(twmad['s'], twmad['betx'], 'b', label=r'madx $\beta_x$')
+spbet.plot(twxt['s'], twxt['betx'], '--', color='lightblue', label=r'xtrack $\beta_x$')
+spbet.plot(twmad['s'], twmad['bety'], 'r', label=r'madx $\beta_y$')
+spbet.plot(twxt['s'], twxt['bety'], '--', color='darkred', label=r'xtrack $\beta_y$')
+spbet.set_ylabel(r'$\beta_{x,y}$ [m]')
+spbet.legend(loc='upper right')
 
 spco.plot(twmad['s'], twmad['x'], 'b')
 spco.plot(twxt['s'], twxt['x'], '--', color='lightblue')
 spco.plot(twmad['s'], twmad['y'], 'r')
 spco.plot(twxt['s'], twxt['y'], '--', color='darkred')
+spco.set_ylabel(r'$x,y$ [m]')
 
 spdisp.plot(twmad['s'], twmad['dx'], 'b')
 spdisp.plot(twxt['s'], twxt['dx'], '--', color='lightblue')
 spdisp.plot(twmad['s'], twmad['dy'], 'r')
 spdisp.plot(twxt['s'], twxt['dy'], '--', color='darkred')
+spdisp.set_ylabel(r'$D_{x,y}$ [m]')
+spdisp.set_xlabel(r'$s$ [m]')
+
+fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
 
 nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6
@@ -83,8 +90,8 @@ for name in ['mb.b19r5.b1', 'mb.b19r1.b1', 'ip1', 'ip2', 'ip5', 'ip8',
     imad = list(twmad['name']).index(name+':1')
     ixt = list(twxt['name']).index(name)
 
-    for sp in [spbet, spco, spdisp]:
-        sp.axvline(x=twxt['s'][imad])
+    # for sp in [spbet, spco, spdisp]:
+    #     sp.axvline(x=twxt['s'][imad])
 
     assert np.isclose(twxt['betx'][ixt], twmad['betx'][imad],
                       atol=0, rtol=3e-4)

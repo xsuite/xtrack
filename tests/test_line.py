@@ -7,6 +7,7 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
+from xtrack import Line, Node, Multipole
 
 def test_simplification_methods():
 
@@ -44,6 +45,25 @@ def test_simplification_methods():
     line[1].ksl[:] = 0
     line.remove_inactive_multipoles(inplace=True)
     assert len(line.element_names) == 3
+
+    line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
+    line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
+    assert 'marker1' in line.element_names
+    assert 'marker2' in line.element_names
+    line.remove_markers(keep='marker2')
+    assert 'marker1' not in line.element_names
+    assert 'marker2' in line.element_names
+
+    line.insert_element(element=xt.Marker(), name='marker4', at_s=3.3)
+    line.insert_element(element=xt.Marker(), name='marker3', at_s=3.3)
+    assert 'marker2' in line.element_names
+    assert 'marker3' in line.element_names
+    assert 'marker4' in line.element_names
+    line.remove_markers()
+    assert 'marker2' not in line.element_names
+    assert 'marker3' not in line.element_names
+    assert 'marker4' not in line.element_names
+
 
 def test_insert():
 
@@ -273,6 +293,105 @@ def test_from_dict_current():
     assert d1.length == 4
 
     assert d2 is d1
+
+
+def test_from_sequence():
+
+    # direct element definition
+    # -------------------------
+    line = Line.from_sequence([
+        Node(3, Multipole(knl=[1])),
+        Node(7, Multipole(), name='quad1'),
+        Node(1, Multipole(), name='bend1', from_='quad1'),
+        ], 10)
+    assert line.get_length() == 10
+    assert len(line.elements) == 7
+    for i, l in enumerate([3, 0, 4, 0, 1, 0, 2]):
+        cls = xt.Multipole if i%2 else xt.Drift
+        assert isinstance(line.elements[i], cls)
+        assert np.isclose(line.elements[i].length, l)
+
+    # using pre-defined elements by name
+    # ----------------------------------
+    elements = {
+        'quad': Multipole(length=0.3, knl=[0, +0.50]),
+        'bend': Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12]),
+    }
+    line = Line.from_sequence(length=10, nodes=[
+        Node(1, 'quad'),
+        Node(1, 'quad', name='quad3', from_=3),
+        Node(2, 'bend', from_='quad3', name='bend2'),
+    ], elements=elements, auto_reorder=True)
+    assert line.get_length() == 10
+    assert len(line.elements) == 7
+    for i, l in enumerate([1, 0.3, 3, 0.3, 2, 0.5, 4]):
+        cls = xt.Multipole if i%2 else xt.Drift
+        assert isinstance(line.elements[i], cls)
+        assert np.isclose(line.elements[i].length, l)
+    assert line.elements[1] == line.elements[3]
+    assert line.element_names[1] == 'quad'
+    assert line.element_names[3] == 'quad3'
+    assert line.element_names[5] == 'bend2'
+    assert line.elements[5] == elements['bend']
+
+    # using nested sequences
+    # ----------------------
+    sequences = {
+        'arc': [Node(1, 'quad'), Node(4, 'bend', from_='quad')],
+    }
+    sext = Multipole(knl=[0, 0, 0.1])
+    line = Line.from_sequence([
+        Node(0, 'arc', name='section_1'),
+        Node(10, 'arc', name='section_2'),
+        Node(3, sext, from_='section_2', name='sext'),
+        Node(3, [Node(1, 'quad')], name='section_3', from_='sext'),
+    ], length=20, elements=elements, sequences=sequences, auto_reorder=True, naming_scheme='{}_{}')
+
+    assert line.get_length() == 20
+    assert len(line.elements) == 18
+
+    assert line.get_s_position()[line.element_names.index('section_1')] == 0
+    assert isinstance(line.elements[line.element_names.index('section_1')], xt.Marker)
+    assert line.get_s_position()[line.element_names.index('section_1_quad')] == 1
+    assert line.elements[line.element_names.index('section_1_quad')] == elements['quad']
+    assert line.get_s_position()[line.element_names.index('section_1_bend')] == 5
+    assert line.elements[line.element_names.index('section_1_bend')] == elements['bend']
+
+    assert line.get_s_position()[line.element_names.index('section_2')] == 10
+    assert isinstance(line.elements[line.element_names.index('section_2')], xt.Marker)
+    assert line.get_s_position()[line.element_names.index('section_2_quad')] == 11
+    assert line.elements[line.element_names.index('section_2_quad')] == elements['quad']
+    assert line.get_s_position()[line.element_names.index('section_2_bend')] == 15
+    assert line.elements[line.element_names.index('section_2_bend')] == elements['bend']
+
+    assert line.get_s_position()[line.element_names.index('sext')] == 13
+    assert line.elements[line.element_names.index('sext')] == sext
+
+    assert line.get_s_position()[line.element_names.index('section_3')] == 16
+    assert isinstance(line.elements[line.element_names.index('section_3')], xt.Marker)
+    assert line.get_s_position()[line.element_names.index('section_3_quad')] == 17
+    assert line.elements[line.element_names.index('section_3_quad')] == elements['quad']
+
+    # test negative drift
+    # -------------------
+    Line.from_sequence([Node(3, Multipole()), Node(2, Multipole())], 10, auto_reorder=True)
+    try:
+        Line.from_sequence([Node(3, Multipole()), Node(2, Multipole())], 10)
+    except ValueError:
+        pass  # expected due to negative drift
+    else:
+        raise AssertionError('Expected exception not raised')
+    try:
+        Line.from_sequence([Node(1, Multipole()), Node(4, Multipole())], 2)
+    except ValueError:
+        pass  # expected due to insufficient length
+    else:
+        raise AssertionError('Expected exception not raised')
+
+
+    #print(f'location        name                  element')
+    #for s0,s1,n,o in zip(line.get_s_elements(), line.get_s_elements('downstream'), line.element_names, line.elements):
+    #    print(f'{s0:5.2f} .. {s1:5.2f}  {n:20s}  {o}')
 
 
 def test_optimize_multipoles():

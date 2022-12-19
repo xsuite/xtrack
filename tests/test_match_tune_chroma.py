@@ -90,8 +90,8 @@ def test_match_tune_chromaticity():
         for ee in line.elements:
             if isinstance(ee, xt.Cavity):
                 ee.voltage = 0.0
-
-        tracker.match(method='4d', # <-- 4d matching
+        tracker.match(method='4d', # <-- 4d matchin
+            freeze_longitudinal=True,
             vary=['kqtf.b1', 'kqtd.b1','ksf.b1', 'ksd.b1'],
             targets = [
                 ('qx', 62.29),
