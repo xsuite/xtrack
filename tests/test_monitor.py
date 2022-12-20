@@ -12,7 +12,6 @@ import xtrack as xt
 import xpart as xp
 import xobjects as xo
 
-#context = xo.ContextPyopencl()
 context = xo.ContextCpu()
 
 test_data_folder = pathlib.Path(
