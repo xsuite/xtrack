@@ -968,6 +968,69 @@ class TwissTable(Table):
 
         return res
 
+    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None):
+
+        # TODO: check consistency of gamma0
+
+        if nemitt_x is None:
+            gemitt_x = 1
+        else:
+            gemitt_x = (nemitt_x / particle_ref._xobject.beta0[0]
+                        / particle_ref._xobject.gamma0[0])
+
+        if nemitt_y is None:
+            gemitt_y = 1
+        else:
+            gemitt_y = (nemitt_y / particle_ref._xobject.beta0[0]
+                        / particle_ref._xobject.gamma0[0])
+
+
+        ctx2np = particles._context.nparray_from_context_array
+        at_element_particles = ctx2np(particles.at_element)
+
+        part_id = ctx2np(particles.particle_id).copy()
+        x_norm = ctx2np(particles.x).copy() * 0 + xp.particles.LAST_INVALID_STATE
+        px_norm = x_norm.copy()
+        y_norm = x_norm.copy()
+        py_norm = x_norm.copy()
+        zeta_norm = x_norm.copy()
+        pzeta_norm = x_norm.copy()
+
+        at_element_no_rep = list(set(
+            at_element_particles[part_id > xp.particles.LAST_INVALID_STATE]))
+
+        for at_ele in at_element_no_rep:
+
+            W = self.W_matrix[at_element_no_rep]
+            W_inv = np.linalg.inv(W)
+
+            mask_at_ele = at_element_particles == at_ele
+            n_at_ele = np.sum(mask_at_ele)
+
+            # Coordinates wrt to the closed orbit
+            XX = np.zeros(shape=(6, n_at_ele), dtype=np.float64)
+            XX[0, :] = ctx2np(particles.x)[mask_at_ele] - self.x[at_ele]
+            XX[1, :] = ctx2np(particles.px)[mask_at_ele] - self.px[at_ele]
+            XX[2, :] = ctx2np(particles.y)[mask_at_ele] - self.y[at_ele]
+            XX[3, :] = ctx2np(particles.py)[mask_at_ele] - self.py[at_ele]
+            XX[4, :] = ctx2np(particles.zeta)[mask_at_ele] - self.zeta[at_ele]
+            XX[5, :] = ((ctx2np(particles.ptau)[mask_at_ele] - self.ptau[at_ele])
+                        / particles._xobject.beta0[0])
+
+            XX_norm = np.dot(W_inv, XX)
+
+            x_norm[mask_at_ele] = XX_norm[0, :] / gemitt_x
+            px_norm[mask_at_ele] = XX_norm[1, :] / gemitt_x
+            y_norm[mask_at_ele] = XX_norm[2, :] / gemitt_y
+            py_norm[mask_at_ele] = XX_norm[3, :] / gemitt_y
+            zeta_norm[mask_at_ele] = XX_norm[4, :]
+            pzeta_norm[mask_at_ele] = XX_norm[5, :]
+
+        return Table({'particle_id': part_id,
+                      'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
+                      'py_norm': py_norm, 'zeta_norm': zeta_norm,
+                      'pzeta_norm': pzeta_norm})
+
     def reverse(self):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
