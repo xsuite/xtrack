@@ -975,14 +975,14 @@ class TwissTable(Table):
         if nemitt_x is None:
             gemitt_x = 1
         else:
-            gemitt_x = (nemitt_x / particle_ref._xobject.beta0[0]
-                        / particle_ref._xobject.gamma0[0])
+            gemitt_x = (nemitt_x / particles._xobject.beta0[0]
+                        / particles._xobject.gamma0[0])
 
         if nemitt_y is None:
             gemitt_y = 1
         else:
-            gemitt_y = (nemitt_y / particle_ref._xobject.beta0[0]
-                        / particle_ref._xobject.gamma0[0])
+            gemitt_y = (nemitt_y / particles._xobject.beta0[0]
+                        / particles._xobject.gamma0[0])
 
 
         ctx2np = particles._context.nparray_from_context_array
@@ -1001,7 +1001,7 @@ class TwissTable(Table):
 
         for at_ele in at_element_no_rep:
 
-            W = self.W_matrix[at_element_no_rep]
+            W = self.W_matrix[at_ele]
             W_inv = np.linalg.inv(W)
 
             mask_at_ele = at_element_particles == at_ele
@@ -1019,10 +1019,10 @@ class TwissTable(Table):
 
             XX_norm = np.dot(W_inv, XX)
 
-            x_norm[mask_at_ele] = XX_norm[0, :] / gemitt_x
-            px_norm[mask_at_ele] = XX_norm[1, :] / gemitt_x
-            y_norm[mask_at_ele] = XX_norm[2, :] / gemitt_y
-            py_norm[mask_at_ele] = XX_norm[3, :] / gemitt_y
+            x_norm[mask_at_ele] = XX_norm[0, :] / np.sqrt(gemitt_x)
+            px_norm[mask_at_ele] = XX_norm[1, :] / np.sqrt(gemitt_x)
+            y_norm[mask_at_ele] = XX_norm[2, :] / np.sqrt(gemitt_y)
+            py_norm[mask_at_ele] = XX_norm[3, :] / np.sqrt(gemitt_y)
             zeta_norm[mask_at_ele] = XX_norm[4, :]
             pzeta_norm[mask_at_ele] = XX_norm[5, :]
 
