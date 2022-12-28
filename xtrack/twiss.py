@@ -989,6 +989,7 @@ class TwissTable(Table):
         at_element_particles = ctx2np(particles.at_element)
 
         part_id = ctx2np(particles.particle_id).copy()
+        at_element = part_id.copy() * 0 + xp.particles.LAST_INVALID_STATE
         x_norm = ctx2np(particles.x).copy() * 0 + xp.particles.LAST_INVALID_STATE
         px_norm = x_norm.copy()
         y_norm = x_norm.copy()
@@ -1025,8 +1026,9 @@ class TwissTable(Table):
             py_norm[mask_at_ele] = XX_norm[3, :] / np.sqrt(gemitt_y)
             zeta_norm[mask_at_ele] = XX_norm[4, :]
             pzeta_norm[mask_at_ele] = XX_norm[5, :]
+            at_element[mask_at_ele] = at_ele
 
-        return Table({'particle_id': part_id,
+        return Table({'particle_id': part_id, 'at_element': at_element,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
                       'pzeta_norm': pzeta_norm})
