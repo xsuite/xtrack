@@ -27,6 +27,7 @@ tracker = line.build_tracker()
 particles = tracker.build_particles(
     nemitt_x=2.5e-6, nemitt_y=1e-6,
     x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+    px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
     zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
 
 tw = tracker.twiss()
@@ -34,4 +35,27 @@ tw = tracker.twiss()
 norm_coord = tw.get_normalized_coordinates(particles, nemitt_x=2.5e-6,
                                            nemitt_y=1e-6)
 
+assert np.allclose(norm_coord['x_norm'], [-1, 0, 0.5], atol=1e-14, rtol=0)
+assert np.allclose(norm_coord['y_norm'], [0.3, -0.2, 0.2], atol=1e-14, rtol=0)
+assert np.allclose(norm_coord['px_norm'], [0.1, 0.2, 0.3], atol=1e-14, rtol=0)
+assert np.allclose(norm_coord['py_norm'], [0.5, 0.6, 0.8], atol=1e-14, rtol=0)
 
+
+# Introduce a non-zero closed orbit
+line['mqwa.a4r3.b1..1'].knl[0] = 10e-6
+line['mqwa.a4r3.b1..1'].ksl[0] = 5e-6
+
+particles1 = tracker.build_particles(
+    nemitt_x=2.5e-6, nemitt_y=1e-6,
+    x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
+    px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
+    zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
+
+tw1 = tracker.twiss()
+norm_coord1 = tw1.get_normalized_coordinates(particles1, nemitt_x=2.5e-6,
+                                             nemitt_y=1e-6)
+
+assert np.allclose(norm_coord1['x_norm'], [-1, 0, 0.5], atol=1e-14, rtol=0)
+assert np.allclose(norm_coord1['y_norm'], [0.3, -0.2, 0.2], atol=1e-14, rtol=0)
+assert np.allclose(norm_coord1['px_norm'], [0.1, 0.2, 0.3], atol=1e-14, rtol=0)
+assert np.allclose(norm_coord1['py_norm'], [0.5, 0.6, 0.8], atol=1e-14, rtol=0)
