@@ -1131,14 +1131,27 @@ def _error_for_match(knob_values, vary, targets, tracker, tw_kwargs):
         tracker.vars[kk] = vv
     tw = tracker.twiss(**tw_kwargs)
     res = []
+
     for tt in targets:
         if isinstance(tt[0], str):
             res.append(tw[tt[0]] - tt[1])
         else:
             res.append(tt[0](tw) - tt[1])
+
+    res = np.array(res)
+    tols = 0 * res
+    for ii, tt in enumerate(targets):
+        if len(tt) > 2:
+            tols[ii] = tt[2]
+        else:
+            tols[ii] = 1e-14
+
+    if np.all(np.abs(res) < tols):
+        res *= 0
+
     return np.array(res)
 
-def match_tracker(tracker, vary, targets, **kwargs):
+def match_tracker(tracker, vary, targets, restore_if_fail, **kwargs):
     _err = partial(_error_for_match, vary=vary, targets=targets,
                    tracker=tracker, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv]._value for vv in vary]
