@@ -12,7 +12,7 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, minimize
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
@@ -1126,7 +1126,7 @@ class TwissTable(Table):
                     else:
                         self[kk] = [vv[ii] for ii in indx_twiss]
 
-def _error_for_match(knob_values, vary, targets, tracker, tw_kwargs):
+def _error_for_match(knob_values, vary, targets, tracker, return_norm, tw_kwargs):
     for kk, vv in zip(vary, knob_values):
         tracker.vars[kk] = vv
     tw = tracker.twiss(**tw_kwargs)
@@ -1149,25 +1149,43 @@ def _error_for_match(knob_values, vary, targets, tracker, tw_kwargs):
     if np.all(np.abs(res) < tols):
         res *= 0
 
-    return np.array(res)
+    if return_norm:
+        return np.sqrt((res*res).sum())
+    else:
+        return np.array(res)
 
-def match_tracker(tracker, vary, targets, restore_if_fail, **kwargs):
+def match_tracker(tracker, vary, targets, restore_if_fail=True, method='fsolve',
+                  **kwargs):
+
+    assert method in ['fsolve', 'bfgs']
+    if method == 'fsolve':
+        return_norm = False
+    elif method == 'bfgs':
+        return_norm = True
+
     _err = partial(_error_for_match, vary=vary, targets=targets,
-                   tracker=tracker, tw_kwargs=kwargs)
+                   tracker=tracker, return_norm=return_norm, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv]._value for vv in vary]
     try:
-        (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(), full_output=True)
-        if ier != 1:
-            raise RuntimeError("fsolve failed: %s" % mesg)
+        if method == 'fsolve':
+            (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(), full_output=True)
+            if ier != 1:
+                raise RuntimeError("fsolve failed: %s" % mesg)
+            result_info = {
+                'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+        elif method == 'bfgs':
+            optimize_result = minimize(_err, x0=x0.copy(), method='BFGS')
+            result_info = {'optimize_result': optimize_result}
+            res = optimize_result.x
         for kk, vv in zip(vary, res):
             tracker.vars[kk] = vv
-        fsolve_info = {
-                'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
+
     except Exception as err:
-        for ii, vv in enumerate(vary):
-            tracker.vars[vv] = x0[ii]
+        if restore_if_fail:
+            for ii, vv in enumerate(vary):
+                tracker.vars[vv] = x0[ii]
         raise err
-    return fsolve_info
+    return result_info
 
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
