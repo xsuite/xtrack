@@ -33,7 +33,8 @@ voltca2 = 0;
 SAVEBETA, LABEL=B.IP, PLACE=#s, SEQUENCE=FCCEE_P_RING;
 ''')
 
-tw_0 = mad.twiss().dframe()
+tw_0 = mad.twiss(chrom=True).dframe()
+summ_0 = mad.table.summ.dframe()
 
 
 mad.input('''
@@ -66,4 +67,20 @@ ENDMATCH;
 use, sequence = fccee_p_ring;
 ''')
 
-tw_1 = mad.twiss().dframe()
+tw_1 = mad.twiss(chrom=True).dframe()
+summ_1 = mad.table.summ.dframe()
+
+import matplotlib.pyplot as plt
+plt.close('all')
+
+# Plot beta beating
+plt.figure(1)
+ax1 = plt.subplot(211)
+plt.plot(tw_0['s'], tw_1['betx']/tw_0['betx']-1)
+plt.ylabel(r'$\Delta\beta_x/\beta_x$')
+plt.subplot(212, sharex=ax1)
+plt.plot(tw_0['s'], tw_1['bety']/tw_0['bety']-1)
+plt.ylabel(r'$\Delta\beta_y/\beta_y$')
+plt.xlabel('s [m]')
+
+plt.show()

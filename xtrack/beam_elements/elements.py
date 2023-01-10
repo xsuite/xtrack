@@ -30,6 +30,23 @@ class ReferenceEnergyIncrease(BeamElement):
         return self.__class__(Delta_p0c=-self.Delta_p0c,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+class Marker(BeamElement):
+    """A marker beam element with no effect on the particles.
+
+    Parameters:
+        - name (str): Name of the element
+    """
+
+    _xofields = {
+	'_dummy': xo.Int64}
+
+    _extra_c_sources = [
+        "/*gpufun*/\n"
+        "void Marker_track_local_particle(MarkerData el, LocalParticle* part0){}"
+    ]
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(_context=_context, _buffer=_buffer, _offset=_offset)
 
 class Drift(BeamElement):
     '''Beam element modeling a drift section. Parameters:
@@ -47,7 +64,6 @@ class Drift(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(length=-self.length,
                               _context=_context, _buffer=_buffer, _offset=_offset)
-
 
 
 class Cavity(BeamElement):
@@ -354,6 +370,8 @@ class SimpleThinQuadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
+        if knl is None:
+            knl = np.zeros(2)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -417,6 +435,8 @@ class SimpleThinBend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
+        if knl is None:
+            knl = np.zeros(1)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -555,15 +575,16 @@ class RFMultipole(BeamElement):
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._context.nparray_from_context_array
         return self.__class__(
                               order=self.order,
                               voltage=-self.voltage,
                               frequency=self.frequency,
                               lag=self.lag,
-                              knl=-self.knl,
-                              ksl=-self.ksl,
-                              pn = self.pn,
-                              ps = self.ps,
+                              knl=-ctx2np(self.knl),
+                              ksl=-ctx2np(self.ksl),
+                              pn = ctx2np(self.pn),
+                              ps = ctx2np(self.ps),
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
@@ -635,8 +656,10 @@ class DipoleEdge(BeamElement):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              r21=-self.r21,
-                              r43=-self.r43,
+                              h=self.h,
+                              hgap=self.hgap,
+                              e1=-self.e1,
+                              fint=-self.fint,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 

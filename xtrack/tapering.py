@@ -11,6 +11,13 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
     assert line.particle_ref is not None, "Particle reference is not set"
     assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
 
+    if 'record_iterations' in kwargs:
+        record_iterations = kwargs['record_iterations']
+        kwargs.pop('record_iterations')
+        tracker._tapering_iterations = []
+    else:
+        record_iterations = False
+
     print("Compensating energy loss:")
 
     print("  - Twiss with no radiation")
@@ -49,6 +56,9 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
             tracker.configure_radiation(model='mean')
             tracker.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
             mon = tracker.record_last_track
+
+            if record_iterations:
+                tracker._tapering_iterations.append(mon)
 
             eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
             print(f"Energy loss: {eloss:.3f} eV             ", end='\r', flush=True)

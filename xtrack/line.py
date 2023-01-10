@@ -16,7 +16,7 @@ import xpart as xp
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
-from .beam_elements import Drift
+from .beam_elements import Drift, BeamElement, Marker
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +43,16 @@ def _is_thick(element):
     return  ((hasattr(element, "isthick") and element.isthick) or
              (isinstance(element, _thick_element_types)))
 
+
+def _next_name(prefix, names, name_format='{}{}'):
+    """Return an available element name by appending a number"""
+    if prefix not in names: return prefix
+    i = 1
+    while name_format.format(prefix, i) in names:
+        i += 1
+    return name_format.format(prefix, i)
+
+
 DEG2RAD = np.pi / 180.
 
 class AttrDict(dict):
@@ -51,10 +61,107 @@ class AttrDict(dict):
         self.__dict__ = self
 
 
+class Node:
+    def __init__(self, s, what, *, from_=0, name=None):
+        """Holds the location of an element or sequence for use with Line.from_sequence
+
+        Args:
+            s (float): Location (in m) of what relative to from_.
+            what (str, BeamElement or list): Object to place here. Can be an instance of a BeamElement,
+                another sequence given as list of At, or the name of a named element.
+            from_ (float or str, optional): Reference location for placement, can be the s coordinate (in m)
+                or the name of an element or sequence whose location is used.
+            name (str, optional): Name of the element to place here. If None, a name is chosen automatically.
+
+        """
+        self.s = s
+        self.from_ = from_
+        self.what = what
+        self.name = name
+
+    def __repr__(self):
+        return f"Node({self.s}, {self.what}, from_={self.from_}, name={self.name})"
+
+At = Node
+
+
+
+def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, naming_scheme='{}{}'):
+    """Flatten the sequence definition
+
+    Named elements and nested sequences are replaced recursively.
+    Node locations are made absolute.
+
+    See Line.from_sequence for details
+    """
+    flat_nodes = []
+    for node in nodes:
+        # determine absolute position
+        s = node.s
+        if isinstance(node.from_, str):
+            # relative to another element
+            for n in flat_nodes:
+                if node.from_ == n.name:
+                    s += n.s
+                    break
+            else:
+                raise ValueError(f'Unknown element name {node.from_} passed as from_')
+        else:
+            s += node.from_
+
+        # find a unique name
+        name = node.name or (node.what if isinstance(node.what, str) else 'element')
+        name = _next_name(name, [n.name for n in flat_nodes], naming_scheme)
+
+        # determine what to place here
+        element = None
+        sequence = None
+        if isinstance(node.what, str):
+            if node.what in elements:
+                element = elements[node.what]
+                if copy_elements:
+                    element = element.copy()
+            elif node.what in sequences:
+                sequence = sequences[node.what]
+            else:
+                raise ValueError(f'Unknown element or sequence name {node.what}')
+        elif isinstance(node.what, BeamElement):
+            element = node.what
+        elif hasattr(node.what, '__iter__'):
+            sequence = node.what
+        else:
+            raise ValueError(f'Unknown element type {node.what}')
+
+        # place elements
+        if element is not None:
+            flat_nodes.append(Node(s, element, name=name))
+
+        # place nested sequences by recursion
+        if sequence is not None:
+            flat_nodes.append(Node(s, Marker(), name=name))
+            for sub in flatten_sequence(sequence, elements=elements, sequences=sequences, copy_elements=copy_elements, naming_scheme=naming_scheme):
+                sub_name = naming_scheme.format(name, sub.name)
+                flat_nodes.append(Node(s + sub.s, sub.what, name=sub_name))
+
+    return flat_nodes
+
+
+
+
 class Line:
+
+    '''
+    Beam line object. `Line.element_names` contains the ordered list of beam
+    elements, `Line.element_dict` is a dictionary associating to each name the
+    corresponding beam element object.
+    '''
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+        '''
+        Build a Line from a dictionary. `_context` and `_buffer` can be
+        optionally specified.
+        '''
         class_dict = mk_class_namespace(classes)
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
@@ -92,6 +199,95 @@ class Line:
         return self
 
     @classmethod
+    def from_sequence(cls, nodes=None, length=None, elements=None, sequences=None, copy_elements=False,
+                      naming_scheme='{}{}', auto_reorder=False, **kwargs):
+        """Constructs a line from a sequence definition, inserting drift spaces as needed
+
+        Args:
+            nodes (list of Node): Sequence definition.
+            length: Total length (in m) of line. Determines drift behind last element.
+            elements: Dictionary with named elements, which can be refered to in the sequence definion by name.
+            sequences: Dictionary with named sub-sequences, which can be refered to in the sequence definion by name.
+            copy_elements (bool): Whether to make copies of elements or not. By default, named elements are
+                re-used which is memory efficient but does not allow to change parameters individually.
+            naming_scheme (str): Naming scheme to name sub-sequences. A format string accepting two names to be joined.
+            auto_reorder (bool): If false (default), nodes must be defined in order of increasing s coordinate,
+                otherwise an exception is thrown. If true, nodes can be defined in any order and are re-ordered
+                as neseccary. Useful to place additional elements inside of sub-sequences.
+            kwargs: Arguments passed to constructor of the line
+
+        Returns:
+            An instance of Line
+
+        Examples:
+            >>> from xtrack import Line, Node, Multipole
+            >>> elements = {
+                    'quad': Multipole(length=0.3, knl=[0, +0.50]),
+                    'bend': Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12]),
+                }
+            >>> sequences = {
+                    'arc': [Node(1, 'quad'), Node(5, 'bend')],
+                }
+            >>> monitor = ParticlesMonitor(...)
+            >>>
+            >>> line = Line.from_sequence([
+                    # direct element definition
+                    Node(3, xt.Multipole(...)),
+                    Node(7, xt.Multipole(...), name='quad1'),
+                    Node(1, xt.Multipole(...), name='bend1', from_='quad1'),
+                    ...
+                    # using pre-defined elements by name
+                    Node(13, 'quad'),
+                    Node(14, 'quad', name='quad3'),
+                    Node(2, 'bend', from_='quad3', name='bend2'),
+                    ....
+                    # using nested sequences
+                    Node(5, 'arc', name='section_1'),
+                    Node(3, monitor, from_='section_1'),
+                ], length = 5, elements=elements, sequences=sequences)
+        """
+
+        # flatten the sequence
+        nodes = flatten_sequence(nodes, elements=elements, sequences=sequences,
+            copy_elements=copy_elements, naming_scheme=naming_scheme)
+        if auto_reorder:
+            nodes = sorted(nodes, key=lambda node: node.s)
+
+        # add drifts
+        element_objects = []
+        element_names = []
+        drifts = {}
+        last_s = 0
+        for node in nodes:
+            if node.s < last_s:
+                raise ValueError(f'Negative drift space from {last_s} to {node.s}'
+                    f' ({node.name}). Fix or set auto_reorder=True')
+            if _is_thick(node.what):
+                raise NotImplementedError(
+                    f'Thick elements currently not implemented: {node.name}')
+
+            # insert drift as needed (re-use if possible)
+            if node.s > last_s:
+                ds = node.s - last_s
+                if ds not in drifts:
+                    drifts[ds] = Drift(length=ds)
+                element_objects.append(drifts[ds])
+                element_names.append(_next_name('drift', element_names, naming_scheme))
+
+            # insert element
+            element_objects.append(node.what)
+            element_names.append(node.name)
+            last_s = node.s
+
+        # add last drift
+        if length < last_s:
+            raise ValueError(f'Last element {node.name} at s={last_s} is outside length {length}')
+        element_objects.append(Drift(length=length - last_s))
+        element_names.append(_next_name('drift', element_names, naming_scheme))
+
+        return cls(elements=element_objects, element_names=element_names, **kwargs)
+
+    @classmethod
     def from_sixinput(cls, sixinput, classes=()):
         log.warning("\n"
             "WARNING: xtrack.Line.from_sixinput(sixinput) will be removed in future versions.\n"
@@ -114,6 +310,10 @@ class Line:
         merge_drifts=False,
         merge_multipoles=False,
     ):
+
+        """
+        Build a Line from a MAD-X sequence object.
+        """
 
         if not (exact_drift is False):
             raise NotImplementedError("Exact drifts not implemented yet")
@@ -213,11 +413,11 @@ class Line:
         self.tracker = None
 
     def build_tracker(self, **kwargs):
+        "Build a tracker associated for the line."
         assert self.tracker is None, 'The line already has an associated tracker'
         import xtrack as xt # avoid circular import
         self.tracker = xt.Tracker(line=self, **kwargs)
         return self.tracker
-
 
     @property
     def elements(self):
@@ -225,6 +425,8 @@ class Line:
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
+            if ii not in self.element_names:
+                raise IndexError(f'No installed element with name {ii}')
             return self.element_dict.__getitem__(ii)
         else:
             names = self.element_names.__getitem__(ii)
@@ -234,6 +436,10 @@ class Line:
                 return [self.element_dict[nn] for nn in names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
+
+        """
+        Replace with Drifts all elements satisfying a given condition.
+        """
 
         if mask is None:
             assert exclude_types_starting_with is not None
@@ -262,6 +468,10 @@ class Line:
         return new_line
 
     def cycle(self, index_first_element=None, name_first_element=None):
+
+        """
+        Cycle the line to start from a given element.
+        """
 
         if ((index_first_element is not None and name_first_element is not None)
                or (index_first_element is None and name_first_element is None)):
@@ -477,9 +687,12 @@ class Line:
         return ll
 
     def get_s_elements(self, mode="upstream"):
+        '''Get s position for all elements'''
         return self.get_s_position(mode=mode)
 
     def get_s_position(self, at_elements=None, mode="upstream"):
+
+        '''Get s position for given elements'''
 
         assert mode in ["upstream", "downstream"]
         s_prev = 0
@@ -505,6 +718,24 @@ class Line:
                 return [s[self.element_names.index(nn)] for nn in at_elements]
         else:
             return s
+
+    def remove_markers(self, inplace=True, keep=None):
+        if not inplace:
+            raise NotImplementedError
+        self._frozen_check()
+
+        if isinstance(keep, str):
+            keep = [keep]
+
+        names = []
+        for ee, nn in zip(self.elements, self.element_names):
+            if isinstance(ee, Marker):
+                if keep is None or nn not in keep:
+                    continue
+            names.append(nn)
+
+        self.element_names = names
+        return self
 
     def remove_inactive_multipoles(self, inplace=True):
 
@@ -628,6 +859,11 @@ class Line:
         return self
 
     def use_simple_quadrupoles(self):
+        '''
+        Replace multipoles having only the normal quadrupolar component
+        with quadrupole elements. The element is not replaced when synchrotron
+        radiation is active.
+        '''
         self._frozen_check()
 
         for name, element in self.element_dict.items():
@@ -639,6 +875,11 @@ class Line:
                 self.element_dict[name] = fast_quad
 
     def use_simple_bends(self):
+        '''
+        Replace multipoles having only the horizontal dipolar component
+        with dipole elements. The element is not replaced when synchrotron
+        radiation is active.
+        '''
         self._frozen_check()
 
         for name, element in self.element_dict.items():
@@ -668,6 +909,8 @@ class Line:
         return elements, names
 
     def check_aperture(self):
+
+        '''Check that all active elements have an associated aperture.'''
 
         elements_df = self.to_pandas()
 
@@ -738,7 +981,7 @@ class Line:
         print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
         pp(list(df_thin_missing_aper.name))
 
-        # Identify issues with apertures associate with thin elements
+        # Identify issues with apertures associate with thick elements
         df_thick_missing_aper = elements_df[
             (elements_df['misses_aperture_upstream'] | elements_df['misses_aperture_downstream'])
             & elements_df['isthick']]
@@ -784,7 +1027,8 @@ def _deserialize_element(el, class_dict, _buffer):
 def _is_simple_quadrupole(el):
     if not isinstance(el, beam_elements.Multipole):
         return False
-    return (el.order == 1 and
+    return (el.radiation_flag == 0 and
+            el.order == 1 and
             el.knl[0] == 0 and
             el.length == 0 and
             not any(el.ksl) and
@@ -795,4 +1039,5 @@ def _is_simple_quadrupole(el):
 def _is_simple_dipole(el):
     if not isinstance(el, beam_elements.Multipole):
         return False
-    return el.order == 0 and not any(el.ksl) and not el.hyl
+    return (el.radiation_flag == 0 and el.order == 0
+            and not any(el.ksl) and not el.hyl)

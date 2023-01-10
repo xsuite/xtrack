@@ -57,6 +57,7 @@ def test_coupled_beta(test_context):
 
     # introduce coupling
     mad.sequence.lhcb1.expanded_elements[7].ksl = [0, 1e-4]
+    mad.twiss() # I see to need to do it twice to get the right coupling in madx?!
 
     tw_mad_coupling = mad.twiss(ripken=True).dframe()
 
@@ -81,9 +82,11 @@ def test_coupled_beta(test_context):
     assert np.allclose(betx2_at_ips, beta12_mad_at_ips, rtol=1e-4, atol=0)
     assert np.allclose(bety1_at_ips, beta21_mad_at_ips, rtol=1e-4, atol=0)
 
-    cmin = tw.c_minus
+    #cmin_ref = mad.table.summ.dqmin[0] # dqmin is not calculated correctly in madx
+                                        # (https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/1152)
+    cmin_ref = 0.001972093557# obtained with madx with trial and error
 
-    assert np.isclose(cmin, mad.table.summ.dqmin[0], rtol=0, atol=1e-5)
+    assert np.isclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
 
 
 @for_all_test_contexts
