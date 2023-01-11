@@ -868,6 +868,9 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
     )
     auxtracker.matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
     auxtracker.matrix_stability_tol = tracker.matrix_stability_tol
+    auxtracker.config = tracker.config.copy()
+    auxtracker._radiation_model = tracker._radiation_model
+    auxtracker._beamstrahlung_model = tracker._beamstrahlung_model
 
     return auxtracker, names_inserted_markers
 
@@ -1126,7 +1129,12 @@ class TwissTable(Table):
                     else:
                         self[kk] = [vv[ii] for ii in indx_twiss]
 
-def _error_for_match(knob_values, vary, targets, tracker, return_norm, tw_kwargs):
+def _error_for_match(knob_values, vary, targets, tracker, return_norm,
+                     call_counter, tw_kwargs):
+
+    print(f"Matching: twiss call n. {call_counter['n']}       ", end='\r', flush=True)
+    call_counter['n'] += 1
+
     for kk, vv in zip(vary, knob_values):
         tracker.vars[kk] = vv
     tw = tracker.twiss(**tw_kwargs)
@@ -1163,7 +1171,9 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, method='fsolve',
     elif method == 'bfgs':
         return_norm = True
 
+    call_counter = {'n': 0}
     _err = partial(_error_for_match, vary=vary, targets=targets,
+                   call_counter=call_counter,
                    tracker=tracker, return_norm=return_norm, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv]._value for vv in vary]
     try:
@@ -1179,12 +1189,13 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, method='fsolve',
             res = optimize_result.x
         for kk, vv in zip(vary, res):
             tracker.vars[kk] = vv
-
     except Exception as err:
         if restore_if_fail:
             for ii, vv in enumerate(vary):
                 tracker.vars[vv] = x0[ii]
+        print('\n')
         raise err
+    print('\n')
     return result_info
 
 def _renormalize_eigenvectors(Ws):
