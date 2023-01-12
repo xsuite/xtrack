@@ -81,16 +81,16 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
     i_multipoles = multipoles.index.values
     delta_taper_multipoles = ((mon.delta[0,:][i_multipoles+1] + mon.delta[0,:][i_multipoles]) / 2)
     for nn, dd in zip(multipoles['name'].values, delta_taper_multipoles):
-        line[nn].knl *= (1 + dd)
-        line[nn].ksl *= (1 + dd)
+        line.element_dict[nn].knl *= (1 + dd)
+        line.element_dict[nn].ksl *= (1 + dd)
 
     print("  - Adjust dipole edge strengths")
     i_dipole_edges = dipole_edges.index.values
     delta_taper_dipole_edges = ((mon.delta[0,:][i_dipole_edges+1] + mon.delta[0,:][i_dipole_edges]) / 2)
     for nn, dd in zip(dipole_edges['name'].values, delta_taper_dipole_edges):
-        line[nn].r21 *= (1 + dd)
-        line[nn].r43 *= (1 + dd)
-        line[nn].h *= (1 + dd)
+        line.element_dict[nn].r21 *= (1 + dd)
+        line.element_dict[nn].r43 *= (1 + dd)
+        line.element_dict[nn].h *= (1 + dd)
 
 
     print("  - Restore cavity voltage and frequency. Set cavity lag")
