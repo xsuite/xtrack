@@ -114,3 +114,33 @@ def test_match_tune_chromaticity():
         assert np.isclose(tw_final['qy'], 60.31, atol=1e-7)
         assert np.isclose(tw_final['dqx'],  6.0, atol=1e-4)
         assert np.isclose(tw_final['dqy'],  4.0, atol=1e-4)
+
+def test_match_coupling():
+
+    for context in xo.context.get_test_contexts():
+        print(f"Test {context.__class__}")
+
+        with open(test_data_folder /
+            'hllhc14_no_errors_with_coupling_knobs/line_b1.json', 'r') as fid:
+            dct_b1 = json.load(fid)
+        line_b1 = xt.Line.from_dict(dct_b1)
+
+        tracker = line_b1.build_tracker(_context=context)
+
+        tw = tracker.twiss()
+
+        assert tw.c_minus < 1e-4
+
+        # Try to measure and match coupling
+        tracker.vars['cmrskew'] = 1e-3
+        tracker.vars['cmiskew'] = 1e-3
+
+        tw = tracker.twiss()
+        assert tw.c_minus > 1e-4
+
+        # Match coupling
+        tracker.match(vary=['cmrskew', 'cmiskew'], solver='bfgs',
+            targets = [('c_minus', 0, 1e-4)])
+
+        tw = tracker.twiss()
+        assert tw.c_minus < 1e-4

@@ -20,6 +20,6 @@ tracker.vars['cmrskew'] = 1e-3
 tracker.vars['cmiskew'] = 1e-3
 
 # Match coupling
-tracker.match(vary=['cmrskew', 'cmiskew'], method='bfgs',
+tracker.match(vary=['cmrskew', 'cmiskew'], solver='bfgs',
     targets = [('c_minus', 0, 1e-4)])
 

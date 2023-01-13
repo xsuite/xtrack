@@ -1162,13 +1162,13 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
     else:
         return np.array(res)
 
-def match_tracker(tracker, vary, targets, restore_if_fail=True, method='fsolve',
+def match_tracker(tracker, vary, targets, restore_if_fail=True, solver='fsolve',
                   **kwargs):
 
-    assert method in ['fsolve', 'bfgs']
-    if method == 'fsolve':
+    assert solver in ['fsolve', 'bfgs']
+    if solver == 'fsolve':
         return_norm = False
-    elif method == 'bfgs':
+    elif solver == 'bfgs':
         return_norm = True
 
     call_counter = {'n': 0}
@@ -1177,13 +1177,13 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, method='fsolve',
                    tracker=tracker, return_norm=return_norm, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv]._value for vv in vary]
     try:
-        if method == 'fsolve':
+        if solver == 'fsolve':
             (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(), full_output=True)
             if ier != 1:
                 raise RuntimeError("fsolve failed: %s" % mesg)
             result_info = {
                 'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
-        elif method == 'bfgs':
+        elif solver == 'bfgs':
             optimize_result = minimize(_err, x0=x0.copy(), method='BFGS')
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
