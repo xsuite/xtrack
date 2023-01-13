@@ -1157,6 +1157,8 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
     if np.all(np.abs(res) < tols):
         res *= 0
 
+    print(f'x = {knob_values}   f(x) = {res}')
+
     if return_norm:
         return np.sqrt((res*res).sum())
     else:
