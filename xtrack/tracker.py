@@ -285,6 +285,7 @@ class Tracker:
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
         self._radiation_model = None
+        self._beamstrahlung_model = None
 
     def _init_track_no_collective(
         self,
@@ -373,6 +374,7 @@ class Tracker:
 
         self.track = self._track_no_collective
         self._radiation_model = None
+        self._beamstrahlung_model = None
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if compile:
