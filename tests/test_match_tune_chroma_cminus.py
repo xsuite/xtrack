@@ -139,7 +139,11 @@ def test_match_coupling():
         assert tw.c_minus > 1e-4
 
         # Match coupling
-        tracker.match(vary=['cmrskew', 'cmiskew'], solver='bfgs',
+        tracker.match(solver='bfgs',
+            vary=[
+                xt.Vary(name='cmrskew', limits=[-1e-2, 1e-2]),
+                xt.Vary(name='cmiskew', limits=[-1e-2, 1e-2]),
+            ],
             targets = [('c_minus', 0, 1e-4)])
 
         tw = tracker.twiss()

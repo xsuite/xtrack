@@ -1136,7 +1136,7 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
     call_counter['n'] += 1
 
     for kk, vv in zip(vary, knob_values):
-        tracker.vars[kk] = vv
+        tracker.vars[kk.name] = vv
     tw = tracker.twiss(**tw_kwargs)
     res = []
 
@@ -1164,8 +1164,28 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
     else:
         return np.array(res)
 
+class Vary:
+    def __init__(self, name, limits=None):
+        self.name = name
+        if limits is None:
+            limits = [-1e30, 1e30]
+        self.limits = limits
+
 def match_tracker(tracker, vary, targets, restore_if_fail=True, solver='fsolve',
                   **kwargs):
+
+    if isinstance(vary, str):
+        vary = [vary]
+    if isinstance(vary, Vary):
+        vary = [vary]
+
+    for ii, vv in enumerate(vary):
+        if isinstance(vv, Vary):
+            pass
+        elif isinstance(vv, str):
+            vary[ii] = Vary(vv)
+        elif isinstance(vv, (list, tuple)):
+            vary[ii] = Vary(**vv)
 
     assert solver in ['fsolve', 'bfgs']
     if solver == 'fsolve':
@@ -1177,7 +1197,7 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver='fsolve',
     _err = partial(_error_for_match, vary=vary, targets=targets,
                    call_counter=call_counter,
                    tracker=tracker, return_norm=return_norm, tw_kwargs=kwargs)
-    x0 = [tracker.vars[vv]._value for vv in vary]
+    x0 = [tracker.vars[vv.name]._value for vv in vary]
     try:
         if solver == 'fsolve':
             (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(), full_output=True)
@@ -1186,7 +1206,8 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver='fsolve',
             result_info = {
                 'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
         elif solver == 'bfgs':
-            optimize_result = minimize(_err, x0=x0.copy(), method='BFGS')
+            optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
+                        bounds=([vv.limits for vv in vary]))
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         for kk, vv in zip(vary, res):
