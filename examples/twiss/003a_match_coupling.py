@@ -20,6 +20,15 @@ tracker.vars['cmrskew'] = 1e-3
 tracker.vars['cmiskew'] = 1e-3
 
 # Match coupling
-tracker.match(vary=['cmrskew', 'cmiskew'], solver='bfgs',
+tracker.match(vary=['cmrskew', 'cmiskew'],
     targets = [('c_minus', 0, 1e-4)])
 
+####################
+# Funky feature
+
+
+tracker.vars['cmrskew'] = 7.628484268860683e-05
+tracker.vars['cmiskew'] = 7.628484268860683e-05
+
+tw = tracker.twiss()
+print(tw.c_minus)
