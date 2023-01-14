@@ -1130,7 +1130,7 @@ class TwissTable(Table):
                         self[kk] = [vv[ii] for ii in indx_twiss]
 
 def _error_for_match(knob_values, vary, targets, tracker, return_norm,
-                     call_counter, tw_kwargs):
+                     call_counter, verbose, tw_kwargs):
 
     print(f"Matching: twiss call n. {call_counter['n']}       ", end='\r', flush=True)
     call_counter['n'] += 1
@@ -1138,31 +1138,37 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
     for kk, vv in zip(vary, knob_values):
         tracker.vars[kk.name] = vv
     tw = tracker.twiss(**tw_kwargs)
-    res = []
 
+    res_values = []
+    target_values = []
     for tt in targets:
-        if isinstance(tt[0], str):
-            res.append(tw[tt[0]] - tt[1])
+        if isinstance(tt.tar, str):
+            res_values.append(tw[tt.tar])
         else:
-            res.append(tt[0](tw) - tt[1])
+            res_values.append(tt.tar(tw))
+        target_values.append(tt.value)
 
-    res = np.array(res)
-    tols = 0 * res
+    res_values = np.array(res_values)
+    target_values = np.array(target_values)
+    err_values = res_values - target_values
+
+    tols = 0 * err_values
     for ii, tt in enumerate(targets):
-        if len(tt) > 2:
-            tols[ii] = tt[2]
+        if tt.tol is not None:
+            tols[ii] = tt.tol
         else:
             tols[ii] = 1e-14
 
-    if np.all(np.abs(res) < tols):
-        res *= 0
+    if np.all(np.abs(err_values) < tols):
+        err_values *= 0
 
-    print(f'x = {knob_values}   f(x) = {res}')
+    if verbose:
+        print(f'x = {knob_values}   f(x) = {res_values}')
 
     if return_norm:
-        return np.sqrt((res*res).sum())
+        return np.sqrt((err_values*err_values).sum())
     else:
-        return np.array(res)
+        return np.array(err_values)
 
 class Vary:
     def __init__(self, name, limits=None):
@@ -1171,12 +1177,16 @@ class Vary:
             limits = [-1e30, 1e30]
         self.limits = limits
 
-def match_tracker(tracker, vary, targets, restore_if_fail=True, solver='fsolve',
-                  **kwargs):
+class Target:
+    def __init__(self, tar, value, tol=None):
+        self.tar = tar
+        self.value = value
+        self.tol = tol
 
-    if isinstance(vary, str):
-        vary = [vary]
-    if isinstance(vary, Vary):
+def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
+                  verbose=False, **kwargs):
+
+    if isinstance(vary, (str, Vary)):
         vary = [vary]
 
     for ii, vv in enumerate(vary):
@@ -1185,9 +1195,26 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver='fsolve',
         elif isinstance(vv, str):
             vary[ii] = Vary(vv)
         elif isinstance(vv, (list, tuple)):
-            vary[ii] = Vary(**vv)
+            vary[ii] = Vary(*vv)
+        else:
+            raise ValueError(f'Invalid vary element {vv}')
+
+    for ii, tt in enumerate(targets):
+        if isinstance(tt, Target):
+            pass
+        elif isinstance(tt, (list, tuple)):
+            targets[ii] = Target(*tt)
+        else:
+            raise ValueError(f'Invalid target element {tt}')
+
+    if solver is None:
+        if len(targets) == len(vary):
+            solver = 'fsolve'
+        else:
+            solver = 'bfgs'
 
     assert solver in ['fsolve', 'bfgs']
+
     if solver == 'fsolve':
         return_norm = False
     elif solver == 'bfgs':
@@ -1195,7 +1222,7 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver='fsolve',
 
     call_counter = {'n': 0}
     _err = partial(_error_for_match, vary=vary, targets=targets,
-                   call_counter=call_counter,
+                   call_counter=call_counter, verbose=verbose,
                    tracker=tracker, return_norm=return_norm, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv.name]._value for vv in vary]
     try:
