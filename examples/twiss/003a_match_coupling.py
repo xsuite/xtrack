@@ -11,6 +11,7 @@ line_b1 = xt.Line.from_dict(dct_b1)
 
 context = xo.ContextCupy()
 context = xo.ContextCpu()
+context = xo.ContextPyopencl()
 
 tracker = line_b1.build_tracker(_context=context)
 
