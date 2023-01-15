@@ -30,5 +30,12 @@ tracker.match(vary=['cmrskew', 'cmiskew'],
 tracker.vars['cmrskew'] = 7.628484268860683e-05
 tracker.vars['cmiskew'] = 7.628484268860683e-05
 
-tw = tracker.twiss()
-print(tw.c_minus)
+cr_values = np.linspace(0.5e-4, 0.8e-4, 100)
+c_minus_values = cr_values * 0
+
+for ii, cr in enumerate(cr_values):
+    print(f"cr = {cr}", end='\r', flush=True)
+    tracker.vars['cmrskew'] = cr
+    tw = tracker.twiss()
+    c_minus_values[ii] = tw.c_minus
+
