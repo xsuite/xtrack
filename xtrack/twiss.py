@@ -273,12 +273,14 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                     np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                     /(1 + r1 * r2))
         c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
+        c_r1_avg = np.trapz(r1, s_vect)/(circumference)
+        c_r2_avg = np.trapz(r2, s_vect)/(circumference)
         twiss_res.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev': T_rev,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
-            'c_minus': c_minus,
+            'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
         })
         if hasattr(part_on_co, '_fsolve_info'):
             twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
