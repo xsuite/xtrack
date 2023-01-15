@@ -273,12 +273,14 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                     np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
                     /(1 + r1 * r2))
         c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
+        c_r1_avg = np.trapz(r1, s_vect)/(circumference)
+        c_r2_avg = np.trapz(r2, s_vect)/(circumference)
         twiss_res.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev': T_rev,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
-            'c_minus': c_minus,
+            'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
         })
         if hasattr(part_on_co, '_fsolve_info'):
             twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
@@ -1234,7 +1236,9 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
                 'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
         elif solver == 'bfgs':
             optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
-                        bounds=([vv.limits for vv in vary]))
+                        bounds=([vv.limits for vv in vary]),
+                        options={'eps': 1e-5} # TEEEEEEST
+                        )
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         for kk, vv in zip(vary, res):
