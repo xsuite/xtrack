@@ -24,6 +24,7 @@ def test_constructor():
             xt.RFMultipole(_context=ctx, knl=[2]),
             xt.Cavity(voltage=3.),
             xt.SRotation(angle=4),
+            xt.XRotation(angle=1.8),
             xt.YRotation(angle=2.4),
             xt.XYShift(dx=1),
             xt.DipoleEdge(h=1),
@@ -62,6 +63,7 @@ def test_backtrack():
             xt.ReferenceEnergyIncrease(_context=ctx, Delta_p0c=42),
             xt.Cavity(_context=ctx, voltage=3.),
             xt.SRotation(_context=ctx, angle=4),
+            xt.XRotation(_context=ctx, angle=0.3),
             xt.YRotation(_context=ctx, angle=0.7),
             xt.XYShift(_context=ctx, dx=1),
             xt.DipoleEdge(_context=ctx, h=1),
@@ -87,8 +89,11 @@ def test_backtrack():
 
             # track forth and back
             new_particles = xp.Particles.from_dict(dtk_particle.to_dict(), _context=ctx)
+            print(element,'1',new_particles.x,new_particles.px,new_particles.y,new_particles.py,new_particles.zeta,new_particles.pzeta)
             element.track(new_particles)
+            print(element,'2',new_particles.x,new_particles.px,new_particles.y,new_particles.py,new_particles.zeta,new_particles.pzeta)
             element_backtrack.track(new_particles)
+            print(element,'3',new_particles.x,new_particles.px,new_particles.y,new_particles.py,new_particles.zeta,new_particles.pzeta)
 
             # assert that nothing changed
             for k in 'x,px,y,py,zeta,delta'.split(','):
