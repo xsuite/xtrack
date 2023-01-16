@@ -275,22 +275,23 @@ class YRotation(BeamElement):
     _store_in_to_dict = ['angle']
 
     def __init__(self, angle=0, **nargs):
+        #TODO From MADX: angle = angle * node_value('other_bv ')
         anglerad = -angle / 180 * np.pi
-        nargs['sin_angle']=np.sin(anglerad)
-        nargs['cos_angle']=np.cos(anglerad)
-        nargs['tan_angle']=np.tan(anglerad)
+        nargs['sin_angle'] = np.sin(anglerad)
+        nargs['cos_angle'] = np.cos(anglerad)
+        nargs['tan_angle'] = np.tan(anglerad)
         super().__init__(**nargs)
 
     @property
     def angle(self):
-        return -np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
+        return -np.arctan2(self.sin_angle, self.cos_angle) * (180.0 / np.pi)
 
     @angle.setter
     def angle(self, value):
         anglerad = -value / 180 * np.pi
-        self.cos_z = np.cos(anglerad)
-        self.sin_z = np.sin(anglerad)
-        self.tan_z = np.tan(anglerad)
+        self.cos_angle = np.cos(anglerad)
+        self.sin_angle = np.sin(anglerad)
+        self.tan_angle = np.tan(anglerad)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
