@@ -256,6 +256,48 @@ class SRotation(BeamElement):
                               angle=-self.angle,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+class YRotation(BeamElement):
+    '''Beam element modeling an rotation of the reference system around the y axis. Parameters:
+
+                - angle [deg]: Rotation angle. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'sin_angle': xo.Float64,
+        'cos_angle': xo.Float64,
+        'tan_angle': xo.Float64,
+        }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')]
+
+    _store_in_to_dict = ['angle']
+
+    def __init__(self, angle=0, **nargs):
+        anglerad = -angle / 180 * np.pi
+        nargs['sin_angle']=np.sin(anglerad)
+        nargs['cos_angle']=np.cos(anglerad)
+        nargs['tan_angle']=np.tan(anglerad)
+        super().__init__(**nargs)
+
+    @property
+    def angle(self):
+        return -np.arctan2(self.sin_z, self.cos_z) * (180.0 / np.pi)
+
+    @angle.setter
+    def angle(self, value):
+        anglerad = -value / 180 * np.pi
+        self.cos_z = np.cos(anglerad)
+        self.sin_z = np.sin(anglerad)
+        self.tan_z = np.tan(anglerad)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
+
 
 class SynchrotronRadiationRecord(xo.HybridClass):
     _xofields = {
