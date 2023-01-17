@@ -141,8 +141,8 @@ def test_match_coupling():
         # Match coupling
         tracker.match(solver='bfgs',
             vary=[
-                xt.Vary(name='cmrskew', limits=[-1e-2, 1e-2]),
-                xt.Vary(name='cmiskew', limits=[-1e-2, 1e-2]),            ],
+                xt.Vary(name='cmrskew', limits=[-1e-2, 1e-2], step=1e-5),
+                xt.Vary(name='cmiskew', limits=[-1e-2, 1e-2], step=1e-5),            ],
             targets=[
                 xt.Target('c_minus', 0, tol=1e-4)])
 

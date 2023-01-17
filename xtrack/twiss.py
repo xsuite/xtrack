@@ -1173,11 +1173,13 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
         return np.array(err_values)
 
 class Vary:
-    def __init__(self, name, limits=None):
+    def __init__(self, name, limits=None, step=None):
         self.name = name
         if limits is None:
             limits = [-1e30, 1e30]
         self.limits = limits
+        self.step = step
+
 
 class Target:
     def __init__(self, tar, value, tol=None):
@@ -1215,6 +1217,17 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
         else:
             solver = 'bfgs'
 
+    # Assert that if one vary has a step, all vary have a step
+    if any([vv.step is not None for vv in vary]):
+        if not all([vv.step is not None for vv in vary]):
+            raise NotImplementedError('All vary must have the same step (for now).')
+
+    # Assert that all vary have the same step
+    steps = [vv.step for vv in vary]
+    if not np.all(np.isclose(steps, steps[0], atol=0, rtol=1e-14)):
+        raise NotImplementedError('All vary must have the same step (for now).')
+    step = steps[0]
+
     assert solver in ['fsolve', 'bfgs']
 
     if solver == 'fsolve':
@@ -1229,14 +1242,21 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
     x0 = [tracker.vars[vv.name]._value for vv in vary]
     try:
         if solver == 'fsolve':
-            (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(), full_output=True)
+            options = {}
+            if step is not None:
+                options['epsfcn'] = step
+            (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(),
+                full_output=True, **options)
             if ier != 1:
                 raise RuntimeError("fsolve failed: %s" % mesg)
             result_info = {
                 'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
         elif solver == 'bfgs':
+            options = {}
+            if step is not None:
+                options['eps'] = step
             optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
-                        bounds=([vv.limits for vv in vary]))
+                        bounds=([vv.limits for vv in vary]), options=options)
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         for kk, vv in zip(vary, res):

@@ -20,22 +20,9 @@ tracker.vars['cmrskew'] = 1e-3
 tracker.vars['cmiskew'] = 1e-3
 
 # Match coupling
-tracker.match(vary=['cmrskew', 'cmiskew'],
-    targets = [('c_minus', 0, 1e-4)])
-
-####################
-# Funky feature
-
-
-tracker.vars['cmrskew'] = 7.628484268860683e-05
-tracker.vars['cmiskew'] = 7.628484268860683e-05
-
-cr_values = np.linspace(0.5e-4, 0.8e-4, 100)
-c_minus_values = cr_values * 0
-
-for ii, cr in enumerate(cr_values):
-    print(f"cr = {cr}", end='\r', flush=True)
-    tracker.vars['cmrskew'] = cr
-    tw = tracker.twiss()
-    c_minus_values[ii] = tw.c_minus
-
+tracker.match(solver='bfgs',
+    vary=[
+        xt.Vary(name='cmrskew', limits=[-1e-2, 1e-2], step=1e-5),
+        xt.Vary(name='cmiskew', limits=[-1e-2, 1e-2], step=1e-5),            ],
+    targets=[
+        xt.Target('c_minus', 0, tol=1e-4)])
