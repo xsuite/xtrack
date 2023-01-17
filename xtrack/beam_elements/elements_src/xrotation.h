@@ -12,7 +12,7 @@ void XRotation_track_local_particle(XRotationData el, LocalParticle* part0){
     //start_per_particle_block (part0->part)
     	double const cos_angle = XRotationData_get_cos_angle(el);
     	double const sin_angle = XRotationData_get_sin_angle(el);
-    	double const tan_angle = XRotationData_get_cos_angle(el);
+    	double const tan_angle = XRotationData_get_tan_angle(el);
 
         double const beta0 = LocalParticle_get_beta0(part);
         double const beta = LocalParticle_get_rvv(part)*beta0;
@@ -27,7 +27,7 @@ void XRotation_track_local_particle(XRotationData el, LocalParticle* part0){
         double ptt = 1.0 - tan_angle*py/pz;
         double x_hat = x + tan_angle*y*px/(pz*ptt);
         double y_hat = y/(cos_angle*ptt);
-        double py_hat = cos_angle*px + sin_angle*pz;
+        double py_hat = cos_angle*py + sin_angle*pz;
         double t_hat = t - tan_angle*y*(1.0/beta+pt)/(pz*ptt);
 
     	LocalParticle_set_x(part, x_hat);

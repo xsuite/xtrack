@@ -275,6 +275,7 @@ class XRotation(BeamElement):
     _store_in_to_dict = ['angle']
 
     def __init__(self, angle=0, **nargs):
+        #TODO From MADX: angle = angle * node_value('other_bv ')
         anglerad = angle / 180 * np.pi
         nargs['sin_angle'] = np.sin(anglerad)
         nargs['cos_angle'] = np.cos(anglerad)
@@ -283,7 +284,7 @@ class XRotation(BeamElement):
 
     @property
     def angle(self):
-        return np.arctan2(self.sin_angle, self.cos_angle) * (180.0 / np.pi)
+        return np.arctan2(self.sin_angle,self.cos_angle) * (180.0 / np.pi)
 
     @angle.setter
     def angle(self, value):
@@ -316,7 +317,8 @@ class YRotation(BeamElement):
     _store_in_to_dict = ['angle']
 
     def __init__(self, angle=0, **nargs):
-        #TODO From MADX: angle = angle * node_value('other_bv ')
+        #Note MAD-X node_value('other_bv ') is ignored
+        #     minus sign follows MAD-X convention
         anglerad = -angle / 180 * np.pi
         nargs['sin_angle'] = np.sin(anglerad)
         nargs['cos_angle'] = np.cos(anglerad)

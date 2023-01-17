@@ -89,17 +89,13 @@ def test_backtrack():
 
             # track forth and back
             new_particles = xp.Particles.from_dict(dtk_particle.to_dict(), _context=ctx)
-            print(element,'1',new_particles.x,new_particles.px,new_particles.y,new_particles.py,new_particles.zeta,new_particles.pzeta)
             element.track(new_particles)
-            print(element,'2',new_particles.x,new_particles.px,new_particles.y,new_particles.py,new_particles.zeta,new_particles.pzeta)
             element_backtrack.track(new_particles)
-            print(element,'3',new_particles.x,new_particles.px,new_particles.y,new_particles.py,new_particles.zeta,new_particles.pzeta)
 
             # assert that nothing changed
             for k in 'x,px,y,py,zeta,delta'.split(','):
                 assert np.isclose(ctx.nparray_from_context_array(getattr(new_particles, k))[0],
                           getattr(dtk_particle, k), rtol=1e-14, atol=1e-14)
-
 
 def test_arr2ctx():
 

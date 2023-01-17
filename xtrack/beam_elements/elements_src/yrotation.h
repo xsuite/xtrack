@@ -12,7 +12,7 @@ void YRotation_track_local_particle(YRotationData el, LocalParticle* part0){
     //start_per_particle_block (part0->part)
     	double const cos_angle = YRotationData_get_cos_angle(el);
     	double const sin_angle = YRotationData_get_sin_angle(el);
-    	double const tan_angle = YRotationData_get_cos_angle(el);
+    	double const tan_angle = YRotationData_get_tan_angle(el);
 
         double const beta0 = LocalParticle_get_beta0(part);
         double const beta = LocalParticle_get_rvv(part)*beta0;
