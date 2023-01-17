@@ -983,3 +983,25 @@ class MadLoader:
             ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
         )
         return self.convert_thin_element([el], ee)
+
+    def convert_srotation(self, ee):
+        angle = getattr(ee, 'angle')*180/np.pi
+        el = self.Builder(
+            ee.name, self.classes.SRotation, angle=angle
+        )
+        return self.convert_thin_element([el], ee)
+
+    def convert_xrotation(self, ee):
+        angle = getattr(ee, 'angle')*180/np.pi
+        el = self.Builder(
+            ee.name, self.classes.XRotation, angle=angle
+        )
+        return self.convert_thin_element([el], ee)
+
+    def convert_yrotation(self, ee):
+        angle = getattr(ee, 'angle')*180/np.pi
+        el = self.Builder(
+            ee.name, self.classes.YRotation, angle=angle
+        )
+        return self.convert_thin_element([el], ee)
+
