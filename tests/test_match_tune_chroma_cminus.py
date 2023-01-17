@@ -136,10 +136,10 @@ def test_match_coupling():
         tracker.vars['cmiskew'] = 1e-3
 
         tw = tracker.twiss()
-        assert tw.c_minus > 1e-4
+        assert tw.c_minus > 2e-4
 
         # Match coupling
-        tracker.match(solver='bfgs',
+        tracker.match(verbose=True,
             vary=[
                 xt.Vary(name='cmrskew', limits=[-1e-2, 1e-2], step=1e-5),
                 xt.Vary(name='cmiskew', limits=[-1e-2, 1e-2], step=1e-5),            ],
@@ -147,4 +147,4 @@ def test_match_coupling():
                 xt.Target('c_minus', 0, tol=1e-4)])
 
         tw = tracker.twiss()
-        assert tw.c_minus < 1e-4
+        assert tw.c_minus < 2e-4

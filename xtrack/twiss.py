@@ -1224,7 +1224,8 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
 
     # Assert that all vary have the same step
     steps = [vv.step for vv in vary]
-    if not np.all(np.isclose(steps, steps[0], atol=0, rtol=1e-14)):
+    if (steps[0] is not None
+            and not np.all(np.isclose(steps, steps[0], atol=0, rtol=1e-14))):
         raise NotImplementedError('All vary must have the same step (for now).')
     step = steps[0]
 
