@@ -13,7 +13,6 @@ import ducktrack as dtk
 
 from scipy.stats import linregress
 
-
 @for_all_test_contexts
 def test_constructor(test_context):
     elements = [
@@ -21,17 +20,19 @@ def test_constructor(test_context):
         xt.Marker(_context=test_context),
         xt.Multipole(_context=test_context, knl=[2, 3]),
         xt.RFMultipole(_context=test_context, knl=[2]),
-        xt.Cavity(voltage=3.),
-        xt.SRotation(angle=4),
-        xt.XYShift(dx=1),
-        xt.DipoleEdge(h=1),
-        xt.LimitRect(min_x=5),
-        xt.LimitRectEllipse(max_x=6),
-        xt.LimitEllipse(a=10),
-        xt.LimitRacetrack(min_x=2),
-        xt.LimitPolygon(x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
-        xt.Elens(inner_radius=0.1),
-        xt.Wire(current=3.)
+        xt.Cavity(_context=test_context, voltage=3.),
+        xt.SRotation(_context=test_context, angle=4),
+        xt.XRotation(_context=test_context, angle=1.8),
+        xt.YRotation(_context=test_context, angle=2.4),
+        xt.XYShift(_context=test_context, dx=1),
+        xt.DipoleEdge(_context=test_context, h=1),
+        xt.LimitRect(_context=test_context, min_x=5),
+        xt.LimitRectEllipse(_context=test_context, max_x=6),
+        xt.LimitEllipse(_context=test_context, a=10),
+        xt.LimitRacetrack(_context=test_context, min_x=2),
+        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+        xt.Elens(_context=test_context, inner_radius=0.1),
+        xt.Wire(_context=test_context, current=3.)
     ]
 
     # test to_dict / from_dict
@@ -56,6 +57,8 @@ def test_backtrack(test_context):
         xt.ReferenceEnergyIncrease(_context=test_context, Delta_p0c=42),
         xt.Cavity(_context=test_context, voltage=3.),
         xt.SRotation(_context=test_context, angle=4),
+        xt.XRotation(_context=test_context, angle=0.3),
+        xt.YRotation(_context=test_context, angle=0.7),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
         xt.LimitRect(_context=test_context, min_x=5),

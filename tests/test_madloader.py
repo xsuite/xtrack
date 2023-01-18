@@ -249,6 +249,59 @@ def test_matrix():
     line.vars['a11']=2.0
     assert line[1].m1[0,0]==line.vars['a11']._value
 
+def test_srotation():
+    mad = Madx()
+
+    mad.input("""
+    angle=0.2;
+    rot: srotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    line=MadLoader(mad.sequence.ss).make_line()
+    line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
+    assert isinstance(line[1],xt.SRotation)
+    line.vars['angle'] = 2.0
+    assert line[1].angle == line.vars['angle']._value*180/np.pi
+
+def test_xrotation():
+    mad = Madx()
+
+    mad.input("""
+    angle=0.2;
+    rot: xrotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    line=MadLoader(mad.sequence.ss).make_line()
+    line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
+    assert isinstance(line[1],xt.XRotation)
+    line.vars['angle'] = 2.0
+    assert line[1].angle == line.vars['angle']._value*180/np.pi
+
+def test_yrotation():
+    mad = Madx()
+
+    mad.input("""
+    angle=0.2;
+    rot: yrotation,angle:=angle;
+
+    ss: sequence, l=1; rot: rot, at=0; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    line=MadLoader(mad.sequence.ss).make_line()
+    line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
+    assert isinstance(line[1],xt.YRotation)
+    line.vars['angle'] = 2.0
+    assert line[1].angle == line.vars['angle']._value*180/np.pi
 
 def test_mad_elements_import():
 
