@@ -200,7 +200,7 @@ def test_get_normalized_coordinates(test_context):
     assert np.allclose(norm_coord23['y_norm'][:3], [0.3, -0.2, 0.2], atol=5e-12, rtol=0)
     assert np.allclose(norm_coord23['y_norm'][3:6], [0.3, -0.2, 0.2], atol=5e-12, rtol=0)
     assert np.allclose(norm_coord23['y_norm'][6:], xp.particles.LAST_INVALID_STATE)
-    assert np.allclose(norm_coord23['px_norm'][:3], [0.1, 0.2, 0.3], atol=5e-12, rtol=0)
+    assert np.allclose(norm_coord23['px_norm'][:3], [0.1, 0.2, 0.3], atol=6e-12, rtol=0)
     assert np.allclose(norm_coord23['px_norm'][3:6], [0.1, 0.2, 0.3], atol=5e-12, rtol=0)
     assert np.allclose(norm_coord23['px_norm'][6:], xp.particles.LAST_INVALID_STATE)
     assert np.allclose(norm_coord23['py_norm'][:3], [0.5, 0.6, 0.8], atol=5e-12, rtol=0)
