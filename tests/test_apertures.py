@@ -8,119 +8,113 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
-
-def test_rect_ellipse():
-
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
-
-        np2ctx = context.nparray_to_context_array
-        ctx2np = context.nparray_from_context_array
-
-        aper_rect_ellipse = xt.LimitRectEllipse(_context=context,
-                max_x=23e-3, max_y=18e-3, a=23e-2, b=23e-2)
-        aper_ellipse = xt.LimitRectEllipse(_context=context,
-                                           a=23e-2, b=23e-2)
-        aper_rect = xt.LimitRect(_context=context,
-                                 max_x=23e-3, min_x=-23e-3,
-                                 max_y=18e-3, min_y=-18e-3)
-
-        XX, YY = np.meshgrid(np.linspace(-30e-3, 30e-3, 100),
-                             np.linspace(-30e-3, 30e-3, 100))
-        x_part = XX.flatten()
-        y_part = XX.flatten()
-        part_re = xp.Particles(_context=context,
-                               x=x_part, y=y_part)
-        part_e = part_re.copy()
-        part_r = part_re.copy()
-
-        aper_rect_ellipse.track(part_re)
-        aper_ellipse.track(part_e)
-        aper_rect.track(part_r)
-
-        flag_re = ctx2np(part_re.state)[np.argsort(ctx2np(part_re.particle_id))]
-        flag_r = ctx2np(part_r.state)[np.argsort(ctx2np(part_r.particle_id))]
-        flag_e = ctx2np(part_e.state)[np.argsort(ctx2np(part_e.particle_id))]
-
-        assert np.all(flag_re == (flag_r & flag_e))
-
-def test_aperture_racetrack():
-
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
-
-        part_gen_range = 0.11
-        n_part=100000
-
-        aper = xt.LimitRacetrack(_context=context,
-                                 min_x=-5e-2, max_x=10e-2,
-                                 min_y=-2e-2, max_y=4e-2,
-                                 a=2e-2, b=1e-2)
-
-        xy_out = np.array([
-            [-4.8e-2, 3.7e-2],
-            [9.6e-2, 3.7e-2],
-            [-4.5e-2, -1.8e-2],
-            [9.8e-2, -1.8e-2],
-            ])
-
-        xy_in = np.array([
-            [-4.2e-2, 3.3e-2],
-            [9.4e-2, 3.6e-2],
-            [-3.8e-2, -1.8e-2],
-            [9.2e-2, -1.8e-2],
-            ])
-
-        xy_all = np.concatenate([xy_out, xy_in], axis=0)
-
-        particles = xp.Particles(_context=context,
-                p0c=6500e9,
-                x=xy_all[:, 0],
-                y=xy_all[:, 1])
-
-        aper.track(particles)
-
-        part_state = context.nparray_from_context_array(particles.state)
-        part_id = context.nparray_from_context_array(particles.particle_id)
-
-        assert np.all(part_state[part_id<4] == 0)
-        assert np.all(part_state[part_id>=4] == 1)
+from xobjects.test_helpers import for_all_test_contexts
 
 
+@for_all_test_contexts
+def test_rect_ellipse(test_context):
+    np2ctx = test_context.nparray_to_context_array
+    ctx2np = test_context.nparray_from_context_array
 
-def test_aperture_polygon():
+    aper_rect_ellipse = xt.LimitRectEllipse(_context=test_context,
+            max_x=23e-3, max_y=18e-3, a=23e-2, b=23e-2)
+    aper_ellipse = xt.LimitRectEllipse(_context=test_context,
+                                       a=23e-2, b=23e-2)
+    aper_rect = xt.LimitRect(_context=test_context,
+                             max_x=23e-3, min_x=-23e-3,
+                             max_y=18e-3, min_y=-18e-3)
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
+    XX, YY = np.meshgrid(np.linspace(-30e-3, 30e-3, 100),
+                         np.linspace(-30e-3, 30e-3, 100))
+    x_part = XX.flatten()
+    y_part = XX.flatten()
+    part_re = xp.Particles(_context=test_context,
+                           x=x_part, y=y_part)
+    part_e = part_re.copy()
+    part_r = part_re.copy()
 
-        np2ctx = context.nparray_to_context_array
-        ctx2np = context.nparray_from_context_array
+    aper_rect_ellipse.track(part_re)
+    aper_ellipse.track(part_e)
+    aper_rect.track(part_r)
 
-        x_vertices=np.array([1.5, 0.2, -1, -1,  1])*1e-2
-        y_vertices=np.array([1.3, 0.5,  1, -1, -1])*1e-2
+    flag_re = ctx2np(part_re.state)[np.argsort(ctx2np(part_re.particle_id))]
+    flag_r = ctx2np(part_r.state)[np.argsort(ctx2np(part_r.particle_id))]
+    flag_e = ctx2np(part_e.state)[np.argsort(ctx2np(part_e.particle_id))]
 
-        aper = xt.LimitPolygon(
-                        _context=context,
-                        x_vertices=np2ctx(x_vertices),
-                        y_vertices=np2ctx(y_vertices))
+    assert np.all(flag_re == (flag_r & flag_e))
 
-        # Try some particles inside
-        parttest = xp.Particles(
-                        _context=context,
-                        p0c=6500e9,
-                        x=x_vertices*0.99,
-                        y=y_vertices*0.99)
-        aper.track(parttest)
-        assert np.allclose(ctx2np(parttest.state), 1)
 
-        # Try some particles outside
-        parttest = xp.Particles(
-                        _context=context,
-                        p0c=6500e9,
-                        x=x_vertices*1.01,
-                        y=y_vertices*1.01)
-        aper.track(parttest)
-        assert np.allclose(ctx2np(parttest.state), 0)
+@for_all_test_contexts
+def test_aperture_racetrack(test_context):
+    part_gen_range = 0.11
+    n_part=100000
+
+    aper = xt.LimitRacetrack(_context=test_context,
+                             min_x=-5e-2, max_x=10e-2,
+                             min_y=-2e-2, max_y=4e-2,
+                             a=2e-2, b=1e-2)
+
+    xy_out = np.array([
+        [-4.8e-2, 3.7e-2],
+        [9.6e-2, 3.7e-2],
+        [-4.5e-2, -1.8e-2],
+        [9.8e-2, -1.8e-2],
+        ])
+
+    xy_in = np.array([
+        [-4.2e-2, 3.3e-2],
+        [9.4e-2, 3.6e-2],
+        [-3.8e-2, -1.8e-2],
+        [9.2e-2, -1.8e-2],
+        ])
+
+    xy_all = np.concatenate([xy_out, xy_in], axis=0)
+
+    particles = xp.Particles(_context=test_context,
+            p0c=6500e9,
+            x=xy_all[:, 0],
+            y=xy_all[:, 1])
+
+    aper.track(particles)
+
+    part_state = test_context.nparray_from_context_array(particles.state)
+    part_id = test_context.nparray_from_context_array(particles.particle_id)
+
+    assert np.all(part_state[part_id<4] == 0)
+    assert np.all(part_state[part_id>=4] == 1)
+
+
+@for_all_test_contexts
+def test_aperture_polygon(test_context):
+    np2ctx = test_context.nparray_to_context_array
+    ctx2np = test_context.nparray_from_context_array
+
+    x_vertices=np.array([1.5, 0.2, -1, -1,  1])*1e-2
+    y_vertices=np.array([1.3, 0.5,  1, -1, -1])*1e-2
+
+    aper = xt.LimitPolygon(
+                    _context=test_context,
+                    x_vertices=np2ctx(x_vertices),
+                    y_vertices=np2ctx(y_vertices))
+
+    # Try some particles inside
+    parttest = xp.Particles(
+                    _context=test_context,
+                    p0c=6500e9,
+                    x=x_vertices*0.99,
+                    y=y_vertices*0.99)
+    aper.track(parttest)
+    assert np.allclose(ctx2np(parttest.state), 1)
+
+    # Try some particles outside
+    parttest = xp.Particles(
+                    _context=test_context,
+                    p0c=6500e9,
+                    x=x_vertices*1.01,
+                    y=y_vertices*1.01)
+    aper.track(parttest)
+    assert np.allclose(ctx2np(parttest.state), 0)
+
 
 def test_mad_import():
 
@@ -221,39 +215,37 @@ def test_mad_import():
     assert polyg._xobject.x_vertices[1] == 5.8e-2
     assert polyg._xobject.y_vertices[1] == -3.5e-2
 
-def test_longitudinal_rect():
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
+@for_all_test_contexts
+def test_longitudinal_rect(test_context):
+    np2ctx = test_context.nparray_to_context_array
+    ctx2np = test_context.nparray_from_context_array
 
-        np2ctx = context.nparray_to_context_array
-        ctx2np = context.nparray_from_context_array
+    aper_rect_longitudinal = xt.LongitudinalLimitRect(_context=test_context,
+            min_zeta=-10E-3,max_zeta=20E-3, min_pzeta=-1E-3, max_pzeta = 4E-3)
 
-        aper_rect_longitudinal = xt.LongitudinalLimitRect(_context=context,
-                min_zeta=-10E-3,max_zeta=20E-3, min_pzeta=-1E-3, max_pzeta = 4E-3)
+    coords = np.array([
+        [-9E-4, 0.0],
+        [15E-3, 0.0],
+        [0.0, -8E-4],
+        [0.0, 2E-3],
+        ])
+    particles = xp.Particles(_context=test_context,
+                           zeta=coords[:,0], pzeta=coords[:,1])
 
-        coords = np.array([
-            [-9E-4, 0.0],
-            [15E-3, 0.0],
-            [0.0, -8E-4],
-            [0.0, 2E-3],
-            ])
-        particles = xp.Particles(_context=context,
-                               zeta=coords[:,0], pzeta=coords[:,1])
+    aper_rect_longitudinal.track(particles)
+    particles.move(_context=xo.ContextCpu())
+    assert np.all(particles.state == 1)
 
-        aper_rect_longitudinal.track(particles)
-        particles.move(_context=xo.ContextCpu())
-        assert np.all(particles.state == 1)
+    coords = np.array([
+        [-11E-3, 0.0],
+        [22E-3, 0.0],
+        [0.0, -2E-3],
+        [0.0, 6E-3],
+        ])
+    particles = xp.Particles(_context=test_context,
+                           zeta=coords[:,0], pzeta=coords[:,1])
 
-        coords = np.array([
-            [-11E-3, 0.0],
-            [22E-3, 0.0],
-            [0.0, -2E-3],
-            [0.0, 6E-3],
-            ])
-        particles = xp.Particles(_context=context,
-                               zeta=coords[:,0], pzeta=coords[:,1])
-
-        aper_rect_longitudinal.track(particles)
-        particles.move(_context=xo.ContextCpu())
-        assert np.all(particles.state == -2)
+    aper_rect_longitudinal.track(particles)
+    particles.move(_context=xo.ContextCpu())
+    assert np.all(particles.state == -2)

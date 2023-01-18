@@ -9,164 +9,154 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
+from xobjects.test_helpers import for_all_test_contexts
 
 from pathlib import Path
 
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-def test_ebe_monitor():
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
+@for_all_test_contexts
+def test_ebe_monitor(test_context):
+    line = xt.Line(elements=[xt.Multipole(knl=[0, 1.]),
+                            xt.Drift(length=0.5),
+                            xt.Multipole(knl=[0, -1]),
+                            xt.Cavity(frequency=400e7, voltage=6e6),
+                            xt.Drift(length=.5),
+                            xt.Drift(length=0)])
 
-        line = xt.Line(elements=[xt.Multipole(knl=[0, 1.]),
-                                xt.Drift(length=0.5),
-                                xt.Multipole(knl=[0, -1]),
-                                xt.Cavity(frequency=400e7, voltage=6e6),
-                                xt.Drift(length=.5),
-                                xt.Drift(length=0)])
+    tracker = line.build_tracker(_context=test_context)
 
-        tracker = line.build_tracker(_context=context)
+    particles = xp.Particles(x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
+                            zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
+                            _context=test_context)
 
-        particles = xp.Particles(x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
-                                zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
-                                _context=context)
+    tracker.track(particles.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
 
-        tracker.track(particles.copy(), turn_by_turn_monitor='ONE_TURN_EBE')
+    mon = tracker.record_last_track
 
-        mon = tracker.record_last_track
-
-        for ii, ee in enumerate(line.elements):
-            for tt, nn in particles._structure['per_particle_vars']:
-                assert np.all(particles.to_dict()[nn] == getattr(mon, nn)[:, ii])
-            ee.track(particles)
-            particles.at_element += 1
+    for ii, ee in enumerate(line.elements):
+        for tt, nn in particles._structure['per_particle_vars']:
+            assert np.all(particles.to_dict()[nn] == getattr(mon, nn)[:, ii])
+        ee.track(particles)
+        particles.at_element += 1
 
 
-def test_cycle():
+@for_all_test_contexts
+def test_cycle(test_context):
+    d0 = xt.Drift()
+    c0 = xt.Cavity()
+    d1 = xt.Drift()
+    r0 = xt.SRotation()
+    particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
+    for collective in [True, False]:
+        line = xt.Line(elements=[d0, c0, d1, r0])
+        d1.iscollective = collective
 
-        d0 = xt.Drift()
-        c0 = xt.Cavity()
-        d1 = xt.Drift()
-        r0 = xt.SRotation()
-        particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, gamma0=1.05)
+        tracker = xt.Tracker(line=line, _context=test_context)
+        tracker.particle_ref = particle_ref
 
-        for collective in [True, False]:
-            line = xt.Line(elements=[d0, c0, d1, r0])
-            d1.iscollective = collective
+        ctracker_name = tracker.cycle(name_first_element='e2')
+        ctracker_index = tracker.cycle(index_first_element=2)
 
-            tracker = xt.Tracker(line=line, _context=context)
-            tracker.particle_ref = particle_ref
+        for ctracker in [ctracker_index, ctracker_name]:
+            assert ctracker.line.element_names[0] == 'e2'
+            assert ctracker.line.element_names[1] == 'e3'
+            assert ctracker.line.element_names[2] == 'e0'
+            assert ctracker.line.element_names[3] == 'e1'
 
-            ctracker_name = tracker.cycle(name_first_element='e2')
-            ctracker_index = tracker.cycle(index_first_element=2)
+            assert ctracker.line.elements[0] is d1
+            assert ctracker.line.elements[1] is r0
+            assert ctracker.line.elements[2] is d0
+            assert ctracker.line.elements[3] is c0
 
-            for ctracker in [ctracker_index, ctracker_name]:
-                assert ctracker.line.element_names[0] == 'e2'
-                assert ctracker.line.element_names[1] == 'e3'
-                assert ctracker.line.element_names[2] == 'e0'
-                assert ctracker.line.element_names[3] == 'e1'
-
-                assert ctracker.line.elements[0] is d1
-                assert ctracker.line.elements[1] is r0
-                assert ctracker.line.elements[2] is d0
-                assert ctracker.line.elements[3] is c0
-
-                assert ctracker.particle_ref.mass0 == xp.PROTON_MASS_EV
-                assert ctracker.particle_ref.gamma0 == 1.05
+            assert ctracker.particle_ref.mass0 == xp.PROTON_MASS_EV
+            assert ctracker.particle_ref.gamma0 == 1.05
 
 
-def test_synrad_configuration():
+@for_all_test_contexts
+def test_synrad_configuration(test_context):
+    for collective in [False, True]:
+        elements = [xt.Multipole(knl=[1]) for _ in range(10)]
+        if collective:
+            elements[5].iscollective = True
+            elements[5].move(_context=test_context)
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
-        for collective in [False, True]:
-            elements = [xt.Multipole(knl=[1]) for _ in range(10)]
-            if collective:
-                elements[5].iscollective = True
-                elements[5].move(_context=context)
+        tracker = xt.Tracker(line=xt.Line(elements=elements),
+                             _context=test_context)
 
-            tracker = xt.Tracker(line=xt.Line(elements=elements),
-                                 _context=context)
+        tracker.configure_radiation(model='mean')
+        for ee in tracker.line.elements:
+            assert ee.radiation_flag == 1
+        p = xp.Particles(x=[0.01, 0.02], _context=test_context)
+        tracker.track(p)
+        p.move(_context=xo.ContextCpu())
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
 
-            tracker.configure_radiation(model='mean')
-            for ee in tracker.line.elements:
-                assert ee.radiation_flag == 1
-            p = xp.Particles(x=[0.01, 0.02], _context=context)
-            tracker.track(p)
-            p.move(_context=xo.ContextCpu())
-            assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 == 0)
+        tracker.configure_radiation(model='quantum')
+        for ee in tracker.line.elements:
+            assert ee.radiation_flag == 2
+        p = xp.Particles(x=[0.01, 0.02], _context=test_context)
+        tracker.track(p)
+        p.move(_context=xo.ContextCpu())
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
 
-            tracker.configure_radiation(model='quantum')
-            for ee in tracker.line.elements:
-                assert ee.radiation_flag == 2
-            p = xp.Particles(x=[0.01, 0.02], _context=context)
-            tracker.track(p)
-            p.move(_context=xo.ContextCpu())
-            assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
-
-            tracker.configure_radiation(model=None)
-            for ee in tracker.line.elements:
-                assert ee.radiation_flag == 0
-            p = xp.Particles(x=[0.01, 0.02], _context=context)
-            tracker.track(p)
-            p.move(_context=xo.ContextCpu())
-            assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
+        tracker.configure_radiation(model=None)
+        for ee in tracker.line.elements:
+            assert ee.radiation_flag == 0
+        p = xp.Particles(x=[0.01, 0.02], _context=test_context)
+        tracker.track(p)
+        p.move(_context=xo.ContextCpu())
+        assert np.all(p._rng_s1 + p._rng_s2 + p._rng_s3 + p._rng_s4 > 0)
 
 
-def test_partial_tracking():
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
+@for_all_test_contexts
+def test_partial_tracking(test_context):
+    n_elem = 9
+    elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
+    line = xt.Line(elements=elements)
+    tracker = line.build_tracker(_context=test_context)
+    assert not tracker.iscollective
+    particles_init = xp.Particles(_context=test_context,
+        x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
+        zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
+        at_turn=0, at_element=0)
 
-        n_elem = 9
-        elements = [ xt.Drift(length=1.) for _ in range(n_elem) ]
-        line = xt.Line(elements=elements)
-        tracker = line.build_tracker(_context=context)
-        assert not tracker.iscollective
-        particles_init = xp.Particles(_context=context,
+    _default_track(tracker, particles_init)
+    _ele_start_until_end(tracker, particles_init)
+    _ele_start_with_shift(tracker, particles_init)
+    _ele_start_with_shift_more_turns(tracker, particles_init)
+    _ele_stop_from_start(tracker, particles_init)
+    _ele_start_to_ele_stop(tracker, particles_init)
+    _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
+
+
+@for_all_test_contexts
+def test_partial_tracking_with_collective(test_context):
+    n_elem = 9
+    elements = [xt.Drift(length=1., _context=test_context) for _ in range(n_elem)]
+    # Make some elements collective
+    elements[3].iscollective = True
+    elements[7].iscollective = True
+    line = xt.Line(elements=elements)
+    tracker = line.build_tracker(_context=test_context)
+    assert tracker.iscollective
+    assert len(tracker._parts) == 5
+    particles_init = xp.Particles(
+            _context=test_context,
             x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
             zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
             at_turn=0, at_element=0)
 
-        _default_track(tracker, particles_init)
-        _ele_start_until_end(tracker, particles_init)
-        _ele_start_with_shift(tracker, particles_init)
-        _ele_start_with_shift_more_turns(tracker, particles_init)
-        _ele_stop_from_start(tracker, particles_init)
-        _ele_start_to_ele_stop(tracker, particles_init)
-        _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
-
-
-def test_partial_tracking_with_collective():
-     for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
-
-        n_elem = 9
-        elements = [xt.Drift(length=1., _context=context) for _ in range(n_elem)]
-        # Make some elements collective
-        elements[3].iscollective = True
-        elements[7].iscollective = True
-        line = xt.Line(elements=elements)
-        tracker = line.build_tracker(_context=context)
-        assert tracker.iscollective
-        assert len(tracker._parts) == 5
-        particles_init = xp.Particles(
-                _context=context,
-                x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
-                zeta=1e-2, p0c=7e12, mass0=xp.PROTON_MASS_EV,
-                at_turn=0, at_element=0)
-
-        _default_track(tracker, particles_init)
-        _ele_start_until_end(tracker, particles_init)
-        _ele_start_with_shift(tracker, particles_init)
-        _ele_start_with_shift_more_turns(tracker, particles_init)
-        _ele_stop_from_start(tracker, particles_init)
-        _ele_start_to_ele_stop(tracker, particles_init)
-        _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
+    _default_track(tracker, particles_init)
+    _ele_start_until_end(tracker, particles_init)
+    _ele_start_with_shift(tracker, particles_init)
+    _ele_start_with_shift_more_turns(tracker, particles_init)
+    _ele_stop_from_start(tracker, particles_init)
+    _ele_start_to_ele_stop(tracker, particles_init)
+    _ele_start_to_ele_stop_with_overflow(tracker, particles_init)
 
 
 # Track from the start until the end of the first, second, and tenth turn
@@ -423,7 +413,8 @@ def test_tracker_config_to_headers():
     assert set(tracker._config_to_headers()) == set(expected)
 
 
-def test_tracker_config():
+@for_all_test_contexts
+def test_tracker_config(test_context):
     class TestElement(xt.BeamElement):
         _xofields = {
             'dummy': xo.Float64,
@@ -448,96 +439,94 @@ def test_tracker_config():
             }
             """]
 
-    for context in xo.context.get_test_contexts():
-        test_element = TestElement(_context=context)
-        line = xt.Line([test_element])
-        tracker = xt.Tracker(line=line)
+    test_element = TestElement(_context=test_context)
+    line = xt.Line([test_element])
+    tracker = xt.Tracker(line=line)
 
-        particles = xp.Particles(p0c=1e9, x=[0], y=[0], _context=context)
+    particles = xp.Particles(p0c=1e9, x=[0], y=[0], _context=test_context)
 
-        p = particles.copy()
-        tracker.config.TEST_FLAG = 2
-        tracker.track(p)
-        assert p.x[0] == 7.0
-        assert p.y[0] == 0.0
-        first_kernel = tracker._current_track_kernel
+    p = particles.copy()
+    tracker.config.TEST_FLAG = 2
+    tracker.track(p)
+    assert p.x[0] == 7.0
+    assert p.y[0] == 0.0
+    first_kernel = tracker._current_track_kernel
 
-        p = particles.copy()
-        tracker.config.TEST_FLAG = False
-        tracker.config.TEST_FLAG_BOOL = True
-        tracker.track(p)
-        assert p.x[0] == 0.0
-        assert p.y[0] == 42.0
-        assert tracker._current_track_kernel is not first_kernel
+    p = particles.copy()
+    tracker.config.TEST_FLAG = False
+    tracker.config.TEST_FLAG_BOOL = True
+    tracker.track(p)
+    assert p.x[0] == 0.0
+    assert p.y[0] == 42.0
+    assert tracker._current_track_kernel is not first_kernel
 
-        tracker.config.TEST_FLAG = 2
-        tracker.config.TEST_FLAG_BOOL = False
-        assert len(tracker.track_kernel) == 3 # As tracker.track_kernel.keys() =
-                                              # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
-        assert tracker._current_track_kernel is first_kernel
+    tracker.config.TEST_FLAG = 2
+    tracker.config.TEST_FLAG_BOOL = False
+    assert len(tracker.track_kernel) == 3 # As tracker.track_kernel.keys() =
+                                          # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
+    assert tracker._current_track_kernel is first_kernel
 
-def test_optimize_for_tracking():
+
+@for_all_test_contexts
+def test_optimize_for_tracking(test_context):
     fname_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
 
     with open(fname_line_particles, 'r') as fid:
         input_data = json.load(fid)
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
+    line = xt.Line.from_dict(input_data['line'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-        line = xt.Line.from_dict(input_data['line'])
-        line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+    tracker = line.build_tracker(_context=test_context)
 
-        tracker = line.build_tracker(_context=context)
+    particles = tracker.build_particles(
+        x_norm=np.linspace(-2, 2, 1000), y_norm=0.1, delta=3e-4,
+        nemitt_x=2.5e-6, nemitt_y=2.5e-6)
 
-        particles = tracker.build_particles(
-            x_norm=np.linspace(-2, 2, 1000), y_norm=0.1, delta=3e-4,
-            nemitt_x=2.5e-6, nemitt_y=2.5e-6)
+    p_no_optimized = particles.copy()
+    p_optimized = particles.copy()
 
-        p_no_optimized = particles.copy()
-        p_optimized = particles.copy()
+    num_turns = 10
 
-        num_turns = 10
+    tracker.track(p_no_optimized, num_turns=num_turns, time=True)
+    df_before_optimize = tracker.line.to_pandas()
+    n_markers_before_optimize = (df_before_optimize.element_type == 'Marker').sum()
+    assert n_markers_before_optimize > 4 # There are at least the IPs
 
-        tracker.track(p_no_optimized, num_turns=num_turns, time=True)
-        df_before_optimize = tracker.line.to_pandas()
-        n_markers_before_optimize = (df_before_optimize.element_type == 'Marker').sum()
-        assert n_markers_before_optimize > 4 # There are at least the IPs
+    tracker.optimize_for_tracking(keep_markers=True)
+    df_optimize_keep_markers = tracker.line.to_pandas()
+    n_markers_optimize_keep = (df_optimize_keep_markers.element_type == 'Marker').sum()
+    assert n_markers_optimize_keep == n_markers_before_optimize
 
-        tracker.optimize_for_tracking(keep_markers=True)
-        df_optimize_keep_markers = tracker.line.to_pandas()
-        n_markers_optimize_keep = (df_optimize_keep_markers.element_type == 'Marker').sum()
-        assert n_markers_optimize_keep == n_markers_before_optimize
+    tracker.optimize_for_tracking(keep_markers=['ip1', 'ip5'])
+    df_optimize_ip15 = tracker.line.to_pandas()
+    n_markers_optimize_ip15 = (df_optimize_ip15.element_type == 'Marker').sum()
+    assert n_markers_optimize_ip15 == 2
 
-        tracker.optimize_for_tracking(keep_markers=['ip1', 'ip5'])
-        df_optimize_ip15 = tracker.line.to_pandas()
-        n_markers_optimize_ip15 = (df_optimize_ip15.element_type == 'Marker').sum()
-        assert n_markers_optimize_ip15 == 2
+    tracker.optimize_for_tracking()
+    df_optimize = tracker.line.to_pandas()
+    n_markers_optimize = (df_optimize.element_type == 'Marker').sum()
+    assert n_markers_optimize == 0
 
-        tracker.optimize_for_tracking()
-        df_optimize = tracker.line.to_pandas()
-        n_markers_optimize = (df_optimize.element_type == 'Marker').sum()
-        assert n_markers_optimize == 0
+    n_multipoles_before_optimize = (df_before_optimize.element_type == 'Multipole').sum()
+    n_multipoles_optimize = (df_optimize.element_type == 'Multipole').sum()
+    assert n_multipoles_before_optimize > n_multipoles_optimize
 
-        n_multipoles_before_optimize = (df_before_optimize.element_type == 'Multipole').sum()
-        n_multipoles_optimize = (df_optimize.element_type == 'Multipole').sum()
-        assert n_multipoles_before_optimize > n_multipoles_optimize
+    n_drifts_before_optimize = (df_before_optimize.element_type == 'Drift').sum()
+    n_drifts_optimize = (df_optimize.element_type == 'Drift').sum()
+    assert n_drifts_before_optimize > n_drifts_optimize
 
-        n_drifts_before_optimize = (df_before_optimize.element_type == 'Drift').sum()
-        n_drifts_optimize = (df_optimize.element_type == 'Drift').sum()
-        assert n_drifts_before_optimize > n_drifts_optimize
+    tracker.track(p_optimized, num_turns=num_turns, time=True)
 
-        tracker.track(p_optimized, num_turns=num_turns, time=True)
+    p_no_optimized.move(xo.context_default)
+    p_optimized.move(xo.context_default)
 
-        p_no_optimized.move(xo.context_default)
-        p_optimized.move(xo.context_default)
+    assert np.all(p_no_optimized.state == 1)
+    assert np.all(p_optimized.state == 1)
 
-        assert np.all(p_no_optimized.state == 1)
-        assert np.all(p_optimized.state == 1)
-
-        assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
-        assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
-        assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
-        assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
-        assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
-        assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
+    assert np.allclose(p_no_optimized.x, p_optimized.x, rtol=0, atol=1e-14)
+    assert np.allclose(p_no_optimized.y, p_optimized.y, rtol=0, atol=1e-14)
+    assert np.allclose(p_no_optimized.px, p_optimized.px, rtol=0, atol=1e-14)
+    assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
+    assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
+    assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
