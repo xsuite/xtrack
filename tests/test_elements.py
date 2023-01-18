@@ -24,6 +24,8 @@ def test_constructor():
             xt.RFMultipole(_context=ctx, knl=[2]),
             xt.Cavity(voltage=3.),
             xt.SRotation(angle=4),
+            xt.XRotation(angle=1.8),
+            xt.YRotation(angle=2.4),
             xt.XYShift(dx=1),
             xt.DipoleEdge(h=1),
             xt.LimitRect(min_x=5),
@@ -61,6 +63,8 @@ def test_backtrack():
             xt.ReferenceEnergyIncrease(_context=ctx, Delta_p0c=42),
             xt.Cavity(_context=ctx, voltage=3.),
             xt.SRotation(_context=ctx, angle=4),
+            xt.XRotation(_context=ctx, angle=0.3),
+            xt.YRotation(_context=ctx, angle=0.7),
             xt.XYShift(_context=ctx, dx=1),
             xt.DipoleEdge(_context=ctx, h=1),
             xt.LimitRect(_context=ctx, min_x=5),
@@ -92,7 +96,6 @@ def test_backtrack():
             for k in 'x,px,y,py,zeta,delta'.split(','):
                 assert np.isclose(ctx.nparray_from_context_array(getattr(new_particles, k))[0],
                           getattr(dtk_particle, k), rtol=1e-14, atol=1e-14)
-
 
 def test_arr2ctx():
 
