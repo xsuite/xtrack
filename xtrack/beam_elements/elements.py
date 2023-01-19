@@ -362,7 +362,6 @@ class Translation(BeamElement):
     _store_in_to_dict = ['dx','dy','dz']
 
     def __init__(self, dx=0, dy = 0, dz = 0, **nargs):
-        anglerad = -angle / 180 * np.pi
         nargs['dx'] = dx
         nargs['dy'] = dy
         nargs['dz'] = dz
@@ -370,7 +369,7 @@ class Translation(BeamElement):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              angle=-self.angle,
+                              dx = -self.dx, dy = -self.dy, dz = -self.dz,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 

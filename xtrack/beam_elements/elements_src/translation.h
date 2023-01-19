@@ -7,7 +7,7 @@
 #define XTRACK_TRANSLATION_H
 
 /*gpufun*/
-void Translation_track_local_particle(TrabslationData el, LocalParticle* part0){
+void Translation_track_local_particle(TranslationData el, LocalParticle* part0){
 
     //start_per_particle_block (part0->part)
     	double const t_x = TranslationData_get_dx(el);
@@ -24,9 +24,9 @@ void Translation_track_local_particle(TrabslationData el, LocalParticle* part0){
     	double const pt = LocalParticle_get_pzeta(part)*beta0;
 
         double pz = sqrt(1.0 + 2.0*pt/beta + pt*pt - px*px - py*py);
-        double x_hat = x - t_x + t_z*px/pz
-        double y_hat = y - t_y + t_z*py/pz
-        double t_hat = t - t_z*(1.0/beta+pt)/pz
+        double x_hat = x - t_x + t_z*px/pz;
+        double y_hat = y - t_y + t_z*py/pz;
+        double t_hat = t - t_z*(1.0/beta+pt)/pz;
 
     	LocalParticle_set_x(part, x_hat);
     	LocalParticle_set_y(part, y_hat);
