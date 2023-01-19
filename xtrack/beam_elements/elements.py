@@ -346,30 +346,30 @@ class Translation(BeamElement):
 
                 - dx [m]: Translation in the horizontal plane. Default is ``0``.
                 - dy [m]: Translation in the vertical plane. Default is ``0``.
-                - dz [m]: Translation in the longitudinal plane. Default is ``0``.
+                - ds [m]: Translation in the longitudinal plane. Default is ``0``.
 
     '''
 
     _xofields={
         'dx': xo.Float64,
         'dy': xo.Float64,
-        'dz': xo.Float64,
+        'ds': xo.Float64,
         }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/translation.h')]
 
-    _store_in_to_dict = ['dx','dy','dz']
+    _store_in_to_dict = ['dx','dy','ds']
 
-    def __init__(self, dx=0, dy = 0, dz = 0, **nargs):
+    def __init__(self, dx=0, dy = 0, ds = 0, **nargs):
         nargs['dx'] = dx
         nargs['dy'] = dy
-        nargs['dz'] = dz
+        nargs['ds'] = ds
         super().__init__(**nargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              dx = -self.dx, dy = -self.dy, dz = -self.dz,
+                              dx = -self.dx, dy = -self.dy, ds = -self.ds,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 

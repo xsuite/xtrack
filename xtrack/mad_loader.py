@@ -1005,3 +1005,12 @@ class MadLoader:
         )
         return self.convert_thin_element([el], ee)
 
+    def convert_translation(self, ee):
+        dx = getattr(ee, 'dx')
+        dy = getattr(ee, 'dy')
+        ds = getattr(ee, 'ds')
+        el = self.Builder(
+            ee.name, self.classes.Translation, dx=dx, dy=dy, ds=ds
+        )
+        return self.convert_thin_element([el], ee)
+

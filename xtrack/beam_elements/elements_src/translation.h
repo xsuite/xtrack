@@ -12,7 +12,7 @@ void Translation_track_local_particle(TranslationData el, LocalParticle* part0){
     //start_per_particle_block (part0->part)
     	double const t_x = TranslationData_get_dx(el);
     	double const t_y = TranslationData_get_dy(el);
-    	double const t_z = TranslationData_get_dz(el);
+    	double const t_z = TranslationData_get_ds(el);
 
         double const beta0 = LocalParticle_get_beta0(part);
         double const beta = LocalParticle_get_rvv(part)*beta0;
