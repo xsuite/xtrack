@@ -53,8 +53,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const py_ref_0 = LinearTransferMatrixData_get_py_ref_0(el);
     double const py_ref_1 = LinearTransferMatrixData_get_py_ref_1(el);
 
-    double rvv = LocalParticle_get_rvv(part);
-
     double const energy_ref_increment = 
         LinearTransferMatrixData_get_energy_ref_increment(el);
 
@@ -72,6 +70,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double zeta_no_disp = LocalParticle_get_zeta(part);
 
     // removing dispersion and close orbit
+    double rvv = LocalParticle_get_rvv(part);
     new_x -= disp_x_0 * delta + x_ref_0;
     new_px -= disp_px_0 * delta + px_ref_0;
     new_y -= disp_y_0 * delta + y_ref_0;

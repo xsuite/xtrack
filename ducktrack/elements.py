@@ -666,7 +666,7 @@ class LinearTransferMatrix(Element):
         p.px -= self.disp_px_0 * p.delta + self.px_ref_0  
         p.y -= self.disp_y_0 * p.delta + self.y_ref_0
         p.py -= self.disp_py_0 * p.delta + self.py_ref_0
-        p.zeta+= self.disp_px_0*old_x - self.disp_x_0*old_px + self.disp_py_0*old_y - self.disp_y_0*old_py
+        p.zeta += (self.disp_px_0*old_x - self.disp_x_0*old_px + self.disp_py_0*old_y - self.disp_y_0*old_py)/p.rvv
 
         J_x = 0.5 * (
                 (1.0 + self.alpha_x_0*self.alpha_x_0)/self.beta_x_0 * p.x*p.x
@@ -768,7 +768,7 @@ class LinearTransferMatrix(Element):
         p.px += self.disp_px_1 * p.delta + self.px_ref_1 
         p.y += self.disp_y_1 * p.delta + self.y_ref_1
         p.py += self.disp_py_1 * p.delta + self.py_ref_1
-        p.zeta-= self.disp_px_1*old_x - self.disp_x_1*old_px + self.disp_py_1*old_y - self.disp_y_1*old_py
+        p.zeta-= (self.disp_px_1*old_x - self.disp_x_1*old_px + self.disp_py_1*old_y - self.disp_y_1*old_py)/p.rvv
 
 
 class FirstOrderTaylorMap(Element):
