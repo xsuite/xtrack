@@ -989,7 +989,6 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.SRotation, angle=angle
         )
-        return self.convert_thin_element([el], ee)
 
     def convert_xrotation(self, ee):
         angle = ee.angle*180/np.pi
@@ -1009,7 +1008,7 @@ class MadLoader:
         el_transverse = self.Builder(
             ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
-        dzeta = ee.ds*ee.sequence.beam.beta0
+        dzeta = ee.ds*self.sequence.beam.beta0
         el_longitudinal = self.Builder(
             ee.name, self.classes.ZetaShift, dzeta=dzeta
         )
