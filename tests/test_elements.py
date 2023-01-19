@@ -4,10 +4,13 @@
 # ######################################### #
 
 import numpy as np
+import pytest
+
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
+from xtrack.beam_elements.elements import _angle_from_trig
 
 import ducktrack as dtk
 
@@ -46,6 +49,58 @@ def test_constructor(test_context):
         assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
                 - nee._xobject._buffer.buffer[
                     nee._xobject._offset:nee._xobject._size]).sum() == 0
+
+
+@pytest.mark.parametrize(
+    'element_cls,args',
+    [
+        (xt.SRotation, {'angle': 8, 'sin_z': 0.4}),
+        (xt.XRotation, {'angle': 8, 'sin_angle': 0.4}),
+        (xt.YRotation, {'angle': 8, 'sin_angle': 0.4}),
+        (xt.SRotation, {'angle': 8, 'cos_z': 0.4}),
+        (xt.XRotation, {'angle': 8, 'cos_angle': 0.4}),
+        (xt.YRotation, {'angle': 8, 'cos_angle': 0.4}),
+        (xt.XRotation, {'angle': 8, 'tan_angle': 0.4}),
+        (xt.YRotation, {'angle': 8, 'tan_angle': 0.4}),
+    ],
+)
+def test_rotations_constructors_on_inconsistent_input(element_cls, args):
+    with pytest.raises(ValueError):
+        element_cls(**args)
+
+
+@pytest.mark.parametrize(
+    'cos,sin,tan,angle',
+    [
+        (np.cos(0.03), np.sin(0.03), np.tan(0.03), 0.03),
+        (np.cos(0.01), np.sin(0.01), None, 0.01),
+        (None, np.sin(0.02), np.tan(0.02), 0.02),
+        (np.cos(0.03), None, np.tan(0.03), 0.03),
+        (None, None, None, None),
+        (0.1, None, None, None),
+        (None, None, 0.1, None),
+        (np.cos(0.02), np.sin(0.04), None, None),
+        (None, np.sin(0.04), np.tan(0.02), None),
+        (np.cos(0.02), None, np.tan(0.04), None),
+    ]
+)
+def test__angle_from_trig(cos, sin, tan, angle):
+    should_fail = angle is None
+
+    if should_fail:
+        with pytest.raises(ValueError):
+            _angle_from_trig(cos, sin, tan)
+    else:
+        result, cos_res, sin_res, tan_res = _angle_from_trig(cos, sin, tan)
+
+        if cos is not None:
+            assert cos == cos_res
+        if sin is not None:
+            assert sin == sin_res
+        if tan is not None:
+            assert tan == tan_res
+
+        assert np.isclose(angle, result, atol=1e-13)
 
 
 @for_all_test_contexts
