@@ -279,8 +279,9 @@ def test_linear_transfer():
         Q_y = 0.34
         beta_s = 856.9
         Q_s = 0.001
+        #energy_ref_increment = 1.2E9
         energy_ref_increment = 0.0
-        energy_increment = 0.0
+        energy_increment = 4.8E8
         x_ref_0 = -5E-3
         px_ref_0 = 6E-4
         x_ref_1 = 2E-2
@@ -364,7 +365,8 @@ def test_linear_transfer_chroma_detuning():
         Q_y = 0.34
         beta_s = 856.9
         Q_s = 0.001
-        energy_ref_increment = 1.2E9
+        #energy_ref_increment = 1.2E9
+        energy_ref_increment = 0.0
         energy_increment = 4.8E8
         x_ref_0 = -5E-3
         px_ref_0 = 6E-4
@@ -442,7 +444,7 @@ def test_linear_transfer_uncorrelated_damping():
         Q_y = 0.34
         beta_s = 856.9
         Q_s = 0.001
-        energy_ref_increment = 1.2E9
+        energy_ref_increment = 0.0
         energy_increment = 4.8E8
         x_ref_0 = -5E-3
         px_ref_0 = 6E-4

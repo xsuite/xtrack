@@ -7,7 +7,6 @@
 #define XTRACK_LINEARTRANSFERMATRIX_H
 
 
-
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
 
@@ -159,7 +158,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
         double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
                 *LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
-            LocalParticle_update_p0c(part,new_p0c);
+        LocalParticle_update_p0c(part,new_p0c);
         LocalParticle_scale_x(part,geo_emit_factor);
         LocalParticle_scale_px(part,geo_emit_factor);
         LocalParticle_scale_y(part,geo_emit_factor);
@@ -204,7 +203,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         delta += r*gauss_noise_ampl_delta;
         LocalParticle_update_delta(part,delta);
     }
-        
     // re-adding dispersion and closed orbit
     delta = LocalParticle_get_delta(part);
     rvv = LocalParticle_get_rvv(part);
