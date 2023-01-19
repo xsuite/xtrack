@@ -1006,8 +1006,12 @@ class MadLoader:
         return self.convert_thin_element([el], ee)
 
     def convert_translation(self, ee):
-        el = self.Builder(
-            ee.name, self.classes.Translation, dx=ee.dx, dy=ee.dy, ds=ee.ds
+        el_transverse = self.Builder(
+            ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
-        return self.convert_thin_element([el], ee)
+        dzeta = ee.ds*ee.sequence.beam.beta0
+        el_longitudinal = self.Builder(
+            ee.name, self.classes.ZetaShift, dzeta=dzeta
+        )
+        return self.convert_thin_element([el_transverse,el_longitudinal], ee)
 
