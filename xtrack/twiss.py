@@ -112,17 +112,20 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         assert at_elements is None
         (auxtracker, names_inserted_markers
             ) = _build_auxiliary_tracker_with_extra_markers(
-            tracker=tracker, at_s=at_s, marker_prefix='inserted_twiss_marker')
+            tracker=tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
+            algorithm='insert')
         kwargs.pop('tracker')
         kwargs.pop('at_s')
         kwargs.pop('at_elements')
         kwargs.pop('matrix_responsiveness_tol')
         kwargs.pop('matrix_stability_tol')
-        return twiss_from_tracker(tracker=auxtracker,
+        res = twiss_from_tracker(tracker=auxtracker,
                         at_elements=names_inserted_markers,
                         matrix_responsiveness_tol=matrix_responsiveness_tol,
                         matrix_stability_tol=matrix_stability_tol,
                         **kwargs)
+        #res._auxtracker = auxtracker # DEBUG
+        return res
 
     mux0 = 0
     muy0 = 0
