@@ -827,37 +827,38 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         for nn, mm, ss in zip(names_inserted_markers, markers, at_s):
             auxline.insert_element(element=mm, name=nn, at_s=ss)
     elif algorithm == 'regen_all_drifts':
-        s_elems = auxline.get_s_elements()
-        s_keep = []
-        enames_keep = []
-        for ss, nn in zip(s_elems, auxline.element_names):
-            if not (_behaves_like_drift(auxline[nn]) and np.abs(auxline[nn].length)>0):
-                s_keep.append(ss)
-                enames_keep.append(nn)
-                assert not xt.line._is_thick(auxline[nn]) or auxline[nn].length == 0
+        raise ValueError # This algorithm is not enabled since it is not fully tested
+        # s_elems = auxline.get_s_elements()
+        # s_keep = []
+        # enames_keep = []
+        # for ss, nn in zip(s_elems, auxline.element_names):
+        #     if not (_behaves_like_drift(auxline[nn]) and np.abs(auxline[nn].length)>0):
+        #         s_keep.append(ss)
+        #         enames_keep.append(nn)
+        #         assert not xt.line._is_thick(auxline[nn]) or auxline[nn].length == 0
 
-        s_keep.extend(list(at_s))
-        enames_keep.extend(names_inserted_markers)
+        # s_keep.extend(list(at_s))
+        # enames_keep.extend(names_inserted_markers)
 
-        ind_sorted = np.argsort(s_keep)
-        s_keep = np.take(s_keep, ind_sorted)
-        enames_keep = np.take(enames_keep, ind_sorted)
+        # ind_sorted = np.argsort(s_keep)
+        # s_keep = np.take(s_keep, ind_sorted)
+        # enames_keep = np.take(enames_keep, ind_sorted)
 
-        i_new_drift = 0
-        new_enames = []
-        new_ele_dict = auxline.element_dict.copy()
-        new_ele_dict.update({nn: ee for nn, ee in zip(names_inserted_markers, markers)})
-        s_curr = 0
-        for ss, nn in zip(s_keep, enames_keep):
-            if ss > s_curr + 1e-6:
-                new_drift = xt.Drift(length=ss-s_curr)
-                new_dname = f'_auxrift_{i_new_drift}'
-                new_ele_dict[new_dname] = new_drift
-                new_enames.append(new_dname)
-                i_new_drift += 1
-                s_curr = ss
-            new_enames.append(nn)
-        auxline = xt.Line(elements=new_ele_dict, element_names=new_enames)
+        # i_new_drift = 0
+        # new_enames = []
+        # new_ele_dict = auxline.element_dict.copy()
+        # new_ele_dict.update({nn: ee for nn, ee in zip(names_inserted_markers, markers)})
+        # s_curr = 0
+        # for ss, nn in zip(s_keep, enames_keep):
+        #     if ss > s_curr + 1e-6:
+        #         new_drift = xt.Drift(length=ss-s_curr)
+        #         new_dname = f'_auxrift_{i_new_drift}'
+        #         new_ele_dict[new_dname] = new_drift
+        #         new_enames.append(new_dname)
+        #         i_new_drift += 1
+        #         s_curr = ss
+        #     new_enames.append(nn)
+        # auxline = xt.Line(elements=new_ele_dict, element_names=new_enames)
 
     auxtracker = xt.Tracker(
         _buffer=tracker._buffer,
