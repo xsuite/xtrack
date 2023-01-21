@@ -49,7 +49,6 @@ tracker.match(
     ],
     targets = [
         xt.Target('qx', 62.315, tol=1e-4),
-        #(lambda tw: tw['qx'] - tw['qy'], 1.99), # equivalent to ('qy', 60.325) #!skip-doc
         xt.Target('qy', 60.325, tol=1e-4),
         xt.Target('dqx', 10.0, tol=0.05),
         xt.Target('dqy', 12.0, tol=0.05)])
