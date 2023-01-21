@@ -22,7 +22,7 @@ def jacob(f, x, y=None, mask=None, eps=1e-5):
 
 def merit(f, mask, x, xbest, penbest):
     y = f(x)
-    mask |= (y < 0) & -mask  # update the mask to include inequalities '<'
+    mask |= (y < 0) & ~mask  # update the mask to include inequalities '<'
     y = y[mask]
     pen = dot(y, y)
     if penbest > pen:
@@ -83,7 +83,7 @@ def jacobian(
         # Equation search
         jac = jacob(f, x, y, mask, eps=eps)
         ncalls += len(x)
-        xstep = lstsq(jac, y)[0]  # newton step
+        xstep = lstsq(jac, y, rcond=None)[0]  # newton step
         newpen = pen * 2
         alpha = -1
         while newpen > pen:  # bisec search
@@ -123,5 +123,5 @@ if __name__ == "__main__":
 
     x = array([1, 2.0, 3])
     f(x)
-    x = jacobian(f, x, array([True, True, True, False]))
+    x, info = jacobian(f, x, array([True, True, True, False]))
     f(x)

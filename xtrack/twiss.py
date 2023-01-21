@@ -17,6 +17,7 @@ from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
 from .general import Table
+from .jacobian import jacobian
 
 import xtrack as xt # To avoid circular imports
 
@@ -1233,12 +1234,14 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
         raise NotImplementedError('All vary must have the same step (for now).')
     step = steps[0]
 
-    assert solver in ['fsolve', 'bfgs']
+    assert solver in ['fsolve', 'bfgs', 'jacobian'], f'Invalid solver {solver}.'
 
     if solver == 'fsolve':
         return_norm = False
     elif solver == 'bfgs':
         return_norm = True
+    elif solver == 'jacobian':
+        return_norm = False
 
     call_counter = {'n': 0}
     _err = partial(_error_for_match, vary=vary, targets=targets,
@@ -1264,6 +1267,21 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
                         bounds=([vv.limits for vv in vary]), options=options)
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
+        elif solver == 'jacobian':
+            res, info = jacobian(
+                                _err,
+                                xstart=x0.copy(),
+                                maskstart=None,
+                                maxsteps=100,
+                                bisec=5,
+                                tol=1e-20,
+                                maxcalls=10000,
+                                eps=step,
+                                debug=False,
+                                )
+            result_info = info
+            if not info['success']:
+                raise RuntimeError("jacobian failed: %s" % info['message'])
         for kk, vv in zip(vary, res):
             tracker.vars[kk] = vv
     except Exception as err:
