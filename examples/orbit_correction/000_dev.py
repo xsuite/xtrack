@@ -22,3 +22,5 @@ for ee in multipole_df.element:
     if len(ee.knl)>1 and ee.knl[1] != 0:
         ee.knl[0] += np.random.normal(0, 1e-5)*ee.knl[1]
         ee.ksl[0] += np.random.normal(0, 1e-5)*ee.knl[1]
+
+tw = tracker.twiss()
