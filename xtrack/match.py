@@ -137,6 +137,9 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
+            options = {}
+            if step is not None:
+                options['eps'] = step
             res, info = jacobian(
                                 _err,
                                 xstart=x0.copy(),
@@ -145,8 +148,8 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
                                 bisec=5,
                                 tol=1e-20,
                                 maxcalls=10000,
-                                eps=step,
                                 debug=False,
+                                **options
                                 )
             result_info = info
             if not info['success']:
