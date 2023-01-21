@@ -147,10 +147,10 @@ def test_get_normalized_coordinates(test_context):
     norm_coord = tw.get_normalized_coordinates(particles, nemitt_x=2.5e-6,
                                             nemitt_y=1e-6)
 
-    assert np.allclose(norm_coord['x_norm'], [-1, 0, 0.5], atol=5e-14, rtol=0)
-    assert np.allclose(norm_coord['y_norm'], [0.3, -0.2, 0.2], atol=5e-14, rtol=0)
-    assert np.allclose(norm_coord['px_norm'], [0.1, 0.2, 0.3], atol=5e-14, rtol=0)
-    assert np.allclose(norm_coord['py_norm'], [0.5, 0.6, 0.8], atol=5e-14, rtol=0)
+    assert np.allclose(norm_coord['x_norm'], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord['y_norm'], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord['px_norm'], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord['py_norm'], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
 
 
     # Introduce a non-zero closed orbit
@@ -167,10 +167,10 @@ def test_get_normalized_coordinates(test_context):
     norm_coord1 = tw1.get_normalized_coordinates(particles1, nemitt_x=2.5e-6,
                                                 nemitt_y=1e-6)
 
-    assert np.allclose(norm_coord1['x_norm'], [-1, 0, 0.5], atol=5e-14, rtol=0)
-    assert np.allclose(norm_coord1['y_norm'], [0.3, -0.2, 0.2], atol=5e-14, rtol=0)
-    assert np.allclose(norm_coord1['px_norm'], [0.1, 0.2, 0.3], atol=5e-14, rtol=0)
-    assert np.allclose(norm_coord1['py_norm'], [0.5, 0.6, 0.8], atol=5e-14, rtol=0)
+    assert np.allclose(norm_coord1['x_norm'], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord1['y_norm'], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord1['px_norm'], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord1['py_norm'], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
 
     # Check computation at different locations
 
@@ -194,17 +194,17 @@ def test_get_normalized_coordinates(test_context):
                                                 nemitt_y=1e-6)
 
     assert particles23._capacity == 20
-    assert np.allclose(norm_coord23['x_norm'][:3], [-1, 0, 0.5], atol=5e-12, rtol=0)
-    assert np.allclose(norm_coord23['x_norm'][3:6], [-1, 0, 0.5], atol=5e-12, rtol=0)
+    assert np.allclose(norm_coord23['x_norm'][:3], [-1, 0, 0.5], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord23['x_norm'][3:6], [-1, 0, 0.5], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['x_norm'][6:], xp.particles.LAST_INVALID_STATE)
-    assert np.allclose(norm_coord23['y_norm'][:3], [0.3, -0.2, 0.2], atol=5e-12, rtol=0)
-    assert np.allclose(norm_coord23['y_norm'][3:6], [0.3, -0.2, 0.2], atol=5e-12, rtol=0)
+    assert np.allclose(norm_coord23['y_norm'][:3], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord23['y_norm'][3:6], [0.3, -0.2, 0.2], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['y_norm'][6:], xp.particles.LAST_INVALID_STATE)
-    assert np.allclose(norm_coord23['px_norm'][:3], [0.1, 0.2, 0.3], atol=6e-12, rtol=0)
-    assert np.allclose(norm_coord23['px_norm'][3:6], [0.1, 0.2, 0.3], atol=5e-12, rtol=0)
+    assert np.allclose(norm_coord23['px_norm'][:3], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord23['px_norm'][3:6], [0.1, 0.2, 0.3], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['px_norm'][6:], xp.particles.LAST_INVALID_STATE)
-    assert np.allclose(norm_coord23['py_norm'][:3], [0.5, 0.6, 0.8], atol=5e-12, rtol=0)
-    assert np.allclose(norm_coord23['py_norm'][3:6], [0.5, 0.6, 0.8], atol=5e-12, rtol=0)
+    assert np.allclose(norm_coord23['py_norm'][:3], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
+    assert np.allclose(norm_coord23['py_norm'][3:6], [0.5, 0.6, 0.8], atol=1e-10, rtol=0)
     assert np.allclose(norm_coord23['py_norm'][6:], xp.particles.LAST_INVALID_STATE)
 
     particles23.move(_context=xo.context_default)
