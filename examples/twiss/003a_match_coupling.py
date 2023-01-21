@@ -24,7 +24,7 @@ tracker.vars['cmrskew'] = 1e-3
 tracker.vars['cmiskew'] = 1e-3
 
 # Match coupling
-tracker.match(verbose=True, solver='jacobian',
+tracker.match(verbose=True,
     vary=[
         xt.Vary(name='cmrskew', limits=[-0.5e-2, 0.5e-2], step=1e-5),
         xt.Vary(name='cmiskew', limits=[-0.5e-2, 0.5e-2], step=1e-5)],

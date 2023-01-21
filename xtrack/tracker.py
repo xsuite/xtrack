@@ -25,7 +25,8 @@ from .pipeline import PipelineStatus
 from .survey import survey_from_tracker
 from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
-                    find_closed_orbit, match_tracker, twiss_from_tracker)
+                    find_closed_orbit, twiss_from_tracker)
+from .match import match_tracker
 from .tapering import compensate_radiation_energy_loss
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
