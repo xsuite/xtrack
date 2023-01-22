@@ -47,6 +47,8 @@ def jacobian(
     eps=None,
     debug=True,
 ):
+
+    raise NotImplementedError # Untested
     xstart = array(xstart)
     x = xstart.copy()
     ystart = myf(xstart)
