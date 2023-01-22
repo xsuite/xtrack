@@ -10,7 +10,7 @@ from .beam_elements import *
 from .tracker_data import TrackerData
 from .line import Line, Node
 from .tracker import Tracker, freeze_longitudinal
-from .twiss import Vary, Target
+from .match import Vary, Target
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
