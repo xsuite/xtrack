@@ -978,7 +978,8 @@ class TwissTable(Table):
 
         return res
 
-    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None):
+    def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
+                                   _force_at_element=None):
 
         # TODO: check consistency of gamma0
 
@@ -1012,10 +1013,17 @@ class TwissTable(Table):
 
         for at_ele in at_element_no_rep:
 
+            if _force_at_element is not None:
+                at_ele = _force_at_element
+
             W = self.W_matrix[at_ele]
             W_inv = np.linalg.inv(W)
 
             mask_at_ele = at_element_particles == at_ele
+
+            if _force_at_element is not None:
+                mask_at_ele = ctx2np(particles.state) > xp.particles.LAST_INVALID_STATE
+
             n_at_ele = np.sum(mask_at_ele)
 
             # Coordinates wrt to the closed orbit
