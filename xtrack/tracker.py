@@ -1315,8 +1315,8 @@ class Tracker:
         self.record_last_track = monitor
 
         if time:
-            self._context.synchronize()
             t1 = perf_counter()
+            self._context.synchronize()
             self.time_last_track = t1 - t0
         else:
             self.time_last_track = None
@@ -1508,8 +1508,8 @@ class Tracker:
         self.record_last_track = monitor
 
         if time:
-            t1 = perf_counter()
             self._context.synchronize()
+            t1 = perf_counter()
             self.time_last_track = t1 - t0
         else:
             self.time_last_track = None
