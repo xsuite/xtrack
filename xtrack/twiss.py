@@ -900,12 +900,28 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 class TwissInit:
     def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
                  mux=0, muy=0, muzeta=0.):
-        self.particle_on_co = particle_on_co
+        self.__dict__['particle_on_co'] = particle_on_co
         self.W_matrix = W_matrix
         self.element_name = element_name
         self.mux = mux
         self.muy = muy
         self.muzeta = muzeta
+
+    def __getattr__(self, name):
+        if name in self.__dict__:
+            return self.__dict__[name]
+        elif hasattr(self.__dict__['particle_on_co'], name):
+            return getattr(self.__dict__['particle_on_co'], name)
+        else:
+            raise AttributeError(f'No attribute {name} found in TwissInit')
+
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            self.__dict__[name] = value
+        elif hasattr(self.particle_on_co, name):
+            setattr(self.particle_on_co, name, value)
+        else:
+            self.__dict__[name] = value
 
 class TwissTable(Table):
 

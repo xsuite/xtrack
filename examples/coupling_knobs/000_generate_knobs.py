@@ -9,6 +9,7 @@ t1=mad.twiss(sequence='lhcb1')
 knobs=coupling_knobs.get_knob_defs_from_twiss(t1)
 for lhs,rhs in knobs:
     print(f"{lhs}:={rhs};")
+    mad.input(f"{lhs}:={rhs};")
 
 import xtrack as xt
 import xpart as xp
@@ -21,6 +22,8 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
 tracker = line.build_tracker()
 
 tw = tracker.twiss(method='4d')
+
+
 
 
 
