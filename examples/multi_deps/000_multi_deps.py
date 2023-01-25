@@ -25,27 +25,27 @@ newvref = mgr.ref({}, "vars")
 newfref = mgr.ref(mgr1.containers["f"]._owner, "f")
 
 # Load variables in common environment
-vref = mgr1.containers["vars"]
+vref = mgr1.containers["vars"] #==line1.vars
 newvref._owner.update(vref._owner) # copy data
 mgr.copy_expr_from(mgr1, "vars") # copy expressions
 
 # Load variables in common environment
-vref = mgr2.containers["vars"]
+vref = mgr2.containers["vars"] #==line1.vars
 newvref._owner.update(vref._owner) # copy data
 mgr.copy_expr_from(mgr2, "vars") #copy expressions
 
 # Prepare multi line
-newe = {}
-neweref = mgr.ref(newe, "eref")
+newe = {} # new root container
+neweref = mgr.ref(newe, "eref") # new root ref
 
 # Load elements in specific environment
 eref = mgr1.containers["element_refs"]
-newe["lhcb1"] = eref._owner # bind data
+newe["lhcb1"] = eref._owner # bind data with line1.element_dict
 mgr.copy_expr_from(mgr1, "element_refs", {"element_refs": neweref["lhcb1"]})
 
 # Load elements in specific environment
 eref = mgr2.containers["element_refs"]
-newe["lhcb2"] = eref._owner # bind data
+newe["lhcb2"] = eref._owner # bind data with line2.element_dict
 mgr.copy_expr_from(mgr2, "element_refs", {"element_refs": neweref["lhcb2"]})
 
 # test results
