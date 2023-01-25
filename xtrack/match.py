@@ -19,8 +19,12 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
     target_values = []
     for tt in targets:
         if isinstance(tt.tar, str):
-            res_values.append(tw[tt.tar])
+            if tt.at is not None:
+                res_values.append(tw[tt.at, tt.tar])
+            else:
+                res_values.append(tw[tt.tar])
         else:
+            assert tt.at is None, '`at` cannot be provided if target is a function'
             res_values.append(tt.tar(tw))
         target_values.append(tt.value)
 
@@ -37,6 +41,10 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
 
     if np.all(np.abs(err_values) < tols):
         err_values *= 0
+
+    for ii, tt in enumerate(targets):
+        if tt.scale is not None:
+            err_values[ii] *= tt.scale
 
     if verbose:
         print(f'x = {knob_values}   f(x) = {res_values}')
@@ -56,10 +64,12 @@ class Vary:
 
 
 class Target:
-    def __init__(self, tar, value, tol=None):
+    def __init__(self, tar, value, at=None, tol=None, scale=None):
         self.tar = tar
         self.value = value
         self.tol = tol
+        self.at = at
+        self.scale = scale
 
 def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
@@ -84,6 +94,12 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
             targets[ii] = Target(*tt)
         else:
             raise ValueError(f'Invalid target element {tt}')
+
+    if 'ele_stop' in kwargs and kwargs['ele_stop'] is not None:
+        ele_stop = kwargs['ele_stop']
+        for tt in targets:
+            if tt.at is not None and tt.at == ele_stop:
+                tt.at = '_end_point'
 
     if solver is None:
         if len(targets) == len(vary):

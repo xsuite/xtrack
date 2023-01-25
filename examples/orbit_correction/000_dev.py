@@ -11,49 +11,50 @@ with open(fname) as fid:
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12)
 tracker = line.build_tracker()
 
+ele_start_range = 'e.ds.r1.b1'
+ele_end_range = 's.ds.l2.b1'
+
 tw0 = tracker.twiss()
+tw_init0 = tw0.get_twiss_init(ele_start_range)
 
 tracker.line['mq.31l2.b1..1'].knl[0] = 1e-6
 #tracker.line['mq.31l2.b1..1'].ksl[0] = 1e-6
 
-
-
 tw1 = tracker.twiss()
-
-ele_start_range = 'e.ds.r1.b1'
-ele_end_range = 's.ds.l2.b1'
-
-
-
-tw_init = tw1.get_twiss_init(ele_start_range)
+tw_init1 = tw1.get_twiss_init(ele_start_range)
 
 # Force particle on co to zero (assigned initial condition)
-tw_init.particle_on_co.x = 0
-tw_init.particle_on_co.px = 0
-tw_init.particle_on_co.y = 0
-tw_init.particle_on_co.py = 0
+tw_init1.particle_on_co.x = 0
+tw_init1.particle_on_co.px = 0
+tw_init1.particle_on_co.y = 0
+tw_init1.particle_on_co.py = 0
+tw_init1.particle_on_co.delta = 0
 
 tw_part_test = tracker.twiss(
-    twiss_init=tw_init, ele_start=ele_start_range, ele_stop=ele_end_range)
+    twiss_init=tw_init1, ele_start=ele_start_range, ele_stop=ele_end_range)
 
-
-def _x_target(tw):
-    return tw.x[-1]
 
 tracker.match(
     verbose=True,
     vary=[
-        xt.Vary('acbh15.l2b1', step=1e-8, limits=[-5e-6, 5e-6]),
-        xt.Vary('acbh17.l2b1', step=1e-8, limits=[-5e-6, 5e-6])],
+        xt.Vary('acbh15.l2b1', step=1e-9, limits=[-5e-6, 5e-6]),
+        xt.Vary('acbh17.l2b1', step=1e-9, limits=[-5e-6, 5e-6])],
     targets=[
-        xt.Target(_x_target, 0, tol=1e-7),
-        xt.Target(lambda tw: tw.px[-1], 0, tol=1e-9)],
-    twiss_init=tw_init, ele_start=ele_start_range, ele_stop=ele_end_range)
+        xt.Target('x', at='s.ds.l2.b1', value=0, tol=1e-8, scale=1e6),
+        xt.Target('px', at='s.ds.l2.b1', value=0, tol=1e-12, scale=1e12)],
+    twiss_init=tw_init1, ele_start=ele_start_range, ele_stop=ele_end_range)
 
-tw_part_test2 = tracker.twiss(
-    twiss_init=tw_init, ele_start=ele_start_range, ele_stop=ele_end_range)
 
 tw2 = tracker.twiss()
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.plot(tw0.s, tw0.x)
+#plt.plot(tw1.s, tw1.x)
+plt.plot(tw2.s, tw2.x)
+plt.axvline(x=tw0[ele_start_range, 's'])
+plt.axvline(x=tw0[ele_end_range, 's'])
+plt.show()
 
 
 
