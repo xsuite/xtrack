@@ -29,6 +29,8 @@ DEFAULT_STEPS_R_MATRIX = {
 
 DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
 
+AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
+
 log = logging.getLogger(__name__)
 
 def twiss_from_tracker(tracker, particle_ref=None, method='6d',
@@ -359,13 +361,16 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     part_for_twiss.at_element = particle_on_co._xobject.at_element[0]
     i_start = part_for_twiss._xobject.at_element[0]
 
-    assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
+    part_for_twiss.at_turn = AT_TURN_FOR_TWISS # To avoid writing in monitors
+
+    #assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
     tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
                   ele_start=ele_start, ele_stop=ele_stop)
     assert np.all(ctx2np(part_for_twiss.state) == 1), (
         'Some test particles were lost during twiss!')
     i_stop = part_for_twiss._xobject.at_element[0] + (
-        part_for_twiss._xobject.at_turn[0] * len(tracker.line.element_names))
+        (part_for_twiss._xobject.at_turn[0] - AT_TURN_FOR_TWISS)
+         * len(tracker.line.element_names))
 
     x_co = tracker.record_last_track.x[6, i_start:i_stop+1].copy()
     y_co = tracker.record_last_track.y[6, i_start:i_stop+1].copy()
@@ -690,6 +695,7 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
     part.py = p[3]
     part.zeta = p[4] + delta_zeta
     part.delta = p[5]
+    part.at_turn = AT_TURN_FOR_TWISS
 
     tracker.track(part)
     p_res = np.array([
@@ -775,6 +781,8 @@ def compute_one_turn_matrix_finite_differences(
     if particle_on_co._xobject.at_element[0]>0:
         part_temp.s[:] = particle_on_co._xobject.s[0]
         part_temp.at_element[:] = particle_on_co._xobject.at_element[0]
+
+    part_temp.at_turn = AT_TURN_FOR_TWISS
 
     if particle_on_co._xobject.at_element[0]>0:
         i_start = particle_on_co._xobject.at_element[0]
