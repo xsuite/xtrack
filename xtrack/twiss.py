@@ -49,7 +49,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
-        use_full_inverse=None
+        use_full_inverse=None,
+        strengths=False,
         ):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
@@ -309,6 +310,11 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res['values_at'] = 'exit'
     else:
         twiss_res['values_at'] = 'entry'
+
+    if strengths:
+        strengths = _extract_knl_ksl(tracker.line, twiss_res['name'])
+        twiss_res.update(strengths)
+        twiss_res['_ebe_fields'] = list(twiss_res['_ebe_fields']) + ['knl', 'ksl']
 
     if at_elements is not None:
         twiss_res._keep_only_elements(at_elements)
@@ -1250,3 +1256,45 @@ def _extract_twiss_parameters_with_inverse(Ws):
     gamy *= sign_y
 
     return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
+
+def _extract_knl_ksl(line, names):
+
+    knl = []
+    ksl = []
+
+    for nn in names:
+        if nn in line.element_names:
+            if hasattr(line.element_dict[nn], 'knl'):
+                knl.append(line.element_dict[nn].knl.copy())
+            else:
+                knl.append([])
+
+            if hasattr(line.element_dict[nn], 'ksl'):
+                ksl.append(line.element_dict[nn].ksl.copy())
+            else:
+                ksl.append([])
+        else:
+            knl.append([])
+            ksl.append([])
+
+    # Find maximum length of knl and ksl
+    max_knl = 0
+    max_ksl = 0
+    for ii in range(len(knl)):
+        max_knl = max(max_knl, len(knl[ii]))
+        max_ksl = max(max_ksl, len(ksl[ii]))
+
+    knl_array = np.zeros(shape=(len(knl), max_knl), dtype=np.float64)
+    ksl_array = np.zeros(shape=(len(ksl), max_ksl), dtype=np.float64)
+
+    for ii in range(len(knl)):
+        knl_array[ii, :len(knl[ii])] = knl[ii]
+        ksl_array[ii, :len(ksl[ii])] = ksl[ii]
+
+    k_dict = {}
+    for jj in range(max_knl):
+        k_dict[f'k{jj}nl'] = knl_array[:, jj]
+    for jj in range(max_ksl):
+        k_dict[f'k{jj}sl'] = ksl_array[:, jj]
+
+    return k_dict
