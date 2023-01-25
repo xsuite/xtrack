@@ -978,6 +978,31 @@ class TwissTable(Table):
 
         return res
 
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            assert len(item) == 2, 'Too many indices'
+            indeces = item[0]
+            column = item[1]
+            if isinstance(indeces, str) or np.isscalar(indeces):
+                indeces = [indeces]
+            assert isinstance(column, str), 'Column must be a string'
+
+            for ii, idx in enumerate(indeces):
+                if isinstance(idx, str):
+                    assert idx in self.name, f'Element {idx} not found'
+                    assert self.name.count(idx) == 1, f'Element {idx} not unique'
+                    indeces[ii] = self.name.index(idx)
+
+            out = self[column][indeces]
+            if isinstance(out, np.ndarray) and out.shape == (1,):
+                return out[0]
+            else:
+                return out
+        else:
+            return super().__getitem__(item)
+
+
+
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    _force_at_element=None):
 
