@@ -211,3 +211,35 @@ def test_get_normalized_coordinates(test_context):
     assert np.all(particles23.at_element[:3] == line.element_names.index('s.ds.r3.b1'))
     assert np.all(particles23.at_element[3:6] == line.element_names.index('s.ds.r7.b1'))
     assert np.all(particles23.at_element[6:] == xp.particles.LAST_INVALID_STATE)
+
+@for_all_test_contexts
+def test_twiss_does_not_affect_monitors(test_context):
+
+    path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(path_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data['line'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+    n_part =1
+    monitor = xt.ParticlesMonitor(_context=test_context,
+                                    start_at_turn = 0,
+                                    stop_at_turn = 1,
+                                    n_repetitions=10,
+                                    repetition_period=1,
+                                    num_particles =n_part)
+    line.insert_element(index=0, element=monitor, name='monitor_start')
+    tracker = line.build_tracker(_context=test_context)
+
+    particles = tracker.build_particles(x=123e-6)
+    tracker.track(particles, num_turns=10)
+    assert monitor.x[0,0] == 123e-6
+
+    particles = tracker.build_particles(x=456e-6)
+    particles.at_turn = -10 # the monitor is skipped in this way in the twiss
+    tracker.track(particles, num_turns=10)
+    assert monitor.x[0,0] == 123e-6
+
+    tracker.twiss()
+    assert monitor.x[0,0] == 123e-6

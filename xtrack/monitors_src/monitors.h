@@ -41,11 +41,14 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
         }
     }
     else if (n_repetitions > 1){
+        if (at_turn < start_at_turn){
+            return;
+        }
         int64_t const i_frame = (at_turn - start_at_turn) / repetition_period;
         if (i_frame < n_repetitions
-                && at_turn >= start_at_turn + i_frame*repetition_period
-                && at_turn < stop_at_turn + i_frame*repetition_period
-            ){
+                 && at_turn >= start_at_turn + i_frame*repetition_period
+                 && at_turn < stop_at_turn + i_frame*repetition_period
+             ){
             int64_t const particle_id = LocalParticle_get_particle_id(part);
             if (particle_id<part_id_end && particle_id>=part_id_start){
                 int64_t const store_at =
@@ -58,8 +61,6 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
     }
 
     //end_per_particle_block
-
-
 }
 
 #endif
