@@ -10,6 +10,7 @@ import numpy as np
 
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
 
 
@@ -120,3 +121,50 @@ def test_monitor(test_context):
     assert np.all(monitor_ip8.particle_id[:, 3] == np.arange(0, num_particles))
     assert np.all(monitor_ip8.at_element[:, :]
                         == line_with_monitor.element_names.index('ip8') - 1)
+
+
+
+@for_all_test_contexts
+def test_before_loss_monitor(context):
+
+    particles = xp.Particles(p0c=6.5e12, x=[1,2,3,4,5,6], _context=context)
+    num_particles = len(particles.x)
+    particle_id_range=(1, 5)
+
+    n_last_turns = 5
+    monitor = xt.BeforeLossMonitor(n_last_turns, particle_id_range=particle_id_range, _context=context)
+
+    line = xt.Line([monitor])
+    tracker = line.build_tracker(_context=context)
+
+    for turn in range(10):
+
+        tracker.track(particles, num_turns=1)
+
+        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # so sort before manipulation
+        if isinstance(context, xo.ContextCpu):
+            particles.sort(interleave_lost_particles=True)
+
+        particles.x[0] += 1# + np.array([1,-1,2,-2,3,-3])
+        particles.x[1] -= 1
+        particles.x[2] += 2
+        particles.x[3] -= 2
+        particles.x[4] += 3
+        particles.x[5] -= 3
+        if turn == 2:
+            particles.state[1] = 0 # particles.particle_id == 
+        if turn == 4:
+            particles.state[2] = 0
+        if turn == 6:
+            particles.state[3] = 0
+
+        if isinstance(context, xo.ContextCpu):
+            particles.reorganize()
+
+
+    assert np.all(monitor.particle_id == np.array([[0,0,1,1,1],[2]*5,[3]*5,[4]*5]))
+    assert np.all(monitor.at_turn == np.array([np.clip(n-np.arange(4,-1,-1),0,None) for n in (2,4,6,9)]))
+    assert np.all(monitor.x == np.array([[0,0,2,1,0],[3,5,7,9,11],[0,-2,-4,-6,-8],[20,23,26,29,32]]))
+
+
