@@ -10,8 +10,8 @@ import numpy as np
 
 import xobjects as xo
 
-from .base_element import BeamElement
-from .general import _pkg_root
+from ..base_element import BeamElement
+from ..general import _pkg_root
 
 
 class LastTurnsData(xo.Struct):
