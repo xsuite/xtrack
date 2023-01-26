@@ -8,11 +8,10 @@ Date: 2023-01-19
 
 import numpy as np
 
-import xtrack as xt
-import xpart as xp
 import xobjects as xo
 
-from pathlib import Path
+from .base_element import BeamElement
+from .general import _pkg_root
 
 
 class LastTurnsData(xo.Struct):
@@ -31,7 +30,7 @@ class LastTurnsData(xo.Struct):
     
 
 
-class BeforeLossMonitor(xt.BeamElement):
+class BeforeLossMonitor(BeamElement):
     _xofields={
         'particle_id_start': xo.Int64,
         'num_particles': xo.Int64,
@@ -40,7 +39,9 @@ class BeforeLossMonitor(xt.BeamElement):
         'data': LastTurnsData,
     }
 
-    _extra_c_sources = [Path(__file__).parent.absolute().joinpath('before_loss_monitor.h')]
+    _extra_c_sources = [
+        _pkg_root.joinpath('monitors/before_loss_monitor.h')
+    ]
 
 
     def __init__(self, n_last_turns, *, num_particles=None, particle_id_range=None, every_n_turns=1, **kwargs):
