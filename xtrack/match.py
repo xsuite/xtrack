@@ -4,6 +4,16 @@ import numpy as np
 from scipy.optimize import fsolve, minimize
 
 from .jacobian import jacobian
+from .twiss import TwissInit
+
+class OrbitOnly:
+    def __init__(self, x=0, px=0, y=0, py=0, zeta=0, delta=0):
+        self.x = x
+        self.px = px
+        self.y = y
+        self.py = py
+        self.zeta = zeta
+        self.delta = delta
 
 def _error_for_match(knob_values, vary, targets, tracker, return_norm,
                      call_counter, verbose, tw_kwargs):
@@ -74,18 +84,35 @@ class Target:
 def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 
+    if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None:
+        twiss_init = kwargs['twiss_init']
+        assert 'ele_start' in kwargs and kwargs['ele_start'] is not None, (
+            'ele_start must be provided if twiss_init is provided')
+        if isinstance(twiss_init, OrbitOnly):
+            if not isinstance(kwargs['ele_start'], str):
+                element_name = tracker.line.element_names[kwargs['ele_start']]
+            else:
+                element_name = kwargs['ele_start']
+            kwargs['twiss_init'] = TwissInit(
+                particle_on_co=tracker.build_particles(
+                    x=twiss_init.x, px=twiss_init.px,
+                    y=twiss_init.y, py=twiss_init.py,
+                    zeta=twiss_init.zeta, delta=twiss_init.delta),
+                W_matrix=np.eye(6),
+                element_name=element_name)
+
     if isinstance(vary, (str, Vary)):
         vary = [vary]
 
-    for ii, vv in enumerate(vary):
-        if isinstance(vv, Vary):
+    for ii, rr in enumerate(vary):
+        if isinstance(rr, Vary):
             pass
-        elif isinstance(vv, str):
-            vary[ii] = Vary(vv)
-        elif isinstance(vv, (list, tuple)):
-            vary[ii] = Vary(*vv)
+        elif isinstance(rr, str):
+            vary[ii] = Vary(rr)
+        elif isinstance(rr, (list, tuple)):
+            vary[ii] = Vary(*rr)
         else:
-            raise ValueError(f'Invalid vary element {vv}')
+            raise ValueError(f'Invalid vary setting {rr}')
 
     for ii, tt in enumerate(targets):
         if isinstance(tt, Target):
@@ -170,12 +197,12 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
             result_info = info
             if not info['success']:
                 raise RuntimeError("jacobian failed: %s" % info['message'])
-        for kk, vv in zip(vary, res):
-            tracker.vars[kk] = vv
+        for vv, rr in zip(vary, res):
+            tracker.vars[vv.name] = rr
     except Exception as err:
         if restore_if_fail:
-            for ii, vv in enumerate(vary):
-                tracker.vars[vv] = x0[ii]
+            for ii, rr in enumerate(vary):
+                tracker.vars[rr] = x0[ii]
         print('\n')
         raise err
     print('\n')

@@ -24,15 +24,8 @@ tw1 = tracker.twiss()
 tw_init1 = tw1.get_twiss_init(ele_start_range)
 
 # Force particle on co to zero (assigned initial condition)
-tw_init1.particle_on_co.x = 0
-tw_init1.particle_on_co.px = 0
-tw_init1.particle_on_co.y = 0
-tw_init1.particle_on_co.py = 0
-tw_init1.particle_on_co.delta = 0
-
 tw_part_test = tracker.twiss(
     twiss_init=tw_init1, ele_start=ele_start_range, ele_stop=ele_end_range)
-
 
 tracker.match(
     verbose=True,
@@ -40,9 +33,10 @@ tracker.match(
         xt.Vary('acbh15.l2b1', step=1e-9, limits=[-5e-6, 5e-6]),
         xt.Vary('acbh17.l2b1', step=1e-9, limits=[-5e-6, 5e-6])],
     targets=[
-        xt.Target('x', at='s.ds.l2.b1', value=0, tol=1e-8, scale=1e6),
-        xt.Target('px', at='s.ds.l2.b1', value=0, tol=1e-12, scale=1e12)],
-    twiss_init=tw_init1, ele_start=ele_start_range, ele_stop=ele_end_range)
+        xt.Target('x', at='s.ds.l2.b1', value=0, tol=1e-9),
+        xt.Target('px', at='s.ds.l2.b1', value=0, tol=1e-13)],
+    twiss_init=xt.OrbitOnly(),
+    ele_start=ele_start_range, ele_stop=ele_end_range)
 
 
 tw2 = tracker.twiss()
