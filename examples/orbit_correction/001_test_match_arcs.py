@@ -70,7 +70,7 @@ assert tw1_co_ref.qx == tw0_co_ref.qx
 # Add correction term to all dipole correctors
 for ll in [line_co_ref, line]:
     for kk in list(ll._var_management['data']['var_values'].keys()):
-        if kk.startswith('corr_acb'):
+        if kk.startswith('acb'):
             ll.vars['corr_co_'+kk] = 0
             ll.vars[kk] += ll.vars['corr_co_'+kk]
 
@@ -81,6 +81,8 @@ for ll in [line_co_ref, line]:
     ll.vars['on_x5'] = 250
     ll.vars['on_x8'] = 250
     ll.vars['on_disp'] = 1
+
+tw_before = tracker.twiss()
 
 # Use line ref to get an orbit reference
 line_co_ref.vars['on_disp'] = 0
@@ -124,3 +126,25 @@ correction_setup = {
             'corr_co_acbv14.r5b1',
         )),
 }
+
+for corr_name, corr in correction_setup.items():
+    print('Correcting', corr_name)
+    tracker.match(
+        vary=[
+            xt.Vary(vv, step=1e-9, limits=[-5e-6, 5e-6]) for vv in corr['vary']
+        ],
+        targets=[
+            xt.Target('x', at=corr['end'], value=tw_ref[corr['end'], 'x'], tol=1e-9),
+            xt.Target('px', at=corr['end'], value=tw_ref[corr['end'], 'px'], tol=1e-9),
+            xt.Target('y', at=corr['end'], value=tw_ref[corr['end'], 'y'], tol=1e-9),
+            xt.Target('py', at=corr['end'], value=tw_ref[corr['end'], 'py'], tol=1e-9),
+        ],
+        twiss_init=xt.OrbitOnly(
+            x=tw_ref[corr['start'], 'x'],
+            px=tw_ref[corr['start'], 'px'],
+            y=tw_ref[corr['start'], 'y'],
+            py=tw_ref[corr['start'], 'py'],
+            zeta=tw_ref[corr['start'], 'zeta'],
+            delta=tw_ref[corr['start'], 'delta'],
+        ),
+        ele_start=corr['start'], ele_stop=corr['end'])
