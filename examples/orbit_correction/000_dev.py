@@ -23,7 +23,6 @@ tracker.line['mq.31l2.b1..1'].knl[0] = 1e-6
 tw1 = tracker.twiss()
 tw_init1 = tw1.get_twiss_init(ele_start_range)
 
-# Force particle on co to zero (assigned initial condition)
 tw_part_test = tracker.twiss(
     twiss_init=tw_init1, ele_start=ele_start_range, ele_stop=ele_end_range)
 

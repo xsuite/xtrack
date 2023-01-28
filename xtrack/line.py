@@ -309,6 +309,7 @@ class Line:
         skip_markers=False,
         merge_drifts=False,
         merge_multipoles=False,
+        expressions_for_element_types=None,
     ):
 
         """
@@ -330,6 +331,7 @@ class Line:
             skip_markers=skip_markers,
             merge_drifts=merge_drifts,
             merge_multipoles=merge_multipoles,
+            expressions_for_element_types=expressions_for_element_types,
             error_table=None,  # not implemented yet
             )
         line=loader.make_line()

@@ -282,7 +282,7 @@ class ElementBuilder:
         self.attrs = {} if attrs is None else attrs
 
     def __repr__(self):
-        return "Element(%s, %s, %s, %s)" % (self.name, self.type, self.init, self.attrs)
+        return "Element(%s, %s, %s)" % (self.name, self.type, self.attrs)
 
     def __setattr__(self, k, v):
         if hasattr(self, "attrs"):
@@ -493,8 +493,14 @@ class MadLoader:
         error_table=None,
         exact_drift=False,
         ignore_madtypes=(),
+        expressions_for_element_types=None,
         classes=xtrack,
     ):
+
+        if expressions_for_element_types is not None:
+            assert enable_expressions, ("Expressions must be enabled if "
+                                "`expressions_for_element_types` is not None")
+
         self.sequence = sequence
         self.enable_expressions = enable_expressions
         self.enable_errors = enable_errors
@@ -503,6 +509,7 @@ class MadLoader:
         self.merge_drifts = merge_drifts
         self.merge_multipoles = merge_multipoles
         self.enable_apertures = enable_apertures
+        self.expressions_for_element_types = expressions_for_element_types
         self.classes = classes
         if exact_drift:
             self._drift = self.classes.DriftExact # will probably be removed
@@ -564,17 +571,27 @@ class MadLoader:
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
+            if self.expressions_for_element_types is not None:
+               if el.type in self.expressions_for_element_types:
+                   self.Builder = ElementBuilderWithExpr
+                   el.madeval = madeval
+               else:
+                    self.Builder = ElementBuilder
+                    el.madeval = None
             if adder:
                 adder(el, line, buffer)
             elif converter:
-                self.add_elements(converter(el), line, buffer)
+                converted_el = converter(el)
+                self.add_elements(converted_el, line, buffer)
             else:
                 raise ValueError(
-                    f"Element {el.type} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
+                    f'Element {el.type} not supported,\nimplement "add_{el.type}"'
+                    f" or convert_{el.type} in function in MadLoader"
                 )
             if ii % 100 == 0:
                 print(
-                    f'Converting sequence "{self.sequence.name}": {round(ii/nelem*100):2d}%     ',
+                    f'Converting sequence "{self.sequence.name}":'
+                    f' {round(ii/nelem*100):2d}%     ',
                     end="\r",
                     flush=True,
                 )
