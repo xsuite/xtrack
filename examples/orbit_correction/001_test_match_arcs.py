@@ -68,3 +68,59 @@ assert tw1.qx != tw0.qx
 assert tw1_co_ref.qx == tw0_co_ref.qx
 
 # Add correction term to all dipole correctors
+for ll in [line_co_ref, line]:
+    for kk in list(ll._var_management['data']['var_values'].keys()):
+        if kk.startswith('corr_acb'):
+            ll.vars['corr_co_'+kk] = 0
+            ll.vars[kk] += ll.vars['corr_co_'+kk]
+
+# Set some orbit knobs in both machines
+for ll in [line_co_ref, line]:
+    ll.vars['on_x1'] = 250
+    ll.vars['on_x2'] = 250
+    ll.vars['on_x5'] = 250
+    ll.vars['on_x8'] = 250
+    ll.vars['on_disp'] = 1
+
+# Use line ref to get an orbit reference
+line_co_ref.vars['on_disp'] = 0
+tw_ref = line_co_ref.tracker.twiss(method='4d', zeta0=0, delta0=0)
+
+correction_setup = {
+    'IR1 left': dict(
+        start='e.ds.r8.b1',
+        end='e.ds.l1.b1',
+        vary=(
+            'corr_co_acbh14.l1b1',
+            'corr_co_acbh12.l1b1',
+            'corr_co_acbv15.l1b1',
+            'corr_co_acbv13.l1b1',
+        )),
+    'IR1 right': dict(
+        start='s.ds.r1.b1',
+        end='e.ds.r2.b1',
+        vary=(
+            'corr_co_acbh13.r1b1',
+            'corr_co_acbh15.r1b1',
+            'corr_co_acbv12.r1b1',
+            'corr_co_acbv14.r1b1',
+        )),
+    'IR5 left': dict(
+        start='e.ds.r4.b1',
+        end='e.ds.l5.b1',
+        vary=(
+            'corr_co_acbh14.l5b1',
+            'corr_co_acbh12.l5b1',
+            'corr_co_acbv15.l5b1',
+            'corr_co_acbv13.l5b1',
+        )),
+    'IR5 right': dict(
+        start='s.ds.r5.b1',
+        end='e.ds.r6.b1',
+        vary=(
+            'corr_co_acbh13.r5b1',
+            'corr_co_acbh15.r5b1',
+            'corr_co_acbv12.r5b1',
+            'corr_co_acbv14.r5b1',
+        )),
+}
