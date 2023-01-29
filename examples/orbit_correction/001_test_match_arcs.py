@@ -28,38 +28,32 @@ var_sharing = VarSharing(lines = [line, line_co_ref],
                          names=['lhcb1', '_orbit_ref_lhcb1'])
 
 
-prrrrr
-
-
 # Wipe out orbit correction from pymask
-for ll in [line_co_ref, line]:
-    for kk in ll._var_management['data']['var_values']:
-        if kk.startswith('corr_acb'):
-            ll.vars[kk] = 0
+for kk in line._var_management['data']['var_values']:
+    if kk.startswith('corr_acb'):
+        line.vars[kk] = 0
 
 # Switch off crossing angles and separations
-for ll in [line_co_ref, line]:
-    ll.vars['on_x1'] = 0
-    ll.vars['on_x2'] = 0
-    ll.vars['on_x5'] = 0
-    ll.vars['on_x8'] = 0
-    ll.vars['on_sep1'] = 0
-    ll.vars['on_sep2'] = 0
-    ll.vars['on_sep5'] = 0
-    ll.vars['on_sep8'] = 0
+line.vars['on_x1'] = 0
+line.vars['on_x2'] = 0
+line.vars['on_x5'] = 0
+line.vars['on_x8'] = 0
+line.vars['on_sep1'] = 0
+line.vars['on_sep2'] = 0
+line.vars['on_sep5'] = 0
+line.vars['on_sep8'] = 0
 
 # Switch off experimental magnets
-for ll in [line_co_ref, line]:
-    ll.vars['on_alice'] = 0
-    ll.vars['on_lhcb'] = 0
-    ll.vars['on_sol_alice'] = 0
-    ll.vars['on_sol_lhcb'] = 0
-    ll.vars['on_sol_atlas'] = 0
-    ll.vars['on_sol_cms'] = 0
+line.vars['on_alice'] = 0
+line.vars['on_lhcb'] = 0
+line.vars['on_sol_alice'] = 0
+line.vars['on_sol_lhcb'] = 0
+line.vars['on_sol_atlas'] = 0
+line.vars['on_sol_cms'] = 0
 
 # Check that in both machines the orbit is flat at the ips
-for ll in [line_co_ref, line]:
-    tw = ll.tracker.twiss(method='4d', zeta0=0, delta0=0)
+for lll in [line_co_ref, line]:
+    tw = lll.tracker.twiss(method='4d', zeta0=0, delta0=0)
     for ip in ['ip1', 'ip2', 'ip5', 'ip8']:
         assert np.isclose(tw[ip, 'x'], 0, 1e-10)
         assert np.isclose(tw[ip, 'px'], 0, 1e-10)
@@ -77,20 +71,18 @@ assert tw1.qx != tw0.qx
 assert tw1_co_ref.qx == tw0_co_ref.qx
 
 # Add correction term to all dipole correctors
-for ll in [line_co_ref, line]:
-    ll.vars['on_corr_co'] = 1
-    for kk in list(ll._var_management['data']['var_values'].keys()):
-        if kk.startswith('acb'):
-            ll.vars['corr_co_'+kk] = 0
-            ll.vars[kk] += ll.vars['corr_co_'+kk] * ll.vars['on_corr_co']
+line.vars['on_corr_co'] = 1
+for kk in list(line._var_management['data']['var_values'].keys()):
+    if kk.startswith('acb'):
+        line.vars['corr_co_'+kk] = 0
+        line.vars[kk] += line.vars['corr_co_'+kk] * line.vars['on_corr_co']
 
 # Set some orbit knobs in both machines
-for ll in [line_co_ref, line]:
-    ll.vars['on_x1'] = 250
-    ll.vars['on_x2'] = 250
-    ll.vars['on_x5'] = 250
-    ll.vars['on_x8'] = 250
-    ll.vars['on_disp'] = 1
+line.vars['on_x1'] = 250
+line.vars['on_x2'] = 250
+line.vars['on_x5'] = 250
+line.vars['on_x8'] = 250
+line.vars['on_disp'] = 1
 
 # Introduce dip kick in all triplets (only in line)
 line['mqxfb.b2l1..11'].knl[0] = 1e-6
@@ -118,6 +110,7 @@ tw_before = tracker.twiss()
 # Use line ref to get an orbit reference
 line_co_ref.vars['on_disp'] = 0
 tw_ref = line_co_ref.tracker.twiss(method='4d', zeta0=0, delta0=0)
+line_co_ref.vars['on_disp'] = 1
 
 correction_setup = {
     'IR1 left': dict(
