@@ -100,7 +100,7 @@ correction_setup = {
         )),
     'IR1 right': dict(
         start='s.ds.r1.b1',
-        end='e.ds.r2.b1',
+        end='s.ds.l2.b1',
         vary=(
             'corr_co_acbh13.r1b1',
             'corr_co_acbh15.r1b1',
@@ -118,7 +118,7 @@ correction_setup = {
         )),
     'IR5 right': dict(
         start='s.ds.r5.b1',
-        end='e.ds.r6.b1',
+        end='s.ds.l6.b1',
         vary=(
             'corr_co_acbh13.r5b1',
             'corr_co_acbh15.r5b1',
