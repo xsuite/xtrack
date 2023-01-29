@@ -22,6 +22,15 @@ line_co_ref = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
 tracker_co_ref = line_co_ref.build_tracker()
 tracker_co_ref.particle_ref = tracker.particle_ref
 
+# Bind variables in the two lines
+from shared_knobs import VarSharing
+var_sharing = VarSharing(lines = [line, line_co_ref],
+                         names=['lhcb1', '_orbit_ref_lhcb1'])
+
+
+prrrrr
+
+
 # Wipe out orbit correction from pymask
 for ll in [line_co_ref, line]:
     for kk in ll._var_management['data']['var_values']:
