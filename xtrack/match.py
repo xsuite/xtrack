@@ -93,11 +93,14 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
                 element_name = tracker.line.element_names[kwargs['ele_start']]
             else:
                 element_name = kwargs['ele_start']
+            particle_on_co=tracker.build_particles(
+                x=twiss_init.x, px=twiss_init.px,
+                y=twiss_init.y, py=twiss_init.py,
+                zeta=twiss_init.zeta, delta=twiss_init.delta)
+            particle_on_co.at_element = tracker.line.element_names.index(
+                                                                element_name)
             kwargs['twiss_init'] = TwissInit(
-                particle_on_co=tracker.build_particles(
-                    x=twiss_init.x, px=twiss_init.px,
-                    y=twiss_init.y, py=twiss_init.py,
-                    zeta=twiss_init.zeta, delta=twiss_init.delta),
+                particle_on_co=particle_on_co,
                 W_matrix=np.eye(6),
                 element_name=element_name)
 
