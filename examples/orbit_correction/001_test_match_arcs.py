@@ -148,3 +148,16 @@ for corr_name, corr in correction_setup.items():
             delta=tw_ref[corr['start'], 'delta'],
         ),
         ele_start=corr['start'], ele_stop=corr['end'])
+
+tw = tracker.twiss()
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+sp1 = plt.subplot(2, 1, 1)
+plt.plot(tw_before.s, tw_before.x, label='before')
+plt.plot(tw_before.s, tw.x, label='ref')
+sp2 = plt.subplot(2, 1, 2, sharex=sp1)
+plt.plot(tw_before.s, tw_before.y, label='before')
+plt.plot(tw_before.s, tw.y, label='ref')
+plt.show()
