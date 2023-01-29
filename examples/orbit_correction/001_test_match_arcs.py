@@ -88,20 +88,20 @@ line['mqxfb.b2l1..11'].ksl[0] = 1.5e-6
 line['mqxfb.b2r1..11'].knl[0] = 2e-6
 line['mqxfb.b2r1..11'].ksl[0] = 1e-6
 
-# line['mqxb.b2l2..11'].knl[0] = 1e-6
-# line['mqxb.b2l2..11'].ksl[0] = 1.5e-6
-# line['mqxb.b2r2..11'].knl[0] = 2e-6
-# line['mqxb.b2r2..11'].ksl[0] = 1e-6
+line['mqxb.b2l2..11'].knl[0] = 1e-6
+line['mqxb.b2l2..11'].ksl[0] = 1.5e-6
+line['mqxb.b2r2..11'].knl[0] = 2e-6
+line['mqxb.b2r2..11'].ksl[0] = 1e-6
 
-# line['mqxfb.b2l5..11'].knl[0] = 1e-6
-# line['mqxfb.b2l5..11'].ksl[0] = 1.5e-6
-# line['mqxfb.b2r5..11'].knl[0] = 2e-6
-# line['mqxfb.b2r5..11'].ksl[0] = 1e-6
+line['mqxfb.b2l5..11'].knl[0] = 1e-6
+line['mqxfb.b2l5..11'].ksl[0] = 1.5e-6
+line['mqxfb.b2r5..11'].knl[0] = 2e-6
+line['mqxfb.b2r5..11'].ksl[0] = 1e-6
 
-# line['mqxb.b2l8..11'].knl[0] = 1e-6
-# line['mqxb.b2l8..11'].ksl[0] = 1.5e-6
-# line['mqxb.b2r8..11'].knl[0] = 2e-6
-# line['mqxb.b2r8..11'].ksl[0] = 1e-6
+line['mqxb.b2l8..11'].knl[0] = 1e-6
+line['mqxb.b2l8..11'].ksl[0] = 1.5e-6
+line['mqxb.b2r8..11'].knl[0] = 2e-6
+line['mqxb.b2r8..11'].ksl[0] = 1e-6
 
 tw_before = tracker.twiss()
 
@@ -239,6 +239,36 @@ for corr_name, corr in correction_setup.items():
         ele_start=corr['start'], ele_stop=corr['end'])
 
 tw = tracker.twiss()
+
+assert np.isclose(tw['ip1', 'px'], 250e-6, atol=1e-8)
+assert np.isclose(tw['ip2', 'py'], 250e-6, atol=1e-8)
+assert np.isclose(tw['ip5', 'py'], 250e-6, atol=1e-8)
+assert np.isclose(tw['ip8', 'px'], 250e-6, atol=1e-8)
+assert np.isclose(tw['ip1', 'py'], 0, atol=1e-8)
+assert np.isclose(tw['ip2', 'px'], 0, atol=1e-8)
+assert np.isclose(tw['ip5', 'px'], 0, atol=1e-8)
+assert np.isclose(tw['ip8', 'py'], 0, atol=1e-8)
+
+places_to_check = [
+ 'e.ds.l1.b1',
+ 'e.ds.l2.b1',
+ 'e.ds.l5.b1',
+ 'e.ds.l8.b1',
+ 'e.ds.r4.b1',
+ 'e.ds.r8.b1',
+ 's.ds.l2.b1',
+ 's.ds.l6.b1',
+ 's.ds.r1.b1',
+ 's.ds.r2.b1',
+ 's.ds.r5.b1',
+ 's.ds.r8.b1']
+
+for place in places_to_check:
+    assert np.isclose(tw[place, 'x'], tw_ref[place, 'x'], atol=1e-7)
+    assert np.isclose(tw[place, 'px'], tw_ref[place, 'px'], atol=1e-8)
+    assert np.isclose(tw[place, 'y'], tw_ref[place, 'y'], atol=1e-7)
+    assert np.isclose(tw[place, 'py'], tw_ref[place, 'py'], atol=1e-8)
+
 
 import matplotlib.pyplot as plt
 plt.close('all')
