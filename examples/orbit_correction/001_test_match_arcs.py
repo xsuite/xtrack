@@ -169,6 +169,51 @@ correction_setup = {
         ),
         targets=('ip1', 's.ds.r1.b1'),
     ),
+    'IP2': dict(
+        start='e.ds.l2.b1',
+        end='s.ds.r2.b1',
+        vary=(
+            'corr_co_acbyhs5.l2b1',
+            'corr_co_acbchs5.r2b1',
+            'corr_co_acbyvs5.l2b1',
+            'corr_co_acbcvs5.r2b1',
+            'corr_co_acbyhs4.l2b1',
+            'corr_co_acbyhs4.r2b1',
+            'corr_co_acbyvs4.l2b1',
+            'corr_co_acbyvs4.r2b1',
+        ),
+        targets=('ip2', 's.ds.r2.b1'),
+    ),
+    'IP5': dict(
+        start='e.ds.l5.b1',
+        end='s.ds.r5.b1',
+        vary=(
+            'corr_acbch6.l5b1',
+            'corr_acbcv5.l5b1',
+            'corr_acbch5.r5b1',
+            'corr_acbcv6.r5b1',
+            'corr_acbyhs4.l5b1',
+            'corr_acbyhs4.r5b1',
+            'corr_acbyvs4.l5b1',
+            'corr_acbyvs4.r5b1',
+        ),
+        targets=('ip5', 's.ds.r5.b1'),
+    ),
+    'IP8': dict(
+        start='e.ds.l8.b1',
+        end='s.ds.r8.b1',
+        vary=(
+            'corr_acbch5.l8b1',
+            'corr_acbyhs4.l8b1',
+            'corr_acbyhs4.r8b1',
+            'corr_acbyhs5.r8b1',
+            'corr_acbcvs5.l8b1',
+            'corr_acbyvs4.l8b1',
+            'corr_acbyvs4.r8b1',
+            'corr_acbyvs5.r8b1',
+        ),
+        targets=('ip8', 's.ds.r8.b1'),
+    ),
 }
 
 for corr_name, corr in correction_setup.items():
