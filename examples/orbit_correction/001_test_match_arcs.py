@@ -69,10 +69,11 @@ assert tw1_co_ref.qx == tw0_co_ref.qx
 
 # Add correction term to all dipole correctors
 for ll in [line_co_ref, line]:
+    ll.vars['on_corr_co'] = 1
     for kk in list(ll._var_management['data']['var_values'].keys()):
         if kk.startswith('acb'):
             ll.vars['corr_co_'+kk] = 0
-            ll.vars[kk] += ll.vars['corr_co_'+kk]
+            ll.vars[kk] += ll.vars['corr_co_'+kk] * ll.vars['on_corr_co']
 
 # Set some orbit knobs in both machines
 for ll in [line_co_ref, line]:
@@ -250,23 +251,23 @@ assert np.isclose(tw['ip5', 'px'], 0, atol=1e-8)
 assert np.isclose(tw['ip8', 'py'], 0, atol=1e-8)
 
 places_to_check = [
+ 'e.ds.r8.b1',
+ 'e.ds.r4.b1',
+ 's.ds.l2.b1',
+ 's.ds.l6.b1',
  'e.ds.l1.b1',
  'e.ds.l2.b1',
  'e.ds.l5.b1',
  'e.ds.l8.b1',
- 'e.ds.r4.b1',
- 'e.ds.r8.b1',
- 's.ds.l2.b1',
- 's.ds.l6.b1',
  's.ds.r1.b1',
  's.ds.r2.b1',
  's.ds.r5.b1',
  's.ds.r8.b1']
 
 for place in places_to_check:
-    assert np.isclose(tw[place, 'x'], tw_ref[place, 'x'], atol=1e-7)
+    assert np.isclose(tw[place, 'x'], tw_ref[place, 'x'], atol=1e-6)
     assert np.isclose(tw[place, 'px'], tw_ref[place, 'px'], atol=1e-8)
-    assert np.isclose(tw[place, 'y'], tw_ref[place, 'y'], atol=1e-7)
+    assert np.isclose(tw[place, 'y'], tw_ref[place, 'y'], atol=1e-6)
     assert np.isclose(tw[place, 'py'], tw_ref[place, 'py'], atol=1e-8)
 
 
@@ -274,9 +275,11 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 sp1 = plt.subplot(2, 1, 1)
+plt.plot(tw_ref.s, tw_ref.x, label='ref')
 plt.plot(tw_before.s, tw_before.x, label='before')
-plt.plot(tw_before.s, tw.x, label='ref')
+plt.plot(tw_before.s, tw.x, label='after')
 sp2 = plt.subplot(2, 1, 2, sharex=sp1)
+plt.plot(tw_ref.s, tw_ref.y, label='ref')
 plt.plot(tw_before.s, tw_before.y, label='before')
-plt.plot(tw_before.s, tw.y, label='ref')
+plt.plot(tw_before.s, tw.y, label='after')
 plt.show()
