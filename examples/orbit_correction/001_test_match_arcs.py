@@ -110,50 +110,50 @@ line_co_ref.vars['on_disp'] = 0
 tw_ref = line_co_ref.tracker.twiss(method='4d', zeta0=0, delta0=0)
 
 correction_setup = {
-    # 'IR1 left': dict(
-    #     start='e.ds.r8.b1',
-    #     end='e.ds.l1.b1',
-    #     vary=(
-    #         'corr_co_acbh14.l1b1',
-    #         'corr_co_acbh12.l1b1',
-    #         'corr_co_acbv15.l1b1',
-    #         'corr_co_acbv13.l1b1',
-    #         ),
-    #     targets=('e.ds.l1.b1',),
-    # ),
-    # 'IR1 right': dict(
-    #     start='s.ds.r1.b1',
-    #     end='s.ds.l2.b1',
-    #     vary=(
-    #         'corr_co_acbh13.r1b1',
-    #         'corr_co_acbh15.r1b1',
-    #         'corr_co_acbv12.r1b1',
-    #         'corr_co_acbv14.r1b1',
-    #         ),
-    #     targets=('s.ds.l2.b1',),
-    # ),
-    # 'IR5 left': dict(
-    #     start='e.ds.r4.b1',
-    #     end='e.ds.l5.b1',
-    #     vary=(
-    #         'corr_co_acbh14.l5b1',
-    #         'corr_co_acbh12.l5b1',
-    #         'corr_co_acbv15.l5b1',
-    #         'corr_co_acbv13.l5b1',
-    #         ),
-    #     targets=('e.ds.l5.b1',),
-    # ),
-    # 'IR5 right': dict(
-    #     start='s.ds.r5.b1',
-    #     end='s.ds.l6.b1',
-    #     vary=(
-    #         'corr_co_acbh13.r5b1',
-    #         'corr_co_acbh15.r5b1',
-    #         'corr_co_acbv12.r5b1',
-    #         'corr_co_acbv14.r5b1',
-    #         ),
-    #     targets=('s.ds.l6.b1',),
-    # ),
+    'IR1 left': dict(
+        start='e.ds.r8.b1',
+        end='e.ds.l1.b1',
+        vary=(
+            'corr_co_acbh14.l1b1',
+            'corr_co_acbh12.l1b1',
+            'corr_co_acbv15.l1b1',
+            'corr_co_acbv13.l1b1',
+            ),
+        targets=('e.ds.l1.b1',),
+    ),
+    'IR1 right': dict(
+        start='s.ds.r1.b1',
+        end='s.ds.l2.b1',
+        vary=(
+            'corr_co_acbh13.r1b1',
+            'corr_co_acbh15.r1b1',
+            'corr_co_acbv12.r1b1',
+            'corr_co_acbv14.r1b1',
+            ),
+        targets=('s.ds.l2.b1',),
+    ),
+    'IR5 left': dict(
+        start='e.ds.r4.b1',
+        end='e.ds.l5.b1',
+        vary=(
+            'corr_co_acbh14.l5b1',
+            'corr_co_acbh12.l5b1',
+            'corr_co_acbv15.l5b1',
+            'corr_co_acbv13.l5b1',
+            ),
+        targets=('e.ds.l5.b1',),
+    ),
+    'IR5 right': dict(
+        start='s.ds.r5.b1',
+        end='s.ds.l6.b1',
+        vary=(
+            'corr_co_acbh13.r5b1',
+            'corr_co_acbh15.r5b1',
+            'corr_co_acbv12.r5b1',
+            'corr_co_acbv14.r5b1',
+            ),
+        targets=('s.ds.l6.b1',),
+    ),
     'IP1': dict(
         start='e.ds.l1.b1',
         end='s.ds.r1.b1',
@@ -177,9 +177,8 @@ for corr_name, corr in correction_setup.items():
     targets = []
     for tt in corr['targets']:
         assert isinstance(tt, str), 'For now only strings are supported for targets'
-        for kk, scale in zip(['x', 'px', 'y', 'py'], [1, 1e3, 1, 1e3]):
-            targets.append(xt.Target(kk, at=tt, value=tw_ref[tt, kk], tol=1e-9,
-                                     scale=scale))
+        for kk in ['x', 'px', 'y', 'py']:
+            targets.append(xt.Target(kk, at=tt, value=tw_ref[tt, kk], tol=1e-9))
 
     tracker.match(
         vary=vary,
