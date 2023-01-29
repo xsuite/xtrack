@@ -82,6 +82,27 @@ for ll in [line_co_ref, line]:
     ll.vars['on_x8'] = 250
     ll.vars['on_disp'] = 1
 
+# Introduce dip kick in all triplets (only in line)
+# line['mqxfb.b2l1..11'].knl[0] = 1e-6
+# line['mqxfb.b2l1..11'].ksl[0] = 1.5e-6
+# line['mqxfb.b2r1..11'].knl[0] = 2e-6
+# line['mqxfb.b2r1..11'].ksl[0] = 1e-6
+
+# line['mqxb.b2l2..11'].knl[0] = 1e-6
+# line['mqxb.b2l2..11'].ksl[0] = 1.5e-6
+# line['mqxb.b2r2..11'].knl[0] = 2e-6
+# line['mqxb.b2r2..11'].ksl[0] = 1e-6
+
+# line['mqxfb.b2l5..11'].knl[0] = 1e-6
+# line['mqxfb.b2l5..11'].ksl[0] = 1.5e-6
+# line['mqxfb.b2r5..11'].knl[0] = 2e-6
+# line['mqxfb.b2r5..11'].ksl[0] = 1e-6
+
+# line['mqxb.b2l8..11'].knl[0] = 1e-6
+# line['mqxb.b2l8..11'].ksl[0] = 1.5e-6
+# line['mqxb.b2r8..11'].knl[0] = 2e-6
+# line['mqxb.b2r8..11'].ksl[0] = 1e-6
+
 tw_before = tracker.twiss()
 
 # Use line ref to get an orbit reference
@@ -97,7 +118,9 @@ correction_setup = {
             'corr_co_acbh12.l1b1',
             'corr_co_acbv15.l1b1',
             'corr_co_acbv13.l1b1',
-        )),
+            ),
+        targets=('e.ds.l1.b1',),
+        ),
     'IR1 right': dict(
         start='s.ds.r1.b1',
         end='s.ds.l2.b1',
@@ -106,7 +129,9 @@ correction_setup = {
             'corr_co_acbh15.r1b1',
             'corr_co_acbv12.r1b1',
             'corr_co_acbv14.r1b1',
-        )),
+            ),
+        targets=('s.ds.l2.b1',),
+        ),
     'IR5 left': dict(
         start='e.ds.r4.b1',
         end='e.ds.l5.b1',
@@ -115,7 +140,9 @@ correction_setup = {
             'corr_co_acbh12.l5b1',
             'corr_co_acbv15.l5b1',
             'corr_co_acbv13.l5b1',
-        )),
+            ),
+        targets=('e.ds.l5.b1',),
+        ),
     'IR5 right': dict(
         start='s.ds.r5.b1',
         end='s.ds.l6.b1',
@@ -124,21 +151,23 @@ correction_setup = {
             'corr_co_acbh15.r5b1',
             'corr_co_acbv12.r5b1',
             'corr_co_acbv14.r5b1',
-        )),
+            ),
+        targets=('s.ds.l6.b1',),
+    ),
 }
 
 for corr_name, corr in correction_setup.items():
     print('Correcting', corr_name)
+    vary = [xt.Vary(vv, step=1e-9, limits=[-5e-6, 5e-6]) for vv in corr['vary']]
+    targets = []
+    for tt in corr['targets']:
+        assert isinstance(tt, str), 'For now only strings are supported for targets'
+        for kk in ['x', 'px', 'y', 'py']:
+            targets.append(xt.Target(kk, at=tt, value=tw_ref[tt, kk], tol=1e-9))
+
     tracker.match(
-        vary=[
-            xt.Vary(vv, step=1e-9, limits=[-5e-6, 5e-6]) for vv in corr['vary']
-        ],
-        targets=[
-            xt.Target('x', at=corr['end'], value=tw_ref[corr['end'], 'x'], tol=1e-9),
-            xt.Target('px', at=corr['end'], value=tw_ref[corr['end'], 'px'], tol=1e-9),
-            xt.Target('y', at=corr['end'], value=tw_ref[corr['end'], 'y'], tol=1e-9),
-            xt.Target('py', at=corr['end'], value=tw_ref[corr['end'], 'py'], tol=1e-9),
-        ],
+        vary=vary,
+        targets=targets,
         twiss_init=xt.OrbitOnly(
             x=tw_ref[corr['start'], 'x'],
             px=tw_ref[corr['start'], 'px'],
