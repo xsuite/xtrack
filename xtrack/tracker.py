@@ -1685,6 +1685,17 @@ def freeze_longitudinal(tracker):
     finally:
         tracker.config = config
 
+@contextmanager
+def _temp_knobs(tracker, knobs: dict):
+    old_values = {kk: tracker.vars[kk]._value for kk in knobs.keys()}
+    try:
+        for kk, vv in knobs.items():
+            tracker.vars[kk] = vv
+        yield
+    finally:
+        for kk, vv in old_values.items():
+            tracker.vars[kk] = vv
+
 
 _freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
 

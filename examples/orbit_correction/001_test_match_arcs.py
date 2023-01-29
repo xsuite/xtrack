@@ -107,13 +107,15 @@ line['mqxb.b2r8..11'].ksl[0] = 1e-6
 
 tw_before = tracker.twiss()
 
-# Use line ref to get an orbit reference
-line_co_ref.vars['on_disp'] = 0
-tw_ref = line_co_ref.tracker.twiss(method='4d', zeta0=0, delta0=0)
-line_co_ref.vars['on_disp'] = 1
+# # Use line ref to get an orbit reference
+# line_co_ref.vars['on_disp'] = 0
+# tw_ref = line_co_ref.tracker.twiss(method='4d', zeta0=0, delta0=0)
+# line_co_ref.vars['on_disp'] = 1
+
 
 correction_setup = {
     'IR1 left': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='e.ds.r8.b1',
         end='e.ds.l1.b1',
         vary=(
@@ -125,6 +127,7 @@ correction_setup = {
         targets=('e.ds.l1.b1',),
     ),
     'IR1 right': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='s.ds.r1.b1',
         end='s.ds.l2.b1',
         vary=(
@@ -136,6 +139,7 @@ correction_setup = {
         targets=('s.ds.l2.b1',),
     ),
     'IR5 left': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='e.ds.r4.b1',
         end='e.ds.l5.b1',
         vary=(
@@ -147,6 +151,7 @@ correction_setup = {
         targets=('e.ds.l5.b1',),
     ),
     'IR5 right': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='s.ds.r5.b1',
         end='s.ds.l6.b1',
         vary=(
@@ -158,6 +163,7 @@ correction_setup = {
         targets=('s.ds.l6.b1',),
     ),
     'IP1': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='e.ds.l1.b1',
         end='s.ds.r1.b1',
         vary=(
@@ -173,6 +179,7 @@ correction_setup = {
         targets=('ip1', 's.ds.r1.b1'),
     ),
     'IP2': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='e.ds.l2.b1',
         end='s.ds.r2.b1',
         vary=(
@@ -188,39 +195,45 @@ correction_setup = {
         targets=('ip2', 's.ds.r2.b1'),
     ),
     'IP5': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='e.ds.l5.b1',
         end='s.ds.r5.b1',
         vary=(
-            'corr_acbch6.l5b1',
-            'corr_acbcv5.l5b1',
-            'corr_acbch5.r5b1',
-            'corr_acbcv6.r5b1',
-            'corr_acbyhs4.l5b1',
-            'corr_acbyhs4.r5b1',
-            'corr_acbyvs4.l5b1',
-            'corr_acbyvs4.r5b1',
+            'corr_co_acbch6.l5b1',
+            'corr_co_acbcv5.l5b1',
+            'corr_co_acbch5.r5b1',
+            'corr_co_acbcv6.r5b1',
+            'corr_co_acbyhs4.l5b1',
+            'corr_co_acbyhs4.r5b1',
+            'corr_co_acbyvs4.l5b1',
+            'corr_co_acbyvs4.r5b1',
         ),
         targets=('ip5', 's.ds.r5.b1'),
     ),
     'IP8': dict(
+        ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
         start='e.ds.l8.b1',
         end='s.ds.r8.b1',
         vary=(
-            'corr_acbch5.l8b1',
-            'corr_acbyhs4.l8b1',
-            'corr_acbyhs4.r8b1',
-            'corr_acbyhs5.r8b1',
-            'corr_acbcvs5.l8b1',
-            'corr_acbyvs4.l8b1',
-            'corr_acbyvs4.r8b1',
-            'corr_acbyvs5.r8b1',
+            'corr_co_acbch5.l8b1',
+            'corr_co_acbyhs4.l8b1',
+            'corr_co_acbyhs4.r8b1',
+            'corr_co_acbyhs5.r8b1',
+            'corr_co_acbcvs5.l8b1',
+            'corr_co_acbyvs4.l8b1',
+            'corr_co_acbyvs4.r8b1',
+            'corr_co_acbyvs5.r8b1',
         ),
         targets=('ip8', 's.ds.r8.b1'),
     ),
 }
 
+from xtrack.tracker import _temp_knobs
+
 for corr_name, corr in correction_setup.items():
     print('Correcting', corr_name)
+    with _temp_knobs(tracker, corr['ref_with_knobs']):
+        tw_ref = tracker_co_ref.twiss(method='4d', zeta0=0, delta0=0)
     vary = [xt.Vary(vv, step=1e-9, limits=[-5e-6, 5e-6]) for vv in corr['vary']]
     targets = []
     for tt in corr['targets']:
