@@ -120,7 +120,7 @@ correction_setup = {
             'corr_co_acbv13.l1b1',
             ),
         targets=('e.ds.l1.b1',),
-        ),
+    ),
     'IR1 right': dict(
         start='s.ds.r1.b1',
         end='s.ds.l2.b1',
@@ -131,7 +131,7 @@ correction_setup = {
             'corr_co_acbv14.r1b1',
             ),
         targets=('s.ds.l2.b1',),
-        ),
+    ),
     'IR5 left': dict(
         start='e.ds.r4.b1',
         end='e.ds.l5.b1',
@@ -142,7 +142,7 @@ correction_setup = {
             'corr_co_acbv13.l5b1',
             ),
         targets=('e.ds.l5.b1',),
-        ),
+    ),
     'IR5 right': dict(
         start='s.ds.r5.b1',
         end='s.ds.l6.b1',
@@ -153,6 +153,21 @@ correction_setup = {
             'corr_co_acbv14.r5b1',
             ),
         targets=('s.ds.l6.b1',),
+    ),
+    'IP1': dict(
+        start='e.ds.l1.b1',
+        end='s.ds.r1.b1',
+        vary=(
+            'corr_co_acbch6.l1b1',
+            'corr_co_acbcv5.l1b1',
+            'corr_co_acbch5.r1b1',
+            'corr_co_acbcv6.r1b1',
+            'corr_co_acbyhs4.l1b1',
+            'corr_co_acbyhs4.r1b1',
+            'corr_co_acbyvs4.l1b1',
+            'corr_co_acbyvs4.r1b1',
+        ),
+        targets=('ip1', 's.ds.r1.b1'),
     ),
 }
 
