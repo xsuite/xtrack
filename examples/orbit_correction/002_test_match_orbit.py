@@ -24,31 +24,9 @@ import json
 with open('corr_co.json') as ff:
     correction_setup = json.load(ff)
 
-from xtrack.tracker import _temp_knobs
 
-for corr_name, corr in correction_setup.items():
-    print('Correcting', corr_name)
-    with _temp_knobs(tracker, corr['ref_with_knobs']):
-        tw_ref = tracker_co_ref.twiss(method='4d', zeta0=0, delta0=0)
-    vary = [xt.Vary(vv, step=1e-9, limits=[-5e-6, 5e-6]) for vv in corr['vary']]
-    targets = []
-    for tt in corr['targets']:
-        assert isinstance(tt, str), 'For now only strings are supported for targets'
-        for kk in ['x', 'px', 'y', 'py']:
-            targets.append(xt.Target(kk, at=tt, value=tw_ref[tt, kk], tol=1e-9))
-
-    tracker.match(
-        vary=vary,
-        targets=targets,
-        twiss_init=xt.OrbitOnly(
-            x=tw_ref[corr['start'], 'x'],
-            px=tw_ref[corr['start'], 'px'],
-            y=tw_ref[corr['start'], 'y'],
-            py=tw_ref[corr['start'], 'py'],
-            zeta=tw_ref[corr['start'], 'zeta'],
-            delta=tw_ref[corr['start'], 'delta'],
-        ),
-        ele_start=corr['start'], ele_stop=corr['end'])
+tracker.correct_closed_orbit(tracker_co_ref=tracker_co_ref,
+                             correction_setup=correction_setup,)
 
 tw = tracker.twiss()
 

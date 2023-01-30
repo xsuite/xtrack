@@ -26,7 +26,7 @@ from .survey import survey_from_tracker
 from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
                     find_closed_orbit, twiss_from_tracker)
-from .match import match_tracker
+from .match import match_tracker, closed_orbit_correction
 from .tapering import compensate_radiation_energy_loss
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
@@ -545,6 +545,10 @@ class Tracker:
         See corresponding section is the Xsuite User's guide.
         '''
         return match_tracker(self, vary, targets, **kwargs)
+
+    def correct_closed_orbit(self, tracker_co_ref, correction_setup):
+
+        closed_orbit_correction(self, tracker_co_ref, correction_setup)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
