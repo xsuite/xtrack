@@ -718,6 +718,11 @@ class Tracker:
                     local_particle_src=self.local_particle_src,
                 )
 
+    def track(self, *args, **kwargs):
+        pass
+        # This is a placeholder, it is replaced either by the collective
+        # tracker or the single particle tracker
+
     @property
     def particle_ref(self) -> xp.Particles:
         self._check_invalidated()

@@ -12,6 +12,7 @@ import numpy as np
 
 import xobjects as xo
 import xpart as xp
+import xtrack as xt
 
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -511,6 +512,16 @@ class Line:
         if isinstance(self.element_names, tuple):
             raise ValueError(
                 'This action is not allowed as the line is frozen!')
+
+    def __getattr__(self, attr):
+        # If not in self look in self.tracker (if not None)
+        if self.tracker is not None:
+            return getattr(self.tracker, attr)
+        else:
+            # If in Tracker class, ask the used to build the tracker
+            if attr in dir(xt.Tracker):
+                raise ValueError(
+                    'The tracker is not built. Please call build_tracker()')
 
     def __len__(self):
         return len(self.element_names)
