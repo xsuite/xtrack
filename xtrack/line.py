@@ -557,7 +557,7 @@ class Line:
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
-            if hasattr(self, '_in_multiline'):
+            if hasattr(self, '_in_multiline') and self._in_multiline:
                 raise ValueError('The line is part ot a MultiLine object. '
                     'To save without expressions please use '
                     '`line.to_dict(include_var_management=False)`.\n'
