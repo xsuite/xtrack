@@ -550,13 +550,20 @@ class Line:
         out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
-    def to_dict(self):
+    def to_dict(self, include_var_management=True):
         out = {}
         out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
-        if self._var_management is not None:
+        if self._var_management is not None and include_var_management:
+            if hasattr(self, '_in_multiline'):
+                raise ValueError('The line is part ot a MultiLine object. '
+                    'To save without expressions please use '
+                    '`line.to_dict(include_var_management=False)`.\n'
+                    'To save also the deferred expressions please save the '
+                    'entire multiline.\n ')
+
             out.update(self._var_management_to_dict())
         return out
 
