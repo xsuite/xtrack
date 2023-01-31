@@ -10,24 +10,24 @@ with open('line_with_orbit_ref.json', 'r') as fid:
 line = xt.Line.from_dict(dct['line'])
 line_co_ref = xt.Line.from_dict(dct['line_co_ref'])
 
-tracker = line.build_tracker()
-tracker_co_ref = line_co_ref.build_tracker()
+line.build_tracker()
+line_co_ref.build_tracker()
 
 # Bind variables in the two lines
 from shared_knobs import VarSharing
 var_sharing = VarSharing(lines = [line, line_co_ref],
                          names=['lhcb1', '_orbit_ref_lhcb1'])
 
-tw_before = tracker.twiss()
+tw_before = line.twiss()
 
 import json
 with open('corr_co.json') as ff:
     correction_config = json.load(ff)
 
-tracker.correct_closed_orbit(tracker_co_ref=tracker_co_ref,
+line.correct_closed_orbit(tracker_co_ref=line_co_ref,
                              correction_config=correction_config)
 
-tw = tracker.twiss()
+tw = line.twiss()
 
 assert np.isclose(tw['ip1', 'px'], 250e-6, atol=1e-8)
 assert np.isclose(tw['ip1', 'py'], 0, atol=1e-8)
@@ -66,8 +66,8 @@ for place in places_to_check:
     assert np.isclose(tw[place, 'y'], 0, atol=1e-6)
     assert np.isclose(tw[place, 'py'], 0, atol=1e-8)
 
-with xt.tracker._temp_knobs(tracker, dict(on_corr_co=0, on_disp=0)):
-    tw_ref = tracker_co_ref.twiss()
+with xt.tracker._temp_knobs(line, dict(on_corr_co=0, on_disp=0)):
+    tw_ref = line_co_ref.twiss()
 
 import matplotlib.pyplot as plt
 plt.close('all')
