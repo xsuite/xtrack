@@ -9,7 +9,7 @@ class Multiline:
 
         line_names = list(self.lines.keys())
         line_list = [self.lines[nn] for nn in line_names]
-        self._var_sharing = VarSharing(line=line_list, names=line_names)
+        self._var_sharing = VarSharing(lines=line_list, names=line_names)
 
     def build_trackers(self, **kwargs):
         for nn, ll in self.lines.items():

@@ -4,19 +4,19 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 
+from multiline import Multiline
+
 # Load line and line_co_ref from json
 with open('line_with_orbit_ref.json', 'r') as fid:
     dct = json.load(fid)
 line = xt.Line.from_dict(dct['line'])
 line_co_ref = xt.Line.from_dict(dct['line_co_ref'])
 
-line.build_tracker()
-line_co_ref.build_tracker()
+collider = Multiline(lines={'lhcb1': line, 'lhcb1_co_ref': line_co_ref})
 
-# Bind variables in the two lines
-from shared_knobs import VarSharing
-var_sharing = VarSharing(lines = [line, line_co_ref],
-                         names=['lhcb1', '_orbit_ref_lhcb1'])
+collider.build_trackers()
+
+line = collider.lhcb1
 
 tw_before = line.twiss()
 
