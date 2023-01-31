@@ -21,13 +21,24 @@ class VarSharing:
         self.manager = mgr
 
         for ll, nn in zip(lines, names):
-            self.add_line(ll, nn)
+            self.add_line(ll, nn, update_existing=False)
 
-    def add_line(self, line, name):
+        self.sync()
+
+    def add_line(self, line, name, update_existing=False):
 
         mgr1 = line._var_management["manager"]
 
-        self._vref._owner.update(mgr1.containers["vars"]._owner) # copy data
+        if update_existing:
+            self._vref._owner.update(mgr1.containers["vars"]._owner) # copy data
+        else:
+            # Find new variables
+            new_vars =(set(mgr1.containers["vars"]._owner.keys())
+                        - set(self._vref._owner.keys()))
+            # Add new variables
+            for vv in new_vars:
+                self._vref._owner[vv] = mgr1.containers["vars"]._owner[vv]
+
         self.manager.copy_expr_from(mgr1, "vars") # copy expressions
 
         # bind data with line.element_dict
@@ -42,3 +53,12 @@ class VarSharing:
         line._var_management["vref"] = self._vref
         line._var_management["fref"] = self._fref
         line._var_management["data"]["var_values"] = self._vref._owner
+
+    def sync(self):
+        for nn in self._vref._owner.keys():
+            if (self._vref[nn]._expr is None
+                and len(self._vref[nn]._find_dependant_targets()) > 1 # always contain itself
+                ):
+
+                self._vref[nn] = self._vref._owner[nn]
+

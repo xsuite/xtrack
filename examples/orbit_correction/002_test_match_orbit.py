@@ -66,9 +66,8 @@ for place in places_to_check:
     assert np.isclose(tw[place, 'y'], 0, atol=1e-6)
     assert np.isclose(tw[place, 'py'], 0, atol=1e-8)
 
-tracker_co_ref.vars['on_corr_co'] = 0
-tw_ref = tracker_co_ref.twiss()
-tracker_co_ref.vars['on_corr_co'] = 1
+with xt.tracker._temp_knobs(tracker, dict(on_corr_co=0, on_disp=0)):
+    tw_ref = tracker_co_ref.twiss()
 
 import matplotlib.pyplot as plt
 plt.close('all')
