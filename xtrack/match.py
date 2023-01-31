@@ -212,9 +212,9 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
     print('\n')
     return result_info
 
-def closed_orbit_correction(tracker, tracker_co_ref, correction_setup):
+def closed_orbit_correction(tracker, tracker_co_ref, correction_config):
 
-    for corr_name, corr in correction_setup.items():
+    for corr_name, corr in correction_config.items():
         print('Correcting', corr_name)
         with xt.tracker._temp_knobs(tracker, corr['ref_with_knobs']):
             tw_ref = tracker_co_ref.twiss(method='4d', zeta0=0, delta0=0)

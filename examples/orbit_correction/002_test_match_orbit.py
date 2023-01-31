@@ -22,11 +22,10 @@ tw_before = tracker.twiss()
 
 import json
 with open('corr_co.json') as ff:
-    correction_setup = json.load(ff)
-
+    correction_config = json.load(ff)
 
 tracker.correct_closed_orbit(tracker_co_ref=tracker_co_ref,
-                             correction_setup=correction_setup,)
+                             correction_config=correction_config)
 
 tw = tracker.twiss()
 
@@ -62,11 +61,14 @@ places_to_check = [
  's.ds.r8.b1']
 
 for place in places_to_check:
-    assert np.isclose(tw[place, 'x'], tw_ref[place, 'x'], atol=1e-6)
-    assert np.isclose(tw[place, 'px'], tw_ref[place, 'px'], atol=1e-8)
-    assert np.isclose(tw[place, 'y'], tw_ref[place, 'y'], atol=1e-6)
-    assert np.isclose(tw[place, 'py'], tw_ref[place, 'py'], atol=1e-8)
+    assert np.isclose(tw[place, 'x'], 0, atol=1e-6)
+    assert np.isclose(tw[place, 'px'], 0, atol=1e-8)
+    assert np.isclose(tw[place, 'y'], 0, atol=1e-6)
+    assert np.isclose(tw[place, 'py'], 0, atol=1e-8)
 
+tracker_co_ref.vars['on_corr_co'] = 0
+tw_ref = tracker_co_ref.twiss()
+tracker_co_ref.vars['on_corr_co'] = 1
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -79,4 +81,5 @@ sp2 = plt.subplot(2, 1, 2, sharex=sp1)
 plt.plot(tw_ref.s, tw_ref.y, label='ref')
 plt.plot(tw_before.s, tw_before.y, label='before')
 plt.plot(tw_before.s, tw.y, label='after')
+plt.legend()
 plt.show()
