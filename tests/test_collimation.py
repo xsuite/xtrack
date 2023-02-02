@@ -148,7 +148,8 @@ def test_aperture_refinement():
                        xt.Multipole(_buffer=buf, knl=[0.]),
                        xt.Drift(_buffer=buf, length=1),
                        xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
-                       xt.Drift(_buffer=buf, length=1.),)
+                       xt.Drift(_buffer=buf, length=1.),
+                       xt.Marker())
                     + trk_aper_1.line.elements)))
     num_elements = len(tracker.line.elements)
 
@@ -377,8 +378,10 @@ def test_losslocationrefinement_skip_refinement_for_collimators():
 
     line = xt.Line(elements=[
         xt.Drift(length=2.),
+        xt.Marker(),
         xt.LimitEllipse(a=2e-2, b=2e-2),
         collimator,
+        xt.Marker(),
         xt.LimitEllipse(a=2e-2, b=2e-2),
         xt.Drift(length=10.),
         ])
