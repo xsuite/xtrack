@@ -23,12 +23,12 @@ void BeforeLossMonitor_track_local_particle(BeforeLossMonitorData el, LocalParti
         int64_t at_turn = LocalParticle_get_at_turn(part);
 
         // When the particle is lost, tracking is stopped automatically for it.
-        // Therefore we don't need to check for particle state here. But this
-        // also means, that he have to save the buffer offset each time as
-        // long as the particle is still alive, since it could have been
-        // the last time.
+        // Therefore we don't need to check for particle state here.
+        // But this also means, that he have to save the buffer offset each time
+        // as long as the particle is still alive, since it could be the last
+        // time we see it.
     
-        if (at_turn%every_n_turns == 0 && particle_id_start <= particle_id && particle_id < particle_id_stop){
+        if (at_turn >= 0 && at_turn%every_n_turns == 0 && particle_id_start <= particle_id && particle_id < particle_id_stop){
 
             // determine slot in rolling buffer
             int64_t offset = (at_turn / every_n_turns) % n_last_turns;
