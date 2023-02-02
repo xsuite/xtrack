@@ -125,17 +125,15 @@ def test_monitor(test_context):
 
 
 @for_all_test_contexts
-def test_before_loss_monitor(context):
+def test_before_loss_monitor(test_context):
 
-    particles = xp.Particles(p0c=6.5e12, x=[1,2,3,4,5,6], _context=context)
+    particles = xp.Particles(p0c=6.5e12, x=[1,2,3,4,5,6], _context=test_context)
     num_particles = len(particles.x)
-    particle_id_range=(1, 5)
 
-    n_last_turns = 5
-    monitor = xt.BeforeLossMonitor(n_last_turns, particle_id_range=particle_id_range, _context=context)
+    monitor = xt.BeforeLossMonitor(n_last_turns=5, particle_id_range=(1, 5), _context=test_context)
 
     line = xt.Line([monitor])
-    tracker = line.build_tracker(_context=context)
+    tracker = line.build_tracker(_context=test_context)
 
     for turn in range(10):
 
@@ -143,7 +141,7 @@ def test_before_loss_monitor(context):
 
         # Note that indicees are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
-        if isinstance(context, xo.ContextCpu):
+        if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
 
         particles.x[0] += 1# + np.array([1,-1,2,-2,3,-3])
@@ -159,7 +157,7 @@ def test_before_loss_monitor(context):
         if turn == 6:
             particles.state[3] = 0
 
-        if isinstance(context, xo.ContextCpu):
+        if isinstance(test_context, xo.ContextCpu):
             particles.reorganize()
 
 

@@ -38,13 +38,17 @@ class BeforeLossMonitor(BeamElement):
         'every_n_turns': xo.Int64,
         'data': LastTurnsData,
     }
+    
+    # TODO: find a way to dynamically change what properties are being saved by this monitor
+    properties = [field.name for field in LastTurnsData._fields if field.name != 'lost_at_offset']
+
 
     _extra_c_sources = [
         _pkg_root.joinpath('monitors/before_loss_monitor.h')
     ]
 
 
-    def __init__(self, *, n_last_turns=None, num_particles=None, particle_id_range=None, every_n_turns=1, **kwargs):
+    def __init__(self, *, n_last_turns=None, num_particles=None, particle_id_range=None, every_n_turns=1, _xobject=None, **kwargs):
         """Monitor to save particle data in last turns before respective particle loss
         
         The monitor provides the following data as 2D array of shape (num_particles, n_last_turns),
