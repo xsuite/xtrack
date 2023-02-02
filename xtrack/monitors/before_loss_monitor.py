@@ -44,7 +44,7 @@ class BeforeLossMonitor(BeamElement):
     ]
 
 
-    def __init__(self, n_last_turns, *, num_particles=None, particle_id_range=None, every_n_turns=1, **kwargs):
+    def __init__(self, *, n_last_turns=None, num_particles=None, particle_id_range=None, every_n_turns=1, **kwargs):
         """Monitor to save particle data in last turns before respective particle loss
         
         The monitor provides the following data as 2D array of shape (num_particles, n_last_turns),
@@ -53,33 +53,42 @@ class BeforeLossMonitor(BeamElement):
         `particle_id`, `at_turn`, `x`, `px`, `y`, `py`, `delta`, `zeta`
         
         Args:
-            n_last_turns: Amount of turns to store before particle loss.
-            num_particles: Number of particles. Equal to passing particle_id_range=(0, num_particles).
-            particle_id_range: Range of particle ids to monitor (start, stop).
-            every_n_turns: Save only every n-th turn, i.e. turn numbers which are a multiple of this.
-                Because `n_last_turns` defines the amount of turns to store, the data will cover turn
+            n_last_turns (int): Amount of turns to store before particle loss.
+            particle_id_range (tuple): Range of particle ids to monitor (start, stop).
+            num_particles (int, optional): Number of particles. Equal to passing particle_id_range=(0, num_particles).
+            every_n_turns (int, optional): Save only every n-th turn, i.e. turn numbers which are a multiples of this.
+                Because `n_last_turns` defines the amount of turns to store (and not the range), the data will cover turn
                 numbers up to `n_last_turns*every_n_turns` turns before particle loss.
         
         """
-
-        if num_particles is not None and particle_id_range is None:
-            particle_id_start = 0
-        elif particle_id_range is not None and num_particles is None:
-            particle_id_start = particle_id_range[0]
-            num_particles = particle_id_range[1] - particle_id_range[0]
-        else:
-            raise ValueError("Exactly one of `num_particles` or `particle_id_range` parameters must be specified")
-
-
-        # TODO: find a way to dynamically change what properties are being saved by this monitor
-        self.properties = [field.name for field in LastTurnsData._fields if field.name != 'lost_at_offset']
         
-        # explicitely init with zeros (instead of size only) to have consistent default values for untouched arrays
-        data = {prop: np.zeros(num_particles*n_last_turns) for prop in self.properties} # particle data
-        data['lost_at_offset'] = np.zeros(num_particles)  # meta data (rolling buffer offset per particle)
+        
+        if _xobject is not None:
+            super().__init__(_xobject=_xobject)
+        
+        else:
 
-        super().__init__(n_last_turns=n_last_turns, particle_id_start=particle_id_start,
-                         num_particles=num_particles, every_n_turns=every_n_turns, data=data, **kwargs)
+            if num_particles is not None and particle_id_range is None:
+                particle_id_start = 0
+            elif particle_id_range is not None and num_particles is None:
+                particle_id_start = particle_id_range[0]
+                num_particles = particle_id_range[1] - particle_id_range[0]
+            else:
+                raise ValueError("Exactly one of `num_particles` or `particle_id_range` parameters must be specified")
+            
+            # explicitely init with zeros (instead of size only) to have consistent default values for untouched arrays
+            # see also https://github.com/xsuite/xsuite/issues/294
+            data = {prop: [0]*(num_particles*n_last_turns) for prop in self.properties} # particle data
+            data['lost_at_offset'] = [0]*(num_particles)  # meta data (rolling buffer offset per particle)
+
+            super().__init__(n_last_turns=n_last_turns, particle_id_start=particle_id_start,
+                             num_particles=num_particles, every_n_turns=every_n_turns, data=data, **kwargs)
+    
+    def __repr__(self):
+        return (
+            f"{type(self).__qualname__}(n_last_turns={self.n_last_turns}, every_n_turns={self.every_n_turns}, "
+            f"particle_id_start={self.particle_id_start}, num_particles={self.num_particles}) at {hex(id(self))}"
+        )
 
 
     def __getattr__(self, attr):
