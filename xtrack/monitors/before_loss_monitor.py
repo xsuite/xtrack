@@ -64,6 +64,11 @@ class BeforeLossMonitor(BeamElement):
                 Because `n_last_turns` defines the amount of turns to store (and not the range), the data will cover turn
                 numbers up to `n_last_turns*every_n_turns` turns before particle loss.
         
+        Example:
+            monitor = BeforeLossMonitor(n_last_turns=5, particle_id_range=(1, 5))
+            monitor.at_turn[:,-1]  # last turn before loss of each particle, respectively
+            monitor.x[3,-2]  # x coordinate in one but last turn of particle with id 4
+        
         """
         
         
