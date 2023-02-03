@@ -14,6 +14,21 @@ line_co_ref = xt.Line.from_dict(dct['line_co_ref'])
 
 collider = Multiline(lines={'lhcb1': line, 'lhcb1_co_ref': line_co_ref})
 
+# Try to dump and reload the variables
+
+# dct = {}
+
+# dct['manager'] = collider._var_sharing.manager.dump()
+# dct['data'] = collider._var_sharing.data
+
+# # Remove the var manager from the collider and the lines
+# collider._var_sharing = None
+# for ll in collider.lines.values():
+#     ll._var_management = None
+
+# Rebuild the var manager
+
+
 collider.build_trackers()
 
 line = collider.lhcb1
