@@ -292,6 +292,71 @@ def test_elens(test_context):
                       dtk_particle.py, rtol=1e-9, atol=1e-9)
 
 
+
+
+@for_all_test_contexts
+def test_elens_chebychev(test_context):
+
+
+
+    # read the input from file
+    coeffs = []
+
+    # ../main1_fit/E_and_V/for6T/coeffs_main1_nEq18.txt
+
+    with open('coeffs_gunBend_nEq18.txt') as f:
+    # with open('coeffs_main1_nEq18.txt') as f:
+        
+        for line in f:
+            if line.startswith("#"):
+                continue
+                
+            if line.startswith("I"):
+                cheby_current = float(line.split(":")[-1])
+                continue 
+                
+            if line.startswith("R"):
+                cheby_radius  = float(line.split(":")[-1])            
+                continue 
+                
+                
+            coeffs.append(float(line.split(":")[-1].replace("\n","")))
+                
+                
+    cheby_radius = cheby_radius*1e-3
+
+    dtk_particle = dtk.TestParticles(
+            p0c  = np.array([7000e9]),
+            x    = np.array([0]),
+            px   = np.array([0.0]),
+            y    = np.array([0]),
+            py   = np.array([0.0]),
+            zeta = np.array([0.]))
+
+    particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                       _context=test_context)
+
+    elens = xt.Elens(inner_radius   = 5e-3, 
+                    outer_radius   = 2*5e-3,
+                    current        = 5,
+                    elens_length   = 3,
+                    voltage        = 10e3,
+                    chebyshev_coefficients      = np.array(coeffs), 
+                    chebyshev_reference_radius  = cheby_radius,
+                    chebyshev_max_order         = 19,
+                    chebyshev_reference_current = 5
+                    )
+
+    elens.track(particles)
+
+    assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
+                      -7.5e-10, rtol=1e-2, atol=1e-12)
+    assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
+                      8.68e-10, rtol=1e-2, atol=1e-12)
+
+
+
+
 @for_all_test_contexts
 def test_elens_measured_radial(test_context):
     def compute_coef(r_measured, j_measured, r_1_new, r_2_new,
