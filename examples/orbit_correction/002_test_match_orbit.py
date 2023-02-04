@@ -16,18 +16,30 @@ collider = Multiline(lines={'lhcb1': line, 'lhcb1_co_ref': line_co_ref})
 
 # Try to dump and reload the variables
 
-# dct = {}
-
-# dct['manager'] = collider._var_sharing.manager.dump()
-# dct['data'] = collider._var_sharing.data
-
-# # Remove the var manager from the collider and the lines
-# collider._var_sharing = None
-# for ll in collider.lines.values():
-#     ll._var_management = None
+dct = {}
+dct['_var_manager'] = collider._var_sharing.manager.dump()
+dct['_var_management_data'] = collider._var_sharing.data
+dct['lines'] = {}
+for nn, ll in collider.lines.items():
+    dct['lines'][nn] = ll.to_dict(include_var_management=False)
 
 # Rebuild the var manager
+lines = {}
+for nn, ll in dct['lines'].items():
+    lines[nn] = xt.Line.from_dict(ll)
 
+
+
+new_collider = Multiline(lines=lines, link_vars=('_var_manager' in dct))
+
+if '_var_manager' in dct:
+    for kk in dct['_var_management_data'].keys():
+        new_collider._var_sharing.data[kk].update(
+                                        dct['_var_management_data'][kk])
+    new_collider._var_sharing.manager.load(dct['_var_manager'])
+
+
+prrrrr
 
 collider.build_trackers()
 

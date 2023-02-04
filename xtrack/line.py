@@ -343,7 +343,6 @@ class Line:
         from collections import defaultdict
         import xdeps as xd
 
-        # Extract globals values from madx
         _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
 

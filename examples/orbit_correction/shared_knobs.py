@@ -47,11 +47,12 @@ class VarSharing:
 
             self.manager.copy_expr_from(mgr1, "vars") # copy expressions
 
-        
-
             # copy expressions
             self.manager.copy_expr_from(mgr1, "element_refs",
                                     {"element_refs": self._eref[name]})
+
+        if line._var_management is None:
+            line._var_management = {'data': {}}
 
         line._var_management["manager"] = None # remove old manager
         line._var_management["lref"] = self._eref[name]
