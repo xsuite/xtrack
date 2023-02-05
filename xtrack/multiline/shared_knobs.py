@@ -1,6 +1,5 @@
+from ..line import mathfunctions
 import xdeps
-
-import xtrack
 
 class VarSharing:
 
@@ -9,7 +8,7 @@ class VarSharing:
 
         mgr = xdeps.Manager()
         newvref = mgr.ref({}, "vars")
-        newfref = mgr.ref(xtrack.line.mathfunctions, "f")
+        newfref = mgr.ref(mathfunctions, "f")
 
         newe = {} # new root container
         neweref = mgr.ref(newe, "eref") # new root ref

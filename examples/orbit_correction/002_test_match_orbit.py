@@ -4,46 +4,22 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 
-from multiline import Multiline
-
 # Load line and line_co_ref from json
 with open('line_with_orbit_ref.json', 'r') as fid:
     dct = json.load(fid)
 line = xt.Line.from_dict(dct['line'])
 line_co_ref = xt.Line.from_dict(dct['line_co_ref'])
 
-collider = Multiline(lines={'lhcb1': line, 'lhcb1_co_ref': line_co_ref})
+collider = xt.Multiline(lines={'lhcb1': line, 'lhcb1_co_ref': line_co_ref})
 
 # Try to dump and reload the variables
-
-dct = {}
-dct['_var_manager'] = collider._var_sharing.manager.dump()
-dct['_var_management_data'] = collider._var_sharing.data
-dct['lines'] = {}
-for nn, ll in collider.lines.items():
-    dct['lines'][nn] = ll.to_dict(include_var_management=False)
-
-# Rebuild the var manager
-lines = {}
-for nn, ll in dct['lines'].items():
-    lines[nn] = xt.Line.from_dict(ll)
-
-
-
-new_collider = Multiline(lines=lines, link_vars=('_var_manager' in dct))
-
-if '_var_manager' in dct:
-    for kk in dct['_var_management_data'].keys():
-        new_collider._var_sharing.data[kk].update(
-                                        dct['_var_management_data'][kk])
-    new_collider._var_sharing.manager.load(dct['_var_manager'])
-
-
-prrrrr
+old_collider = collider
+collider = xt.Multiline.from_dict(collider.to_dict())
 
 collider.build_trackers()
 
 line = collider.lhcb1
+line_co_ref = collider.lhcb1_co_ref
 
 tw_before = line.twiss()
 
