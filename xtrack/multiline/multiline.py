@@ -50,12 +50,15 @@ class Multiline:
     def __getitem__(self, key):
         return self.lines[key]
 
+    def __dir__(self):
+        return list(self.lines.keys()) + object.__dir__(self)
+
     def __getattr__(self, key):
-        return self.lines[key]
+        if key in self.lines:
+            return self.lines[key]
 
     @property
     def vars(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
-
 
