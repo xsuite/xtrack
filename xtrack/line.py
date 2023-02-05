@@ -514,13 +514,16 @@ class Line:
 
     def __getattr__(self, attr):
         # If not in self look in self.tracker (if not None)
-        if self.tracker is not None:
+        if self.tracker is not None and attr in dir(self.tracker):
             return getattr(self.tracker, attr)
         else:
             # If in Tracker class, ask the used to build the tracker
             if attr in dir(xt.Tracker):
                 raise ValueError(
                     'The tracker is not built. Please call build_tracker()')
+
+    def __dir__(self):
+        return list(set(object.__dir__(self) + dir(self.tracker)))
 
     def __len__(self):
         return len(self.element_names)
