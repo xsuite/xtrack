@@ -22,7 +22,12 @@ for ii in [1, 2, 3, 4, 5, 6, 7, 8]:
     for jj, nn in zip([1, 2], ['re', 'im']):
         old_name = f'b{ii}{jj}'
         new_name = f'coeff_skew_{ii}{jj}_b{beamn}'
+
+        # Copy value in new variable
         line.vars[new_name] = line.vars[old_name]._value
+
+        # Zero old variable
+        line.vars[old_name] = 0
 
         # Identify controlled circuit
         targets = line.vars[old_name]._find_dependant_targets()
