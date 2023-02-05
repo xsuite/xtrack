@@ -5,17 +5,10 @@ import xtrack as xt
 import xobjects as xo
 
 # Load line and line_co_ref from json
-with open('line_with_orbit_ref.json', 'r') as fid:
+with open('collider.json', 'r') as fid:
     dct = json.load(fid)
-line = xt.Line.from_dict(dct['line'])
-line_co_ref = xt.Line.from_dict(dct['line_co_ref'])
 
-collider = xt.Multiline(lines={'lhcb1': line, 'lhcb1_co_ref': line_co_ref})
-
-# Try to dump and reload the variables
-old_collider = collider
-collider = xt.Multiline.from_dict(collider.to_dict())
-
+collider = xt.Multiline.from_dict(dct)
 collider.build_trackers()
 
 line = collider.lhcb1
