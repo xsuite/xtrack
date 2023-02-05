@@ -516,11 +516,13 @@ class Line:
         # If not in self look in self.tracker (if not None)
         if self.tracker is not None and attr in dir(self.tracker):
             return getattr(self.tracker, attr)
-        else:
+        elif attr in dir(xt.Tracker):
             # If in Tracker class, ask the used to build the tracker
-            if attr in dir(xt.Tracker):
-                raise ValueError(
-                    'The tracker is not built. Please call build_tracker()')
+            raise AttributeError(
+                'The tracker is not built. Please call build_tracker()')
+        else:
+            raise AttributeError(
+                f'Line object has no attribute `{attr}`')
 
     def __dir__(self):
         return list(set(object.__dir__(self) + dir(self.tracker)))
