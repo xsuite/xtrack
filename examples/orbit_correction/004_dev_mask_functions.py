@@ -1,5 +1,4 @@
 # Need to:
-# - have indepedent coupling knobs for the two beams
 # - have independent octupole knobs for the two beams
 # - add knobs for optics correction
 
@@ -14,35 +13,17 @@ with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
             'r') as fid:
     dct_b1 = json.load(fid)
 line = xt.Line.from_dict(dct_b1)
+line.build_tracker()
 
-beamn = 1
-line.vars[f'c_minus_re_b{beamn}'] = 0
-line.vars[f'c_minus_im_b{beamn}'] = 0
-for ii in [1, 2, 3, 4, 5, 6, 7, 8]:
-    for jj, nn in zip([1, 2], ['re', 'im']):
-        old_name = f'b{ii}{jj}'
-        new_name = f'coeff_skew_{ii}{jj}_b{beamn}'
+from line_preparation import rename_coupling_knobs_and_coefficients
 
-        # Copy value in new variable
-        line.vars[new_name] = line.vars[old_name]._value
+# Reanme coupling knobs to `c_minus_re_b1` and `c_minus_im_b1`
+rename_coupling_knobs_and_coefficients(line=line, beamn=1)
 
-        # Zero old variable
-        line.vars[old_name] = 0
-
-        # Identify controlled circuit
-        targets = line.vars[old_name]._find_dependant_targets()
-        if len(targets) > 1: # Controls something
-            ttt = [t for t in targets if repr(t).startswith('vars[') and
-                   repr(t) != f"vars['{old_name}']"]
-            assert len(ttt) > 0
-            assert len(ttt) < 3
-
-            for kqs_knob in ttt:
-                kqs_knob_str = repr(kqs_knob)
-                assert "'" in kqs_knob_str
-                assert '"' not in kqs_knob_str
-                var_name = kqs_knob_str.split("'")[1]
-                assert var_name.startswith('kqs')
-                line.vars[var_name] += (line.vars[new_name]
-                            * line.vars[f'c_minus_{nn}_b{beamn}'])
-
+# Check new knobs
+assert np.abs(line.twiss().c_minus) < 1e-4
+line.vars['c_minus_re_b1'] = 1e-3
+assert np.isclose(line.twiss().c_minus, 1e-3, atol=1e-4, rtol=0)
+line.vars['c_minus_re_b1'] = 0
+line.vars['c_minus_im_b1'] = 1e-3
+assert np.isclose(line.twiss().c_minus, 1e-3, atol=1e-4, rtol=0)
