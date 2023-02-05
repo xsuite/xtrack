@@ -546,9 +546,9 @@ class Tracker:
         '''
         return match_tracker(self, vary, targets, **kwargs)
 
-    def correct_closed_orbit(self, tracker_co_ref, correction_config):
+    def correct_closed_orbit(self, reference, correction_config):
 
-        closed_orbit_correction(self, tracker_co_ref, correction_config)
+        closed_orbit_correction(self, reference, correction_config)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 

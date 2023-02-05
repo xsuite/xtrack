@@ -11,19 +11,17 @@ with open('collider.json', 'r') as fid:
 collider = xt.Multiline.from_dict(dct)
 collider.build_trackers()
 
-line = collider.lhcb1
-line_co_ref = collider.lhcb1_co_ref
-
-tw_before = line.twiss()
+tw_before = collider.lhcb1.twiss()
+tw_ref_before = collider.lhcb1_co_ref.twiss()
 
 import json
 with open('corr_co.json') as ff:
     correction_config = json.load(ff)
 
-line.correct_closed_orbit(tracker_co_ref=line_co_ref,
+collider.lhcb1.correct_closed_orbit(reference=collider.lhcb1_co_ref,
                              correction_config=correction_config)
 
-tw = line.twiss()
+tw = collider.lhcb1.twiss()
 
 assert np.isclose(tw['ip1', 'px'], 250e-6, atol=1e-8)
 assert np.isclose(tw['ip1', 'py'], 0, atol=1e-8)
@@ -62,8 +60,8 @@ for place in places_to_check:
     assert np.isclose(tw[place, 'y'], 0, atol=1e-6)
     assert np.isclose(tw[place, 'py'], 0, atol=1e-8)
 
-with xt.tracker._temp_knobs(line, dict(on_corr_co=0, on_disp=0)):
-    tw_ref = line_co_ref.twiss()
+with xt.tracker._temp_knobs(collider, dict(on_corr_co=0, on_disp=0)):
+    tw_ref = collider.lhcb1_co_ref.twiss()
 
 import matplotlib.pyplot as plt
 plt.close('all')

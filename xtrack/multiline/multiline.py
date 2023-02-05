@@ -57,7 +57,7 @@ class Multiline:
         if key in self.lines:
             return self.lines[key]
         else:
-            raise AttributeError(f"Multiline object has no attribute {key}.")
+            raise AttributeError(f"Multiline object has no attribute `{key}`.")
 
     @property
     def vars(self):
