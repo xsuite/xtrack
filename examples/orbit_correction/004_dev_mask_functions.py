@@ -18,6 +18,7 @@ line.build_tracker()
 
 from line_preparation import rename_coupling_knobs_and_coefficients
 from line_preparation import define_octupole_current_knobs
+from line_preparation import add_correction_term_to_dipole_correctors
 
 # Reanme coupling knobs to `c_minus_re_b1` and `c_minus_im_b1`
 rename_coupling_knobs_and_coefficients(line=line, beamn=1)
@@ -42,4 +43,6 @@ line.vars['i_oct_b1'] = i_ioct_ref/2
 assert np.isclose(line.vars['kof.a12b1']._value, k_ref/2, atol=0, rtol=1e-5)
 assert np.isclose(line.vars['kod.a45b1']._value, k_ref/2, atol=0, rtol=1e-5)
 assert np.isclose(line['mo.24r2.b1'].knl[3], knl_ref/2, atol=0, rtol=1e-5)
+
+add_correction_term_to_dipole_correctors(line=line)
 

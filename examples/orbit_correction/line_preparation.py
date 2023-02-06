@@ -48,3 +48,12 @@ def define_octupole_current_knobs(line, beamn):
             line.vars['kmax_mo']
             * line.vars[f'i_oct_b{beamn}'] / line.vars['imax_mo']
             / line.vars[f'brho0_b{beamn}'])
+
+def add_correction_term_to_dipole_correctors(line):
+    # Add correction term to all dipole correctors
+    line.vars['on_corr_co'] = 1
+    for kk in list(line.vars._owner.keys()):
+        if kk.startswith('acb'):
+            line.vars['corr_co_'+kk] = 0
+            line.vars[kk] += (line.vars['corr_co_'+kk]
+                                * line.vars['on_corr_co'])
