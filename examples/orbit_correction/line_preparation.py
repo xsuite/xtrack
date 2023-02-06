@@ -1,3 +1,4 @@
+from scipy.constants import c as clight
 
 def rename_coupling_knobs_and_coefficients(line, beamn):
 
@@ -30,3 +31,20 @@ def rename_coupling_knobs_and_coefficients(line, beamn):
                     assert var_name.startswith('kqs')
                     line.vars[var_name] += (line.vars[new_name]
                                 * line.vars[f'c_minus_{nn}_b{beamn}'])
+
+def define_octupole_current_knobs(line, beamn):
+    line.vars[f'p0c_b{beamn}'] = line.particle_ref.p0c[0]
+    line.vars[f'q0_b{beamn}'] = line.particle_ref.q0
+    line.vars[f'brho0_b{beamn}'] = (line.vars[f'p0c_b{beamn}']
+                                / line.vars[f'q0_b{beamn}'] / clight)
+
+    line.vars[f'i_oct_b{beamn}'] = 0
+    for ss in '12 23 34 45 56 67 78 81'.split():
+        line.vars[f'kof.a{ss}b{beamn}'] = (
+            line.vars['kmax_mo']
+            * line.vars[f'i_oct_b{beamn}'] / line.vars['imax_mo']
+            / line.vars[f'brho0_b{beamn}'])
+        line.vars[f'kod.a{ss}b{beamn}'] = (
+            line.vars['kmax_mo']
+            * line.vars[f'i_oct_b{beamn}'] / line.vars['imax_mo']
+            / line.vars[f'brho0_b{beamn}'])
