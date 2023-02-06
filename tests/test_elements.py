@@ -297,12 +297,8 @@ def test_elens(test_context):
 @for_all_test_contexts
 def test_elens_chebychev(test_context):
 
-
-
     # read the input from file
     coeffs = []
-
-    # ../main1_fit/E_and_V/for6T/coeffs_main1_nEq18.txt
 
     with open('coeffs_gunBend_nEq18.txt') as f:
     # with open('coeffs_main1_nEq18.txt') as f:
@@ -350,9 +346,9 @@ def test_elens_chebychev(test_context):
     elens.track(particles)
 
     assert np.isclose(test_context.nparray_from_context_array(particles.px)[0],
-                      -7.5e-10, rtol=1e-2, atol=1e-12)
+                      -7.5e-10, rtol=1e-2, atol=1e-17)
     assert np.isclose(test_context.nparray_from_context_array(particles.py)[0],
-                      8.68e-10, rtol=1e-2, atol=1e-12)
+                      8.68e-10, rtol=1e-2, atol=1e-17)
 
 
 
