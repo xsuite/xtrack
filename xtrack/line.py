@@ -506,6 +506,7 @@ class Line:
         self.element_names = list(self.element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
+            self.tracker = None
 
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
