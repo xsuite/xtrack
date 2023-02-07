@@ -456,7 +456,7 @@ class Dummy:
 
 class MadLoader:
     @staticmethod
-    def init_line_expressions(line, mad):  # to be added to Line....
+    def init_line_expressions(line, mad, replace_in_expr):  # to be added to Line....
         """Enable expressions"""
         line._init_var_management()
 
@@ -465,20 +465,32 @@ class MadLoader:
         _var_values = line._var_management["data"]["var_values"]
         _var_values.default_factory = lambda: 0
         for name, par in mad.globals.cmdpar.items():
+            if replace_in_expr is not None:
+                for k, v in replace_in_expr.items():
+                    name = name.replace(k, v)
             _var_values[name] = par.value
         _ref_manager = line._var_management["manager"]
         _vref = line._var_management["vref"]
         _fref = line._var_management["fref"]
         _lref = line._var_management["lref"]
 
-        madeval = MadxEval(_vref, _fref, None).eval
+        madeval_no_repl = MadxEval(_vref, _fref, None).eval
+
+        if replace_in_expr is not None:
+            def madeval(expr):
+                for k, v in replace_in_expr.items():
+                    expr = expr.replace(k, v)
+                return madeval_no_repl(expr)
+        else:
+            madeval = madeval_no_repl
 
         # Extract expressions from madx globals
         for name, par in mad.globals.cmdpar.items():
-            if par.expr is not None:
-                if "table(" in par.expr:  # Cannot import expressions involving tables
+            ee = par.expr
+            if ee is not None:
+                if "table(" in ee:  # Cannot import expressions involving tables
                     continue
-                _vref[name] = madeval(par.expr)
+                _vref[name] = madeval(ee)
         return madeval
 
     def __init__(
@@ -495,6 +507,7 @@ class MadLoader:
         ignore_madtypes=(),
         expressions_for_element_types=None,
         classes=xtrack,
+        replace_in_expr=None
     ):
 
         if expressions_for_element_types is not None:
@@ -511,6 +524,7 @@ class MadLoader:
         self.enable_apertures = enable_apertures
         self.expressions_for_element_types = expressions_for_element_types
         self.classes = classes
+        self.replace_in_expr = replace_in_expr
         if exact_drift:
             self._drift = self.classes.DriftExact # will probably be removed
                                                   # DriftExact is implemented
@@ -559,7 +573,8 @@ class MadLoader:
         line = self.classes.Line()
 
         if self.enable_expressions:
-            madeval = MadLoader.init_line_expressions(line, mad)
+            madeval = MadLoader.init_line_expressions(line, mad,
+                                                      self.replace_in_expr)
             self.Builder = ElementBuilderWithExpr
         else:
             madeval = None

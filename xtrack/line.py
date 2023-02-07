@@ -311,6 +311,7 @@ class Line:
         merge_drifts=False,
         merge_multipoles=False,
         expressions_for_element_types=None,
+        replace_in_expr=None
     ):
 
         """
@@ -334,6 +335,7 @@ class Line:
             merge_multipoles=merge_multipoles,
             expressions_for_element_types=expressions_for_element_types,
             error_table=None,  # not implemented yet
+            replace_in_expr=replace_in_expr
             )
         line=loader.make_line()
         return line
