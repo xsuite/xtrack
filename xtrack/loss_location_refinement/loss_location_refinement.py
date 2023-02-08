@@ -9,14 +9,14 @@ from scipy.spatial import ConvexHull
 import xobjects as xo
 import xpart as xp
 from ..tracker import Tracker
-from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift
+from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line
 
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
-_default_allowed_backtrack_types = [Drift, SRotation, XYShift]
+_default_allowed_backtrack_types = [Drift, SRotation, XYShift, Marker]
 
 class LossLocationRefinement:
 
