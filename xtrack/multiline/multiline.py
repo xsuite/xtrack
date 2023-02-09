@@ -1,5 +1,9 @@
+import pandas as pd
+import numpy as np
+
 from .shared_knobs import VarSharing
 import xtrack as xt
+import xfields as xf
 
 class Multiline:
 
@@ -25,6 +29,16 @@ class Multiline:
         dct['lines'] = {}
         for nn, ll in self.lines.items():
             dct['lines'][nn] = ll.to_dict(include_var_management=False)
+
+        if hasattr(self, '_bb_config') and self._bb_config is not None:
+            dct['_bb_config'] = {}
+            for nn, vv in self._bb_config.items():
+                if nn == 'dataframes':
+                    dct['_bb_config'][nn] = {}
+                    for kk, vv in vv.items():
+                        dct['_bb_config'][nn][kk] = vv.to_dict()
+                else:
+                    dct['_bb_config'][nn] = vv
         return dct
 
     @classmethod
@@ -40,6 +54,12 @@ class Multiline:
                 new_multiline._var_sharing.data[kk].update(
                                                 dct['_var_management_data'][kk])
             new_multiline._var_sharing.manager.load(dct['_var_manager'])
+
+        if '_bb_config' in dct:
+            new_multiline._bb_config = dct['_bb_config']
+            for nn, vv in dct['_bb_config']['dataframes'].items():
+                new_multiline._bb_config[
+                    'dataframes'][nn] = pd.DataFrame(vv)
 
         return new_multiline
 
@@ -63,4 +83,40 @@ class Multiline:
     def vars(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
+
+    def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
+                                      ip_names,
+                                      num_long_range_encounters_per_side,
+                                      num_slices_head_on,
+                                      harmonic_number, bunch_spacing_buckets,
+                                      sigmaz):
+
+        # Trackers need to be invalidated to add elements
+        for nn, ll in self.lines.items():
+            ll.unfreeze()
+
+        circumference = self.lines[clockwise_line].get_length()
+        assert np.isclose(circumference,
+                    self.lines[anticlockwise_line].get_length(),
+                    atol=1e-4, rtol=0)
+
+        bb_df_cw, bb_df_acw = xf.install_beambeam_elements_in_lines(
+            line_b1=self.lines[clockwise_line],
+            line_b4=self.lines[anticlockwise_line],
+            ip_names=ip_names,
+            num_long_range_encounters_per_side=num_long_range_encounters_per_side,
+            num_slices_head_on=num_slices_head_on,
+            circumference=circumference,
+            harmonic_number=harmonic_number,
+            bunch_spacing_buckets=bunch_spacing_buckets,
+            sigmaz_m=sigmaz)
+
+        self._bb_config = {
+            'dataframes': {
+                'clockwise': bb_df_cw,
+                'anticlockwise': bb_df_acw
+            }
+        }
+
+
 
