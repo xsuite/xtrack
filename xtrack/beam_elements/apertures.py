@@ -232,12 +232,13 @@ class LimitPolygon(BeamElement):
         return np.concatenate([yy, np.array([yy[0]])])
 
     def impact_point_and_normal(self, x_in, y_in, z_in,
-                                x_out, y_out, z_out):
+                                x_out, y_out, z_out, particles_class):
 
         ctx = self._buffer.context
 
         if 'LimitPolygon_impact_point_and_normal' not in ctx.kernels.keys():
-            self.compile_kernels(only_if_needed=True)
+            self.compile_kernels(particles_class=particles_class,
+                                 only_if_needed=True)
 
         x_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
         y_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
