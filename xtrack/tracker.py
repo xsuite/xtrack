@@ -338,7 +338,7 @@ class Tracker:
             particles_class = xp.Particles
 
         if local_particle_src is None:
-            local_particle_src = xp.gen_local_particle_api()
+            local_particle_src = particles_class.gen_local_particle_api()
 
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
