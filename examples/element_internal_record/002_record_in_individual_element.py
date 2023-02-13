@@ -7,6 +7,7 @@ import numpy as np
 
 import xtrack as xt
 import xpart as xp
+from xpart.random_number_generator import RandomGenerator
 import xobjects as xo
 
 # In this case the element internal record is made of two separate tables each
@@ -84,7 +85,7 @@ TestElement_track_method_source = r'''
             }
 
             for (int64_t i = 0; i < n_kicks; i++) {
-                double rr = 1e-6 * LocalParticle_generate_random_double(part);
+                double rr = 1e-6 * RandomGenerator_get_double(part);
                 LocalParticle_add_to_px(part, rr);
 
                 // Record in table2 info about the generated kicks
@@ -120,9 +121,10 @@ class TestElement(xt.BeamElement):
         }
     _internal_record_class = TestElementRecord
 
+    _depends_on = [RandomGenerator]
+
     _extra_c_sources = [
         # The element uses the random number generator
-        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         TestElement_track_method_source
     ]

@@ -8,6 +8,7 @@ from scipy.special import factorial
 
 import xobjects as xo
 import xpart as xp
+from xpart.random_number_generator import RandomGenerator
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
@@ -469,8 +470,9 @@ class Multipole(BeamElement):
         'ksl': xo.Float64[:],
         }
 
+    _depends_on = [ RandomGenerator]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
@@ -542,8 +544,9 @@ class SimpleThinQuadrupole(BeamElement):
         'knl': xo.Float64[2],
     }
 
+    _depends_on = [ RandomGenerator]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
@@ -607,8 +610,9 @@ class SimpleThinBend(BeamElement):
         'length': xo.Float64,
     }
 
+    _depends_on = [ RandomGenerator]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
@@ -892,8 +896,9 @@ class LinearTransferMatrix(BeamElement):
         'gauss_noise_ampl_delta':xo.Float64,
         }
 
+    _depends_on = [ RandomGenerator]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
@@ -1056,8 +1061,9 @@ class FirstOrderTaylorMap(BeamElement):
         'm0': xo.Float64[6],
         'm1': xo.Float64[6,6]}
 
+    _depends_on = [ RandomGenerator]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
         xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
