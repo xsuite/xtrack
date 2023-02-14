@@ -49,7 +49,7 @@ def test_random_generation():
 
             def __init__(self, **kwargs):
                 if '_xobject' not in kwargs:
-                    kwargs.setdefault('rng', RandomRutherford())
+                    kwargs.setdefault('rng', xt.RandomRutherford())
                 super().__init__(**kwargs)
 
         telem = TestElement(_context=ctx)

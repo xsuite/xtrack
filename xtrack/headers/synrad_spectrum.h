@@ -256,7 +256,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
     }
 
     if (energy == 0.0)
-      LocalParticle_set_state(part, -10); // used to flag this kind of loss
+      LocalParticle_set_state(part, XT_LOST_ALL_E_IN_SYNC); // used to flag this kind of loss
     else{
       LocalParticle_add_to_energy(part, energy-initial_energy, 0);
     }

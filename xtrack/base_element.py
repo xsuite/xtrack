@@ -12,6 +12,7 @@ import xpart as xp
 
 from xobjects.hybrid_class import _build_xofields_dict
 
+from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
@@ -132,7 +133,11 @@ class MetaBeamElement(xo.MetaHybridClass):
         data['_xofields'] = xofields
 
         depends_on = []
-        extra_c_source = []
+        extra_c_source = [
+            _pkg_root.joinpath('headers','constants.h'),
+            _pkg_root.joinpath('headers','functions.h'),
+            _pkg_root.joinpath('headers','particle_states.h')
+        ]
         kernels = {}
 
         # Handle internal record

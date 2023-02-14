@@ -20,13 +20,11 @@ class RandomUniform(BeamElement):
     iscollective = True
 
     _extra_c_sources = [
-        _pkg_root.joinpath('headers','constants.h'),
-        _pkg_root.joinpath('headers','functions.h'),
         # The base (bitwise) rng is in xpart, as this is where the
         # seeds are stored. This is needed to avoid circular imports
         # in xpart.Particles
         xp._pkg_root.joinpath('rng_src','base_rng.h'),
-        _pkg_root.joinpath('random','rng_src','uniform.h')
+        _pkg_root.joinpath('random','random_src','uniform.h')
     ]
 
     _per_particle_kernels = {
@@ -80,7 +78,7 @@ class RandomExponential(RandomUniform):
     _depends_on = [RandomUniform]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('random','rng_src','exponential.h')
+        _pkg_root.joinpath('random','random_src','exponential.h')
     ]
 
     _per_particle_kernels = {
@@ -106,7 +104,7 @@ class RandomNormal(RandomUniform):
     _depends_on = [RandomUniform]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('random','rng_src','normal.h')
+        _pkg_root.joinpath('random','random_src','normal.h')
     ]
 
     _per_particle_kernels = {
@@ -138,8 +136,8 @@ class RandomRutherford(RandomUniform):
     _depends_on = [RandomUniform]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('random','rng_src','exponential_integral_Ei.h'),
-        _pkg_root.joinpath('random','rng_src','rutherford.h')
+        _pkg_root.joinpath('random','random_src','exponential_integral_Ei.h'),
+        _pkg_root.joinpath('random','random_src','rutherford.h')
     ]
 
     _per_particle_kernels = {
