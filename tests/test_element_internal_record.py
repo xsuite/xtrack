@@ -24,9 +24,6 @@ def test_record_single_table(test_context):
             }
 
     extra_src = []
-    extra_src.extend([
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        ])
 
     extra_src.append(r'''
         /*gpufun*/
@@ -219,9 +216,6 @@ def test_record_multiple_tables(test_context):
             }
 
     extra_src = []
-    extra_src.extend([
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        ])
 
     extra_src.append(r'''
         /*gpufun*/
@@ -477,9 +471,6 @@ def test_record_standalone_mode(test_context):
             }
 
     extra_src = []
-    extra_src.extend([
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        ])
 
     extra_src.append(r'''
         /*gpufun*/

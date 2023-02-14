@@ -123,11 +123,7 @@ class TestElement(xt.BeamElement):
 
     _depends_on = [RandomGenerator]
 
-    _extra_c_sources = [
-        # The element uses the random number generator
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        TestElement_track_method_source
-    ]
+    _extra_c_sources = [TestElement_track_method_source]
 
 # Once these steps are done, the TestElement and its recording feature are ready
 # and can be used as follows.

@@ -473,7 +473,6 @@ class Multipole(BeamElement):
     _depends_on = [ RandomGenerator]
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
@@ -547,7 +546,6 @@ class SimpleThinQuadrupole(BeamElement):
     _depends_on = [ RandomGenerator]
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
@@ -613,7 +611,6 @@ class SimpleThinBend(BeamElement):
     _depends_on = [ RandomGenerator]
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
@@ -899,7 +896,6 @@ class LinearTransferMatrix(BeamElement):
     _depends_on = [ RandomGenerator]
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
@@ -1064,7 +1060,6 @@ class FirstOrderTaylorMap(BeamElement):
     _depends_on = [ RandomGenerator]
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
