@@ -8,9 +8,9 @@ from scipy.special import factorial
 
 import xobjects as xo
 import xpart as xp
-from xpart.random_number_generator import RandomGenerator
 
 from ..base_element import BeamElement
+from ..random import RandomUniform, RandomExponential, RandomNormal
 from ..general import _pkg_root
 from ..internal_record import RecordIndex, RecordIdentifier
 
@@ -470,7 +470,7 @@ class Multipole(BeamElement):
         'ksl': xo.Float64[:],
         }
 
-    _depends_on = [ RandomGenerator]
+    _depends_on = [RandomUniform, RandomExponential]
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -543,8 +543,6 @@ class SimpleThinQuadrupole(BeamElement):
         'knl': xo.Float64[2],
     }
 
-    _depends_on = [ RandomGenerator]
-
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
@@ -607,8 +605,6 @@ class SimpleThinBend(BeamElement):
         'hxl': xo.Float64,
         'length': xo.Float64,
     }
-
-    _depends_on = [ RandomGenerator]
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
@@ -893,7 +889,7 @@ class LinearTransferMatrix(BeamElement):
         'gauss_noise_ampl_delta':xo.Float64,
         }
 
-    _depends_on = [ RandomGenerator]
+    _depends_on = [RandomNormal]
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -1057,7 +1053,7 @@ class FirstOrderTaylorMap(BeamElement):
         'm0': xo.Float64[6],
         'm1': xo.Float64[6,6]}
 
-    _depends_on = [ RandomGenerator]
+    _depends_on = [RandomUniform, RandomExponential]
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),

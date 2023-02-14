@@ -7,6 +7,7 @@ from .general import _pkg_root
 
 from .base_element import BeamElement
 from .beam_elements import *
+from .random import *
 from .tracker_data import TrackerData
 from .line import Line, Node
 from .tracker import Tracker, freeze_longitudinal

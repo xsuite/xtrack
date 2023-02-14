@@ -8,7 +8,6 @@ import numpy as np
 import xobjects as xo
 import xtrack as xt
 import xpart as xp
-from xpart.random_number_generator import RandomGenerator
 from pathlib import Path
 
 ctx = xo.ContextCpu()
@@ -23,14 +22,14 @@ class TestElement(xt.BeamElement):
         'dummy': xo.Float64,
         }
 
-    _depends_on = [ RandomGenerator]
+    _depends_on = [xt.RandomUniform]
 
     _extra_c_sources = [
         '''
         /*gpufun*/
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
             //start_per_particle_block (part0->part)
-                double rr = RandomGenerator_get_double(part);
+                double rr = RandomUniform_generate(part);
                 LocalParticle_set_x(part, rr);
             //end_per_particle_block
         }
