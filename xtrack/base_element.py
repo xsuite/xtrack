@@ -245,7 +245,9 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         kwargs['apply_to_source'].append(
             partial(_handle_per_particle_blocks,
                     local_particle_src=particles_class.gen_local_particle_api()))
-        xo.HybridClass.compile_kernels(self, *args, **kwargs)
+        xo.HybridClass.compile_kernels(self,
+                                       extra_classes=[particles_class._XoStruct],
+                                       *args, **kwargs)
 
 
     def track(self, particles, increment_at_element=False):

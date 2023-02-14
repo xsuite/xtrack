@@ -450,7 +450,7 @@ class Line:
     def build_tracker(self, **kwargs):
         "Build a tracker associated for the line."
         assert self.tracker is None, 'The line already has an associated tracker'
-        import xtrack as xt # avoid circular import
+        import xtrack as xt  # avoid circular import
         self.tracker = xt.Tracker(line=self, **kwargs)
         return self.tracker
 

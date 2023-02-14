@@ -55,7 +55,7 @@ class Tracker:
         sequence=None,
         track_kernel=None,
         element_classes=None,
-        particles_class=None,
+        particles_class=xp.Particles,
         skip_end_turn_actions=False,
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
@@ -1363,6 +1363,12 @@ class Tracker:
         freeze_longitudinal=False,
         time=False
     ):
+        if type(particles) != xp.Particles:
+            self.config.particles_class_name = type(particles).__name__
+        else:
+            self.config.pop('particles_class_name', None)
+        self.particles_class = particles.__class__
+        self.local_particle_src = particles.gen_local_particle_api()
 
         if time:
             t0 = perf_counter()
