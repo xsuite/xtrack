@@ -158,9 +158,3 @@ class RandomRutherford(RandomUniform):
             kwargs.setdefault('B', 0.)
         super().__init__(**kwargs)
 
-#     def set_parameters(self, material):
-# #         assert isinstance(material, xc.GeneralMaterial)
-#         self.compile_kernels(only_if_needed=True, save_source_as='randomtest.c')
-#         context = self._buffer.context
-#         context.kernels.set_rutherford(ran=self, z=material.Z, emr=material.nuclear_radius, upper_val=material.hcut)
-
