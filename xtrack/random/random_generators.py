@@ -12,7 +12,6 @@ from ..general import _pkg_root
 import numpy as np
 
 
-
 # Random generators need to be a BeamElement to get the LocalParticle API
 class RandomUniform(BeamElement):
     _xofields = {}
@@ -69,7 +68,6 @@ class RandomUniform(BeamElement):
                 ), particles
 
 
-
 class RandomExponential(RandomUniform):
     _xofields = {}
 
@@ -95,7 +93,6 @@ class RandomExponential(RandomUniform):
         self.sample_exp(*args, **kwargs)
 
 
-
 class RandomNormal(RandomUniform):
     _xofields = {}
 
@@ -119,7 +116,6 @@ class RandomNormal(RandomUniform):
 
     def _sample(self, *args, **kwargs):
         self.sample_gauss(*args, **kwargs)
-
 
 
 class RandomRutherford(RandomUniform):
@@ -162,7 +158,7 @@ class RandomRutherford(RandomUniform):
             kwargs.setdefault('B', 0.)
         super().__init__(**kwargs)
 
-#     def set_rutherford_by_xcoll_material(self, material):
+#     def set_parameters(self, material):
 # #         assert isinstance(material, xc.GeneralMaterial)
 #         self.compile_kernels(only_if_needed=True, save_source_as='randomtest.c')
 #         context = self._buffer.context
