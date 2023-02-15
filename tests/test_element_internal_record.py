@@ -564,6 +564,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 10000, 'table2': 10000})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
 
@@ -604,6 +605,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 20, 'table2': 15})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
     for i_turn in range(num_turns0 + num_turns1):
@@ -627,6 +629,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 10000, 'table2': 10000})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
     num_particles = len(part.x)
@@ -674,6 +677,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 10000, 'table2': 10000})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
 
