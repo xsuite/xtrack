@@ -135,7 +135,7 @@ class MetaBeamElement(xo.MetaHybridClass):
         depends_on = []
         extra_c_source = [
             _pkg_root.joinpath('headers','constants.h'),
-            _pkg_root.joinpath('headers','functions.h'),
+            _pkg_root.joinpath('headers','checks.h'),
             _pkg_root.joinpath('headers','particle_states.h')
         ]
         kernels = {}

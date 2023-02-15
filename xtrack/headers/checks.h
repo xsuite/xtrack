@@ -28,7 +28,7 @@ void kill_all_particles(LocalParticle* part0, int64_t kill_state) {
 /*gpufun*/
 int8_t assert_tracking(LocalParticle* part, int64_t kill_state){
     // Whenever we are not tracking, e.g. in a twiss, the particle will be at_turn < 0.
-    // We test this to distinguish genuine tracking from twiss, and kill the particle in the latter case.
+    // We test this to distinguish genuine tracking from twiss.
     if (LocalParticle_get_at_turn(part) < 0){
         kill_particle(part, kill_state);
         return 0;
