@@ -1,3 +1,5 @@
+// Original source from http://www.mymathlib.com/functions/exponential_integrals.html
+
 ////////////////////////////////////////////////////////////////////////////////
 // File: exponential_integral_Ei.c                                            //
 // Routine(s):                                                                //
