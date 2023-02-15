@@ -38,7 +38,6 @@ double ruth_CDF(double t, double A, double B, double t0){
         
 }
 
-/*gpukern*/
 void RandomRutherfordData_set(RandomRutherfordData rng, double A, double B, double lower_val, double upper_val){
     // Normalise PDF
     double N = ruth_CDF(upper_val, A, B, lower_val);

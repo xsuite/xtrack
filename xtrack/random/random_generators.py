@@ -146,6 +146,19 @@ class RandomRutherford(RandomUniform):
             )
         }
 
+    _kernels = {
+        'set_rutherford': xo.Kernel(
+                c_name='RandomRutherfordData_set',
+                args=[
+                    xo.Arg(xo.ThisClass, name='rng'),
+                    xo.Arg(xo.Float64, name='A'),
+                    xo.Arg(xo.Float64, name='B'),
+                    xo.Arg(xo.Float64, name='lower_val'),
+                    xo.Arg(xo.Float64, name='upper_val')
+                ]
+            )
+        }
+
     def _sample(self, *args, **kwargs):
         self.sample_ruth(*args, **kwargs)
 
@@ -157,4 +170,9 @@ class RandomRutherford(RandomUniform):
             kwargs.setdefault('A', 0.)
             kwargs.setdefault('B', 0.)
         super().__init__(**kwargs)
+
+    def set_parameters(self, A, B, lower_val, upper_val):
+        self.compile_kernels(only_if_needed=True)
+        context = self._buffer.context
+        context.kernels.set_rutherford(rng=self, A=A, B=B, lower_val=lower_val, upper_val=upper_val)
 
