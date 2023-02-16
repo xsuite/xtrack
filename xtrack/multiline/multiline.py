@@ -115,8 +115,23 @@ class Multiline:
             'dataframes': {
                 'clockwise': bb_df_cw,
                 'anticlockwise': bb_df_acw
-            }
+            },
+            'ip_names': ip_names,
+            'clockwise_line': clockwise_line,
+            'anticlockwise_line': anticlockwise_line,
         }
 
+    def configure_beambeam_interactions(self, num_particles,
+                                    nemitt_x, nemitt_y, crab_strong_beam=True):
+
+        xf.configure_beam_beam_elements(
+            bb_df_cw=self._bb_config['dataframes']['clockwise'],
+            bb_df_acw=self._bb_config['dataframes']['anticlockwise'],
+            tracker_cw=self.lines[self._bb_config['clockwise_line']].tracker,
+            tracker_acw=self.lines[self._bb_config['anticlockwise_line']].tracker,
+            num_particles=num_particles,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            crab_strong_beam=crab_strong_beam,
+            ip_names=self._bb_config['ip_names'])
 
 
