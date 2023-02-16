@@ -17,6 +17,7 @@ import ducktrack as dtk
 
 from scipy.stats import linregress
 
+
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
@@ -32,6 +33,7 @@ def test_constructor(test_context):
         xt.SRotation(_context=test_context, angle=4),
         xt.XRotation(_context=test_context, angle=1.8),
         xt.YRotation(_context=test_context, angle=2.4),
+        xt.ZetaShift(dzeta=3E-4),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
         xt.LimitRect(_context=test_context, min_x=5),
@@ -119,6 +121,7 @@ def test_backtrack(test_context):
         xt.SRotation(_context=test_context, angle=4),
         xt.XRotation(_context=test_context, angle=0.3),
         xt.YRotation(_context=test_context, angle=0.7),
+        xt.ZetaShift(dzeta=3E-4),
         xt.XYShift(_context=test_context, dx=1),
         xt.DipoleEdge(_context=test_context, h=1),
         xt.LimitRect(_context=test_context, min_x=5),

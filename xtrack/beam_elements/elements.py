@@ -463,6 +463,30 @@ class YRotation(BeamElement):
         return self.__class__(angle=-self.angle,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+class ZetaShift(BeamElement):
+    '''Beam element modeling a longitudinal translation of the reference system. Parameters:
+
+                - dzeta [m]: Translation in the longitudinal plane. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'dzeta': xo.Float64,
+        }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
+
+    _store_in_to_dict = ['dzeta']
+
+    def __init__(self, dzeta = 0, **nargs):
+        nargs['dzeta'] = dzeta
+        super().__init__(**nargs)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              dzeta = -self.dzeta,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class SynchrotronRadiationRecord(xo.HybridClass):
