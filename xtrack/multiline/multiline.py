@@ -134,4 +134,15 @@ class Multiline:
             crab_strong_beam=crab_strong_beam,
             ip_names=self._bb_config['ip_names'])
 
+        self.vars['beambeam_scale'] = 1.0
+
+        for nn in ['clockwise', 'anticlockwise']:
+            line = self.lines[self._bb_config[f'{nn}_line']]
+            df = self._bb_config['dataframes'][nn]
+
+            for bbnn in df.index:
+                line.element_refs[bbnn].scale_strength = self.vars['beambeam_scale']
+
+
+
 
