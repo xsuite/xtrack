@@ -251,7 +251,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
 
     def track(self, particles, increment_at_element=False):
-
         context = self._buffer.context
         if not hasattr(self, '_track_kernel'):
             if self._track_kernel_name not in context.kernels.keys():
@@ -261,7 +260,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         if hasattr(self, 'io_buffer') and self.io_buffer is not None:
             io_buffer_arr = self.io_buffer.buffer
         else:
-            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
+            io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
 
         self._track_kernel.description.n_threads = particles._capacity
         self._track_kernel(el=self._xobject, particles=particles,
