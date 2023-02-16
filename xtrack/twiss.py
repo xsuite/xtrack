@@ -960,7 +960,7 @@ class TwissTable(Table):
             columns = self._ebe_fields
         return Table.to_pandas(self, index=index,columns=columns)
 
-    def get_betatron_sigmas(self, nemitt_x, nemitt_y):
+    def get_betatron_sigmas(self, nemitt_x, nemitt_y, gemitt_z=0):
 
         beta0 = self.particle_on_co.beta0
         gamma0 = self.particle_on_co.gamma0
@@ -970,14 +970,17 @@ class TwissTable(Table):
         Ws = np.array(self.W_matrix)
         v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
         v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
+        v3 = Ws[:,:,4] + 1j * Ws[:,:,5]
 
         Sigma1 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
         Sigma2 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
+        Sigma3 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
 
         for ii in range(6):
             for jj in range(6):
                 Sigma1[:, ii, jj] = np.real(v1[:,ii] * v1[:,jj].conj())
                 Sigma2[:, ii, jj] = np.real(v2[:,ii] * v2[:,jj].conj())
+                Sigma3[:, ii, jj] = np.real(v3[:,ii] * v3[:,jj].conj())
 
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2
 
@@ -990,10 +993,19 @@ class TwissTable(Table):
         res['Sigma12'] = Sigma[:, 0, 1]
         res['Sigma13'] = Sigma[:, 0, 2]
         res['Sigma14'] = Sigma[:, 0, 3]
+        res['Sigma15'] = Sigma[:, 0, 4]
+        res['Sigma16'] = Sigma[:, 0, 5]
+
+
         res['Sigma21'] = Sigma[:, 1, 0]
         res['Sigma22'] = Sigma[:, 1, 1]
         res['Sigma23'] = Sigma[:, 1, 2]
         res['Sigma24'] = Sigma[:, 1, 3]
+        res['Sigma25'] = Sigma[:, 1, 4]
+        res['Sigma26'] = Sigma[:, 1, 5]
+
+
+
         res['Sigma31'] = Sigma[:, 2, 0]
         res['Sigma32'] = Sigma[:, 2, 1]
         res['Sigma33'] = Sigma[:, 2, 2]
@@ -1002,9 +1014,12 @@ class TwissTable(Table):
         res['Sigma42'] = Sigma[:, 3, 1]
         res['Sigma43'] = Sigma[:, 3, 2]
         res['Sigma44'] = Sigma[:, 3, 3]
+        res['Sigma51'] = Sigma[:, 4, 0]
+        res['Sigma52'] = Sigma[:, 4, 1]
 
         res['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
         res['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
+        res['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
         return res
 
