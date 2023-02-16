@@ -18,7 +18,7 @@ from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
 from .pipeline import (PipelineStatus, PipelineMultiTracker, PipelineBranch,
                         PipelineManager)
 
-from .monitors import generate_monitor_class
+from .monitors import *
 from . import linear_normal_form
 
 from .mad_loader import MadLoader

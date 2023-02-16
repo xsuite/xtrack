@@ -5,8 +5,8 @@
 
 import xobjects as xo
 
-from .base_element import BeamElement
-from .general import _pkg_root
+from ..base_element import BeamElement
+from ..general import _pkg_root
 
 
 def _monitor_init(
@@ -114,7 +114,7 @@ def generate_monitor_class(ParticlesClass):
     }
 
     _extra_c_sources = [
-        _pkg_root.joinpath("monitors_src/monitors.h")
+        _pkg_root.joinpath("monitors/particles_monitor.h")
     ]
 
     ParticlesMonitorClass = type(
