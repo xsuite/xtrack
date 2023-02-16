@@ -10,12 +10,12 @@
 #define XTRACK_BEFORE_LOSS_MONITOR_H
 
 /*gpufun*/
-void BeforeLossMonitor_track_local_particle(BeforeLossMonitorData el, LocalParticle* part0){
-    int64_t n_last_turns = BeforeLossMonitorData_get_n_last_turns(el);
-    int64_t particle_id_start = BeforeLossMonitorData_get_particle_id_start(el);
-    int64_t particle_id_stop = particle_id_start + BeforeLossMonitorData_get_num_particles(el);
-    int64_t every_n_turns = BeforeLossMonitorData_get_every_n_turns(el);
-    LastTurnsData data = BeforeLossMonitorData_getp_data(el);
+void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticle* part0){
+    int64_t n_last_turns = LastTurnsMonitorData_get_n_last_turns(el);
+    int64_t particle_id_start = LastTurnsMonitorData_get_particle_id_start(el);
+    int64_t particle_id_stop = particle_id_start + LastTurnsMonitorData_get_num_particles(el);
+    int64_t every_n_turns = LastTurnsMonitorData_get_every_n_turns(el);
+    LastTurnsData data = LastTurnsMonitorData_getp_data(el);
 
     //start_per_particle_block (part0->part)
     
