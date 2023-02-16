@@ -125,12 +125,12 @@ def test_monitor(test_context):
 
 
 @for_all_test_contexts
-def test_before_loss_monitor(test_context):
+def test_last_turns_monitor(test_context):
 
     particles = xp.Particles(p0c=6.5e12, x=[1,2,3,4,5,6], _context=test_context)
     num_particles = len(particles.x)
 
-    monitor = xt.BeforeLossMonitor(n_last_turns=5, particle_id_range=(1, 5), _context=test_context)
+    monitor = xt.LastTurnsMonitor(n_last_turns=5, particle_id_range=(1, 5), _context=test_context)
 
     line = xt.Line([monitor])
     tracker = line.build_tracker(_context=test_context)

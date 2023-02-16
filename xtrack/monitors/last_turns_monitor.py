@@ -30,7 +30,7 @@ class LastTurnsData(xo.Struct):
     
 
 
-class BeforeLossMonitor(BeamElement):
+class LastTurnsMonitor(BeamElement):
     _xofields={
         'particle_id_start': xo.Int64,
         'num_particles': xo.Int64,
@@ -44,7 +44,7 @@ class BeforeLossMonitor(BeamElement):
 
 
     _extra_c_sources = [
-        _pkg_root.joinpath('monitors/before_loss_monitor.h')
+        _pkg_root.joinpath('monitors/last_turns_monitor.h')
     ]
 
 
@@ -65,7 +65,7 @@ class BeforeLossMonitor(BeamElement):
                 numbers up to `n_last_turns*every_n_turns` turns before particle loss.
         
         Example:
-            monitor = BeforeLossMonitor(n_last_turns=5, particle_id_range=(1, 5))
+            monitor = LastTurnsMonitor(n_last_turns=5, particle_id_range=(1, 5))
             monitor.at_turn[:,-1]  # last turn before loss of each particle, respectively
             monitor.x[3,-2]  # x coordinate in one but last turn of particle with id 4
         
