@@ -144,17 +144,18 @@ class Elens(BeamElement):
                         voltage      = 0.,
                         residual_kick_x = 0,
                         residual_kick_y = 0,
-                        coefficients_polynomial     = [0],
+                        coefficients_polynomial     = (0,),
                         chebyshev_max_order         =  0 ,
-                        chebyshev_coefficients      =  [0], 
+                        chebyshev_coefficients      = (0,),
                         chebyshev_reference_radius  =  0, 
                         chebyshev_reference_current =  0,
                         _xobject = None,
                         **kwargs):
 
         kwargs["coefficients_polynomial"] = len(coefficients_polynomial)
-        kwargs['chebyshev_coefficients']  = len(chebyshev_coefficients)
-
+        kwargs["chebyshev_coefficients"]  = len(chebyshev_coefficients)
+        coefficients_polynomial = np.array(coefficients_polynomial)
+        chebyshev_coefficients  = np.array(chebyshev_coefficients)
 
         if _xobject is not None:
             super().__init__(_xobject=_xobject)

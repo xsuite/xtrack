@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import pathlib
 import pytest
 
 import xtrack as xt
@@ -15,6 +16,10 @@ from xtrack.beam_elements.elements import _angle_from_trig
 import ducktrack as dtk
 
 from scipy.stats import linregress
+
+test_data_folder = pathlib.Path(
+    __file__).parent.joinpath('../test_data').absolute()
+
 
 @for_all_test_contexts
 def test_constructor(test_context):
@@ -300,9 +305,7 @@ def test_elens_chebychev(test_context):
     # read the input from file
     coeffs = []
 
-    with open('coeffs_gunBend_nEq18.txt') as f:
-    # with open('coeffs_main1_nEq18.txt') as f:
-        
+    with (test_data_folder / 'chebychev/coeffs_gunBend_nEq18.txt').open() as f:
         for line in f:
             if line.startswith("#"):
                 continue
