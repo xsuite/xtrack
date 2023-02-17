@@ -6,8 +6,8 @@
 // Date: 2023-01-19
 // ##################################
 
-#ifndef XTRACK_BEFORE_LOSS_MONITOR_H
-#define XTRACK_BEFORE_LOSS_MONITOR_H
+#ifndef XTRACK_LAST_TURNS_MONITOR_H
+#define XTRACK_LAST_TURNS_MONITOR_H
 
 /*gpufun*/
 void LastTurnsMonitor_track_local_particle(LastTurnsMonitorData el, LocalParticle* part0){

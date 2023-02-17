@@ -44,7 +44,7 @@ class LastTurnsMonitor(BeamElement):
 
 
     _extra_c_sources = [
-        _pkg_root.joinpath('monitors/before_loss_monitor.h')
+        _pkg_root.joinpath('monitors/last_turns_monitor.h')
     ]
 
 

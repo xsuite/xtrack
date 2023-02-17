@@ -125,7 +125,7 @@ def test_monitor(test_context):
 
 
 @for_all_test_contexts
-def test_before_loss_monitor(test_context):
+def test_last_turns_monitor(test_context):
 
     particles = xp.Particles(p0c=6.5e12, x=[1,2,3,4,5,6], _context=test_context)
     num_particles = len(particles.x)
