@@ -14,15 +14,15 @@
 
 //                         Internally Defined Routines                        //
 double      Exponential_Integral_Ei( double x );
-long double xExponential_Integral_Ei( long double x );
 
-static long double Continued_Fraction_Ei( long double x );
-static long double Power_Series_Ei( long double x );
-static long double Argument_Addition_Series_Ei( long double x);
+static double Continued_Fraction_Ei( double x );
+static double Power_Series_Ei( double x );
+static double Argument_Addition_Series_Ei( double x);
 
 
 //                         Internally Defined Constants                       //
-static const long double epsilon = 10.0 * LDBL_EPSILON;
+static const double epsilon = 10.0 * DBL_EPSILON;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // double Exponential_Integral_Ei( double x )                                 //
@@ -51,42 +51,8 @@ static const long double epsilon = 10.0 * LDBL_EPSILON;
 //                                                                            //
 //     y = Exponential_Integral_Ei( x );                                      //
 ////////////////////////////////////////////////////////////////////////////////
-double Exponential_Integral_Ei( double x )
-{
-   return (double) xExponential_Integral_Ei( (long double) x);
-}
 
-
-////////////////////////////////////////////////////////////////////////////////
-// long double xExponential_Integral_Ei( long double x )                      //
-//                                                                            //
-//  Description:                                                              //
-//     The exponential integral Ei(x) is the integral with integrand          //
-//                             exp(t) / t                                     //
-//     where the integral extends from -inf to x.                             //
-//     Note that there is a singularity at t = 0.  Therefore for x > 0, the   //
-//     integral is defined to be the Cauchy principal value:                  //
-//          lim { I[-inf, -eta] exp(-t) dt / t + I[eta, x] exp(-t) dt / t }   //
-//     in which the limit is taken as eta > 0 approaches 0 and I[a,b]         //
-//     denotes the integral from a to b.                                      //
-//                                                                            //
-//  Arguments:                                                                //
-//     long double  x  The argument of the exponential integral Ei().         //
-//                                                                            //
-//  Return Value:                                                             //
-//     The value of the exponential integral Ei evaluated at x.               //
-//     If x = 0.0, then Ei is -inf and -DBL_MAX is returned.                  //
-//                                                                            //
-//  Example:                                                                  //
-//     long double y, x;                                                      //
-//                                                                            //
-//     ( code to initialize x )                                               //
-//                                                                            //
-//     y = xExponential_Integral_Ei( x );                                     //
-////////////////////////////////////////////////////////////////////////////////
-
-long double xExponential_Integral_Ei( long double x )
-{
+double Exponential_Integral_Ei( double x ){
    if ( x < -5.0L ) return Continued_Fraction_Ei(x);
    if ( x == 0.0L ) return -DBL_MAX;
    if ( x < 6.8L )  return Power_Series_Ei(x);
@@ -95,7 +61,7 @@ long double xExponential_Integral_Ei( long double x )
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// static long double Continued_Fraction_Ei( long double x )                  //
+// static double Continued_Fraction_Ei( double x )                            //
 //                                                                            //
 //  Description:                                                              //
 //     For x < -5 or x > 50, the continued fraction representation of Ei      //
@@ -106,23 +72,22 @@ long double xExponential_Integral_Ei( long double x )
 //                                                                            //
 //                                                                            //
 //  Arguments:                                                                //
-//     long double  x                                                         //
+//     double  x                                                              //
 //                The argument of the exponential integral Ei().              //
 //                                                                            //
 //  Return Value:                                                             //
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
 
-static long double Continued_Fraction_Ei( long double x )
-{
-   long double Am1 = 1.0L;
-   long double A0 = 0.0L;
-   long double Bm1 = 0.0L;
-   long double B0 = 1.0L;
-   long double a = expl(x);
-   long double b = -x + 1.0L;
-   long double Ap1 = b * A0 + a * Am1;
-   long double Bp1 = b * B0 + a * Bm1;
+static double Continued_Fraction_Ei( double x ){
+   double Am1 = 1.0L;
+   double A0 = 0.0L;
+   double Bm1 = 0.0L;
+   double B0 = 1.0L;
+   double a = expl(x);
+   double b = -x + 1.0L;
+   double Ap1 = b * A0 + a * Am1;
+   double Bp1 = b * B0 + a * Bm1;
    int j = 1;
 
    a = 1.0L;
@@ -149,7 +114,7 @@ static long double Continued_Fraction_Ei( long double x )
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// static long double Power_Series_Ei( long double x )                        //
+// static double Power_Series_Ei( double x )                                  //
 //                                                                            //
 //  Description:                                                              //
 //     For -5 < x < 6.8, the power series representation for                  //
@@ -163,24 +128,23 @@ static long double Continued_Fraction_Ei( long double x )
 //        from j = 1 to inf.                                                  //
 //                                                                            //
 //  Arguments:                                                                //
-//     long double  x                                                         //
+//     double  x                                                              //
 //                The argument of the exponential integral Ei().              //
 //                                                                            //
 //  Return Value:                                                             //
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
 
-static long double Power_Series_Ei( long double x )
-{ 
-   long double xn = -x;
-   long double Sn = -x;
-   long double Sm1 = 0.0L;
-   long double hsum = 1.0L;
-   long double g = 0.5772156649015328606065121L;
-   long double y = 1.0L;
-   long double factorial = 1.0L;
+static double Power_Series_Ei( double x ){
+   double xn = -x;
+   double Sn = -x;
+   double Sm1 = 0.0L;
+   double hsum = 1.0L;
+   double g = 0.5772156649015328606065121L;
+   double y = 1.0L;
+   double factorial = 1.0L;
   
-   if ( x == 0.0L ) return (long double) -DBL_MAX;
+   if ( x == 0.0L ) return (double) -DBL_MAX;
  
    while ( fabsl(Sn - Sm1) > epsilon * fabsl(Sm1) ) {
       Sm1 = Sn;
@@ -195,7 +159,7 @@ static long double Power_Series_Ei( long double x )
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// static long double Argument_Addition_Series_Ei(long double x)              //
+// static double Argument_Addition_Series_Ei( double x )                      //
 //                                                                            //
 //  Description:                                                              //
 //     For 6.8 < x < 50.0, the argument addition series is used to calculate  //
@@ -208,15 +172,14 @@ static long double Power_Series_Ei( long double x )
 //     from k = 0 to k = j.                                                   //
 //                                                                            //
 //  Arguments:                                                                //
-//     long double  x                                                         //
+//     double  x                                                              //
 //                The argument of the exponential integral Ei().              //
 //                                                                            //
 //  Return Value:                                                             //
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
-static long double Argument_Addition_Series_Ei(long double x)
-{
-   static long double ei[] = {
+static double Argument_Addition_Series_Ei( double x ){
+   static double ei[] = {
       1.915047433355013959531e2L,  4.403798995348382689974e2L,
       1.037878290717089587658e3L,  2.492228976241877759138e3L,
       6.071406374098611507965e3L,  1.495953266639752885229e4L,
@@ -242,19 +205,19 @@ static long double Argument_Addition_Series_Ei(long double x)
    };
    int  k = (int) (x + 0.5);
    int  j = 0;
-   long double xx = (long double) k;
-   long double dx = x - xx;
-   long double xxj = xx;
-   long double edx = expl(dx);
-   long double Sm = 1.0L;
-   long double Sn = (edx - 1.0L) / xxj;
-   long double term = DBL_MAX;
-   long double factorial = 1.0L;
-   long double dxj = 1.0L;
+   double xx = (double) k;
+   double dx = x - xx;
+   double xxj = xx;
+   double edx = expl(dx);
+   double Sm = 1.0L;
+   double Sn = (edx - 1.0L) / xxj;
+   double term = DBL_MAX;
+   double factorial = 1.0L;
+   double dxj = 1.0L;
 
    while (fabsl(term) > epsilon * fabsl(Sn) ) {
       j++;
-      factorial *= (long double) j;
+      factorial *= (double) j;
       xxj *= xx;
       dxj *= (-dx);
       Sm += (dxj / factorial);
