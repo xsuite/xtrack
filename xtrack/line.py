@@ -933,6 +933,9 @@ class Line:
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
+            if elements_df.loc[iee, 'element_type'] == 'Marker':
+                continue
+
             if elements_df.loc[iee, 'element_type'] == 'Drift':
                 continue
 
