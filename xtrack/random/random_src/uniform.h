@@ -5,9 +5,9 @@
 
 #ifndef XTRACK_UNIFORM_RNG_H
 #define XTRACK_UNIFORM_RNG_H
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
+#include <stdlib.h> //only_for_context cpu_serial cpu_openmp
+#include <math.h> //only_for_context cpu_serial cpu_openmp
+#include <time.h> //only_for_context cpu_serial cpu_openmp
 
 
 /*gpufun*/

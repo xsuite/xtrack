@@ -9,8 +9,8 @@
 #ifndef XTRACK_EI_H
 #define XTRACK_EI_H
 
-#include <math.h>           // required for fabsl(), expl() and logl()        
-#include <float.h>          // required for LDBL_EPSILON, DBL_MAX
+#include <math.h> // required for fabsl(), expl() and logl() //only_for_context cpu_serial cpu_openmp
+#include <float.h> // required for LDBL_EPSILON, DBL_MAX //only_for_context cpu_serial cpu_openmp
 
 //                         Internally Defined Routines                        //
 double      Exponential_Integral_Ei( double x );
