@@ -46,7 +46,7 @@ class RandomUniform(BeamElement):
         context = self._context
         n_seeds = int(n_seeds)
         if particles is None:
-            particles = xp.Particles(_capacity=n_seeds, _context=context)
+            particles = xp.Particles(state=np.ones(n_seeds), _context=context)
         elif n_seeds != len(particles._rng_s1):
             print("Warning: both 'particles' and 'n_seeds' are given, but "
                   + "are not compatible. Ignoring 'n_seeds'...")
