@@ -989,6 +989,7 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.SRotation, angle=angle
         )
+        return self.convert_thin_element([el], ee)
 
     def convert_xrotation(self, ee):
         angle = ee.angle*180/np.pi
