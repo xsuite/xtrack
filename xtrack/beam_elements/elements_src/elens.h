@@ -9,28 +9,18 @@
 /*gpufun*/
 void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
-    double const elens_length    = ElensData_get_elens_length(el);
-    double const inner_radius    = ElensData_get_inner_radius(el);
-    double const outer_radius    = ElensData_get_outer_radius(el);
-    double const current         = ElensData_get_current(el);
-    double const voltage         = ElensData_get_voltage(el);
+    double const elens_length = ElensData_get_elens_length(el);
+    double const inner_radius = ElensData_get_inner_radius(el);
+    double const outer_radius = ElensData_get_outer_radius(el);
+    double const current = ElensData_get_current(el);
+    double const voltage = ElensData_get_voltage(el);
     double const residual_kick_x = ElensData_get_residual_kick_x(el);
     double const residual_kick_y = ElensData_get_residual_kick_y(el);
 
-    // chebychev polynomials 
-    double const cheby_reference_radius  = ElensData_get_chebyshev_reference_radius(el);
-    double const cheby_reference_current = ElensData_get_chebyshev_reference_current(el);
-    int    const cheby_nmax              = ElensData_get_chebyshev_max_order(el);
-
-    // measured radial profile
-    int    const polynomial_order        = ElensData_get_polynomial_order(el);
+    int const polynomial_order = ElensData_get_polynomial_order(el);
 
     /*gpuglmem*/ double const* coefficients_polynomial =
                                 ElensData_getp1_coefficients_polynomial(el, 0);
-
-                 double const* chebyshev_coefficients =
-                                ElensData_getp1_chebyshev_coefficients(el, 0);
-
 
     //start_per_particle_block (part0->part)
 
@@ -54,7 +44,7 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
         double y      = LocalParticle_get_y(part);
 
         // delta
-        double delta  = LocalParticle_get_delta(part);
+        // double delta  = LocalParticle_get_delta(part);
         // charge ratio: q/q0
         // double qratio = LocalParticle_get_charge_ratio(part);
         // chi = q/q0 * m0/m
@@ -72,7 +62,6 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
         // transverse radius
         double r      = sqrt(x*x + y*y);
-        
 
         double rvv    = LocalParticle_get_rvv(part);
         double beta0  = LocalParticle_get_beta0(part);
@@ -153,81 +142,11 @@ void Elens_track_local_particle(ElensData el, LocalParticle* part0){
           dpy        = y*theta_pxpy/r;
         }
         else
-          // particles that are at amplitudes smaller than the inner radius of the e-beam
         {
-
-          // chebychev polynomials 
-          // https://lss.fnal.gov/archive/test-fn/0000/fermilab-fn-0972-apc.pdf
-          
-          if ( cheby_reference_radius != 0 ){
-
-              // sample chebychev polynomials 
-
-              // calculate u = x/a or u=y/a
-              // with reference radius a 
-              double u = x/cheby_reference_radius;
-              double v = y/cheby_reference_radius;
-
-              // initialize the chebychev polynomials 
-              double Tx[cheby_nmax];
-              double Ty[cheby_nmax];
-              double Tpx[cheby_nmax];
-              double Tpy[cheby_nmax];
-
-              Tx[0]  = 1;
-              Ty[0]  = 1;
-              Tx[1]  = u;
-              Ty[1]  = v;
-
-              // calculate the chebychev polynomials
-              int nn = 2 ; 
-              while( nn <= cheby_nmax )
-              {
-                Tx[nn] = 2*(u*Tx[nn-1]) - Tx[nn-2];
-                Ty[nn] = 2*(v*Ty[nn-1]) - Ty[nn-2];
-                
-                Tpx[nn] = 2*(Tx[nn-1] + u*Tpx[nn-1]) - Tpx[nn-2];
-                Tpy[nn] = 2*(Ty[nn-1] + v*Tpy[nn-1]) - Tpy[nn-2];
-
-                nn+=1;
-
-              }
-
-              // Coefficient C_{j, (n-j)}
-              double cij = 0;
-
-
-              // calculate the kick in x/y for each particle
-              for (int nn = 0; nn <= cheby_nmax; nn++)
-              {
-                for (int jj = 0; jj <= nn; jj++)
-                {
-
-                  cij = chebyshev_coefficients[cheby_nmax*(jj)+(nn-jj)];
-                  // (el,jj,nn-jj);
-
-                  dpx = dpx - cij*Tpx[jj]*Ty[nn-jj]/cheby_reference_radius;
-                  dpy = dpy - cij*Tx[jj]*Tpy[nn-jj]/cheby_reference_radius;
-
-                }
-              }            
-
-              dpx = dpx*current/cheby_reference_current;
-              dpy = dpy*current/cheby_reference_current;
-
-
-              dpx = dpx*((beta0)/(C_LIGHT*Brho0*beta_p*beta_p))*((1+delta)/(chi));
-              dpy = dpy*((beta0)/(C_LIGHT*Brho0*beta_p*beta_p))*((1+delta)/(chi));
-
-
-          } else 
-          
-          {
-          // it will only be subject to the residual kick
+          // if the particle is not inside the e-beam, it will only
+          // be subject to the residual kick
           dpx = residual_kick_x;
           dpy = residual_kick_y;
-          }
-
         }
 
 

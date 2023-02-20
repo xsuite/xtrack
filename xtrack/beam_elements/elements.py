@@ -126,13 +126,7 @@ class Elens(BeamElement):
                'residual_kick_x'        : xo.Float64,
                'residual_kick_y'        : xo.Float64,
                'coefficients_polynomial': xo.Float64[:],
-               'polynomial_order'       : xo.Float64, 
-
-               'chebyshev_reference_radius'  : xo.Float64,
-               'chebyshev_reference_current' : xo.Float64,
-               'chebyshev_max_order'         : xo.Float64,
-               'chebyshev_coefficients'      : xo.Float64[:]
-
+               'polynomial_order'       : xo.Float64
               }
 
     _extra_c_sources = [
@@ -145,46 +139,27 @@ class Elens(BeamElement):
                         voltage      = 0.,
                         residual_kick_x = 0,
                         residual_kick_y = 0,
-                        coefficients_polynomial     = (0,),
-                        chebyshev_max_order         =  0 ,
-                        chebyshev_coefficients      = (0,),
-                        chebyshev_reference_radius  =  0, 
-                        chebyshev_reference_current =  0,
+                        coefficients_polynomial = [0],
                         _xobject = None,
                         **kwargs):
 
         kwargs["coefficients_polynomial"] = len(coefficients_polynomial)
-        kwargs["chebyshev_coefficients"]  = len(chebyshev_coefficients)
-        coefficients_polynomial = np.array(coefficients_polynomial)
-        chebyshev_coefficients  = np.array(chebyshev_coefficients)
 
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
         else:
             super().__init__(**kwargs)
-
-            self.inner_radius      = inner_radius
-            self.outer_radius      = outer_radius
-            self.current           = current
-            self.elens_length      = elens_length
-            self.voltage           = voltage
+            self.inner_radius    = inner_radius
+            self.outer_radius    = outer_radius
+            self.current         = current
+            self.elens_length    = elens_length
+            self.voltage         = voltage
             self.residual_kick_x   = residual_kick_x
             self.residual_kick_y   = residual_kick_y
 
-
             self.coefficients_polynomial[:] = self._arr2ctx(coefficients_polynomial)
-
             polynomial_order = len(coefficients_polynomial)-1
             self.polynomial_order = polynomial_order
-
-
-            self.chebyshev_coefficients[:]   = self._arr2ctx(chebyshev_coefficients)
-
-            self.chebyshev_reference_radius  = chebyshev_reference_radius
-            self.chebyshev_reference_current = chebyshev_reference_current
-            self.chebyshev_max_order         = chebyshev_max_order
-
-            # chebyshev_coefficients = np.array(chebyshev_coefficients)
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
@@ -196,10 +171,6 @@ class Elens(BeamElement):
                               voltage=self.voltage,
                               coefficients_polynomial = self.coefficients_polynomial,
                               polynomial_order = self.polynomial_order,
-                              chebyshev_coefficients = self.chebyshev_coefficients, 
-                              chebyshev_max_order    = self.chebyshev_max_order, 
-                              chebyshev_reference_radius = self.chebyshev_reference_radius, 
-                              chebyshev_reference_current = self.chebyshev_reference_current,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
