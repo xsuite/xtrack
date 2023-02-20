@@ -27,18 +27,18 @@ int8_t assert_rutherford_set(RandomRutherfordData rng, LocalParticle* part, int6
 // PDF of Rutherford distribution
 /*gpufun*/
 double ruth_PDF(double t, double A, double B){
-    return (A/pow(t,2))*(exp(-B*t));
+    return (A/pow(t, 2.))*(exp(-B*t));
 }
 
 // CDF of Rutherford distribution
 /*gpufun*/
 double ruth_CDF(double t, double A, double B, double t0){
-    return A*B*Exponential_Integral_Ei(-B*t0) + t0*ruth_PDF(t0, A, B)
-         - A*B*Exponential_Integral_Ei(-B*t)  - t*ruth_PDF(t, A, B);
-        
+   return A*B*Exponential_Integral_Ei(-B*t0) + t0*ruth_PDF(t0, A, B)
+        - A*B*Exponential_Integral_Ei(-B*t)  - t*ruth_PDF(t, A, B);
 }
 
-void RandomRutherfordData_set(RandomRutherfordData rng, double A, double B, double lower_val, double upper_val){
+/*gpukern*/
+void RandomRutherford_set(RandomRutherfordData rng, double A, double B, double lower_val, double upper_val){
     // Normalise PDF
     double N = ruth_CDF(upper_val, A, B, lower_val);
     RandomRutherfordData_set_A(rng, A/N);

@@ -89,6 +89,7 @@ def test_direct_sampling(test_context):
     ran.upper_val = t1
     ran.Newton_iterations = iterations
     samples, _ = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
+    samples = test_context.nparray_from_context_array(samples)
 
     for i_part in range(n_seeds):
         assert np.all(samples[i_part]>=t0)

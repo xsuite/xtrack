@@ -9,19 +9,42 @@
 #ifndef XTRACK_EI_H
 #define XTRACK_EI_H
 
-#include <math.h> // required for fabsl(), expl() and logl() //only_for_context cpu_serial cpu_openmp
-#include <float.h> // required for LDBL_EPSILON, DBL_MAX //only_for_context cpu_serial cpu_openmp
+#include <math.h> // required for fabs(), exp() and log() //only_for_context cpu_serial cpu_openmp
+#include <float.h> // required for DBL_EPSILON, DBL_MAX //only_for_context cpu_serial cpu_openmp
 
 //                         Internally Defined Routines                        //
-double      Exponential_Integral_Ei( double x );
-
-static double Continued_Fraction_Ei( double x );
-static double Power_Series_Ei( double x );
-static double Argument_Addition_Series_Ei( double x);
+/*gpufun*/ double Exponential_Integral_Ei( double x );
+/*gpufun*/ double Continued_Fraction_Ei( double x );
+/*gpufun*/ double Power_Series_Ei( double x );
+/*gpufun*/ double Argument_Addition_Series_Ei( double x );
 
 
 //                         Internally Defined Constants                       //
 static const double epsilon = 10.0 * DBL_EPSILON;
+static const double ei[] = {
+    1.915047433355013959531e2,  4.403798995348382689974e2,
+    1.037878290717089587658e3,  2.492228976241877759138e3,
+    6.071406374098611507965e3,  1.495953266639752885229e4,
+    3.719768849068903560439e4,  9.319251363396537129882e4,
+    2.349558524907683035782e5,  5.955609986708370018502e5,
+    1.516637894042516884433e6,  3.877904330597443502996e6,
+    9.950907251046844760026e6,  2.561565266405658882048e7,
+    6.612718635548492136250e7,  1.711446713003636684975e8,
+    4.439663698302712208698e8,  1.154115391849182948287e9,
+    3.005950906525548689841e9,  7.842940991898186370453e9,
+    2.049649711988081236484e10, 5.364511859231469415605e10,
+    1.405991957584069047340e11, 3.689732094072741970640e11,
+    9.694555759683939661662e11, 2.550043566357786926147e12,
+    6.714640184076497558707e12, 1.769803724411626854310e13,
+    4.669055014466159544500e13, 1.232852079912097685431e14,
+    3.257988998672263996790e14, 8.616388199965786544948e14,
+    2.280446200301902595341e15, 6.039718263611241578359e15,
+    1.600664914324504111070e16, 4.244796092136850759368e16,
+    1.126348290166966760275e17, 2.990444718632336675058e17,
+    7.943916035704453771510e17, 2.111342388647824195000e18,
+    5.614329680810343111535e18, 1.493630213112993142255e19,
+    3.975442747903744836007e19, 1.058563689713169096306e20
+ };
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -52,11 +75,12 @@ static const double epsilon = 10.0 * DBL_EPSILON;
 //     y = Exponential_Integral_Ei( x );                                      //
 ////////////////////////////////////////////////////////////////////////////////
 
+/*gpufun*/
 double Exponential_Integral_Ei( double x ){
-   if ( x < -5.0L ) return Continued_Fraction_Ei(x);
-   if ( x == 0.0L ) return -DBL_MAX;
-   if ( x < 6.8L )  return Power_Series_Ei(x);
-   if ( x < 50.0L ) return Argument_Addition_Series_Ei(x);
+   if ( x < -5.0 ) return Continued_Fraction_Ei(x);
+   if ( x == 0.0 ) return -DBL_MAX;
+   if ( x < 6.8 )  return Power_Series_Ei(x);
+   if ( x < 50.0 ) return Argument_Addition_Series_Ei(x);
    return Continued_Fraction_Ei(x);
 }
 
@@ -79,24 +103,25 @@ double Exponential_Integral_Ei( double x ){
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
 
-static double Continued_Fraction_Ei( double x ){
-   double Am1 = 1.0L;
-   double A0 = 0.0L;
-   double Bm1 = 0.0L;
-   double B0 = 1.0L;
-   double a = expl(x);
-   double b = -x + 1.0L;
+/*gpufun*/
+double Continued_Fraction_Ei( double x ){
+   double Am1 = 1.0;
+   double A0 = 0.0;
+   double Bm1 = 0.0;
+   double B0 = 1.0;
+   double a = exp(x);
+   double b = -x + 1.0;
    double Ap1 = b * A0 + a * Am1;
    double Bp1 = b * B0 + a * Bm1;
    int j = 1;
 
-   a = 1.0L;
-   while ( fabsl(Ap1 * B0 - A0 * Bp1) > epsilon * fabsl(A0 * Bp1) ) {
-      if ( fabsl(Bp1) > 1.0L) {
+   a = 1.0;
+   while ( fabs(Ap1 * B0 - A0 * Bp1) > epsilon * fabs(A0 * Bp1) ) {
+      if ( fabs(Bp1) > 1.0) {
          Am1 = A0 / Bp1;
          A0 = Ap1 / Bp1;
          Bm1 = B0 / Bp1;
-         B0 = 1.0L;
+         B0 = 1.0;
       } else {
          Am1 = A0;
          A0 = Ap1;
@@ -104,7 +129,7 @@ static double Continued_Fraction_Ei( double x ){
          B0 = Bp1;
       }
       a = -j * j;
-      b += 2.0L;
+      b += 2.0;
       Ap1 = b * A0 + a * Am1;
       Bp1 = b * B0 + a * Bm1;
       j += 1;
@@ -135,26 +160,27 @@ static double Continued_Fraction_Ei( double x ){
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
 
-static double Power_Series_Ei( double x ){
+/*gpufun*/
+double Power_Series_Ei( double x ){
    double xn = -x;
    double Sn = -x;
-   double Sm1 = 0.0L;
-   double hsum = 1.0L;
-   double g = 0.5772156649015328606065121L;
-   double y = 1.0L;
-   double factorial = 1.0L;
-  
-   if ( x == 0.0L ) return (double) -DBL_MAX;
- 
-   while ( fabsl(Sn - Sm1) > epsilon * fabsl(Sm1) ) {
+   double Sm1 = 0.0;
+   double hsum = 1.0;
+   double g = 0.5772156649015328606065121;
+   double y = 1.0;
+   double factorial = 1.0;
+
+   if ( x == 0.0 ) return (double) -DBL_MAX;
+
+   while ( fabs(Sn - Sm1) > epsilon * fabs(Sm1) ) {
       Sm1 = Sn;
-      y += 1.0L;
+      y += 1.0;
       xn *= (-x);
       factorial *= y;
       hsum += (1.0 / y);
       Sn += hsum * xn / factorial;
    }
-   return (g + logl(fabsl(x)) - expl(x) * Sn);
+   return (g + log(fabs(x)) - exp(x) * Sn);
 }
 
 
@@ -178,54 +204,32 @@ static double Power_Series_Ei( double x ){
 //  Return Value:                                                             //
 //     The value of the exponential integral Ei evaluated at x.               //
 ////////////////////////////////////////////////////////////////////////////////
-static double Argument_Addition_Series_Ei( double x ){
-   static double ei[] = {
-      1.915047433355013959531e2L,  4.403798995348382689974e2L,
-      1.037878290717089587658e3L,  2.492228976241877759138e3L,
-      6.071406374098611507965e3L,  1.495953266639752885229e4L,
-      3.719768849068903560439e4L,  9.319251363396537129882e4L,
-      2.349558524907683035782e5L,  5.955609986708370018502e5L,
-      1.516637894042516884433e6L,  3.877904330597443502996e6L,
-      9.950907251046844760026e6L,  2.561565266405658882048e7L,
-      6.612718635548492136250e7L,  1.711446713003636684975e8L,
-      4.439663698302712208698e8L,  1.154115391849182948287e9L,
-      3.005950906525548689841e9L,  7.842940991898186370453e9L,
-      2.049649711988081236484e10L, 5.364511859231469415605e10L,
-      1.405991957584069047340e11L, 3.689732094072741970640e11L,
-      9.694555759683939661662e11L, 2.550043566357786926147e12L,
-      6.714640184076497558707e12L, 1.769803724411626854310e13L,
-      4.669055014466159544500e13L, 1.232852079912097685431e14L,
-      3.257988998672263996790e14L, 8.616388199965786544948e14L,
-      2.280446200301902595341e15L, 6.039718263611241578359e15L,
-      1.600664914324504111070e16L, 4.244796092136850759368e16L,
-      1.126348290166966760275e17L, 2.990444718632336675058e17L,
-      7.943916035704453771510e17L, 2.111342388647824195000e18L,
-      5.614329680810343111535e18L, 1.493630213112993142255e19L,
-      3.975442747903744836007e19L, 1.058563689713169096306e20L
-   };
+
+/*gpufun*/
+double Argument_Addition_Series_Ei( double x ){
    int  k = (int) (x + 0.5);
    int  j = 0;
    double xx = (double) k;
    double dx = x - xx;
    double xxj = xx;
-   double edx = expl(dx);
-   double Sm = 1.0L;
-   double Sn = (edx - 1.0L) / xxj;
+   double edx = exp(dx);
+   double Sm = 1.0;
+   double Sn = (edx - 1.0) / xxj;
    double term = DBL_MAX;
-   double factorial = 1.0L;
-   double dxj = 1.0L;
+   double factorial = 1.0;
+   double dxj = 1.0;
 
-   while (fabsl(term) > epsilon * fabsl(Sn) ) {
+   while (fabs(term) > epsilon * fabs(Sn) ) {
       j++;
       factorial *= (double) j;
       xxj *= xx;
       dxj *= (-dx);
       Sm += (dxj / factorial);
-      term = ( factorial * (edx * Sm - 1.0L) ) / xxj;
+      term = ( factorial * (edx * Sm - 1.0) ) / xxj;
       Sn += term;
    }
-   
-   return ei[k-7] + Sn * expl(xx); 
+
+   return ei[k-7] + Sn * exp(xx);
 }
 
 #endif /* XTRACK_EI_H */

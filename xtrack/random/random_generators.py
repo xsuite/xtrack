@@ -14,7 +14,9 @@ import numpy as np
 
 # Random generators need to be a BeamElement to get the LocalParticle API
 class RandomUniform(BeamElement):
-    _xofields = {}
+    _xofields = {
+        '_dummy': xo.UInt8,  # TODO: a hack for allocating empty struct on OCL
+    }
 
     iscollective = True
 
@@ -69,7 +71,9 @@ class RandomUniform(BeamElement):
 
 
 class RandomExponential(RandomUniform):
-    _xofields = {}
+    _xofields = {
+        '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
+    }
 
     iscollective = True
 
@@ -94,7 +98,9 @@ class RandomExponential(RandomUniform):
 
 
 class RandomNormal(RandomUniform):
-    _xofields = {}
+    _xofields = {
+        '_dummy': xo.UInt8,  # TODO: a hack for allocating an empty struct on OCL
+    }
 
     iscollective = True
 
@@ -143,12 +149,12 @@ class RandomRutherford(RandomUniform):
                     xo.Arg(xo.Float64, pointer=True, name='samples'),
                     xo.Arg(xo.Int64, name='n_samples_per_seed')
                 ]
-            )
+            ),
         }
 
     _kernels = {
         'set_rutherford': xo.Kernel(
-                c_name='RandomRutherfordData_set',
+                c_name='RandomRutherford_set',
                 args=[
                     xo.Arg(xo.ThisClass, name='rng'),
                     xo.Arg(xo.Float64, name='A'),

@@ -63,6 +63,7 @@ def test_direct_sampling(test_context):
     n_samples = 3e6
     ran = xt.RandomUniform(_context=test_context)
     samples, _ = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
+    samples = test_context.nparray_from_context_array(samples)
 
     for i_part in range(n_seeds):
         assert np.all(samples[i_part]>0)
