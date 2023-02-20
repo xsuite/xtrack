@@ -224,7 +224,7 @@ class Tracker:
                 pp.element_names = tempxtline.element_names
                 noncollective_xelements += pp.elements
             else:
-                if pp.isthick:
+                if hasattr(pp, 'isthick') and pp.isthick:
                     ldrift = pp.length
                 else:
                     ldrift = 0.

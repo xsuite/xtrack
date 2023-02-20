@@ -11,8 +11,7 @@ from xtrack import PipelineStatus
 
 @for_all_test_contexts
 def test_multitracker(test_context):
-    class DummyPipelinedElement(xt.BeamElement):
-        _xofields = {}
+    class DummyPipelinedElement:
         def __init__(self, n_hold=0):
             self.n_hold = n_hold
             self.iscollective = True
