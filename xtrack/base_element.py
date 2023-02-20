@@ -213,6 +213,9 @@ class MetaBeamElement(xo.MetaHybridClass):
         if '_internal_record_class' in data.keys():
             new_class._XoStruct._internal_record_class = data['_internal_record_class']
             new_class._internal_record_class = data['_internal_record_class']
+        new_class.behaves_like_drift = False
+        if 'behaves_like_drift' in data.keys():
+            new_class.behaves_like_drift = data['behaves_like_drift']
 
         # Attach methods corresponding to per-particle kernels
         if '_per_particle_kernels' in data.keys():

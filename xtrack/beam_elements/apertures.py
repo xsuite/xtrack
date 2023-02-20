@@ -22,6 +22,8 @@ class LimitRect(BeamElement):
         'max_y': xo.Float64,
         }
 
+    behaves_like_drift=True
+
     def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, **kwargs):
         """A rectangular aperture
 
@@ -49,6 +51,8 @@ class LimitRacetrack(BeamElement):
         'a': xo.Float64,
         'b': xo.Float64,
         }
+
+    behaves_like_drift=True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
@@ -78,6 +82,8 @@ class LimitEllipse(BeamElement):
             'b_squ': xo.Float64,
             'a_b_squ': xo.Float64,
             }
+
+    behaves_like_drift=True
 
     def to_dict(self):
         dct = super().to_dict()
@@ -141,6 +147,8 @@ class LimitPolygon(BeamElement):
         'y_normal': xo.Float64[:],
         'resc_fac': xo.Float64
         }
+
+    behaves_like_drift=True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
@@ -279,6 +287,8 @@ class LimitRectEllipse(BeamElement):
             'a_b_squ': xo.Float64,
             }
 
+    behaves_like_drift=True
+
     def __init__(
         self, max_x=UNLIMITED, max_y=UNLIMITED, a_squ=None, b_squ=None,
         a=None, b=None, **kwargs
@@ -349,6 +359,8 @@ class LongitudinalLimitRect(BeamElement):
         'min_pzeta': xo.Float64,
         'max_pzeta': xo.Float64,
         }
+
+    behaves_like_drift=True
 
     def __init__(self, min_zeta=-UNLIMITED, max_zeta=UNLIMITED, min_pzeta=-UNLIMITED, max_pzeta=UNLIMITED, **kwargs):
         """A limit on longitudinal coordinates

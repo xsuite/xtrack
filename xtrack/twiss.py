@@ -808,9 +808,6 @@ def compute_one_turn_matrix_finite_differences(
 
     return RR
 
-def _behaves_like_drift(ee):
-    return (hasattr(ee, 'behaves_like_drift') and ee.behaves_like_drift)
-
 
 def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
                                                 algorithm='auto'):
@@ -841,7 +838,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         # s_keep = []
         # enames_keep = []
         # for ss, nn in zip(s_elems, auxline.element_names):
-        #     if not (_behaves_like_drift(auxline[nn]) and np.abs(auxline[nn].length)>0):
+        #     if not auxline[nn].behaves_like_drift and np.abs(auxline[nn].length)>0):
         #         s_keep.append(ss)
         #         enames_keep.append(nn)
         #         assert not xt.line._is_thick(auxline[nn]) or auxline[nn].length == 0

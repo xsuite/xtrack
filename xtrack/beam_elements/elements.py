@@ -39,7 +39,9 @@ class Marker(BeamElement):
     """
 
     _xofields = {
-	'_dummy': xo.Int64}
+    '_dummy': xo.Int64}
+
+    behaves_like_drift=True
 
     _extra_c_sources = [
         "/*gpufun*/\n"
@@ -57,6 +59,7 @@ class Drift(BeamElement):
 
     _xofields = {
         'length': xo.Float64}
+
     isthick=True
     behaves_like_drift=True
 
