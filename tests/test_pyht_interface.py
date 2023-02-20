@@ -70,11 +70,17 @@ def test_instability_cpu_gpu(test_context):
     wake_field = WakeField(slicer_for_wakefields, waketable)
     wake_field.needs_cpu = True
     wake_field.needs_hidden_lost_particles = True
+    # TODO: these should be initialised in the WakeField class
+    wake_field.isthick = False
+    wake_field.behaves_like_drift = False
 
     damping_time = 7000  # 33.
     damper = TransverseDamper(dampingrate_x=damping_time, dampingrate_y=damping_time)
     damper.needs_cpu = True
     damper.needs_hidden_lost_particles = True
+    # TODO: these should be initialised in the TransverseDamper class
+    damper.isthick = False
+    damper.behaves_like_drift = False
     i_oct = 15.
     detx_x = 1.4e5 * i_oct / 550.0  # from PTC with ATS optics, telescopic factor 1.0
     detx_y = -1.0e5 * i_oct / 550.0

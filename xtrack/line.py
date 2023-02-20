@@ -34,14 +34,8 @@ def mk_class_namespace(extra_classes):
     return out
 
 
-_thick_element_types = (beam_elements.Drift, ) #TODO add DriftExact
-
 def _is_drift(element): # can be removed if length is zero
     return isinstance(element, (beam_elements.Drift,) )
-
-def _is_thick(element):
-    return  ((hasattr(element, "isthick") and element.isthick) or
-             (isinstance(element, _thick_element_types)))
 
 
 def _next_name(prefix, names, name_format='{}{}'):
@@ -262,7 +256,7 @@ class Line:
             if node.s < last_s:
                 raise ValueError(f'Negative drift space from {last_s} to {node.s}'
                     f' ({node.name}). Fix or set auto_reorder=True')
-            if _is_thick(node.what):
+            if node.what.isthick:
                 raise NotImplementedError(
                     f'Thick elements currently not implemented: {node.name}')
 
@@ -455,7 +449,7 @@ class Line:
             if ff:
                 new_elements.append(ee)
             else:
-                if _is_thick(ee) and not _is_drift(ee):
+                if ee.isthick and not _is_drift(ee):
                     new_elements.append(Drift(length=ee.length))
                 else:
                     new_elements.append(Drift(length=0))
@@ -551,7 +545,7 @@ class Line:
         elements = self.elements
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
-        isthick = np.array(list(map(_is_thick, elements)))
+        isthick = np.array([ ee.isthick for ee in elements])
 
         import pandas as pd
 
@@ -586,7 +580,7 @@ class Line:
         if at_s is not None:
             s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
 
-            if not _is_thick(element) or np.abs(element.length)==0:
+            if not element.isthick or np.abs(element.length)==0:
                 i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
                 if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
                     return self.insert_element(index=i_closest,
@@ -598,18 +592,18 @@ class Line:
             i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
 
             # Shortcut for thin element without drift splitting
-            if (not _is_thick(element)
+            if (not element.isthick
                 and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s)<1e-10):
                     return self.insert_element(index=i_first_drift_to_cut,
                                               element=element, name=name)
 
-            if _is_thick(element) and np.abs(element.length)>0:
+            if element.isthick and np.abs(element.length)>0:
                 s_end_ele = at_s + element.length
             else:
                 s_end_ele = s_start_ele
 
             i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-            if _is_thick(element) and element.length > 0:
+            if element.isthick and element.length > 0:
                 assert i_first_drift_to_cut <= i_last_drift_to_cut
             name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
             name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
@@ -664,7 +658,7 @@ class Line:
                     self.element_names.insert(i_insert, nn)
 
         else:
-            if _is_thick(element) and np.abs(element.length)>0:
+            if element.isthick and np.abs(element.length)>0:
                 raise NotImplementedError('use `at_s` to insert thick elements')
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
@@ -682,7 +676,7 @@ class Line:
     def get_length(self):
         ll = 0
         for ee in self.elements:
-            if _is_thick(ee):
+            if ee.isthick:
                 ll += ee.length
 
         return ll
@@ -701,7 +695,7 @@ class Line:
         for ee in self.elements:
             if mode == "upstream":
                 s.append(s_prev)
-            if _is_thick(ee):
+            if ee.isthick:
                 s_prev += ee.length
             if mode == "downstream":
                 s.append(s_prev)
