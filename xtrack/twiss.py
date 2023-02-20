@@ -841,7 +841,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         #     if not auxline[nn].behaves_like_drift and np.abs(auxline[nn].length)>0):
         #         s_keep.append(ss)
         #         enames_keep.append(nn)
-        #         assert not xt.line._is_thick(auxline[nn]) or auxline[nn].length == 0
+        #         assert not auxline[nn].isthick or auxline[nn].length == 0
 
         # s_keep.extend(list(at_s))
         # enames_keep.extend(names_inserted_markers)
