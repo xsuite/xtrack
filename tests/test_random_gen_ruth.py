@@ -21,7 +21,7 @@ rA = 0.0012306225579197868
 rB = 53.50625
 iterations = 20
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_random_generation(test_context):
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1,2,3])
@@ -78,7 +78,7 @@ def test_random_generation(test_context):
         np.allclose(hstgm[:-10], ruth[:-10], rtol=5e-2, atol=1)
 
 
-@for_all_test_contexts
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_direct_sampling(test_context):
     n_seeds = 3
     n_samples = 3e6

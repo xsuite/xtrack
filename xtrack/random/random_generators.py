@@ -176,7 +176,11 @@ class RandomRutherford(RandomUniform):
             kwargs.setdefault('upper_val', 1.)
             kwargs.setdefault('A', 0.)
             kwargs.setdefault('B', 0.)
+
         super().__init__(**kwargs)
+
+        if not isinstance(self._context, xo.ContextCpu):
+            raise ValueError('Rutherford random generator is not currently supported on GPU.')
 
     def set_parameters(self, A, B, lower_val, upper_val):
         self.compile_kernels(only_if_needed=True)
