@@ -1,16 +1,18 @@
 import pathlib
+
 import numpy as np
+import xpart as xp
+from cpymad.madx import Madx
+from xobjects.test_helpers import for_all_test_contexts
 
 import xtrack as xt
-import xpart as xp
-import xobjects as xo
-from cpymad.madx import Madx
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 
-def test_ions():
+@for_all_test_contexts
+def test_ions(test_context):
 
     mad = Madx()
     mad.call(str(test_data_folder.joinpath(
@@ -35,22 +37,21 @@ def test_ions():
     mad.emit()
     qs_mad = mad.table.emitsumm.qs[0]
 
-    for context in xo.context.get_test_contexts():
-        print(f"Test {context.__class__}")
-        # Make xsuite line and tracker
-        line = xt.Line.from_madx_sequence(mad.sequence.sps, deferred_expressions=True)
-        line.particle_ref = xp.Particles(mass0=mad.sequence.sps.beam.mass*1e9,
-                                        q0=mad.sequence.sps.beam.charge,
-                                        gamma0=mad.sequence.sps.beam.gamma)
+    print(f"Test {test_context.__class__}")
+    # Make xsuite line and tracker
+    line = xt.Line.from_madx_sequence(mad.sequence.sps, deferred_expressions=True)
+    line.particle_ref = xp.Particles(mass0=mad.sequence.sps.beam.mass*1e9,
+                                    q0=mad.sequence.sps.beam.charge,
+                                    gamma0=mad.sequence.sps.beam.gamma)
 
-        assert np.isclose(line['actcse.31632'].voltage, V_RF, atol=1e-10)
+    assert np.isclose(line['actcse.31632'].voltage, V_RF, atol=1e-10)
 
-        tracker = line.build_tracker()
+    tracker = line.build_tracker()
 
-        tw = tracker.twiss()
+    tw = tracker.twiss()
 
-        assert np.isclose(tw.qs, qs_mad, atol=1e-6)
-        assert np.isclose(tw.qx, summad_4d.q1, atol=1e-5)
-        assert np.isclose(tw.qy, summad_4d.q2, atol=1e-5)
-        assert np.isclose(tw.dqx, summad_6d.dq1, atol=0.5)
-        assert np.isclose(tw.dqy, summad_6d.dq2, atol=0.5)
+    assert np.isclose(tw.qs, qs_mad, atol=1e-6)
+    assert np.isclose(tw.qx, summad_4d.q1, atol=1e-5)
+    assert np.isclose(tw.qy, summad_4d.q2, atol=1e-5)
+    assert np.isclose(tw.dqx, summad_6d.dq1, atol=0.5)
+    assert np.isclose(tw.dqy, summad_6d.dq2, atol=0.5)

@@ -25,7 +25,8 @@ from .pipeline import PipelineStatus
 from .survey import survey_from_tracker
 from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
-                    find_closed_orbit, match_tracker, twiss_from_tracker)
+                    find_closed_orbit, twiss_from_tracker)
+from .match import match_tracker
 from .tapering import compensate_radiation_energy_loss
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
@@ -285,6 +286,7 @@ class Tracker:
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
         self._radiation_model = None
+        self._beamstrahlung_model = None
 
     def _init_track_no_collective(
         self,
@@ -373,6 +375,7 @@ class Tracker:
 
         self.track = self._track_no_collective
         self._radiation_model = None
+        self._beamstrahlung_model = None
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if compile:
@@ -1312,8 +1315,8 @@ class Tracker:
         self.record_last_track = monitor
 
         if time:
-            self._context.synchronize()
             t1 = perf_counter()
+            self._context.synchronize()
             self.time_last_track = t1 - t0
         else:
             self.time_last_track = None
@@ -1505,8 +1508,8 @@ class Tracker:
         self.record_last_track = monitor
 
         if time:
-            t1 = perf_counter()
             self._context.synchronize()
+            t1 = perf_counter()
             self.time_last_track = t1 - t0
         else:
             self.time_last_track = None

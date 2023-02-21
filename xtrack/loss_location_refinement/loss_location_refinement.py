@@ -9,14 +9,14 @@ from scipy.spatial import ConvexHull
 import xobjects as xo
 import xpart as xp
 from ..tracker import Tracker
-from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift
+from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line
 
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
-_default_allowed_backtrack_types = [Drift, SRotation, XYShift]
+_default_allowed_backtrack_types = [Drift, SRotation, XYShift, Marker]
 
 class LossLocationRefinement:
 
@@ -346,7 +346,8 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     for i_ele in range(i_start_thin_0+1, i_start_thin_1):
         ee = tracker.line.elements[i_ele]
-        if not ee.__class__.__name__.startswith('Drift'):
+        if (not ee.__class__.__name__.startswith('Drift') and not (
+                hasattr(ee, 'behaves_like_drift') and ee.behaves_like_drift)):
             assert not hasattr(ee, 'isthick') or not ee.isthick
             ss_ee = tracker._tracker_data.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
@@ -379,12 +380,17 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
 def find_previous_drift(tracker, i_aperture):
 
+    line = tracker.line
+
     ii=i_aperture
     found = False
     while not(found):
-        ccnn = tracker.line.elements[ii].__class__.__name__
+        ee = line.element_dict[line.element_names[ii]]
+        ccnn = ee.__class__.__name__
         #print(ccnn)
         if ccnn == 'Drift':
+            found = True
+        elif hasattr(ee, 'behaves_like_drift') and ee.behaves_like_drift:
             found = True
         else:
             ii -= 1

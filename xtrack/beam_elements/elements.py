@@ -225,7 +225,7 @@ class SRotation(BeamElement):
 
     '''
 
-    _xofields={
+    _xofields = {
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
         }
@@ -235,11 +235,30 @@ class SRotation(BeamElement):
 
     _store_in_to_dict = ['angle']
 
-    def __init__(self, angle=0, **nargs):
-        anglerad = angle / 180 * np.pi
-        nargs['cos_z']=np.cos(anglerad)
-        nargs['sin_z']=np.sin(anglerad)
-        super().__init__(**nargs)
+    def __init__(self, angle=None, cos_z=None, sin_z=None, **kwargs):
+        """
+        If either angle or a sufficient number of trig values are given,
+        calculate the missing values from the others. If more than necessary
+        parameters are given, their consistency will be checked.
+        """
+        if angle is None and (cos_z is not None or sin_z is not None):
+            anglerad, cos_angle, sin_angle, _ = _angle_from_trig(cos_z, sin_z)
+        elif angle is not None:
+            anglerad = angle / 180 * np.pi
+        else:
+            anglerad = 0.0
+
+        if cos_z is None:
+            cos_z = np.cos(anglerad)
+        elif not np.isclose(cos_z, np.cos(anglerad), atol=1e-13):
+            raise ValueError(f'cos_z does not match angle: {cos_z} vs {anglerad}')
+
+        if sin_z is None:
+            sin_z = np.sin(anglerad)
+        elif not np.isclose(sin_z, np.sin(anglerad), atol=1e-13):
+            raise ValueError('sin_z does not match angle')
+
+        super().__init__(cos_z=cos_z, sin_z=sin_z, **kwargs)
 
     @property
     def angle(self):
@@ -252,9 +271,168 @@ class SRotation(BeamElement):
         self.sin_z = np.sin(anglerad)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              angle=-self.angle,
+        return self.__class__(angle=-self.angle,
                               _context=_context, _buffer=_buffer, _offset=_offset)
+
+
+class XRotation(BeamElement):
+    '''Beam element modeling an rotation of the reference system around the x axis. Parameters:
+
+                - angle [deg]: Rotation angle. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'sin_angle': xo.Float64,
+        'cos_angle': xo.Float64,
+        'tan_angle': xo.Float64,
+        }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
+
+    _store_in_to_dict = ['angle']
+
+    def __init__(
+            self,
+            angle=None,
+            cos_angle=None,
+            sin_angle=None,
+            tan_angle=None,
+            **kwargs,
+    ):
+        """
+        If either angle or a sufficient number of trig values are given,
+        calculate the missing values from the others. If more than necessary
+        parameters are given, their consistency will be checked.
+        """
+        # Note MAD-X node_value('other_bv ') is ignored
+        at_least_one_trig = sum(trig is not None for trig
+                                in (cos_angle, sin_angle, tan_angle)) > 0
+
+        if angle is None and at_least_one_trig:
+            params = _angle_from_trig(cos_angle, sin_angle, tan_angle)
+            anglerad, cos_angle, sin_angle, tan_angle = params
+        elif angle is not None:
+            anglerad = angle / 180 * np.pi
+        else:
+            anglerad = 0.0
+
+        if cos_angle is None:
+            cos_angle = np.cos(anglerad)
+        elif not np.isclose(cos_angle, np.cos(anglerad), atol=1e-13):
+            raise ValueError('cos_angle does not match angle')
+
+        if sin_angle is None:
+            sin_angle = np.sin(anglerad)
+        elif not np.isclose(sin_angle, np.sin(anglerad), atol=1e-13):
+            raise ValueError('sin_angle does not match angle')
+
+        if tan_angle is None:
+            tan_angle = np.tan(anglerad)
+        elif not np.isclose(tan_angle, np.tan(anglerad), atol=1e-13):
+            raise ValueError('tan_angle does not match angle')
+
+        super().__init__(
+            cos_angle=cos_angle, sin_angle=sin_angle, tan_angle=tan_angle,
+            **kwargs)
+
+    @property
+    def angle(self):
+        return np.arctan2(self.sin_angle,self.cos_angle) * (180.0 / np.pi)
+
+    @angle.setter
+    def angle(self, value):
+        anglerad = value / 180 * np.pi
+        self.cos_angle = np.cos(anglerad)
+        self.sin_angle = np.sin(anglerad)
+        self.tan_angle = np.tan(anglerad)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
+class YRotation(BeamElement):
+    '''Beam element modeling an rotation of the reference system around the y axis. Parameters:
+
+                - angle [deg]: Rotation angle. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'sin_angle': xo.Float64,
+        'cos_angle': xo.Float64,
+        'tan_angle': xo.Float64,
+        }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')]
+
+    _store_in_to_dict = ['angle']
+
+    def __init__(
+            self,
+            angle=None,
+            cos_angle=None,
+            sin_angle=None,
+            tan_angle=None,
+            **kwargs,
+    ):
+        """
+        If either angle or a sufficient number of trig values are given,
+        calculate the missing values from the others. If more than necessary
+        parameters are given, their consistency will be checked.
+        """
+        #Note MAD-X node_value('other_bv ') is ignored
+        #     minus sign follows MAD-X convention
+        at_least_one_trig = sum(
+            trig is not None for trig
+                in (cos_angle, sin_angle, tan_angle)
+        ) > 0
+
+        if angle is None and at_least_one_trig:
+            params = _angle_from_trig(cos_angle, sin_angle, tan_angle)
+            anglerad, cos_angle, sin_angle, tan_angle = params
+        elif angle is not None:
+            anglerad = angle / 180 * np.pi
+        else:
+            anglerad = 0.0
+        anglerad = -anglerad
+
+        if cos_angle is None:
+            cos_angle = np.cos(anglerad)
+        elif not np.isclose(cos_angle, np.cos(anglerad), atol=1e-13):
+            raise ValueError('cos_angle does not match angle')
+
+        if sin_angle is None:
+            sin_angle = np.sin(anglerad)
+        elif not np.isclose(sin_angle, np.sin(anglerad), atol=1e-13, rtol=0):
+            raise ValueError('sin_angle does not match angle')
+
+        if tan_angle is None:
+            tan_angle = np.tan(anglerad)
+        elif not np.isclose(tan_angle, np.tan(anglerad), atol=1e-13):
+            raise ValueError('tan_angle does not match angle')
+
+        super().__init__(
+            cos_angle=cos_angle, sin_angle=sin_angle, tan_angle=tan_angle,
+            **kwargs)
+
+    @property
+    def angle(self):
+        return -np.arctan2(self.sin_angle, self.cos_angle) * (180.0 / np.pi)
+
+    @angle.setter
+    def angle(self, value):
+        anglerad = -value / 180 * np.pi
+        self.cos_angle = np.cos(anglerad)
+        self.sin_angle = np.sin(anglerad)
+        self.tan_angle = np.tan(anglerad)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
 
 
 class SynchrotronRadiationRecord(xo.HybridClass):
@@ -908,3 +1086,27 @@ class FirstOrderTaylorMap(BeamElement):
         super().__init__(**nargs)
 
 
+def _angle_from_trig(cos=None, sin=None, tan=None):
+    """
+    Given at least two values of (cos, sin, tan), return the angle in radians.
+    Raises ValueError if the values are inconsistent.
+    """
+    sin_given, cos_given, tan_given = (trig is not None for trig in (sin, cos, tan))
+
+    if sum([sin_given, cos_given, tan_given]) <= 1:
+        raise ValueError('At least two of (cos, sin, tan) must be given')
+
+    if sin_given and cos_given:
+        tan = tan if tan_given else sin / cos
+    elif sin_given and tan_given:
+        cos = cos if cos_given else sin / tan
+    elif cos_given and tan_given:
+        sin = sin if sin_given else cos * tan
+
+    if (not np.isclose(sin**2 + cos**2, 1, atol=1e-13)
+            or not np.isclose(sin / cos, tan, atol=1e-13)):
+        raise ValueError('Given values of sin, cos, tan are inconsistent '
+                         'with each other.')
+
+    angle = np.arctan2(sin, cos)
+    return angle, cos, sin, tan
