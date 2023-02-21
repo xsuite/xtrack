@@ -17,9 +17,9 @@ import numpy as np
 class Exciter(xt.BeamElement):
     """Beam element modeling a transverse exciter as a time-dependent thin multipole.
     
-    The given multipole components (knl and ksl) are scaled according to an array of
-    samples, allowing for arbitrary time dependence:
-        
+    The given multipole components (knl and ksl) are scaled according to a custom waveform,
+    allowing for arbitrary time dependence. The waveform is specified by an array of samples:
+    
         knl(t) = knl * samples[i]
 
     It is *not* assumed that the variations are slow compared to the revolution frequency
@@ -34,7 +34,7 @@ class Exciter(xt.BeamElement):
     arrives at the element in start_turn.
 
     For example, to compute samples for a sinusoidal excitation with frequency f_ex one
-    would do: samples[i] = np.sin(2*np.pi*f_ex*i/sampling).    
+    would calculate the waveform as: samples[i] = np.sin(2*np.pi*f_ex*i/sampling)
     
     Notes:
         - This is not to be confused with an RFMultipole, which inherits the characteristics
@@ -49,12 +49,36 @@ class Exciter(xt.BeamElement):
     Parameters:    
         - knl (float array): Normalized integrated strength of the normal components. Unit: m^-n (n=0,1,2,...).
         - ksl (float array): Normalized integrated strength of the skew components. Unit: m^-n (n=0,1,2,...).
+        - order (int): Multipole order (readonly), i.e. largest n with non-zero knl or ksl.
         - samples (float array): Samples of excitation strength to scale knl and ksl as function of time.
+        - nsamples (int): Number of samples. Pass this instead of samples to reserve memory for later initialisation.
         - sampling (float): Sampling frequency in Hz.
         - frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
-        - start_turn (int): Start turn of excitation.
-        - nsamples (int): Number of samples. Pass this instead of samples to reserve memory for later initialisation.
-        - order (int): Multipole order (readonly), i.e. largest n with non-zero knl or ksl.
+        - start_turn (int): Turn of the reference particle when to start excitation.
+        - duration (float): Duration of excitation in s (defaults to nsamples/sampling). Repeats the waveform to fill the duration.
+    
+    Example:
+        >>> fs = 10e6 # sampling frequency in Hz
+        >>> 
+        >>> # load waveform into memory
+        >>> signal = np.copy(np.memmap("signal.10MHz.float32", np.float32))
+        >>> 
+        >>> # alternatively compute samples on the fly, for example a simple sine at 500 kHz ...
+        >>> t = np.arange(1000)/fs
+        >>> f_ex = 5e5 # excitation frequency in Hz
+        >>> signal = np.sin(2*np.pi*f_ex*t)
+        >>> 
+        >>> # ... or a sweep from 500 to 800 kHz
+        >>> f_ex_1 = 8e5
+        >>> signal = scipy.signal.chirp(t, f_ex, t[-1], f_ex_1)
+        >>> 
+        >>> # create the exciter
+        >>> frev = 1e6 # revolution frequency in Hz
+        >>> k0l = 0.1 # this is scaled by the waveform
+        >>> exciter = Exciter(samples=signal, sampling=fs, frev=frev, start_turn=0, knl=[k0l])
+        >>> 
+        >>> # add it to the line
+        >>> line.insert_element(index=..., name=..., element=exciter)
         
     """
 
@@ -62,17 +86,19 @@ class Exciter(xt.BeamElement):
         'order': xo.Int64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'samples': xo.Float64[:],
+        'samples': xo.Float32[:],
         'nsamples': xo.Int64,
         'sampling': xo.Float64,
         'frev': xo.Float64,
         'start_turn': xo.Int64,
-    }
+        'nduration': xo.Int64,
+        }
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/exciter.h')]
 
 
-    def __init__(self, *, samples=None, nsamples=None, sampling=0, frev=0, knl=[1], ksl=[], start_turn=0, **kwargs):        
+    def __init__(self, *, samples=None, nsamples=None, sampling=0, frev=0, knl=[1], ksl=[], start_turn=0, duration=None, **kwargs):
+        
         # sanitize knl and ksl array length
         n = max(len(knl), len(ksl))
         nknl = np.zeros(n, dtype=np.float64)
@@ -90,10 +116,19 @@ class Exciter(xt.BeamElement):
             nsamples = len(samples)
         if samples is None:
             samples = np.zeros(nsamples)
+        nduration = nsamples if duration is None else (duration * sampling)
 
         super().__init__(order=order, knl=nknl, ksl=nksl, samples=samples, 
                          nsamples=nsamples, sampling=sampling, frev=frev,
-                         start_turn=start_turn, **kwargs)
+                         start_turn=start_turn, nduration=nduration**kwargs)
+
+    @property
+    def duration(self):
+        return self.nduration / self.sampling
+
+    @duration.setter
+    def duration(self, duration):
+        self.nduration = duration * self.sampling
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array

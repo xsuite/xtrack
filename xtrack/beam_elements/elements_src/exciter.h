@@ -19,14 +19,15 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
     int64_t const order = ExciterData_get_order(el);
     /*gpuglmem*/ double const* knl = ExciterData_getp1_knl(el, 0);
     /*gpuglmem*/ double const* ksl = ExciterData_getp1_ksl(el, 0);
-    /*gpuglmem*/ double const* samples = ExciterData_getp1_samples(el, 0);
+    /*gpuglmem*/ float const* samples = ExciterData_getp1_samples(el, 0);
     int64_t const nsamples = ExciterData_get_nsamples(el);
+	int64_t const nduration = ExciterData_get_nduration(el);
     double const sampling = ExciterData_get_sampling(el);
     double const frev = ExciterData_get_frev(el);
     int64_t const start_turn = ExciterData_get_start_turn(el);
 
     //start_per_particle_block (part0->part)
-
+    
         // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
         // but without limits, i.e. it can exceed the circumference (for coasting beams)
         // as the particle falls behind or overtakes the reference particle
@@ -37,7 +38,10 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
         // compute excitation sample index
         int64_t i = sampling * ( ( at_turn - start_turn ) / frev - zeta / beta0 / C_LIGHT );
     
-        if (i >= 0 && i < nsamples){
+        if (i >= 0 && i < nduration){
+			if (i >= nsamples){
+				i = i % nsamples;
+			}
 
             // compute normal and skew multipole components
             double const x = LocalParticle_get_x(part);
