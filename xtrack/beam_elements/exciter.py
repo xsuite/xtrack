@@ -7,11 +7,12 @@ Date: 11.11.2022
 """
 
 
-from pathlib import Path
-
 import xobjects as xo
 import xtrack as xt
 import numpy as np
+
+from ..base_element import BeamElement
+from ..general import _pkg_root
 
 
 class Exciter(xt.BeamElement):
@@ -97,30 +98,34 @@ class Exciter(xt.BeamElement):
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/exciter.h')]
 
 
-    def __init__(self, *, samples=None, nsamples=None, sampling=0, frev=0, knl=[1], ksl=[], start_turn=0, duration=None, **kwargs):
+    def __init__(self, *, samples=None, nsamples=None, sampling=0, frev=0, knl=[1], ksl=[], start_turn=0, duration=None, _xobject=None, **kwargs):
         
-        # sanitize knl and ksl array length
-        n = max(len(knl), len(ksl))
-        nknl = np.zeros(n, dtype=np.float64)
-        nksl = np.zeros(n, dtype=np.float64)
-        if knl is not None:
-            nknl[:len(knl)] = np.array(knl)
-        if ksl is not None:
-            nksl[:len(ksl)] = np.array(ksl)
-        order = n - 1
+        if _xobject is not None:
+            super().__init__(_xobject=_xobject)
 
-        # determine sample length or create empty samples for later initialisation
-        if samples is not None:
-            if nsamples is not None and nsamples != len(samples):
-                raise ValueError("Only one of samples or nsamples may be specified")
-            nsamples = len(samples)
-        if samples is None:
-            samples = np.zeros(nsamples)
-        nduration = nsamples if duration is None else (duration * sampling)
+        else:
+            
+            # sanitize knl and ksl array length
+            n = max(len(knl), len(ksl))
+            nknl = np.zeros(n, dtype=np.float64)
+            nksl = np.zeros(n, dtype=np.float64)
+            if knl is not None:
+                nknl[:len(knl)] = np.array(knl)
+            if ksl is not None:
+                nksl[:len(ksl)] = np.array(ksl)
+            kwargs["order"] = n - 1
 
-        super().__init__(order=order, knl=nknl, ksl=nksl, samples=samples, 
-                         nsamples=nsamples, sampling=sampling, frev=frev,
-                         start_turn=start_turn, nduration=nduration**kwargs)
+            # determine sample length or create empty samples for later initialisation
+            if samples is not None:
+                if nsamples is not None and nsamples != len(samples):
+                    raise ValueError("Only one of samples or nsamples may be specified")
+                nsamples = len(samples)
+            if samples is None:
+                samples = np.zeros(nsamples)
+            kwargs["nduration"] = nsamples if duration is None else (duration * sampling)
+
+            super().__init__(knl=nknl, ksl=nksl, samples=samples, nsamples=nsamples, sampling=sampling,
+                            frev=frev, start_turn=start_turn, **kwargs)
 
     @property
     def duration(self):

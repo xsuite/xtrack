@@ -35,7 +35,8 @@ def test_constructor(test_context):
         xt.LimitRacetrack(_context=test_context, min_x=2),
         xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
-        xt.Wire(_context=test_context, current=3.)
+        xt.Wire(_context=test_context, current=3.),
+        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3], sampling=1e3),
     ]
 
     # test to_dict / from_dict
@@ -122,6 +123,7 @@ def test_backtrack(test_context):
         xt.LimitRacetrack(_context=test_context, min_x=2),
         xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
+        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3], sampling=1e3),
     ]
 
     dtk_particle = dtk.TestParticles(
@@ -837,6 +839,33 @@ def test_cavity(test_context):
     assert np.allclose(tau, tau0, atol=1e-14, rtol=0)
     assert np.allclose((part.ptau - part0.ptau) * part0.p0c, 30, atol=1e-9, rtol=0)
 
+@for_all_test_contexts
+def test_exciter(test_context):
+    fs = 2.99792458e8 # sampling frequency in Hz
+    frev = 2.99792458e8 # revolution frequency in Hz
+    k0l = -0.1 # this is scaled by the waveform
+    signal = [1,2,3] # this is the waveform
+    duration = 4/fs
+    exciter = xt.Exciter(samples=signal, sampling=fs, frev=frev, start_turn=0, knl=[k0l], duration=duration)
+
+    line = xt.Line([exciter])
+    tracker = line.build_tracker(_context=test_context)
+
+    particles = xp.Particles(p0c=6.5e12, zeta=[0,-1,-2], _context=test_context)
+    num_particles = len(particles.zeta)
+
+    tracker.track(particles, num_turns=1)
+    expected_px = np.array([0.1, 0.2, 0.3])
+    assert np.allclose(particles.px, expected_px)
+    
+    tracker.track(particles, num_turns=1)
+    expected_px += np.array([0.2, 0.3, 0.1])
+    assert np.allclose(particles.px, expected_px)
+    
+    tracker.track(particles, num_turns=1)
+    expected_px += np.array([0.3, 0.1, 0])
+    assert np.allclose(particles.px, expected_px)
+    
 
 test_source = r"""
 /*gpufun*/
