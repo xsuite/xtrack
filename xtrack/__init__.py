@@ -25,6 +25,10 @@ from .mad_loader import MadLoader
 
 from .multisetter import MultiSetter
 
+# Flag test functions
+from .line import _is_drift, _behaves_like_drift, _is_aperture, _is_thick, _allow_backtrack
+from .loss_location_refinement import _skip_in_loss_location_refinement
+
 import xpart as _xp
 ParticlesMonitor = generate_monitor_class(_xp.Particles)
 

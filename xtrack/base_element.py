@@ -224,6 +224,10 @@ class MetaBeamElement(xo.MetaHybridClass):
 class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     iscollective = None
+    isthick = False
+    behaves_like_drift = False
+    allow_backtrack = False
+    skip_in_loss_location_refinement = False
 
     def init_pipeline(self,pipeline_manager,name,partners_names=[]):
         self._pipeline_manager = pipeline_manager
