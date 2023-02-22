@@ -346,8 +346,7 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     for i_ele in range(i_start_thin_0+1, i_start_thin_1):
         ee = tracker.line.elements[i_ele]
-        if (not ee.__class__.__name__.startswith('Drift') and not (
-                hasattr(ee, 'behaves_like_drift') and ee.behaves_like_drift)):
+        if not hasattr(ee, 'behaves_like_drift') or not ee.behaves_like_drift:
             assert not hasattr(ee, 'isthick') or not ee.isthick
             ss_ee = tracker._tracker_data.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
