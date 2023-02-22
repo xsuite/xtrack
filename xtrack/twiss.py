@@ -17,6 +17,7 @@ from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
 from .general import Table
+from .line import _behaves_like_drift
 
 
 import xtrack as xt # To avoid circular imports
@@ -807,9 +808,6 @@ def compute_one_turn_matrix_finite_differences(
         RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
 
     return RR
-
-def _behaves_like_drift(ee):
-    return (hasattr(ee, 'behaves_like_drift') and ee.behaves_like_drift)
 
 
 def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,

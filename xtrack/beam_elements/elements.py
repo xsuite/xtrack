@@ -14,6 +14,7 @@ from ..random import RandomUniform, RandomExponential, RandomNormal
 from ..general import _pkg_root
 from ..internal_record import RecordIndex, RecordIdentifier
 
+
 class ReferenceEnergyIncrease(BeamElement):
 
     '''Beam element modeling a change of reference energy (acceleration, deceleration). Parameters:
@@ -31,6 +32,7 @@ class ReferenceEnergyIncrease(BeamElement):
         return self.__class__(Delta_p0c=-self.Delta_p0c,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+
 class Marker(BeamElement):
     """A marker beam element with no effect on the particles.
 
@@ -42,6 +44,7 @@ class Marker(BeamElement):
         '_dummy': xo.Int64}
 
     behaves_like_drift = True
+    allow_backtrack = True
 
     _extra_c_sources = [
         "/*gpufun*/\n"
@@ -50,6 +53,7 @@ class Marker(BeamElement):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(_context=_context, _buffer=_buffer, _offset=_offset)
+
 
 class Drift(BeamElement):
     '''Beam element modeling a drift section. Parameters:
@@ -62,6 +66,7 @@ class Drift(BeamElement):
 
     isthick = True
     behaves_like_drift = True
+    allow_backtrack = True
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
 
@@ -107,6 +112,8 @@ class XYShift(BeamElement):
         'dx': xo.Float64,
         'dy': xo.Float64,
         }
+
+    allow_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -234,6 +241,8 @@ class SRotation(BeamElement):
         'sin_z': xo.Float64,
         }
 
+    allow_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
@@ -291,6 +300,8 @@ class XRotation(BeamElement):
         'cos_angle': xo.Float64,
         'tan_angle': xo.Float64,
         }
+
+    allow_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
@@ -362,6 +373,8 @@ class YRotation(BeamElement):
                 - angle [deg]: Rotation angle. Default is ``0``.
 
     '''
+
+    allow_backtrack = True
 
     _xofields={
         'sin_angle': xo.Float64,

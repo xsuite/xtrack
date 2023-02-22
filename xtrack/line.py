@@ -34,15 +34,20 @@ def mk_class_namespace(extra_classes):
     return out
 
 
-_thick_element_types = (beam_elements.Drift, ) #TODO add DriftExact
-
 def _is_drift(element): # can be removed if length is zero
     return isinstance(element, (beam_elements.Drift,) )
 
-def _is_thick(element):
-    return  ((hasattr(element, "isthick") and element.isthick) or
-             (isinstance(element, _thick_element_types)))
+def _behaves_like_drift(element):
+    return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
 
+def _is_aperture(element):
+    return element.__class__.__name__.startswith('Limit')
+
+def _is_thick(element):
+    return  hasattr(element, "isthick") and element.isthick
+
+def _allow_backtrack(element):
+    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
 
 def _next_name(prefix, names, name_format='{}{}'):
     """Return an available element name by appending a number"""
@@ -623,7 +628,7 @@ class Line:
                 e_to_replace = self.element_dict[self.element_names[ii]]
                 if (not _is_drift(e_to_replace) and
                     not isinstance(e_to_replace, Marker) and
-                    not e_to_replace.__class__.__name__.startswith('Limit')):
+                    not _is_aperture(e_to_replace)):
                     raise ValueError('Cannot replace active element '
                                         f'{self.element_names[ii]}')
 
