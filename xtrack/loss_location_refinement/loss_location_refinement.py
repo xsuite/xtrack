@@ -18,8 +18,8 @@ logger.addHandler(logging.StreamHandler())
 
 
 def _skip_in_loss_location_refinement(element):
-    return (hasattr(ee, 'skip_in_loss_location_refinement')
-            and ee.skip_in_loss_location_refinement)
+    return (hasattr(element, 'skip_in_loss_location_refinement')
+            and element.skip_in_loss_location_refinement)
 
 class LossLocationRefinement:
 
