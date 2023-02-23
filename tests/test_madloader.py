@@ -242,9 +242,6 @@ def test_shift_tilt_order():
             lrad=1;
     seq: sequence, l=1;
     elm1:elm, at=1;
-    !mk:marker, at=0.1;
-    !elm2:elm, at=0.5;
-    !elm3:elm, at=0.5;
     endsequence;
     beam;
     use,sequence=seq;
