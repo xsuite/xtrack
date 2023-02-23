@@ -229,6 +229,60 @@ def test_tilt_shift_and_errors():
         line=list(ml.iter_elements())
 
 
+def test_shift_tilt_order():
+    mad = Madx()
+    
+    src="""
+    k1=1.;
+    elm: multipole,
+            knl:={0.0,-k1},
+            ksl={0.0,0.0},
+            angle=0.0,
+            tilt=0.0,
+            lrad=1;
+    seq: sequence, l=1;
+    elm1:elm, at=1;
+    !mk:marker, at=0.1;
+    !elm2:elm, at=0.5;
+    !elm3:elm, at=0.5;
+    endsequence;
+    beam;
+    use,sequence=seq;
+    select,pattern=elm,flag=error;
+    ealign,
+    DX=+0.1, DY=0.0, DS=0.0,
+    DPHI=0.0, DTHETA=0.0, DPSI=1.,
+    AREX=0.0, AREY=0.0;
+    track,onepass;
+    start,x=0.1,y=0.2,t=0.0;
+    run,turns=1;
+    endtrack;
+    """
+    
+    mad.input(src)
+    
+    line = xt.Line.from_madx_sequence(mad.sequence.seq, apply_madx_errors=True)
+    for elements in line.elements:
+        print(elements.to_dict())
+    part = xp.Particles(x=0.1, y=0.2)
+    tracker = line.build_tracker()
+    tracker.track(part)
+
+    madtrack = mad.table["tracksumm"]
+    xsuite_x = part.x[-1]
+    xsuite_px = part.px[-1]
+    xsuite_y = part.y[-1]
+    xsuite_py = part.py[-1]
+    
+    madx_x = madtrack["x"][-1]
+    madx_px = madtrack["px"][-1]
+    madx_y = madtrack["y"][-1]
+    madx_py = madtrack["py"][-1]
+    
+    assert abs(xsuite_x - madx_x) < 1.e-15
+    assert abs(xsuite_px - madx_px) < 1.e-15
+    assert abs(xsuite_y - madx_y) < 1.e-15
+    assert abs(xsuite_py - madx_py) < 1.e-15
 
 def test_matrix():
     mad = Madx()
