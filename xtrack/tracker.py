@@ -285,6 +285,7 @@ class Tracker:
 
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
+        self._zerodrift.iscollective = True
 
         assert len(line.element_names) == len(supertracker.line.element_names)
         assert len(line.element_names) == len(_element_index_in_part)
@@ -1066,6 +1067,9 @@ class Tracker:
 
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
+
+        if monitor is not None:
+            monitor.iscollective = True
 
         return (ele_start, ele_stop, num_turns, flag_monitor, monitor,
                 buffer_monitor, offset_monitor,

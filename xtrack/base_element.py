@@ -230,6 +230,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     behaves_like_drift = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
+    _minitracker = None
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -249,8 +250,19 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        extra_classes=[particles_class._XoStruct],
                                        *args, **kwargs)
 
+    def _track_with_minitracker(self, particles, increment_at_element=False):
+        if not self._minitracker:
+            from xtrack.line import Line
+            line = Line(elements=[self])
+            tracker = line.build_tracker(particles_class=particles.__class__)
+            tracker.config.DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS = (not increment_at_element)
+            self._minitracker = tracker
+            self._minitracker.skip_end_turn_actions = True
 
-    def track(self, particles, increment_at_element=False):
+        self._minitracker.track(particles)
+
+
+    def _track_per_particle(self, particles, increment_at_element=False):
         context = self._buffer.context
         if not hasattr(self, '_track_kernel'):
             if self._track_kernel_name not in context.kernels.keys():
@@ -266,6 +278,20 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         self._track_kernel(el=self._xobject, particles=particles,
                            flag_increment_at_element=increment_at_element,
                            io_buffer=io_buffer_arr)
+
+    def track(self, particles, increment_at_element=False):
+        before = particles.at_element.copy()
+        if self.iscollective:
+            self._track_per_particle(particles, increment_at_element)
+        else:
+            self._track_with_minitracker(particles, increment_at_element)
+        before = before[particles.state > 0]
+        after = particles.at_element[particles.state > 0]
+        if increment_at_element:
+            assert np.all(before < after)
+        else:
+            assert np.all(before == after)
+
 
     @property
     def context(self):
