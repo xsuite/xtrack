@@ -811,6 +811,58 @@ class Line:
         self.element_names = newline.element_names
         return self
 
+    # For every occurence of three or more apertures that are the same,
+    # only separated by Drifts or Markers, this script removes the
+    # apertures in between
+    def remove_repeated_apertures(self, inplace=True, 
+                                  drifts_that_need_aperture=[]):
+
+        self._frozen_check()
+
+        if not inplace:
+            raise NotImplementedError
+
+        aper_to_remove = []
+        # current aperture found
+        aper_0       = None
+        aper_0_name  = None
+        # previous aperture found
+        aper_m1      = None
+        aper_m1_name = None
+        # aperture found before previous aperture
+        aper_m2      = None
+        aper_m2_name = None
+
+        for name in self.element_names:
+            el = self.element_dict[name]
+            if el.__class__.__name__.startswith('Limit'):
+            # We encountered a new aperture, shift all previous
+                aper_m2 = aper_m1
+                aper_m1 = aper_0
+                aper_0  = el
+                aper_m2_name = aper_m1_name
+                aper_m1_name = aper_0_name
+                aper_0_name  = name
+            elif not isinstance(el, (Drift, Marker)) \
+            or name in drifts_that_need_aperture:
+            # We are in an active element: all previous apertures
+            # should be kept in the line
+                aper_0  = None
+                aper_m1 = None
+                aper_m2 = None
+            if aper_0 is not None and aper_0 == aper_m1 == aper_m2:
+            # We found three consecutive apertures (with only Drifts and Markers
+            # in between) that are the same, hence the middle one can be removed
+                aper_to_remove = [*aper_to_remove, aper_m1_name]
+                aper_m1 = aper_m2
+                aper_m2 = None
+                aper_m1_name = aper_m2_name
+                aper_m2_name = None
+
+        for name in aper_to_remove:
+            self.element_dict.pop(name)
+            self.element_names.remove(name)
+
     def merge_consecutive_multipoles(self, inplace=True):
 
         self._frozen_check()
