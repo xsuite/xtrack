@@ -52,6 +52,8 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
 
     if np.all(np.abs(err_values) < tols):
         err_values *= 0
+        if verbose:
+            print('Found point within tolerance!')
 
     for ii, tt in enumerate(targets):
         if tt.scale is not None:
