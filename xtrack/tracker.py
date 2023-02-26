@@ -26,7 +26,7 @@ from .survey import survey_from_tracker
 from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
                     find_closed_orbit, twiss_from_tracker)
-from .match import match_tracker
+from .match import match_tracker, closed_orbit_correction
 from .tapering import compensate_radiation_energy_loss
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
@@ -523,7 +523,8 @@ class Tracker:
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
-        use_full_inverse=None
+        use_full_inverse=None,
+        strengths=False
         ):
 
         self._check_invalidated()
@@ -544,6 +545,10 @@ class Tracker:
         See corresponding section is the Xsuite User's guide.
         '''
         return match_tracker(self, vary, targets, **kwargs)
+
+    def correct_closed_orbit(self, reference, correction_config):
+
+        closed_orbit_correction(self, reference, correction_config)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
@@ -712,6 +717,11 @@ class Tracker:
                     extra_headers=self.extra_headers,
                     local_particle_src=self.local_particle_src,
                 )
+
+    def track(self, *args, **kwargs):
+        pass
+        # This is a placeholder, it is replaced either by the collective
+        # tracker or the single particle tracker
 
     @property
     def particle_ref(self) -> xp.Particles:
@@ -1683,6 +1693,17 @@ def freeze_longitudinal(tracker):
         yield None
     finally:
         tracker.config = config
+
+@contextmanager
+def _temp_knobs(tracker, knobs: dict):
+    old_values = {kk: tracker.vars[kk]._value for kk in knobs.keys()}
+    try:
+        for kk, vv in knobs.items():
+            tracker.vars[kk] = vv
+        yield
+    finally:
+        for kk, vv in old_values.items():
+            tracker.vars[kk] = vv
 
 
 _freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument

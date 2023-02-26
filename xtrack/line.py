@@ -12,6 +12,7 @@ import numpy as np
 
 import xobjects as xo
 import xpart as xp
+import xtrack as xt
 
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -314,6 +315,8 @@ class Line:
         skip_markers=False,
         merge_drifts=False,
         merge_multipoles=False,
+        expressions_for_element_types=None,
+        replace_in_expr=None
     ):
 
         """
@@ -335,7 +338,9 @@ class Line:
             skip_markers=skip_markers,
             merge_drifts=merge_drifts,
             merge_multipoles=merge_multipoles,
+            expressions_for_element_types=expressions_for_element_types,
             error_table=None,  # not implemented yet
+            replace_in_expr=replace_in_expr
             )
         line=loader.make_line()
         return line
@@ -345,7 +350,6 @@ class Line:
         from collections import defaultdict
         import xdeps as xd
 
-        # Extract globals values from madx
         _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
 
@@ -509,11 +513,27 @@ class Line:
         self.element_names = list(self.element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
+            self.tracker = None
 
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
             raise ValueError(
                 'This action is not allowed as the line is frozen!')
+
+    def __getattr__(self, attr):
+        # If not in self look in self.tracker (if not None)
+        if self.tracker is not None and attr in dir(self.tracker):
+            return getattr(self.tracker, attr)
+        elif attr in dir(xt.Tracker):
+            # If in Tracker class, ask the used to build the tracker
+            raise AttributeError(
+                'The tracker is not built. Please call build_tracker()')
+        else:
+            raise AttributeError(
+                f'Line object has no attribute `{attr}`')
+
+    def __dir__(self):
+        return list(set(object.__dir__(self) + dir(self.tracker)))
 
     def __len__(self):
         return len(self.element_names)
@@ -542,13 +562,20 @@ class Line:
         out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
-    def to_dict(self):
+    def to_dict(self, include_var_management=True):
         out = {}
         out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
-        if self._var_management is not None:
+        if self._var_management is not None and include_var_management:
+            if hasattr(self, '_in_multiline') and self._in_multiline:
+                raise ValueError('The line is part ot a MultiLine object. '
+                    'To save without expressions please use '
+                    '`line.to_dict(include_var_management=False)`.\n'
+                    'To save also the deferred expressions please save the '
+                    'entire multiline.\n ')
+
             out.update(self._var_management_to_dict())
         return out
 
