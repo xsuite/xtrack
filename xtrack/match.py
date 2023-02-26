@@ -16,7 +16,7 @@ class OrbitOnly:
         self.zeta = zeta
         self.delta = delta
 
-def _error_for_match(knob_values, vary, targets, tracker, return_norm,
+def _error_for_match(knob_values, vary, targets, tracker, return_scalar,
                      call_counter, verbose, tw_kwargs):
 
     print(f"Matching: twiss call n. {call_counter['n']}       ", end='\r', flush=True)
@@ -62,8 +62,8 @@ def _error_for_match(knob_values, vary, targets, tracker, return_norm,
     if verbose:
         print(f'x = {knob_values}   f(x) = {res_values}')
 
-    if return_norm:
-        return np.sqrt((err_values*err_values).sum())
+    if return_scalar:
+        return np.sum(err_values * err_values)
     else:
         return np.array(err_values)
 
@@ -160,16 +160,16 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
     assert solver in ['fsolve', 'bfgs', 'jacobian'], f'Invalid solver {solver}.'
 
     if solver == 'fsolve':
-        return_norm = False
+        return_scalar = False
     elif solver == 'bfgs':
-        return_norm = True
+        return_scalar = True
     elif solver == 'jacobian':
-        return_norm = False
+        return_scalar = False
 
     call_counter = {'n': 0}
     _err = partial(_error_for_match, vary=vary, targets=targets,
-                   call_counter=call_counter, verbose=verbose,
-                   tracker=tracker, return_norm=return_norm, tw_kwargs=kwargs)
+                call_counter=call_counter, verbose=verbose,
+                tracker=tracker, return_scalar=return_scalar, tw_kwargs=kwargs)
     x0 = [tracker.vars[vv.name]._value for vv in vary]
     try:
         if solver == 'fsolve':
