@@ -28,8 +28,10 @@ line.match(
         xt.Target('y', at='mb.b28l8.b1', value=3e-3, tol=1e-4, scale=1),
         xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-6, scale=1000),
         # I want the bump to be closed
-        xt.Target('y', at='mq.23l8.b1', value=tw_before['mq.23l8.b1', 'y'], tol=1e-6, scale=1),
-        xt.Target('py', at='mq.23l8.b1', value=tw_before['mq.23l8.b1', 'py'], tol=1e-7, scale=1000),
+        xt.Target('y', at='mq.23l8.b1', value=tw_before['mq.23l8.b1', 'y'],
+                  tol=1e-6, scale=1),
+        xt.Target('py', at='mq.23l8.b1', value=tw_before['mq.23l8.b1', 'py'],
+                  tol=1e-7, scale=1000),
     ]
 )
 
