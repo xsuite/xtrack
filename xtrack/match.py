@@ -133,10 +133,15 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
                 tt.at = '_end_point'
 
     if solver is None:
-        if len(targets) == len(vary):
-            solver = 'fsolve'
-        else:
+        if len(targets) != len(vary):
             solver = 'bfgs'
+        elif np.any([vv.limits is not None for vv in vary]):
+            solver = 'bfgs'
+        else:
+            solver = 'fsolve'
+
+    if verbose:
+        print(f'Using solver {solver}')
 
     # Assert that if one vary has a step, all vary have a step
     if any([vv.step is not None for vv in vary]):
@@ -179,6 +184,7 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
             options = {}
             if step is not None:
                 options['eps'] = step
+                options['gtol'] = 0
             optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
                         bounds=([vv.limits for vv in vary]), options=options)
             result_info = {'optimize_result': optimize_result}

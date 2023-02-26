@@ -18,20 +18,44 @@ acbv26.l4b1
 acbv24.l4b1
 '''
 
-import pdb; pdb.set_trace()
-line.match(verbose=True,
+tw_before = line.twiss()
+
+res1 =line.match(verbose=True,
+    ele_start='mq.33l8.b1',
+    ele_stop='mq.23l8.b1',
+    twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
     vary=[
-        xt.Vary(name='acbv32.l4b1', limits=[-1e-6, 1e-6], step=1e-10),
-        xt.Vary(name='acbv30.l4b1', limits=[-1e-6, 1e-6], step=1e-10),
-        xt.Vary(name='acbv26.l4b1', limits=[-1e-6, 1e-6], step=1e-10),
-        xt.Vary(name='acbv24.l4b1', limits=[-1e-6, 1e-6], step=1e-10),
+        xt.Vary(name='acbv32.l8b1', limits=[-100e-6, 100e-6], step=1e-10),
+        xt.Vary(name='acbv30.l8b1', limits=[-100e-6, 100e-6], step=1e-10),
+        #xt.Vary(name='acbv26.l8b1', limits=[-500e-6, 500e-6], step=1e-10),
+        #xt.Vary(name='acbv24.l8b1', limits=[-10e-6, 10e-6], step=1e-10),
     ],
     targets=[
-        # I want the orbit to be 1 mm at mq.28l4.b1 with zero angle
-        xt.Target('y', at='mq.28l4.b1', value=1e-3, tol=1e-6),
-        xt.Target('py', at='mq.28l4.b1', value=0, tol=1e-10),
+        # I want the orbit to be 1 mm at mq.28l8.b1 with zero angle
+        xt.Target('y', at='mb.b28l8.b1', value=1e-3, tol=1e-5, scale=1),
+        xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-7, scale=1000),
         # I want the bump to be closed
-        xt.Target('y', at='mq.30l4.b1', value=1e-3, tol=1e-6),
-        xt.Target('y', at='mq.24l4.b1', value=1e-3, tol=1e-6),
+        #xt.Target('y', at='mq.23l8.b1', value=0, tol=1e-5, scale=1e12),
+        #xt.Target('py', at='mq.23l8.b1', value=0, tol=1e-7, scale=1e12),
+    ]
+)
+
+res2 =line.match(verbose=True,
+    ele_start='mq.33l8.b1',
+    ele_stop='mq.23l8.b1',
+    twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+    vary=[
+        #xt.Vary(name='acbv32.l8b1', limits=[-100e-6, 100e-6], step=1e-10),
+        #xt.Vary(name='acbv30.l8b1', limits=[-100e-6, 100e-6], step=1e-10),
+        xt.Vary(name='acbv26.l8b1', limits=[-500e-6, 500e-6], step=1e-10),
+        xt.Vary(name='acbv24.l8b1', limits=[-500e-6, 500e-6], step=1e-10),
+    ],
+    targets=[
+        # I want the orbit to be 1 mm at mq.28l8.b1 with zero angle
+        #xt.Target('y', at='mb.b28l8.b1', value=1e-3, tol=1e-5, scale=1),
+        #xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-7, scale=1000),
+        # I want the bump to be closed
+        xt.Target('y', at='mq.23l8.b1', value=0, tol=1e-5, scale=1),
+        xt.Target('py', at='mq.23l8.b1', value=0, tol=1e-7, scale=1000),
     ]
 )
