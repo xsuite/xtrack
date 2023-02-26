@@ -25,8 +25,8 @@ res1 =line.match(verbose=True,
     ele_stop='mq.23l8.b1',
     twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
     vary=[
-        xt.Vary(name='acbv32.l8b1', limits=[-100e-6, 100e-6], step=1e-10),
         xt.Vary(name='acbv30.l8b1', limits=[-100e-6, 100e-6], step=1e-10),
+        xt.Vary(name='acbv28.l8b1', limits=[-100e-6, 100e-6], step=1e-10),
         #xt.Vary(name='acbv26.l8b1', limits=[-500e-6, 500e-6], step=1e-10),
         #xt.Vary(name='acbv24.l8b1', limits=[-10e-6, 10e-6], step=1e-10),
     ],
@@ -59,3 +59,16 @@ res2 =line.match(verbose=True,
         xt.Target('py', at='mq.23l8.b1', value=0, tol=1e-7, scale=1000),
     ]
 )
+
+tw = line.twiss()
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure()
+plt.plot(tw.s, tw.y, label='y')
+plt.axvline(x=line.get_s_position('mb.b28l8.b1'), color='k')
+plt.axvline(x=line.get_s_position('mcbv.30l8.b1'), color='k', linestyle='--', alpha=0.5)
+plt.axvline(x=line.get_s_position('mcbv.28l8.b1'), color='k', linestyle='--', alpha=0.5)
+plt.axvline(x=line.get_s_position('mcbv.26l8.b1'), color='k', linestyle='--', alpha=0.5)
+plt.axvline(x=line.get_s_position('mcbv.24l8.b1'), color='k', linestyle='--', alpha=0.5)
+plt.show()
