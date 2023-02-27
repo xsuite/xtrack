@@ -19,7 +19,7 @@ _RecordIdentifier_getp_record_source = r'''
     int64_t buffer_id = RecordIdentifier_get_buffer_id(record_id);
     /*gpuglmem*/ int64_t* found_id = (/*gpuglmem*/ int64_t*)io_buffer;
     if (buffer_id != (*found_id)){
-        printf("Error: buffer_id mismatch!\n");
+        printf("Error: buffer_id mismatch! %ld != %ld\n", buffer_id, (*found_id));
         return NULL;
     }
 

@@ -252,9 +252,17 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
     def _track_with_minitracker(self, particles, increment_at_element=False):
         if not self._minitracker:
+            if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+                io_buffer = self.io_buffer
+            else:
+                io_buffer = self.context.zeros(1, dtype=np.int8)  # dummy
+
             from xtrack.line import Line
             line = Line(elements=[self])
-            tracker = line.build_tracker(particles_class=particles.__class__)
+            tracker = line.build_tracker(
+                particles_class=particles.__class__,
+                io_buffer=io_buffer,
+            )
             tracker.config.DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS = (not increment_at_element)
             self._minitracker = tracker
             self._minitracker.skip_end_turn_actions = True
