@@ -61,7 +61,7 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
         }
 
     	if (!is_alive){
-           LocalParticle_set_state(part, 0);
+           LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
         }
 
     //end_per_particle_block

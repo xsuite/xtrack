@@ -20,7 +20,7 @@ from .general import _pkg_root
 from .internal_record import (new_io_buffer,
                               start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type)
-from .line import Line
+from .line import Line, _is_thick
 from .pipeline import PipelineStatus
 from .survey import survey_from_tracker
 from .tracker_data import TrackerData
@@ -224,7 +224,7 @@ class Tracker:
                 pp.element_names = tempxtline.element_names
                 noncollective_xelements += pp.elements
             else:
-                if hasattr(pp, 'isthick') and pp.isthick:
+                if _is_thick(pp):
                     ldrift = pp.length
                 else:
                     ldrift = 0.

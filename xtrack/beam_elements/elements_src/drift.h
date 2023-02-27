@@ -6,12 +6,9 @@
 #ifndef XTRACK_DRIFT_H
 #define XTRACK_DRIFT_H
 
+
 /*gpufun*/
-void Drift_track_local_particle(DriftData el, LocalParticle* part0){
-
-    double const length = DriftData_get_length(el);
-
-    //start_per_particle_block (part0->part)
+void Drift_single_particle(LocalParticle* part, double length){
 
     #ifndef XTRACK_USE_EXACT_DRIFTS
 
@@ -43,8 +40,19 @@ void Drift_track_local_particle(DriftData el, LocalParticle* part0){
         LocalParticle_add_to_s(part, length);
 
     #endif
+}
+
+
+/*gpufun*/
+void Drift_track_local_particle(DriftData el, LocalParticle* part0){
+
+    double const length = DriftData_get_length(el);
+
+    //start_per_particle_block (part0->part)
+        Drift_single_particle(part, length);
     //end_per_particle_block
 
 }
 
-#endif
+
+#endif /* XTRACK_DRIFT_H */

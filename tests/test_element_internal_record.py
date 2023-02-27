@@ -23,10 +23,6 @@ def test_record_single_table(test_context):
             }
 
     extra_src = []
-    extra_src.extend([
-        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        ])
 
     extra_src.append(r'''
         /*gpufun*/
@@ -45,7 +41,7 @@ def test_record_single_table(test_context):
             //start_per_particle_block (part0->part)
 
                 for (int64_t i = 0; i < n_kicks; i++) {
-                    double rr = 1e-6 * LocalParticle_generate_random_double(part);
+                    double rr = 1e-6 * RandomUniform_generate(part);
                     LocalParticle_add_to_px(part, rr);
 
                     if (record){
@@ -76,6 +72,8 @@ def test_record_single_table(test_context):
             }
 
         _internal_record_class = TestElementRecord
+
+        _depends_on = [xt.RandomUniform]
 
         _extra_c_sources = extra_src
 
@@ -217,10 +215,6 @@ def test_record_multiple_tables(test_context):
             }
 
     extra_src = []
-    extra_src.extend([
-        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        ])
 
     extra_src.append(r'''
         /*gpufun*/
@@ -266,7 +260,7 @@ def test_record_multiple_tables(test_context):
                 }
 
                 for (int64_t i = 0; i < n_kicks; i++) {
-                    double rr = 1e-6 * LocalParticle_generate_random_double(part);
+                    double rr = 1e-6 * RandomUniform_generate(part);
                     LocalParticle_add_to_px(part, rr);
 
                     // Record in table2 info about the generated kicks
@@ -297,6 +291,8 @@ def test_record_multiple_tables(test_context):
             'n_kicks': xo.Int64,
             }
         _internal_record_class = TestElementRecord
+
+        _depends_on = [xt.RandomUniform]
 
         _extra_c_sources = extra_src
 
@@ -474,10 +470,6 @@ def test_record_standalone_mode(test_context):
             }
 
     extra_src = []
-    extra_src.extend([
-        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        ])
 
     extra_src.append(r'''
         /*gpufun*/
@@ -523,7 +515,7 @@ def test_record_standalone_mode(test_context):
                 }
 
                 for (int64_t i = 0; i < n_kicks; i++) {
-                    double rr = 1e-6 * LocalParticle_generate_random_double(part);
+                    double rr = 1e-6 * RandomUniform_generate(part);
                     LocalParticle_add_to_px(part, rr);
 
                     // Record in table2 info about the generated kicks
@@ -555,6 +547,8 @@ def test_record_standalone_mode(test_context):
             }
         _internal_record_class = TestElementRecord
 
+        _depends_on = [xt.RandomUniform]
+
         _extra_c_sources = extra_src
 
 
@@ -570,6 +564,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 10000, 'table2': 10000})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
 
@@ -610,6 +605,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 20, 'table2': 15})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
     for i_turn in range(num_turns0 + num_turns1):
@@ -633,6 +629,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 10000, 'table2': 10000})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
     num_particles = len(part.x)
@@ -680,6 +677,7 @@ def test_record_standalone_mode(test_context):
                             capacity={'table1': 10000, 'table2': 10000})
 
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
+    part._init_random_number_generator()
     num_turns0 = 10
     num_turns1 = 3
 
