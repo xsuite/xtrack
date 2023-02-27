@@ -30,8 +30,9 @@ def test_multiline_and_orbit_correction(test_context):
 
 
     collider = xt.Multiline(
-        lines={'lhcb1': input_line, 'lhcb1_co_ref': input_line_co_ref})
-    input_line_co_ref.particle_ref = input_line.particle_ref.copy()
+        lines={'lhcb1': input_line.copy(),
+               'lhcb1_co_ref': input_line_co_ref.copy()})
+    collider['lhcb1_co_ref'].particle_ref = collider['lhcb1'].particle_ref.copy()
 
     # Profit to test the dump and load
     collider = xt.Multiline.from_dict(collider.to_dict())
@@ -109,7 +110,9 @@ def test_multiline_and_orbit_correction(test_context):
 
     tw_before = collider.lhcb1.twiss()
 
-    collider.lhcb1.correct_closed_orbit(reference=collider.lhcb1_co_ref,
+    collider.lhcb1.correct_closed_orbit(
+                             verbose=True,
+                             reference=collider.lhcb1_co_ref,
                              correction_config=correction_config)
 
     tw = collider.lhcb1.twiss()

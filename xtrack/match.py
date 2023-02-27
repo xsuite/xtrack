@@ -67,11 +67,24 @@ def _error_for_match(knob_values, vary, targets, tracker, return_scalar,
     else:
         return np.array(err_values)
 
+def _jacobian(x, steps, fun):
+    x = np.array(x).copy()
+    steps = np.array(steps).copy()
+    assert len(x) == len(steps)
+    f0 = fun(x)
+    if np.isscalar(f0):
+        jac = np.zeros((1, len(x)))
+    else:
+        jac = np.zeros((len(f0), len(x)))
+    for ii in range(len(x)):
+        x[ii] += steps[ii]
+        jac[:, ii] = (fun(x) - f0) / steps[ii]
+        x[ii] -= steps[ii]
+    return jac
+
 class Vary:
     def __init__(self, name, limits=None, step=None):
         self.name = name
-        if limits is None:
-            limits = [-1e30, 1e30]
         self.limits = limits
         self.step = step
 
@@ -145,53 +158,46 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
     if verbose:
         print(f'Using solver {solver}')
 
-    # Assert that if one vary has a step, all vary have a step
-    if any([vv.step is not None for vv in vary]):
-        if not all([vv.step is not None for vv in vary]):
-            raise NotImplementedError('All vary must have the same step (for now).')
+    steps = []
+    for vv in vary:
+        if vv.step is not None:
+            steps.append(vv.step)
+        else:
+            steps.append(1e-10)
 
-    # Assert that all vary have the same step
-    steps = [vv.step for vv in vary]
-    if (steps[0] is not None
-            and not np.all(np.isclose(steps, steps[0], atol=0, rtol=1e-14))):
-        raise NotImplementedError('All vary must have the same step (for now).')
-    step = steps[0]
+    assert solver in ['fsolve', 'bfgs', 'jacobian'], (
+                      f'Invalid solver {solver}.')
 
-    assert solver in ['fsolve', 'bfgs', 'jacobian'], f'Invalid solver {solver}.'
-
-    if solver == 'fsolve':
-        return_scalar = False
-    elif solver == 'bfgs':
-        return_scalar = True
-    elif solver == 'jacobian':
-        return_scalar = False
+    return_scalar = {'fsolve': False, 'bfgs': True, 'jacobian': False}[solver]
 
     call_counter = {'n': 0}
     _err = partial(_error_for_match, vary=vary, targets=targets,
                 call_counter=call_counter, verbose=verbose,
                 tracker=tracker, return_scalar=return_scalar, tw_kwargs=kwargs)
+    _jac= partial(_jacobian, steps=steps, fun=_err)
     x0 = [tracker.vars[vv.name]._value for vv in vary]
     try:
         if solver == 'fsolve':
-            options = {}
-            if step is not None:
-                options['epsfcn'] = step
             (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(),
-                full_output=True, **options)
+                full_output=True, fprime=_jac)
             if ier != 1:
                 raise RuntimeError("fsolve failed: %s" % mesg)
             result_info = {
                 'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
         elif solver == 'bfgs':
-            options = {}
-            if step is not None:
-                options['eps'] = step
-                options['gtol'] = 0
+            bounds =[]
+            for vv in vary:
+                if vv.limits is not None:
+                    bounds.append(vv.limits)
+                else:
+                    bounds.append((-1e30, 1e30))
             optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
-                        bounds=([vv.limits for vv in vary]), options=options)
+                        bounds=([vv.limits for vv in vary]),
+                        jac=_jac, options={'gtol':0})
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
+            raise NotImplementedError # To be finalized and tested
             options = {}
             if step is not None:
                 options['eps'] = step
@@ -220,20 +226,25 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
     print('\n')
     return result_info
 
-def closed_orbit_correction(tracker, tracker_co_ref, correction_config):
+def closed_orbit_correction(tracker, tracker_co_ref, correction_config,
+                            solver=None, verbose=False, restore_if_fail=True):
 
     for corr_name, corr in correction_config.items():
         print('Correcting', corr_name)
         with xt.tracker._temp_knobs(tracker, corr['ref_with_knobs']):
             tw_ref = tracker_co_ref.twiss(method='4d', zeta0=0, delta0=0)
-        vary = [xt.Vary(vv, step=1e-9, limits=[-5e-6, 5e-6]) for vv in corr['vary']]
+        vary = [xt.Vary(vv, step=1e-9) for vv in corr['vary']]
         targets = []
         for tt in corr['targets']:
             assert isinstance(tt, str), 'For now only strings are supported for targets'
             for kk in ['x', 'px', 'y', 'py']:
                 targets.append(xt.Target(kk, at=tt, value=tw_ref[tt, kk], tol=1e-9))
 
+        import pdb; pdb.set_trace()
         tracker.match(
+            solver=solver,
+            verbose=verbose,
+            restore_if_fail=restore_if_fail,
             vary=vary,
             targets=targets,
             twiss_init=xt.OrbitOnly(
