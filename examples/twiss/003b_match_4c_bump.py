@@ -56,3 +56,18 @@ ax.set_xlabel('s [m]')
 ax.set_ylabel('y [mm]')
 ax.set_ylim(-0.5, 10)
 plt.show()
+
+assert np.isclose(tw['mb.b28l8.b1', 'y'], 3e-3, atol=1e-4)
+assert np.isclose(tw['mb.b28l8.b1', 'py'], 0, atol=1e-6)
+assert np.isclose(tw['mq.23l8.b1', 'y'], tw_before['mq.23l8.b1', 'y'], atol=1e-6)
+assert np.isclose(tw['mq.23l8.b1', 'py'], tw_before['mq.23l8.b1', 'py'], atol=1e-7)
+assert np.isclose(tw['mq.33l8.b1', 'y'], tw_before['mq.33l8.b1', 'y'], atol=1e-6)
+assert np.isclose(tw['mq.33l8.b1', 'py'], tw_before['mq.33l8.b1', 'py'], atol=1e-7)
+
+assert np.isclose(tw['mb.b28l8.b1', 'x'], tw_before['mb.b28l8.b1', 'x'], atol=1e-6)
+assert np.isclose(tw['mb.b28l8.b1', 'px'], tw_before['mb.b28l8.b1', 'px'], atol=1e-7)
+assert np.isclose(tw['mq.23l8.b1', 'x'], tw_before['mq.23l8.b1', 'x'], atol=1e-6)
+assert np.isclose(tw['mq.23l8.b1', 'px'], tw_before['mq.23l8.b1', 'px'], atol=1e-7)
+assert np.isclose(tw['mq.33l8.b1', 'x'], tw_before['mq.33l8.b1', 'x'], atol=1e-6)
+assert np.isclose(tw['mq.33l8.b1', 'px'], tw_before['mq.33l8.b1', 'px'], atol=1e-7)
+
