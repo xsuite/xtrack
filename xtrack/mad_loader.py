@@ -176,7 +176,9 @@ class MadElem:
             self.field_errors = FieldErrors(elem.field_errors)
         else:
             self.field_errors = None
-        if elem.dphi or elem.dtheta or elem.dpsi or elem.dx or elem.dy or elem.ds:
+        if elem.base_type.name != 'translation' and (
+                elem.dphi or elem.dtheta or elem.dpsi
+                or elem.dx or elem.dy or elem.ds):
             raise NotImplementedError
 
     # @property
@@ -1041,9 +1043,12 @@ class MadLoader:
         el_transverse = self.Builder(
             ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
-        dzeta = ee.ds*self.sequence.beam.beta0
+        dzeta = ee.ds*self.sequence.beam.beta
         el_longitudinal = self.Builder(
             ee.name, self.classes.ZetaShift, dzeta=dzeta
         )
+        ee.dx = 0
+        ee.dy = 0
+        ee.ds = 0
         return self.convert_thin_element([el_transverse,el_longitudinal], ee)
 
