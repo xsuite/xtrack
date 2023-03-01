@@ -38,4 +38,16 @@
     #define QELEM (1.60217662e-19)
 #endif /* !defined( QELEM ) */
 
+#if !defined( DBL_MAX )
+    #define DBL_MAX (1.7976931348623158e+308)
+#endif /* !defined( DBL_MAX ) */
+
+#if !defined( DBL_MIN )
+    #define DBL_MIN (2.2250738585072014e-308)
+#endif /* !defined( DBL_MIN ) */
+
+#if !defined( DBL_EPSILON )
+    #define DBL_EPSILON (2.2204460492503131e-16)
+#endif /* !defined( DBL_EPSILON ) */
+
 #endif /* XTRACK_CONSTANTS_H */

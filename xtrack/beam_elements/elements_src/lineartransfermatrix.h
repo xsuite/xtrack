@@ -180,17 +180,17 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         double const gauss_noise_ampl_zeta = LinearTransferMatrixData_get_gauss_noise_ampl_zeta(el);
         double const gauss_noise_ampl_delta = LinearTransferMatrixData_get_gauss_noise_ampl_delta(el);
 
-        double r = LocalParticle_generate_random_double_gauss(part);
+        double r = RandomNormal_generate(part);
         LocalParticle_add_to_x(part,r*gauss_noise_ampl_x);
-        r = LocalParticle_generate_random_double_gauss(part);
+        r = RandomNormal_generate(part);
         LocalParticle_add_to_px(part,r*gauss_noise_ampl_px);
-        r = LocalParticle_generate_random_double_gauss(part);
+        r = RandomNormal_generate(part);
         LocalParticle_add_to_y(part,r*gauss_noise_ampl_y);
-        r = LocalParticle_generate_random_double_gauss(part);
+        r = RandomNormal_generate(part);
         LocalParticle_add_to_py(part,r*gauss_noise_ampl_py);
-        r = LocalParticle_generate_random_double_gauss(part);
+        r = RandomNormal_generate(part);
         LocalParticle_add_to_zeta(part,r*gauss_noise_ampl_zeta);
-        r = LocalParticle_generate_random_double_gauss(part);
+        r = RandomNormal_generate(part);
         double delta = LocalParticle_get_delta(part);
         delta += r*gauss_noise_ampl_delta;
         LocalParticle_update_delta(part,delta);

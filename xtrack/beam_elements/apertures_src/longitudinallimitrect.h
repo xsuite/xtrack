@@ -27,7 +27,7 @@ void LongitudinalLimitRect_track_local_particle(LongitudinalLimitRectData el, Lo
 
 	// I assume that if I am in the function is because
     	if (!is_alive){
-           LocalParticle_set_state(part, -2);
+           LocalParticle_set_state(part, XT_LOST_ON_LONG_CUT);
 	}
 
     //end_per_particle_block

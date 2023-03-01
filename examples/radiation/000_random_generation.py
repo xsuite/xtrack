@@ -22,14 +22,14 @@ class TestElement(xt.BeamElement):
         'dummy': xo.Float64,
         }
 
+    _depends_on = [xt.RandomUniform]
+
     _extra_c_sources = [
-        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         '''
         /*gpufun*/
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
             //start_per_particle_block (part0->part)
-                double rr = LocalParticle_generate_random_double(part);
+                double rr = RandomUniform_generate(part);
                 LocalParticle_set_x(part, rr);
             //end_per_particle_block
         }

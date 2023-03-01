@@ -10,8 +10,10 @@ import xobjects as xo
 import xpart as xp
 
 from ..base_element import BeamElement
+from ..random import RandomUniform, RandomExponential, RandomNormal
 from ..general import _pkg_root
 from ..internal_record import RecordIndex, RecordIdentifier
+
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -30,6 +32,7 @@ class ReferenceEnergyIncrease(BeamElement):
         return self.__class__(Delta_p0c=-self.Delta_p0c,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+
 class Marker(BeamElement):
     """A marker beam element with no effect on the particles.
 
@@ -38,7 +41,10 @@ class Marker(BeamElement):
     """
 
     _xofields = {
-	'_dummy': xo.Int64}
+        '_dummy': xo.Int64}
+
+    behaves_like_drift = True
+    allow_backtrack = True
 
     _extra_c_sources = [
         "/*gpufun*/\n"
@@ -48,6 +54,7 @@ class Marker(BeamElement):
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(_context=_context, _buffer=_buffer, _offset=_offset)
 
+
 class Drift(BeamElement):
     '''Beam element modeling a drift section. Parameters:
 
@@ -56,8 +63,10 @@ class Drift(BeamElement):
 
     _xofields = {
         'length': xo.Float64}
-    isthick=True
-    behaves_like_drift=True
+
+    isthick = True
+    behaves_like_drift = True
+    allow_backtrack = True
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
 
@@ -103,6 +112,8 @@ class XYShift(BeamElement):
         'dx': xo.Float64,
         'dy': xo.Float64,
         }
+
+    allow_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -230,6 +241,8 @@ class SRotation(BeamElement):
         'sin_z': xo.Float64,
         }
 
+    allow_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
@@ -287,6 +300,8 @@ class XRotation(BeamElement):
         'cos_angle': xo.Float64,
         'tan_angle': xo.Float64,
         }
+
+    allow_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
@@ -358,6 +373,8 @@ class YRotation(BeamElement):
                 - angle [deg]: Rotation angle. Default is ``0``.
 
     '''
+
+    allow_backtrack = True
 
     _xofields={
         'sin_angle': xo.Float64,
@@ -433,6 +450,30 @@ class YRotation(BeamElement):
         return self.__class__(angle=-self.angle,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+class ZetaShift(BeamElement):
+    '''Beam element modeling a longitudinal translation of the reference system. Parameters:
+
+                - dzeta [m]: Translation in the longitudinal plane. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'dzeta': xo.Float64,
+        }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
+
+    _store_in_to_dict = ['dzeta']
+
+    def __init__(self, dzeta = 0, **nargs):
+        nargs['dzeta'] = dzeta
+        super().__init__(**nargs)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(
+                              dzeta = -self.dzeta,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class SynchrotronRadiationRecord(xo.HybridClass):
@@ -469,9 +510,9 @@ class Multipole(BeamElement):
         'ksl': xo.Float64[:],
         }
 
+    _depends_on = [RandomUniform, RandomExponential]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
@@ -543,8 +584,6 @@ class SimpleThinQuadrupole(BeamElement):
     }
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
@@ -608,8 +647,6 @@ class SimpleThinBend(BeamElement):
     }
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
@@ -892,9 +929,9 @@ class LinearTransferMatrix(BeamElement):
         'gauss_noise_ampl_delta':xo.Float64,
         }
 
+    _depends_on = [RandomNormal]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
@@ -1056,9 +1093,9 @@ class FirstOrderTaylorMap(BeamElement):
         'm0': xo.Float64[6],
         'm1': xo.Float64[6,6]}
 
+    _depends_on = [RandomUniform, RandomExponential]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]

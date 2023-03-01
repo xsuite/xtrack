@@ -178,18 +178,18 @@ double synrad_gen_photon_energy_normalized(LocalParticle *part)
   double const ratio = 0.908250405131381;
   double appr, exact, result;
   do {
-    if (LocalParticle_generate_random_double(part) < ratio) { // use low energy approximation
-      result=c1+(1.-c1)*LocalParticle_generate_random_double(part);
+    if (RandomUniform_generate(part) < ratio) { // use low energy approximation
+      result=c1+(1.-c1)*RandomUniform_generate(part);
       double tmp = result*result;
       result*=tmp;  	// take to 3rd power;
       exact=SynRad(result);
       appr=a1/tmp;
     } else {				// use high energy approximation
-      result=xlow-log(LocalParticle_generate_random_double(part));
+      result=xlow-log(RandomUniform_generate(part));
       exact=SynRad(result);
       appr=a2*exp(-result);
     }
-  } while (exact < appr*LocalParticle_generate_random_double(part));	// reject in proportion of approx
+  } while (exact < appr*RandomUniform_generate(part));	// reject in proportion of approx
   return result; // result now exact spectrum with unity weight
 }
 
@@ -222,7 +222,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
     double energy = initial_energy;
     double gamma = energy / m0; //
     //double beta_gamma = sqrt(gamma*gamma-1); //
-    double n = LocalParticle_generate_random_double_exp(part); // path_length / mean_free_path;
+    double n = RandomExponential_generate(part); // path_length / mean_free_path;
     while (n < synrad_average_number_of_photons(beta0 * gamma0, curv, lpath)) {
         nphot++;
         double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
@@ -235,7 +235,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
         energy -= energy_loss; // eV
         gamma = energy / m0; //
         // beta_gamma = sqrt(gamma*gamma-1); // that's how beta gamma is
-        n += LocalParticle_generate_random_double_exp(part);
+        n += RandomExponential_generate(part);
         if (record){
           int64_t i_slot = RecordIndex_get_slot(record_index);
           // The returned slot id is negative if record is NULL or if record is full
@@ -256,7 +256,7 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
     }
 
     if (energy == 0.0)
-      LocalParticle_set_state(part, -10); // used to flag this kind of loss
+      LocalParticle_set_state(part, XT_LOST_ALL_E_IN_SYNRAD); // used to flag this kind of loss
     else{
       LocalParticle_add_to_energy(part, energy-initial_energy, 0);
     }
