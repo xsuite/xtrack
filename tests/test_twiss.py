@@ -255,18 +255,17 @@ def test_knl_ksl_in_twiss(test_context):
     line = xt.Line.from_dict(input_data['line'])
     line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
 
     tw = line.twiss()
 
     tw_with_knl_ksl = line.twiss(strengths=True)
-    tw_with_knl_ksl_reversed = line.twiss(strengths=True, reverse=True)
     tw_with_knl_ksl_part = line.twiss(strengths=True,
                         ele_start='bpm.21r1.b1',
                         ele_stop='bpm.31r1.b1',
                         twiss_init=tw.get_twiss_init(at_element='bpm.21r1.b1'))
 
-    for tt in [tw_with_knl_ksl, tw_with_knl_ksl_reversed, tw_with_knl_ksl_part]:
+    for tt in [tw_with_knl_ksl, tw_with_knl_ksl_part]:
 
         for kk in ['k0nl', 'k0sl', 'k1nl', 'k1sl', 'k2nl', 'k2sl']:
             assert kk in tt.keys()

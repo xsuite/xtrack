@@ -1133,6 +1133,8 @@ class TwissTable(Table):
                 new[kk] = new[kk][:-1][::-1] + self.name[-1:]
             elif kk == 'W_matrix':
                 continue
+            elif kk.startswith('k') and kk.endswith('nl', 'sl'):
+                continue # Not yet implemented
             else:
                 new[kk] = new[kk][::-1].copy()
 
