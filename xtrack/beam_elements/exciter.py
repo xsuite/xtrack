@@ -8,14 +8,13 @@ Date: 11.11.2022
 
 
 import xobjects as xo
-import xtrack as xt
 import numpy as np
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
 
 
-class Exciter(xt.BeamElement):
+class Exciter(BeamElement):
     """Beam element modeling a transverse exciter as a time-dependent thin multipole.
     
     The given multipole components (knl and ksl) are scaled according to a custom waveform,
