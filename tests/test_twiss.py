@@ -243,3 +243,33 @@ def test_twiss_does_not_affect_monitors(test_context):
 
     tracker.twiss()
     assert monitor.x[0,0] == 123e-6
+
+
+@for_all_test_contexts
+def test_knl_ksl_in_twiss(test_context):
+
+    path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(path_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data['line'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+    line.build_tracker()
+
+    tw = line.twiss()
+
+    tw_with_knl_ksl = line.twiss(strengths=True)
+    tw_with_knl_ksl_reversed = line.twiss(strengths=True, reverse=True)
+    tw_with_knl_ksl_part = line.twiss(strengths=True,
+                        ele_start='bpm.21r1.b1',
+                        ele_stop='bpm.31r1.b1',
+                        twiss_init=tw.get_twiss_init(at_element='bpm.21r1.b1'))
+
+    for tt in [tw_with_knl_ksl, tw_with_knl_ksl_reversed, tw_with_knl_ksl_part]:
+
+        for kk in ['k0nl', 'k0sl', 'k1nl', 'k1sl', 'k2nl', 'k2sl']:
+            assert kk in tt.keys()
+            assert kk not in tw.keys()
+
+        assert tt['ms.30r1.b1', 'k2nl'] == line['ms.30r1.b1'].knl[2]
