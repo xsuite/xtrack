@@ -39,11 +39,11 @@ line = xt.Line(elements=
                 n_slices*[xt.Drift(length=tot_length/n_slices)],
                 element_names=['drift{ii}' for ii in range(n_slices)])
 
-tracker = xt.Tracker(_context=context, line=line)
+line.build_tracker(_context=context)
 
 # Track
 n_turns = 3
-tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
+line.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
 
 part_id = context.nparray_from_context_array(particles.particle_id)
 part_state = context.nparray_from_context_array(particles.state)
@@ -61,13 +61,13 @@ id_alive = part_id[part_state>0]
 s_expected = []
 s_tot = tot_length*n_turns
 for ii in range(n_part):
-    if np.abs(part_px[ii]) * s_tot > tracker.global_xy_limit:
-        s_expected_x = np.abs(tracker.global_xy_limit / part_px[ii])
+    if np.abs(part_px[ii]) * s_tot > line.global_xy_limit:
+        s_expected_x = np.abs(line.global_xy_limit / part_px[ii])
     else:
         s_expected_x = s_tot
 
-    if np.abs(part_py[ii] * s_tot) > tracker.global_xy_limit:
-        s_expected_y = np.abs(tracker.global_xy_limit / part_py[ii])
+    if np.abs(part_py[ii] * s_tot) > line.global_xy_limit:
+        s_expected_y = np.abs(line.global_xy_limit / part_py[ii])
     else:
         s_expected_y = s_tot
 
@@ -90,7 +90,7 @@ assert np.allclose(at_turn_expected, part_at_turn)
 assert np.allclose(at_element_expected, part_at_element, atol=1.1)
 
 # Test monitor
-mon = tracker.record_last_track
+mon = line.record_last_track
 for ii in range(n_part):
     iidd = part_id[ii]
     this_at_turn = part_at_turn[ii]
