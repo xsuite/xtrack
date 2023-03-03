@@ -1302,15 +1302,17 @@ def _extract_knl_ksl(line, names):
     knl = []
     ksl = []
 
+    ctx2np = line._context.nparray_from_context_array
+
     for nn in names:
         if nn in line.element_names:
             if hasattr(line.element_dict[nn], 'knl'):
-                knl.append(line.element_dict[nn].knl.copy())
+                knl.append(ctx2np(line.element_dict[nn].knl).copy())
             else:
                 knl.append([])
 
             if hasattr(line.element_dict[nn], 'ksl'):
-                ksl.append(line.element_dict[nn].ksl.copy())
+                ksl.append(ctx2np(line.element_dict[nn].ksl).copy())
             else:
                 ksl.append([])
         else:
