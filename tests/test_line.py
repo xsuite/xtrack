@@ -439,3 +439,18 @@ def test_from_json_to_json(tmp_path):
 
     assert isinstance(result['d'], xt.Drift)
     assert result['d'].length == 1
+
+    with open(tmp_path / 'test2.json', 'w') as f:
+        line.to_json(f)
+
+    with open(tmp_path / 'test2.json', 'r') as f:
+        result = xt.Line.from_json(f)
+
+    assert len(result.element_dict.keys()) == 2
+    assert result.element_names == ['m', 'd', 'm', 'd']
+
+    assert isinstance(result['m'], xt.Multipole)
+    assert (result['m'].knl == [1, 2]).all()
+
+    assert isinstance(result['d'], xt.Drift)
+    assert result['d'].length == 1

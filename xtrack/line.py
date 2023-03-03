@@ -650,7 +650,7 @@ class Line:
         '''
 
         if isinstance(file, io.IOBase):
-            json.dump(self.to_dict(**kwargs), file)
+            json.dump(self.to_dict(**kwargs), file, cls=xo.JEncoder)
         else:
             with open(file, 'w') as fid:
                 json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
