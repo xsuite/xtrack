@@ -3,11 +3,13 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
+import io
 import math
 import logging
 import json
 from copy import deepcopy
 from pprint import pp
+from pathlib import Path
 
 import numpy as np
 
@@ -207,8 +209,13 @@ class Line:
 
     @classmethod
     def from_json(cls, file, **kwargs):
-        with open(file, 'r') as fid:
-            dct = json.load(fid)
+
+        if isinstance(file, io.IOBase):
+            dct = json.load(file)
+        else:
+            with open(file, 'r') as fid:
+                dct = json.load(fid)
+
         if 'line' in dct.keys():
             dct_line = dct['line']
         else:
@@ -457,9 +464,18 @@ class Line:
                 return [self.element_dict[nn] for nn in names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
-
         """
-        Replace with Drifts all elements satisfying a given condition.
+        Return a new line with only the elements satisfying a given condition.
+        Other elements are replaced with Drifts.
+
+        Parameters
+        ----------
+        mask: list of bool
+            A list of booleans with the same length as the line.
+            If True, the element is kept, otherwise it is replaced with a Drift.
+        exclude_types_starting_with: str
+            If not None, all elements whose type starts with the given string
+            are replaced with Drifts.
         """
 
         if mask is None:
@@ -492,6 +508,13 @@ class Line:
 
         """
         Cycle the line to start from a given element.
+
+        Parameters
+        ----------
+        index_first_element: int
+            Index of the element to start from
+        name_first_element: str
+            Name of the element to start from
         """
 
         if ((index_first_element is not None and name_first_element is not None)
@@ -522,6 +545,10 @@ class Line:
         self.element_names = tuple(self.element_names)
 
     def unfreeze(self):
+        """
+        Unfreeze the line. This is useful if you want to modify the line
+        after it has been frozen (most likely by calling `build_tracker`).
+        """
         self.element_names = list(self.element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
@@ -539,7 +566,7 @@ class Line:
         elif attr in dir(xt.Tracker):
             # If in Tracker class, ask the used to build the tracker
             raise AttributeError(
-                'The tracker is not built. Please call build_tracker()')
+                'The tracker is not built. Please call Line.build_tracker()')
         else:
             raise AttributeError(
                 f'Line object has no attribute `{attr}`')
@@ -551,6 +578,16 @@ class Line:
         return len(self.element_names)
 
     def copy(self, _context=None, _buffer=None):
+        '''
+        Return a copy of the line.
+
+        Parameters
+        ----------
+        _context: xobjects.Context
+            xobjects context to be used for the copy
+        _buffer: xobjects.Buffer
+            xobjects buffer to be used for the copy
+        '''
 
         elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
                                     for nn, ee in self.element_dict.items()}
@@ -567,7 +604,6 @@ class Line:
 
         return out
 
-
     def _var_management_to_dict(self):
         out = {}
         out['_var_management_data'] = deepcopy(self._var_management['data'])
@@ -575,6 +611,16 @@ class Line:
         return out
 
     def to_dict(self, include_var_management=True):
+
+        '''Return a dictionary representation of the line.
+
+        Parameters
+        ----------
+        include_var_management : bool, optional
+            If True (default) the dictionary will contain the information
+            needed to restore the line with deferred expressions.
+        '''
+
         out = {}
         out["elements"] = {k: el.to_dict() for k, el in self.element_dict.items()}
         out["element_names"] = self.element_names[:]
@@ -591,7 +637,29 @@ class Line:
             out.update(self._var_management_to_dict())
         return out
 
+    def to_json(self, file, **kwargs):
+        '''Save the line to a json file.
+
+        Parameters
+        ----------
+        file: str or file-like object
+            The file to save to. If a string is provided, a file is opened and
+            closed. If a file-like object is provided, it is used directly.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.to_dict` method.
+        '''
+
+        if isinstance(file, io.IOBase):
+            json.dump(self.to_dict(**kwargs), file)
+        else:
+            with open(file, 'w') as fid:
+                json.dump(self.to_dict(**kwargs), fid)
+
     def to_pandas(self):
+        '''
+        Return a pandas DataFrame with the elements of the line.
+        '''
+
         elements = self.elements
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
@@ -610,6 +678,26 @@ class Line:
 
     def insert_element(self, index=None, element=None, name=None, at_s=None,
                        s_tol=1e-6):
+
+        '''Insert an element in the line.
+
+        Parameters
+        ----------
+        index: int, optional
+            Index of the element in the line. If `index` is provided, `at_s`
+            must be None.
+        element: xline.Element, optional
+            Element to be inserted. If `element` is provided, `name` must be
+            provided.
+        name: str
+            Name of the element. If `name` is provided, `element` must be
+            provided.
+        at_s: float, optional
+            Position of the element in the line. If `at_s` is provided, `index`
+            must be None.
+        s_tol: float, optional
+            Tolerance for the position of the element in the line.
+        '''
 
         if isinstance(index, str):
             assert index in self.element_names
@@ -717,6 +805,17 @@ class Line:
         return self
 
     def append_element(self, element, name):
+
+        '''Append element to the end of the lattice
+
+        Parameters
+        ----------
+        element : object
+            Element to append
+        name : str
+            Name of the element to append
+        '''
+
         self._frozen_check()
         assert name not in self.element_dict.keys()
         self.element_dict[name] = element
@@ -737,7 +836,20 @@ class Line:
 
     def get_s_position(self, at_elements=None, mode="upstream"):
 
-        '''Get s position for given elements'''
+        '''Get s position for given elements
+
+        Parameters
+        ----------
+        at_elements : str or list of str
+            Name of the element(s) to get s position for (default: all elements)
+        mode : str
+            "upstream" or "downstream" (default: "upstream")
+
+        Returns
+        -------
+        s : float or list of float
+            s position for given element(s)
+        '''
 
         assert mode in ["upstream", "downstream"]
         s_prev = 0
@@ -765,6 +877,17 @@ class Line:
             return s
 
     def remove_markers(self, inplace=True, keep=None):
+        '''
+        Remove markers from the line
+
+        Parameters
+        ----------
+        inplace : bool
+            If True, remove markers from the line (default: True)
+        keep : str or list of str
+            Name of the markers to keep (default: None)
+        '''
+
         if not inplace:
             raise NotImplementedError
         self._frozen_check()
@@ -783,6 +906,9 @@ class Line:
         return self
 
     def remove_inactive_multipoles(self, inplace=True):
+        '''
+        Remove inactive multipoles from the line
+        '''
 
         self._frozen_check()
 
@@ -805,6 +931,9 @@ class Line:
         return self
 
     def remove_zero_length_drifts(self, inplace=True):
+        '''
+        Remove zero-length drifts from the line
+        '''
 
         self._frozen_check()
 
@@ -823,6 +952,9 @@ class Line:
         return self
 
     def merge_consecutive_drifts(self, inplace=True):
+        '''
+        Merge consecutive drifts into one drift
+        '''
 
         self._frozen_check()
 
@@ -851,6 +983,9 @@ class Line:
         return self
 
     def merge_consecutive_multipoles(self, inplace=True):
+        '''
+        Merge consecutive multipoles into one multipole
+        '''
 
         self._frozen_check()
         if self._var_management is not None:

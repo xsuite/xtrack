@@ -389,12 +389,6 @@ def test_from_sequence():
     else:
         raise AssertionError('Expected exception not raised')
 
-
-    #print(f'location        name                  element')
-    #for s0,s1,n,o in zip(line.get_s_elements(), line.get_s_elements('downstream'), line.element_names, line.elements):
-    #    print(f'{s0:5.2f} .. {s1:5.2f}  {n:20s}  {o}')
-
-
 @for_all_test_contexts
 def test_optimize_multipoles(test_context):
     elements = {
