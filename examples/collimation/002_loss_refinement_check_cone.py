@@ -37,34 +37,38 @@ shift_aper_1 = (shift_x, shift_y)
 rot_deg_aper_1 = 10.
 
 # aper_0_sandwitch
-trk_aper_0 = xt.Tracker(_buffer=buf, line=xt.Line(
+line_aper_0 = xt.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
               aper_0,
               xt.Multipole(_buffer=buf, knl=[0.00]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])]))
+              xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+line_aper_0.build_tracker(_buffer=buf)
 
 # aper_1_sandwitch
-trk_aper_1 = xt.Tracker(_buffer=buf, line=xt.Line(
+line_aper_1 = xt.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
               aper_1,
               xt.Multipole(_buffer=buf, knl=[0.00]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
+              xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+line_aper_1.build_tracker(_buffer=buf)
 
 # Build example line
-tracker = xt.Tracker(_buffer=buf, line=xt.Line(
+line=xt.Line(
     elements = ((xt.Drift(_buffer=buf, length=0.5),)
-                + trk_aper_0.line.elements
+                + line_aper_0.elements
                 + (xt.Drift(_buffer=buf, length=1),
                    xt.Multipole(_buffer=buf, knl=[0.]),
                    xt.Drift(_buffer=buf, length=1),
                    xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
                    xt.Drift(_buffer=buf, length=1.),)
-                + trk_aper_1.line.elements)))
-num_elements = len(tracker.line.elements)
+                + line_aper_1.elements))
+num_elements = len(line)
+
+line.build_tracker()
 
 # Test on full line
 r = np.linspace(0, 0.018, n_part)
@@ -74,15 +78,17 @@ particles = xp.Particles(_context=ctx,
         x=r*np.cos(theta)+shift_x,
         y=r*np.sin(theta)+shift_y)
 
-tracker.track(particles)
+line.track(particles)
 
 
-loss_loc_refinement = xt.LossLocationRefinement(tracker,
+loss_loc_refinement = xt.LossLocationRefinement(line,
                                             n_theta = 360,
                                             r_max = 0.5, # m
                                             dr = 50e-6,
                                             ds = 0.1,
-                                            save_refine_trackers=True)
+                                            save_refine_trackers=True,
+                                            allowed_backtrack_types=[
+                                                xt.Multipole, xt.Cavity])
 
 import time
 t0 = time.time()
@@ -98,11 +104,11 @@ mask_lost = particles.state == 0
 r_calc = np.sqrt((particles.x-shift_x)**2 + (particles.y-shift_y)**2)
 assert np.all(r_calc[~mask_lost]<1e-2)
 assert np.all(r_calc[mask_lost]>1e-2)
-i_aper_1 = tracker.line.elements.index(aper_1)
+i_aper_1 = line.elements.index(aper_1)
 assert np.all(particles.at_element[mask_lost]==i_aper_1)
 assert np.all(particles.at_element[~mask_lost]==0)
-s0 = tracker.line.get_s_elements()[tracker.line.elements.index(aper_0)]
-s1 = tracker.line.get_s_elements()[tracker.line.elements.index(aper_1)]
+s0 = line.get_s_elements()[line.elements.index(aper_0)]
+s1 = line.get_s_elements()[line.elements.index(aper_1)]
 r0 = np.sqrt(aper_0.a_squ)
 r1 = np.sqrt(aper_1.a_squ)
 s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
@@ -117,7 +123,7 @@ s1 = interp_tracker.s1
 polygon_0 = interp_tracker.line.elements[0]
 polygon_1 = interp_tracker.line.elements[-1]
 for ii, (trkr, poly) in enumerate(
-                         zip([trk_aper_0, trk_aper_1],
+                         zip([line_aper_0,line_aper_1],
                              [polygon_0, polygon_1])):
     part_gen_range = 0.05
     pp = xp.Particles(
