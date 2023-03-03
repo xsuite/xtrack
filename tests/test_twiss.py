@@ -272,3 +272,4 @@ def test_knl_ksl_in_twiss(test_context):
             assert kk not in tw.keys()
 
         assert tt['ms.30r1.b1', 'k2nl'] == line['ms.30r1.b1'].knl[2]
+        assert tt['mcbrdv.4r5.b1', 'k0sl'] == line['mcbrdv.4r5.b1'].ksl[0]
