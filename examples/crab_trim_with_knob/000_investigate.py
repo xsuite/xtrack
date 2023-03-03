@@ -12,7 +12,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-context = xo.ContextCupy()
+context = xo.ContextCpu()
 
 ###############
 # Load a line #
@@ -29,17 +29,17 @@ line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 # Build tracker #
 #################
 
-tracker = xt.Tracker(line=line, _context=context)
+line.build_tracker(_context=context)
 
 n_part = 1
-particles0 = xp.build_particles(tracker=tracker, x_norm=np.linspace(-1, 1, n_part),
+particles0 = line.build_particles(x_norm=np.linspace(-1, 1, n_part),
                                 nemitt_x=2.5e-6, nemitt_y=2.5e-6)
 
 num_turns = 1000
 particles = particles0.copy()
 t1 = time.time()
 for i_turn in range(num_turns):
-    tracker.track(particles)
+    line.track(particles)
 t2 = time.time()
 print('Time only track: {:.3f} ms/turn'.format((t2 - t1) / num_turns * 1e3))
 t_only_track = (t2-t1)
@@ -47,8 +47,8 @@ t_only_track = (t2-t1)
 particles = particles0.copy()
 t1 = time.time()
 for i_turn in range(num_turns):
-    tracker.vars['on_crab1'] = (num_turns - i_turn)/num_turns
-    tracker.track(particles)
+    line.vars['on_crab1'] = (num_turns - i_turn)/num_turns
+    line.track(particles)
 t2 = time.time()
 print('Overhead track with knob: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
 
@@ -63,7 +63,7 @@ for i_turn in range(num_turns):
     line['acfga.4bl1.b1'].ksl[0] = 1e-11*i_turn
     line['acfga.4ar1.b1'].knl[0] = 1e-11*i_turn
     line['acfga.4br1.b1'].knl[0] = 1e-11*i_turn
-    tracker.track(particles)
+    line.track(particles)
 t2 = time.time()
 print('Overhead track with k trim: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
 
@@ -71,8 +71,8 @@ print('Overhead track with k trim: {:.3f} ms/turn'.format((t2 - t1 - t_only_trac
 particles = particles0.copy()
 t1 = time.time()
 for i_turn in range(num_turns):
-    tracker.vars['vrf400'] = (num_turns - i_turn)/num_turns
-    tracker.vars['vrf400'] = (num_turns - i_turn)/num_turns
-    tracker.track(particles)
+    line.vars['vrf400'] = (num_turns - i_turn)/num_turns
+    line.vars['vrf400'] = (num_turns - i_turn)/num_turns
+    line.track(particles)
 t2 = time.time()
 print('Overhead track with voltage knob: {:.3f} ms/turn'.format((t2 - t1 - t_only_track) / num_turns * 1e3))
