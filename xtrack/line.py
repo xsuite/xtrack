@@ -5,6 +5,7 @@
 
 import math
 import logging
+import json
 from copy import deepcopy
 from pprint import pp
 
@@ -203,6 +204,17 @@ class Line:
         print('Done loading line from dict.           ')
 
         return self
+
+    @classmethod
+    def from_json(cls, file, **kwargs):
+        with open(file, 'r') as fid:
+            dct = json.load(fid)
+        if 'line' in dct.keys():
+            dct_line = dct['line']
+        else:
+            dct_line = dct
+
+        return cls.from_dict(dct_line, **kwargs)
 
     @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None, sequences=None, copy_elements=False,
