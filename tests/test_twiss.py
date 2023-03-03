@@ -261,9 +261,9 @@ def test_knl_ksl_in_twiss(test_context):
 
     tw_with_knl_ksl = line.twiss(strengths=True)
     tw_with_knl_ksl_part = line.twiss(strengths=True,
-                        ele_start='bpm.21r1.b1',
-                        ele_stop='bpm.31r1.b1',
-                        twiss_init=tw.get_twiss_init(at_element='bpm.21r1.b1'))
+                        ele_start='bpm.31l5.b1',
+                        ele_stop='bpm.31r5.b1',
+                        twiss_init=tw.get_twiss_init(at_element='bpm.31l5.b1'))
 
     for tt in [tw_with_knl_ksl, tw_with_knl_ksl_part]:
 
@@ -271,5 +271,5 @@ def test_knl_ksl_in_twiss(test_context):
             assert kk in tt.keys()
             assert kk not in tw.keys()
 
-        assert tt['ms.30r1.b1', 'k2nl'] == line['ms.30r1.b1'].knl[2]
+        assert tt['ms.30r5.b1', 'k2nl'] == line['ms.30r5.b1'].knl[2]
         assert tt['mcbrdv.4r5.b1', 'k0sl'] == line['mcbrdv.4r5.b1'].ksl[0]
