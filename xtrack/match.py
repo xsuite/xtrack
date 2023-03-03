@@ -240,7 +240,6 @@ def closed_orbit_correction(tracker, tracker_co_ref, correction_config,
             for kk in ['x', 'px', 'y', 'py']:
                 targets.append(xt.Target(kk, at=tt, value=tw_ref[tt, kk], tol=1e-9))
 
-        import pdb; pdb.set_trace()
         tracker.match(
             solver=solver,
             verbose=verbose,
