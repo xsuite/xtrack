@@ -542,3 +542,37 @@ def test_orbit_knobs(test_context):
     tracker.vars['on_x5'] = -270
     assert np.isclose(tracker.twiss(at_elements=['ip5'])['py'][0], -270e-6,
                 atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts
+def test_low_beta_twiss(test_context):
+
+    path_line = test_data_folder / 'psb_injection/line_and_particle.json'
+
+    line = xt.Line.from_json(path_line)
+    line.build_tracker(_context=test_context)
+    tw = line.twiss()
+
+    path_madseq = test_data_folder / 'psb_injection/psb_injection.seq'
+
+    mad = Madx()
+    mad.call(str(path_madseq))
+
+    mad.use(sequence='psb')
+    mad.twiss()
+
+    assert np.isclose(mad.sequence.psb.beam.gamma, line.particle_ref.gamma0,
+                      rtol=0, atol=1e-6)
+    assert np.isclose(mad.sequence.psb.beam.beta, line.particle_ref.beta0,
+                    rtol=0, atol=1e-10)
+
+    beta0 = line.particle_ref.beta0
+
+    assert np.isclose(mad.table.summ['q1'][0], tw['qx'], rtol=0, atol=1e-6)
+    assert np.isclose(mad.table.summ['q2'][0], tw['qy'], rtol=0, atol=1e-6)
+    assert np.isclose(mad.table.summ['dq1'][0]*beta0, tw['dqx'], rtol=0,
+                        atol=1e-6)
+    assert np.isclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
+                        atol=1e-6)
+
+
