@@ -393,6 +393,13 @@ class Line:
                                             dct['_var_management_data'][kk])
             manager.load(dct['_var_manager'])
 
+    @property
+    def config(self):
+        return self.tracker.config
+
+    @config.setter
+    def config(self, value):
+        self.tracker.config = value
 
     @property
     def vars(self):
