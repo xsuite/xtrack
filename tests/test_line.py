@@ -418,7 +418,7 @@ def test_optimize_multipoles(test_context):
         else:
             assert type(test_line.element_dict[nn]) is xt.Multipole
 
-def test_from_json_to_json():
+def test_from_json_to_json(tmp_path):
 
     line = xt.Line(
         elements={
@@ -428,8 +428,8 @@ def test_from_json_to_json():
         element_names=['m', 'd', 'm', 'd']
     )
 
-    line.to_json('test.json')
-    result = xt.Line.from_json('test.json')
+    line.to_json(tmp_path / 'test.json')
+    result = xt.Line.from_json(tmp_path / 'test.json')
 
     assert len(result.element_dict.keys()) == 2
     assert result.element_names == ['m', 'd', 'm', 'd']
