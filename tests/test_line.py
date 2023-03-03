@@ -417,3 +417,25 @@ def test_optimize_multipoles(test_context):
             assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
         else:
             assert type(test_line.element_dict[nn]) is xt.Multipole
+
+def test_from_json_to_json():
+
+    line = xt.Line(
+        elements={
+            'm': xt.Multipole(knl=[1, 2]),
+            'd': xt.Drift(length=1),
+        },
+        element_names=['m', 'd', 'm', 'd']
+    )
+
+    line.to_json('test.json')
+    result = xt.Line.from_json('test.json')
+
+    assert len(result.element_dict.keys()) == 2
+    assert result.element_names == ['m', 'd', 'm', 'd']
+
+    assert isinstance(result['m'], xt.Multipole)
+    assert (result['m'].knl == [1, 2]).all()
+
+    assert isinstance(result['d'], xt.Drift)
+    assert result['d'].length == 1

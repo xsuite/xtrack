@@ -653,7 +653,7 @@ class Line:
             json.dump(self.to_dict(**kwargs), file)
         else:
             with open(file, 'w') as fid:
-                json.dump(self.to_dict(**kwargs), fid)
+                json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
 
     def to_pandas(self):
         '''
