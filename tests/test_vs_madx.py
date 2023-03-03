@@ -560,6 +560,9 @@ def test_low_beta_twiss(test_context):
 
     mad.use(sequence='psb')
     mad.twiss()
+    mad.emit()
+
+    emitdf = mad.table.emitsumm.dframe()
 
     assert np.isclose(mad.sequence.psb.beam.gamma, line.particle_ref.gamma0,
                       rtol=0, atol=1e-6)
@@ -574,5 +577,7 @@ def test_low_beta_twiss(test_context):
                         atol=1e-6)
     assert np.isclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
                         atol=1e-6)
+    assert np.isclose(tw.qs, emitdf.qs[0], rtol=0, atol=1e-8)
+
 
 
