@@ -58,8 +58,8 @@ def _next_name(prefix, names, name_format='{}{}'):
     return name_format.format(prefix, i)
 
 def _apertures_equal(ap1, ap2):
-    if not _is_aperture(ap1) or _is_aperture(ap2):
-        raise ValueError
+    if not _is_aperture(ap1) or not _is_aperture(ap2):
+        raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
     if ap1.__class__ != ap2.__class__:
         return False
     ap1 = ap1.to_dict()
@@ -898,15 +898,15 @@ class Line:
                 aper_m1 = aper_0
                 aper_0  = nn
             elif (not isinstance(ee, (Drift, Marker)) 
-            or name in drifts_that_need_aperture):
+            or nn in drifts_that_need_aperture):
             # We are in an active element: all previous apertures
             # should be kept in the line
                 aper_0  = None
                 aper_m1 = None
                 aper_m2 = None
-            if (aper_0 is not None
-                and _apertures_equal(self.element_dict(aper_0), self.element_dict(aper_m1))
-                and _apertures_equal(self.element_dict(aper_m1), self.element_dict(aper_m2))
+            if (aper_m2 is not None
+                and _apertures_equal(self.element_dict[aper_0], self.element_dict[aper_m1])
+                and _apertures_equal(self.element_dict[aper_m1], self.element_dict[aper_m2])
                 ):
                 # We found three consecutive apertures (with only Drifts and Markers
                 # in between) that are the same, hence the middle one can be removed

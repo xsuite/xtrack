@@ -111,6 +111,7 @@ def test_simplification_methods_not_inplace():
             )
         )
 
+    # Test merging of drifts
     line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
     original_line = line.copy()
     newline = line.merge_consecutive_drifts(inplace=False)
@@ -122,6 +123,7 @@ def test_simplification_methods_not_inplace():
     assert np.isclose(newline[2].length, 1.7, rtol=0, atol=1e-12)
     line.merge_consecutive_drifts(inplace=True)
 
+    # Test removing of zero-length drifts
     line.insert_element(element=xt.Drift(length=0), name="marker", at_s=3.3)
     assert len(line.element_names) == 4
     original_line = line.copy()
@@ -130,6 +132,7 @@ def test_simplification_methods_not_inplace():
     assert len(newline.element_names) == 3
     line.remove_zero_length_drifts(inplace=True)
 
+    # Test merging of multipoles
     line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name="m1", at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name="m2", at_s=3.3)
     assert len(line.element_names) == 5
@@ -141,6 +144,7 @@ def test_simplification_methods_not_inplace():
     assert np.allclose(newline[1].ksl, [10,60,0], rtol=0, atol=1e-15)
     line.merge_consecutive_multipoles(inplace=True)
 
+    # Test removing inactive multipoles
     original_line = line.copy()
     newline = line.remove_inactive_multipoles(inplace=False)
     assert xt._lines_equal(line, original_line)
@@ -155,6 +159,7 @@ def test_simplification_methods_not_inplace():
     assert len(newline.element_names) == 3
     line.remove_inactive_multipoles(inplace=True)
 
+    # Test removing markers
     line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
     line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
     assert 'marker1' in line.element_names
@@ -177,7 +182,117 @@ def test_simplification_methods_not_inplace():
     assert 'marker2' not in newline.element_names
     assert 'marker3' not in newline.element_names
     assert 'marker4' not in newline.element_names
-    line.remove_markers(inplace=True)
+
+
+def test_merging_consecutive_apertures():
+
+    # Lattice:
+    # D1-A1-M-D2 D3-A2-M-D4 D5-A3-M-D6 D7-A4-M-D8 D9-A5-M-D10
+    elements = []
+    for _ in range(5):
+        elements += [
+            xt.Drift(length=0.6), 
+            xt.LimitRect(min_x=-0.3, max_x=0.3,min_y=-0.3, max_y=0.3),
+            xt.Marker(),
+            xt.Drift(length=0.4)
+        ]
+    line = xt.Line(elements=elements)
+    original_line = line.copy()
+
+    # Test removing all consecutive middle apertures
+    assert len(line.element_names) == 20
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    line.merge_consecutive_apertures()
+    line.remove_markers()
+    line.merge_consecutive_drifts()
+    # The lattice is now D1-A1-DD-A5-D10
+    assert len(line.element_names) == 5
+    # Verify that only the first and last aperture are kept
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    assert new_aper == [all_aper[0], all_aper[-1]]
+    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
+
+    # Test removing all consecutive middle apertures, but
+    # keep the 4th one (and hence also the 5th)
+    line = original_line.copy()
+    assert len(line.element_names) == 20
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    line.merge_consecutive_apertures(keep=all_aper[3])
+    line.remove_markers()
+    line.merge_consecutive_drifts()
+    # The lattice is now D1-A1-DD-A4-DD-A5-D10
+    assert len(line.element_names) == 7
+    # Verify that only the first, fourth, and last aperture are kept
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
+    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
+
+    # Test removing all consecutive middle apertures, but
+    # the 9th Drift needs to have an aperture. This should
+    # give the same result as above
+    line = original_line.copy()
+    assert len(line.element_names) == 20
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn])]
+    line.merge_consecutive_apertures(drifts_that_need_aperture=all_drifts[8])
+    line.remove_markers()
+    line.merge_consecutive_drifts()
+    # The lattice is now D1-A1-DD-A4-DD-A5-D10
+    assert len(line.element_names) == 7
+    # Verify that only the first, fourth, and last aperture are kept
+    new_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    assert new_aper == [all_aper[0], all_aper[3], all_aper[-1]]
+    new_aper_pos = [line.get_s_position(ap) for ap in new_aper]
+    assert new_aper_pos == [all_aper_pos[0], all_aper_pos[3], all_aper_pos[-1]]
+
+    # All apertures are different, none should be removed
+    elements = []
+    for i in range(5):
+        elements += [
+            xt.Drift(length=0.6), 
+            xt.LimitRect(min_x=-0.3+i*0.01, max_x=0.3,min_y=-0.3, max_y=0.3),
+            xt.Marker(),
+            xt.Drift(length=0.4)
+        ]
+    line = xt.Line(elements=elements)
+    original_line = line.copy()
+    line.merge_consecutive_apertures()
+    assert xt._lines_equal(line, original_line)
+
+    
+def test_merging_consecutive_apertures_not_inplace():
+
+    # Test removing all consecutive middle apertures
+    elements = []
+    for _ in range(5):
+        elements += [
+            xt.Drift(length=0.6), 
+            xt.LimitRect(min_x=-0.3, max_x=0.3,min_y=-0.3, max_y=0.3),
+            xt.Marker(),
+            xt.Drift(length=0.4)
+        ]
+    line = xt.Line(elements=elements)
+    original_line = line.copy()
+
+    assert len(line.element_names) == 20
+    all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
+    all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
+    newline = line.merge_consecutive_apertures(inplace=False)
+    newline = newline.remove_markers(inplace=False)
+    newline = newline.merge_consecutive_drifts(inplace=False)
+    assert xt._lines_equal(line, original_line)
+
+    assert len(newline.element_names) == 5
+    # Verify that only the first and last aperture are kept
+    new_aper = [nn for nn in newline.element_names if xt._is_aperture(newline[nn])]
+    assert new_aper == [all_aper[0], all_aper[-1]]
+    new_aper_pos = [newline.get_s_position(ap) for ap in new_aper]
+    assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
 
 
 def test_insert():
