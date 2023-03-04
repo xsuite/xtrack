@@ -1000,7 +1000,7 @@ class Line:
         elements_df = self.to_pandas()
 
         elements_df['is_aperture'] = elements_df.name.map(
-                                            lambda nn: _is_aperture(self.element_dict(nn)))
+                                            lambda nn: _is_aperture(self.element_dict[nn]))
         elements_df['i_aperture_upstream'] = np.nan
         elements_df['s_aperture_upstream'] = np.nan
         elements_df['i_aperture_downstream'] = np.nan
@@ -1018,7 +1018,7 @@ class Line:
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
-            if self.element_dict(elements_df.loc[iee, 'name']).allow_backtrack:
+            if _allow_backtrack(self.element_dict[elements_df.loc[iee, 'name']]):
                 continue
 
             if elements_df.loc[iee, 'is_aperture']:
