@@ -56,7 +56,6 @@ def test_ring_with_spacecharge(test_context):
     ##################
     line_temp = line0_no_sc.filter_elements(
         exclude_types_starting_with='SpaceCh')
-    line_temp.build_tracker(_context=test_context)
     import warnings
     warnings.filterwarnings('ignore')
     particle_probe = xp.build_particles(
@@ -145,7 +144,6 @@ def test_ring_with_spacecharge(test_context):
         ###############################
 
         line_no_sc = line.filter_elements(exclude_types_starting_with='SpaceCh')
-        line_no_sc.build_tracker(_context=test_context)
         tw = line_no_sc.twiss(
                 particle_ref=particle_ref,  at_elements=[0])
 
