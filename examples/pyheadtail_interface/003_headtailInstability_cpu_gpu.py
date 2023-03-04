@@ -26,7 +26,6 @@ from PyHEADTAIL.trackers.transverse_tracking import TransverseSegmentMap
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningSegment
 
-context = xo.ContextCpu(omp_num_threads=0)
 context = xo.ContextCupy()
 
 nTurn = 5000  # int(1E4)
