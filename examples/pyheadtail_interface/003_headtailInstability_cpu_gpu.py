@@ -235,16 +235,17 @@ arc = xt.LinearTransferMatrix(
     energy_increment=0,
 )
 
-tracker = xt.Tracker(_context=context,
-    line = xt.Line(elements=[arc, wake_field, damper],
-                   element_names=['arc', 'wake_field', 'damper']))
+
+line = xt.Line(elements=[arc, wake_field, damper],
+                   element_names=['arc', 'wake_field', 'damper'])
+line.build_tracker(_context=context)
 
 t_xt_start = time.time()
 turns = np.arange(nTurn)
 x = np.zeros(nTurn, dtype=float)
 for turn in range(nTurn):
 
-    tracker.track(particles)
+    line.track(particles)
 
     x[turn] = np.average(particles.x[particles.state>0])
     if turn % 1000 == 0:

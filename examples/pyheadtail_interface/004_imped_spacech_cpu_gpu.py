@@ -96,12 +96,13 @@ line[cavity_name].frequency = frequency
 # Twiss (check that the lattice is stable) #
 ############################################
 
-# We make a copy of the line so that we can still insert elements in the
+line.build_tracker()
+tw = line.twiss()
+
+# We unfreeze the line so that we can still insert elements in the
 # original one (would be prevented by the existence of a tracker linked to the
 # line).
-
-tracker_twiss = line.copy().build_tracker()
-tw = tracker_twiss.twiss()
+line.unfreeze()
 
 #####################################
 # Install spacecharge interactions) #
@@ -181,27 +182,27 @@ if use_wakes:
 # Build Tracker #
 #################
 
-tracker = line.build_tracker(_context=context)
+line.build_tracker(_context=context)
 
 ######################
 # Generate particles #
 ######################
 
 # (we choose to match the distribution without accounting for spacecharge)
-tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
+line_sc_off = line.filter_elements(exclude_types_starting_with='SpaceCh')
 
 particles = xp.generate_matched_gaussian_bunch(_context=context,
         num_particles=n_part, total_intensity_particles=bunch_intensity,
         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-        particle_ref=tracker.particle_ref, tracker=tracker_sc_off)
+        particle_ref=line.particle_ref, line=line_sc_off)
 particles.circumference = line.get_length() # Needed by pyheadtail
 
 ###########################################################
 # We use a phase monitor to measure the tune turn by turn #
 ###########################################################
 
-phasem = xp.PhaseMonitor(tracker,
-                 num_particles=n_part, twiss=tracker_sc_off.twiss())
+phasem = xp.PhaseMonitor(line,
+                 num_particles=n_part, twiss=line_sc_off.twiss())
 
 #########
 # Track #
@@ -210,7 +211,7 @@ phasem = xp.PhaseMonitor(tracker,
 for turn in range(num_turns):
    phasem.measure(particles)
    #import pdb; pdb.set_trace()
-   tracker.track(particles)
+   line.track(particles)
 
 ##################
 # Plot footprint #

@@ -470,7 +470,8 @@ class Line:
             else:
                 return [self.element_dict[nn] for nn in names]
 
-    def filter_elements(self, mask=None, exclude_types_starting_with=None):
+    def filter_elements(self, mask=None, exclude_types_starting_with=None,
+                        _make_tracker=True):
         """
         Return a new line with only the elements satisfying a given condition.
         Other elements are replaced with Drifts.
@@ -484,6 +485,14 @@ class Line:
             If not None, all elements whose type starts with the given string
             are replaced with Drifts.
         """
+
+        if _make_tracker and self.tracker is not None:
+            new_tracker = self.tracker.filter_elements(mask=mask,
+                        exclude_types_starting_with=exclude_types_starting_with,
+                        _make_tracker=False)
+            new_line = new_tracker.line
+            new_line.tracker = new_tracker
+            return new_line
 
         if mask is None:
             assert exclude_types_starting_with is not None
