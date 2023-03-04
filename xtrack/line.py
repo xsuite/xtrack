@@ -999,7 +999,7 @@ class Line:
         elements_df = self.to_pandas()
 
         elements_df['is_aperture'] = elements_df.name.map(
-                                        lambda nn: _is_aperture(self.element_dict(nn))
+                                            lambda nn: _is_aperture(self.element_dict(nn)))
         elements_df['i_aperture_upstream'] = np.nan
         elements_df['s_aperture_upstream'] = np.nan
         elements_df['i_aperture_downstream'] = np.nan
