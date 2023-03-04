@@ -48,19 +48,19 @@ def test_simplification_methods():
     line.remove_zero_length_drifts(inplace=True)
 
     # Test merging of multipoles
-    line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name="m1", at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name="m2", at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), name="m3", at_s=3.3)
-    line.insert_element(element=xt.Multipole(knl=[2, 0, 0], ksl=[40]), name="m4", at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name='m1', at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name='m2', at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), name='m3', at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[2, 0, 0], ksl=[40]), name='m4', at_s=3.3)
     assert len(line.element_names) == 7
-    line.merge_consecutive_multipoles(inplace=True, keep="m3")
+    line.merge_consecutive_multipoles(inplace=True, keep='m3')
     assert len(line.element_names) == 6
-    assert "m3" in line.element_names
+    assert 'm3' in line.element_names
     # We merged the first two multipoles
-    joined_mult = [ name for name in line.element_names if "m1" in name]
+    joined_mult = [ name for name in line.element_names if 'm1' in name]
     assert len(joined_mult) == 1
     joined_mult = joined_mult[0]
-    assert "m2" in joined_mult
+    assert 'm2' in joined_mult
     assert np.allclose(line[joined_mult].knl, [5,2,3], rtol=0, atol=1e-15)
     assert np.allclose(line[joined_mult].ksl, [10,60,0], rtol=0, atol=1e-15)
     # Merging all
@@ -69,13 +69,21 @@ def test_simplification_methods():
     assert np.allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
     assert np.allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
 
+    # Test removing inactive multipoles
+    line.insert_element(element=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), name='m5', at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[2, 0, 3], ksl=[10, 34, 15]), name='m6', at_s=3.3)
     line.remove_inactive_multipoles(inplace=True)
-    assert len(line.element_names) == 4
-    line[1].knl[:] = 0
-    line[1].ksl[:] = 0
-    line.remove_inactive_multipoles(inplace=True)
-    assert len(line.element_names) == 3
+    assert len(line.element_names) == 6
+    line['m5'].knl[:] = 0
+    line['m5'].ksl[:] = 0
+    line['m6'].knl[:] = 0
+    line['m6'].ksl[:] = 0
+    line.remove_inactive_multipoles(inplace=True, keep='m5')
+    assert len(line.element_names) == 5
+    assert 'm5' in line.element_names
+    assert 'm6' not in line.element_names
 
+    # Test removing markers
     line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
     line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
     assert 'marker1' in line.element_names
@@ -83,7 +91,6 @@ def test_simplification_methods():
     line.remove_markers(keep='marker2')
     assert 'marker1' not in line.element_names
     assert 'marker2' in line.element_names
-
     line.insert_element(element=xt.Marker(), name='marker4', at_s=3.3)
     line.insert_element(element=xt.Marker(), name='marker3', at_s=3.3)
     assert 'marker2' in line.element_names
@@ -97,6 +104,33 @@ def test_simplification_methods():
 
 def test_simplification_methods_not_inplace():
 
+    def lines_equal(line1, line2):
+        elements_used = (xt.Marker, xt.Drift, xt.Multipole, xt.Cavity)
+        if line1.element_names != line2.element_names:
+            return False
+        for nn in line1.element_names:
+            ee_1 = line1.element_dict[nn]
+            ee_2 = line2.element_dict[nn]
+            if not (isinstance(ee_1, elements_used)
+                    or xt._is_aperture(ee_1)
+            ) and not (isinstance(ee_2, elements_used)
+                    or xt._is_aperture(ee_2)
+            ):
+                raise ValueError
+            ee_1 = ee_1.to_dict()
+            ee_2 = ee_2.to_dict()
+            if ee_1.keys() != ee_2.keys():
+                return False
+            for key in ee_1.keys():
+                if hasattr(ee_1[key], '__iter__'):
+                    if not hasattr(ee_2[key], '__iter__'):
+                        return False
+                    elif not np.array_equal(ee_1[key],ee_2[key]):
+                        return False
+                elif ee_1[key] != ee_2[key]:
+                    return False
+        return True
+
     line = xt.Line(
         elements=([xt.Drift(length=0)] # Start line marker
                     + [xt.Drift(length=1) for _ in range(5)]
@@ -105,50 +139,72 @@ def test_simplification_methods_not_inplace():
         )
 
     line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
+    original_line = line.copy()
+    newline = line.merge_consecutive_drifts(inplace=False)
+    assert lines_equal(line, original_line)
+    assert len(newline.element_names) == 3
+    assert newline.get_length() == newline.get_s_elements(mode='downstream')[-1] == 5
+    assert np.isclose(newline[0].length, 3.3, rtol=0, atol=1e-12)
+    assert isinstance(newline[1], xt.Cavity)
+    assert np.isclose(newline[2].length, 1.7, rtol=0, atol=1e-12)
     line.merge_consecutive_drifts(inplace=True)
-    assert len(line.element_names) == 3
-    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
-    assert np.isclose(line[0].length, 3.3, rtol=0, atol=1e-12)
-    assert isinstance(line[1], xt.Cavity)
-    assert np.isclose(line[2].length, 1.7, rtol=0, atol=1e-12)
 
     line.insert_element(element=xt.Drift(length=0), name="marker", at_s=3.3)
     assert len(line.element_names) == 4
+    original_line = line.copy()
+    newline = line.remove_zero_length_drifts(inplace=False)
+    assert lines_equal(line, original_line)
+    assert len(newline.element_names) == 3
     line.remove_zero_length_drifts(inplace=True)
-    assert len(line.element_names) == 3
 
     line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name="m1", at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name="m2", at_s=3.3)
     assert len(line.element_names) == 5
+    original_line = line.copy()
+    newline = line.merge_consecutive_multipoles(inplace=False)
+    assert lines_equal(line, original_line)
+    assert len(newline.element_names) == 4
+    assert np.allclose(newline[1].knl, [5,2,3], rtol=0, atol=1e-15)
+    assert np.allclose(newline[1].ksl, [10,60,0], rtol=0, atol=1e-15)
     line.merge_consecutive_multipoles(inplace=True)
-    assert len(line.element_names) == 4
-    assert np.allclose(line[1].knl, [5,2,3], rtol=0, atol=1e-15)
-    assert np.allclose(line[1].ksl, [10,60,0], rtol=0, atol=1e-15)
 
+    original_line = line.copy()
+    newline = line.remove_inactive_multipoles(inplace=False)
+    assert lines_equal(line, original_line)
+    assert len(newline.element_names) == 4
     line.remove_inactive_multipoles(inplace=True)
-    assert len(line.element_names) == 4
+
     line[1].knl[:] = 0
     line[1].ksl[:] = 0
+    original_line = line.copy()
+    newline = line.remove_inactive_multipoles(inplace=False)
+    assert lines_equal(line, original_line)
+    assert len(newline.element_names) == 3
     line.remove_inactive_multipoles(inplace=True)
-    assert len(line.element_names) == 3
 
     line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
     line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
     assert 'marker1' in line.element_names
     assert 'marker2' in line.element_names
-    line.remove_markers(keep='marker2')
-    assert 'marker1' not in line.element_names
-    assert 'marker2' in line.element_names
+    original_line = line.copy()
+    newline = line.remove_markers(inplace=False, keep='marker2')
+    assert lines_equal(line, original_line)
+    assert 'marker1' not in newline.element_names
+    assert 'marker2' in newline.element_names
+    line.remove_markers(inplace=True, keep='marker2')
 
     line.insert_element(element=xt.Marker(), name='marker4', at_s=3.3)
     line.insert_element(element=xt.Marker(), name='marker3', at_s=3.3)
     assert 'marker2' in line.element_names
     assert 'marker3' in line.element_names
     assert 'marker4' in line.element_names
-    line.remove_markers()
-    assert 'marker2' not in line.element_names
-    assert 'marker3' not in line.element_names
-    assert 'marker4' not in line.element_names
+    original_line = line.copy()
+    newline = line.remove_markers(inplace=False)
+    assert lines_equal(line, original_line)
+    assert 'marker2' not in newline.element_names
+    assert 'marker3' not in newline.element_names
+    assert 'marker4' not in newline.element_names
+    line.remove_markers(inplace=True)
 
 
 def test_insert():
