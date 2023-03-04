@@ -22,7 +22,6 @@ def test_collective_tracker(test_context):
         __file__).parent.joinpath('../test_data').absolute()
     path_line = test_data_folder.joinpath('sps_w_spacecharge/'
                                'line_with_spacecharge_and_particle.json')
-    turn_by_turn_monitor = True
 
     ##############
     # Get a line #
@@ -49,11 +48,10 @@ def test_collective_tracker(test_context):
     # Build Tracker #
     #################
     print('Build tracker...')
-    tracker= xt.Tracker(_buffer=_buffer, line=line,
-                        reset_s_at_end_turn=False)
+    line.build_tracker(_buffer=_buffer, reset_s_at_end_turn=False)
 
-    assert tracker.iscollective
-    assert tracker.track == tracker._track_with_collective
+    assert line.iscollective
+    assert line.track == line._track_with_collective
 
     ######################
     # Get some particles #
@@ -66,10 +64,10 @@ def test_collective_tracker(test_context):
 
     print('Track a few turns...')
     n_turns = 10
-    tracker.track(particles, num_turns=n_turns,
+    line.track(particles, num_turns=n_turns,
                   turn_by_turn_monitor=True)
 
-    assert tracker.record_last_track.x.shape == (1, 10)
+    assert line.record_last_track.x.shape == (1, 10)
 
     ###########################
     # Check against ducktrack #

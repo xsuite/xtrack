@@ -30,7 +30,7 @@ def test_acceleration(test_context):
     energy_increase = xt.ReferenceEnergyIncrease(Delta_p0c=Delta_p0c)
     line.append_element(energy_increase, 'energy_increase')
 
-    tracker = xt.Tracker(line=line, _context=test_context)
+    line.build_tracker(_context=test_context)
 
     # Assume only first cavity is active
     frequency = line.get_elements_of_type(xt.Cavity)[0][0].frequency
@@ -38,7 +38,7 @@ def test_acceleration(test_context):
     #Assuming proton and beta=1
     stable_z = np.arcsin(Delta_p0c/voltage)/frequency/2/np.pi*clight
 
-    p_co = tracker.find_closed_orbit(particle_ref=xp.Particles.from_dict(
+    p_co = line.find_closed_orbit(particle_ref=xp.Particles.from_dict(
                             input_data['particle']))
 
     assert np.isclose(p_co._xobject.zeta[0], stable_z, atol=0, rtol=1e-2)
