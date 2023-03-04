@@ -20,21 +20,20 @@ class DummyPipelinedElement:
 import xtrack as xt
 import xpart as xp
 
-tracker = xt.Tracker(
-    line=xt.Line(elements=[xt.Drift(length=1),
+line=xt.Line(elements=[xt.Drift(length=1),
                            DummyPipelinedElement(n_hold=3),
-                           xt.Drift(length=1)]),
-    enable_pipeline_hold=True)
+                           xt.Drift(length=1)])
+line.build_tracker(enable_pipeline_hold=True)
 
 
 p = xp.Particles(p0c=7e12, x=[0,0,0])
 
-session_on_hold = tracker.track(p, num_turns=2)
+session_on_hold = line.track(p, num_turns=2)
 assert np.all(p.s==1)
 assert np.all(p.at_turn==0)
-session_on_hold = tracker.resume(session_on_hold)
+session_on_hold = line.resume(session_on_hold)
 assert np.all(p.s==1)
 assert np.all(p.at_turn==0)
-session_on_hold = tracker.resume(session_on_hold)
+session_on_hold = line.resume(session_on_hold)
 assert np.all(p.s==1)
 assert np.all(p.at_turn==1)
