@@ -1,5 +1,9 @@
 class PipelineBranch:
-    def __init__(self, tracker, particles):
+    def __init__(self, tracker=None, particles=None, line=None):
+        if line is not None:
+            assert line is not None
+            assert line.tracker is not None
+            tracker = line.tracker
         self.tracker = tracker
         self.particles = particles
         self.pipeline_status = None
