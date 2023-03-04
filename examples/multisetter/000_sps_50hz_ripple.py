@@ -20,7 +20,7 @@ line.particle_ref = xp.Particles(p0c=400e9, mass0=xp.PROTON_MASS_EV)
 tracker = line.build_tracker(_context=ctx)
 
 # Switch on RF and twiss
-line['acta.31637'].voltage = 7e9
+line['acta.31637'].voltage = 7e6
 line['acta.31637'].lag = 180.
 twxt = tracker.twiss()
 
