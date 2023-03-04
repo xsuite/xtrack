@@ -86,10 +86,11 @@ def test_match_and_track_from_element(test_context):
     assert np.allclose(particles.s, 3*line.get_length(), rtol=0, atol=1e-7)
 
     # Check collective case
-    line_w_collective = xt.Line.from_dict(input_data['line'], _context=test_context)
+    line_w_collective = xt.Line.from_dict(input_data['line'])
     for ip in range(8):
         line_w_collective.element_dict[f'ip{ip+1}'].iscollective = True
-    line_w_collective.build_tracker(reset_s_at_end_turn=False)
+    line_w_collective.build_tracker(_context=test_context,
+                                    reset_s_at_end_turn=False)
     assert line_w_collective.iscollective
     line_w_collective.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
     assert len(line_w_collective._parts) == 16
