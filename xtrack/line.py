@@ -16,7 +16,7 @@ import xpart as xp
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
-from .beam_elements import Drift, BeamElement, Marker
+from .beam_elements import Drift, BeamElement, Marker, Multipole
 
 log = logging.getLogger(__name__)
 
@@ -726,34 +726,40 @@ class Line:
             return s
 
     def remove_markers(self, inplace=True, keep=None):
-        if not inplace:
-            raise NotImplementedError
+
         self._frozen_check()
 
-        if isinstance(keep, str):
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
             keep = [keep]
-
-        names = []
-        for ee, nn in zip(self.elements, self.element_names):
-            if isinstance(ee, Marker):
-                if keep is None or nn not in keep:
-                    continue
-            names.append(nn)
-
-        self.element_names = names
-        return self
-
-    def remove_inactive_multipoles(self, inplace=True):
-
-        self._frozen_check()
-
-        if not inplace:
-            raise NotImplementedError
 
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if isinstance(ee, (beam_elements.Multipole)):
+            if isinstance(ee, Marker) and nn not in keep:
+                continue
+            newline.append_element(ee, nn)
+
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+
+        return newline
+
+    def remove_inactive_multipoles(self, inplace=True, keep=None):
+
+        self._frozen_check()
+
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
+
+        newline = Line(elements=[], element_names=[])
+
+        for ee, nn in zip(self.elements, self.element_names):
+            if isinstance(ee, Multipole) and nn not in keep:
                 ctx2np = ee._context.nparray_from_context_array
                 aux = ([ee.hxl, ee.hyl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
@@ -761,34 +767,43 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
 
-        self.element_names = newline.element_names
-        return self
+        return newline
 
-    def remove_zero_length_drifts(self, inplace=True):
+    def remove_zero_length_drifts(self, inplace=True, keep=None):
 
         self._frozen_check()
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if _is_drift(ee):
+            if _is_drift(ee) and nn not in keep:
                 if ee.length == 0.0:
                     continue
             newline.append_element(ee, nn)
 
-        self.element_names = newline.element_names
-        return self
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
 
-    def merge_consecutive_drifts(self, inplace=True):
+        return newline
+
+    def merge_consecutive_drifts(self, inplace=True, keep=None):
 
         self._frozen_check()
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         newline = Line(elements=[], element_names=[])
 
@@ -797,7 +812,7 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if _is_drift(ee):
+            if _is_drift(ee) and not nn in keep:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if _is_drift(prev_ee):
@@ -807,63 +822,70 @@ class Line:
             else:
                 newline.append_element(ee, nn)
 
-        self.element_dict.update(newline.element_dict)
-        self.element_names = newline.element_names
-        return self
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+
+        return newline
 
     # For every occurence of three or more apertures that are the same,
     # only separated by Drifts or Markers, this script removes the
-    # apertures in between
-    def remove_repeated_apertures(self, inplace=True, 
+    # middle apertures
+    def merge_consecutive_apertures(self, inplace=True, keep=None,
                                   drifts_that_need_aperture=[]):
 
         self._frozen_check()
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         aper_to_remove = []
-        # current aperture found
-        aper_0       = None
-        aper_0_name  = None
-        # previous aperture found
-        aper_m1      = None
-        aper_m1_name = None
-        # aperture found before previous aperture
-        aper_m2      = None
-        aper_m2_name = None
+        # current aperture in loop
+        aper_0  = None
+        # previous aperture in loop (-1)
+        aper_m1 = None
+        # aperture before previous in loop (-2)
+        aper_m2 = None
 
-        for name in self.element_names:
-            el = self.element_dict[name]
-            if el.__class__.__name__.startswith('Limit'):
+        for ee, nn in zip(self.elements, self.element_names):
+            if ee.__class__.__name__.startswith('Limit'):
             # We encountered a new aperture, shift all previous
                 aper_m2 = aper_m1
                 aper_m1 = aper_0
-                aper_0  = el
-                aper_m2_name = aper_m1_name
-                aper_m1_name = aper_0_name
-                aper_0_name  = name
-            elif not isinstance(el, (Drift, Marker)) \
-            or name in drifts_that_need_aperture:
+                aper_0  = nn
+            elif (not isinstance(ee, (Drift, Marker)) 
+            or name in drifts_that_need_aperture):
             # We are in an active element: all previous apertures
             # should be kept in the line
                 aper_0  = None
                 aper_m1 = None
                 aper_m2 = None
-            if aper_0 is not None and aper_0 == aper_m1 == aper_m2:
-            # We found three consecutive apertures (with only Drifts and Markers
-            # in between) that are the same, hence the middle one can be removed
-                aper_to_remove = [*aper_to_remove, aper_m1_name]
-                aper_m1 = aper_m2
-                aper_m2 = None
-                aper_m1_name = aper_m2_name
-                aper_m2_name = None
+            if (aper_0 is not None
+                and self.element_dict(aper_0) == self.element_dict(aper_m1)
+                and self.element_dict(aper_m1)== self.element_dict(aper_m2)
+                ):
+                # We found three consecutive apertures (with only Drifts and Markers
+                # in between) that are the same, hence the middle one can be removed
+                if aper_m1 not in keep:
+                    aper_to_remove = [*aper_to_remove, aper_m1]
+                    # Middle aperture removed, so the -2 shifts to the -1 position
+                    aper_m1 = aper_m2
+                    aper_m2 = None
+
+        if inplace:
+            newline = self
+        else:
+            newline = self.copy()
 
         for name in aper_to_remove:
-            self.element_dict.pop(name)
-            self.element_names.remove(name)
+            newline.element_dict.pop(name)
+            newline.element_names.remove(name)
 
-    def merge_consecutive_multipoles(self, inplace=True):
+        return newline
+
+    def merge_consecutive_multipoles(self, inplace=True, keep=None):
 
         self._frozen_check()
         if self._var_management is not None:
@@ -871,8 +893,10 @@ class Line:
                                       ' available when deferred expressions are'
                                       ' used')
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         newline = Line(elements=[], element_names=[])
 
@@ -881,10 +905,10 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if isinstance(ee, beam_elements.Multipole):
+            if isinstance(ee, Multipole) and nn not in keep:
                 prev_ee = newline.elements[-1]
                 prev_nn = newline.element_names[-1]
-                if (isinstance(prev_ee, beam_elements.Multipole)
+                if (isinstance(prev_ee, Multipole)
                     and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
                     ):
 
@@ -900,7 +924,7 @@ class Line:
                         ksl[ii]+=kk
                     for ii,kk in enumerate(ee._xobject.ksl):
                         ksl[ii]+=kk
-                    newee = beam_elements.Multipole(
+                    newee = Multipole(
                             knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
@@ -912,9 +936,11 @@ class Line:
             else:
                 newline.append_element(ee, nn)
 
-        self.element_dict.update(newline.element_dict)
-        self.element_names = newline.element_names
-        return self
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+
+        return newline
 
     def use_simple_quadrupoles(self):
         '''
@@ -1086,7 +1112,7 @@ def _deserialize_element(el, class_dict, _buffer):
 
 
 def _is_simple_quadrupole(el):
-    if not isinstance(el, beam_elements.Multipole):
+    if not isinstance(el, Multipole):
         return False
     return (el.radiation_flag == 0 and
             el.order == 1 and
@@ -1098,7 +1124,7 @@ def _is_simple_quadrupole(el):
 
 
 def _is_simple_dipole(el):
-    if not isinstance(el, beam_elements.Multipole):
+    if not isinstance(el, Multipole):
         return False
     return (el.radiation_flag == 0 and el.order == 0
             and not any(el.ksl) and not el.hyl)
