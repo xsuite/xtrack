@@ -34,18 +34,17 @@ line.particle_ref = xp.Particles(
         q0=-1,
         gamma0=mad.sequence.ring.beam.gamma)
 
-# Build tracker
-print('Build tracker ...')
-tracker = xt.Tracker(line=line)
+# Build line
+line.build_tracker()
 
-tracker.configure_radiation(model='quantum')
+line.configure_radiation(model='quantum')
 
-record = tracker.start_internal_logging_for_elements_of_type(
+record = line.start_internal_logging_for_elements_of_type(
                                                 xt.Multipole, capacity=100000)
 
-particles = xp.build_particles(tracker=tracker, x=[0,0,0,0])
+particles = xp.build_particles(line=line, x=[0,0,0,0])
 
-tracker.track(particles, num_turns=10)
+line.track(particles, num_turns=10)
 
 import matplotlib.pyplot as plt
 hist, bin_edges = np.histogram(record.photon_energy[:record._index.num_recorded], bins=100)

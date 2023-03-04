@@ -44,13 +44,13 @@ line.build_tracker()
 
 # we choose the `mean` mode in which the mean power loss is applied without
 # stochastic fluctuations (quantum excitation).
-tracker.configure_radiation(model='mean')
+line.configure_radiation(model='mean')
 
 #########
 # Twiss #
 #########
 
-tw = tracker.twiss(eneloss_and_damping=True)
+tw = line.twiss(eneloss_and_damping=True)
 
 # By setting `eneloss_and_damping=True` we can get additional information
 # from the twiss for example:
@@ -64,7 +64,7 @@ tw = tracker.twiss(eneloss_and_damping=True)
 
 # Build three particles (with action in x,y and zeta respectively)
 part_co = tw['particle_on_co']
-particles = tracker.build_particles(
+particles = line.build_particles(
     x_norm=[500., 0, 0], y_norm=[0, 500, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     nemitt_x=1e-9, nemitt_y=1e-9)
@@ -74,10 +74,10 @@ particles_0 = particles.copy()
 
 # Track
 num_turns = 5000
-tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
 
 # Save monitor
-mon_mean_mode = tracker.record_last_track
+mon_mean_mode = line.record_last_track
 
 ############################
 # Switch to `quantum` mode #
@@ -90,14 +90,14 @@ mon_mean_mode = tracker.record_last_track
 #            to quantum mode only after having generated the particles.
 
 
-tracker.configure_radiation(model='quantum')
+line.configure_radiation(model='quantum')
 
 # We reuse the initial state saved before
 particles = particles_0.copy()
 
 num_turns = 5000
-tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
-mon_quantum_mode = tracker.record_last_track
+line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+mon_quantum_mode = line.record_last_track
 
 import matplotlib.pyplot as plt
 plt.close('all')
