@@ -59,7 +59,7 @@ def test_ring_with_spacecharge(test_context):
     line_temp.build_tracker(_context=test_context)
     import warnings
     warnings.filterwarnings('ignore')
-    particle_probe = line_temp.build_particles(
+    particle_probe = line_temp.build_particles(_context=xo.ContextCpu(),
                 particle_ref=particle_ref,
                 weight=0,  # pure probe particles
                 zeta=0, delta=0,
@@ -68,6 +68,7 @@ def test_ring_with_spacecharge(test_context):
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
     particles_gaussian = xp.generate_matched_gaussian_bunch(
+             _context=xo.ContextCpu(),
              num_particles=n_part, total_intensity_particles=bunch_intensity,
              nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
              particle_ref=particle_ref, line=line_temp)
