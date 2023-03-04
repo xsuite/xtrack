@@ -89,6 +89,7 @@ def test_match_and_track_from_element(test_context):
     line_w_collective = xt.Line.from_dict(input_data['line'])
     for ip in range(8):
         line_w_collective.element_dict[f'ip{ip+1}'].iscollective = True
+        line_w_collective.element_dict[f'ip{ip+1}'].move(_context=test_context)
     line_w_collective.build_tracker(_context=test_context,
                                     reset_s_at_end_turn=False)
     assert line_w_collective.iscollective
