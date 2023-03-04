@@ -809,7 +809,7 @@ class Line:
 
         for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
             if ii == 0:
-                newline.append_element(ee, nn)
+                newline.append_element(ee.copy(), nn)
                 continue
 
             if _is_drift(ee) and not nn in keep:
@@ -818,9 +818,9 @@ class Line:
                 if _is_drift(prev_ee):
                     prev_ee.length += ee.length
                 else:
-                    newline.append_element(ee, nn)
+                    newline.append_element(ee.copy(), nn)
             else:
-                newline.append_element(ee, nn)
+                newline.append_element(ee.copy(), nn)
 
         if inplace:
             self.element_names = newline.element_names
@@ -910,6 +910,7 @@ class Line:
                 prev_nn = newline.element_names[-1]
                 if (isinstance(prev_ee, Multipole)
                     and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
+                    and prev_nn not in keep
                     ):
 
                     oo=max(len(prev_ee.knl), len(prev_ee.ksl),

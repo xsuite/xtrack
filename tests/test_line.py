@@ -19,6 +19,91 @@ def test_simplification_methods():
             )
         )
 
+    # Test merging of drifts
+    line.insert_element(element=xt.Cavity(), name='cav', at_s=3.3)
+    line.merge_consecutive_drifts(inplace=True)
+    assert len(line.element_names) == 3
+    assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
+    assert np.isclose(line[0].length, 3.3, rtol=0, atol=1e-12)
+    assert isinstance(line[1], xt.Cavity)
+    assert np.isclose(line[2].length, 1.7, rtol=0, atol=1e-12)
+
+    # Test merging of drifts, while keeping one
+    line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
+    line.insert_element(element=xt.Drift(length=1), name='drift2', at_s=2.2)
+    line.merge_consecutive_drifts(inplace=True, keep=['drift2'])
+    assert len(line.element_names) == 4
+    assert 'drift2' in line.element_names
+    assert 'drift1' not in line.element_names
+    line.merge_consecutive_drifts(inplace=True)
+
+    # Test removing of zero-length drifts
+    line.insert_element(element=xt.Drift(length=0), name='marker1', at_s=3.3)
+    line.insert_element(element=xt.Drift(length=0), name='marker2', at_s=3.3)
+    assert len(line.element_names) == 5
+    line.remove_zero_length_drifts(inplace=True, keep='marker2')
+    assert len(line.element_names) == 4
+    assert 'marker2' in line.element_names
+    assert 'marker1' not in line.element_names
+    line.remove_zero_length_drifts(inplace=True)
+
+    # Test merging of multipoles
+    line.insert_element(element=xt.Multipole(knl=[1, 0, 3], ksl=[0, 20, 0]), name="m1", at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[4, 2], ksl=[10, 40]), name="m2", at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[0, 3, 8], ksl=[2, 0, 17]), name="m3", at_s=3.3)
+    line.insert_element(element=xt.Multipole(knl=[2, 0, 0], ksl=[40]), name="m4", at_s=3.3)
+    assert len(line.element_names) == 7
+    line.merge_consecutive_multipoles(inplace=True, keep="m3")
+    assert len(line.element_names) == 6
+    assert "m3" in line.element_names
+    # We merged the first two multipoles
+    joined_mult = [ name for name in line.element_names if "m1" in name]
+    assert len(joined_mult) == 1
+    joined_mult = joined_mult[0]
+    assert "m2" in joined_mult
+    assert np.allclose(line[joined_mult].knl, [5,2,3], rtol=0, atol=1e-15)
+    assert np.allclose(line[joined_mult].ksl, [10,60,0], rtol=0, atol=1e-15)
+    # Merging all
+    line.merge_consecutive_multipoles(inplace=True)
+    assert len(line.element_names) == 4
+    assert np.allclose(line[1].knl, [7,5,11], rtol=0, atol=1e-15)
+    assert np.allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
+
+    line.remove_inactive_multipoles(inplace=True)
+    assert len(line.element_names) == 4
+    line[1].knl[:] = 0
+    line[1].ksl[:] = 0
+    line.remove_inactive_multipoles(inplace=True)
+    assert len(line.element_names) == 3
+
+    line.insert_element(element=xt.Marker(), name='marker1', at_s=3.3)
+    line.insert_element(element=xt.Marker(), name='marker2', at_s=3.3)
+    assert 'marker1' in line.element_names
+    assert 'marker2' in line.element_names
+    line.remove_markers(keep='marker2')
+    assert 'marker1' not in line.element_names
+    assert 'marker2' in line.element_names
+
+    line.insert_element(element=xt.Marker(), name='marker4', at_s=3.3)
+    line.insert_element(element=xt.Marker(), name='marker3', at_s=3.3)
+    assert 'marker2' in line.element_names
+    assert 'marker3' in line.element_names
+    assert 'marker4' in line.element_names
+    line.remove_markers()
+    assert 'marker2' not in line.element_names
+    assert 'marker3' not in line.element_names
+    assert 'marker4' not in line.element_names
+
+
+def test_simplification_methods_not_inplace():
+
+    line = xt.Line(
+        elements=([xt.Drift(length=0)] # Start line marker
+                    + [xt.Drift(length=1) for _ in range(5)]
+                    + [xt.Drift(length=0)] # End line marker
+            )
+        )
+
     line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
     line.merge_consecutive_drifts(inplace=True)
     assert len(line.element_names) == 3
