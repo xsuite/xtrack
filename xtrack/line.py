@@ -57,6 +57,25 @@ def _next_name(prefix, names, name_format='{}{}'):
         i += 1
     return name_format.format(prefix, i)
 
+def _apertures_equal(ap1, ap2):
+    if not _is_aperture(ap1) or _is_aperture(ap2):
+        raise ValueError
+    if ap1.__class__ != ap2.__class__:
+        return False
+    ap1 = ap1.to_dict()
+    ap2 = ap2.to_dict()
+    if set(ap1.keys()) != set(ap2.keys()):
+        return False
+    for key in ap1.keys():
+        if hasattr(ap1[key], '__iter__'):
+            if not hasattr(ap2[key], '__iter__'):
+                return False
+            elif not np.array_equal(ap1[key], ap2[key]):
+                return False
+        elif ap1[key] != ap2[key]:
+            return False
+    return True
+
 
 DEG2RAD = np.pi / 180.
 
@@ -863,8 +882,8 @@ class Line:
                 aper_m1 = None
                 aper_m2 = None
             if (aper_0 is not None
-                and self.element_dict(aper_0) == self.element_dict(aper_m1)
-                and self.element_dict(aper_m1)== self.element_dict(aper_m2)
+                and _apertures_equal(self.element_dict(aper_0), self.element_dict(aper_m1))
+                and _apertures_equal(self.element_dict(aper_m1, self.element_dict(aper_m2))
                 ):
                 # We found three consecutive apertures (with only Drifts and Markers
                 # in between) that are the same, hence the middle one can be removed
