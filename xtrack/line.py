@@ -488,8 +488,7 @@ class Line:
 
         if _make_tracker and self.tracker is not None:
             new_tracker = self.tracker.filter_elements(mask=mask,
-                        exclude_types_starting_with=exclude_types_starting_with,
-                        _make_tracker=False)
+                        exclude_types_starting_with=exclude_types_starting_with)
             new_line = new_tracker.line
             new_line.tracker = new_tracker
             return new_line
