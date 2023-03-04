@@ -998,7 +998,8 @@ class Line:
 
         elements_df = self.to_pandas()
 
-        elements_df['is_aperture'] = elements_df.element_type.map(lambda s: s.startswith('Limit'))
+        elements_df['is_aperture'] = elements_df.name.map(
+                                        lambda nn: _is_aperture(self.element_dict(nn))
         elements_df['i_aperture_upstream'] = np.nan
         elements_df['s_aperture_upstream'] = np.nan
         elements_df['i_aperture_downstream'] = np.nan
@@ -1016,16 +1017,7 @@ class Line:
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
-            if elements_df.loc[iee, 'element_type'] == 'Marker':
-                continue
-
-            if elements_df.loc[iee, 'element_type'] == 'Drift':
-                continue
-
-            if elements_df.loc[iee, 'element_type'] == 'XYShift':
-                continue
-
-            if elements_df.loc[iee, 'element_type'] == 'SRotation':
+            if self.element_dict(elements_df.loc[iee, 'name']).allow_backtrack:
                 continue
 
             if elements_df.loc[iee, 'is_aperture']:
