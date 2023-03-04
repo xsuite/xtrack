@@ -43,14 +43,13 @@ def test_random_generation(test_context):
     telem.track(part)
 
     # Use turn-by-turn monitor to acquire some statistics
+    line=xt.Line(elements=[telem])
+    line.build_tracker(_buffer=telem._buffer)
 
-    tracker = xt.Tracker(_buffer=telem._buffer,
-            line=xt.Line(elements=[telem]))
-
-    tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
+    line.track(part, num_turns=1e6, turn_by_turn_monitor=True)
 
     for i_part in range(part._capacity):
-        x = tracker.record_last_track.x[i_part, :]
+        x = line.record_last_track.x[i_part, :]
         assert np.all(x>0)
         assert np.all(x<1)
         hstgm, bin_edges = np.histogram(x,  bins=50, range=(0, 1), density=True)

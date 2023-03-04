@@ -54,10 +54,11 @@ def test_prebuild_kernels(mocker, tmp_path):
     # Test that reloading the kernel works
     cffi_compile = mocker.patch.object(cffi.FFI, 'compile')
 
-    tracker = xt.Tracker(line=xt.Line(elements=[xt.Drift(length=2.0)]))
+    line=xt.Line(elements=[xt.Drift(length=2.0)])
+    line.build_tracker()
 
     p = xp.Particles(p0c=1e9, px=3e-6)
-    tracker.track(p)
+    line.track(p)
 
     assert p.x == 6e-6
     assert p.y == 0.0
