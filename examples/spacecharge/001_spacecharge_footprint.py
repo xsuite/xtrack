@@ -96,7 +96,7 @@ else:
 # Build trackers #
 ##################
 
-line.build_tracker(context=context)
+line.build_tracker(_context=context)
 line_sc_off = line.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
