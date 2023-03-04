@@ -662,7 +662,8 @@ class Tracker:
         self._check_invalidated()
 
         cline = self.line.cycle(index_first_element=index_first_element,
-                                name_first_element=name_first_element)
+                                name_first_element=name_first_element,
+                                _make_tracker=False)
 
         if _buffer is None:
             if _context is None:

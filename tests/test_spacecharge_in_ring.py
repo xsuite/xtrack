@@ -54,12 +54,13 @@ def test_ring_with_spacecharge(test_context):
     ##################
     # Make particles #
     ##################
-    tracker_temp = xt.Tracker(  # I make a temp tracker to gen. particles only once
-            line=line0_no_sc.filter_elements(exclude_types_starting_with='SpaceCh'))
+    line_temp = line0_no_sc.filter_elements(
+        exclude_types_starting_with='SpaceCh')
+    line_temp.build_tracker(_context=test_context)
     import warnings
     warnings.filterwarnings('ignore')
     particle_probe = xp.build_particles(
-                tracker=tracker_temp,
+                line=line_temp,
                 particle_ref=particle_ref,
                 weight=0,  # pure probe particles
                 zeta=0, delta=0,
@@ -70,7 +71,7 @@ def test_ring_with_spacecharge(test_context):
     particles_gaussian = xp.generate_matched_gaussian_bunch(
              num_particles=n_part, total_intensity_particles=bunch_intensity,
              nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-             particle_ref=particle_ref, tracker=tracker_temp)
+             particle_ref=particle_ref, line=line_temp)
 
     particles0 = xp.Particles.merge([particle_probe, particles_gaussian])
     warnings.filterwarnings('default')
@@ -137,22 +138,22 @@ def test_ring_with_spacecharge(test_context):
         #################
         # Build Tracker #
         #################
-        tracker = xt.Tracker(_context=test_context,
-                             line=line)
+        line.build_tracker(_context=test_context)
 
         ###############################
         # Tune shift from single turn #
         ###############################
 
-        tracker_no_sc = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
-        tw = tracker_no_sc.twiss(
+        line_no_sc = line.filter_elements(exclude_types_starting_with='SpaceCh')
+        line_no_sc.build_tracker(_context=test_context)
+        tw = line_no_sc.twiss(
                 particle_ref=particle_ref,  at_elements=[0])
 
         p_probe_before = particles.filter(
                 particles.particle_id == 0).to_dict()
 
         print('Start tracking...')
-        tracker.track(particles)
+        line.track(particles)
         print('Done tracking.')
 
         p_probe_after = particles.filter(

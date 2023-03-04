@@ -511,7 +511,8 @@ class Line:
 
         return new_line
 
-    def cycle(self, index_first_element=None, name_first_element=None):
+    def cycle(self, index_first_element=None, name_first_element=None,
+              _make_tracker=True):
 
         """
         Cycle the line to start from a given element.
@@ -523,6 +524,14 @@ class Line:
         name_first_element: str
             Name of the element to start from
         """
+
+        if _make_tracker and self.tracker is not None:
+            new_tracker = self.tracker.cycle(
+                index_first_element=index_first_element,
+                name_first_element=name_first_element,
+            )
+            new_line = new_tracker.line
+            return new_line
 
         if ((index_first_element is not None and name_first_element is not None)
                or (index_first_element is None and name_first_element is None)):
