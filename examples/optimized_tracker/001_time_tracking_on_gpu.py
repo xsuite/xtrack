@@ -27,13 +27,13 @@ with open(fname_line_particles, 'r') as fid:
 line = xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-tracker = line.build_tracker(_context=context)
+line.build_tracker(_context=context)
 
 ###########################
 # Generate some particles #
 ###########################
 
-particles = tracker.build_particles(
+particles = line.build_particles(
     x_norm=np.linspace(-2, 2, num_particles), y_norm=0.1, delta=3e-4,
     nemitt_x=2.5e-6, nemitt_y=2.5e-6)
 
@@ -41,7 +41,7 @@ particles = tracker.build_particles(
 # Optimize tracker #
 ####################
 
-tracker.optimize_for_tracking()
+line.optimize_for_tracking()
 
 ###########################
 # Track with optimization #
@@ -49,8 +49,8 @@ tracker.optimize_for_tracking()
 
 print('Start tracking')
 t1 = time.time()
-tracker.track(particles, num_turns=num_turns, time=True)
-tracking_time = tracker.time_last_track
+line.track(particles, num_turns=num_turns, time=True)
+tracking_time = line.time_last_track
 t2=time.time()
 
 particles.move(_context = xo.ContextCpu())

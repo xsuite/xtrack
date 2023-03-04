@@ -21,13 +21,13 @@ with open(fname_line_particles, 'r') as fid:
 line = xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-tracker = line.build_tracker()
+line.build_tracker()
 
 ###########################
 # Generate some particles #
 ###########################
 
-particles = tracker.build_particles(
+particles = line.build_particles(
     x_norm=np.linspace(-2, 2, 1000), y_norm=0.1, delta=3e-4,
     nemitt_x=2.5e-6, nemitt_y=2.5e-6)
 
@@ -39,14 +39,14 @@ p_optimized = particles.copy()
 ##############################
 
 num_turns = 10
-tracker.track(p_no_optimized, num_turns=num_turns, time=True)
-t_not_optimized = tracker.time_last_track
+line.track(p_no_optimized, num_turns=num_turns, time=True)
+t_not_optimized = line.time_last_track
 
 ####################
 # Optimize tracker #
 ####################
 
-tracker.optimize_for_tracking()
+line.optimize_for_tracking()
 
 # This performs the following actions (physics model is unchanged):
 # - Disables xdeps expressions
@@ -59,8 +59,8 @@ tracker.optimize_for_tracking()
 # Track with optimization #
 ###########################
 
-tracker.track(p_optimized, num_turns=num_turns, time=True)
-t_optimized = tracker.time_last_track
+line.track(p_optimized, num_turns=num_turns, time=True)
+t_optimized = line.time_last_track
 
 #################
 # Compare times #
