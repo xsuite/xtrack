@@ -26,14 +26,14 @@ def test_twiss_4d_fodo_vs_beta_rel(test_context):
         xt.Drift(length=1.0),
     ]
     line = xt.Line(elements=n * fodo + [xt.Cavity(frequency=1e9, voltage=0, lag=180)])
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     ## Twiss
     p0c_list = [1e8, 1e9, 1e10, 1e11, 1e12]
     tw_4d_list = []
     for p0c in p0c_list:
-        tracker.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=p0c)
-        tw = tracker.twiss(method="4d", at_s=np.linspace(0, line.get_length(), 500))
+        line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=p0c)
+        tw = line.twiss(method="4d", at_s=np.linspace(0, line.get_length(), 500))
         tw_4d_list.append(tw)
 
     for tw in tw_4d_list:
@@ -66,9 +66,9 @@ def test_coupled_beta(test_context):
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
     line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
-    tw = tracker.twiss()
+    tw = line.twiss()
 
     twdf = tw.to_pandas()
     twdf.set_index('name', inplace=True)
@@ -103,14 +103,14 @@ def test_twiss_zeta0_delta0(test_context):
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
     line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     # Measure crabbing angle at IP1 and IP5
     z1 = 1e-4
     z2 = -1e-4
 
-    tw1 = tracker.twiss(zeta0=z1).to_pandas()
-    tw2 = tracker.twiss(zeta0=z2).to_pandas()
+    tw1 = line.twiss(zeta0=z1).to_pandas()
+    tw2 = line.twiss(zeta0=z2).to_pandas()
 
     tw1.set_index('name', inplace=True)
     tw2.set_index('name', inplace=True)
@@ -134,15 +134,15 @@ def test_get_normalized_coordinates(test_context):
     line = xt.Line.from_dict(input_data['line'])
     line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
-    particles = tracker.build_particles(
+    particles = line.build_particles(
         nemitt_x=2.5e-6, nemitt_y=1e-6,
         x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
         px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
         zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
 
-    tw = tracker.twiss()
+    tw = line.twiss()
 
     norm_coord = tw.get_normalized_coordinates(particles, nemitt_x=2.5e-6,
                                             nemitt_y=1e-6)
@@ -157,13 +157,13 @@ def test_get_normalized_coordinates(test_context):
     line['mqwa.a4r3.b1..1'].knl[0] = 10e-6
     line['mqwa.a4r3.b1..1'].ksl[0] = 5e-6
 
-    particles1 = tracker.build_particles(
+    particles1 = line.build_particles(
         nemitt_x=2.5e-6, nemitt_y=1e-6,
         x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
         px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
         zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
 
-    tw1 = tracker.twiss()
+    tw1 = line.twiss()
     norm_coord1 = tw1.get_normalized_coordinates(particles1, nemitt_x=2.5e-6,
                                                 nemitt_y=1e-6)
 
@@ -174,14 +174,14 @@ def test_get_normalized_coordinates(test_context):
 
     # Check computation at different locations
 
-    particles2 = tracker.build_particles(at_element='s.ds.r3.b1',
+    particles2 = line.build_particles(at_element='s.ds.r3.b1',
         _capacity=10,
         nemitt_x=2.5e-6, nemitt_y=1e-6,
         x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
         px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
         zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
 
-    particles3 = tracker.build_particles(at_element='s.ds.r7.b1',
+    particles3 = line.build_particles(at_element='s.ds.r7.b1',
         _capacity=10,
         nemitt_x=2.5e-6, nemitt_y=1e-6,
         x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
@@ -230,18 +230,18 @@ def test_twiss_does_not_affect_monitors(test_context):
                                     repetition_period=1,
                                     num_particles =n_part)
     line.insert_element(index=0, element=monitor, name='monitor_start')
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
-    particles = tracker.build_particles(x=123e-6)
-    tracker.track(particles, num_turns=10)
+    particles = line.build_particles(x=123e-6)
+    line.track(particles, num_turns=10)
     assert monitor.x[0,0] == 123e-6
 
-    particles = tracker.build_particles(x=456e-6)
+    particles = line.build_particles(x=456e-6)
     particles.at_turn = -10 # the monitor is skipped in this way in the twiss
-    tracker.track(particles, num_turns=10)
+    line.track(particles, num_turns=10)
     assert monitor.x[0,0] == 123e-6
 
-    tracker.twiss()
+    line.twiss()
     assert monitor.x[0,0] == 123e-6
 
 

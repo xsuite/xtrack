@@ -168,7 +168,7 @@ for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names))
 
     if test_backtracker:
         backtracker.track(particles,
-                ele_start=len(tracker.line.elements) - ii - 1,
+                ele_start=len(line.elements) - ii - 1,
                 num_elements=1)
         for vv in vars_to_check:
             xt_value = context.nparray_from_context_array(

@@ -77,7 +77,7 @@ line= xt.Line.from_dict(input_data['line'])
 ##################
 
 print('Build tracker')
-tracker = line.build_tracker(_context=context, reset_s_at_end_turn=False)
+line.build_tracker(_context=context, reset_s_at_end_turn=False)
 
 ######################
 # Get some particles #
@@ -98,10 +98,10 @@ particles = xp.build_particles(_context=context,
 #########
 particles_before_tracking = particles.copy(_context=xo.ContextCpu())
 print('Track!')
-print(f'context: {tracker._buffer.context}')
-tracker.track(particles, num_turns=num_turns, time=True)
-print(f'Time {(tracker.time_last_track)*1000:.2f} ms')
-print(f'Time {(tracker.time_last_track)*1e6/num_turns/n_part:.2f} us/part/turn')
+print(f'context: {line._buffer.context}')
+line.track(particles, num_turns=num_turns, time=True)
+print(f'Time {(line.time_last_track)*1000:.2f} ms')
+print(f'Time {(line.time_last_track)*1e6/num_turns/n_part:.2f} us/part/turn')
 
 ###########################
 # Check against ducktrack #

@@ -531,6 +531,7 @@ class Line:
                 name_first_element=name_first_element,
             )
             new_line = new_tracker.line
+            new_line.tracker = new_tracker
             return new_line
 
         if ((index_first_element is not None and name_first_element is not None)
