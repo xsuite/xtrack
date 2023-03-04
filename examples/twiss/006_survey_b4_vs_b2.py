@@ -23,8 +23,8 @@ line_b4 = xt.Line.from_madx_sequence(
 line_b4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 
 
-tracker_b4 = xt.Tracker(line=line_b4)
-twb4xt = tracker_b4.twiss()
+line_b4.build_tracker()
+twb4xt = line_b4.twiss()
 
 
 # Survey with offset:
@@ -40,8 +40,8 @@ starting = {
 
 survb4mad = mad_b4.survey(**starting).dframe()
 survb2mad = mad_b2.survey(**starting).dframe()
-survb4xt = tracker_b4.survey(**starting).to_pandas(index="name")
-survb2xt = tracker_b4.survey(**starting, reverse=True).to_pandas(index="name")
+survb4xt = line_b4.survey(**starting).to_pandas(index="name")
+survb2xt = line_b4.survey(**starting, reverse=True).to_pandas(index="name")
 
 # ================================
 plt.close('all')

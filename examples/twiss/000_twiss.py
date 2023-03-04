@@ -26,19 +26,19 @@ line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 # Build tracker #
 #################
 
-tracker = xt.Tracker(line=line)
+line.build_tracker()
 
 #########
 # Twiss #
 #########
 
-tw = tracker.twiss()
+tw = line.twiss()
 
 #!end-doc-part
 
 # Test custom s locations
 s_test = [2e3, 1e3, 3e3, 10e3]
-twats = tracker.twiss(at_s = s_test)
+twats = line.twiss(at_s = s_test)
 for ii, ss in enumerate(s_test):
     assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
     i_prev = np.where(tw['s']<=ss)[0][-1]
@@ -54,7 +54,7 @@ for ii, ss in enumerate(s_test):
 
 twmb19r5 = tw.get_twiss_init(at_element='mb.b19l5.b1')
 
-tw_part = tracker.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
+tw_part = line.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
                         twiss_init=twmb19r5)
 
 

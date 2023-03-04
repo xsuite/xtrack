@@ -13,24 +13,24 @@ with open(filename, 'r') as f:
 #line['qc1l1.1..1'].ksl[0] += 1e-6/5
 line['qc1l1.1..1'].ksl[1] = 1e-4
 
-tracker = line.build_tracker()
+line.build_tracker()
 
 # Initial twiss (no radiation)
-tracker.configure_radiation(model=None)
-tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
+line.configure_radiation(model=None)
+tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
 
 # Enable radiation
-tracker.configure_radiation(model='mean')
+line.configure_radiation(model='mean')
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
-tracker.compensate_radiation_energy_loss(record_iterations=True)
+line.compensate_radiation_energy_loss(record_iterations=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 
-tw = tracker.twiss(eneloss_and_damping=True)
+tw = line.twiss(eneloss_and_damping=True)
 
-p0corr = 1 + tracker.delta_taper
+p0corr = 1 + line.delta_taper
 
 plt.figure(1, figsize=(6.4*1.3, 4.8))
 
@@ -148,7 +148,7 @@ plt.subplots_adjust(hspace=0.35, top=.85)
 
 
 plt.figure(100)
-for i_iter, mon in enumerate(tracker._tapering_iterations):
+for i_iter, mon in enumerate(line._tapering_iterations):
     plt.plot(mon.s.T, mon.delta.T,
                 label=f'iter {i_iter} - Ene. loss: {-mon.delta[-1, -1]*100:.2f} %')
     plt.legend(loc='lower left')

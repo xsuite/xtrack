@@ -15,9 +15,9 @@ tw_mad_coupling = mad.twiss(ripken=True).dframe()
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
 line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 
-tracker = line.build_tracker()
+line.build_tracker()
 
-tw = tracker.twiss()
+tw = line.twiss()
 
 delta_values = np.linspace(-5e-3, 5e-3, 100)
 qx_values = delta_values * 0
@@ -28,7 +28,7 @@ qy_values_mad = delta_values * 0
 
 for i, delta in enumerate(delta_values):
     print(f'Working on {i} of {len(delta_values)}')
-    tt = tracker.twiss(method='4d', delta0=delta)
+    tt = line.twiss(method='4d', delta0=delta)
     qx_values[i] = tt.qx
     qy_values[i] = tt.qy
 

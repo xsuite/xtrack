@@ -17,10 +17,9 @@ tw_mad_coupling = mad.twiss(ripken=True).dframe()
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
 line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+line.build_tracker()
 
-tracker = line.build_tracker()
-
-tw = tracker.twiss()
+tw = line.twiss()
 
 bety1 = tw.bety1
 betx2 = tw.betx2

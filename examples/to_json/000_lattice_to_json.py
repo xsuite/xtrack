@@ -23,8 +23,14 @@ line = xt.Line(
 )
 
 # Save to json
+line.to_json('line.json')
+
+# Alternatively the to dict method can be used, which is more flexible for
+# example to save additional information in the json file
+dct = line.to_dict()
+dct['my_additional_info'] = 'Impartant information'
 with open('line.json', 'w') as fid:
-    json.dump(line.to_dict(), fid, cls=xo.JEncoder)
+    json.dump(dct, fid, cls=xo.JEncoder)
 
 # Load from json
 with open('line.json', 'r') as fid:

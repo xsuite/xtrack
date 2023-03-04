@@ -12,14 +12,14 @@ with open('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json'
 
 line = xt.Line.from_dict(dct['line'])
 line.particle_ref = xp.Particles.from_dict(dct['particle'])
-tracker=line.build_tracker()
+line.build_tracker()
 
 #########
 # Twiss #
 #########
 
 print('\nInitial twiss parameters')                                             #!skip-doc
-tw_before = tracker.twiss()
+tw_before = line.twiss()
 
 ####################################################
 # Tunes, chromaticities, and knobs before matching #
@@ -40,7 +40,7 @@ print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 #####################################################
 
 t1 = time.time()                                                                #!skip-doc
-tracker.match(
+line.match(
     vary=[
         xt.Vary('kqtf.b1', step=1e-8),
         xt.Vary('kqtd.b1', step=1e-8),
@@ -59,7 +59,7 @@ print('\nTime match: ', t2-t1)                                                 #
 # Tunes, chromaticities, and knobs after matching #
 ###################################################
 
-tw_final = tracker.twiss()
+tw_final = line.twiss()
 print('\nFinal twiss parameters')                                               #!skip-doc
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
@@ -76,7 +76,7 @@ print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 # For example, to match the tunes and chromaticities using the '4d' method:
 
 t1 = time.time()                                                                #!skip-doc
-tracker.match(method='4d', # <-- 4d matching
+line.match(method='4d', # <-- 4d matching
     vary=[
         xt.Vary('kqtf.b1', step=1e-10),
         xt.Vary('kqtd.b1', step=1e-10),
@@ -91,7 +91,7 @@ tracker.match(method='4d', # <-- 4d matching
 t2 = time.time()                                                                #!skip-doc
 print('\nTime 4d match: ', t2-t1)                                               #!skip-doc
 
-tw_final = tracker.twiss(method='4d')                                           #!skip-doc
+tw_final = line.twiss(method='4d')                                           #!skip-doc
 print('\nFinal twiss parameters')                                               #!skip-doc
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "                   #!skip-doc
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")               #!skip-doc
@@ -109,7 +109,7 @@ print(f"ksd.b1 = {line.vars['ksd.b1']._value}")                                 
 # instead of the vertical tune:
 
 t1 = time.time()                                                                #!skip-doc
-tracker.match(
+line.match(
     vary=[
         xt.Vary('kqtf.b1', step=1e-10),
         xt.Vary('kqtd.b1', step=1e-10),
