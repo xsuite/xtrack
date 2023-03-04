@@ -76,6 +76,29 @@ def _apertures_equal(ap1, ap2):
             return False
     return True
 
+def _lines_equal(line1, line2):
+    if line1.element_names != line2.element_names:
+        return False
+    for nn in line1.element_names:
+        ee_1 = line1.element_dict[nn]
+        ee_2 = line2.element_dict[nn]
+        if not (hasattr(ee_1, 'to_dict') and hasattr(ee_2, 'to_dict')):
+            raise NotImplementedError(f"Element {nn} does not have a"
+                        + "`to_dict` method. Currently not supported.")
+        ee_1 = ee_1.to_dict()
+        ee_2 = ee_2.to_dict()
+        if ee_1.keys() != ee_2.keys():
+            return False
+        for key in ee_1.keys():
+            if hasattr(ee_1[key], '__iter__'):
+                if not hasattr(ee_2[key], '__iter__'):
+                    return False
+                elif not np.array_equal(ee_1[key],ee_2[key]):
+                    return False
+            elif ee_1[key] != ee_2[key]:
+                return False
+    return True
+
 
 DEG2RAD = np.pi / 180.
 
@@ -883,7 +906,7 @@ class Line:
                 aper_m2 = None
             if (aper_0 is not None
                 and _apertures_equal(self.element_dict(aper_0), self.element_dict(aper_m1))
-                and _apertures_equal(self.element_dict(aper_m1, self.element_dict(aper_m2))
+                and _apertures_equal(self.element_dict(aper_m1), self.element_dict(aper_m2))
                 ):
                 # We found three consecutive apertures (with only Drifts and Markers
                 # in between) that are the same, hence the middle one can be removed
