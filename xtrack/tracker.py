@@ -580,7 +580,8 @@ class Tracker:
         return self.__class__(
                  _buffer=self._buffer,
                  line=self.line.filter_elements(mask=mask,
-                     exclude_types_starting_with=exclude_types_starting_with),
+                     exclude_types_starting_with=exclude_types_starting_with,
+                     _make_tracker=False),
                  track_kernel=(self.track_kernel if not self.iscollective
                                     else self._supertracker.track_kernel),
                  element_classes=(self.element_classes if not self.iscollective
