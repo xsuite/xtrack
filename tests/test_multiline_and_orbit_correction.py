@@ -56,7 +56,7 @@ def test_multiline_and_orbit_correction(test_context):
 
     # Check that in both machines the orbit is flat at the ips
     for nn in ['lhcb1', 'lhcb1_co_ref']:
-        tw = collider[nn].tracker.twiss(method='4d', zeta0=0, delta0=0)
+        tw = collider[nn].twiss(method='4d', zeta0=0, delta0=0)
         for ip in ['ip1', 'ip2', 'ip5', 'ip8']:
             assert np.isclose(tw[ip, 'x'], 0, 1e-10)
             assert np.isclose(tw[ip, 'px'], 0, 1e-10)
