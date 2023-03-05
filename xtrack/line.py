@@ -1116,7 +1116,7 @@ class Line:
 
         return elements, names
 
-    def check_aperture(self):
+    def check_aperture(self, needs_aperture=[]):
 
         '''Check that all active elements have an associated aperture.'''
 
@@ -1141,7 +1141,8 @@ class Line:
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
-            if _allow_backtrack(self.element_dict[elements_df.loc[iee, 'name']]):
+            if (_allow_backtrack(self.element_dict[elements_df.loc[iee, 'name']])
+                and not elements_df.loc[iee, 'name'] in needs_aperture):
                 continue
 
             if elements_df.loc[iee, 'is_aperture']:
