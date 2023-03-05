@@ -57,6 +57,19 @@ def _next_name(prefix, names, name_format='{}{}'):
         i += 1
     return name_format.format(prefix, i)
 
+def _dicts_equal(dict1, dict2):
+    if set(dict1.keys()) != set(dict2.keys()):
+        return False
+    for key in dict1.keys():
+        if hasattr(dict1[key], '__iter__'):
+            if not hasattr(dict2[key], '__iter__'):
+                return False
+            elif not np.array_equal(dict1[key], dict2[key]):
+                return False
+        elif dict1[key] != dict2[key]:
+            return False
+    return True
+
 def _apertures_equal(ap1, ap2):
     if not _is_aperture(ap1) or not _is_aperture(ap2):
         raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
@@ -64,39 +77,38 @@ def _apertures_equal(ap1, ap2):
         return False
     ap1 = ap1.to_dict()
     ap2 = ap2.to_dict()
-    if set(ap1.keys()) != set(ap2.keys()):
-        return False
-    for key in ap1.keys():
-        if hasattr(ap1[key], '__iter__'):
-            if not hasattr(ap2[key], '__iter__'):
-                return False
-            elif not np.array_equal(ap1[key], ap2[key]):
-                return False
-        elif ap1[key] != ap2[key]:
-            return False
-    return True
+    return _dicts_equal(ap1, ap2)
 
 def _lines_equal(line1, line2):
+    # Check element_names
     if line1.element_names != line2.element_names:
         return False
-    for nn in line1.element_names:
-        ee_1 = line1.element_dict[nn]
-        ee_2 = line2.element_dict[nn]
-        if not (hasattr(ee_1, 'to_dict') and hasattr(ee_2, 'to_dict')):
-            raise NotImplementedError(f"Element {nn} does not have a"
-                        + "`to_dict` method. Currently not supported.")
-        ee_1 = ee_1.to_dict()
-        ee_2 = ee_2.to_dict()
-        if ee_1.keys() != ee_2.keys():
+    # Check flags
+    if line1._needs_rng != line2._needs_rng:
+        return False
+    # Check var management
+    if line1._var_management is not None:
+        if line2._var_management is None:
             return False
-        for key in ee_1.keys():
-            if hasattr(ee_1[key], '__iter__'):
-                if not hasattr(ee_2[key], '__iter__'):
-                    return False
-                elif not np.array_equal(ee_1[key],ee_2[key]):
-                    return False
-            elif ee_1[key] != ee_2[key]:
-                return False
+        if not _dicts_equal(line1._var_management, line2._var_management):
+            return False
+    # Compare reference particle
+    if line1.particle_ref is not None:
+        if line2.particle_ref is None:
+            return False
+        if not _dicts_equal(line1.particle_ref, line2.particle_ref):
+            return False
+    # Compare elements
+    for nn in line1.element_names:
+        ee1 = line1.element_dict[nn]
+        ee2 = line2.element_dict[nn]
+        if not (hasattr(ee1, 'to_dict') and hasattr(ee2, 'to_dict')):
+            raise NotImplementedError(f"Element {nn} does not have a"
+                        + "`to_dict` method. Cannot compare lines.")
+        ee1 = ee1.to_dict()
+        ee2 = ee2.to_dict()
+        if not _dicts_equal(ee1, ee2):
+            return False
     return True
 
 
@@ -783,9 +795,21 @@ class Line:
                 continue
             newline.append_element(ee, nn)
 
+        _lref = None
+        if self._var_management is not None:
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
+
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
 
         return newline
 
@@ -809,9 +833,21 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
+        _lref = None
+        if self._var_management is not None:
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
+
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
 
         return newline
 
@@ -832,9 +868,21 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
+        _lref = None
+        if self._var_management is not None:
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
+
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
 
         return newline
 
@@ -854,19 +902,32 @@ class Line:
                 newline.append_element(ee.copy(), nn)
                 continue
 
+            this_ee = ee if inplace else ee.copy()
             if _is_drift(ee) and not nn in keep:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if _is_drift(prev_ee):
                     prev_ee.length += ee.length
                 else:
-                    newline.append_element(ee.copy(), nn)
+                    newline.append_element(this_ee, nn)
             else:
-                newline.append_element(ee.copy(), nn)
+                newline.append_element(this_ee, nn)
+
+        _lref = None
+        if self._var_management is not None:
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
 
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
 
         return newline
 
@@ -979,9 +1040,21 @@ class Line:
             else:
                 newline.append_element(ee, nn)
 
+        _lref = None
+        if self._var_management is not None:
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
+
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
 
         return newline
 
