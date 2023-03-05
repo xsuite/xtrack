@@ -58,6 +58,8 @@ def _next_name(prefix, names, name_format='{}{}'):
     return name_format.format(prefix, i)
 
 def _dicts_equal(dict1, dict2):
+    if not isinstance(dict1, dict) or not isinstance(dict2, dict):
+        raise ValueError
     if set(dict1.keys()) != set(dict2.keys()):
         return False
     for key in dict1.keys():
@@ -90,7 +92,8 @@ def _lines_equal(line1, line2):
     if line1._var_management is not None:
         if line2._var_management is None:
             return False
-        if not _dicts_equal(line1._var_management, line2._var_management):
+        if not _dicts_equal(line1._var_management_to_dict(),
+                            line2._var_management_to_dict()):
             return False
     # Compare reference particle
     if line1.particle_ref is not None:
@@ -797,6 +800,7 @@ class Line:
 
         _lref = None
         if self._var_management is not None:
+            import xdeps as xd
             # Update the lref to point to the new element_dict
             manager = xd.Manager()
             _lref = manager.ref(newline.element_dict, 'element_refs')
@@ -835,6 +839,7 @@ class Line:
 
         _lref = None
         if self._var_management is not None:
+            import xdeps as xd
             # Update the lref to point to the new element_dict
             manager = xd.Manager()
             _lref = manager.ref(newline.element_dict, 'element_refs')
@@ -870,6 +875,7 @@ class Line:
 
         _lref = None
         if self._var_management is not None:
+            import xdeps as xd
             # Update the lref to point to the new element_dict
             manager = xd.Manager()
             _lref = manager.ref(newline.element_dict, 'element_refs')
@@ -915,6 +921,7 @@ class Line:
 
         _lref = None
         if self._var_management is not None:
+            import xdeps as xd
             # Update the lref to point to the new element_dict
             manager = xd.Manager()
             _lref = manager.ref(newline.element_dict, 'element_refs')
@@ -1042,6 +1049,7 @@ class Line:
 
         _lref = None
         if self._var_management is not None:
+            import xdeps as xd
             # Update the lref to point to the new element_dict
             manager = xd.Manager()
             _lref = manager.ref(newline.element_dict, 'element_refs')
