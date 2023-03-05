@@ -1043,7 +1043,7 @@ class TwissTable(Table):
             else:
                 return out
         else:
-            return super().__getitem__(item)
+            return dict.__getitem__(self, item)
 
 
 
