@@ -99,7 +99,8 @@ def _lines_equal(line1, line2):
     if line1.particle_ref is not None:
         if line2.particle_ref is None:
             return False
-        if not _dicts_equal(line1.particle_ref, line2.particle_ref):
+        if not _dicts_equal(line1.particle_ref.to_dict(),
+                            line2.particle_ref.to_dict()):
             return False
     # Compare elements
     for nn in line1.element_names:
