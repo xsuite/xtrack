@@ -26,8 +26,9 @@ from .mad_loader import MadLoader
 
 from .multisetter import MultiSetter
 
-# Flag test functions
+# Flags and test functions
 from .line import _is_drift, _behaves_like_drift, _is_aperture, _is_thick, _allow_backtrack
+from .line import _lines_equal, _apertures_equal
 from .loss_location_refinement import _skip_in_loss_location_refinement
 
 import xpart as _xp

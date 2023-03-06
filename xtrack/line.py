@@ -20,7 +20,7 @@ import xtrack as xt
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
-from .beam_elements import Drift, BeamElement, Marker
+from .beam_elements import Drift, BeamElement, Marker, Multipole
 
 log = logging.getLogger(__name__)
 
@@ -60,6 +60,64 @@ def _next_name(prefix, names, name_format='{}{}'):
     while name_format.format(prefix, i) in names:
         i += 1
     return name_format.format(prefix, i)
+
+def _dicts_equal(dict1, dict2):
+    if not isinstance(dict1, dict) or not isinstance(dict2, dict):
+        raise ValueError
+    if set(dict1.keys()) != set(dict2.keys()):
+        return False
+    for key in dict1.keys():
+        if hasattr(dict1[key], '__iter__'):
+            if not hasattr(dict2[key], '__iter__'):
+                return False
+            elif not np.array_equal(dict1[key], dict2[key]):
+                return False
+        elif dict1[key] != dict2[key]:
+            return False
+    return True
+
+def _apertures_equal(ap1, ap2):
+    if not _is_aperture(ap1) or not _is_aperture(ap2):
+        raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
+    if ap1.__class__ != ap2.__class__:
+        return False
+    ap1 = ap1.to_dict()
+    ap2 = ap2.to_dict()
+    return _dicts_equal(ap1, ap2)
+
+def _lines_equal(line1, line2):
+    # Check element_names
+    if line1.element_names != line2.element_names:
+        return False
+    # Check flags
+    if line1._needs_rng != line2._needs_rng:
+        return False
+    # Check var management
+    if line1._var_management is not None:
+        if line2._var_management is None:
+            return False
+        if not _dicts_equal(line1._var_management_to_dict(),
+                            line2._var_management_to_dict()):
+            return False
+    # Compare reference particle
+    if line1.particle_ref is not None:
+        if line2.particle_ref is None:
+            return False
+        if not _dicts_equal(line1.particle_ref.to_dict(),
+                            line2.particle_ref.to_dict()):
+            return False
+    # Compare elements
+    for nn in line1.element_names:
+        ee1 = line1.element_dict[nn]
+        ee2 = line2.element_dict[nn]
+        if not (hasattr(ee1, 'to_dict') and hasattr(ee2, 'to_dict')):
+            raise NotImplementedError(f"Element {nn} does not have a"
+                        + "`to_dict` method. Cannot compare lines.")
+        ee1 = ee1.to_dict()
+        ee2 = ee2.to_dict()
+        if not _dicts_equal(ee1, ee2):
+            return False
+    return True
 
 
 DEG2RAD = np.pi / 180.
@@ -913,37 +971,55 @@ class Line:
             Name of the markers to keep (default: None)
         '''
 
-        if not inplace:
-            raise NotImplementedError
         self._frozen_check()
 
-        if isinstance(keep, str):
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
             keep = [keep]
 
-        names = []
+        newline = Line(elements=[], element_names=[])
+
         for ee, nn in zip(self.elements, self.element_names):
-            if isinstance(ee, Marker):
-                if keep is None or nn not in keep:
-                    continue
-            names.append(nn)
+            if isinstance(ee, Marker) and nn not in keep:
+                continue
+            newline.append_element(ee, nn)
 
-        self.element_names = names
-        return self
+        _lref = None
+        if self._var_management is not None:
+            import xdeps as xd
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
 
-    def remove_inactive_multipoles(self, inplace=True):
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+            return self
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
+        return newline
+
+    def remove_inactive_multipoles(self, inplace=True, keep=None):
         '''
         Remove inactive multipoles from the line
         '''
 
         self._frozen_check()
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if isinstance(ee, (beam_elements.Multipole)):
+            if isinstance(ee, Multipole) and nn not in keep:
                 ctx2np = ee._context.nparray_from_context_array
                 aux = ([ee.hxl, ee.hyl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
@@ -951,65 +1027,176 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
+        _lref = None
+        if self._var_management is not None:
+            import xdeps as xd
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
 
-        self.element_names = newline.element_names
-        return self
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+            return self
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
+        return newline
 
-    def remove_zero_length_drifts(self, inplace=True):
+    def remove_zero_length_drifts(self, inplace=True, keep=None):
         '''
         Remove zero-length drifts from the line
         '''
 
         self._frozen_check()
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if _is_drift(ee):
+            if _is_drift(ee) and nn not in keep:
                 if ee.length == 0.0:
                     continue
             newline.append_element(ee, nn)
 
-        self.element_names = newline.element_names
-        return self
+        _lref = None
+        if self._var_management is not None:
+            import xdeps as xd
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
 
-    def merge_consecutive_drifts(self, inplace=True):
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+            return self
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
+        return newline
+
+    def merge_consecutive_drifts(self, inplace=True, keep=None):
         '''
         Merge consecutive drifts into one drift
         '''
 
         self._frozen_check()
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         newline = Line(elements=[], element_names=[])
 
         for ii, (ee, nn) in enumerate(zip(self.elements, self.element_names)):
             if ii == 0:
-                newline.append_element(ee, nn)
+                newline.append_element(ee.copy(), nn)
                 continue
 
-            if _is_drift(ee):
+            this_ee = ee if inplace else ee.copy()
+            if _is_drift(ee) and not nn in keep:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
                 if _is_drift(prev_ee):
                     prev_ee.length += ee.length
                 else:
-                    newline.append_element(ee, nn)
+                    newline.append_element(this_ee, nn)
             else:
-                newline.append_element(ee, nn)
+                newline.append_element(this_ee, nn)
 
-        self.element_dict.update(newline.element_dict)
-        self.element_names = newline.element_names
-        return self
+        _lref = None
+        if self._var_management is not None:
+            import xdeps as xd
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
 
-    def merge_consecutive_multipoles(self, inplace=True):
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+            return self
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
+        return newline
+
+    # For every occurence of three or more apertures that are the same,
+    # only separated by Drifts or Markers, this script removes the
+    # middle apertures
+    def merge_consecutive_apertures(self, inplace=True, keep=None,
+                                  drifts_that_need_aperture=[]):
         '''
-        Merge consecutive multipoles into one multipole
+	Merge consecutive aperture checks by deleting the middle ones
+        '''
+
+        self._frozen_check()
+
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
+
+        aper_to_remove = []
+        # current aperture in loop
+        aper_0  = None
+        # previous aperture in loop (-1)
+        aper_m1 = None
+        # aperture before previous in loop (-2)
+        aper_m2 = None
+
+        for ee, nn in zip(self.elements, self.element_names):
+            if ee.__class__.__name__.startswith('Limit'):
+            # We encountered a new aperture, shift all previous
+                aper_m2 = aper_m1
+                aper_m1 = aper_0
+                aper_0  = nn
+            elif (not isinstance(ee, (Drift, Marker)) 
+            or nn in drifts_that_need_aperture):
+            # We are in an active element: all previous apertures
+            # should be kept in the line
+                aper_0  = None
+                aper_m1 = None
+                aper_m2 = None
+            if (aper_m2 is not None
+                and _apertures_equal(self.element_dict[aper_0], self.element_dict[aper_m1])
+                and _apertures_equal(self.element_dict[aper_m1], self.element_dict[aper_m2])
+                ):
+                # We found three consecutive apertures (with only Drifts and Markers
+                # in between) that are the same, hence the middle one can be removed
+                if aper_m1 not in keep:
+                    aper_to_remove = [*aper_to_remove, aper_m1]
+                    # Middle aperture removed, so the -2 shifts to the -1 position
+                    aper_m1 = aper_m2
+                    aper_m2 = None
+
+        if inplace:
+            newline = self
+        else:
+            newline = self.copy()
+
+        for name in aper_to_remove:
+            newline.element_dict.pop(name)
+            newline.element_names.remove(name)
+
+        return newline
+
+    def merge_consecutive_multipoles(self, inplace=True, keep=None):
+        '''
+	Merge consecutive multipoles into one multipole
         '''
 
         self._frozen_check()
@@ -1018,8 +1205,10 @@ class Line:
                                       ' available when deferred expressions are'
                                       ' used')
 
-        if not inplace:
-            raise NotImplementedError
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
 
         newline = Line(elements=[], element_names=[])
 
@@ -1028,11 +1217,12 @@ class Line:
                 newline.append_element(ee, nn)
                 continue
 
-            if isinstance(ee, beam_elements.Multipole):
+            if isinstance(ee, Multipole) and nn not in keep:
                 prev_ee = newline.elements[-1]
                 prev_nn = newline.element_names[-1]
-                if (isinstance(prev_ee, beam_elements.Multipole)
+                if (isinstance(prev_ee, Multipole)
                     and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
+                    and prev_nn not in keep
                     ):
 
                     oo=max(len(prev_ee.knl), len(prev_ee.ksl),
@@ -1047,7 +1237,7 @@ class Line:
                         ksl[ii]+=kk
                     for ii,kk in enumerate(ee._xobject.ksl):
                         ksl[ii]+=kk
-                    newee = beam_elements.Multipole(
+                    newee = Multipole(
                             knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
                             length=prev_ee.length,
                             radiation_flag=prev_ee.radiation_flag)
@@ -1059,9 +1249,24 @@ class Line:
             else:
                 newline.append_element(ee, nn)
 
-        self.element_dict.update(newline.element_dict)
-        self.element_names = newline.element_names
-        return self
+        _lref = None
+        if self._var_management is not None:
+            import xdeps as xd
+            # Update the lref to point to the new element_dict
+            manager = xd.Manager()
+            _lref = manager.ref(newline.element_dict, 'element_refs')
+
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict  = newline.element_dict
+            if _lref is not None:
+                self._var_management['lref'] = _lref
+            return self
+        elif _lref is not None:
+            # copy the var management
+            newline._init_var_management(dct=self._var_management_to_dict())
+            newline._var_management['lref'] = _lref
+        return newline
 
     def use_simple_quadrupoles(self):
         '''
@@ -1113,13 +1318,14 @@ class Line:
 
         return elements, names
 
-    def check_aperture(self):
+    def check_aperture(self, needs_aperture=[]):
 
         '''Check that all active elements have an associated aperture.'''
 
         elements_df = self.to_pandas()
 
-        elements_df['is_aperture'] = elements_df.element_type.map(lambda s: s.startswith('Limit'))
+        elements_df['is_aperture'] = elements_df.name.map(
+                                            lambda nn: _is_aperture(self.element_dict[nn]))
         elements_df['i_aperture_upstream'] = np.nan
         elements_df['s_aperture_upstream'] = np.nan
         elements_df['i_aperture_downstream'] = np.nan
@@ -1137,16 +1343,8 @@ class Line:
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
-            if elements_df.loc[iee, 'element_type'] == 'Marker':
-                continue
-
-            if elements_df.loc[iee, 'element_type'] == 'Drift':
-                continue
-
-            if elements_df.loc[iee, 'element_type'] == 'XYShift':
-                continue
-
-            if elements_df.loc[iee, 'element_type'] == 'SRotation':
+            if (_allow_backtrack(self.element_dict[elements_df.loc[iee, 'name']])
+                and not elements_df.loc[iee, 'name'] in needs_aperture):
                 continue
 
             if elements_df.loc[iee, 'is_aperture']:
@@ -1233,7 +1431,7 @@ def _deserialize_element(el, class_dict, _buffer):
 
 
 def _is_simple_quadrupole(el):
-    if not isinstance(el, beam_elements.Multipole):
+    if not isinstance(el, Multipole):
         return False
     return (el.radiation_flag == 0 and
             el.order == 1 and
@@ -1245,7 +1443,7 @@ def _is_simple_quadrupole(el):
 
 
 def _is_simple_dipole(el):
-    if not isinstance(el, beam_elements.Multipole):
+    if not isinstance(el, Multipole):
         return False
     return (el.radiation_flag == 0 and el.order == 0
             and not any(el.ksl) and not el.hyl)
