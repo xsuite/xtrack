@@ -22,23 +22,22 @@ def test_match_and_track_from_element(test_context):
     filename = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
     with open(filename, 'r') as fid:
         input_data = json.load(fid)
-    line=xt.Line.from_dict(input_data['line'])
-    tracker = xt.Tracker(_context=test_context, line=line,
-                        reset_s_at_end_turn=False)
-    assert not tracker.iscollective
-    tracker.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+    line = xt.Line.from_dict(input_data['line'])
+    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
+    assert not line.iscollective
+    line.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
     # Check matching of a one-sigma circle in ip2
     r_sigma = 1
     theta = np.linspace(0, 2*np.pi, 1000)
 
     at_element = 'ip2'
-    particles = xp.build_particles(tracker=tracker, _context=test_context,
+    particles = line.build_particles(
                     x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element)
 
-    tw = tracker.twiss(at_elements=[at_element])
+    tw = line.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default) # To easily do the checks with numpy
     assert np.isclose(
@@ -47,15 +46,15 @@ def test_match_and_track_from_element(test_context):
     particles.move(_context=test_context)
 
     # Check that tracking starts from the right place
-    tracker.track(particles, turn_by_turn_monitor='ONE_TURN_EBE')
-    mon = tracker.record_last_track
-    i_ele_start = tracker.line.element_names.index(at_element)
+    line.track(particles, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon = line.record_last_track
+    i_ele_start = line.line.element_names.index(at_element)
     assert np.all(mon.at_element[:, :i_ele_start] == 0)
     assert np.all(mon.at_element[:, i_ele_start] == i_ele_start)
-    assert np.all(mon.at_element[:, -1] == len(tracker.line.element_names))
+    assert np.all(mon.at_element[:, -1] == len(line.line.element_names))
 
     # Check that distribution is matched at the end of the turn
-    tw0 = tracker.twiss(at_elements=[0])
+    tw0 = line.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
     assert np.isclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
@@ -63,12 +62,12 @@ def test_match_and_track_from_element(test_context):
 
     # Check multiple turns
     at_element = 'ip2'
-    particles = xp.build_particles(tracker=tracker, _context=test_context,
+    particles = line.build_particles(
                     x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element)
 
-    tw = tracker.twiss(at_elements=[at_element])
+    tw = line.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default)
     assert np.isclose(
@@ -76,33 +75,34 @@ def test_match_and_track_from_element(test_context):
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=1e-3, atol=0)
     particles.move(_context=test_context)
 
-    tracker.track(particles, num_turns=3)
+    line.track(particles, num_turns=3)
 
-    tw0 = tracker.twiss(at_elements=[0])
+    tw0 = line.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
     assert np.isclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=2e-3, atol=0)
     assert np.all(particles.at_turn==3)
-    assert np.allclose(particles.s, 3*tracker.line.get_length(), rtol=0, atol=1e-7)
+    assert np.allclose(particles.s, 3*line.get_length(), rtol=0, atol=1e-7)
 
     # Check collective case
-    line_w_collective = xt.Line.from_dict(input_data['line'], _context=test_context)
+    line_w_collective = xt.Line.from_dict(input_data['line'])
     for ip in range(8):
         line_w_collective.element_dict[f'ip{ip+1}'].iscollective = True
-    tracker = xt.Tracker(_context=test_context, line=line_w_collective,
-                        reset_s_at_end_turn=False)
-    assert tracker.iscollective
-    tracker.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-    assert len(tracker._parts) == 16
+        line_w_collective.element_dict[f'ip{ip+1}'].move(_context=test_context)
+    line_w_collective.build_tracker(_context=test_context,
+                                    reset_s_at_end_turn=False)
+    assert line_w_collective.iscollective
+    line_w_collective.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+    assert len(line_w_collective._parts) == 16
 
     at_element = 'ip2'
-    particles = xp.build_particles(tracker=tracker, _context=test_context,
+    particles = line_w_collective.build_particles(
                     x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element)
 
-    tw = tracker.twiss(at_elements=[at_element])
+    tw = line_w_collective.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default)
     assert np.isclose(
@@ -110,26 +110,26 @@ def test_match_and_track_from_element(test_context):
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=1e-3, atol=0)
     particles.move(_context=test_context)
 
-    tracker.track(particles, num_turns=3)
+    line_w_collective.track(particles, num_turns=3)
 
-    tw0 = tracker.twiss(at_elements=[0])
+    tw0 = line_w_collective.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
     assert np.isclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=3e-3, atol=0)
     assert np.all(particles.at_turn==3)
-    assert np.allclose(particles.s, 3*tracker.line.get_length(), rtol=0, atol=1e-7)
+    assert np.allclose(particles.s, 3*line_w_collective.get_length(), rtol=0, atol=1e-7)
 
     # Check match_at_s
     at_element = 'ip6'
-    particles = xp.build_particles(tracker=tracker, _context=test_context,
+    particles = line_w_collective.build_particles(
                     x_norm=r_sigma*np.cos(theta), px_norm=r_sigma*np.sin(theta),
                     nemitt_x=2.5e-6, nemitt_y=2.5e-6,
                     at_element=at_element,
-                    match_at_s=tracker.line.get_s_position('ip6') + 100
+                    match_at_s=line_w_collective.get_s_position('ip6') + 100
                     )
 
-    tw = tracker.twiss(at_elements=[at_element])
+    tw = line_w_collective.twiss(at_elements=[at_element])
 
     particles.move(_context=xo.context_default)
     assert np.isclose(
@@ -141,19 +141,20 @@ def test_match_and_track_from_element(test_context):
                 1j*(particles.x[0]  * tw['alfx'][0] / np.sqrt(tw['betx'][0]) +
                         particles.px[0] * np.sqrt(tw['betx'][0])))
 
-    mu_at_s = tracker.twiss(at_s=tracker.line.get_s_position('ip6') + 100)['mux'][0]
-    mu_at_element = tracker.twiss(at_elements=[at_element])['mux'][0]
+    mu_at_s = line_w_collective.twiss(
+        at_s=line_w_collective.get_s_position('ip6') + 100)['mux'][0]
+    mu_at_element = line_w_collective.twiss(at_elements=[at_element])['mux'][0]
 
     assert np.isclose(phasex_first_part, (mu_at_element - mu_at_s)*2*np.pi,
                     atol=0, rtol=0.02)
     particles.move(_context=test_context)
 
-    tracker.track(particles, num_turns=3)
+    line_w_collective.track(particles, num_turns=3)
 
-    tw0 = tracker.twiss(at_elements=[0])
+    tw0 = line_w_collective.twiss(at_elements=[0])
     particles.move(_context=xo.context_default)
     assert np.isclose(
         np.sqrt(tw0['betx'][0]*2.5e-6/particles.beta0[0]/particles.gamma0[0]),
         np.max(np.abs(particles.x - np.mean(particles.x))), rtol=2e-3, atol=0)
     assert np.all(particles.at_turn==3)
-    assert np.allclose(particles.s, 3*tracker.line.get_length(), rtol=0, atol=1e-7)
+    assert np.allclose(particles.s, 3*line_w_collective.get_length(), rtol=0, atol=1e-7)

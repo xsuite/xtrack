@@ -96,8 +96,8 @@ else:
 # Build Tracker #
 #################
 
-tracker = line.build_tracker(_context=context)
-tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
+line.build_tracker(_context=context)
+line_sc_off = line.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
 # Generate particles #
@@ -107,11 +107,11 @@ tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
 particles = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, tracker=tracker_sc_off)
+         particle_ref=particle_ref, line=line_sc_off)
 
 #########
 # Track #
 #########
 
-tracker.track(particles, num_turns=3)
+line.track(particles, num_turns=3)
 

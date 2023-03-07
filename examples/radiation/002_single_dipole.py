@@ -58,16 +58,15 @@ Delta_E_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']
 assert np.allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=1e-6)
 
 # Check photons
-
-tracker = xt.Tracker(_context=context,
-       line=xt.Line(elements=[
+line=xt.Line(elements=[
              xt.Drift(length=1.0),
              xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend),
              xt.Drift(length=1.0),
              xt.Multipole(knl=[theta_bend], length=L_bend, hxl=theta_bend)
-            ]))
-tracker.configure_radiation(model='quantum')
-record = tracker.start_internal_logging_for_elements_of_type(xt.Multipole,
+            ])
+line.build_tracker(_context=context)
+line.configure_radiation(model='quantum')
+record = line.start_internal_logging_for_elements_of_type(xt.Multipole,
                                                             capacity=int(10e6))
 particles_test = xp.Particles(
         _context=context,
@@ -77,10 +76,10 @@ particles_test = xp.Particles(
         py=-1e-4,
         mass0=xp.ELECTRON_MASS_EV)
 particles_test_before = particles_test.copy()
-tracker.track(particles_test)
+line.track(particles_test)
 
 Delta_E_test = (particles_test.ptau - particles_test_before.ptau
                                                       )*particles_test.p0c
-n_recorded = record._record_index.num_recorded
+n_recorded = record._index.num_recorded
 assert np.allclose(-np.sum(Delta_E_test), np.sum(record.photon_energy[:n_recorded]),
                   atol=0, rtol=1e-6)

@@ -96,9 +96,8 @@ else:
 # Build trackers #
 ##################
 
-tracker = xt.Tracker(_context=context,
-                    line=line)
-tracker_sc_off = tracker.filter_elements(exclude_types_starting_with='SpaceCh')
+line.build_tracker(_context=context)
+line_sc_off = line.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
 # Generate particles #
@@ -117,8 +116,7 @@ x_norm_fp, y_norm_fp, r_footprint, theta_footprint = xp.generate_2D_polar_grid(
         theta_range=(theta_min, theta_max), ntheta=N_theta_footprint)
 N_footprint = len(x_norm_fp)
 
-particles_fp = xp.build_particles(_context=context,
-            tracker=tracker_sc_off,
+particles_fp = line.build_particles(
             particle_ref=particle_ref,
             weight=0, # pure probe particles
             zeta=0, delta=0,
@@ -127,8 +125,7 @@ particles_fp = xp.build_particles(_context=context,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
 # I add explicitly a probe particle at1.5 sigma
-particle_probe = xp.build_particles(_context=context,
-            tracker=tracker_sc_off,
+particle_probe = line.build_particles(
             particle_ref=particle_ref,
             weight=0, # pure probe particles
             zeta=0, delta=0,
@@ -139,7 +136,7 @@ particle_probe = xp.build_particles(_context=context,
 particles_gaussian = xp.generate_matched_gaussian_bunch(_context=context,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, tracker=tracker_sc_off)
+         particle_ref=particle_ref, line=line_sc_off)
 
 particles = xp.Particles.merge(
                           [particles_fp, particle_probe, particles_gaussian])
@@ -157,9 +154,9 @@ for ii in range(num_turns):
     print(f'Turn: {ii}', end='\r', flush=True)
     x_tbt[:, ii] = ctx2arr(particles.x[:N_footprint]).copy()
     y_tbt[:, ii] = ctx2arr(particles.y[:N_footprint]).copy()
-    tracker.track(particles)
+    line.track(particles)
 
-tw = tracker_sc_off.twiss(particle_ref=particle_ref, at_elements=[0])
+tw = line_sc_off.twiss(particle_ref=particle_ref, at_elements=[0])
 
 ######################
 # Frequency analysis #
@@ -191,7 +188,7 @@ Qxy_fp[:, :, 1] = np.reshape(Qy, Qxy_fp[:, :, 1].shape)
 p_probe_before = particles_0.filter(
         particles_0.particle_id == N_footprint).to_dict()
 
-tracker.track(particles_0)
+line.track(particles_0)
 
 p_probe_after = particles_0.filter(
         particles_0.particle_id == N_footprint).to_dict()

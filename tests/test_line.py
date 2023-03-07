@@ -389,12 +389,6 @@ def test_from_sequence():
     else:
         raise AssertionError('Expected exception not raised')
 
-
-    #print(f'location        name                  element')
-    #for s0,s1,n,o in zip(line.get_s_elements(), line.get_s_elements('downstream'), line.element_names, line.elements):
-    #    print(f'{s0:5.2f} .. {s1:5.2f}  {n:20s}  {o}')
-
-
 @for_all_test_contexts
 def test_optimize_multipoles(test_context):
     elements = {
@@ -423,3 +417,40 @@ def test_optimize_multipoles(test_context):
             assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
         else:
             assert type(test_line.element_dict[nn]) is xt.Multipole
+
+def test_from_json_to_json(tmp_path):
+
+    line = xt.Line(
+        elements={
+            'm': xt.Multipole(knl=[1, 2]),
+            'd': xt.Drift(length=1),
+        },
+        element_names=['m', 'd', 'm', 'd']
+    )
+
+    line.to_json(tmp_path / 'test.json')
+    result = xt.Line.from_json(tmp_path / 'test.json')
+
+    assert len(result.element_dict.keys()) == 2
+    assert result.element_names == ['m', 'd', 'm', 'd']
+
+    assert isinstance(result['m'], xt.Multipole)
+    assert (result['m'].knl == [1, 2]).all()
+
+    assert isinstance(result['d'], xt.Drift)
+    assert result['d'].length == 1
+
+    with open(tmp_path / 'test2.json', 'w') as f:
+        line.to_json(f)
+
+    with open(tmp_path / 'test2.json', 'r') as f:
+        result = xt.Line.from_json(f)
+
+    assert len(result.element_dict.keys()) == 2
+    assert result.element_names == ['m', 'd', 'm', 'd']
+
+    assert isinstance(result['m'], xt.Multipole)
+    assert (result['m'].knl == [1, 2]).all()
+
+    assert isinstance(result['d'], xt.Drift)
+    assert result['d'].length == 1

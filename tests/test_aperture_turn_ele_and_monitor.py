@@ -35,9 +35,9 @@ def test_aperture_turn_ele_and_monitor(test_context):
                                             length=tot_length/n_slices)],
                     element_names=['drift{ii}' for ii in range(n_slices)])
 
-    tracker = xt.Tracker(_context=test_context, line=line)
+    line.build_tracker(_context=test_context)
     n_turns = 3
-    tracker.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
+    line.track(particles, num_turns=n_turns, turn_by_turn_monitor=True)
 
     part_id = test_context.nparray_from_context_array(particles.particle_id)
     part_state = test_context.nparray_from_context_array(particles.state)
@@ -55,13 +55,13 @@ def test_aperture_turn_ele_and_monitor(test_context):
     s_expected = []
     s_tot = tot_length*n_turns
     for ii in range(n_part):
-        if np.abs(part_px[ii]) * s_tot > tracker.global_xy_limit:
-            s_expected_x = np.abs(tracker.global_xy_limit / part_px[ii])
+        if np.abs(part_px[ii]) * s_tot > line.global_xy_limit:
+            s_expected_x = np.abs(line.global_xy_limit / part_px[ii])
         else:
             s_expected_x = s_tot
 
-        if np.abs(part_py[ii] * s_tot) > tracker.global_xy_limit:
-            s_expected_y = np.abs(tracker.global_xy_limit / part_py[ii])
+        if np.abs(part_py[ii] * s_tot) > line.global_xy_limit:
+            s_expected_y = np.abs(line.global_xy_limit / part_py[ii])
         else:
             s_expected_y = s_tot
 
@@ -87,7 +87,7 @@ def test_aperture_turn_ele_and_monitor(test_context):
     assert np.allclose(at_element_expected, part_at_element, atol=1.1)
 
     # Test monitor
-    mon = tracker.record_last_track
+    mon = line.record_last_track
     for ii in range(n_part):
         iidd = part_id[ii]
         this_at_turn = part_at_turn[ii]
@@ -138,7 +138,7 @@ def test_custom_monitor(test_context):
                                             length=tot_length/n_slices)],
                     element_names=['drift{ii}' for ii in range(n_slices)])
 
-    tracker = xt.Tracker(_context=test_context, line=line)
+    line.build_tracker(_context=test_context)
     n_turns = 6
     start_monitor_at_turn = 2
     part_id_monitor_start = 5
@@ -149,7 +149,7 @@ def test_custom_monitor(test_context):
             stop_at_turn=n_turns,
             particle_id_range=(part_id_monitor_start, part_id_monitor_end))
     for _ in range(n_turns):
-        tracker.track(particles, turn_by_turn_monitor=monitor)
+        line.track(particles, turn_by_turn_monitor=monitor)
 
     part_id = test_context.nparray_from_context_array(particles.particle_id)
     part_state = test_context.nparray_from_context_array(particles.state)
@@ -167,13 +167,13 @@ def test_custom_monitor(test_context):
     s_expected = []
     s_tot = tot_length*n_turns
     for ii in range(n_part):
-        if np.abs(part_px[ii]) * s_tot > tracker.global_xy_limit:
-            s_expected_x = np.abs(tracker.global_xy_limit / part_px[ii])
+        if np.abs(part_px[ii]) * s_tot > line.global_xy_limit:
+            s_expected_x = np.abs(line.global_xy_limit / part_px[ii])
         else:
             s_expected_x = s_tot
 
-        if np.abs(part_py[ii] * s_tot) > tracker.global_xy_limit:
-            s_expected_y = np.abs(tracker.global_xy_limit / part_py[ii])
+        if np.abs(part_py[ii] * s_tot) > line.global_xy_limit:
+            s_expected_y = np.abs(line.global_xy_limit / part_py[ii])
         else:
             s_expected_y = s_tot
 
@@ -190,7 +190,7 @@ def test_custom_monitor(test_context):
     at_element_expected = np.int_(np.clip(at_element_expected, 0,
                                           n_slices-1))
 
-    assert np.allclose(part_s + at_turn_expected * tracker.line.get_length(),
+    assert np.allclose(part_s + at_turn_expected * line.line.get_length(),
                        s_expected, atol=1e-3)
     assert np.allclose(at_turn_expected, part_at_turn)
 

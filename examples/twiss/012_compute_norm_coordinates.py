@@ -17,17 +17,17 @@ with open(fname_line_particles, 'r') as fid:
 line = xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-tracker = line.build_tracker()
+line.build_tracker()
 
 # Make some particles with known normalized coordinates
-particles = tracker.build_particles(
+particles = line.build_particles(
     nemitt_x=2.5e-6, nemitt_y=1e-6,
     x_norm=[-1, 0, 0.5], y_norm=[0.3, -0.2, 0.2],
     px_norm=[0.1, 0.2, 0.3], py_norm=[0.5, 0.6, 0.8],
     zeta=[0, 0.1, -0.1], delta=[1e-4, 0., -1e-4])
 
 # Compute normalized coordinates
-tw = tracker.twiss()
+tw = line.twiss()
 norm_coord = tw.get_normalized_coordinates(particles, nemitt_x=2.5e-6,
                                            nemitt_y=1e-6)
 

@@ -124,13 +124,13 @@ def test_ring_with_radiation(test_context):
             gamma0=mad.sequence.ring.beam.gamma)
 
     # Build tracker
-    tracker = xt.Tracker(line=line, _context=test_context)
-    tracker.matrix_stability_tol = 1e-2
+    line.matrix_stability_tol = 1e-2
+    line.build_tracker(_context=test_context)
 
-    tracker.configure_radiation(model='mean')
+    line.configure_radiation(model='mean')
 
     # Twiss
-    tw = tracker.twiss(eneloss_and_damping=True)
+    tw = line.twiss(eneloss_and_damping=True)
 
     # Checks
     met = mad_emit_table
@@ -164,17 +164,17 @@ def test_ring_with_radiation(test_context):
             rtol=3e-3, atol=0
             )
 
-    tracker.configure_radiation(model='mean')
-    part_co = tracker.find_closed_orbit()
-    par_for_emit = xp.build_particles(tracker=tracker, _context=test_context,
-                                    x_norm=50*[0],
-                                    zeta=part_co.zeta[0], delta=part_co.delta[0],
-                                    )
-    tracker.configure_radiation(model='quantum')
+    line.configure_radiation(model='mean')
+    part_co = line.find_closed_orbit()
+    par_for_emit = line.build_particles(
+                                x_norm=50*[0],
+                                zeta=part_co.zeta[0], delta=part_co.delta[0],
+                                )
+    line.configure_radiation(model='quantum')
 
     num_turns=1500
-    tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
-    mon = tracker.record_last_track
+    line.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
+    mon = line.record_last_track
 
     with flaky_assertions():
         assert np.isclose(np.std(mon.zeta[:, 750:]),
@@ -196,11 +196,10 @@ def test_ring_with_radiation(test_context):
     nemitt_x = 0.5e-6
     nemitt_y = 0.5e-6
 
-    tracker.configure_radiation(model='mean')
-    pgen = xp.generate_matched_gaussian_bunch(
+    line.configure_radiation(model='mean')
+    pgen = xp.generate_matched_gaussian_bunch(line=line,
             num_particles=n_part, total_intensity_particles=bunch_intensity,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-            tracker=tracker)
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z)
 
     assert pgen._buffer.context is test_context
     pgen.move(_context=xo.ContextCpu())

@@ -36,7 +36,7 @@ line = xt.Line.from_dict(input_data['line'])
 ##################
 # Build TrackJob #
 ##################
-tracker = xt.Tracker(_context=context, line=line)
+line.build_tracker(_context=context)
 
 ######################
 # Get some particles #
@@ -53,4 +53,4 @@ particles = xp.Particles(_context=context,
 #########
 # Track #
 #########
-tracker.track(particles, num_turns=num_turns)
+line.track(particles, num_turns=num_turns)

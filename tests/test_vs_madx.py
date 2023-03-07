@@ -119,42 +119,42 @@ def test_twiss_and_survey(test_context):
         line_simplified.use_simple_quadrupoles()
         print('Done simplifying line')
 
-        line_full.tracker = None
+        line_full.line = None
         line_simplified.tracker = None
 
-        tracker_full = xt.Tracker(_context=test_context, line=line_full)
-        assert tracker_full.iscollective
+        line_full.build_tracker(_context=test_context)
+        assert line_full.iscollective
 
-        tracker_simplified = line_simplified.build_tracker(_context=test_context)
+        line_simplified.build_tracker(_context=test_context)
 
-        for simplified, tracker in zip((False, True), [tracker_full, tracker_simplified]):
+        for simplified, line in zip((False, True), [line_full, line_simplified]):
 
             print(f"Simplified: {simplified}")
 
-            twxt = tracker.twiss(reverse=reverse)
-            twxt4d = tracker.twiss(method='4d', reverse=reverse)
-            survxt = tracker.survey(**surv_starting_point, reverse=reverse)
+            twxt = line.twiss(reverse=reverse)
+            twxt4d = line.twiss(method='4d', reverse=reverse)
+            survxt = line.survey(**surv_starting_point, reverse=reverse)
 
-            assert len(twxt.name) == len(tracker.line.element_names) + 1
+            assert len(twxt.name) == len(line.element_names) + 1
 
             # Check value_at_element_exit
             if not reverse: # TODO: to be generalized...
-                twxt_exit = tracker.twiss(values_at_element_exit=True)
+                twxt_exit = line.twiss(values_at_element_exit=True)
                 for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
                         'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
                         'dpy','mux','muy', 'name']:
                     assert np.all(twxt[nn][1:] == twxt_exit[nn])
 
             # Twiss a part of the machine
-            tw_init = tracker.twiss().get_twiss_init(at_element=range_for_partial_twiss[0])
-            tw4d_init = tracker.twiss(method='4d').get_twiss_init(at_element=range_for_partial_twiss[0])
-            tw_part = tracker.twiss(ele_start=range_for_partial_twiss[0],
+            tw_init = line.twiss().get_twiss_init(at_element=range_for_partial_twiss[0])
+            tw4d_init = line.twiss(method='4d').get_twiss_init(at_element=range_for_partial_twiss[0])
+            tw_part = line.twiss(ele_start=range_for_partial_twiss[0],
                                     ele_stop=range_for_partial_twiss[1], twiss_init=tw_init, reverse=reverse)
-            tw4d_part = tracker.twiss(method='4d', ele_start=range_for_partial_twiss[0],
+            tw4d_part = line.twiss(method='4d', ele_start=range_for_partial_twiss[0],
                                     ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init, reverse=reverse)
 
-            ipart_start = tracker.line.element_names.index(range_for_partial_twiss[0])
-            ipart_stop = tracker.line.element_names.index(range_for_partial_twiss[1])
+            ipart_start = line.element_names.index(range_for_partial_twiss[0])
+            ipart_stop = line.element_names.index(range_for_partial_twiss[1])
             assert len(tw_part.name) == ipart_stop - ipart_start + 1
             assert len(tw4d_part.name) == ipart_stop - ipart_start + 1
 
@@ -188,7 +188,7 @@ def test_twiss_and_survey(test_context):
                 elif seq_name.endswith('b2'):
                     test_at_elements.extend(['mb.b19r5.b2..1', 'mb.b19r1.b2..1'])
 
-                if tracker is tracker_full:
+                if line is line_full:
                     test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
 
                 for name in test_at_elements:
@@ -326,7 +326,7 @@ def test_twiss_and_survey(test_context):
             # Test custom s locations
             if not reversed:
                 s_test = [2e3, 1e3, 3e3, 10e3]
-                twats = tracker.twiss(at_s = s_test)
+                twats = line.twiss(at_s = s_test)
                 for ii, ss in enumerate(s_test):
                     assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
                     assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
@@ -463,57 +463,57 @@ def test_line_import_from_madx(test_context):
             raise ValueError("Too large discrepancy!")
 
     print('\nTest tracker and xsuite vars...\n')
-    tracker = xt.Tracker(line=line_with_expressions.copy(),
-                         _context=test_context)
-    assert np.isclose(tracker.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
-    tracker.vars['kqtf.b1'] = -2e-4
-    assert np.isclose(tracker.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
+    line = line_with_expressions.copy()
+    line.build_tracker(_context=test_context)
+    assert np.isclose(line.twiss()['qx'], 62.31, rtol=0, atol=1e-4)
+    line.vars['kqtf.b1'] = -2e-4
+    assert np.isclose(line.twiss()['qx'], 62.2834, rtol=0, atol=1e-4)
 
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage,
+    assert np.isclose(line.element_dict['acsca.b5l4.b1'].voltage,
                       2e6, rtol=0, atol=1e-14)
-    tracker.vars['vrf400'] = 8
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].voltage,
+    line.vars['vrf400'] = 8
+    assert np.isclose(line.element_dict['acsca.b5l4.b1'].voltage,
                       1e6, rtol=0, atol=1e-14)
 
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].lag, 180,
+    assert np.isclose(line.element_dict['acsca.b5l4.b1'].lag, 180,
                     rtol=0, atol=1e-14)
-    tracker.vars['lagrf400.b1'] = 0.75
-    assert np.isclose(tracker.line.element_dict['acsca.b5l4.b1'].lag, 270,
-                    rtol=0, atol=1e-14)
-
-    assert np.abs(
-        tracker.line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) > 0
-    tracker.vars['on_crab5'] = 0
-    assert np.abs(
-        tracker.line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) == 0
-
-    assert np.isclose(
-        tracker.line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 90,
-        rtol=0, atol=1e-14)
-    tracker.vars['phi_crab_l5b1'] = 0.5
-    assert np.isclose(
-        tracker.line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 270,
+    line.vars['lagrf400.b1'] = 0.75
+    assert np.isclose(line.element_dict['acsca.b5l4.b1'].lag, 270,
                     rtol=0, atol=1e-14)
 
     assert np.abs(
-        tracker.line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) > 0
-    tracker.vars['on_crab1'] = 0
+        line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) > 0
+    line.vars['on_crab5'] = 0
     assert np.abs(
-        tracker.line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) == 0
+        line.element_dict['acfcav.bl5.b1'].to_dict()['ksl'][0]) == 0
 
     assert np.isclose(
-        tracker.line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 90,
+        line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 90,
         rtol=0, atol=1e-14)
-    tracker.vars['phi_crab_l1b1'] = 0.5
+    line.vars['phi_crab_l5b1'] = 0.5
     assert np.isclose(
-        tracker.line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 270,
+        line.element_dict['acfcav.bl5.b1'].to_dict()['ps'][0], 270,
+                    rtol=0, atol=1e-14)
+
+    assert np.abs(
+        line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) > 0
+    line.vars['on_crab1'] = 0
+    assert np.abs(
+        line.element_dict['acfcah.bl1.b1'].to_dict()['knl'][0]) == 0
+
+    assert np.isclose(
+        line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 90,
+        rtol=0, atol=1e-14)
+    line.vars['phi_crab_l1b1'] = 0.5
+    assert np.isclose(
+        line.element_dict['acfcah.bl1.b1'].to_dict()['pn'][0], 270,
         rtol=0, atol=1e-14)
 
-    assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].frequency) > 0
-    assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].frequency) > 0
-    tracker.vars['crabrf'] = 0.
-    assert np.abs(tracker.line.element_dict['acfcah.bl1.b1'].frequency) == 0
-    assert np.abs(tracker.line.element_dict['acfcav.bl5.b1'].frequency) == 0
+    assert np.abs(line.element_dict['acfcah.bl1.b1'].frequency) > 0
+    assert np.abs(line.element_dict['acfcav.bl5.b1'].frequency) > 0
+    line.vars['crabrf'] = 0.
+    assert np.abs(line.element_dict['acfcah.bl1.b1'].frequency) == 0
+    assert np.abs(line.element_dict['acfcav.bl5.b1'].frequency) == 0
 
 
 @for_all_test_contexts
@@ -527,18 +527,57 @@ def test_orbit_knobs(test_context):
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                         gamma0=mad.sequence.lhcb1.beam.gamma)
 
-    tracker = xt.Tracker(line=line.copy(), _context=test_context)
+    line.build_tracker(_context=test_context)
 
-    tracker.vars['on_x1'] = 250
-    assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+    line.vars['on_x1'] = 250
+    assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
                 atol=1e-6, rtol=0)
-    tracker.vars['on_x1'] = -300
-    assert np.isclose(tracker.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+    line.vars['on_x1'] = -300
+    assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
                 atol=1e-6, rtol=0)
 
-    tracker.vars['on_x5'] = 130
-    assert np.isclose(tracker.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+    line.vars['on_x5'] = 130
+    assert np.isclose(line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
                 atol=1e-6, rtol=0)
-    tracker.vars['on_x5'] = -270
-    assert np.isclose(tracker.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+    line.vars['on_x5'] = -270
+    assert np.isclose(line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
                 atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts
+def test_low_beta_twiss(test_context):
+
+    path_line = test_data_folder / 'psb_injection/line_and_particle.json'
+
+    line = xt.Line.from_json(path_line)
+    line.build_tracker(_context=test_context)
+    tw = line.twiss()
+
+    path_madseq = test_data_folder / 'psb_injection/psb_injection.seq'
+
+    mad = Madx()
+    mad.call(str(path_madseq))
+
+    mad.use(sequence='psb')
+    mad.twiss()
+    mad.emit()
+
+    emitdf = mad.table.emitsumm.dframe()
+
+    assert np.isclose(mad.sequence.psb.beam.gamma, line.particle_ref.gamma0,
+                      rtol=0, atol=1e-6)
+    assert np.isclose(mad.sequence.psb.beam.beta, line.particle_ref.beta0,
+                    rtol=0, atol=1e-10)
+
+    beta0 = line.particle_ref.beta0
+
+    assert np.isclose(mad.table.summ['q1'][0], tw['qx'], rtol=0, atol=1e-6)
+    assert np.isclose(mad.table.summ['q2'][0], tw['qy'], rtol=0, atol=1e-6)
+    assert np.isclose(mad.table.summ['dq1'][0]*beta0, tw['dqx'], rtol=0,
+                        atol=1e-6)
+    assert np.isclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
+                        atol=1e-6)
+    assert np.isclose(tw.qs, emitdf.qs[0], rtol=0, atol=1e-8)
+
+
+

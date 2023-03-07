@@ -65,7 +65,12 @@ class MultiSetter(xo.HybridClass):
         ),
     }
 
-    def __init__(self, tracker, elements, field, index=None):
+    def __init__(self, line, elements, field, index=None):
+
+        if isinstance(line, xt.Tracker):
+            tracker = line
+        else:
+            tracker = line.tracker
 
         context = tracker._context
 

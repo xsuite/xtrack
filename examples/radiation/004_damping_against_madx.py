@@ -58,14 +58,14 @@ context = xo.ContextCpu()
 
 # Build tracker
 print('Build tracker ...')
-tracker = xt.Tracker(line=line, _context=context)
-tracker.matrix_stability_tol = 1e-2
+line.build_tracker(_context=context)
+line.matrix_stability_tol = 1e-2
 
-tracker.configure_radiation(model='mean')
+line.configure_radiation(model='mean')
 
 # Twiss
 print('Checks with twiss...')
-tw = tracker.twiss(eneloss_and_damping=True)
+tw = line.twiss(eneloss_and_damping=True)
 
 # Checks
 met = mad_emit_table
@@ -98,20 +98,20 @@ assert np.isclose(tw['partition_numbers'][2],
     )
 
 part_co = tw['particle_on_co']
-particles = xp.build_particles(tracker=tracker, _context=context,
+particles = line.build_particles(
     x_norm=[500., 0, 0], y_norm=[0, 0.0001, 0], zeta=part_co.zeta[0],
     delta=np.array([0,0,1e-2]) + part_co.delta[0],
     nemitt_x=1e-9, nemitt_y=1e-9)
 
-tracker.configure_radiation(model='quantum')
+line.configure_radiation(model='quantum')
 
 print('Track 3 particles ...')
 num_turns = 5000
 t1 = time.time()
-tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
 t2 = time.time()
 print(f'Track time: {(t2-t1)/num_turns:.2e} s/turn')
-mon = tracker.record_last_track
+mon = line.record_last_track
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -134,20 +134,18 @@ ax3.plot(part_co.delta[0]
 plt.show()
 
 # Switch radiation
-tracker.configure_radiation(model='mean')
-par_for_emit = xp.build_particles(tracker=tracker, _context=context,
-                                  x_norm=50*[0],
-                                  zeta=part_co.zeta[0], delta=part_co.delta[0],
-                                  )
-tracker.configure_radiation(model='quantum')
+line.configure_radiation(model='mean')
+par_for_emit = line.build_particles(x_norm=50*[0],
+                zeta=part_co.zeta[0], delta=part_co.delta[0])
+line.configure_radiation(model='quantum')
 
 num_turns=1500
 print('Track 50 particles...')
 t1 = time.time()
-tracker.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
+line.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
 t2 = time.time()
 print(f'Track time: {(t2-t1)/num_turns:.2e} s/turn')
-mon = tracker.record_last_track
+mon = line.record_last_track
 
 assert np.isclose(np.std(mon.zeta[:, 750:]),
     np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),

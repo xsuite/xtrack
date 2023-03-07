@@ -65,8 +65,8 @@ line=xt.Line(
                    xt.Drift(_buffer=buf, length=1),
                    xt.Drift(_buffer=buf, length=1.),)
                 + trk_aper_1.line.elements))
-tracker = line.build_tracker(_buffer=buf)
-num_elements = len(tracker.line.element_names)
+line.build_tracker(_buffer=buf)
+num_elements = len(line.element_names)
 
 # Generate test particles
 particles = xp.Particles(_context=ctx,
@@ -77,13 +77,13 @@ particles = xp.Particles(_context=ctx,
 # Track #
 #########
 
-tracker.track(particles)
+line.track(particles)
 
 ########################
 # Refine loss location #
 ########################
 
-loss_loc_refinement = xt.LossLocationRefinement(tracker,
+loss_loc_refinement = xt.LossLocationRefinement(line,
         n_theta = 360, # Angular resolution in the polygonal approximation of the aperture
         r_max = 0.5, # Maximum transverse aperture in m
         dr = 50e-6, # Transverse loss refinement accuracy [m]

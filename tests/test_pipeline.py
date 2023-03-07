@@ -27,21 +27,19 @@ def test_multitracker(test_context):
 
     # We build two trackers, each with an element that puts the simulation on hold
 
-    tracker1 = xt.Tracker(_context=test_context,
-        line=xt.Line(elements=[xt.Drift(length=1),
+    line1 = xt.Line(elements=[xt.Drift(length=1),
                             DummyPipelinedElement(n_hold=2),
                             xt.Drift(length=1)],
-                    element_names=['d11', 'pipelnd_el1', 'd12']),
-        enable_pipeline_hold=True,
-        reset_s_at_end_turn=False)
+                    element_names=['d11', 'pipelnd_el1', 'd12'])
+    line1.build_tracker(_context=test_context, enable_pipeline_hold=True,
+                        reset_s_at_end_turn=False)
 
-    tracker2 = xt.Tracker(_context=test_context,
-        line=xt.Line(elements=[xt.Drift(length=1),
+    line2 = xt.Line(elements=[xt.Drift(length=1),
                             DummyPipelinedElement(n_hold=3),
                             xt.Drift(length=1)],
-                    element_names=['d11', 'pipelnd_el2', 'd12']),
-        enable_pipeline_hold=True,
-        reset_s_at_end_turn=False)
+                    element_names=['d11', 'pipelnd_el2', 'd12'])
+    line2.build_tracker(_context=test_context, enable_pipeline_hold=True,
+                        reset_s_at_end_turn=False)
 
 
     # We use a multitracker to track one two particles with the first tracker
@@ -52,9 +50,9 @@ def test_multitracker(test_context):
     p3 = xp.Particles(p0c=7e12, x=[0,0,0], _context=test_context)
 
     multitracker = xt.PipelineMultiTracker(
-        branches=[xt.PipelineBranch(tracker=tracker1, particles=p1),
-                xt.PipelineBranch(tracker=tracker1, particles=p2),
-                xt.PipelineBranch(tracker=tracker2, particles=p3),
+        branches=[xt.PipelineBranch(line=line1, particles=p1),
+                xt.PipelineBranch(tracker=line1, particles=p2),
+                xt.PipelineBranch(line=line2, particles=p3),
                 ],
         enable_debug_log=True)
 
@@ -91,16 +89,15 @@ def test_multitracker(test_context):
     ############  A simpler case for some extra checks
 
     # Reset the counters
-    tracker1.line['pipelnd_el1'].i_hold = 0
-    tracker2.line['pipelnd_el2'].i_hold = 0
+    line1['pipelnd_el1'].i_hold = 0
+    line2['pipelnd_el2'].i_hold = 0
 
     p1 = xp.Particles(p0c=7e12, x=[0,0,0], _context=test_context)
     p2 = xp.Particles(p0c=7e12, x=[0,0,0], _context=test_context)
 
     multitracker = xt.PipelineMultiTracker(
-        branches=[xt.PipelineBranch(tracker=tracker1, particles=p1),
-                xt.PipelineBranch(tracker=tracker2, particles=p2),
-                ],
+        branches=[xt.PipelineBranch(line=line1, particles=p1),
+                  xt.PipelineBranch(line=line2, particles=p2)],
         enable_debug_log=True)
 
     multitracker.track(num_turns=4)

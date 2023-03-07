@@ -17,12 +17,12 @@ madtw = mad.twiss()
 
 line = xt.Line.from_madx_sequence(mad.sequence[seq_name])
 line.particle_ref = xp.Particles(p0c=400e9, mass0=xp.PROTON_MASS_EV)
-tracker = line.build_tracker(_context=ctx)
+line.build_tracker(_context=ctx)
 
 # Switch on RF and twiss
-line['acta.31637'].voltage = 7e9
+line['acta.31637'].voltage = 7e6
 line['acta.31637'].lag = 180.
-twxt = tracker.twiss()
+twxt = line.twiss()
 
 # Get revolution period
 T_rev = twxt['T_rev']
@@ -33,7 +33,7 @@ elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf.')]
 #              'qf.53010', 'qf.53210', 'qf.53410', 'qf.60010', 'qf.60210', ...]
 
 # Build a custom setter
-qf_setter = xt.MultiSetter(tracker, elements_to_trim,
+qf_setter = xt.MultiSetter(line, elements_to_trim,
                             field='knl', index=1 # we want to change knl[1]
                             )
 
@@ -45,7 +45,7 @@ k1l_0 = qf_setter.get_values()
 particles = xp.generate_matched_gaussian_bunch(_context=ctx,
          num_particles=100, total_intensity_particles=1e10,
          nemitt_x=3e-6, nemitt_y=3e-6, sigma_z=15e-2,
-         tracker=tracker)
+         line=line)
 
 # Define amplitude and phase of the quadrupole ripple
 f_quad = 50. # Hz
@@ -64,7 +64,7 @@ for ii in range(num_turns):
     qf_setter.set_values(k1l)
 
     # Track one turn
-    tracker.track(particles)
+    line.track(particles)
 
     # Log the strength of one quad to check
     check_trim.append(ctx.nparray_from_context_array(line['qf.52010'].knl)[1])

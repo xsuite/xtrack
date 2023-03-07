@@ -7,24 +7,24 @@ import xobjects as xo
 with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
             'r') as fid:
     dct_b1 = json.load(fid)
-line_b1 = xt.Line.from_dict(dct_b1)
+line = xt.Line.from_dict(dct_b1)
 
 context = xo.ContextCupy()
 #context = xo.ContextCpu()
 context = xo.ContextPyopencl()
 
-tracker = line_b1.build_tracker(_context=context)
+line.build_tracker(_context=context)
 target_qx = 62.315
 target_qy = 60.325
 
-tw = tracker.twiss()
+tw = line.twiss()
 
 # Try to measure and match coupling
-tracker.vars['cmrskew'] = 1e-3
-tracker.vars['cmiskew'] = 1e-3
+line.vars['cmrskew'] = 1e-3
+line.vars['cmiskew'] = 1e-3
 
 # Match coupling
-tracker.match(verbose=True,
+line.match(verbose=True,
     vary=[
         xt.Vary(name='cmrskew', limits=[-0.5e-2, 0.5e-2], step=1e-5),
         xt.Vary(name='cmiskew', limits=[-0.5e-2, 0.5e-2], step=1e-5)],

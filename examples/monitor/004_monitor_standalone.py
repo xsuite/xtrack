@@ -16,10 +16,10 @@ with open('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json') as f:
 line = xt.Line.from_dict(dct['line'])
 line.particle_ref = xp.Particles.from_dict(dct['particle'])
 
-tracker = line.build_tracker()
+line.build_tracker()
 
 num_particles = 50
-particles = xp.generate_matched_gaussian_bunch(tracker=tracker,
+particles = xp.generate_matched_gaussian_bunch(line=line,
                                                num_particles=num_particles,
                                                nemitt_x=2.5e-6,
                                                nemitt_y=2.5e-6,
@@ -33,7 +33,7 @@ monitor = xt.ParticlesMonitor(_context=context,
                               num_particles=num_particles)
 for iturn in range(num_turns):
     monitor.track(particles)
-    tracker.track(particles)
+    line.track(particles)
 
 # monitor contains the measured data. For all particles
 # variables the first index provides the frame index.

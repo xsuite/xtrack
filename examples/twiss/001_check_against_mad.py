@@ -38,9 +38,9 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                         gamma0=mad.sequence.lhcb1.beam.gamma)
 
 context = xo.ContextCpu()
-tracker = xt.Tracker(_context=context, line=line)
+line.build_tracker(_context=context)
 
-twxt = tracker.twiss()
+twxt = line.twiss()
 
 import matplotlib.pyplot as plt
 

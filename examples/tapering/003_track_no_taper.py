@@ -13,23 +13,23 @@ with open(filename, 'r') as f:
 #line['qc1l1.1..1'].ksl[0] += 1e-6/5
 #line['qc1l1.1..1'].ksl[1] = 1e-4
 
-tracker = line.build_tracker(global_xy_limit=20e-2)
+line.build_tracker(global_xy_limit=20e-2)
 
 for ee in line.elements:
     if ee.__class__.__name__.startswith('Cavity'):
         ee.voltage = 0
 
 # Initial twiss (no radiation)
-tracker.configure_radiation(model=None)
-tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
+line.configure_radiation(model=None)
+tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
 
 # Enable radiation
-tracker.configure_radiation(model='mean')
+line.configure_radiation(model='mean')
 
 p = tw_no_rad.particle_on_co.copy()
 
-tracker.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
-mon = tracker.record_last_track
+line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
+mon = line.record_last_track
 mon.x[mon.state<1] = np.nan
 mon.y[mon.state<1] = np.nan
 mon.delta[mon.state<1] = np.nan

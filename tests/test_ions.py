@@ -38,7 +38,7 @@ def test_ions(test_context):
     qs_mad = mad.table.emitsumm.qs[0]
 
     print(f"Test {test_context.__class__}")
-    # Make xsuite line and tracker
+    # Make xsuite line and line
     line = xt.Line.from_madx_sequence(mad.sequence.sps, deferred_expressions=True)
     line.particle_ref = xp.Particles(mass0=mad.sequence.sps.beam.mass*1e9,
                                     q0=mad.sequence.sps.beam.charge,
@@ -46,9 +46,9 @@ def test_ions(test_context):
 
     assert np.isclose(line['actcse.31632'].voltage, V_RF, atol=1e-10)
 
-    tracker = line.build_tracker()
+    line.build_tracker()
 
-    tw = tracker.twiss()
+    tw = line.twiss()
 
     assert np.isclose(tw.qs, qs_mad, atol=1e-6)
     assert np.isclose(tw.qx, summad_4d.q1, atol=1e-5)

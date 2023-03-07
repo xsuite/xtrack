@@ -22,7 +22,7 @@ with open(fname_line_particles, 'r') as fid:
 line = xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-tracker = line.build_tracker()
+line.build_tracker()
 
 starting = {
     "theta0": -np.pi / 9,
@@ -35,12 +35,11 @@ starting = {
 
 
 line_c = line.cycle('ip5')
-tracker_c = line_c.build_tracker()
 
 for reverse in [False, True]:
 
-    sv0 = tracker.survey(element0='ip5', **starting, reverse=reverse).to_pandas()
-    sv_c = tracker_c.survey(**starting, reverse=reverse).to_pandas()
+    sv0 = line.survey(element0='ip5', **starting, reverse=reverse).to_pandas()
+    sv_c = line_c.survey(**starting, reverse=reverse).to_pandas()
 
 
     for ename in ['ip5', 'ip8', 'ip1', 'mb.c12r8.b1..1',

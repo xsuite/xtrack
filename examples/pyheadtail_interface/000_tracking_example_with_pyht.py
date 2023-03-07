@@ -44,7 +44,7 @@ line.append_element(damper, 'Damper')
 #################
 # Build tracker #
 #################
-tracker = line.build_tracker(_context=context)
+line.build_tracker(_context=context)
 
 ######################
 # Get some particles #
@@ -61,14 +61,14 @@ particles = xp.Particles(_context=context,
 #########
 # Track #
 #########
-tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
 
 
 ########
 # Plot #
 ########
 
-res = tracker.record_last_track
+res = line.record_last_track
 
 import matplotlib.pyplot as plt
 plt.close('all')

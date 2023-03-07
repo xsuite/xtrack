@@ -1,4 +1,6 @@
 import itertools
+import pathlib
+
 import numpy as np
 
 import xtrack.mad_loader
@@ -10,6 +12,9 @@ import xpart as xp
 
 from cpymad.madx import Madx
 
+test_data_folder = pathlib.Path(
+            __file__).parent.joinpath('../test_data').absolute()
+
 def test_non_zero_index():
     lst=[1,2,3,0,0,0]
     assert xtrack.mad_loader.non_zero_len([1,2,3,0,0,0])==3
@@ -19,7 +24,6 @@ def test_add_lists():
     b=[1,1,1,4,5,6]
     c=xtrack.mad_loader.add_lists(a,b,8)
     assert c==[2, 3, 4, 5, 6, 7, 0, 0]
-
 
 def test_add_lists():
     a=[1,2,3,1,1,1]
@@ -227,8 +231,6 @@ def test_tilt_shift_and_errors():
     for opt in gen_options(opt2):
         ml=MadLoader(mad.sequence.seq,**opt)
         line=list(ml.iter_elements())
-
-
 
 def test_matrix():
     mad = Madx()
@@ -523,3 +525,22 @@ def test_mad_elements_import():
         assert line.get_s_position('mat0') == 2
         assert np.allclose(line['mat0'].m0,matrix_m0,rtol=0.0,atol=1E-12)
         assert np.allclose(line['mat0'].m1,matrix_m1,rtol=0.0,atol=1E-12)
+
+def test_selective_expr_import_and_replace_in_expr():
+
+    # Load line with knobs on correctors only
+    from cpymad.madx import Madx
+    mad = Madx()
+    mad.call(str( test_data_folder /
+                'hllhc14_no_errors_with_coupling_knobs/lhcb1_seq.madx'))
+    mad.use(sequence='lhcb1')
+    line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
+        deferred_expressions=True,
+        replace_in_expr={'bv_aux': 'bv_aux_lhcb1'},
+        expressions_for_element_types=('kicker', 'hkicker', 'vkicker'))
+
+    assert len(line.vars['bv_aux_lhcb1']._find_dependant_targets()) > 1
+    assert len(line.vars['bv_aux']._find_dependant_targets()) == 1 # depends on itself
+
+    assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None # multipole
+    assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None # kicker

@@ -13,11 +13,11 @@ def test_custom_setter_array_element(test_context):
                 dr=xt.Drift(length=1.)),
             element_names=['qf1', 'qf2', 'qf3', 'dr'])
 
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf')]
 
-    qf_setter = xt.MultiSetter(tracker, elements_to_trim,
+    qf_setter = xt.MultiSetter(line, elements_to_trim,
                                 field='knl', index=1 # we want to change knl[1]
                                 )
 
@@ -42,11 +42,11 @@ def test_custom_setter_scalar(test_context):
                 dr=xt.Drift(length=1.)),
             element_names=['qf1', 'qf2', 'qf3', 'dr'])
 
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf')]
 
-    qf_setter = xt.MultiSetter(tracker, elements_to_trim,
+    qf_setter = xt.MultiSetter(line, elements_to_trim,
                                 field='length',
                                 )
 
@@ -71,11 +71,11 @@ def test_custom_setter_fast_quadrupole(test_context):
                 dr=xt.Drift(length=1.)),
             element_names=['qf1', 'qf2', 'qf3', 'dr'])
 
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     elements_to_trim = [nn for nn in line.element_names if nn.startswith('qf')]
 
-    qf_setter = xt.MultiSetter(tracker, elements_to_trim,
+    qf_setter = xt.MultiSetter(line, elements_to_trim,
                                field='knl', index=1)
 
     ctx2np = test_context.nparray_from_context_array
@@ -99,11 +99,11 @@ def test_custom_setter_fast_dipole(test_context):
                 dr=xt.Drift(length=1.)),
             element_names=['df1', 'df2', 'df3', 'dr'])
 
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     elements_to_trim = [nn for nn in line.element_names if nn.startswith('df')]
 
-    qf_setter = xt.MultiSetter(tracker, elements_to_trim,
+    qf_setter = xt.MultiSetter(line, elements_to_trim,
                                field='knl', index=0)
 
     ctx2np = test_context.nparray_from_context_array

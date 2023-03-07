@@ -52,7 +52,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
-        use_full_inverse=None
+        use_full_inverse=None,
+        strengths=False,
         ):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
@@ -312,6 +313,12 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res['values_at'] = 'exit'
     else:
         twiss_res['values_at'] = 'entry'
+
+    if strengths:
+        strengths = _extract_knl_ksl(tracker.line, twiss_res['name'])
+        twiss_res.update(strengths)
+        twiss_res['_ebe_fields'] = (list(twiss_res['_ebe_fields']) +
+                                    list(strengths.keys()))
 
     if at_elements is not None:
         twiss_res._keep_only_elements(at_elements)
@@ -892,12 +899,28 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 class TwissInit:
     def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
                  mux=0, muy=0, muzeta=0.):
-        self.particle_on_co = particle_on_co
+        self.__dict__['particle_on_co'] = particle_on_co
         self.W_matrix = W_matrix
         self.element_name = element_name
         self.mux = mux
         self.muy = muy
         self.muzeta = muzeta
+
+    def __getattr__(self, name):
+        if name in self.__dict__:
+            return self.__dict__[name]
+        elif hasattr(self.__dict__['particle_on_co'], name):
+            return getattr(self.__dict__['particle_on_co'], name)
+        else:
+            raise AttributeError(f'No attribute {name} found in TwissInit')
+
+    def __setattr__(self, name, value):
+        if name in self.__dict__:
+            self.__dict__[name] = value
+        elif hasattr(self.particle_on_co, name):
+            setattr(self.particle_on_co, name, value)
+        else:
+            self.__dict__[name] = value
 
 class TwissTable(Table):
 
@@ -936,7 +959,7 @@ class TwissTable(Table):
             columns = self._ebe_fields
         return Table.to_pandas(self, index=index,columns=columns)
 
-    def get_betatron_sigmas(self, nemitt_x, nemitt_y):
+    def get_betatron_sigmas(self, nemitt_x, nemitt_y, gemitt_z=0):
 
         beta0 = self.particle_on_co.beta0
         gamma0 = self.particle_on_co.gamma0
@@ -946,14 +969,17 @@ class TwissTable(Table):
         Ws = np.array(self.W_matrix)
         v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
         v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
+        v3 = Ws[:,:,4] + 1j * Ws[:,:,5]
 
         Sigma1 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
         Sigma2 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
+        Sigma3 = np.zeros(shape=(len(self.s), 6, 6), dtype=np.float64)
 
         for ii in range(6):
             for jj in range(6):
                 Sigma1[:, ii, jj] = np.real(v1[:,ii] * v1[:,jj].conj())
                 Sigma2[:, ii, jj] = np.real(v2[:,ii] * v2[:,jj].conj())
+                Sigma3[:, ii, jj] = np.real(v3[:,ii] * v3[:,jj].conj())
 
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2
 
@@ -966,10 +992,19 @@ class TwissTable(Table):
         res['Sigma12'] = Sigma[:, 0, 1]
         res['Sigma13'] = Sigma[:, 0, 2]
         res['Sigma14'] = Sigma[:, 0, 3]
+        res['Sigma15'] = Sigma[:, 0, 4]
+        res['Sigma16'] = Sigma[:, 0, 5]
+
+
         res['Sigma21'] = Sigma[:, 1, 0]
         res['Sigma22'] = Sigma[:, 1, 1]
         res['Sigma23'] = Sigma[:, 1, 2]
         res['Sigma24'] = Sigma[:, 1, 3]
+        res['Sigma25'] = Sigma[:, 1, 4]
+        res['Sigma26'] = Sigma[:, 1, 5]
+
+
+
         res['Sigma31'] = Sigma[:, 2, 0]
         res['Sigma32'] = Sigma[:, 2, 1]
         res['Sigma33'] = Sigma[:, 2, 2]
@@ -978,11 +1013,39 @@ class TwissTable(Table):
         res['Sigma42'] = Sigma[:, 3, 1]
         res['Sigma43'] = Sigma[:, 3, 2]
         res['Sigma44'] = Sigma[:, 3, 3]
+        res['Sigma51'] = Sigma[:, 4, 0]
+        res['Sigma52'] = Sigma[:, 4, 1]
 
         res['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
         res['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
+        res['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
         return res
+
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            assert len(item) == 2, 'Too many indices'
+            indeces = item[0]
+            column = item[1]
+            if isinstance(indeces, str) or np.isscalar(indeces):
+                indeces = [indeces]
+            assert isinstance(column, str), 'Column must be a string'
+
+            for ii, idx in enumerate(indeces):
+                if isinstance(idx, str):
+                    assert idx in self.name, f'Element {idx} not found'
+                    assert self.name.count(idx) == 1, f'Element {idx} not unique'
+                    indeces[ii] = self.name.index(idx)
+
+            out = self[column][indeces]
+            if isinstance(out, np.ndarray) and out.shape == (1,):
+                return out[0]
+            else:
+                return out
+        else:
+            return super().__getitem__(item)
+
+
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    _force_at_element=None):
@@ -1070,6 +1133,8 @@ class TwissTable(Table):
                 new[kk] = new[kk][:-1][::-1] + self.name[-1:]
             elif kk == 'W_matrix':
                 continue
+            elif kk.startswith('k') and kk.endswith('nl', 'sl'):
+                continue # Not yet implemented
             else:
                 new[kk] = new[kk][::-1].copy()
 
@@ -1231,3 +1296,47 @@ def _extract_twiss_parameters_with_inverse(Ws):
     gamy *= sign_y
 
     return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
+
+def _extract_knl_ksl(line, names):
+
+    knl = []
+    ksl = []
+
+    ctx2np = line._context.nparray_from_context_array
+
+    for nn in names:
+        if nn in line.element_names:
+            if hasattr(line.element_dict[nn], 'knl'):
+                knl.append(ctx2np(line.element_dict[nn].knl).copy())
+            else:
+                knl.append([])
+
+            if hasattr(line.element_dict[nn], 'ksl'):
+                ksl.append(ctx2np(line.element_dict[nn].ksl).copy())
+            else:
+                ksl.append([])
+        else:
+            knl.append([])
+            ksl.append([])
+
+    # Find maximum length of knl and ksl
+    max_knl = 0
+    max_ksl = 0
+    for ii in range(len(knl)):
+        max_knl = max(max_knl, len(knl[ii]))
+        max_ksl = max(max_ksl, len(ksl[ii]))
+
+    knl_array = np.zeros(shape=(len(knl), max_knl), dtype=np.float64)
+    ksl_array = np.zeros(shape=(len(ksl), max_ksl), dtype=np.float64)
+
+    for ii in range(len(knl)):
+        knl_array[ii, :len(knl[ii])] = knl[ii]
+        ksl_array[ii, :len(ksl[ii])] = ksl[ii]
+
+    k_dict = {}
+    for jj in range(max_knl):
+        k_dict[f'k{jj}nl'] = knl_array[:, jj]
+    for jj in range(max_ksl):
+        k_dict[f'k{jj}sl'] = ksl_array[:, jj]
+
+    return k_dict

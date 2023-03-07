@@ -22,10 +22,10 @@ def test_match_tune_chromaticity(test_context):
     line = xt.Line.from_dict(dct['line'])
     line.particle_ref = xp.Particles.from_dict(dct['particle'])
 
-    tracker=line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     print('\nInitial twiss parameters')
-    tw_before = tracker.twiss()
+    tw_before = line.twiss()
     print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
         f"Q'x = {tw_before['dqx']:.5f} Q'y = {tw_before['dqy']:.5f}")
 
@@ -35,7 +35,7 @@ def test_match_tune_chromaticity(test_context):
     print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 
     t1 = time.time()
-    tracker.match(
+    line.match(
         vary=[
             xt.Vary('kqtf.b1', step=1e-8),
             xt.Vary('kqtd.b1', step=1e-8),
@@ -50,7 +50,7 @@ def test_match_tune_chromaticity(test_context):
     t2 = time.time()
     print('\nTime fsolve: ', t2-t1)
 
-    tw_final = tracker.twiss()
+    tw_final = line.twiss()
     print('\nFinal twiss parameters')
     print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
         f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
@@ -66,7 +66,7 @@ def test_match_tune_chromaticity(test_context):
 
 
     t1 = time.time()
-    tracker.match(
+    line.match(
         vary=[
             xt.Vary('kqtf.b1', step=1e-8),
             xt.Vary('kqtd.b1', step=1e-8),
@@ -81,7 +81,7 @@ def test_match_tune_chromaticity(test_context):
     t2 = time.time()
     print('\nTime fsolve: ', t2-t1)
 
-    tw_final = tracker.twiss()
+    tw_final = line.twiss()
     print('\nFinal twiss parameters')
     print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
         f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
@@ -99,7 +99,7 @@ def test_match_tune_chromaticity(test_context):
     for ee in line.elements:
         if isinstance(ee, xt.Cavity):
             ee.voltage = 0.0
-    tracker.match(method='4d', # <-- 4d matchin
+    line.match(method='4d', # <-- 4d matchin
         freeze_longitudinal=True,
         vary=[
             xt.Vary('kqtf.b1', step=1e-8),
@@ -115,7 +115,7 @@ def test_match_tune_chromaticity(test_context):
     t2 = time.time()
     print('\nTime fsolve: ', t2-t1)
 
-    tw_final = tracker.twiss(method='4d')
+    tw_final = line.twiss(method='4d')
     print('\nFinal twiss parameters')
     print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
         f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")
@@ -135,23 +135,23 @@ def test_match_coupling(test_context):
     with open(test_data_folder /
         'hllhc14_no_errors_with_coupling_knobs/line_b1.json', 'r') as fid:
         dct_b1 = json.load(fid)
-    line_b1 = xt.Line.from_dict(dct_b1)
+    line = xt.Line.from_dict(dct_b1)
 
-    tracker = line_b1.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
-    tw = tracker.twiss()
+    tw = line.twiss()
 
     assert tw.c_minus < 1e-4
 
     # Try to measure and match coupling
-    tracker.vars['cmrskew'] = 1e-3
-    tracker.vars['cmiskew'] = 1e-3
+    line.vars['cmrskew'] = 1e-3
+    line.vars['cmiskew'] = 1e-3
 
-    tw = tracker.twiss()
+    tw = line.twiss()
     assert tw.c_minus > 2e-4
 
     # Match coupling
-    tracker.match(verbose=True,
+    line.match(verbose=True,
         vary=[
             xt.Vary(name='cmrskew', limits=[-1e-2, 1e-2], step=1e-5),
             xt.Vary(name='cmiskew', limits=[-1e-2, 1e-2], step=1e-5),
@@ -159,5 +159,5 @@ def test_match_coupling(test_context):
         targets=[
             xt.Target('c_minus', 0, tol=1e-4)])
 
-    tw = tracker.twiss()
+    tw = line.twiss()
     assert tw.c_minus < 2e-4

@@ -12,8 +12,6 @@ import xpart as xp
 import ducktrack as dtk
 
 context = xo.ContextCpu()
-context = xo.ContextCupy()
-context = xo.ContextPyopencl()
 
 x_aper_min = -0.1
 x_aper_max = 0.2
@@ -49,9 +47,9 @@ line = xt.Line(elements=[
                 xt.Drift(length=5.)],
                 element_names=['drift0', 'aper', 'drift1'])
 
-tracker = xt.Tracker(_context=context, line=line)
+line.build_tracker(_context=context)
 
-tracker.track(particles)
+line.track(particles)
 
 part_id = context.nparray_from_context_array(particles.particle_id)
 part_state = context.nparray_from_context_array(particles.state)

@@ -27,18 +27,18 @@ configs = [
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
 
-tracker = line.build_tracker()
+line.build_tracker()
 
 
 # Initial twiss (no radiation)
-tracker.configure_radiation(model=None)
-tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
+line.configure_radiation(model=None)
+tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
 
 # Enable radiation
-tracker.configure_radiation(model='mean')
+line.configure_radiation(model='mean')
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths
-tracker.compensate_radiation_energy_loss(record_iterations=True)
+line.compensate_radiation_energy_loss(record_iterations=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -48,13 +48,13 @@ for conf in configs:
     ifig += 1
 
     # Twiss(es) with radiation
-    tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = conf['cavity_preserve_angle']
-    tw = tracker.twiss(radiation_method=conf['radiation_method'],
+    line.config.XTRACK_CAVITY_PRESERVE_ANGLE = conf['cavity_preserve_angle']
+    tw = line.twiss(radiation_method=conf['radiation_method'],
                        eneloss_and_damping=(conf['radiation_method'] != 'kick_as_co'))
-    tracker.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
+    line.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
 
     if conf['p0_correction']:
-        p0corr = 1 + tracker.delta_taper
+        p0corr = 1 + line.delta_taper
     else:
         p0corr = 1
 
@@ -73,7 +73,7 @@ for conf in configs:
                 f'{max_betx_beat:.2e}')
     plt.plot(tw.s, betx_beat)
     if 'delta_in_beta' in conf:
-        plt.plot(tw.s, -tracker.delta_taper, 'k')
+        plt.plot(tw.s, -line.delta_taper, 'k')
     plt.ylabel(r'$\Delta \beta_x / \beta_x$')
     plt.ylim(np.max([0.01, 1.1 * max_betx_beat])*np.array([-1, 1]))
     plt.xlim([0, tw.s[-1]])
@@ -84,7 +84,7 @@ for conf in configs:
                 f'{max_bety_beat:.2e}')
     plt.plot(tw.s, bety_beat)
     if 'delta_in_beta' in conf:
-        plt.plot(tw.s, -tracker.delta_taper, 'k')
+        plt.plot(tw.s, -line.delta_taper, 'k')
     plt.ylabel(r'$\Delta \beta_y / \beta_y$')
     plt.ylim(np.max([0.01, 1.1 * max_bety_beat])*np.array([-1, 1]))
     plt.xlabel('s [m]')
@@ -93,10 +93,10 @@ for conf in configs:
 
     plt.savefig(f'./{case_name}_fig{ifig}.png', dpi=200)
 
-    assert np.isclose(tracker.delta_taper[0], 0, rtol=0, atol=1e-10)
-    assert np.isclose(tracker.delta_taper[-1], 0, rtol=0, atol=1e-10)
+    assert np.isclose(line.delta_taper[0], 0, rtol=0, atol=1e-10)
+    assert np.isclose(line.delta_taper[-1], 0, rtol=0, atol=1e-10)
 
-    assert np.allclose(tw.delta, tracker.delta_taper, rtol=0, atol=1e-6)
+    assert np.allclose(tw.delta, line.delta_taper, rtol=0, atol=1e-6)
 
     assert np.isclose(tw.qx, tw_no_rad.qx, rtol=0, atol=conf['q_atol'])
     assert np.isclose(tw.qy, tw_no_rad.qy, rtol=0, atol=conf['q_atol'])
@@ -124,7 +124,7 @@ for conf in configs:
         assert np.isclose(line['rf3'].voltage*np.sin(line['rf3'].lag/180*np.pi), eneloss/4, rtol=1e-5)
 
 plt.figure(100)
-for i_iter, mon in enumerate(tracker._tapering_iterations):
+for i_iter, mon in enumerate(line._tapering_iterations):
     plt.plot(mon.s.T, mon.delta.T,
              label=f'iter {i_iter} - Ene. loss: {-mon.delta[-1, -1]*100:.2f} %')
     plt.legend(loc='lower left')

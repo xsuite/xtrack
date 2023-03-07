@@ -61,8 +61,7 @@ def test_full_rings(
     # Build TrackJob #
     ##################
     print('Build tracker...')
-    tracker = xt.Tracker(_context=test_context, line=line,
-                         reset_s_at_end_turn=False)
+    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
 
     ######################
     # Get some particles #
@@ -74,7 +73,7 @@ def test_full_rings(
     #########
     print('Track a few turns...')
     n_turns = 10
-    tracker.track(particles, num_turns=n_turns)
+    line.track(particles, num_turns=n_turns)
 
     ###########################
     # Check against ducktrack #
@@ -107,7 +106,7 @@ def test_full_rings(
 
     if test_backtracker:
         print('Testing backtracker')
-        backtracker = tracker.get_backtracker(_context=test_context)
+        backtracker = line.get_backtracker(_context=test_context)
         backtracker.track(particles, num_turns=n_turns)
 
         dtk_part = dtk.TestParticles(**input_data['particle']).copy()
@@ -133,13 +132,13 @@ def test_full_rings(
     # Check closed orbit #
     ######################
 
-    part_co = tracker.find_closed_orbit(particle_co_guess=xp.Particles(
+    part_co = line.find_closed_orbit(particle_co_guess=xp.Particles(
         _context=test_context,
         p0c=input_data['particle']['p0c']))
 
     parttest = part_co.copy()
     for _ in range(10):
-        tracker.track(parttest)
+        line.track(parttest)
         assert np.isclose(parttest._xobject.x[0], part_co._xobject.x[0],
                           rtol=0, atol=1e-11)
         assert np.isclose(parttest._xobject.y[0], part_co._xobject.y[0],
@@ -153,15 +152,15 @@ def test_full_rings(
 
     tmp_file = tmp_path / 'test_full_rings.npy'
     tmp_file_path = tmp_file.resolve()
-    tracker.to_binary_file(tmp_file_path)
+    line.tracker.to_binary_file(tmp_file_path)
     new_tracker = xt.Tracker.from_binary_file(tmp_file_path)
 
     assert np.all(new_tracker._buffer.buffer == new_tracker._buffer.buffer)
-    if tracker.line._var_management:
-        assert tracker._tracker_data.line._var_management_to_dict() == \
+    if line._var_management:
+        assert line._tracker_data.line._var_management_to_dict() == \
             new_tracker._tracker_data.line._var_management_to_dict()
     else:
-        assert tracker.line._var_management is \
+        assert line._var_management is \
             new_tracker.line._var_management is None
 
 
@@ -189,11 +188,8 @@ def test_freeze_vars(test_context):
     #################
     print('Build tracker...')
     freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
-    tracker = xt.Tracker(_context=test_context,
-                         line=line,
-                         reset_s_at_end_turn=False,
-                         )
-    tracker.freeze_vars(freeze_vars)
+    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
+    line.freeze_vars(freeze_vars)
 
     ######################
     # Get some particles #
@@ -210,7 +206,7 @@ def test_freeze_vars(test_context):
     #########
     print('Track a few turns...')
     n_turns = 10
-    tracker.track(particles, num_turns=n_turns)
+    line.track(particles, num_turns=n_turns)
 
     for vv in ['ptau', 'delta', 'rpp', 'rvv', 'zeta']:
         vv_before = test_context.nparray_from_context_array(

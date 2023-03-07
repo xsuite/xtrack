@@ -211,13 +211,10 @@ def test_drift_exact(test_context):
                                        _context=test_context)
 
     drift = xt.Drift(_context=test_context, length=10.)
-    tracker = xt.Tracker(
-        line=xt.Line(elements=[drift]),
-        compile=False,
-        _context=test_context,
-    )
-    tracker.config.XTRACK_USE_EXACT_DRIFTS = True
-    tracker.track(particles)
+    line = xt.Line(elements=[drift])
+    line.build_tracker(compile=False, _context=test_context)
+    line.config.XTRACK_USE_EXACT_DRIFTS = True
+    line.track(particles)
 
     dtk_drift = dtk.elements.DriftExact(length=10.)
     dtk_drift.track(dtk_particle)

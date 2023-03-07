@@ -20,13 +20,13 @@ test_data_folder = pathlib.Path(
 with open(test_data_folder.joinpath(
         'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
     dct = json.load(f)
-line = xt.Line.from_dict(dct['line'])
-line.particle_ref = xp.Particles.from_dict(dct['particle'])
+line0 = xt.Line.from_dict(dct['line'])
+line0.particle_ref = xp.Particles.from_dict(dct['particle'])
 
-tracker0 = line.build_tracker()
+line0.build_tracker()
 
 num_particles = 50
-particles0 = xp.generate_matched_gaussian_bunch(tracker=tracker0,
+particles0 = xp.generate_matched_gaussian_bunch(line=line0,
                                                num_particles=num_particles,
                                                nemitt_x=2.5e-6,
                                                nemitt_y=2.5e-6,
@@ -35,13 +35,14 @@ particles0 = xp.generate_matched_gaussian_bunch(tracker=tracker0,
 
 @for_all_test_contexts
 def test_monitor(test_context):
-    tracker = line.copy().build_tracker(_context=test_context)
+    line = line0.copy()
+    line.build_tracker(_context=test_context)
     particles = particles0.copy(_context=test_context)
 
     # Test implicit monitor
     num_turns = 30
-    tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
-    mon = tracker.record_last_track
+    line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
+    mon = line.record_last_track
     assert np.all(mon.x.shape == np.array([50, 30]))
     assert np.all(mon.at_turn[3, :] == np.arange(0, num_turns))
     assert np.all(mon.particle_id[:, 3] == np.arange(0, num_particles))
@@ -54,7 +55,7 @@ def test_monitor(test_context):
                                   num_particles=num_particles)
     particles = particles0.copy(_context=test_context)
     num_turns = 30
-    tracker.track(particles, num_turns=num_turns, turn_by_turn_monitor=monitor)
+    line.track(particles, num_turns=num_turns, turn_by_turn_monitor=monitor)
     assert np.all(monitor.x.shape == np.array([50, 10]))
     assert np.all(monitor.at_turn[3, :] == np.arange(5, 15))
     assert np.all(monitor.particle_id[:, 3] == np.arange(0, num_particles))
@@ -70,7 +71,7 @@ def test_monitor(test_context):
     num_turns = 30
     for ii in range(num_turns):
         mon2.track(particles)
-        tracker.track(particles)
+        line.track(particles)
     assert np.all(mon2.x.shape == np.array([50, 10]))
     assert np.all(mon2.at_turn[3, :] == np.arange(5, 15))
     assert np.all(mon2.particle_id[:, 3] == np.arange(0, num_particles))
@@ -85,7 +86,7 @@ def test_monitor(test_context):
                                              num_particles=num_particles)
     particles = particles0.copy(_context=test_context)
     num_turns = 100
-    tracker.track(particles,
+    line.track(particles,
                   num_turns=num_turns,
                   turn_by_turn_monitor=monitor_multiframe)
     assert np.all(monitor_multiframe.x.shape == np.array([3, 50, 5]))
@@ -100,27 +101,27 @@ def test_monitor(test_context):
                                       num_particles=num_particles)
     monitor_ip8 = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
                                       num_particles=num_particles)
-    line_with_monitor = line.copy()
-    line_with_monitor.insert_element(index='ip5', element=monitor_ip5, name='mymon5')
-    line_with_monitor.insert_element(index='ip8', element=monitor_ip8, name='mymon8')
+    line_w_monitor = line0.copy()
+    line_w_monitor.insert_element(index='ip5', element=monitor_ip5, name='mymon5')
+    line_w_monitor.insert_element(index='ip8', element=monitor_ip8, name='mymon8')
 
-    tracker_w_monitor = line_with_monitor.build_tracker(_context=test_context)
+    line_w_monitor.build_tracker(_context=test_context)
 
     particles = particles0.copy(_context=test_context)
     num_turns = 50
-    tracker_w_monitor.track(particles, num_turns=num_turns)
+    line_w_monitor.track(particles, num_turns=num_turns)
 
     assert np.all(monitor_ip5.x.shape == np.array([50, 10]))
     assert np.all(monitor_ip5.at_turn[3, :] == np.arange(5, 15))
     assert np.all(monitor_ip5.particle_id[:, 3] == np.arange(0, num_particles))
     assert np.all(monitor_ip5.at_element[:, :]
-                        == line_with_monitor.element_names.index('ip5') - 1)
+                        == line_w_monitor.element_names.index('ip5') - 1)
 
     assert np.all(monitor_ip8.x.shape == np.array([50, 10]))
     assert np.all(monitor_ip8.at_turn[3, :] == np.arange(5, 15))
     assert np.all(monitor_ip8.particle_id[:, 3] == np.arange(0, num_particles))
     assert np.all(monitor_ip8.at_element[:, :]
-                        == line_with_monitor.element_names.index('ip8') - 1)
+                        == line_w_monitor.element_names.index('ip8') - 1)
 
 
 
@@ -133,25 +134,25 @@ def test_last_turns_monitor(test_context):
     monitor = xt.LastTurnsMonitor(n_last_turns=5, particle_id_range=(1, 5), _context=test_context)
 
     line = xt.Line([monitor])
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     for turn in range(10):
 
-        tracker.track(particles, num_turns=1)
+        line.track(particles, num_turns=1)
 
         # Note that indicees are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
 
-        particles.x[0] += 1# + np.array([1,-1,2,-2,3,-3])
+        particles.x[0] += 1
         particles.x[1] -= 1
         particles.x[2] += 2
         particles.x[3] -= 2
         particles.x[4] += 3
         particles.x[5] -= 3
         if turn == 2:
-            particles.state[1] = 0 # particles.particle_id == 
+            particles.state[1] = 0
         if turn == 4:
             particles.state[2] = 0
         if turn == 6:
