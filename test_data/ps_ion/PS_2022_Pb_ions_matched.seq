@@ -1,5 +1,5 @@
-beam,particle="pb54",bunched=true,radiate=false,mass:= 0.9313865199,charge:= 0.2596153846,energy:= 1.00338652,pc:= 0.3732340537,gamma:= 1.077304104,beta:= 0.3719743552,brho:= 4.795458467,ex:= 1,exn:= 0.4007294992,ey:= 1,eyn:= 0.4007294992
-,et:= 0.001,sigt:= 1,sige:= 0.001,kbunch:= 1,npart:= 1,bcurrent:= 1.05773591e-14,freq0:= 0.1774818126,circ:= 628.3185,dtbyds:= 0,deltap:= 0,alfa:= 0.8616350791,u0:= 0,qs:= 0,arad:= 1.042035948e-19,bv:= 1,pdamp:={1 ,1 ,2 },n1min:= -1;
+beam,particle="ion",bunched=true,radiate=false,mass:= 193.7290247,charge:= 54,energy:= 208.744939,pc:= 77.74004459,gamma:= 1.077509884,beta:= 0.3724164283,brho:= 4.802090303,ex:= 1,exn:= 0.4012823825,ey:= 1,eyn:= 0.4012823825,et:= 0.001
+,sigt:= 1,sige:= 0.001,kbunch:= 1,npart:= 1,bcurrent:= 1.060251537e-14,freq0:= 0.1776927409,circ:= 628.3185,dtbyds:= 0,deltap:= 0,alfa:= 0.8613060039,u0:= 0,qs:= 0,arad:= 2.167427739e-17,bv:= 1,pdamp:={1 ,1 ,2 },n1min:= -1;
 kprxse = 0;
 none = 0;
 k2prmp = -0.01939522762;

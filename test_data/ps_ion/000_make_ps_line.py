@@ -13,7 +13,7 @@ from cpymad.madx import Madx
 
 # Load matched MADX sequence with correct tunes and chromaticities
 mad = Madx()
-mad.call('PS_2022_Pb_ions_thin_matched.seq')
+mad.call('PS_2022_Pb_ions_matched.seq')
 mad.use('ps')
 mad.twiss()
 

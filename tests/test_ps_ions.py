@@ -16,7 +16,7 @@ def test_ions(test_context):
 
     mad = Madx()
     mad.call(str(test_data_folder.joinpath(
-        'ps_ion/PS_2022_Pb_ions_thin_matched.seq')))
+        'ps_ion/PS_2022_Pb_ions_matched.seq')))
     mad.use('ps')
     mad.twiss()
 
