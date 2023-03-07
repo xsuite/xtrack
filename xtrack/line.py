@@ -1330,8 +1330,17 @@ class Line:
         elements_df['s_aperture_upstream'] = np.nan
         elements_df['i_aperture_downstream'] = np.nan
         elements_df['s_aperture_downstream'] = np.nan
-
         num_elements = len(self.element_names)
+
+        # Elements that don't need aperture
+        dont_need_aperture = {name: False for name in elements_df['name']}
+        for name in elements_df['name']:
+            ee = self.element_dict[name]
+            if _allow_backtrack(ee) and not name in needs_aperture:
+                dont_need_aperture[name] = True
+            # Correct isthick for elements that need aperture but have zero length:
+            if name in needs_aperture and hasattr(ee, 'length') and ee.length == 0:
+                elements_df.loc[elements_df['name']==name, 'isthick'] = False
 
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
         i_next_aperture = 0
@@ -1343,8 +1352,7 @@ class Line:
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
-            if (_allow_backtrack(self.element_dict[elements_df.loc[iee, 'name']])
-                and not elements_df.loc[iee, 'name'] in needs_aperture):
+            if dont_need_aperture[elements_df.loc[iee, 'name']]:
                 continue
 
             if elements_df.loc[iee, 'is_aperture']:
