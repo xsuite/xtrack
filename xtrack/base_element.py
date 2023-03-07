@@ -299,12 +299,13 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     def track(self, particles, increment_at_element=False):
         old_start_at_element = particles.start_tracking_at_element
         particles.start_tracking_at_element = -1
+        old_is_collective = self.iscollective
         self.iscollective = False
         try:
             self._track_with_minitracker(particles, increment_at_element)
         finally:
             particles.start_tracking_at_element = old_start_at_element
-            self.iscollective = True
+            self.iscollective = old_is_collective
 
 
     @property
