@@ -248,7 +248,7 @@ class Tracker:
                 noncollective_xelements.append(
                     Drift(_buffer=_buffer, length=ldrift))
 
-        # Build tracker for all non collective elements
+        # Build tracker for all non-collective elements
         # (with collective elements replaced by Drifts)
         supertracker = Tracker(_buffer=_buffer,
                 line=Line(elements=noncollective_xelements,
@@ -266,21 +266,21 @@ class Tracker:
                 )
         supertracker.config = self.config
 
-        # Build trackers for non collective parts
+        # Build trackers for non-collective parts
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
                 parts[ii] = Tracker(_buffer=_buffer,
-                                line=pp,
-                                element_classes=supertracker.element_classes,
-                                track_kernel=supertracker.track_kernel,
-                                particles_class=particles_class,
-                                particles_monitor_class=particles_monitor_class,
-                                global_xy_limit=global_xy_limit,
-                                extra_headers=extra_headers,
-                                local_particle_src=local_particle_src,
-                                skip_end_turn_actions=True,
-                                io_buffer=self.io_buffer,
-                                use_prebuilt_kernels=use_prebuilt_kernels,)
+                                    line=pp,
+                                    element_classes=supertracker.element_classes,
+                                    track_kernel=supertracker.track_kernel,
+                                    particles_class=particles_class,
+                                    particles_monitor_class=particles_monitor_class,
+                                    global_xy_limit=global_xy_limit,
+                                    extra_headers=extra_headers,
+                                    local_particle_src=local_particle_src,
+                                    skip_end_turn_actions=True,
+                                    io_buffer=self.io_buffer,
+                                    use_prebuilt_kernels=use_prebuilt_kernels,)
                 parts[ii].config = self.config
 
         # Make a "marker" element to increase at_element
