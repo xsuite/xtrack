@@ -21,9 +21,6 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_radiation(test_context):
-
-    print(f"Test {test_context.__class__}")
-
     theta_bend = 0.05
     L_bend = 5.
 

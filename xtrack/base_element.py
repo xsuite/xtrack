@@ -9,6 +9,7 @@ from functools import partial
 
 import xobjects as xo
 import xpart as xp
+import xtrack
 
 from xobjects.hybrid_class import _build_xofields_dict
 
@@ -230,7 +231,8 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     behaves_like_drift = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
-    _minitracker = None
+    _track_kernels = None
+    _element_classes = None
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -251,24 +253,31 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        *args, **kwargs)
 
     def _track_with_minitracker(self, particles, increment_at_element=False):
-        if not self._minitracker:
-            if hasattr(self, 'io_buffer') and self.io_buffer is not None:
-                io_buffer = self.io_buffer
-            else:
-                io_buffer = self.context.zeros(1, dtype=np.int8)  # dummy
+        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
+            io_buffer = self.io_buffer
+        else:
+            from xtrack import new_io_buffer
+            io_buffer = new_io_buffer(capacity=1, _context=self.context)
 
-            from xtrack.line import Line
-            line = Line(elements=[self])
-            tracker = line.build_tracker(
-                particles_class=particles.__class__,
-                io_buffer=io_buffer,
-            )
-            tracker.config.DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS = (not increment_at_element)
-            self._minitracker = tracker
-            self._minitracker.skip_end_turn_actions = True
+        from xtrack.line import Line
+        line = Line(elements=[self])
+        tracker = line.build_tracker(
+            particles_class=particles.__class__,
+            io_buffer=io_buffer,
+            track_kernel=self.__class__._track_kernels,
+            element_classes=self.__class__._element_classes,
+            compile=False,
+        )
+        tracker.config.DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS = (not increment_at_element)
+        tracker.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+        tracker.skip_end_turn_actions = True
 
-        self._minitracker.track(particles)
+        if not self.__class__._track_kernels:
+            self.__class__._track_kernels = tracker.track_kernel
+            self.__class__._element_classes = tracker.element_classes
 
+        tracker.io_buffer = io_buffer
+        tracker.track(particles)
 
     def _track_per_particle(self, particles, increment_at_element=False):
         context = self._buffer.context
@@ -288,17 +297,14 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                            io_buffer=io_buffer_arr)
 
     def track(self, particles, increment_at_element=False):
-        before = particles.at_element.copy()
-        if self.iscollective:
-            self._track_per_particle(particles, increment_at_element)
-        else:
+        old_start_at_element = particles.start_tracking_at_element
+        particles.start_tracking_at_element = -1
+        self.iscollective = False
+        try:
             self._track_with_minitracker(particles, increment_at_element)
-        before = before[particles.state > 0]
-        after = particles.at_element[particles.state > 0]
-        if increment_at_element:
-            assert np.all(before < after)
-        else:
-            assert np.all(before == after)
+        finally:
+            particles.start_tracking_at_element = old_start_at_element
+            self.iscollective = True
 
 
     @property

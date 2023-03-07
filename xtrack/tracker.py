@@ -361,14 +361,15 @@ class Tracker:
 
         if track_kernel is None and element_classes is not None:
             raise ValueError('The kernel relies on `element_classes` ordering, '
-                             'so `element_classes` must be given if '
+                             'so `element_classes` must not be given if '
                              '`track_kernel` is None.')
 
         if element_classes is None:
             if track_kernel is not None:
                 raise ValueError(
                     'The kernel relies on `element_classes` ordering, so '
-                    '`track_kernel` must be given if `element_classes` is None.'
+                    '`track_kernel` must not be given if `element_classes` is '
+                    'None.'
                 )
             element_classes = tracker_data.element_classes
 
