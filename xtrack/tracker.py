@@ -1244,7 +1244,8 @@ class Tracker:
             tt_resume = None
             ipp_resume = None
 
-        for tt in range(num_turns):
+        for tt in range(int(num_turns)):
+            print(f'Turn {tt} of {num_turns}!')
             if tt_resume is not None and tt < tt_resume:
                 continue
 
