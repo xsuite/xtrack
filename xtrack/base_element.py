@@ -231,8 +231,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     behaves_like_drift = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
-    _track_kernels = None
-    _element_classes = None
+    _kernels_and_classes = None
 
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
@@ -252,6 +251,27 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        extra_classes=[particles_class._XoStruct],
                                        *args, **kwargs)
 
+    def _store_kernels_and_classes(self, kernels, classes):
+        if not self.__class__._kernels_and_classes:
+            self.__class__._kernels_and_classes = []
+
+        self.__class__._kernels_and_classes.append(
+            (self.context, kernels, classes)
+        )
+
+    def _get_kernels_and_classes(self):
+        if not self.__class__._kernels_and_classes:
+            return None, None
+
+        for context, kernels, classes in self.__class__._kernels_and_classes:
+            if context == self.context:
+                return kernels, classes
+            if type(context) == type(self.context):
+                if isinstance(context, xo.ContextCpu):
+                    return kernels, classes
+
+        return None, None
+
     def _track_with_minitracker(self, particles, increment_at_element=False):
         if hasattr(self, 'io_buffer') and self.io_buffer is not None:
             io_buffer = self.io_buffer
@@ -259,22 +279,23 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             from xtrack import new_io_buffer
             io_buffer = new_io_buffer(capacity=1, _context=self.context)
 
+        # Restore the kernels if the context is right
+        track_kernels, element_classes = self._get_kernels_and_classes()
+
         from xtrack.line import Line
         line = Line(elements=[self])
         tracker = line.build_tracker(
             particles_class=particles.__class__,
             io_buffer=io_buffer,
-            track_kernel=self.__class__._track_kernels,
-            element_classes=self.__class__._element_classes,
+            track_kernel=track_kernels,
+            element_classes=element_classes,
             compile=False,
         )
         tracker.config.DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS = (not increment_at_element)
         tracker.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
         tracker.skip_end_turn_actions = True
 
-        if not self.__class__._track_kernels:
-            self.__class__._track_kernels = tracker.track_kernel
-            self.__class__._element_classes = tracker.element_classes
+        self._store_kernels_and_classes(tracker.track_kernel, tracker.element_classes)
 
         tracker.io_buffer = io_buffer
         tracker.track(particles)
