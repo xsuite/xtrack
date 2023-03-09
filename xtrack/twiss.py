@@ -418,7 +418,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
     # Re normalize eigenvectors (needed when radiation is present)
-    _renormalize_eigenvectors(Ws)
+    nux, nuy, nuzeta = _renormalize_eigenvectors(Ws)
 
     # Rotate eigenvectors to the Courant-Snyder basis
     phix = np.arctan2(Ws[:, 0, 1], Ws[:, 0, 0])
@@ -496,6 +496,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
+        'nux': nux,
+        'nuy': nuy,
+        'nuzeta': nuzeta,
         'W_matrix': W_matrix,
         'betx1': betx1,
         'bety1': bety1,
@@ -1276,9 +1279,9 @@ def _renormalize_eigenvectors(Ws):
         nuy += v2.real[:, ii] * S_v2_imag[:, ii]
         nuzeta += v3.real[:, ii] * S_v3_imag[:, ii]
 
-    nux = np.sqrt(nux)
-    nuy = np.sqrt(nuy)
-    nuzeta = np.sqrt(nuzeta)
+    nux = np.sqrt(np.abs(nux)) # nux is always positive
+    nuy = np.sqrt(np.abs(nuy)) # nuy is always positive
+    nuzeta = np.sqrt(np.abs(nuzeta)) # nuzeta is always positive
 
     for ii in range(6):
         v1[:, ii] /= nux
@@ -1291,6 +1294,8 @@ def _renormalize_eigenvectors(Ws):
     Ws[:, :, 3] = np.imag(v2)
     Ws[:, :, 4] = np.real(v3)
     Ws[:, :, 5] = np.imag(v3)
+
+    return nux, nuy, nuzeta
 
 
 def _extract_twiss_parameters_with_inverse(Ws):
