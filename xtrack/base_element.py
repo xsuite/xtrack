@@ -252,25 +252,36 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        *args, **kwargs)
 
     def _store_kernels_and_classes(self, kernels, classes):
-        if not self.__class__._kernels_and_classes:
-            self.__class__._kernels_and_classes = []
-
-        self.__class__._kernels_and_classes.append(
-            (self.context, kernels, classes)
-        )
+        # if not self.__class__._kernels_and_classes:
+        #     self.__class__._kernels_and_classes = []
+        #
+        # self.__class__._kernels_and_classes.append(
+        #     (self.context, kernels, classes)
+        # )
+        if not hasattr(self.context, '_element_classes'):
+            self.context._element_classes = {}
+            self.context._track_kernels = {}
+        self.context._element_classes[self.__class__] = classes
+        self.context._track_kernels[self.__class__] = kernels
 
     def _get_kernels_and_classes(self):
-        if not self.__class__._kernels_and_classes:
+        # if not self.__class__._kernels_and_classes:
+        #     return None, None
+        #
+        # for context, kernels, classes in self.__class__._kernels_and_classes:
+        #     if context == self.context:
+        #         return kernels, classes
+        #     if type(context) == type(self.context):
+        #         if isinstance(context, xo.ContextCpu):
+        #             return kernels, classes
+        #
+        # return None, None
+        try:
+            classes = self.context._element_classes[self.__class__]
+            kernels = self.context._track_kernels[self.__class__]
+            return kernels, classes
+        except (AttributeError, KeyError):
             return None, None
-
-        for context, kernels, classes in self.__class__._kernels_and_classes:
-            if context == self.context:
-                return kernels, classes
-            if type(context) == type(self.context):
-                if isinstance(context, xo.ContextCpu):
-                    return kernels, classes
-
-        return None, None
 
     def _track_with_minitracker(self, particles, increment_at_element=False):
         if hasattr(self, 'io_buffer') and self.io_buffer is not None:
