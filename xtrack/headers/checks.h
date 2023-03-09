@@ -8,10 +8,10 @@
 
 /*gpufun*/
 void kill_particle(LocalParticle* part, int64_t kill_state) {
-    LocalParticle_set_x(part, 1e30);
-    LocalParticle_set_px(part, 1e30);
-    LocalParticle_set_y(part, 1e30);
-    LocalParticle_set_py(part, 1e30);
+//    LocalParticle_set_x(part, 1e30);
+//    LocalParticle_set_px(part, 1e30);
+//    LocalParticle_set_y(part, 1e30);
+//    LocalParticle_set_py(part, 1e30);
     LocalParticle_set_zeta(part, 1e30);
     LocalParticle_update_delta(part, -1);  // zero energy
     LocalParticle_set_state(part, kill_state);
