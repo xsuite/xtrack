@@ -15,7 +15,7 @@ import xpart as xp
 
 from scipy.constants import c as clight
 
-from . import linear_normal_form as lnf
+from . import linear_normal_form as lnf, Rot2D
 from .general import Table
 from .line import _behaves_like_drift
 
@@ -995,15 +995,12 @@ class TwissTable(Table):
         res['Sigma15'] = Sigma[:, 0, 4]
         res['Sigma16'] = Sigma[:, 0, 5]
 
-
         res['Sigma21'] = Sigma[:, 1, 0]
         res['Sigma22'] = Sigma[:, 1, 1]
         res['Sigma23'] = Sigma[:, 1, 2]
         res['Sigma24'] = Sigma[:, 1, 3]
         res['Sigma25'] = Sigma[:, 1, 4]
         res['Sigma26'] = Sigma[:, 1, 5]
-
-
 
         res['Sigma31'] = Sigma[:, 2, 0]
         res['Sigma32'] = Sigma[:, 2, 1]
@@ -1021,6 +1018,43 @@ class TwissTable(Table):
         res['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
         return res
+
+    def get_R_matrix(self, ele_start, ele_end):
+
+        assert self.values_at == 'entry', 'Not yet implemented for exit'
+
+        if isinstance(ele_start, str):
+            ele_start = self.name.index(ele_start)
+        if isinstance(ele_end, str):
+            ele_end = self.name.index(ele_end)
+
+        if ele_start > ele_end:
+            raise ValueError('ele_start must be smaller than ele_end')
+
+        W_start = self.W_matrix[ele_start]
+        W_end = self.W_matrix[ele_end]
+
+        mux_start = self.mux[ele_start]
+        mux_end = self.mux[ele_end]
+        muy_start = self.muy[ele_start]
+        muy_end = self.muy[ele_end]
+        muzeta_start = self.muzeta[ele_start]
+        muzeta_end = self.muzeta[ele_end]
+
+        phi_x = 2 * np.pi * (mux_end - mux_start)
+        phi_y = 2 * np.pi * (muy_end - muy_start)
+        phi_zeta = 2 * np.pi * (muzeta_end - muzeta_start)
+
+        Rot = np.zeros(shape=(6, 6), dtype=np.float64)
+
+        Rot[0:2,0:2] = Rot2D(phi_x)
+        Rot[2:4,2:4] = Rot2D(phi_y)
+        Rot[4:6,4:6] = Rot2D(phi_zeta)
+
+        R_matrix = np.dot(Rot, W_end) @ np.linalg.inv(W_start)
+
+        return R_matrix
+
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
