@@ -352,7 +352,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
                         y=  list(W_matrix[2, :] * scale_eigen) + [0],
                         py= list(W_matrix[3, :] * scale_eigen) + [0],
                         zeta = list(W_matrix[4, :] * scale_eigen) + [0],
-                        delta = list(W_matrix[5, :] * scale_eigen) + [0],
+                        pzeta = list(W_matrix[5, :] * scale_eigen) + [0],
                         )
 
     part_disp = xp.build_particles(
