@@ -78,4 +78,3 @@ for i_mode in range(3):
         0, rtol=0, atol=5e-5)
 
 
-
