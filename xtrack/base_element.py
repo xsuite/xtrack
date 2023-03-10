@@ -252,12 +252,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        *args, **kwargs)
 
     def _store_kernels_and_classes(self, kernels, classes):
-        # if not self.__class__._kernels_and_classes:
-        #     self.__class__._kernels_and_classes = []
-        #
-        # self.__class__._kernels_and_classes.append(
-        #     (self.context, kernels, classes)
-        # )
         if not hasattr(self.context, '_element_classes'):
             self.context._element_classes = {}
             self.context._track_kernels = {}
@@ -265,17 +259,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
         self.context._track_kernels[self.__class__] = kernels
 
     def _get_kernels_and_classes(self):
-        # if not self.__class__._kernels_and_classes:
-        #     return None, None
-        #
-        # for context, kernels, classes in self.__class__._kernels_and_classes:
-        #     if context == self.context:
-        #         return kernels, classes
-        #     if type(context) == type(self.context):
-        #         if isinstance(context, xo.ContextCpu):
-        #             return kernels, classes
-        #
-        # return None, None
         try:
             classes = self.context._element_classes[self.__class__]
             kernels = self.context._track_kernels[self.__class__]
@@ -310,23 +293,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
         tracker.io_buffer = io_buffer
         tracker.track(particles)
-
-    def _track_per_particle(self, particles, increment_at_element=False):
-        context = self._buffer.context
-        if not hasattr(self, '_track_kernel'):
-            if self._track_kernel_name not in context.kernels.keys():
-                self.compile_kernels(particles_class=particles.__class__)
-            self._track_kernel = context.kernels[self._track_kernel_name]
-
-        if hasattr(self, 'io_buffer') and self.io_buffer is not None:
-            io_buffer_arr = self.io_buffer.buffer
-        else:
-            io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
-
-        self._track_kernel.description.n_threads = particles._capacity
-        self._track_kernel(el=self._xobject, particles=particles,
-                           flag_increment_at_element=increment_at_element,
-                           io_buffer=io_buffer_arr)
 
     def track(self, particles, increment_at_element=False):
         old_start_at_element = particles.start_tracking_at_element
