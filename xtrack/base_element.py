@@ -127,7 +127,7 @@ class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
         _XoStruct_name = name+'Data'
-        particles_class = xp.ParticlesInterface
+        particles_class = xp.ParticlesBase
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
