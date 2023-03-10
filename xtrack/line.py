@@ -1108,7 +1108,7 @@ class Line:
             if _is_drift(ee) and not nn in keep:
                 prev_nn = newline.element_names[-1]
                 prev_ee = newline.element_dict[prev_nn]
-                if _is_drift(prev_ee):
+                if _is_drift(prev_ee) and not prev_nn in keep:
                     prev_ee.length += ee.length
                 else:
                     newline.append_element(this_ee, nn)
