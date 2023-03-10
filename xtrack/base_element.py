@@ -249,7 +249,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        extra_classes=[particles_class._XoStruct],
                                        *args, **kwargs)
 
-
     def track(self, particles, increment_at_element=False):
         context = self._buffer.context
         if not hasattr(self, '_track_kernel'):

@@ -1178,9 +1178,9 @@ class Tracker:
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
         if state:
-            self.freeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
+            self.freeze_vars(self.particles_class.part_energy_varnames() + ['zeta'])
         else:
-            self.unfreeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
+            self.unfreeze_vars(self.particles_class.part_energy_varnames() + ['zeta'])
 
     def _track_with_collective(
         self,

@@ -37,7 +37,7 @@ def test_ebe_monitor(test_context):
     mon = line.record_last_track
 
     for ii, ee in enumerate(line.elements):
-        for tt, nn in particles._structure['per_particle_vars']:
+        for tt, nn in particles.per_particle_vars:
             assert np.all(particles.to_dict()[nn] == getattr(mon, nn)[:, ii])
         ee.track(particles)
         particles.at_element += 1
