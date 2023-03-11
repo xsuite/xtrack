@@ -1,3 +1,5 @@
+import io
+import json
 import pandas as pd
 import numpy as np
 
@@ -43,6 +45,7 @@ class Multiline:
 
     @classmethod
     def from_dict(cls, dct):
+
         lines = {}
         for nn, ll in dct['lines'].items():
             lines[nn] = xt.Line.from_dict(ll)
@@ -62,6 +65,35 @@ class Multiline:
                     'dataframes'][nn] = pd.DataFrame(vv)
 
         return new_multiline
+
+    def to_json(self, file, **kwargs):
+        '''Save the multiline to a json file.
+
+        Parameters
+        ----------
+        file: str or file-like object
+            The file to save to. If a string is provided, a file is opened and
+            closed. If a file-like object is provided, it is used directly.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.to_dict` method.
+        '''
+
+        if isinstance(file, io.IOBase):
+            json.dump(self.to_dict(**kwargs), file, cls=xo.JEncoder)
+        else:
+            with open(file, 'w') as fid:
+                json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
+
+    @classmethod
+    def from_json(cls, file, **kwargs):
+
+        if isinstance(file, io.IOBase):
+            dct = json.load(file)
+        else:
+            with open(file, 'r') as fid:
+                dct = json.load(fid)
+
+        return cls.from_dict(dct, **kwargs)
 
     def build_trackers(self, **kwargs):
         for nn, ll in self.lines.items():
