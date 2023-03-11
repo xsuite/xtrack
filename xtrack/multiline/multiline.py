@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .shared_knobs import VarSharing
+import xobjects as xo
 import xtrack as xt
 import xfields as xf
 
