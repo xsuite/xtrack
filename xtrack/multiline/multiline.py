@@ -124,6 +124,39 @@ class Multiline:
                                       harmonic_number, bunch_spacing_buckets,
                                       sigmaz):
 
+        '''
+        Install beam-beam elements in the lines. Elements are inserted in the
+        lines in the appropriate positions. They are not configured and are kept
+        inactive.
+
+        Parameters
+        ----------
+        clockwise_line: xt.Line
+            The line in which the beam-beam elements for the clockwise beam
+            are installed.
+        anticlockwise_line: xt.Line
+            The line in which the beam-beam elements for the anticlockwise beam
+            are installed.
+        ip_names: list
+            The names of the IPs in the lines around which the beam-beam
+            elements need to be installed.
+        num_long_range_encounters_per_side: dict
+            The number of long range encounters per side for each IP.
+        num_slices_head_on: int
+            The number of slices to be used for  the head-on beam-beam interaction.
+        harmonic_number: int
+            The harmonic number of the machine.
+        bunch_spacing_buckets: float
+            The bunch spacing in buckets.
+        sigmaz: float
+            The longitudinal size of the beam.
+
+        '''
+
+        if isinstance(num_long_range_encounters_per_side, dict):
+            num_long_range_encounters_per_side = [
+                num_long_range_encounters_per_side[nn] for nn in ip_names]
+
         # Trackers need to be invalidated to add elements
         for nn, ll in self.lines.items():
             ll.unfreeze()
