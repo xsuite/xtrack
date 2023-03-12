@@ -10,12 +10,19 @@
 /*gpufun*/
 void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* part0){
 
-    double const min_x = LimitRacetrackData_get_min_x(el);
-    double const max_x = LimitRacetrackData_get_max_x(el);
-    double const min_y = LimitRacetrackData_get_min_y(el);
-    double const max_y = LimitRacetrackData_get_max_y(el);
+    double const rect_min_x = LimitRacetrackData_get_min_x(el);
+    double const rect_max_x = LimitRacetrackData_get_max_x(el);
+    double const rect_min_y = LimitRacetrackData_get_min_y(el);
+    double const rect_max_y = LimitRacetrackData_get_max_y(el);
     double const a = LimitRacetrackData_get_a(el);
     double const b = LimitRacetrackData_get_b(el);
+
+    // The full horizontal / vertical clearance is given by the sum of the H/V
+    // parameters and the ellipse radii
+    double const min_x = rect_min_x - a;
+    double const max_x = rect_max_x + a;
+    double const min_y = rect_min_y - b;
+    double const max_y = rect_max_y + b;
 
 
     //start_per_particle_block (part0->part)
@@ -25,42 +32,48 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
         double dx, dy;
         int refine;
 
-	    int64_t is_alive = (int64_t)(
-                      (x >= min_x) &&
-		              (x <= max_x) &&
-		              (y >= min_y) &&
-		              (y <= max_y) );
+        int64_t is_alive = (int64_t)(
+                        (x >= min_x) &&
+                        (x <= max_x) &&
+                        (y >= min_y) &&
+                        (y <= max_y) );
+
+        // We need to correct for the roundness of the corners
         if (is_alive){
-            if (((max_x - x) < a) && ((max_y - y) < b)){
+            if ((x > rect_max_x) && (y > rect_max_y)){
+                // upper-right rounded corner
                 refine = 1;
-                dx = x - (max_x - a);
-                dy = y - (max_y - b);
+                dx = x - rect_max_x;
+                dy = y - rect_max_y;
             }
-            else if (((x - min_x) < a) && ((max_y - y) < b)){
+            else if ((x < rect_min_x) && (y > rect_max_y)){
+                // upper-left rounded corner
                 refine = 1;
-                dx = x - (min_x + a);
-                dy = y - (max_y - b);
+                dx = x - rect_min_x;
+                dy = y - rect_max_y;
             }
-            else if (((x - min_x) < a) && ((y - min_y) < b)){
+            else if ((x < rect_min_x) && (y < rect_min_y)){
+                // lower-left rounded corner
                 refine = 1;
-                dx = x - (min_x + a);
-                dy = y - (min_y + b);
+                dx = x - rect_min_x;
+                dy = y - rect_min_y;
             }
-            else if (((max_x - x) < a) && ((y - min_y) < b)){
+            else if ((x > rect_max_x) && (y < rect_min_y)){
+                // lower-right rounded corner
                 refine = 1;
-                dx = x - (max_x - a);
-                dy = y - (min_y + b);
+                dx = x - rect_max_x;
+                dy = y - rect_min_y;
             }
             else{
                 refine = 0;
             }
             if (refine){
-	            double const temp = dx * dx * b * b + dy * dy * a * a;
+                double const temp = dx * dx * b * b + dy * dy * a * a;
                 is_alive = (int64_t)( temp <= a*a*b*b );
             }
         }
 
-    	if (!is_alive){
+        if (!is_alive){
            LocalParticle_set_state(part, XT_LOST_ON_APERTURE);
         }
 
