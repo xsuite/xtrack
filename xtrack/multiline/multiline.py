@@ -25,6 +25,21 @@ class Multiline:
             ll._in_multiline = True
 
     def to_dict(self, include_var_management=True):
+
+        '''
+        Save the multiline to a dictionary.
+
+        Parameters
+        ----------
+        include_var_management: bool
+            If True, the variable management data is included in the dictionary.
+
+        Returns
+        -------
+        dct: dict
+            The dictionary with the multiline data.
+        '''
+
         dct = {}
         if include_var_management:
             dct['_var_manager'] = self._var_sharing.manager.dump()
@@ -46,6 +61,20 @@ class Multiline:
 
     @classmethod
     def from_dict(cls, dct):
+
+        '''
+        Load a multiline from a dictionary.
+
+        Parameters
+        ----------
+        dct: dict
+            The dictionary with the multiline data.
+
+        Returns
+        -------
+        new_multiline: Multiline
+            The multiline object.
+        '''
 
         lines = {}
         for nn, ll in dct['lines'].items():
@@ -87,6 +116,20 @@ class Multiline:
 
     @classmethod
     def from_json(cls, file, **kwargs):
+        '''Load a multiline from a json file.
+
+        Parameters
+        ----------
+        file: str or file-like object
+            The file to load from. If a string is provided, a file is opened and
+            closed. If a file-like object is provided, it is used directly.
+        **kwargs: dict
+
+        Returns
+        -------
+        new_multiline: Multiline
+            The multiline object.
+        '''
 
         if isinstance(file, io.IOBase):
             dct = json.load(file)
@@ -96,9 +139,24 @@ class Multiline:
 
         return cls.from_dict(dct, **kwargs)
 
-    def build_trackers(self, **kwargs):
+    def build_trackers(self, _context=None, _buffer=None, **kwargs):
+        '''
+        Build the trackers for the lines.
+
+        Parameters
+        ----------
+        _context: xobjects.Context
+            The context in which the trackers are built.
+        _buffer: xobjects.Buffer
+            The buffer in which the trackers are built.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.build_tracker`
+            method.
+
+        '''
+
         for nn, ll in self.lines.items():
-            ll.build_tracker(**kwargs)
+            ll.build_tracker(_context=_context, _buffer=_buffer, **kwargs)
 
     def __getitem__(self, key):
         return self.lines[key]
@@ -189,6 +247,22 @@ class Multiline:
 
     def configure_beambeam_interactions(self, num_particles,
                                     nemitt_x, nemitt_y, crab_strong_beam=True):
+
+        '''
+        Configure the beam-beam elements in the lines.
+
+        Parameters
+        ----------
+        num_particles: float
+            The number of particles per bunch.
+        nemitt_x: float
+            The normalized emittance in the horizontal plane.
+        nemitt_y: float
+            The normalized emittance in the vertical plane.
+        crab_strong_beam: bool
+            If True, crabbing of the strong beam is taken into account.
+
+        '''
 
         xf.configure_beam_beam_elements(
             bb_df_cw=self._bb_config['dataframes']['clockwise'].copy(),
