@@ -18,7 +18,6 @@ def test_simplification_methods():
                     + [xt.Drift(length=0)] # End line marker
             )
         )
-    line._init_var_management()
 
     # Test merging of drifts
     line.insert_element(element=xt.Cavity(), name='cav', at_s=3.3)
@@ -72,7 +71,6 @@ def test_simplification_methods():
     assert np.allclose(line[1].ksl, [52,60,17], rtol=0, atol=1e-15)
 
     # Test removing inactive multipoles
-    line._init_var_management()
     line.insert_element(element=xt.Multipole(knl=[0, 8, 1], ksl=[0, 20, 30]), name='m5', at_s=3.3)
     line.insert_element(element=xt.Multipole(knl=[2, 0, 3], ksl=[10, 34, 15]), name='m6', at_s=3.3)
     line.remove_inactive_multipoles(inplace=True)
@@ -113,7 +111,6 @@ def test_simplification_methods_not_inplace():
                     + [xt.Drift(length=0)] # End line marker
             )
         )
-    line._init_var_management()
 
     # Test merging of drifts
     line.insert_element(element=xt.Cavity(), name="cav", at_s=3.3)
@@ -150,7 +147,6 @@ def test_simplification_methods_not_inplace():
     line.merge_consecutive_multipoles(inplace=True)
 
     # Test removing inactive multipoles
-    line._init_var_management()
     original_line = line.copy()
     newline = line.remove_inactive_multipoles(inplace=False)
     assert xt._lines_equal(line, original_line)
@@ -203,7 +199,6 @@ def test_merging_consecutive_apertures():
             xt.Drift(length=0.4)
         ]
     line = xt.Line(elements=elements)
-    line._init_var_management()
     original_line = line.copy()
 
     # Test removing all consecutive middle apertures
@@ -284,7 +279,6 @@ def test_merging_consecutive_apertures_not_inplace():
             xt.Drift(length=0.4)
         ]
     line = xt.Line(elements=elements)
-    line._init_var_management()
     original_line = line.copy()
 
     assert len(line.element_names) == 20

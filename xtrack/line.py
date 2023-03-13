@@ -946,6 +946,11 @@ class Line:
             Name of the markers to keep (default: None)
         '''
 
+        if self._var_management is not None:
+            raise NotImplementedError('`remove_markers` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
+
         self._frozen_check()
 
         if keep is None:
@@ -960,29 +965,22 @@ class Line:
                 continue
             newline.append_element(ee, nn)
 
-        _lref = None
-        if self._var_management is not None:
-            import xdeps as xd
-            # Update the lref to point to the new element_dict
-            manager = xd.Manager()
-            _lref = manager.ref(newline.element_dict, 'element_refs')
-
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
-            if _lref is not None:
-                self._var_management['lref'] = _lref
             return self
-        elif _lref is not None:
-            # copy the var management
-            newline._init_var_management(dct=self._var_management_to_dict())
-            newline._var_management['lref'] = _lref
-        return newline
+        else:
+            return newline
 
     def remove_inactive_multipoles(self, inplace=True, keep=None):
         '''
         Remove inactive multipoles from the line
         '''
+
+        if self._var_management is not None:
+            raise NotImplementedError('`remove_inactive_multipoles` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
 
         self._frozen_check()
 
@@ -1002,29 +1000,22 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
-        _lref = None
-        if self._var_management is not None:
-            import xdeps as xd
-            # Update the lref to point to the new element_dict
-            manager = xd.Manager()
-            _lref = manager.ref(newline.element_dict, 'element_refs')
-
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
-            if _lref is not None:
-                self._var_management['lref'] = _lref
             return self
-        elif _lref is not None:
-            # copy the var management
-            newline._init_var_management(dct=self._var_management_to_dict())
-            newline._var_management['lref'] = _lref
-        return newline
+        else:
+            return newline
 
     def remove_zero_length_drifts(self, inplace=True, keep=None):
         '''
         Remove zero-length drifts from the line
         '''
+
+        if self._var_management is not None:
+            raise NotImplementedError('`remove_zero_length_drifts` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
 
         self._frozen_check()
 
@@ -1041,29 +1032,22 @@ class Line:
                     continue
             newline.append_element(ee, nn)
 
-        _lref = None
-        if self._var_management is not None:
-            import xdeps as xd
-            # Update the lref to point to the new element_dict
-            manager = xd.Manager()
-            _lref = manager.ref(newline.element_dict, 'element_refs')
-
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
-            if _lref is not None:
-                self._var_management['lref'] = _lref
             return self
-        elif _lref is not None:
-            # copy the var management
-            newline._init_var_management(dct=self._var_management_to_dict())
-            newline._var_management['lref'] = _lref
-        return newline
+        else:
+            return newline
 
     def merge_consecutive_drifts(self, inplace=True, keep=None):
         '''
         Merge consecutive drifts into one drift
         '''
+
+        if self._var_management is not None:
+            raise NotImplementedError('`merge_consecutive_drifts` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
 
         self._frozen_check()
 
@@ -1090,24 +1074,12 @@ class Line:
             else:
                 newline.append_element(this_ee, nn)
 
-        _lref = None
-        if self._var_management is not None:
-            import xdeps as xd
-            # Update the lref to point to the new element_dict
-            manager = xd.Manager()
-            _lref = manager.ref(newline.element_dict, 'element_refs')
-
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
-            if _lref is not None:
-                self._var_management['lref'] = _lref
             return self
-        elif _lref is not None:
-            # copy the var management
-            newline._init_var_management(dct=self._var_management_to_dict())
-            newline._var_management['lref'] = _lref
-        return newline
+        else:
+            return newline
 
     # For every occurence of three or more apertures that are the same,
     # only separated by Drifts or Markers, this script removes the
@@ -1115,8 +1087,14 @@ class Line:
     def merge_consecutive_apertures(self, inplace=True, keep=None,
                                   drifts_that_need_aperture=[]):
         '''
-	Merge consecutive aperture checks by deleting the middle ones
+        Merge consecutive aperture checks by deleting the middle ones
         '''
+
+        # TODO: this probably actually works, but better be safe than sorry
+        if self._var_management is not None:
+            raise NotImplementedError('`merge_consecutive_apertures` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
 
         self._frozen_check()
 
@@ -1164,21 +1142,21 @@ class Line:
             newline = self.copy()
 
         for name in aper_to_remove:
-            newline.element_dict.pop(name)
             newline.element_names.remove(name)
 
         return newline
 
     def merge_consecutive_multipoles(self, inplace=True, keep=None):
         '''
-	Merge consecutive multipoles into one multipole
+        Merge consecutive multipoles into one multipole
         '''
 
-        self._frozen_check()
         if self._var_management is not None:
             raise NotImplementedError('`merge_consecutive_multipoles` not'
                                       ' available when deferred expressions are'
                                       ' used')
+
+        self._frozen_check()
 
         if keep is None:
             keep = []
@@ -1224,24 +1202,12 @@ class Line:
             else:
                 newline.append_element(ee, nn)
 
-        _lref = None
-        if self._var_management is not None:
-            import xdeps as xd
-            # Update the lref to point to the new element_dict
-            manager = xd.Manager()
-            _lref = manager.ref(newline.element_dict, 'element_refs')
-
         if inplace:
             self.element_names = newline.element_names
             self.element_dict  = newline.element_dict
-            if _lref is not None:
-                self._var_management['lref'] = _lref
             return self
-        elif _lref is not None:
-            # copy the var management
-            newline._init_var_management(dct=self._var_management_to_dict())
-            newline._var_management['lref'] = _lref
-        return newline
+        else:
+            return newline
 
     def use_simple_quadrupoles(self):
         '''
