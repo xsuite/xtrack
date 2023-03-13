@@ -1179,13 +1179,13 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
-            if len(newline.elements) == 0:
+            if len(newline.element_names) == 0:
                 newline.append_element(ee, nn)
                 continue
 
             if isinstance(ee, Multipole) and nn not in keep:
-                prev_ee = newline.elements[-1]
                 prev_nn = newline.element_names[-1]
+                prev_ee = newline.element_dict[prev_nn]
                 if (isinstance(prev_ee, Multipole)
                     and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
                     and prev_nn not in keep
