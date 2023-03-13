@@ -70,6 +70,12 @@ def _dicts_equal(dict1, dict2):
         if hasattr(dict1[key], '__iter__'):
             if not hasattr(dict2[key], '__iter__'):
                 return False
+            elif isinstance(dict1[key], dict):
+                if not isinstance(dict2[key], dict):
+                    return False
+                else:
+                    if not _dicts_equal(dict1[key], dict2[key]):
+                        return False
             elif not np.array_equal(dict1[key], dict2[key]):
                 return False
         elif dict1[key] != dict2[key]:
@@ -86,38 +92,7 @@ def _apertures_equal(ap1, ap2):
     return _dicts_equal(ap1, ap2)
 
 def _lines_equal(line1, line2):
-    # Check element_names
-    if line1.element_names != line2.element_names:
-        return False
-    # Check flags
-    if line1._needs_rng != line2._needs_rng:
-        return False
-    # Check var management
-    if line1._var_management is not None:
-        if line2._var_management is None:
-            return False
-        if not _dicts_equal(line1._var_management_to_dict(),
-                            line2._var_management_to_dict()):
-            return False
-    # Compare reference particle
-    if line1.particle_ref is not None:
-        if line2.particle_ref is None:
-            return False
-        if not _dicts_equal(line1.particle_ref.to_dict(),
-                            line2.particle_ref.to_dict()):
-            return False
-    # Compare elements
-    for nn in line1.element_names:
-        ee1 = line1.element_dict[nn]
-        ee2 = line2.element_dict[nn]
-        if not (hasattr(ee1, 'to_dict') and hasattr(ee2, 'to_dict')):
-            raise NotImplementedError(f"Element {nn} does not have a"
-                        + "`to_dict` method. Cannot compare lines.")
-        ee1 = ee1.to_dict()
-        ee2 = ee2.to_dict()
-        if not _dicts_equal(ee1, ee2):
-            return False
-    return True
+    return _dicts_equal(line1.to_dict(), line2.to_dict())
 
 
 DEG2RAD = np.pi / 180.

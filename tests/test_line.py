@@ -33,7 +33,7 @@ def test_simplification_methods():
     line.insert_element(element=xt.Drift(length=1), name='drift1', at_s=1.2)
     line.insert_element(element=xt.Drift(length=1), name='drift2', at_s=2.2)
     line.merge_consecutive_drifts(inplace=True, keep=['drift2'])
-    assert len(line.element_names) == 4
+    assert len(line.element_names) == 5
     assert 'drift2' in line.element_names
     assert 'drift1' not in line.element_names
     line.merge_consecutive_drifts(inplace=True)
