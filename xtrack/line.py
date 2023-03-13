@@ -198,6 +198,8 @@ class Line:
     corresponding beam element object.
     '''
 
+    _element_dict = None
+
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         '''
@@ -443,6 +445,17 @@ class Line:
     def element_refs(self):
         if self._var_management is not None:
             return self._var_management['lref']
+
+    @property
+    def element_dict(self):
+        return self._element_dict
+
+    @element_dict.setter
+    def element_dict(self, value):
+        if self._element_dict is None:
+            self._element_dict = {}
+        self._element_dict.clear()
+        self._element_dict.update(value)
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
         if isinstance(elements, dict):
