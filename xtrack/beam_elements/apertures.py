@@ -11,7 +11,7 @@ from ..base_element import BeamElement
 from ..general import _pkg_root
 
 
-UNLIMITED = 1e10  # could use np.inf but better save than sorry
+UNLIMITED = 1e10  # could use np.inf but better saFe than sorry
 
 
 class LimitRect(BeamElement):
@@ -66,6 +66,10 @@ class LimitRacetrack(BeamElement):
             a (float): Horizontal semi-axis of ellipse in m for the rounding of the corners
             b (float): Vertical semi-axis of ellipse in m for the rounding of the corners
         """
+        if a > max_x or -a < min_x or b > max_y or -b < min_y:
+            raise ValueError(f"Radii of corners ({a} and {b}) are large than rectangular limit "
+                           + f"([{min_x}, {max_x}] and [{min_y}, {max_y}])!")
+
         super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, a=a, b=b, **kwargs)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
