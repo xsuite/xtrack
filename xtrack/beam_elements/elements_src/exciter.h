@@ -22,22 +22,22 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
     /*gpuglmem*/ float const* samples = ExciterData_getp1_samples(el, 0);
     int64_t const nsamples = ExciterData_get_nsamples(el);
 	int64_t const nduration = ExciterData_get_nduration(el);
-    double const sampling = ExciterData_get_sampling(el);
+    double const sampling_frequency = ExciterData_get_sampling_frequency(el);
     double const frev = ExciterData_get_frev(el);
     int64_t const start_turn = ExciterData_get_start_turn(el);
 
     //start_per_particle_block (part0->part)
-    
+
         // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
         // but without limits, i.e. it can exceed the circumference (for coasting beams)
         // as the particle falls behind or overtakes the reference particle
         double const zeta = LocalParticle_get_zeta(part);
         double const at_turn = LocalParticle_get_at_turn(part);
         double const beta0 = LocalParticle_get_beta0(part);
-    
+
         // compute excitation sample index
-        int64_t i = sampling * ( ( at_turn - start_turn ) / frev - zeta / beta0 / C_LIGHT );
-    
+        int64_t i = sampling_frequency * ( ( at_turn - start_turn ) / frev - zeta / beta0 / C_LIGHT );
+
         if (i >= 0 && i < nduration){
 			if (i >= nsamples){
 				i = i % nsamples;
@@ -49,7 +49,7 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
             double dpx = 0.0;
             double dpy = 0.0;
             double zre = 1.0;
-            double zim = 0.0;    
+            double zim = 0.0;
             double factorial = 1.0;
             for (int64_t kk = 0; kk <= order; kk++){
                 if (kk>0){
@@ -72,9 +72,9 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
             double const chi = LocalParticle_get_chi(part);
             LocalParticle_add_to_px(part, - chi * dpx);
             LocalParticle_add_to_py(part, + chi * dpy);
-        
+
         }
-        
+ 
 
     //end_per_particle_block
 
