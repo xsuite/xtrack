@@ -980,7 +980,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict  = newline.element_dict
+            self.element_dict = newline.element_dict
             return self
         else:
             return newline
@@ -1015,7 +1015,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict  = newline.element_dict
+            self.element_dict = newline.element_dict
             return self
         else:
             return newline
@@ -1047,7 +1047,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict  = newline.element_dict
+            self.element_dict = newline.element_dict
             return self
         else:
             return newline
@@ -1089,7 +1089,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict  = newline.element_dict
+            self.element_dict = newline.element_dict
             return self
         else:
             return newline
@@ -1217,7 +1217,7 @@ class Line:
 
         if inplace:
             self.element_names = newline.element_names
-            self.element_dict  = newline.element_dict
+            self.element_dict = newline.element_dict
             return self
         else:
             return newline
