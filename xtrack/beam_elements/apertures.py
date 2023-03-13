@@ -53,7 +53,8 @@ class LimitRacetrack(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
 
-    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, a=0, b=0, **kwargs):
+    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED,
+                 max_y=UNLIMITED, a=0, b=0, **kwargs):
         """A racetrack shaped aperture
 
         This is a rectangular aperture with rounded corners
@@ -66,9 +67,20 @@ class LimitRacetrack(BeamElement):
             a (float): Horizontal semi-axis of ellipse in m for the rounding of the corners
             b (float): Vertical semi-axis of ellipse in m for the rounding of the corners
         """
-        if a > max_x or -a < min_x or b > max_y or -b < min_y:
-            raise ValueError(f"Radii of corners ({a} and {b}) are large than rectangular limit "
-                           + f"([{min_x}, {max_x}] and [{min_y}, {max_y}])!")
+
+        if "_xobject" in kwargs:
+            self.xoinitialize(_xobject=kwargs['_xobject'])
+            return
+
+        assert a > 0
+        assert b > 0
+        assert max_x > min_x
+        assert max_y > min_y
+
+        if a > 0.5 * (max_x - min_x) or b > 0.5 * (max_y - min_y):
+            raise ValueError(
+                f"Radii of corners ({a} and {b}) are large than rectangular limit "
+                f"([{min_x}, {max_x}] and [{min_y}, {max_y}])!")
 
         super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, a=a, b=b, **kwargs)
 

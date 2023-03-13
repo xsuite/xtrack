@@ -86,7 +86,7 @@ class Exciter(BeamElement):
         'order': xo.Int64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
-        'samples': xo.Float32[:],
+        'samples': xo.Float64[:],
         'nsamples': xo.Int64,
         'sampling_frequency': xo.Float64,
         'frev': xo.Float64,
