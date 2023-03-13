@@ -1279,7 +1279,15 @@ class Line:
             ee = self.element_dict[name]
             if _allow_backtrack(ee) and not name in needs_aperture:
                 dont_need_aperture[name] = True
-            # Correct isthick for elements that need aperture but have zero length:
+
+            # Correct isthick for elements that need aperture but have zero length.
+            # Use-case example: Before collimators are installed as EverestCollimator
+            # (or any BaseCollimator element), they are just Markers or Drifts. We
+            # want to enforce that they have an aperture when loading the line (when
+            # they are still Drifts), so their names are added to 'needs_aperture'.
+            # However, it is enough for them to have an upstream aperture as they are
+            # at this stage just Markers (and xcoll takes care of providing the down-
+            # stream aperture), so we mark them as thin.
             if name in needs_aperture and hasattr(ee, 'length') and ee.length == 0:
                 elements_df.loc[elements_df['name']==name, 'isthick'] = False
 
