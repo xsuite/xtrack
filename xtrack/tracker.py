@@ -430,6 +430,9 @@ class Tracker:
         if verbose: print("Merge consecutive multipoles")
         line.merge_consecutive_multipoles()
 
+        if verbose: print("Remove redundant apertures")
+        line.remove_redundant_apertures()
+
         if verbose: print("Remove zero length drifts")
         line.remove_zero_length_drifts()
 
