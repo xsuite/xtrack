@@ -845,7 +845,8 @@ def test_exciter(test_context):
     k0l = -0.1 # this is scaled by the waveform
     signal = [1,2,3] # this is the waveform
     duration = 4/fs
-    exciter = xt.Exciter(samples=signal, sampling=fs, frev=frev, start_turn=0, knl=[k0l], duration=duration)
+    exciter = xt.Exciter(samples=signal, sampling_frequency=fs,
+                        frev=frev, start_turn=0, knl=[k0l], duration=duration)
 
     line = xt.Line([exciter])
     tracker = line.build_tracker(_context=test_context)
@@ -855,16 +856,22 @@ def test_exciter(test_context):
 
     tracker.track(particles, num_turns=1)
     expected_px = np.array([0.1, 0.2, 0.3])
+    particles.move(_context=xo.context_default)
+
     assert np.allclose(particles.px, expected_px)
-    
+
+    particles.move(_context=test_context)
     tracker.track(particles, num_turns=1)
     expected_px += np.array([0.2, 0.3, 0.1])
+    particles.move(_context=xo.context_default)
     assert np.allclose(particles.px, expected_px)
-    
+
+    particles.move(_context=test_context)
     tracker.track(particles, num_turns=1)
     expected_px += np.array([0.3, 0.1, 0])
+    particles.move(_context=xo.context_default)
     assert np.allclose(particles.px, expected_px)
-    
+
 
 test_source = r"""
 /*gpufun*/

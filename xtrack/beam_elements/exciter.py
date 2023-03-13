@@ -79,7 +79,7 @@ class Exciter(BeamElement):
         >>> 
         >>> # add it to the line
         >>> line.insert_element(index=..., name=..., element=exciter)
- 
+
     """
 
     _xofields={
@@ -88,7 +88,7 @@ class Exciter(BeamElement):
         'ksl': xo.Float64[:],
         'samples': xo.Float32[:],
         'nsamples': xo.Int64,
-        'sampling': xo.Float64,
+        'sampling_frequency': xo.Float64,
         'frev': xo.Float64,
         'start_turn': xo.Int64,
         'nduration': xo.Int64,
