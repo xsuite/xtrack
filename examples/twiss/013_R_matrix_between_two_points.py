@@ -32,6 +32,7 @@ R_matrix = tw.R_matrix
 W_ref, invW_ref, Rot_ref = compute_linear_normal_form(R_matrix)
 W_prod, invW_prod, Rot_prod = compute_linear_normal_form(R_prod)
 
+
 for i_mode in range(3):
     lam_ref = eig(Rot_ref[2*i_mode:2*i_mode+2, 2*i_mode:2*i_mode+2])[0][0]
     lam_prod = eig(Rot_prod[2*i_mode:2*i_mode+2, 2*i_mode:2*i_mode+2])[0][0]
@@ -43,6 +44,9 @@ for i_mode in range(3):
     assert np.isclose(
         norm(W_prod[:, 2*i_mode] - W_ref[:, 2*i_mode], ord=2)/norm(W_ref[:, 2*i_mode], ord=2),
         0, rtol=0, atol=5e-4)
+    assert np.isclose(
+        norm(W_prod[:4, 2*i_mode] - W_ref[:4, 2*i_mode], ord=2)/norm(W_ref[:4, 2*i_mode], ord=2),
+        0, rtol=0, atol=5e-5)
 
 # Check method=4d
 
