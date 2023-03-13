@@ -1084,7 +1084,7 @@ class Line:
     # For every occurence of three or more apertures that are the same,
     # only separated by Drifts or Markers, this script removes the
     # middle apertures
-    def merge_consecutive_apertures(self, inplace=True, keep=None,
+    def remove_redundant_apertures(self, inplace=True, keep=None,
                                   drifts_that_need_aperture=[]):
         '''
         Merge consecutive aperture checks by deleting the middle ones
@@ -1092,7 +1092,7 @@ class Line:
 
         # TODO: this probably actually works, but better be safe than sorry
         if self._var_management is not None:
-            raise NotImplementedError('`merge_consecutive_apertures` not'
+            raise NotImplementedError('`remove_redundant_apertures` not'
                                       ' available when deferred expressions are'
                                       ' used')
 

@@ -186,7 +186,7 @@ def test_simplification_methods_not_inplace():
     assert 'marker4' not in newline.element_names
 
 
-def test_merging_consecutive_apertures():
+def test_remove_redundant_apertures():
 
     # Lattice:
     # D1-A1-M-D2 D3-A2-M-D4 D5-A3-M-D6 D7-A4-M-D8 D9-A5-M-D10
@@ -205,7 +205,7 @@ def test_merging_consecutive_apertures():
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
-    line.merge_consecutive_apertures()
+    line.remove_redundant_apertures()
     line.remove_markers()
     line.merge_consecutive_drifts()
     # The lattice is now D1-A1-DD-A5-D10
@@ -222,7 +222,7 @@ def test_merging_consecutive_apertures():
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
-    line.merge_consecutive_apertures(keep=all_aper[3])
+    line.remove_redundant_apertures(keep=all_aper[3])
     line.remove_markers()
     line.merge_consecutive_drifts()
     # The lattice is now D1-A1-DD-A4-DD-A5-D10
@@ -241,7 +241,7 @@ def test_merging_consecutive_apertures():
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
     all_drifts = [nn for nn in line.element_names if xt._is_drift(line[nn])]
-    line.merge_consecutive_apertures(drifts_that_need_aperture=all_drifts[8])
+    line.remove_redundant_apertures(drifts_that_need_aperture=all_drifts[8])
     line.remove_markers()
     line.merge_consecutive_drifts()
     # The lattice is now D1-A1-DD-A4-DD-A5-D10
@@ -263,11 +263,11 @@ def test_merging_consecutive_apertures():
         ]
     line = xt.Line(elements=elements)
     original_line = line.copy()
-    line.merge_consecutive_apertures()
+    line.remove_redundant_apertures()
     assert xt._lines_equal(line, original_line)
 
     
-def test_merging_consecutive_apertures_not_inplace():
+def test_remove_redundant_apertures_not_inplace():
 
     # Test removing all consecutive middle apertures
     elements = []
@@ -284,7 +284,7 @@ def test_merging_consecutive_apertures_not_inplace():
     assert len(line.element_names) == 20
     all_aper = [nn for nn in line.element_names if xt._is_aperture(line[nn])]
     all_aper_pos = [line.get_s_position(ap) for ap in all_aper]
-    newline = line.merge_consecutive_apertures(inplace=False)
+    newline = line.remove_redundant_apertures(inplace=False)
     newline = newline.remove_markers(inplace=False)
     newline = newline.merge_consecutive_drifts(inplace=False)
     assert xt._lines_equal(line, original_line)
