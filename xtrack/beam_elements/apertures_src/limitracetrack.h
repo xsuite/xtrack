@@ -10,20 +10,12 @@
 /*gpufun*/
 void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* part0){
 
-    double const rect_min_x = LimitRacetrackData_get_min_x(el);
-    double const rect_max_x = LimitRacetrackData_get_max_x(el);
-    double const rect_min_y = LimitRacetrackData_get_min_y(el);
-    double const rect_max_y = LimitRacetrackData_get_max_y(el);
+    double const min_x = LimitRacetrackData_get_min_x(el);
+    double const max_x = LimitRacetrackData_get_max_x(el);
+    double const min_y = LimitRacetrackData_get_min_y(el);
+    double const max_y = LimitRacetrackData_get_max_y(el);
     double const a = LimitRacetrackData_get_a(el);
     double const b = LimitRacetrackData_get_b(el);
-
-    // The full horizontal / vertical clearance is given by the sum of the H/V
-    // parameters and the ellipse radii
-    double const min_x = rect_min_x - a;
-    double const max_x = rect_max_x + a;
-    double const min_y = rect_min_y - b;
-    double const max_y = rect_max_y + b;
-
 
     //start_per_particle_block (part0->part)
 
@@ -40,6 +32,13 @@ void LimitRacetrack_track_local_particle(LimitRacetrackData el, LocalParticle* p
 
         // We need to correct for the roundness of the corners
         if (is_alive){
+
+            // The internal recangle (without the rounded corners) is given by
+            double const rect_min_x = min_x + a;
+            double const rect_max_x = max_x - a;
+            double const rect_min_y = min_y + b;
+            double const rect_max_y = max_y - b;
+
             if ((x > rect_max_x) && (y > rect_max_y)){
                 // upper-right rounded corner
                 refine = 1;
