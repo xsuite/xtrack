@@ -850,7 +850,7 @@ void test_function(TestElementData el,
         const int64_t ipart = part->ipart;
         double const val = b[ipart];
 
-        LocalParticle_add_to_x(part, val + a);
+        LocalParticle_add_to_s(part, val + a);
 
     //end_per_particle_block
 }
@@ -863,7 +863,7 @@ void TestElement_track_local_particle(TestElementData el,
 
     //start_per_particle_block (part0->part)
 
-        LocalParticle_set_x(part, a);
+        LocalParticle_set_s(part, a);
 
     //end_per_particle_block
 }
@@ -871,10 +871,14 @@ void TestElement_track_local_particle(TestElementData el,
 """
 
 
+@pytest.mark.parametrize(
+    'particles_class',
+    [xp.Particles, xp.ParticlesPurelyLongitudinal],
+)
 @for_all_test_contexts
-def test_per_particle_kernel(test_context):
+def test_per_particle_kernel(test_context, particles_class):
     class TestElement(xt.BeamElement):
-        _xofields={
+        _xofields = {
             'a': xo.Float64
         }
 
@@ -890,13 +894,13 @@ def test_per_particle_kernel(test_context):
 
     el = TestElement(_context=test_context, a=10)
 
-    # p = xp.Particles(p0c=1e9, x=[1,2,3], _context=test_context)
-    # el.track(p)
-    # p.move(_context=xo.ContextCpu())
-    # assert np.all(p.x == [10,10,10])
+    p = xp.Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    el.track(p)
+    p.move(_context=xo.ContextCpu())
+    assert np.all(p.s == [10, 10, 10])
 
-    p = xp.Particles(p0c=1e9, x=[1, 2, 3], _context=test_context)
-    b = p.x*0.5
+    p = particles_class(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    b = p.s*0.5
     el.test_kernel(p, b=b)
     p.move(_context=xo.ContextCpu())
-    assert np.all(p.x == np.array([11.5, 13, 14.5]))
+    assert np.all(p.s == np.array([11.5, 13, 14.5]))
