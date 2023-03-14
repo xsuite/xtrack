@@ -127,7 +127,6 @@ class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
         _XoStruct_name = name+'Data'
-        particles_class = xp.ParticlesBase
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
@@ -172,13 +171,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                 local_particle_function_name=name+'_track_local_particle'))
 
         # Add dependency on Particles class
-        depends_on.append(particles_class._XoStruct)
+        depends_on.append(xp.ParticlesBase._XoStruct)
 
         # Define track kernel
         track_kernel_name = f'{name}_track_particles'
         kernels[track_kernel_name] = xo.Kernel(
                     args=[xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(particles_class._XoStruct, name='particles'),
+                        xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
                     )
@@ -191,13 +190,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                if particles_class._XoStruct not in depends_on:
-                    depends_on.append(particles_class._XoStruct)
+                if xp.ParticlesBase._XoStruct not in depends_on:
+                    depends_on.append(xp.ParticlesBase._XoStruct)
 
                 kernels.update(
                     {nn:
                         xo.Kernel(args=[xo.Arg(xo.ThisClass, name='el'),
-                            xo.Arg(particles_class._XoStruct, name='particles')]
+                            xo.Arg(xp.ParticlesBase._XoStruct, name='particles')]
                             + kk.args + [
                             xo.Arg(xo.Int64, name='flag_increment_at_element'),
                             xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
@@ -231,10 +230,6 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     behaves_like_drift = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
-    _kernels_and_classes = None
-
-    def __init__(self, *args, **kwargs):
-        xo.HybridClass.__init__(self, *args, **kwargs)
 
     def init_pipeline(self, pipeline_manager, name, partners_names=[]):
         self._pipeline_manager = pipeline_manager
@@ -251,14 +246,14 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
                                        extra_classes=[particles_class._XoStruct],
                                        *args, **kwargs)
 
-    def _store_kernels_and_classes(self, kernels, classes):
+    def _store_kernel_for_classes(self, kernels, classes):
         if not hasattr(self.context, '_element_classes'):
             self.context._element_classes = {}
             self.context._track_kernels = {}
         self.context._element_classes[self.__class__] = classes
         self.context._track_kernels[self.__class__] = kernels
 
-    def _get_kernels_and_classes(self):
+    def _get_kernel_and_classes(self):
         try:
             classes = self.context._element_classes[self.__class__]
             kernels = self.context._track_kernels[self.__class__]
@@ -274,7 +269,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             io_buffer = new_io_buffer(capacity=1, _context=self.context)
 
         # Restore the kernels if the context is right
-        track_kernels, element_classes = self._get_kernels_and_classes()
+        track_kernels, element_classes = self._get_kernel_and_classes()
 
         from xtrack.line import Line
         line = Line(elements=[self])
@@ -284,26 +279,27 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
             track_kernel=track_kernels,
             element_classes=element_classes,
             compile=False,
+            _force_non_collective=True,
         )
         tracker.config.DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS = (not increment_at_element)
         tracker.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
         tracker.skip_end_turn_actions = True
 
-        self._store_kernels_and_classes(tracker.track_kernel, tracker.element_classes)
+        self._store_kernel_for_classes(tracker.track_kernel, tracker.element_classes)
 
         tracker.io_buffer = io_buffer
         tracker.track(particles)
 
     def track(self, particles, increment_at_element=False):
+        # Before tracking with the mini tracker we need to reset
+        # start_tracking_at_element. No matter the outcome of tracking, we
+        # restore the original value.
         old_start_at_element = particles.start_tracking_at_element
         particles.start_tracking_at_element = -1
-        old_is_collective = self.iscollective
-        self.iscollective = False
         try:
             self._track_with_minitracker(particles, increment_at_element)
         finally:
             particles.start_tracking_at_element = old_start_at_element
-            self.iscollective = old_is_collective
 
 
     @property

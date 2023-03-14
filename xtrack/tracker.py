@@ -67,6 +67,7 @@ class Tracker:
         use_prebuilt_kernels=True,
         enable_pipeline_hold=False,
         _element_ref_data=None,
+        _force_non_collective=False,
     ):
         self.config = TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
@@ -78,10 +79,11 @@ class Tracker:
 
         # Check if there are collective elements
         self.iscollective = False
-        for ee in line.elements:
-            if _check_is_collective(ee):
-                self.iscollective = True
-                break
+        if not _force_non_collective:
+            for ee in line.elements:
+                if _check_is_collective(ee):
+                    self.iscollective = True
+                    break
 
         if not particles_monitor_class:
             particles_monitor_class = self._get_default_monitor_class()
