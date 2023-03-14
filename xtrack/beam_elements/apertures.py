@@ -6,6 +6,7 @@
 import numpy as np
 
 import xobjects as xo
+import xpart
 
 from ..base_element import BeamElement
 from ..general import _pkg_root
@@ -232,12 +233,13 @@ class LimitPolygon(BeamElement):
         return np.concatenate([yy, np.array([yy[0]])])
 
     def impact_point_and_normal(self, x_in, y_in, z_in,
-                                x_out, y_out, z_out, particles_class):
+                                x_out, y_out, z_out):
 
         ctx = self._buffer.context
 
         if 'LimitPolygon_impact_point_and_normal' not in ctx.kernels.keys():
-            self.compile_kernels(particles_class=particles_class,
+            self.compile_kernels(particles_class=xpart.ParticlesBase,
+                                 apply_to_source=[lambda src: '#define NO_LIMITPOLYGON_TRACK_LOCAL_PARTICLE\n' + src],
                                  only_if_needed=True)
 
         x_inters = ctx.zeros(shape=x_in.shape, dtype=np.float64)
