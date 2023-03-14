@@ -128,7 +128,7 @@ def test_backtrack(test_context):
                            min_y=2, max_y=3, a=0.2, b=0.3),
         xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
-        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3], sampling=1e3),
+        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3], sampling_frequency=1e3),
     ]
 
     dtk_particle = dtk.TestParticles(
