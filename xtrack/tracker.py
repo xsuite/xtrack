@@ -1370,6 +1370,8 @@ class Tracker:
         freeze_longitudinal=False,
         time=False
     ):
+        # Add the Particles class to the config, so the kernel is recompiled
+        # and stored if a new Particles class is given.
         if type(particles) != xp.Particles:
             self.config.particles_class_name = type(particles).__name__
         else:
