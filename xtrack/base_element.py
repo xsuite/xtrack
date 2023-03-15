@@ -126,7 +126,6 @@ class MetaBeamElement(xo.MetaHybridClass):
 
     def __new__(cls, name, bases, data):
         _XoStruct_name = name+'Data'
-        particles_class = xp.ParticlesInterface
 
         # Take xofields from data['_xofields'] or from bases
         xofields = _build_xofields_dict(bases, data)
@@ -171,13 +170,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                 local_particle_function_name=name+'_track_local_particle'))
 
         # Add dependency on Particles class
-        depends_on.append(particles_class._XoStruct)
+        depends_on.append(xp.ParticlesBase._XoStruct)
 
         # Define track kernel
         track_kernel_name = f'{name}_track_particles'
         kernels[track_kernel_name] = xo.Kernel(
                     args=[xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(particles_class._XoStruct, name='particles'),
+                        xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
                     )
@@ -190,13 +189,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                if particles_class._XoStruct not in depends_on:
-                    depends_on.append(particles_class._XoStruct)
+                if xp.ParticlesBase._XoStruct not in depends_on:
+                    depends_on.append(xp.ParticlesBase._XoStruct)
 
                 kernels.update(
                     {nn:
                         xo.Kernel(args=[xo.Arg(xo.ThisClass, name='el'),
-                            xo.Arg(particles_class._XoStruct, name='particles')]
+                            xo.Arg(xp.ParticlesBase._XoStruct, name='particles')]
                             + kk.args + [
                             xo.Arg(xo.Int64, name='flag_increment_at_element'),
                             xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
