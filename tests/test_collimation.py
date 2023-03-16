@@ -149,6 +149,8 @@ def test_aperture_refinement():
                        xt.Multipole(_buffer=buf, knl=[0.]),
                        xt.Drift(_buffer=buf, length=1),
                        xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
+                       xt.ParticlesMonitor(_buffer=buf,
+                            start_at_turn=0, stop_at_turn=10, num_particles=3),
                        xt.Drift(_buffer=buf, length=1.),
                        xt.Marker())
                     + line_aper_1.elements))
