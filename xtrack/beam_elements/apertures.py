@@ -72,12 +72,12 @@ class LimitRacetrack(BeamElement):
             self.xoinitialize(_xobject=kwargs['_xobject'])
             return
 
-        assert a > 0
-        assert b > 0
-        assert max_x > min_x
-        assert max_y > min_y
+        assert a >= 0
+        assert b >= 0
+        assert max_x >= min_x
+        assert max_y >= min_y
 
-        if a > 0.5 * (max_x - min_x) or b > 0.5 * (max_y - min_y):
+        if a >= 0.5 * (max_x - min_x) or b >= 0.5 * (max_y - min_y):
             raise ValueError(
                 f"Radii of corners ({a} and {b}) are large than rectangular limit "
                 f"([{min_x}, {max_x}] and [{min_y}, {max_y}])!")
