@@ -193,12 +193,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                     depends_on.append(xp.ParticlesBase._XoStruct)
 
                 kernels.update(
-                    {nn:
-                        xo.Kernel(args=[xo.Arg(xo.ThisClass, name='el'),
-                            xo.Arg(xp.ParticlesBase._XoStruct, name='particles')]
-                            + kk.args + [
-                            xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                            xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
+                    {nn: xo.Kernel(args=[
+                        xo.Arg(xo.ThisClass, name='el'),
+                        xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
+                        *kk.args,
+                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                        xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
+                    ])}
                 )
 
 
@@ -297,10 +298,20 @@ class PerParticlePyMethod:
     def __call__(self, particles, increment_at_element=False, **kwargs):
         instance = self.element
         context = instance.context
-        if not hasattr(instance, '_track_kernel'):
-            if instance._track_kernel_name not in context.kernels.keys():
+        # if not hasattr(instance, '_track_kernel'):
+        #     if instance._track_kernel_name not in context.kernels.keys():
+        #         instance.compile_kernels(particles_class=particles.__class__)
+        #     instance._track_kernel = context.kernels[instance._track_kernel_name]
+
+        if self.kernel_name not in context.kernels.keys():
+            instance.compile_kernels(particles_class=particles.__class__)
+        else:
+            existing_kernel = context.kernels[self.kernel_name]
+            xo_part_class = particles.__class__._XoStruct
+            supported_classes = existing_kernel.description.get_classes()
+            if xo_part_class not in supported_classes:
                 instance.compile_kernels(particles_class=particles.__class__)
-            instance._track_kernel = context.kernels[instance._track_kernel_name]
+
         self.kernel = context.kernels[self.kernel_name]
 
         if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
