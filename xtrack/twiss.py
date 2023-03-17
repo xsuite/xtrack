@@ -504,6 +504,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'bety1': bety1,
         'betx2': betx2,
         'bety2': bety2,
+        # debug
+        'phix': phix,
+        'phiy': phiy,
     }
 
     return twiss_res_element_by_element
