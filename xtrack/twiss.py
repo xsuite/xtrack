@@ -459,8 +459,18 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     betx1 = betx
     bety2 = bety
 
-    mux = np.unwrap(phix)/2/np.pi
-    muy = np.unwrap(phiy)/2/np.pi
+    # Remove jumps due to local frame changes
+    i_take = [0]
+    for ii in range(1, len(s_co)):
+        if s_co[ii] > s_co[i_take[-1]]:
+            i_take.append(ii)
+        else:
+            i_take.append(i_take[-1])
+    i_take = np.array(i_take)
+
+    mux = np.unwrap(np.take(phix, i_take))/2/np.pi
+    muy = np.unwrap(np.take(phiy, i_take))/2/np.pi
+
     muzeta = np.unwrap(phizeta)/2/np.pi
 
     mux = mux - mux[0] + mux0
