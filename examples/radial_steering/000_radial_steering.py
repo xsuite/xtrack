@@ -9,9 +9,6 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-#################################
-# Load a line and build tracker #
-#################################
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
@@ -19,11 +16,9 @@ line.particle_ref = xp.Particles(
                     mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.build_tracker()
 
-
-tw = line.twiss()
-
 df_hz = 180 # Frequency trim
 
+tw = line.twiss()
 eta = tw.slip_factor
 f0 = 1./tw.T_rev
 h_rf = 35640
@@ -36,7 +31,8 @@ line.build_tracker()
 
 tw_6d_offmom = line.twiss()
 
-
+print(f'delta closed orbit: {tw_6d_offmom.delta[0]:.3e}')
+# prints: delta closed orbit: -1.288e-03
 
 # Checks
 
