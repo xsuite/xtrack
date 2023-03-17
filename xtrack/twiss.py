@@ -332,7 +332,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
                       nemitt_x, nemitt_y, r_sigma, delta_disp,
-                      use_full_inverse):
+                      use_full_inverse,
+                      hide_thin_frame_changes=True):
 
     ctx2np = tracker._context.nparray_from_context_array
 
@@ -417,6 +418,16 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    # Remove jumps due to local frame changes
+    i_take = [0]
+    for ii in range(1, len(s_co)):
+        if s_co[ii] > s_co[ii-1]:
+            i_take[-1] = ii-1
+            i_take.append(ii)
+        else:
+            i_take.append(i_take[-1])
+    i_take = np.array(i_take)
+
     # Re normalize eigenvectors (needed when radiation is present)
     nux, nuy, nuzeta = _renormalize_eigenvectors(Ws)
 
@@ -459,14 +470,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     betx1 = betx
     bety2 = bety
 
-    # Remove jumps due to local frame changes
-    i_take = [0]
-    for ii in range(1, len(s_co)):
-        if s_co[ii] > s_co[i_take[-1]]:
-            i_take.append(ii)
-        else:
-            i_take.append(i_take[-1])
-    i_take = np.array(i_take)
+
 
     mux = np.unwrap(np.take(phix, i_take))/2/np.pi
     muy = np.unwrap(np.take(phiy, i_take))/2/np.pi
@@ -514,10 +518,12 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'bety1': bety1,
         'betx2': betx2,
         'bety2': bety2,
-        # debug
-        'phix': phix,
-        'phiy': phiy,
     }
+
+    if hide_thin_frame_changes:
+        for key in twiss_res_element_by_element:
+                twiss_res_element_by_element[key] = np.take(
+                    twiss_res_element_by_element[key], i_take)
 
     return twiss_res_element_by_element
 
