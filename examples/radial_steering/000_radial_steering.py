@@ -3,8 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
-import numpy as np
+from scipy.constants import c as clight
 
 import xobjects as xo
 import xtrack as xt
@@ -23,18 +22,28 @@ line.build_tracker()
 
 tw = line.twiss()
 
+df_hz = 180 # Frequency trim
+
 eta = tw.slip_factor
 f0 = 1./tw.T_rev
 h_rf = 35640
+beta0 = line.particle_ref.beta0[0]
+dzeta = -beta0 * clight * df_hz / h_rf / f0**2
 
-df_hz = 180
+line.unfreeze()
+line.append_element(element=xt.ZetaShift(dzeta=dzeta), name='zeta_shift')
+line.build_tracker()
+
+tw_6d_offmom = line.twiss()
+
+
+
+# Checks
+
 delta_trim = 1/h_rf/eta/f0*df_hz
-
-dzeta = h*beta0*c*df_hz/f_rf_hz**2
 
 tw_on_mom = line.twiss(delta0=0, method='4d')
 tw_off_mom = line.twiss(delta0=delta_trim, method='4d')
 
-line.unfreeze()
-line.append_element()
+dzeta_from_twiss = tw_off_mom['zeta'][-1] - tw_off_mom['zeta'][0]
 
