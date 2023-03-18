@@ -535,12 +535,10 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
         'betx1', 'bety1', 'betx2', 'bety2',
         'dx', 'dpx', 'dy', 'dzeta', 'dpy',
-        'mux', 'muy', 'muzeta', 'nux', 'nuy', 'nuzeta',
         ]
 
         for key in _vars_hide_changes:
-                twiss_res_element_by_element[key][i_replace] = \
-                    twiss_res_element_by_element[key][i_replace_with]
+                twiss_res_element_by_element[key][i_replace] = np.nan
 
     return twiss_res_element_by_element
 
