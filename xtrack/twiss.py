@@ -54,7 +54,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         reverse=False,
         use_full_inverse=None,
         strengths=False,
-        hide_thin_frame_changes=True
+        hide_thin_groups=False
         ):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
@@ -236,7 +236,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         r_sigma=r_sigma,
         delta_disp=delta_disp,
         use_full_inverse=use_full_inverse,
-        hide_thin_frame_changes=hide_thin_frame_changes,)
+        hide_thin_groups=hide_thin_groups,)
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
@@ -268,7 +268,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
         beta0 = part_on_co._xobject.beta0[0]
-        T_rev = circumference/clight/beta0
+        T_rev0 = circumference/clight/beta0
         betz0 = W[4, 4]**2 + W[4, 5]**2
         ptau_co = twiss_res_element_by_element['ptau']
 
@@ -288,7 +288,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
-            'circumference': circumference, 'T_rev': T_rev,
+            'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
             'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
         })
@@ -306,7 +306,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         if eneloss_and_damping:
             assert RR is not None
             eneloss_damp_res = _compute_eneloss_and_damping_rates(
-                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev=T_rev)
+                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
             twiss_res.update(eneloss_damp_res)
 
     if values_at_element_exit:
@@ -335,7 +335,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
                       ele_start, ele_stop,
                       nemitt_x, nemitt_y, r_sigma, delta_disp,
                       use_full_inverse,
-                      hide_thin_frame_changes=True):
+                      hide_thin_groups=False):
 
     ctx2np = tracker._context.nparray_from_context_array
 
@@ -420,7 +420,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
-    # Remove jumps due to local frame changes
+    # For removal ot thin groups of elements
     i_take = [0]
     for ii in range(1, len(s_co)):
         if s_co[ii] > s_co[ii-1]:
@@ -529,7 +529,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'bety2': bety2,
     }
 
-    if hide_thin_frame_changes:
+    if hide_thin_groups:
         _vars_hide_changes = [
         'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
@@ -611,7 +611,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
     return dqx, dqy
 
 
-def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev):
+def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0):
     diff_ptau = np.diff(ptau_co)
     eloss_turn = -sum(diff_ptau[diff_ptau<0]) * particle_on_co._xobject.p0c[0]
 
@@ -626,7 +626,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev)
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
     damping_constants_turns = -np.log(np.abs(eigenvals))
-    damping_constants_s = damping_constants_turns / T_rev
+    damping_constants_s = damping_constants_turns / T_rev0
     partition_numbers = (
         damping_constants_turns* 2 * energy0/eloss_turn)
 
