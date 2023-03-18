@@ -23,7 +23,13 @@ line.build_tracker()
 tw = line.twiss()
 tw_htg = line.twiss(hide_thin_groups=True)
 
-
+plt.close('all')
+plt.plot(tw.s, tw.x, label='hide_thin_groups=False')
+plt.plot(tw.s, tw_htg.x, label='hide_thin_groups=True')
+plt.xlabel('s [m]')
+plt.ylabel('x [m]')
+plt.legend()
+plt.show()
 
 for nn in ('x y px py zeta delta ptau '
            'betx bety alfx alfy gamx gamy dx dy dpx dpy').split():
