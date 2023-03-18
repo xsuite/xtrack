@@ -429,8 +429,10 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         else:
             i_take.append(i_take[-1])
     i_take = np.array(i_take)
-    # mask_replace = np.arange(0, len(s_co), 1, dtype=int) != i_take
-    # i_replace = i_tkae
+    _temp_range = np.arange(0, len(s_co), 1, dtype=int)
+    mask_replace = _temp_range != i_take
+    i_replace = _temp_range[mask_replace]
+    i_replace_with = i_take[mask_replace]
 
     # Re normalize eigenvectors (needed when radiation is present)
     nux, nuy, nuzeta = _renormalize_eigenvectors(Ws)
@@ -474,10 +476,13 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     betx1 = betx
     bety2 = bety
 
+    temp_phix = phix.copy()
+    temp_phiy = phiy.copy()
+    temp_phix[i_replace] = temp_phix[i_replace_with]
+    temp_phiy[i_replace] = temp_phiy[i_replace_with]
 
-
-    mux = np.unwrap(np.take(phix, i_take))/2/np.pi
-    muy = np.unwrap(np.take(phiy, i_take))/2/np.pi
+    mux = np.unwrap(temp_phix)/2/np.pi
+    muy = np.unwrap(temp_phiy)/2/np.pi
 
     muzeta = np.unwrap(phizeta)/2/np.pi
 
@@ -531,12 +536,11 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'betx1', 'bety1', 'betx2', 'bety2',
         'dx', 'dpx', 'dy', 'dzeta', 'dpy',
         'mux', 'muy', 'muzeta', 'nux', 'nuy', 'nuzeta',
-        'W_matrix',
         ]
 
         for key in _vars_hide_changes:
-                twiss_res_element_by_element[key] = np.take(
-                    twiss_res_element_by_element[key], i_take)
+                twiss_res_element_by_element[key][i_replace] = \
+                    twiss_res_element_by_element[key][i_replace_with]
 
     return twiss_res_element_by_element
 
