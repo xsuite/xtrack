@@ -3,10 +3,8 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import json
 import numpy as np
 
-import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
