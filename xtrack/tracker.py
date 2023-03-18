@@ -543,7 +543,8 @@ class Tracker:
         symplectify=False,
         reverse=False,
         use_full_inverse=None,
-        strengths=False
+        strengths=False,
+        hide_thin_frame_changes=True,
         ):
 
         self._check_invalidated()

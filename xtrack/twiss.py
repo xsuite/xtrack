@@ -54,6 +54,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         reverse=False,
         use_full_inverse=None,
         strengths=False,
+        hide_thin_frame_changes=True
         ):
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
@@ -234,7 +235,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
         delta_disp=delta_disp,
-        use_full_inverse=use_full_inverse)
+        use_full_inverse=use_full_inverse,
+        hide_thin_frame_changes=hide_thin_frame_changes,)
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
@@ -427,6 +429,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         else:
             i_take.append(i_take[-1])
     i_take = np.array(i_take)
+    # mask_replace = np.arange(0, len(s_co), 1, dtype=int) != i_take
+    # i_replace = i_tkae
 
     # Re normalize eigenvectors (needed when radiation is present)
     nux, nuy, nuzeta = _renormalize_eigenvectors(Ws)
@@ -521,7 +525,16 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     }
 
     if hide_thin_frame_changes:
-        for key in twiss_res_element_by_element:
+        _vars_hide_changes = [
+        'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
+        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
+        'betx1', 'bety1', 'betx2', 'bety2',
+        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
+        'mux', 'muy', 'muzeta', 'nux', 'nuy', 'nuzeta',
+        'W_matrix',
+        ]
+
+        for key in _vars_hide_changes:
                 twiss_res_element_by_element[key] = np.take(
                     twiss_res_element_by_element[key], i_take)
 
