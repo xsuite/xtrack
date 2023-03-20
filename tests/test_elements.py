@@ -38,7 +38,7 @@ def test_constructor(test_context):
         xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
         xt.Wire(_context=test_context, current=3.),
-        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3],
+        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3,4],
                    sampling_frequency=1e3),
     ]
 

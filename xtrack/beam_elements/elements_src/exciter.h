@@ -19,7 +19,7 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
     int64_t const order = ExciterData_get_order(el);
     /*gpuglmem*/ double const* knl = ExciterData_getp1_knl(el, 0);
     /*gpuglmem*/ double const* ksl = ExciterData_getp1_ksl(el, 0);
-    /*gpuglmem*/ double const* samples = ExciterData_getp1_samples(el, 0);
+    /*gpuglmem*/ float const* samples = ExciterData_getp1_samples(el, 0);
     int64_t const nsamples = ExciterData_get_nsamples(el);
 	int64_t const nduration = ExciterData_get_nduration(el);
     double const sampling_frequency = ExciterData_get_sampling_frequency(el);
