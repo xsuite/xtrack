@@ -802,8 +802,7 @@ class Tracker:
                     kernel_descriptions={'track_line': kernel_description},
                 )
                 self._context.kernels.update(kernels)
-                classes = (type(self._tracker_data._element_ref_data),
-                           self.particles_class._XoStruct)
+                classes = (self.particles_class._XoStruct,)
                 self._current_track_kernel = self._context.kernels[('track_line', classes)]
                 self.element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
@@ -974,8 +973,7 @@ class Tracker:
         )
         context.kernels.update(out_kernels)
 
-        classes = (type(self._tracker_data._element_ref_data),
-                   self.particles_class._XoStruct)
+        classes = (self.particles_class._XoStruct,)
         self._current_track_kernel = context.kernels[('track_line', classes)]
 
     def get_kernel_descriptions(self, _context=None):
