@@ -35,7 +35,8 @@ def test_constructor(test_context):
         xt.LimitEllipse(_context=test_context, a=10),
         xt.LimitRacetrack(_context=test_context, min_x=-3, max_x=4,
                            min_y=2, max_y=3, a=0.2, b=0.3),
-        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1],
+                        y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
         xt.Wire(_context=test_context, current=3.),
         xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3,4],
@@ -126,9 +127,11 @@ def test_backtrack(test_context):
         xt.LimitEllipse(_context=test_context, a=10),
         xt.LimitRacetrack(_context=test_context, min_x=-3, max_x=4,
                            min_y=2, max_y=3, a=0.2, b=0.3),
-        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1],
+                        y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
-        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3], sampling_frequency=1e3),
+        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3],
+                   sampling_frequency=1e3),
     ]
 
     dtk_particle = dtk.TestParticles(
@@ -144,13 +147,15 @@ def test_backtrack(test_context):
         element_backtrack = element.get_backtrack_element(_context=test_context)
 
         # track forth and back
-        new_particles = xp.Particles.from_dict(dtk_particle.to_dict(), _context=test_context)
+        new_particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                               _context=test_context)
         element.track(new_particles)
         element_backtrack.track(new_particles)
 
         # assert that nothing changed
         for k in 'x,px,y,py,zeta,delta'.split(','):
-            assert np.isclose(test_context.nparray_from_context_array(getattr(new_particles, k))[0],
+            assert np.isclose(test_context.nparray_from_context_array(
+                      getattr(new_particles, k))[0],
                       getattr(dtk_particle, k), rtol=1e-14, atol=1e-14)
 
 
@@ -685,7 +690,9 @@ def test_linear_transfer_uncorrelated_damping_rate(test_context):
     alpha_y_1=alpha_y_0, beta_y_1=beta_y_0,
     Q_x=Q_x, Q_y=Q_y,
     beta_s=beta_s, Q_s=Q_s,
-    damping_rate_x = damping_rate_x,damping_rate_y = damping_rate_y,damping_rate_s = damping_rate_s)
+    damping_rate_x = damping_rate_x,
+    damping_rate_y = damping_rate_y,
+    damping_rate_s = damping_rate_s)
 
     gamma_x = (1.0+alpha_x_0**2)/beta_x_0
     gamma_y = (1.0+alpha_y_0**2)/beta_y_0
@@ -699,8 +706,11 @@ def test_linear_transfer_uncorrelated_damping_rate(test_context):
         emit_x[turn] = ctx2np(0.5*(gamma_x*particles.x[0]**2
              + 2*alpha_x_0*particles.x[0]*particles.px[0]
              + beta_x_0*particles.px[0]**2))
-        emit_y[turn] = ctx2np(0.5*(gamma_y*particles.y[0]**2+2*alpha_y_0*particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2))
-        emit_s[turn] = ctx2np(0.5*(particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2))
+        emit_y[turn] = ctx2np(0.5*(
+            gamma_y*particles.y[0]**2+2*alpha_y_0
+            *particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2))
+        emit_s[turn] = ctx2np(0.5*(
+            particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2))
     turns = np.arange(n_turns)
     fit_x = linregress(turns,np.log(emit_x))
     fit_y = linregress(turns,np.log(emit_y))
@@ -763,9 +773,14 @@ def test_linear_transfer_uncorrelated_damping_equilibrium(test_context):
     ctx2np = test_context.nparray_from_context_array
     for turn in range(n_turns):
         arc.track(particles)
-        emit_x[turn] = 0.5*np.average(ctx2np(gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px+beta_x_0*particles.px**2))
-        emit_y[turn] = 0.5*np.average(ctx2np(gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py+beta_y_0*particles.py**2))
-        emit_s[turn] = 0.5*np.average(ctx2np(particles.zeta**2/beta_s+beta_s*particles.delta**2))
+        emit_x[turn] = 0.5*np.average(ctx2np(
+            gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px
+            +beta_x_0*particles.px**2))
+        emit_y[turn] = 0.5*np.average(ctx2np(
+            gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py
+            +beta_y_0*particles.py**2))
+        emit_s[turn] = 0.5*np.average(ctx2np(particles.zeta**2/beta_s
+            +beta_s*particles.delta**2))
     turns = np.arange(n_turns)
     equ_emit_x_0 = np.average(emit_x)
     equ_emit_y_0 = np.average(emit_y)
