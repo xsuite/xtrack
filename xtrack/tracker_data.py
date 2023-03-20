@@ -7,6 +7,8 @@ from typing import Tuple
 
 import xobjects as xo
 
+from xobjects.struct import Struct, MetaStruct
+
 from .line import Line, mk_class_namespace
 
 
@@ -21,12 +23,27 @@ class SerializationHeader(xo.Struct):
     reftype_names = xo.String[:]
 
 
+class MetaElementRefData(MetaStruct):
+    """
+    Since ElementRefData is a class that is generated on the fly, this
+    metaclass is used to make it hashable.
+    """
+    def __hash__(cls):
+        """Return a unique hash for the ElementRefData class."""
+        return hash(('ElementRefData', MetaElementRefData))
+
+
+    def __eq__(cls, other):
+        return hash(cls) == hash(other)
+
+
 class TrackerData:
     @staticmethod
     def generate_element_ref_data(element_ref_class) -> 'ElementRefData':
-        class ElementRefData(xo.Struct):
+        class ElementRefData(Struct, metaclass=MetaElementRefData):
             elements = element_ref_class[:]
             names = xo.String[:]
+            _is_element_ref_data = True
 
         return ElementRefData
 
