@@ -151,17 +151,17 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             - betx2, computed horizontal beta function (Mais-Ripken)
             - bety2, computed vertical beta function (Mais-Ripken)
         The table also contains the following global quantities:
-            - qx:, horizontal tune
-            - qy:, vertical tune
-            - qs:, synchrotron tune
-            - dqx:, horizontal chromaticity (d qx / d delta)
-            - dqy:, vertical chromaticity (d qy / d delta)
-            - c_minus:, closest tune approach coefficient
-            - slip_factor:, slip factor (1 / f_ref * d f_ref / d delta)
-            - momentum_compaction_factor:, momentum compaction factor
-            - T_rev0:, reference revolution period
-            - partice_on_co:, particle on closed orbit
-            - R_matrix:, R matrix (if calculated or provided)
+            - qx: horizontal tune
+            - qy: vertical tune
+            - qs: synchrotron tune
+            - dqx: horizontal chromaticity (d qx / d delta)
+            - dqy: vertical chromaticity (d qy / d delta)
+            - c_minus: closest tune approach coefficient
+            - slip_factor: slip factor (1 / f_ref * d f_ref / d delta)
+            - momentum_compaction_factor: momentum compaction factor
+            - T_rev0: reference revolution period
+            - partice_on_co: particle on closed orbit
+            - R_matrix: R matrix (if calculated or provided)
             - eneloss_turn, energy loss per turn in electron volts (if
               eneloss_and_dampingis True)
             - damping_constants_turns, radiation damping constants per turn
