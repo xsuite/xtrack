@@ -215,8 +215,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     - `partition_numbers`:
         radiation partition numbers (if `eneloss_and_damping` is True)
 
-    Additional input parameters
-    ---------------------------
+    Other parameters
+    ----------------
 
     particle_on_co : xpart.Particles, optional
         Particle on the closed orbit. If not provided, the closed orbit
