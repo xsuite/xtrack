@@ -43,8 +43,7 @@ class LossLocationRefinement:
         temp_poly = LimitPolygon(_buffer=self.tracker._tracker_data._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
-        temp_poly.impact_point_and_normal(particles_class=tracker.particles_class,
-                                          x_in=na([0]), y_in=na([0]),
+        temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]),
                                           z_in=na([0]), x_out=na([2]),
                                           y_out=na([2]), z_out=na([0]))
 
@@ -466,7 +465,6 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
     # Get a convex polygon that has vertices at all requested angles
     r_out = 1. # m
     res = temp_poly.impact_point_and_normal(
-            particles_class=tracker.particles_class,
             x_in=0*theta_vect, y_in=0*theta_vect, z_in=0*theta_vect,
             x_out=r_out*np.cos(theta_vect),
             y_out=r_out*np.sin(theta_vect),

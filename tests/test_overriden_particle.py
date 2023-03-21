@@ -4,25 +4,25 @@
 # ######################################### #
 
 import cffi
-import pathlib
 
 import numpy as np
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
+
+from xpart.particles import Particles, ParticlesPurelyLongitudinal
 
 
 @for_all_test_contexts
 def test_purely_longitudinal(test_context):
-    p_fixed = xp.ParticlesPurelyLongitudinal(p0c=[1, 2, 3], delta=[3, 2, 1], _context=test_context)
-    p = xp.Particles(p0c=[1, 2, 3], delta=[3, 2, 1], x=[1, 2, 3], _context=test_context)
+    p_fixed = ParticlesPurelyLongitudinal(p0c=[1, 2, 3], delta=[3, 2, 1], _context=test_context)
+    p = Particles(p0c=[1, 2, 3], delta=[3, 2, 1], x=[1, 2, 3], _context=test_context)
 
-    l = xt.Line(elements=[xt.Cavity(voltage=1e6, frequency=1e6)])
-    t = xt.Tracker(line=l, compile=False, _context=test_context)
+    line = xt.Line(elements=[xt.Cavity(voltage=1e6, frequency=1e6)])
+    line.build_tracker(compile=False, _context=test_context)
 
-    t.track(p_fixed)
-    t.track(p)
+    line.track(p_fixed)
+    line.track(p)
 
     d_fixed = p_fixed.to_dict()
     d = {k: v for k, v in p.to_dict().items() if k in d_fixed}
@@ -76,8 +76,8 @@ def test_per_particle_kernel(test_context, mocker):
     el = TestElement(_context=test_context, new_state=42)
 
     # The per particle kernel should work for both particle types transparently.
-    p1 = xp.ParticlesPurelyLongitudinal(p0c=1e9, zeta=[1, 2, 3], _context=test_context)
-    p2 = xp.Particles(p0c=1e9, x=[1, 2, 3], zeta=[1, 2, 3], _context=test_context)
+    p1 = ParticlesPurelyLongitudinal(p0c=1e9, zeta=[1, 2, 3], _context=test_context)
+    p2 = Particles(p0c=1e9, x=[1, 2, 3], zeta=[1, 2, 3], _context=test_context)
 
     el.test_kernel(p1)
     p1.move(_context=xo.ContextCpu())

@@ -16,6 +16,8 @@ import ducktrack as dtk
 
 from scipy.stats import linregress
 
+from xpart.particles import Particles, ParticlesPurelyLongitudinal
+
 @for_all_test_contexts
 def test_constructor(test_context):
     elements = [
@@ -912,7 +914,7 @@ void TestElement_track_local_particle(TestElementData el,
 
 @pytest.mark.parametrize(
     'particles_class',
-    [xp.Particles, xp.ParticlesPurelyLongitudinal],
+    [Particles, ParticlesPurelyLongitudinal],
 )
 @for_all_test_contexts
 def test_per_particle_kernel(test_context, particles_class):
@@ -933,7 +935,7 @@ def test_per_particle_kernel(test_context, particles_class):
 
     el = TestElement(_context=test_context, a=10)
 
-    p = xp.Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    p = Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
     el.track(p)
     p.move(_context=xo.ContextCpu())
     assert np.all(p.s == [10, 10, 10])
