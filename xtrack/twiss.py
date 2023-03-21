@@ -122,7 +122,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
     twiss : xtrack.TwissTable
         Twiss calculation results. The table contains the following element-by-element quantities:
-        
             - s position of the element in meters
         
         
