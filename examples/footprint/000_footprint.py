@@ -7,16 +7,35 @@ line = xt.Line.from_json(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 line.build_tracker()
 
+mode = 'polar'
 r_range = (0.1, 6)
 theta_range = (0.2, np.pi/2-0.05)
 nr=10
 ntheta=10
+
+# mode = 'action'
+# J_x_range = (0.1**1, 6**2)
+# J_y_range = (0.1**2, 6**2)
+# nJ_x = 10
+# nJ_y = 10
+
+
 nemitt_x = 1e-6
 nemitt_y = 1e-6
-num_turns = 512
+num_turns = 256
+n = 2**18
 
-x_norm, y_norm, r, theta = xp.generate_2D_polar_grid(
-    r_range=r_range, theta_range=theta_range, nr=nr, ntheta=ntheta)
+if mode == 'polar':
+    x_norm, y_norm, r, theta = xp.generate_2D_polar_grid(
+        r_range=r_range, theta_range=theta_range, nr=nr, ntheta=ntheta)
+elif mode == 'action':
+    Jx_grid = np.linspace(*J_x_range, nJ_x)
+    Jy_grid = np.linspace(*J_y_range, nJ_y)
+    JJx, JJy = np.meshgrid(Jx_grid, Jy_grid)
+    Jx = JJx.flatten()
+    Jy = JJy.flatten()
+    x_norm = np.sqrt(Jx)
+    y_norm = np.sqrt(Jy)
 
 x_norm2d = x_norm.reshape((nr, ntheta))
 y_norm2d = y_norm.reshape((nr, ntheta))
@@ -28,7 +47,7 @@ line.track(particles, num_turns=num_turns, turn_by_turn_monitor=True)
 
 assert np.all(particles.state == 1)
 mon = line.record_last_track
-n = 2**18
+
 
 fft_x = np.fft.rfft(mon.x - np.atleast_2d(np.mean(mon.x, axis=1)).T, n=n, axis=1)
 fft_y = np.fft.rfft(mon.y - np.atleast_2d(np.mean(mon.y, axis=1)).T, n=n, axis=1)
