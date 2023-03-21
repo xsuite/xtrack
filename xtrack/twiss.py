@@ -122,13 +122,13 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
     twiss : xtrack.TwissTable
         Twiss calculation results. The table contains the following element-by-element quantities:
-            - s : position of the element in meters
-            - name : name of the element
+            - s: position of the element in meters
+            - name: name of the element
             - x: horizontal position in meters (closed orbit for periodic solution)
             - px: horizontal momentum (closed orbit for periodic solution)
             - y: vertical position in meters (closed orbit for periodic solution)
             - py: vertical momentum (closed orbit for periodic solution)
-            - zeta: longitudinal position in meters(closed orbit for periodic solution)
+            - zeta: longitudinal position in meters (closed orbit for periodic solution)
             - delta: longitudinal momentum deviation (closed orbit for periodic solution)
             - ptau: longitudinal momentum deviation (closed orbit for periodic solution)
             - betx: horizontal beta function
@@ -171,8 +171,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             - partition_numbers:
                 radiation partition numbers (if `eneloss_and_damping` is True)
 
-    Other Parameters
-    ----------------
+    Notes
+    -----
 
     particle_on_co : xpart.Particles, optional
         Particle on the closed orbit. If not provided, the closed orbit
