@@ -13,11 +13,11 @@ theta_range = (0.2, np.pi/2-0.05)
 nr=10
 ntheta=10
 
-# mode = 'action'
-# J_x_range = (0.1**1, 6**2)
-# J_y_range = (0.1**2, 6**2)
-# nJ_x = 10
-# nJ_y = 10
+mode = 'action'
+J_x_range = (0.1**1, 6**2)
+J_y_range = (0.1**2, 6**2)
+nJ_x = 10
+nJ_y = 10
 
 
 nemitt_x = 1e-6
