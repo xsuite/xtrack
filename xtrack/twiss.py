@@ -57,6 +57,111 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         hide_thin_groups=False
         ):
 
+    """Compute the Twiss parameters.
+
+    Parameters
+    ----------
+    tracker : xtrack.Tracker
+        Tracker to be used for the computation
+    particle_ref : xpart.Particles, optional
+        Reference particle to be used for the computation.
+        If not provided, the reference particle of the tracker is used.
+    method : {'6d', '4d'}, optional
+        Method to be used for the computation. If '6d' the full 6D
+        normal form is used. If '4d' the 4D normal form is used.
+    particle_on_co : xpart.Particles, optional
+        Particle on the closed orbit. If not provided, the closed orbit
+        is searched for.
+    R_matrix : np.ndarray, optional
+        R matrix to be used for the computation. If not provided, the
+        R matrix is computed using finite differences.
+    W_matrix : np.ndarray, optional
+        W matrix to be used for the computation. If not provided, the
+        W matrix is computed from the R matrix.
+    delta0 : float, optional
+        Initial value for the delta parameter.
+    zeta0 : float, optional
+        Initial value for the zeta parameter.
+    r_sigma : float, optional
+        Initial value for the r_sigma parameter.
+    nemitt_x : float, optional
+        Initial value for the horizontal emittance.
+    nemitt_y : float, optional
+        Initial value for the vertical emittance.
+    delta_disp : float, optional
+        Momentum deviation for the dispersion computation.
+    delta_chrom : float, optional
+        Momentum deviation for the chromaticity computation.
+    particle_co_guess : xpart.Particles, optional
+        Initial guess for the closed orbit. If not provided, zero is assumed.
+    steps_r_matrix : dict, optional
+        Steps to be used for the finite difference computation of the R matrix.
+        If not provided, the default values are used.
+    co_search_settings : dict, optional
+        Settings to be used for the closed orbit search.
+        If not provided, the default values are used.
+    at_elements : list, optional
+        List of elements at which the Twiss parameters are computed.
+        If not provided, the Twiss parameters are computed at all elements.
+    at_s : list, optional
+        List of positions at which the Twiss parameters are computed.
+        If not provided, the Twiss parameters are computed at all positions.
+    continue_on_closed_orbit_error : bool, optional
+        If True, the computation is continued even if the closed orbit
+        search fails.
+    freeze_longitudinal : bool, optional
+        If True, the longitudinal motion is frozen.
+    values_at_element_exit : bool, optional (False)
+        If True, the Twiss parameters are computed at the exit of the
+        elements. If False (default), the Twiss parameters are computed at the
+        entrance of the elements.
+    radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
+        Method to be used for the computation of twiss parameters in the presence
+        of radiation. If 'full' the method described in E. Forest, "From tracking
+        code to analysis" is used. If 'kick_as_co' all particles receive the same
+        radiation kicks as the closed orbit. If 'scale_as_co' all particles
+        momenta are scaled by radiation as much as the closed orbit.
+    eneloss_and_damping : bool, optional
+        If True, the energy loss and radiation damping constants are computed.
+    ele_start : int, optional
+        Index of the element at which the computation starts. If not provided,
+        the periodic sulution is computed. `twiss_init` must be provided if
+        `ele_start` is provided.
+    ele_stop : int, optional
+        Index of the element at which the computation stops.
+    twiss_init : TwissInit object, optional
+        Initial values for the Twiss parameters.
+    skip_global_quantities : bool, optional
+        If True, the global quantities are not computed.
+    matrix_responsiveness_tol : float, optional
+        Tolerance to be used tp check the responsiveness of the R matrix.
+        If not provided, the default value is used.
+    matrix_stability_tol : float, optional
+        Tolerance to be used tp check the stability of the R matrix.
+        If not provided, the default value is used.
+    symplectify : bool, optional
+        If True, the R matrix is symplectified before computing the linear normal
+        form.
+    reverse : bool, optional
+        If True, the outupt is give in the reference frame of the conunter-rotating
+        beam.
+    use_full_inverse : bool, optional
+        If True, the full inverse of the W matrik is used. If False, the inverse
+        is computed from the symplectic condition.
+    strengths : bool, optional
+        If True, the strengths of the multipoles are added to the table.
+    hide_thin_groups : bool, optional
+        If True, values associate to elements in thin groups are replacede with
+        NaNs.
+
+    Returns
+    -------
+    twiss : xtrack.TwissTable
+
+    """
+
+
+
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
     if matrix_responsiveness_tol is None:
