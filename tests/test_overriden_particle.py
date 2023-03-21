@@ -95,13 +95,17 @@ def test_per_particle_kernel(test_context, mocker):
 
     # Now do it again, but verify that the kernels are reused, not recompiled.
     el.new_state = 64
+    p1.move(_context=test_context)
+    p2.move(_context=test_context)
 
     cffi_compile = mocker.patch.object(cffi.FFI, 'compile')
 
     el.test_kernel(p1)
+    p1.move(_context=xo.ContextCpu())
     assert np.all(p1.state == 64)
 
     el.test_kernel(p2)
+    p2.move(_context=xo.ContextCpu())
     assert np.all(p1.state == 64)
 
     cffi_compile.assert_not_called()
