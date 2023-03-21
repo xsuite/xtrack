@@ -1699,6 +1699,8 @@ class Tracker:
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
 
+Tracker.twiss.__doc__ = twiss_from_tracker.__doc__
+
 @contextmanager
 def _preserve_config(tracker):
     config = TrackerConfig()

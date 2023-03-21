@@ -57,7 +57,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         hide_thin_groups=False
         ):
 
-    """Compute the Twiss parameters.
+    """
+    Compute the Twiss parameters of the beam line.
 
     Parameters
     ----------
@@ -151,7 +152,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     - `betx2`: computed horizontal beta function (Mais-Ripken)
     - `bety2`: computed vertical beta function (Mais-Ripken)
 
-    The table contains the following global quantities:
+    The table also contains the following global quantities:
 
     - `qx` : horizontal tune
     - `qy` : vertical tune
