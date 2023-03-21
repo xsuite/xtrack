@@ -54,7 +54,168 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         reverse=False,
         use_full_inverse=None,
         strengths=False,
+        hide_thin_groups=False
         ):
+
+    """
+    Compute the Twiss parameters of the beam line.
+
+    Parameters
+    ----------
+
+    method : {'6d', '4d'}, optional
+        Method to be used for the computation. If '6d' the full 6D
+        normal form is used. If '4d' the 4D normal form is used.
+    ele_start : int, optional
+        Index of the element at which the computation starts. If not provided,
+        the periodic sulution is computed. `twiss_init` must be provided if
+        `ele_start` is provided.
+    ele_stop : int, optional
+        Index of the element at which the computation stops.
+    twiss_init : TwissInit object, optional
+        Initial values for the Twiss parameters.
+    delta0 : float, optional
+        Initial value for the delta parameter.
+    zeta0 : float, optional
+        Initial value for the zeta parameter.
+    freeze_longitudinal : bool, optional
+        If True, the longitudinal motion is frozen.
+    at_elements : list, optional
+        List of elements at which the Twiss parameters are computed.
+        If not provided, the Twiss parameters are computed at all elements.
+    at_s : list, optional
+        List of positions at which the Twiss parameters are computed.
+        If not provided, the Twiss parameters are computed at all positions.
+    reverse : bool, optional
+        If True, the outupt is give in the reference frame of the conunter-rotating
+        beam.
+    radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
+        Method to be used for the computation of twiss parameters in the presence
+        of radiation. If 'full' the method described in E. Forest, "From tracking
+        code to analysis" is used. If 'kick_as_co' all particles receive the same
+        radiation kicks as the closed orbit. If 'scale_as_co' all particles
+        momenta are scaled by radiation as much as the closed orbit.
+    eneloss_and_damping : bool, optional
+        If True, the energy loss and radiation damping constants are computed.
+    strengths : bool, optional
+        If True, the strengths of the multipoles are added to the table.
+    hide_thin_groups : bool, optional
+        If True, values associate to elements in thin groups are replacede with
+        NaNs.
+    values_at_element_exit : bool, optional (False)
+        If True, the Twiss parameters are computed at the exit of the
+        elements. If False (default), the Twiss parameters are computed at the
+        entrance of the elements.
+    matrix_responsiveness_tol : float, optional
+        Tolerance to be used tp check the responsiveness of the R matrix.
+        If not provided, the default value is used.
+    matrix_stability_tol : float, optional
+        Tolerance to be used tp check the stability of the R matrix.
+        If not provided, the default value is used.
+    symplectify : bool, optional
+        If True, the R matrix is symplectified before computing the linear normal
+        form. Dafault is False.
+
+
+    Returns
+    -------
+
+    twiss : xtrack.TwissTable
+        Twiss calculation results. The table contains the following element-by-element quantities:
+            - s: position of the element in meters
+            - name: name of the element
+            - x: horizontal position in meters (closed orbit for periodic solution)
+            - px: horizontal momentum (closed orbit for periodic solution)
+            - y: vertical position in meters (closed orbit for periodic solution)
+            - py: vertical momentum (closed orbit for periodic solution)
+            - zeta: longitudinal position in meters (closed orbit for periodic solution)
+            - delta: longitudinal momentum deviation (closed orbit for periodic solution)
+            - ptau: longitudinal momentum deviation (closed orbit for periodic solution)
+            - betx: horizontal beta function
+            - bety: vertical beta function
+            - alfx: horizontal alpha function
+            - alfy: vertical alpha function
+            - gamx: horizontal gamma function
+            - gamy: vertical gamma function
+            - mux: horizontal phase advance
+            - muy: vertical phase advance
+            - muzeta: longitudinal phase advance
+            - dx: horizontal dispersion (d x / d delta)
+            - dy: vertical dispersion (d y / d delta)
+            - dzeta: longitudinal dispersion (d zeta / d delta)
+            - dpx: horizontal dispersion (d px / d delta)
+            - dpy: vertical dispersion (d y / d delta)
+            - W_matrix: W matrix of the linear normal form
+            - betx1: computed horizontal beta function (Mais-Ripken)
+            - bety1: computed vertical beta function (Mais-Ripken)
+            - betx2: computed horizontal beta function (Mais-Ripken)
+            - bety2: computed vertical beta function (Mais-Ripken)
+        The table also contains the following global quantities:
+            - qx: horizontal tune
+            - qy: vertical tune
+            - qs: synchrotron tune
+            - dqx: horizontal chromaticity (d qx / d delta)
+            - dqy: vertical chromaticity (d qy / d delta)
+            - c_minus: closest tune approach coefficient
+            - slip_factor: slip factor (1 / f_ref * d f_ref / d delta)
+            - momentum_compaction_factor: momentum compaction factor
+            - T_rev0: reference revolution period
+            - partice_on_co: particle on closed orbit
+            - R_matrix: R matrix (if calculated or provided)
+            - eneloss_turn, energy loss per turn in electron volts (if
+              eneloss_and_dampingis True)
+            - damping_constants_turns, radiation damping constants per turn
+              (if `eneloss_and_damping` is True)
+            - damping_constants_s:
+              radiation damping constants per second (if `eneloss_and_damping` is True)
+            - partition_numbers:
+                radiation partition numbers (if `eneloss_and_damping` is True)
+
+    Notes
+    -----
+
+    The following additional parameters can also be provided:
+
+        - particle_on_co : xpart.Particles, optional
+            Particle on the closed orbit. If not provided, the closed orbit
+            is searched for.
+        - R_matrix : np.ndarray, optional
+            R matrix to be used for the computation. If not provided, the
+            R matrix is computed using finite differences.
+        - W_matrix : np.ndarray, optional
+            W matrix to be used for the computation. If not provided, the
+            W matrix is computed from the R matrix.
+        - particle_co_guess : xpart.Particles, optional
+            Initial guess for the closed orbit. If not provided, zero is assumed.
+        - co_search_settings : dict, optional
+            Settings to be used for the closed orbit search.
+            If not provided, the default values are used.
+        - continue_on_closed_orbit_error : bool, optional
+            If True, the computation is continued even if the closed orbit
+            search fails.
+        - delta_disp : float, optional
+            Momentum deviation for the dispersion computation.
+        - delta_chrom : float, optional
+            Momentum deviation for the chromaticity computation.
+        - skip_global_quantities : bool, optional
+            If True, the global quantities are not computed.
+        - use_full_inverse : bool, optional
+            If True, the full inverse of the W matrik is used. If False, the inverse
+            is computed from the symplectic condition.
+        - steps_r_matrix : dict, optional
+            Steps to be used for the finite difference computation of the R matrix.
+            If not provided, the default values are used.
+        - r_sigma : float, optional
+            Deviation in sigmas used for the propagation of the W matrix.
+            Initial value for the r_sigma parameter.
+        - nemitt_x : float, optional
+            Horizontal emittance assumed for the comutation of the deviation
+            used for the propagation of the W matrix.
+        - nemitt_y : float, optional
+            Vertical emittance assumed for the comutation of the deviation
+            used for the propagation of the W matrix.
+
+    """
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
@@ -234,7 +395,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
         delta_disp=delta_disp,
-        use_full_inverse=use_full_inverse)
+        use_full_inverse=use_full_inverse,
+        hide_thin_groups=hide_thin_groups,)
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
@@ -266,7 +428,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
         beta0 = part_on_co._xobject.beta0[0]
-        T_rev = circumference/clight/beta0
+        T_rev0 = circumference/clight/beta0
         betz0 = W[4, 4]**2 + W[4, 5]**2
         ptau_co = twiss_res_element_by_element['ptau']
 
@@ -286,7 +448,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
-            'circumference': circumference, 'T_rev': T_rev,
+            'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
             'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
         })
@@ -304,7 +466,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         if eneloss_and_damping:
             assert RR is not None
             eneloss_damp_res = _compute_eneloss_and_damping_rates(
-                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev=T_rev)
+                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
             twiss_res.update(eneloss_damp_res)
 
     if values_at_element_exit:
@@ -332,7 +494,8 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
                       nemitt_x, nemitt_y, r_sigma, delta_disp,
-                      use_full_inverse):
+                      use_full_inverse,
+                      hide_thin_groups=False):
 
     ctx2np = tracker._context.nparray_from_context_array
 
@@ -417,6 +580,21 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    # For removal ot thin groups of elements
+    i_take = [0]
+    for ii in range(1, len(s_co)):
+        if s_co[ii] > s_co[ii-1]:
+            i_take[-1] = ii-1
+            i_take.append(ii)
+        else:
+            i_take.append(i_take[-1])
+    i_take = np.array(i_take)
+    _temp_range = np.arange(0, len(s_co), 1, dtype=int)
+    mask_replace = _temp_range != i_take
+    mask_replace[-1] = False # Force keeping of the last element
+    i_replace = _temp_range[mask_replace]
+    i_replace_with = i_take[mask_replace]
+
     # Re normalize eigenvectors (needed when radiation is present)
     nux, nuy, nuzeta = _renormalize_eigenvectors(Ws)
 
@@ -459,8 +637,14 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     betx1 = betx
     bety2 = bety
 
-    mux = np.unwrap(phix)/2/np.pi
-    muy = np.unwrap(phiy)/2/np.pi
+    temp_phix = phix.copy()
+    temp_phiy = phiy.copy()
+    temp_phix[i_replace] = temp_phix[i_replace_with]
+    temp_phiy[i_replace] = temp_phiy[i_replace_with]
+
+    mux = np.unwrap(temp_phix)/2/np.pi
+    muy = np.unwrap(temp_phiy)/2/np.pi
+
     muzeta = np.unwrap(phizeta)/2/np.pi
 
     mux = mux - mux[0] + mux0
@@ -504,10 +688,18 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'bety1': bety1,
         'betx2': betx2,
         'bety2': bety2,
-        # debug
-        'phix': phix,
-        'phiy': phiy,
     }
+
+    if hide_thin_groups:
+        _vars_hide_changes = [
+        'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
+        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
+        'betx1', 'bety1', 'betx2', 'bety2',
+        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
+        ]
+
+        for key in _vars_hide_changes:
+                twiss_res_element_by_element[key][i_replace] = np.nan
 
     return twiss_res_element_by_element
 
@@ -580,7 +772,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
     return dqx, dqy
 
 
-def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev):
+def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0):
     diff_ptau = np.diff(ptau_co)
     eloss_turn = -sum(diff_ptau[diff_ptau<0]) * particle_on_co._xobject.p0c[0]
 
@@ -595,7 +787,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev)
     # Damping constants and partition numbers
     energy0 = particle_on_co.mass0 * particle_on_co._xobject.gamma0[0]
     damping_constants_turns = -np.log(np.abs(eigenvals))
-    damping_constants_s = damping_constants_turns / T_rev
+    damping_constants_s = damping_constants_turns / T_rev0
     partition_numbers = (
         damping_constants_turns* 2 * energy0/eloss_turn)
 

@@ -84,14 +84,14 @@ class Exciter(BeamElement):
 
     _xofields={
         'order': xo.Int64,
-        'knl': xo.Float64[:],
-        'ksl': xo.Float64[:],
-        'samples': xo.Float64[:],
         'nsamples': xo.Int64,
         'sampling_frequency': xo.Float64,
         'frev': xo.Float64,
         'start_turn': xo.Int64,
         'nduration': xo.Int64,
+        'knl': xo.Float64[:],
+        'ksl': xo.Float64[:],
+        'samples': xo.Float32[:],
         }
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/exciter.h')]

@@ -24,6 +24,8 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const sin_s = LinearTransferMatrixData_get_sin_s(el);
     double const beta_s = LinearTransferMatrixData_get_beta_s(el);
 
+    double const length = LinearTransferMatrixData_get_length(el);
+
     double const beta_x_0 = LinearTransferMatrixData_get_beta_x_0(el);
     double const beta_y_0 = LinearTransferMatrixData_get_beta_y_0(el);
     double const beta_ratio_x = LinearTransferMatrixData_get_beta_ratio_x(el);
@@ -210,9 +212,11 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     LocalParticle_add_to_x(part,disp_x_1 * delta + x_ref_1);
     LocalParticle_add_to_px(part,px_ref_1 +disp_px_1 * delta);
     LocalParticle_add_to_y(part,disp_y_1 * delta + y_ref_1);
-    LocalParticle_add_to_py(part,py_ref_1+disp_py_1 * delta);
-    
-    
+    LocalParticle_add_to_py(part,py_ref_1);
+
+    // Add to s coordinate
+    LocalParticle_add_to_s(part, length);
+
     //end_per_particle_block
 }
 

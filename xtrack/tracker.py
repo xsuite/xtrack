@@ -543,7 +543,8 @@ class Tracker:
         symplectify=False,
         reverse=False,
         use_full_inverse=None,
-        strengths=False
+        strengths=False,
+        hide_thin_groups=False,
         ):
 
         self._check_invalidated()
@@ -1697,6 +1698,8 @@ class Tracker:
     @_current_track_kernel.setter
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
+
+Tracker.twiss.__doc__ = twiss_from_tracker.__doc__
 
 @contextmanager
 def _preserve_config(tracker):
