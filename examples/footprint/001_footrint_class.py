@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 class FootprintPolar():
 
     def __init__(self, r_range=(0.1, 6), theta_range=(0.2, np.pi/2-0.05),
-                 n_r=10, n_theta=10, n_turns=512, n_fft=2**18,
+                 n_r=10, n_theta=10, n_turns=256, n_fft=2**18,
                  nemitt_x=None, nemitt_y=None):
 
         assert nemitt_x is not None and nemitt_y is not None, (
@@ -40,12 +40,15 @@ class FootprintPolar():
             x_norm=self.x_norm.flatten(), y_norm=self.y_norm.flatten(),
             nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y)
 
+        print('Tracking particles for footprint...')
         line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True)
+        print('Done tracking.')
 
         assert np.all(particles.state == 1), (
             'Some particles were lost during tracking')
         mon = line.record_last_track
 
+        print('Computing footprint...')
         fft_x = np.fft.rfft(
             mon.x - np.atleast_2d(np.mean(mon.x, axis=1)).T, n=self.n_fft, axis=1)
         fft_y = np.fft.rfft(
@@ -58,6 +61,7 @@ class FootprintPolar():
 
         self.qx = np.reshape(qx, self.R.shape)
         self.qy = np.reshape(qy, self.R.shape)
+        print ('Done computing footprint.')
 
     def plot(self, ax=None, **kwargs):
 
@@ -83,7 +87,8 @@ nemitt_y = 1e-6
 fp = FootprintPolar(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
 line = xt.Line.from_json(
-    '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
+    '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12)
 line.build_tracker()
 
 fp._compute_footprint(line)
