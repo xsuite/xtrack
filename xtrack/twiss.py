@@ -174,44 +174,46 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     Notes
     -----
 
-    particle_on_co : xpart.Particles, optional
-        Particle on the closed orbit. If not provided, the closed orbit
-        is searched for.
-    R_matrix : np.ndarray, optional
-        R matrix to be used for the computation. If not provided, the
-        R matrix is computed using finite differences.
-    W_matrix : np.ndarray, optional
-        W matrix to be used for the computation. If not provided, the
-        W matrix is computed from the R matrix.
-    particle_co_guess : xpart.Particles, optional
-        Initial guess for the closed orbit. If not provided, zero is assumed.
-    co_search_settings : dict, optional
-        Settings to be used for the closed orbit search.
-        If not provided, the default values are used.
-    continue_on_closed_orbit_error : bool, optional
-        If True, the computation is continued even if the closed orbit
-        search fails.
-    delta_disp : float, optional
-        Momentum deviation for the dispersion computation.
-    delta_chrom : float, optional
-        Momentum deviation for the chromaticity computation.
-    skip_global_quantities : bool, optional
-        If True, the global quantities are not computed.
-    use_full_inverse : bool, optional
-        If True, the full inverse of the W matrik is used. If False, the inverse
-        is computed from the symplectic condition.
-    steps_r_matrix : dict, optional
-        Steps to be used for the finite difference computation of the R matrix.
-        If not provided, the default values are used.
-    r_sigma : float, optional
-        Deviation in sigmas used for the propagation of the W matrix.
-        Initial value for the r_sigma parameter.
-    nemitt_x : float, optional
-        Horizontal emittance assumed for the comutation of the deviation
-        used for the propagation of the W matrix.
-    nemitt_y : float, optional
-        Vertical emittance assumed for the comutation of the deviation
-        used for the propagation of the W matrix.
+    The following additional parameters can also be provided:
+
+        - particle_on_co : xpart.Particles, optional
+            Particle on the closed orbit. If not provided, the closed orbit
+            is searched for.
+        - R_matrix : np.ndarray, optional
+            R matrix to be used for the computation. If not provided, the
+            R matrix is computed using finite differences.
+        - W_matrix : np.ndarray, optional
+            W matrix to be used for the computation. If not provided, the
+            W matrix is computed from the R matrix.
+        - particle_co_guess : xpart.Particles, optional
+            Initial guess for the closed orbit. If not provided, zero is assumed.
+        - co_search_settings : dict, optional
+            Settings to be used for the closed orbit search.
+            If not provided, the default values are used.
+        - continue_on_closed_orbit_error : bool, optional
+            If True, the computation is continued even if the closed orbit
+            search fails.
+        - delta_disp : float, optional
+            Momentum deviation for the dispersion computation.
+        - delta_chrom : float, optional
+            Momentum deviation for the chromaticity computation.
+        - skip_global_quantities : bool, optional
+            If True, the global quantities are not computed.
+        - use_full_inverse : bool, optional
+            If True, the full inverse of the W matrik is used. If False, the inverse
+            is computed from the symplectic condition.
+        - steps_r_matrix : dict, optional
+            Steps to be used for the finite difference computation of the R matrix.
+            If not provided, the default values are used.
+        - r_sigma : float, optional
+            Deviation in sigmas used for the propagation of the W matrix.
+            Initial value for the r_sigma parameter.
+        - nemitt_x : float, optional
+            Horizontal emittance assumed for the comutation of the deviation
+            used for the propagation of the W matrix.
+        - nemitt_y : float, optional
+            Vertical emittance assumed for the comutation of the deviation
+            used for the propagation of the W matrix.
 
     """
 
