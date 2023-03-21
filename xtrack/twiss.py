@@ -120,9 +120,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     Returns
     -------
     twiss : xtrack.TwissTable
-        Twiss calculation results. The table contains the following
-        element-by-element quantities:
-        - s, position of the element in meters
+        Twiss calculation results. The table contains the following element-by-element quantities:
+        - s position of the element in meters
         - name, name of the element
         - x, horizontal position in meters (closed orbit for periodic solution)
         - px, horizontal momentum (closed orbit for periodic solution)
@@ -171,7 +170,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     - partition_numbers:
         radiation partition numbers (if `eneloss_and_damping` is True)
 
-    Other parameters
+    Other Parameters
     ----------------
 
     particle_on_co : xpart.Particles, optional
