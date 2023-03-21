@@ -123,7 +123,7 @@ def test_aperture_refinement():
     rot_deg_aper_1 = 10.
 
     # aper_0_sandwitch
-    line_aper_0 = line=xt.Line(
+    line_aper_0 = xt.Line(
         elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
                   xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
                   aper_0,

@@ -15,7 +15,7 @@ int8_t assert_rutherford_set(RandomRutherfordData rng, LocalParticle* part, int6
     double A = RandomRutherfordData_get_A(rng);
     double B = RandomRutherfordData_get_B(rng);
     if (A==0. && B==0.) {
-        kill_particle(part, kill_state);
+        LocalParticle_kill_particle(part, kill_state);
         return 0;
     }
     return 1;
@@ -59,7 +59,7 @@ double RandomRutherford_generate(RandomRutherfordData rng, LocalParticle* part){
     
     if (A==0. || B==0.){
         // Not initialised
-        kill_particle(part, RNG_ERR_RUTH_NOT_SET);
+        LocalParticle_kill_particle(part, RNG_ERR_RUTH_NOT_SET);
         return 0.;
     }
 

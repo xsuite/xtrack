@@ -55,7 +55,7 @@ class Tracker:
         sequence=None,
         track_kernel=None,
         element_classes=None,
-        particles_class=None,
+        particles_class=xp.Particles,
         skip_end_turn_actions=False,
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
@@ -248,7 +248,7 @@ class Tracker:
                 noncollective_xelements.append(
                     Drift(_buffer=_buffer, length=ldrift))
 
-        # Build tracker for all non collective elements
+        # Build tracker for all non-collective elements
         # (with collective elements replaced by Drifts)
         supertracker = Tracker(_buffer=_buffer,
                 line=Line(elements=noncollective_xelements,
@@ -266,21 +266,21 @@ class Tracker:
                 )
         supertracker.config = self.config
 
-        # Build trackers for non collective parts
+        # Build trackers for non-collective parts
         for ii, pp in enumerate(parts):
             if not _check_is_collective(pp):
                 parts[ii] = Tracker(_buffer=_buffer,
-                                line=pp,
-                                element_classes=supertracker.element_classes,
-                                track_kernel=supertracker.track_kernel,
-                                particles_class=particles_class,
-                                particles_monitor_class=particles_monitor_class,
-                                global_xy_limit=global_xy_limit,
-                                extra_headers=extra_headers,
-                                local_particle_src=local_particle_src,
-                                skip_end_turn_actions=True,
-                                io_buffer=self.io_buffer,
-                                use_prebuilt_kernels=use_prebuilt_kernels,)
+                                    line=pp,
+                                    element_classes=supertracker.element_classes,
+                                    track_kernel=supertracker.track_kernel,
+                                    particles_class=particles_class,
+                                    particles_monitor_class=particles_monitor_class,
+                                    global_xy_limit=global_xy_limit,
+                                    extra_headers=extra_headers,
+                                    local_particle_src=local_particle_src,
+                                    skip_end_turn_actions=True,
+                                    io_buffer=self.io_buffer,
+                                    use_prebuilt_kernels=use_prebuilt_kernels,)
                 parts[ii].config = self.config
 
         # Make a "marker" element to increase at_element
@@ -338,7 +338,7 @@ class Tracker:
             particles_class = xp.Particles
 
         if local_particle_src is None:
-            local_particle_src = xp.gen_local_particle_api()
+            local_particle_src = particles_class.gen_local_particle_api()
 
         self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
@@ -803,7 +803,8 @@ class Tracker:
                     kernel_descriptions={'track_line': kernel_description},
                 )
                 self._context.kernels.update(kernels)
-                self._current_track_kernel = self._context.kernels['track_line']
+                classes = (self.particles_class._XoStruct,)
+                self._current_track_kernel = self._context.kernels[('track_line', classes)]
                 self.element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
                     line=self.line,
@@ -973,7 +974,8 @@ class Tracker:
         )
         context.kernels.update(out_kernels)
 
-        self._current_track_kernel = context.kernels.track_line
+        classes = (self.particles_class._XoStruct,)
+        self._current_track_kernel = context.kernels[('track_line', classes)]
 
     def get_kernel_descriptions(self, _context=None):
         if not _context:
@@ -1179,9 +1181,9 @@ class Tracker:
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
         if state:
-            self.freeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
+            self.freeze_vars(self.particles_class.part_energy_varnames() + ['zeta'])
         else:
-            self.unfreeze_vars(xp.particles.part_energy_varnames() + ['zeta'])
+            self.unfreeze_vars(self.particles_class.part_energy_varnames() + ['zeta'])
 
     def _track_with_collective(
         self,
@@ -1367,6 +1369,14 @@ class Tracker:
         freeze_longitudinal=False,
         time=False
     ):
+        # Add the Particles class to the config, so the kernel is recompiled
+        # and stored if a new Particles class is given.
+        if type(particles) != xp.Particles:
+            self.config.particles_class_name = type(particles).__name__
+        else:
+            self.config.pop('particles_class_name', None)
+        self.particles_class = particles.__class__
+        self.local_particle_src = particles.gen_local_particle_api()
 
         if time:
             t0 = perf_counter()

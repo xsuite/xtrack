@@ -7,6 +7,8 @@ from typing import Tuple
 
 import xobjects as xo
 
+from xobjects.struct import Struct, MetaStruct
+
 from .line import Line, mk_class_namespace
 
 
@@ -24,9 +26,10 @@ class SerializationHeader(xo.Struct):
 class TrackerData:
     @staticmethod
     def generate_element_ref_data(element_ref_class) -> 'ElementRefData':
-        class ElementRefData(xo.Struct):
+        class ElementRefData(Struct):
             elements = element_ref_class[:]
             names = xo.String[:]
+            _overridable = False
 
         return ElementRefData
 
