@@ -565,7 +565,7 @@ class MadLoader:
                 last_element = madelem
         yield last_element
 
-    def make_line(self, buffer=None):
+    def make_line(self, buffer=None, verbose=True):
         """Create a new line in buffer"""
         mad = self.sequence._madx
 
@@ -605,7 +605,7 @@ class MadLoader:
                     f'Element {el.type} not supported,\nimplement "add_{el.type}"'
                     f" or convert_{el.type} in function in MadLoader"
                 )
-            if ii % 100 == 0:
+            if ii % 100 == 0 and verbose:
                 print(
                     f'Converting sequence "{self.sequence.name}":'
                     f' {round(ii/nelem*100):2d}%     ',

@@ -201,7 +201,7 @@ class Line:
     _element_dict = None
 
     @classmethod
-    def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
+    def from_dict(cls, dct, _context=None, _buffer=None, classes=(), verbose=True):
         '''
         Build a Line from a dictionary. `_context` and `_buffer` can be
         optionally specified.
@@ -214,7 +214,7 @@ class Line:
             elements = {}
             num_elements = len(dct['elements'].keys())
             for ii, (kk, ee) in enumerate(dct['elements'].items()):
-                if ii % 100 == 0:
+                if ii % 100 == 0 and verbose:
                     print('Loading line from dict: '
                         f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
                 elements[kk] = _deserialize_element(ee, class_dict, _buffer)
@@ -222,7 +222,7 @@ class Line:
             elements = []
             num_elements = len(dct['elements'])
             for ii, ee in enumerate(dct['elements']):
-                if ii % 100 == 0:
+                if ii % 100 == 0 and verbose:
                     print('Loading line from dict: '
                         f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
                 elements.append(_deserialize_element(ee, class_dict, _buffer))
@@ -238,7 +238,8 @@ class Line:
         if '_var_manager' in dct.keys():
             self._init_var_management(dct=dct)
 
-        print('Done loading line from dict.           ')
+        if verbose:
+            print('Done loading line from dict.           ')
 
         return self
 
@@ -370,7 +371,8 @@ class Line:
         merge_drifts=False,
         merge_multipoles=False,
         expressions_for_element_types=None,
-        replace_in_expr=None
+        replace_in_expr=None,
+        verbose=True
     ):
 
         """
@@ -396,7 +398,7 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr
             )
-        line=loader.make_line()
+        line=loader.make_line(verbose=verbose)
         return line
 
     def _init_var_management(self, dct=None):
@@ -1272,7 +1274,7 @@ class Line:
 
         return elements, names
 
-    def check_aperture(self, needs_aperture=[]):
+    def check_aperture(self, needs_aperture=[], verbose=True):
 
         '''Check that all active elements have an associated aperture.'''
 
@@ -1309,7 +1311,7 @@ class Line:
 
         for iee in range(i_prev_aperture, num_elements):
 
-            if iee % 100 == 0:
+            if iee % 100 == 0 and verbose:
                 print(
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
@@ -1350,7 +1352,8 @@ class Line:
             elements_df['misses_aperture_upstream'] | (
                 elements_df['isthick'] & elements_df['misses_aperture_downstream']))
 
-        print('Done checking aperture.           ')
+        if verbose:
+            print('Done checking aperture.           ')
 
         # Identify issues with apertures associate with thin elements
         df_thin_missing_aper = elements_df[elements_df['misses_aperture_upstream'] & ~elements_df['isthick']]
