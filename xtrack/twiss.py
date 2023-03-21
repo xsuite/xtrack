@@ -120,59 +120,100 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     Returns
     -------
     twiss : xtrack.TwissTable
+        Twiss calculation results.
 
     The table contains the following element-by-element quantities:
 
-    - `s`: position of the element in meters
-    - `name`: name of the element
-    - `x`: horizontal position in meters (closed orbit for periodic solution)
-    - `px`: horizontal momentum (closed orbit for periodic solution)
-    - `y`: vertical position in meters (closed orbit for periodic solution)
-    - `py`: vertical momentum (closed orbit for periodic solution)
-    - `zeta`: longitudinal position in meters(closed orbit for periodic solution)
-    - `delta`: longitudinal momentum deviation (closed orbit for periodic solution)
-    - `ptau`: longitudinal momentum deviation (closed orbit for periodic solution)
-    - `betx`: horizontal beta function
-    - `bety`: vertical beta function
-    - `alfx`: horizontal alpha function
-    - `alfy`: vertical alpha function
-    - `gamx`: horizontal gamma function
-    - `gamy`: vertical gamma function
-    - `mux`: horizontal phase advance
-    - `muy`: vertical phase advance
-    - `muzeta`: longitudinal phase advance
-    - `dx`: horizontal dispersion (d x / d delta)
-    - `dy`: vertical dispersion (d y / d delta)
-    - `dzeta`: longitudinal dispersion (d zeta / d delta)
-    - `dpx`: horizontal dispersion (d px / d delta)
-    - `dpy`: vertical dispersion (d y / d delta)
-    - `W_matrix`: W matrix
-    - `betx1`: computed horizontal beta function (Mais-Ripken)
-    - `bety1`: computed vertical beta function (Mais-Ripken)
-    - `betx2`: computed horizontal beta function (Mais-Ripken)
-    - `bety2`: computed vertical beta function (Mais-Ripken)
+    - `s`:
+        position of the element in meters
+    - `name`:
+        name of the element
+    - `x`:
+        horizontal position in meters (closed orbit for periodic solution)
+    - `px`:
+        horizontal momentum (closed orbit for periodic solution)
+    - `y`:
+        vertical position in meters (closed orbit for periodic solution)
+    - `py`:
+        vertical momentum (closed orbit for periodic solution)
+    - `zeta`:
+        longitudinal position in meters(closed orbit for periodic solution)
+    - `delta`:
+        longitudinal momentum deviation (closed orbit for periodic solution)
+    - `ptau`:
+        longitudinal momentum deviation (closed orbit for periodic solution)
+    - `betx`:
+        horizontal beta function
+    - `bety`:
+        vertical beta function
+    - `alfx`:
+        horizontal alpha function
+    - `alfy`:
+        vertical alpha function
+    - `gamx`:
+        horizontal gamma function
+    - `gamy`:
+        vertical gamma function
+    - `mux`:
+        horizontal phase advance
+    - `muy`:
+        vertical phase advance
+    - `muzeta`:
+        longitudinal phase advance
+    - `dx`:
+        horizontal dispersion (d x / d delta)
+    - `dy`:
+        vertical dispersion (d y / d delta)
+    - `dzeta`:
+        longitudinal dispersion (d zeta / d delta)
+    - `dpx`:
+        horizontal dispersion (d px / d delta)
+    - `dpy`:
+        vertical dispersion (d y / d delta)
+    - `W_matrix`:
+        W matrix
+    - `betx1`:
+        computed horizontal beta function (Mais-Ripken)
+    - `bety1`:
+        computed vertical beta function (Mais-Ripken)
+    - `betx2`:
+        computed horizontal beta function (Mais-Ripken)
+    - `bety2`:
+        computed vertical beta function (Mais-Ripken)
 
     The table also contains the following global quantities:
 
-    - `qx` : horizontal tune
-    - `qy` : vertical tune
-    - `qs` : synchrotron tune
-    - `dqx` : horizontal chromaticity (d qx / d delta)
-    - `dqy` : vertical chromaticity (d qy / d delta)
-    - `c_minus` : closest tune approach coefficient
-    - `slip_factor` : slip factor (1 / f_ref * d f_ref / d delta)
-    - `momentum_compaction_factor` : momentum compaction factor
-    - `T_rev0` : reference revolution period
-    - `partice_on_co` : particle on closed orbit
-    - `R_matrix` : R matrix (if calculated or provided)
-    - `eneloss_turn`: energy loss per turn in electron volts (if
+    - `qx` :
+        horizontal tune
+    - `qy` :
+        vertical tune
+    - `qs` :
+        synchrotron tune
+    - `dqx` :
+        horizontal chromaticity (d qx / d delta)
+    - `dqy` :
+        vertical chromaticity (d qy / d delta)
+    - `c_minus` :
+        closest tune approach coefficient
+    - `slip_factor` :
+        slip factor (1 / f_ref * d f_ref / d delta)
+    - `momentum_compaction_factor` :
+        momentum compaction factor
+    - `T_rev0` :
+        reference revolution period
+    - `partice_on_co` :
+        particle on closed orbit
+    - `R_matrix` :
+        R matrix (if calculated or provided)
+    - `eneloss_turn`:
+        energy loss per turn in electron volts (if
         `eneloss_and_damping`is True)
-    - `damping_constants_turns`: radiation damping constants per turn (if
-        `eneloss_and_damping`is True)
-    - `damping_constants_s`: radiation damping constants per second (if
-        `eneloss_and_damping`is True)
-    - `partition_numbers`: raidation partition numbers (if `eneloss_and_damping`
-        is True)
+    - `damping_constants_turns`:
+        radiation damping constants per turn (if `eneloss_and_damping` is True)
+    - `damping_constants_s`:
+        radiation damping constants per second (if `eneloss_and_damping` is True)
+    - `partition_numbers`:
+        radiation partition numbers (if `eneloss_and_damping` is True)
 
     Additional input parameters
     ---------------------------
