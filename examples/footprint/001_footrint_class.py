@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 
 
-class FootprintPolar():
+class Footprint():
 
     def __init__(self, r_range=(0.1, 6), theta_range=(0.2, np.pi/2-0.05),
                  n_r=10, n_theta=10, n_turns=256, n_fft=2**18,
@@ -74,21 +74,52 @@ class FootprintPolar():
         ax.plot(self.qx, self.qy, **kwargs)
         ax.plot(self.qx.T, self.qy.T, **kwargs)
 
-        ax.set_xlabel('qx')
-        ax.set_ylabel('qy')
+        ax.set_xlabel(r'$q_x$')
+        ax.set_ylabel(r'$q_y$')
 
         return ax
+
+def get_footprint(self, r_range=(0.1, 6), theta_range=(0.2, np.pi/2-0.05),
+                 n_r=10, n_theta=10, n_turns=256, n_fft=2**18,
+                 nemitt_x=None, nemitt_y=None):
+
+    fp = Footprint(r_range=r_range, theta_range=theta_range, n_r=n_r,
+                   n_theta=n_theta, n_turns=n_turns, n_fft=n_fft,
+                   nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+    fp._compute_footprint(self)
+
+    return fp
+
+xt.Line.get_footprint = get_footprint
+
 
 
 nemitt_x = 1e-6
 nemitt_y = 1e-6
 
 
-fp = FootprintPolar(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+fp = Footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12)
 line.build_tracker()
 
-fp._compute_footprint(line)
+plt.close('all')
+
+fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+fp0.plot(color='k', label='I_oct=0')
+
+line.vars['i_oct_b1'] = 500
+
+fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+fp1.plot(color='r', label='I_oct=500')
+
+line.vars['i_oct_b1'] = -250
+
+fp2 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+fp2.plot(color='b', label='I_oct=-250')
+
+plt.legend()
+
+plt.show()
