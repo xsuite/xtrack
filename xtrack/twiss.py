@@ -431,8 +431,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     i_take = np.array(i_take)
     _temp_range = np.arange(0, len(s_co), 1, dtype=int)
     mask_replace = _temp_range != i_take
-    # Force keeping of the last element
-    mask_replace[-1] = False
+    mask_replace[-1] = False # Force keeping of the last element
     i_replace = _temp_range[mask_replace]
     i_replace_with = i_take[mask_replace]
 
