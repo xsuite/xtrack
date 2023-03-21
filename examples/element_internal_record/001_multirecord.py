@@ -85,7 +85,7 @@ TestElement_track_method_source = r'''
             }
 
             for (int64_t i = 0; i < n_kicks; i++) {
-                double rr = 1e-6 * LocalParticle_generate_random_double(part);
+                double rr = 1e-6 * RandomUniform_generate(part);
                 LocalParticle_add_to_px(part, rr);
 
                 // Record in table2 info about the generated kicks
@@ -122,12 +122,9 @@ class TestElement(xt.BeamElement):
 
     _internal_record_class = TestElementRecord
 
-    _extra_c_sources = [
-        # The element uses the random number generator
-        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
-        TestElement_track_method_source
-    ]
+    _depends_on = [xt.RandomUniform]
+
+    _extra_c_sources = [TestElement_track_method_source]
 
 # Once these steps are done, the TestElement and its recording feature are ready
 # and can be used as follows.
@@ -136,19 +133,19 @@ class TestElement(xt.BeamElement):
 line=xt.Line(elements = [
     xt.Drift(length=1.), TestElement(n_kicks=10),
     xt.Drift(length=1.), TestElement(n_kicks=5)])
-tracker = line.build_tracker()
-tracker.line._needs_rng = True # Test elements use the random number generator
+line.build_tracker()
+line._needs_rng = True # Test elements use the random number generator
 part = xp.Particles(p0c=6.5e12, x=[1e-3,2e-3,3e-3])
 
 # The record is by default disabled and can be enabled using the following
-# dedicated method of the tracker object.
+# dedicated method of the line object.
 # The capacity allocated for the two tables needs to be provided in a dictionary:
-record = tracker.start_internal_logging_for_elements_of_type(
+line.start_internal_logging_for_elements_of_type(
                                                     TestElement,
                                     capacity={'table1': 5000, 'table2': 10000})
 
 # Track!
-tracker.track(part, num_turns=10)
+line.track(part, num_turns=10)
 
 # We can now inspect the two tables in the `record`, e.g `record.table1.particle_x`,
 # `record.table2.generated_rr`. The number of used slots in each can be found in
@@ -156,156 +153,9 @@ tracker.track(part, num_turns=10)
 
 
 # The recording can be stopped with the following method:
-tracker.stop_internal_logging_for_elements_of_type(TestElement)
+line.stop_internal_logging_for_elements_of_type(TestElement)
 
 # Track more turns (without logging information in `record`)
-tracker.track(part, num_turns=10)
+line.track(part, num_turns=10)
 
 #!end-doc-part
-
-# Checks
-
-context = xo.ContextCpu()
-#context = xo.ContextCupy()
-#context = xo.ContextPyopencl()
-n_kicks0 = 5
-n_kicks1 = 3
-tracker = xt.Tracker(_context=context, line=xt.Line(elements = [
-    TestElement(n_kicks=n_kicks0), TestElement(n_kicks=n_kicks1)]))
-tracker.line._needs_rng = True
-
-record = tracker.start_internal_logging_for_elements_of_type(TestElement,
-                            capacity={'table1': 10000, 'table2': 10000})
-
-part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
-num_turns0 = 10
-num_turns1 = 3
-tracker.track(part, num_turns=num_turns0)
-tracker.track(part, num_turns=num_turns1)
-
-part.move(_context=xo.ContextCpu())
-record.move(_context=xo.ContextCpu())
-
-num_turns = num_turns0 + num_turns1
-num_particles = len(part.x)
-
-table1 = record.table1
-table2 = record.table2
-num_recorded_tab1 = table1._index.num_recorded
-num_recorded_tab2 = table2._index.num_recorded
-
-assert num_recorded_tab1 == 2 * (num_particles * num_turns)
-assert num_recorded_tab2 == (num_particles * num_turns * (n_kicks0 + n_kicks1))
-
-assert np.sum((table1.at_element[:num_recorded_tab1] == 0)) == (num_particles * num_turns)
-assert np.sum((table1.at_element[:num_recorded_tab1] == 1)) == (num_particles * num_turns)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 0)) == (num_particles * num_turns
-                                           * n_kicks0)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 1)) == (num_particles * num_turns
-                                           * n_kicks1)
-for i_turn in range(num_turns):
-    assert np.sum((table1.at_turn[:num_recorded_tab1] == i_turn)) == 2 * num_particles
-    assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
-                                                        * (n_kicks0 + n_kicks1))
-# Check reached capacity
-record = tracker.start_internal_logging_for_elements_of_type(
-                                                    TestElement,
-                                    capacity={'table1': 20, 'table2': 15})
-
-part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
-num_turns0 = 10
-num_turns1 = 3
-tracker.track(part, num_turns=num_turns0)
-tracker.track(part, num_turns=num_turns1)
-
-table1 = record.table1
-table2 = record.table2
-num_recorded_tab1 = table1._index.num_recorded
-num_recorded_tab2 = table2._index.num_recorded
-
-assert num_recorded_tab1 == 20
-assert num_recorded_tab2 == 15
-
-
-# Check stop
-record = tracker.start_internal_logging_for_elements_of_type(
-                                    TestElement,
-                                    capacity={'table1': 1000, 'table2': 1000})
-
-part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
-num_turns0 = 10
-num_turns1 = 3
-num_particles = len(part.x)
-
-tracker.track(part, num_turns=num_turns0)
-tracker.stop_internal_logging_for_elements_of_type(TestElement)
-tracker.track(part, num_turns=num_turns1)
-
-part.move(_context=xo.ContextCpu())
-record.move(_context=xo.ContextCpu())
-
-num_turns = num_turns0
-
-table1 = record.table1
-table2 = record.table2
-num_recorded_tab1 = table1._index.num_recorded
-num_recorded_tab2 = table2._index.num_recorded
-
-assert num_recorded_tab1 == 2 * (num_particles * num_turns)
-assert num_recorded_tab2 == (num_particles * num_turns * (n_kicks0 + n_kicks1))
-
-assert np.sum((table1.at_element[:num_recorded_tab1] == 0)) == (num_particles * num_turns)
-assert np.sum((table1.at_element[:num_recorded_tab1] == 1)) == (num_particles * num_turns)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 0)) == (num_particles * num_turns
-                                           * n_kicks0)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 1)) == (num_particles * num_turns
-                                           * n_kicks1)
-for i_turn in range(num_turns):
-    assert np.sum((table1.at_turn[:num_recorded_tab1] == i_turn)) == 2 * num_particles
-    assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
-                                                        * (n_kicks0 + n_kicks1))
-
-# Collective
-n_kicks0 = 5
-n_kicks1 = 3
-elements = [
-    TestElement(n_kicks=n_kicks0, _context=context), TestElement(n_kicks=n_kicks1)]
-elements[0].iscollective = True
-tracker = xt.Tracker(_context=context, line=xt.Line(elements=elements))
-tracker.line._needs_rng = True
-
-record = tracker.start_internal_logging_for_elements_of_type(
-                                    TestElement,
-                                    capacity={'table1': 1000, 'table2': 1000})
-
-part = xp.Particles(_context=context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
-num_turns0 = 10
-num_turns1 = 3
-tracker.track(part, num_turns=num_turns0)
-tracker.stop_internal_logging_for_elements_of_type(TestElement)
-tracker.track(part, num_turns=num_turns1)
-
-# Checks
-part.move(_context=xo.ContextCpu())
-record.move(_context=xo.ContextCpu())
-num_turns = num_turns0
-num_particles = len(part.x)
-
-table1 = record.table1
-table2 = record.table2
-num_recorded_tab1 = table1._index.num_recorded
-num_recorded_tab2 = table2._index.num_recorded
-
-assert num_recorded_tab1 == 2 * (num_particles * num_turns)
-assert num_recorded_tab2 == (num_particles * num_turns * (n_kicks0 + n_kicks1))
-
-assert np.sum((table1.at_element[:num_recorded_tab1] == 0)) == (num_particles * num_turns)
-assert np.sum((table1.at_element[:num_recorded_tab1] == 1)) == (num_particles * num_turns)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 0)) == (num_particles * num_turns
-                                           * n_kicks0)
-assert np.sum((table2.at_element[:num_recorded_tab2] == 1)) == (num_particles * num_turns
-                                           * n_kicks1)
-for i_turn in range(num_turns):
-    assert np.sum((table1.at_turn[:num_recorded_tab1] == i_turn)) == 2 * num_particles
-    assert np.sum((table2.at_turn[:num_recorded_tab2] == i_turn)) == (num_particles
-                                                        * (n_kicks0 + n_kicks1))

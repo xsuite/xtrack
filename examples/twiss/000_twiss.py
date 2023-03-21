@@ -10,35 +10,27 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-###############
-# Load a line #
-###############
+#################################
+# Load a line and build tracker #
+#################################
 
-fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
-#fname_line_particles = '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json' #!skip-doc
-
-with open(fname_line_particles, 'r') as fid:
-    input_data = json.load(fid)
-line = xt.Line.from_dict(input_data['line'])
-line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-
-#################
-# Build tracker #
-#################
-
-tracker = xt.Tracker(line=line)
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
+line.particle_ref = xp.Particles(
+                    mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.build_tracker()
 
 #########
 # Twiss #
 #########
 
-tw = tracker.twiss()
+tw = line.twiss()
 
 #!end-doc-part
 
 # Test custom s locations
 s_test = [2e3, 1e3, 3e3, 10e3]
-twats = tracker.twiss(at_s = s_test)
+twats = line.twiss(at_s = s_test)
 for ii, ss in enumerate(s_test):
     assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
     i_prev = np.where(tw['s']<=ss)[0][-1]
@@ -54,7 +46,7 @@ for ii, ss in enumerate(s_test):
 
 twmb19r5 = tw.get_twiss_init(at_element='mb.b19l5.b1')
 
-tw_part = tracker.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
+tw_part = line.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
                         twiss_init=twmb19r5)
 
 

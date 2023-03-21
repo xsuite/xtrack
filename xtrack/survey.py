@@ -10,6 +10,7 @@
 import numpy as np
 
 from .general import Table
+from .twiss import TwissTable
 import xtrack as xt
 
 # Required functions
@@ -142,6 +143,8 @@ class SurveyTable(Table):
         out['tilt'] = np.array(out_tilt + [0.])
 
         return out
+
+SurveyTable.__getitem__ = TwissTable.__getitem__
 
 def _get_s_increments(elements):
     lengths = []

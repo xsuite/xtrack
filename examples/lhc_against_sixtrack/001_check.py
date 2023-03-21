@@ -27,7 +27,7 @@ context = xo.ContextCpu()
 
 sixinput = sixtracktools.SixInput(sixtrack_folder)
 line = sixinput.generate_xtrack_line()
-tracker = xt.Tracker(_context=context, line=line)
+line.build_tracker(_context=context)
 iconv = line.other_info["iconv"]
 
 sixdump_all = sixtracktools.SixDump101(sixtrack_folder + "/dump3.dat")
@@ -45,7 +45,7 @@ if any(ee.__class__.__name__.startswith('BeamBeam') for ee in line.elements):
             py=sixdump_CO.py[0],
             zeta=sixdump_CO.tau[0]*sixdump_CO.beta0[0],
             delta=sixdump_CO.delta[0])
-    xf.configure_orbit_dependent_parameters_for_bb(tracker,
+    xf.configure_orbit_dependent_parameters_for_bb(line,
                            particle_on_co=part_on_CO)
 
 def compare(prun, pbench):
@@ -79,7 +79,7 @@ for ii in range(1, len(iconv)):
     for jj in range(jja + 1, jjb + 1):
         label, elem = line.element_names[jj], line.elements[jj]
         #elem.track(prun)
-        tracker.track(particles=prun, ele_start=jj, num_elements=1)
+        line.track(particles=prun, ele_start=jj, num_elements=1)
         print(f"{jj} {label},{str(elem)[:50]}")
     pbench = xp.Particles.from_dict(sixdump[ii].get_minimal_beam())
     s_coord.append(pbench.s)

@@ -10,26 +10,26 @@ filename = '../../test_data/clic_dr/line_for_taper.json'
 
 with open(filename, 'r') as f:
     line = xt.Line.from_dict(json.load(f))
-tracker = line.build_tracker()
+line.build_tracker()
 
-tracker.configure_radiation(model=None)
-tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True)
+line.configure_radiation(model=None)
+tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
 
 ###############################################
 # Enable radiation and compensate energy loss #
 ###############################################
 
-tracker.configure_radiation(model='mean')
+line.configure_radiation(model='mean')
 
 # - Set cavity lags to compensate energy loss
 # - Taper magnet strengths to avoid optics and orbit distortions
-tracker.compensate_radiation_energy_loss()
+line.compensate_radiation_energy_loss()
 
 ##############################
 # Twiss to check the results #
 ##############################
 
-tw = tracker.twiss(method='6d')
+tw = line.twiss(method='6d')
 
 tw.delta # contains the momentum deviation along the ring
 

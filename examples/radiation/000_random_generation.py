@@ -22,14 +22,14 @@ class TestElement(xt.BeamElement):
         'dummy': xo.Float64,
         }
 
+    _depends_on = [xt.RandomUniform]
+
     _extra_c_sources = [
-        xp._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         '''
         /*gpufun*/
         void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
             //start_per_particle_block (part0->part)
-                double rr = LocalParticle_generate_random_double(part);
+                double rr = RandomUniform_generate(part);
                 LocalParticle_set_x(part, rr);
             //end_per_particle_block
         }
@@ -40,18 +40,16 @@ telem = TestElement(_context=ctx)
 telem.track(part)
 
 # Use turn-by-turn monitor to acquire some statistics
+line=xt.Line(elements=[telem])
+line.build_tracker(_buffer=telem._buffer)
 
-tracker = xt.Tracker(_buffer=telem._buffer,
-        line=xt.Line(elements=[telem]),
-        )
-
-tracker.track(part, num_turns=1e6, turn_by_turn_monitor=True)
+line.track(part, num_turns=1e6, turn_by_turn_monitor=True)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure()
 for i_part in range(part._capacity):
-    x = tracker.record_last_track.x[i_part, :]
+    x = line.record_last_track.x[i_part, :]
     assert np.all(x>0)
     assert np.all(x<1)
     hstgm, bin_edges = np.histogram(x,  bins=50, range=(0, 1), density=True)

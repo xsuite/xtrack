@@ -176,7 +176,9 @@ class MadElem:
             self.field_errors = FieldErrors(elem.field_errors)
         else:
             self.field_errors = None
-        if elem.dphi or elem.dtheta or elem.dpsi or elem.dx or elem.dy or elem.ds:
+        if elem.base_type.name != 'translation' and (
+                elem.dphi or elem.dtheta or elem.dpsi
+                or elem.dx or elem.dy or elem.ds):
             raise NotImplementedError
 
     # @property
@@ -282,7 +284,7 @@ class ElementBuilder:
         self.attrs = {} if attrs is None else attrs
 
     def __repr__(self):
-        return "Element(%s, %s, %s, %s)" % (self.name, self.type, self.init, self.attrs)
+        return "Element(%s, %s, %s)" % (self.name, self.type, self.attrs)
 
     def __setattr__(self, k, v):
         if hasattr(self, "attrs"):
@@ -456,7 +458,7 @@ class Dummy:
 
 class MadLoader:
     @staticmethod
-    def init_line_expressions(line, mad):  # to be added to Line....
+    def init_line_expressions(line, mad, replace_in_expr):  # to be added to Line....
         """Enable expressions"""
         line._init_var_management()
 
@@ -465,20 +467,32 @@ class MadLoader:
         _var_values = line._var_management["data"]["var_values"]
         _var_values.default_factory = lambda: 0
         for name, par in mad.globals.cmdpar.items():
+            if replace_in_expr is not None:
+                for k, v in replace_in_expr.items():
+                    name = name.replace(k, v)
             _var_values[name] = par.value
         _ref_manager = line._var_management["manager"]
         _vref = line._var_management["vref"]
         _fref = line._var_management["fref"]
         _lref = line._var_management["lref"]
 
-        madeval = MadxEval(_vref, _fref, None).eval
+        madeval_no_repl = MadxEval(_vref, _fref, None).eval
+
+        if replace_in_expr is not None:
+            def madeval(expr):
+                for k, v in replace_in_expr.items():
+                    expr = expr.replace(k, v)
+                return madeval_no_repl(expr)
+        else:
+            madeval = madeval_no_repl
 
         # Extract expressions from madx globals
         for name, par in mad.globals.cmdpar.items():
-            if par.expr is not None:
-                if "table(" in par.expr:  # Cannot import expressions involving tables
+            ee = par.expr
+            if ee is not None:
+                if "table(" in ee:  # Cannot import expressions involving tables
                     continue
-                _vref[name] = madeval(par.expr)
+                _vref[name] = madeval(ee)
         return madeval
 
     def __init__(
@@ -493,8 +507,15 @@ class MadLoader:
         error_table=None,
         exact_drift=False,
         ignore_madtypes=(),
+        expressions_for_element_types=None,
         classes=xtrack,
+        replace_in_expr=None
     ):
+
+        if expressions_for_element_types is not None:
+            assert enable_expressions, ("Expressions must be enabled if "
+                                "`expressions_for_element_types` is not None")
+
         self.sequence = sequence
         self.enable_expressions = enable_expressions
         self.enable_errors = enable_errors
@@ -503,9 +524,13 @@ class MadLoader:
         self.merge_drifts = merge_drifts
         self.merge_multipoles = merge_multipoles
         self.enable_apertures = enable_apertures
+        self.expressions_for_element_types = expressions_for_element_types
         self.classes = classes
+        self.replace_in_expr = replace_in_expr
         if exact_drift:
-            self._drift = self.classes.DriftExact
+            self._drift = self.classes.DriftExact # will probably be removed
+                                                  # DriftExact is implemented
+                                                  # with compile flag
         else:
             self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
@@ -550,7 +575,8 @@ class MadLoader:
         line = self.classes.Line()
 
         if self.enable_expressions:
-            madeval = MadLoader.init_line_expressions(line, mad)
+            madeval = MadLoader.init_line_expressions(line, mad,
+                                                      self.replace_in_expr)
             self.Builder = ElementBuilderWithExpr
         else:
             madeval = None
@@ -562,17 +588,27 @@ class MadLoader:
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
+            if self.expressions_for_element_types is not None:
+               if el.type in self.expressions_for_element_types:
+                   self.Builder = ElementBuilderWithExpr
+                   el.madeval = madeval
+               else:
+                    self.Builder = ElementBuilder
+                    el.madeval = None
             if adder:
                 adder(el, line, buffer)
             elif converter:
-                self.add_elements(converter(el), line, buffer)
+                converted_el = converter(el)
+                self.add_elements(converted_el, line, buffer)
             else:
                 raise ValueError(
-                    f"Element {el.type} not supported,\n implement add_{el.type} or convert_{el.type} in function in MadLoader"
+                    f'Element {el.type} not supported,\nimplement "add_{el.type}"'
+                    f" or convert_{el.type} in function in MadLoader"
                 )
             if ii % 100 == 0:
                 print(
-                    f'Converting sequence "{self.sequence.name}": {round(ii/nelem*100):2d}%     ',
+                    f'Converting sequence "{self.sequence.name}":'
+                    f' {round(ii/nelem*100):2d}%     ',
                     end="\r",
                     flush=True,
                 )
@@ -694,7 +730,7 @@ class MadLoader:
         return [self.Builder(mad_elem.name, self._drift, length=mad_elem.l)]
 
     def convert_marker(self, mad_elem):
-        el = self.Builder(mad_elem.name, self._drift, length=0)
+        el = self.Builder(mad_elem.name, self.classes.Marker)
         return self.convert_thin_element([el], mad_elem)
 
     def convert_drift_like(self, mad_elem):
@@ -981,3 +1017,38 @@ class MadLoader:
             ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
         )
         return self.convert_thin_element([el], ee)
+
+    def convert_srotation(self, ee):
+        angle = ee.angle*180/np.pi
+        el = self.Builder(
+            ee.name, self.classes.SRotation, angle=angle
+        )
+        return self.convert_thin_element([el], ee)
+
+    def convert_xrotation(self, ee):
+        angle = ee.angle*180/np.pi
+        el = self.Builder(
+            ee.name, self.classes.XRotation, angle=angle
+        )
+        return self.convert_thin_element([el], ee)
+
+    def convert_yrotation(self, ee):
+        angle = ee.angle*180/np.pi
+        el = self.Builder(
+            ee.name, self.classes.YRotation, angle=angle
+        )
+        return self.convert_thin_element([el], ee)
+
+    def convert_translation(self, ee):
+        el_transverse = self.Builder(
+            ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
+        )
+        dzeta = ee.ds*self.sequence.beam.beta
+        el_longitudinal = self.Builder(
+            ee.name, self.classes.ZetaShift, dzeta=dzeta
+        )
+        ee.dx = 0
+        ee.dy = 0
+        ee.ds = 0
+        return self.convert_thin_element([el_transverse,el_longitudinal], ee)
+

@@ -10,8 +10,10 @@ import xobjects as xo
 import xpart as xp
 
 from ..base_element import BeamElement
+from ..random import RandomUniform, RandomExponential, RandomNormal
 from ..general import _pkg_root
 from ..internal_record import RecordIndex, RecordIdentifier
+
 
 class ReferenceEnergyIncrease(BeamElement):
 
@@ -31,6 +33,28 @@ class ReferenceEnergyIncrease(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
+class Marker(BeamElement):
+    """A marker beam element with no effect on the particles.
+
+    Parameters:
+        - name (str): Name of the element
+    """
+
+    _xofields = {
+        '_dummy': xo.Int64}
+
+    behaves_like_drift = True
+    allow_backtrack = True
+
+    _extra_c_sources = [
+        "/*gpufun*/\n"
+        "void Marker_track_local_particle(MarkerData el, LocalParticle* part0){}"
+    ]
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(_context=_context, _buffer=_buffer, _offset=_offset)
+
+
 class Drift(BeamElement):
     '''Beam element modeling a drift section. Parameters:
 
@@ -39,15 +63,16 @@ class Drift(BeamElement):
 
     _xofields = {
         'length': xo.Float64}
-    isthick=True
-    behaves_like_drift=True
+
+    isthick = True
+    behaves_like_drift = True
+    allow_backtrack = True
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(length=-self.length,
                               _context=_context, _buffer=_buffer, _offset=_offset)
-
 
 
 class Cavity(BeamElement):
@@ -87,6 +112,8 @@ class XYShift(BeamElement):
         'dx': xo.Float64,
         'dy': xo.Float64,
         }
+
+    allow_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -209,21 +236,42 @@ class SRotation(BeamElement):
 
     '''
 
-    _xofields={
+    _xofields = {
         'cos_z': xo.Float64,
         'sin_z': xo.Float64,
         }
+
+    allow_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
 
     _store_in_to_dict = ['angle']
 
-    def __init__(self, angle=0, **nargs):
-        anglerad = angle / 180 * np.pi
-        nargs['cos_z']=np.cos(anglerad)
-        nargs['sin_z']=np.sin(anglerad)
-        super().__init__(**nargs)
+    def __init__(self, angle=None, cos_z=None, sin_z=None, **kwargs):
+        """
+        If either angle or a sufficient number of trig values are given,
+        calculate the missing values from the others. If more than necessary
+        parameters are given, their consistency will be checked.
+        """
+        if angle is None and (cos_z is not None or sin_z is not None):
+            anglerad, cos_angle, sin_angle, _ = _angle_from_trig(cos_z, sin_z)
+        elif angle is not None:
+            anglerad = angle / 180 * np.pi
+        else:
+            anglerad = 0.0
+
+        if cos_z is None:
+            cos_z = np.cos(anglerad)
+        elif not np.isclose(cos_z, np.cos(anglerad), atol=1e-13):
+            raise ValueError(f'cos_z does not match angle: {cos_z} vs {anglerad}')
+
+        if sin_z is None:
+            sin_z = np.sin(anglerad)
+        elif not np.isclose(sin_z, np.sin(anglerad), atol=1e-13):
+            raise ValueError('sin_z does not match angle')
+
+        super().__init__(cos_z=cos_z, sin_z=sin_z, **kwargs)
 
     @property
     def angle(self):
@@ -236,8 +284,195 @@ class SRotation(BeamElement):
         self.sin_z = np.sin(anglerad)
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
+
+class XRotation(BeamElement):
+    '''Beam element modeling an rotation of the reference system around the x axis. Parameters:
+
+                - angle [deg]: Rotation angle. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'sin_angle': xo.Float64,
+        'cos_angle': xo.Float64,
+        'tan_angle': xo.Float64,
+        }
+
+    allow_backtrack = True
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
+
+    _store_in_to_dict = ['angle']
+
+    def __init__(
+            self,
+            angle=None,
+            cos_angle=None,
+            sin_angle=None,
+            tan_angle=None,
+            **kwargs,
+    ):
+        """
+        If either angle or a sufficient number of trig values are given,
+        calculate the missing values from the others. If more than necessary
+        parameters are given, their consistency will be checked.
+        """
+        # Note MAD-X node_value('other_bv ') is ignored
+        at_least_one_trig = sum(trig is not None for trig
+                                in (cos_angle, sin_angle, tan_angle)) > 0
+
+        if angle is None and at_least_one_trig:
+            params = _angle_from_trig(cos_angle, sin_angle, tan_angle)
+            anglerad, cos_angle, sin_angle, tan_angle = params
+        elif angle is not None:
+            anglerad = angle / 180 * np.pi
+        else:
+            anglerad = 0.0
+
+        if cos_angle is None:
+            cos_angle = np.cos(anglerad)
+        elif not np.isclose(cos_angle, np.cos(anglerad), atol=1e-13):
+            raise ValueError('cos_angle does not match angle')
+
+        if sin_angle is None:
+            sin_angle = np.sin(anglerad)
+        elif not np.isclose(sin_angle, np.sin(anglerad), atol=1e-13):
+            raise ValueError('sin_angle does not match angle')
+
+        if tan_angle is None:
+            tan_angle = np.tan(anglerad)
+        elif not np.isclose(tan_angle, np.tan(anglerad), atol=1e-13):
+            raise ValueError('tan_angle does not match angle')
+
+        super().__init__(
+            cos_angle=cos_angle, sin_angle=sin_angle, tan_angle=tan_angle,
+            **kwargs)
+
+    @property
+    def angle(self):
+        return np.arctan2(self.sin_angle,self.cos_angle) * (180.0 / np.pi)
+
+    @angle.setter
+    def angle(self, value):
+        anglerad = value / 180 * np.pi
+        self.cos_angle = np.cos(anglerad)
+        self.sin_angle = np.sin(anglerad)
+        self.tan_angle = np.tan(anglerad)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
+class YRotation(BeamElement):
+    '''Beam element modeling an rotation of the reference system around the y axis. Parameters:
+
+                - angle [deg]: Rotation angle. Default is ``0``.
+
+    '''
+
+    allow_backtrack = True
+
+    _xofields={
+        'sin_angle': xo.Float64,
+        'cos_angle': xo.Float64,
+        'tan_angle': xo.Float64,
+        }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')]
+
+    _store_in_to_dict = ['angle']
+
+    def __init__(
+            self,
+            angle=None,
+            cos_angle=None,
+            sin_angle=None,
+            tan_angle=None,
+            **kwargs,
+    ):
+        """
+        If either angle or a sufficient number of trig values are given,
+        calculate the missing values from the others. If more than necessary
+        parameters are given, their consistency will be checked.
+        """
+        #Note MAD-X node_value('other_bv ') is ignored
+        #     minus sign follows MAD-X convention
+        at_least_one_trig = sum(
+            trig is not None for trig
+                in (cos_angle, sin_angle, tan_angle)
+        ) > 0
+
+        if angle is None and at_least_one_trig:
+            params = _angle_from_trig(cos_angle, sin_angle, tan_angle)
+            anglerad, cos_angle, sin_angle, tan_angle = params
+        elif angle is not None:
+            anglerad = angle / 180 * np.pi
+        else:
+            anglerad = 0.0
+        anglerad = -anglerad
+
+        if cos_angle is None:
+            cos_angle = np.cos(anglerad)
+        elif not np.isclose(cos_angle, np.cos(anglerad), atol=1e-13):
+            raise ValueError('cos_angle does not match angle')
+
+        if sin_angle is None:
+            sin_angle = np.sin(anglerad)
+        elif not np.isclose(sin_angle, np.sin(anglerad), atol=1e-13, rtol=0):
+            raise ValueError('sin_angle does not match angle')
+
+        if tan_angle is None:
+            tan_angle = np.tan(anglerad)
+        elif not np.isclose(tan_angle, np.tan(anglerad), atol=1e-13):
+            raise ValueError('tan_angle does not match angle')
+
+        super().__init__(
+            cos_angle=cos_angle, sin_angle=sin_angle, tan_angle=tan_angle,
+            **kwargs)
+
+    @property
+    def angle(self):
+        return -np.arctan2(self.sin_angle, self.cos_angle) * (180.0 / np.pi)
+
+    @angle.setter
+    def angle(self, value):
+        anglerad = -value / 180 * np.pi
+        self.cos_angle = np.cos(anglerad)
+        self.sin_angle = np.sin(anglerad)
+        self.tan_angle = np.tan(anglerad)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        return self.__class__(angle=-self.angle,
+                              _context=_context, _buffer=_buffer, _offset=_offset)
+
+class ZetaShift(BeamElement):
+    '''Beam element modeling a longitudinal translation of the reference system. Parameters:
+
+                - dzeta [m]: Translation in the longitudinal plane. Default is ``0``.
+
+    '''
+
+    _xofields={
+        'dzeta': xo.Float64,
+        }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
+
+    _store_in_to_dict = ['dzeta']
+
+    def __init__(self, dzeta = 0, **nargs):
+        nargs['dzeta'] = dzeta
+        super().__init__(**nargs)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              angle=-self.angle,
+                              dzeta = -self.dzeta,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
@@ -275,9 +510,9 @@ class Multipole(BeamElement):
         'ksl': xo.Float64[:],
         }
 
+    _depends_on = [RandomUniform, RandomExponential]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/multipole.h')]
@@ -349,11 +584,11 @@ class SimpleThinQuadrupole(BeamElement):
     }
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
+        if knl is None:
+            knl = np.zeros(2)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -412,11 +647,11 @@ class SimpleThinBend(BeamElement):
     }
 
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
+        if knl is None:
+            knl = np.zeros(1)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
@@ -555,15 +790,16 @@ class RFMultipole(BeamElement):
 
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._context.nparray_from_context_array
         return self.__class__(
                               order=self.order,
                               voltage=-self.voltage,
                               frequency=self.frequency,
                               lag=self.lag,
-                              knl=-self.knl,
-                              ksl=-self.ksl,
-                              pn = self.pn,
-                              ps = self.ps,
+                              knl=-ctx2np(self.knl),
+                              ksl=-ctx2np(self.ksl),
+                              pn = ctx2np(self.pn),
+                              ps = ctx2np(self.ps),
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
@@ -635,8 +871,10 @@ class DipoleEdge(BeamElement):
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
-                              r21=-self.r21,
-                              r43=-self.r43,
+                              h=self.h,
+                              hgap=self.hgap,
+                              e1=-self.e1,
+                              fint=-self.fint,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
@@ -695,9 +933,9 @@ class LinearTransferMatrix(BeamElement):
         'gauss_noise_ampl_delta':xo.Float64,
         }
 
+    _depends_on = [RandomNormal]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
@@ -864,9 +1102,9 @@ class FirstOrderTaylorMap(BeamElement):
         'm0': xo.Float64[6],
         'm1': xo.Float64[6,6]}
 
+    _depends_on = [RandomUniform, RandomExponential]
+
     _extra_c_sources = [
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/base_rng.h'),
-        xp.general._pkg_root.joinpath('random_number_generator/rng_src/local_particle_rng.h'),
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('headers/synrad_spectrum.h'),
         _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
@@ -894,3 +1132,27 @@ class FirstOrderTaylorMap(BeamElement):
         super().__init__(**nargs)
 
 
+def _angle_from_trig(cos=None, sin=None, tan=None):
+    """
+    Given at least two values of (cos, sin, tan), return the angle in radians.
+    Raises ValueError if the values are inconsistent.
+    """
+    sin_given, cos_given, tan_given = (trig is not None for trig in (sin, cos, tan))
+
+    if sum([sin_given, cos_given, tan_given]) <= 1:
+        raise ValueError('At least two of (cos, sin, tan) must be given')
+
+    if sin_given and cos_given:
+        tan = tan if tan_given else sin / cos
+    elif sin_given and tan_given:
+        cos = cos if cos_given else sin / tan
+    elif cos_given and tan_given:
+        sin = sin if sin_given else cos * tan
+
+    if (not np.isclose(sin**2 + cos**2, 1, atol=1e-13)
+            or not np.isclose(sin / cos, tan, atol=1e-13)):
+        raise ValueError('Given values of sin, cos, tan are inconsistent '
+                         'with each other.')
+
+    angle = np.arctan2(sin, cos)
+    return angle, cos, sin, tan

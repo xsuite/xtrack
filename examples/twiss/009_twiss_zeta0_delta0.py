@@ -13,14 +13,14 @@ mad.globals.on_crab5 = -190
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
 line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 
-tracker = line.build_tracker()
+line.build_tracker()
 
 # Measure crabbing angle at IP1 and IP5
 z1 = 1e-4
 z2 = -1e-4
 
-tw1 = tracker.twiss(zeta0=z1).to_pandas()
-tw2 = tracker.twiss(zeta0=z2).to_pandas()
+tw1 = line.twiss(zeta0=z1).to_pandas()
+tw2 = line.twiss(zeta0=z2).to_pandas()
 
 tw1.set_index('name', inplace=True)
 tw2.set_index('name', inplace=True)

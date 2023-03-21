@@ -20,7 +20,7 @@ line = xt.Line(
         q2,
         ])
 
-tracker = xt.Tracker(line=line, global_xy_limit=1e10)
+line.build_tracker(global_xy_limit=1e10)
 
 line.particle_ref = xp.Particles(p0c=6500e9)
 import matplotlib.pyplot as plt
@@ -35,10 +35,10 @@ factors = np.linspace(80, 120, 100)
 for factor in factors:
     q1.knl[1] = factor*0.020
     q2.knl[1] = -factor*0.020
-    tracker.track(xp.Particles(p0c=6500e9, x=0.01, y=0.01),
+    line.track(xp.Particles(p0c=6500e9, x=0.01, y=0.01),
                   num_turns=5000, turn_by_turn_monitor=True)
-    mon = tracker.record_last_track
-    RR = tracker.compute_one_turn_matrix_finite_differences(
+    mon = line.record_last_track
+    RR = line.compute_one_turn_matrix_finite_differences(
                                                particle_on_co=line.particle_ref)
     ax1.semilogy(np.abs(mon.x.T), label=f'{factor}, {np.trace(RR)}')
     ax2.semilogy(np.abs(mon.y.T), label=f'{factor}, {np.trace(RR)}')

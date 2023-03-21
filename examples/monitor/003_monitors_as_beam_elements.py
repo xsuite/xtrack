@@ -24,9 +24,9 @@ monitor_ip8 = xt.ParticlesMonitor(start_at_turn=5, stop_at_turn=15,
 line.insert_element(index='ip5', element=monitor_ip5, name='mymon5')
 line.insert_element(index='ip8', element=monitor_ip8, name='mymon8')
 
-tracker = line.build_tracker()
+line.build_tracker()
 
-particles = xp.generate_matched_gaussian_bunch(tracker=tracker,
+particles = xp.generate_matched_gaussian_bunch(line=line,
                                                num_particles=num_particles,
                                                nemitt_x=2.5e-6,
                                                nemitt_y=2.5e-6,
@@ -36,7 +36,7 @@ num_turns = 30
 monitor = xt.ParticlesMonitor(_context=context,
                               start_at_turn=5, stop_at_turn=15,
                               num_particles=num_particles)
-tracker.track(particles, num_turns=num_turns)
+line.track(particles, num_turns=num_turns)
 
 # monitor_ip5 contains the data recorded in before the element 'ip5', while
 # monitor_ip8 contains the data recorded in before the element 'ip8'

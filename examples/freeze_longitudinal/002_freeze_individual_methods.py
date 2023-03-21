@@ -12,22 +12,22 @@ line = xt.Line.from_dict(line_dict['line'])
 line.particle_ref = xp.Particles.from_dict(line_dict['particle'])
 
 # Build the tracker
-tracker = line.build_tracker()
+line.build_tracker()
 
 # Track some particles with frozen longitudinal coordinates
-particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
-tracker.track(particles, num_turns=10, freeze_longitudinal=True)
+particles = line.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
+line.track(particles, num_turns=10, freeze_longitudinal=True)
 print(particles.delta) # gives [0.001 0.001 0.001], same as initial value
 
 # Twiss with frozen longitudinal coordinates (needs to be 4d)
-twiss = tracker.twiss(method='4d', freeze_longitudinal=True)
+twiss = line.twiss(method='4d', freeze_longitudinal=True)
 print(twiss.slip_factor) # gives 0 (no longitudinal motion)
 
 # Track some particles with unfrozen longitudinal coordinates
-particles = tracker.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
-tracker.track(particles, num_turns=10)
+particles = line.build_particles(delta=1e-3, x=[-1e-3, 0, 1e-3])
+line.track(particles, num_turns=10)
 print(particles.delta) # gives [0.00099218, ...], different from initial value
 
 # Twiss with unfrozen longitudinal coordinates (can be 6d)
-twiss = tracker.twiss(method='6d')
+twiss = line.twiss(method='6d')
 print(twiss.slip_factor) # gives 0.00032151, from longitudinal motion

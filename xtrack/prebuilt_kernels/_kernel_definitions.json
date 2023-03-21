@@ -1,0 +1,121 @@
+{
+    "default_only_xtrack": {
+        "config": {
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true
+        },
+        "classes": [
+            "Drift",
+            "Marker",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
+        ]
+    },
+    "default_bb3d": {
+        "config": {
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true
+        },
+        "classes": [
+            "Drift",
+            "Marker",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole",
+            "BeamBeamBiGaussian2D",
+            "BeamBeamBiGaussian3D"
+        ]
+    },
+    "only_xtrack_frozen_longitudinal": {
+        "config": {
+            "FREEZE_VAR_delta": true,
+            "FREEZE_VAR_ptau": true,
+            "FREEZE_VAR_rpp": true,
+            "FREEZE_VAR_rvv": true,
+            "FREEZE_VAR_zeta": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true
+        },
+        "classes": [
+            "Drift",
+            "Marker",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
+        ]
+    },
+    "only_xtrack_taper": {
+        "config": {
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_DIPOLEEDGE_TAPER": true,
+            "XTRACK_MULTIPOLE_TAPER": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": false
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "Marker",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
+        ]
+    },
+    "only_xtrack_with_synrad": {
+        "config": {
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": false
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "Marker",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
+        ]
+    }
+}

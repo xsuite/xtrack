@@ -4,6 +4,7 @@
 # ######################################### #
 
 from time import perf_counter
+from typing import Literal, Union
 import logging
 from functools import partial
 from contextlib import contextmanager
@@ -19,13 +20,15 @@ from .general import _pkg_root
 from .internal_record import (new_io_buffer,
                               start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type)
-from .line import Line
+from .line import Line, _is_thick
 from .pipeline import PipelineStatus
 from .survey import survey_from_tracker
 from .tracker_data import TrackerData
 from .twiss import (compute_one_turn_matrix_finite_differences,
-                    find_closed_orbit, match_tracker, twiss_from_tracker)
+                    find_closed_orbit, twiss_from_tracker)
+from .match import match_tracker, closed_orbit_correction
 from .tapering import compensate_radiation_energy_loss
+from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +37,14 @@ def _check_is_collective(ele):
     iscoll = not hasattr(ele, 'iscollective') or ele.iscollective
     return iscoll
 
+
 class Tracker:
+
+    '''
+    Xsuite tracker class. It is the core of the xsuite package, allows tracking
+    particles in a given beam line. Methods to match particle distributions
+    and to compute twiss parameters are also available.
+    '''
 
     def __init__(
         self,
@@ -54,6 +64,7 @@ class Tracker:
         local_particle_src=None,
         io_buffer=None,
         compile=True,
+        use_prebuilt_kernels=True,
         enable_pipeline_hold=False,
         _element_ref_data=None,
     ):
@@ -96,6 +107,7 @@ class Tracker:
                 local_particle_src=local_particle_src,
                 io_buffer=io_buffer,
                 compile=compile,
+                use_prebuilt_kernels=use_prebuilt_kernels,
                 enable_pipeline_hold=enable_pipeline_hold)
         else:
             self._element_ref_data = _element_ref_data
@@ -115,10 +127,27 @@ class Tracker:
                 local_particle_src=local_particle_src,
                 io_buffer=io_buffer,
                 compile=compile,
+                use_prebuilt_kernels=use_prebuilt_kernels,
                 enable_pipeline_hold=enable_pipeline_hold)
 
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
+
+    @property
+    def matrix_responsiveness_tol(self):
+        return self.line.matrix_responsiveness_tol
+
+    @matrix_responsiveness_tol.setter
+    def matrix_responsiveness_tol(self, value):
+        self.line.matrix_responsiveness_tol = value
+
+    @property
+    def matrix_stability_tol(self):
+        return self.line.matrix_stability_tol
+
+    @matrix_stability_tol.setter
+    def matrix_stability_tol(self, value):
+        self.line.matrix_stability_tol = value
 
     def _init_track_with_collective(
         self,
@@ -137,6 +166,7 @@ class Tracker:
         local_particle_src=None,
         io_buffer=None,
         compile=True,
+        use_prebuilt_kernels=True,
         enable_pipeline_hold=False
     ):
 
@@ -152,6 +182,7 @@ class Tracker:
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
         self._enable_pipeline_hold = enable_pipeline_hold
+        self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if _buffer is None:
             if _context is None:
@@ -209,7 +240,7 @@ class Tracker:
                 pp.element_names = tempxtline.element_names
                 noncollective_xelements += pp.elements
             else:
-                if hasattr(pp, 'isthick') and pp.isthick:
+                if _is_thick(pp):
                     ldrift = pp.length
                 else:
                     ldrift = 0.
@@ -230,7 +261,8 @@ class Tracker:
                 extra_headers=extra_headers,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
-                io_buffer=self.io_buffer
+                io_buffer=self.io_buffer,
+                use_prebuilt_kernels=use_prebuilt_kernels,
                 )
         supertracker.config = self.config
 
@@ -247,7 +279,8 @@ class Tracker:
                                 extra_headers=extra_headers,
                                 local_particle_src=local_particle_src,
                                 skip_end_turn_actions=True,
-                                io_buffer=self.io_buffer)
+                                io_buffer=self.io_buffer,
+                                use_prebuilt_kernels=use_prebuilt_kernels,)
                 parts[ii].config = self.config
 
         # Make a "marker" element to increase at_element
@@ -269,6 +302,7 @@ class Tracker:
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
         self._radiation_model = None
+        self._beamstrahlung_model = None
 
     def _init_track_no_collective(
         self,
@@ -287,6 +321,7 @@ class Tracker:
         local_particle_src=None,
         io_buffer=None,
         compile=True,
+        use_prebuilt_kernels=True,
         enable_pipeline_hold=False
     ):
         if track_kernel == 'skip':
@@ -352,18 +387,19 @@ class Tracker:
         self.local_particle_src = local_particle_src
         self.element_classes = element_classes
 
-        if track_kernel is None:
-            track_kernel = {}
-        self.track_kernel = track_kernel
+        self.track_kernel = track_kernel or {}
 
         self.track = self._track_no_collective
         self._radiation_model = None
+        self._beamstrahlung_model = None
+        self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if compile:
-            _ = self._current_track_kernel # This triggers compilation
+            _ = self._current_track_kernel  # This triggers compilation
 
-    def optimize_for_tracking(self, compile=True):
-        """Optimize the tracker for tracking speed.
+    def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
+        """
+        Optimize the tracker for tracking speed.
         """
         if self.iscollective:
             raise NotImplementedError("Optimization is not implemented for "
@@ -371,7 +407,7 @@ class Tracker:
 
         self.track_kernel = {} # Remove all kernels
 
-        print("Disable xdeps expressions")
+        if verbose: print("Disable xdeps expressions")
         self.line._var_management = None # Disable expressions
 
         line = self.line
@@ -379,25 +415,37 @@ class Tracker:
         # Unfreeze the line
         line.element_names = list(line.element_names)
 
-        print("Remove inactive multipoles")
+        if keep_markers is True:
+            if verbose: print('Markers are kept')
+        elif keep_markers is False:
+            if verbose: print("Remove markers")
+            line.remove_markers()
+        else:
+            if verbose: print('Keeping only selected markers')
+            line.remove_markers(keep=keep_markers)
+
+        if verbose: print("Remove inactive multipoles")
         line.remove_inactive_multipoles()
 
-        print("Merge consecutive multipoles")
+        if verbose: print("Merge consecutive multipoles")
         line.merge_consecutive_multipoles()
 
-        print("Remove zero length drifts")
+        if verbose: print("Remove redundant apertures")
+        line.remove_redundant_apertures()
+
+        if verbose: print("Remove zero length drifts")
         line.remove_zero_length_drifts()
 
-        print("Merge consecutive drifts")
+        if verbose: print("Merge consecutive drifts")
         line.merge_consecutive_drifts()
 
-        print("Use simple bends")
+        if verbose: print("Use simple bends")
         line.use_simple_bends()
 
-        print("Use simple quadrupoles")
+        if verbose: print("Use simple quadrupoles")
         line.use_simple_quadrupoles()
 
-        print("Rebuild tracker data")
+        if verbose: print("Rebuild tracker data")
         tracker_data = TrackerData(
             line=line,
             extra_element_classes=(self.particles_monitor_class._XoStruct,),
@@ -408,6 +456,8 @@ class Tracker:
         self._tracker_data = tracker_data
         self.element_classes = tracker_data.element_classes
         self.num_elements = len(tracker_data.elements)
+
+        self.use_prebuilt_kernels = False
 
         if compile:
             _ = self._current_track_kernel # This triggers compilation
@@ -492,7 +542,8 @@ class Tracker:
         matrix_stability_tol=None,
         symplectify=False,
         reverse=False,
-        use_full_inverse=None
+        use_full_inverse=None,
+        strengths=False
         ):
 
         self._check_invalidated()
@@ -508,16 +559,32 @@ class Tracker:
                                    reverse=reverse)
 
     def match(self, vary, targets, **kwargs):
+        '''
+        Change a set of knobs in the beamline in order to match assigned targets.
+        See corresponding section is the Xsuite User's guide.
+        '''
         return match_tracker(self, vary, targets, **kwargs)
 
+    def correct_closed_orbit(self, reference, correction_config,
+                        solver=None, verbose=False, restore_if_fail=True):
+
+        closed_orbit_correction(self, reference, correction_config,
+                                solver=solver, verbose=verbose,
+                                restore_if_fail=restore_if_fail)
+
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
+
+        """
+        Replace with Drifts all elements satisfying a given condition.
+        """
 
         self._check_invalidated()
 
         return self.__class__(
                  _buffer=self._buffer,
                  line=self.line.filter_elements(mask=mask,
-                     exclude_types_starting_with=exclude_types_starting_with),
+                     exclude_types_starting_with=exclude_types_starting_with,
+                     _make_tracker=False),
                  track_kernel=(self.track_kernel if not self.iscollective
                                     else self._supertracker.track_kernel),
                  element_classes=(self.element_classes if not self.iscollective
@@ -525,6 +592,12 @@ class Tracker:
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             mode='deprecated'):
+
+        """
+        Configure synchrotron radiation and beamstrahlung models.
+        Choose among: None / "mean"/ "quantum".
+        See corresponding section is the Xsuite User's guide.
+        """
 
         if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
@@ -571,6 +644,12 @@ class Tracker:
     def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
+        """
+        Compensate beam energy loss from synchrotron radiation by configuring
+        RF cavities and Multipole elements (tapering).
+        See corresponding section is the Xsuite User's guide.
+        """
+
         all_kwargs = locals().copy()
         all_kwargs.pop('self')
         all_kwargs.pop('kwargs')
@@ -580,10 +659,15 @@ class Tracker:
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
 
+        """
+        Cycle the line to start from a given element.
+        """
+
         self._check_invalidated()
 
         cline = self.line.cycle(index_first_element=index_first_element,
-                                name_first_element=name_first_element)
+                                name_first_element=name_first_element,
+                                _make_tracker=False)
 
         if _buffer is None:
             if _context is None:
@@ -607,11 +691,20 @@ class Tracker:
             )
 
     def build_particles(self, *args, **kwargs):
+
+        """
+        Generate a particle distribution. Equivalent to xp.Particles(tracker=tracker, ...)
+        See corresponding section is the Xsuite User's guide.
+        """
         res = xp.build_particles(*args, tracker=self, **kwargs)
         return res
 
     def get_backtracker(self, _context=None, _buffer=None,
                         global_xy_limit='from_tracker'):
+
+        """
+        Build a Tracker object that backtracks in the same line.
+        """
 
         self._check_invalidated()
 
@@ -649,6 +742,11 @@ class Tracker:
                     local_particle_src=self.local_particle_src,
                 )
 
+    def track(self, *args, **kwargs):
+        pass
+        # This is a placeholder, it is replaced either by the collective
+        # tracker or the single particle tracker
+
     @property
     def particle_ref(self) -> xp.Particles:
         self._check_invalidated()
@@ -684,11 +782,38 @@ class Tracker:
     def _context(self):
         return self._buffer.context
 
-    def _build_kernel(self, compile):
+    def _build_kernel(
+            self,
+            compile: Union[bool, Literal['force']],
+            module_name=None,
+            containing_dir='.',
+    ):
+        if (self.use_prebuilt_kernels and compile != 'force'
+                and isinstance(self._context, xo.ContextCpu)):
+            kernel_info = get_suitable_kernel(
+                self.config, self.element_classes
+            )
+            if kernel_info:
+                module_name, modules_classes = kernel_info
+                kernel_description = self.get_kernel_descriptions()['track_line']
+                kernels = self._context.kernels_from_file(
+                    module_name=module_name,
+                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    kernel_descriptions={'track_line': kernel_description},
+                )
+                self._context.kernels.update(kernels)
+                self._current_track_kernel = self._context.kernels['track_line']
+                self.element_classes = [cls._XoStruct for cls in modules_classes]
+                self._tracker_data = TrackerData(
+                    line=self.line,
+                    element_classes=self.element_classes,
+                    _context=self._context,
+                    _buffer=self._buffer,
+                )
+                return
 
         context = self._tracker_data._buffer.context
 
-        kernels = {}
         headers = []
 
         headers.extend(self.extra_headers)
@@ -820,8 +945,42 @@ class Tracker:
 
         source_track = "\n".join(src_lines)
 
+        kernels = self.get_kernel_descriptions(context)
+
+        # Compile!
+        if isinstance(self._context, xo.ContextCpu):
+            kwargs = {
+                'containing_dir': containing_dir,
+                'module_name': module_name,
+            }
+        else:
+            # Saving kernels is unsupported on GPU
+            kwargs = {}
+
+        out_kernels = context.build_kernels(
+            sources=[source_track],
+            kernel_descriptions=kernels,
+            extra_headers=self._config_to_headers() + headers,
+            extra_classes=self.element_classes,
+            apply_to_source=[
+                partial(_handle_per_particle_blocks,
+                        local_particle_src=self.local_particle_src)],
+            specialize=True,
+            compile=compile,
+            save_source_as=f'{module_name}.c' if module_name else None,
+            **kwargs,
+        )
+        context.kernels.update(out_kernels)
+
+        self._current_track_kernel = context.kernels.track_line
+
+    def get_kernel_descriptions(self, _context=None):
+        if not _context:
+            _context = self._context
+
         kernel_descriptions = {
             "track_line": xo.Kernel(
+                c_name='track_line',
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
                     xo.Arg(self._tracker_data._element_ref_data.__class__, name="tracker_data"),
@@ -839,28 +998,10 @@ class Tracker:
             )
         }
 
-        # Internal API can be exposed only on CPU
-        if not isinstance(context, xo.ContextCpu):
-            kernels = {}
-        kernels.update(kernel_descriptions)
-
         # Random number generator init kernel
-        kernels.update(self.particles_class._kernels)
+        kernel_descriptions.update(self.particles_class._kernels)
 
-        # Compile!
-        context.add_kernels(
-            [source_track],
-            kernels,
-            extra_headers=self._config_to_headers() + headers,
-            extra_classes=self.element_classes,
-            apply_to_source=[
-                partial(_handle_per_particle_blocks,
-                        local_particle_src=self.local_particle_src)],
-            specialize=True,
-            compile=compile
-        )
-
-        self._current_track_kernel = context.kernels.track_line
+        return kernel_descriptions
 
     def _prepare_collective_track_session(self, particles, ele_start, ele_stop,
                                        num_elements, num_turns, turn_by_turn_monitor):
@@ -1013,17 +1154,26 @@ class Tracker:
         return stop_tracking, skip, ret
 
     def resume(self, session):
+        """
+        Resume a track session that had been placed on hold.
+        """
         return self._track_with_collective(particles=None, _session_to_resume=session)
 
     def freeze_vars(self, variable_names):
+        """Freeze assigned coordinates in tracked Particles objects."""
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = True
 
     def unfreeze_vars(self, variable_names):
+        """Unfreeze variables previously frozen with `freeze_vars`."""
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
     def freeze_longitudinal(self, state=True):
+        """
+        Freeze longitudinal coordinates in tracked Particles objects.
+        See corresponding section is the Xsuite User's guide.
+        """
         assert state in (True, False)
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
@@ -1199,8 +1349,8 @@ class Tracker:
         self.record_last_track = monitor
 
         if time:
-            self._context.synchronize()
             t1 = perf_counter()
+            self._context.synchronize()
             self.time_last_track = t1 - t0
         else:
             self.time_last_track = None
@@ -1392,8 +1542,8 @@ class Tracker:
         self.record_last_track = monitor
 
         if time:
-            t1 = perf_counter()
             self._context.synchronize()
+            t1 = perf_counter()
             self.time_last_track = t1 - t0
         else:
             self.time_last_track = None
@@ -1441,10 +1591,18 @@ class Tracker:
 
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):
+        """
+        Start internal logging for all elements of a given type.
+        See corresponding section is the Xsuite User's guide.
+        """
         return start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity)
 
     def stop_internal_logging_for_elements_of_type(self, element_type):
+        """
+        Stop internal logging for all elements of a given type.
+        See corresponding section is the Xsuite User's guide.
+        """
         self._check_invalidated()
         stop_internal_logging_for_elements_of_type(self, element_type)
 
@@ -1559,7 +1717,21 @@ def freeze_longitudinal(tracker):
         yield None
     finally:
         tracker.config = config
-_freeze_longitudinal = freeze_longitudinal # to avoid name clash with function argument
+
+@contextmanager
+def _temp_knobs(tracker, knobs: dict):
+    old_values = {kk: tracker.vars[kk]._value for kk in knobs.keys()}
+    try:
+        for kk, vv in knobs.items():
+            tracker.vars[kk] = vv
+        yield
+    finally:
+        for kk, vv in old_values.items():
+            tracker.vars[kk] = vv
+
+
+_freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
+
 
 class TrackerConfig(dict):
     def __init__(self, *args, **kwargs):
@@ -1573,4 +1745,13 @@ class TrackerConfig(dict):
             super(TrackerConfig, self).__setitem__(idx, val)
 
     def __setattr__(self, idx, val):
-        self[idx] = val
+        if val is not False:
+            self[idx] = val
+        elif idx in self:
+            del(self[idx])
+
+    def update(self, other, **kwargs):
+        super().update(other, **kwargs)
+        keys_for_none_vals = [k for k, v in self.items() if v is False]
+        for k in keys_for_none_vals:
+            del self[k]

@@ -13,8 +13,6 @@ import xpart as xp
 
 import ducktrack as dtk
 
-short_test = False # Short line (5 elements)
-
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../../test_data').absolute()
 
@@ -57,21 +55,15 @@ with open(fname_line_particles, 'r') as fid:
 ##############
 
 line = xt.Line.from_dict(input_data['line'])
-if short_test:
-    line = make_short_line(line)
-
 
 #################
 # Build Tracker #
 #################
 print('Build tracker...')
-tracker = xt.Tracker(_context=context,
-            line=line,
-            reset_s_at_end_turn=False
-            )
+line.build_tracker(_context=context, reset_s_at_end_turn=False)
 
 if test_backtracker:
-    backtracker = tracker.get_backtracker(_context=context)
+    backtracker = line.get_backtracker(_context=context)
 
 ######################
 # Get some particles #
@@ -87,7 +79,7 @@ particles = xp.Particles(_context=context, **input_data['particle'])
 #########
 print('Track a few turns...')
 n_turns = 10
-tracker.track(particles, num_turns=n_turns)
+line.track(particles, num_turns=n_turns)
 
 ###########################
 # Check against ducktrack #
@@ -150,7 +142,7 @@ for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names))
     vars_before = {vv: getattr(dtk_part, vv)[0] for vv in vars_to_check}
     particles = xp.Particles.from_dict(dtk_part.to_dict(), _context=context)
 
-    tracker.track(particles, ele_start=ii, num_elements=1)
+    line.track(particles, ele_start=ii, num_elements=1)
 
     eedtk.track(dtk_part)
     s_coord.append(dtk_part.s[0])
@@ -176,7 +168,7 @@ for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names))
 
     if test_backtracker:
         backtracker.track(particles,
-                ele_start=len(tracker.line.elements) - ii - 1,
+                ele_start=len(line.elements) - ii - 1,
                 num_elements=1)
         for vv in vars_to_check:
             xt_value = context.nparray_from_context_array(

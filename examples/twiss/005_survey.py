@@ -12,8 +12,8 @@ surv_mad = mad.survey()
 
 line = xt.Line.from_madx_sequence(mad.sequence['lhcb1'],
                                      deferred_expressions=True)
-tracker = line.build_tracker()
-surv_xt = tracker.survey()
+line.build_tracker()
+surv_xt = line.survey()
 
 import matplotlib.pyplot as plt
 plt.figure(1)

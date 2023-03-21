@@ -17,10 +17,9 @@ tw_mad_coupling = mad.twiss(ripken=True).dframe()
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
 line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+line.build_tracker()
 
-tracker = line.build_tracker()
-
-tw = tracker.twiss()
+tw = line.twiss()
 
 bety1 = tw.bety1
 betx2 = tw.betx2
@@ -47,9 +46,10 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 sp1 = plt.subplot(211)
-plt.plot(tw.s, tw.bety1, label='bety1')
-plt.plot(tw_mad_coupling.s, tw_mad_coupling.beta21, '--')
+plt.plot(tw.s, tw.bety1, label='Xsuite')
+plt.plot(tw_mad_coupling.s, tw_mad_coupling.beta21, '--', label='Madx')
 plt.ylabel(r'$\beta_{1,y}$')
+plt.legend(loc='upper right')
 plt.subplot(212, sharex=sp1)
 plt.plot(tw.s, tw.betx2, label='betx2')
 plt.plot(tw_mad_coupling.s, tw_mad_coupling.beta12, '--')

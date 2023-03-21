@@ -9,24 +9,24 @@ from scipy.spatial import ConvexHull
 import xobjects as xo
 import xpart as xp
 from ..tracker import Tracker
-from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift
-from ..line import Line
+from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
+from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
 
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 
-_default_allowed_backtrack_types = [Drift, SRotation, XYShift]
+
+def _skip_in_loss_location_refinement(element):
+    return (hasattr(element, 'skip_in_loss_location_refinement')
+            and element.skip_in_loss_location_refinement)
 
 class LossLocationRefinement:
 
     def __init__(self, tracker, backtracker=None,
                  n_theta=None, r_max=None, dr=None, ds=None,
                  save_refine_trackers=False,
-                 allowed_backtrack_types=()):
-
-        allowed_backtrack_types = tuple(set(allowed_backtrack_types).union(
-                                        set(_default_allowed_backtrack_types)))
+                 allowed_backtrack_types=[]):
 
         if tracker.iscollective:
             self._original_tracker = tracker
@@ -177,7 +177,7 @@ def find_apertures(tracker):
 def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                     backtracker, interp_tracker,
                     inplace=True,
-                    allowed_backtrack_types=_default_allowed_backtrack_types):
+                    allowed_backtrack_types=[]):
 
     mask_part = (particles.state == 0) & (particles.at_element == i_aper_1)
 
@@ -202,9 +202,8 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
     for nn in interp_tracker._original_tracker.line.element_names[
                                              i_aper_1 - n_backtrack : i_aper_1]:
         ee = interp_tracker._original_tracker.line.element_dict[nn]
-        if not isinstance(ee, tuple(allowed_backtrack_types)):
-            if (hasattr(ee, 'skip_in_loss_location_refinement')
-                    and ee.skip_in_loss_location_refinement):
+        if not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)):
+            if _skip_in_loss_location_refinement(ee):
                 return 'skipped'
             raise TypeError(
                 f'Cannot backtrack through element {nn} of type '
@@ -346,8 +345,8 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     for i_ele in range(i_start_thin_0+1, i_start_thin_1):
         ee = tracker.line.elements[i_ele]
-        if not ee.__class__.__name__.startswith('Drift'):
-            assert not hasattr(ee, 'isthick') or not ee.isthick
+        if not _behaves_like_drift(ee):
+            assert not _is_thick(ee)
             ss_ee = tracker._tracker_data.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
             s_elements.append(ss_ee)
@@ -379,12 +378,17 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
 def find_previous_drift(tracker, i_aperture):
 
+    line = tracker.line
+
     ii=i_aperture
     found = False
     while not(found):
-        ccnn = tracker.line.elements[ii].__class__.__name__
+        ee = line.element_dict[line.element_names[ii]]
+        ccnn = ee.__class__.__name__
         #print(ccnn)
         if ccnn == 'Drift':
+            found = True
+        elif _behaves_like_drift(ee):
             found = True
         else:
             ii -= 1
