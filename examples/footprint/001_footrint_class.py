@@ -71,7 +71,15 @@ class Footprint():
         if 'color' not in kwargs:
             kwargs['color'] = 'k'
 
-        ax.plot(self.qx, self.qy, **kwargs)
+        labels = [None] * self.qx.shape[1]
+        labels_t = [None] * self.qx.shape[0]
+
+        if 'label' in kwargs:
+            label_str = kwargs['label']
+            kwargs.pop('label')
+            labels[0] = label_str
+
+        ax.plot(self.qx, self.qy, label=labels, **kwargs)
         ax.plot(self.qx.T, self.qy.T, **kwargs)
 
         ax.set_xlabel(r'$q_x$')
@@ -111,12 +119,10 @@ fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp0.plot(color='k', label='I_oct=0')
 
 line.vars['i_oct_b1'] = 500
-
 fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp1.plot(color='r', label='I_oct=500')
 
 line.vars['i_oct_b1'] = -250
-
 fp2 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp2.plot(color='b', label='I_oct=-250')
 
