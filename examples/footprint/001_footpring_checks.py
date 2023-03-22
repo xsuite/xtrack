@@ -177,12 +177,6 @@ assert np.allclose((fp60k.qy - fp50k.qy)/(fp600.qy-fp500.qy), 100, rtol=0, atol=
 
 
 
-fp5k.plot(color='r', label='I_oct=500')
-
-
-plt.legend()
-
-plt.show()
 
 
 
