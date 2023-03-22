@@ -17,41 +17,63 @@ line.build_tracker()
 plt.close('all')
 plt.figure(1)
 
+line.vars['i_oct_b1'] = 0
 fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp0.plot(color='k', label='I_oct=0')
 
 line.vars['i_oct_b1'] = 500
 fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                         n_r=11, n_theta=7, r_range=[0.1, 7],
+                         n_r=11, n_theta=7, r_range=[0.05, 7],
                          theta_range=[0.01, np.pi/2-0.01])
 fp1.plot(color='r', label='I_oct=500')
 
-line.vars['i_oct_b1'] = -250
-fp2 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
-fp2.plot(color='b', label='I_oct=-250')
-
 plt.legend()
 
-plt.figure(2)
+
+assert hasattr(fp1, 'theta_grid')
+assert hasattr(fp1, 'r_grid')
+
+assert len(fp1.r_grid) == 11
+assert len(fp1.theta_grid) == 7
+
+assert np.isclose(fp1.r_grid[0], 0.05, rtol=0, atol=1e-10)
+assert np.isclose(fp1.r_grid[-1], 7, rtol=0, atol=1e-10)
+
+assert np.isclose(fp1.theta_grid[0], 0.01, rtol=0, atol=1e-10)
+assert np.isclose(fp1.theta_grid[-1], np.pi/2 - 0.01, rtol=0, atol=1e-10)
+
+#i_theta = 0, i_r = 0
+assert np.isclose(fp1.x_norm_2d[0, 0], 0.05, rtol=0, atol=1e-3)
+assert np.isclose(fp1.y_norm_2d[0, 0], 0, rtol=0, atol=1e-3)
+assert np.isclose(fp1.qx[0, 0], 0.31, rtol=0, atol=5e-5)
+assert np.isclose(fp1.qy[0, 0], 0.32, rtol=0, atol=5e-5)
+
+#i_theta = 0, i_r = 10
+assert np.isclose(fp1.x_norm_2d[0, -1], 7, rtol=0, atol=1e-3)
+assert np.isclose(fp1.y_norm_2d[0, -1], 0.07, rtol=0, atol=1e-3)
+assert np.isclose(fp1.qx[0, -1], 0.3129, rtol=0, atol=2e-4)
+assert np.isclose(fp1.qy[0, -1], 0.3185, rtol=0, atol=2e-4)
+
+#i_theta = 6, i_r = 0
+assert np.isclose(fp1.x_norm_2d[-1, 0], 0, rtol=0, atol=1e-3)
+assert np.isclose(fp1.y_norm_2d[-1, 0], 0.05, rtol=0, atol=1e-3)
+assert np.isclose(fp1.qx[0, 0], 0.31, rtol=0, atol=5e-5)
+assert np.isclose(fp1.qy[0, 0], 0.32, rtol=0, atol=5e-5)
+
+#i_theta = 6, i_r = 10
+assert np.isclose(fp1.x_norm_2d[-1, -1], 0.07, rtol=0, atol=1e-3)
+assert np.isclose(fp1.y_norm_2d[-1, -1], 7, rtol=0, atol=1e-3)
+assert np.isclose(fp1.qx[-1, -1], 0.3085, rtol=0, atol=2e-4)
+assert np.isclose(fp1.qy[-1, -1], 0.3229, rtol=0, atol=2e-4)
+
+assert np.isclose(np.max(fp1.qx[:]) - np.min(fp1.qx[:]), 4.4e-3, rtol=0, atol=1e-4)
+assert np.isclose(np.max(fp1.qy[:]) - np.min(fp1.qy[:]), 4.4e-3, rtol=0, atol=1e-4)
+
 
 line.vars['i_oct_b1'] = 0
 fp0_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                          mode='uniform_action_grid')
 fp0_jgrid.plot(color='k', label='I_oct=0')
-
-line.vars['i_oct_b1'] = 500
-fp1_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                            mode='uniform_action_grid')
-fp1_jgrid.plot(color='r', label='I_oct=500')
-
-line.vars['i_oct_b1'] = -250
-fp2_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                         mode='uniform_action_grid')
-fp2_jgrid.plot(color='b', label='I_oct=-250')
-
-plt.legend()
-
-plt.show()
 
 assert hasattr(fp0, 'theta_grid')
 assert hasattr(fp0, 'r_grid')
@@ -65,17 +87,28 @@ assert np.isclose(fp0.theta_grid[-1], np.pi/2-0.05, rtol=0, atol=1e-10)
 assert len(fp0.r_grid) == 10
 assert len(fp0.theta_grid) == 10
 
-assert hasattr(fp1, 'theta_grid')
-assert hasattr(fp1, 'r_grid')
+#i_theta = 0, i_r = 0
+assert np.isclose(fp0.x_norm_2d[0, 0], 0.1, rtol=0, atol=1e-3)
+assert np.isclose(fp0.y_norm_2d[0, 0], 0.005, rtol=0, atol=1e-3)
+assert np.isclose(fp0.qx[0, 0], 0.31, rtol=0, atol=5e-5)
+assert np.isclose(fp0.qy[0, 0], 0.32, rtol=0, atol=5e-5)
 
-assert np.isclose(fp1.r_grid[0], 0.1, rtol=0, atol=1e-10)
-assert np.isclose(fp1.r_grid[-1], 7, rtol=0, atol=1e-10)
+assert np.isclose(np.max(fp0.qx[:]) - np.min(fp0.qx[:]), 0.0003, rtol=0, atol=2e-5)
+assert np.isclose(np.max(fp0.qy[:]) - np.min(fp0.qy[:]), 0.0003, rtol=0, atol=2e-5)
 
-assert np.isclose(fp1.theta_grid[0], 0.1, rtol=0, atol=1e-10)
-assert np.isclose(fp1.theta_grid[-1], 0.3, rtol=0, atol=1e-10)
+plt.figure(2)
 
-assert len(fp1.r_grid) == 11
-assert len(fp1.theta_grid) == 7
+
+
+line.vars['i_oct_b1'] = 500
+fp1_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                            mode='uniform_action_grid')
+fp1_jgrid.plot(color='r', label='I_oct=500')
+
+plt.legend()
+
+plt.show()
+
 
 
 
