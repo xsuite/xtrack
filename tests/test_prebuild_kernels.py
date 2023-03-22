@@ -6,6 +6,7 @@ import json
 
 import cffi
 
+import xobjects as xo
 import xpart as xp
 import xtrack as xt
 from xtrack.prebuild_kernels import regenerate_kernels
@@ -55,7 +56,9 @@ def test_prebuild_kernels(mocker, tmp_path):
     cffi_compile = mocker.patch.object(cffi.FFI, 'compile')
 
     line = xt.Line(elements=[xt.Drift(length=2.0)])
-    line.build_tracker()
+
+    # Build the tracker on a fresh context, so that the kernel comes from a file
+    line.build_tracker(_context=xo.ContextCpu())
 
     p = xp.Particles(p0c=1e9, px=3e-6)
     line.track(p)
