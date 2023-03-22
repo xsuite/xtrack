@@ -66,6 +66,9 @@ class Footprint():
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
 
+        assert mode in ['polar', 'uniform_action_grid'], (
+            'mode must be either polar or uniform_action_grid')
+
         if mode == 'polar':
 
             assert x_norm_range is None and y_norm_range is None, (
