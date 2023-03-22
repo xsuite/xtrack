@@ -17,7 +17,7 @@ int8_t assert_rng_set(LocalParticle* part, int64_t kill_state){
     int64_t s3 = LocalParticle_get__rng_s3(part);
     int64_t s4 = LocalParticle_get__rng_s4(part);
     if (s1==0 && s2==0 && s3==0 && s4==0) {
-        kill_particle(part, kill_state);
+        LocalParticle_kill_particle(part, kill_state);
         return 0;
     }
     return 1;
@@ -32,7 +32,7 @@ double RandomUniform_generate(LocalParticle* part){
     uint32_t s4 = LocalParticle_get__rng_s4(part);
 
     if (s1==0 && s2==0 && s3==0 && s4==0) {
-        kill_particle(part, RNG_ERR_SEEDS_NOT_SET);
+        LocalParticle_kill_particle(part, RNG_ERR_SEEDS_NOT_SET);
         return 0;
     }
 

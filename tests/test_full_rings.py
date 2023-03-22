@@ -187,7 +187,7 @@ def test_freeze_vars(test_context):
     # Build Tracker #
     #################
     print('Build tracker...')
-    freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
+    freeze_vars = xp.Particles.part_energy_varnames() + ['zeta']
     line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
     line.freeze_vars(freeze_vars)
 

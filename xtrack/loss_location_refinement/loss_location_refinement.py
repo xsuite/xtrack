@@ -43,8 +43,9 @@ class LossLocationRefinement:
         temp_poly = LimitPolygon(_buffer=self.tracker._tracker_data._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
-        temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
-                                   x_out=na([2]), y_out=na([2]), z_out=na([0]))
+        temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]),
+                                          z_in=na([0]), x_out=na([2]),
+                                          y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
         trk_gen = Tracker(_buffer=self.tracker._tracker_data._buffer,
@@ -473,4 +474,3 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
                               _buffer=buffer_for_poly)
 
     return polygon, i_start
-
