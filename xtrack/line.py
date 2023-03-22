@@ -1369,7 +1369,8 @@ class Line:
 
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
-            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None):
+            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
+            keep_fft=True):
 
         '''
         Compute the tune footprint for a beam with given emittences using tracking.
@@ -1425,7 +1426,8 @@ class Line:
                    n_theta=n_theta, n_turns=n_turns, n_fft=n_fft,
                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                    x_norm_range=x_norm_range, y_norm_range=y_norm_range,
-                   n_x_norm=n_x_norm, n_y_norm=n_y_norm, mode=mode)
+                   n_x_norm=n_x_norm, n_y_norm=n_y_norm, mode=mode,
+                   keep_fft=keep_fft)
         fp._compute_footprint(self)
 
         return fp

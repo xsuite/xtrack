@@ -5,8 +5,8 @@ class Footprint():
 
     def __init__(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
-            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None
-            ):
+            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
+            keep_fft=False):
 
         assert nemitt_x is not None and nemitt_y is not None, (
             'nemitt_x and nemitt_y must be provided')
@@ -14,6 +14,7 @@ class Footprint():
 
         self.n_turns = n_turns
         self.n_fft = n_fft
+        self.keep_fft = keep_fft
 
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
@@ -94,6 +95,10 @@ class Footprint():
             mon.x - np.atleast_2d(np.mean(mon.x, axis=1)).T, n=self.n_fft, axis=1)
         fft_y = np.fft.rfft(
             mon.y - np.atleast_2d(np.mean(mon.y, axis=1)).T, n=self.n_fft, axis=1)
+
+        if self.keep_fft:
+            self.fft_x = fft_x
+            self.fft_y = fft_y
 
         freq_axis = np.fft.rfftfreq(self.n_fft)
 
