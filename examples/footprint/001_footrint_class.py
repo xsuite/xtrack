@@ -196,6 +196,11 @@ fp2 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                          mode='uniform_action_grid')
 fp2.plot(color='b', label='I_oct=-250')
 
+fpx = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                         mode='uniform_action_grid',
+                         x_norm_range=(0.1, 10), n_x_norm=10,
+                         y_norm_range=(0.1, 10), n_y_norm=9)
+
 plt.legend()
 
 plt.show()
