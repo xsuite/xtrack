@@ -21,7 +21,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
-from .footprint import Footprint
+from .footprint import Footprint, _footprint_with_linear_rescale
 
 log = logging.getLogger(__name__)
 
@@ -1370,6 +1370,7 @@ class Line:
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
+            linear_rescale_on_knobs=None,
             keep_fft=True):
 
         '''
@@ -1422,15 +1423,19 @@ class Line:
 
         '''
 
-        fp = Footprint(r_range=r_range, theta_range=theta_range, n_r=n_r,
-                   n_theta=n_theta, n_turns=n_turns, n_fft=n_fft,
-                   nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                   x_norm_range=x_norm_range, y_norm_range=y_norm_range,
-                   n_x_norm=n_x_norm, n_y_norm=n_y_norm, mode=mode,
-                   keep_fft=keep_fft)
-        fp._compute_footprint(self)
+        kwargs = locals()
+        kwargs.pop('self')
+        kwargs.pop('linear_rescale_on_knobs')
+
+        if linear_rescale_on_knobs:
+            fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
+                        linear_rescale_on_knobs=linear_rescale_on_knobs)
+        else:
+            fp = Footprint(**kwargs)
+            fp._compute_footprint(self)
 
         return fp
+
 
 mathfunctions = type('math', (), {})
 mathfunctions.sqrt = math.sqrt

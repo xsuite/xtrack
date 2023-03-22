@@ -1,5 +1,52 @@
 import numpy as np
 
+class LinearRescale():
+
+    def __init__(self, knob_name, v0, dv):
+            self.knob_name = knob_name
+            self.v0 = v0
+            self.dv = dv
+
+def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
+
+        if isinstance (linear_rescale_on_knobs, LinearRescale):
+            linear_rescale_on_knobs = [linear_rescale_on_knobs]
+
+        assert len(linear_rescale_on_knobs) == 1, (
+            'Only one linear rescale is supported for now')
+        from xtrack.tracker import _temp_knobs
+
+        knobs_0 = {}
+        for rr in linear_rescale_on_knobs:
+            nn = rr.knob_name
+            v0 = rr.v0
+            knobs_0[nn] = v0
+
+        with _temp_knobs(line, knobs_0):
+            fp = line.get_footprint(**kwargs)
+
+        _fp0_ref = fp.__dict__.copy() # for debugging
+        qx0 = fp.qx
+        qy0 = fp.qy
+
+        for rr in linear_rescale_on_knobs:
+            nn = rr.knob_name
+            v0 = rr.v0
+            dv = rr.dv
+
+            knobs_1 = knobs_0.copy()
+            knobs_1[nn] = v0 + dv
+
+            with _temp_knobs(line, knobs_1):
+                fp1 = line.get_footprint(**kwargs)
+
+            delta_qx = (fp1.qx - qx0) / dv * (line.vars[nn]._value - v0)
+            delta_qy = (fp1.qy - qy0) / dv * (line.vars[nn]._value - v0)
+
+            fp.qx += delta_qx
+            fp.qy += delta_qy
+
+        return fp
 
 class Footprint():
 
@@ -71,10 +118,10 @@ class Footprint():
             self.Jx_grid = np.linspace(Jx_min, Jx_max, n_x_norm)
             self.Jy_grid = np.linspace(Jy_min, Jy_max, n_y_norm)
 
-            Jx_2d, Jy_2d = np.meshgrid(self.Jx_grid, self.Jy_grid)
+            self.Jx_2d, self.Jy_2d = np.meshgrid(self.Jx_grid, self.Jy_grid)
 
-            self.x_norm_2d = np.sqrt(2 * Jx_2d / nemitt_x)
-            self.y_norm_2d = np.sqrt(2 * Jy_2d / nemitt_y)
+            self.x_norm_2d = np.sqrt(2 * self.Jx_2d / nemitt_x)
+            self.y_norm_2d = np.sqrt(2 * self.Jy_2d / nemitt_y)
 
     def _compute_footprint(self, line):
 
@@ -130,5 +177,3 @@ class Footprint():
 
         ax.set_xlabel(r'$q_x$')
         ax.set_ylabel(r'$q_y$')
-
-        return ax
