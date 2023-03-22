@@ -98,12 +98,36 @@ assert np.isclose(np.max(fp0.qy[:]) - np.min(fp0.qy[:]), 0.0003, rtol=0, atol=2e
 
 plt.figure(2)
 
-
-
 line.vars['i_oct_b1'] = 500
 fp1_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                            x_norm_range=[0.01, 6], y_norm_range=[0.01, 6],
+                            n_x_norm=9, n_y_norm=8,
                             mode='uniform_action_grid')
 fp1_jgrid.plot(color='r', label='I_oct=500')
+
+assert hasattr(fp1_jgrid,  'Jx_grid')
+assert hasattr(fp1_jgrid,  'Jy_grid')
+
+assert len(fp1_jgrid.Jx_grid) == 9
+assert len(fp1_jgrid.Jy_grid) == 8
+
+assert np.allclose(np.diff(fp1_jgrid.Jx_grid), np.diff(fp1_jgrid.Jx_grid)[0],
+                   rtol=0, atol=1e-10)
+assert np.allclose(np.diff(fp1_jgrid.Jy_grid), np.diff(fp1_jgrid.Jy_grid)[0],
+                     rtol=0, atol=1e-10)
+
+assert np.isclose(fp1_jgrid.x_norm_2d[0, 0], 0.1, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.y_norm_2d[0, 0], 0.1, rtol=0, atol=1e-10)
+
+assert np.isclose(fp1_jgrid.x_norm_2d[0, -1], 6, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.y_norm_2d[0, -1], 0.1, rtol=0, atol=1e-10)
+
+assert np.isclose(fp1_jgrid.x_norm_2d[-1, 0], 0.1, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.y_norm_2d[-1, 0], 6, rtol=0, atol=1e-10)
+
+assert np.isclose(fp1_jgrid.x_norm_2d[-1, -1], 6, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.y_norm_2d[-1, -1], 6, rtol=0, atol=1e-10)
+
 
 plt.legend()
 
