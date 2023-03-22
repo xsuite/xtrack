@@ -1415,6 +1415,13 @@ class Line:
         n_y_norm : int
             Number of y_norm values for footprint in `uniform action grid` mode.
             Default is 10.
+        linear_rescale_on_knobs: list of xt.LinearRescale
+            Detuning from listed knobs is evaluated at a given value of the knob
+            with the provided step and rescaled to the actual knob value.
+            This is useful to avoid artefact from linear coupling or resonances.
+            Example:
+                ``line.get_footprint(..., linear_rescale_on_knobs=[
+                    xt.LinearRescale(knob_name='beambeam_scale', v0=0, dv-0.1)])``
 
         Returns
         -------
