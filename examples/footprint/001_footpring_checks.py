@@ -118,15 +118,24 @@ assert np.allclose(np.diff(fp1_jgrid.Jy_grid), np.diff(fp1_jgrid.Jy_grid)[0],
 
 assert np.isclose(fp1_jgrid.x_norm_2d[0, 0], 0.1, rtol=0, atol=1e-10)
 assert np.isclose(fp1_jgrid.y_norm_2d[0, 0], 0.1, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.qx[0, 0], 0.31, rtol=0, atol=5e-5)
+assert np.isclose(fp1_jgrid.qy[0, 0], 0.32, rtol=0, atol=5e-5)
 
 assert np.isclose(fp1_jgrid.x_norm_2d[0, -1], 6, rtol=0, atol=1e-10)
 assert np.isclose(fp1_jgrid.y_norm_2d[0, -1], 0.1, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.qx[0, -1], 0.3121, rtol=0, atol=1e-4)
+assert np.isclose(fp1_jgrid.qy[0, -1], 0.3189, rtol=0, atol=1e-4)
 
 assert np.isclose(fp1_jgrid.x_norm_2d[-1, 0], 0.1, rtol=0, atol=1e-10)
 assert np.isclose(fp1_jgrid.y_norm_2d[-1, 0], 6, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.qx[-1, 0], 0.3089, rtol=0, atol=1e-4)
+assert np.isclose(fp1_jgrid.qy[-1, 0], 0.3221, rtol=0, atol=1e-4)
 
 assert np.isclose(fp1_jgrid.x_norm_2d[-1, -1], 6, rtol=0, atol=1e-10)
 assert np.isclose(fp1_jgrid.y_norm_2d[-1, -1], 6, rtol=0, atol=1e-10)
+assert np.isclose(fp1_jgrid.qx[-1, -1], 0.3111, rtol=0, atol=1e-4)
+assert np.isclose(fp1_jgrid.qy[-1, -1], 0.3210, rtol=0, atol=1e-4)
+
 
 
 plt.legend()
