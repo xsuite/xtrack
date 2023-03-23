@@ -136,7 +136,9 @@ class Footprint():
         line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True)
         print('Done tracking.')
 
-        assert np.all(particles.state == 1), (
+
+        ctx2np = line._context.nparray_from_context_array
+        assert np.all(ctx2np(particles.state == 1)), (
             'Some particles were lost during tracking')
         mon = line.record_last_track
 
