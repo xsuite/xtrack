@@ -54,7 +54,10 @@ class Multiline:
                 if nn == 'dataframes':
                     dct['_bb_config'][nn] = {}
                     for kk, vv in vv.items():
-                        dct['_bb_config'][nn][kk] = vv.to_dict()
+                        if vv is not None:
+                            dct['_bb_config'][nn][kk] = vv.to_dict()
+                        else:
+                            dct['_bb_config'][nn][kk] = None
                 else:
                     dct['_bb_config'][nn] = vv
         return dct
@@ -91,8 +94,12 @@ class Multiline:
         if '_bb_config' in dct:
             new_multiline._bb_config = dct['_bb_config']
             for nn, vv in dct['_bb_config']['dataframes'].items():
+                if vv is not None:
+                    df = pd.DataFrame(vv)
+                else:
+                    df = None
                 new_multiline._bb_config[
-                    'dataframes'][nn] = pd.DataFrame(vv)
+                    'dataframes'][nn] = df
 
         return new_multiline
 
@@ -219,18 +226,18 @@ class Multiline:
         for nn, ll in self.lines.items():
             ll.unfreeze()
 
-        circumference = self.lines[clockwise_line].get_length()
-        assert np.isclose(circumference,
-                    self.lines[anticlockwise_line].get_length(),
-                    atol=1e-4, rtol=0)
+        if clockwise_line is not None and anticlockwise_line is not None:
+            circumference_cw = self.lines[clockwise_line].get_length()
+            circumference_acw = self.lines[anticlockwise_line].get_length()
+            assert np.isclose(circumference_cw, circumference_acw,
+                              atol=1e-4, rtol=0)
 
         bb_df_cw, bb_df_acw = xf.install_beambeam_elements_in_lines(
-            line_b1=self.lines[clockwise_line],
-            line_b4=self.lines[anticlockwise_line],
+            line_b1=self.lines.get(clockwise_line, None),
+            line_b4=self.lines.get(anticlockwise_line, None),
             ip_names=ip_names,
             num_long_range_encounters_per_side=num_long_range_encounters_per_side,
             num_slices_head_on=num_slices_head_on,
-            circumference=circumference,
             harmonic_number=harmonic_number,
             bunch_spacing_buckets=bunch_spacing_buckets,
             sigmaz_m=sigmaz)
