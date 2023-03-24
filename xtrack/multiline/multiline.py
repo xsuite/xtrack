@@ -253,7 +253,8 @@ class Multiline:
         }
 
     def configure_beambeam_interactions(self, num_particles,
-                                    nemitt_x, nemitt_y, crab_strong_beam=True):
+                                    nemitt_x, nemitt_y, crab_strong_beam=True,
+                                    use_antisymmetry=False):
 
         '''
         Configure the beam-beam elements in the lines.
@@ -268,22 +269,39 @@ class Multiline:
             The normalized emittance in the vertical plane.
         crab_strong_beam: bool
             If True, crabbing of the strong beam is taken into account.
+        use_antisymmetry: bool
+            If True, the antisymmetry of the optics and orbit is used to compute
+            the momenta of the beam-beam interaction (in the absence of the
+            counter-rotating beam)
 
         '''
 
+        if self._bb_config['dataframes']['clockwise'] is not None:
+            bb_df_cw = self._bb_config['dataframes']['clockwise'].copy()
+        else:
+            bb_df_cw = None
+
+        if self._bb_config['dataframes']['anticlockwise'] is not None:
+            bb_df_acw = self._bb_config['dataframes']['anticlockwise'].copy()
+        else:
+            bb_df_acw = None
+
         xf.configure_beam_beam_elements(
-            bb_df_cw=self._bb_config['dataframes']['clockwise'].copy(),
-            bb_df_acw=self._bb_config['dataframes']['anticlockwise'].copy(),
-            line_cw=self.lines[self._bb_config['clockwise_line']],
-            line_acw=self.lines[self._bb_config['anticlockwise_line']],
+            bb_df_cw=bb_df_cw,
+            bb_df_acw=bb_df_acw,
+            line_cw=self.lines.get(self._bb_config['clockwise_line'], None),
+            line_acw=self.lines.get(self._bb_config['anticlockwise_line'], None),
             num_particles=num_particles,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             crab_strong_beam=crab_strong_beam,
-            ip_names=self._bb_config['ip_names'])
+            ip_names=self._bb_config['ip_names'],
+            use_antisymmetry=use_antisymmetry)
 
         self.vars['beambeam_scale'] = 1.0
 
         for nn in ['clockwise', 'anticlockwise']:
+            if self._bb_config[f'{nn}_line'] is  None: continue
+
             line = self.lines[self._bb_config[f'{nn}_line']]
             df = self._bb_config['dataframes'][nn]
 
