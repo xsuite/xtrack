@@ -254,7 +254,8 @@ class Multiline:
 
     def configure_beambeam_interactions(self, num_particles,
                                     nemitt_x, nemitt_y, crab_strong_beam=True,
-                                    use_antisymmetry=False):
+                                    use_antisymmetry=False,
+                                    separation_bumps=None):
 
         '''
         Configure the beam-beam elements in the lines.
@@ -273,6 +274,11 @@ class Multiline:
             If True, the antisymmetry of the optics and orbit is used to compute
             the momenta of the beam-beam interaction (in the absence of the
             counter-rotating beam)
+        separation_bumps: dict
+            Dictionary previding the plane of the separation bump in the IPs
+            where separation is present. The keys are the IP names and the
+            values are the plane ("x" or "y"). This information needs to be 
+            provided only when use_antisymmetry is True.
 
         '''
 
@@ -295,7 +301,8 @@ class Multiline:
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             crab_strong_beam=crab_strong_beam,
             ip_names=self._bb_config['ip_names'],
-            use_antisymmetry=use_antisymmetry)
+            use_antisymmetry=use_antisymmetry,
+            separation_bumps=separation_bumps)
 
         self.vars['beambeam_scale'] = 1.0
 
