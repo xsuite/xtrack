@@ -788,7 +788,14 @@ class MadLoader:
     convert_tkicker = convert_kicker
 
     def convert_hkicker(self, mad_elem):
-        hkick = [-mad_elem.kick] if mad_elem.kick else []
+        if mad_elem.kick and mad_elem.hkick:
+            raise ValueError(
+                "hkicker with both kick and hkick is not supported")
+        hkick = []
+        if mad_elem.kick:
+            hkick = [-mad_elem.kick]
+        if mad_elem.hkick:
+            hkick = [-mad_elem.hkick]
         vkick = []
         el = self.Builder(
             mad_elem.name,
@@ -802,8 +809,15 @@ class MadLoader:
         return self.convert_thin_element([el], mad_elem)
 
     def convert_vkicker(self, mad_elem):
+        if mad_elem.kick and mad_elem.vkick:
+            raise ValueError(
+                "vkicker with both kick and vkick is not supported")
+        vkick = []
+        if mad_elem.kick:
+            vkick = [mad_elem.kick]
+        if mad_elem.vkick:
+            vkick = [mad_elem.vkick]
         hkick = []
-        vkick = [mad_elem.kick] if mad_elem.kick else []
         el = self.Builder(
             mad_elem.name,
             self.classes.Multipole,
