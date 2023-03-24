@@ -267,8 +267,8 @@ class Multiline:
         xf.configure_beam_beam_elements(
             bb_df_cw=self._bb_config['dataframes']['clockwise'].copy(),
             bb_df_acw=self._bb_config['dataframes']['anticlockwise'].copy(),
-            tracker_cw=self.lines[self._bb_config['clockwise_line']].tracker,
-            tracker_acw=self.lines[self._bb_config['anticlockwise_line']].tracker,
+            line_cw=self.lines[self._bb_config['clockwise_line']],
+            line_acw=self.lines[self._bb_config['anticlockwise_line']],
             num_particles=num_particles,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             crab_strong_beam=crab_strong_beam,

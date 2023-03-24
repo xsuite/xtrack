@@ -52,6 +52,7 @@ tw_part = line.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
 import matplotlib.pyplot as plt
 
 plt.close('all')
+plt.ion()
 
 fig1 = plt.figure(1, figsize=(6.4, 4.8*1.5))
 spbet = plt.subplot(3,1,1)
