@@ -21,6 +21,7 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
+from .footprint import Footprint, _footprint_with_linear_rescale
 
 log = logging.getLogger(__name__)
 
@@ -1365,6 +1366,82 @@ class Line:
         pp(list(df_thick_missing_aper.name))
 
         return elements_df
+
+    def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
+            mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
+            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
+            linear_rescale_on_knobs=None,
+            keep_fft=True):
+
+        '''
+        Compute the tune footprint for a beam with given emittences using tracking.
+
+        Parameters
+        ----------
+
+        nemitt_x : float
+            Normalized emittance in the x-plane.
+        nemitt_y : float
+            Normalized emittance in the y-plane.
+        n_turns : int
+            Number of turns for tracking.
+        n_fft : int
+            Number of points for FFT (tracking data is zero-padded to this length).
+        mode : str
+            Mode for computing footprint. Options are 'polar' and 'uniform_action_grid'.
+            In 'polar' mode, the footprint is computed on a polar grid with
+            r_range and theta_range specifying the range of r and theta values (
+            polar coordinates in the x_norm, y_norm plane).
+            In 'uniform_action_grid' mode, the footprint is computed on a uniform
+            grid in the action space (Jx, Jy).
+        r_range : tuple of floats
+            Range of r values for footprint in polar mode. Default is (0.1, 6) sigmas.
+        theta_range : tuple of floats
+            Range of theta values for footprint in polar mode. Default is
+            (0.05, pi / 2 - 0.05) radians.
+        n_r : int
+            Number of r values for footprint in polar mode. Default is 10.
+        n_theta : int
+            Number of theta values for footprint in polar mode. Default is 10.
+        x_norm_range : tuple of floats
+            Range of x_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        y_norm_range : tuple of floats
+            Range of y_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        n_x_norm : int
+            Number of x_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        n_y_norm : int
+            Number of y_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        linear_rescale_on_knobs: list of xt.LinearRescale
+            Detuning from listed knobs is evaluated at a given value of the knob
+            with the provided step and rescaled to the actual knob value.
+            This is useful to avoid artefact from linear coupling or resonances.
+            Example:
+                ``line.get_footprint(..., linear_rescale_on_knobs=[
+                    xt.LinearRescale(knob_name='beambeam_scale', v0=0, dv-0.1)])``
+
+        Returns
+        -------
+        fp : Footprint
+            Footprint object containing footprint data (fp.qx, fp.qy).
+
+        '''
+
+        kwargs = locals()
+        kwargs.pop('self')
+        kwargs.pop('linear_rescale_on_knobs')
+
+        if linear_rescale_on_knobs:
+            fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
+                        linear_rescale_on_knobs=linear_rescale_on_knobs)
+        else:
+            fp = Footprint(**kwargs)
+            fp._compute_footprint(self)
+
+        return fp
 
 
 mathfunctions = type('math', (), {})
