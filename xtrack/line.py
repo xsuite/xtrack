@@ -8,7 +8,7 @@ import math
 import logging
 import json
 from copy import deepcopy
-from pprint import pp
+from pprint import pformat
 from pathlib import Path
 
 import numpy as np
@@ -1358,14 +1358,14 @@ class Line:
         # Identify issues with apertures associate with thin elements
         df_thin_missing_aper = elements_df[elements_df['misses_aperture_upstream'] & ~elements_df['isthick']]
         _print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
-        pp(list(df_thin_missing_aper.name))
+        _print(pformat(list(df_thin_missing_aper.name)))
 
         # Identify issues with apertures associate with thick elements
         df_thick_missing_aper = elements_df[
             (elements_df['misses_aperture_upstream'] | elements_df['misses_aperture_downstream'])
             & elements_df['isthick']]
         _print(f'{len(df_thick_missing_aper)} thick elements miss associated aperture (upstream or downstream):')
-        pp(list(df_thick_missing_aper.name))
+        _print(pformat(list(df_thick_missing_aper.name)))
 
         return elements_df
 
