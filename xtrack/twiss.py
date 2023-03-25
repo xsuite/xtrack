@@ -489,7 +489,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                                     list(strengths.keys()))
 
     if at_elements is not None:
-        twiss_res._keep_only_elements(at_elements)
+        twiss_res = twiss_res[:, at_elements]
 
     if reverse:
         raise ValueError('twiss(..., reverse=True) not supported anymore. '
@@ -1404,26 +1404,6 @@ class TwissTable(Table):
             new_data.muzeta[:] = 0
 
         return new_data
-
-    def _keep_only_elements(self, at_elements):
-        enames = list(self.name)
-        if at_elements is not None:
-            indx_twiss = []
-            for nn in at_elements:
-                if isinstance(nn, (int, np.integer)):
-                    indx_twiss.append(int(nn))
-                else:
-                    assert nn in enames
-                    indx_twiss.append(enames.index(nn))
-            s_co = self['s']
-            for kk, vv in self.items():
-                if kk not in self._col_names:
-                    continue
-                if hasattr(vv, '__len__') and len(vv) == len(s_co):
-                    if isinstance(vv, np.ndarray):
-                        self[kk] = vv[indx_twiss]
-                    else:
-                        self[kk] = [vv[ii] for ii in indx_twiss]
 
 
 def _renormalize_eigenvectors(Ws):
