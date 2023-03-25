@@ -385,7 +385,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
 
-    twiss_res_element_by_element = _propagate_optics(
+    propagate_res = _propagate_optics(
         tracker=tracker,
         W_matrix=W,
         particle_on_co=part_on_co,
@@ -399,20 +399,20 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         hide_thin_groups=hide_thin_groups,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data)
-    twiss_res_element_by_element['name'] = np.array(
-                                        twiss_res_element_by_element['name'])
-    twiss_res = TwissTable(data=twiss_res_element_by_element)
+    propagate_res['name'] = np.array(
+                                        propagate_res['name'])
+    twiss_res = TwissTable(data=propagate_res)
 
-    twiss_res.particle_on_co = part_on_co.copy(_context=xo.context_default)
+    twiss_res._data['particle_on_co'] = part_on_co.copy(_context=xo.context_default)
 
     circumference = tracker._tracker_data.line_length
-    twiss_res['circumference'] = circumference
+    twiss_res._data['circumference'] = circumference
 
     if not skip_global_quantities:
 
-        s_vect = twiss_res_element_by_element['s']
-        mux = twiss_res_element_by_element['mux']
-        muy = twiss_res_element_by_element['muy']
+        s_vect = propagate_res['s']
+        mux = propagate_res['mux']
+        muy = propagate_res['muy']
 
         dqx, dqy = _compute_chromaticity(
             tracker=tracker,
@@ -425,21 +425,21 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify, steps_r_matrix=steps_r_matrix)
 
-        dzeta = twiss_res_element_by_element['dzeta']
-        qs = np.abs(twiss_res_element_by_element['muzeta'][-1])
+        dzeta = propagate_res['dzeta']
+        qs = np.abs(propagate_res['muzeta'][-1])
         eta = -dzeta[-1]/circumference
         alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
         betz0 = W[4, 4]**2 + W[4, 5]**2
-        ptau_co = twiss_res_element_by_element['ptau']
+        ptau_co = propagate_res['ptau']
 
         # Coupling
-        r1 = (np.sqrt(twiss_res_element_by_element['bety1'])/
-              np.sqrt(twiss_res_element_by_element['betx1']))
-        r2 = (np.sqrt(twiss_res_element_by_element['betx2'])/
-              np.sqrt(twiss_res_element_by_element['bety2']))
+        r1 = (np.sqrt(propagate_res['bety1'])/
+              np.sqrt(propagate_res['betx1']))
+        r2 = (np.sqrt(propagate_res['betx2'])/
+              np.sqrt(propagate_res['bety2']))
 
         # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
         cmin_arr = (2 * np.sqrt(r1*r2) *
@@ -448,7 +448,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
         c_r1_avg = np.trapz(r1, s_vect)/(circumference)
         c_r2_avg = np.trapz(r2, s_vect)/(circumference)
-        twiss_res.data.update({
+        twiss_res._data.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev0': T_rev0,
@@ -460,36 +460,40 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         else:
             twiss_res.particle_on_co._fsolve_info = None
 
-        twiss_res['R_matrix'] = RR
+        twiss_res._data['R_matrix'] = RR
 
         if method == '4d':
-            twiss_res.qs = 0
+            twiss_res._data.qs = 0
             twiss_res.muzeta[:] = 0
 
         if eneloss_and_damping:
             assert RR is not None
             eneloss_damp_res = _compute_eneloss_and_damping_rates(
                 particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
-            twiss_res.update(eneloss_damp_res)
+            twiss_res._data.update(eneloss_damp_res)
 
     if values_at_element_exit:
-        for nn, vv in twiss_res_element_by_element.items():
-            twiss_res[nn] = vv[1:]
-        twiss_res['values_at'] = 'exit'
+        raise NotImplementedError
+        # Untested
+        name_exit = twiss_res.name[:-1]
+        twiss_res = twiss_res[:, 1:]
+        twiss_res['name'][:] = name_exit
+        twiss_res._data['values_at'] = 'entry'
     else:
-        twiss_res['values_at'] = 'entry'
+        twiss_res._data['values_at'] = 'entry'
 
     if strengths:
         strengths = _extract_knl_ksl(tracker.line, twiss_res['name'])
-        twiss_res.update(strengths)
-        twiss_res['_col_names'] = (list(twiss_res['_col_names']) +
+        twiss_res._data.update(strengths)
+        twiss_res._col_names = (list(twiss_res['_col_names']) +
                                     list(strengths.keys()))
 
     if at_elements is not None:
         twiss_res._keep_only_elements(at_elements)
 
     if reverse:
-        twiss_res = twiss_res.reverse()
+        raise ValueError('twiss(..., reverse=True) not supported anymore. '
+                         'Use twiss(...).reverse() instead.')
 
     return twiss_res
 
@@ -1160,7 +1164,7 @@ class TwissTable(Table):
         gemitt_x = nemitt_x / (beta0 * gamma0)
         gemitt_y = nemitt_y / (beta0 * gamma0)
 
-        Ws = np.array(self.W_matrix)
+        Ws = self.W_matrix
         v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
         v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
         v3 = Ws[:,:,4] + 1j * Ws[:,:,5]
@@ -1402,7 +1406,7 @@ class TwissTable(Table):
         return new_data
 
     def _keep_only_elements(self, at_elements):
-        enames = self.name
+        enames = list(self.name)
         if at_elements is not None:
             indx_twiss = []
             for nn in at_elements:

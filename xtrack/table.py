@@ -232,7 +232,8 @@ class Table:
     def __setitem__(self, key, val):
         if len(val) != self._nrows:
             raise ValueError("Wrong number of rows")
-        self._col_names.append(key)
+        if key not in self._col_names:
+            self._col_names.append(key)
         self._data[key] = val
         if key == self._index:
             self._index_cache = None
