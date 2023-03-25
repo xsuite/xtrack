@@ -545,6 +545,8 @@ class Tracker:
         use_full_inverse=None,
         strengths=False,
         hide_thin_groups=False,
+        _continue_if_lost=False,
+        _keep_tracking_data=False
         ):
 
         self._check_invalidated()

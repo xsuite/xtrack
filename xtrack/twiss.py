@@ -54,7 +54,9 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         reverse=False,
         use_full_inverse=None,
         strengths=False,
-        hide_thin_groups=False
+        hide_thin_groups=False,
+        _continue_if_lost=False,
+        _keep_tracking_data=False,
         ):
 
     """
@@ -396,7 +398,9 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         r_sigma=r_sigma,
         delta_disp=delta_disp,
         use_full_inverse=use_full_inverse,
-        hide_thin_groups=hide_thin_groups,)
+        hide_thin_groups=hide_thin_groups,
+        _continue_if_lost=_continue_if_lost,
+        _keep_tracking_data=_keep_tracking_data)
     twiss_res.update(twiss_res_element_by_element)
     twiss_res._ebe_fields = twiss_res_element_by_element.keys()
 
@@ -495,7 +499,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
                       ele_start, ele_stop,
                       nemitt_x, nemitt_y, r_sigma, delta_disp,
                       use_full_inverse,
-                      hide_thin_groups=False):
+                      hide_thin_groups=False,
+                      _continue_if_lost=False,
+                      _keep_tracking_data=False):
 
     ctx2np = tracker._context.nparray_from_context_array
 
@@ -537,8 +543,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     #assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
     tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
                   ele_start=ele_start, ele_stop=ele_stop)
-    assert np.all(ctx2np(part_for_twiss.state) == 1), (
-        'Some test particles were lost during twiss!')
+    if not _continue_if_lost:
+        assert np.all(ctx2np(part_for_twiss.state) == 1), (
+            'Some test particles were lost during twiss!')
     i_stop = part_for_twiss._xobject.at_element[0] + (
         (part_for_twiss._xobject.at_turn[0] - AT_TURN_FOR_TWISS)
          * len(tracker.line.element_names))
@@ -689,6 +696,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'betx2': betx2,
         'bety2': bety2,
     }
+
+    if _keep_tracking_data:
+        twiss_res_element_by_element['tracking_data'] = tracker.record_last_track
 
     if hide_thin_groups:
         _vars_hide_changes = [
