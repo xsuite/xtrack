@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from .general import Table
+from .table import Table
 from .twiss import TwissTable
 import xtrack as xt
 

@@ -177,7 +177,7 @@ def test_twiss_and_survey(test_context):
                 nemitt_y = mad_ref.sequence[seq_name].beam.eyn
                 Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
 
-                for nn in twtst._ebe_fields:
+                for nn in twtst._col_names:
                     assert len(twtst[nn]) == len(twtst['name'])
 
                 test_at_elements = []
