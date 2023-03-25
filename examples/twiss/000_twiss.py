@@ -28,6 +28,7 @@ tw = line.twiss()
 
 # Test custom s locations
 s_test = [2e3, 1e3, 3e3, 10e3]
+import pdb; pdb.set_trace()
 twats = line.twiss(at_s = s_test)
 for ii, ss in enumerate(s_test):
     assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
