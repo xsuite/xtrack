@@ -5,6 +5,7 @@ from scipy.optimize import fsolve, minimize
 
 from .jacobian import jacobian
 from .twiss import TwissInit
+from .general import _print
 import xtrack as xt
 
 class OrbitOnly:
@@ -19,7 +20,7 @@ class OrbitOnly:
 def _error_for_match(knob_values, vary, targets, tracker, return_scalar,
                      call_counter, verbose, tw_kwargs):
 
-    print(f"Matching: twiss call n. {call_counter['n']}       ", end='\r', flush=True)
+    _print(f"Matching: twiss call n. {call_counter['n']}       ", end='\r', flush=True)
     call_counter['n'] += 1
 
     for kk, vv in zip(vary, knob_values):
@@ -53,14 +54,14 @@ def _error_for_match(knob_values, vary, targets, tracker, return_scalar,
     if np.all(np.abs(err_values) < tols):
         err_values *= 0
         if verbose:
-            print('Found point within tolerance!')
+            _print('Found point within tolerance!')
 
     for ii, tt in enumerate(targets):
         if tt.scale is not None:
             err_values[ii] *= tt.scale
 
     if verbose:
-        print(f'x = {knob_values}   f(x) = {res_values}')
+        _print(f'x = {knob_values}   f(x) = {res_values}')
 
     if return_scalar:
         return np.sum(err_values * err_values)
@@ -156,7 +157,7 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
             solver = 'fsolve'
 
     if verbose:
-        print(f'Using solver {solver}')
+        _print(f'Using solver {solver}')
 
     steps = []
     for vv in vary:
@@ -221,16 +222,16 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
         if restore_if_fail:
             for ii, rr in enumerate(vary):
                 tracker.vars[rr] = x0[ii]
-        print('\n')
+        _print('\n')
         raise err
-    print('\n')
+    _print('\n')
     return result_info
 
 def closed_orbit_correction(tracker, tracker_co_ref, correction_config,
                             solver=None, verbose=False, restore_if_fail=True):
 
     for corr_name, corr in correction_config.items():
-        print('Correcting', corr_name)
+        _print('Correcting', corr_name)
         with xt.tracker._temp_knobs(tracker, corr['ref_with_knobs']):
             tw_ref = tracker_co_ref.twiss(method='4d', zeta0=0, delta0=0)
         vary = [xt.Vary(vv, step=1e-9) for vv in corr['vary']]

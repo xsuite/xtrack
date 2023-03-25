@@ -12,6 +12,8 @@ from ..tracker import Tracker
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
 
+from ..general import _print
+
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -386,7 +388,7 @@ def find_previous_drift(tracker, i_aperture):
     while not(found):
         ee = line.element_dict[line.element_names[ii]]
         ccnn = ee.__class__.__name__
-        #print(ccnn)
+        #_print(ccnn)
         if ccnn == 'Drift':
             found = True
         elif _behaves_like_drift(ee):

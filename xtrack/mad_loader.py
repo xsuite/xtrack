@@ -34,6 +34,8 @@ import numpy as np
 
 import xtrack, xobjects
 
+from .general import _print
+
 
 # Generic functions
 
@@ -606,13 +608,13 @@ class MadLoader:
                     f" or convert_{el.type} in function in MadLoader"
                 )
             if ii % 100 == 0:
-                print(
+                _print(
                     f'Converting sequence "{self.sequence.name}":'
                     f' {round(ii/nelem*100):2d}%     ',
                     end="\r",
                     flush=True,
                 )
-        print()
+        _print()
         return line
 
     def add_elements(

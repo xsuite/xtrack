@@ -23,6 +23,8 @@ from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
 from .footprint import Footprint, _footprint_with_linear_rescale
 
+from .general import _print
+
 log = logging.getLogger(__name__)
 
 def mk_class_namespace(extra_classes):
@@ -216,7 +218,7 @@ class Line:
             num_elements = len(dct['elements'].keys())
             for ii, (kk, ee) in enumerate(dct['elements'].items()):
                 if ii % 100 == 0:
-                    print('Loading line from dict: '
+                    _print('Loading line from dict: '
                         f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
                 elements[kk] = _deserialize_element(ee, class_dict, _buffer)
         elif isinstance(dct['elements'], list):
@@ -224,7 +226,7 @@ class Line:
             num_elements = len(dct['elements'])
             for ii, ee in enumerate(dct['elements']):
                 if ii % 100 == 0:
-                    print('Loading line from dict: '
+                    _print('Loading line from dict: '
                         f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
                 elements.append(_deserialize_element(ee, class_dict, _buffer))
         else:
@@ -239,7 +241,7 @@ class Line:
         if '_var_manager' in dct.keys():
             self._init_var_management(dct=dct)
 
-        print('Done loading line from dict.           ')
+        _print('Done loading line from dict.           ')
 
         return self
 
@@ -1311,7 +1313,7 @@ class Line:
         for iee in range(i_prev_aperture, num_elements):
 
             if iee % 100 == 0:
-                print(
+                _print(
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
@@ -1351,18 +1353,18 @@ class Line:
             elements_df['misses_aperture_upstream'] | (
                 elements_df['isthick'] & elements_df['misses_aperture_downstream']))
 
-        print('Done checking aperture.           ')
+        _print('Done checking aperture.           ')
 
         # Identify issues with apertures associate with thin elements
         df_thin_missing_aper = elements_df[elements_df['misses_aperture_upstream'] & ~elements_df['isthick']]
-        print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
+        _print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
         pp(list(df_thin_missing_aper.name))
 
         # Identify issues with apertures associate with thick elements
         df_thick_missing_aper = elements_df[
             (elements_df['misses_aperture_upstream'] | elements_df['misses_aperture_downstream'])
             & elements_df['isthick']]
-        print(f'{len(df_thick_missing_aper)} thick elements miss associated aperture (upstream or downstream):')
+        _print(f'{len(df_thick_missing_aper)} thick elements miss associated aperture (upstream or downstream):')
         pp(list(df_thick_missing_aper.name))
 
         return elements_df

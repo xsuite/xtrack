@@ -19,3 +19,12 @@ class Table(dict):
         if index is not None:
             df.set_index(index, inplace=True)
         return df
+
+class Print():
+    suppress = False
+
+    def __call__(self, *args, **kwargs):
+        if not self.suppress:
+            print(*args, **kwargs)
+
+_print = Print()

@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-from .general import _pkg_root
+from .general import _pkg_root, _print
 
 from .base_element import BeamElement
 from .beam_elements import *

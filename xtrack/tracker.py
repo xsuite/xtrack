@@ -13,6 +13,7 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
+from .general import _print
 from . import linear_normal_form as lnf
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
@@ -407,7 +408,7 @@ class Tracker:
 
         self.track_kernel = {} # Remove all kernels
 
-        if verbose: print("Disable xdeps expressions")
+        if verbose: _print("Disable xdeps expressions")
         self.line._var_management = None # Disable expressions
 
         line = self.line
@@ -416,36 +417,36 @@ class Tracker:
         line.element_names = list(line.element_names)
 
         if keep_markers is True:
-            if verbose: print('Markers are kept')
+            if verbose: _print('Markers are kept')
         elif keep_markers is False:
-            if verbose: print("Remove markers")
+            if verbose: _print("Remove markers")
             line.remove_markers()
         else:
-            if verbose: print('Keeping only selected markers')
+            if verbose: _print('Keeping only selected markers')
             line.remove_markers(keep=keep_markers)
 
-        if verbose: print("Remove inactive multipoles")
+        if verbose: _print("Remove inactive multipoles")
         line.remove_inactive_multipoles()
 
-        if verbose: print("Merge consecutive multipoles")
+        if verbose: _print("Merge consecutive multipoles")
         line.merge_consecutive_multipoles()
 
-        if verbose: print("Remove redundant apertures")
+        if verbose: _print("Remove redundant apertures")
         line.remove_redundant_apertures()
 
-        if verbose: print("Remove zero length drifts")
+        if verbose: _print("Remove zero length drifts")
         line.remove_zero_length_drifts()
 
-        if verbose: print("Merge consecutive drifts")
+        if verbose: _print("Merge consecutive drifts")
         line.merge_consecutive_drifts()
 
-        if verbose: print("Use simple bends")
+        if verbose: _print("Use simple bends")
         line.use_simple_bends()
 
-        if verbose: print("Use simple quadrupoles")
+        if verbose: _print("Use simple quadrupoles")
         line.use_simple_quadrupoles()
 
-        if verbose: print("Rebuild tracker data")
+        if verbose: _print("Rebuild tracker data")
         tracker_data = TrackerData(
             line=line,
             extra_element_classes=(self.particles_monitor_class._XoStruct,),

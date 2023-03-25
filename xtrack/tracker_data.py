@@ -6,6 +6,7 @@
 from typing import Tuple
 
 import xobjects as xo
+from .general import _print
 
 from xobjects.struct import Struct, MetaStruct
 
@@ -205,7 +206,7 @@ class TrackerData:
         elements = element_ref_data.elements
         names = element_ref_data.names
         for ii, elem in enumerate(elements):
-            print('Loading line from binary: '
+            _print('Loading line from binary: '
                 f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
             name = names[ii]
             if name in element_dict:
