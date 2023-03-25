@@ -4,6 +4,7 @@
 # ######################################### #
 
 from pathlib import Path
+from xobjects.general import _print
 
 _pkg_root = Path(__file__).parent.absolute()
 
@@ -20,11 +21,3 @@ class Table(dict):
             df.set_index(index, inplace=True)
         return df
 
-class Print():
-    suppress = False
-
-    def __call__(self, *args, **kwargs):
-        if not self.suppress:
-            print(*args, **kwargs)
-
-_print = Print()
