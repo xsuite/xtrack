@@ -123,6 +123,8 @@ class Table:
     ):
         if data is None:
             data = {}
+        if index_cache is not None:
+            raise NotImplementedError("index_cache not yet implemented") # untested
         self._data = data
         self._col_names = list(data.keys()) if col_names is None else col_names
         self._index = index
@@ -142,17 +144,20 @@ class Table:
             raise ValueError(f"Cannot find `{self._index}` in table")
 
     def _get_index_cache(self):
-        if self._index_cache is None:
-            col = self._get_index()
-            dct = {}
-            count = {}
-            col = self._get_index()
-            for ii, nn in enumerate(col):
-                cc = count.get(nn, -1) + 1
-                dct[(nn, cc)] = ii
-                count[nn] = cc
-            self._index_cache = dct
-        return self._index_cache
+        return None
+
+        # Disabled for now (untested)
+        # if self._index_cache is None:
+        #     col = self._get_index()
+        #     dct = {}
+        #     count = {}
+        #     col = self._get_index()
+        #     for ii, nn in enumerate(col):
+        #         cc = count.get(nn, -1) + 1
+        #         dct[(nn, cc)] = ii
+        #         count[nn] = cc
+        #     self._index_cache = dct
+        # return self._index_cache
 
     def _split_name_count_offset(self, name):
         ss = name.split(self._count_sep)
