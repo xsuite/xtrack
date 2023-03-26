@@ -40,14 +40,20 @@ class Loc:
             mask[key] = True
         elif hasattr(key, "dtype"):
             if key.dtype.kind in "SU":
-                mask[self.table._get_names_indices(key)] = True
+                #mask[self.table._get_names_indices(key)] = True
+                return self.table._get_names_indices(key)
             else:
                 mask[key] = True
         elif isinstance(key, list):
             if len(key) > 0 and isinstance(key[0], str):
-                mask[self.table._get_names_indices(key)] = True
+                #mask[self.table._get_names_indices(key)] = True
+                return self.table._get_names_indices(key)
             else:
                 mask[key] = True
+        elif isinstance(key, tuple):
+            mask = self[key[0]]
+            if len(key) > 1:
+                mask &= self[key[1:]]
         elif isinstance(key, str):
             mask[:] = self.table._get_name_mask(key, self.table._index)
         elif isinstance(key, slice):
@@ -74,10 +80,6 @@ class Loc:
                     mask |= (col >= ia) & (col <= ib)
             else:
                 mask[ia:ib:ic] = True
-        elif isinstance(key, tuple):
-            mask = self[key[0]]
-            if len(key) > 1:
-                mask &= self[key[1:]]
         return mask
 
 

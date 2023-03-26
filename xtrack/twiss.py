@@ -1138,7 +1138,7 @@ class TwissTable(Table):
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         if isinstance(at_element, str):
-            at_element = self.name.index(at_element)
+            at_element = np.where(self.name == at_element)[0][0]
         part = self.particle_on_co.copy()
         part.x[:] = self.x[at_element]
         part.px[:] = self.px[at_element]
