@@ -2,6 +2,8 @@ import re
 import numpy as np
 import pathlib
 
+And = np.logical_and
+
 gblmath = {"np": np}
 for k, fu in np.__dict__.items():
     if type(fu) is np.ufunc:
@@ -35,28 +37,31 @@ class Loc:
         l.loc[-2:2:'x'] -> name value range with 'x' column
         l.loc[-2:2:'x',...] -> & combinations
         """
-        mask = np.zeros(self.table._nrows, dtype=bool)
+
         if isinstance(key, int):
+            mask = np.zeros(self.table._nrows, dtype=bool)
             mask[key] = True
+            return mask
         elif hasattr(key, "dtype"):
             if key.dtype.kind in "SU":
-                #mask[self.table._get_names_indices(key)] = True
                 return self.table._get_names_indices(key)
             else:
+                mask = np.zeros(self.table._nrows, dtype=bool)
                 mask[key] = True
-        elif isinstance(key, list):
+                return mask
+        elif isinstance(key, (list, tuple)):
             if len(key) > 0 and isinstance(key[0], str):
-                #mask[self.table._get_names_indices(key)] = True
                 return self.table._get_names_indices(key)
             else:
+                mask = np.zeros(self.table._nrows, dtype=bool)
                 mask[key] = True
-        elif isinstance(key, tuple):
-            mask = self[key[0]]
-            if len(key) > 1:
-                mask &= self[key[1:]]
+                return mask
         elif isinstance(key, str):
+            mask = np.zeros(self.table._nrows, dtype=bool)
             mask[:] = self.table._get_name_mask(key, self.table._index)
+            return mask
         elif isinstance(key, slice):
+            mask = np.zeros(self.table._nrows, dtype=bool)
             ia = key.start
             ib = key.stop
             ic = key.step
@@ -80,7 +85,7 @@ class Loc:
                     mask |= (col >= ia) & (col <= ib)
             else:
                 mask[ia:ib:ic] = True
-        return mask
+            return mask
 
 
 class View:
@@ -167,6 +172,9 @@ class Table:
 
     def _get_name_mask(self, name, col):
         name, count, offset = self._split_name_count_offset(name)
+
+        if count is not None and count == 0:
+            raise ValueError("No row matching `{name}`")
 
         if col == self._index:
             tryout = self._get_index_cache().get((name, count))
@@ -277,11 +285,10 @@ class Table:
                 cols = args[0]
                 rows = None
             elif len(args) == 2:
-                cols = args[0]
-                rows = args[1]
+                cols = args[1]
+                rows = args[0]
             else:
-                cols = args[0]
-                rows = args[1:]
+                raise ValueError("Too many indices or keys")
         else:  # one arg
             cols = args
             rows = None
