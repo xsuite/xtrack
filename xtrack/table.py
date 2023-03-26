@@ -280,7 +280,8 @@ class Table:
                 cols = args[0]
                 rows = args[1]
             else:
-                raise ValueError("Too many indices")
+                cols = args[0]
+                rows = args[1:]
         else:  # one arg
             cols = args
             rows = None
