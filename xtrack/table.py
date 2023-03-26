@@ -144,20 +144,17 @@ class Table:
             raise ValueError(f"Cannot find `{self._index}` in table")
 
     def _get_index_cache(self):
-        return None
-
-        # Disabled for now (untested)
-        # if self._index_cache is None:
-        #     col = self._get_index()
-        #     dct = {}
-        #     count = {}
-        #     col = self._get_index()
-        #     for ii, nn in enumerate(col):
-        #         cc = count.get(nn, -1) + 1
-        #         dct[(nn, cc)] = ii
-        #         count[nn] = cc
-        #     self._index_cache = dct
-        # return self._index_cache
+        if self._index_cache is None:
+            col = self._get_index()
+            dct = {}
+            count = {}
+            col = self._get_index()
+            for ii, nn in enumerate(col):
+                cc = count.get(nn, -1) + 1
+                dct[(nn, cc)] = ii
+                count[nn] = cc
+            self._index_cache = dct
+        return self._index_cache
 
     def _split_name_count_offset(self, name):
         ss = name.split(self._count_sep)
@@ -170,12 +167,14 @@ class Table:
 
     def _get_name_mask(self, name, col):
         name, count, offset = self._split_name_count_offset(name)
+
         if col == self._index:
             tryout = self._get_index_cache().get((name, count))
             if tryout is not None:
                 mask = np.zeros(self._nrows, dtype=bool)
                 mask[tryout] = True
                 return mask
+
         col = self._data[col]
         regex = re.compile(name, re.IGNORECASE)
         it = (regex.fullmatch(rr) is not None for rr in col)
@@ -188,10 +187,12 @@ class Table:
 
     def _get_name_indices(self, name, col):
         name, count, offset = self._split_name_count_offset(name)
+
         if col == self._index:
             idx = self._get_index_cache().get((name, count))
             if idx is not None:
                 return [idx + offset]
+
         regex = re.compile(name, self._regex_flags)
         lst = []
         cnt = -1
