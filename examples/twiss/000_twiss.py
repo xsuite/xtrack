@@ -27,8 +27,19 @@ tw = line.twiss()
 #!end-doc-part
 tw_sel = tw[['ip6', 'ip5'], :]
 
-import pdb; pdb.set_trace()
-tw['ip0', :]
+try:
+    tw['ip0', :]
+except IndexError: # expected exception
+    pass
+
+# this does not give a clear error message
+# tw['ip.*']
+
+tw[['ip1', 'ip2'], :]
+tw['ip.*', :]
+
+import pdb; pdb.set_trace() # need to make a clear error for this case
+tw[['ip1', 'ip2', 'ip0'], :]
 
 # Test custom s locations
 s_test = [2e3, 1e3, 3e3, 10e3]

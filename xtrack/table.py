@@ -57,8 +57,9 @@ class Loc:
                 mask[key] = True
                 return mask
         elif isinstance(key, str):
-            mask = np.zeros(self.table._nrows, dtype=bool)
-            mask[:] = self.table._get_name_mask(key, self.table._index)
+            mask = self.table._get_name_mask(key, self.table._index)
+            if np.all(~mask):
+                raise IndexError(f"Cannot find `{key}` in table")
             return mask
         elif isinstance(key, slice):
             mask = np.zeros(self.table._nrows, dtype=bool)
@@ -285,7 +286,9 @@ class Table:
                 cols = args[1]
                 rows = args[0]
             else:
-                raise ValueError("Too many indices or keys")
+                raise ValueError("Too many indices or keys. Expected usage is"
+                  "`table[col]` or `table[row, col]` or "
+                  "`table[[row1, row2, ...], [col1, col2, ...]]`")
         else:  # one arg
             cols = args
             rows = None
