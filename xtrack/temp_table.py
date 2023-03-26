@@ -1,5 +1,8 @@
 import re
 import numpy as np
+import pathlib
+
+And = np.logical_and
 
 gblmath = {"np": np}
 for k, fu in np.__dict__.items():
@@ -34,22 +37,32 @@ class Loc:
         l.loc[-2:2:'x'] -> name value range with 'x' column
         l.loc[-2:2:'x',...] -> & combinations
         """
-        mask = np.zeros(self.table._nrows, dtype=bool)
+
         if isinstance(key, int):
+            mask = np.zeros(self.table._nrows, dtype=bool)
             mask[key] = True
+            return mask
         elif hasattr(key, "dtype"):
             if key.dtype.kind in "SU":
-                mask[self.table._get_names_indices(key)] = True
+                return self.table._get_names_indices(key)
             else:
+                mask = np.zeros(self.table._nrows, dtype=bool)
                 mask[key] = True
-        elif isinstance(key, list):
+                return mask
+        elif isinstance(key, (list, tuple)):
             if len(key) > 0 and isinstance(key[0], str):
-                mask[self.table._get_names_indices(key)] = True
+                return self.table._get_names_indices(key)
             else:
+                mask = np.zeros(self.table._nrows, dtype=bool)
                 mask[key] = True
+                return mask
         elif isinstance(key, str):
-            mask[:] = self.table._get_name_mask(key, self.table._index)
+            mask = self.table._get_name_mask(key, self.table._index)
+            if np.all(~mask):
+                raise IndexError(f"Cannot find `{key}` in table")
+            return mask
         elif isinstance(key, slice):
+            mask = np.zeros(self.table._nrows, dtype=bool)
             ia = key.start
             ib = key.stop
             ic = key.step
@@ -73,11 +86,7 @@ class Loc:
                     mask |= (col >= ia) & (col <= ib)
             else:
                 mask[ia:ib:ic] = True
-        elif isinstance(key, tuple):
-            mask = self[key[0]]
-            if len(key) > 1:
-                mask &= self[key[1:]]
-        return mask
+            return mask
 
 
 class View:
@@ -93,17 +102,35 @@ class View:
         return len(self.data[k])
 
 
-class RDMTable:
+class Table:
+
+    def to_pandas(self, index=None,columns=None):
+        import pandas as pd
+
+        if columns is None:
+            columns = self._col_names
+
+        if index is None:
+            index = self._index
+
+        df = pd.DataFrame(self.data, columns=columns)
+        df.set_index(index, inplace=True)
+
+        return df
+
     def __init__(
         self,
-        data,
+        data=None,
         col_names=None,
         index="name",
-        header=None,
         count_sep="##",
         offset_sep="%%",
         index_cache=None,
     ):
+        if data is None:
+            data = {}
+        if index_cache is not None:
+            raise NotImplementedError("index_cache not yet implemented") # untested
         self._data = data
         self._col_names = list(data.keys()) if col_names is None else col_names
         self._index = index
@@ -146,12 +173,14 @@ class RDMTable:
 
     def _get_name_mask(self, name, col):
         name, count, offset = self._split_name_count_offset(name)
+
         if col == self._index:
             tryout = self._get_index_cache().get((name, count))
             if tryout is not None:
                 mask = np.zeros(self._nrows, dtype=bool)
                 mask[tryout] = True
                 return mask
+
         col = self._data[col]
         regex = re.compile(name, re.IGNORECASE)
         it = (regex.fullmatch(rr) is not None for rr in col)
@@ -164,10 +193,12 @@ class RDMTable:
 
     def _get_name_indices(self, name, col):
         name, count, offset = self._split_name_count_offset(name)
+
         if col == self._index:
             idx = self._get_index_cache().get((name, count))
             if idx is not None:
                 return [idx + offset]
+
         regex = re.compile(name, self._regex_flags)
         lst = []
         cnt = -1
@@ -212,15 +243,16 @@ class RDMTable:
     def __contains__(self):
         return self._data.__contains__()
 
-    def __setitems__(self, key, val):
+    def __setitem__(self, key, val):
         if len(val) != self._nrows:
             raise ValueError("Wrong number of rows")
-        self._col_names.append(key)
+        if key not in self._col_names:
+            self._col_names.append(key)
         self._data[key] = val
         if key == self._index:
             self._index_cache = None
 
-    def __delitems__(self, key, val):
+    def __delitem__(self, key, val):
         self._col_names.remove(key)
         del self._data[key]
 
@@ -251,11 +283,12 @@ class RDMTable:
                 cols = args[0]
                 rows = None
             elif len(args) == 2:
-                cols = args[0]
-                rows = args[1]
+                cols = args[1]
+                rows = args[0]
             else:
-                cols = args[0]
-                rows = args[1:]
+                raise ValueError("Too many indices or keys. Expected usage is"
+                  "`table[col]` or `table[row, col]` or "
+                  "`table[[row1, row2, ...], [col1, col2, ...]]`")
         else:  # one arg
             cols = args
             rows = None
