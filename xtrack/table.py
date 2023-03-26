@@ -173,9 +173,6 @@ class Table:
     def _get_name_mask(self, name, col):
         name, count, offset = self._split_name_count_offset(name)
 
-        if count is not None and count == 0:
-            raise ValueError("No row matching `{name}`")
-
         if col == self._index:
             tryout = self._get_index_cache().get((name, count))
             if tryout is not None:

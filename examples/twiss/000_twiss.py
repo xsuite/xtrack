@@ -27,6 +27,9 @@ tw = line.twiss()
 #!end-doc-part
 tw_sel = tw[['ip6', 'ip5'], :]
 
+import pdb; pdb.set_trace()
+tw['ip0', :]
+
 # Test custom s locations
 s_test = [2e3, 1e3, 3e3, 10e3]
 twats = line.twiss(at_s = s_test)
