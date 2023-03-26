@@ -207,6 +207,8 @@ class RDMTable:
         lst = []
         for name in names:
             name, count, offset = self._split_name_count_offset(name)
+            if self._error_on_row_not_found and name not in self[self._index]:
+                raise IndexError(f"Cannot find `{name}` in table")
             if count is None:
                 count = 0
             lst.append(dct[(name, count)] + offset)

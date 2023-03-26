@@ -10,7 +10,7 @@ data = {
 }
 
 
-t = Table(data)
+t = RDMTable(data)
 
 def test_column_selection():
     assert len(t.betx)==len(data['betx'])
