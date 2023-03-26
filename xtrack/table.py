@@ -93,7 +93,7 @@ class View:
         return len(self.data[k])
 
 
-class RDMTable:
+class Table:
     def __init__(
         self,
         data,
@@ -251,11 +251,11 @@ class RDMTable:
                 cols = args[0]
                 rows = None
             elif len(args) == 2:
-                cols = args[0]
-                rows = args[1]
+                cols = args[1]
+                rows = args[0]
             else:
-                cols = args[0]
-                rows = args[1:]
+                cols = args[-1]
+                rows = args[:-1]
         else:  # one arg
             cols = args
             rows = None
