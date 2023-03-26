@@ -25,7 +25,7 @@ line.build_tracker()
 tw = line.twiss()
 
 #!end-doc-part
-tw_sel = tw[:, ['ip6', 'ip5']]
+tw_sel = tw[['ip6', 'ip5'], :]
 
 # Test custom s locations
 s_test = [2e3, 1e3, 3e3, 10e3]
