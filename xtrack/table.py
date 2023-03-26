@@ -1,3 +1,4 @@
+import pathlib
 import re
 import numpy as np
 
@@ -36,19 +37,29 @@ class Loc:
         """
         mask = np.zeros(self.table._nrows, dtype=bool)
         if isinstance(key, int):
+            mask = np.zeros(self.table._nrows, dtype=bool)
             mask[key] = True
+            return mask
         elif hasattr(key, "dtype"):
             if key.dtype.kind in "SU":
-                mask[self.table._get_names_indices(key)] = True
+                if self.table._multiple_row_selections:
+                    mask[self.table._get_names_indices(key)] = True
+                else:
+                    return self.table._get_names_indices(key) # preserve key order
             else:
                 mask[key] = True
         elif isinstance(key, list):
             if len(key) > 0 and isinstance(key[0], str):
-                mask[self.table._get_names_indices(key)] = True
+                if self.table._multiple_row_selections:
+                    mask[self.table._get_names_indices(key)] = True
+                else:
+                    return self.table._get_names_indices(key) # preserve key order
             else:
                 mask[key] = True
         elif isinstance(key, str):
             mask[:] = self.table._get_name_mask(key, self.table._index)
+            if self.table._error_on_row_not_found and not mask.any():
+                raise IndexError(f"Cannot find `{key}` in table")
         elif isinstance(key, slice):
             ia = key.start
             ib = key.stop
@@ -74,9 +85,14 @@ class Loc:
             else:
                 mask[ia:ib:ic] = True
         elif isinstance(key, tuple):
-            mask = self[key[0]]
-            if len(key) > 1:
-                mask &= self[key[1:]]
+            if self.table._multiple_row_selections:
+                return self.__getitem__(list(key))
+            else:
+                mask = self[key[0]]
+                if len(key) > 1:
+                    mask &= self[key[1:]]
+
+
         return mask
 
 
@@ -93,7 +109,12 @@ class View:
         return len(self.data[k])
 
 
-class Table:
+
+class RDMTable:
+
+    _multiple_row_selections = True
+    _error_on_row_not_found = False
+
     def __init__(
         self,
         data,
@@ -212,7 +233,7 @@ class Table:
     def __contains__(self):
         return self._data.__contains__()
 
-    def __setitems__(self, key, val):
+    def __setitem__(self, key, val):
         if len(val) != self._nrows:
             raise ValueError("Wrong number of rows")
         self._col_names.append(key)
@@ -220,7 +241,7 @@ class Table:
         if key == self._index:
             self._index_cache = None
 
-    def __delitems__(self, key, val):
+    def __delitem__(self, key, val):
         self._col_names.remove(key)
         del self._data[key]
 
@@ -254,8 +275,14 @@ class Table:
                 cols = args[1]
                 rows = args[0]
             else:
-                cols = args[-1]
-                rows = args[:-1]
+                if self._multiple_row_selections:
+                    cols = args[-1]
+                    rows = args[:-1]
+                else:
+                    raise ValueError(
+                        "Too many indices or keys. Expected usage is "
+                        "`table[col]` or `table[row, col]` or "
+                        "`table[[row1, row2, ...], [col1, col2, ...]]`")
         else:  # one arg
             cols = args
             rows = None
@@ -361,3 +388,9 @@ class Table:
             output = pathlib.Path(output)
             with open(output, "w") as fh:
                 fh.write(result)
+
+class Table(RDMTable):
+
+    _multiple_row_selections = False
+    _error_on_row_not_found = True
+

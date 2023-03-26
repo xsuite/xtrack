@@ -1,6 +1,6 @@
 import numpy as np
 
-from xtrack.table import Table
+from xtrack.table import RDMTable
 
 data = {
     "name": np.array(["ip1", "ip2", "ip3"]),
