@@ -109,7 +109,7 @@ class View:
         return len(self.data[k])
 
     def get(self, k, default=None):
-        if k == '__tracebackhide__': # to aoid issues in ipython
+        if k == '__tracebackhide__': # to avoid issues in ipython
             return None
         return self.data.get(k, default)[self.index]
 
@@ -332,7 +332,15 @@ class RDMTable:
         else:
             if self._index not in col_list:
                 col_list.insert(0, self._index)
-            data = {cc: eval(cc, gblmath, view) for cc in col_list}
+            data = {}
+            for cc in col_list:
+                try:
+                    data[cc] = eval(cc, gblmath, view)
+                except NameError:
+                    raise KeyError(
+                        f"Column `{cc}` could not be found or "
+                        "is not a valid expression"
+                    )
             return self.__class__(
                 data, index=self._index, count_sep=self._count_sep
             )  # table
