@@ -59,7 +59,8 @@ class Loc:
         elif isinstance(key, str):
             mask[:] = self.table._get_name_mask(key, self.table._index)
             if self.table._error_on_row_not_found and not mask.any():
-                raise IndexError(f"Cannot find `{key}` in table")
+                raise IndexError(
+                    f"Cannot find `{key}` in table index `{self.table._index}`")
         elif isinstance(key, slice):
             ia = key.start
             ib = key.stop
@@ -106,6 +107,11 @@ class View:
     def __len__(self):
         k = list(self.data)[0]
         return len(self.data[k])
+
+    def get(self, k, default=None):
+        if k == '__tracebackhide__': # to aoid issues in ipython
+            return None
+        return self.data.get(k, default)[self.index]
 
 
 
@@ -207,7 +213,7 @@ class RDMTable:
         for name in names:
             name, count, offset = self._split_name_count_offset(name)
             if self._error_on_row_not_found and name not in self[self._index]:
-                raise IndexError(f"Cannot find `{name}` in table")
+                raise IndexError(f"Cannot find `{name}` in table index `{self._index}`")
             if count is None:
                 count = 0
             lst.append(dct[(name, count)] + offset)
@@ -312,7 +318,13 @@ class RDMTable:
 
         # return data
         if len(col_list) == 1:
-            cc = eval(col_list[0], gblmath, view)
+            try:
+                cc = eval(col_list[0], gblmath, view)
+            except NameError:
+                raise KeyError(
+                    f"Column `{col_list[0]}` could not be found or "
+                    "is not a valid expression"
+                )
             if len(cc) == 1:
                 return cc[0]  # scalar
             else:
