@@ -10,7 +10,6 @@
 import numpy as np
 
 from .table import Table
-from .twiss import TwissTable
 import xtrack as xt
 
 # Required functions
@@ -144,8 +143,6 @@ class SurveyTable(Table):
 
         return out
 
-SurveyTable.__getitem__ = TwissTable.__getitem__
-
 def _get_s_increments(elements):
     lengths = []
     for ee in elements:
@@ -201,22 +198,26 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
         element0=element0)
 
     # Initializing dictionary
-    out = SurveyTable()
-    out["X"] = np.array(X)
-    out["Y"] = np.array(Y)
-    out["Z"] = np.array(Z)
-    out["theta"] = np.unwrap(theta)
-    out["phi"] = np.unwrap(phi)
-    out["psi"] = np.unwrap(psi)
+    out_columns = {}
+    out_scalars = {}
+    out_columns["X"] = np.array(X)
+    out_columns["Y"] = np.array(Y)
+    out_columns["Z"] = np.array(Z)
+    out_columns["theta"] = np.unwrap(theta)
+    out_columns["phi"] = np.unwrap(phi)
+    out_columns["psi"] = np.unwrap(psi)
 
-    out["name"] = list(line.element_names) + ["_end_point"]
-    out["s"] = np.array(line.get_s_elements() + [line.get_length()])
+    out_columns["name"] = np.array(list(line.element_names) + ["_end_point"])
+    out_columns["s"] = np.array(line.get_s_elements() + [line.get_length()])
 
-    out['drift_length'] = np.array(drift_length + [0.])
-    out['angle'] = np.array(angle + [0.])
-    out['tilt'] = np.array(tilt + [0.])
+    out_columns['drift_length'] = np.array(drift_length + [0.])
+    out_columns['angle'] = np.array(angle + [0.])
+    out_columns['tilt'] = np.array(tilt + [0.])
 
-    out['element0'] = element0
+    out_scalars['element0'] = element0
+
+    out = SurveyTable(data=(out_columns | out_scalars), # this is a merge
+                      col_names=out_columns.keys())
 
     if reverse:
         out = out.reverse(X0=X0, Y0=Y0, Z0=Z0,
