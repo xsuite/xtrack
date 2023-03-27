@@ -1402,7 +1402,6 @@ class TwissTable(Table):
         out.W_matrix[:, 3, :] = -out.W_matrix[:, 3, :]
         out.W_matrix[:, 4, :] = -out.W_matrix[:, 4, :]
         out.W_matrix[:, 5, :] = out.W_matrix[:, 5, :]
-        out.W_matrix = [out.W_matrix[ii, :, :] for ii in range(len(out.x))]
 
         if hasattr(out, 'R_matrix'): out.R_matrix = None # To be implemented
         if hasattr(out, 'particle_on_co'):
