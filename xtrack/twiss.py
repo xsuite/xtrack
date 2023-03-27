@@ -482,7 +482,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     if strengths:
         strengths = _extract_knl_ksl(tracker.line, twiss_res['name'])
         twiss_res._data.update(strengths)
-        twiss_res._col_names = (list(twiss_res['_col_names']) +
+        twiss_res._col_names = (list(twiss_res._col_names) +
                                     list(strengths.keys()))
 
     if at_elements is not None:

@@ -45,7 +45,11 @@ except IndexError: # expected exception
 tw[['ip1', 'ip2'], :]
 tw['ip.*', :]
 
-tw[23.1:30.2:s, :]
+tw[23.1:30.2:'s', :]
+
+
+
+
 
 
 
