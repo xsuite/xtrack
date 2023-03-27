@@ -106,10 +106,26 @@ def advance_element(v, w, length=0, angle=0, tilt=0):
 
 class SurveyTable(Table):
 
-    def reverse(self, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0, element0=None):
+    def reverse(self, X0=None, Y0=None, Z0=None, theta0=None,
+                phi0=None, psi0=None, element0=None):
 
         if element0 is None:
             element0 = len(self.name) - self.element0 - 1
+
+        if (X0 is not None or Y0 is not None or Z0 is not None
+                or theta0 is not None or phi0 is not None or psi0 is not None):
+            assert (X0 is not None and Y0 is not None and Z0 is not None
+                and theta0 is not None and phi0 is not None and psi0 is not None
+                    ), (
+            "X0, Y0, Z0, theta0, phi0, psi0 must be all None or all not None")
+
+        if X0 is None:
+            X0 = self.X[self.element0]
+            Y0 = self.Y[self.element0]
+            Z0 = self.Z[self.element0]
+            theta0 = self.theta[self.element0]
+            phi0 = self.phi[self.element0]
+            psi0 = self.psi[self.element0]
 
         # We cut away the last marker (added by survey) and reverse the order
         out_drift_length = list(self.drift_length[:-1][::-1])
