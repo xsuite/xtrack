@@ -1234,9 +1234,9 @@ class TwissTable(Table):
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         if isinstance(ele_start, str):
-            ele_start = self.name.index(ele_start)
+            ele_start = np.where(self.name == ele_start)[0][0]
         if isinstance(ele_stop, str):
-            ele_stop = self.name.index(ele_stop)
+            ele_stop = np.where(self.name == ele_stop)[0][0]
 
         if ele_start > ele_stop:
             raise ValueError('ele_start must be smaller than ele_end')
@@ -1336,7 +1336,7 @@ class TwissTable(Table):
         return Table({'particle_id': part_id, 'at_element': at_element,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
-                      'pzeta_norm': pzeta_norm})
+                      'pzeta_norm': pzeta_norm}, index='particle_id')
 
     def reverse(self):
 
