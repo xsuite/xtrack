@@ -1135,8 +1135,9 @@ class TwissTable(Table):
             columns = self._col_names
 
         data = self._data.copy()
-        data['W_matrix'] = [
-            self.W_matrix[ii] for ii in range(len(self.W_matrix))]
+        if 'W_matrix' in data.keys():
+            data['W_matrix'] = [
+                self.W_matrix[ii] for ii in range(len(self.W_matrix))]
 
         import pandas as pd
         df = pd.DataFrame(data, columns=self._col_names)
