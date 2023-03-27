@@ -463,7 +463,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res._data['R_matrix'] = RR
 
         if method == '4d':
-            twiss_res._data.qs = 0
+            twiss_res._data['qs'] = 0
             twiss_res.muzeta[:] = 0
 
         if eneloss_and_damping:
@@ -1215,7 +1215,7 @@ class TwissTable(Table):
         res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
         res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
-        return xt.Table(res_data)
+        return Table(res_data)
 
     def get_R_matrix(self, ele_start, ele_stop):
 
