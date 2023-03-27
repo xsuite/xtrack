@@ -270,10 +270,10 @@ class RDMTable:
         self._col_names.remove(key)
         del self._data[key]
 
-    # def __setattr__(self, key, val):
-    #     if key == "_index":
-    #         self._index_cache = None
-    #     super().__setattr__(key, val)
+    def __setattr__(self, key, val):
+        if key == "_index":
+            self._index_cache = None
+        super().__setattr__(key, val)
 
     def __repr__(self):
         n = self._nrows
