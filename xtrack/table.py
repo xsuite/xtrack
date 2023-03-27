@@ -57,6 +57,10 @@ class Loc:
             else:
                 mask[key] = True
         elif isinstance(key, str):
+            if self.table._offset_sep or self.table._count_sep in key:
+                mask[:] = self[key:key] # use slice (next elif)
+            else:
+                mask[:] = self.table._get_name_mask(key, self.table._index)
             mask[:] = self.table._get_name_mask(key, self.table._index)
             if self.table._error_on_row_not_found and not mask.any():
                 raise IndexError(

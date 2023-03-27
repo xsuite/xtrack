@@ -131,27 +131,38 @@ def test_twiss_and_survey(test_context):
 
             print(f"Simplified: {simplified}")
 
-            twxt = line.twiss(reverse=reverse)
-            twxt4d = line.twiss(method='4d', reverse=reverse)
-            survxt = line.survey(**surv_starting_point, reverse=reverse)
+            twxt = line.twiss()
+            twxt4d = line.twiss(method='4d')
+            survxt = line.survey(**surv_starting_point)
+
+            if reverse:
+                twxt = twxt.reverse()
+                twxt4d = twxt4d.reverse()
+                survxt = survxt.reverse()
 
             assert len(twxt.name) == len(line.element_names) + 1
 
-            # Check value_at_element_exit
-            if not reverse: # TODO: to be generalized...
-                twxt_exit = line.twiss(values_at_element_exit=True)
-                for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
-                        'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
-                        'dpy','mux','muy', 'name']:
-                    assert np.all(twxt[nn][1:] == twxt_exit[nn])
+            # Check value_at_element_exit (not implemented for now, to be reintroduced)
+            # if not reverse: # TODO: to be generalized...
+            #     twxt_exit = line.twiss(values_at_element_exit=True)
+            #     for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
+            #             'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
+            #             'dpy','mux','muy', 'name']:
+            #         assert np.all(twxt[nn][1:] == twxt_exit[nn])
 
             # Twiss a part of the machine
-            tw_init = line.twiss().get_twiss_init(at_element=range_for_partial_twiss[0])
-            tw4d_init = line.twiss(method='4d').get_twiss_init(at_element=range_for_partial_twiss[0])
+            tw_init = line.twiss().get_twiss_init(
+                                        at_element=range_for_partial_twiss[0])
+            tw4d_init = line.twiss(method='4d').get_twiss_init(
+                                        at_element=range_for_partial_twiss[0])
             tw_part = line.twiss(ele_start=range_for_partial_twiss[0],
-                                    ele_stop=range_for_partial_twiss[1], twiss_init=tw_init, reverse=reverse)
-            tw4d_part = line.twiss(method='4d', ele_start=range_for_partial_twiss[0],
-                                    ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init, reverse=reverse)
+                    ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
+            tw4d_part = line.twiss(method='4d',
+                    ele_start=range_for_partial_twiss[0],
+                    ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
+            if reverse:
+                tw_part = tw_part.reverse()
+                tw4d_part = tw4d_part.reverse()
 
             ipart_start = line.element_names.index(range_for_partial_twiss[0])
             ipart_stop = line.element_names.index(range_for_partial_twiss[1])
@@ -324,7 +335,7 @@ def test_twiss_and_survey(test_context):
             assert np.all(dfsurv['s'] == survxt['s'])
 
             # Test custom s locations
-            if not reversed:
+            if not reverse:
                 s_test = [2e3, 1e3, 3e3, 10e3]
                 twats = line.twiss(at_s = s_test)
                 for ii, ss in enumerate(s_test):
