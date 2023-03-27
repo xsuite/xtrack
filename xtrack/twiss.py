@@ -1356,66 +1356,66 @@ class TwissTable(Table):
             else:
                 new_data[kk] = new_data[kk][::-1].copy()
 
-        new = self.__class__(data=new_data, col_names=self._col_names)
+        out = self.__class__(data=new_data, col_names=self._col_names)
 
         circumference = (
-            new_data.circumference if hasattr(new_data, 'circumference') else np.max(new_data.s))
+            out.circumference if hasattr(out, 'circumference') else np.max(out.s))
 
 
-        new_data.s = circumference - new_data.s
+        out.s = circumference - out.s
 
-        new_data.x = -new_data.x
-        new_data.px = new_data.px # Dx/Ds
-        new_data.y = new_data.y
-        new_data.py = -new_data.py # Dy/Ds
-        new_data.zeta = -new_data.zeta
-        new_data.delta = new_data.delta
-        new_data.ptau = new_data.ptau
+        out.x = -out.x
+        out.px = out.px # Dx/Ds
+        out.y = out.y
+        out.py = -out.py # Dy/Ds
+        out.zeta = -out.zeta
+        out.delta = out.delta
+        out.ptau = out.ptau
 
-        new_data.betx = new_data.betx
-        new_data.bety = new_data.bety
-        new_data.alfx = -new_data.alfx # Dpx/Dx
-        new_data.alfy = -new_data.alfy # Dpy/Dy
-        new_data.gamx = new_data.gamx
-        new_data.gamy = new_data.gamy
+        out.betx = out.betx
+        out.bety = out.bety
+        out.alfx = -out.alfx # Dpx/Dx
+        out.alfy = -out.alfy # Dpy/Dy
+        out.gamx = out.gamx
+        out.gamy = out.gamy
 
-        qx = (new_data.qx if hasattr(new_data, 'qx') else np.max(new_data.mux))
-        qy = (new_data.qy if hasattr(new_data, 'qy') else np.max(new_data.muy))
-        qs = (new_data.qs if hasattr(new_data, 'qs') else np.max(new_data.muzeta))
+        qx = (out.qx if hasattr(out, 'qx') else np.max(out.mux))
+        qy = (out.qy if hasattr(out, 'qy') else np.max(out.muy))
+        qs = (out.qs if hasattr(out, 'qs') else np.max(out.muzeta))
 
-        new_data.mux = qx - new_data.mux
-        new_data.muy = qy - new_data.muy
-        new_data.muzeta = qs - new_data.muzeta
+        out.mux = qx - out.mux
+        out.muy = qy - out.muy
+        out.muzeta = qs - out.muzeta
 
-        new_data.dx = -new_data.dx
-        new_data.dpx = new_data.dpx
-        new_data.dy = new_data.dy
-        new_data.dpy = -new_data.dpy
-        new_data.dzeta = -new_data.dzeta
+        out.dx = -out.dx
+        out.dpx = out.dpx
+        out.dy = out.dy
+        out.dpy = -out.dpy
+        out.dzeta = -out.dzeta
 
-        new_data.W_matrix = np.array(new_data.W_matrix)
-        new_data.W_matrix = new_data.W_matrix[::-1, :, :].copy()
-        new_data.W_matrix[:, 0, :] = -new_data.W_matrix[:, 0, :]
-        new_data.W_matrix[:, 1, :] = new_data.W_matrix[:, 1, :]
-        new_data.W_matrix[:, 2, :] = new_data.W_matrix[:, 2, :]
-        new_data.W_matrix[:, 3, :] = -new_data.W_matrix[:, 3, :]
-        new_data.W_matrix[:, 4, :] = -new_data.W_matrix[:, 4, :]
-        new_data.W_matrix[:, 5, :] = new_data.W_matrix[:, 5, :]
-        new_data.W_matrix = [new_data.W_matrix[ii, :, :] for ii in range(len(new_data.x))]
+        out.W_matrix = np.array(out.W_matrix)
+        out.W_matrix = out.W_matrix[::-1, :, :].copy()
+        out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
+        out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
+        out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
+        out.W_matrix[:, 3, :] = -out.W_matrix[:, 3, :]
+        out.W_matrix[:, 4, :] = -out.W_matrix[:, 4, :]
+        out.W_matrix[:, 5, :] = out.W_matrix[:, 5, :]
+        out.W_matrix = [out.W_matrix[ii, :, :] for ii in range(len(out.x))]
 
-        if hasattr(new_data, 'R_matrix'): new_data.R_matrix = None # To be implemented
-        if hasattr(new_data, 'particle_on_co'):
-            new_data.particle_on_co = self.particle_on_co.copy()
-            new_data.particle_on_co.x = -new_data.particle_on_co.x
-            new_data.particle_on_co.py = -new_data.particle_on_co.py
-            new_data.particle_on_co.zeta = -new_data.particle_on_co.zeta
+        if hasattr(out, 'R_matrix'): out.R_matrix = None # To be implemented
+        if hasattr(out, 'particle_on_co'):
+            out.particle_on_co = self.particle_on_co.copy()
+            out.particle_on_co.x = -out.particle_on_co.x
+            out.particle_on_co.py = -out.particle_on_co.py
+            out.particle_on_co.zeta = -out.particle_on_co.zeta
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
-            new_data.qs = 0
-            new_data.muzeta[:] = 0
+            out.qs = 0
+            out.muzeta[:] = 0
 
-        return new_data
+        return out
 
 
 def _renormalize_eigenvectors(Ws):
