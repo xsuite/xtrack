@@ -271,8 +271,20 @@ class RDMTable:
         del self._data[key]
 
     def __setattr__(self, key, val):
+        if key == '_data':
+            super().__setattr__(key, val)
+            return
         if key == "_index":
+            super().__setattr__(key, val)
             self._index_cache = None
+            return
+        if key in self._data:
+            if key in self._col_names:
+                self._data[key][:] = val
+                return
+            else:
+                self._data[key] = val
+                return
         super().__setattr__(key, val)
 
     def __repr__(self):
