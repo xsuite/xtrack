@@ -86,12 +86,11 @@ class Loc:
                 mask[ia:ib:ic] = True
         elif isinstance(key, tuple):
             if self.table._multiple_row_selections:
-                return self.__getitem__(list(key))
-            else:
                 mask = self[key[0]]
                 if len(key) > 1:
                     mask &= self[key[1:]]
-
+            else:
+                return self.__getitem__(list(key))
 
         return mask
 
