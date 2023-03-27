@@ -1348,7 +1348,8 @@ class TwissTable(Table):
 
         for kk in self._col_names:
             if kk == 'name':
-                new_data[kk] = new_data[kk][:-1][::-1] + self.name[-1:]
+                new_data[kk][:-1] = new_data[kk][:-1][::-1]
+                new_data[kk][-1] = self.name[-1]
             elif kk == 'W_matrix':
                 continue
             elif kk.startswith('k') and kk.endswith('nl', 'sl'):
