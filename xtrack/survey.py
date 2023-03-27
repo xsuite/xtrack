@@ -220,8 +220,8 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
                       col_names=out_columns.keys())
 
     if reverse:
-        out = out.reverse(X0=X0, Y0=Y0, Z0=Z0,
-                          theta0=theta0, phi0=phi0, psi0=psi0)
+        raise ValueError('survey(..., reverse=True) not supported anymore. '
+                         'Use survey(...).reverse() instead.')
 
     return out
 

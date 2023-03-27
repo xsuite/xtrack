@@ -88,9 +88,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     at_s : list, optional
         List of positions at which the Twiss parameters are computed.
         If not provided, the Twiss parameters are computed at all positions.
-    reverse : bool, optional
-        If True, the outupt is give in the reference frame of the conunter-rotating
-        beam.
     radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
         Method to be used for the computation of twiss parameters in the presence
         of radiation. If 'full' the method described in E. Forest, "From tracking

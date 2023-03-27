@@ -142,6 +142,17 @@ class RDMTable:
         assert len(nrows) == 1
         self._nrows = nrows.pop()
 
+    def to_pandas(self, index=None, columns=None):
+
+        if columns is None:
+            columns = self._col_names
+
+        import pandas as pd
+        df = pd.DataFrame(self._data, columns=self._col_names)
+        if index is not None:
+            df.set_index(index, inplace=True)
+        return df
+
     def _get_index(self):
         if self._index in self._data:
             return self._data[self._index]
