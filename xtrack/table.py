@@ -273,7 +273,13 @@ class RDMTable:
     def __setattr__(self, key, val):
         if key == "_index":
             self._index_cache = None
-        super().__setattr__(key, val)
+        if key in self._data:
+            if key in self._col_names:
+                self._data[key][:] = val
+            else:
+                self._data[key] = val
+        else:
+            super().__setattr__(key, val)
 
     def __repr__(self):
         n = self._nrows
