@@ -100,7 +100,7 @@ class Loc:
         return mask
 
 
-class View:
+class _View:
     def __init__(self, data, index):
         self.data = data
         self.index = index
@@ -319,7 +319,7 @@ class RDMTable:
             view = self._data
         else:
             row_index = self.loc[rows]
-            view = View(self._data, row_index)
+            view = _View(self._data, row_index)
 
         # select cols
         if cols is None or cols == slice(None, None, None):
