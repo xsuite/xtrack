@@ -126,20 +126,26 @@ class SurveyTable(Table):
                                         element0=element0)
 
         # Initializing dictionary
-        out = SurveyTable()
-        out["X"] = np.array(X)
-        out["Y"] = np.array(Y)
-        out["Z"] = np.array(Z)
-        out["theta"] = np.unwrap(theta)
-        out["phi"] = np.unwrap(phi)
-        out["psi"] = np.unwrap(psi)
+        out_columns = {}
+        out_columns["X"] = np.array(X)
+        out_columns["Y"] = np.array(Y)
+        out_columns["Z"] = np.array(Z)
+        out_columns["theta"] = np.unwrap(theta)
+        out_columns["phi"] = np.unwrap(phi)
+        out_columns["psi"] = np.unwrap(psi)
 
-        out["name"] = list(out_name) + ["_end_point"]
-        out["s"] = self.s[-1] - self.s[::-1]
+        out_columns["name"] = list(out_name) + ["_end_point"]
+        out_columns["s"] = self.s[-1] - self.s[::-1]
 
-        out['drift_length'] = np.array(out_drift_length + [0.])
-        out['angle'] = np.array(out_angle + [0.])
-        out['tilt'] = np.array(out_tilt + [0.])
+        out_columns['drift_length'] = np.array(out_drift_length + [0.])
+        out_columns['angle'] = np.array(out_angle + [0.])
+        out_columns['tilt'] = np.array(out_tilt + [0.])
+
+        out_scalars = {}
+        out_scalars["element0"] = element0
+
+        out = SurveyTable(data=(out_columns | out_scalars),
+                          col_names=out_columns.keys())
 
         return out
 
@@ -220,8 +226,8 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
                       col_names=out_columns.keys())
 
     if reverse:
-        raise ValueError('survey(..., reverse=True) not supported anymore. '
-                         'Use survey(...).reverse() instead.')
+        raise ValueError('`survey(..., reverse=True)` not supported anymore. '
+                         'Use `survey(...).reverse()` instead.')
 
     return out
 

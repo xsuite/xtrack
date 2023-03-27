@@ -489,8 +489,8 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res = twiss_res[at_elements, :]
 
     if reverse:
-        raise ValueError('twiss(..., reverse=True) not supported anymore. '
-                         'Use twiss(...).reverse() instead.')
+        raise ValueError('`twiss(..., reverse=True)` not supported anymore. '
+                         'Use `twiss(...).reverse()` instead.')
 
     return twiss_res
 
