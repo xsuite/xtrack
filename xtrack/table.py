@@ -235,7 +235,10 @@ class RDMTable:
         return np.array(lst, dtype=int)
 
     def __getattr__(self, key):
-        return self._data[key]
+        if key in self._data:
+            return self._data[key]
+        else:
+            raise AttributeError(f"Cannot find `{key}` in table")
 
     def __len__(self):
         return len(self._data)
