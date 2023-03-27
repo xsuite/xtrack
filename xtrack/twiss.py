@@ -1130,6 +1130,20 @@ class TwissInit:
 
 class TwissTable(Table):
 
+    def to_pandas(self, index=None, columns=None):
+        if columns is None:
+            columns = self._col_names
+
+        data = self._data.copy()
+        data['W_matrix'] = [
+            self.W_matrix[ii] for ii in range(len(self.W_matrix))]
+
+        import pandas as pd
+        df = pd.DataFrame(data, columns=self._col_names)
+        if index is not None:
+            df.set_index(index, inplace=True)
+        return df
+
     def get_twiss_init(self, at_element):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
