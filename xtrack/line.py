@@ -17,6 +17,11 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
+
+from .survey import survey_from_tracker
+from xtrack.twiss import (compute_one_turn_matrix_finite_differences, twiss_from_tracker)
+from .match import match_tracker, closed_orbit_correction
+from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
@@ -1365,6 +1370,138 @@ class Line:
         pp(list(df_thick_missing_aper.name))
 
         return elements_df
+
+    def compute_one_turn_matrix_finite_differences(
+            self, particle_on_co,
+            steps_r_matrix=None):
+
+        self._check_invalidated()
+
+        if self.iscollective:
+            log.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+        return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
+                                                   steps_r_matrix)
+
+    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
+        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
+        delta_disp=1e-5, delta_chrom=1e-4,
+        particle_co_guess=None, R_matrix=None, W_matrix=None,
+        steps_r_matrix=None, co_search_settings=None, at_elements=None, at_s=None,
+        values_at_element_exit=False,
+        continue_on_closed_orbit_error=False,
+        freeze_longitudinal=False,
+        radiation_method='full',
+        eneloss_and_damping=False,
+        ele_start=None, ele_stop=None, twiss_init=None,
+        particle_on_co=None,
+        matrix_responsiveness_tol=None,
+        matrix_stability_tol=None,
+        symplectify=False,
+        reverse=False,
+        use_full_inverse=None,
+        strengths=False,
+        hide_thin_groups=False,
+        ):
+
+        self._check_invalidated()
+
+        kwargs = locals().copy()
+        kwargs.pop('self')
+
+        return twiss_from_tracker(self, **kwargs)
+
+    twiss.__doc__ = twiss_from_tracker.__doc__
+
+    def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0, element0=0, reverse=False):
+        return survey_from_tracker(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
+                                   phi0=phi0, psi0=psi0, element0=element0,
+                                   reverse=reverse)
+
+    def match(self, vary, targets, **kwargs):
+        '''
+        Change a set of knobs in the beamline in order to match assigned targets.
+        See corresponding section is the Xsuite User's guide.
+        '''
+        return match_tracker(self, vary, targets, **kwargs)
+
+    def correct_closed_orbit(self, reference, correction_config,
+                        solver=None, verbose=False, restore_if_fail=True):
+
+        closed_orbit_correction(self, reference, correction_config,
+                                solver=solver, verbose=verbose,
+                                restore_if_fail=restore_if_fail)
+
+    def configure_radiation(self, model=None, model_beamstrahlung=None,
+                            mode='deprecated'):
+
+        """
+        Configure synchrotron radiation and beamstrahlung models.
+        Choose among: None / "mean"/ "quantum".
+        See corresponding section is the Xsuite User's guide.
+        """
+
+        if mode != 'deprecated':
+            raise NameError('mode is deprecated, use model instead')
+
+        self._check_invalidated()
+
+        assert model in [None, 'mean', 'quantum']
+        assert model_beamstrahlung in [None, 'mean', 'quantum']
+
+        if model == 'mean':
+            radiation_flag = 1
+            self._radiation_model = 'mean'
+        elif model == 'quantum':
+            radiation_flag = 2
+            self._radiation_model = 'quantum'
+        else:
+            radiation_flag = 0
+            self._radiation_model = None
+
+        if model_beamstrahlung == 'mean':
+            beamstrahlung_flag = 1
+            self._beamstrahlung_model = 'mean'
+        elif model_beamstrahlung == 'quantum':
+            beamstrahlung_flag = 2
+            self._beamstrahlung_model = 'quantum'
+        else:
+            beamstrahlung_flag = 0
+            self._beamstrahlung_model = None
+
+        for kk, ee in self.line.element_dict.items():
+            if hasattr(ee, 'radiation_flag'):
+                ee.radiation_flag = radiation_flag
+
+        for kk, ee in self.line.element_dict.items():
+            if hasattr(ee, 'flag_beamstrahlung'):
+                ee.flag_beamstrahlung = beamstrahlung_flag
+
+        if radiation_flag == 2 or beamstrahlung_flag == 2:
+            self.line._needs_rng = True
+
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
+
+    def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
+                                    max_iter=100, **kwargs):
+
+        """
+        Compensate beam energy loss from synchrotron radiation by configuring
+        RF cavities and Multipole elements (tapering).
+        See corresponding section is the Xsuite User's guide.
+        """
+
+        all_kwargs = locals().copy()
+        all_kwargs.pop('self')
+        all_kwargs.pop('kwargs')
+        all_kwargs.update(kwargs)
+        compensate_radiation_energy_loss(self, **all_kwargs)
 
 
 mathfunctions = type('math', (), {})
