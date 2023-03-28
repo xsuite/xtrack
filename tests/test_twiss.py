@@ -271,8 +271,8 @@ def test_knl_ksl_in_twiss(test_context):
             assert kk in tt.keys()
             assert kk not in tw.keys()
 
-        assert tt['ms.30r5.b1', 'k2nl'] == line['ms.30r5.b1'].knl[2]
-        assert tt['mcbrdv.4r5.b1', 'k0sl'] == line['mcbrdv.4r5.b1'].ksl[0]
+        assert tt['k2nl', 'ms.30r5.b1'] == line['ms.30r5.b1'].knl[2]
+        assert tt['k0sl', 'mcbrdv.4r5.b1'] == line['mcbrdv.4r5.b1'].ksl[0]
 
 def test_get_R_matrix():
     fname_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'

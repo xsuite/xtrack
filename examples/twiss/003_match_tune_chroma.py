@@ -88,7 +88,7 @@ line.match(method='4d', # <-- 4d matching
         xt.Target('qy', 60.31, tol=1e-4),
         xt.Target('dqx', 6.0, tol=0.05),
         xt.Target('dqy', 4.0, tol=0.05)],
-        verbose=True)
+    )
 t2 = time.time()                                                                #!skip-doc
 print('\nTime 4d match: ', t2-t1)                                               #!skip-doc
 
