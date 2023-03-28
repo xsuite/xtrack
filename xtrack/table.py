@@ -135,7 +135,12 @@ class RDMTable:
         index_cache=None,
     ):
         self._data = data
+
         self._col_names = list(data.keys()) if col_names is None else col_names
+        for kk in self._col_names:
+            vv = data[kk]
+            if not hasattr(vv, 'dtype'):
+                raise ValueError(f"Column `{kk}` is not a numpy array")
         self._index = index
         self._count_sep = count_sep
         self._offset_sep = offset_sep

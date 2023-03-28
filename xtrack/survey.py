@@ -150,7 +150,7 @@ class SurveyTable(Table):
         out_columns["phi"] = np.unwrap(phi)
         out_columns["psi"] = np.unwrap(psi)
 
-        out_columns["name"] = list(out_name) + ["_end_point"]
+        out_columns["name"] = np.array(list(out_name) + ["_end_point"])
         out_columns["s"] = self.s[-1] - self.s[::-1]
 
         out_columns['drift_length'] = np.array(out_drift_length + [0.])

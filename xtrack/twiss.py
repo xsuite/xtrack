@@ -1197,7 +1197,7 @@ class TwissTable(Table):
         res_data['s'] = self.s.copy()
         res_data['name'] = self.name
 
-        res_data['Sigma'] = [Sigma[ii, :, :] for ii in range(len(self.s))]
+        res_data['Sigma'] = Sigma
         res_data['Sigma11'] = Sigma[:, 0, 0]
         res_data['Sigma12'] = Sigma[:, 0, 1]
         res_data['Sigma13'] = Sigma[:, 0, 2]
