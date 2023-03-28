@@ -475,7 +475,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         name_exit = twiss_res.name[:-1]
         twiss_res = twiss_res[:, 1:]
         twiss_res['name'][:] = name_exit
-        twiss_res._data['values_at'] = 'entry'
+        twiss_res._data['values_at'] = 'exit'
     else:
         twiss_res._data['values_at'] = 'entry'
 
