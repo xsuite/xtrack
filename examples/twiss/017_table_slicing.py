@@ -36,92 +36,44 @@ tw['betx']
 tw.betx
 # give the same as above
 
-tw[0, 'betx']
+tw[:, 'ip1']
+# gives a table with all the columns at the element `ip1`
+
+tw[:, ['ip1', 'ip2']]
+# gives a table with all the columns at the elements `ip1` and `ip2`
+
+tw['betx', 0]
 # gives the beta horizontal beta function at the first element
 
+tw['betx', 'ip1']
+# gives the beta horizontal beta function at the element `ip1`
 
-tw['ip1', ['betx', 'bety']]
+tw[:, 'ip.*']
+# gives a table with all the columns at all elements whose name matches the
 
-#!end-doc-part
-tw_sel = tw[['ip6', 'ip5'], :]
+tw['betx', 0:10]
+# gives the beta horizontal beta function at the first 10 elements
 
-try:
-    tw['ip0', :]
-except IndexError: # expected exception
-    pass
-else:
-    raise Exception('Expected exception not raised')
+tw['betx', 'ip1': 'ip2']
+# gives the beta horizontal beta function at all elements between `ip1` and
+# `ip2`
 
-try:
-    tw[['ip1', 'ip2', 'ip0'], :]
-except IndexError: # expected exception
-    pass
+tw[['s', 'betx', 'bety'], 'ip.*']
+# returns a table with the beta horizontal and vertical beta function at all
+# elements whose name matches the regular expression `ip.*`
 
-# this does not give a clear error message
-# tw['ip.*']
+tw[['s', 'betx', 'bety'], 200:300:'s']
+# returns the selected columns all the elements between s=200 and s=300
 
-tw[['ip1', 'ip2'], :]
-tw['ip.*', :]
+tw[:, 'ip1%%-5': 'ip1%%+5']
+# returns a table with all the columns at elements located between 5 elements
+# before and 5 elements after the element `ip1
 
-tw[23.1:30.2:'s', :]
-
-
-
+tw[['betx','sqrt(betx)/2/bety'], 'ip1': 'ip2']
+# returns a table including the required columns
 
 
 
 
-# Test custom s locations
-s_test = [2e3, 1e3, 3e3, 10e3]
-twats = line.twiss(at_s = s_test)
-for ii, ss in enumerate(s_test):
-    assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
-    i_prev = np.where(tw['s']<=ss)[0][-1]
-    assert np.isclose(twats['alfx'][ii], np.interp(ss, tw['s'], tw['alfx']),
-                      rtol=0, atol=1e-9)
-    assert np.isclose(twats['alfy'][ii], np.interp(ss, tw['s'], tw['alfy']),
-                     rtol=0, atol=1e-9)
-    assert np.isclose(twats['dpx'][ii], np.interp(ss, tw['s'], tw['dpx']),
-                      rtol=0, atol=1e-9)
-    assert np.isclose(twats['dpy'][ii], np.interp(ss, tw['s'], tw['dpy']),
-                      rtol=0, atol=1e-9)
 
 
-twmb19r5 = tw.get_twiss_init(at_element='mb.b19l5.b1')
-
-tw_part = line.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
-                        twiss_init=twmb19r5)
-
-
-
-import matplotlib.pyplot as plt
-
-plt.close('all')
-
-fig1 = plt.figure(1, figsize=(6.4, 4.8*1.5))
-spbet = plt.subplot(3,1,1)
-spco = plt.subplot(3,1,2, sharex=spbet)
-spdisp = plt.subplot(3,1,3, sharex=spbet)
-
-spbet.plot(tw['s'], tw['betx'])
-spbet.plot(tw['s'], tw['bety'])
-
-spco.plot(tw['s'], tw['x'])
-spco.plot(tw['s'], tw['y'])
-
-spdisp.plot(tw['s'], tw['dx'])
-spdisp.plot(tw['s'], tw['dy'])
-
-spbet.set_ylabel(r'$\beta_{x,y}$ [m]')
-spco.set_ylabel(r'(Closed orbit)$_{x,y}$ [m]')
-spdisp.set_ylabel(r'$D_{x,y}$ [m]')
-spdisp.set_xlabel('s [m]')
-
-fig1.suptitle(
-    r'$q_x$ = ' f'{tw["qx"]:.5f}' r' $q_y$ = ' f'{tw["qy"]:.5f}' '\n'
-    r"$Q'_x$ = " f'{tw["dqx"]:.2f}' r" $Q'_y$ = " f'{tw["dqy"]:.2f}'
-    r' $\gamma_{tr}$ = '  f'{1/np.sqrt(tw["momentum_compaction_factor"]):.2f}'
-)
-
-fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
-plt.show()
