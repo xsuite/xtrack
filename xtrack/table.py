@@ -100,18 +100,26 @@ class Loc:
         return mask
 
 class _RowView:
-     def __init__(self, table):
-         self.table = table
+    def __init__(self, table):
+        self.table = table
 
-     def __getitem__(self, rows):
-         return self.table._get_rows_cols(rows, None)
+    def __getitem__(self, rows):
+        restore_multiple_row_selections = self.table._multiple_row_selections
+        self.table._multiple_row_selections = True
+        try:
+            out = self.table._get_rows_cols(rows, None)
+        except Exception as err:
+            self.table._multiple_row_selections = restore_multiple_row_selections
+            raise err
+        self.table._multiple_row_selections = restore_multiple_row_selections
+        return out
 
 class _ColView:
-     def __init__(self, table):
-         self.table = table
+    def __init__(self, table):
+        self.table = table
 
-     def __getitem__(self, cols):
-         return self.table._get_rows_cols(None, cols, force_table=True)
+    def __getitem__(self, cols):
+        return self.table._get_rows_cols(None, cols, force_table=True)
 
 
 class _View:
