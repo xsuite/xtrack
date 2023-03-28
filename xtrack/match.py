@@ -239,7 +239,7 @@ def closed_orbit_correction(tracker, tracker_co_ref, correction_config,
         for tt in corr['targets']:
             assert isinstance(tt, str), 'For now only strings are supported for targets'
             for kk in ['x', 'px', 'y', 'py']:
-                targets.append(xt.Target(kk, at=tt, value=tw_ref[tt, kk], tol=1e-9))
+                targets.append(xt.Target(kk, at=tt, value=tw_ref[kk, tt], tol=1e-9))
 
         tracker.match(
             solver=solver,
@@ -248,11 +248,11 @@ def closed_orbit_correction(tracker, tracker_co_ref, correction_config,
             vary=vary,
             targets=targets,
             twiss_init=xt.OrbitOnly(
-                x=tw_ref[corr['start'], 'x'],
-                px=tw_ref[corr['start'], 'px'],
-                y=tw_ref[corr['start'], 'y'],
-                py=tw_ref[corr['start'], 'py'],
-                zeta=tw_ref[corr['start'], 'zeta'],
-                delta=tw_ref[corr['start'], 'delta'],
+                x=tw_ref['x', corr['start']],
+                px=tw_ref['px', corr['start']],
+                y=tw_ref['y', corr['start']],
+                py=tw_ref['py', corr['start']],
+                zeta=tw_ref['zeta', corr['start']],
+                delta=tw_ref['delta', corr['start']],
             ),
             ele_start=corr['start'], ele_stop=corr['end'])
