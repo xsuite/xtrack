@@ -78,16 +78,17 @@ print(f"ksd.b1 = {line.vars['ksd.b1']._value}")
 t1 = time.time()                                                                #!skip-doc
 line.match(method='4d', # <-- 4d matching
     vary=[
-        xt.Vary('kqtf.b1', step=1e-10),
-        xt.Vary('kqtd.b1', step=1e-10),
-        xt.Vary('ksf.b1', step=1e-10),
-        xt.Vary('ksd.b1', step=1e-10),
+        xt.Vary('kqtf.b1', step=1e-8),
+        xt.Vary('kqtd.b1', step=1e-8),
+        xt.Vary('ksf.b1', step=1e-6),
+        xt.Vary('ksd.b1', step=1e-6),
     ],
     targets = [
         xt.Target('qx', 62.29, tol=1e-4),
         xt.Target('qy', 60.31, tol=1e-4),
         xt.Target('dqx', 6.0, tol=0.05),
-        xt.Target('dqy', 4.0, tol=0.05)])
+        xt.Target('dqy', 4.0, tol=0.05)],
+        verbose=True)
 t2 = time.time()                                                                #!skip-doc
 print('\nTime 4d match: ', t2-t1)                                               #!skip-doc
 
