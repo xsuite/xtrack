@@ -24,6 +24,24 @@ line.build_tracker()
 
 tw = line.twiss()
 
+tw['qx']
+# gives : 62.3100009
+
+tw.qx
+# gives : 62.3100009
+
+tw['betx']
+# gives a numpy array with the beta horizontal beta function along the line
+
+tw.betx
+# give the same as above
+
+tw[0, 'betx']
+# gives the beta horizontal beta function at the first element
+
+
+tw['ip1', ['betx', 'bety']]
+
 #!end-doc-part
 tw_sel = tw[['ip6', 'ip5'], :]
 

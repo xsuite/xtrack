@@ -264,7 +264,9 @@ class RDMTable:
     def __len__(self):
         return len(self._data)
 
-    def keys(self):
+    def keys(self, exclude_columns=False):
+        if exclude_columns:
+            return [kk for kk in self._data.keys() if kk not in self._col_names]
         return self._data.keys()
 
     def values(self):
@@ -314,7 +316,7 @@ class RDMTable:
         ns = "s" if n != 1 else ""
         cs = "s" if c != 1 else ""
         out = [f"{self.__class__.__name__}: {n} row{ns}, {c} col{cs}"]
-        if len(show) < 10000:
+        if self._nrows < 10000:
             show = self.show(output=str)
             out.append(show)
         return "\n".join(out)
@@ -383,7 +385,7 @@ class RDMTable:
         else:
             if self._index not in col_list:
                 col_list.insert(0, self._index)
-            data = self._data.copy()
+            data = {}
             for cc in col_list:
                 try:
                     data[cc] = eval(cc, gblmath, view)
@@ -392,9 +394,11 @@ class RDMTable:
                         f"Column `{cc}` could not be found or "
                         "is not a valid expression"
                     )
+            for kk in self.keys(exclude_columns=True):
+                data[kk] = self._data[kk]
             return self.__class__(
                 data, index=self._index, count_sep=self._count_sep,
-                col_names=self._col_names
+                col_names=col_list
             )  # table
 
     def show(
