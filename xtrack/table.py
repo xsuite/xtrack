@@ -362,7 +362,7 @@ class RDMTable:
         elif type(cols) is str:
             col_list = cols.split()
         else:
-            col_list = cols
+            col_list = list(cols)
 
         return view, col_list
 
