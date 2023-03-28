@@ -32,7 +32,7 @@ def _error_for_match(knob_values, vary, targets, tracker, return_scalar,
     for tt in targets:
         if isinstance(tt.tar, str):
             if tt.at is not None:
-                res_values.append(tw[tt.at, tt.tar])
+                res_values.append(tw[tt.tar, tt.at])
             else:
                 res_values.append(tw[tt.tar])
         else:
