@@ -99,6 +99,20 @@ class Loc:
 
         return mask
 
+class _RowView:
+     def __init__(self, table):
+         self.table = table
+
+     def __getitem__(self, rows):
+         return self.table._get_rows_cols(rows, None)
+
+class _ColView:
+     def __init__(self, table):
+         self.table = table
+
+     def __getitem__(self, cols):
+         return self.table._get_rows_cols(None, cols, force_table=True)
+
 
 class _View:
     def __init__(self, data, index):
@@ -150,6 +164,8 @@ class RDMTable:
         nrows = set(len(self._data[cc]) for cc in self._col_names)
         assert len(nrows) == 1
         self._nrows = nrows.pop()
+        self.rows = _RowView(self)
+        self.cols = _ColView(self)
 
     def to_pandas(self, index=None, columns=None):
 
@@ -298,8 +314,8 @@ class RDMTable:
         ns = "s" if n != 1 else ""
         cs = "s" if c != 1 else ""
         out = [f"{self.__class__.__name__}: {n} row{ns}, {c} col{cs}"]
-        show = self.show(output=str)
         if len(show) < 10000:
+            show = self.show(output=str)
             out.append(show)
         return "\n".join(out)
 
@@ -348,11 +364,11 @@ class RDMTable:
 
         return view, col_list
 
-    def _get_rows_cols(self, rows, cols):
+    def _get_rows_cols(self, rows, cols, force_table=False):
         view, col_list = self._get_view_col_list(rows, cols)
 
         # return data
-        if len(col_list) == 1:
+        if len(col_list) == 1 and not force_table:
             try:
                 cc = eval(col_list[0], gblmath, view)
             except NameError:
@@ -390,6 +406,7 @@ class RDMTable:
         output=None,
         digits=6,
         fixed="g",
+        header=True,
     ):
         view, col_list = self._get_view_col_list(rows, cols)
 
@@ -406,7 +423,7 @@ class RDMTable:
         width = 0
         # maxwidth=10000000 if maxwidth is None else maxwidth
         fmt = []
-        header = []
+        header_line = []
         for cc in col_list:
             if cc in view:
                 coldata = view[cc]
@@ -425,10 +442,12 @@ class RDMTable:
                     fmt.append("%%-%ds" % (colwidth))
                 else:
                     fmt.append("%%%ds" % colwidth)
-                header.append(fmt[-1] % cc)
+                header_line.append(fmt[-1] % cc)
                 data.append(col)
 
-        result = [" ".join(header)]
+        result = []
+        if header:
+             result.append(" ".join(header_line))
         for ii in range(len(col)):
             row = " ".join([ff % col[ii] for ff, col in zip(fmt, data)])
             result.append(row)
