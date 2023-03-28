@@ -7,9 +7,9 @@ import io
 import math
 import logging
 import json
+from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pp
-from pathlib import Path
 
 import numpy as np
 
@@ -19,7 +19,8 @@ import xtrack as xt
 
 
 from .survey import survey_from_tracker
-from xtrack.twiss import (compute_one_turn_matrix_finite_differences, twiss_from_tracker)
+from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
+                          find_closed_orbit, twiss_from_tracker)
 from .match import match_tracker, closed_orbit_correction
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
@@ -1507,6 +1508,38 @@ class Line:
         all_kwargs.update(kwargs)
         compensate_radiation_energy_loss(self, **all_kwargs)
 
+    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
+                          co_search_settings={}, delta_zeta=0,
+                          delta0=None, zeta0=None,
+                          continue_on_closed_orbit_error=False,
+                          freeze_longitudinal=False):
+
+        if freeze_longitudinal:
+            kwargs = locals().copy()
+            kwargs.pop('self')
+            kwargs.pop('freeze_longitudinal')
+            with _freeze_longitudinal(self):
+                return self.find_closed_orbit(**kwargs)
+
+        self._check_invalidated()
+
+        if particle_ref is None and particle_co_guess is None:
+            particle_ref = self.particle_ref
+
+        if self.iscollective:
+            log.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+
+        return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
+                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
+                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
+                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
+
 
 mathfunctions = type('math', (), {})
 mathfunctions.sqrt = math.sqrt
@@ -1558,3 +1591,18 @@ def _is_simple_dipole(el):
         return False
     return (el.radiation_flag == 0 and el.order == 0
             and not any(el.ksl) and not el.hyl)
+
+
+@contextmanager
+def freeze_longitudinal(tracker):
+    """Context manager to freeze longitudinal motion in a tracker."""
+    from xtrack.tracker import TrackerConfig
+    config = TrackerConfig()
+    config.update(tracker.config)
+    tracker.freeze_longitudinal(True)
+    try:
+        yield None
+    finally:
+        tracker.config = config
+
+_freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument

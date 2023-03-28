@@ -20,7 +20,7 @@ from .general import _pkg_root
 from .internal_record import (new_io_buffer,
                               start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type)
-from .line import Line, _is_thick
+from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .tracker_data import TrackerData
 from .twiss import (find_closed_orbit, twiss_from_tracker)
@@ -456,38 +456,6 @@ class Tracker:
             raise RuntimeError(
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
-
-    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0,
-                          delta0=None, zeta0=None,
-                          continue_on_closed_orbit_error=False,
-                          freeze_longitudinal=False):
-
-        if freeze_longitudinal:
-            kwargs = locals().copy()
-            kwargs.pop('self')
-            kwargs.pop('freeze_longitudinal')
-            with _freeze_longitudinal(self):
-                return self.find_closed_orbit(**kwargs)
-
-        self._check_invalidated()
-
-        if particle_ref is None and particle_co_guess is None:
-            particle_ref = self.particle_ref
-
-        if self.iscollective:
-            logger.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            tracker = self._supertracker
-        else:
-            tracker = self
-
-        return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
-                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
-                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
@@ -1581,16 +1549,6 @@ def _preserve_config(tracker):
     finally:
         tracker.config = config
 
-@contextmanager
-def freeze_longitudinal(tracker):
-    """Context manager to freeze longitudinal motion in a tracker."""
-    config = TrackerConfig()
-    config.update(tracker.config)
-    tracker.freeze_longitudinal(True)
-    try:
-        yield None
-    finally:
-        tracker.config = config
 
 @contextmanager
 def _temp_knobs(tracker, knobs: dict):
@@ -1603,8 +1561,6 @@ def _temp_knobs(tracker, knobs: dict):
         for kk, vv in old_values.items():
             tracker.vars[kk] = vv
 
-
-_freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
 
 
 class TrackerConfig(dict):

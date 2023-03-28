@@ -9,8 +9,8 @@ from .base_element import BeamElement
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
-from .line import Line, Node
-from .tracker import Tracker, freeze_longitudinal
+from .line import Line, Node, freeze_longitudinal
+from .tracker import Tracker
 from .match import Vary, Target, OrbitOnly
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
