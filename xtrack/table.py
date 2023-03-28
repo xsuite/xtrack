@@ -367,7 +367,7 @@ class RDMTable:
         else:
             if self._index not in col_list:
                 col_list.insert(0, self._index)
-            data = {}
+            data = self._data.copy()
             for cc in col_list:
                 try:
                     data[cc] = eval(cc, gblmath, view)
@@ -377,7 +377,8 @@ class RDMTable:
                         "is not a valid expression"
                     )
             return self.__class__(
-                data, index=self._index, count_sep=self._count_sep
+                data, index=self._index, count_sep=self._count_sep,
+                col_names=self._col_names
             )  # table
 
     def show(
