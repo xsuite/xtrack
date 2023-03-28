@@ -632,7 +632,7 @@ class Line:
 
     def __getattr__(self, attr):
         # If not in self look in self.tracker (if not None)
-        if self.tracker is not None and attr in dir(self.tracker):
+        if self.tracker is not None and attr in object.__dir__(self.tracker):
             return getattr(self.tracker, attr)
         elif attr in dir(xt.Tracker):
             # If in Tracker class, ask the used to build the tracker

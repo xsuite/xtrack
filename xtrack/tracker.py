@@ -1709,6 +1709,16 @@ class Tracker:
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
 
+    def __getattr__(self, attr):
+        # If not in self look in self.line (if not None)
+        if self.line is not None and attr in object.__dir__(self.line):
+            return getattr(self.line, attr)
+        else:
+            raise AttributeError(f'Tracker object has no attribute `{attr}`')
+
+    def __dir__(self):
+        return list(set(object.__dir__(self) + dir(self.line)))
+
 Tracker.twiss.__doc__ = twiss_from_tracker.__doc__
 
 @contextmanager
