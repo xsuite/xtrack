@@ -486,7 +486,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                                     list(strengths.keys()))
 
     if at_elements is not None:
-        twiss_res = twiss_res[at_elements, :]
+        twiss_res = twiss_res[:, at_elements]
 
     if reverse:
         raise ValueError('`twiss(..., reverse=True)` not supported anymore. '

@@ -332,12 +332,12 @@ class RDMTable:
                 cols = args[0]
                 rows = None
             elif len(args) == 2:
-                cols = args[1]
-                rows = args[0]
+                cols = args[0]
+                rows = args[1]
             else:
                 if self._multiple_row_selections:
-                    cols = args[-1]
-                    rows = args[:-1]
+                    cols = args[0]
+                    rows = args[1:]
                 else:
                     raise ValueError(
                         "Too many indices or keys. Expected usage is "
