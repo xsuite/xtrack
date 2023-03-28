@@ -133,22 +133,6 @@ class Tracker:
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
 
-    @property
-    def matrix_responsiveness_tol(self):
-        return self.line.matrix_responsiveness_tol
-
-    @matrix_responsiveness_tol.setter
-    def matrix_responsiveness_tol(self, value):
-        self.line.matrix_responsiveness_tol = value
-
-    @property
-    def matrix_stability_tol(self):
-        return self.line.matrix_stability_tol
-
-    @matrix_stability_tol.setter
-    def matrix_stability_tol(self, value):
-        self.line.matrix_stability_tol = value
-
     def _init_track_with_collective(
         self,
         _context=None,
