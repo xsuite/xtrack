@@ -281,7 +281,7 @@ class Tracker:
         self.particles_monitor_class = supertracker.particles_monitor_class
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
-        self._radiation_model = None
+        # self._radiation_model = None
         self._beamstrahlung_model = None
 
     def _init_track_no_collective(
@@ -370,7 +370,7 @@ class Tracker:
         self.track_kernel = track_kernel or {}
 
         self.track = self._track_no_collective
-        self._radiation_model = None
+        # self._radiation_model = None
         self._beamstrahlung_model = None
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
@@ -594,9 +594,11 @@ class Tracker:
                 )
 
     def track(self, *args, **kwargs):
+        """
+        This is a placeholder, it is replaced either by the collective
+        tracker or the single particle tracker.
+        """
         pass
-        # This is a placeholder, it is replaced either by the collective
-        # tracker or the single particle tracker
 
     @property
     def particle_ref(self) -> xp.Particles:

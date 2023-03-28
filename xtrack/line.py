@@ -463,6 +463,10 @@ class Line:
         self._element_dict.update(value)
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
+        self._radiation_model = None
+        self.matrix_responsiveness_tol = None
+        self.matrix_stability_tol = None
+
         if isinstance(elements, dict):
             element_dict = elements
             if element_names is None:
@@ -1414,12 +1418,12 @@ class Line:
         kwargs = locals().copy()
         kwargs.pop('self')
 
-        return twiss_from_tracker(self, **kwargs)
+        return twiss_from_tracker(self.tracker, **kwargs)
 
     twiss.__doc__ = twiss_from_tracker.__doc__
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0, element0=0, reverse=False):
-        return survey_from_tracker(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
+        return survey_from_tracker(self.tracker, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
@@ -1428,12 +1432,12 @@ class Line:
         Change a set of knobs in the beamline in order to match assigned targets.
         See corresponding section is the Xsuite User's guide.
         '''
-        return match_tracker(self, vary, targets, **kwargs)
+        return match_tracker(self.tracker, vary, targets, **kwargs)
 
     def correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
 
-        closed_orbit_correction(self, reference, correction_config,
+        closed_orbit_correction(self.tracker, reference, correction_config,
                                 solver=solver, verbose=verbose,
                                 restore_if_fail=restore_if_fail)
 
