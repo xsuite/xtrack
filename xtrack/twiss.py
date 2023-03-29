@@ -1089,11 +1089,11 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         global_xy_limit=tracker.global_xy_limit,
         local_particle_src=tracker.local_particle_src
     )
-    auxtracker.matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
-    auxtracker.matrix_stability_tol = tracker.matrix_stability_tol
-    auxtracker.config = tracker.config.copy()
-    auxtracker._radiation_model = tracker._radiation_model
-    auxtracker._beamstrahlung_model = tracker._beamstrahlung_model
+    auxtracker.line.matrix_responsiveness_tol = tracker.line.matrix_responsiveness_tol
+    auxtracker.line.matrix_stability_tol = tracker.line.matrix_stability_tol
+    auxtracker.line.config = tracker.line.config.copy()
+    auxtracker.line._radiation_model = tracker.line._radiation_model
+    auxtracker.line._beamstrahlung_model = tracker.line._beamstrahlung_model
 
     return auxtracker, names_inserted_markers
 

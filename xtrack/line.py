@@ -14,6 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
+from . import linear_normal_form as lnf
+
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
@@ -343,9 +345,10 @@ class Line:
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
         self.config.XFIELDS_BB3D_NO_BEAMSTR = True
 
+        self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
+        self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
         self._radiation_model = None
-        self.matrix_responsiveness_tol = None
-        self.matrix_stability_tol = None
+        self._beamstrahlung_model = None
 
         if isinstance(elements, dict):
             element_dict = elements

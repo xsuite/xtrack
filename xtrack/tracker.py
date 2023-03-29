@@ -15,7 +15,7 @@ import xobjects as xo
 import xpart as xp
 
 from .general import _print
-from . import linear_normal_form as lnf
+
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
 from .general import _pkg_root
@@ -124,8 +124,6 @@ class Tracker:
                 use_prebuilt_kernels=use_prebuilt_kernels,
                 enable_pipeline_hold=enable_pipeline_hold)
 
-        self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
-        self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
 
     def _init_track_with_collective(
         self,
@@ -277,8 +275,6 @@ class Tracker:
         self.particles_monitor_class = supertracker.particles_monitor_class
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
-        # self._radiation_model = None
-        self._beamstrahlung_model = None
 
     def _init_track_no_collective(
         self,
@@ -366,8 +362,6 @@ class Tracker:
         self._track_kernel = track_kernel or {}
 
         self.track = self._track_no_collective
-        # self._radiation_model = None
-        self._beamstrahlung_model = None
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if compile:
@@ -387,8 +381,25 @@ class Tracker:
         else:
             return self._element_classes
 
+    @property
     def config(self):
         return self.line.config
+
+    @property
+    def matrix_responsiveness_tol(self):
+        return self.line.matrix_responsiveness_tol
+
+    @property
+    def matrix_stability_tol(self):
+        return self.line.matrix_stability_tol
+
+    @property
+    def _radiation_model(self):
+        return self.line._radiation_model
+
+    @property
+    def _beamstrahlung_model(self):
+        return self.line._beamstrahlung_model
 
     def _invalidate(self):
         if self.iscollective:
@@ -1449,8 +1460,6 @@ def _temp_knobs(tracker, knobs: dict):
         for kk, vv in old_values.items():
             tracker.vars[kk] = vv
 
-
-
 class TrackerConfig(UserDict):
 
     def __setitem__(self, idx, val):
@@ -1462,8 +1471,7 @@ class TrackerConfig(UserDict):
     def __setattr__(self, idx, val):
         if idx == 'data':
             object.__setattr__(self, idx, val)
-            return
-        if val is not False:
+        elif val is not False:
             self.data[idx] = val
         elif idx in self:
             del(self.data[idx])
