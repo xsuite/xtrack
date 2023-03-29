@@ -172,7 +172,7 @@ def test_aperture_refinement():
                             r_max = 0.5, # m
                             dr = 50e-6,
                             ds = 0.1,
-                            save_refine_trackers=True,
+                            save_refine_lines=True,
                             allowed_backtrack_types=[
                                 xt.Multipole,
                                 xt.Cavity
@@ -302,7 +302,7 @@ def test_losslocationrefinement_thick_collective_collimator():
                                                 r_max = 0.5, # m
                                                 dr = 50e-6,
                                                 ds = 0.05,
-                                                save_refine_trackers=True)
+                                                save_refine_lines=True)
 
     loss_loc_refinement.refine_loss_location(particles)
 
@@ -419,7 +419,7 @@ def test_losslocationrefinement_skip_refinement_for_collimators():
                                                 r_max = 0.5, # m
                                                 dr = 50e-6,
                                                 ds = 0.05,
-                                                save_refine_trackers=True)
+                                                save_refine_lines=True)
 
     loss_loc_refinement.refine_loss_location(particles)
 

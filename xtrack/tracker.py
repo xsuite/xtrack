@@ -151,6 +151,7 @@ class Tracker:
             raise NotImplementedError("Skip compilation is not implemented in "
                                       "collective mode")
 
+        self.line = line
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
         self.global_xy_limit = global_xy_limit
@@ -237,7 +238,7 @@ class Tracker:
                 io_buffer=self.io_buffer,
                 use_prebuilt_kernels=use_prebuilt_kernels,
                 )
-        supertracker.config = self.config
+        supertracker.config.update(self.config)
 
         # Build trackers for non-collective parts
         for ii, pp in enumerate(parts):
@@ -254,7 +255,7 @@ class Tracker:
                                     skip_end_turn_actions=True,
                                     io_buffer=self.io_buffer,
                                     use_prebuilt_kernels=use_prebuilt_kernels,)
-                parts[ii].config = self.config
+                parts[ii].config.update(self.config)
 
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
