@@ -121,6 +121,14 @@ class _ColView:
     def __getitem__(self, cols):
         return self.table._get_rows_cols(None, cols, force_table=True)
 
+    @property
+    def names(self):
+        return self.table._col_names
+
+    def __repr__(self):
+        return "<" + " ".join(self.table._col_names) + ">"
+
+
 
 class _View:
     def __init__(self, data, index):
@@ -138,6 +146,13 @@ class _View:
         if k == '__tracebackhide__': # to avoid issues in ipython
             return None
         return self.data.get(k, default)[self.index]
+
+    def __repr__(self):
+        return f"<{self.table._nrows} rows>"
+
+    def __iter__(self):
+        return iter(self.table._data[self.table._index])
+
 
 
 
