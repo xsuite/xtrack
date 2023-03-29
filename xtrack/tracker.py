@@ -879,28 +879,7 @@ class Tracker:
         """
         return self._track_with_collective(particles=None, _session_to_resume=session)
 
-    def freeze_vars(self, variable_names):
-        """Freeze assigned coordinates in tracked Particles objects."""
-        for name in variable_names:
-            self.config[f'FREEZE_VAR_{name}'] = True
 
-    def unfreeze_vars(self, variable_names):
-        """Unfreeze variables previously frozen with `freeze_vars`."""
-        for name in variable_names:
-            self.config[f'FREEZE_VAR_{name}'] = False
-
-    def freeze_longitudinal(self, state=True):
-        """
-        Freeze longitudinal coordinates in tracked Particles objects.
-        See corresponding section is the Xsuite User's guide.
-        """
-        assert state in (True, False)
-        assert self.iscollective is False, ('Cannot freeze longitudinal '
-                        'variables in collective mode (not yet implemented)')
-        if state:
-            self.freeze_vars(self.particles_class.part_energy_varnames() + ['zeta'])
-        else:
-            self.unfreeze_vars(self.particles_class.part_energy_varnames() + ['zeta'])
 
     def _track_with_collective(
         self,
@@ -1444,8 +1423,21 @@ def _preserve_config(tracker):
     try:
         yield
     finally:
-        tracker.config = config
+        tracker.config.clear()
+        tracker.config.update(config)
 
+@contextmanager
+def freeze_longitudinal(tracker):
+    """Context manager to freeze longitudinal motion in a tracker."""
+    from xtrack.tracker import TrackerConfig
+    config = TrackerConfig()
+    config.update(tracker.config)
+    tracker.freeze_longitudinal(True)
+    try:
+        yield None
+    finally:
+        tracker.config.clear()
+        tracker.config.update(config)
 
 @contextmanager
 def _temp_knobs(tracker, knobs: dict):

@@ -1593,6 +1593,29 @@ class Line:
         if compile:
             _ = self._current_track_kernel # This triggers compilation
 
+    def freeze_vars(self, variable_names):
+        """Freeze assigned coordinates in tracked Particles objects."""
+        for name in variable_names:
+            self.config[f'FREEZE_VAR_{name}'] = True
+
+    def unfreeze_vars(self, variable_names):
+        """Unfreeze variables previously frozen with `freeze_vars`."""
+        for name in variable_names:
+            self.config[f'FREEZE_VAR_{name}'] = False
+
+    def freeze_longitudinal(self, state=True):
+        """
+        Freeze longitudinal coordinates in tracked Particles objects.
+        See corresponding section is the Xsuite User's guide.
+        """
+        assert state in (True, False)
+        assert self.iscollective is False, ('Cannot freeze longitudinal '
+                        'variables in collective mode (not yet implemented)')
+        if state:
+            self.freeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+        else:
+            self.unfreeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+
 
 mathfunctions = type('math', (), {})
 mathfunctions.sqrt = math.sqrt
@@ -1656,7 +1679,8 @@ def freeze_longitudinal(tracker):
     try:
         yield None
     finally:
-        tracker.config = config
+        tracker.config.clear()
+        tracker.config.update(config)
 
 _freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
 
