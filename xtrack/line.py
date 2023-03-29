@@ -48,6 +48,52 @@ class Line:
     _element_dict = None
     config = None
 
+    def __init__(self, elements=(), element_names=None, particle_ref=None):
+
+        self.config = xt.tracker.TrackerConfig()
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = True
+
+        self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
+        self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
+        self._radiation_model = None
+        self._beamstrahlung_model = None
+
+        if isinstance(elements, dict):
+            element_dict = elements
+            if element_names is None:
+                raise ValueError('`element_names` must be provided'
+                                 ' if `elements` is a dictionary.')
+        else:
+            if element_names is None:
+                element_names = [f"e{ii}" for ii in range(len(elements))]
+            if len(element_names) > len(set(element_names)):
+                log.warning("Repetition found in `element_names` -> renaming")
+                old_element_names = element_names
+                element_names = []
+                counters = {nn: 0 for nn in old_element_names}
+                for nn in old_element_names:
+                    if counters[nn] > 0:
+                        new_nn = nn + '_' + str(counters[nn])
+                    else:
+                        new_nn = nn
+                    counters[nn] += 1
+                    element_names.append(new_nn)
+
+            assert len(element_names) == len(elements), (
+                "`elements` and `element_names` should have the same length"
+            )
+            element_dict = dict(zip(element_names, elements))
+
+        self.element_dict = element_dict.copy()  # avoid modifications if user provided
+        self.element_names = list(element_names).copy()
+
+        self.particle_ref = particle_ref
+
+        self._var_management = None
+        self._needs_rng = False
+        self.tracker = None
+
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
         '''
@@ -107,8 +153,10 @@ class Line:
         return cls.from_dict(dct_line, **kwargs)
 
     @classmethod
-    def from_sequence(cls, nodes=None, length=None, elements=None, sequences=None, copy_elements=False,
+    def from_sequence(cls, nodes=None, length=None, elements=None,
+                      sequences=None, copy_elements=False,
                       naming_scheme='{}{}', auto_reorder=False, **kwargs):
+
         """Constructs a line from a sequence definition, inserting drift spaces as needed
 
         Args:
@@ -247,359 +295,6 @@ class Line:
         line=loader.make_line()
         return line
 
-    def _has_valid_tracker(self):
-
-        if self.tracker is None:
-            return False
-        try:
-            self.tracker._check_invalidated()
-            return True
-        except:
-            return False
-
-    def _check_valid_tracker(self):
-        if not self._has_valid_tracker():
-            raise RuntimeError(
-                "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
-                "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
-
-    @property
-    def iscollective(self):
-        if not self._has_valid_tracker():
-            raise RuntimeError(
-                '`Line.iscollective` con only be called after `Line.build_tracker`')
-        return self.tracker.iscollective
-
-    @property
-    def _buffer(self):
-        if not self._has_valid_tracker():
-            raise RuntimeError(
-                '`Line._buffer` con only be called after `Line.build_tracker`')
-        return self.tracker._buffer
-
-    @property
-    def _context(self):
-        if not self._has_valid_tracker():
-            raise RuntimeError(
-                '`Line._context` con only be called after `Line.build_tracker`')
-        return self.tracker._context
-
-    def _init_var_management(self, dct=None):
-
-        from collections import defaultdict
-        import xdeps as xd
-
-        _var_values = defaultdict(lambda: 0)
-        _var_values.default_factory = None
-
-        manager = xd.Manager()
-        _vref = manager.ref(_var_values, 'vars')
-        _fref = manager.ref(mathfunctions, 'f')
-        _lref = manager.ref(self.element_dict, 'element_refs')
-
-        self._var_management = {}
-        self._var_management['data'] = {}
-        self._var_management['data']['var_values'] = _var_values
-
-        self._var_management['manager'] = manager
-        self._var_management['lref'] = _lref
-        self._var_management['vref'] = _vref
-        self._var_management['fref'] = _fref
-
-        if dct is not None:
-            manager = self._var_management['manager']
-            for kk in self._var_management['data'].keys():
-                self._var_management['data'][kk].update(
-                                            dct['_var_management_data'][kk])
-            manager.load(dct['_var_manager'])
-
-    @property
-    def record_last_track(self):
-        self._check_valid_tracker()
-        return self.tracker.record_last_track
-
-    @property
-    def vars(self):
-        if self._var_management is not None:
-            return self._var_management['vref']
-
-    @property
-    def element_refs(self):
-        if self._var_management is not None:
-            return self._var_management['lref']
-
-    @property
-    def element_dict(self):
-        return self._element_dict
-
-    @element_dict.setter
-    def element_dict(self, value):
-        if self._element_dict is None:
-            self._element_dict = {}
-        self._element_dict.clear()
-        self._element_dict.update(value)
-
-    def __init__(self, elements=(), element_names=None, particle_ref=None):
-
-        self.config = xt.tracker.TrackerConfig()
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-        self.config.XFIELDS_BB3D_NO_BEAMSTR = True
-
-        self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
-        self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
-        self._radiation_model = None
-        self._beamstrahlung_model = None
-
-        if isinstance(elements, dict):
-            element_dict = elements
-            if element_names is None:
-                raise ValueError('`element_names` must be provided'
-                                 ' if `elements` is a dictionary.')
-        else:
-            if element_names is None:
-                element_names = [f"e{ii}" for ii in range(len(elements))]
-            if len(element_names) > len(set(element_names)):
-                log.warning("Repetition found in `element_names` -> renaming")
-                old_element_names = element_names
-                element_names = []
-                counters = {nn: 0 for nn in old_element_names}
-                for nn in old_element_names:
-                    if counters[nn] > 0:
-                        new_nn = nn + '_' + str(counters[nn])
-                    else:
-                        new_nn = nn
-                    counters[nn] += 1
-                    element_names.append(new_nn)
-
-            assert len(element_names) == len(elements), (
-                "`elements` and `element_names` should have the same length"
-            )
-            element_dict = dict(zip(element_names, elements))
-
-        self.element_dict = element_dict.copy()  # avoid modifications if user provided
-        self.element_names = list(element_names).copy()
-
-        self.particle_ref = particle_ref
-
-        self._var_management = None
-        self._needs_rng = False
-        self.tracker = None
-
-    def build_tracker(self, **kwargs):
-
-        "Build a tracker associated for the line."
-
-        assert self.tracker is None, 'The line already has an associated tracker'
-        import xtrack as xt  # avoid circular import
-        self.tracker = xt.Tracker(line=self, **kwargs)
-
-        return self.tracker
-
-    @property
-    def elements(self):
-        return tuple([self.element_dict[nn] for nn in self.element_names])
-
-    def __getitem__(self, ii):
-        if isinstance(ii, str):
-            if ii not in self.element_names:
-                raise IndexError(f'No installed element with name {ii}')
-            return self.element_dict.__getitem__(ii)
-        else:
-            names = self.element_names.__getitem__(ii)
-            if isinstance(names, str):
-                return self.element_dict.__getitem__(names)
-            else:
-                return [self.element_dict[nn] for nn in names]
-
-    def build_particles(self, *args, **kwargs):
-
-        """
-        Generate a particle distribution. Equivalent to xp.Particles(tracker=tracker, ...)
-        See corresponding section is the Xsuite User's guide.
-        """
-        res = xp.build_particles(*args, line=self, **kwargs)
-        return res
-
-    def filter_elements(self, mask=None, exclude_types_starting_with=None,
-                        _make_tracker=True):
-        """
-        Return a new line with only the elements satisfying a given condition.
-        Other elements are replaced with Drifts.
-
-        Parameters
-        ----------
-        mask: list of bool
-            A list of booleans with the same length as the line.
-            If True, the element is kept, otherwise it is replaced with a Drift.
-        exclude_types_starting_with: str
-            If not None, all elements whose type starts with the given string
-            are replaced with Drifts.
-        """
-
-        if mask is None:
-            assert exclude_types_starting_with is not None
-
-        if exclude_types_starting_with is not None:
-            assert mask is None
-            mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
-                    for ee in self.elements]
-
-        new_elements = []
-        assert len(mask) == len(self.elements)
-        for ff, ee in zip(mask, self.elements):
-            if ff:
-                new_elements.append(ee)
-            else:
-                if _is_thick(ee) and not _is_drift(ee):
-                    new_elements.append(Drift(length=ee.length))
-                else:
-                    new_elements.append(Drift(length=0))
-
-        new_line = self.__class__(elements=new_elements,
-                              element_names=self.element_names)
-        if self.particle_ref is not None:
-            new_line.particle_ref = self.particle_ref.copy()
-
-        if self._has_valid_tracker():
-            new_line.build_tracker(_buffer=self._buffer,
-                                   track_kernel=self.tracker.track_kernel,
-                                   element_classes=self.tracker.element_classes)
-            #TODO: handle config and other metadata
-
-        return new_line
-
-    def cycle(self, index_first_element=None, name_first_element=None,
-              inplace=False):
-
-        """
-        Cycle the line to start from a given element.
-
-        Parameters
-        ----------
-        index_first_element: int
-            Index of the element to start from
-        name_first_element: str
-            Name of the element to start from
-        inplace: bool
-            If True, the line is modified in place. Otherwise, a new line is returned.
-        """
-
-        if ((index_first_element is not None and name_first_element is not None)
-               or (index_first_element is None and name_first_element is None)):
-             raise ValueError(
-                "Please provide either `index_first_element` or `name_first_element`.")
-
-        if type(index_first_element) is str:
-            name_first_element = index_first_element
-            index_first_element = None
-
-        if name_first_element is not None:
-            assert self.element_names.count(name_first_element) == 1, (
-                f"name_first_element={name_first_element} occurs more than once!"
-            )
-            index_first_element = self.element_names.index(name_first_element)
-
-        new_element_names = (list(self.element_names[index_first_element:])
-                             + list(self.element_names[:index_first_element]))
-
-        has_valid_tracker = self._has_valid_tracker()
-        if has_valid_tracker:
-            buffer = self._buffer
-            track_kernel = self.tracker.track_kernel
-            element_classes = self.tracker.element_classes
-        else:
-            buffer = None
-            track_kernel = None
-            element_classes = None
-
-        if inplace:
-            self.unfreeze()
-            self.element_names = new_element_names
-            new_line = self
-        else:
-            new_line = self.__class__(
-                elements=self.element_dict,
-                element_names=new_element_names,
-                particle_ref=self.particle_ref,
-            )
-
-        if has_valid_tracker:
-            new_line.build_tracker(_buffer=buffer,
-                                   track_kernel=track_kernel,
-                                   element_classes=element_classes)
-            #TODO: handle config and other metadata
-
-        return new_line
-
-    def _freeze(self):
-        self.element_names = tuple(self.element_names)
-
-    def unfreeze(self):
-        """
-        Unfreeze the line. This is useful if you want to modify the line
-        after it has been frozen (most likely by calling `build_tracker`).
-        """
-        self.element_names = list(self.element_names)
-        if hasattr(self, 'tracker') and self.tracker is not None:
-            self.tracker._invalidate()
-            self.tracker = None
-
-    def _frozen_check(self):
-        if isinstance(self.element_names, tuple):
-            raise ValueError(
-                'This action is not allowed as the line is frozen!')
-
-    # def __getattr__(self, attr):
-    #     # If not in self look in self.tracker (if not None)
-    #     if self.tracker is not None and attr in object.__dir__(self.tracker):
-    #         return getattr(self.tracker, attr)
-    #     elif attr in dir(xt.Tracker):
-    #         # If in Tracker class, ask the used to build the tracker
-    #         raise AttributeError(
-    #             'The tracker is not built. Please call Line.build_tracker()')
-    #     else:
-    #         raise AttributeError(
-    #             f'Line object has no attribute `{attr}`')
-
-    # def __dir__(self):
-    #     return list(set(object.__dir__(self) + dir(self.tracker)))
-
-    def __len__(self):
-        return len(self.element_names)
-
-    def copy(self, _context=None, _buffer=None):
-        '''
-        Return a copy of the line.
-
-        Parameters
-        ----------
-        _context: xobjects.Context
-            xobjects context to be used for the copy
-        _buffer: xobjects.Buffer
-            xobjects buffer to be used for the copy
-        '''
-
-        elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
-                                    for nn, ee in self.element_dict.items()}
-        element_names = [nn for nn in self.element_names]
-
-        out = self.__class__(elements=elements, element_names=element_names)
-
-        if self.particle_ref is not None:
-            out.particle_ref = self.particle_ref.copy(
-                                        _context=_context, _buffer=_buffer)
-
-        if self._var_management is not None:
-            out._init_var_management(dct=self._var_management_to_dict())
-
-        return out
-
-    def _var_management_to_dict(self):
-        out = {}
-        out['_var_management_data'] = deepcopy(self._var_management['data'])
-        out['_var_manager'] = self._var_management['manager'].dump()
-        return out
-
     def to_dict(self, include_var_management=True):
 
         '''Return a dictionary representation of the line.
@@ -665,6 +360,295 @@ class Line:
             'element': elements
         })
         return elements_df
+
+    def copy(self, _context=None, _buffer=None):
+        '''
+        Return a copy of the line.
+
+        Parameters
+        ----------
+        _context: xobjects.Context
+            xobjects context to be used for the copy
+        _buffer: xobjects.Buffer
+            xobjects buffer to be used for the copy
+        '''
+
+        elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
+                                    for nn, ee in self.element_dict.items()}
+        element_names = [nn for nn in self.element_names]
+
+        out = self.__class__(elements=elements, element_names=element_names)
+
+        if self.particle_ref is not None:
+            out.particle_ref = self.particle_ref.copy(
+                                        _context=_context, _buffer=_buffer)
+
+        if self._var_management is not None:
+            out._init_var_management(dct=self._var_management_to_dict())
+
+        return out
+
+    def build_tracker(self, **kwargs):
+
+        "Build a tracker associated for the line."
+
+        assert self.tracker is None, 'The line already has an associated tracker'
+        import xtrack as xt  # avoid circular import
+        self.tracker = xt.Tracker(line=self, **kwargs)
+
+        return self.tracker
+
+    def discard_tracker(self):
+        """
+        Discard the trackers associated to the line. This is useful
+        if you want to modify the line after it has been frozen
+        (most likely by calling `build_tracker`).
+        """
+        self.element_names = list(self.element_names)
+        if hasattr(self, 'tracker') and self.tracker is not None:
+            self.tracker._invalidate()
+            self.tracker = None
+
+    def track(self, *args, **kwargs):
+        self._check_valid_tracker()
+        return self.tracker.track(*args, **kwargs)
+
+    def build_particles(self, *args, **kwargs):
+
+        """
+        Generate a particle distribution. Equivalent to xp.Particles(tracker=tracker, ...)
+        See corresponding section is the Xsuite User's guide.
+        """
+        res = xp.build_particles(*args, line=self, **kwargs)
+        return res
+
+    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
+        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
+        delta_disp=1e-5, delta_chrom=1e-4,
+        particle_co_guess=None, R_matrix=None, W_matrix=None,
+        steps_r_matrix=None, co_search_settings=None, at_elements=None, at_s=None,
+        values_at_element_exit=False,
+        continue_on_closed_orbit_error=False,
+        freeze_longitudinal=False,
+        radiation_method='full',
+        eneloss_and_damping=False,
+        ele_start=None, ele_stop=None, twiss_init=None,
+        particle_on_co=None,
+        matrix_responsiveness_tol=None,
+        matrix_stability_tol=None,
+        symplectify=False,
+        reverse=False,
+        use_full_inverse=None,
+        strengths=False,
+        hide_thin_groups=False,
+        ):
+
+        self._check_valid_tracker()
+
+        kwargs = locals().copy()
+        kwargs.pop('self')
+
+        return twiss_from_tracker(self.tracker, **kwargs)
+    twiss.__doc__ = twiss_from_tracker.__doc__
+
+    def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
+               element0=0, reverse=False):
+        return survey_from_tracker(self.tracker, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
+                                   phi0=phi0, psi0=psi0, element0=element0,
+                                   reverse=reverse)
+
+    def match(self, vary, targets, **kwargs):
+        '''
+        Change a set of knobs in the beamline in order to match assigned targets.
+        See corresponding section is the Xsuite User's guide.
+        '''
+        return match_tracker(self.tracker, vary, targets, **kwargs)
+
+    def correct_closed_orbit(self, reference, correction_config,
+                        solver=None, verbose=False, restore_if_fail=True):
+
+        closed_orbit_correction(self.tracker, reference, correction_config,
+                                solver=solver, verbose=verbose,
+                                restore_if_fail=restore_if_fail)
+
+    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
+                          co_search_settings={}, delta_zeta=0,
+                          delta0=None, zeta0=None,
+                          continue_on_closed_orbit_error=False,
+                          freeze_longitudinal=False):
+
+        if freeze_longitudinal:
+            kwargs = locals().copy()
+            kwargs.pop('self')
+            kwargs.pop('freeze_longitudinal')
+            with _freeze_longitudinal(self):
+                return self.find_closed_orbit(**kwargs)
+
+        self._check_valid_tracker()
+
+        if particle_ref is None and particle_co_guess is None:
+            particle_ref = self.particle_ref
+
+        if self.iscollective:
+            log.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self.tracker._supertracker
+        else:
+            tracker = self.tracker
+
+        return find_closed_orbit_tracker(tracker, particle_co_guess=particle_co_guess,
+                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
+                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
+                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
+
+    def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
+            mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
+            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
+            linear_rescale_on_knobs=None,
+            keep_fft=True):
+
+        '''
+        Compute the tune footprint for a beam with given emittences using tracking.
+
+        Parameters
+        ----------
+
+        nemitt_x : float
+            Normalized emittance in the x-plane.
+        nemitt_y : float
+            Normalized emittance in the y-plane.
+        n_turns : int
+            Number of turns for tracking.
+        n_fft : int
+            Number of points for FFT (tracking data is zero-padded to this length).
+        mode : str
+            Mode for computing footprint. Options are 'polar' and 'uniform_action_grid'.
+            In 'polar' mode, the footprint is computed on a polar grid with
+            r_range and theta_range specifying the range of r and theta values (
+            polar coordinates in the x_norm, y_norm plane).
+            In 'uniform_action_grid' mode, the footprint is computed on a uniform
+            grid in the action space (Jx, Jy).
+        r_range : tuple of floats
+            Range of r values for footprint in polar mode. Default is (0.1, 6) sigmas.
+        theta_range : tuple of floats
+            Range of theta values for footprint in polar mode. Default is
+            (0.05, pi / 2 - 0.05) radians.
+        n_r : int
+            Number of r values for footprint in polar mode. Default is 10.
+        n_theta : int
+            Number of theta values for footprint in polar mode. Default is 10.
+        x_norm_range : tuple of floats
+            Range of x_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        y_norm_range : tuple of floats
+            Range of y_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        n_x_norm : int
+            Number of x_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        n_y_norm : int
+            Number of y_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        linear_rescale_on_knobs: list of xt.LinearRescale
+            Detuning from listed knobs is evaluated at a given value of the knob
+            with the provided step and rescaled to the actual knob value.
+            This is useful to avoid artefact from linear coupling or resonances.
+            Example:
+                ``line.get_footprint(..., linear_rescale_on_knobs=[
+                    xt.LinearRescale(knob_name='beambeam_scale', v0=0, dv-0.1)])``
+
+        Returns
+        -------
+        fp : Footprint
+            Footprint object containing footprint data (fp.qx, fp.qy).
+
+        '''
+
+        kwargs = locals()
+        kwargs.pop('self')
+        kwargs.pop('linear_rescale_on_knobs')
+
+        if linear_rescale_on_knobs:
+            fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
+                        linear_rescale_on_knobs=linear_rescale_on_knobs)
+        else:
+            fp = Footprint(**kwargs)
+            fp._compute_footprint(self)
+
+        return fp
+
+    def compute_one_turn_matrix_finite_differences(
+            self, particle_on_co,
+            steps_r_matrix=None):
+
+        self._check_valid_tracker()
+
+        if self.iscollective:
+            log.warning(
+                'The tracker has collective elements.\n'
+                'In the twiss computation collective elements are'
+                ' replaced by drifts')
+            tracker = self._supertracker
+        else:
+            tracker = self
+        return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
+                                                   steps_r_matrix)
+
+    def get_length(self):
+        ll = 0
+        for ee in self.elements:
+            if _is_thick(ee):
+                ll += ee.length
+
+        return ll
+
+    def get_s_elements(self, mode="upstream"):
+        '''Get s position for all elements'''
+        return self.get_s_position(mode=mode)
+
+    def get_s_position(self, at_elements=None, mode="upstream"):
+
+        '''Get s position for given elements
+
+        Parameters
+        ----------
+        at_elements : str or list of str
+            Name of the element(s) to get s position for (default: all elements)
+        mode : str
+            "upstream" or "downstream" (default: "upstream")
+
+        Returns
+        -------
+        s : float or list of float
+            s position for given element(s)
+        '''
+
+        assert mode in ["upstream", "downstream"]
+        s_prev = 0
+        s = []
+        for ee in self.elements:
+            if mode == "upstream":
+                s.append(s_prev)
+            if _is_thick(ee):
+                s_prev += ee.length
+            if mode == "downstream":
+                s.append(s_prev)
+
+        if at_elements is not None:
+            if np.isscalar(at_elements):
+                if isinstance(at_elements, str):
+                    assert at_elements in self.element_names
+                    idx = self.element_names.index(at_elements)
+                else:
+                    idx = at_elements
+                return s[idx]
+            else:
+                assert all([nn in self.element_names for nn in at_elements])
+                return [s[self.element_names.index(nn)] for nn in at_elements]
+        else:
+            return s
 
     def insert_element(self, index=None, element=None, name=None, at_s=None,
                        s_tol=1e-6):
@@ -812,59 +796,269 @@ class Line:
         self.element_names.append(name)
         return self
 
-    def get_length(self):
-        ll = 0
-        for ee in self.elements:
-            if _is_thick(ee):
-                ll += ee.length
-
-        return ll
-
-    def get_s_elements(self, mode="upstream"):
-        '''Get s position for all elements'''
-        return self.get_s_position(mode=mode)
-
-    def get_s_position(self, at_elements=None, mode="upstream"):
-
-        '''Get s position for given elements
+    def filter_elements(self, mask=None, exclude_types_starting_with=None,
+                        _make_tracker=True):
+        """
+        Return a new line with only the elements satisfying a given condition.
+        Other elements are replaced with Drifts.
 
         Parameters
         ----------
-        at_elements : str or list of str
-            Name of the element(s) to get s position for (default: all elements)
-        mode : str
-            "upstream" or "downstream" (default: "upstream")
+        mask: list of bool
+            A list of booleans with the same length as the line.
+            If True, the element is kept, otherwise it is replaced with a Drift.
+        exclude_types_starting_with: str
+            If not None, all elements whose type starts with the given string
+            are replaced with Drifts.
+        """
 
-        Returns
-        -------
-        s : float or list of float
-            s position for given element(s)
-        '''
+        if mask is None:
+            assert exclude_types_starting_with is not None
 
-        assert mode in ["upstream", "downstream"]
-        s_prev = 0
-        s = []
-        for ee in self.elements:
-            if mode == "upstream":
-                s.append(s_prev)
-            if _is_thick(ee):
-                s_prev += ee.length
-            if mode == "downstream":
-                s.append(s_prev)
+        if exclude_types_starting_with is not None:
+            assert mask is None
+            mask = [not(ee.__class__.__name__.startswith(exclude_types_starting_with))
+                    for ee in self.elements]
 
-        if at_elements is not None:
-            if np.isscalar(at_elements):
-                if isinstance(at_elements, str):
-                    assert at_elements in self.element_names
-                    idx = self.element_names.index(at_elements)
-                else:
-                    idx = at_elements
-                return s[idx]
+        new_elements = []
+        assert len(mask) == len(self.elements)
+        for ff, ee in zip(mask, self.elements):
+            if ff:
+                new_elements.append(ee)
             else:
-                assert all([nn in self.element_names for nn in at_elements])
-                return [s[self.element_names.index(nn)] for nn in at_elements]
+                if _is_thick(ee) and not _is_drift(ee):
+                    new_elements.append(Drift(length=ee.length))
+                else:
+                    new_elements.append(Drift(length=0))
+
+        new_line = self.__class__(elements=new_elements,
+                              element_names=self.element_names)
+        if self.particle_ref is not None:
+            new_line.particle_ref = self.particle_ref.copy()
+
+        if self._has_valid_tracker():
+            new_line.build_tracker(_buffer=self._buffer,
+                                   track_kernel=self.tracker.track_kernel,
+                                   element_classes=self.tracker.element_classes)
+            #TODO: handle config and other metadata
+
+        return new_line
+
+    def cycle(self, index_first_element=None, name_first_element=None,
+              inplace=False):
+
+        """
+        Cycle the line to start from a given element.
+
+        Parameters
+        ----------
+        index_first_element: int
+            Index of the element to start from
+        name_first_element: str
+            Name of the element to start from
+        inplace: bool
+            If True, the line is modified in place. Otherwise, a new line is returned.
+        """
+
+        if ((index_first_element is not None and name_first_element is not None)
+               or (index_first_element is None and name_first_element is None)):
+             raise ValueError(
+                "Please provide either `index_first_element` or `name_first_element`.")
+
+        if type(index_first_element) is str:
+            name_first_element = index_first_element
+            index_first_element = None
+
+        if name_first_element is not None:
+            assert self.element_names.count(name_first_element) == 1, (
+                f"name_first_element={name_first_element} occurs more than once!"
+            )
+            index_first_element = self.element_names.index(name_first_element)
+
+        new_element_names = (list(self.element_names[index_first_element:])
+                             + list(self.element_names[:index_first_element]))
+
+        has_valid_tracker = self._has_valid_tracker()
+        if has_valid_tracker:
+            buffer = self._buffer
+            track_kernel = self.tracker.track_kernel
+            element_classes = self.tracker.element_classes
         else:
-            return s
+            buffer = None
+            track_kernel = None
+            element_classes = None
+
+        if inplace:
+            self.unfreeze()
+            self.element_names = new_element_names
+            new_line = self
+        else:
+            new_line = self.__class__(
+                elements=self.element_dict,
+                element_names=new_element_names,
+                particle_ref=self.particle_ref,
+            )
+
+        if has_valid_tracker:
+            new_line.build_tracker(_buffer=buffer,
+                                   track_kernel=track_kernel,
+                                   element_classes=element_classes)
+            #TODO: handle config and other metadata
+
+        return new_line
+
+    def freeze_longitudinal(self, state=True):
+        """
+        Freeze longitudinal coordinates in tracked Particles objects.
+        See corresponding section is the Xsuite User's guide.
+        """
+        assert state in (True, False)
+        assert self.iscollective is False, ('Cannot freeze longitudinal '
+                        'variables in collective mode (not yet implemented)')
+        if state:
+            self.freeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+        else:
+            self.unfreeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+
+    def freeze_vars(self, variable_names):
+        """Freeze assigned coordinates in tracked Particles objects."""
+        for name in variable_names:
+            self.config[f'FREEZE_VAR_{name}'] = True
+
+    def unfreeze_vars(self, variable_names):
+        """Unfreeze variables previously frozen with `freeze_vars`."""
+        for name in variable_names:
+            self.config[f'FREEZE_VAR_{name}'] = False
+
+    def configure_radiation(self, model=None, model_beamstrahlung=None,
+                            mode='deprecated'):
+
+        """
+        Configure synchrotron radiation and beamstrahlung models.
+        Choose among: None / "mean"/ "quantum".
+        See corresponding section is the Xsuite User's guide.
+        """
+
+        if mode != 'deprecated':
+            raise NameError('mode is deprecated, use model instead')
+
+        self._check_valid_tracker()
+
+        assert model in [None, 'mean', 'quantum']
+        assert model_beamstrahlung in [None, 'mean', 'quantum']
+
+        if model == 'mean':
+            radiation_flag = 1
+            self._radiation_model = 'mean'
+        elif model == 'quantum':
+            radiation_flag = 2
+            self._radiation_model = 'quantum'
+        else:
+            radiation_flag = 0
+            self._radiation_model = None
+
+        if model_beamstrahlung == 'mean':
+            beamstrahlung_flag = 1
+            self._beamstrahlung_model = 'mean'
+        elif model_beamstrahlung == 'quantum':
+            beamstrahlung_flag = 2
+            self._beamstrahlung_model = 'quantum'
+        else:
+            beamstrahlung_flag = 0
+            self._beamstrahlung_model = None
+
+        for kk, ee in self.element_dict.items():
+            if hasattr(ee, 'radiation_flag'):
+                ee.radiation_flag = radiation_flag
+
+        for kk, ee in self.element_dict.items():
+            if hasattr(ee, 'flag_beamstrahlung'):
+                ee.flag_beamstrahlung = beamstrahlung_flag
+
+        if radiation_flag == 2 or beamstrahlung_flag == 2:
+            self._needs_rng = True
+
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
+
+    def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
+                                    max_iter=100, **kwargs):
+
+        """
+        Compensate beam energy loss from synchrotron radiation by configuring
+        RF cavities and Multipole elements (tapering).
+        See corresponding section is the Xsuite User's guide.
+        """
+
+        all_kwargs = locals().copy()
+        all_kwargs.pop('self')
+        all_kwargs.pop('kwargs')
+        all_kwargs.update(kwargs)
+        compensate_radiation_energy_loss(self, **all_kwargs)
+
+    def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
+        """
+        Optimize the tracker for tracking speed.
+        """
+
+        if self.iscollective:
+            raise NotImplementedError("Optimization is not implemented for "
+                                      "collective trackers")
+
+        self.tracker.track_kernel = {} # Remove all kernels
+
+        if verbose: _print("Disable xdeps expressions")
+        self._var_management = None # Disable expressions
+
+        # Unfreeze the line
+        self.element_names = list(self.element_names)
+
+        if keep_markers is True:
+            if verbose: _print('Markers are kept')
+        elif keep_markers is False:
+            if verbose: _print("Remove markers")
+            self.remove_markers()
+        else:
+            if verbose: _print('Keeping only selected markers')
+            self.remove_markers(keep=keep_markers)
+
+        if verbose: _print("Remove inactive multipoles")
+        self.remove_inactive_multipoles()
+
+        if verbose: _print("Merge consecutive multipoles")
+        self.merge_consecutive_multipoles()
+
+        if verbose: _print("Remove redundant apertures")
+        self.remove_redundant_apertures()
+
+        if verbose: _print("Remove zero length drifts")
+        self.remove_zero_length_drifts()
+
+        if verbose: _print("Merge consecutive drifts")
+        self.merge_consecutive_drifts()
+
+        if verbose: _print("Use simple bends")
+        self.use_simple_bends()
+
+        if verbose: _print("Use simple quadrupoles")
+        self.use_simple_quadrupoles()
+
+        if verbose: _print("Rebuild tracker data")
+        tracker_data = xt.tracker_data.TrackerData(
+            line=self,
+            extra_element_classes=(self.particles_monitor_class._XoStruct,),
+            _buffer=self._buffer)
+
+        self._freeze()
+
+        self._tracker_data = tracker_data
+        self.element_classes = tracker_data.element_classes
+        self.num_elements = len(tracker_data.elements)
+
+        self.use_prebuilt_kernels = False
+
+        if compile:
+            _ = self._current_track_kernel # This triggers compilation
 
     def remove_markers(self, inplace=True, keep=None):
         '''
@@ -1013,15 +1207,15 @@ class Line:
         else:
             return newline
 
-    # For every occurence of three or more apertures that are the same,
-    # only separated by Drifts or Markers, this script removes the
-    # middle apertures
     def remove_redundant_apertures(self, inplace=True, keep=None,
                                   drifts_that_need_aperture=[]):
         '''
         Merge consecutive aperture checks by deleting the middle ones
         '''
 
+        # For every occurence of three or more apertures that are the same,
+        # only separated by Drifts or Markers, this script removes the
+        # middle apertures
         # TODO: this probably actually works, but better be safe than sorry
         if self._var_management is not None:
             raise NotImplementedError('`remove_redundant_apertures` not'
@@ -1077,69 +1271,6 @@ class Line:
             newline.element_names.remove(name)
 
         return newline
-
-    def merge_consecutive_multipoles(self, inplace=True, keep=None):
-        '''
-        Merge consecutive multipoles into one multipole
-        '''
-
-        if self._var_management is not None:
-            raise NotImplementedError('`merge_consecutive_multipoles` not'
-                                      ' available when deferred expressions are'
-                                      ' used')
-
-        self._frozen_check()
-
-        if keep is None:
-            keep = []
-        elif isinstance(keep, str):
-            keep = [keep]
-
-        newline = Line(elements=[], element_names=[])
-
-        for ee, nn in zip(self.elements, self.element_names):
-            if len(newline.element_names) == 0:
-                newline.append_element(ee, nn)
-                continue
-
-            if isinstance(ee, Multipole) and nn not in keep:
-                prev_nn = newline.element_names[-1]
-                prev_ee = newline.element_dict[prev_nn]
-                if (isinstance(prev_ee, Multipole)
-                    and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
-                    and prev_nn not in keep
-                    ):
-
-                    oo=max(len(prev_ee.knl), len(prev_ee.ksl),
-                           len(ee.knl), len(ee.ksl))
-                    knl=np.zeros(oo,dtype=float)
-                    ksl=np.zeros(oo,dtype=float)
-                    for ii,kk in enumerate(prev_ee._xobject.knl):
-                        knl[ii]+=kk
-                    for ii,kk in enumerate(ee._xobject.knl):
-                        knl[ii]+=kk
-                    for ii,kk in enumerate(prev_ee._xobject.ksl):
-                        ksl[ii]+=kk
-                    for ii,kk in enumerate(ee._xobject.ksl):
-                        ksl[ii]+=kk
-                    newee = Multipole(
-                            knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
-                            length=prev_ee.length,
-                            radiation_flag=prev_ee.radiation_flag)
-                    prev_nn += ('_' + nn)
-                    newline.element_dict[prev_nn] = newee
-                    newline.element_names[-1] = prev_nn
-                else:
-                    newline.append_element(ee, nn)
-            else:
-                newline.append_element(ee, nn)
-
-        if inplace:
-            self.element_names = newline.element_names
-            self.element_dict = newline.element_dict
-            return self
-        else:
-            return newline
 
     def use_simple_quadrupoles(self):
         '''
@@ -1285,336 +1416,200 @@ class Line:
 
         return elements_df
 
-    def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
-            mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
-            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
-            linear_rescale_on_knobs=None,
-            keep_fft=True):
-
+    def merge_consecutive_multipoles(self, inplace=True, keep=None):
         '''
-        Compute the tune footprint for a beam with given emittences using tracking.
-
-        Parameters
-        ----------
-
-        nemitt_x : float
-            Normalized emittance in the x-plane.
-        nemitt_y : float
-            Normalized emittance in the y-plane.
-        n_turns : int
-            Number of turns for tracking.
-        n_fft : int
-            Number of points for FFT (tracking data is zero-padded to this length).
-        mode : str
-            Mode for computing footprint. Options are 'polar' and 'uniform_action_grid'.
-            In 'polar' mode, the footprint is computed on a polar grid with
-            r_range and theta_range specifying the range of r and theta values (
-            polar coordinates in the x_norm, y_norm plane).
-            In 'uniform_action_grid' mode, the footprint is computed on a uniform
-            grid in the action space (Jx, Jy).
-        r_range : tuple of floats
-            Range of r values for footprint in polar mode. Default is (0.1, 6) sigmas.
-        theta_range : tuple of floats
-            Range of theta values for footprint in polar mode. Default is
-            (0.05, pi / 2 - 0.05) radians.
-        n_r : int
-            Number of r values for footprint in polar mode. Default is 10.
-        n_theta : int
-            Number of theta values for footprint in polar mode. Default is 10.
-        x_norm_range : tuple of floats
-            Range of x_norm values for footprint in `uniform action grid` mode.
-            Default is (0.1, 6) sigmas.
-        y_norm_range : tuple of floats
-            Range of y_norm values for footprint in `uniform action grid` mode.
-            Default is (0.1, 6) sigmas.
-        n_x_norm : int
-            Number of x_norm values for footprint in `uniform action grid` mode.
-            Default is 10.
-        n_y_norm : int
-            Number of y_norm values for footprint in `uniform action grid` mode.
-            Default is 10.
-        linear_rescale_on_knobs: list of xt.LinearRescale
-            Detuning from listed knobs is evaluated at a given value of the knob
-            with the provided step and rescaled to the actual knob value.
-            This is useful to avoid artefact from linear coupling or resonances.
-            Example:
-                ``line.get_footprint(..., linear_rescale_on_knobs=[
-                    xt.LinearRescale(knob_name='beambeam_scale', v0=0, dv-0.1)])``
-
-        Returns
-        -------
-        fp : Footprint
-            Footprint object containing footprint data (fp.qx, fp.qy).
-
+        Merge consecutive multipoles into one multipole
         '''
 
-        kwargs = locals()
-        kwargs.pop('self')
-        kwargs.pop('linear_rescale_on_knobs')
+        if self._var_management is not None:
+            raise NotImplementedError('`merge_consecutive_multipoles` not'
+                                      ' available when deferred expressions are'
+                                      ' used')
 
-        if linear_rescale_on_knobs:
-            fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
-                        linear_rescale_on_knobs=linear_rescale_on_knobs)
+        self._frozen_check()
+
+        if keep is None:
+            keep = []
+        elif isinstance(keep, str):
+            keep = [keep]
+
+        newline = Line(elements=[], element_names=[])
+
+        for ee, nn in zip(self.elements, self.element_names):
+            if len(newline.element_names) == 0:
+                newline.append_element(ee, nn)
+                continue
+
+            if isinstance(ee, Multipole) and nn not in keep:
+                prev_nn = newline.element_names[-1]
+                prev_ee = newline.element_dict[prev_nn]
+                if (isinstance(prev_ee, Multipole)
+                    and prev_ee.hxl==ee.hxl==0 and prev_ee.hyl==ee.hyl==0
+                    and prev_nn not in keep
+                    ):
+
+                    oo=max(len(prev_ee.knl), len(prev_ee.ksl),
+                           len(ee.knl), len(ee.ksl))
+                    knl=np.zeros(oo,dtype=float)
+                    ksl=np.zeros(oo,dtype=float)
+                    for ii,kk in enumerate(prev_ee._xobject.knl):
+                        knl[ii]+=kk
+                    for ii,kk in enumerate(ee._xobject.knl):
+                        knl[ii]+=kk
+                    for ii,kk in enumerate(prev_ee._xobject.ksl):
+                        ksl[ii]+=kk
+                    for ii,kk in enumerate(ee._xobject.ksl):
+                        ksl[ii]+=kk
+                    newee = Multipole(
+                            knl=knl, ksl=ksl, hxl=prev_ee.hxl, hyl=prev_ee.hyl,
+                            length=prev_ee.length,
+                            radiation_flag=prev_ee.radiation_flag)
+                    prev_nn += ('_' + nn)
+                    newline.element_dict[prev_nn] = newee
+                    newline.element_names[-1] = prev_nn
+                else:
+                    newline.append_element(ee, nn)
+            else:
+                newline.append_element(ee, nn)
+
+        if inplace:
+            self.element_names = newline.element_names
+            self.element_dict = newline.element_dict
+            return self
         else:
-            fp = Footprint(**kwargs)
-            fp._compute_footprint(self)
+            return newline
 
-        return fp
+    def _freeze(self):
+        self.element_names = tuple(self.element_names)
 
-    def compute_one_turn_matrix_finite_differences(
-            self, particle_on_co,
-            steps_r_matrix=None):
+    def unfreeze(self):
+        """
+        Unfreeze the line. This is useful if you want to modify the line
+        after it has been frozen (most likely by calling `build_tracker`).
+        """
+        self.discard_tracker()
 
+    def _frozen_check(self):
+        if isinstance(self.element_names, tuple):
+            raise ValueError(
+                'This action is not allowed as the line is frozen!')
+
+    def __len__(self):
+        return len(self.element_names)
+
+    def _var_management_to_dict(self):
+        out = {}
+        out['_var_management_data'] = deepcopy(self._var_management['data'])
+        out['_var_manager'] = self._var_management['manager'].dump()
+        return out
+
+    def _has_valid_tracker(self):
+
+        if self.tracker is None:
+            return False
+        try:
+            self.tracker._check_invalidated()
+            return True
+        except:
+            return False
+
+    def _check_valid_tracker(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
+                "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
+
+    @property
+    def iscollective(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line.iscollective` con only be called after `Line.build_tracker`')
+        return self.tracker.iscollective
+
+    @property
+    def _buffer(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line._buffer` con only be called after `Line.build_tracker`')
+        return self.tracker._buffer
+
+    @property
+    def _context(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line._context` con only be called after `Line.build_tracker`')
+        return self.tracker._context
+
+    def _init_var_management(self, dct=None):
+
+        from collections import defaultdict
+        import xdeps as xd
+
+        _var_values = defaultdict(lambda: 0)
+        _var_values.default_factory = None
+
+        manager = xd.Manager()
+        _vref = manager.ref(_var_values, 'vars')
+        _fref = manager.ref(mathfunctions, 'f')
+        _lref = manager.ref(self.element_dict, 'element_refs')
+
+        self._var_management = {}
+        self._var_management['data'] = {}
+        self._var_management['data']['var_values'] = _var_values
+
+        self._var_management['manager'] = manager
+        self._var_management['lref'] = _lref
+        self._var_management['vref'] = _vref
+        self._var_management['fref'] = _fref
+
+        if dct is not None:
+            manager = self._var_management['manager']
+            for kk in self._var_management['data'].keys():
+                self._var_management['data'][kk].update(
+                                            dct['_var_management_data'][kk])
+            manager.load(dct['_var_manager'])
+
+    @property
+    def record_last_track(self):
         self._check_valid_tracker()
+        return self.tracker.record_last_track
 
-        if self.iscollective:
-            log.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            tracker = self._supertracker
+    @property
+    def vars(self):
+        if self._var_management is not None:
+            return self._var_management['vref']
+
+    @property
+    def element_refs(self):
+        if self._var_management is not None:
+            return self._var_management['lref']
+
+    @property
+    def element_dict(self):
+        return self._element_dict
+
+    @element_dict.setter
+    def element_dict(self, value):
+        if self._element_dict is None:
+            self._element_dict = {}
+        self._element_dict.clear()
+        self._element_dict.update(value)
+
+    @property
+    def elements(self):
+        return tuple([self.element_dict[nn] for nn in self.element_names])
+
+    def __getitem__(self, ii):
+        if isinstance(ii, str):
+            if ii not in self.element_names:
+                raise IndexError(f'No installed element with name {ii}')
+            return self.element_dict.__getitem__(ii)
         else:
-            tracker = self
-        return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
-                                                   steps_r_matrix)
-
-    def track(self, *args, **kwargs):
-        self._check_valid_tracker()
-        return self.tracker.track(*args, **kwargs)
-
-    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
-        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
-        delta_disp=1e-5, delta_chrom=1e-4,
-        particle_co_guess=None, R_matrix=None, W_matrix=None,
-        steps_r_matrix=None, co_search_settings=None, at_elements=None, at_s=None,
-        values_at_element_exit=False,
-        continue_on_closed_orbit_error=False,
-        freeze_longitudinal=False,
-        radiation_method='full',
-        eneloss_and_damping=False,
-        ele_start=None, ele_stop=None, twiss_init=None,
-        particle_on_co=None,
-        matrix_responsiveness_tol=None,
-        matrix_stability_tol=None,
-        symplectify=False,
-        reverse=False,
-        use_full_inverse=None,
-        strengths=False,
-        hide_thin_groups=False,
-        ):
-
-        self._check_valid_tracker()
-
-        kwargs = locals().copy()
-        kwargs.pop('self')
-
-        return twiss_from_tracker(self.tracker, **kwargs)
-
-    twiss.__doc__ = twiss_from_tracker.__doc__
-
-    def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0, element0=0, reverse=False):
-        return survey_from_tracker(self.tracker, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
-                                   phi0=phi0, psi0=psi0, element0=element0,
-                                   reverse=reverse)
-
-    def match(self, vary, targets, **kwargs):
-        '''
-        Change a set of knobs in the beamline in order to match assigned targets.
-        See corresponding section is the Xsuite User's guide.
-        '''
-        return match_tracker(self.tracker, vary, targets, **kwargs)
-
-    def correct_closed_orbit(self, reference, correction_config,
-                        solver=None, verbose=False, restore_if_fail=True):
-
-        closed_orbit_correction(self.tracker, reference, correction_config,
-                                solver=solver, verbose=verbose,
-                                restore_if_fail=restore_if_fail)
-
-    def configure_radiation(self, model=None, model_beamstrahlung=None,
-                            mode='deprecated'):
-
-        """
-        Configure synchrotron radiation and beamstrahlung models.
-        Choose among: None / "mean"/ "quantum".
-        See corresponding section is the Xsuite User's guide.
-        """
-
-        if mode != 'deprecated':
-            raise NameError('mode is deprecated, use model instead')
-
-        self._check_valid_tracker()
-
-        assert model in [None, 'mean', 'quantum']
-        assert model_beamstrahlung in [None, 'mean', 'quantum']
-
-        if model == 'mean':
-            radiation_flag = 1
-            self._radiation_model = 'mean'
-        elif model == 'quantum':
-            radiation_flag = 2
-            self._radiation_model = 'quantum'
-        else:
-            radiation_flag = 0
-            self._radiation_model = None
-
-        if model_beamstrahlung == 'mean':
-            beamstrahlung_flag = 1
-            self._beamstrahlung_model = 'mean'
-        elif model_beamstrahlung == 'quantum':
-            beamstrahlung_flag = 2
-            self._beamstrahlung_model = 'quantum'
-        else:
-            beamstrahlung_flag = 0
-            self._beamstrahlung_model = None
-
-        for kk, ee in self.element_dict.items():
-            if hasattr(ee, 'radiation_flag'):
-                ee.radiation_flag = radiation_flag
-
-        for kk, ee in self.element_dict.items():
-            if hasattr(ee, 'flag_beamstrahlung'):
-                ee.flag_beamstrahlung = beamstrahlung_flag
-
-        if radiation_flag == 2 or beamstrahlung_flag == 2:
-            self._needs_rng = True
-
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
-        self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
-
-    def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
-                                    max_iter=100, **kwargs):
-
-        """
-        Compensate beam energy loss from synchrotron radiation by configuring
-        RF cavities and Multipole elements (tapering).
-        See corresponding section is the Xsuite User's guide.
-        """
-
-        all_kwargs = locals().copy()
-        all_kwargs.pop('self')
-        all_kwargs.pop('kwargs')
-        all_kwargs.update(kwargs)
-        compensate_radiation_energy_loss(self, **all_kwargs)
-
-    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0,
-                          delta0=None, zeta0=None,
-                          continue_on_closed_orbit_error=False,
-                          freeze_longitudinal=False):
-
-        if freeze_longitudinal:
-            kwargs = locals().copy()
-            kwargs.pop('self')
-            kwargs.pop('freeze_longitudinal')
-            with _freeze_longitudinal(self):
-                return self.find_closed_orbit(**kwargs)
-
-        self._check_valid_tracker()
-
-        if particle_ref is None and particle_co_guess is None:
-            particle_ref = self.particle_ref
-
-        if self.iscollective:
-            log.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            tracker = self.tracker._supertracker
-        else:
-            tracker = self.tracker
-
-        return find_closed_orbit_tracker(tracker, particle_co_guess=particle_co_guess,
-                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
-                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
-
-    def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
-        """
-        Optimize the tracker for tracking speed.
-        """
-
-        if self.iscollective:
-            raise NotImplementedError("Optimization is not implemented for "
-                                      "collective trackers")
-
-        self.tracker.track_kernel = {} # Remove all kernels
-
-        if verbose: _print("Disable xdeps expressions")
-        self._var_management = None # Disable expressions
-
-        # Unfreeze the line
-        self.element_names = list(self.element_names)
-
-        if keep_markers is True:
-            if verbose: _print('Markers are kept')
-        elif keep_markers is False:
-            if verbose: _print("Remove markers")
-            self.remove_markers()
-        else:
-            if verbose: _print('Keeping only selected markers')
-            self.remove_markers(keep=keep_markers)
-
-        if verbose: _print("Remove inactive multipoles")
-        self.remove_inactive_multipoles()
-
-        if verbose: _print("Merge consecutive multipoles")
-        self.merge_consecutive_multipoles()
-
-        if verbose: _print("Remove redundant apertures")
-        self.remove_redundant_apertures()
-
-        if verbose: _print("Remove zero length drifts")
-        self.remove_zero_length_drifts()
-
-        if verbose: _print("Merge consecutive drifts")
-        self.merge_consecutive_drifts()
-
-        if verbose: _print("Use simple bends")
-        self.use_simple_bends()
-
-        if verbose: _print("Use simple quadrupoles")
-        self.use_simple_quadrupoles()
-
-        if verbose: _print("Rebuild tracker data")
-        tracker_data = xt.tracker_data.TrackerData(
-            line=self,
-            extra_element_classes=(self.particles_monitor_class._XoStruct,),
-            _buffer=self._buffer)
-
-        self._freeze()
-
-        self._tracker_data = tracker_data
-        self.element_classes = tracker_data.element_classes
-        self.num_elements = len(tracker_data.elements)
-
-        self.use_prebuilt_kernels = False
-
-        if compile:
-            _ = self._current_track_kernel # This triggers compilation
-
-    def freeze_vars(self, variable_names):
-        """Freeze assigned coordinates in tracked Particles objects."""
-        for name in variable_names:
-            self.config[f'FREEZE_VAR_{name}'] = True
-
-    def unfreeze_vars(self, variable_names):
-        """Unfreeze variables previously frozen with `freeze_vars`."""
-        for name in variable_names:
-            self.config[f'FREEZE_VAR_{name}'] = False
-
-    def freeze_longitudinal(self, state=True):
-        """
-        Freeze longitudinal coordinates in tracked Particles objects.
-        See corresponding section is the Xsuite User's guide.
-        """
-        assert state in (True, False)
-        assert self.iscollective is False, ('Cannot freeze longitudinal '
-                        'variables in collective mode (not yet implemented)')
-        if state:
-            self.freeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
-        else:
-            self.unfreeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
+            names = self.element_names.__getitem__(ii)
+            if isinstance(names, str):
+                return self.element_dict.__getitem__(names)
+            else:
+                return [self.element_dict[nn] for nn in names]
 
 
 mathfunctions = type('math', (), {})
