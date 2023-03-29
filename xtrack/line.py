@@ -23,7 +23,7 @@ import xtrack as xt
 
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
-                          find_closed_orbit_tracker, twiss_from_tracker)
+                          find_closed_orbit_line, twiss_line)
 from .match import match_tracker, closed_orbit_correction
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
@@ -448,8 +448,8 @@ class Line:
         kwargs = locals().copy()
         kwargs.pop('self')
 
-        return twiss_from_tracker(self.tracker, **kwargs)
-    twiss.__doc__ = twiss_from_tracker.__doc__
+        return twiss_line(self, **kwargs)
+    twiss.__doc__ = twiss_line.__doc__
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
                element0=0, reverse=False):
@@ -498,7 +498,7 @@ class Line:
         else:
             tracker = self.tracker
 
-        return find_closed_orbit_tracker(tracker, particle_co_guess=particle_co_guess,
+        return find_closed_orbit_line(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error)
