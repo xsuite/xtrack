@@ -21,14 +21,10 @@ from .general import _pkg_root
 from .internal_record import (new_io_buffer,
                               start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type)
-from .line import Line, _is_thick
+from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
-from .survey import survey_from_tracker
 from .tracker_data import TrackerData
-from .twiss import (compute_one_turn_matrix_finite_differences,
-                    find_closed_orbit, twiss_from_tracker)
-from .match import match_tracker, closed_orbit_correction
-from .tapering import compensate_radiation_energy_loss
+from .twiss import (find_closed_orbit, twiss_from_tracker)
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
 logger = logging.getLogger(__name__)
@@ -133,22 +129,6 @@ class Tracker:
 
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
-
-    @property
-    def matrix_responsiveness_tol(self):
-        return self.line.matrix_responsiveness_tol
-
-    @matrix_responsiveness_tol.setter
-    def matrix_responsiveness_tol(self, value):
-        self.line.matrix_responsiveness_tol = value
-
-    @property
-    def matrix_stability_tol(self):
-        return self.line.matrix_stability_tol
-
-    @matrix_stability_tol.setter
-    def matrix_stability_tol(self, value):
-        self.line.matrix_stability_tol = value
 
     def _init_track_with_collective(
         self,
@@ -302,7 +282,7 @@ class Tracker:
         self.particles_monitor_class = supertracker.particles_monitor_class
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
-        self._radiation_model = None
+        # self._radiation_model = None
         self._beamstrahlung_model = None
 
     def _init_track_no_collective(
@@ -391,7 +371,7 @@ class Tracker:
         self.track_kernel = track_kernel or {}
 
         self.track = self._track_no_collective
-        self._radiation_model = None
+        # self._radiation_model = None
         self._beamstrahlung_model = None
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
@@ -478,104 +458,6 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
-                          co_search_settings={}, delta_zeta=0,
-                          delta0=None, zeta0=None,
-                          continue_on_closed_orbit_error=False,
-                          freeze_longitudinal=False):
-
-        if freeze_longitudinal:
-            kwargs = locals().copy()
-            kwargs.pop('self')
-            kwargs.pop('freeze_longitudinal')
-            with _freeze_longitudinal(self):
-                return self.find_closed_orbit(**kwargs)
-
-        self._check_invalidated()
-
-        if particle_ref is None and particle_co_guess is None:
-            particle_ref = self.particle_ref
-
-        if self.iscollective:
-            logger.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            tracker = self._supertracker
-        else:
-            tracker = self
-
-        return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
-                                 particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
-                                 co_search_settings=co_search_settings, delta_zeta=delta_zeta,
-                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
-
-    def compute_one_turn_matrix_finite_differences(
-            self, particle_on_co,
-            steps_r_matrix=None):
-
-        self._check_invalidated()
-
-        if self.iscollective:
-            logger.warning(
-                'The tracker has collective elements.\n'
-                'In the twiss computation collective elements are'
-                ' replaced by drifts')
-            tracker = self._supertracker
-        else:
-            tracker = self
-        return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
-                                                   steps_r_matrix)
-
-    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
-        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
-        delta_disp=1e-5, delta_chrom=1e-4,
-        particle_co_guess=None, R_matrix=None, W_matrix=None,
-        steps_r_matrix=None, co_search_settings=None, at_elements=None, at_s=None,
-        values_at_element_exit=False,
-        continue_on_closed_orbit_error=False,
-        freeze_longitudinal=False,
-        radiation_method='full',
-        eneloss_and_damping=False,
-        ele_start=None, ele_stop=None, twiss_init=None,
-        particle_on_co=None,
-        matrix_responsiveness_tol=None,
-        matrix_stability_tol=None,
-        symplectify=False,
-        reverse=False,
-        use_full_inverse=None,
-        strengths=False,
-        hide_thin_groups=False,
-        _continue_if_lost=False,
-        _keep_tracking_data=False
-        ):
-
-        self._check_invalidated()
-
-        kwargs = locals().copy()
-        kwargs.pop('self')
-
-        return twiss_from_tracker(self, **kwargs)
-
-    def survey(self,X0=0,Y0=0,Z0=0,theta0=0,phi0=0,psi0=0, element0=0, reverse=False):
-        return survey_from_tracker(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
-                                   phi0=phi0, psi0=psi0, element0=element0,
-                                   reverse=reverse)
-
-    def match(self, vary, targets, **kwargs):
-        '''
-        Change a set of knobs in the beamline in order to match assigned targets.
-        See corresponding section is the Xsuite User's guide.
-        '''
-        return match_tracker(self, vary, targets, **kwargs)
-
-    def correct_closed_orbit(self, reference, correction_config,
-                        solver=None, verbose=False, restore_if_fail=True):
-
-        closed_orbit_correction(self, reference, correction_config,
-                                solver=solver, verbose=verbose,
-                                restore_if_fail=restore_if_fail)
-
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
 
         """
@@ -593,72 +475,6 @@ class Tracker:
                                     else self._supertracker.track_kernel),
                  element_classes=(self.element_classes if not self.iscollective
                                     else self._supertracker.element_classes))
-
-    def configure_radiation(self, model=None, model_beamstrahlung=None,
-                            mode='deprecated'):
-
-        """
-        Configure synchrotron radiation and beamstrahlung models.
-        Choose among: None / "mean"/ "quantum".
-        See corresponding section is the Xsuite User's guide.
-        """
-
-        if mode != 'deprecated':
-            raise NameError('mode is deprecated, use model instead')
-
-        self._check_invalidated()
-
-        assert model in [None, 'mean', 'quantum']
-        assert model_beamstrahlung in [None, 'mean', 'quantum']
-
-        if model == 'mean':
-            radiation_flag = 1
-            self._radiation_model = 'mean'
-        elif model == 'quantum':
-            radiation_flag = 2
-            self._radiation_model = 'quantum'
-        else:
-            radiation_flag = 0
-            self._radiation_model = None
-
-        if model_beamstrahlung == 'mean':
-            beamstrahlung_flag = 1
-            self._beamstrahlung_model = 'mean'
-        elif model_beamstrahlung == 'quantum':
-            beamstrahlung_flag = 2
-            self._beamstrahlung_model = 'quantum'
-        else:
-            beamstrahlung_flag = 0
-            self._beamstrahlung_model = None
-
-        for kk, ee in self.line.element_dict.items():
-            if hasattr(ee, 'radiation_flag'):
-                ee.radiation_flag = radiation_flag
-
-        for kk, ee in self.line.element_dict.items():
-            if hasattr(ee, 'flag_beamstrahlung'):
-                ee.flag_beamstrahlung = beamstrahlung_flag
-
-        if radiation_flag == 2 or beamstrahlung_flag == 2:
-            self.line._needs_rng = True
-
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
-        self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
-
-    def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
-                                    max_iter=100, **kwargs):
-
-        """
-        Compensate beam energy loss from synchrotron radiation by configuring
-        RF cavities and Multipole elements (tapering).
-        See corresponding section is the Xsuite User's guide.
-        """
-
-        all_kwargs = locals().copy()
-        all_kwargs.pop('self')
-        all_kwargs.pop('kwargs')
-        all_kwargs.update(kwargs)
-        compensate_radiation_energy_loss(self, **all_kwargs)
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
@@ -747,9 +563,11 @@ class Tracker:
                 )
 
     def track(self, *args, **kwargs):
+        """
+        This is a placeholder, it is replaced either by the collective
+        tracker or the single particle tracker.
+        """
         pass
-        # This is a placeholder, it is replaced either by the collective
-        # tracker or the single particle tracker
 
     @property
     def particle_ref(self) -> xp.Particles:
@@ -1712,7 +1530,16 @@ class Tracker:
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
 
-Tracker.twiss.__doc__ = twiss_from_tracker.__doc__
+    def __getattr__(self, attr):
+        # If not in self look in self.line (if not None)
+        if self.line is not None and attr in object.__dir__(self.line):
+            return getattr(self.line, attr)
+        else:
+            raise AttributeError(f'Tracker object has no attribute `{attr}`')
+
+    def __dir__(self):
+        return list(set(object.__dir__(self) + dir(self.line)))
+
 
 @contextmanager
 def _preserve_config(tracker):
@@ -1723,16 +1550,6 @@ def _preserve_config(tracker):
     finally:
         tracker.config = config
 
-@contextmanager
-def freeze_longitudinal(tracker):
-    """Context manager to freeze longitudinal motion in a tracker."""
-    config = TrackerConfig()
-    config.update(tracker.config)
-    tracker.freeze_longitudinal(True)
-    try:
-        yield None
-    finally:
-        tracker.config = config
 
 @contextmanager
 def _temp_knobs(tracker, knobs: dict):
@@ -1745,8 +1562,6 @@ def _temp_knobs(tracker, knobs: dict):
         for kk, vv in old_values.items():
             tracker.vars[kk] = vv
 
-
-_freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
 
 
 class TrackerConfig(dict):

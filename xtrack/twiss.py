@@ -17,10 +17,8 @@ from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
 from .table import Table
-from .line import _behaves_like_drift
 
-
-import xtrack as xt # To avoid circular imports
+import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-7, 'dpx':1e-10,
