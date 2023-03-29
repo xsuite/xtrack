@@ -190,7 +190,6 @@ class Tracker:
                 ii_in_part += 1
             else:
                 if len(this_part.elements) > 0:
-                    this_part.iscollective = False
                     parts.append(this_part)
                     part_names.append(f'part_{i_part}_non_collective')
                     i_part += 1
@@ -202,14 +201,13 @@ class Tracker:
                 this_part = Line(elements=[], element_names=[])
                 ii_in_part = 0
         if len(this_part.elements) > 0:
-            this_part.iscollective = False
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
 
         # Transform non collective elements into xtrack elements
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
-            if not _check_is_collective(pp):
+            if isinstance(pp, Line):
                 tempxtline = TrackerData(
                     _buffer=_buffer,
                     element_classes=element_classes,
@@ -248,7 +246,7 @@ class Tracker:
 
         # Build trackers for non-collective parts
         for ii, pp in enumerate(parts):
-            if not _check_is_collective(pp):
+            if isinstance(pp, Line):
                 parts[ii] = Tracker(_buffer=_buffer,
                                     line=pp,
                                     element_classes=supertracker.element_classes,
@@ -365,9 +363,9 @@ class Tracker:
         self.skip_end_turn_actions = skip_end_turn_actions
         self.reset_s_at_end_turn = reset_s_at_end_turn
         self.local_particle_src = local_particle_src
-        self.element_classes = element_classes
+        self._element_classes = element_classes
 
-        self.track_kernel = track_kernel or {}
+        self._track_kernel = track_kernel or {}
 
         self.track = self._track_no_collective
         # self._radiation_model = None
@@ -377,7 +375,19 @@ class Tracker:
         if compile:
             _ = self._current_track_kernel  # This triggers compilation
 
+    @property
+    def track_kernel(self):
+        if self.iscollective:
+            return self._supertracker._track_kernel
+        else:
+            return self._track_kernel
 
+    @property
+    def element_classes(self):
+        if self.iscollective:
+            return self._supertracker.element_classes
+        else:
+            return self._element_classes
 
     def _invalidate(self):
         if self.iscollective:
@@ -393,24 +403,6 @@ class Tracker:
             raise RuntimeError(
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
-
-    def filter_elements(self, mask=None, exclude_types_starting_with=None):
-
-        """
-        Replace with Drifts all elements satisfying a given condition.
-        """
-
-        self._check_invalidated()
-
-        return self.__class__(
-                 _buffer=self._buffer,
-                 line=self.line.filter_elements(mask=mask,
-                     exclude_types_starting_with=exclude_types_starting_with,
-                     _make_tracker=False),
-                 track_kernel=(self.track_kernel if not self.iscollective
-                                    else self._supertracker.track_kernel),
-                 element_classes=(self.element_classes if not self.iscollective
-                                    else self._supertracker.element_classes))
 
     def cycle(self, index_first_element=None, name_first_element=None,
               _buffer=None, _context=None):
@@ -445,15 +437,6 @@ class Tracker:
                 extra_headers=self.extra_headers,
                 local_particle_src=self.local_particle_src,
             )
-
-    def build_particles(self, *args, **kwargs):
-
-        """
-        Generate a particle distribution. Equivalent to xp.Particles(tracker=tracker, ...)
-        See corresponding section is the Xsuite User's guide.
-        """
-        res = xp.build_particles(*args, tracker=self, **kwargs)
-        return res
 
     def get_backtracker(self, _context=None, _buffer=None,
                         global_xy_limit='from_tracker'):
@@ -562,7 +545,7 @@ class Tracker:
                 self._context.kernels.update(kernels)
                 classes = (self.particles_class._XoStruct,)
                 self._current_track_kernel = self._context.kernels[('track_line', classes)]
-                self.element_classes = [cls._XoStruct for cls in modules_classes]
+                self._element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
                     line=self.line,
                     element_classes=self.element_classes,

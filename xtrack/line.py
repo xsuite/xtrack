@@ -267,6 +267,20 @@ class Line:
                 '`Line.iscollective` con only be called after `Line.build_tracker`')
         return self.tracker.iscollective
 
+    @property
+    def _buffer(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line._buffer` con only be called after `Line.build_tracker`')
+        return self.tracker._buffer
+
+    @property
+    def _context(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line._context` con only be called after `Line.build_tracker`')
+        return self.tracker._context
+
     def _init_var_management(self, dct=None):
 
         from collections import defaultdict
@@ -295,6 +309,11 @@ class Line:
                 self._var_management['data'][kk].update(
                                             dct['_var_management_data'][kk])
             manager.load(dct['_var_manager'])
+
+    @property
+    def record_last_track(self):
+        self._check_valid_tracker()
+        return self.tracker.record_last_track
 
     @property
     def config(self):
@@ -388,6 +407,15 @@ class Line:
             else:
                 return [self.element_dict[nn] for nn in names]
 
+    def build_particles(self, *args, **kwargs):
+
+        """
+        Generate a particle distribution. Equivalent to xp.Particles(tracker=tracker, ...)
+        See corresponding section is the Xsuite User's guide.
+        """
+        res = xp.build_particles(*args, line=self, **kwargs)
+        return res
+
     def filter_elements(self, mask=None, exclude_types_starting_with=None,
                         _make_tracker=True):
         """
@@ -403,13 +431,6 @@ class Line:
             If not None, all elements whose type starts with the given string
             are replaced with Drifts.
         """
-
-        if _make_tracker and self.tracker is not None:
-            new_tracker = self.tracker.filter_elements(mask=mask,
-                        exclude_types_starting_with=exclude_types_starting_with)
-            new_line = new_tracker.line
-            new_line.tracker = new_tracker
-            return new_line
 
         if mask is None:
             assert exclude_types_starting_with is not None
@@ -434,6 +455,11 @@ class Line:
                               element_names=self.element_names)
         if self.particle_ref is not None:
             new_line.particle_ref = self.particle_ref.copy()
+
+        if self._has_valid_tracker():
+            new_line.build_tracker(_buffer=self._buffer,
+                                   track_kernel=self.tracker.track_kernel,
+                                   element_classes=self.tracker.element_classes)
 
         return new_line
 
@@ -1318,7 +1344,7 @@ class Line:
             self, particle_on_co,
             steps_r_matrix=None):
 
-        self._check_has_valid_tracker()
+        self._check_valid_tracker()
 
         if self.iscollective:
             log.warning(
@@ -1330,6 +1356,10 @@ class Line:
             tracker = self
         return compute_one_turn_matrix_finite_differences(tracker, particle_on_co,
                                                    steps_r_matrix)
+
+    def track(self, *args, **kwargs):
+        self._check_valid_tracker()
+        return self.tracker.track(*args, **kwargs)
 
     def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,

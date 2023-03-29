@@ -51,7 +51,7 @@ def test_collective_tracker(test_context):
     line.build_tracker(_buffer=_buffer, reset_s_at_end_turn=False)
 
     assert line.iscollective
-    assert line.track == line._track_with_collective
+    assert line.tracker.track == line.tracker._track_with_collective
 
     ######################
     # Get some particles #
