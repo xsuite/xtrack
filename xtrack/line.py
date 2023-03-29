@@ -468,7 +468,8 @@ class Line:
 
         return new_line
 
-    def cycle(self, index_first_element=None, name_first_element=None):
+    def cycle(self, index_first_element=None, name_first_element=None,
+              inplace=False):
 
         """
         Cycle the line to start from a given element.
@@ -479,6 +480,8 @@ class Line:
             Index of the element to start from
         name_first_element: str
             Name of the element to start from
+        inplace: bool
+            If True, the line is modified in place. Otherwise, a new line is returned.
         """
 
         if ((index_first_element is not None and name_first_element is not None)
@@ -499,16 +502,31 @@ class Line:
         new_element_names = (list(self.element_names[index_first_element:])
                              + list(self.element_names[:index_first_element]))
 
-        new_line = self.__class__(
-            elements=self.element_dict,
-            element_names=new_element_names,
-            particle_ref=self.particle_ref,
-        )
+        has_valid_tracker = self._has_valid_tracker()
+        if has_valid_tracker:
+            buffer = self._buffer
+            track_kernel = self.tracker.track_kernel
+            element_classes = self.tracker.element_classes
+        else:
+            buffer = None
+            track_kernel = None
+            element_classes = None
 
-        if self._has_valid_tracker():
-            new_line.build_tracker(_buffer=self._buffer,
-                                   track_kernel=self.tracker.track_kernel,
-                                   element_classes=self.tracker.element_classes)
+        if inplace:
+            self.unfreeze()
+            self.element_names = new_element_names
+            new_line = self
+        else:
+            new_line = self.__class__(
+                elements=self.element_dict,
+                element_names=new_element_names,
+                particle_ref=self.particle_ref,
+            )
+
+        if has_valid_tracker:
+            new_line.build_tracker(_buffer=buffer,
+                                   track_kernel=track_kernel,
+                                   element_classes=element_classes)
             #TODO: handle config and other metadata
 
         return new_line
@@ -543,8 +561,8 @@ class Line:
     #         raise AttributeError(
     #             f'Line object has no attribute `{attr}`')
 
-    def __dir__(self):
-        return list(set(object.__dir__(self) + dir(self.tracker)))
+    # def __dir__(self):
+    #     return list(set(object.__dir__(self) + dir(self.tracker)))
 
     def __len__(self):
         return len(self.element_names)

@@ -124,7 +124,6 @@ class Tracker:
                 use_prebuilt_kernels=use_prebuilt_kernels,
                 enable_pipeline_hold=enable_pipeline_hold)
 
-
     def _init_track_with_collective(
         self,
         _context=None,
@@ -415,7 +414,6 @@ class Tracker:
             raise RuntimeError(
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
-
 
     def get_backtracker(self, _context=None, _buffer=None,
                         global_xy_limit='from_tracker'):
