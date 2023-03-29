@@ -21,7 +21,7 @@ import xtrack as xt
 
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
-                          find_closed_orbit, twiss_from_tracker)
+                          find_closed_orbit_tracker, twiss_from_tracker)
 from .match import match_tracker, closed_orbit_correction
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
@@ -33,171 +33,6 @@ from .footprint import Footprint, _footprint_with_linear_rescale
 from .general import _print
 
 log = logging.getLogger(__name__)
-
-def mk_class_namespace(extra_classes):
-    try:
-        import xfields as xf
-        all_classes = element_classes + xf.element_classes + extra_classes + (Line,)
-    except ImportError:
-        all_classes = element_classes + extra_classes
-        log.warning("Xfields not installed correctly")
-
-    out = AttrDict()
-    for cl in all_classes:
-        out[cl.__name__] = cl
-    return out
-
-
-def _is_drift(element): # can be removed if length is zero
-    return isinstance(element, (beam_elements.Drift,) )
-
-def _behaves_like_drift(element):
-    return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
-
-def _is_aperture(element):
-    return element.__class__.__name__.startswith('Limit')
-
-def _is_thick(element):
-    return  hasattr(element, "isthick") and element.isthick
-
-def _allow_backtrack(element):
-    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
-
-def _next_name(prefix, names, name_format='{}{}'):
-    """Return an available element name by appending a number"""
-    if prefix not in names: return prefix
-    i = 1
-    while name_format.format(prefix, i) in names:
-        i += 1
-    return name_format.format(prefix, i)
-
-def _dicts_equal(dict1, dict2):
-    if not isinstance(dict1, dict) or not isinstance(dict2, dict):
-        raise ValueError
-    if set(dict1.keys()) != set(dict2.keys()):
-        return False
-    for key in dict1.keys():
-        if hasattr(dict1[key], '__iter__'):
-            if not hasattr(dict2[key], '__iter__'):
-                return False
-            elif isinstance(dict1[key], dict):
-                if not isinstance(dict2[key], dict):
-                    return False
-                else:
-                    if not _dicts_equal(dict1[key], dict2[key]):
-                        return False
-            elif not np.array_equal(dict1[key], dict2[key]):
-                return False
-        elif dict1[key] != dict2[key]:
-            return False
-    return True
-
-def _apertures_equal(ap1, ap2):
-    if not _is_aperture(ap1) or not _is_aperture(ap2):
-        raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
-    if ap1.__class__ != ap2.__class__:
-        return False
-    ap1 = ap1.to_dict()
-    ap2 = ap2.to_dict()
-    return _dicts_equal(ap1, ap2)
-
-def _lines_equal(line1, line2):
-    return _dicts_equal(line1.to_dict(), line2.to_dict())
-
-
-DEG2RAD = np.pi / 180.
-
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-
-class Node:
-    def __init__(self, s, what, *, from_=0, name=None):
-        """Holds the location of an element or sequence for use with Line.from_sequence
-
-        Args:
-            s (float): Location (in m) of what relative to from_.
-            what (str, BeamElement or list): Object to place here. Can be an instance of a BeamElement,
-                another sequence given as list of At, or the name of a named element.
-            from_ (float or str, optional): Reference location for placement, can be the s coordinate (in m)
-                or the name of an element or sequence whose location is used.
-            name (str, optional): Name of the element to place here. If None, a name is chosen automatically.
-
-        """
-        self.s = s
-        self.from_ = from_
-        self.what = what
-        self.name = name
-
-    def __repr__(self):
-        return f"Node({self.s}, {self.what}, from_={self.from_}, name={self.name})"
-
-At = Node
-
-
-
-def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, naming_scheme='{}{}'):
-    """Flatten the sequence definition
-
-    Named elements and nested sequences are replaced recursively.
-    Node locations are made absolute.
-
-    See Line.from_sequence for details
-    """
-    flat_nodes = []
-    for node in nodes:
-        # determine absolute position
-        s = node.s
-        if isinstance(node.from_, str):
-            # relative to another element
-            for n in flat_nodes:
-                if node.from_ == n.name:
-                    s += n.s
-                    break
-            else:
-                raise ValueError(f'Unknown element name {node.from_} passed as from_')
-        else:
-            s += node.from_
-
-        # find a unique name
-        name = node.name or (node.what if isinstance(node.what, str) else 'element')
-        name = _next_name(name, [n.name for n in flat_nodes], naming_scheme)
-
-        # determine what to place here
-        element = None
-        sequence = None
-        if isinstance(node.what, str):
-            if node.what in elements:
-                element = elements[node.what]
-                if copy_elements:
-                    element = element.copy()
-            elif node.what in sequences:
-                sequence = sequences[node.what]
-            else:
-                raise ValueError(f'Unknown element or sequence name {node.what}')
-        elif isinstance(node.what, BeamElement):
-            element = node.what
-        elif hasattr(node.what, '__iter__'):
-            sequence = node.what
-        else:
-            raise ValueError(f'Unknown element type {node.what}')
-
-        # place elements
-        if element is not None:
-            flat_nodes.append(Node(s, element, name=name))
-
-        # place nested sequences by recursion
-        if sequence is not None:
-            flat_nodes.append(Node(s, Marker(), name=name))
-            for sub in flatten_sequence(sequence, elements=elements, sequences=sequences, copy_elements=copy_elements, naming_scheme=naming_scheme):
-                sub_name = naming_scheme.format(name, sub.name)
-                flat_nodes.append(Node(s + sub.s, sub.what, name=sub_name))
-
-    return flat_nodes
-
-
 
 
 class Line:
@@ -408,6 +243,29 @@ class Line:
             )
         line=loader.make_line()
         return line
+
+    def _has_valid_tracker(self):
+
+        if self.tracker is None:
+            return False
+        try:
+            self.tracker._check_invalidated()
+            return True
+        except:
+            return False
+
+    def _check_valid_tracker(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
+                "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
+
+    @property
+    def iscollective(self):
+        if not self._has_valid_tracker():
+            raise RuntimeError(
+                '`Line.iscollective` con only be called after `Line.build_tracker`')
+        return self.tracker.iscollective
 
     def _init_var_management(self, dct=None):
 
@@ -644,17 +502,17 @@ class Line:
             raise ValueError(
                 'This action is not allowed as the line is frozen!')
 
-    def __getattr__(self, attr):
-        # If not in self look in self.tracker (if not None)
-        if self.tracker is not None and attr in object.__dir__(self.tracker):
-            return getattr(self.tracker, attr)
-        elif attr in dir(xt.Tracker):
-            # If in Tracker class, ask the used to build the tracker
-            raise AttributeError(
-                'The tracker is not built. Please call Line.build_tracker()')
-        else:
-            raise AttributeError(
-                f'Line object has no attribute `{attr}`')
+    # def __getattr__(self, attr):
+    #     # If not in self look in self.tracker (if not None)
+    #     if self.tracker is not None and attr in object.__dir__(self.tracker):
+    #         return getattr(self.tracker, attr)
+    #     elif attr in dir(xt.Tracker):
+    #         # If in Tracker class, ask the used to build the tracker
+    #         raise AttributeError(
+    #             'The tracker is not built. Please call Line.build_tracker()')
+    #     else:
+    #         raise AttributeError(
+    #             f'Line object has no attribute `{attr}`')
 
     def __dir__(self):
         return list(set(object.__dir__(self) + dir(self.tracker)))
@@ -1144,7 +1002,7 @@ class Line:
                 aper_m2 = aper_m1
                 aper_m1 = aper_0
                 aper_0  = nn
-            elif (not isinstance(ee, (Drift, Marker)) 
+            elif (not isinstance(ee, (Drift, Marker))
             or nn in drifts_that_need_aperture):
             # We are in an active element: all previous apertures
             # should be kept in the line
@@ -1460,7 +1318,7 @@ class Line:
             self, particle_on_co,
             steps_r_matrix=None):
 
-        self._check_invalidated()
+        self._check_has_valid_tracker()
 
         if self.iscollective:
             log.warning(
@@ -1494,7 +1352,7 @@ class Line:
         hide_thin_groups=False,
         ):
 
-        self._check_invalidated()
+        self._check_valid_tracker()
 
         kwargs = locals().copy()
         kwargs.pop('self')
@@ -1534,7 +1392,7 @@ class Line:
         if mode != 'deprecated':
             raise NameError('mode is deprecated, use model instead')
 
-        self._check_invalidated()
+        self._check_valid_tracker()
 
         assert model in [None, 'mean', 'quantum']
         assert model_beamstrahlung in [None, 'mean', 'quantum']
@@ -1559,16 +1417,16 @@ class Line:
             beamstrahlung_flag = 0
             self._beamstrahlung_model = None
 
-        for kk, ee in self.line.element_dict.items():
+        for kk, ee in self.element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
 
-        for kk, ee in self.line.element_dict.items():
+        for kk, ee in self.element_dict.items():
             if hasattr(ee, 'flag_beamstrahlung'):
                 ee.flag_beamstrahlung = beamstrahlung_flag
 
         if radiation_flag == 2 or beamstrahlung_flag == 2:
-            self.line._needs_rng = True
+            self._needs_rng = True
 
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
@@ -1601,7 +1459,7 @@ class Line:
             with _freeze_longitudinal(self):
                 return self.find_closed_orbit(**kwargs)
 
-        self._check_invalidated()
+        self._check_valid_tracker()
 
         if particle_ref is None and particle_co_guess is None:
             particle_ref = self.particle_ref
@@ -1611,14 +1469,78 @@ class Line:
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
                 ' replaced by drifts')
-            tracker = self._supertracker
+            tracker = self.tracker._supertracker
         else:
-            tracker = self
+            tracker = self.tracker
 
-        return find_closed_orbit(tracker, particle_co_guess=particle_co_guess,
+        return find_closed_orbit_tracker(tracker, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error)
+
+    def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
+        """
+        Optimize the tracker for tracking speed.
+        """
+
+        if self.iscollective:
+            raise NotImplementedError("Optimization is not implemented for "
+                                      "collective trackers")
+
+        self.tracker.track_kernel = {} # Remove all kernels
+
+        if verbose: _print("Disable xdeps expressions")
+        self._var_management = None # Disable expressions
+
+        # Unfreeze the line
+        self.element_names = list(self.element_names)
+
+        if keep_markers is True:
+            if verbose: _print('Markers are kept')
+        elif keep_markers is False:
+            if verbose: _print("Remove markers")
+            self.remove_markers()
+        else:
+            if verbose: _print('Keeping only selected markers')
+            self.remove_markers(keep=keep_markers)
+
+        if verbose: _print("Remove inactive multipoles")
+        self.remove_inactive_multipoles()
+
+        if verbose: _print("Merge consecutive multipoles")
+        self.merge_consecutive_multipoles()
+
+        if verbose: _print("Remove redundant apertures")
+        self.remove_redundant_apertures()
+
+        if verbose: _print("Remove zero length drifts")
+        self.remove_zero_length_drifts()
+
+        if verbose: _print("Merge consecutive drifts")
+        self.merge_consecutive_drifts()
+
+        if verbose: _print("Use simple bends")
+        self.use_simple_bends()
+
+        if verbose: _print("Use simple quadrupoles")
+        self.use_simple_quadrupoles()
+
+        if verbose: _print("Rebuild tracker data")
+        tracker_data = xt.tracker_data.TrackerData(
+            line=self,
+            extra_element_classes=(self.particles_monitor_class._XoStruct,),
+            _buffer=self._buffer)
+
+        self._freeze()
+
+        self._tracker_data = tracker_data
+        self.element_classes = tracker_data.element_classes
+        self.num_elements = len(tracker_data.elements)
+
+        self.use_prebuilt_kernels = False
+
+        if compile:
+            _ = self._current_track_kernel # This triggers compilation
 
 
 mathfunctions = type('math', (), {})
@@ -1686,3 +1608,166 @@ def freeze_longitudinal(tracker):
         tracker.config = config
 
 _freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
+
+def mk_class_namespace(extra_classes):
+    try:
+        import xfields as xf
+        all_classes = element_classes + xf.element_classes + extra_classes + (Line,)
+    except ImportError:
+        all_classes = element_classes + extra_classes
+        log.warning("Xfields not installed correctly")
+
+    out = AttrDict()
+    for cl in all_classes:
+        out[cl.__name__] = cl
+    return out
+
+
+def _is_drift(element): # can be removed if length is zero
+    return isinstance(element, (beam_elements.Drift,) )
+
+def _behaves_like_drift(element):
+    return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
+
+def _is_aperture(element):
+    return element.__class__.__name__.startswith('Limit')
+
+def _is_thick(element):
+    return  hasattr(element, "isthick") and element.isthick
+
+def _allow_backtrack(element):
+    return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+
+def _next_name(prefix, names, name_format='{}{}'):
+    """Return an available element name by appending a number"""
+    if prefix not in names: return prefix
+    i = 1
+    while name_format.format(prefix, i) in names:
+        i += 1
+    return name_format.format(prefix, i)
+
+def _dicts_equal(dict1, dict2):
+    if not isinstance(dict1, dict) or not isinstance(dict2, dict):
+        raise ValueError
+    if set(dict1.keys()) != set(dict2.keys()):
+        return False
+    for key in dict1.keys():
+        if hasattr(dict1[key], '__iter__'):
+            if not hasattr(dict2[key], '__iter__'):
+                return False
+            elif isinstance(dict1[key], dict):
+                if not isinstance(dict2[key], dict):
+                    return False
+                else:
+                    if not _dicts_equal(dict1[key], dict2[key]):
+                        return False
+            elif not np.array_equal(dict1[key], dict2[key]):
+                return False
+        elif dict1[key] != dict2[key]:
+            return False
+    return True
+
+def _apertures_equal(ap1, ap2):
+    if not _is_aperture(ap1) or not _is_aperture(ap2):
+        raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
+    if ap1.__class__ != ap2.__class__:
+        return False
+    ap1 = ap1.to_dict()
+    ap2 = ap2.to_dict()
+    return _dicts_equal(ap1, ap2)
+
+def _lines_equal(line1, line2):
+    return _dicts_equal(line1.to_dict(), line2.to_dict())
+
+
+DEG2RAD = np.pi / 180.
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
+class Node:
+    def __init__(self, s, what, *, from_=0, name=None):
+        """Holds the location of an element or sequence for use with Line.from_sequence
+
+        Args:
+            s (float): Location (in m) of what relative to from_.
+            what (str, BeamElement or list): Object to place here. Can be an instance of a BeamElement,
+                another sequence given as list of At, or the name of a named element.
+            from_ (float or str, optional): Reference location for placement, can be the s coordinate (in m)
+                or the name of an element or sequence whose location is used.
+            name (str, optional): Name of the element to place here. If None, a name is chosen automatically.
+
+        """
+        self.s = s
+        self.from_ = from_
+        self.what = what
+        self.name = name
+
+    def __repr__(self):
+        return f"Node({self.s}, {self.what}, from_={self.from_}, name={self.name})"
+
+At = Node
+
+
+
+def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, naming_scheme='{}{}'):
+    """Flatten the sequence definition
+
+    Named elements and nested sequences are replaced recursively.
+    Node locations are made absolute.
+
+    See Line.from_sequence for details
+    """
+    flat_nodes = []
+    for node in nodes:
+        # determine absolute position
+        s = node.s
+        if isinstance(node.from_, str):
+            # relative to another element
+            for n in flat_nodes:
+                if node.from_ == n.name:
+                    s += n.s
+                    break
+            else:
+                raise ValueError(f'Unknown element name {node.from_} passed as from_')
+        else:
+            s += node.from_
+
+        # find a unique name
+        name = node.name or (node.what if isinstance(node.what, str) else 'element')
+        name = _next_name(name, [n.name for n in flat_nodes], naming_scheme)
+
+        # determine what to place here
+        element = None
+        sequence = None
+        if isinstance(node.what, str):
+            if node.what in elements:
+                element = elements[node.what]
+                if copy_elements:
+                    element = element.copy()
+            elif node.what in sequences:
+                sequence = sequences[node.what]
+            else:
+                raise ValueError(f'Unknown element or sequence name {node.what}')
+        elif isinstance(node.what, BeamElement):
+            element = node.what
+        elif hasattr(node.what, '__iter__'):
+            sequence = node.what
+        else:
+            raise ValueError(f'Unknown element type {node.what}')
+
+        # place elements
+        if element is not None:
+            flat_nodes.append(Node(s, element, name=name))
+
+        # place nested sequences by recursion
+        if sequence is not None:
+            flat_nodes.append(Node(s, Marker(), name=name))
+            for sub in flatten_sequence(sequence, elements=elements, sequences=sequences, copy_elements=copy_elements, naming_scheme=naming_scheme):
+                sub_name = naming_scheme.format(name, sub.name)
+                flat_nodes.append(Node(s + sub.s, sub.what, name=sub_name))
+
+    return flat_nodes

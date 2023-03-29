@@ -808,7 +808,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0
 class ClosedOrbitSearchError(Exception):
     pass
 
-def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
+def find_closed_orbit_tracker(tracker, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
                       continue_on_closed_orbit_error=False):

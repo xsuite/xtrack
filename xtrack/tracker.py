@@ -24,7 +24,6 @@ from .internal_record import (new_io_buffer,
 from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .tracker_data import TrackerData
-from .twiss import (find_closed_orbit, twiss_from_tracker)
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
 logger = logging.getLogger(__name__)
@@ -378,70 +377,7 @@ class Tracker:
         if compile:
             _ = self._current_track_kernel  # This triggers compilation
 
-    def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
-        """
-        Optimize the tracker for tracking speed.
-        """
-        if self.iscollective:
-            raise NotImplementedError("Optimization is not implemented for "
-                                      "collective trackers")
 
-        self.track_kernel = {} # Remove all kernels
-
-        if verbose: _print("Disable xdeps expressions")
-        self.line._var_management = None # Disable expressions
-
-        line = self.line
-
-        # Unfreeze the line
-        line.element_names = list(line.element_names)
-
-        if keep_markers is True:
-            if verbose: _print('Markers are kept')
-        elif keep_markers is False:
-            if verbose: _print("Remove markers")
-            line.remove_markers()
-        else:
-            if verbose: _print('Keeping only selected markers')
-            line.remove_markers(keep=keep_markers)
-
-        if verbose: _print("Remove inactive multipoles")
-        line.remove_inactive_multipoles()
-
-        if verbose: _print("Merge consecutive multipoles")
-        line.merge_consecutive_multipoles()
-
-        if verbose: _print("Remove redundant apertures")
-        line.remove_redundant_apertures()
-
-        if verbose: _print("Remove zero length drifts")
-        line.remove_zero_length_drifts()
-
-        if verbose: _print("Merge consecutive drifts")
-        line.merge_consecutive_drifts()
-
-        if verbose: _print("Use simple bends")
-        line.use_simple_bends()
-
-        if verbose: _print("Use simple quadrupoles")
-        line.use_simple_quadrupoles()
-
-        if verbose: _print("Rebuild tracker data")
-        tracker_data = TrackerData(
-            line=line,
-            extra_element_classes=(self.particles_monitor_class._XoStruct,),
-            _buffer=self._buffer)
-
-        self.line._freeze()
-
-        self._tracker_data = tracker_data
-        self.element_classes = tracker_data.element_classes
-        self.num_elements = len(tracker_data.elements)
-
-        self.use_prebuilt_kernels = False
-
-        if compile:
-            _ = self._current_track_kernel # This triggers compilation
 
     def _invalidate(self):
         if self.iscollective:
