@@ -7,6 +7,7 @@ from time import perf_counter
 from typing import Literal, Union
 import logging
 from functools import partial
+from collections import UserDict
 from contextlib import contextmanager
 
 import numpy as np
@@ -64,9 +65,6 @@ class Tracker:
         enable_pipeline_hold=False,
         _element_ref_data=None,
     ):
-        self.config = TrackerConfig()
-        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-        self.config.XFIELDS_BB3D_NO_BEAMSTR = True
 
         if sequence is not None:
             raise ValueError(
@@ -389,6 +387,9 @@ class Tracker:
         else:
             return self._element_classes
 
+    def config(self):
+        return self.line.config
+
     def _invalidate(self):
         if self.iscollective:
             self._invalidated_parts = self._parts
@@ -404,39 +405,6 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def cycle(self, index_first_element=None, name_first_element=None,
-              _buffer=None, _context=None):
-
-        """
-        Cycle the line to start from a given element.
-        """
-
-        self._check_invalidated()
-
-        cline = self.line.cycle(index_first_element=index_first_element,
-                                name_first_element=name_first_element,
-                                _make_tracker=False)
-
-        if _buffer is None:
-            if _context is None:
-                _buffer = self._buffer
-            else:
-                _buffer = _context.new_buffer()
-
-        return self.__class__(
-                _buffer=_buffer,
-                line=cline,
-                track_kernel=(self.track_kernel if not self.iscollective
-                                    else self._supertracker.track_kernel),
-                element_classes=(self.element_classes if not self.iscollective
-                                    else self._supertracker.element_classes),
-                particles_class=self.particles_class,
-                skip_end_turn_actions=self.skip_end_turn_actions,
-                particles_monitor_class=self.particles_monitor_class,
-                global_xy_limit=self.global_xy_limit,
-                extra_headers=self.extra_headers,
-                local_particle_src=self.local_particle_src,
-            )
 
     def get_backtracker(self, _context=None, _buffer=None,
                         global_xy_limit='from_tracker'):
@@ -1483,10 +1451,7 @@ def _temp_knobs(tracker, knobs: dict):
 
 
 
-class TrackerConfig(dict):
-    def __init__(self, *args, **kwargs):
-        super(TrackerConfig, self).__init__(*args, **kwargs)
-        object.__setattr__(self, '__dict__', self)
+class TrackerConfig(UserDict):
 
     def __setitem__(self, idx, val):
         if val is False and idx in self:
@@ -1495,10 +1460,13 @@ class TrackerConfig(dict):
             super(TrackerConfig, self).__setitem__(idx, val)
 
     def __setattr__(self, idx, val):
+        if idx == 'data':
+            object.__setattr__(self, idx, val)
+            return
         if val is not False:
-            self[idx] = val
+            self.data[idx] = val
         elif idx in self:
-            del(self[idx])
+            del(self.data[idx])
 
     def update(self, other, **kwargs):
         super().update(other, **kwargs)

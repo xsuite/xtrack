@@ -44,6 +44,7 @@ class Line:
     '''
 
     _element_dict = None
+    config = None
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -316,14 +317,6 @@ class Line:
         return self.tracker.record_last_track
 
     @property
-    def config(self):
-        return self.tracker.config
-
-    @config.setter
-    def config(self, value):
-        self.tracker.config = value
-
-    @property
     def vars(self):
         if self._var_management is not None:
             return self._var_management['vref']
@@ -345,6 +338,11 @@ class Line:
         self._element_dict.update(value)
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
+
+        self.config = xt.tracker.TrackerConfig()
+        self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
+        self.config.XFIELDS_BB3D_NO_BEAMSTR = True
+
         self._radiation_model = None
         self.matrix_responsiveness_tol = None
         self.matrix_stability_tol = None
@@ -385,10 +383,13 @@ class Line:
         self.tracker = None
 
     def build_tracker(self, **kwargs):
+
         "Build a tracker associated for the line."
+
         assert self.tracker is None, 'The line already has an associated tracker'
         import xtrack as xt  # avoid circular import
         self.tracker = xt.Tracker(line=self, **kwargs)
+
         return self.tracker
 
     @property
@@ -460,11 +461,11 @@ class Line:
             new_line.build_tracker(_buffer=self._buffer,
                                    track_kernel=self.tracker.track_kernel,
                                    element_classes=self.tracker.element_classes)
+            #TODO: handle config and other metadata
 
         return new_line
 
-    def cycle(self, index_first_element=None, name_first_element=None,
-              _make_tracker=True):
+    def cycle(self, index_first_element=None, name_first_element=None):
 
         """
         Cycle the line to start from a given element.
@@ -476,15 +477,6 @@ class Line:
         name_first_element: str
             Name of the element to start from
         """
-
-        if _make_tracker and self.tracker is not None:
-            new_tracker = self.tracker.cycle(
-                index_first_element=index_first_element,
-                name_first_element=name_first_element,
-            )
-            new_line = new_tracker.line
-            new_line.tracker = new_tracker
-            return new_line
 
         if ((index_first_element is not None and name_first_element is not None)
                or (index_first_element is None and name_first_element is None)):
@@ -504,11 +496,19 @@ class Line:
         new_element_names = (list(self.element_names[index_first_element:])
                              + list(self.element_names[:index_first_element]))
 
-        return self.__class__(
+        new_line = self.__class__(
             elements=self.element_dict,
             element_names=new_element_names,
             particle_ref=self.particle_ref,
         )
+
+        if self._has_valid_tracker():
+            new_line.build_tracker(_buffer=self._buffer,
+                                   track_kernel=self.tracker.track_kernel,
+                                   element_classes=self.tracker.element_classes)
+            #TODO: handle config and other metadata
+
+        return new_line
 
     def _freeze(self):
         self.element_names = tuple(self.element_names)
