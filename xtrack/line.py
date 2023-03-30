@@ -54,7 +54,7 @@ class Line:
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
         self.config.XFIELDS_BB3D_NO_BEAMSTR = True
-        self.config.XTRACK_GLOBAL_POSLIMIT = 1.0
+        self.config.XTRACK_GLOBAL_XY_LIMIT = 1.0
 
         self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL

@@ -584,7 +584,7 @@ class Tracker:
             if ccnn == "Drift":
                 src_lines.append(
                     """
-                            #ifdef XTRACK_GLOBAL_POSLIMIT
+                            #ifdef XTRACK_GLOBAL_XY_LIMIT
                             global_aperture_check(&lpart);
                             #endif
 
@@ -1378,10 +1378,16 @@ class TrackerConfig(UserDict):
     def __setattr__(self, idx, val):
         if idx == 'data':
             object.__setattr__(self, idx, val)
-        elif val is not False:
+        elif val is not False and val is not None:
             self.data[idx] = val
         elif idx in self:
             del(self.data[idx])
+
+    def __getattr__(self, idx):
+        if idx in self.data:
+            return self.data[idx]
+        else:
+            raise AttributeError(f'No attribute {idx}')
 
     def update(self, other, **kwargs):
         super().update(other, **kwargs)
