@@ -321,11 +321,9 @@ def test_tracker_binary_serialization(tmp_path):
     line.build_tracker(_context=xo.context_default)
 
     line.tracker.to_binary_file(file_path)
-    new_tracker = xt.Tracker.from_binary_file(file_path)
+    new_line = xt.Tracker.from_binary_file(file_path).line
 
-    assert new_tracker._buffer is not line.tracker._buffer
-
-    new_line = new_tracker.line
+    assert new_line._buffer is not line.tracker._buffer
 
     assert line.element_names == new_line.element_names
 
@@ -356,23 +354,23 @@ def test_tracker_binary_serialisation_with_knobs(tmp_path):
 
     line_with_knobs.build_tracker(_context=xo.context_default)
     line_with_knobs.particle_ref = xp.Particles.from_dict(line_dict['particle'])
-    line_with_knobs.to_binary_file(tmp_file_path)
-    new_tracker = xt.Tracker.from_binary_file(tmp_file_path)
+    line_with_knobs.tracker.to_binary_file(tmp_file_path)
+    new_line = xt.Tracker.from_binary_file(tmp_file_path).line
 
-    assert line_with_knobs._var_management.keys() == new_tracker.line._var_management.keys()
+    assert line_with_knobs._var_management.keys() == new_line._var_management.keys()
 
-    new_tracker.vars['on_x1'] = 250
-    assert np.isclose(new_tracker.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+    new_line.vars['on_x1'] = 250
+    assert np.isclose(new_line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
                       atol=1e-6, rtol=0)
-    new_tracker.vars['on_x1'] = -300
-    assert np.isclose(new_tracker.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+    new_line.vars['on_x1'] = -300
+    assert np.isclose(new_line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
                       atol=1e-6, rtol=0)
 
-    new_tracker.vars['on_x5'] = 130
-    assert np.isclose(new_tracker.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+    new_line.vars['on_x5'] = 130
+    assert np.isclose(new_line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
                       atol=1e-6, rtol=0)
-    new_tracker.vars['on_x5'] = -270
-    assert np.isclose(new_tracker.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+    new_line.vars['on_x5'] = -270
+    assert np.isclose(new_line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
                       atol=1e-6, rtol=0)
 
 
@@ -394,7 +392,7 @@ def test_tracker_hashable_config():
         ('ZZZ', 'lorem'),
     )
 
-    assert line._hashable_config() == expected
+    assert line.tracker._hashable_config() == expected
 
 
 def test_tracker_config_to_headers():
@@ -415,7 +413,7 @@ def test_tracker_config_to_headers():
         '#define AAA ipsum',
     ]
 
-    assert set(line._config_to_headers()) == set(expected)
+    assert set(line.tracker._config_to_headers()) == set(expected)
 
 
 @for_all_test_contexts
@@ -455,7 +453,7 @@ def test_tracker_config(test_context):
     line.track(p)
     assert p.x[0] == 7.0
     assert p.y[0] == 0.0
-    first_kernel = line._current_track_kernel
+    first_kernel = line.tracker._current_track_kernel
 
     p = particles.copy()
     line.config.TEST_FLAG = False
@@ -463,13 +461,13 @@ def test_tracker_config(test_context):
     line.track(p)
     assert p.x[0] == 0.0
     assert p.y[0] == 42.0
-    assert line._current_track_kernel is not first_kernel
+    assert line.tracker._current_track_kernel is not first_kernel
 
     line.config.TEST_FLAG = 2
     line.config.TEST_FLAG_BOOL = False
-    assert len(line.track_kernel) == 3 # As line.track_kernel.keys() =
+    assert len(line.tracker.track_kernel) == 3 # As line.track_kernel.keys() =
                                           # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
-    assert line._current_track_kernel is first_kernel
+    assert line.tracker._current_track_kernel is first_kernel
 
 
 @for_all_test_contexts

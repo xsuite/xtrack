@@ -1007,7 +1007,7 @@ class Line:
             raise NotImplementedError("Optimization is not implemented for "
                                       "collective trackers")
 
-        self.tracker.track_kernel = {} # Remove all kernels
+        self.tracker.track_kernel.clear() # Remove all kernels
 
         if verbose: _print("Disable xdeps expressions")
         self._var_management = None # Disable expressions
