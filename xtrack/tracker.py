@@ -53,7 +53,6 @@ class Tracker:
         skip_end_turn_actions=False,
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
-        global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
         io_buffer=None,
@@ -93,7 +92,6 @@ class Tracker:
                 skip_end_turn_actions=skip_end_turn_actions,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
-                global_xy_limit=global_xy_limit,
                 extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
                 io_buffer=io_buffer,
@@ -113,7 +111,6 @@ class Tracker:
                 skip_end_turn_actions=skip_end_turn_actions,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 particles_monitor_class=particles_monitor_class,
-                global_xy_limit=global_xy_limit,
                 extra_headers=extra_headers,
                 local_particle_src=local_particle_src,
                 io_buffer=io_buffer,
@@ -133,7 +130,6 @@ class Tracker:
         skip_end_turn_actions=False,
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
-        global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
         io_buffer=None,
@@ -151,7 +147,6 @@ class Tracker:
         self.line = line
         self.skip_end_turn_actions = skip_end_turn_actions
         self.particles_class = particles_class
-        self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
         self._enable_pipeline_hold = enable_pipeline_hold
@@ -225,7 +220,6 @@ class Tracker:
                 element_classes=element_classes,
                 particles_class=particles_class,
                 particles_monitor_class=particles_monitor_class,
-                global_xy_limit=global_xy_limit,
                 extra_headers=extra_headers,
                 reset_s_at_end_turn=reset_s_at_end_turn,
                 local_particle_src=local_particle_src,
@@ -276,7 +270,6 @@ class Tracker:
         skip_end_turn_actions=False,
         reset_s_at_end_turn=True,
         particles_monitor_class=None,
-        global_xy_limit=1.0,
         extra_headers=(),
         local_particle_src=None,
         io_buffer=None,
@@ -300,7 +293,6 @@ class Tracker:
         if local_particle_src is None:
             local_particle_src = particles_class.gen_local_particle_api()
 
-        self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
 
         tracker_data = TrackerData(
@@ -340,7 +332,6 @@ class Tracker:
 
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
-        self.global_xy_limit = global_xy_limit
         self.extra_headers = extra_headers
         self.skip_end_turn_actions = skip_end_turn_actions
         self.reset_s_at_end_turn = reset_s_at_end_turn
@@ -404,8 +395,7 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def get_backtracker(self, _context=None, _buffer=None,
-                        global_xy_limit='from_tracker'):
+    def get_backtracker(self, _context=None, _buffer=None):
 
         """
         Build a Tracker object that backtracks in the same line.
@@ -426,23 +416,14 @@ class Tracker:
             line.append_element(
                     ee.get_backtrack_element(_buffer=_buffer), nn)
 
-        if global_xy_limit == 'from_tracker':
-            global_xy_limit = self.global_xy_limit
-            track_kernel = self.track_kernel
-            element_classes = self.element_classes
-        else:
-            track_kernel = None
-            element_classes = None
-
         return self.__class__(
                     _buffer=_buffer,
                     line=line,
-                    track_kernel=track_kernel,
-                    element_classes=element_classes,
+                    track_kernel=self.track_kernel,
+                    element_classes=self.element_classes,
                     particles_class=self.particles_class,
                     skip_end_turn_actions=self.skip_end_turn_actions,
                     particles_monitor_class=self.particles_monitor_class,
-                    global_xy_limit=global_xy_limit,
                     extra_headers=self.extra_headers,
                     local_particle_src=self.local_particle_src,
                 )
@@ -525,10 +506,6 @@ class Tracker:
         headers = []
 
         headers.extend(self.extra_headers)
-
-        if self.global_xy_limit is not None:
-            headers.append(
-                f"#define XTRACK_GLOBAL_POSLIMIT ({self.global_xy_limit})")
         headers.append(_pkg_root.joinpath("headers/constants.h"))
 
         src_lines = []
