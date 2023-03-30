@@ -8,7 +8,6 @@ from typing import Literal, Union
 import logging
 from functools import partial
 from collections import UserDict
-from contextlib import contextmanager
 
 import numpy as np
 import xobjects as xo
@@ -1081,7 +1080,7 @@ class Tracker:
             kwargs.pop('self')
             kwargs.pop('freeze_longitudinal')
 
-            with _freeze_longitudinal(self):
+            with _freeze_longitudinal(self.line):
                 return self._track_no_collective(**kwargs)
 
         self._check_invalidated()
@@ -1399,40 +1398,6 @@ class Tracker:
     # def __dir__(self):
     #     return list(set(object.__dir__(self) + dir(self.line)))
 
-
-@contextmanager
-def _preserve_config(tracker):
-    config = TrackerConfig()
-    config.update(tracker.config)
-    try:
-        yield
-    finally:
-        tracker.config.clear()
-        tracker.config.update(config)
-
-@contextmanager
-def freeze_longitudinal(tracker):
-    """Context manager to freeze longitudinal motion in a tracker."""
-    from xtrack.tracker import TrackerConfig
-    config = TrackerConfig()
-    config.update(tracker.config)
-    tracker.freeze_longitudinal(True)
-    try:
-        yield None
-    finally:
-        tracker.config.clear()
-        tracker.config.update(config)
-
-@contextmanager
-def _temp_knobs(tracker, knobs: dict):
-    old_values = {kk: tracker.vars[kk]._value for kk in knobs.keys()}
-    try:
-        for kk, vv in knobs.items():
-            tracker.vars[kk] = vv
-        yield
-    finally:
-        for kk, vv in old_values.items():
-            tracker.vars[kk] = vv
 
 class TrackerConfig(UserDict):
 

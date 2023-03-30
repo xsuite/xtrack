@@ -10,7 +10,6 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from pathlib import Path
 
 import numpy as np
 
@@ -1861,3 +1860,38 @@ def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, nami
                 flat_nodes.append(Node(s + sub.s, sub.what, name=sub_name))
 
     return flat_nodes
+
+@contextmanager
+def _preserve_config(ln_or_trk):
+    from xtrack.tracker import TrackerConfig
+    config = TrackerConfig()
+    config.update(ln_or_trk.config)
+    try:
+        yield
+    finally:
+        ln_or_trk.config.clear()
+        ln_or_trk.config.update(config)
+
+@contextmanager
+def freeze_longitudinal(ln_or_trk):
+    """Context manager to freeze longitudinal motion in a tracker."""
+    from xtrack.tracker import TrackerConfig
+    config = TrackerConfig()
+    config.update(ln_or_trk.config)
+    ln_or_trk.freeze_longitudinal(True)
+    try:
+        yield None
+    finally:
+        ln_or_trk.config.clear()
+        ln_or_trk.config.update(config)
+
+@contextmanager
+def _temp_knobs(line_or_trk, knobs: dict):
+    old_values = {kk: line_or_trk.vars[kk]._value for kk in knobs.keys()}
+    try:
+        for kk, vv in knobs.items():
+            line_or_trk.vars[kk] = vv
+        yield
+    finally:
+        for kk, vv in old_values.items():
+            line_or_trk.vars[kk] = vv
