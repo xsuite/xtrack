@@ -146,7 +146,7 @@ def test_partial_tracking_with_collective(test_context):
     line = xt.Line(elements=elements)
     line.build_tracker(_context=test_context)
     assert line.iscollective
-    assert len(line._parts) == 5
+    assert len(line.tracker._parts) == 5
     particles_init = xp.Particles(
             _context=test_context,
             x=[1e-3, -2e-3, 5e-3], y=[2e-3, -4e-3, 3e-3],
