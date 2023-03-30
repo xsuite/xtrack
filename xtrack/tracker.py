@@ -820,7 +820,6 @@ class Tracker:
         return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
 
     def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns):
-        print(f'=> Tracking part {ipp} turn {tt} ({ele_start}, {ele_stop})')
         ret = None
         skip = False
         stop_tracking = False
@@ -1000,7 +999,7 @@ class Tracker:
                     continue
 
                 # For collective parts increment at_element
-                if not isinstance(pp, Tracker) and not stop_tracking:
+                if not isinstance(pp, TrackerPartNonCollective) and not stop_tracking:
                     if moveback_to_buffer is not None: # The particles object is temporarily on CPU
                         if not hasattr(self, '_zerodrift_cpu'):
                             self._zerodrift_cpu = self._zerodrift.copy(particles._buffer.context)
@@ -1420,7 +1419,7 @@ class TrackerPartNonCollective:
         self.ele_start_in_tracker = ele_start_in_tracker
         self.ele_stop_in_tracker = ele_stop_in_tracker
 
-    def track(self, particles, ele_start=None, ele_stop=None):
+    def track(self, particles, ele_start=None, ele_stop=None, num_elements=None):
         if ele_start is None:
             temp_ele_start = self.ele_start_in_tracker
         else:
@@ -1431,9 +1430,11 @@ class TrackerPartNonCollective:
         else:
             temp_ele_stop = self.ele_start_in_tracker + ele_stop
 
-        temp_num_elements = temp_ele_stop - temp_ele_start
+        if num_elements is None:
+            temp_num_elements = temp_ele_stop - temp_ele_start
+        else:
+            temp_num_elements = num_elements
 
-        print(f'.track({temp_ele_start}, {temp_ele_stop})')
         self.tracker.track(particles, ele_start=temp_ele_start,
                            num_elements=temp_num_elements,
                            _force_no_end_turn_actions=True)
