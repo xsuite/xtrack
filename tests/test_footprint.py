@@ -23,7 +23,6 @@ def test_footprint(test_context):
 
         line.vars['i_oct_b1'] = 0
         fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
-        fp0.plot(color='k', label='I_oct=0')
 
         line.vars['i_oct_b1'] = 500
         fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
@@ -73,7 +72,6 @@ def test_footprint(test_context):
         line.vars['i_oct_b1'] = 0
         fp0_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                                 mode='uniform_action_grid')
-        fp0_jgrid.plot(color='k', label='I_oct=0')
 
         assert hasattr(fp0, 'theta_grid')
         assert hasattr(fp0, 'r_grid')
@@ -101,7 +99,6 @@ def test_footprint(test_context):
                                     x_norm_range=[0.01, 6], y_norm_range=[0.01, 6],
                                     n_x_norm=9, n_y_norm=8,
                                     mode='uniform_action_grid')
-        fp1_jgrid.plot(color='r', label='I_oct=500')
 
         assert hasattr(fp1_jgrid,  'Jx_grid')
         assert hasattr(fp1_jgrid,  'Jy_grid')
