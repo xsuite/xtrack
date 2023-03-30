@@ -16,7 +16,7 @@ import xpart as xp
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
-from .general import Table
+from .table import Table
 from .line import _behaves_like_drift
 
 
@@ -54,7 +54,9 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         reverse=False,
         use_full_inverse=None,
         strengths=False,
-        hide_thin_groups=False
+        hide_thin_groups=False,
+        _continue_if_lost=False,
+        _keep_tracking_data=False,
         ):
 
     """
@@ -86,9 +88,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     at_s : list, optional
         List of positions at which the Twiss parameters are computed.
         If not provided, the Twiss parameters are computed at all positions.
-    reverse : bool, optional
-        If True, the outupt is give in the reference frame of the conunter-rotating
-        beam.
     radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
         Method to be used for the computation of twiss parameters in the presence
         of radiation. If 'full' the method described in E. Forest, "From tracking
@@ -321,8 +320,6 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     else:
         ele_start = 0
 
-    twiss_res = TwissTable()
-
     if particle_on_co is not None:
         part_on_co = particle_on_co
     else:
@@ -385,7 +382,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
 
-    twiss_res_element_by_element = _propagate_optics(
+    propagate_res = _propagate_optics(
         tracker=tracker,
         W_matrix=W,
         particle_on_co=part_on_co,
@@ -396,20 +393,23 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         r_sigma=r_sigma,
         delta_disp=delta_disp,
         use_full_inverse=use_full_inverse,
-        hide_thin_groups=hide_thin_groups,)
-    twiss_res.update(twiss_res_element_by_element)
-    twiss_res._ebe_fields = twiss_res_element_by_element.keys()
+        hide_thin_groups=hide_thin_groups,
+        _continue_if_lost=_continue_if_lost,
+        _keep_tracking_data=_keep_tracking_data)
+    propagate_res['name'] = np.array(
+                                        propagate_res['name'])
+    twiss_res = TwissTable(data=propagate_res)
 
-    twiss_res.particle_on_co = part_on_co.copy(_context=xo.context_default)
+    twiss_res._data['particle_on_co'] = part_on_co.copy(_context=xo.context_default)
 
     circumference = tracker._tracker_data.line_length
-    twiss_res['circumference'] = circumference
+    twiss_res._data['circumference'] = circumference
 
     if not skip_global_quantities:
 
-        s_vect = twiss_res_element_by_element['s']
-        mux = twiss_res_element_by_element['mux']
-        muy = twiss_res_element_by_element['muy']
+        s_vect = propagate_res['s']
+        mux = propagate_res['mux']
+        muy = propagate_res['muy']
 
         dqx, dqy = _compute_chromaticity(
             tracker=tracker,
@@ -422,21 +422,21 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             matrix_stability_tol=matrix_stability_tol,
             symplectify=symplectify, steps_r_matrix=steps_r_matrix)
 
-        dzeta = twiss_res_element_by_element['dzeta']
-        qs = np.abs(twiss_res_element_by_element['muzeta'][-1])
+        dzeta = propagate_res['dzeta']
+        qs = np.abs(propagate_res['muzeta'][-1])
         eta = -dzeta[-1]/circumference
         alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
         betz0 = W[4, 4]**2 + W[4, 5]**2
-        ptau_co = twiss_res_element_by_element['ptau']
+        ptau_co = propagate_res['ptau']
 
         # Coupling
-        r1 = (np.sqrt(twiss_res_element_by_element['bety1'])/
-              np.sqrt(twiss_res_element_by_element['betx1']))
-        r2 = (np.sqrt(twiss_res_element_by_element['betx2'])/
-              np.sqrt(twiss_res_element_by_element['bety2']))
+        r1 = (np.sqrt(propagate_res['bety1'])/
+              np.sqrt(propagate_res['betx1']))
+        r2 = (np.sqrt(propagate_res['betx2'])/
+              np.sqrt(propagate_res['bety2']))
 
         # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
         cmin_arr = (2 * np.sqrt(r1*r2) *
@@ -445,7 +445,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
         c_r1_avg = np.trapz(r1, s_vect)/(circumference)
         c_r2_avg = np.trapz(r2, s_vect)/(circumference)
-        twiss_res.update({
+        twiss_res._data.update({
             'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev0': T_rev0,
@@ -453,41 +453,44 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
         })
         if hasattr(part_on_co, '_fsolve_info'):
-            twiss_res['particle_on_co']._fsolve_info = part_on_co._fsolve_info
+            twiss_res.particle_on_co._fsolve_info = part_on_co._fsolve_info
         else:
-            twiss_res['particle_on_co']._fsolve_info = None
+            twiss_res.particle_on_co._fsolve_info = None
 
-        twiss_res['R_matrix'] = RR
+        twiss_res._data['R_matrix'] = RR
 
         if method == '4d':
-            twiss_res.qs = 0
+            twiss_res._data['qs'] = 0
             twiss_res.muzeta[:] = 0
 
         if eneloss_and_damping:
             assert RR is not None
             eneloss_damp_res = _compute_eneloss_and_damping_rates(
                 particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
-            twiss_res.update(eneloss_damp_res)
+            twiss_res._data.update(eneloss_damp_res)
 
     if values_at_element_exit:
-        for nn, vv in twiss_res_element_by_element.items():
-            twiss_res[nn] = vv[1:]
-        twiss_res['values_at'] = 'exit'
+        raise NotImplementedError
+        # Untested
+        name_exit = twiss_res.name[:-1]
+        twiss_res = twiss_res[:, 1:]
+        twiss_res['name'][:] = name_exit
+        twiss_res._data['values_at'] = 'exit'
     else:
-        twiss_res['values_at'] = 'entry'
+        twiss_res._data['values_at'] = 'entry'
 
     if strengths:
         strengths = _extract_knl_ksl(tracker.line, twiss_res['name'])
-        twiss_res.update(strengths)
-        twiss_res['_ebe_fields'] = (list(twiss_res['_ebe_fields']) +
+        twiss_res._data.update(strengths)
+        twiss_res._col_names = (list(twiss_res._col_names) +
                                     list(strengths.keys()))
 
     if at_elements is not None:
-        twiss_res._keep_only_elements(at_elements)
+        twiss_res = twiss_res[:, at_elements]
 
     if reverse:
-        twiss_res = twiss_res.reverse()
-
+        raise ValueError('`twiss(..., reverse=True)` not supported anymore. '
+                         'Use `twiss(...).reverse()` instead.')
     return twiss_res
 
 def _propagate_optics(tracker, W_matrix, particle_on_co,
@@ -495,7 +498,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
                       ele_start, ele_stop,
                       nemitt_x, nemitt_y, r_sigma, delta_disp,
                       use_full_inverse,
-                      hide_thin_groups=False):
+                      hide_thin_groups=False,
+                      _continue_if_lost=False,
+                      _keep_tracking_data=False):
 
     ctx2np = tracker._context.nparray_from_context_array
 
@@ -537,8 +542,9 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     #assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
     tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
                   ele_start=ele_start, ele_stop=ele_stop)
-    assert np.all(ctx2np(part_for_twiss.state) == 1), (
-        'Some test particles were lost during twiss!')
+    if not _continue_if_lost:
+        assert np.all(ctx2np(part_for_twiss.state) == 1), (
+            'Some test particles were lost during twiss!')
     i_stop = part_for_twiss._xobject.at_element[0] + (
         (part_for_twiss._xobject.at_turn[0] - AT_TURN_FOR_TWISS)
          * len(tracker.line.element_names))
@@ -654,8 +660,6 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     mux = np.abs(mux)
     muy = np.abs(muy)
 
-    W_matrix = [Ws[ii, :, :] for ii in range(len(s_co))]
-
     twiss_res_element_by_element = {
         'name': tracker.line.element_names[i_start:i_stop] + ('_end_point',),
         's': s_co,
@@ -683,12 +687,15 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
         'nux': nux,
         'nuy': nuy,
         'nuzeta': nuzeta,
-        'W_matrix': W_matrix,
+        'W_matrix': Ws,
         'betx1': betx1,
         'bety1': bety1,
         'betx2': betx2,
         'bety2': bety2,
     }
+
+    if _keep_tracking_data:
+        twiss_res_element_by_element['tracking_data'] = tracker.record_last_track
 
     if hide_thin_groups:
         _vars_hide_changes = [
@@ -1122,12 +1129,27 @@ class TwissInit:
 
 class TwissTable(Table):
 
+    def to_pandas(self, index=None, columns=None):
+        if columns is None:
+            columns = self._col_names
+
+        data = self._data.copy()
+        if 'W_matrix' in data.keys():
+            data['W_matrix'] = [
+                self.W_matrix[ii] for ii in range(len(self.W_matrix))]
+
+        import pandas as pd
+        df = pd.DataFrame(data, columns=self._col_names)
+        if index is not None:
+            df.set_index(index, inplace=True)
+        return df
+
     def get_twiss_init(self, at_element):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         if isinstance(at_element, str):
-            at_element = self.name.index(at_element)
+            at_element = np.where(self.name == at_element)[0][0]
         part = self.particle_on_co.copy()
         part.x[:] = self.x[at_element]
         part.px[:] = self.px[at_element]
@@ -1146,17 +1168,6 @@ class TwissTable(Table):
                         muy=self.muy[at_element],
                         muzeta=self.muzeta[at_element])
 
-    def get_summary(self):
-        import pandas as pd
-        dct = {k: v for k, v in self.items() if k not in self._ebe_fields}
-        dct.pop('_ebe_fields')
-        return pd.Series(dct)
-
-    def to_pandas(self, index=None, columns=None):
-        if columns is None:
-            columns = self._ebe_fields
-        return Table.to_pandas(self, index=index,columns=columns)
-
     def get_betatron_sigmas(self, nemitt_x, nemitt_y, gemitt_z=0):
 
         beta0 = self.particle_on_co.beta0
@@ -1164,7 +1175,7 @@ class TwissTable(Table):
         gemitt_x = nemitt_x / (beta0 * gamma0)
         gemitt_y = nemitt_y / (beta0 * gamma0)
 
-        Ws = np.array(self.W_matrix)
+        Ws = self.W_matrix
         v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
         v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
         v3 = Ws[:,:,4] + 1j * Ws[:,:,5]
@@ -1181,50 +1192,50 @@ class TwissTable(Table):
 
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2
 
-        res = Table()
-        res['s'] = self.s.copy()
-        res['name'] = self.name
+        res_data = {}
+        res_data['s'] = self.s.copy()
+        res_data['name'] = self.name
 
-        res['Sigma'] = [Sigma[ii, :, :] for ii in range(len(self.s))]
-        res['Sigma11'] = Sigma[:, 0, 0]
-        res['Sigma12'] = Sigma[:, 0, 1]
-        res['Sigma13'] = Sigma[:, 0, 2]
-        res['Sigma14'] = Sigma[:, 0, 3]
-        res['Sigma15'] = Sigma[:, 0, 4]
-        res['Sigma16'] = Sigma[:, 0, 5]
+        res_data['Sigma'] = Sigma
+        res_data['Sigma11'] = Sigma[:, 0, 0]
+        res_data['Sigma12'] = Sigma[:, 0, 1]
+        res_data['Sigma13'] = Sigma[:, 0, 2]
+        res_data['Sigma14'] = Sigma[:, 0, 3]
+        res_data['Sigma15'] = Sigma[:, 0, 4]
+        res_data['Sigma16'] = Sigma[:, 0, 5]
 
-        res['Sigma21'] = Sigma[:, 1, 0]
-        res['Sigma22'] = Sigma[:, 1, 1]
-        res['Sigma23'] = Sigma[:, 1, 2]
-        res['Sigma24'] = Sigma[:, 1, 3]
-        res['Sigma25'] = Sigma[:, 1, 4]
-        res['Sigma26'] = Sigma[:, 1, 5]
+        res_data['Sigma21'] = Sigma[:, 1, 0]
+        res_data['Sigma22'] = Sigma[:, 1, 1]
+        res_data['Sigma23'] = Sigma[:, 1, 2]
+        res_data['Sigma24'] = Sigma[:, 1, 3]
+        res_data['Sigma25'] = Sigma[:, 1, 4]
+        res_data['Sigma26'] = Sigma[:, 1, 5]
 
-        res['Sigma31'] = Sigma[:, 2, 0]
-        res['Sigma32'] = Sigma[:, 2, 1]
-        res['Sigma33'] = Sigma[:, 2, 2]
-        res['Sigma34'] = Sigma[:, 2, 3]
-        res['Sigma41'] = Sigma[:, 3, 0]
-        res['Sigma42'] = Sigma[:, 3, 1]
-        res['Sigma43'] = Sigma[:, 3, 2]
-        res['Sigma44'] = Sigma[:, 3, 3]
-        res['Sigma51'] = Sigma[:, 4, 0]
-        res['Sigma52'] = Sigma[:, 4, 1]
+        res_data['Sigma31'] = Sigma[:, 2, 0]
+        res_data['Sigma32'] = Sigma[:, 2, 1]
+        res_data['Sigma33'] = Sigma[:, 2, 2]
+        res_data['Sigma34'] = Sigma[:, 2, 3]
+        res_data['Sigma41'] = Sigma[:, 3, 0]
+        res_data['Sigma42'] = Sigma[:, 3, 1]
+        res_data['Sigma43'] = Sigma[:, 3, 2]
+        res_data['Sigma44'] = Sigma[:, 3, 3]
+        res_data['Sigma51'] = Sigma[:, 4, 0]
+        res_data['Sigma52'] = Sigma[:, 4, 1]
 
-        res['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
-        res['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
-        res['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
+        res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
+        res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
+        res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
-        return res
+        return Table(res_data)
 
     def get_R_matrix(self, ele_start, ele_stop):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         if isinstance(ele_start, str):
-            ele_start = self.name.index(ele_start)
+            ele_start = np.where(self.name == ele_start)[0][0]
         if isinstance(ele_stop, str):
-            ele_stop = self.name.index(ele_stop)
+            ele_stop = np.where(self.name == ele_stop)[0][0]
 
         if ele_start > ele_stop:
             raise ValueError('ele_start must be smaller than ele_end')
@@ -1252,32 +1263,6 @@ class TwissTable(Table):
         R_matrix = W_end @ Rot @ np.linalg.inv(W_start)
 
         return R_matrix
-
-
-    def __getitem__(self, item):
-        if isinstance(item, tuple):
-            assert len(item) == 2, 'Too many indices'
-            indeces = item[0]
-            column = item[1]
-            if isinstance(indeces, str) or np.isscalar(indeces):
-                indeces = [indeces]
-            assert isinstance(column, str), 'Column must be a string'
-
-            for ii, idx in enumerate(indeces):
-                if isinstance(idx, str):
-                    assert idx in self.name, f'Element {idx} not found'
-                    assert self.name.count(idx) == 1, f'Element {idx} not unique'
-                    indeces[ii] = self.name.index(idx)
-
-            out = self[column][indeces]
-            if isinstance(out, np.ndarray) and out.shape == (1,):
-                return out[0]
-            else:
-                return out
-        else:
-            return dict.__getitem__(self, item)
-
-
 
     def get_normalized_coordinates(self, particles, nemitt_x=None, nemitt_y=None,
                                    _force_at_element=None):
@@ -1350,102 +1335,86 @@ class TwissTable(Table):
         return Table({'particle_id': part_id, 'at_element': at_element,
                       'x_norm': x_norm, 'px_norm': px_norm, 'y_norm': y_norm,
                       'py_norm': py_norm, 'zeta_norm': zeta_norm,
-                      'pzeta_norm': pzeta_norm})
+                      'pzeta_norm': pzeta_norm}, index='particle_id')
 
     def reverse(self):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
-        new = TwissTable()
+        new_data = {}
         for kk, vv in self.items():
-            new[kk] = vv
+            new_data[kk] = vv
 
-        for kk in self._ebe_fields:
+        for kk in self._col_names:
             if kk == 'name':
-                new[kk] = new[kk][:-1][::-1] + self.name[-1:]
+                new_data[kk][:-1] = new_data[kk][:-1][::-1]
+                new_data[kk][-1] = self.name[-1]
             elif kk == 'W_matrix':
                 continue
             elif kk.startswith('k') and kk.endswith('nl', 'sl'):
                 continue # Not yet implemented
             else:
-                new[kk] = new[kk][::-1].copy()
+                new_data[kk] = new_data[kk][::-1].copy()
+
+        out = self.__class__(data=new_data, col_names=self._col_names)
 
         circumference = (
-            new.circumference if hasattr(new, 'circumference') else np.max(new.s))
-        new.s = circumference - new.s
+            out.circumference if hasattr(out, 'circumference') else np.max(out.s))
 
-        new.x = -new.x
-        new.px = new.px # Dx/Ds
-        new.y = new.y
-        new.py = -new.py # Dy/Ds
-        new.zeta = -new.zeta
-        new.delta = new.delta
-        new.ptau = new.ptau
 
-        new.betx = new.betx
-        new.bety = new.bety
-        new.alfx = -new.alfx # Dpx/Dx
-        new.alfy = -new.alfy # Dpy/Dy
-        new.gamx = new.gamx
-        new.gamy = new.gamy
+        out.s = circumference - out.s
 
-        qx = (new.qx if hasattr(new, 'qx') else np.max(new.mux))
-        qy = (new.qy if hasattr(new, 'qy') else np.max(new.muy))
-        qs = (new.qs if hasattr(new, 'qs') else np.max(new.muzeta))
+        out.x = -out.x
+        out.px = out.px # Dx/Ds
+        out.y = out.y
+        out.py = -out.py # Dy/Ds
+        out.zeta = -out.zeta
+        out.delta = out.delta
+        out.ptau = out.ptau
 
-        new.mux = qx - new.mux
-        new.muy = qy - new.muy
-        new.muzeta = qs - new.muzeta
+        out.betx = out.betx
+        out.bety = out.bety
+        out.alfx = -out.alfx # Dpx/Dx
+        out.alfy = -out.alfy # Dpy/Dy
+        out.gamx = out.gamx
+        out.gamy = out.gamy
 
-        new.dx = -new.dx
-        new.dpx = new.dpx
-        new.dy = new.dy
-        new.dpy = -new.dpy
-        new.dzeta = -new.dzeta
+        qx = (out.qx if hasattr(out, 'qx') else np.max(out.mux))
+        qy = (out.qy if hasattr(out, 'qy') else np.max(out.muy))
+        qs = (out.qs if hasattr(out, 'qs') else np.max(out.muzeta))
 
-        new.W_matrix = np.array(new.W_matrix)
-        new.W_matrix = new.W_matrix[::-1, :, :].copy()
-        new.W_matrix[:, 0, :] = -new.W_matrix[:, 0, :]
-        new.W_matrix[:, 1, :] = new.W_matrix[:, 1, :]
-        new.W_matrix[:, 2, :] = new.W_matrix[:, 2, :]
-        new.W_matrix[:, 3, :] = -new.W_matrix[:, 3, :]
-        new.W_matrix[:, 4, :] = -new.W_matrix[:, 4, :]
-        new.W_matrix[:, 5, :] = new.W_matrix[:, 5, :]
-        new.W_matrix = [new.W_matrix[ii, :, :] for ii in range(len(new.x))]
+        out.mux = qx - out.mux
+        out.muy = qy - out.muy
+        out.muzeta = qs - out.muzeta
 
-        if hasattr(new, 'R_matrix'): new.R_matrix = None # To be implemented
-        if hasattr(new, 'particle_on_co'):
-            new.particle_on_co = self.particle_on_co.copy()
-            new.particle_on_co.x = -new.particle_on_co.x
-            new.particle_on_co.py = -new.particle_on_co.py
-            new.particle_on_co.zeta = -new.particle_on_co.zeta
+        out.dx = -out.dx
+        out.dpx = out.dpx
+        out.dy = out.dy
+        out.dpy = -out.dpy
+        out.dzeta = -out.dzeta
+
+        out.W_matrix = np.array(out.W_matrix)
+        out.W_matrix = out.W_matrix[::-1, :, :].copy()
+        out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
+        out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
+        out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
+        out.W_matrix[:, 3, :] = -out.W_matrix[:, 3, :]
+        out.W_matrix[:, 4, :] = -out.W_matrix[:, 4, :]
+        out.W_matrix[:, 5, :] = out.W_matrix[:, 5, :]
+
+        if hasattr(out, 'R_matrix'): out.R_matrix = None # To be implemented
+        if hasattr(out, 'particle_on_co'):
+            out.particle_on_co = self.particle_on_co.copy()
+            out.particle_on_co.x = -out.particle_on_co.x
+            out.particle_on_co.py = -out.particle_on_co.py
+            out.particle_on_co.zeta = -out.particle_on_co.zeta
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
-            new.qs = 0
-            new.muzeta[:] = 0
+            out.qs = 0
+            out.muzeta[:] = 0
 
-        return new
-
-    def _keep_only_elements(self, at_elements):
-        enames = self.name
-        if at_elements is not None:
-            indx_twiss = []
-            for nn in at_elements:
-                if isinstance(nn, (int, np.integer)):
-                    indx_twiss.append(int(nn))
-                else:
-                    assert nn in enames
-                    indx_twiss.append(enames.index(nn))
-            s_co = self['s']
-            for kk, vv in self.items():
-                if kk not in self._ebe_fields:
-                    continue
-                if hasattr(vv, '__len__') and len(vv) == len(s_co):
-                    if isinstance(vv, np.ndarray):
-                        self[kk] = vv[indx_twiss]
-                    else:
-                        self[kk] = [vv[ii] for ii in indx_twiss]
+        return out
 
 
 def _renormalize_eigenvectors(Ws):

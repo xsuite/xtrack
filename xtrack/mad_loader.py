@@ -34,6 +34,8 @@ import numpy as np
 
 import xtrack, xobjects
 
+from .general import _print
+
 
 # Generic functions
 
@@ -606,13 +608,13 @@ class MadLoader:
                     f" or convert_{el.type} in function in MadLoader"
                 )
             if ii % 100 == 0:
-                print(
+                _print(
                     f'Converting sequence "{self.sequence.name}":'
                     f' {round(ii/nelem*100):2d}%     ',
                     end="\r",
                     flush=True,
                 )
-        print()
+        _print()
         return line
 
     def add_elements(
@@ -788,6 +790,9 @@ class MadLoader:
     convert_tkicker = convert_kicker
 
     def convert_hkicker(self, mad_elem):
+        if mad_elem.hkick:
+            raise ValueError(
+                "hkicker with hkick is not supported, please use kick instead")
         hkick = [-mad_elem.kick] if mad_elem.kick else []
         vkick = []
         el = self.Builder(
@@ -802,6 +807,9 @@ class MadLoader:
         return self.convert_thin_element([el], mad_elem)
 
     def convert_vkicker(self, mad_elem):
+        if mad_elem.vkick:
+            raise ValueError(
+                "vkicker with vkick is not supported, please use kick instead")
         hkick = []
         vkick = [mad_elem.kick] if mad_elem.kick else []
         el = self.Builder(

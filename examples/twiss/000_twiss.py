@@ -25,6 +25,33 @@ line.build_tracker()
 tw = line.twiss()
 
 #!end-doc-part
+tw_sel = tw[:, ['ip6', 'ip5']]
+
+try:
+    tw[:, 'ip0']
+except IndexError: # expected exception
+    pass
+else:
+    raise Exception('Expected exception not raised')
+
+try:
+    tw[:, ['ip1', 'ip2', 'ip0']]
+except IndexError: # expected exception
+    pass
+
+# this does not give a clear error message
+# tw['ip.*']
+
+tw[:, ['ip1', 'ip2']]
+tw[:, 'ip.*']
+
+tw[:, 23.1:30.2:'s']
+
+
+
+
+
+
 
 # Test custom s locations
 s_test = [2e3, 1e3, 3e3, 10e3]

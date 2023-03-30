@@ -8,7 +8,7 @@ import math
 import logging
 import json
 from copy import deepcopy
-from pprint import pp
+from pprint import pformat
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +21,9 @@ from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
+from .footprint import Footprint, _footprint_with_linear_rescale
+
+from .general import _print
 
 log = logging.getLogger(__name__)
 
@@ -215,7 +218,7 @@ class Line:
             num_elements = len(dct['elements'].keys())
             for ii, (kk, ee) in enumerate(dct['elements'].items()):
                 if ii % 100 == 0:
-                    print('Loading line from dict: '
+                    _print('Loading line from dict: '
                         f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
                 elements[kk] = _deserialize_element(ee, class_dict, _buffer)
         elif isinstance(dct['elements'], list):
@@ -223,7 +226,7 @@ class Line:
             num_elements = len(dct['elements'])
             for ii, ee in enumerate(dct['elements']):
                 if ii % 100 == 0:
-                    print('Loading line from dict: '
+                    _print('Loading line from dict: '
                         f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
                 elements.append(_deserialize_element(ee, class_dict, _buffer))
         else:
@@ -238,7 +241,7 @@ class Line:
         if '_var_manager' in dct.keys():
             self._init_var_management(dct=dct)
 
-        print('Done loading line from dict.           ')
+        _print('Done loading line from dict.           ')
 
         return self
 
@@ -496,7 +499,7 @@ class Line:
     def build_tracker(self, **kwargs):
         "Build a tracker associated for the line."
         assert self.tracker is None, 'The line already has an associated tracker'
-        import xtrack as xt # avoid circular import
+        import xtrack as xt  # avoid circular import
         self.tracker = xt.Tracker(line=self, **kwargs)
         return self.tracker
 
@@ -1310,7 +1313,7 @@ class Line:
         for iee in range(i_prev_aperture, num_elements):
 
             if iee % 100 == 0:
-                print(
+                _print(
                     f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
                     end="\r", flush=True)
 
@@ -1350,21 +1353,97 @@ class Line:
             elements_df['misses_aperture_upstream'] | (
                 elements_df['isthick'] & elements_df['misses_aperture_downstream']))
 
-        print('Done checking aperture.           ')
+        _print('Done checking aperture.           ')
 
         # Identify issues with apertures associate with thin elements
         df_thin_missing_aper = elements_df[elements_df['misses_aperture_upstream'] & ~elements_df['isthick']]
-        print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
-        pp(list(df_thin_missing_aper.name))
+        _print(f'{len(df_thin_missing_aper)} thin elements miss associated aperture (upstream):')
+        _print(pformat(list(df_thin_missing_aper.name)))
 
         # Identify issues with apertures associate with thick elements
         df_thick_missing_aper = elements_df[
             (elements_df['misses_aperture_upstream'] | elements_df['misses_aperture_downstream'])
             & elements_df['isthick']]
-        print(f'{len(df_thick_missing_aper)} thick elements miss associated aperture (upstream or downstream):')
-        pp(list(df_thick_missing_aper.name))
+        _print(f'{len(df_thick_missing_aper)} thick elements miss associated aperture (upstream or downstream):')
+        _print(pformat(list(df_thick_missing_aper.name)))
 
         return elements_df
+
+    def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
+            mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
+            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
+            linear_rescale_on_knobs=None,
+            keep_fft=True):
+
+        '''
+        Compute the tune footprint for a beam with given emittences using tracking.
+
+        Parameters
+        ----------
+
+        nemitt_x : float
+            Normalized emittance in the x-plane.
+        nemitt_y : float
+            Normalized emittance in the y-plane.
+        n_turns : int
+            Number of turns for tracking.
+        n_fft : int
+            Number of points for FFT (tracking data is zero-padded to this length).
+        mode : str
+            Mode for computing footprint. Options are 'polar' and 'uniform_action_grid'.
+            In 'polar' mode, the footprint is computed on a polar grid with
+            r_range and theta_range specifying the range of r and theta values (
+            polar coordinates in the x_norm, y_norm plane).
+            In 'uniform_action_grid' mode, the footprint is computed on a uniform
+            grid in the action space (Jx, Jy).
+        r_range : tuple of floats
+            Range of r values for footprint in polar mode. Default is (0.1, 6) sigmas.
+        theta_range : tuple of floats
+            Range of theta values for footprint in polar mode. Default is
+            (0.05, pi / 2 - 0.05) radians.
+        n_r : int
+            Number of r values for footprint in polar mode. Default is 10.
+        n_theta : int
+            Number of theta values for footprint in polar mode. Default is 10.
+        x_norm_range : tuple of floats
+            Range of x_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        y_norm_range : tuple of floats
+            Range of y_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        n_x_norm : int
+            Number of x_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        n_y_norm : int
+            Number of y_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        linear_rescale_on_knobs: list of xt.LinearRescale
+            Detuning from listed knobs is evaluated at a given value of the knob
+            with the provided step and rescaled to the actual knob value.
+            This is useful to avoid artefact from linear coupling or resonances.
+            Example:
+                ``line.get_footprint(..., linear_rescale_on_knobs=[
+                    xt.LinearRescale(knob_name='beambeam_scale', v0=0, dv-0.1)])``
+
+        Returns
+        -------
+        fp : Footprint
+            Footprint object containing footprint data (fp.qx, fp.qy).
+
+        '''
+
+        kwargs = locals()
+        kwargs.pop('self')
+        kwargs.pop('linear_rescale_on_knobs')
+
+        if linear_rescale_on_knobs:
+            fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
+                        linear_rescale_on_knobs=linear_rescale_on_knobs)
+        else:
+            fp = Footprint(**kwargs)
+            fp._compute_footprint(self)
+
+        return fp
 
 
 mathfunctions = type('math', (), {})

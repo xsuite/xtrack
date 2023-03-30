@@ -12,6 +12,8 @@ from ..tracker import Tracker
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
 
+from ..general import _print
+
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -43,8 +45,9 @@ class LossLocationRefinement:
         temp_poly = LimitPolygon(_buffer=self.tracker._tracker_data._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
-        temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]), z_in=na([0]),
-                                   x_out=na([2]), y_out=na([2]), z_out=na([0]))
+        temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]),
+                                          z_in=na([0]), x_out=na([2]),
+                                          y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
         trk_gen = Tracker(_buffer=self.tracker._tracker_data._buffer,
@@ -385,7 +388,7 @@ def find_previous_drift(tracker, i_aperture):
     while not(found):
         ee = line.element_dict[line.element_names[ii]]
         ccnn = ee.__class__.__name__
-        #print(ccnn)
+        #_print(ccnn)
         if ccnn == 'Drift':
             found = True
         elif _behaves_like_drift(ee):
@@ -473,4 +476,3 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
                               _buffer=buffer_for_poly)
 
     return polygon, i_start
-

@@ -1,4 +1,5 @@
 from xtrack.pipeline.core import PipelineID, PipelineCommunicator
+from xtrack.general import _print
 
 class PipelineManager:
     def __init__(self,communicator = None):
@@ -40,7 +41,7 @@ class PipelineManager:
     def get_message_tag(self,element_name,sender_name,reciever_name,internal_tag=0):
         tag = self._elements[element_name] + len(self._elements)*self._IDs[sender_name].number + len(self._elements)*len(self._IDs)*self._IDs[reciever_name].number + len(self._elements)*len(self._IDs)*len(self._IDs)*internal_tag
         #if tag > self._max_tag:
-        #    print(f'PyPLINEDElement WARNING {self.name}: MPI message tag {tag} is larger than max ({self._max_tag})')
+        #    _print(f'PyPLINEDElement WARNING {self.name}: MPI message tag {tag} is larger than max ({self._max_tag})')
         return tag
 
     #
@@ -56,11 +57,11 @@ class PipelineManager:
             return True
         if turn <= self._last_request_turn[key]:
             if self.verbose:
-                print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} has already sent a message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} at turn {turn} with tag {tag}')
+                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} has already sent a message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} at turn {turn} with tag {tag}')
             return False
         if not self._pending_requests[key].Test():
             if self.verbose:
-                print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} with tag {tag} was not receviced yet')
+                _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} previous message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} with tag {tag} was not receviced yet')
             return False
         return True
 
@@ -69,18 +70,18 @@ class PipelineManager:
         key = self.get_message_key(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,tag=tag)
         self._last_request_turn[key] = turn
         if self.verbose:
-            print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} sending message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} at turn {turn} with tag {tag}')
+            _print(f'Pipeline manager {element_name}: {sender_name} at rank {self.get_particles_rank(sender_name)} sending message to {reciever_name} at rank {self.get_particles_rank(reciever_name)} at turn {turn} with tag {tag}')
         self._pending_requests[key] = self._communicator.Issend(send_buffer,dest=self.get_particles_rank(reciever_name),tag=tag)
 
     def is_ready_to_recieve(self,element_name,sender_name,reciever_name,internal_tag=0):
         tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
         is_ready = self._communicator.Iprobe(source=self.get_particles_rank(sender_name), tag=tag)
         if self.verbose and not is_ready:
-            print(f'Pipeline manager {element_name}: {reciever_name} at rank {self.get_particles_rank(reciever_name)} is not ready to recieve from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
+            _print(f'Pipeline manager {element_name}: {reciever_name} at rank {self.get_particles_rank(reciever_name)} is not ready to recieve from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
         return is_ready
 
     def recieve_message(self,recieve_buffer,element_name,sender_name,reciever_name,internal_tag=0):
         tag = self.get_message_tag(element_name=element_name,sender_name=sender_name,reciever_name=reciever_name,internal_tag=internal_tag)
         if self.verbose:
-            print(f'Pipeline manager {element_name}: {reciever_name} at rank {self.get_particles_rank(reciever_name)} recieving from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
+            _print(f'Pipeline manager {element_name}: {reciever_name} at rank {self.get_particles_rank(reciever_name)} recieving from {sender_name} at rank {self.get_particles_rank(sender_name)} with tag {tag}')
         self._communicator.Recv(recieve_buffer,source=self.get_particles_rank(sender_name),tag=tag)

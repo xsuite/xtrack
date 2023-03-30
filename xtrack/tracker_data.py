@@ -6,6 +6,9 @@
 from typing import Tuple
 
 import xobjects as xo
+from .general import _print
+
+from xobjects.struct import Struct, MetaStruct
 
 from .line import Line, mk_class_namespace
 
@@ -24,9 +27,10 @@ class SerializationHeader(xo.Struct):
 class TrackerData:
     @staticmethod
     def generate_element_ref_data(element_ref_class) -> 'ElementRefData':
-        class ElementRefData(xo.Struct):
+        class ElementRefData(Struct):
             elements = element_ref_class[:]
             names = xo.String[:]
+            _overridable = False
 
         return ElementRefData
 
@@ -202,7 +206,7 @@ class TrackerData:
         elements = element_ref_data.elements
         names = element_ref_data.names
         for ii, elem in enumerate(elements):
-            print('Loading line from binary: '
+            _print('Loading line from binary: '
                 f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
             name = names[ii]
             if name in element_dict:

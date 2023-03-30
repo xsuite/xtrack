@@ -54,7 +54,10 @@ class Multiline:
                 if nn == 'dataframes':
                     dct['_bb_config'][nn] = {}
                     for kk, vv in vv.items():
-                        dct['_bb_config'][nn][kk] = vv.to_dict()
+                        if vv is not None:
+                            dct['_bb_config'][nn][kk] = vv.to_dict()
+                        else:
+                            dct['_bb_config'][nn][kk] = None
                 else:
                     dct['_bb_config'][nn] = vv
         return dct
@@ -91,8 +94,12 @@ class Multiline:
         if '_bb_config' in dct:
             new_multiline._bb_config = dct['_bb_config']
             for nn, vv in dct['_bb_config']['dataframes'].items():
+                if vv is not None:
+                    df = pd.DataFrame(vv)
+                else:
+                    df = None
                 new_multiline._bb_config[
-                    'dataframes'][nn] = pd.DataFrame(vv)
+                    'dataframes'][nn] = df
 
         return new_multiline
 
@@ -219,18 +226,18 @@ class Multiline:
         for nn, ll in self.lines.items():
             ll.unfreeze()
 
-        circumference = self.lines[clockwise_line].get_length()
-        assert np.isclose(circumference,
-                    self.lines[anticlockwise_line].get_length(),
-                    atol=1e-4, rtol=0)
+        if clockwise_line is not None and anticlockwise_line is not None:
+            circumference_cw = self.lines[clockwise_line].get_length()
+            circumference_acw = self.lines[anticlockwise_line].get_length()
+            assert np.isclose(circumference_cw, circumference_acw,
+                              atol=1e-4, rtol=0)
 
         bb_df_cw, bb_df_acw = xf.install_beambeam_elements_in_lines(
-            line_b1=self.lines[clockwise_line],
-            line_b4=self.lines[anticlockwise_line],
+            line_b1=self.lines.get(clockwise_line, None),
+            line_b4=self.lines.get(anticlockwise_line, None),
             ip_names=ip_names,
             num_long_range_encounters_per_side=num_long_range_encounters_per_side,
             num_slices_head_on=num_slices_head_on,
-            circumference=circumference,
             harmonic_number=harmonic_number,
             bunch_spacing_buckets=bunch_spacing_buckets,
             sigmaz_m=sigmaz)
@@ -246,7 +253,9 @@ class Multiline:
         }
 
     def configure_beambeam_interactions(self, num_particles,
-                                    nemitt_x, nemitt_y, crab_strong_beam=True):
+                                    nemitt_x, nemitt_y, crab_strong_beam=True,
+                                    use_antisymmetry=False,
+                                    separation_bumps=None):
 
         '''
         Configure the beam-beam elements in the lines.
@@ -261,22 +270,45 @@ class Multiline:
             The normalized emittance in the vertical plane.
         crab_strong_beam: bool
             If True, crabbing of the strong beam is taken into account.
+        use_antisymmetry: bool
+            If True, the antisymmetry of the optics and orbit is used to compute
+            the momenta of the beam-beam interaction (in the absence of the
+            counter-rotating beam)
+        separation_bumps: dict
+            Dictionary previding the plane of the separation bump in the IPs
+            where separation is present. The keys are the IP names and the
+            values are the plane ("x" or "y"). This information needs to be 
+            provided only when use_antisymmetry is True.
 
         '''
 
+        if self._bb_config['dataframes']['clockwise'] is not None:
+            bb_df_cw = self._bb_config['dataframes']['clockwise'].copy()
+        else:
+            bb_df_cw = None
+
+        if self._bb_config['dataframes']['anticlockwise'] is not None:
+            bb_df_acw = self._bb_config['dataframes']['anticlockwise'].copy()
+        else:
+            bb_df_acw = None
+
         xf.configure_beam_beam_elements(
-            bb_df_cw=self._bb_config['dataframes']['clockwise'].copy(),
-            bb_df_acw=self._bb_config['dataframes']['anticlockwise'].copy(),
-            tracker_cw=self.lines[self._bb_config['clockwise_line']].tracker,
-            tracker_acw=self.lines[self._bb_config['anticlockwise_line']].tracker,
+            bb_df_cw=bb_df_cw,
+            bb_df_acw=bb_df_acw,
+            line_cw=self.lines.get(self._bb_config['clockwise_line'], None),
+            line_acw=self.lines.get(self._bb_config['anticlockwise_line'], None),
             num_particles=num_particles,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             crab_strong_beam=crab_strong_beam,
-            ip_names=self._bb_config['ip_names'])
+            ip_names=self._bb_config['ip_names'],
+            use_antisymmetry=use_antisymmetry,
+            separation_bumps=separation_bumps)
 
         self.vars['beambeam_scale'] = 1.0
 
         for nn in ['clockwise', 'anticlockwise']:
+            if self._bb_config[f'{nn}_line'] is  None: continue
+
             line = self.lines[self._bb_config[f'{nn}_line']]
             df = self._bb_config['dataframes'][nn]
 

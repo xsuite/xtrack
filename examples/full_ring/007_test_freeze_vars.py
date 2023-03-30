@@ -47,7 +47,7 @@ line.particle_ref = xp.Particles(**input_data['particle'])
 # Build Tracker #
 #################
 print('Build tracker...')
-freeze_vars = xp.particles.part_energy_varnames() + ['zeta']
+freeze_vars = xp.Particles.part_energy_varnames() + ['zeta']
 line.build_tracker(_context=context)
 
 line.freeze_longitudinal()

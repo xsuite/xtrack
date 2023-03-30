@@ -55,7 +55,7 @@ def _monitor_init(
         n_records = n_turns * n_part_ids * n_repetitions
 
         data_init = {nn: n_records for tt, nn in
-                        self._ParticlesClass._structure["per_particle_vars"]}
+                        self._ParticlesClass.per_particle_vars}
 
         self.xoinitialize(
             _context=_context,
@@ -76,7 +76,7 @@ def _monitor_init(
         self.auto_to_numpy = auto_to_numpy
 
         with self.data._bypass_linked_vars():
-            for tt, nn in self._ParticlesClass._structure["per_particle_vars"]:
+            for tt, nn in self._ParticlesClass.per_particle_vars:
                 getattr(self.data, nn)[:] = 0
 
 class _FieldOfMonitor:
@@ -137,7 +137,7 @@ def generate_monitor_class(ParticlesClass):
     ParticlesMonitorClass.behaves_like_drift = True
     ParticlesMonitorClass.allow_backtrack = True
 
-    per_particle_vars = ParticlesClass._structure["per_particle_vars"]
+    per_particle_vars = ParticlesClass.per_particle_vars
     for tt, nn in per_particle_vars:
         setattr(ParticlesMonitorClass, nn, _FieldOfMonitor(name=nn))
 

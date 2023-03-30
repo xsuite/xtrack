@@ -9,6 +9,8 @@ from pathlib import Path
 from pprint import pformat
 from typing import Iterator, Optional, Tuple
 
+from .general import _print
+
 import numpy as np
 
 import xobjects as xo
@@ -149,7 +151,7 @@ def get_suitable_kernel(
     env_var = os.environ.get("XSUITE_PREBUILT_KERNELS")
     if env_var and env_var == '0':
         if verbose:
-            print('Skipping the search for a suitable kernel, as the '
+            _print('Skipping the search for a suitable kernel, as the '
                   'environment variable XSUITE_PREBUILT_KERNELS == "0".')
         return
 
@@ -159,7 +161,7 @@ def get_suitable_kernel(
 
     for module_name, kernel_metadata in enumerate_kernels():
         if verbose:
-            print(f"==> Considering the precompiled kernel `{module_name}`...")
+            _print(f"==> Considering the precompiled kernel `{module_name}`...")
 
         available_classes_names = kernel_metadata['classes']
         if kernel_metadata['config'] != config:
@@ -169,32 +171,32 @@ def get_suitable_kernel(
                 config_diff = {kk: (lhs.get(kk), rhs.get(kk))
                                for kk in set(lhs.keys()) | set(rhs.keys())
                                if lhs.get(kk) != rhs.get(kk)}
-                print(f'The kernel `{module_name}` is unsuitable. Its config '
+                _print(f'The kernel `{module_name}` is unsuitable. Its config '
                       f'(left) and the requested one (right) differ at the '
                       f'following keys:\n'
                       f'{pformat(config_diff)}')
-                print(f'Skipping class compatibility check for `{module_name}`.')
+                _print(f'Skipping class compatibility check for `{module_name}`.')
 
             continue
 
         if verbose:
-            print(f'The kernel `{module_name}` has the right config.')
+            _print(f'The kernel `{module_name}` has the right config.')
 
         if set(requested_class_names) <= set(available_classes_names):
             available_classes = [
                 get_element_class_by_name(class_name)
                 for class_name in available_classes_names
             ]
-            print(f'Found suitable prebuilt kernel `{module_name}`.')
+            _print(f'Found suitable prebuilt kernel `{module_name}`.')
             return module_name, available_classes
         elif verbose:
             class_diff = set(requested_class_names) - set(available_classes_names)
-            print(f'The kernel `{module_name}` is unsuitable. It does not '
+            _print(f'The kernel `{module_name}` is unsuitable. It does not '
                   f'provide the following requested classes: '
                   f'{", ".join(class_diff)}.')
 
     if verbose:
-        print('==> No suitable precompiled kernel found.')
+        _print('==> No suitable precompiled kernel found.')
 
 
 def regenerate_kernels():

@@ -5,14 +5,16 @@
 
 import numpy as np
 
+from .general import _print
+
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
 DEFAULT_MATRIX_STABILITY_TOL = 1e-3
 
 def healy_symplectify(M):
     # https://accelconf.web.cern.ch/e06/PAPERS/WEPCH152.PDF
-    #print("Symplectifying linear One-Turn-Map...")
+    #_print("Symplectifying linear One-Turn-Map...")
 
-    #print("Before symplectifying: det(M) = {}".format(np.linalg.det(M)))
+    #_print("Before symplectifying: det(M) = {}".format(np.linalg.det(M)))
     I = np.identity(6)
 
     S = np.array(
@@ -32,14 +34,14 @@ def healy_symplectify(M):
         M_new = np.matmul(I + np.matmul(S, W),
                           np.linalg.inv(I - np.matmul(S, W)))
     else:
-        print("WARNING: det(I - SW) = 0!")
+        _print("WARNING: det(I - SW) = 0!")
         V_else = np.matmul(S, np.matmul(I + M, np.linalg.inv(I - M)))
         W_else = (V_else + V_else.T) / 2
         M_new = -np.matmul(
             I + np.matmul(S, W_else), np.linalg.det(I - np.matmul(S, W_else))
         )
 
-    #print("After symplectifying: det(M) = {}".format(np.linalg.det(M_new)))
+    #_print("After symplectifying: det(M) = {}".format(np.linalg.det(M_new)))
     return M_new
 
 S = np.array([[0., 1., 0., 0., 0., 0.],

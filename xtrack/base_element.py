@@ -170,13 +170,13 @@ class MetaBeamElement(xo.MetaHybridClass):
                 local_particle_function_name=name+'_track_local_particle'))
 
         # Add dependency on Particles class
-        depends_on.append(xp.Particles._XoStruct)
+        depends_on.append(xp.ParticlesBase._XoStruct)
 
         # Define track kernel
         track_kernel_name = f'{name}_track_particles'
         kernels[track_kernel_name] = xo.Kernel(
                     args=[xo.Arg(xo.ThisClass, name='el'),
-                        xo.Arg(xp.Particles._XoStruct, name='particles'),
+                        xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
                         xo.Arg(xo.Int64, name='flag_increment_at_element'),
                         xo.Arg(xo.Int8, pointer=True, name="io_buffer")]
                     )
@@ -189,16 +189,17 @@ class MetaBeamElement(xo.MetaHybridClass):
                         element_name=name, kernel_name=nn,
                         local_particle_function_name=kk.c_name,
                         additional_args=kk.args))
-                if xp.Particles._XoStruct not in depends_on:
-                    depends_on.append(xp.Particles._XoStruct)
+                if xp.ParticlesBase._XoStruct not in depends_on:
+                    depends_on.append(xp.ParticlesBase._XoStruct)
 
                 kernels.update(
-                    {nn:
-                        xo.Kernel(args=[xo.Arg(xo.ThisClass, name='el'),
-                            xo.Arg(xp.Particles._XoStruct, name='particles')]
-                            + kk.args + [
-                            xo.Arg(xo.Int64, name='flag_increment_at_element'),
-                            xo.Arg(xo.Int8, pointer=True, name="io_buffer")])}
+                    {nn: xo.Kernel(args=[
+                        xo.Arg(xo.ThisClass, name='el'),
+                        xo.Arg(xp.ParticlesBase._XoStruct, name='particles'),
+                        *kk.args,
+                        xo.Arg(xo.Int64, name='flag_increment_at_element'),
+                        xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
+                    ])}
                 )
 
 
@@ -216,10 +217,14 @@ class MetaBeamElement(xo.MetaHybridClass):
 
         # Attach methods corresponding to per-particle kernels
         if '_per_particle_kernels' in data.keys():
-            for nn in data['_per_particle_kernels'].keys():
-                setattr(new_class, nn, PerParticlePyMethodDescriptor(kernel_name=nn))
+            for nn, desc in data['_per_particle_kernels'].items():
+                setattr(new_class, nn, PerParticlePyMethodDescriptor(
+                    kernel_name=nn,
+                    additional_arg_names=tuple(arg.name for arg in desc.args),
+                ))
 
         return new_class
+
 
 class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
@@ -229,39 +234,51 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_backtrack = False
     skip_in_loss_location_refinement = False
 
-    def init_pipeline(self,pipeline_manager,name,partners_names=[]):
+    def __init__(self, *args, **kwargs):
+        xo.HybridClass.__init__(self, *args, **kwargs)
+
+    def init_pipeline(self, pipeline_manager, name, partners_names=[]):
         self._pipeline_manager = pipeline_manager
         self.name = name
         self.partners_names = partners_names
 
-    def compile_kernels(self, *args, **kwargs):
-
+    def compile_kernels(self, particles_class, *args, **kwargs):
         if 'apply_to_source' not in kwargs.keys():
             kwargs['apply_to_source'] = []
         kwargs['apply_to_source'].append(
             partial(_handle_per_particle_blocks,
-                    local_particle_src=xp.gen_local_particle_api()))
-
-        xo.HybridClass.compile_kernels(self, *args, **kwargs)
-
+                    local_particle_src=particles_class.gen_local_particle_api()))
+        xo.HybridClass.compile_kernels(self,
+                                       extra_classes=[particles_class._XoStruct],
+                                       *args, **kwargs)
 
     def track(self, particles, increment_at_element=False):
-
         context = self._buffer.context
-        if not hasattr(self, '_track_kernel'):
-            if self._track_kernel_name not in context.kernels.keys():
-                self.compile_kernels()
-            self._track_kernel = context.kernels[self._track_kernel_name]
+
+        desired_classes = (
+            self._XoStruct,  # el
+            particles._XoStruct,  # particles
+        )
+
+        if (self._track_kernel_name, desired_classes) not in context.kernels:
+            self.compile_kernels(particles_class=particles.__class__)
+
+        _track_kernel = context.kernels[(self._track_kernel_name,
+                                         desired_classes)]
 
         if hasattr(self, 'io_buffer') and self.io_buffer is not None:
             io_buffer_arr = self.io_buffer.buffer
         else:
-            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
+            io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
 
-        self._track_kernel.description.n_threads = particles._capacity
-        self._track_kernel(el=self._xobject, particles=particles,
-                           flag_increment_at_element=increment_at_element,
-                           io_buffer=io_buffer_arr)
+        _track_kernel.description.n_threads = particles._capacity
+        _track_kernel(el=self._xobject, particles=particles,
+                      flag_increment_at_element=increment_at_element,
+                      io_buffer=io_buffer_arr)
+
+    @property
+    def context(self):
+        return self._buffer.context
 
     def _arr2ctx(self, arr):
         ctx = self._buffer.context
@@ -284,35 +301,43 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
 
 class PerParticlePyMethod:
 
-    def __init__(self, kernel, element):
-        self.kernel = kernel
+    def __init__(self, kernel_name, element, additional_arg_names):
+        self.kernel_name = kernel_name
         self.element = element
+        self.additional_arg_names = additional_arg_names
 
     def __call__(self, particles, increment_at_element=False, **kwargs):
+        instance = self.element
+        context = instance.context
+
+        desired_classes = (self.element._XoStruct,  # el
+                           particles._XoStruct)  # part0
+
+        if (self.kernel_name, desired_classes) not in context.kernels:
+            instance.compile_kernels(particles_class=particles.__class__)
+
+        kernel = context.kernels[(self.kernel_name, desired_classes)]
 
         if hasattr(self.element, 'io_buffer') and self.element.io_buffer is not None:
             io_buffer_arr = self.element.io_buffer.buffer
         else:
-            context = self.kernel.context
-            io_buffer_arr=context.zeros(1, dtype=np.int8) # dummy
+            context = kernel.context
+            io_buffer_arr = context.zeros(1, dtype=np.int8)  # dummy
 
-        self.kernel.description.n_threads = particles._capacity
-        self.kernel(el=self.element._xobject, particles=particles,
-                           flag_increment_at_element=increment_at_element,
-                           io_buffer=io_buffer_arr,
-                           **kwargs)
+        kernel.description.n_threads = particles._capacity
+        kernel(el=self.element._xobject,
+               particles=particles,
+               flag_increment_at_element=increment_at_element,
+               io_buffer=io_buffer_arr,
+               **kwargs)
+
 
 class PerParticlePyMethodDescriptor:
-
-    def __init__(self, kernel_name):
+    def __init__(self, kernel_name, additional_arg_names):
         self.kernel_name = kernel_name
+        self.additional_arg_names = additional_arg_names
 
     def __get__(self, instance, owner):
-        context = instance._buffer.context
-        if not hasattr(instance, '_track_kernel'):
-            if instance._track_kernel_name not in context.kernels.keys():
-                instance.compile_kernels()
-            instance._track_kernel = context.kernels[instance._track_kernel_name]
-
-        return PerParticlePyMethod(kernel=context.kernels[self.kernel_name],
-                                 element=instance)
+        return PerParticlePyMethod(kernel_name=self.kernel_name,
+                                   element=instance,
+                                   additional_arg_names=self.additional_arg_names)
