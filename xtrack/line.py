@@ -1048,19 +1048,19 @@ class Line:
         if verbose: _print("Rebuild tracker data")
         tracker_data = xt.tracker_data.TrackerData(
             line=self,
-            extra_element_classes=(self.particles_monitor_class._XoStruct,),
+            extra_element_classes=(self.tracker.particles_monitor_class._XoStruct,),
             _buffer=self._buffer)
 
         self._freeze()
 
-        self._tracker_data = tracker_data
-        self.element_classes = tracker_data.element_classes
-        self.num_elements = len(tracker_data.elements)
+        self.tracker._tracker_data = tracker_data
+        self.tracker._element_classes = tracker_data.element_classes
+        self.tracker.num_elements = len(tracker_data.elements)
 
         self.use_prebuilt_kernels = False
 
         if compile:
-            _ = self._current_track_kernel # This triggers compilation
+            _ = self.tracker._current_track_kernel # This triggers compilation
 
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):

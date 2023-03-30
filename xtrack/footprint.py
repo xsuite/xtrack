@@ -14,7 +14,6 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
 
         assert len(linear_rescale_on_knobs) == 1, (
             'Only one linear rescale is supported for now')
-        from xtrack.tracker import _temp_knobs
 
         knobs_0 = {}
         for rr in linear_rescale_on_knobs:
@@ -22,7 +21,7 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
             v0 = rr.v0
             knobs_0[nn] = v0
 
-        with _temp_knobs(line, knobs_0):
+        with xt._temp_knobs(line, knobs_0):
             fp = line.get_footprint(**kwargs)
 
         _fp0_ref = fp.__dict__.copy() # for debugging

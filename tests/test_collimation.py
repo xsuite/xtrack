@@ -186,7 +186,6 @@ def test_aperture_refinement():
     t1 = time.time()
     print(f'Took\t{(t1-t0)*1e3:.2f} ms')
 
-
     # Automatic checks
     mask_lost = particles.state == 0
     r_calc = np.sqrt((particles.x-shift_x)**2 + (particles.y-shift_y)**2)
