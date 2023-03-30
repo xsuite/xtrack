@@ -31,6 +31,8 @@ from .beam_elements import element_classes
 from . import beam_elements
 from .beam_elements import Drift, BeamElement, Marker, Multipole
 from .footprint import Footprint, _footprint_with_linear_rescale
+from .internal_record import (start_internal_logging_for_elements_of_type,
+                              stop_internal_logging_for_elements_of_type)
 
 from .general import _print
 
@@ -1059,6 +1061,24 @@ class Line:
 
         if compile:
             _ = self._current_track_kernel # This triggers compilation
+
+    def start_internal_logging_for_elements_of_type(self,
+                                                    element_type, capacity):
+        """
+        Start internal logging for all elements of a given type.
+        See corresponding section is the Xsuite User's guide.
+        """
+        self._check_valid_tracker()
+        return start_internal_logging_for_elements_of_type(self.tracker,
+                                                    element_type, capacity)
+
+    def stop_internal_logging_for_elements_of_type(self, element_type):
+        """
+        Stop internal logging for all elements of a given type.
+        See corresponding section is the Xsuite User's guide.
+        """
+        self._check_valid_tracker()
+        stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
     def remove_markers(self, inplace=True, keep=None):
         '''

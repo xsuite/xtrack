@@ -19,9 +19,7 @@ from .general import _print
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
 from .general import _pkg_root
-from .internal_record import (new_io_buffer,
-                              start_internal_logging_for_elements_of_type,
-                              stop_internal_logging_for_elements_of_type)
+from .internal_record import new_io_buffer
 from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
 from .tracker_data import TrackerData
@@ -1297,22 +1295,7 @@ class Tracker:
 
         return flag_monitor, monitor, buffer_monitor, offset_monitor
 
-    def start_internal_logging_for_elements_of_type(self,
-                                                    element_type, capacity):
-        """
-        Start internal logging for all elements of a given type.
-        See corresponding section is the Xsuite User's guide.
-        """
-        return start_internal_logging_for_elements_of_type(self,
-                                                    element_type, capacity)
 
-    def stop_internal_logging_for_elements_of_type(self, element_type):
-        """
-        Stop internal logging for all elements of a given type.
-        See corresponding section is the Xsuite User's guide.
-        """
-        self._check_invalidated()
-        stop_internal_logging_for_elements_of_type(self, element_type)
 
     def to_binary_file(self, path):
         try:

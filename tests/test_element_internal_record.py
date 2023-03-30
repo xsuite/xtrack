@@ -406,7 +406,7 @@ def test_record_multiple_tables(test_context):
     elements[0].iscollective = True
     line = xt.Line(elements=elements)
     line.build_tracker(_context=test_context)
-    line.line._needs_rng = True
+    line._needs_rng = True
 
     record = line.start_internal_logging_for_elements_of_type(
                                         TestElement,

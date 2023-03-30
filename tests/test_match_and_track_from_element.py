@@ -25,7 +25,7 @@ def test_match_and_track_from_element(test_context):
     line = xt.Line.from_dict(input_data['line'])
     line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
     assert not line.iscollective
-    line.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
     # Check matching of a one-sigma circle in ip2
     r_sigma = 1
@@ -48,10 +48,10 @@ def test_match_and_track_from_element(test_context):
     # Check that tracking starts from the right place
     line.track(particles, turn_by_turn_monitor='ONE_TURN_EBE')
     mon = line.record_last_track
-    i_ele_start = line.line.element_names.index(at_element)
+    i_ele_start = line.element_names.index(at_element)
     assert np.all(mon.at_element[:, :i_ele_start] == 0)
     assert np.all(mon.at_element[:, i_ele_start] == i_ele_start)
-    assert np.all(mon.at_element[:, -1] == len(line.line.element_names))
+    assert np.all(mon.at_element[:, -1] == len(line.element_names))
 
     # Check that distribution is matched at the end of the turn
     tw0 = line.twiss(at_elements=[0])
