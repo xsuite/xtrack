@@ -93,8 +93,8 @@ def test_match_and_track_from_element(test_context):
     line_w_collective.build_tracker(_context=test_context,
                                     reset_s_at_end_turn=False)
     assert line_w_collective.iscollective
-    line_w_collective.line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-    assert len(line_w_collective._parts) == 16
+    line_w_collective.particle_ref = xp.Particles.from_dict(input_data['particle'])
+    assert len(line_w_collective.tracker._parts) == 16
 
     at_element = 'ip2'
     particles = line_w_collective.build_particles(

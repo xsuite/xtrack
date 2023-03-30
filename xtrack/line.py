@@ -23,7 +23,7 @@ import xtrack as xt
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line)
-from .match import match_tracker, closed_orbit_correction
+from .match import match_line, closed_orbit_correction
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -463,12 +463,12 @@ class Line:
         Change a set of knobs in the beamline in order to match assigned targets.
         See corresponding section is the Xsuite User's guide.
         '''
-        return match_tracker(self.tracker, vary, targets, **kwargs)
+        return match_line(self, vary, targets, **kwargs)
 
     def correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
 
-        closed_orbit_correction(self.tracker, reference, correction_config,
+        closed_orbit_correction(self, reference, correction_config,
                                 solver=solver, verbose=verbose,
                                 restore_if_fail=restore_if_fail)
 
@@ -1497,6 +1497,12 @@ class Line:
             return self
         else:
             return newline
+
+    def get_backtracker(self, *args, **kwargs):
+
+        self._check_valid_tracker()
+        backtracker = self.tracker.get_backtracker(*args, **kwargs)
+        return backtracker.line
 
     def _freeze(self):
         self.element_names = tuple(self.element_names)

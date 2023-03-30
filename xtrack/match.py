@@ -17,15 +17,15 @@ class OrbitOnly:
         self.zeta = zeta
         self.delta = delta
 
-def _error_for_match(knob_values, vary, targets, tracker, return_scalar,
+def _error_for_match(knob_values, vary, targets, line, return_scalar,
                      call_counter, verbose, tw_kwargs):
 
     _print(f"Matching: twiss call n. {call_counter['n']}       ", end='\r', flush=True)
     call_counter['n'] += 1
 
     for kk, vv in zip(vary, knob_values):
-        tracker.vars[kk.name] = vv
-    tw = tracker.twiss(**tw_kwargs)
+        line.vars[kk.name] = vv
+    tw = line.twiss(**tw_kwargs)
 
     res_values = []
     target_values = []
@@ -98,7 +98,7 @@ class Target:
         self.at = at
         self.scale = scale
 
-def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
+def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 
     if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None:
@@ -107,14 +107,14 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
             'ele_start must be provided if twiss_init is provided')
         if isinstance(twiss_init, OrbitOnly):
             if not isinstance(kwargs['ele_start'], str):
-                element_name = tracker.line.element_names[kwargs['ele_start']]
+                element_name = line.element_names[kwargs['ele_start']]
             else:
                 element_name = kwargs['ele_start']
-            particle_on_co=tracker.build_particles(
+            particle_on_co=line.build_particles(
                 x=twiss_init.x, px=twiss_init.px,
                 y=twiss_init.y, py=twiss_init.py,
                 zeta=twiss_init.zeta, delta=twiss_init.delta)
-            particle_on_co.at_element = tracker.line.element_names.index(
+            particle_on_co.at_element = line.line.element_names.index(
                                                                 element_name)
             kwargs['twiss_init'] = TwissInit(
                 particle_on_co=particle_on_co,
@@ -174,9 +174,9 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
     call_counter = {'n': 0}
     _err = partial(_error_for_match, vary=vary, targets=targets,
                 call_counter=call_counter, verbose=verbose,
-                tracker=tracker, return_scalar=return_scalar, tw_kwargs=kwargs)
+                line=line, return_scalar=return_scalar, tw_kwargs=kwargs)
     _jac= partial(_jacobian, steps=steps, fun=_err)
-    x0 = [tracker.vars[vv.name]._value for vv in vary]
+    x0 = [line.vars[vv.name]._value for vv in vary]
     try:
         if solver == 'fsolve':
             (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(),
@@ -217,23 +217,23 @@ def match_tracker(tracker, vary, targets, restore_if_fail=True, solver=None,
             if not info['success']:
                 raise RuntimeError("jacobian failed: %s" % info['message'])
         for vv, rr in zip(vary, res):
-            tracker.vars[vv.name] = rr
+            line.vars[vv.name] = rr
     except Exception as err:
         if restore_if_fail:
             for ii, rr in enumerate(vary):
-                tracker.vars[rr] = x0[ii]
+                line.vars[rr] = x0[ii]
         _print('\n')
         raise err
     _print('\n')
     return result_info
 
-def closed_orbit_correction(tracker, tracker_co_ref, correction_config,
+def closed_orbit_correction(line, line_co_ref, correction_config,
                             solver=None, verbose=False, restore_if_fail=True):
 
     for corr_name, corr in correction_config.items():
         _print('Correcting', corr_name)
-        with xt.tracker._temp_knobs(tracker, corr['ref_with_knobs']):
-            tw_ref = tracker_co_ref.twiss(method='4d', zeta0=0, delta0=0)
+        with xt.line._temp_knobs(line, corr['ref_with_knobs']):
+            tw_ref = line_co_ref.twiss(method='4d', zeta0=0, delta0=0)
         vary = [xt.Vary(vv, step=1e-9) for vv in corr['vary']]
         targets = []
         for tt in corr['targets']:
@@ -241,7 +241,7 @@ def closed_orbit_correction(tracker, tracker_co_ref, correction_config,
             for kk in ['x', 'px', 'y', 'py']:
                 targets.append(xt.Target(kk, at=tt, value=tw_ref[kk, tt], tol=1e-9))
 
-        tracker.match(
+        line.match(
             solver=solver,
             verbose=verbose,
             restore_if_fail=restore_if_fail,
