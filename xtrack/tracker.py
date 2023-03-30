@@ -7,7 +7,7 @@ from time import perf_counter
 from typing import Literal, Union
 import logging
 from functools import partial
-from collections import UserDict
+from collections import UserDict, defaultdict
 
 import numpy as np
 import xobjects as xo
@@ -172,15 +172,18 @@ class Tracker:
         part_names = []
         _element_part = []
         _element_index_in_part=[]
+        _part_element_index = defaultdict(list)
         this_part = Line(elements=[], element_names=[])
         ii_in_part = 0
         i_part = 0
+        idx = 0
         for nn, ee in zip(line.element_names, line.elements):
             if not _check_is_collective(ee):
                 this_part.append_element(ee, nn)
                 _element_part.append(i_part)
                 _element_index_in_part.append(ii_in_part)
                 ii_in_part += 1
+                _part_element_index[i_part].append(idx)
             else:
                 if len(this_part.elements) > 0:
                     parts.append(this_part)
@@ -190,9 +193,11 @@ class Tracker:
                 part_names.append(nn)
                 _element_part.append(i_part)
                 _element_index_in_part.append(None)
+                _part_element_index[i_part].append(idx)
                 i_part += 1
                 this_part = Line(elements=[], element_names=[])
                 ii_in_part = 0
+            idx += 1
         if len(this_part.elements) > 0:
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
@@ -201,14 +206,6 @@ class Tracker:
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if isinstance(pp, Line):
-                tempxtline = TrackerData(
-                    _buffer=_buffer,
-                    element_classes=element_classes,
-                    extra_element_classes=(particles_monitor_class._XoStruct,),
-                    line=pp)
-                pp.element_dict = dict(zip(
-                    tempxtline.element_names, tempxtline.elements))
-                pp.element_names = tempxtline.element_names
                 noncollective_xelements += pp.elements
             else:
                 if _is_thick(pp):
@@ -240,19 +237,13 @@ class Tracker:
         # Build trackers for non-collective parts
         for ii, pp in enumerate(parts):
             if isinstance(pp, Line):
-                parts[ii] = Tracker(_buffer=_buffer,
-                                    line=pp,
-                                    element_classes=supertracker.element_classes,
-                                    track_kernel=supertracker.track_kernel,
-                                    particles_class=particles_class,
-                                    particles_monitor_class=particles_monitor_class,
-                                    global_xy_limit=global_xy_limit,
-                                    extra_headers=extra_headers,
-                                    local_particle_src=local_particle_src,
-                                    skip_end_turn_actions=True,
-                                    io_buffer=self.io_buffer,
-                                    use_prebuilt_kernels=use_prebuilt_kernels,)
-                parts[ii].config.update(self.config)
+                ele_start = _part_element_index[ii][0]
+                ele_stop = _part_element_index[ii][-1] + 1
+                parts[ii] = TrackerPartNonCollective(
+                    tracker=supertracker,
+                    ele_start_in_tracker=ele_start,
+                    ele_stop_in_tracker=ele_stop,
+                )
 
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
@@ -829,7 +820,7 @@ class Tracker:
         return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
 
     def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns):
-
+        print(f'=> Tracking part {ipp} turn {tt} ({ele_start}, {ele_stop})')
         ret = None
         skip = False
         stop_tracking = False
@@ -1061,7 +1052,8 @@ class Tracker:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
-        time=False
+        time=False,
+        _force_no_end_turn_actions=False,
     ):
         # Add the Particles class to the config, so the kernel is recompiled
         # and stored if a new Particles class is given.
@@ -1170,7 +1162,7 @@ class Tracker:
                     # Track the last turn until ele_stop
                     num_elements_last_turn = ele_stop
 
-        if self.skip_end_turn_actions:
+        if self.skip_end_turn_actions or _force_no_end_turn_actions:
             flag_end_first_turn_actions = False
             flag_end_middle_turn_actions = False
         else:
@@ -1420,3 +1412,32 @@ class TrackerConfig(UserDict):
         keys_for_none_vals = [k for k, v in self.items() if v is False]
         for k in keys_for_none_vals:
             del self[k]
+
+
+class TrackerPartNonCollective:
+    def __init__(self, tracker, ele_start_in_tracker, ele_stop_in_tracker):
+        self.tracker = tracker
+        self.ele_start_in_tracker = ele_start_in_tracker
+        self.ele_stop_in_tracker = ele_stop_in_tracker
+
+    def track(self, particles, ele_start=None, ele_stop=None):
+        if ele_start is None:
+            temp_ele_start = self.ele_start_in_tracker
+        else:
+            temp_ele_start = self.ele_start_in_tracker + ele_start
+
+        if ele_stop is None:
+            temp_ele_stop = self.ele_stop_in_tracker
+        else:
+            temp_ele_stop = self.ele_start_in_tracker + ele_stop
+
+        temp_num_elements = temp_ele_stop - temp_ele_start
+
+        print(f'.track({temp_ele_start}, {temp_ele_stop})')
+        self.tracker.track(particles, ele_start=temp_ele_start,
+                           num_elements=temp_num_elements,
+                           _force_no_end_turn_actions=True)
+
+    def __repr__(self):
+        return (f'TrackerPartNonCollective({self.ele_start_in_tracker}, '
+                f'{self.ele_stop_in_tracker})')
