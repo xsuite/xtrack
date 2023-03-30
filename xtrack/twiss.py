@@ -256,7 +256,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         kwargs.pop('radiation_method')
         assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
-        with xt.tracker._preserve_config(line):
+        with xt.line._preserve_config(line):
             if radiation_method == 'kick_as_co':
                 assert isinstance(line._context, xo.ContextCpu) # needs to be serial
                 assert eneloss_and_damping is False

@@ -995,6 +995,7 @@ class Line:
         all_kwargs.pop('self')
         all_kwargs.pop('kwargs')
         all_kwargs.update(kwargs)
+        self._check_valid_tracker()
         compensate_radiation_energy_loss(self, **all_kwargs)
 
     def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):

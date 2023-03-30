@@ -6,25 +6,24 @@ from .general import _print
 import xtrack as xt
 import xobjects as xo
 
-def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_iter=100, **kwargs):
+def compensate_radiation_energy_loss(line, delta0=0, rtot_eneloss=1e-10, max_iter=100, **kwargs):
 
-    line = tracker.line
-    assert isinstance(tracker._context, xo.ContextCpu), "Only CPU context is supported"
+    assert isinstance(line._context, xo.ContextCpu), "Only CPU context is supported"
     assert line.particle_ref is not None, "Particle reference is not set"
     assert np.abs(line.particle_ref.q0) == 1, "Only |q0| = 1 is supported (for now)"
 
     if 'record_iterations' in kwargs:
         record_iterations = kwargs['record_iterations']
         kwargs.pop('record_iterations')
-        tracker._tapering_iterations = []
+        line._tapering_iterations = []
     else:
         record_iterations = False
 
     _print("Compensating energy loss:")
 
     _print("  - Twiss with no radiation")
-    tracker.configure_radiation(model=None)
-    tw_no_rad = tracker.twiss(method='4d', freeze_longitudinal=True, **kwargs)
+    line.configure_radiation(model=None)
+    tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True, **kwargs)
 
     _print("  - Identify multipoles and cavities")
     line_df = line.to_pandas()
@@ -44,23 +43,23 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
         cc.voltage = 0.
         cc.frequency = 0.
 
-    tracker.configure_radiation(model='mean')
+    line.configure_radiation(model='mean')
 
     _print("Share energy loss among cavities (repeat until energy loss is zero)")
-    with xt.tracker._preserve_config(tracker):
-        tracker.config.XTRACK_MULTIPOLE_TAPER = True
-        tracker.config.XTRACK_DIPOLEEDGE_TAPER = True
+    with xt.line._preserve_config(line):
+        line.config.XTRACK_MULTIPOLE_TAPER = True
+        line.config.XTRACK_DIPOLEEDGE_TAPER = True
 
         i_iter = 0
         while True:
             p_test = tw_no_rad.particle_on_co.copy()
             p_test.delta = delta0
-            tracker.configure_radiation(model='mean')
-            tracker.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
-            mon = tracker.record_last_track
+            line.configure_radiation(model='mean')
+            line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
+            mon = line.record_last_track
 
             if record_iterations:
-                tracker._tapering_iterations.append(mon)
+                line._tapering_iterations.append(mon)
 
             eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
             _print(f"Energy loss: {eloss:.3f} eV             ", end='\r', flush=True)
@@ -115,4 +114,4 @@ def compensate_radiation_energy_loss(tracker, delta0=0, rtot_eneloss=1e-10, max_
         cavities.loc[icav, 'element'].frequency = freq
         cavities.loc[icav, 'element'].voltage = cavities.loc[icav, 'voltage']
 
-    tracker.delta_taper = delta_taper
+    line.delta_taper = delta_taper
