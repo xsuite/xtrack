@@ -50,13 +50,14 @@ class LossLocationRefinement:
 
         # Build track kernel with all elements + polygon
         ln_gen = Line(elements=self.line.elements + (temp_poly,))
-        ln_gen.build_tracker(_buffer=self.line._buffer,
-                            global_xy_limit=line.tracker.global_xy_limit)
+        ln_gen.build_tracker(_buffer=self.line._buffer)
+        ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
         self._ln_gen = ln_gen
 
         if backtrack_line is None:
             backtrack_line = self.line.tracker.get_backtracker(
-                _context=self._context, global_xy_limit=None).line
+                _context=self._context).line
+            backtrack_line.config.XTRACK_GLOBAL_XY_LIMIT = None
         self.backtrack_line = backtrack_line
 
         self.i_apertures, self.apertures = find_apertures(self.line)
@@ -372,8 +373,8 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
     interp_line.build_tracker(_buffer=_buffer,
                               track_kernel=_ln_gen.tracker.track_kernel,
                               element_classes=_ln_gen.tracker.element_classes,
-                              reset_s_at_end_turn=0,
-                              global_xy_limit=_ln_gen.tracker.global_xy_limit)
+                              reset_s_at_end_turn=0)
+    interp_line.config.XTRACK_GLOBAL_XY_LIMIT = _ln_gen.config.XTRACK_GLOBAL_XY_LIMIT
 
 
     return interp_line

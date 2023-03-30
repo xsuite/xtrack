@@ -37,22 +37,24 @@ rot_deg_aper_1 = 10.
 
 
 # aper_0_sandwitch
-trk_aper_0 = xt.Tracker(_buffer=buf, line=xt.Line(
+line_aper_0 = xt.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
               aper_0,
               xt.Multipole(_buffer=buf, knl=[0.001]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_0),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])]))
+              xt.XYShift(_buffer=buf, dx=-shift_aper_0[0], dy=-shift_aper_0[1])])
+line_aper_0.build_tracker(_buffer=buf)
 
 # aper_1_sandwitch
-trk_aper_1 = xt.Tracker(_buffer=buf, line=xt.Line(
+line_aper_1 = xt.Line(
     elements=[xt.XYShift(_buffer=buf, dx=shift_aper_1[0], dy=shift_aper_1[1]),
               xt.SRotation(_buffer=buf, angle=rot_deg_aper_1),
               aper_1,
               xt.Multipole(_buffer=buf, knl=[0.001]),
               xt.SRotation(_buffer=buf, angle=-rot_deg_aper_1),
-              xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])]))
+              xt.XYShift(_buffer=buf, dx=-shift_aper_1[0], dy=-shift_aper_1[1])])
+line_aper_1.build_tracker(_buffer=buf)
 
 #################
 # Build tracker #
@@ -60,11 +62,11 @@ trk_aper_1 = xt.Tracker(_buffer=buf, line=xt.Line(
 
 line=xt.Line(
     elements = ((xt.Drift(_buffer=buf, length=0.5),)
-                + trk_aper_0.line.elements
+                + line_aper_0.elements
                 + (xt.Drift(_buffer=buf, length=1),
                    xt.Drift(_buffer=buf, length=1),
                    xt.Drift(_buffer=buf, length=1.),)
-                + trk_aper_1.line.elements))
+                + line_aper_1.elements))
 line.build_tracker(_buffer=buf)
 num_elements = len(line.element_names)
 
@@ -88,7 +90,7 @@ loss_loc_refinement = xt.LossLocationRefinement(line,
         r_max = 0.5, # Maximum transverse aperture in m
         dr = 50e-6, # Transverse loss refinement accuracy [m]
         ds = 0.1, # Longitudinal loss refinement accuracy [m]
-        save_refine_trackers=True # Diagnostics flag
+        save_refine_lines=True # Diagnostics flag
         )
 
 import time                                              #!skip-doc
@@ -106,14 +108,14 @@ import matplotlib.pyplot as plt
 plt.close('all')
 
 # Visualize apertures
-interp_tracker = loss_loc_refinement.refine_trackers[
-                                    loss_loc_refinement.i_apertures[1]]
-s0 = interp_tracker.s0
-s1 = interp_tracker.s1
-polygon_0 = interp_tracker.line.elements[0]
-polygon_1 = interp_tracker.line.elements[-1]
-for ii, (trkr, poly) in enumerate(
-                         zip([trk_aper_0, trk_aper_1],
+interp_line = loss_loc_refinement.refine_lines[
+                                loss_loc_refinement.i_apertures[1]]
+s0 = interp_line.s0
+s1 = interp_line.s1
+polygon_0 = interp_line.elements[0]
+polygon_1 = interp_line.elements[-1]
+for ii, (ln, poly) in enumerate(
+                         zip([line_aper_0, line_aper_1],
                              [polygon_0, polygon_1])):
     part_gen_range = 0.05
     pp = xp.Particles(
@@ -123,7 +125,7 @@ for ii, (trkr, poly) in enumerate(
     x0 = pp.x.copy()
     y0 = pp.y.copy()
 
-    trkr.track(pp)
+    ln.track(pp)
     ids = pp.particle_id
 
 
@@ -148,8 +150,8 @@ ax.plot3D(
         s1+polygon_1.x_closed*0,
         color='k', linewidth=3)
 s_check = []
-for ee, ss in zip(interp_tracker.line.elements,
-                  interp_tracker.line.get_s_elements()):
+for ee, ss in zip(interp_line.elements,
+                  interp_line.get_s_elements()):
     if ee.__class__ is xt.LimitPolygon:
         ax.plot3D(
                 ee.x_closed,
