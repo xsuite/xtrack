@@ -54,14 +54,15 @@ def test_aperture_turn_ele_and_monitor(test_context):
     #x = px*s
     s_expected = []
     s_tot = tot_length*n_turns
+    global_aper_limit = line.config.XTRACK_GLOBAL_XY_LIMIT
     for ii in range(n_part):
-        if np.abs(part_px[ii]) * s_tot > line.tracker.global_xy_limit:
-            s_expected_x = np.abs(line.tracker.global_xy_limit / part_px[ii])
+        if np.abs(part_px[ii]) * s_tot > global_aper_limit:
+            s_expected_x = np.abs(global_aper_limit / part_px[ii])
         else:
             s_expected_x = s_tot
 
-        if np.abs(part_py[ii] * s_tot) > line.tracker.global_xy_limit:
-            s_expected_y = np.abs(line.tracker.global_xy_limit / part_py[ii])
+        if np.abs(part_py[ii] * s_tot) > global_aper_limit:
+            s_expected_y = np.abs(global_aper_limit / part_py[ii])
         else:
             s_expected_y = s_tot
 
@@ -166,14 +167,15 @@ def test_custom_monitor(test_context):
     #x = px*s
     s_expected = []
     s_tot = tot_length*n_turns
+    global_aper_limit = line.config.XTRACK_GLOBAL_XY_LIMIT
     for ii in range(n_part):
-        if np.abs(part_px[ii]) * s_tot > line.tracker.global_xy_limit:
-            s_expected_x = np.abs(line.tracker.global_xy_limit / part_px[ii])
+        if np.abs(part_px[ii]) * s_tot > global_aper_limit:
+            s_expected_x = np.abs(global_aper_limit / part_px[ii])
         else:
             s_expected_x = s_tot
 
-        if np.abs(part_py[ii] * s_tot) > line.tracker.global_xy_limit:
-            s_expected_y = np.abs(line.tracker.global_xy_limit / part_py[ii])
+        if np.abs(part_py[ii] * s_tot) > global_aper_limit:
+            s_expected_y = np.abs(global_aper_limit / part_py[ii])
         else:
             s_expected_y = s_tot
 

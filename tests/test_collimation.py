@@ -391,7 +391,8 @@ def test_losslocationrefinement_skip_refinement_for_collimators():
     # Build line #
     #################
 
-    line.build_tracker(global_xy_limit=1e3)
+    line.build_tracker()
+    line.config.XTRACK_GLOBAL_XY_LIMIT = 1e3
 
     ##########################
     # Build particles object #

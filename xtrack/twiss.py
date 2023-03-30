@@ -1085,7 +1085,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         skip_end_turn_actions=tracker.skip_end_turn_actions,
         reset_s_at_end_turn=tracker.reset_s_at_end_turn,
         particles_monitor_class=None,
-        global_xy_limit=tracker.global_xy_limit,
         local_particle_src=tracker.local_particle_src
     )
     auxtracker.line.matrix_responsiveness_tol = tracker.line.matrix_responsiveness_tol
