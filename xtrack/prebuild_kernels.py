@@ -91,7 +91,7 @@ def save_kernel_metadata(
         xf_version = None
 
     kernel_metadata = {
-        'config': config,
+        'config': config.data,
         'classes': [cls._DressingClass.__name__ for cls in element_classes],
         'versions': {
             'xtrack': xt.__version__,

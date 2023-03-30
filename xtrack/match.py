@@ -114,7 +114,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 x=twiss_init.x, px=twiss_init.px,
                 y=twiss_init.y, py=twiss_init.py,
                 zeta=twiss_init.zeta, delta=twiss_init.delta)
-            particle_on_co.at_element = line.line.element_names.index(
+            particle_on_co.at_element = line.element_names.index(
                                                                 element_name)
             kwargs['twiss_init'] = TwissInit(
                 particle_on_co=particle_on_co,

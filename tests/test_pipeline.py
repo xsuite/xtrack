@@ -51,7 +51,7 @@ def test_multitracker(test_context):
 
     multitracker = xt.PipelineMultiTracker(
         branches=[xt.PipelineBranch(line=line1, particles=p1),
-                xt.PipelineBranch(tracker=line1, particles=p2),
+                xt.PipelineBranch(line=line1, particles=p2),
                 xt.PipelineBranch(line=line2, particles=p3),
                 ],
         enable_debug_log=True)

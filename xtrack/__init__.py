@@ -9,7 +9,7 @@ from .base_element import BeamElement
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
-from .line import Line, Node, freeze_longitudinal
+from .line import Line, Node, freeze_longitudinal, _temp_knobs
 from .tracker import Tracker
 from .match import Vary, Target, OrbitOnly
 from .loss_location_refinement import LossLocationRefinement
