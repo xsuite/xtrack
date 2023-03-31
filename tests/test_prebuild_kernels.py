@@ -18,6 +18,7 @@ def test_prebuild_kernels(mocker, tmp_path):
         "test_module": {
             "config": {
                 "XTRACK_MULTIPOLE_NO_SYNRAD": True,
+                "XTRACK_GLOBAL_XY_LIMIT": 1.0,
                 "XFIELDS_BB3D_NO_BEAMSTR": True,
             },
             "classes": [
