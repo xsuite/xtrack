@@ -17,6 +17,26 @@ import ducktrack as dtk
 
 
 @for_all_test_contexts
+def test_collective_tracker_indices_one_turn(test_context):
+    line = xt.Line(elements=[xt.Drift(length=1) for i in range(8)])
+
+    line.elements[2].iscollective = True
+    line.elements[2].move(_context=test_context)
+
+    line.elements[5].iscollective = True
+    line.elements[5].move(_context=test_context)
+
+    line.build_tracker(reset_s_at_end_turn=False, _context=test_context)
+
+    particles = xp.Particles(x=0, px=0, _context=test_context)
+
+    line.track(particles)
+
+    assert particles.s[0] == len(line.elements)
+    assert particles.at_turn[0] == 1
+
+
+@for_all_test_contexts
 def test_collective_tracker(test_context):
     test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -51,7 +71,7 @@ def test_collective_tracker(test_context):
     line.build_tracker(_buffer=_buffer, reset_s_at_end_turn=False)
 
     assert line.iscollective
-    assert line.track == line._track_with_collective
+    assert line.tracker.track == line.tracker._track_with_collective
 
     ######################
     # Get some particles #

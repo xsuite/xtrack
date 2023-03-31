@@ -17,10 +17,8 @@ from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
 from .table import Table
-from .line import _behaves_like_drift
 
-
-import xtrack as xt # To avoid circular imports
+import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
     'dx':1e-7, 'dpx':1e-10,
@@ -34,7 +32,7 @@ AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
 log = logging.getLogger(__name__)
 
-def twiss_from_tracker(tracker, particle_ref=None, method='6d',
+def twiss_line(line, particle_ref=None, method='6d',
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
@@ -219,25 +217,25 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
     if matrix_responsiveness_tol is None:
-        matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
+        matrix_responsiveness_tol = line.matrix_responsiveness_tol
     if matrix_stability_tol is None:
-        matrix_stability_tol = tracker.matrix_stability_tol
+        matrix_stability_tol = line.matrix_stability_tol
 
-    if tracker._radiation_model is not None:
+    if line._radiation_model is not None:
         matrix_stability_tol = None
         if use_full_inverse is None:
             use_full_inverse = True
 
     if particle_ref is None:
-        if particle_co_guess is None and hasattr(tracker, 'particle_ref'):
-            particle_ref = tracker.particle_ref
+        if particle_co_guess is None and hasattr(line, 'particle_ref'):
+            particle_ref = line.particle_ref
 
-    if tracker.iscollective:
+    if line.iscollective:
         warnings.warn(
-            'The tracker has collective elements.\n'
+            'The line has collective elements.\n'
             'In the twiss computation collective elements are'
             ' replaced by drifts')
-        tracker = tracker._supertracker
+        line = line.tracker._supertracker.line
 
     if particle_ref is None and particle_co_guess is None:
         raise ValueError(
@@ -250,23 +248,23 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         kwargs = locals().copy()
         kwargs.pop('freeze_longitudinal')
 
-        with xt.freeze_longitudinal(tracker):
-            return twiss_from_tracker(**kwargs)
+        with xt.freeze_longitudinal(line):
+            return twiss_line(**kwargs)
 
     if radiation_method != 'full':
         kwargs = locals().copy()
         kwargs.pop('radiation_method')
         assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
-        with xt.tracker._preserve_config(tracker):
+        with xt.line._preserve_config(line):
             if radiation_method == 'kick_as_co':
-                assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
+                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
                 assert eneloss_and_damping is False
-                tracker.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
+                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
             elif radiation_method == 'scale_as_co':
-                assert isinstance(tracker._context, xo.ContextCpu) # needs to be serial
-                tracker.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-            res = twiss_from_tracker(**kwargs)
+                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
+                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
+            res = twiss_line(**kwargs)
         return res
 
     if at_s is not None:
@@ -277,19 +275,18 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         assert at_elements is None
         (auxtracker, names_inserted_markers
             ) = _build_auxiliary_tracker_with_extra_markers(
-            tracker=tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
+            tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
             algorithm='insert')
-        kwargs.pop('tracker')
+        kwargs.pop('line')
         kwargs.pop('at_s')
         kwargs.pop('at_elements')
         kwargs.pop('matrix_responsiveness_tol')
         kwargs.pop('matrix_stability_tol')
-        res = twiss_from_tracker(tracker=auxtracker,
+        res = twiss_line(line=auxtracker.line,
                         at_elements=names_inserted_markers,
                         matrix_responsiveness_tol=matrix_responsiveness_tol,
                         matrix_stability_tol=matrix_stability_tol,
                         **kwargs)
-        #res._auxtracker = auxtracker # DEBUG
         return res
 
     mux0 = 0
@@ -306,11 +303,11 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
             'twiss_init must be provided if ele_start and ele_stop are used')
 
         if isinstance(ele_start, str):
-            ele_start = tracker.line.element_names.index(ele_start)
+            ele_start = line.element_names.index(ele_start)
         if isinstance(ele_stop, str):
-            ele_stop = tracker.line.element_names.index(ele_stop)
+            ele_stop = line.element_names.index(ele_stop)
 
-        assert twiss_init.element_name == tracker.line.element_names[ele_start]
+        assert twiss_init.element_name == line.element_names[ele_start]
         particle_on_co = twiss_init.particle_on_co.copy()
         W_matrix = twiss_init.W_matrix
         skip_global_quantities = True
@@ -323,7 +320,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
     if particle_on_co is not None:
         part_on_co = particle_on_co
     else:
-        part_on_co = tracker.find_closed_orbit(
+        part_on_co = line.find_closed_orbit(
                                 particle_co_guess=particle_co_guess,
                                 particle_ref=particle_ref,
                                 co_search_settings=co_search_settings,
@@ -338,7 +335,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         if R_matrix is not None:
             RR = R_matrix
         else:
-            RR = tracker.compute_one_turn_matrix_finite_differences(
+            RR = line.compute_one_turn_matrix_finite_differences(
                                                 steps_r_matrix=steps_r_matrix,
                                                 particle_on_co=part_on_co)
 
@@ -349,14 +346,14 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                                 stability_tol=matrix_stability_tol)
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
-        p_disp_minus = tracker.find_closed_orbit(
+        p_disp_minus = line.find_closed_orbit(
                             particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                             delta0=delta0-delta_disp,
                             zeta0=zeta0)
-        p_disp_plus = tracker.find_closed_orbit(particle_co_guess=particle_co_guess,
+        p_disp_plus = line.find_closed_orbit(particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
@@ -383,7 +380,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         W[3, 5] = dpy_dpzeta
 
     propagate_res = _propagate_optics(
-        tracker=tracker,
+        line=line,
         W_matrix=W,
         particle_on_co=part_on_co,
         mux0=mux0, muy0=muy0, muzeta0=muzeta0,
@@ -402,7 +399,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
 
     twiss_res._data['particle_on_co'] = part_on_co.copy(_context=xo.context_default)
 
-    circumference = tracker._tracker_data.line_length
+    circumference = line.tracker._tracker_data.line_length
     twiss_res._data['circumference'] = circumference
 
     if not skip_global_quantities:
@@ -412,7 +409,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         muy = propagate_res['muy']
 
         dqx, dqy = _compute_chromaticity(
-            tracker=tracker,
+            line=line,
             W_matrix=W, method=method,
             particle_on_co=part_on_co,
             delta_chrom=delta_chrom,
@@ -480,7 +477,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
         twiss_res._data['values_at'] = 'entry'
 
     if strengths:
-        strengths = _extract_knl_ksl(tracker.line, twiss_res['name'])
+        strengths = _extract_knl_ksl(line, twiss_res['name'])
         twiss_res._data.update(strengths)
         twiss_res._col_names = (list(twiss_res._col_names) +
                                     list(strengths.keys()))
@@ -493,7 +490,7 @@ def twiss_from_tracker(tracker, particle_ref=None, method='6d',
                          'Use `twiss(...).reverse()` instead.')
     return twiss_res
 
-def _propagate_optics(tracker, W_matrix, particle_on_co,
+def _propagate_optics(line, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
                       nemitt_x, nemitt_y, r_sigma, delta_disp,
@@ -502,7 +499,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
                       _continue_if_lost=False,
                       _keep_tracking_data=False):
 
-    ctx2np = tracker._context.nparray_from_context_array
+    ctx2np = line._context.nparray_from_context_array
 
     gemitt_x = nemitt_x/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
     gemitt_y = nemitt_y/particle_on_co._xobject.beta0[0]/particle_on_co._xobject.gamma0[0]
@@ -512,7 +509,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     scale_eigen = min(scale_transverse_x, scale_transverse_y, scale_longitudinal)
 
 
-    context = tracker._context
+    context = line._context
     part_for_twiss = xp.build_particles(_context=context,
                         particle_ref=particle_on_co, mode='shift',
                         x=  list(W_matrix[0, :] * scale_eigen) + [0],
@@ -540,37 +537,37 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     part_for_twiss.at_turn = AT_TURN_FOR_TWISS # To avoid writing in monitors
 
     #assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
-    tracker.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
+    line.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
                   ele_start=ele_start, ele_stop=ele_stop)
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
             'Some test particles were lost during twiss!')
     i_stop = part_for_twiss._xobject.at_element[0] + (
         (part_for_twiss._xobject.at_turn[0] - AT_TURN_FOR_TWISS)
-         * len(tracker.line.element_names))
+         * len(line.element_names))
 
-    x_co = tracker.record_last_track.x[6, i_start:i_stop+1].copy()
-    y_co = tracker.record_last_track.y[6, i_start:i_stop+1].copy()
-    px_co = tracker.record_last_track.px[6, i_start:i_stop+1].copy()
-    py_co = tracker.record_last_track.py[6, i_start:i_stop+1].copy()
-    zeta_co = tracker.record_last_track.zeta[6, i_start:i_stop+1].copy()
-    delta_co = tracker.record_last_track.delta[6, i_start:i_stop+1].copy()
-    ptau_co = tracker.record_last_track.ptau[6, i_start:i_stop+1].copy()
-    s_co = tracker.record_last_track.s[6, i_start:i_stop+1].copy()
+    x_co = line.record_last_track.x[6, i_start:i_stop+1].copy()
+    y_co = line.record_last_track.y[6, i_start:i_stop+1].copy()
+    px_co = line.record_last_track.px[6, i_start:i_stop+1].copy()
+    py_co = line.record_last_track.py[6, i_start:i_stop+1].copy()
+    zeta_co = line.record_last_track.zeta[6, i_start:i_stop+1].copy()
+    delta_co = line.record_last_track.delta[6, i_start:i_stop+1].copy()
+    ptau_co = line.record_last_track.ptau[6, i_start:i_stop+1].copy()
+    s_co = line.record_last_track.s[6, i_start:i_stop+1].copy()
 
-    x_disp_minus = tracker.record_last_track.x[7, i_start:i_stop+1].copy()
-    y_disp_minus = tracker.record_last_track.y[7, i_start:i_stop+1].copy()
-    zeta_disp_minus = tracker.record_last_track.zeta[7, i_start:i_stop+1].copy()
-    px_disp_minus = tracker.record_last_track.px[7, i_start:i_stop+1].copy()
-    py_disp_minus = tracker.record_last_track.py[7, i_start:i_stop+1].copy()
-    delta_disp_minus = tracker.record_last_track.delta[7, i_start:i_stop+1].copy()
+    x_disp_minus = line.record_last_track.x[7, i_start:i_stop+1].copy()
+    y_disp_minus = line.record_last_track.y[7, i_start:i_stop+1].copy()
+    zeta_disp_minus = line.record_last_track.zeta[7, i_start:i_stop+1].copy()
+    px_disp_minus = line.record_last_track.px[7, i_start:i_stop+1].copy()
+    py_disp_minus = line.record_last_track.py[7, i_start:i_stop+1].copy()
+    delta_disp_minus = line.record_last_track.delta[7, i_start:i_stop+1].copy()
 
-    x_disp_plus = tracker.record_last_track.x[8, i_start:i_stop+1].copy()
-    y_disp_plus = tracker.record_last_track.y[8, i_start:i_stop+1].copy()
-    zeta_disp_plus = tracker.record_last_track.zeta[8, i_start:i_stop+1].copy()
-    px_disp_plus = tracker.record_last_track.px[8, i_start:i_stop+1].copy()
-    py_disp_plus = tracker.record_last_track.py[8, i_start:i_stop+1].copy()
-    delta_disp_plus = tracker.record_last_track.delta[8, i_start:i_stop+1].copy()
+    x_disp_plus = line.record_last_track.x[8, i_start:i_stop+1].copy()
+    y_disp_plus = line.record_last_track.y[8, i_start:i_stop+1].copy()
+    zeta_disp_plus = line.record_last_track.zeta[8, i_start:i_stop+1].copy()
+    px_disp_plus = line.record_last_track.px[8, i_start:i_stop+1].copy()
+    py_disp_plus = line.record_last_track.py[8, i_start:i_stop+1].copy()
+    delta_disp_plus = line.record_last_track.delta[8, i_start:i_stop+1].copy()
 
     dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
@@ -579,12 +576,12 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
-    Ws[:, 0, :] = (tracker.record_last_track.x[:6, i_start:i_stop+1] - x_co).T / scale_eigen
-    Ws[:, 1, :] = (tracker.record_last_track.px[:6, i_start:i_stop+1] - px_co).T / scale_eigen
-    Ws[:, 2, :] = (tracker.record_last_track.y[:6, i_start:i_stop+1] - y_co).T / scale_eigen
-    Ws[:, 3, :] = (tracker.record_last_track.py[:6, i_start:i_stop+1] - py_co).T / scale_eigen
-    Ws[:, 4, :] = (tracker.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
-    Ws[:, 5, :] = (tracker.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
+    Ws[:, 0, :] = (line.record_last_track.x[:6, i_start:i_stop+1] - x_co).T / scale_eigen
+    Ws[:, 1, :] = (line.record_last_track.px[:6, i_start:i_stop+1] - px_co).T / scale_eigen
+    Ws[:, 2, :] = (line.record_last_track.y[:6, i_start:i_stop+1] - y_co).T / scale_eigen
+    Ws[:, 3, :] = (line.record_last_track.py[:6, i_start:i_stop+1] - py_co).T / scale_eigen
+    Ws[:, 4, :] = (line.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
+    Ws[:, 5, :] = (line.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
     # For removal ot thin groups of elements
     i_take = [0]
@@ -661,7 +658,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     muy = np.abs(muy)
 
     twiss_res_element_by_element = {
-        'name': tracker.line.element_names[i_start:i_stop] + ('_end_point',),
+        'name': line.element_names[i_start:i_stop] + ('_end_point',),
         's': s_co,
         'x': x_co,
         'px': px_co,
@@ -695,7 +692,7 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
     }
 
     if _keep_tracking_data:
-        twiss_res_element_by_element['tracking_data'] = tracker.record_last_track
+        twiss_res_element_by_element['tracking_data'] = line.record_last_track
 
     if hide_thin_groups:
         _vars_hide_changes = [
@@ -710,14 +707,14 @@ def _propagate_optics(tracker, W_matrix, particle_on_co,
 
     return twiss_res_element_by_element
 
-def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
+def _compute_chromaticity(line, W_matrix, particle_on_co, delta_chrom,
                     tune_x, tune_y,
                     nemitt_x, nemitt_y, matrix_responsiveness_tol,
                     matrix_stability_tol, symplectify, steps_r_matrix,
                     method='6d'
                     ):
 
-    context = tracker._context
+    context = line._context
 
     part_chrom_plus = xp.build_particles(
                 _context=context,
@@ -726,7 +723,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                 particle_on_co=particle_on_co,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=W_matrix)
-    RR_chrom_plus = tracker.compute_one_turn_matrix_finite_differences(
+    RR_chrom_plus = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=part_chrom_plus.copy(),
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
@@ -745,7 +742,7 @@ def _compute_chromaticity(tracker, W_matrix, particle_on_co, delta_chrom,
                 particle_on_co=particle_on_co,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=W_matrix)
-    RR_chrom_minus = tracker.compute_one_turn_matrix_finite_differences(
+    RR_chrom_minus = line.compute_one_turn_matrix_finite_differences(
                                         particle_on_co=part_chrom_minus.copy(),
                                         steps_r_matrix=steps_r_matrix)
     (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
@@ -810,15 +807,15 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0
 class ClosedOrbitSearchError(Exception):
     pass
 
-def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
+def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
                       continue_on_closed_orbit_error=False):
 
     if particle_co_guess is None:
         if particle_ref is None:
-            if tracker.particle_ref is not None:
-                particle_ref = tracker.particle_ref
+            if line.particle_ref is not None:
+                particle_ref = line.particle_ref
             else:
                 raise ValueError(
                     "Either `particle_co_guess` or `particle_ref` must be provided")
@@ -844,7 +841,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
         co_search_settings['xtol'] = 1e-6 # Relative error between calls
 
     particle_co_guess = particle_co_guess.copy(
-                        _context=tracker._buffer.context)
+                        _context=line._buffer.context)
 
     for shift_factor in [0, 1.]: # if not found at first attempt we shift slightly the starting point
         if shift_factor>0:
@@ -868,7 +865,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
             _error_for_co = _error_for_co_search_6d
         if zeta0 is not None:
             x0[4] = zeta0
-        if np.all(np.abs(_error_for_co(x0, particle_co_guess, tracker, delta_zeta, delta0, zeta0))
+        if np.all(np.abs(_error_for_co(x0, particle_co_guess, line, delta_zeta, delta0, zeta0))
                     < DEFAULT_CO_SEARCH_TOL):
             res = x0
             fsolve_info = 'taken_guess'
@@ -876,7 +873,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
             break
 
         (res, infodict, ier, mesg
-            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0),
+            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, line, delta_zeta, delta0, zeta0),
                 x0=x0,
                 full_output=True,
                 **co_search_settings)
@@ -900,7 +897,7 @@ def find_closed_orbit(tracker, particle_co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-def _one_turn_map(p, particle_ref, tracker, delta_zeta):
+def _one_turn_map(p, particle_ref, line, delta_zeta):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
@@ -910,7 +907,7 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
     part.delta = p[5]
     part.at_turn = AT_TURN_FOR_TWISS
 
-    tracker.track(part)
+    line.track(part)
     p_res = np.array([
            part._xobject.x[0],
            part._xobject.px[0],
@@ -920,11 +917,11 @@ def _one_turn_map(p, particle_ref, tracker, delta_zeta):
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
-    return p - _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
+def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
+    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta)
 
-def _error_for_co_search_4d_delta0(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
+def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -933,8 +930,8 @@ def _error_for_co_search_4d_delta0(p, particle_co_guess, tracker, delta_zeta, de
         0,
         p[5] - delta0])
 
-def _error_for_co_search_4d_zeta0(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
+def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -943,8 +940,8 @@ def _error_for_co_search_4d_zeta0(p, particle_co_guess, tracker, delta_zeta, del
         p[4] - zeta0,
         0])
 
-def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, tracker, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, tracker, delta_zeta)
+def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -954,7 +951,7 @@ def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, tracker, delta_ze
         p[5] - delta0])
 
 def compute_one_turn_matrix_finite_differences(
-        tracker, particle_on_co,
+        line, particle_on_co,
         steps_r_matrix=None):
 
     if steps_r_matrix is not None:
@@ -969,7 +966,7 @@ def compute_one_turn_matrix_finite_differences(
     else:
         steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
 
-    context = tracker._buffer.context
+    context = line._buffer.context
 
     particle_on_co = particle_on_co.copy(
                         _context=context)
@@ -999,11 +996,11 @@ def compute_one_turn_matrix_finite_differences(
 
     if particle_on_co._xobject.at_element[0]>0:
         i_start = particle_on_co._xobject.at_element[0]
-        tracker.track(part_temp, ele_start=i_start)
-        tracker.track(part_temp, num_elements=i_start)
+        line.track(part_temp, ele_start=i_start)
+        line.track(part_temp, num_elements=i_start)
     else:
         assert particle_on_co._xobject.at_element[0] == 0
-        tracker.track(part_temp)
+        line.track(part_temp)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
@@ -1088,14 +1085,13 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         skip_end_turn_actions=tracker.skip_end_turn_actions,
         reset_s_at_end_turn=tracker.reset_s_at_end_turn,
         particles_monitor_class=None,
-        global_xy_limit=tracker.global_xy_limit,
         local_particle_src=tracker.local_particle_src
     )
-    auxtracker.matrix_responsiveness_tol = tracker.matrix_responsiveness_tol
-    auxtracker.matrix_stability_tol = tracker.matrix_stability_tol
-    auxtracker.config = tracker.config.copy()
-    auxtracker._radiation_model = tracker._radiation_model
-    auxtracker._beamstrahlung_model = tracker._beamstrahlung_model
+    auxtracker.line.matrix_responsiveness_tol = tracker.line.matrix_responsiveness_tol
+    auxtracker.line.matrix_stability_tol = tracker.line.matrix_stability_tol
+    auxtracker.line.config = tracker.line.config.copy()
+    auxtracker.line._radiation_model = tracker.line._radiation_model
+    auxtracker.line._beamstrahlung_model = tracker.line._beamstrahlung_model
 
     return auxtracker, names_inserted_markers
 

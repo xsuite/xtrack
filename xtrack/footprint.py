@@ -1,5 +1,7 @@
 import numpy as np
 
+import xtrack as xt
+
 class LinearRescale():
 
     def __init__(self, knob_name, v0, dv):
@@ -14,7 +16,6 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
 
         assert len(linear_rescale_on_knobs) == 1, (
             'Only one linear rescale is supported for now')
-        from xtrack.tracker import _temp_knobs
 
         knobs_0 = {}
         for rr in linear_rescale_on_knobs:
@@ -22,7 +23,7 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
             v0 = rr.v0
             knobs_0[nn] = v0
 
-        with _temp_knobs(line, knobs_0):
+        with xt._temp_knobs(line, knobs_0):
             fp = line.get_footprint(**kwargs)
 
         _fp0_ref = fp.__dict__.copy() # for debugging
@@ -37,7 +38,7 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
             knobs_1 = knobs_0.copy()
             knobs_1[nn] = v0 + dv
 
-            with _temp_knobs(line, knobs_1):
+            with xt._temp_knobs(line, knobs_1):
                 fp1 = line.get_footprint(**kwargs)
 
             delta_qx = (fp1.qx - qx0) / dv * (line.vars[nn]._value - v0)
@@ -135,7 +136,6 @@ class Footprint():
         print('Tracking particles for footprint...')
         line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True)
         print('Done tracking.')
-
 
         ctx2np = line._context.nparray_from_context_array
         assert np.all(ctx2np(particles.state == 1)), (

@@ -154,7 +154,7 @@ def test_multiline_and_orbit_correction(test_context):
         assert np.isclose(tw['y', place], 0, atol=1e-6)
         assert np.isclose(tw['py', place], 0, atol=1e-8)
 
-    with xt.tracker._temp_knobs(collider, dict(on_corr_co=0, on_disp=0)):
+    with xt._temp_knobs(collider, dict(on_corr_co=0, on_disp=0)):
         tw_ref = collider.lhcb1_co_ref.twiss()
 
 

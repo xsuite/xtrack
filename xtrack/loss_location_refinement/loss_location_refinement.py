@@ -8,7 +8,6 @@ from scipy.spatial import ConvexHull
 
 import xobjects as xo
 import xpart as xp
-from ..tracker import Tracker
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
 
@@ -25,24 +24,24 @@ def _skip_in_loss_location_refinement(element):
 
 class LossLocationRefinement:
 
-    def __init__(self, tracker, backtracker=None,
+    def __init__(self, line, backtrack_line=None,
                  n_theta=None, r_max=None, dr=None, ds=None,
-                 save_refine_trackers=False,
+                 save_refine_lines=False,
                  allowed_backtrack_types=[]):
 
-        if tracker.iscollective:
-            self._original_tracker = tracker
-            self.tracker = tracker._supertracker
+        if line.iscollective:
+            self._original_line = line
+            self.line = line.tracker._supertracker.line
         else:
-            self._original_tracker = tracker
-            self.tracker = tracker
+            self._original_line = line
+            self.line = line
 
-        self._context = self.tracker._tracker_data._buffer.context
-        assert self._context.__class__ is xo.ContextCpu, (
+        self._context = self.line._context
+        assert isinstance(self._context, xo.ContextCpu), (
                 "Other contexts are not supported!")
 
         # Build a polygon and compile the kernel
-        temp_poly = LimitPolygon(_buffer=self.tracker._tracker_data._buffer,
+        temp_poly = LimitPolygon(_buffer=self.line._buffer,
                 x_vertices=[1,-1, -1, 1], y_vertices=[1,1,-1,-1])
         na = lambda a : np.array(a, dtype=np.float64)
         temp_poly.impact_point_and_normal(x_in=na([0]), y_in=na([0]),
@@ -50,22 +49,22 @@ class LossLocationRefinement:
                                           y_out=na([2]), z_out=na([0]))
 
         # Build track kernel with all elements + polygon
-        trk_gen = Tracker(_buffer=self.tracker._tracker_data._buffer,
-                line=Line(
-                    elements=self.tracker._tracker_data.elements + (temp_poly,)),
-                    global_xy_limit=tracker.global_xy_limit)
-        self._trk_gen = trk_gen
+        ln_gen = Line(elements=self.line.elements + (temp_poly,))
+        ln_gen.build_tracker(_buffer=self.line._buffer)
+        ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
+        self._ln_gen = ln_gen
 
-        if backtracker is None:
-            backtracker = self.tracker.get_backtracker(_context=self._context,
-                                                       global_xy_limit=None)
-        self.backtracker = backtracker
+        if backtrack_line is None:
+            backtrack_line = self.line.tracker.get_backtracker(
+                _context=self._context).line
+            backtrack_line.config.XTRACK_GLOBAL_XY_LIMIT = None
+        self.backtrack_line = backtrack_line
 
-        self.i_apertures, self.apertures = find_apertures(self.tracker)
+        self.i_apertures, self.apertures = find_apertures(self.line)
 
-        self.save_refine_trackers = save_refine_trackers
-        if save_refine_trackers:
-            self.refine_trackers = {}
+        self.save_refine_lines = save_refine_lines
+        if save_refine_lines:
+            self.refine_lines = {}
 
         self.n_theta = n_theta
         self.r_max = r_max
@@ -90,7 +89,7 @@ class LossLocationRefinement:
                 i_aper_0 = self.i_apertures[self.i_apertures.index(i_ap) - 1]
                 logger.debug(f'i_aper_1={i_aper_1}, i_aper_0={i_aper_0}')
 
-                s0, s1, _ = generate_interp_aperture_locations(self.tracker,
+                s0, s1, _ = generate_interp_aperture_locations(self.line,
                                                    i_aper_0, i_aper_1, self.ds)
                 assert s1 >= s0
                 if s1 - s0 <= self.ds:
@@ -98,50 +97,50 @@ class LossLocationRefinement:
                     continue
 
                 presence_shifts_rotations = check_for_active_shifts_and_rotations(
-                                                    self.tracker, i_aper_0, i_aper_1)
+                                                    self.line, i_aper_0, i_aper_1)
                 logger.debug(f'presence_shifts_rotations={presence_shifts_rotations}')
 
                 if (not(presence_shifts_rotations) and
-                   apertures_are_identical(self.tracker.line.elements[i_aper_0],
-                                           self.tracker.line.elements[i_aper_1])):
+                   apertures_are_identical(self.line.elements[i_aper_0],
+                                           self.line.elements[i_aper_1])):
 
                     logger.debug('Replicate mode')
-                    (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+                    (interp_line, i_start_thin_0, i_start_thin_1, s0, s1
                             ) = interp_aperture_replicate(self._context,
-                                      self.tracker, self.backtracker,
+                                      self.line, self.backtrack_line,
                                       i_aper_0, i_aper_1,
                                       self.ds,
-                                      _trk_gen=self._trk_gen)
+                                      _ln_gen=self._ln_gen)
 
                 else:
 
                     logger.debug('Polygon interpolation mode')
-                    (interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+                    (interp_line, i_start_thin_0, i_start_thin_1, s0, s1
                             ) = interp_aperture_using_polygons(self._context,
-                                      self.tracker, self.backtracker,
+                                      self.line, self.backtrack_line,
                                       i_aper_0, i_aper_1,
                                       self.n_theta, self.r_max, self.dr, self.ds,
-                                      _trk_gen=self._trk_gen)
+                                      _ln_gen=self._ln_gen)
 
-                interp_tracker._original_tracker = self._original_tracker
+                interp_line._original_line = self._original_line
                 part_refine = refine_loss_location_single_aperture(
                         particles,i_aper_1, i_start_thin_0,
-                        self.backtracker, interp_tracker, inplace=True,
+                        self.backtrack_line, interp_line, inplace=True,
                         allowed_backtrack_types=self.allowed_backtrack_types)
 
-                if self.save_refine_trackers:
-                    interp_tracker.i_start_thin_0 = i_start_thin_0
-                    interp_tracker.i_start_thin_1 = i_start_thin_1
-                    interp_tracker.s0 = s0
-                    interp_tracker.s1 = s1
-                    self.refine_trackers[i_ap] = interp_tracker
+                if self.save_refine_lines:
+                    interp_line.i_start_thin_0 = i_start_thin_0
+                    interp_line.i_start_thin_1 = i_start_thin_1
+                    interp_line.s0 = s0
+                    interp_line.s1 = s1
+                    self.refine_lines[i_ap] = interp_line
 
 
-def check_for_active_shifts_and_rotations(tracker, i_aper_0, i_aper_1):
+def check_for_active_shifts_and_rotations(line, i_aper_0, i_aper_1):
 
     presence_shifts_rotations = False
     for ii in range(i_aper_0, i_aper_1):
-        ee = tracker.line.elements[ii]
+        ee = line.elements[ii]
         if ee.__class__ is SRotation:
             if not np.isclose(ee.angle, 0, rtol=0, atol=1e-15):
                 presence_shifts_rotations = True
@@ -167,10 +166,10 @@ def apertures_are_identical(aper1, aper2):
     return identical
 
 
-def find_apertures(tracker):
+def find_apertures(ln_gen):
     i_apertures = []
     apertures = []
-    for ii, ee in enumerate(tracker.line.elements):
+    for ii, ee in enumerate(ln_gen.elements):
         if ee.__class__.__name__.startswith('Limit'):
             i_apertures.append(ii)
             apertures.append(ee)
@@ -178,7 +177,7 @@ def find_apertures(tracker):
     return i_apertures, apertures
 
 def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
-                    backtracker, interp_tracker,
+                    backtrack_line, interp_line,
                     inplace=True,
                     allowed_backtrack_types=[]):
 
@@ -198,13 +197,13 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                     chi=particles.chi[mask_part],
                     charge_ratio=particles.charge_ratio[mask_part])
     n_backtrack = i_aper_1 - (i_start_thin_0+1)
-    num_elements = len(backtracker.line.element_names)
+    num_elements = len(backtrack_line.element_names)
     i_start_backtrack = num_elements-i_aper_1
 
     # Check that we are not backtracking through element types that are not allowed
-    for nn in interp_tracker._original_tracker.line.element_names[
+    for nn in interp_line._original_line.element_names[
                                              i_aper_1 - n_backtrack : i_aper_1]:
-        ee = interp_tracker._original_tracker.line.element_dict[nn]
+        ee = interp_line._original_line.element_dict[nn]
         if not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)):
             if _skip_in_loss_location_refinement(ee):
                 return 'skipped'
@@ -212,14 +211,14 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                 f'Cannot backtrack through element {nn} of type '
                 f'{ee.__class__.__name__}')
 
-    backtracker.track(part_refine, ele_start=i_start_backtrack,
+    backtrack_line.track(part_refine, ele_start=i_start_backtrack,
                       num_elements = n_backtrack)
     # Just for check
-    # elem_backtrack = backtracker.line.elements[
+    # elem_backtrack = backtrack_line.elements[
     #                     i_start_backtrack:i_start_backtrack + n_backtrack]
 
     # Track with extra apertures
-    interp_tracker.track(part_refine)
+    interp_line.track(part_refine)
     # There is a small fraction of particles that are not lost.
     # We verified that they are really at the edge. Their coordinates
     # correspond to the end fo the short line, which is correct
@@ -243,60 +242,60 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
 
     return part_refine
 
-def interp_aperture_replicate(context, tracker, backtracker,
+def interp_aperture_replicate(context, line, backtrack_line,
                               i_aper_0, i_aper_1,
-                              ds, _trk_gen, mode='end',):
+                              ds, _ln_gen, mode='end',):
 
     temp_buf = context.new_buffer()
 
-    i_start_thin_1 = find_previous_drift(tracker, i_aper_1)
-    num_elements = len(tracker.line.elements)
-    i_start_thin_0_bktr = find_previous_drift(backtracker,
+    i_start_thin_1 = find_previous_drift(line, i_aper_1)
+    num_elements = len(line.elements)
+    i_start_thin_0_bktr = find_previous_drift(backtrack_line,
                                  index_in_reversed_line(num_elements, i_aper_0))
     i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
 
-    s0, s1, s_vect = generate_interp_aperture_locations(tracker,
+    s0, s1, s_vect = generate_interp_aperture_locations(line,
                                                    i_aper_0, i_aper_1, ds)
 
     if mode=='end':
-        aper_to_copy = tracker.line.elements[i_aper_1]
+        aper_to_copy = line.elements[i_aper_1]
     elif mode=='start':
-        aper_to_copy = tracker.line.elements[i_aper_0]
+        aper_to_copy = line.elements[i_aper_0]
     else:
         raise ValueError(f'Invalid mode: {mode}')
     interp_apertures = []
     for ss in s_vect:
         interp_apertures.append(aper_to_copy.copy(_buffer=temp_buf))
 
-    interp_tracker = build_interp_tracker(
+    interp_line = build_interp_line(
             _buffer=temp_buf,
             s0=s0, s1=s1, s_interp=s_vect,
             aper_0=aper_to_copy.copy(_buffer=temp_buf),
             aper_1=aper_to_copy.copy(_buffer=temp_buf),
             aper_interp=interp_apertures,
-            tracker=tracker, i_start_thin_0=i_start_thin_0,
+            line=line, i_start_thin_0=i_start_thin_0,
             i_start_thin_1=i_start_thin_1,
-            _trk_gen=_trk_gen)
+            _ln_gen=_ln_gen)
 
-    return interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+    return interp_line, i_start_thin_0, i_start_thin_1, s0, s1
 
-def interp_aperture_using_polygons(context, tracker, backtracker,
+def interp_aperture_using_polygons(context, line, backtrack_line,
                        i_aper_0, i_aper_1,
-                       n_theta, r_max, dr, ds, _trk_gen):
+                       n_theta, r_max, dr, ds, _ln_gen):
 
     temp_buf = context.new_buffer()
 
-    polygon_1, i_start_thin_1 = characterize_aperture(tracker,
+    polygon_1, i_start_thin_1 = characterize_aperture(line,
                                  i_aper_1, n_theta, r_max, dr,
                                  buffer_for_poly=temp_buf)
-    num_elements = len(tracker.line.elements)
-    polygon_0, i_start_thin_0_bktr = characterize_aperture(backtracker,
+    num_elements = len(line.elements)
+    polygon_0, i_start_thin_0_bktr = characterize_aperture(backtrack_line,
                                  index_in_reversed_line(num_elements, i_aper_0),
                                  n_theta, r_max, dr,
                                  buffer_for_poly=temp_buf)
     i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
 
-    s0, s1, s_vect = generate_interp_aperture_locations(tracker,
+    s0, s1, s_vect = generate_interp_aperture_locations(line,
                                                    i_aper_0, i_aper_1, ds)
 
     Delta_s = s1 - s0
@@ -315,21 +314,21 @@ def interp_aperture_using_polygons(context, tracker, backtracker,
             x_vertices=x_hull,
             y_vertices=y_hull))
 
-    interp_tracker = build_interp_tracker(
+    interp_line = build_interp_line(
             _buffer=temp_buf,
             s0=s0, s1=s1, s_interp=s_vect,
             aper_0=polygon_0, aper_1=polygon_1,
             aper_interp=interp_polygons,
-            tracker=tracker, i_start_thin_0=i_start_thin_0,
+            line=line, i_start_thin_0=i_start_thin_0,
             i_start_thin_1=i_start_thin_1,
-            _trk_gen=_trk_gen)
+            _ln_gen=_ln_gen)
 
-    return interp_tracker, i_start_thin_0, i_start_thin_1, s0, s1
+    return interp_line, i_start_thin_0, i_start_thin_1, s0, s1
 
-def generate_interp_aperture_locations(tracker, i_aper_0, i_aper_1, ds):
+def generate_interp_aperture_locations(line, i_aper_0, i_aper_1, ds):
 
-    s0 = tracker._tracker_data.element_s_locations[i_aper_0]
-    s1 = tracker._tracker_data.element_s_locations[i_aper_1]
+    s0 = line.tracker._tracker_data.element_s_locations[i_aper_0]
+    s1 = line.tracker._tracker_data.element_s_locations[i_aper_1]
     assert s1>=s0
     n_segments = int(np.ceil((s1-s0)/ds))
     if n_segments <= 1:
@@ -339,18 +338,18 @@ def generate_interp_aperture_locations(tracker, i_aper_0, i_aper_1, ds):
 
     return s0, s1, s_vect
 
-def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
-                         tracker, i_start_thin_0, i_start_thin_1, _trk_gen):
+def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
+                         line, i_start_thin_0, i_start_thin_1, _ln_gen):
 
     # Build interp line
     s_elements = [s0] + list(s_interp) +[s1]
     elements = [aper_0] + aper_interp + [aper_1]
 
     for i_ele in range(i_start_thin_0+1, i_start_thin_1):
-        ee = tracker.line.elements[i_ele]
+        ee = line.elements[i_ele]
         if not _behaves_like_drift(ee):
             assert not _is_thick(ee)
-            ss_ee = tracker._tracker_data.element_s_locations[i_ele]
+            ss_ee = line.tracker._tracker_data.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
             s_elements.append(ss_ee)
     i_sorted = np.argsort(s_elements)
@@ -369,19 +368,18 @@ def build_interp_tracker(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
         ele_all.append(ele_sorted[ii])
         s_all.append(s_sorted[ii])
 
-    interp_tracker = Tracker(
-            _buffer=_buffer,
-            line=Line(elements=ele_all),
-            track_kernel=_trk_gen.track_kernel,
-            element_classes=_trk_gen.element_classes,
-            reset_s_at_end_turn=0,
-            global_xy_limit=_trk_gen.global_xy_limit)
+    interp_line = Line(elements=ele_all)
 
-    return interp_tracker
+    interp_line.build_tracker(_buffer=_buffer,
+                              track_kernel=_ln_gen.tracker.track_kernel,
+                              element_classes=_ln_gen.tracker.element_classes,
+                              reset_s_at_end_turn=0)
+    interp_line.config.XTRACK_GLOBAL_XY_LIMIT = _ln_gen.config.XTRACK_GLOBAL_XY_LIMIT
 
-def find_previous_drift(tracker, i_aperture):
 
-    line = tracker.line
+    return interp_line
+
+def find_previous_drift(line, i_aperture):
 
     ii=i_aperture
     found = False
@@ -403,11 +401,11 @@ def index_in_reversed_line(num_elements, ii):
     return num_elements - ii - 1
 
 
-def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
+def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
                           buffer_for_poly):
 
     # find previous drift
-    i_start = find_previous_drift(tracker, i_aperture)
+    i_start = find_previous_drift(line, i_aperture)
 
     # Number of thin elements to characterize
     num_elements = i_aperture-i_start+1
@@ -435,7 +433,7 @@ def characterize_aperture(tracker, i_aperture, n_theta, r_max, dr,
         ptest = xp.Particles(p0c=1,
                 x = x_test.copy(),
                 y = y_test.copy())
-        tracker.track(ptest, ele_start=i_start, num_elements=num_elements)
+        line.track(ptest, ele_start=i_start, num_elements=num_elements)
 
         indx_sorted = np.argsort(ptest.particle_id)
         state_sorted = np.take(ptest.state, indx_sorted)
