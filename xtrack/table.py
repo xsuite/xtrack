@@ -471,6 +471,10 @@ class RDMTable:
                     fmt.append("%%%ds" % colwidth)
                 header_line.append(fmt[-1] % cc)
                 data.append(col)
+            else:
+                header_line.append('...')
+                break
+
 
         result = []
         if header:
