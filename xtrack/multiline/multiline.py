@@ -313,7 +313,8 @@ class Multiline:
             df = self._bb_config['dataframes'][nn]
 
             for bbnn in df.index:
-                line.element_refs[bbnn].scale_strength = self.vars['beambeam_scale']
+                self.vars[f'{bbnn}_scale_strength'] = self.vars['beambeam_scale']
+                line.element_refs[bbnn].scale_strength = self.vars[f'{bbnn}_scale_strength']
 
 
 
