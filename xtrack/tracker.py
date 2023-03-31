@@ -4,6 +4,7 @@
 # ######################################### #
 
 from time import perf_counter
+import warnings
 from typing import Literal, Union
 import logging
 from functools import partial
@@ -252,7 +253,7 @@ class Tracker:
         self._supertracker = supertracker
         self._parts = parts
         self._part_names = part_names
-        self.track = self._track_with_collective
+        self._track = self._track_with_collective
         self.particles_class = supertracker.particles_class
         self.particles_monitor_class = supertracker.particles_monitor_class
         self._element_part = _element_part
@@ -340,7 +341,7 @@ class Tracker:
 
         self._track_kernel = track_kernel or {}
 
-        self.track = self._track_no_collective
+        self._track = self._track_no_collective
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
         if compile:
@@ -428,12 +429,12 @@ class Tracker:
                     local_particle_src=self.local_particle_src,
                 )
 
-    def track(self, *args, **kwargs):
+    def _track(self, *args, **kwargs):
         """
         This is a placeholder, it is replaced either by the collective
         tracker or the single particle tracker.
         """
-        pass
+        raise NotImplementedError
 
     @property
     def particle_ref(self) -> xp.Particles:
@@ -1356,15 +1357,19 @@ class Tracker:
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
 
-    # def __getattr__(self, attr):
-    #     # If not in self look in self.line (if not None)
-    #     if self.line is not None and attr in object.__dir__(self.line):
-    #         return getattr(self.line, attr)
-    #     else:
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
+    def __getattr__(self, attr):
+        # If not in self look in self.line (if not None)
+        if self.line is not None and attr in object.__dir__(self.line):
+            prrrr
+            _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
+                f' Please use `Line.{attr}` (for more info see '
+                'https://github.com/xsuite/xsuite/issues/322)')
+            return getattr(self.line, attr)
+        else:
+            raise AttributeError(f'Tracker object has no attribute `{attr}`')
 
-    # def __dir__(self):
-    #     return list(set(object.__dir__(self) + dir(self.line)))
+    def __dir__(self):
+        return list(set(object.__dir__(self) + dir(self.line)))
 
 
 class TrackerConfig(UserDict):

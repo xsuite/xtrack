@@ -413,7 +413,7 @@ class Line:
 
     def track(self, *args, **kwargs):
         self._check_valid_tracker()
-        return self.tracker.track(*args, **kwargs)
+        return self.tracker._track(*args, **kwargs)
 
     def build_particles(self, *args, **kwargs):
 
@@ -496,11 +496,11 @@ class Line:
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
                 ' replaced by drifts')
-            tracker = self.tracker._supertracker
+            line = self.tracker._supertracker.line
         else:
-            tracker = self.tracker
+            line = self
 
-        return find_closed_orbit_line(tracker, particle_co_guess=particle_co_guess,
+        return find_closed_orbit_line(line, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error)
