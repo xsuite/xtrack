@@ -4,7 +4,6 @@
 # ######################################### #
 
 import logging
-import warnings
 
 import numpy as np
 from scipy.optimize import fsolve
@@ -17,6 +16,7 @@ from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
 from .table import Table
+from .general import _print
 
 import xtrack as xt  # To avoid circular imports
 
@@ -231,7 +231,7 @@ def twiss_line(line, particle_ref=None, method='6d',
             particle_ref = line.particle_ref
 
     if line.iscollective:
-        warnings.warn(
+        _print(
             'The line has collective elements.\n'
             'In the twiss computation collective elements are'
             ' replaced by drifts')
@@ -845,7 +845,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
 
     for shift_factor in [0, 1.]: # if not found at first attempt we shift slightly the starting point
         if shift_factor>0:
-            log.warning('Need second attempt on closed orbit search')
+            _print('Warning! Need second attempt on closed orbit search')
 
         x0=np.array([particle_co_guess._xobject.x[0] + shift_factor * 1e-5,
                     particle_co_guess._xobject.px[0] + shift_factor * 1e-7,

@@ -4,7 +4,6 @@
 # ######################################### #
 
 from time import perf_counter
-import warnings
 from typing import Literal, Union
 import logging
 from functools import partial

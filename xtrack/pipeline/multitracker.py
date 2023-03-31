@@ -1,21 +1,19 @@
-import warnings
 import xtrack as xt
+_print = xt.general._print
 
 class PipelineBranch:
     def __init__(self, line=None, particles=None, tracker=None):
 
         if tracker is not None:
-            warnings.warn(
-                "The argument tracker is deprecated. Please use line instead.",
-                DeprecationWarning)
+            _print( 'Warning! '
+                "The argument tracker is deprecated. Please use line instead.")
             assert line is None
             line = tracker.line
 
         if isinstance(line, xt.Tracker):
-            warnings.warn(
+            _print('Warning! '
                 "The use of Tracker as argument of `PipelineBranch` is deprecated."
-                " Please use Line instead.",
-                DeprecationWarning)
+                " Please use Line instead.")
             line = line.line
 
         self.line = line
