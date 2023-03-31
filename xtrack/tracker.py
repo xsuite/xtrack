@@ -1360,7 +1360,6 @@ class Tracker:
     def __getattr__(self, attr):
         # If not in self look in self.line (if not None)
         if self.line is not None and attr in object.__dir__(self.line):
-            prrrr
             _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
                 f' Please use `Line.{attr}` (for more info see '
                 'https://github.com/xsuite/xsuite/issues/322)')
