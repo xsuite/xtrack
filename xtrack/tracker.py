@@ -219,16 +219,7 @@ class Tracker:
             _buffer=_buffer)
         line._freeze()
 
-        # Build trackers for non-collective parts
-        for ii, pp in enumerate(parts):
-            if isinstance(pp, Line):
-                ele_start = _part_element_index[ii][0]
-                ele_stop = _part_element_index[ii][-1] + 1
-                parts[ii] = TrackerPartNonCollective(
-                    tracker=self,
-                    ele_start_in_tracker=ele_start,
-                    ele_stop_in_tracker=ele_stop,
-                )
+
 
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
@@ -257,7 +248,7 @@ class Tracker:
         if compile:
             _ = self._current_track_kernel  # This triggers compilation
 
-    def _split_parts_for_colletctive_mode(sefl, line, _buffer):
+    def _split_parts_for_colletctive_mode(self, line, _buffer):
 
         # Split the sequence
         parts = []
@@ -307,6 +298,17 @@ class Tracker:
 
                 noncollective_xelements.append(
                     Drift(_buffer=_buffer, length=ldrift))
+
+        # Build TrackerPartNonCollective objects for non-collective parts
+        for ii, pp in enumerate(parts):
+            if isinstance(pp, Line):
+                ele_start = _part_element_index[ii][0]
+                ele_stop = _part_element_index[ii][-1] + 1
+                parts[ii] = TrackerPartNonCollective(
+                    tracker=self,
+                    ele_start_in_tracker=ele_start,
+                    ele_stop_in_tracker=ele_stop,
+                )
 
         return (parts, part_names, _element_part, _element_index_in_part,
                 _part_element_index, noncollective_xelements)
