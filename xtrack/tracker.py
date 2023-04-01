@@ -124,6 +124,7 @@ class Tracker:
         _buffer=None,
         _offset=None,
         line=None,
+        sequence=None,
         track_kernel=None,
         element_classes=None,
         particles_class=None,
@@ -135,14 +136,44 @@ class Tracker:
         io_buffer=None,
         compile=True,
         use_prebuilt_kernels=True,
-        enable_pipeline_hold=False
+        enable_pipeline_hold=False,
+        _element_ref_data=None,
     ):
+
+        if sequence is not None:
+            raise ValueError(
+                    "`Tracker(... sequence=... ) is deprecated use `line=`)")
+
+        # Check if there are collective elements
+        self.iscollective = False
+        for ee in line.elements:
+            if _check_is_collective(ee):
+                self.iscollective = True
+                break
+
+        if _element_ref_data and self.iscollective:
+            raise ValueError('The argument element_ref_data is not '
+                             'supported in collective mode.')
+
+        if enable_pipeline_hold and not self.iscollective:
+            raise ValueError("`enable_pipeline_hold` is not implemented in "
+                             "non-collective mode")
+
+        if not compile and self.iscollective:
+            raise NotImplementedError("Skip compilation is not implemented in "
+                                      "collective mode")
 
         assert _offset is None
 
-        if not compile:
-            raise NotImplementedError("Skip compilation is not implemented in "
-                                      "collective mode")
+        if particles_class is None:
+            particles_class = xp.Particles
+
+        if local_particle_src is None:
+            local_particle_src = particles_class.gen_local_particle_api()
+
+        if not particles_monitor_class:
+            particles_monitor_class = self._get_default_monitor_class()
+
 
         self.line = line
         self.skip_end_turn_actions = skip_end_turn_actions
@@ -161,7 +192,6 @@ class Tracker:
         if io_buffer is None:
             io_buffer = new_io_buffer(_context=_buffer.context)
         self.io_buffer = io_buffer
-
 
         (parts, part_names, _element_part, _element_index_in_part,
             _part_element_index, noncollective_xelements) = (
@@ -305,6 +335,8 @@ class Tracker:
             local_particle_src = particles_class.gen_local_particle_api()
 
         self.extra_headers = extra_headers
+
+        # Aligned up to here
 
         tracker_data = TrackerData(
             line=line,
