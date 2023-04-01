@@ -163,6 +163,12 @@ class Tracker:
             raise NotImplementedError("Skip compilation is not implemented in "
                                       "collective mode")
 
+        if track_kernel is None and element_classes is not None:
+            raise ValueError('The kernel relies on `element_classes` ordering, '
+                             'so `element_classes` must be given if '
+                             '`track_kernel` is None.')
+
+
         assert _offset is None
 
         if particles_class is None:
@@ -177,7 +183,9 @@ class Tracker:
 
         self.line = line
         self.skip_end_turn_actions = skip_end_turn_actions
+        self.reset_s_at_end_turn = reset_s_at_end_turn
         self.particles_class = particles_class
+        self.particles_monitor_class = particles_monitor_class
         self.extra_headers = extra_headers
         self.local_particle_src = local_particle_src
         self._enable_pipeline_hold = enable_pipeline_hold
@@ -187,7 +195,6 @@ class Tracker:
             if _context is None:
                 _context = xo.context_default
             _buffer = _context.new_buffer()
-        self._buffer = _buffer
 
         if io_buffer is None:
             io_buffer = new_io_buffer(_context=_buffer.context)
@@ -199,20 +206,18 @@ class Tracker:
 
         # Build tracker for all non-collective elements
         # (with collective elements replaced by Drifts)
-        supertracker = Tracker(_buffer=_buffer,
-                line=Line(elements=noncollective_xelements,
-                          element_names=line.element_names),
-                track_kernel=track_kernel,
-                element_classes=element_classes,
-                particles_class=particles_class,
-                particles_monitor_class=particles_monitor_class,
-                extra_headers=extra_headers,
-                reset_s_at_end_turn=reset_s_at_end_turn,
-                local_particle_src=local_particle_src,
-                io_buffer=self.io_buffer,
-                use_prebuilt_kernels=use_prebuilt_kernels,
-                )
-        supertracker.config.update(self.config)
+        ele_dict_non_collective = {
+            nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
+        tracker_data = TrackerData(
+            element_dict=ele_dict_non_collective,
+            element_names=line.element_names,
+            element_s_locations=line.get_s_elements(),
+            line_length=line.get_length(),
+            element_classes=element_classes,
+            extra_element_classes=(particles_monitor_class._XoStruct,),
+            element_ref_data=_element_ref_data,
+            _buffer=_buffer)
+        line._freeze()
 
         # Build trackers for non-collective parts
         for ii, pp in enumerate(parts):
@@ -220,7 +225,7 @@ class Tracker:
                 ele_start = _part_element_index[ii][0]
                 ele_stop = _part_element_index[ii][-1] + 1
                 parts[ii] = TrackerPartNonCollective(
-                    tracker=supertracker,
+                    tracker=self,
                     ele_start_in_tracker=ele_start,
                     ele_stop_in_tracker=ele_stop,
                 )
@@ -228,22 +233,29 @@ class Tracker:
         # Make a "marker" element to increase at_element
         self._zerodrift = Drift(_context=_buffer.context, length=0)
 
-        assert len(line.element_names) == len(supertracker.line.element_names)
         assert len(line.element_names) == len(_element_index_in_part)
         assert len(line.element_names) == len(_element_part)
         assert _element_part[-1] == len(parts) - 1
 
+        if element_classes is None:
+            if track_kernel is not None:
+                raise ValueError(
+                    'The kernel relies on `element_classes` ordering, so '
+                    '`track_kernel` must be given if `element_classes` is None.'
+                )
+
         self.line = line
-        self.num_elements = len(line.element_names)
-        self._supertracker = supertracker
+        self.line.tracker = self
+        self._tracker_data = tracker_data
         self._parts = parts
         self._part_names = part_names
         self._track = self._track_with_collective
-        self.particles_class = supertracker.particles_class
-        self.particles_monitor_class = supertracker.particles_monitor_class
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
+        self._track_kernel = track_kernel or {}
 
+        if compile:
+            _ = self._current_track_kernel  # This triggers compilation
 
     def _split_parts_for_colletctive_mode(sefl, line, _buffer):
 
@@ -376,7 +388,6 @@ class Tracker:
         self.line.tracker = self
         self._tracker_data = tracker_data
         self.num_elements = len(tracker_data.elements)
-        self._buffer = tracker_data._buffer
 
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
@@ -396,21 +407,23 @@ class Tracker:
 
     @property
     def track_kernel(self):
-        if self.iscollective:
-            return self._supertracker._track_kernel
-        else:
-            return self._track_kernel
+        return self._track_kernel
 
     @property
     def element_classes(self):
-        if self.iscollective:
-            return self._supertracker.element_classes
-        else:
-            return self._element_classes
+            return self._tracker_data.element_classes
 
     @property
     def config(self):
         return self.line.config
+
+    @property
+    def _buffer(self):
+        return self._tracker_data._buffer
+
+    @property
+    def num_elements(self):
+        return len(self.line.element_names)
 
     @property
     def matrix_responsiveness_tol(self):
@@ -540,10 +553,10 @@ class Tracker:
                 self._context.kernels.update(kernels)
                 classes = (self.particles_class._XoStruct,)
                 self._current_track_kernel = self._context.kernels[('track_line', classes)]
-                self._element_classes = [cls._XoStruct for cls in modules_classes]
+                _element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
                     line=self.line,
-                    element_classes=self.element_classes,
+                    element_classes=_element_classes,
                     _context=self._context,
                     _buffer=self._buffer,
                 )
@@ -892,8 +905,6 @@ class Tracker:
         """
         return self._track_with_collective(particles=None, _session_to_resume=session)
 
-
-
     def _track_with_collective(
         self,
         particles,
@@ -1053,9 +1064,9 @@ class Tracker:
                     particles._num_lost_particles = -1
 
             # Increment at_turn and reset at_element
-            # (use the supertracker to perform only end-turn actions)
-            self._supertracker.track(particles,
-                               ele_start=self._supertracker.num_elements,
+            # (use the non-collective track method to perform only end-turn actions)
+            self._track_no_collective(particles,
+                               ele_start=self.num_elements,
                                num_elements=0)
 
         self.record_last_track = monitor
@@ -1311,7 +1322,6 @@ class Tracker:
         return flag_monitor, monitor, buffer_monitor, offset_monitor
 
 
-
     def to_binary_file(self, path):
         try:
             tracker_data = self._tracker_data
@@ -1404,18 +1414,18 @@ class Tracker:
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
 
-    def __getattr__(self, attr):
-        # If not in self look in self.line (if not None)
-        if self.line is not None and attr in object.__dir__(self.line):
-            _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
-                f' Please use `Line.{attr}` (for more info see '
-                'https://github.com/xsuite/xsuite/issues/322)')
-            return getattr(self.line, attr)
-        else:
-            raise AttributeError(f'Tracker object has no attribute `{attr}`')
+    # def __getattr__(self, attr):
+    #     # If not in self look in self.line (if not None)
+    #     if self.line is not None and attr in object.__dir__(self.line):
+    #         _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
+    #             f' Please use `Line.{attr}` (for more info see '
+    #             'https://github.com/xsuite/xsuite/issues/322)')
+    #         return getattr(self.line, attr)
+    #     else:
+    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
 
-    def __dir__(self):
-        return list(set(object.__dir__(self) + dir(self.line)))
+    # def __dir__(self):
+    #     return list(set(object.__dir__(self) + dir(self.line)))
 
 
 class TrackerConfig(UserDict):
