@@ -389,7 +389,6 @@ class Tracker:
         self.line = line
         self.line.tracker = self
         self._tracker_data = tracker_data
-        self.num_elements = len(tracker_data.elements)
 
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
