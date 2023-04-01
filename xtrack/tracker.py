@@ -339,13 +339,18 @@ class Tracker:
         # Aligned up to here
 
         tracker_data = TrackerData(
-            line=line,
+            element_dict=line.element_dict,
+            element_names=line.element_names,
+            element_s_locations=line.get_s_elements(),
+            line_length=line.get_length(),
             element_classes=element_classes,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             element_ref_data=self._element_ref_data,
             _context=_context,
             _buffer=_buffer,
             _offset=_offset)
+        # Freeze the line
+        line.element_names = tuple(tracker_data.element_names)
 
         context = tracker_data._buffer.context
 

@@ -36,7 +36,10 @@ class TrackerData:
 
     def __init__(
             self,
-            line,
+            element_dict,
+            element_names,
+            element_s_locations,
+            line_length,
             element_classes=None,
             extra_element_classes=(),
             element_ref_data=None,
@@ -47,14 +50,28 @@ class TrackerData:
         """
         Create an immutable line suitable for serialisation.
 
-        :param xt.Line line: a line
-        :param List[xo.Struct] element_classes: explicit list of classes of
-            elements of the line; if `None`, will be inferred from list.
-        :param Tuple[xo.Struct] extra_element_classes: if `element_classes`
-            is `None`, this list will be used to augment the inferred list
-            of element classes.
+        Parameters
+        ----------
+        element_dict : dict
+            Dictionary of elements, keyed by name.
+        element_names : list
+            List of element names.
+        element_s_locations : list
+            List of element s locations.
+        line_length : float
+            Length of the line.
+        element_classes : list, optional
+            Explicit list of classes of elements of the line; if `None`,
+            will be inferred from list.
+        extra_element_classes : tuple, optional
+            If `element_classes` is `None`, this list will be used to augment
+            the inferred list of element classes.
+        element_ref_data : ElementRefData, optional
         """
-        self.line = line
+
+        self._element_dict = element_dict
+        self._element_names = tuple(element_names)
+        self._elements = tuple([element_dict[ee] for ee in element_names])
 
         if _buffer is None:
             common_buffer = self.common_buffer_for_elements()
@@ -62,10 +79,8 @@ class TrackerData:
                 _buffer = common_buffer
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
 
-        num_elements = len(line.element_names)
-
         if not element_classes:
-            element_classes = set(ee._XoStruct for ee in line.elements)
+            element_classes = set(ee._XoStruct for ee in self._elements)
             element_classes |= set(extra_element_classes)
             element_classes = sorted(element_classes, key=lambda cc: cc.__name__)
         self.element_classes = element_classes
@@ -73,10 +88,9 @@ class TrackerData:
         class ElementRefClass(xo.UnionRef):
             _reftypes = self.element_classes
 
-        # freeze line
-        line.element_names = tuple(line.element_names)
-        self.element_s_locations = tuple(line.get_s_elements())
-        self.line_length = line.get_length()
+
+        self.element_s_locations = tuple(element_s_locations)
+        self.line_length = line_length
         self._ElementRefClass = ElementRefClass
         if element_ref_data and element_ref_data._buffer is _buffer:
             self._element_ref_data = element_ref_data
@@ -84,10 +98,10 @@ class TrackerData:
             self._element_ref_data = self.move_elements_and_build_ref_data(_buffer)
 
     def common_buffer_for_elements(self):
-        """If all `self.line` elements are in the same buffer,
+        """If all `self.elements` elements are in the same buffer,
         returns said buffer, otherwise returns `None`."""
         common_buffer = None
-        for ee in self.line.elements:
+        for ee in self._elements:
             if hasattr(ee, '_buffer'):
                 if common_buffer is None:
                     common_buffer = ee._buffer
@@ -141,8 +155,8 @@ class TrackerData:
         element_refs_cls = self.generate_element_ref_data(self._ElementRefClass)
 
         element_ref_data = element_refs_cls(
-            elements=len(self.line.elements),
-            names=list(self.line.element_names),
+            elements=len(self._elements),
+            names=list(self._element_names),
             _buffer=buffer,
         )
 
@@ -150,13 +164,13 @@ class TrackerData:
         # We only do it now, as we need to make sure element_ref_data is already
         # allocated after reftype_names.
         moved_element_dict = {}
-        for name, elem in self.line.element_dict.items():
+        for name, elem in self._element_dict.items():
             if elem._buffer is not buffer:
                 elem.move(_buffer=buffer)
             moved_element_dict[name] = elem._xobject
 
         element_ref_data.elements = [
-            moved_element_dict[name] for name in self.line.element_names
+            moved_element_dict[name] for name in self.element_names
         ]
 
         return element_ref_data
@@ -215,12 +229,15 @@ class TrackerData:
             hybrid_cls = hybrid_cls_for_xstruct[elem.__class__]
             element_dict[name] = hybrid_cls(_xobject=elem)
 
-        line = Line(
+        temp_line = Line(
             elements=element_dict,
             element_names=element_ref_data.names,
         )
         tracker_data = TrackerData(
-            line=line,
+            element_dict=temp_line.element_dict,
+            element_names=temp_line.element_names,
+            element_s_locations=temp_line.get_s_elements(),
+            line_length=temp_line.get_length(),
             element_classes=element_classes,
             element_ref_data=element_ref_data,
         )
@@ -230,11 +247,11 @@ class TrackerData:
 
     @property
     def elements(self):
-        return self.line.elements
+        return self._elements
 
     @property
     def element_names(self):
-        return self.line.element_names
+        return self._element_names
 
     @property
     def _buffer(self):
