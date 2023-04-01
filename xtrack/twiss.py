@@ -236,9 +236,8 @@ def twiss_line(line, particle_ref=None, method='6d',
             'The line has collective elements.\n'
             'In the twiss computation collective elements are'
             ' replaced by drifts')
-        kwargs = locals().copy()
-        with xt.tracker._force_non_collective(line.tracker):
-            return twiss_line(**kwargs)
+        line = line._get_non_collective_line()
+
 
     if particle_ref is None and particle_co_guess is None:
         raise ValueError(

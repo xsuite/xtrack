@@ -325,11 +325,11 @@ class Tracker:
                 )
 
     def _track(self, *args, **kwargs):
-        assert self.iscollective in (True, False, _TEMP_FALSE)
-        if self.iscollective is False or self.iscollective == _TEMP_FALSE:
-            return self._track_no_collective(*args, **kwargs)
-        else:
+        assert self.iscollective in (True, False)
+        if self.iscollective:
             return self._track_with_collective(*args, **kwargs)
+        else:
+            return self._track_no_collective(*args, **kwargs)
 
     @property
     def particle_ref(self) -> xp.Particles:
@@ -1321,19 +1321,3 @@ class TrackerPartNonCollective:
     def __repr__(self):
         return (f'TrackerPartNonCollective({self.ele_start_in_tracker}, '
                 f'{self.ele_stop_in_tracker})')
-
-@contextmanager
-def _force_non_collective(tracker):
-    old_iscollective = tracker.iscollective
-    tracker.iscollective = _TEMP_FALSE
-    try:
-        yield
-    finally:
-        tracker.iscollective = old_iscollective
-
-class _TempFalse:
-
-    def __bool__(self):
-        return False
-
-_TEMP_FALSE = _TempFalse()

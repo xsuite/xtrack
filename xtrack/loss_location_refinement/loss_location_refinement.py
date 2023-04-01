@@ -10,7 +10,6 @@ import xobjects as xo
 import xpart as xp
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
-from ..tracker import _force_non_collective
 
 from ..general import _print
 

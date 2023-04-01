@@ -496,13 +496,14 @@ class Line:
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
                 ' replaced by drifts')
+            line = self._get_non_collective_line()
+        else:
+            line = self
 
-        with xt.tracker._force_non_collective(self.tracker):
-            out = find_closed_orbit_line(self, particle_co_guess=particle_co_guess,
+        return find_closed_orbit_line(line, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error)
-        return out
 
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
@@ -591,11 +592,13 @@ class Line:
                 'The tracker has collective elements.\n'
                 'In the twiss computation collective elements are'
                 ' replaced by drifts')
-        with xt.tracker._force_non_collective(self.tracker):
-            out =  compute_one_turn_matrix_finite_differences(
-                self, particle_on_co, steps_r_matrix)
+            line = self._get_non_collective_line()
+        else:
+            line = self
 
-        return out
+        return compute_one_turn_matrix_finite_differences(line, particle_on_co,
+                                                          steps_r_matrix)
+
 
     def get_length(self):
         ll = 0
