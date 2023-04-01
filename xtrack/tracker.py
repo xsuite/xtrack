@@ -390,7 +390,10 @@ class Tracker:
                 self._current_track_kernel = self._context.kernels[('track_line', classes)]
                 _element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
-                    line=self.line,
+                    element_dict=self.line._element_dict,
+                    element_names=self.line.element_names,
+                    element_s_locations=self.line.get_s_elements(),
+                    line_length=self.line.get_length(),
                     element_classes=_element_classes,
                     _context=self._context,
                     _buffer=self._buffer,
