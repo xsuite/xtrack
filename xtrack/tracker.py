@@ -107,7 +107,6 @@ class Tracker:
         if not particles_monitor_class:
             particles_monitor_class = self._get_default_monitor_class()
 
-
         self.line = line
         self.skip_end_turn_actions = skip_end_turn_actions
         self.reset_s_at_end_turn = reset_s_at_end_turn
@@ -143,7 +142,6 @@ class Tracker:
             assert len(line.element_names) == len(_element_index_in_part)
             assert len(line.element_names) == len(_element_part)
             assert _element_part[-1] == len(parts) - 1
-            self._track = self._track_with_collective
             self._parts = parts
             self._part_names = part_names
             self._element_part = _element_part
@@ -151,7 +149,6 @@ class Tracker:
 
         else:
             ele_dict_non_collective = line.element_dict
-            self._track = self._track_no_collective
 
         tracker_data = TrackerData(
             element_dict=ele_dict_non_collective,
@@ -169,7 +166,6 @@ class Tracker:
         self.line = line
         self.line.tracker = self
         self._tracker_data = tracker_data
-
 
         if compile:
             _ = self._current_track_kernel  # This triggers compilation
@@ -324,11 +320,11 @@ class Tracker:
                 )
 
     def _track(self, *args, **kwargs):
-        """
-        This is a placeholder, it is replaced either by the collective
-        tracker or the single particle tracker.
-        """
-        raise NotImplementedError
+        assert self.iscollective in (True, False, 'temp_false')
+        if self.iscollective is False or self.iscollective == 'temp_false':
+            return self._track_no_collective(*args, **kwargs)
+        else:
+            return self._track_with_collective(*args, **kwargs)
 
     @property
     def particle_ref(self) -> xp.Particles:
