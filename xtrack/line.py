@@ -1637,6 +1637,21 @@ class Line:
             else:
                 return [self.element_dict[nn] for nn in names]
 
+    def _get_non_collective_line(self):
+        if not self.iscollective:
+            return self
+        else:
+            # Shallow copy of the line
+            out = Line.__new__(Line)
+            out.__dict__.update(self.__dict__)
+            out.element_dict = self.tracker._element_dict_non_collective
+
+            # Shallow copy of the tracker
+            out.tracker = self.tracker.__new__(self.tracker.__class__)
+            out.tracker.__dict__.update(self.tracker.__dict__)
+            out.tracker.iscollective = False
+
+            return out
 
 mathfunctions = type('math', (), {})
 mathfunctions.sqrt = math.sqrt

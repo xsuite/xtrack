@@ -257,6 +257,10 @@ class Tracker:
         return len(self.line.element_names)
 
     @property
+    def _element_dict_non_collective(self):
+        return self._tracker_data._element_dict
+
+    @property
     def matrix_responsiveness_tol(self):
         return self.line.matrix_responsiveness_tol
 
