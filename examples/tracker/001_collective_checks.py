@@ -53,3 +53,7 @@ assert nc_line['e7'] is line['e7']
 
 assert np.allclose(nc_line.get_s_elements(), line.get_s_elements(),
                    rtol=0, atol=1e-15)
+
+assert nc_line.tracker is not line.tracker
+assert nc_line.tracker._tracker_data is line.tracker._tracker_data
+assert line.tracker._track_kernel is nc_line.tracker._track_kernel
