@@ -31,7 +31,7 @@ class LossLocationRefinement:
 
         if line.iscollective:
             self._original_line = line
-            self.line = line.tracker._supertracker.line
+            self.line = line._get_non_collective_line()
         else:
             self._original_line = line
             self.line = line

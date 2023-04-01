@@ -1655,6 +1655,7 @@ class Line:
             out.tracker = self.tracker.__new__(self.tracker.__class__)
             out.tracker.__dict__.update(self.tracker.__dict__)
             out.tracker.iscollective = False
+            out.tracker.line = out
 
             return out
 
