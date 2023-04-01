@@ -1644,7 +1644,9 @@ class Line:
             # Shallow copy of the line
             out = Line.__new__(Line)
             out.__dict__.update(self.__dict__)
-            out.element_dict = self.tracker._element_dict_non_collective
+
+            # Change the element dict (beware of the element_dict property)
+            out._element_dict = self.tracker._element_dict_non_collective
 
             # Shallow copy of the tracker
             out.tracker = self.tracker.__new__(self.tracker.__class__)
