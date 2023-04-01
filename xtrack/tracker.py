@@ -66,57 +66,24 @@ class Tracker:
             raise ValueError(
                     "`Tracker(... sequence=... ) is deprecated use `line=`)")
 
-        # Check if there are collective elements
-        self.iscollective = False
-        for ee in line.elements:
-            if _check_is_collective(ee):
-                self.iscollective = True
-                break
 
-        if not particles_monitor_class:
-            particles_monitor_class = self._get_default_monitor_class()
-
-        if self.iscollective:
-            if _element_ref_data:
-                raise ValueError('The argument element_ref_data is not '
-                                 'supported in collective mode.')
-
-            self._init_track_with_collective(
-                _context=_context,
-                _buffer=_buffer,
-                _offset=_offset,
-                line=line,
-                track_kernel=track_kernel,
-                element_classes=element_classes,
-                particles_class=particles_class,
-                skip_end_turn_actions=skip_end_turn_actions,
-                reset_s_at_end_turn=reset_s_at_end_turn,
-                particles_monitor_class=particles_monitor_class,
-                extra_headers=extra_headers,
-                local_particle_src=local_particle_src,
-                io_buffer=io_buffer,
-                compile=compile,
-                use_prebuilt_kernels=use_prebuilt_kernels,
-                enable_pipeline_hold=enable_pipeline_hold)
-        else:
-            self._element_ref_data = _element_ref_data
-            self._init_track_no_collective(
-                _context=_context,
-                _buffer=_buffer,
-                _offset=_offset,
-                line=line,
-                track_kernel=track_kernel,
-                element_classes=element_classes,
-                particles_class=particles_class,
-                skip_end_turn_actions=skip_end_turn_actions,
-                reset_s_at_end_turn=reset_s_at_end_turn,
-                particles_monitor_class=particles_monitor_class,
-                extra_headers=extra_headers,
-                local_particle_src=local_particle_src,
-                io_buffer=io_buffer,
-                compile=compile,
-                use_prebuilt_kernels=use_prebuilt_kernels,
-                enable_pipeline_hold=enable_pipeline_hold)
+        self._init_track_with_collective(
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
+            line=line,
+            track_kernel=track_kernel,
+            element_classes=element_classes,
+            particles_class=particles_class,
+            skip_end_turn_actions=skip_end_turn_actions,
+            reset_s_at_end_turn=reset_s_at_end_turn,
+            particles_monitor_class=particles_monitor_class,
+            extra_headers=extra_headers,
+            local_particle_src=local_particle_src,
+            io_buffer=io_buffer,
+            compile=compile,
+            use_prebuilt_kernels=use_prebuilt_kernels,
+            enable_pipeline_hold=enable_pipeline_hold)
 
     def _init_track_with_collective(
         self,
@@ -226,7 +193,7 @@ class Tracker:
             self._part_names = part_names
             self._element_part = _element_part
             self._element_index_in_part = _element_index_in_part
-            self._track_kernel = track_kernel or {}
+
         else:
             ele_dict_non_collective = line.element_dict
             self._track = self._track_no_collective
@@ -242,7 +209,7 @@ class Tracker:
             _buffer=_buffer)
         line._freeze()
 
-
+        self._track_kernel = track_kernel or {}
 
         self.line = line
         self.line.tracker = self
