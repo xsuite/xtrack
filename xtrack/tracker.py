@@ -162,54 +162,10 @@ class Tracker:
             io_buffer = new_io_buffer(_context=_buffer.context)
         self.io_buffer = io_buffer
 
-        # Split the sequence
-        parts = []
-        part_names = []
-        _element_part = []
-        _element_index_in_part=[]
-        _part_element_index = defaultdict(list)
-        this_part = Line(elements=[], element_names=[])
-        ii_in_part = 0
-        i_part = 0
-        idx = 0
-        for nn, ee in zip(line.element_names, line.elements):
-            if not _check_is_collective(ee):
-                this_part.append_element(ee, nn)
-                _element_part.append(i_part)
-                _element_index_in_part.append(ii_in_part)
-                ii_in_part += 1
-                _part_element_index[i_part].append(idx)
-            else:
-                if len(this_part.elements) > 0:
-                    parts.append(this_part)
-                    part_names.append(f'part_{i_part}_non_collective')
-                    i_part += 1
-                parts.append(ee)
-                part_names.append(nn)
-                _element_part.append(i_part)
-                _element_index_in_part.append(None)
-                _part_element_index[i_part].append(idx)
-                i_part += 1
-                this_part = Line(elements=[], element_names=[])
-                ii_in_part = 0
-            idx += 1
-        if len(this_part.elements) > 0:
-            parts.append(this_part)
-            part_names.append(f'part_{i_part}_non_collective')
 
-        # Transform non collective elements into xtrack elements
-        noncollective_xelements = []
-        for ii, pp in enumerate(parts):
-            if isinstance(pp, Line):
-                noncollective_xelements += pp.elements
-            else:
-                if _is_thick(pp):
-                    ldrift = pp.length
-                else:
-                    ldrift = 0.
-
-                noncollective_xelements.append(
-                    Drift(_buffer=_buffer, length=ldrift))
+        (parts, part_names, _element_part, _element_index_in_part,
+            _part_element_index, noncollective_xelements) = (
+            self._split_parts_for_colletctive_mode(line, _buffer))
 
         # Build tracker for all non-collective elements
         # (with collective elements replaced by Drifts)
@@ -257,6 +213,61 @@ class Tracker:
         self.particles_monitor_class = supertracker.particles_monitor_class
         self._element_part = _element_part
         self._element_index_in_part = _element_index_in_part
+
+
+    def _split_parts_for_colletctive_mode(sefl, line, _buffer):
+
+        # Split the sequence
+        parts = []
+        part_names = []
+        _element_part = []
+        _element_index_in_part=[]
+        _part_element_index = defaultdict(list)
+        this_part = Line(elements=[], element_names=[])
+        ii_in_part = 0
+        i_part = 0
+        idx = 0
+        for nn, ee in zip(line.element_names, line.elements):
+            if not _check_is_collective(ee):
+                this_part.append_element(ee, nn)
+                _element_part.append(i_part)
+                _element_index_in_part.append(ii_in_part)
+                ii_in_part += 1
+                _part_element_index[i_part].append(idx)
+            else:
+                if len(this_part.elements) > 0:
+                    parts.append(this_part)
+                    part_names.append(f'part_{i_part}_non_collective')
+                    i_part += 1
+                parts.append(ee)
+                part_names.append(nn)
+                _element_part.append(i_part)
+                _element_index_in_part.append(None)
+                _part_element_index[i_part].append(idx)
+                i_part += 1
+                this_part = Line(elements=[], element_names=[])
+                ii_in_part = 0
+            idx += 1
+        if len(this_part.elements) > 0:
+            parts.append(this_part)
+            part_names.append(f'part_{i_part}_non_collective')
+
+        # Move non-collective elements to _buffer
+        noncollective_xelements = []
+        for ii, pp in enumerate(parts):
+            if isinstance(pp, Line):
+                noncollective_xelements += pp.elements
+            else:
+                if _is_thick(pp):
+                    ldrift = pp.length
+                else:
+                    ldrift = 0.
+
+                noncollective_xelements.append(
+                    Drift(_buffer=_buffer, length=ldrift))
+
+        return (parts, part_names, _element_part, _element_index_in_part,
+                _part_element_index, noncollective_xelements)
 
     def _init_track_no_collective(
         self,
