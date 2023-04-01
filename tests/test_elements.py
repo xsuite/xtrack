@@ -881,13 +881,13 @@ def test_exciter(test_context):
     assert np.allclose(particles.px, expected_px)
 
     particles.move(_context=test_context)
-    tracker.track(particles, num_turns=1)
+    line.track(particles, num_turns=1)
     expected_px += np.array([0.2, 0.3, 0.1])
     particles.move(_context=xo.context_default)
     assert np.allclose(particles.px, expected_px)
 
     particles.move(_context=test_context)
-    tracker.track(particles, num_turns=1)
+    line.track(particles, num_turns=1)
     expected_px += np.array([0.3, 0.1, 0])
     particles.move(_context=xo.context_default)
     assert np.allclose(particles.px, expected_px)
