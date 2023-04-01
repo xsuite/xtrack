@@ -869,12 +869,12 @@ def test_exciter(test_context):
                         frev=frev, start_turn=0, knl=[k0l], duration=duration)
 
     line = xt.Line([exciter])
-    tracker = line.build_tracker(_context=test_context)
+    line.build_tracker(_context=test_context)
 
     particles = xp.Particles(p0c=6.5e12, zeta=[0,-1,-2], _context=test_context)
     num_particles = len(particles.zeta)
 
-    tracker.track(particles, num_turns=1)
+    line.track(particles, num_turns=1)
     expected_px = np.array([0.1, 0.2, 0.3])
     particles.move(_context=xo.context_default)
 
