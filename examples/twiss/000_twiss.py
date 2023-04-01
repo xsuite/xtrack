@@ -14,7 +14,7 @@ import xpart as xp
 
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json')
-#line['ip5'].iscollective = True
+line['ip5'].iscollective = True
 line.particle_ref = xp.Particles(
                     mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.build_tracker()

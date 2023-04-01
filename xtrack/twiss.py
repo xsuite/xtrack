@@ -18,6 +18,7 @@ from . import linear_normal_form as lnf
 from .table import Table
 from .general import _print
 
+
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
@@ -235,7 +236,9 @@ def twiss_line(line, particle_ref=None, method='6d',
             'The line has collective elements.\n'
             'In the twiss computation collective elements are'
             ' replaced by drifts')
-        line = line.tracker._supertracker.line
+        kwargs = locals().copy()
+        with xt.tracker._force_non_collective(line.tracker):
+            return twiss_line(**kwargs)
 
     if particle_ref is None and particle_co_guess is None:
         raise ValueError(
