@@ -1173,8 +1173,8 @@ class Tracker:
 
         # Serialise the knobs
         var_management = {}
-        if tracker_data.line._var_management:
-            var_management = tracker_data.line._var_management_to_dict()
+        if self.line._var_management:
+            var_management = self.line._var_management_to_dict()
 
         # Serialise the reference particle
         particle_ref = None
@@ -1208,17 +1208,19 @@ class Tracker:
             header_offset,
             extra_element_classes=(particles_monitor_class,),
         )
-        if var_management_dict:
-            tracker_data.line._init_var_management(var_management_dict)
 
         tracker = Tracker(
-            line=tracker_data.line,
+            line=Line(elements=tracker_data._element_dict,
+                         element_names=tracker_data._element_names),
             _element_ref_data=tracker_data._element_ref_data,
             **kwargs,
         )
 
+        if var_management_dict:
+            tracker.line._init_var_management(var_management_dict)
+
         if particle_ref is not None:
-            tracker.particle_ref = xp.Particles.from_dict(particle_ref)
+            tracker.line.particle_ref = xp.Particles.from_dict(particle_ref)
 
         return tracker
 
