@@ -168,6 +168,11 @@ class Tracker:
                              'so `element_classes` must be given if '
                              '`track_kernel` is None.')
 
+        if element_classes is None and track_kernel is not None:
+            raise ValueError(
+                'The kernel relies on `element_classes` ordering, so '
+                '`track_kernel` must be given if `element_classes` is None.'
+            )
 
         assert _offset is None
 
@@ -200,14 +205,32 @@ class Tracker:
             io_buffer = new_io_buffer(_context=_buffer.context)
         self.io_buffer = io_buffer
 
-        (parts, part_names, _element_part, _element_index_in_part,
-            _part_element_index, noncollective_xelements) = (
-            self._split_parts_for_colletctive_mode(line, _buffer))
+        if self.iscollective:
+            (parts, part_names, _element_part, _element_index_in_part,
+                _part_element_index, noncollective_xelements) = (
+                self._split_parts_for_colletctive_mode(line, _buffer))
 
-        # Build tracker for all non-collective elements
-        # (with collective elements replaced by Drifts)
-        ele_dict_non_collective = {
-            nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
+            # Build tracker for all non-collective elements
+            # (with collective elements replaced by Drifts)
+            ele_dict_non_collective = {
+                nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
+
+            # Make a "marker" element to increase at_element
+            self._zerodrift = Drift(_context=_buffer.context, length=0)
+
+            assert len(line.element_names) == len(_element_index_in_part)
+            assert len(line.element_names) == len(_element_part)
+            assert _element_part[-1] == len(parts) - 1
+            self._track = self._track_with_collective
+            self._parts = parts
+            self._part_names = part_names
+            self._element_part = _element_part
+            self._element_index_in_part = _element_index_in_part
+            self._track_kernel = track_kernel or {}
+        else:
+            ele_dict_non_collective = line.element_dict
+            self._track = self._track_no_collective
+
         tracker_data = TrackerData(
             element_dict=ele_dict_non_collective,
             element_names=line.element_names,
@@ -221,29 +244,10 @@ class Tracker:
 
 
 
-        # Make a "marker" element to increase at_element
-        self._zerodrift = Drift(_context=_buffer.context, length=0)
-
-        assert len(line.element_names) == len(_element_index_in_part)
-        assert len(line.element_names) == len(_element_part)
-        assert _element_part[-1] == len(parts) - 1
-
-        if element_classes is None:
-            if track_kernel is not None:
-                raise ValueError(
-                    'The kernel relies on `element_classes` ordering, so '
-                    '`track_kernel` must be given if `element_classes` is None.'
-                )
-
         self.line = line
         self.line.tracker = self
         self._tracker_data = tracker_data
-        self._parts = parts
-        self._part_names = part_names
-        self._track = self._track_with_collective
-        self._element_part = _element_part
-        self._element_index_in_part = _element_index_in_part
-        self._track_kernel = track_kernel or {}
+
 
         if compile:
             _ = self._current_track_kernel  # This triggers compilation
