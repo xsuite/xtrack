@@ -1464,7 +1464,7 @@ class TrackerPartNonCollective:
         else:
             temp_num_elements = num_elements
 
-        self.tracker.track(particles, ele_start=temp_ele_start,
+        self.tracker._track_no_collective(particles, ele_start=temp_ele_start,
                            num_elements=temp_num_elements,
                            _force_no_end_turn_actions=True)
 
