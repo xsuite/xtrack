@@ -307,17 +307,20 @@ class Tracker:
             line.append_element(
                     ee.get_backtrack_element(_buffer=_buffer), nn)
 
-        return self.__class__(
+        out = self.__class__(
                     _buffer=_buffer,
                     line=line,
                     track_kernel=self.track_kernel,
                     element_classes=self.element_classes,
                     particles_class=self.particles_class,
-                    skip_end_turn_actions=self.skip_end_turn_actions,
                     particles_monitor_class=self.particles_monitor_class,
                     extra_headers=self.extra_headers,
                     local_particle_src=self.local_particle_src,
                 )
+        out.line.config = self.config.copy()
+        out.line._other_config = self.line._other_config.copy()
+
+        return out
 
     def _track(self, *args, **kwargs):
         assert self.iscollective in (True, False)
