@@ -64,6 +64,9 @@ def test_full_rings(
     line.build_tracker(_context=test_context)
     line.reset_s_at_end_turn = False
 
+    assert line._buffer.context is test_context
+    assert line[23]._buffer.context is test_context
+
     ######################
     # Get some particles #
     ######################
