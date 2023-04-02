@@ -60,7 +60,8 @@ line = xt.Line.from_dict(input_data['line'])
 # Build Tracker #
 #################
 print('Build tracker...')
-line.build_tracker(_context=context, reset_s_at_end_turn=False)
+line.build_tracker(_context=context)
+line.reset_s_at_end_turn = False
 
 if test_backtracker:
     backtracker = line.get_backtracker(_context=context)

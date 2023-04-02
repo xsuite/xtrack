@@ -51,8 +51,6 @@ class Tracker:
         track_kernel=None,
         element_classes=None,
         particles_class=xp.Particles,
-        skip_end_turn_actions=False,
-        reset_s_at_end_turn=True,
         particles_monitor_class=None,
         extra_headers=(),
         local_particle_src=None,
@@ -109,8 +107,6 @@ class Tracker:
             particles_monitor_class = self._get_default_monitor_class()
 
         self.line = line
-        self.skip_end_turn_actions = skip_end_turn_actions
-        self.reset_s_at_end_turn = reset_s_at_end_turn
         self.particles_class = particles_class
         self.particles_monitor_class = particles_monitor_class
         self.extra_headers = extra_headers
@@ -1253,6 +1249,22 @@ class Tracker:
     @_current_track_kernel.setter
     def _current_track_kernel(self, value):
         self.track_kernel[self._hashable_config()] = value
+
+    @property
+    def reset_s_at_end_turn(self):
+        return self.line.reset_s_at_end_turn
+
+    @reset_s_at_end_turn.setter
+    def reset_s_at_end_turn(self, value):
+        self.line.reset_s_at_end_turn = value
+
+    @property
+    def skip_end_turn_actions(self):
+        return self.line.skip_end_turn_actions
+
+    @skip_end_turn_actions.setter
+    def skip_end_turn_actions(self, value):
+        self.line.skip_end_turn_actions = value
 
     # def __getattr__(self, attr):
     #     # If not in self look in self.line (if not None)

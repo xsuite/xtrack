@@ -61,7 +61,8 @@ def test_full_rings(
     # Build TrackJob #
     ##################
     print('Build tracker...')
-    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
+    line.build_tracker(_context=test_context)
+    line.reset_s_at_end_turn = False
 
     ######################
     # Get some particles #
@@ -188,7 +189,8 @@ def test_freeze_vars(test_context):
     #################
     print('Build tracker...')
     freeze_vars = xp.Particles.part_energy_varnames() + ['zeta']
-    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
+    line.build_tracker(_context=test_context)
+    line.reset_s_at_end_turn = False
     line.freeze_vars(freeze_vars)
 
     ######################

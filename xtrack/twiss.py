@@ -1084,16 +1084,11 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         track_kernel=tracker.track_kernel,
         element_classes=tracker.element_classes,
         particles_class=tracker.particles_class,
-        skip_end_turn_actions=tracker.skip_end_turn_actions,
-        reset_s_at_end_turn=tracker.reset_s_at_end_turn,
         particles_monitor_class=None,
         local_particle_src=tracker.local_particle_src
     )
-    auxtracker.line.matrix_responsiveness_tol = tracker.line.matrix_responsiveness_tol
-    auxtracker.line.matrix_stability_tol = tracker.line.matrix_stability_tol
     auxtracker.line.config = tracker.line.config.copy()
-    auxtracker.line._radiation_model = tracker.line._radiation_model
-    auxtracker.line._beamstrahlung_model = tracker.line._beamstrahlung_model
+    auxtracker.line._other_config = tracker.line._other_config.copy()
 
     return auxtracker, names_inserted_markers
 

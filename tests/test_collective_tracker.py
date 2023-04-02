@@ -26,7 +26,8 @@ def test_collective_tracker_indices_one_turn(test_context):
     line.elements[5].iscollective = True
     line.elements[5].move(_context=test_context)
 
-    line.build_tracker(reset_s_at_end_turn=False, _context=test_context)
+    line.build_tracker(_context=test_context)
+    line.reset_s_at_end_turn = False
 
     particles = xp.Particles(x=0, px=0, _context=test_context)
 
@@ -68,7 +69,8 @@ def test_collective_tracker(test_context):
     # Build Tracker #
     #################
     print('Build tracker...')
-    line.build_tracker(_buffer=_buffer, reset_s_at_end_turn=False)
+    line.build_tracker(_buffer=_buffer)
+    line.reset_s_at_end_turn = False
 
     assert line.iscollective
 

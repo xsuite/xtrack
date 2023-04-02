@@ -12,8 +12,8 @@ elements = [xt.Drift(length=2.) for _ in range(10)]
 elements[5].iscollective = True
 
 line=xt.Line(elements=elements)
-line.build_tracker(reset_s_at_end_turn=False
-)
+line.build_tracker()
+line.reset_s_at_end_turn = False
 
 # Standard mode
 p = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12)

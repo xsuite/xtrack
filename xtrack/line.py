@@ -63,8 +63,8 @@ class Line:
         self._other_config['reset_s_at_end_turn'] = True
         self._other_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self._other_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
-        self._other_config['radiation_model'] = None
-        self._other_config['beamstrahlung_model'] = None
+        self._other_config['_radiation_model'] = None
+        self._other_config['_beamstrahlung_model'] = None
 
         if isinstance(elements, dict):
             element_dict = elements
@@ -1634,6 +1634,59 @@ class Line:
     @property
     def elements(self):
         return tuple([self.element_dict[nn] for nn in self.element_names])
+
+    @property
+    def skip_end_turn_actions(self):
+        return self._other_config['skip_end_turn_actions']
+
+    @skip_end_turn_actions.setter
+    def skip_end_turn_actions(self, value):
+        self._other_config['skip_end_turn_actions'] = value
+
+    @property
+    def reset_s_at_end_turn(self):
+        return self._other_config['reset_s_at_end_turn']
+
+    @reset_s_at_end_turn.setter
+    def reset_s_at_end_turn(self, value):
+        self._other_config['reset_s_at_end_turn'] = value
+
+    @property
+    def matrix_responsiveness_tol(self):
+        return self._other_config['matrix_responsiveness_tol']
+
+    @matrix_responsiveness_tol.setter
+    def matrix_responsiveness_tol(self, value):
+        self._other_config['matrix_responsiveness_tol'] = value
+
+    @property
+    def matrix_stability_tol(self):
+        return self._other_config['matrix_stability_tol']
+
+    @matrix_stability_tol.setter
+    def matrix_stability_tol(self, value):
+        self._other_config['matrix_stability_tol'] = value
+
+    @property
+    def _radiation_model(self):
+        return self._other_config['_radiation_model']
+
+    @_radiation_model.setter
+    def _radiation_model(self, value):
+        self._other_config['_radiation_model'] = value
+
+    @property
+    def _beamstrahlung_model(self):
+        return self._other_config['_beamstrahlung_model']
+
+    @_beamstrahlung_model.setter
+    def _beamstrahlung_model(self, value):
+        self._other_config['_beamstrahlung_model'] = value
+
+    @property
+    def time_last_track(self):
+        self._check_valid_tracker()
+        return self.tracker.time_last_track
 
     def __getitem__(self, ii):
         if isinstance(ii, str):

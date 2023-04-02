@@ -23,7 +23,9 @@ def test_match_and_track_from_element(test_context):
     with open(filename, 'r') as fid:
         input_data = json.load(fid)
     line = xt.Line.from_dict(input_data['line'])
-    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
+    line.build_tracker(_context=test_context)
+    line.reser_s_at_end_turn = False
+
     assert not line.iscollective
     line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
@@ -90,8 +92,9 @@ def test_match_and_track_from_element(test_context):
     for ip in range(8):
         line_w_collective.element_dict[f'ip{ip+1}'].iscollective = True
         line_w_collective.element_dict[f'ip{ip+1}'].move(_context=test_context)
-    line_w_collective.build_tracker(_context=test_context,
-                                    reset_s_at_end_turn=False)
+    line_w_collective.build_tracker(_context=test_context)
+    line_w_collective.reset_s_at_end_turn = False
+
     assert line_w_collective.iscollective
     line_w_collective.particle_ref = xp.Particles.from_dict(input_data['particle'])
     assert len(line_w_collective.tracker._parts) == 16
