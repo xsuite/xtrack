@@ -121,11 +121,8 @@ class Tracker:
         if _buffer is None:
             if _context is None:
                 _context = xo.context_default
-            _buffer = _context.new_buffer()
 
-        if io_buffer is None:
-            io_buffer = new_io_buffer(_context=_buffer.context)
-        self.io_buffer = io_buffer
+
 
         if self.iscollective:
             (parts, part_names, _element_part, _element_index_in_part,
@@ -161,6 +158,12 @@ class Tracker:
             element_ref_data=_element_ref_data,
             _buffer=_buffer)
         line._freeze()
+
+        _buffer = tracker_data._buffer
+
+        if io_buffer is None:
+            io_buffer = new_io_buffer(_context=_buffer.context)
+        self.io_buffer = io_buffer
 
         self._track_kernel = track_kernel or {}
 

@@ -320,7 +320,6 @@ def test_tracker_binary_serialization(tmp_path):
 
     line.build_tracker(_context=xo.context_default)
 
-    import pdb; pdb.set_trace()
     line.tracker.to_binary_file(file_path)
     new_line = xt.Tracker.from_binary_file(file_path).line
 
