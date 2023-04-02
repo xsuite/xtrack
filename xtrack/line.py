@@ -401,6 +401,9 @@ class Line:
         if self._var_management is not None:
             out._init_var_management(dct=self._var_management_to_dict())
 
+        out.config.update(self.config.copy())
+        out._extra_config.update(self._extra_config.copy())
+
         return out
 
     def build_tracker(self, **kwargs):

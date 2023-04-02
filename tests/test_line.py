@@ -727,3 +727,17 @@ def test_config_propagation(test_context):
     assert linebk.matrix_stability_tol == 77.7
     assert line.matrix_stability_tol == 55.5
 
+    line3 = line.copy()
+    assert line3.config.TEST1 == True
+    assert line3.config.TEST2 == 33.3
+    assert line3.matrix_stability_tol == 55.5
+
+    # Check that they are copies
+    line3.config.TEST1 = 23.3
+    assert line3.config.TEST1 == 23.3
+    assert line.config.TEST1 == True
+    line3.matrix_stability_tol = 77.7
+    assert line3.matrix_stability_tol == 77.7
+    assert line.matrix_stability_tol == 55.5
+
+
