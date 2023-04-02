@@ -24,7 +24,7 @@ def test_match_and_track_from_element(test_context):
         input_data = json.load(fid)
     line = xt.Line.from_dict(input_data['line'])
     line.build_tracker(_context=test_context)
-    line.reser_s_at_end_turn = False
+    line.reset_s_at_end_turn = False
 
     assert not line.iscollective
     line.particle_ref = xp.Particles.from_dict(input_data['particle'])
