@@ -17,7 +17,11 @@ def test_tracker_data_serialization():
         element_names=['mn', 'd', 'ms', 'd', 'mn'],
     )
 
-    tracker_data = xt.TrackerData(line=line)
+    tracker_data = xt.TrackerData(
+        element_dict=line.element_dict,
+        element_names=line.element_names,
+        element_s_locations=line.get_s_elements(),
+        line_length=line.get_length())
 
     buffer, header_offset = tracker_data.to_binary()
     new_tracker_data = tracker_data.from_binary(buffer, header_offset)
@@ -49,7 +53,11 @@ def test_tracker_data_serialization_same_buffer():
         element_names=['mn', 'd', 'ms', 'd', 'mn'],
     )
 
-    tracker_data = xt.TrackerData(line=line)
+    tracker_data = xt.TrackerData(
+        element_dict=line.element_dict,
+        element_names=line.element_names,
+        element_s_locations=line.get_s_elements(),
+        line_length=line.get_length())
 
     assert tracker_data._buffer is buffer
 
@@ -85,7 +93,12 @@ def test_tracker_data_serialization_across_contexts():
 
     fresh_buffer = xo.ContextCpu().new_buffer(0)
 
-    tracker_data = xt.TrackerData(line=line, _buffer=fresh_buffer)
+    tracker_data = xt.TrackerData(
+        element_dict=line.element_dict,
+        element_names=line.element_names,
+        element_s_locations=line.get_s_elements(),
+        line_length=line.get_length(),
+        _buffer=fresh_buffer)
 
     assert tracker_data._buffer is not buffer
     assert tracker_data._buffer is fresh_buffer
@@ -120,7 +133,12 @@ def test_tracker_data_serialization_into_new_buffer():
         element_names=['mn', 'd', 'ms', 'd', 'mn'],
     )
 
-    tracker_data = xt.TrackerData(line=line)
+    tracker_data = xt.TrackerData(
+        element_dict=line.element_dict,
+        element_names=line.element_names,
+        element_s_locations=line.get_s_elements(),
+        line_length=line.get_length(),
+    )
     fresh_buffer = xo.ContextCpu().new_buffer(0)
 
     out_buffer, header_offset = tracker_data.to_binary(buffer=fresh_buffer)
