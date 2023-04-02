@@ -1050,7 +1050,10 @@ class Line:
 
         if verbose: _print("Rebuild tracker data")
         tracker_data = xt.tracker_data.TrackerData(
-            line=self,
+            element_dict=self.element_dict,
+            element_names=self.element_names,
+            element_s_locations=self.get_s_elements(),
+            line_length=self.get_length(),
             extra_element_classes=(self.tracker.particles_monitor_class._XoStruct,),
             _buffer=self._buffer)
 
@@ -1058,7 +1061,6 @@ class Line:
 
         self.tracker._tracker_data = tracker_data
         self.tracker._element_classes = tracker_data.element_classes
-        self.tracker.num_elements = len(tracker_data.elements)
 
         self.use_prebuilt_kernels = False
 
