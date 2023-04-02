@@ -118,12 +118,6 @@ class Tracker:
         self._enable_pipeline_hold = enable_pipeline_hold
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
-        if _buffer is None:
-            if _context is None:
-                _context = xo.context_default
-
-
-
         if self.iscollective:
             (parts, part_names, _element_part, _element_index_in_part,
                 _part_element_index, noncollective_xelements) = (
@@ -133,9 +127,6 @@ class Tracker:
             # (with collective elements replaced by Drifts)
             ele_dict_non_collective = {
                 nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
-
-            # Make a "marker" element to increase at_element
-            self._zerodrift = Drift(_context=_buffer.context, length=0)
 
             assert len(line.element_names) == len(_element_index_in_part)
             assert len(line.element_names) == len(_element_part)
@@ -156,6 +147,7 @@ class Tracker:
             element_classes=element_classes,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             element_ref_data=_element_ref_data,
+            _context=_context,
             _buffer=_buffer)
         line._freeze()
 
@@ -164,6 +156,10 @@ class Tracker:
         if io_buffer is None:
             io_buffer = new_io_buffer(_context=_buffer.context)
         self.io_buffer = io_buffer
+
+        # Make a "marker" element to increase at_element
+        if self.iscollective:
+            self._zerodrift = Drift(_context=_buffer.context, length=0)
 
         self._track_kernel = track_kernel or {}
 
@@ -211,7 +207,7 @@ class Tracker:
             parts.append(this_part)
             part_names.append(f'part_{i_part}_non_collective')
 
-        # Move non-collective elements to _buffer
+        # Build drifts to replace non-collective elements
         noncollective_xelements = []
         for ii, pp in enumerate(parts):
             if isinstance(pp, Line):
