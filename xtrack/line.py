@@ -139,6 +139,12 @@ class Line:
         if '_var_manager' in dct.keys():
             self._init_var_management(dct=dct)
 
+        if 'config' in dct.keys():
+            self.config.data.update(dct['config'])
+
+        if '_extra_config' in dct.keys():
+            self._extra_config.update(dct['_extra_config'])
+
         _print('Done loading line from dict.           ')
 
         return self
