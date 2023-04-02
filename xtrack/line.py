@@ -56,10 +56,15 @@ class Line:
         self.config.XFIELDS_BB3D_NO_BEAMSTR = True
         self.config.XTRACK_GLOBAL_XY_LIMIT = 1.0
 
-        self.matrix_responsiveness_tol = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
-        self.matrix_stability_tol = lnf.DEFAULT_MATRIX_STABILITY_TOL
-        self._radiation_model = None
-        self._beamstrahlung_model = None
+        # Config parameters not exposed to C code
+        # (accessed by user through properties)
+        self._other_config = {}
+        self._other_config['skip_end_turn_actions'] = False
+        self._other_config['reset_s_at_end_turn'] = True
+        self._other_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
+        self._other_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
+        self._other_config['radiation_model'] = None
+        self._other_config['beamstrahlung_model'] = None
 
         if isinstance(elements, dict):
             element_dict = elements
