@@ -1088,7 +1088,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         local_particle_src=tracker.local_particle_src
     )
     auxtracker.line.config = tracker.line.config.copy()
-    auxtracker.line._other_config = tracker.line._other_config.copy()
+    auxtracker.line._extra_config = tracker.line._extra_config.copy()
 
     return auxtracker, names_inserted_markers
 

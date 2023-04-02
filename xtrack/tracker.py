@@ -318,7 +318,7 @@ class Tracker:
                     local_particle_src=self.local_particle_src,
                 )
         out.line.config = self.config.copy()
-        out.line._other_config = self.line._other_config.copy()
+        out.line._extra_config = self.line._extra_config.copy()
 
         return out
 
