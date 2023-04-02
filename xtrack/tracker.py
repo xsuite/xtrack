@@ -1161,10 +1161,11 @@ class Tracker:
 
 
     def to_binary_file(self, path):
-        try:
-            tracker_data = self._tracker_data
-        except AttributeError:
+
+        if self.iscollective:
             raise TypeError("Only non-collective trackers can be binary serialized.")
+
+        tracker_data = self._tracker_data
 
         # Serialise the tracker_data (line)
         if not isinstance(tracker_data._context, xo.ContextCpu):
