@@ -588,7 +588,15 @@ class Line:
 
         assert self.tracker is None, 'The line already has an associated tracker'
         import xtrack as xt  # avoid circular import
-        self.tracker = xt.Tracker(line=self, **kwargs)
+        self.tracker = xt.Tracker(
+                                line=self,
+                                _context=_context,
+                                _buffer=_buffer,
+                                compile=compile,
+                                io_buffer=io_buffer,
+                                use_prebuilt_kernels=use_prebuilt_kernels,
+                                enable_pipeline_hold=enable_pipeline_hold,
+                                **kwargs)
 
         return self.tracker
 
