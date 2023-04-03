@@ -40,16 +40,33 @@ log = logging.getLogger(__name__)
 
 class Line:
 
-    '''
+
+    """
     Beam line object. `Line.element_names` contains the ordered list of beam
     elements, `Line.element_dict` is a dictionary associating to each name the
     corresponding beam element object.
-    '''
+    """
 
     _element_dict = None
     config = None
 
     def __init__(self, elements=(), element_names=None, particle_ref=None):
+
+        """
+        Parameters
+        ----------
+        elements : dict or list of beam elements
+            If a dictionary, it must be a dictionary associating to each name
+            the corresponding beam element object. If a list, it must be a list
+            of beam elements having the same length as the provided `element_names`.
+        element_names : list of str
+            Ordered list of beam element names. If not provided, `elements` must
+            be a list, the names are automatically generated.
+        particle_ref : xpart.Particles
+            Reference particle providing rest mass, charge and reference enegy
+            used for building particles distributions, computing twiss parameters
+            and matching.
+        """
 
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
