@@ -1269,18 +1269,18 @@ class Tracker:
     def skip_end_turn_actions(self, value):
         self.line.skip_end_turn_actions = value
 
-    # def __getattr__(self, attr):
-    #     # If not in self look in self.line (if not None)
-    #     if self.line is not None and attr in object.__dir__(self.line):
-    #         _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
-    #             f' Please use `Line.{attr}` (for more info see '
-    #             'https://github.com/xsuite/xsuite/issues/322)')
-    #         return getattr(self.line, attr)
-    #     else:
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
+    def __getattr__(self, attr):
+        # If not in self look in self.line (if not None)
+        if self.line is not None and attr in object.__dir__(self.line):
+            _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
+                f' Please use `Line.{attr}` (for more info see '
+                'https://github.com/xsuite/xsuite/issues/322)')
+            return getattr(self.line, attr)
+        else:
+            raise AttributeError(f'Tracker object has no attribute `{attr}`')
 
-    # def __dir__(self):
-    #     return list(set(object.__dir__(self) + dir(self.line)))
+    def __dir__(self):
+        return list(set(object.__dir__(self) + dir(self.line)))
 
 
 class TrackerConfig(UserDict):
