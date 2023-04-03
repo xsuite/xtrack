@@ -57,7 +57,7 @@ part_at_element = context.nparray_from_context_array(particles.at_element)
 
 id_alive = part_id[part_state>0]
 
-global_aperture_limit = line.tracker.config.XTRACK_GLOBAL_XY_LIMIT
+global_aperture_limit = line.config.XTRACK_GLOBAL_XY_LIMIT
 
 #x = px*s
 s_expected = []
