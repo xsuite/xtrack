@@ -45,25 +45,19 @@ class Tracker:
         self,
         _context=None,
         _buffer=None,
-        _offset=None,
         line=None,
-        sequence=None,
+        compile=True,
+        io_buffer=None,
+        use_prebuilt_kernels=True,
+        enable_pipeline_hold=False,
         track_kernel=None,
         element_classes=None,
         particles_class=xp.Particles,
         particles_monitor_class=None,
         extra_headers=(),
         local_particle_src=None,
-        io_buffer=None,
-        compile=True,
-        use_prebuilt_kernels=True,
-        enable_pipeline_hold=False,
         _element_ref_data=None,
     ):
-
-        if sequence is not None:
-            raise ValueError(
-                    "`Tracker(... sequence=... ) is deprecated use `line=`)")
 
         # Check if there are collective elements
         self.iscollective = False
@@ -94,8 +88,6 @@ class Tracker:
                 'The kernel relies on `element_classes` ordering, so '
                 '`track_kernel` must be given if `element_classes` is None.'
             )
-
-        assert _offset is None
 
         if particles_class is None:
             particles_class = xp.Particles
@@ -1156,7 +1148,6 @@ class Tracker:
             raise ValueError('Please provide a valid monitor object')
 
         return flag_monitor, monitor, buffer_monitor, offset_monitor
-
 
     def to_binary_file(self, path):
 

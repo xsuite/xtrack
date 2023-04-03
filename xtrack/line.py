@@ -523,6 +523,11 @@ class Line:
             xobjects context to be used for the copy
         _buffer: xobjects.Buffer
             xobjects buffer to be used for the copy
+
+        Returns
+        -------
+        line_copy : Line
+            Copy of the line.
         '''
 
         elements = {nn: ee.copy(_context=_context, _buffer=_buffer)
@@ -543,9 +548,43 @@ class Line:
 
         return out
 
-    def build_tracker(self, **kwargs):
+    def build_tracker(
+            self,
+            _context=None,
+            _buffer=None,
+            compile=True,
+            io_buffer=None,
+            use_prebuilt_kernels=True,
+            enable_pipeline_hold=False,
+            **kwargs):
 
-        "Build a tracker associated for the line."
+        """
+        Build the tracker associated to the line. This freezes the line (elements
+        cannot be inserted or removed anymore). Use `discard_tracker` to unfreeze
+        the line if needed.
+
+        Parameters
+        ----------
+        _context: xobjects.Context, optional
+            xobjects context to which the line data is moved and on which the
+            tracking is performed. If not provided, the xobjects default context
+            is used.
+        _buffer: xobjects.Buffer
+            xobjects buffer to which the line data is moved. If not provided,
+            the _buffer is creted from the _context.
+        compile: bool, optional
+            If True (default) the tracker is compiled. If False, the tracker
+            is not compiled until the first usage.
+        io_buffer: xobjects.Buffer, optional
+            xobjects buffer to be used for the I/O. If not provided, a new
+            buffer is created.
+        use_prebuilt_kernels: bool, optional
+            If True (default) the prebuilt kernels are used if available.
+            If False, the kernels are always compiled.
+        enable_pipeline_hold: bool, optional
+            If True, the pipeline hold mechanism is enabled.
+
+        """
 
         assert self.tracker is None, 'The line already has an associated tracker'
         import xtrack as xt  # avoid circular import
