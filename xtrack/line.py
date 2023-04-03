@@ -919,6 +919,33 @@ class Line:
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
                element0=0, reverse=False):
+
+        """
+        Returns a survey of the beamline (based on MAD-X survey command).
+
+        Parameters
+        ----------
+        X0 : float
+            Initial X coordinate.
+        Y0 : float
+            Initial Y coordinate.
+        Z0 : float
+            Initial Z coordinate.
+        theta0 : float
+            Initial theta coordinate.
+        phi0 : float
+            Initial phi coordinate.
+        psi0 : float
+            Initial psi coordinate.
+        element0 : int or str
+            Element at which the given coordinates are defined.
+
+        Returns
+        -------
+        survey : SurveyTable
+            Survey table.
+        """
+
         return survey_from_tracker(self.tracker, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
