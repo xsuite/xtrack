@@ -950,9 +950,67 @@ class Line:
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
-
     def correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
+
+        """
+        Correct the closed orbit of the beamline through a set of local matches.
+
+        Parameters
+        ----------
+        reference : Line
+            Line on which the reference closed orbit is computed.
+        correction_config : dict
+            Dictionary containing the configuration for the closed orbit correction.
+            The dictionary must have the structure shown in the example below.
+        solver : str
+            Solver to be used for the matching. Available solvers are "fsolve"
+            and "bfgs".
+        verbose : bool
+            If True, the matching steps are printed.
+        restore_if_fail : bool
+            If True, the beamline is restored to its initial state if the matching
+            fails.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            correction_config = {
+                'IR1 left': dict(
+                    ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
+                    start='e.ds.r8.b1',
+                    end='e.ds.l1.b1',
+                    vary=(
+                        'corr_co_acbh14.l1b1',
+                        'corr_co_acbh12.l1b1',
+                        'corr_co_acbv15.l1b1',
+                        'corr_co_acbv13.l1b1',
+                        ),
+                    targets=('e.ds.l1.b1',),
+                ),
+                'IR1 right': dict(
+                    ref_with_knobs={'on_corr_co': 0, 'on_disp': 0},
+                    start='s.ds.r1.b1',
+                    end='s.ds.l2.b1',
+                    vary=(
+                        'corr_co_acbh13.r1b1',
+                        'corr_co_acbh15.r1b1',
+                        'corr_co_acbv12.r1b1',
+                        'corr_co_acbv14.r1b1',
+                        ),
+                    targets=('s.ds.l2.b1',),
+                ),
+                ...
+            }
+
+            line.correct_closed_orbit(
+                reference=line_reference,
+                correction_config=correction_config)
+
+        """
+
 
         closed_orbit_correction(self, reference, correction_config,
                                 solver=solver, verbose=verbose,
@@ -963,6 +1021,40 @@ class Line:
                           delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False):
+
+        """
+        Find the closed orbit of the beamline.
+
+        Parameters
+        ----------
+        particle_co_guess : Particle
+            Particle used to compute the closed orbit. If None, the reference
+            particle is used.
+        particle_ref : Particle
+            Particle used to compute the closed orbit. If None, the reference
+            particle is used.
+        co_search_settings : dict
+            Dictionary containing the settings for the closed orbit search
+            (passed as keyword arguments to the `scipy.fsolve` function)
+        delta_zeta : float
+            Initial delta_zeta coordinate.
+        delta0 : float
+            Initial delta coordinate.
+        zeta0 : float
+            Initial zeta coordinate.
+        continue_on_closed_orbit_error : bool
+            If True, the closed orbit at the last step is returned even if
+            the closed orbit search fails.
+        freeze_longitudinal : bool
+            If True, the longitudinal coordinates are frozen during the closed
+            orbit search.
+
+        Returns
+        -------
+        particle_on_co : Particle
+            Particle at the closed orbit.
+
+        """
 
         if freeze_longitudinal:
             kwargs = locals().copy()
@@ -1070,6 +1162,23 @@ class Line:
             self, particle_on_co,
             steps_r_matrix=None):
 
+        '''Compute the one turn matrix using finite differences.
+
+        Parameters
+        ----------
+        particle_on_co : Particle
+            Particle at the closed orbit.
+        steps_r_matrix : float
+            Step size for finite differences. In not given, default step sizes
+            are used.
+
+        Returns
+        -------
+        one_turn_matrix : np.ndarray
+            One turn matrix.
+
+        '''
+
         self._check_valid_tracker()
 
         if self.iscollective:
@@ -1086,6 +1195,9 @@ class Line:
 
 
     def get_length(self):
+
+        '''Get total length of the line'''
+
         ll = 0
         for ee in self.elements:
             if _is_thick(ee):
@@ -1094,7 +1206,21 @@ class Line:
         return ll
 
     def get_s_elements(self, mode="upstream"):
-        '''Get s position for all elements'''
+
+        '''Get s position for all elements
+
+        Parameters
+        ----------
+
+        mode : str
+            "upstream" or "downstream" (default: "upstream")
+
+        Returns
+        -------
+        s : list of float
+            s position for all elements
+        '''
+
         return self.get_s_position(mode=mode)
 
     def get_s_position(self, at_elements=None, mode="upstream"):
@@ -1285,8 +1411,7 @@ class Line:
         self.element_names.append(name)
         return self
 
-    def filter_elements(self, mask=None, exclude_types_starting_with=None,
-                        _make_tracker=True):
+    def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
         Return a new line with only the elements satisfying a given condition.
         Other elements are replaced with Drifts.
@@ -1299,6 +1424,14 @@ class Line:
         exclude_types_starting_with: str
             If not None, all elements whose type starts with the given string
             are replaced with Drifts.
+
+        Returns
+        -------
+
+        new_line: Line
+            A new line with only the elements satisfying the condition. Other
+            elements are replaced with Drifts.
+
         """
 
         if mask is None:
@@ -1347,6 +1480,12 @@ class Line:
             Name of the element to start from
         inplace: bool
             If True, the line is modified in place. Otherwise, a new line is returned.
+
+        Returns
+        -------
+        new_line: Line
+            A new line with the elements cycled.
+
         """
 
         if ((index_first_element is not None and name_first_element is not None)
@@ -1397,10 +1536,17 @@ class Line:
         return new_line
 
     def freeze_longitudinal(self, state=True):
+
         """
         Freeze longitudinal coordinates in tracked Particles objects.
-        See corresponding section is the Xsuite User's guide.
+
+        Parameters
+        ----------
+        state: bool
+            If True, longitudinal coordinates are frozen. If False, they are unfrozen.
+
         """
+
         assert state in (True, False)
         assert self.iscollective is False, ('Cannot freeze longitudinal '
                         'variables in collective mode (not yet implemented)')
@@ -1410,12 +1556,32 @@ class Line:
             self.unfreeze_vars(xp.Particles.part_energy_varnames() + ['zeta'])
 
     def freeze_vars(self, variable_names):
-        """Freeze assigned coordinates in tracked Particles objects."""
+
+        """
+        Freeze variables in tracked Particles objects.
+
+        Parameters
+        ----------
+        variable_names: list of str
+            List of variable names to freeze.
+
+        """
+
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = True
 
     def unfreeze_vars(self, variable_names):
-        """Unfreeze variables previously frozen with `freeze_vars`."""
+
+        """
+        Unfreeze variables in tracked Particles objects.
+
+        Parameters
+        ----------
+        variable_names: list of str
+            List of variable names to unfreeze.
+
+        """
+
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
@@ -1423,9 +1589,15 @@ class Line:
                             mode='deprecated'):
 
         """
-        Configure synchrotron radiation and beamstrahlung models.
-        Choose among: None / "mean"/ "quantum".
-        See corresponding section is the Xsuite User's guide.
+        Configure radiation within the line.
+
+        Parameters
+        ----------
+        model: str
+            Radiation model to use. Can be 'mean', 'quantum' or None.
+        model_beamstrahlung: str
+            Beamstrahlung model to use. Can be 'mean', 'quantum' or None.
+
         """
 
         if mode != 'deprecated':
@@ -1470,13 +1642,24 @@ class Line:
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
 
-    def compensate_radiation_energy_loss(self, delta0=0, rtot_eneloss=1e-10,
+    def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
 
         """
         Compensate beam energy loss from synchrotron radiation by configuring
         RF cavities and Multipole elements (tapering).
-        See corresponding section is the Xsuite User's guide.
+
+        Parameters
+        ----------
+        delta0: float
+            Initial energy deviation.
+        rtol_eneloss: float
+            Relative tolerance on energy loss.
+        max_iter: int
+            Maximum number of iterations.
+        kwargs: dict
+            Additional keyword arguments passed to the twiss method.
+
         """
 
         all_kwargs = locals().copy()
@@ -1487,8 +1670,21 @@ class Line:
         compensate_radiation_energy_loss(self, **all_kwargs)
 
     def optimize_for_tracking(self, compile=True, verbose=True, keep_markers=False):
+
         """
-        Optimize the tracker for tracking speed.
+        Optimize the line for tracking by removing inactive elements and
+        merging consecutive elements where possible. Deferred expressions are
+        disabled.
+
+        Parameters
+        ----------
+        compile: bool
+            If True (default), the tracker is recompiled.
+        verbose: bool
+            If True (default), print information about the optimization.
+        keep_markers: bool or list of str
+            If True, all markers are kept.
+
         """
 
         if self.iscollective:
@@ -1556,17 +1752,36 @@ class Line:
                                                     element_type, capacity):
         """
         Start internal logging for all elements of a given type.
-        See corresponding section is the Xsuite User's guide.
+
+        Parameters
+        ----------
+        element_type: str
+            Type of the elements for which internal logging is started.
+        capacity: int
+            Capacity of the internal record.
+
+        Returns
+        -------
+        record: Record
+            Record object containing the elements internal logging.
+
         """
         self._check_valid_tracker()
         return start_internal_logging_for_elements_of_type(self.tracker,
                                                     element_type, capacity)
 
     def stop_internal_logging_for_elements_of_type(self, element_type):
+
         """
         Stop internal logging for all elements of a given type.
-        See corresponding section is the Xsuite User's guide.
+
+        Parameters
+        ----------
+        element_type: str
+            Type of the elements for which internal logging is stopped.
+
         """
+
         self._check_valid_tracker()
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
@@ -1609,8 +1824,23 @@ class Line:
             return newline
 
     def remove_inactive_multipoles(self, inplace=True, keep=None):
+
         '''
         Remove inactive multipoles from the line
+
+        Parameters
+        ----------
+        inplace : bool
+            If True, remove inactive multipoles from the line (default: True),
+            otherwise return a new line.
+        keep : str or list of str
+            Name of the multipoles to keep (default: None)
+
+        Returns
+        -------
+        line : Line
+            Line with inactive multipoles removed
+
         '''
 
         if self._var_management is not None:
@@ -1644,8 +1874,23 @@ class Line:
             return newline
 
     def remove_zero_length_drifts(self, inplace=True, keep=None):
+
         '''
-        Remove zero-length drifts from the line
+        Remove zero length drifts from the line
+
+        Parameters
+        ----------
+        inplace : bool
+            If True, remove zero length drifts from the line (default: True),
+            otherwise return a new line.
+        keep : str or list of str
+            Name of the drifts to keep (default: None)
+
+        Returns
+        -------
+        line : Line
+            Line with zero length drifts removed
+
         '''
 
         if self._var_management is not None:
@@ -1676,8 +1921,23 @@ class Line:
             return newline
 
     def merge_consecutive_drifts(self, inplace=True, keep=None):
+
         '''
-        Merge consecutive drifts into one drift
+        Merge consecutive drifts into a single drift
+
+        Parameters
+        ----------
+        inplace : bool
+            If True, merge consecutive drifts in the line (default: True),
+            otherwise return a new line.
+        keep : str or list of str
+            Name of the drifts to keep (default: None)
+
+        Returns
+        -------
+        line : Line
+            Line with consecutive drifts merged
+
         '''
 
         if self._var_management is not None:
@@ -1719,8 +1979,25 @@ class Line:
 
     def remove_redundant_apertures(self, inplace=True, keep=None,
                                   drifts_that_need_aperture=[]):
+
         '''
-        Merge consecutive aperture checks by deleting the middle ones
+        Remove redundant apertures from the line
+
+        Parameters
+        ----------
+        inplace : bool
+            If True, remove redundant apertures from the line (default: True),
+            otherwise return a new line.
+        keep : str or list of str
+            Name of the apertures to keep (default: None)
+        drifts_that_need_aperture : list of str
+            Names of drifts that need an aperture (default: [])
+
+        Returns
+        -------
+        line : Line
+            Line with redundant apertures removed
+
         '''
 
         # For every occurence of three or more apertures that are the same,
@@ -1817,6 +2094,23 @@ class Line:
                 self.element_dict[name] = fast_di
 
     def get_elements_of_type(self, types):
+
+        '''Get all elements of given type(s)
+
+        Parameters
+        ----------
+        types : type or list of types
+            Type(s) of elements to get
+
+        Returns
+        -------
+        elements : list of elements
+            List of elements of given type(s)
+        names : list of str
+            List of names of elements of given type(s)
+
+        '''
+
         if not hasattr(types, "__iter__"):
             type_list = [types]
         else:
@@ -1834,7 +2128,19 @@ class Line:
 
     def check_aperture(self, needs_aperture=[]):
 
-        '''Check that all active elements have an associated aperture.'''
+        '''Check that all active elements have an associated aperture.
+
+        Parameters
+        ----------
+        needs_aperture : list of str
+            Names of inactive elements that also need an aperture.
+
+        Returns
+        -------
+        elements_df : pandas.DataFrame
+            DataFrame with information about the apertures associated with
+            each active element.
+        '''
 
         elements_df = self.to_pandas()
 
@@ -1928,7 +2234,21 @@ class Line:
 
     def merge_consecutive_multipoles(self, inplace=True, keep=None):
         '''
-        Merge consecutive multipoles into one multipole
+        Merge consecutive multipoles into one multipole.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            If True, the line is modified in place. If False, a new line is
+            returned.
+        keep : str or list of str, optional
+            Names of elements that should not be merged. If None, no elements
+            are kept.
+
+        Returns
+        -------
+        line : Line
+            The modified line.
         '''
 
         if self._var_management is not None:
@@ -1989,20 +2309,40 @@ class Line:
         else:
             return newline
 
-    def get_backtracker(self, *args, **kwargs):
+    def get_backtracker(self, _context=None, _buffer=None):
+
+        """
+        Get a backtracker for this line.
+
+        Parameters
+        ----------
+        _context : xobjects.Context, optional
+            The context to use for the backtracker. If None, the default
+            context is used.
+        _buffer : xobjects.Buffer, optional
+            The buffer to use for the backtracker. If None, a new buffer is
+            created from the context.
+
+        Returns
+        -------
+        line : Line
+            The modified line.
+
+        """
 
         self._check_valid_tracker()
-        backtracker = self.tracker.get_backtracker(*args, **kwargs)
+        backtracker = self.tracker.get_backtracker(_context=_context,
+                                                   _buffer=_buffer)
         return backtracker.line
 
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
     def unfreeze(self):
-        """
-        Unfreeze the line. This is useful if you want to modify the line
-        after it has been frozen (most likely by calling `build_tracker`).
-        """
+
+        # Unfreeze the line. This is useful if you want to modify the line
+        # after it has been frozen (most likely by calling `build_tracker`).
+
         self.discard_tracker()
 
     def _frozen_check(self):
