@@ -189,6 +189,22 @@ class Line:
     @classmethod
     def from_json(cls, file, **kwargs):
 
+        """Constructs a line from a json file.
+
+        Parameters
+        ----------
+        file : str or file-like object
+            Path to the json file or file-like object.
+        **kwargs : dict
+            Additional keyword arguments passed to `Line.from_dict`.
+
+        Returns
+        -------
+        line : Line
+            Line object.
+
+        """
+
         if isinstance(file, io.IOBase):
             dct = json.load(file)
         else:
@@ -207,36 +223,58 @@ class Line:
                       sequences=None, copy_elements=False,
                       naming_scheme='{}{}', auto_reorder=False, **kwargs):
 
-        """Constructs a line from a sequence definition, inserting drift spaces as needed
+        """
 
-        Args:
-            nodes (list of Node): Sequence definition.
-            length: Total length (in m) of line. Determines drift behind last element.
-            elements: Dictionary with named elements, which can be refered to in the sequence definion by name.
-            sequences: Dictionary with named sub-sequences, which can be refered to in the sequence definion by name.
-            copy_elements (bool): Whether to make copies of elements or not. By default, named elements are
-                re-used which is memory efficient but does not allow to change parameters individually.
-            naming_scheme (str): Naming scheme to name sub-sequences. A format string accepting two names to be joined.
-            auto_reorder (bool): If false (default), nodes must be defined in order of increasing s coordinate,
-                otherwise an exception is thrown. If true, nodes can be defined in any order and are re-ordered
-                as neseccary. Useful to place additional elements inside of sub-sequences.
-            kwargs: Arguments passed to constructor of the line
+        Constructs a line from a sequence definition, inserting drift spaces
+        as needed.
 
-        Returns:
-            An instance of Line
+        Parameters
+        ----------
+        nodes : list of Node
+            Sequence definition.
+        length : float
+            Total length (in m) of line. Determines drift behind last element.
+        elements : dict
+            Dictionary with named elements, which can be refered to in the
+            sequence definion by name.
+        sequences : dict
+            Dictionary with named sub-sequences, which can be refered to in the
+            sequence definion by name.
+        copy_elements : bool, optional
+            Whether to make copies of elements or not. By default, named elements
+            are re-used which is memory efficient but does not allow to change
+            parameters individually.
+        naming_scheme : str, optional
+            Naming scheme to name sub-sequences. A format string accepting two
+            names to be joined.
+        auto_reorder : bool, optional
+            If false (default), nodes must be defined in order of increasing `s`
+            coordinate, otherwise an exception is thrown. If true, nodes can be
+            defined in any order and are re-ordered as neseccary. Useful to
+            place additional elements inside of sub-sequences.
+        **kwargs : dict
+            Arguments passed to constructor of the line
 
-        Examples:
-            >>> from xtrack import Line, Node, Multipole
-            >>> elements = {
+        Returns
+        -------
+        line : Line
+            Line object.
+
+        Examples
+        --------
+
+        .. code-block:: python
+            from xtrack import Line, Node, Multipole
+            elements = {
                     'quad': Multipole(length=0.3, knl=[0, +0.50]),
                     'bend': Multipole(length=0.5, knl=[np.pi / 12], hxl=[np.pi / 12]),
                 }
-            >>> sequences = {
+            sequences = {
                     'arc': [Node(1, 'quad'), Node(5, 'bend')],
                 }
-            >>> monitor = ParticlesMonitor(...)
-            >>>
-            >>> line = Line.from_sequence([
+            monitor = ParticlesMonitor(...)
+
+            line = Line.from_sequence([
                     # direct element definition
                     Node(3, xt.Multipole(...)),
                     Node(7, xt.Multipole(...), name='quad1'),
@@ -251,6 +289,7 @@ class Line:
                     Node(5, 'arc', name='section_1'),
                     Node(3, monitor, from_='section_1'),
                 ], length = 5, elements=elements, sequences=sequences)
+
         """
 
         # flatten the sequence
