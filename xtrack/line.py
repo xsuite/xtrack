@@ -427,9 +427,65 @@ class Line:
             self.tracker._invalidate()
             self.tracker = None
 
-    def track(self, *args, **kwargs):
+    def track(
+        self,
+        particles,
+        ele_start=0,
+        ele_stop=None,     # defaults to full lattice
+        num_elements=None, # defaults to full lattice
+        num_turns=None,    # defaults to 1
+        turn_by_turn_monitor=None,
+        freeze_longitudinal=False,
+        time=False,
+        **kwargs):
+
+        """
+        Track particles through the line.
+
+        Parameters
+        ----------
+        particles: xpart.Particles
+            The particles to track
+        ele_start: int or str, optional
+            The element to start tracking from (inclusive). If an integer is
+            provided, it is interpreted as the index of the element in the line.
+            If a string is provided, it is interpreted as the name of the element
+            in the line.
+        ele_stop: int or str, optional
+            The element to stop tracking at (exclusive). If an integer is provided,
+            it is interpreted as the index of the element in the line. If a string
+            is provided, it is interpreted as the name of the element in the line.
+        num_elements: int, optional
+            The number of elements to track through. If `ele_stop` is not
+            provided, this is the number of elements to track through from
+            `ele_start`. If `ele_stop` is provided, `num_elements` should not
+            be provided.
+        num_turns: int, optional
+            The number of turns to track through. Defaults to 1.
+        turn_by_turn_monitor: bool, str or xtrack.ParticlesMonitor, optional
+            If True, a turn-by-turn monitor is created. If a monitor is provided,
+            it is used directly. If the string `ONE_TURN_EBE` is provided, the
+            particles coordinates are recorded at each element (one turn).
+            The recorded data can be retrieved in `line.record_last_track`.
+        freeze_longitudinal: bool, optional
+            If True, the longitudinal coordinates are frozen during tracking.
+        time: bool, optional
+            If True, the time taken for tracking is recorded and can be retrieved
+            in `line.time_last_track`.
+
+        """
+
         self._check_valid_tracker()
-        return self.tracker._track(*args, **kwargs)
+        return self.tracker._track(
+            particles,
+            ele_start=ele_start,
+            ele_stop=ele_stop,
+            num_elements=num_elements,
+            num_turns=num_turns,
+            turn_by_turn_monitor=turn_by_turn_monitor,
+            freeze_longitudinal=freeze_longitudinal,
+            time=time,
+            **kwargs)
 
     def build_particles(self, *args, **kwargs):
 
