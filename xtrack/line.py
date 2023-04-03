@@ -593,11 +593,13 @@ class Line:
         return self.tracker
 
     def discard_tracker(self):
+
         """
-        Discard the trackers associated to the line. This is useful
-        if you want to modify the line after it has been frozen
-        (most likely by calling `build_tracker`).
+        Discard the tracker associated to the line. This unfreezes the line
+        (elements can be inserted or removed again).
+
         """
+
         self.element_names = list(self.element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
@@ -663,14 +665,146 @@ class Line:
             time=time,
             **kwargs)
 
-    def build_particles(self, *args, **kwargs):
+    def build_particles(
+        self,
+        particle_ref=None,
+        num_particles=None,
+        x=None, px=None, y=None, py=None, zeta=None, delta=None, pzeta=None,
+        x_norm=None, px_norm=None, y_norm=None, py_norm=None, zeta_norm=None, pzeta_norm=None,
+        at_element=None, match_at_s=None,
+        nemitt_x=None, nemitt_y=None,
+        weight=None,
+        particle_on_co=None,
+        R_matrix=None,
+        W_matrix=None,
+        method=None,
+        scale_with_transverse_norm_emitt=None,
+        particles_class=None,
+        _context=None, _buffer=None, _offset=None,
+        _capacity=None,
+        mode=None,
+        **kwargs, # They are passed to the twiss
+    ):
 
         """
-        Generate a particle distribution. Equivalent to xp.Particles(tracker=tracker, ...)
-        See corresponding section is the Xsuite User's guide.
+        Create a Particles object from arrays containing physical or
+        normalized coordinates.
+
+        Parameters
+        ----------
+
+        particle_ref : Particle object
+            Reference particle defining the reference quantities (mass0, q0, p0c,
+            gamma0, etc.). Its coordinates (x, py, y, py, zeta, delta) are ignored
+            unless `mode`='shift' is selected.
+        num_particles : int
+            Number of particles to be generated (used if provided coordinates are
+            all scalar).
+        x : float or array
+            x coordinate of the particles (default is 0).
+        px : float or array
+            px coordinate of the particles (default is 0).
+        y : float or array
+            y coordinate of the particles (default is 0).
+        py : float or array
+            py coordinate of the particles (default is 0).
+        zeta : float or array
+            zeta coordinate of the particles (default is 0).
+        delta : float or array
+            delta coordinate of the particles (default is 0).
+        pzeta : float or array
+            pzeta coordinate of the particles (default is 0).
+        x_norm : float or array
+            transverse normalized coordinate x (in sigmas) used in combination with
+            the one turn matrix and with the transverse emittances provided
+            in the argument `scale_with_transverse_norm_emitt` to generate x, px,
+            y, py (x, px, y, py cannot be provided if x_norm, px_norm, y_norm,
+            py_norm are provided).
+        px_norm : float or array
+            transverse normalized coordinate px (in sigmas) used in combination
+            with the one turn matrix and with the transverse emittances (as above).
+        y_norm : float or array
+            transverse normalized coordinate y (in sigmas) used in combination
+            with the one turn matrix and with the transverse emittances (as above).
+        py_norm : float or array
+            transverse normalized coordinate py (in sigmas) used in combination
+            with the one turn matrix and with the transverse emittances (as above).
+        zeta_norm : float or array
+            longitudinal normalized coordinate zeta (in sigmas) used in combination
+            with the one turn matrix.
+        pzeta_norm : float or array
+            longitudinal normalized coordinate pzeta (in sigmas) used in combination
+            with the one turn matrix.
+        nemitt_x : float
+            Transverse normalized emittance in the `x` plane.
+        nemitt_y : float
+            Transverse normalized emittance in the `y` plane.
+        at_element : str or int
+            Location within the line at which particles are generated. It can be an
+            index or an element name.
+        match_at_s : float
+            `s` location within the line at which particles are generated. The value
+            needs to be in the drift downstream of the element at `at_element`.
+            The matched particles are backtracked to the element at `at_element`
+            from which the tracking automatically starts when the generated
+            particles are tracked.
+        weight : float or array
+            weights to be assigned to the particles.
+        mode : str
+            To be chosen between `set`,  `shift` and `normalized_transverse` (the
+            default mode is `set`. `normalized_transverse` is used if any if any
+            of `x_norm`, `px_norm`, `y_norm`, `py_norm` is provided):
+                - `set`: reference quantities including mass0, q0, p0c, gamma0,
+                    etc. are taken from the provided reference particle. Particles
+                    coordinates are set according to the provided input x, px, y, py,
+                    zeta, delta (zero is assumed as default for these variables).
+                - `shift`: reference quantities including mass0, q0, p0c, gamma0,
+                    etc. are taken from the provided reference particle. Particles
+                    coordinates are set from the reference particles and shifted
+                    according to the provided input x, px, y, py, zeta, delta (zero
+                    is assumed as default for these variables).
+                - `normalized_transverse`: reference quantities including mass0,
+                    q0, p0c, gamma0, etc. are taken from the provided reference
+                    particle. The longitudinal coordinates are set according to the
+                    provided input `zeta`, `delta` (zero is assumed as default for
+                    these variables). The transverse coordinates are set according
+                    to the provided input `x_norm`, `px_norm`, `y_norm`, `py_norm`
+                    (zero is assumed as default for these variables). The
+                    transverse coordinates are normalized according to the
+                    transverse emittance provided in `nemitt_x` and `nemitt_y`.
+                    The transverse coordinates are then transformed into physical
+                    space using the linearized one-turn matrix.
+        _capacity : int
+            Capacity of the arrays to be created. If not provided, the capacity
+            is set to the number of particles.
+
+        Returns
+        -------
+        particles : Particles object
+            Particles object containing the generated particles.
+
         """
-        res = xp.build_particles(*args, line=self, **kwargs)
-        return res
+
+        return xp.build_particles(
+            line=self,
+            particle_ref=particle_ref,
+            num_particles=num_particles,
+            x=x, px=px, y=y, py=py, zeta=zeta, delta=delta, pzeta=pzeta,
+            x_norm=x_norm, px_norm=px_norm, y_norm=y_norm, py_norm=py_norm,
+            zeta_norm=zeta_norm, pzeta_norm=pzeta_norm,
+            at_element=at_element, match_at_s=match_at_s,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            weight=weight,
+            particle_on_co=particle_on_co,
+            R_matrix=R_matrix,
+            W_matrix=W_matrix,
+            method=method,
+            scale_with_transverse_norm_emitt=scale_with_transverse_norm_emitt,
+            particles_class=particles_class,
+            _context=_context, _buffer=_buffer, _offset=_offset,
+            _capacity=_capacity,
+            mode=mode,
+            **kwargs)
 
     def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
