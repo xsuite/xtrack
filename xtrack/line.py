@@ -835,18 +835,94 @@ class Line:
         return twiss_line(self, **kwargs)
     twiss.__doc__ = twiss_line.__doc__
 
+    def match(self, vary, targets, restore_if_fail=True, solver=None,
+                  verbose=False, **kwargs):
+        '''
+        Change a set of knobs in the beamline in order to match assigned targets.
+
+        Parameters
+        ----------
+        vary : list of str or list of Vary objects
+            List of knobs to be varied. Each knob can be a string or a Vary object
+            including the knob name and the step used for computing the Jacobian
+            for the optimization.
+        targets : list of Target objects
+            List of targets to be matched.
+        restore_if_fail : bool
+            If True, the beamline is restored to its initial state if the matching
+            fails.
+        solver : str
+            Solver to be used for the matching. Available solvers are "fsolve"
+            and "bfgs".
+        verbose : bool
+            If True, the matching steps are printed.
+        **kwargs : dict
+            Additional arguments to be passed to the twiss.
+
+        Returns
+        -------
+        result_info : dict
+            Dictionary containing information about the matching result.
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            # Match tunes and chromaticities to assigned values
+            line.match(
+                vary=[
+                    xt.Vary('kqtf.b1', step=1e-8),
+                    xt.Vary('kqtd.b1', step=1e-8),
+                    xt.Vary('ksf.b1', step=1e-8),
+                    xt.Vary('ksd.b1', step=1e-8),
+                ],
+                targets = [
+                    xt.Target('qx', 62.315, tol=1e-4),
+                    xt.Target('qy', 60.325, tol=1e-4),
+                    xt.Target('dqx', 10.0, tol=0.05),
+                    xt.Target('dqy', 12.0, tol=0.05)]
+            )
+
+
+        .. code-block:: python
+
+            # Match a local orbit bump
+            tw_before = line.twiss()
+
+            line.match(
+                ele_start='mq.33l8.b1',
+                ele_stop='mq.23l8.b1',
+                twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+                vary=[
+                    xt.Vary(name='acbv30.l8b1', step=1e-10),
+                    xt.Vary(name='acbv28.l8b1', step=1e-10),
+                    xt.Vary(name='acbv26.l8b1', step=1e-10),
+                    xt.Vary(name='acbv24.l8b1', step=1e-10),
+                ],
+                targets=[
+                    # I want the vertical orbit to be at 3 mm at mq.28l8.b1 with zero angle
+                    xt.Target('y', at='mb.b28l8.b1', value=3e-3, tol=1e-4, scale=1),
+                    xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-6, scale=1000),
+                    # I want the bump to be closed
+                    xt.Target('y', at='mq.23l8.b1', value=tw_before['y', 'mq.23l8.b1'],
+                            tol=1e-6, scale=1),
+                    xt.Target('py', at='mq.23l8.b1', value=tw_before['py', 'mq.23l8.b1'],
+                            tol=1e-7, scale=1000),
+                ]
+            )
+
+        '''
+        return match_line(self, vary, targets,
+                          restore_if_fail=restore_if_fail,
+                          solver=solver, verbose=verbose, **kwargs)
+
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
                element0=0, reverse=False):
         return survey_from_tracker(self.tracker, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
-    def match(self, vary, targets, **kwargs):
-        '''
-        Change a set of knobs in the beamline in order to match assigned targets.
-        See corresponding section is the Xsuite User's guide.
-        '''
-        return match_line(self, vary, targets, **kwargs)
 
     def correct_closed_orbit(self, reference, correction_config,
                         solver=None, verbose=False, restore_if_fail=True):
