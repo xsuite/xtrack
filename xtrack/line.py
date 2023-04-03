@@ -40,7 +40,6 @@ log = logging.getLogger(__name__)
 
 class Line:
 
-
     """
     Beam line object. `Line.element_names` contains the ordered list of beam
     elements, `Line.element_dict` is a dictionary associating to each name the
@@ -120,10 +119,31 @@ class Line:
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
-        '''
-        Build a Line from a dictionary. `_context` and `_buffer` can be
-        optionally specified.
-        '''
+
+        """
+        Create a Line object from a dictionary.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary containing the line data.
+        _context : xobjects.Context, optional
+            Context used for allocating the element data. If not provided the
+            default xobjects context is used.
+        _buffer : xobjects.Buffer, optional
+            Buffer used for allocating the element data. If not provided, a new
+            buffer is created.
+        classes : list of classes, optional
+            List of classes to be used for deserializing the elements. If not
+            provided, the default classes are used.
+
+        Returns
+        -------
+        line : Line
+            Line object.
+
+        """
+
         class_dict = mk_class_namespace(classes)
 
         _buffer = xo.get_a_buffer(context=_context, buffer=_buffer,size=8)
