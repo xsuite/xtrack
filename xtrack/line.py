@@ -81,6 +81,7 @@ class Line:
         self._extra_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
+        self._extra_config['_needs_rng'] = False
 
         if isinstance(elements, dict):
             element_dict = elements
@@ -114,7 +115,6 @@ class Line:
         self.particle_ref = particle_ref
 
         self._var_management = None
-        self._needs_rng = False
         self.tracker = None
 
     @classmethod
@@ -2510,6 +2510,14 @@ class Line:
     @_beamstrahlung_model.setter
     def _beamstrahlung_model(self, value):
         self._extra_config['_beamstrahlung_model'] = value
+
+    @property
+    def _needs_rng(self):
+        return self._extra_config['_needs_rng']
+
+    @_needs_rng.setter
+    def _needs_rng(self, value):
+        self._extra_config['_needs_rng'] = value
 
     @property
     def time_last_track(self):
