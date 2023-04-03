@@ -334,6 +334,27 @@ class Line:
 
     @classmethod
     def from_sixinput(cls, sixinput, classes=()):
+        """
+        Build a Line from a Sixtrack input object. N.B. This is a convenience
+        function that calls sixinput.generate_xtrack_line(). It is used only for
+        testing and will be removed in future versions.
+
+        Parameters
+        ----------
+
+        sixinput : SixInput
+            Sixtrack input object
+        classes : tuple
+            Tuple of classes to be used for the elements. If empty, the default
+            classes are used.
+
+        Returns
+        -------
+        line : Line
+            Line object.
+
+        """
+
         log.warning("\n"
             "WARNING: xtrack.Line.from_sixinput(sixinput) will be removed in future versions.\n"
             "Please use sixinput.generate_xtrack_line()\n")
@@ -344,10 +365,6 @@ class Line:
     def from_madx_sequence(
         cls,
         sequence,
-        classes=(),
-        ignored_madtypes=(),
-        exact_drift=False,
-#        drift_threshold=1e-6, # not used anymore with expanded sequences
         deferred_expressions=False,
         install_apertures=False,
         apply_madx_errors=False,
@@ -355,22 +372,54 @@ class Line:
         merge_drifts=False,
         merge_multipoles=False,
         expressions_for_element_types=None,
-        replace_in_expr=None
+        replace_in_expr=None,
+        classes=(),
+        ignored_madtypes=(),
     ):
 
         """
-        Build a Line from a MAD-X sequence object.
-        """
+        Build a line from a MAD-X sequence.
 
-        if not (exact_drift is False):
-            raise NotImplementedError("Exact drifts not implemented yet")
+        Parameters
+        ----------
+        sequence : madx.Sequence
+            MAD-X sequence object or name of the sequence
+        deferred_expressions : bool, optional
+            If true, deferred expressions from MAD-X are imported and can be
+            accessed in `Line.vars` and `Line.element_refs`.
+        install_apertures : bool, optional
+            If true, aperture information is installed in the line.
+        apply_madx_errors : bool, optional
+            If true, errors are applied to the line.
+        skip_markers : bool, optional
+            If true, markers are skipped.
+        merge_drifts : bool, optional
+            If true, consecutive drifts are merged.
+        merge_multipoles : bool, optional
+            If true,consecutive multipoles are merged.
+        expressions_for_element_types : list, optional
+            List of element types for which expressions are imported.
+        replace_in_expr : dict, optional
+            Dictionary of replacements to be applied to expressions before they
+            are imported.
+        classes : tuple, optional
+            Tuple of classes to be used for the elements. If empty, the default
+            classes are used.
+        ignored_madtypes : tuple, optional
+            Tuple of MAD-X element types to be ignored.
+
+        Returns
+        -------
+        line : Line
+            Line object.
+
+        """
 
         class_namespace=mk_class_namespace(classes)
 
         loader = MadLoader(sequence,
             classes=class_namespace,
             ignore_madtypes=ignored_madtypes,
-            exact_drift=False,
             enable_errors=apply_madx_errors,
             enable_apertures=install_apertures,
             enable_expressions=deferred_expressions,
@@ -386,13 +435,19 @@ class Line:
 
     def to_dict(self, include_var_management=True):
 
-        '''Return a dictionary representation of the line.
+        '''
+        Returns a dictionary representation of the line.
 
         Parameters
         ----------
         include_var_management : bool, optional
             If True (default) the dictionary will contain the information
             needed to restore the line with deferred expressions.
+
+        Returns
+        -------
+        out : dict
+            Dictionary representation of the line.
         '''
 
         out = {}
@@ -423,6 +478,7 @@ class Line:
             closed. If a file-like object is provided, it is used directly.
         **kwargs: dict
             Additional keyword arguments are passed to the `Line.to_dict` method.
+
         '''
 
         if isinstance(file, io.IOBase):
@@ -434,6 +490,11 @@ class Line:
     def to_pandas(self):
         '''
         Return a pandas DataFrame with the elements of the line.
+
+        Returns
+        -------
+        line_df : pandas.DataFrame
+            DataFrame with the elements of the line.
         '''
 
         elements = self.elements

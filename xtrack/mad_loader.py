@@ -507,7 +507,6 @@ class MadLoader:
         merge_drifts=False,
         merge_multipoles=False,
         error_table=None,
-        exact_drift=False,
         ignore_madtypes=(),
         expressions_for_element_types=None,
         classes=xtrack,
@@ -529,12 +528,7 @@ class MadLoader:
         self.expressions_for_element_types = expressions_for_element_types
         self.classes = classes
         self.replace_in_expr = replace_in_expr
-        if exact_drift:
-            self._drift = self.classes.DriftExact # will probably be removed
-                                                  # DriftExact is implemented
-                                                  # with compile flag
-        else:
-            self._drift = self.classes.Drift
+        self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
 
     def iter_elements(self, madeval=None):
