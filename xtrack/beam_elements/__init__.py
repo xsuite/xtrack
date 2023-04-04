@@ -4,6 +4,7 @@
 # ######################################### #
 
 from .elements import *
+from .exciter import Exciter
 from .apertures import *
 from .beam_interaction import BeamInteraction
 from ..base_element import BeamElement

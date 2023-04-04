@@ -23,9 +23,9 @@ test_data_folder = pathlib.Path(
 fname_line_particles = test_data_folder.joinpath('lhc_no_bb/line_and_particle.json')
 rtol_100turns = 1e-9; atol_100turns=5e-11
 
-fname_line_particles = test_data_folder.joinpath(
-                                  './lhc_with_bb/line_and_particle.json')
-rtol_100turns = 1e-9; atol_100turns=9e-10
+# fname_line_particles = test_data_folder.joinpath(
+#                                   './lhc_with_bb/line_and_particle.json')
+# rtol_100turns = 1e-9; atol_100turns=9e-10
 
 #fname_line_particles = test_data_folder.joinpath(
 #                          './hllhc_14/line_and_particle.json')
@@ -77,7 +77,8 @@ line= xt.Line.from_dict(input_data['line'])
 ##################
 
 print('Build tracker')
-line.build_tracker(_context=context, reset_s_at_end_turn=False)
+line.build_tracker(_context=context)
+line.reset_s_at_end_turn = False
 
 ######################
 # Get some particles #

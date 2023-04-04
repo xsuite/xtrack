@@ -54,14 +54,15 @@ def test_aperture_turn_ele_and_monitor(test_context):
     #x = px*s
     s_expected = []
     s_tot = tot_length*n_turns
+    global_aper_limit = line.config.XTRACK_GLOBAL_XY_LIMIT
     for ii in range(n_part):
-        if np.abs(part_px[ii]) * s_tot > line.global_xy_limit:
-            s_expected_x = np.abs(line.global_xy_limit / part_px[ii])
+        if np.abs(part_px[ii]) * s_tot > global_aper_limit:
+            s_expected_x = np.abs(global_aper_limit / part_px[ii])
         else:
             s_expected_x = s_tot
 
-        if np.abs(part_py[ii] * s_tot) > line.global_xy_limit:
-            s_expected_y = np.abs(line.global_xy_limit / part_py[ii])
+        if np.abs(part_py[ii] * s_tot) > global_aper_limit:
+            s_expected_y = np.abs(global_aper_limit / part_py[ii])
         else:
             s_expected_y = s_tot
 
@@ -166,14 +167,15 @@ def test_custom_monitor(test_context):
     #x = px*s
     s_expected = []
     s_tot = tot_length*n_turns
+    global_aper_limit = line.config.XTRACK_GLOBAL_XY_LIMIT
     for ii in range(n_part):
-        if np.abs(part_px[ii]) * s_tot > line.global_xy_limit:
-            s_expected_x = np.abs(line.global_xy_limit / part_px[ii])
+        if np.abs(part_px[ii]) * s_tot > global_aper_limit:
+            s_expected_x = np.abs(global_aper_limit / part_px[ii])
         else:
             s_expected_x = s_tot
 
-        if np.abs(part_py[ii] * s_tot) > line.global_xy_limit:
-            s_expected_y = np.abs(line.global_xy_limit / part_py[ii])
+        if np.abs(part_py[ii] * s_tot) > global_aper_limit:
+            s_expected_y = np.abs(global_aper_limit / part_py[ii])
         else:
             s_expected_y = s_tot
 
@@ -190,7 +192,7 @@ def test_custom_monitor(test_context):
     at_element_expected = np.int_(np.clip(at_element_expected, 0,
                                           n_slices-1))
 
-    assert np.allclose(part_s + at_turn_expected * line.line.get_length(),
+    assert np.allclose(part_s + at_turn_expected * line.get_length(),
                        s_expected, atol=1e-3)
     assert np.allclose(at_turn_expected, part_at_turn)
 

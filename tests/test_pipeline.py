@@ -31,16 +31,15 @@ def test_multitracker(test_context):
                             DummyPipelinedElement(n_hold=2),
                             xt.Drift(length=1)],
                     element_names=['d11', 'pipelnd_el1', 'd12'])
-    line1.build_tracker(_context=test_context, enable_pipeline_hold=True,
-                        reset_s_at_end_turn=False)
+    line1.build_tracker(_context=test_context, enable_pipeline_hold=True)
+    line1.reset_s_at_end_turn = False
 
     line2 = xt.Line(elements=[xt.Drift(length=1),
                             DummyPipelinedElement(n_hold=3),
                             xt.Drift(length=1)],
                     element_names=['d11', 'pipelnd_el2', 'd12'])
-    line2.build_tracker(_context=test_context, enable_pipeline_hold=True,
-                        reset_s_at_end_turn=False)
-
+    line2.build_tracker(_context=test_context, enable_pipeline_hold=True)
+    line2.reset_s_at_end_turn = False
 
     # We use a multitracker to track one two particles with the first tracker
     # and one particle with the second one
@@ -51,7 +50,7 @@ def test_multitracker(test_context):
 
     multitracker = xt.PipelineMultiTracker(
         branches=[xt.PipelineBranch(line=line1, particles=p1),
-                xt.PipelineBranch(tracker=line1, particles=p2),
+                xt.PipelineBranch(line=line1, particles=p2),
                 xt.PipelineBranch(line=line2, particles=p3),
                 ],
         enable_debug_log=True)

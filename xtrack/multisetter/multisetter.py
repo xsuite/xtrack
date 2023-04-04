@@ -89,13 +89,13 @@ class MultiSetter(xo.HybridClass):
     def get_values(self):
         out = self._context.zeros(len(self.offsets), dtype=np.float64)
         kernel = self._context.kernels.get_values_at_offsets
-        kernel.description.n_threads = len(self.offsets)
+        kernel.set_n_threads(len(self.offsets))
         kernel(data=self, buffer=self._tracker_buffer.buffer, out=out)
         return out
 
     def set_values(self, values):
         kernel = self._context.kernels.set_values_at_offsets
-        kernel.description.n_threads = len(self.offsets)
+        kernel.set_n_threads(len(self.offsets))
         kernel(data=self, buffer=self._tracker_buffer.buffer,
                input=xt.BeamElement._arr2ctx(self,values))
 

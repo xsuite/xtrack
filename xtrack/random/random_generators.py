@@ -7,7 +7,7 @@ import xobjects as xo
 import xpart as xp
 
 from ..base_element import BeamElement
-from ..general import _pkg_root
+from ..general import _pkg_root, _print
 
 import numpy as np
 
@@ -51,7 +51,7 @@ class RandomUniform(BeamElement):
             particles = xp.Particles(state=np.ones(n_seeds),
                                      x=np.ones(n_seeds), _context=context)
         elif n_seeds != len(particles._rng_s1):
-            print("Warning: both 'particles' and 'n_seeds' are given, but "
+            _print("Warning: both 'particles' and 'n_seeds' are given, but "
                   + "are not compatible. Ignoring 'n_seeds'...")
             n_seeds = len(particles._rng_s1)
         if not particles._has_valid_rng_state():

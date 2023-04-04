@@ -24,6 +24,23 @@ on_disp = 0;
 exec,check_ip(b1);
 exec,check_ip(b2);
 """)
+
+mad.input('''
+
+brho:=NRJ*1e9/clight;
+! Octupoles, added by hand
+i_oct_b1=0;
+  kof.a12b1:=kmax_mo*i_oct_b1/imax_mo/brho; kof.a23b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+  kof.a34b1:=kmax_mo*i_oct_b1/imax_mo/brho; kof.a45b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+  kof.a56b1:=kmax_mo*i_oct_b1/imax_mo/brho; kof.a67b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+  kof.a78b1:=kmax_mo*i_oct_b1/imax_mo/brho; kof.a81b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+  kod.a12b1:=kmax_mo*i_oct_b1/imax_mo/brho; kod.a23b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+  kod.a34b1:=kmax_mo*i_oct_b1/imax_mo/brho; kod.a45b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+  kod.a56b1:=kmax_mo*i_oct_b1/imax_mo/brho; kod.a67b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+  kod.a78b1:=kmax_mo*i_oct_b1/imax_mo/brho; kod.a81b1:=kmax_mo*i_oct_b1/imax_mo/brho;
+''')
+
+
 mad.use(sequence="lhcb1")
 mad.globals['vrf400'] = 16
 mad.globals['lagrf400.b1'] = 0.5

@@ -38,9 +38,14 @@ line_c = line.cycle('ip5')
 
 for reverse in [False, True]:
 
-    sv0 = line.survey(element0='ip5', **starting, reverse=reverse).to_pandas()
-    sv_c = line_c.survey(**starting, reverse=reverse).to_pandas()
+    sv0 = line.survey(element0='ip5', **starting)
+    sv_c = line_c.survey(**starting)
+    if reverse:
+        sv0=sv0.reverse()
+        sv_c=sv_c.reverse()
 
+    sv0 = sv0.to_pandas()
+    sv_c = sv_c.to_pandas()
 
     for ename in ['ip5', 'ip8', 'ip1', 'mb.c12r8.b1..1',
                 'mb.c12r1.b1..1', 'mb.c12l5.b1..1', 'drift_10', 'drift_10000']:

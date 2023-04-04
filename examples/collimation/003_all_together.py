@@ -98,7 +98,8 @@ line = xt.Line(elements=[
 # Build tracker #
 #################
 
-line.build_tracker(global_xy_limit=1e3)
+line.build_tracker()
+line.config.XTRACK_GLOBAL_XY_LIMIT = 1e3
 
 ##########################
 # Build particles object #
@@ -131,7 +132,7 @@ loss_loc_refinement = xt.LossLocationRefinement(line,
                                             r_max = 0.5, # m
                                             dr = 50e-6,
                                             ds = 0.05,
-                                            save_refine_trackers=True)
+                                            save_refine_lines=True)
 
 loss_loc_refinement.refine_loss_location(particles)
 

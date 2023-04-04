@@ -34,6 +34,8 @@ import numpy as np
 
 import xtrack, xobjects
 
+from .general import _print
+
 
 # Generic functions
 
@@ -505,7 +507,6 @@ class MadLoader:
         merge_drifts=False,
         merge_multipoles=False,
         error_table=None,
-        exact_drift=False,
         ignore_madtypes=(),
         expressions_for_element_types=None,
         classes=xtrack,
@@ -527,12 +528,7 @@ class MadLoader:
         self.expressions_for_element_types = expressions_for_element_types
         self.classes = classes
         self.replace_in_expr = replace_in_expr
-        if exact_drift:
-            self._drift = self.classes.DriftExact # will probably be removed
-                                                  # DriftExact is implemented
-                                                  # with compile flag
-        else:
-            self._drift = self.classes.Drift
+        self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
 
     def iter_elements(self, madeval=None):
@@ -606,13 +602,13 @@ class MadLoader:
                     f" or convert_{el.type} in function in MadLoader"
                 )
             if ii % 100 == 0:
-                print(
+                _print(
                     f'Converting sequence "{self.sequence.name}":'
                     f' {round(ii/nelem*100):2d}%     ',
                     end="\r",
                     flush=True,
                 )
-        print()
+        _print()
         return line
 
     def add_elements(
@@ -788,6 +784,9 @@ class MadLoader:
     convert_tkicker = convert_kicker
 
     def convert_hkicker(self, mad_elem):
+        if mad_elem.hkick:
+            raise ValueError(
+                "hkicker with hkick is not supported, please use kick instead")
         hkick = [-mad_elem.kick] if mad_elem.kick else []
         vkick = []
         el = self.Builder(
@@ -802,6 +801,9 @@ class MadLoader:
         return self.convert_thin_element([el], mad_elem)
 
     def convert_vkicker(self, mad_elem):
+        if mad_elem.vkick:
+            raise ValueError(
+                "vkicker with vkick is not supported, please use kick instead")
         hkick = []
         vkick = [mad_elem.kick] if mad_elem.kick else []
         el = self.Builder(

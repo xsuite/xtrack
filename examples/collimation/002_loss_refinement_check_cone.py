@@ -86,7 +86,7 @@ loss_loc_refinement = xt.LossLocationRefinement(line,
                                             r_max = 0.5, # m
                                             dr = 50e-6,
                                             ds = 0.1,
-                                            save_refine_trackers=True,
+                                            save_refine_lines=True,
                                             allowed_backtrack_types=[
                                                 xt.Multipole, xt.Cavity])
 
@@ -116,12 +116,12 @@ s_expected = s0 + (r_calc-r0)/(r1 - r0)*(s1 - s0)
 assert np.allclose(particles.s[mask_lost], s_expected[mask_lost], atol=0.11)
 
 # Visualize apertures
-interp_tracker = loss_loc_refinement.refine_trackers[
+interp_line = loss_loc_refinement.refine_lines[
                                     loss_loc_refinement.i_apertures[1]]
-s0 = interp_tracker.s0
-s1 = interp_tracker.s1
-polygon_0 = interp_tracker.line.elements[0]
-polygon_1 = interp_tracker.line.elements[-1]
+s0 = interp_line.s0
+s1 = interp_line.s1
+polygon_0 = interp_line.elements[0]
+polygon_1 = interp_line.elements[-1]
 for ii, (trkr, poly) in enumerate(
                          zip([line_aper_0,line_aper_1],
                              [polygon_0, polygon_1])):
@@ -159,8 +159,8 @@ ax.plot3D(
         color='k', linewidth=3)
 s_check = []
 r_check = []
-for ee, ss in zip(interp_tracker.line.elements,
-                  interp_tracker.line.get_s_elements()):
+for ee, ss in zip(interp_line.elements,
+                  interp_line.get_s_elements()):
     if ee.__class__ is xt.LimitPolygon:
         ax.plot3D(
                 ee.x_closed,

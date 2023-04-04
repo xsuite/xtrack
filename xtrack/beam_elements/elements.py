@@ -916,6 +916,7 @@ class LinearTransferMatrix(BeamElement):
         'px_ref_1': xo.Float64,
         'y_ref_1': xo.Float64,
         'py_ref_1': xo.Float64,
+        'length': xo.Float64,
         'uncorrelated_rad_damping': xo.Int64,
         'damping_factor_x':xo.Float64,
         'damping_factor_y':xo.Float64,
@@ -930,6 +931,7 @@ class LinearTransferMatrix(BeamElement):
         }
 
     _depends_on = [RandomNormal]
+    isthick = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),

@@ -5,14 +5,16 @@
 
 import numpy as np
 
+from .general import _print
+
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
 DEFAULT_MATRIX_STABILITY_TOL = 1e-3
 
 def healy_symplectify(M):
     # https://accelconf.web.cern.ch/e06/PAPERS/WEPCH152.PDF
-    #print("Symplectifying linear One-Turn-Map...")
+    #_print("Symplectifying linear One-Turn-Map...")
 
-    #print("Before symplectifying: det(M) = {}".format(np.linalg.det(M)))
+    #_print("Before symplectifying: det(M) = {}".format(np.linalg.det(M)))
     I = np.identity(6)
 
     S = np.array(
@@ -32,14 +34,14 @@ def healy_symplectify(M):
         M_new = np.matmul(I + np.matmul(S, W),
                           np.linalg.inv(I - np.matmul(S, W)))
     else:
-        print("WARNING: det(I - SW) = 0!")
+        _print("WARNING: det(I - SW) = 0!")
         V_else = np.matmul(S, np.matmul(I + M, np.linalg.inv(I - M)))
         W_else = (V_else + V_else.T) / 2
         M_new = -np.matmul(
             I + np.matmul(S, W_else), np.linalg.det(I - np.matmul(S, W_else))
         )
 
-    #print("After symplectifying: det(M) = {}".format(np.linalg.det(M_new)))
+    #_print("After symplectifying: det(M) = {}".format(np.linalg.det(M_new)))
     return M_new
 
 S = np.array([[0., 1., 0., 0., 0., 0.],
@@ -60,6 +62,36 @@ def Rot2D(mu):
 def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
                         responsiveness_tol=DEFAULT_MATRIX_RESPONSIVENESS_TOL,
                         stability_tol=DEFAULT_MATRIX_STABILITY_TOL):
+
+    '''
+    Compute the linear normal form of a 6x6 matrix M in the form:
+
+    M = W x Rot x W^-1
+
+    where Rot is a block diagonal matrix with 2x2 rotations.
+
+    Parameters
+    ----------
+    M : np.ndarray
+        6x6 matrix
+    symplectify : bool
+        If True, symplectify the matrix before computing the normal form
+    only_4d_block : bool
+        If True, only use the 4x4 block of M to compute the normal form
+    responsiveness_tol : float
+        Tolerance for the responsiveness of the matrix M
+    stability_tol : float
+        Tolerance for the stability of the matrix M
+
+    Returns
+    -------
+    W : np.ndarray
+        6x6 matrix
+    invW: np.ndarray
+        6x6 matrix
+    Rot : np.ndarray
+        6x6 matrix
+    '''
 
     if only_4d_block:
         M = M.copy()

@@ -123,7 +123,7 @@ def test_aperture_refinement():
     rot_deg_aper_1 = 10.
 
     # aper_0_sandwitch
-    line_aper_0 = line=xt.Line(
+    line_aper_0 = xt.Line(
         elements=[xt.XYShift(_buffer=buf, dx=shift_aper_0[0], dy=shift_aper_0[1]),
                   xt.SRotation(_buffer=buf, angle=rot_deg_aper_0),
                   aper_0,
@@ -149,6 +149,8 @@ def test_aperture_refinement():
                        xt.Multipole(_buffer=buf, knl=[0.]),
                        xt.Drift(_buffer=buf, length=1),
                        xt.Cavity(_buffer=buf, voltage=3e6, frequency=400e6),
+                       xt.ParticlesMonitor(_buffer=buf,
+                            start_at_turn=0, stop_at_turn=10, num_particles=3),
                        xt.Drift(_buffer=buf, length=1.),
                        xt.Marker())
                     + line_aper_1.elements))
@@ -170,7 +172,7 @@ def test_aperture_refinement():
                             r_max = 0.5, # m
                             dr = 50e-6,
                             ds = 0.1,
-                            save_refine_trackers=True,
+                            save_refine_lines=True,
                             allowed_backtrack_types=[
                                 xt.Multipole,
                                 xt.Cavity
@@ -183,7 +185,6 @@ def test_aperture_refinement():
 
     t1 = time.time()
     print(f'Took\t{(t1-t0)*1e3:.2f} ms')
-
 
     # Automatic checks
     mask_lost = particles.state == 0
@@ -300,7 +301,7 @@ def test_losslocationrefinement_thick_collective_collimator():
                                                 r_max = 0.5, # m
                                                 dr = 50e-6,
                                                 ds = 0.05,
-                                                save_refine_trackers=True)
+                                                save_refine_lines=True)
 
     loss_loc_refinement.refine_loss_location(particles)
 
@@ -390,7 +391,8 @@ def test_losslocationrefinement_skip_refinement_for_collimators():
     # Build line #
     #################
 
-    line.build_tracker(global_xy_limit=1e3)
+    line.build_tracker()
+    line.config.XTRACK_GLOBAL_XY_LIMIT = 1e3
 
     ##########################
     # Build particles object #
@@ -417,7 +419,7 @@ def test_losslocationrefinement_skip_refinement_for_collimators():
                                                 r_max = 0.5, # m
                                                 dr = 50e-6,
                                                 ds = 0.05,
-                                                save_refine_trackers=True)
+                                                save_refine_lines=True)
 
     loss_loc_refinement.refine_loss_location(particles)
 

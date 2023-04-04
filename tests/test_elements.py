@@ -16,6 +16,8 @@ import ducktrack as dtk
 
 from scipy.stats import linregress
 
+from xpart.particles import Particles, ParticlesPurelyLongitudinal
+
 @for_all_test_contexts
 def test_constructor(test_context):
     elements = [
@@ -33,10 +35,14 @@ def test_constructor(test_context):
         xt.LimitRect(_context=test_context, min_x=5),
         xt.LimitRectEllipse(_context=test_context, max_x=6),
         xt.LimitEllipse(_context=test_context, a=10),
-        xt.LimitRacetrack(_context=test_context, min_x=2),
-        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+        xt.LimitRacetrack(_context=test_context, min_x=-3, max_x=4,
+                           min_y=2, max_y=3, a=0.2, b=0.3),
+        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1],
+                        y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
-        xt.Wire(_context=test_context, current=3.)
+        xt.Wire(_context=test_context, current=3.),
+        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3,4],
+                   sampling_frequency=1e3),
     ]
 
     # test to_dict / from_dict
@@ -121,9 +127,13 @@ def test_backtrack(test_context):
         xt.LimitRect(_context=test_context, min_x=5),
         xt.LimitRectEllipse(_context=test_context, max_x=6),
         xt.LimitEllipse(_context=test_context, a=10),
-        xt.LimitRacetrack(_context=test_context, min_x=2),
-        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1], y_vertices=[1,1,-1,-1]),
+        xt.LimitRacetrack(_context=test_context, min_x=-3, max_x=4,
+                           min_y=2, max_y=3, a=0.2, b=0.3),
+        xt.LimitPolygon(_context=test_context, x_vertices=[1,-1,-1,1],
+                        y_vertices=[1,1,-1,-1]),
         xt.Elens(_context=test_context, inner_radius=0.1),
+        xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3],
+                   sampling_frequency=1e3),
     ]
 
     dtk_particle = dtk.TestParticles(
@@ -139,13 +149,15 @@ def test_backtrack(test_context):
         element_backtrack = element.get_backtrack_element(_context=test_context)
 
         # track forth and back
-        new_particles = xp.Particles.from_dict(dtk_particle.to_dict(), _context=test_context)
+        new_particles = xp.Particles.from_dict(dtk_particle.to_dict(),
+                                               _context=test_context)
         element.track(new_particles)
         element_backtrack.track(new_particles)
 
         # assert that nothing changed
         for k in 'x,px,y,py,zeta,delta'.split(','):
-            assert np.isclose(test_context.nparray_from_context_array(getattr(new_particles, k))[0],
+            assert np.isclose(test_context.nparray_from_context_array(
+                      getattr(new_particles, k))[0],
                       getattr(dtk_particle, k), rtol=1e-14, atol=1e-14)
 
 
@@ -680,7 +692,9 @@ def test_linear_transfer_uncorrelated_damping_rate(test_context):
     alpha_y_1=alpha_y_0, beta_y_1=beta_y_0,
     Q_x=Q_x, Q_y=Q_y,
     beta_s=beta_s, Q_s=Q_s,
-    damping_rate_x = damping_rate_x,damping_rate_y = damping_rate_y,damping_rate_s = damping_rate_s)
+    damping_rate_x = damping_rate_x,
+    damping_rate_y = damping_rate_y,
+    damping_rate_s = damping_rate_s)
 
     gamma_x = (1.0+alpha_x_0**2)/beta_x_0
     gamma_y = (1.0+alpha_y_0**2)/beta_y_0
@@ -694,8 +708,11 @@ def test_linear_transfer_uncorrelated_damping_rate(test_context):
         emit_x[turn] = ctx2np(0.5*(gamma_x*particles.x[0]**2
              + 2*alpha_x_0*particles.x[0]*particles.px[0]
              + beta_x_0*particles.px[0]**2))
-        emit_y[turn] = ctx2np(0.5*(gamma_y*particles.y[0]**2+2*alpha_y_0*particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2))
-        emit_s[turn] = ctx2np(0.5*(particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2))
+        emit_y[turn] = ctx2np(0.5*(
+            gamma_y*particles.y[0]**2+2*alpha_y_0
+            *particles.y[0]*particles.py[0]+beta_y_0*particles.py[0]**2))
+        emit_s[turn] = ctx2np(0.5*(
+            particles.zeta[0]**2/beta_s+beta_s*particles.delta[0]**2))
     turns = np.arange(n_turns)
     fit_x = linregress(turns,np.log(emit_x))
     fit_y = linregress(turns,np.log(emit_y))
@@ -758,9 +775,14 @@ def test_linear_transfer_uncorrelated_damping_equilibrium(test_context):
     ctx2np = test_context.nparray_from_context_array
     for turn in range(n_turns):
         arc.track(particles)
-        emit_x[turn] = 0.5*np.average(ctx2np(gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px+beta_x_0*particles.px**2))
-        emit_y[turn] = 0.5*np.average(ctx2np(gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py+beta_y_0*particles.py**2))
-        emit_s[turn] = 0.5*np.average(ctx2np(particles.zeta**2/beta_s+beta_s*particles.delta**2))
+        emit_x[turn] = 0.5*np.average(ctx2np(
+            gamma_x*particles.x**2+2*alpha_x_0*particles.x*particles.px
+            +beta_x_0*particles.px**2))
+        emit_y[turn] = 0.5*np.average(ctx2np(
+            gamma_y*particles.y**2+2*alpha_y_0*particles.y*particles.py
+            +beta_y_0*particles.py**2))
+        emit_s[turn] = 0.5*np.average(ctx2np(particles.zeta**2/beta_s
+            +beta_s*particles.delta**2))
     turns = np.arange(n_turns)
     equ_emit_x_0 = np.average(emit_x)
     equ_emit_y_0 = np.average(emit_y)
@@ -836,6 +858,40 @@ def test_cavity(test_context):
     assert np.allclose(tau, tau0, atol=1e-14, rtol=0)
     assert np.allclose((part.ptau - part0.ptau) * part0.p0c, 30, atol=1e-9, rtol=0)
 
+@for_all_test_contexts
+def test_exciter(test_context):
+    fs = 2.99792458e8 # sampling frequency in Hz
+    frev = 2.99792458e8 # revolution frequency in Hz
+    k0l = -0.1 # this is scaled by the waveform
+    signal = [1,2,3] # this is the waveform
+    duration = 4/fs
+    exciter = xt.Exciter(samples=signal, sampling_frequency=fs,
+                        frev=frev, start_turn=0, knl=[k0l], duration=duration)
+
+    line = xt.Line([exciter])
+    line.build_tracker(_context=test_context)
+
+    particles = xp.Particles(p0c=6.5e12, zeta=[0,-1,-2], _context=test_context)
+    num_particles = len(particles.zeta)
+
+    line.track(particles, num_turns=1)
+    expected_px = np.array([0.1, 0.2, 0.3])
+    particles.move(_context=xo.context_default)
+
+    assert np.allclose(particles.px, expected_px)
+
+    particles.move(_context=test_context)
+    line.track(particles, num_turns=1)
+    expected_px += np.array([0.2, 0.3, 0.1])
+    particles.move(_context=xo.context_default)
+    assert np.allclose(particles.px, expected_px)
+
+    particles.move(_context=test_context)
+    line.track(particles, num_turns=1)
+    expected_px += np.array([0.3, 0.1, 0])
+    particles.move(_context=xo.context_default)
+    assert np.allclose(particles.px, expected_px)
+
 
 test_source = r"""
 /*gpufun*/
@@ -850,7 +906,7 @@ void test_function(TestElementData el,
         const int64_t ipart = part->ipart;
         double const val = b[ipart];
 
-        LocalParticle_add_to_x(part, val + a);
+        LocalParticle_add_to_s(part, val + a);
 
     //end_per_particle_block
 }
@@ -863,7 +919,7 @@ void TestElement_track_local_particle(TestElementData el,
 
     //start_per_particle_block (part0->part)
 
-        LocalParticle_set_x(part, a);
+        LocalParticle_set_s(part, a);
 
     //end_per_particle_block
 }
@@ -871,10 +927,14 @@ void TestElement_track_local_particle(TestElementData el,
 """
 
 
+@pytest.mark.parametrize(
+    'particles_class',
+    [Particles, ParticlesPurelyLongitudinal],
+)
 @for_all_test_contexts
-def test_per_particle_kernel(test_context):
+def test_per_particle_kernel(test_context, particles_class):
     class TestElement(xt.BeamElement):
-        _xofields={
+        _xofields = {
             'a': xo.Float64
         }
 
@@ -890,13 +950,13 @@ def test_per_particle_kernel(test_context):
 
     el = TestElement(_context=test_context, a=10)
 
-    # p = xp.Particles(p0c=1e9, x=[1,2,3], _context=test_context)
-    # el.track(p)
-    # p.move(_context=xo.ContextCpu())
-    # assert np.all(p.x == [10,10,10])
+    p = Particles(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    el.track(p)
+    p.move(_context=xo.ContextCpu())
+    assert np.all(p.s == [10, 10, 10])
 
-    p = xp.Particles(p0c=1e9, x=[1, 2, 3], _context=test_context)
-    b = p.x*0.5
+    p = particles_class(p0c=1e9, s=[1, 2, 3], _context=test_context)
+    b = p.s*0.5
     el.test_kernel(p, b=b)
     p.move(_context=xo.ContextCpu())
-    assert np.all(p.x == np.array([11.5, 13, 14.5]))
+    assert np.all(p.s == np.array([11.5, 13, 14.5]))
