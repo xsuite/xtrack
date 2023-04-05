@@ -221,7 +221,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     except Exception as err:
         if restore_if_fail:
             for ii, rr in enumerate(vary):
-                line.vars[rr] = x0[ii]
+                line.vars[rr.name] = x0[ii]
         _print('\n')
         raise err
     _print('\n')
