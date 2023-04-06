@@ -69,11 +69,19 @@ def test_ring_with_spacecharge(test_context):
 
     particles_gaussian = xp.generate_matched_gaussian_bunch(
              _context=xo.ContextCpu(),
-             num_particles=n_part, total_intensity_particles=bunch_intensity,
+             num_particles= 2 * n_part, # will mark half of them as lost
+             total_intensity_particles = 2 * bunch_intensity, # will mark half of them as lost
              nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
              particle_ref=particle_ref, line=line_temp)
 
+    particles_gaussian.state[1::2] = -222 # Mark half of them as lost
+    #particles_gaussian.weight[1::2] = 0 # DEBUGGGG!!!!
+
     particles0 = xp.Particles.merge([particle_probe, particles_gaussian])
+
+    if isinstance(particles0._context, xo.ContextCpu):
+        particles0.reorganize()
+
     warnings.filterwarnings('default')
 
     for mode in ['frozen', 'quasi-frozen', 'pic']:
