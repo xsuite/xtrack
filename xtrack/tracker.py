@@ -422,6 +422,8 @@ class Tracker:
             int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
             int64_t part_id = get_global_id(0);                    //only_for_context opencl
+            
+            #pragma omp parallel for 
 
 
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
