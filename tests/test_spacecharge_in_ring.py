@@ -75,7 +75,6 @@ def test_ring_with_spacecharge(test_context):
              particle_ref=particle_ref, line=line_temp)
 
     particles_gaussian.state[1::2] = -222 # Mark half of them as lost
-    #particles_gaussian.weight[1::2] = 0 # DEBUGGGG!!!!
 
     particles0 = xp.Particles.merge([particle_probe, particles_gaussian])
 
@@ -140,7 +139,8 @@ def test_ring_with_spacecharge(test_context):
                 n_sigmas_range_pic_y=5,
                 nx_grid=256, ny_grid=256, nz_grid=nz_grid,
                 n_lims_x=7, n_lims_y=3,
-                z_range=z_range)
+                z_range=z_range,
+                _average_transverse_distribution=True)
         else:
             raise ValueError(f'Invalid mode: {mode}')
 
