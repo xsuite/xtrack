@@ -101,6 +101,7 @@ def test_ring_with_spacecharge(test_context):
             particles = particles0.filter(particles0.particle_id < 100)
         elif mode == 'quasi-frozen':
             particles = particles0.filter(particles0.particle_id < 1e5)
+            particles.weight[:] = bunch_intensity / 1e5 * 2 # need to have the right peak density
         elif mode == 'pic':
             particles = particles0.filter((particles0.zeta>z_range[0]*5)
                                           & (particles0.zeta<z_range[1]*5))
