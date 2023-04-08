@@ -83,7 +83,7 @@ def test_ring_with_spacecharge(test_context):
 
     warnings.filterwarnings('default')
 
-    for mode in ['frozen', 'quasi-frozen', 'pic']:
+    for mode in ['frozen', 'quasi-frozen', 'pic', 'pic_average_transverse']:
         print('\n\n')
         print(f"Test {test_context.__class__}")
         print(f'mode = {mode}')
@@ -101,7 +101,7 @@ def test_ring_with_spacecharge(test_context):
         elif mode == 'quasi-frozen':
             particles = particles0.filter(particles0.particle_id < 1e5)
             particles.weight[:] = bunch_intensity / 1e5 * 2 # need to have the right peak density
-        elif mode == 'pic':
+        elif mode == 'pic' or mode == 'pic_average_transverse':
             particles = particles0.filter((particles0.zeta>z_range[0]*5)
                                           & (particles0.zeta<z_range[1]*5))
         else:
@@ -132,7 +132,7 @@ def test_ring_with_spacecharge(test_context):
                                             line, _buffer=test_context.new_buffer(),
                                             update_mean_x_on_track=True,
                                             update_mean_y_on_track=True)
-        elif mode == 'pic':
+        elif mode == 'pic' or mode == 'pic_average_transverse':
             pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
                 _context=test_context, line=line,
                 n_sigmas_range_pic_x=5,
@@ -140,7 +140,8 @@ def test_ring_with_spacecharge(test_context):
                 nx_grid=256, ny_grid=256, nz_grid=nz_grid,
                 n_lims_x=7, n_lims_y=3,
                 z_range=z_range,
-                _average_transverse_distribution=True)
+                _average_transverse_distribution=(
+                                    mode == 'pic_average_transverse'))
         else:
             raise ValueError(f'Invalid mode: {mode}')
 
@@ -197,3 +198,25 @@ def test_ring_with_spacecharge(test_context):
         with flaky_assertions():
             assert np.isclose(qx_probe, qx_target, atol=5e-4, rtol=0)
             assert np.isclose(qy_probe, qy_target, atol=5e-4, rtol=0)
+
+        if mode == 'pic_average_transverse':
+            sc_test = all_pics[50]
+            ctx2np = sc_test._context.nparray_from_context_array
+            assert sc_test.fieldmap._average_transverse_distribution == True
+            assert hasattr(sc_test.fieldmap, '_rho_before_average')
+            assert np.allclose(
+                ctx2np(sc_test.fieldmap._rho_before_average.sum(axis=(0, 1))),
+                ctx2np(sc_test.fieldmap.rho.sum(axis=(0, 1))),
+                atol=1e-14, rtol=1e-10)
+            for dtest in [sc_test.fieldmap.dphi_dx, sc_test.fieldmap.dphi_dy]:
+                # Check that the normalized electric field is the same
+                dtest = ctx2np(dtest)
+                assert np.allclose(
+                    dtest[:,:, 3] / np.max(dtest[:, :, 3]),
+                    dtest[:,:, 4] / np.max(dtest[:, :, 4]),
+                    atol=1e-14, rtol=1e-8)
+        elif mode == 'pic':
+            sc_test = all_pics[50]
+            assert sc_test.fieldmap._average_transverse_distribution == False
+            assert not hasattr(sc_test.fieldmap, '_rho_before_average')
+
