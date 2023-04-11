@@ -787,20 +787,26 @@ class SimpleThinBend(BeamElement):
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
 
-            kn(z) = k_n cos(2pi w tau + pn/180*pi)
-
-            ks[n](z) = k_n cos(2pi w tau + pn/180*pi)
-
-        Its parameters are:
-
-            - order [int]: Horizontal shift. Default is ``0``.
-            - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
-            - knl [m^-n, array]: Normalized integrated strength of the normal components.
-            - ksl [m^-n, array]: Normalized integrated strength of the skew components.
-            - pn [deg, array]: Phase of the normal components.
-            - ps [deg, array]: Phase of the skew components.
-            - voltage [V]: Longitudinal voltage. Default is ``0``.
-            - lag [deg]: Longitudinal phase seen by the reference particle. Default is ``0``.
+    Parameters
+    ----------
+    order : int
+        Order of the multipole. Default is ``0``.
+    knl : array
+        Normalized integrated strength of the normal components in units of m^-n.
+        Must be of length ``order+1``.
+    ksl : array
+        Normalized integrated strength of the skew components in units of m^-n.
+        Must be of length ``order+1``.
+    pn : array
+        Phase of the normal components in degrees. Must be of length ``order+1``.
+    ps : array
+        Phase of the skew components in degrees. Must be of length ``order+1``.
+    voltage : float
+        Longitudinal voltage. Default is ``0``.
+    lag : float
+        Longitudinal phase seen by the reference particle. Default is ``0``.
+    frequency : float
+        Frequency in Hertz. Default is ``0``.
 
     '''
 
@@ -898,12 +904,18 @@ class RFMultipole(BeamElement):
 
 
 class DipoleEdge(BeamElement):
-    '''Beam element modeling a dipole edge. Parameters:
+    '''Beam element modeling a dipole edge (see MAD-X manual for detaild description).
 
-            - h [1/m]: Curvature.
-            - e1 [rad]: Face angle.
-            - hgap [m]: Equivalent gap.
-            - fint []: Fringe integral.
+    Parameters
+    ----------
+    h : float
+        Curvature in 1/m.
+    e1 : float
+        Face angle in rad.
+    hgap : float
+        Equivalent gap in m.
+    fint : float
+        Fringe integral.
 
     '''
 
@@ -1178,9 +1190,24 @@ class LinearTransferMatrix(BeamElement):
     def beta_y_1(self):
         return self.beta_prod_y*self.beta_ratio_y
 
-
-
 class FirstOrderTaylorMap(BeamElement):
+
+    '''
+    First order Taylor map.
+
+    Parameters
+    ----------
+    length : float
+        length of the element in meters.
+    m0 : array_like
+        6x1 array of the zero order Taylor map coefficients.
+    m1 : array_like
+        6x6 array of the first order Taylor map coefficients.
+    radiation_flag : int
+        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
+
+    '''
+
     isthick = True
 
     _xofields={
