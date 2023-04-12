@@ -13,7 +13,8 @@ with open(filename, 'r') as f:
 #line['qc1l1.1..1'].ksl[0] += 1e-6/5
 #line['qc1l1.1..1'].ksl[1] = 1e-4
 
-line.build_tracker(global_xy_limit=20e-2)
+line.build_tracker()
+line.config.XTRACK_GLOBAL_XY_LIMIT = 20e-2
 
 for ee in line.elements:
     if ee.__class__.__name__.startswith('Cavity'):

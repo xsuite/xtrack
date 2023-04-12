@@ -20,7 +20,8 @@ line = xt.Line(
         q2,
         ])
 
-line.build_tracker(global_xy_limit=1e10)
+line.build_tracker()
+line.config.XTRACK_GLOBAL_XY_LIMIT = 1e10
 
 line.particle_ref = xp.Particles(p0c=6500e9)
 import matplotlib.pyplot as plt

@@ -61,7 +61,11 @@ def test_full_rings(
     # Build TrackJob #
     ##################
     print('Build tracker...')
-    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
+    line.build_tracker(_context=test_context)
+    line.reset_s_at_end_turn = False
+
+    assert line._buffer.context is test_context
+    assert line[23]._buffer.context is test_context
 
     ######################
     # Get some particles #
@@ -106,8 +110,8 @@ def test_full_rings(
 
     if test_backtracker:
         print('Testing backtracker')
-        backtracker = line.get_backtracker(_context=test_context)
-        backtracker.track(particles, num_turns=n_turns)
+        backtrack_line = line.get_backtracker(_context=test_context)
+        backtrack_line.track(particles, num_turns=n_turns)
 
         dtk_part = dtk.TestParticles(**input_data['particle']).copy()
 
@@ -153,15 +157,15 @@ def test_full_rings(
     tmp_file = tmp_path / 'test_full_rings.npy'
     tmp_file_path = tmp_file.resolve()
     line.tracker.to_binary_file(tmp_file_path)
-    new_tracker = xt.Tracker.from_binary_file(tmp_file_path)
+    new_line = xt.Tracker.from_binary_file(tmp_file_path).line
 
-    assert np.all(new_tracker._buffer.buffer == new_tracker._buffer.buffer)
+    assert np.all(new_line._buffer.buffer == new_line._buffer.buffer)
     if line._var_management:
-        assert line._tracker_data.line._var_management_to_dict() == \
-            new_tracker._tracker_data.line._var_management_to_dict()
+        assert new_line._var_management_to_dict() == \
+            line._var_management_to_dict()
     else:
         assert line._var_management is \
-            new_tracker.line._var_management is None
+            new_line._var_management is None
 
 
 @for_all_test_contexts
@@ -188,7 +192,8 @@ def test_freeze_vars(test_context):
     #################
     print('Build tracker...')
     freeze_vars = xp.Particles.part_energy_varnames() + ['zeta']
-    line.build_tracker(_context=test_context, reset_s_at_end_turn=False)
+    line.build_tracker(_context=test_context)
+    line.reset_s_at_end_turn = False
     line.freeze_vars(freeze_vars)
 
     ######################

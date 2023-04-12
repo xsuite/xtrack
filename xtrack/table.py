@@ -21,25 +21,34 @@ def _to_str(arr, digits, fixed="g"):
         return arr.astype("U")
 
 
-class Loc:
+class Mask:
     def __init__(self, table):
         self.table = table
 
     def __getitem__(self, key):
         """
-        t.loc[1] -> row
-        t.loc['a'] -> pattern
-        l.loc[10:20]-> range
-        l.loc['a':'b'] -> name range
-        l.loc['a':'b':'myname'] -> name range with 'myname' column
-        l.loc[-2:2:'x'] -> name value range with 'x' column
-        l.loc[-2:2:'x',...] -> & combinations
+        t.mask[1] -> row
+        t.mask['a'] -> pattern
+        l.mask[10:20]-> range
+        l.mask['a':'b'] -> name range
+        l.mask['a':'b':'myname'] -> name range with 'myname' column
+        l.mask[-2:2:'x'] -> name value range with 'x' column
+        l.mask[-2:2:'x',...] -> & combinations
         """
         mask = np.zeros(self.table._nrows, dtype=bool)
         if isinstance(key, int):
             mask = np.zeros(self.table._nrows, dtype=bool)
             mask[key] = True
             return mask
+        elif isinstance(key, str):
+            if self.table._offset_sep in key or self.table._count_sep in key:
+                mask[:] = self[key:key] # use slice (next elif)
+            else:
+                mask[:] = self.table._get_name_mask(key, self.table._index)
+            mask[:] = self.table._get_name_mask(key, self.table._index)
+            if self.table._error_on_row_not_found and not mask.any():
+                raise IndexError(
+                    f"Cannot find `{key}` in table index `{self.table._index}`")
         elif hasattr(key, "dtype"):
             if key.dtype.kind in "SU":
                 if self.table._multiple_row_selections:
@@ -56,15 +65,6 @@ class Loc:
                     return self.table._get_names_indices(key) # preserve key order
             else:
                 mask[key] = True
-        elif isinstance(key, str):
-            if self.table._offset_sep in key or self.table._count_sep in key:
-                mask[:] = self[key:key] # use slice (next elif)
-            else:
-                mask[:] = self.table._get_name_mask(key, self.table._index)
-            mask[:] = self.table._get_name_mask(key, self.table._index)
-            if self.table._error_on_row_not_found and not mask.any():
-                raise IndexError(
-                    f"Cannot find `{key}` in table index `{self.table._index}`")
         elif isinstance(key, slice):
             ia = key.start
             ib = key.stop
@@ -121,6 +121,14 @@ class _ColView:
     def __getitem__(self, cols):
         return self.table._get_rows_cols(None, cols, force_table=True)
 
+    @property
+    def names(self):
+        return self.table._col_names
+
+    def __repr__(self):
+        return "<" + " ".join(self.table._col_names) + ">"
+
+
 
 class _View:
     def __init__(self, data, index):
@@ -138,6 +146,13 @@ class _View:
         if k == '__tracebackhide__': # to avoid issues in ipython
             return None
         return self.data.get(k, default)[self.index]
+
+    def __repr__(self):
+        return f"<{self.table._nrows} rows>"
+
+    def __iter__(self):
+        return iter(self.table._data[self.table._index])
+
 
 
 
@@ -166,7 +181,7 @@ class RDMTable:
         self._index = index
         self._count_sep = count_sep
         self._offset_sep = offset_sep
-        self.loc = Loc(self)
+        self.mask = Mask(self)
         self._index_cache = index_cache
         self._regex_flags = re.IGNORECASE
         nrows = set(len(self._data[cc]) for cc in self._col_names)
@@ -361,7 +376,7 @@ class RDMTable:
         if rows is None:
             view = self._data
         else:
-            row_index = self.loc[rows]
+            row_index = self.mask[rows]
             view = _View(self._data, row_index)
 
         # select cols
@@ -456,6 +471,10 @@ class RDMTable:
                     fmt.append("%%%ds" % colwidth)
                 header_line.append(fmt[-1] % cc)
                 data.append(col)
+            else:
+                header_line.append('...')
+                break
+
 
         result = []
         if header:

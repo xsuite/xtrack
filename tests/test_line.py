@@ -685,3 +685,59 @@ def test_from_json_to_json(tmp_path):
 
     assert isinstance(result['d'], xt.Drift)
     assert result['d'].length == 1
+
+@for_all_test_contexts
+def test_config_propagation(test_context):
+    line = xt.Line(elements=10*[xt.Drift(length=1)])
+    line.config.TEST1 = True
+    line.config.TEST2 = 33.3
+    line.matrix_stability_tol = 55.5
+    dct = line.to_dict()
+
+    assert 'config' in dct
+    assert '_extra_config' in dct
+
+    line2 = xt.Line.from_dict(dct)
+    assert line2.config.TEST1 == True
+    assert line2.config.TEST2 == 33.3
+    assert line2.matrix_stability_tol == 55.5
+
+    line2.build_tracker(_context=test_context)
+    assert line2.tracker.matrix_stability_tol == 55.5
+
+    # Check that they are copies
+    line2.config.TEST1 = 23.3
+    assert line2.config.TEST1 == 23.3
+    assert line.config.TEST1 == True
+    line2.matrix_stability_tol = 77.7
+    assert line2.matrix_stability_tol == 77.7
+    assert line.matrix_stability_tol == 55.5
+
+    line.build_tracker(_context=test_context)
+    linebk = line.get_backtracker()
+    assert linebk.matrix_stability_tol == 55.5
+    assert linebk.config.TEST1 == True
+    assert linebk.config.TEST2 == 33.3
+
+    # Check that they are copies
+    linebk.config.TEST1 = 23.3
+    assert linebk.config.TEST1 == 23.3
+    assert line.config.TEST1 == True
+    linebk.matrix_stability_tol = 77.7
+    assert linebk.matrix_stability_tol == 77.7
+    assert line.matrix_stability_tol == 55.5
+
+    line3 = line.copy()
+    assert line3.config.TEST1 == True
+    assert line3.config.TEST2 == 33.3
+    assert line3.matrix_stability_tol == 55.5
+
+    # Check that they are copies
+    line3.config.TEST1 = 23.3
+    assert line3.config.TEST1 == 23.3
+    assert line.config.TEST1 == True
+    line3.matrix_stability_tol = 77.7
+    assert line3.matrix_stability_tol == 77.7
+    assert line.matrix_stability_tol == 55.5
+
+
