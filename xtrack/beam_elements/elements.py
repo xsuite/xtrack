@@ -17,9 +17,14 @@ from ..internal_record import RecordIndex, RecordIdentifier
 
 class ReferenceEnergyIncrease(BeamElement):
 
-    '''Beam element modeling a change of reference energy (acceleration, deceleration). Parameters:
+    '''Beam element modeling a change of reference energy (acceleration, 
+    deceleration).
 
-             - Delta_p0c [eV]: Change in reference energy. Default is ``0``.
+    Parameters
+    ----------
+    Delta_p0c : float
+        Change in reference energy in eV. Default is ``0``.
+
     '''
 
     _xofields = {
@@ -35,9 +40,6 @@ class ReferenceEnergyIncrease(BeamElement):
 
 class Marker(BeamElement):
     """A marker beam element with no effect on the particles.
-
-    Parameters:
-        - name (str): Name of the element
     """
 
     _xofields = {
@@ -56,9 +58,14 @@ class Marker(BeamElement):
 
 
 class Drift(BeamElement):
-    '''Beam element modeling a drift section. Parameters:
+    '''Beam element modeling a drift section.
 
-             - length [m]: Length of the drift section. Default is ``0``.
+    Parameters
+    ----------
+
+    length : float
+        Length of the drift section in meters. Default is ``0``.
+
     '''
 
     _xofields = {
@@ -76,11 +83,17 @@ class Drift(BeamElement):
 
 
 class Cavity(BeamElement):
-    '''Beam element modeling an RF cavity. Parameters:
+    '''Beam element modeling an RF cavity.
 
-             - voltage [V]: Voltage of the RF cavity. Default is ``0``.
-             - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
-             - lag [deg]: Phase seen by the reference particle. Default is ``0``.
+    Parameters
+    ----------
+    voltage : float
+        Voltage of the RF cavity in Volts. Default is ``0``.
+    frequency : float
+        Frequency of the RF cavity in Hertz. Default is ``0``.
+    lag : float
+        Phase seen by the reference particle in degrees. Default is ``0``.
+
     '''
 
     _xofields = {
@@ -102,10 +115,14 @@ class Cavity(BeamElement):
 
 
 class XYShift(BeamElement):
-    '''Beam element modeling an transverse shift of the reference system. Parameters:
+    '''Beam element modeling an transverse shift of the reference system.
 
-             - dx [m]: Horizontal shift. Default is ``0``.
-             - dy [m]: Vertical shift. Default is ``0``.
+    Parameters
+    ----------
+    dx : float
+        Horizontal shift in meters. Default is ``0``.
+    dy : float
+        Vertical shift in meters. Default is ``0``.
 
     '''
     _xofields = {
@@ -125,6 +142,31 @@ class XYShift(BeamElement):
 
 
 class Elens(BeamElement):
+    '''Beam element modeling a hollow electron lens.
+
+    Parameters
+    ----------
+    inner_radius : float
+        Inner radius of the electron lens in meters. Default is ``0``.
+    outer_radius : float
+        Outer radius of the electron lens in meters. Default is ``0``.
+    current : float
+        Current of the electron lens in Ampere. Default is ``0``.
+    elens_length : float
+        Length of the electron lens in meters. Default is ``0``.
+    voltage : float
+        Voltage of the electron lens in Volts. Default is ``0``.
+    residual_kick_x : float
+        Residual kick in the horizontal plane in radians. Default is ``0``.
+    residual_kick_y : float
+        Residual kick in the vertical plane in radians. Default is ``0``.
+    coefficients_polynomial : array
+        Array of coefficients of the polynomial. Default is ``[0]``.
+    polynomial_order : int
+        Order of the polynomial. Default is ``0``.
+
+    '''
+
 # if array is needed we do it like this
 #    _xofields={'inner_radius': xo.Float64[:]}
     _xofields={
@@ -186,6 +228,27 @@ class Elens(BeamElement):
 
 class Wire(BeamElement):
 
+    '''Beam element modeling a wire (used for long range beam-beam compensation).
+
+    Parameters
+    ----------
+
+    L_phy : float
+        Physical length of the wire in meters. Default is ``0``.
+    L_int : float
+        Interaction length of the wire in meters. Default is ``0``.
+    current : float
+        Current of the wire in Ampere. Default is ``0``.
+    xma : float
+        Horizontal position of the wire in meters. Default is ``0``.
+    yma : float
+        Vertical position of the wire in meters. Default is ``0``.
+    post_subtract_px : float
+        Horizontal post-subtraction kick in radians. Default is ``0``.
+    post_subtract_py : float
+        Vertical post-subtraction kick in radians. Default is ``0``.
+    '''
+
     _xofields={
                'L_phy'  : xo.Float64,
                'L_int'  : xo.Float64,
@@ -230,9 +293,13 @@ class Wire(BeamElement):
 
 
 class SRotation(BeamElement):
-    '''Beam element modeling an rotation of the reference system around the s axis. Parameters:
+    '''Beam element modeling an rotation of the reference system around the s axis.
 
-                - angle [deg]: Rotation angle. Default is ``0``.
+    Parameters
+    ----------
+
+    angle : float
+        Rotation angle in degrees. Default is ``0``.
 
     '''
 
@@ -289,9 +356,13 @@ class SRotation(BeamElement):
 
 
 class XRotation(BeamElement):
-    '''Beam element modeling an rotation of the reference system around the x axis. Parameters:
+    '''Beam element modeling an rotation of the reference system around the x axis.
 
-                - angle [deg]: Rotation angle. Default is ``0``.
+    Parameters
+    ----------
+
+    angle : float
+        Rotation angle in degrees. Default is ``0``.
 
     '''
 
@@ -368,9 +439,13 @@ class XRotation(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 class YRotation(BeamElement):
-    '''Beam element modeling an rotation of the reference system around the y axis. Parameters:
+    '''Beam element modeling an rotation of the reference system around the y axis.
 
-                - angle [deg]: Rotation angle. Default is ``0``.
+    Parameters
+    ----------
+
+    angle : float
+        Rotation angle in degrees. Default is ``0``.
 
     '''
 
@@ -451,9 +526,13 @@ class YRotation(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 class ZetaShift(BeamElement):
-    '''Beam element modeling a longitudinal translation of the reference system. Parameters:
+    '''Beam element modeling a time delat.
 
-                - dzeta [m]: Translation in the longitudinal plane. Default is ``0``.
+    Parameters
+    ----------
+
+    dzeta : float
+        Time shift dzeta in meters. Default is ``0``.
 
     '''
 
@@ -488,14 +567,23 @@ class SynchrotronRadiationRecord(xo.HybridClass):
 
 
 class Multipole(BeamElement):
-    '''Beam element modeling a thin magnetic multipole. Parameters:
+    '''Beam element modeling a thin magnetic multipole.
 
-            - order [int]: Horizontal shift. Default is ``0``.
-            - knl [m^-n, array]: Normalized integrated strength of the normal components.
-            - ksl [m^-n, array]: Normalized integrated strength of the skew components.
-            - hxl [rad]: Rotation angle of the reference trajectory in the horizontal plane.
-            - hyl [rad]: Rotation angle of the reference trajectory in the vertical plane.
-            - length [m]: Length of the originating thick multipole.
+    Parameters
+    ----------
+
+    knl : array
+        Normalized integrated strength of the normal components in units of m^-n.
+    ksl : array
+        Normalized integrated strength of the skew components in units of m^-n.
+    order : int
+        Order of the multipole. Default is ``0``.
+    hxl : float
+        Rotation angle of the reference trajectory in the horizontal plane in radians. Default is ``0``.
+    hyl : float
+        Rotation angle of the reference trajectory in the vertical plane in radians. Default is ``0``.
+    length : float
+        Length of the originating thick multipole. Default is ``0``.
 
     '''
 
@@ -572,10 +660,14 @@ class Multipole(BeamElement):
 
 
 class SimpleThinQuadrupole(BeamElement):
-    """An optimised version of a quadrupole with zero knl[0], ksl, hxl, hyl, and length.
-    Parameters:
+    """An specialized version of Multipole to model a thin quadrupole
+    (knl[0], ksl, hxl, hyl are all zero).
 
-            - knl [m^-n, array]: Normalized integrated strength of the normal components.
+    Parameters
+    ----------
+    knl : array
+        Normalized integrated strength of the normal components in units of m^-n.
+        Must be of length 2.
 
     """
 
@@ -632,13 +724,15 @@ class SimpleThinQuadrupole(BeamElement):
 
 
 class SimpleThinBend(BeamElement):
-    """An optimised version of a dipole with zero ksl and hyl. Parameters:
-
-            - knl [m^-n, array]: Normalized integrated strength of the normal components.
-            - hxl [rad]: Rotation angle of the reference trajectory in the horizontal plane.
-            - length [m]: Length of the originating thick multipole.
-
-    """
+    '''A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
+    knl : array
+        Normalized integrated strength of the normal components in units of m^-n.
+        Must be of length 1.
+    hxl : float
+        Rotation angle of the reference trajectory in the horizontal plane in radians. Default is ``0``.
+    length : float
+        Length of the originating thick bend. Default is ``0``.
+    '''
 
     _xofields={
         'knl': xo.Float64[1],
@@ -693,20 +787,26 @@ class SimpleThinBend(BeamElement):
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
 
-            kn(z) = k_n cos(2pi w tau + pn/180*pi)
-
-            ks[n](z) = k_n cos(2pi w tau + pn/180*pi)
-
-        Its parameters are:
-
-            - order [int]: Horizontal shift. Default is ``0``.
-            - frequency [Hz]: Frequency of the RF cavity. Default is ``0``.
-            - knl [m^-n, array]: Normalized integrated strength of the normal components.
-            - ksl [m^-n, array]: Normalized integrated strength of the skew components.
-            - pn [deg, array]: Phase of the normal components.
-            - ps [deg, array]: Phase of the skew components.
-            - voltage [V]: Longitudinal voltage. Default is ``0``.
-            - lag [deg]: Longitudinal phase seen by the reference particle. Default is ``0``.
+    Parameters
+    ----------
+    order : int
+        Order of the multipole. Default is ``0``.
+    knl : array
+        Normalized integrated strength of the normal components in units of m^-n.
+        Must be of length ``order+1``.
+    ksl : array
+        Normalized integrated strength of the skew components in units of m^-n.
+        Must be of length ``order+1``.
+    pn : array
+        Phase of the normal components in degrees. Must be of length ``order+1``.
+    ps : array
+        Phase of the skew components in degrees. Must be of length ``order+1``.
+    voltage : float
+        Longitudinal voltage. Default is ``0``.
+    lag : float
+        Longitudinal phase seen by the reference particle. Default is ``0``.
+    frequency : float
+        Frequency in Hertz. Default is ``0``.
 
     '''
 
@@ -804,12 +904,18 @@ class RFMultipole(BeamElement):
 
 
 class DipoleEdge(BeamElement):
-    '''Beam element modeling a dipole edge. Parameters:
+    '''Beam element modeling a dipole edge (see MAD-X manual for detaild description).
 
-            - h [1/m]: Curvature.
-            - e1 [rad]: Face angle.
-            - hgap [m]: Equivalent gap.
-            - fint []: Fringe integral.
+    Parameters
+    ----------
+    h : float
+        Curvature in 1/m.
+    e1 : float
+        Face angle in rad.
+    hgap : float
+        Equivalent gap in m.
+    fint : float
+        Fringe integral.
 
     '''
 
@@ -1084,9 +1190,24 @@ class LinearTransferMatrix(BeamElement):
     def beta_y_1(self):
         return self.beta_prod_y*self.beta_ratio_y
 
-
-
 class FirstOrderTaylorMap(BeamElement):
+
+    '''
+    First order Taylor map.
+
+    Parameters
+    ----------
+    length : float
+        length of the element in meters.
+    m0 : array_like
+        6x1 array of the zero order Taylor map coefficients.
+    m1 : array_like
+        6x6 array of the first order Taylor map coefficients.
+    radiation_flag : int
+        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
+
+    '''
+
     isthick = True
 
     _xofields={

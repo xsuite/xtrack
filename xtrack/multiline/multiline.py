@@ -10,6 +10,18 @@ import xfields as xf
 
 class Multiline:
 
+    '''
+    Class to manage multiple beam lines (they can optionally share the xdeps vars).
+
+    Parameters
+    ----------
+    lines: dict
+        Dictionary with the lines objects
+    link_vars: bool
+        If True, the variables are linked between the lines.
+
+    '''
+
     def __init__(self, lines: dict, link_vars=True):
         self.lines = {}
         self.lines.update(lines)

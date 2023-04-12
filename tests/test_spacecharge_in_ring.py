@@ -69,14 +69,21 @@ def test_ring_with_spacecharge(test_context):
 
     particles_gaussian = xp.generate_matched_gaussian_bunch(
              _context=xo.ContextCpu(),
-             num_particles=n_part, total_intensity_particles=bunch_intensity,
+             num_particles= 2 * n_part, # will mark half of them as lost
+             total_intensity_particles = 2 * bunch_intensity, # will mark half of them as lost
              nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
              particle_ref=particle_ref, line=line_temp)
 
+    particles_gaussian.state[1::2] = -222 # Mark half of them as lost
+
     particles0 = xp.Particles.merge([particle_probe, particles_gaussian])
+
+    if isinstance(particles0._context, xo.ContextCpu):
+        particles0.reorganize()
+
     warnings.filterwarnings('default')
 
-    for mode in ['frozen', 'quasi-frozen', 'pic']:
+    for mode in ['frozen', 'quasi-frozen', 'pic', 'pic_average_transverse']:
         print('\n\n')
         print(f"Test {test_context.__class__}")
         print(f'mode = {mode}')
@@ -93,7 +100,8 @@ def test_ring_with_spacecharge(test_context):
             particles = particles0.filter(particles0.particle_id < 100)
         elif mode == 'quasi-frozen':
             particles = particles0.filter(particles0.particle_id < 1e5)
-        elif mode == 'pic':
+            particles.weight[:] = bunch_intensity / 1e5 * 2 # need to have the right peak density
+        elif mode == 'pic' or mode == 'pic_average_transverse':
             particles = particles0.filter((particles0.zeta>z_range[0]*5)
                                           & (particles0.zeta<z_range[1]*5))
         else:
@@ -124,14 +132,16 @@ def test_ring_with_spacecharge(test_context):
                                             line, _buffer=test_context.new_buffer(),
                                             update_mean_x_on_track=True,
                                             update_mean_y_on_track=True)
-        elif mode == 'pic':
+        elif mode == 'pic' or mode == 'pic_average_transverse':
             pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
                 _context=test_context, line=line,
                 n_sigmas_range_pic_x=5,
                 n_sigmas_range_pic_y=5,
                 nx_grid=256, ny_grid=256, nz_grid=nz_grid,
                 n_lims_x=7, n_lims_y=3,
-                z_range=z_range)
+                z_range=z_range,
+                _average_transverse_distribution=(
+                                    mode == 'pic_average_transverse'))
         else:
             raise ValueError(f'Invalid mode: {mode}')
 
@@ -188,3 +198,25 @@ def test_ring_with_spacecharge(test_context):
         with flaky_assertions():
             assert np.isclose(qx_probe, qx_target, atol=5e-4, rtol=0)
             assert np.isclose(qy_probe, qy_target, atol=5e-4, rtol=0)
+
+        if mode == 'pic_average_transverse':
+            sc_test = all_pics[50]
+            ctx2np = sc_test._context.nparray_from_context_array
+            assert sc_test.fieldmap._average_transverse_distribution == True
+            assert hasattr(sc_test.fieldmap, '_rho_before_average')
+            assert np.allclose(
+                ctx2np(sc_test.fieldmap._rho_before_average.sum(axis=(0, 1))),
+                ctx2np(sc_test.fieldmap.rho.sum(axis=(0, 1))),
+                atol=1e-14, rtol=1e-10)
+            for dtest in [sc_test.fieldmap.dphi_dx, sc_test.fieldmap.dphi_dy]:
+                # Check that the normalized electric field is the same
+                dtest = ctx2np(dtest)
+                assert np.allclose(
+                    dtest[:,:, 3] / np.max(dtest[:, :, 3]),
+                    dtest[:,:, 4] / np.max(dtest[:, :, 4]),
+                    atol=1e-14, rtol=1e-8)
+        elif mode == 'pic':
+            sc_test = all_pics[50]
+            assert sc_test.fieldmap._average_transverse_distribution == False
+            assert not hasattr(sc_test.fieldmap, '_rho_before_average')
+
