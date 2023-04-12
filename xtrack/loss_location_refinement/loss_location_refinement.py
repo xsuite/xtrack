@@ -24,6 +24,35 @@ def _skip_in_loss_location_refinement(element):
 
 class LossLocationRefinement:
 
+    '''
+    Class to refine the location of the lost particles within a line.
+
+    Parameters
+    ----------
+    line : xtrack.Line
+        Line for which the loss location refinement is performed.
+    backtrack_line : xtrack.Line (optional)
+        Line used to backtrack the lost particles. If None, the backtracking
+        line is automatically generated from the line.
+    n_theta : int
+        Number of angles used to generate the interpolating aperture model.
+        If None, the number of angles is automatically determined.
+    r_max : float
+        Radius larger than the largest aperture radius.
+    dr : float
+        Radius step used to generate the interpolating aperture model.
+    ds : float
+        Step in the `s` direction used to generate the interpolating aperture
+        model.
+    save_refine_lines : bool
+        If True, the lines used to refine the loss location are saved.
+    allowed_backtrack_types : list
+        List of element types through which the backtracking is allowed.
+        Elements exposing the attribute `allow_backtrack` are automatically
+        added to the list.
+
+    '''
+
     def __init__(self, line, backtrack_line=None,
                  n_theta=None, r_max=None, dr=None, ds=None,
                  save_refine_lines=False,
@@ -73,6 +102,20 @@ class LossLocationRefinement:
         self.allowed_backtrack_types = allowed_backtrack_types
 
     def refine_loss_location(self, particles, i_apertures=None):
+
+        '''
+        Refine the location of the lost particles within the line.
+
+        Parameters
+        ----------
+        particles : xpart.Particles
+            Particles for which the loss location is refined.
+        i_apertures : list (optional)
+            List of indices of the apertures for which the loss location
+            is refined. If None, the loss location is refined for all
+            apertures.
+
+        '''
 
         if i_apertures is None:
             i_apertures = self.i_apertures
@@ -474,3 +517,4 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
                               _buffer=buffer_for_poly)
 
     return polygon, i_start
+
