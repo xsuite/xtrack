@@ -89,7 +89,8 @@ def test_ring_with_spacecharge(test_context):
         print(f'mode = {mode}')
         print('\n\n')
 
-        if isinstance(test_context, xo.ContextPyopencl) and mode == 'pic':
+        if (isinstance(test_context, xo.ContextPyopencl)
+            and mode.startswith('pic')):
             # TODO With pyopencl the test gets to the end
             # but then hangs or crashes python
             print('Skipped! Known issue...')
