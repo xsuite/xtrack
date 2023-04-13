@@ -71,13 +71,14 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double zeta_no_disp = LocalParticle_get_zeta(part);
 
     // removing dispersion and close orbit
-    double rvv = LocalParticle_get_rvv(part);
     new_x -= disp_x_0 * delta + x_ref_0;
     new_px -= disp_px_0 * delta + px_ref_0;
     new_y -= disp_y_0 * delta + y_ref_0;
     new_py -= disp_py_0 * delta + py_ref_0;
 
-    zeta_no_disp += (disp_px_0*LocalParticle_get_x(part) - disp_x_0*LocalParticle_get_px(part) + disp_py_0*LocalParticle_get_y(part) - disp_y_0*LocalParticle_get_py(part))/rvv;
+    // Symplecticity correction (not working, to be investigated)
+    // double rvv = LocalParticle_get_rvv(part);
+    // zeta_no_disp += (disp_px_0*LocalParticle_get_x(part) - disp_x_0*LocalParticle_get_px(part) + disp_py_0*LocalParticle_get_y(part) - disp_y_0*LocalParticle_get_py(part))/rvv;
 
     double sin_x, cos_x, sin_y, cos_y;
 
@@ -207,8 +208,11 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     }
     // re-adding dispersion and closed orbit
     delta = LocalParticle_get_delta(part);
-    rvv = LocalParticle_get_rvv(part);
-    LocalParticle_add_to_zeta(part, (-disp_px_1*LocalParticle_get_x(part) + disp_x_1*LocalParticle_get_px(part) - disp_py_1*LocalParticle_get_y(part) + disp_y_1*LocalParticle_get_py(part))/rvv);
+
+    // Symplecticity correction (not working, to be investigated)
+    // rvv = LocalParticle_get_rvv(part);
+    // LocalParticle_add_to_zeta(part, (-disp_px_1*LocalParticle_get_x(part) + disp_x_1*LocalParticle_get_px(part) - disp_py_1*LocalParticle_get_y(part) + disp_y_1*LocalParticle_get_py(part))/rvv);
+
     LocalParticle_add_to_x(part,disp_x_1 * delta + x_ref_1);
     LocalParticle_add_to_px(part,px_ref_1 + disp_px_1 * delta);
     LocalParticle_add_to_y(part,disp_y_1 * delta + y_ref_1);

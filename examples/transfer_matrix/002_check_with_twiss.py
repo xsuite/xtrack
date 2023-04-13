@@ -33,7 +33,7 @@ segm_1 = xt.LinearTransferMatrix(Q_x=0.4, Q_y=0.3, Q_s=0.0001, length=0.1,
                                  y_ref_0=y_co[0], y_ref_1=y_co[1],
                                  py_ref_0=py_co[0], py_ref_1=py_co[1])
 segm_2 = xt.LinearTransferMatrix(Q_x=0.21, Q_y=0.32, Q_s=0.0003, length=0.2,
-                                  chroma_x=2., chroma_y=3.,
+                                 chroma_x=2., chroma_y=3.,
                                  beta_x_0=betx[1], beta_x_1=betx[0],
                                  beta_y_0=bety[1], beta_y_1=bety[0],
                                  alpha_x_0=alfx[1], alpha_x_1=alfx[0],
