@@ -6,6 +6,7 @@
 #ifndef XTRACK_LINEARTRANSFERMATRIX_H
 #define XTRACK_LINEARTRANSFERMATRIX_H
 
+
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
 
@@ -33,10 +34,14 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const beta_prod_y = LinearTransferMatrixData_get_beta_prod_y(el);
     double const disp_x_0 = LinearTransferMatrixData_get_disp_x_0(el);
     double const disp_y_0 = LinearTransferMatrixData_get_disp_y_0(el);
+    double const disp_px_0 = LinearTransferMatrixData_get_disp_px_0(el);
+    double const disp_py_0 = LinearTransferMatrixData_get_disp_py_0(el);
     double const alpha_x_0 = LinearTransferMatrixData_get_alpha_x_0(el);
     double const alpha_y_0 = LinearTransferMatrixData_get_alpha_y_0(el);
     double const disp_x_1 = LinearTransferMatrixData_get_disp_x_1(el);
     double const disp_y_1 = LinearTransferMatrixData_get_disp_y_1(el);
+    double const disp_px_1 = LinearTransferMatrixData_get_disp_px_1(el);
+    double const disp_py_1 = LinearTransferMatrixData_get_disp_py_1(el);
     double const alpha_x_1 = LinearTransferMatrixData_get_alpha_x_1(el);
     double const alpha_y_1 = LinearTransferMatrixData_get_alpha_y_1(el);
 
@@ -63,12 +68,16 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double new_px = LocalParticle_get_px(part);
     double new_py = LocalParticle_get_py(part);
     double delta = LocalParticle_get_delta(part);
+    double zeta_no_disp = LocalParticle_get_zeta(part);
 
     // removing dispersion and close orbit
+    double rvv = LocalParticle_get_rvv(part);
     new_x -= disp_x_0 * delta + x_ref_0;
-    new_px -= px_ref_0;
+    new_px -= disp_px_0 * delta + px_ref_0;
     new_y -= disp_y_0 * delta + y_ref_0;
-    new_py -= py_ref_0;
+    new_py -= disp_py_0 * delta + py_ref_0;
+
+    zeta_no_disp += (disp_px_0*LocalParticle_get_x(part) - disp_x_0*LocalParticle_get_px(part) + disp_py_0*LocalParticle_get_y(part) - disp_y_0*LocalParticle_get_py(part))/rvv;
 
     double sin_x, cos_x, sin_y, cos_y;
 
@@ -118,10 +127,9 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 
     if (cos_s < 2){
         // We set cos_s = 999 if long map is to be skipped
-        double const old_zeta = LocalParticle_get_zeta(part);
         double const old_pzeta = LocalParticle_get_pzeta(part); // Use canonically conjugate variables
-        double const new_zeta = cos_s*old_zeta+beta_s*sin_s*old_pzeta;
-        double const new_pzeta = -sin_s*old_zeta/beta_s+cos_s*old_pzeta;
+        double const new_zeta = cos_s*zeta_no_disp+beta_s*sin_s*old_pzeta;
+        double const new_pzeta = -sin_s*zeta_no_disp/beta_s+cos_s*old_pzeta;
 
         LocalParticle_set_zeta(part, new_zeta);
         LocalParticle_update_pzeta(part, new_pzeta);
@@ -152,7 +160,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
         double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
                 *LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
-            LocalParticle_update_p0c(part,new_p0c);
+        LocalParticle_update_p0c(part,new_p0c);
         LocalParticle_scale_x(part,geo_emit_factor);
         LocalParticle_scale_px(part,geo_emit_factor);
         LocalParticle_scale_y(part,geo_emit_factor);
@@ -197,13 +205,12 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         delta += r*gauss_noise_ampl_delta;
         LocalParticle_update_delta(part,delta);
     }
-
-
-        
     // re-adding dispersion and closed orbit
     delta = LocalParticle_get_delta(part);
+    rvv = LocalParticle_get_rvv(part);
+    LocalParticle_add_to_zeta(part,(-disp_px_1*LocalParticle_get_x(part) + disp_x_1*LocalParticle_get_px(part) - disp_py_1*LocalParticle_get_y(part) + disp_y_1*LocalParticle_get_py(part))/rvv);
     LocalParticle_add_to_x(part,disp_x_1 * delta + x_ref_1);
-    LocalParticle_add_to_px(part,px_ref_1);
+    LocalParticle_add_to_px(part,px_ref_1 +disp_px_1 * delta);
     LocalParticle_add_to_y(part,disp_y_1 * delta + y_ref_1);
     LocalParticle_add_to_py(part,py_ref_1);
 
