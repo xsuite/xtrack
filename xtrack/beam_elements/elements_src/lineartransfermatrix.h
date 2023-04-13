@@ -210,9 +210,9 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     rvv = LocalParticle_get_rvv(part);
     LocalParticle_add_to_zeta(part,(-disp_px_1*LocalParticle_get_x(part) + disp_x_1*LocalParticle_get_px(part) - disp_py_1*LocalParticle_get_y(part) + disp_y_1*LocalParticle_get_py(part))/rvv);
     LocalParticle_add_to_x(part,disp_x_1 * delta + x_ref_1);
-    LocalParticle_add_to_px(part,px_ref_1 +disp_px_1 * delta);
+    LocalParticle_add_to_px(part,px_ref_1 + disp_px_1 * delta);
     LocalParticle_add_to_y(part,disp_y_1 * delta + y_ref_1);
-    LocalParticle_add_to_py(part,py_ref_1);
+    LocalParticle_add_to_py(part,py_ref_1 + disp_py_1 * delta);
 
     // Add to s coordinate
     LocalParticle_add_to_s(part, length);
