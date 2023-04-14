@@ -16,13 +16,16 @@ from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
-   int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp
-   #pragma omp parallel for                                       //only_for_context cpu_openmp
-   for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial cpu_openmp
-    //#pragma omp simd
-    for (int iii=0; iii<!!CHUNK_SIZE!!; iii++){                   //only_for_context cpu_serial cpu_openmp
-      int const ii = iii+jj;                                      //only_for_context cpu_serial cpu_openmp
-      if (ii<n_part){                                             //only_for_context cpu_serial cpu_openmp
+   const int64_t part_id = part0->ipart;  //only_for_context cpu_openmp
+   const int64_t end_id = part0->endpart; //only_for_context cpu_openmp
+   //#pragma omp simd                     //only_for_context cpu_openmp
+   for (int64_t ii=part_id; ii<end_id; ii++){ //only_for_context cpu_openmp
+   
+   int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
+   for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial
+    for (int iii=0; iii<!!CHUNK_SIZE!!; iii++){                   //only_for_context cpu_serial
+      int const ii = iii+jj;                                      //only_for_context cpu_serial
+      if (ii<n_part){                                             //only_for_context cpu_serial
 
         LocalParticle lpart = *part0;//only_for_context cpu_serial cpu_openmp
         LocalParticle* part = &lpart;//only_for_context cpu_serial cpu_openmp
@@ -32,8 +35,8 @@ start_per_part_block = """
 """.replace("!!CHUNK_SIZE!!", "128")
 
 end_part_part_block = """
-     } //only_for_context cpu_serial cpu_openmp
-    }  //only_for_context cpu_serial cpu_openmp
+     } //only_for_context cpu_serial
+    }  //only_for_context cpu_serial
    }   //only_for_context cpu_serial cpu_openmp
 """
 
@@ -101,14 +104,25 @@ def _generate_per_particle_kernel_from_local_particle_function(
                 /*gpuglmem*/ int8_t* io_buffer){
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
+            
+            const int64_t num_threads = omp_get_num_threads();                             //only_for_context cpu_openmp            
+            #pragma omp parallel                                                           //only_for_context cpu_openmp
+            {                                                                              //only_for_context cpu_openmp
+            int64_t thread = omp_get_thread_num();                                         //only_for_context cpu_openmp
+            int64_t capacity = ParticlesData_get__capacity(particles);                     //only_for_context cpu_openmp
+            int64_t chunk_size = (capacity + num_threads - 1)/num_threads; // ceil divide  //only_for_context cpu_openmp
+            int64_t part_id = thread * chunk_size;                                         //only_for_context cpu_openmp
+            int64_t end_id = (thread + 1) * chunk_size;                                    //only_for_context cpu_openmp
+            if (end_id > capacity) end_id = capacity;                                      //only_for_context cpu_openmp
 
-            int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
+            int64_t part_id = 0;                    //only_for_context cpu_serial
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
             int64_t part_id = get_global_id(0);                    //only_for_context opencl
+            int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
 
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
-                Particles_to_LocalParticle(particles, &lpart, part_id);
+                Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
                 if (check_is_active(&lpart)>0){
 '''
             f'      {local_particle_function_name}(el, &lpart{(add_to_call if len(additional_args) > 0 else "")});\n'
@@ -118,6 +132,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
                         increment_at_element(&lpart);
                 }
             }
+            } //only_for_context cpu_openmp
         }
 ''')
     return source

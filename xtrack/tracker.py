@@ -416,16 +416,25 @@ class Tracker:
                 /*gpuglmem*/ int8_t* io_buffer){
 
 
-            LocalParticle lpart;
-            lpart.io_buffer = io_buffer;
+            int64_t done = 0;
+            omp_set_num_threads(12);                                                       //only_for_context cpu_openmp
+            const int64_t capacity = ParticlesData_get__capacity(particles);               //only_for_context cpu_openmp
+            const int64_t num_chunks = 12;//omp_get_num_threads();                         //only_for_context cpu_openmp
+            const int64_t chunk_size = (capacity + num_chunks - 1)/num_chunks; // ceil division  //only_for_context cpu_openmp
+            #pragma omp parallel for                                                       //only_for_context cpu_openmp
+            for (int chunk = 0; chunk < num_chunks; chunk++) {                             //only_for_context cpu_openmp
+            int64_t part_id = chunk * chunk_size;                                          //only_for_context cpu_openmp
+            int64_t end_id = (chunk + 1) * chunk_size;                                     //only_for_context cpu_openmp
+            if (end_id > capacity) end_id = capacity;                                      //only_for_context cpu_openmp
 
-            int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
+            int64_t part_id = 0;                    //only_for_context cpu_serial
             int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
             int64_t part_id = get_global_id(0);                    //only_for_context opencl
+            int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
+
+            LocalParticle lpart;
+            lpart.io_buffer = io_buffer;
             
-            #pragma omp parallel for 
-
-
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
             ParticlesMonitorData tbt_monitor =
@@ -433,7 +442,7 @@ class Tracker:
 
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
-            Particles_to_LocalParticle(particles, &lpart, part_id);
+            Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
 
             int64_t isactive = check_is_active(&lpart);
 
@@ -515,6 +524,8 @@ class Tracker:
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
 
             }// if partid
+            done++;
+            } //only_for_context cpu_openmp
         }//kernel
         """
         )
@@ -942,7 +953,7 @@ class Tracker:
 
         self._check_invalidated()
 
-        if isinstance(self._buffer.context, xo.ContextCpu):
+        if isinstance(self._buffer.context, xo.ContextCpu) and self._buffer.context.omp_num_threads == 0:
             assert (particles._num_active_particles >= 0 and
                     particles._num_lost_particles >= 0), (
                         "Particles state is not valid to run on CPU, please "
