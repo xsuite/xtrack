@@ -427,9 +427,9 @@ class Tracker:
             int64_t end_id = (chunk + 1) * chunk_size;                                     //only_for_context cpu_openmp
             if (end_id > capacity) end_id = capacity;                                      //only_for_context cpu_openmp
 
-            int64_t part_id = 0;                    //only_for_context cpu_serial
-            int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
-            int64_t part_id = get_global_id(0);                    //only_for_context opencl
+            int64_t part_id = 0;                                      //only_for_context cpu_serial
+            int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x;  //only_for_context cuda
+            int64_t part_id = get_global_id(0);                       //only_for_context opencl
             int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
 
             LocalParticle lpart;
@@ -524,7 +524,6 @@ class Tracker:
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
 
             }// if partid
-            done++;
             } //only_for_context cpu_openmp
         }//kernel
         """
@@ -769,12 +768,12 @@ class Tracker:
         self._check_invalidated()
 
         if (isinstance(self._buffer.context, xo.ContextCpu)
-            and _session_to_resume is None):
-            assert (particles._num_active_particles >= 0 and
-                    particles._num_lost_particles >= 0), (
-                        "Particles state is not valid to run on CPU, please "
-                        "call `particles.reorganize()` first."
-                    )
+                and _session_to_resume is None):
+            if not (particles._num_active_particles >= 0 and
+                    particles._num_lost_particles >= 0):
+                if self._buffer.context.omp_num_threads == 0:
+                    raise ValueError("Particles state is not valid to run on CPU, "
+                                     "please call `particles.reorganize()` first.")
 
         if _session_to_resume is not None:
             if isinstance(_session_to_resume, PipelineStatus):
@@ -953,7 +952,8 @@ class Tracker:
 
         self._check_invalidated()
 
-        if isinstance(self._buffer.context, xo.ContextCpu) and self._buffer.context.omp_num_threads == 0:
+        if (isinstance(self._buffer.context, xo.ContextCpu)
+                and self._buffer.context.omp_num_threads == 0):
             assert (particles._num_active_particles >= 0 and
                     particles._num_lost_particles >= 0), (
                         "Particles state is not valid to run on CPU, please "
