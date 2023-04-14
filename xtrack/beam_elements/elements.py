@@ -986,7 +986,6 @@ class DipoleEdge(BeamElement):
 
 class LinearTransferMatrix(BeamElement):
     _xofields={
-        'no_detuning': xo.Int64,
         'q_x': xo.Float64,
         'q_y': xo.Float64,
         'cos_s': xo.Float64,
@@ -1061,33 +1060,14 @@ class LinearTransferMatrix(BeamElement):
                      gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
                      **nargs):
 
-        if (chroma_x==0 and chroma_y==0
-            and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
-
-            cos_x = np.cos(2.0*np.pi*Q_x)
-            sin_x = np.sin(2.0*np.pi*Q_x)
-            cos_y = np.cos(2.0*np.pi*Q_y)
-            sin_y = np.sin(2.0*np.pi*Q_y)
-
-            nargs['no_detuning']  =  True
-            nargs['q_x'] = sin_x
-            nargs['q_y'] = sin_y
-            nargs['chroma_x'] = cos_x
-            nargs['chroma_y'] = cos_y
-            nargs['detx_x'] = 0.
-            nargs['detx_y'] = 0.
-            nargs['dety_y'] = 0.
-            nargs['dety_x'] = 0.
-        else:
-            nargs['no_detuning']  =  False
-            nargs['q_x'] = Q_x
-            nargs['q_y'] = Q_y
-            nargs['chroma_x'] = chroma_x
-            nargs['chroma_y'] = chroma_y
-            nargs['detx_x'] = detx_x
-            nargs['detx_y'] = detx_y
-            nargs['dety_y'] = dety_y
-            nargs['dety_x'] = dety_x
+        nargs['q_x'] = Q_x
+        nargs['q_y'] = Q_y
+        nargs['chroma_x'] = chroma_x
+        nargs['chroma_y'] = chroma_y
+        nargs['detx_x'] = detx_x
+        nargs['detx_y'] = detx_y
+        nargs['dety_y'] = dety_y
+        nargs['dety_x'] = dety_x
 
         if Q_s is not None:
             nargs['cos_s'] = np.cos(2.0*np.pi*Q_s)

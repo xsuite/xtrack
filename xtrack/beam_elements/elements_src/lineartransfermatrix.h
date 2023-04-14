@@ -10,7 +10,6 @@
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
 
-    int64_t const no_detuning = LinearTransferMatrixData_get_no_detuning(el);
     double const q_x = LinearTransferMatrixData_get_q_x(el);
     double const q_y = LinearTransferMatrixData_get_q_y(el);
     double const chroma_x = LinearTransferMatrixData_get_chroma_x(el);
@@ -19,6 +18,20 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const detx_y = LinearTransferMatrixData_get_detx_y(el);
     double const dety_y = LinearTransferMatrixData_get_dety_y(el);
     double const dety_x = LinearTransferMatrixData_get_dety_x(el);
+
+    int64_t detuning;
+    double sin_x, cos_x, sin_y, cos_y;
+    if (chroma_x != 0.0 || chroma_y != 0.0 ||
+        detx_x != 0.0 || detx_y != 0.0 || dety_x != 0.0 || dety_y != 0.0){
+        detuning = 1;
+    }
+    else{
+        detuning = 0;
+        sin_x = sin(2 * PI * q_x);
+        cos_x = cos(2 * PI * q_x);
+        sin_y = sin(2 * PI * q_y);
+        cos_y = cos(2 * PI * q_y);
+    }
 
     double const cos_s = LinearTransferMatrixData_get_cos_s(el);
     double const sin_s = LinearTransferMatrixData_get_sin_s(el);
@@ -88,16 +101,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         // Symplecticity correction (not working, to be investigated)
         // double rvv = LocalParticle_get_rvv(part);
 
-        double sin_x, cos_x, sin_y, cos_y;
-
-        if (no_detuning){
-        // I use this parameters to pass cos_x, sin_x, ...
-            cos_x = chroma_x;
-            sin_x = q_x;
-            cos_y = chroma_y;
-            sin_y = q_y;
-        }
-        else{
+        if (detuning){
             double const J_x = 0.5 * (
                 (1.0 + alpha_x_0 * alpha_x_0) / beta_x_0
                     * LocalParticle_get_x(part)*LocalParticle_get_x(part)
