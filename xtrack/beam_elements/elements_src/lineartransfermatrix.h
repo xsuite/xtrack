@@ -28,10 +28,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 
     double const beta_x_0 = LinearTransferMatrixData_get_beta_x_0(el);
     double const beta_y_0 = LinearTransferMatrixData_get_beta_y_0(el);
-    double const beta_ratio_x = LinearTransferMatrixData_get_beta_ratio_x(el);
-    double const beta_prod_x = LinearTransferMatrixData_get_beta_prod_x(el);
-    double const beta_ratio_y = LinearTransferMatrixData_get_beta_ratio_y(el);
-    double const beta_prod_y = LinearTransferMatrixData_get_beta_prod_y(el);
     double const disp_x_0 = LinearTransferMatrixData_get_disp_x_0(el);
     double const disp_y_0 = LinearTransferMatrixData_get_disp_y_0(el);
     double const disp_px_0 = LinearTransferMatrixData_get_disp_px_0(el);
@@ -44,6 +40,8 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const disp_py_1 = LinearTransferMatrixData_get_disp_py_1(el);
     double const alpha_x_1 = LinearTransferMatrixData_get_alpha_x_1(el);
     double const alpha_y_1 = LinearTransferMatrixData_get_alpha_y_1(el);
+    double const beta_x_1 = LinearTransferMatrixData_get_beta_x_1(el);
+    double const beta_y_1 = LinearTransferMatrixData_get_beta_y_1(el);
 
     double const x_ref_0 = LinearTransferMatrixData_get_x_ref_0(el);
     double const x_ref_1 = LinearTransferMatrixData_get_x_ref_1(el);
@@ -59,6 +57,12 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 
     int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
     int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
+
+    double const sqrt_beta_prod_x = sqrt(beta_x_1 * beta_x_0);
+    double const sqrt_beta_prod_y = sqrt(beta_y_1 * beta_y_0);
+
+    double const sqrt_beta_ratio_x = sqrt(beta_x_1 / beta_x_0);
+    double const sqrt_beta_ratio_y = sqrt(beta_y_1 / beta_y_0);
 
     //start_per_particle_block (part0->part)
 
@@ -118,18 +122,18 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
                 sin_y = sin(phase);
         }
 
-        double const M00_x = beta_ratio_x*(cos_x+alpha_x_0*sin_x);
-        double const M01_x = beta_prod_x*sin_x;
+        double const M00_x = sqrt_beta_ratio_x*(cos_x+alpha_x_0*sin_x);
+        double const M01_x = sqrt_beta_prod_x*sin_x;
         double const M10_x = ((alpha_x_0-alpha_x_1)*cos_x
                     -(1+alpha_x_0*alpha_x_1)*sin_x
-                    )/beta_prod_x;
-        double const M11_x = (cos_x-alpha_x_1*sin_x)/beta_ratio_x;
-        double const M00_y = beta_ratio_y*(cos_y+alpha_y_0*sin_y);
-        double const M01_y = beta_prod_y*sin_y;
+                    )/sqrt_beta_prod_x;
+        double const M11_x = (cos_x-alpha_x_1*sin_x)/sqrt_beta_ratio_x;
+        double const M00_y = sqrt_beta_ratio_y*(cos_y+alpha_y_0*sin_y);
+        double const M01_y = sqrt_beta_prod_y*sin_y;
         double const M10_y = ((alpha_y_0-alpha_y_1)*cos_y
                     -(1+alpha_y_0*alpha_y_1)*sin_y
-                    )/beta_prod_y;
-        double const M11_y = (cos_y-alpha_y_1*sin_y)/beta_ratio_y;
+                    )/sqrt_beta_prod_y;
+        double const M11_y = (cos_y-alpha_y_1*sin_y)/sqrt_beta_ratio_y;
 
         double const x_out = M00_x*LocalParticle_get_x(part) + M01_x * LocalParticle_get_px(part);
         double const px_out = M10_x*LocalParticle_get_x(part) + M11_x * LocalParticle_get_px(part);

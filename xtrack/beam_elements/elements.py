@@ -993,10 +993,8 @@ class LinearTransferMatrix(BeamElement):
         'sin_s': xo.Float64,
         'beta_x_0': xo.Float64,
         'beta_y_0': xo.Float64,
-        'beta_ratio_x': xo.Float64,
-        'beta_prod_x': xo.Float64,
-        'beta_ratio_y': xo.Float64,
-        'beta_prod_y': xo.Float64,
+        'beta_x_1': xo.Float64,
+        'beta_y_1': xo.Float64,
         'alpha_x_0': xo.Float64,
         'alpha_x_1': xo.Float64,
         'alpha_y_0': xo.Float64,
@@ -1100,10 +1098,8 @@ class LinearTransferMatrix(BeamElement):
 
         nargs['beta_x_0'] = beta_x_0
         nargs['beta_y_0'] = beta_y_0
-        nargs['beta_ratio_x'] = np.sqrt(beta_x_1/beta_x_0)
-        nargs['beta_prod_x'] = np.sqrt(beta_x_1*beta_x_0)
-        nargs['beta_ratio_y'] = np.sqrt(beta_y_1/beta_y_0)
-        nargs['beta_prod_y'] = np.sqrt(beta_y_1*beta_y_0)
+        nargs['beta_x_1'] = beta_x_1
+        nargs['beta_y_1'] = beta_y_1
         nargs['alpha_x_0'] = alpha_x_0
         nargs['alpha_x_1'] = alpha_x_1
         nargs['alpha_y_0'] = alpha_y_0
