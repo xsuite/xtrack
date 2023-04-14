@@ -415,8 +415,6 @@ class Tracker:
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* io_buffer){
 
-
-            int64_t done = 0;
             omp_set_num_threads(12);                                                       //only_for_context cpu_openmp
             const int64_t capacity = ParticlesData_get__capacity(particles);               //only_for_context cpu_openmp
             const int64_t num_chunks = 12;//omp_get_num_threads();                         //only_for_context cpu_openmp
