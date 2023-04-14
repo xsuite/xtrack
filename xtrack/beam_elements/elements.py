@@ -986,13 +986,34 @@ class DipoleEdge(BeamElement):
 
 class LinearTransferMatrix(BeamElement):
     _xofields={
+        'length': xo.Float64,
+
         'q_x': xo.Float64,
         'q_y': xo.Float64,
+
+        'chroma_x': xo.Float64,
+        'chroma_y': xo.Float64,
+        'detx_x': xo.Float64,
+        'detx_y': xo.Float64,
+        'dety_y': xo.Float64,
+        'dety_x': xo.Float64,
+
         'cos_s': xo.Float64,
         'sin_s': xo.Float64,
+        'beta_s': xo.Float64,
+
+        'x_ref_0': xo.Float64,
+        'px_ref_0': xo.Float64,
+        'y_ref_0': xo.Float64,
+        'py_ref_0': xo.Float64,
+        'x_ref_1': xo.Float64,
+        'px_ref_1': xo.Float64,
+        'y_ref_1': xo.Float64,
+        'py_ref_1': xo.Float64,
+
         'beta_x_0': xo.Float64,
-        'beta_y_0': xo.Float64,
         'beta_x_1': xo.Float64,
+        'beta_y_0': xo.Float64,
         'beta_y_1': xo.Float64,
         'alpha_x_0': xo.Float64,
         'alpha_x_1': xo.Float64,
@@ -1006,24 +1027,9 @@ class LinearTransferMatrix(BeamElement):
         'disp_px_1': xo.Float64,
         'disp_py_0': xo.Float64,
         'disp_py_1': xo.Float64,
-        'beta_s': xo.Float64,
+
         'energy_ref_increment': xo.Float64,
         'energy_increment': xo.Float64,
-        'chroma_x': xo.Float64,
-        'chroma_y': xo.Float64,
-        'detx_x': xo.Float64,
-        'detx_y': xo.Float64,
-        'dety_y': xo.Float64,
-        'dety_x': xo.Float64,
-        'x_ref_0': xo.Float64,
-        'px_ref_0': xo.Float64,
-        'y_ref_0': xo.Float64,
-        'py_ref_0': xo.Float64,
-        'x_ref_1': xo.Float64,
-        'px_ref_1': xo.Float64,
-        'y_ref_1': xo.Float64,
-        'py_ref_1': xo.Float64,
-        'length': xo.Float64,
         'uncorrelated_rad_damping': xo.Int64,
         'damping_factor_x':xo.Float64,
         'damping_factor_y':xo.Float64,
@@ -1166,14 +1172,6 @@ class LinearTransferMatrix(BeamElement):
     @property
     def Q_s(self):
         return np.arccos(self.cos_s) / (2*np.pi)
-
-    @property
-    def beta_x_1(self):
-        return self.beta_prod_x*self.beta_ratio_x
-
-    @property
-    def beta_y_1(self):
-        return self.beta_prod_y*self.beta_ratio_y
 
 class FirstOrderTaylorMap(BeamElement):
 

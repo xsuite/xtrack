@@ -98,9 +98,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_add_to_y(part, -disp_y_0 * LocalParticle_get_delta(part));
         LocalParticle_add_to_py(part, -disp_py_0 * LocalParticle_get_delta(part));
 
-        // Symplecticity correction (not working, to be investigated)
-        // double rvv = LocalParticle_get_rvv(part);
-
         if (detuning){
             double const J_x = 0.5 * (
                 (1.0 + alpha_x_0 * alpha_x_0) / beta_x_0
@@ -118,12 +115,12 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
                     * LocalParticle_get_py(part)*LocalParticle_get_py(part));
             double phase = 2*PI*(q_x + chroma_x * LocalParticle_get_delta(part)
                                 +detx_x * J_x + detx_y * J_y);
-                cos_x = cos(phase);
-                sin_x = sin(phase);
-                phase = 2*PI*(q_y + chroma_y * LocalParticle_get_delta(part)
-                                +dety_x * J_x + dety_y * J_y);
-                cos_y = cos(phase);
-                sin_y = sin(phase);
+            cos_x = cos(phase);
+            sin_x = sin(phase);
+            phase = 2*PI*(q_y + chroma_y * LocalParticle_get_delta(part)
+                            +dety_x * J_x + dety_y * J_y);
+            cos_y = cos(phase);
+            sin_y = sin(phase);
         }
 
         double const M00_x = sqrt_beta_ratio_x*(cos_x+alpha_x_0*sin_x);
