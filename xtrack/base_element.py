@@ -16,28 +16,31 @@ from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
-   const int64_t part_id = part0->ipart;  //only_for_context cpu_openmp
-   const int64_t end_id = part0->endpart; //only_for_context cpu_openmp
-   //#pragma omp simd                     //only_for_context cpu_openmp
-   for (int64_t ii=part_id; ii<end_id; ii++){ //only_for_context cpu_openmp
-   
-   int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
-   for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial
-    for (int iii=0; iii<!!CHUNK_SIZE!!; iii++){                   //only_for_context cpu_serial
-      int const ii = iii+jj;                                      //only_for_context cpu_serial
-      if (ii<n_part){                                             //only_for_context cpu_serial
+    const int64_t part_id = part0->ipart;  //only_for_context cpu_openmp
+    const int64_t end_id = part0->endpart; //only_for_context cpu_openmp
+    //#pragma omp simd                     //only_for_context cpu_openmp
+    for (int64_t ii=part_id; ii<end_id; ii++) { //only_for_context cpu_openmp
 
-        LocalParticle lpart = *part0;//only_for_context cpu_serial cpu_openmp
-        LocalParticle* part = &lpart;//only_for_context cpu_serial cpu_openmp
-        part->ipart = ii;            //only_for_context cpu_serial cpu_openmp
+    int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
+    for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial
+        for (int iii=0; iii<!!CHUNK_SIZE!!; iii++){                //only_for_context cpu_serial
+            int const ii = iii+jj;                                 //only_for_context cpu_serial
+            if (ii<n_part) {                                       //only_for_context cpu_serial
 
-        LocalParticle* part = part0;//only_for_context opencl cuda
+                LocalParticle lpart = *part0;  //only_for_context cpu_serial cpu_openmp
+                LocalParticle* part = &lpart;  //only_for_context cpu_serial cpu_openmp
+                part->ipart = ii;              //only_for_context cpu_serial cpu_openmp
+        
+                LocalParticle* part = part0;   //only_for_context opencl cuda
+                
+                if (LocalParticle_get_state(part) > 0) {  //only_for_context cpu_openmp
 """.replace("!!CHUNK_SIZE!!", "128")
 
 end_part_part_block = """
-     } //only_for_context cpu_serial
-    }  //only_for_context cpu_serial
-   }   //only_for_context cpu_serial cpu_openmp
+                }  //only_for_context cpu_openmp
+            }  //only_for_context cpu_serial
+        }  //only_for_context cpu_serial
+    }  //only_for_context cpu_serial cpu_openmp
 """
 
 def _handle_per_particle_blocks(sources, local_particle_src):
