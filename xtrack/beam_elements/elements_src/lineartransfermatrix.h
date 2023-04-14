@@ -62,19 +62,24 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 
     //start_per_particle_block (part0->part)
 
-    // Transverse linear uncoupled matrix
-    double new_x = LocalParticle_get_x(part);
-    double new_y = LocalParticle_get_y(part);
-    double new_px = LocalParticle_get_px(part);
-    double new_py = LocalParticle_get_py(part);
-    double delta = LocalParticle_get_delta(part);
-    double zeta_no_disp = LocalParticle_get_zeta(part);
+    // double new_x = LocalParticle_get_x(part);
+    // double new_y = LocalParticle_get_y(part);
+    // double new_px = LocalParticle_get_px(part);
+    // double new_py = LocalParticle_get_py(part);
+    // double delta = LocalParticle_get_delta(part);
+    // double zeta_no_disp = LocalParticle_get_zeta(part);
 
-    // removing dispersion and close orbit
-    new_x -= disp_x_0 * delta + x_ref_0;
-    new_px -= disp_px_0 * delta + px_ref_0;
-    new_y -= disp_y_0 * delta + y_ref_0;
-    new_py -= disp_py_0 * delta + py_ref_0;
+    // Remove closed orbit
+    LocalParticle_add_to_x(part, -x_ref_0);
+    LocalParticle_add_to_px(part, -px_ref_0);
+    LocalParticle_add_to_y(part, -y_ref_0);
+    LocalParticle_add_to_py(part, -py_ref_0);
+
+    // removing dispersion
+    LocalParticle_add_to_x(part, -disp_x_0 * LocalParticle_get_delta(part));
+    LocalParticle_add_to_px(part, -disp_px_0 * LocalParticle_get_delta(part));
+    LocalParticle_add_to_y(part, -disp_y_0 * LocalParticle_get_delta(part));
+    LocalParticle_add_to_py(part, -disp_py_0 * LocalParticle_get_delta(part));
 
     // Symplecticity correction (not working, to be investigated)
     // double rvv = LocalParticle_get_rvv(part);
@@ -91,17 +96,25 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     }
     else{
         double const J_x = 0.5 * (
-            (1.0 + alpha_x_0*alpha_x_0)/beta_x_0 * new_x*new_x
-            + 2*alpha_x_0 * new_x*new_px
-            + beta_x_0 * new_px*new_px);
+            (1.0 + alpha_x_0 * alpha_x_0) / beta_x_0
+                * LocalParticle_get_x(part)*LocalParticle_get_x(part)
+            + 2 * alpha_x_0
+                * LocalParticle_get_x(part)*LocalParticle_get_px(part)
+            + beta_x_0
+                * LocalParticle_get_px(part)*LocalParticle_get_px(part));
         double const J_y = 0.5 * (
-            (1.0 + alpha_y_0*alpha_y_0)/beta_y_0 * new_y*new_y
-            + 2*alpha_y_0 * new_y*new_py
-            + beta_y_0 * new_py*new_py);
-        double phase = 2*PI*(q_x+chroma_x*delta+detx_x*J_x+detx_y*J_y);
+            (1.0 + alpha_y_0 * alpha_y_0) /beta_y_0
+                * LocalParticle_get_y(part)*LocalParticle_get_y(part)
+            + 2*alpha_y_0
+                * LocalParticle_get_y(part)*LocalParticle_get_py(part)
+            + beta_y_0
+                * LocalParticle_get_py(part)*LocalParticle_get_py(part));
+        double phase = 2*PI*(q_x + chroma_x * LocalParticle_get_delta(part)
+                             +detx_x * J_x + detx_y * J_y);
             cos_x = cos(phase);
             sin_x = sin(phase);
-            phase = 2*PI*(q_y+chroma_y*delta+dety_y*J_y+dety_x*J_x);
+            phase = 2*PI*(q_y + chroma_y * LocalParticle_get_delta(part)
+                             +dety_x * J_x + dety_y * J_y);
             cos_y = cos(phase);
             sin_y = sin(phase);
     }
@@ -119,18 +132,19 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
                   )/beta_prod_y;
     double const M11_y = (cos_y-alpha_y_1*sin_y)/beta_ratio_y;
 
-    double tmp = new_x;
-    new_x = M00_x*tmp + M01_x*new_px;
-    new_px = M10_x*tmp + M11_x*new_px;
-    tmp = new_y;
-    new_y = M00_y*tmp + M01_y*new_py;
-    new_py = M10_y*tmp + M11_y*new_py;
+    double const x_out = M00_x*LocalParticle_get_x(part) + M01_x * LocalParticle_get_px(part);
+    double const px_out = M10_x*LocalParticle_get_x(part) + M11_x * LocalParticle_get_px(part);
+    double const y_out = M00_y*LocalParticle_get_y(part) + M01_y * LocalParticle_get_py(part);
+    double const py_out = M10_y*LocalParticle_get_y(part) + M11_y * LocalParticle_get_py(part);
 
+    LocalParticle_set_x(part, x_out);
+    LocalParticle_set_px(part, px_out);
+    LocalParticle_set_y(part, y_out);
+    LocalParticle_set_py(part, py_out);
     if (cos_s < 2){
         // We set cos_s = 999 if long map is to be skipped
-        double const old_pzeta = LocalParticle_get_pzeta(part); // Use canonically conjugate variables
-        double const new_zeta = cos_s*zeta_no_disp+beta_s*sin_s*old_pzeta;
-        double const new_pzeta = -sin_s*zeta_no_disp/beta_s+cos_s*old_pzeta;
+        double const new_zeta = cos_s * LocalParticle_get_zeta(part) + beta_s * sin_s * LocalParticle_get_pzeta(part);
+        double const new_pzeta = -sin_s * LocalParticle_get_zeta(part) / beta_s + cos_s * LocalParticle_get_pzeta(part);
 
         LocalParticle_set_zeta(part, new_zeta);
         LocalParticle_update_pzeta(part, new_pzeta);
@@ -143,10 +157,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
       LocalParticle_add_to_energy(part, energy_increment, 1);
     }
 
-    LocalParticle_set_x(part, new_x);
-    LocalParticle_set_y(part, new_y);
-    LocalParticle_set_px(part, new_px);
-    LocalParticle_set_py(part, new_py);
 
     // Change energy reference
     // In the transverse plane de change is smoothed, i.e. 
@@ -206,17 +216,22 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         delta += r*gauss_noise_ampl_delta;
         LocalParticle_update_delta(part,delta);
     }
-    // re-adding dispersion and closed orbit
-    delta = LocalParticle_get_delta(part);
 
     // Symplecticity correction (not working, to be investigated)
     // rvv = LocalParticle_get_rvv(part);
     // LocalParticle_add_to_zeta(part, (-disp_px_1*LocalParticle_get_x(part) + disp_x_1*LocalParticle_get_px(part) - disp_py_1*LocalParticle_get_y(part) + disp_y_1*LocalParticle_get_py(part))/rvv);
 
-    LocalParticle_add_to_x(part,disp_x_1 * delta + x_ref_1);
-    LocalParticle_add_to_px(part,px_ref_1 + disp_px_1 * delta);
-    LocalParticle_add_to_y(part,disp_y_1 * delta + y_ref_1);
-    LocalParticle_add_to_py(part,py_ref_1 + disp_py_1 * delta);
+    // Add dispersion
+    LocalParticle_add_to_x(part, disp_x_1 * LocalParticle_get_delta(part));
+    LocalParticle_add_to_px(part, disp_px_1 * LocalParticle_get_delta(part));
+    LocalParticle_add_to_y(part, disp_y_1 * LocalParticle_get_delta(part));
+    LocalParticle_add_to_py(part, disp_py_1 * LocalParticle_get_delta(part));
+
+    // Add closed orbit
+    LocalParticle_add_to_x(part, x_ref_1);
+    LocalParticle_add_to_px(part, px_ref_1);
+    LocalParticle_add_to_y(part, y_ref_1);
+    LocalParticle_add_to_py(part, py_ref_1);
 
     // Add to s coordinate
     LocalParticle_add_to_s(part, length);
