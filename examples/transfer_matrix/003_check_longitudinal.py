@@ -1,0 +1,49 @@
+import numpy as np
+
+import xtrack as xt
+import xpart as xp
+
+line = xt.Line.from_json(
+    '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
+line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
+line.build_tracker()
+
+particle0 = line.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
+
+line.track(particle0.copy(), num_turns=500, turn_by_turn_monitor=True)
+mon = line.record_last_track
+
+# Build corresponding matrix
+tw = line.twiss()
+eta = tw.slip_factor # > 0 above transition
+qs = tw.qs
+circumference = line.get_length()
+
+bet_s = eta * circumference / (2 * np.pi * qs)
+
+matrix = xt.LinearTransferMatrix(beta_s=bet_s, Q_s=qs)
+line_matrix = xt.Line(elements=[matrix])
+line_matrix.particle_ref = line.particle_ref.copy()
+
+line_matrix.build_tracker()
+line_matrix.track(particle0.copy(), num_turns=500, turn_by_turn_monitor=True)
+mon_matrix = line_matrix.record_last_track
+
+import matplotlib.pyplot as plt
+plt.close('all')
+fig1 = plt.figure(1)
+fig1.suptitle('Above transition')
+ax1 = fig1.add_subplot(211)
+ax2 = fig1.add_subplot(212, sharex=ax1)
+ax1.set_ylabel('zeta')
+ax2.set_ylabel('pzeta')
+ax2.set_xlabel('turn')
+ax1.plot(mon.zeta.T, label='lattice')
+ax1.plot(mon_matrix.zeta.T, label='matrix')
+ax2.plot(mon.pzeta.T)
+ax2.plot(mon_matrix.pzeta.T)
+ax1.legend()
+
+fig1.subplots_adjust(left=0.2)
+
+plt.show()

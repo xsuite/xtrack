@@ -65,7 +65,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const py_ref_0 = LinearTransferMatrixData_get_py_ref_0(el);
     double const py_ref_1 = LinearTransferMatrixData_get_py_ref_1(el);
 
-    double const energy_ref_increment = 
+    double const energy_ref_increment =
         LinearTransferMatrixData_get_energy_ref_increment(el);
 
     int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
@@ -147,15 +147,15 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_set_py(part, py_out);
         if (cos_s < 2){
             // We set cos_s = 999 if long map is to be skipped
-            double const new_zeta = cos_s * LocalParticle_get_zeta(part) + beta_s * sin_s * LocalParticle_get_pzeta(part);
-            double const new_pzeta = -sin_s * LocalParticle_get_zeta(part) / beta_s + cos_s * LocalParticle_get_pzeta(part);
+            double const new_zeta = cos_s * LocalParticle_get_zeta(part) - beta_s * sin_s * LocalParticle_get_pzeta(part);
+            double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / beta_s + cos_s * LocalParticle_get_pzeta(part);
 
             LocalParticle_set_zeta(part, new_zeta);
             LocalParticle_update_pzeta(part, new_pzeta);
         }
 
         // Change energy without change of reference momentume
-        double const energy_increment = 
+        double const energy_increment =
             LinearTransferMatrixData_get_energy_increment(el);
         if (energy_increment !=0){
         LocalParticle_add_to_energy(part, energy_increment, 1);
@@ -163,7 +163,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
 
 
         // Change energy reference
-        // In the transverse plane de change is smoothed, i.e. 
+        // In the transverse plane de change is smoothed, i.e.
         // both the position and the momentum are scaled,
         // rather than only the momentum.
         if (energy_ref_increment != 0){
