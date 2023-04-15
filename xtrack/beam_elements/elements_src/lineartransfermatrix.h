@@ -172,7 +172,7 @@ void longitudinal_motion(LocalParticle *part0,
 
     int64_t const mode_flag = LinearTransferMatrixData_get_longitudinal_mode_flag(el);
 
-    if (mode_flag==1){
+    if (mode_flag==1){ // linear motion fixed qs
         double const Q_s = LinearTransferMatrixData_get_Q_s(el);
         double const beta_s = LinearTransferMatrixData_get_beta_s(el);
         double const sin_s = sin(2 * PI * Q_s);
