@@ -765,10 +765,10 @@ class LinearTransferMatrix(Element):
             p.delta += self.gauss_noise_ampl_s*np.random.randn(len(p.delta))
 
         # re-adding dispersion and closed orbit
-        old_x=p.x
-        old_px=p.px
-        old_y=p.y
-        old_py=p.py
+        old_x = p.x.copy()
+        old_px = p.px.copy()
+        old_y = p.y.copy()
+        old_py = p.py.copy()
 
         p.x += self.disp_x_1 * p.delta + self.x_ref_1
         p.px += self.disp_px_1 * p.delta + self.px_ref_1 
