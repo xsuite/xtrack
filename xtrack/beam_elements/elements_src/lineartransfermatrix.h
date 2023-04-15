@@ -167,6 +167,38 @@ void transverse_motion(LocalParticle *part0,
 
 }
 
+void longitudinal_motion(LocalParticle *part0,
+    double const cos_s, double const sin_s, double const beta_s){
+
+    if (cos_s < 2){
+        //start_per_particle_block (part->part)
+            // We set cos_s = 999 if long map is to be skipped
+            double const new_zeta = cos_s * LocalParticle_get_zeta(part) - beta_s * sin_s * LocalParticle_get_pzeta(part);
+            double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / beta_s + cos_s * LocalParticle_get_pzeta(part);
+
+            LocalParticle_set_zeta(part, new_zeta);
+            LocalParticle_update_pzeta(part, new_pzeta);
+        //end_per_particle_block
+    }
+}
+
+/*gpufun*/
+void uncorrelated_rad_damping(LocalParticle *part0,
+            double const damping_factor_x, double const damping_factor_y,
+            double const damping_factor_s){
+
+    //start_per_particle_block (part0->part)
+        LocalParticle_scale_x(part,damping_factor_x);
+        LocalParticle_scale_px(part,damping_factor_x);
+        LocalParticle_scale_y(part,damping_factor_y);
+        LocalParticle_scale_py(part,damping_factor_y);
+        LocalParticle_scale_zeta(part,damping_factor_s);
+        double delta = LocalParticle_get_delta(part);
+        delta *= damping_factor_s;
+        LocalParticle_update_delta(part,delta);
+    //end_per_particle_block
+}
+
 
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
@@ -202,6 +234,11 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_alpha_y_1(el),
         LinearTransferMatrixData_get_beta_y_1(el));
 
+    longitudinal_motion(part0,
+        LinearTransferMatrixData_get_cos_s(el),
+        LinearTransferMatrixData_get_sin_s(el),
+        LinearTransferMatrixData_get_beta_s(el));
+
 
 
     double const x_ref_1 = LinearTransferMatrixData_get_x_ref_1(el);
@@ -219,23 +256,12 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
     int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
 
-    double const cos_s = LinearTransferMatrixData_get_cos_s(el);
-    double const sin_s = LinearTransferMatrixData_get_sin_s(el);
-    double const beta_s = LinearTransferMatrixData_get_beta_s(el);
-
     double const length = LinearTransferMatrixData_get_length(el);
 
     //start_per_particle_block (part0->part)
-        if (cos_s < 2){
-            // We set cos_s = 999 if long map is to be skipped
-            double const new_zeta = cos_s * LocalParticle_get_zeta(part) - beta_s * sin_s * LocalParticle_get_pzeta(part);
-            double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / beta_s + cos_s * LocalParticle_get_pzeta(part);
 
-            LocalParticle_set_zeta(part, new_zeta);
-            LocalParticle_update_pzeta(part, new_pzeta);
-        }
 
-        // Change energy without change of reference momentume
+        // Change energy without change of reference momentum
         double const energy_increment =
             LinearTransferMatrixData_get_energy_increment(el);
         if (energy_increment !=0){
