@@ -5,8 +5,15 @@ import xpart as xp
 
 line = xt.Line.from_json(
     '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
-line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
 line.build_tracker()
+
+# configuration = 'above transition'
+# line['acta.31637'].lag = 180.
+# line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
+
+configuration = 'below transition'
+line['acta.31637'].lag = 0.
+line.particle_ref = xp.Particles(p0c=14e9, q0=1.0)
 
 particle0 = line.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
 
@@ -32,7 +39,7 @@ mon_matrix = line_matrix.record_last_track
 import matplotlib.pyplot as plt
 plt.close('all')
 fig1 = plt.figure(1)
-fig1.suptitle('Above transition')
+fig1.suptitle(configuration)
 ax1 = fig1.add_subplot(211)
 ax2 = fig1.add_subplot(212, sharex=ax1)
 ax1.set_ylabel('zeta')
