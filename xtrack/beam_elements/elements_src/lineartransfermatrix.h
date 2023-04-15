@@ -168,9 +168,13 @@ void transverse_motion(LocalParticle *part0,
 }
 
 void longitudinal_motion(LocalParticle *part0,
-    double const Q_s, double const beta_s){
+                         LinearTransferMatrixData el){
 
-    if (Q_s != 0){
+    int64_t const mode_flag = LinearTransferMatrixData_get_longitudinal_mode_flag(el);
+
+    if (mode_flag==1){
+        double const Q_s = LinearTransferMatrixData_get_Q_s(el);
+        double const beta_s = LinearTransferMatrixData_get_beta_s(el);
         double const sin_s = sin(2 * PI * Q_s);
         double const cos_s = cos(2 * PI * Q_s);
         //start_per_particle_block (part->part)
@@ -294,9 +298,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_alpha_y_1(el),
         LinearTransferMatrixData_get_beta_y_1(el));
 
-    longitudinal_motion(part0,
-        LinearTransferMatrixData_get_Q_s(el),
-        LinearTransferMatrixData_get_beta_s(el));
+    longitudinal_motion(part0, el);
 
     energy_and_reference_increments(part0,
         LinearTransferMatrixData_get_energy_increment(el),

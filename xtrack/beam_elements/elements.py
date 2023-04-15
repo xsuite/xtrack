@@ -998,13 +998,14 @@ class LinearTransferMatrix(BeamElement):
         'dety_y': xo.Float64,
         'dety_x': xo.Float64,
 
-        # 'longitudinal_mode_flag': xo.Int64,
+        'longitudinal_mode_flag': xo.Int64,
         'Q_s': xo.Float64,
         'beta_s': xo.Float64,
-        # 'slip_factor': xo.Float64,
-        # 'slippage_length': xo.Float64,
-        # 'voltage_rf': xo.Float64[:],
-        # 'frequency_rf': xo.Float64[:],
+        'momentum_compaction_factor': xo.Float64,
+        'slippage_length': xo.Float64,
+        'voltage_rf': xo.Float64[:],
+        'frequency_rf': xo.Float64[:],
+        'lag_rf': xo.Float64[:],
 
         'x_ref_0': xo.Float64,
         'px_ref_0': xo.Float64,
@@ -1066,7 +1067,10 @@ class LinearTransferMatrix(BeamElement):
                      alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
                      disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
                      disp_px_0=0.0, disp_px_1=0.0, disp_py_0=0.0, disp_py_1=0.0,
-                     Q_s=0.0, beta_s=1.0,
+                     longitudinal_mode=None,
+                     Q_s=None, beta_s=None,
+                     momentum_compaction_factor=None,
+                     voltage_rf=0.0, frequency_rf=0.0, lag_rf=0.0,
                      chroma_x=0.0, chroma_y=0.0,
                      detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
                      energy_increment=0.0, energy_ref_increment=0.0,
@@ -1086,7 +1090,23 @@ class LinearTransferMatrix(BeamElement):
         nargs['dety_y'] = dety_y
         nargs['dety_x'] = dety_x
 
-        nargs['Q_s'] = Q_s
+        if longitudinal_mode is None:
+            if Q_s is not None:
+                longitudinal_mode = 'linear_fixed_qs'
+            elif voltage_rf is not None:
+                longitudinal_mode = 'nonlinear'
+            else:
+                longitudinal_mode = 'frozen'
+
+        if longitudinal_mode == 'linear_fixed_qs':
+            assert Q_s is not None
+            assert beta_s is not None
+            nargs['Q_s'] = Q_s
+            nargs['beta_s'] = beta_s
+            nargs['voltage_rf'] = [0]
+            nargs['frequency_rf'] = [0]
+            nargs['lag_rf'] = [0]
+            nargs['longitudinal_mode_flag'] = 1
 
         nargs['beta_x_0'] = beta_x_0
         nargs['beta_y_0'] = beta_y_0
@@ -1104,7 +1124,6 @@ class LinearTransferMatrix(BeamElement):
         nargs['disp_px_1'] = disp_px_1
         nargs['disp_py_0'] = disp_py_0
         nargs['disp_py_1'] = disp_py_1
-        nargs['beta_s'] = beta_s
         nargs['x_ref_0'] = x_ref_0
         nargs['x_ref_1'] = x_ref_1
         nargs['px_ref_0'] = px_ref_0
