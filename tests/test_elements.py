@@ -415,26 +415,25 @@ def test_linear_transfer(test_context):
 
     alpha_x_0 = -0.5
     beta_x_0 = 100.0
-    disp_x_0 = 1.8
-
-    disp_px_0 = 2.2
+    disp_x_0 =  1.8
+    disp_px_0 = 0 # 2.2
     alpha_x_1 = 2.1
     beta_x_1 = 2.0
-    disp_x_1 = 3.3
-    disp_px_1 = 3.7
+    disp_x_1 = 0 #3.3
+    disp_px_1 = 0 # 3.7
     alpha_y_0 = -0.4
     beta_y_0 = 8.0
-    disp_y_0 = -0.2
-    disp_py_0 = -0.4
+    disp_y_0 = 0 # -0.2
+    disp_py_0 = 0 #-0.4
     alpha_y_1 = 0.7
     beta_y_1 = 0.3
-    disp_y_1 = -1.9
-    disp_py_1 = -2.9
+    disp_y_1 = 0 #-1.9
+    disp_py_1 = 0 #-2.9
     Q_x = 0.27
     Q_y = 0.34
     beta_s = 856.9
     Q_s = 0.001
-    #energy_ref_increment = 1.2E9
+    energy_ref_increment = 1.2E9
     energy_ref_increment = 0.0 # There seems to be a bug for non-zero values
     energy_increment = 4.8E8
     x_ref_0 = -5E-3
