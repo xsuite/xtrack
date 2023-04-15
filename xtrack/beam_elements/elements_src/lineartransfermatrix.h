@@ -183,7 +183,7 @@ void longitudinal_motion(LocalParticle *part0,
 }
 
 /*gpufun*/
-void uncorrelated_rad_damping(LocalParticle *part0,
+void uncorrelated_radiation_damping(LocalParticle *part0,
             double const damping_factor_x, double const damping_factor_y,
             double const damping_factor_s){
 
@@ -197,6 +197,38 @@ void uncorrelated_rad_damping(LocalParticle *part0,
         delta *= damping_factor_s;
         LocalParticle_update_delta(part,delta);
     //end_per_particle_block
+}
+
+void energy_and_reference_increments(LocalParticle *part0,
+    double const energy_increment, double const energy_ref_increment){
+
+    //start_per_particle_block (part0->part)
+        // Change energy without change of reference momentum
+        if (energy_increment !=0){
+        LocalParticle_add_to_energy(part, energy_increment, 1);
+        }
+
+        // Change energy reference
+        // In the transverse plane de change is smoothed, i.e.
+        // both the position and the momentum are scaled,
+        // rather than only the momentum.
+        if (energy_ref_increment != 0){
+            double const new_energy0 = LocalParticle_get_mass0(part)
+                *LocalParticle_get_gamma0(part) + energy_ref_increment;
+            double const new_p0c = sqrt(new_energy0*new_energy0
+            -LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
+            double const new_beta0 = new_p0c / new_energy0;
+            double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
+            double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
+                    *LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
+            LocalParticle_update_p0c(part,new_p0c);
+            LocalParticle_scale_x(part,geo_emit_factor);
+            LocalParticle_scale_px(part,geo_emit_factor);
+            LocalParticle_scale_y(part,geo_emit_factor);
+            LocalParticle_scale_py(part,geo_emit_factor);
+        }
+    //end_per_particle_block
+
 }
 
 
@@ -239,6 +271,17 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_sin_s(el),
         LinearTransferMatrixData_get_beta_s(el));
 
+    energy_and_reference_increments(part0,
+        LinearTransferMatrixData_get_energy_increment(el),
+        LinearTransferMatrixData_get_energy_ref_increment(el));
+
+    if (LinearTransferMatrixData_get_uncorrelated_rad_damping(el) == 1){
+        uncorrelated_radiation_damping(part0,
+            LinearTransferMatrixData_get_damping_factor_x(el),
+            LinearTransferMatrixData_get_damping_factor_y(el),
+            LinearTransferMatrixData_get_damping_factor_s(el));
+    }
+
 
 
     double const x_ref_1 = LinearTransferMatrixData_get_x_ref_1(el);
@@ -250,58 +293,13 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const disp_px_1 = LinearTransferMatrixData_get_disp_px_1(el);
     double const disp_py_1 = LinearTransferMatrixData_get_disp_py_1(el);
 
-    double const energy_ref_increment =
-        LinearTransferMatrixData_get_energy_ref_increment(el);
-
-    int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
     int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
 
     double const length = LinearTransferMatrixData_get_length(el);
 
+
+
     //start_per_particle_block (part0->part)
-
-
-        // Change energy without change of reference momentum
-        double const energy_increment =
-            LinearTransferMatrixData_get_energy_increment(el);
-        if (energy_increment !=0){
-        LocalParticle_add_to_energy(part, energy_increment, 1);
-        }
-
-        // Change energy reference
-        // In the transverse plane de change is smoothed, i.e.
-        // both the position and the momentum are scaled,
-        // rather than only the momentum.
-        if (energy_ref_increment != 0){
-            double const new_energy0 = LocalParticle_get_mass0(part)
-                *LocalParticle_get_gamma0(part) + energy_ref_increment;
-            double const new_p0c = sqrt(new_energy0*new_energy0
-            -LocalParticle_get_mass0(part)*LocalParticle_get_mass0(part));
-            double const new_beta0 = new_p0c / new_energy0;
-            double const new_gamma0 = new_energy0 / LocalParticle_get_mass0(part);
-            double const geo_emit_factor = sqrt(LocalParticle_get_beta0(part)
-                    *LocalParticle_get_gamma0(part)/new_beta0/new_gamma0);
-            LocalParticle_update_p0c(part,new_p0c);
-            LocalParticle_scale_x(part,geo_emit_factor);
-            LocalParticle_scale_px(part,geo_emit_factor);
-            LocalParticle_scale_y(part,geo_emit_factor);
-            LocalParticle_scale_py(part,geo_emit_factor);
-        }
-
-        if(uncorrelated_rad_damping == 1) {
-            double const damping_factor_x = LinearTransferMatrixData_get_damping_factor_x(el);
-            double const damping_factor_y = LinearTransferMatrixData_get_damping_factor_y(el);
-            double const damping_factor_s = LinearTransferMatrixData_get_damping_factor_s(el);
-
-            LocalParticle_scale_x(part,damping_factor_x);
-            LocalParticle_scale_px(part,damping_factor_x);
-            LocalParticle_scale_y(part,damping_factor_y);
-            LocalParticle_scale_py(part,damping_factor_y);
-            LocalParticle_scale_zeta(part,damping_factor_s);
-            double delta = LocalParticle_get_delta(part);
-            delta *= damping_factor_s;
-            LocalParticle_update_delta(part,delta);
-        }
 
         if(uncorrelated_gauss_noise == 1) {
             double const gauss_noise_ampl_x = LinearTransferMatrixData_get_gauss_noise_ampl_x(el);
