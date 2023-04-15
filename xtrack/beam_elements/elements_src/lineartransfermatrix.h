@@ -231,6 +231,34 @@ void energy_and_reference_increments(LocalParticle *part0,
 
 }
 
+void uncorrelated_gaussian_noise(LocalParticle *part0,
+                    double const gauss_noise_ampl_x,
+                    double const gauss_noise_ampl_px,
+                    double const gauss_noise_ampl_y,
+                    double const gauss_noise_ampl_py,
+                    double const gauss_noise_ampl_zeta,
+                    double const gauss_noise_ampl_delta){
+
+        //start_per_particle_block (part0->part)
+            double r = RandomNormal_generate(part);
+            LocalParticle_add_to_x(part,r*gauss_noise_ampl_x);
+            r = RandomNormal_generate(part);
+            LocalParticle_add_to_px(part,r*gauss_noise_ampl_px);
+            r = RandomNormal_generate(part);
+            LocalParticle_add_to_y(part,r*gauss_noise_ampl_y);
+            r = RandomNormal_generate(part);
+            LocalParticle_add_to_py(part,r*gauss_noise_ampl_py);
+            r = RandomNormal_generate(part);
+            LocalParticle_add_to_zeta(part,r*gauss_noise_ampl_zeta);
+            r = RandomNormal_generate(part);
+            double delta = LocalParticle_get_delta(part);
+            delta += r*gauss_noise_ampl_delta;
+            LocalParticle_update_delta(part,delta);
+        //end_per_particle_block
+
+}
+
+
 
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
@@ -282,72 +310,31 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
             LinearTransferMatrixData_get_damping_factor_s(el));
     }
 
+    if (LinearTransferMatrixData_get_uncorrelated_gauss_noise(el) == 1){
+        uncorrelated_gaussian_noise(part0,
+            LinearTransferMatrixData_get_gauss_noise_ampl_x(el),
+            LinearTransferMatrixData_get_gauss_noise_ampl_px(el),
+            LinearTransferMatrixData_get_gauss_noise_ampl_y(el),
+            LinearTransferMatrixData_get_gauss_noise_ampl_py(el),
+            LinearTransferMatrixData_get_gauss_noise_ampl_zeta(el),
+            LinearTransferMatrixData_get_gauss_noise_ampl_delta(el));
+    }
 
+    add_dispersion(part0,
+        LinearTransferMatrixData_get_disp_x_1(el),
+        LinearTransferMatrixData_get_disp_px_1(el),
+        LinearTransferMatrixData_get_disp_y_1(el),
+        LinearTransferMatrixData_get_disp_py_1(el));
 
-    double const x_ref_1 = LinearTransferMatrixData_get_x_ref_1(el);
-    double const px_ref_1 = LinearTransferMatrixData_get_px_ref_1(el);
-    double const y_ref_1 = LinearTransferMatrixData_get_y_ref_1(el);
-    double const py_ref_1 = LinearTransferMatrixData_get_py_ref_1(el);
-    double const disp_x_1 = LinearTransferMatrixData_get_disp_x_1(el);
-    double const disp_y_1 = LinearTransferMatrixData_get_disp_y_1(el);
-    double const disp_px_1 = LinearTransferMatrixData_get_disp_px_1(el);
-    double const disp_py_1 = LinearTransferMatrixData_get_disp_py_1(el);
-
-    int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
+    add_closed_orbit(part0,
+        LinearTransferMatrixData_get_x_ref_1(el),
+        LinearTransferMatrixData_get_px_ref_1(el),
+        LinearTransferMatrixData_get_y_ref_1(el),
+        LinearTransferMatrixData_get_py_ref_1(el));
 
     double const length = LinearTransferMatrixData_get_length(el);
-
-
-
     //start_per_particle_block (part0->part)
-
-        if(uncorrelated_gauss_noise == 1) {
-            double const gauss_noise_ampl_x = LinearTransferMatrixData_get_gauss_noise_ampl_x(el);
-            double const gauss_noise_ampl_px = LinearTransferMatrixData_get_gauss_noise_ampl_px(el);
-            double const gauss_noise_ampl_y = LinearTransferMatrixData_get_gauss_noise_ampl_y(el);
-            double const gauss_noise_ampl_py = LinearTransferMatrixData_get_gauss_noise_ampl_py(el);
-            double const gauss_noise_ampl_zeta = LinearTransferMatrixData_get_gauss_noise_ampl_zeta(el);
-            double const gauss_noise_ampl_delta = LinearTransferMatrixData_get_gauss_noise_ampl_delta(el);
-
-            double r = RandomNormal_generate(part);
-            LocalParticle_add_to_x(part,r*gauss_noise_ampl_x);
-            r = RandomNormal_generate(part);
-            LocalParticle_add_to_px(part,r*gauss_noise_ampl_px);
-            r = RandomNormal_generate(part);
-            LocalParticle_add_to_y(part,r*gauss_noise_ampl_y);
-            r = RandomNormal_generate(part);
-            LocalParticle_add_to_py(part,r*gauss_noise_ampl_py);
-            r = RandomNormal_generate(part);
-            LocalParticle_add_to_zeta(part,r*gauss_noise_ampl_zeta);
-            r = RandomNormal_generate(part);
-            double delta = LocalParticle_get_delta(part);
-            delta += r*gauss_noise_ampl_delta;
-            LocalParticle_update_delta(part,delta);
-        }
-
-        // Add dispersion
-        // Symplecticity correction (not working, to be investigated)
-        // LocalParticle_add_to_zeta(part, -(
-        //     disp_px_1 * LocalParticle_get_x(part)
-        //     - disp_x_1 * LocalParticle_get_px(part)
-        //     + disp_py_1 * LocalParticle_get_y(part)
-        //     - disp_y_1 * LocalParticle_get_py(part)
-        //     )/LocalParticle_get_rvv(part));
-
-        LocalParticle_add_to_x(part, disp_x_1 * LocalParticle_get_delta(part));
-        LocalParticle_add_to_px(part, disp_px_1 * LocalParticle_get_delta(part));
-        LocalParticle_add_to_y(part, disp_y_1 * LocalParticle_get_delta(part));
-        LocalParticle_add_to_py(part, disp_py_1 * LocalParticle_get_delta(part));
-
-        // Add closed orbit
-        LocalParticle_add_to_x(part, x_ref_1);
-        LocalParticle_add_to_px(part, px_ref_1);
-        LocalParticle_add_to_y(part, y_ref_1);
-        LocalParticle_add_to_py(part, py_ref_1);
-
-        // Add to s coordinate
         LocalParticle_add_to_s(part, length);
-
     //end_per_particle_block
 }
 
