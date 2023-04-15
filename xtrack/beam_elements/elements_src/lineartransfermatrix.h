@@ -6,18 +6,93 @@
 #ifndef XTRACK_LINEARTRANSFERMATRIX_H
 #define XTRACK_LINEARTRANSFERMATRIX_H
 
+/*gpufun*/
+void remove_closed_orbit(
+    LocalParticle* part0, double const x_ref, double const px_ref,
+    double const y_ref, double const py_ref){
+
+    //start_per_particle_block (part0->part)
+        // Remove closed orbit
+        LocalParticle_add_to_x(part, -x_ref);
+        LocalParticle_add_to_px(part, -px_ref);
+        LocalParticle_add_to_y(part, -y_ref);
+        LocalParticle_add_to_py(part, -py_ref);
+    //end_per_particle_block
+
+}
 
 /*gpufun*/
-void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
+void add_closed_orbit(
+    LocalParticle* part0, double const x_ref, double const px_ref,
+    double const y_ref, double const py_ref){
 
-    double const q_x = LinearTransferMatrixData_get_q_x(el);
-    double const q_y = LinearTransferMatrixData_get_q_y(el);
-    double const chroma_x = LinearTransferMatrixData_get_chroma_x(el);
-    double const chroma_y = LinearTransferMatrixData_get_chroma_y(el);
-    double const detx_x = LinearTransferMatrixData_get_detx_x(el);
-    double const detx_y = LinearTransferMatrixData_get_detx_y(el);
-    double const dety_y = LinearTransferMatrixData_get_dety_y(el);
-    double const dety_x = LinearTransferMatrixData_get_dety_x(el);
+    //start_per_particle_block (part0->part)
+        // Add closed orbit
+        LocalParticle_add_to_x(part, x_ref);
+        LocalParticle_add_to_px(part, px_ref);
+        LocalParticle_add_to_y(part, y_ref);
+        LocalParticle_add_to_py(part, py_ref);
+    //end_per_particle_block
+
+}
+
+/*gpufun*/
+void remove_dispersion(
+    LocalParticle* part0, double const disp_x_0, double const disp_px_0,
+    double const disp_y_0, double const disp_py_0){
+
+    //start_per_particle_block (part0->part)
+
+        // Remove dispersion
+        // Symplecticity correction (not working, to be investigated)
+        // LocalParticle_add_to_zeta(part, (
+        //     disp_px_0 * LocalParticle_get_x(part)
+        //     - disp_x_0 * LocalParticle_get_px(part)
+        //     + disp_py_0 * LocalParticle_get_y(part)
+        //     - disp_y_0 * LocalParticle_get_py(part)
+        //     )/LocalParticle_get_rvv(part));
+        double const delta = LocalParticle_get_delta(part);
+        LocalParticle_add_to_x(part, -disp_x_0 * delta);
+        LocalParticle_add_to_px(part, -disp_px_0 * delta);
+        LocalParticle_add_to_y(part, -disp_y_0 * delta);
+        LocalParticle_add_to_py(part, -disp_py_0 * delta);
+
+    //end_per_particle_block
+
+}
+
+/*gpufun*/
+void add_dispersion(
+    LocalParticle* part0, double const disp_x_1, double const disp_px_1,
+    double const disp_y_1, double const disp_py_1){
+
+    //start_per_particle_block (part0->part)
+
+        // Add dispersion
+        // Symplecticity correction (not working, to be investigated)
+        // LocalParticle_add_to_zeta(part, (
+        //     disp_px_1 * LocalParticle_get_x(part)
+        //     - disp_x_1 * LocalParticle_get_px(part)
+        //     + disp_py_1 * LocalParticle_get_y(part)
+        //     - disp_y_1 * LocalParticle_get_py(part)
+        //     )/LocalParticle_get_rvv(part));
+        double const delta = LocalParticle_get_delta(part);
+        LocalParticle_add_to_x(part, disp_x_1 * delta);
+        LocalParticle_add_to_px(part, disp_px_1 * delta);
+        LocalParticle_add_to_y(part, disp_y_1 * delta);
+        LocalParticle_add_to_py(part, disp_py_1 * delta);
+
+    //end_per_particle_block
+
+}
+
+/*gpufun*/
+void transverse_motion(LocalParticle *part0,
+    double const q_x, double const q_y,
+    double const chroma_x, double const chroma_y,
+    double const detx_x, double const detx_y, double const dety_x, double const dety_y,
+    double const alpha_x_0, double const beta_x_0, double const alpha_y_0, double const beta_y_0,
+    double const alpha_x_1, double const beta_x_1, double const alpha_y_1, double const beta_y_1){
 
     int64_t detuning;
     double sin_x, cos_x, sin_y, cos_y;
@@ -33,44 +108,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         cos_y = cos(2 * PI * q_y);
     }
 
-    double const cos_s = LinearTransferMatrixData_get_cos_s(el);
-    double const sin_s = LinearTransferMatrixData_get_sin_s(el);
-    double const beta_s = LinearTransferMatrixData_get_beta_s(el);
-
-    double const length = LinearTransferMatrixData_get_length(el);
-
-    double const beta_x_0 = LinearTransferMatrixData_get_beta_x_0(el);
-    double const beta_y_0 = LinearTransferMatrixData_get_beta_y_0(el);
-    double const disp_x_0 = LinearTransferMatrixData_get_disp_x_0(el);
-    double const disp_y_0 = LinearTransferMatrixData_get_disp_y_0(el);
-    double const disp_px_0 = LinearTransferMatrixData_get_disp_px_0(el);
-    double const disp_py_0 = LinearTransferMatrixData_get_disp_py_0(el);
-    double const alpha_x_0 = LinearTransferMatrixData_get_alpha_x_0(el);
-    double const alpha_y_0 = LinearTransferMatrixData_get_alpha_y_0(el);
-    double const disp_x_1 = LinearTransferMatrixData_get_disp_x_1(el);
-    double const disp_y_1 = LinearTransferMatrixData_get_disp_y_1(el);
-    double const disp_px_1 = LinearTransferMatrixData_get_disp_px_1(el);
-    double const disp_py_1 = LinearTransferMatrixData_get_disp_py_1(el);
-    double const alpha_x_1 = LinearTransferMatrixData_get_alpha_x_1(el);
-    double const alpha_y_1 = LinearTransferMatrixData_get_alpha_y_1(el);
-    double const beta_x_1 = LinearTransferMatrixData_get_beta_x_1(el);
-    double const beta_y_1 = LinearTransferMatrixData_get_beta_y_1(el);
-
-    double const x_ref_0 = LinearTransferMatrixData_get_x_ref_0(el);
-    double const x_ref_1 = LinearTransferMatrixData_get_x_ref_1(el);
-    double const px_ref_0 = LinearTransferMatrixData_get_px_ref_0(el);
-    double const px_ref_1 = LinearTransferMatrixData_get_px_ref_1(el);
-    double const y_ref_0 = LinearTransferMatrixData_get_y_ref_0(el);
-    double const y_ref_1 = LinearTransferMatrixData_get_y_ref_1(el);
-    double const py_ref_0 = LinearTransferMatrixData_get_py_ref_0(el);
-    double const py_ref_1 = LinearTransferMatrixData_get_py_ref_1(el);
-
-    double const energy_ref_increment =
-        LinearTransferMatrixData_get_energy_ref_increment(el);
-
-    int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
-    int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
-
     double const sqrt_beta_prod_x = sqrt(beta_x_1 * beta_x_0);
     double const sqrt_beta_prod_y = sqrt(beta_y_1 * beta_y_0);
 
@@ -78,25 +115,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     double const sqrt_beta_ratio_y = sqrt(beta_y_1 / beta_y_0);
 
     //start_per_particle_block (part0->part)
-
-        // Remove closed orbit
-        LocalParticle_add_to_x(part, -x_ref_0);
-        LocalParticle_add_to_px(part, -px_ref_0);
-        LocalParticle_add_to_y(part, -y_ref_0);
-        LocalParticle_add_to_py(part, -py_ref_0);
-
-        // removing dispersion
-        // Symplecticity correction (not working, to be investigated)
-        // LocalParticle_add_to_zeta(part, (
-        //     disp_px_0 * LocalParticle_get_x(part)
-        //     - disp_x_0 * LocalParticle_get_px(part)
-        //     + disp_py_0 * LocalParticle_get_y(part)
-        //     - disp_y_0 * LocalParticle_get_py(part)
-        //     )/LocalParticle_get_rvv(part));
-        LocalParticle_add_to_x(part, -disp_x_0 * LocalParticle_get_delta(part));
-        LocalParticle_add_to_px(part, -disp_px_0 * LocalParticle_get_delta(part));
-        LocalParticle_add_to_y(part, -disp_y_0 * LocalParticle_get_delta(part));
-        LocalParticle_add_to_py(part, -disp_py_0 * LocalParticle_get_delta(part));
 
         if (detuning){
             double const J_x = 0.5 * (
@@ -145,6 +163,69 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LocalParticle_set_px(part, px_out);
         LocalParticle_set_y(part, y_out);
         LocalParticle_set_py(part, py_out);
+    //end_per_particle_block
+
+}
+
+
+/*gpufun*/
+void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
+
+
+    remove_closed_orbit(part0,
+        LinearTransferMatrixData_get_x_ref_0(el),
+        LinearTransferMatrixData_get_px_ref_0(el),
+        LinearTransferMatrixData_get_y_ref_0(el),
+        LinearTransferMatrixData_get_py_ref_0(el));
+
+    remove_dispersion(part0,
+        LinearTransferMatrixData_get_disp_x_0(el),
+        LinearTransferMatrixData_get_disp_px_0(el),
+        LinearTransferMatrixData_get_disp_y_0(el),
+        LinearTransferMatrixData_get_disp_py_0(el));
+
+    transverse_motion(part0,
+        LinearTransferMatrixData_get_q_x(el),
+        LinearTransferMatrixData_get_q_y(el),
+        LinearTransferMatrixData_get_chroma_x(el),
+        LinearTransferMatrixData_get_chroma_y(el),
+        LinearTransferMatrixData_get_detx_x(el),
+        LinearTransferMatrixData_get_detx_y(el),
+        LinearTransferMatrixData_get_dety_x(el),
+        LinearTransferMatrixData_get_dety_y(el),
+        LinearTransferMatrixData_get_alpha_x_0(el),
+        LinearTransferMatrixData_get_beta_x_0(el),
+        LinearTransferMatrixData_get_alpha_y_0(el),
+        LinearTransferMatrixData_get_beta_y_0(el),
+        LinearTransferMatrixData_get_alpha_x_1(el),
+        LinearTransferMatrixData_get_beta_x_1(el),
+        LinearTransferMatrixData_get_alpha_y_1(el),
+        LinearTransferMatrixData_get_beta_y_1(el));
+
+
+
+    double const x_ref_1 = LinearTransferMatrixData_get_x_ref_1(el);
+    double const px_ref_1 = LinearTransferMatrixData_get_px_ref_1(el);
+    double const y_ref_1 = LinearTransferMatrixData_get_y_ref_1(el);
+    double const py_ref_1 = LinearTransferMatrixData_get_py_ref_1(el);
+    double const disp_x_1 = LinearTransferMatrixData_get_disp_x_1(el);
+    double const disp_y_1 = LinearTransferMatrixData_get_disp_y_1(el);
+    double const disp_px_1 = LinearTransferMatrixData_get_disp_px_1(el);
+    double const disp_py_1 = LinearTransferMatrixData_get_disp_py_1(el);
+
+    double const energy_ref_increment =
+        LinearTransferMatrixData_get_energy_ref_increment(el);
+
+    int64_t const uncorrelated_rad_damping = LinearTransferMatrixData_get_uncorrelated_rad_damping(el);
+    int64_t const uncorrelated_gauss_noise = LinearTransferMatrixData_get_uncorrelated_gauss_noise(el);
+
+    double const cos_s = LinearTransferMatrixData_get_cos_s(el);
+    double const sin_s = LinearTransferMatrixData_get_sin_s(el);
+    double const beta_s = LinearTransferMatrixData_get_beta_s(el);
+
+    double const length = LinearTransferMatrixData_get_length(el);
+
+    //start_per_particle_block (part0->part)
         if (cos_s < 2){
             // We set cos_s = 999 if long map is to be skipped
             double const new_zeta = cos_s * LocalParticle_get_zeta(part) - beta_s * sin_s * LocalParticle_get_pzeta(part);
@@ -160,7 +241,6 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         if (energy_increment !=0){
         LocalParticle_add_to_energy(part, energy_increment, 1);
         }
-
 
         // Change energy reference
         // In the transverse plane de change is smoothed, i.e.

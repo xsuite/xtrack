@@ -998,9 +998,14 @@ class LinearTransferMatrix(BeamElement):
         'dety_y': xo.Float64,
         'dety_x': xo.Float64,
 
+        # 'longitudinal_mode_flag': xo.Int64,
         'cos_s': xo.Float64,
         'sin_s': xo.Float64,
         'beta_s': xo.Float64,
+        # 'slip_factor': xo.Float64,
+        # 'slippage_length': xo.Float64,
+        # 'voltage_rf': xo.Float64[:],
+        # 'frequency_rf': xo.Float64[:],
 
         'x_ref_0': xo.Float64,
         'px_ref_0': xo.Float64,
@@ -1045,6 +1050,13 @@ class LinearTransferMatrix(BeamElement):
 
     _depends_on = [RandomNormal]
     isthick = True
+
+    # _rename = {
+    #     'cos_s': '_cos_s',
+    #     'sin_s': '_sin_s',
+    #     'beta_s': '_beta_s',
+    #     'longitudinal_mode_flag': '_longitudinal_mode_flag',
+    # }
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
