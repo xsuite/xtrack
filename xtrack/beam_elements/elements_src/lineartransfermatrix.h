@@ -168,9 +168,11 @@ void transverse_motion(LocalParticle *part0,
 }
 
 void longitudinal_motion(LocalParticle *part0,
-    double const cos_s, double const sin_s, double const beta_s){
+    double const Q_s, double const beta_s){
 
-    if (cos_s < 2){
+    if (Q_s != 0){
+        double const sin_s = sin(2 * PI * Q_s);
+        double const cos_s = cos(2 * PI * Q_s);
         //start_per_particle_block (part->part)
             // We set cos_s = 999 if long map is to be skipped
             double const new_zeta = cos_s * LocalParticle_get_zeta(part) - beta_s * sin_s * LocalParticle_get_pzeta(part);
@@ -293,8 +295,7 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_beta_y_1(el));
 
     longitudinal_motion(part0,
-        LinearTransferMatrixData_get_cos_s(el),
-        LinearTransferMatrixData_get_sin_s(el),
+        LinearTransferMatrixData_get_Q_s(el),
         LinearTransferMatrixData_get_beta_s(el));
 
     energy_and_reference_increments(part0,

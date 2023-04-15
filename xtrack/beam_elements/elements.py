@@ -999,8 +999,7 @@ class LinearTransferMatrix(BeamElement):
         'dety_x': xo.Float64,
 
         # 'longitudinal_mode_flag': xo.Int64,
-        'cos_s': xo.Float64,
-        'sin_s': xo.Float64,
+        'Q_s': xo.Float64,
         'beta_s': xo.Float64,
         # 'slip_factor': xo.Float64,
         # 'slippage_length': xo.Float64,
@@ -1087,12 +1086,7 @@ class LinearTransferMatrix(BeamElement):
         nargs['dety_y'] = dety_y
         nargs['dety_x'] = dety_x
 
-        if Q_s is not None:
-            nargs['cos_s'] = np.cos(2.0*np.pi*Q_s)
-            nargs['sin_s'] = np.sin(2.0*np.pi*Q_s)
-        else:
-            nargs['cos_s'] = 999
-            nargs['sin_s'] = 0.
+        nargs['Q_s'] = Q_s
 
         nargs['beta_x_0'] = beta_x_0
         nargs['beta_y_0'] = beta_y_0
@@ -1180,10 +1174,6 @@ class LinearTransferMatrix(BeamElement):
             nargs['gauss_noise_ampl_delta'] = np.sqrt(nargs['gauss_noise_ampl_delta']**2+gauss_noise_ampl_delta**2)
 
         super().__init__(**nargs)
-
-    @property
-    def Q_s(self):
-        return np.arccos(self.cos_s) / (2*np.pi)
 
 class FirstOrderTaylorMap(BeamElement):
 
