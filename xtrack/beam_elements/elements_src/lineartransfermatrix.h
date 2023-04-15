@@ -258,8 +258,6 @@ void uncorrelated_gaussian_noise(LocalParticle *part0,
 
 }
 
-
-
 /*gpufun*/
 void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
 
