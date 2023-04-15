@@ -211,7 +211,7 @@ def test_instability_cpu_gpu(test_context):
         Q_x=Q_x,
         Q_y=Q_y,
         beta_s=beta_s,
-        Q_s=-Q_s,
+        Q_s=Q_s,
         chroma_x=chroma,
         chroma_y=0.0,
         detx_x=detx_x,
