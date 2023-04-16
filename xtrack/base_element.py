@@ -16,13 +16,12 @@ from .general import _pkg_root
 from .internal_record import RecordIdentifier, RecordIndex, generate_get_record
 
 start_per_part_block = """
-   int64_t const n_part = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial cpu_openmp
    #pragma omp parallel for                                       //only_for_context cpu_openmp
-   for (int jj=0; jj<n_part; jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial cpu_openmp
+   for (int jj=0; jj<LocalParticle_get__num_active_particles(part0); jj+=!!CHUNK_SIZE!!){                 //only_for_context cpu_serial cpu_openmp
     //#pragma omp simd
     for (int iii=0; iii<!!CHUNK_SIZE!!; iii++){                   //only_for_context cpu_serial cpu_openmp
       int const ii = iii+jj;                                      //only_for_context cpu_serial cpu_openmp
-      if (ii<n_part){                                             //only_for_context cpu_serial cpu_openmp
+      if (ii<LocalParticle_get__num_active_particles(part0)){                                             //only_for_context cpu_serial cpu_openmp
 
         LocalParticle lpart = *part0;//only_for_context cpu_serial cpu_openmp
         LocalParticle* part = &lpart;//only_for_context cpu_serial cpu_openmp

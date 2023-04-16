@@ -201,6 +201,30 @@ void longitudinal_motion(LocalParticle *part0,
         //end_per_particle_block
 
         int64_t const n_rf = LinearTransferMatrixData_len_voltage_rf(el);
+        for (int i_rf=0; i_rf<n_rf; i_rf++){
+
+            double const v_rf = LinearTransferMatrixData_get_voltage_rf(el,i_rf);
+            double const f_rf = LinearTransferMatrixData_get_frequency_rf(el,i_rf);
+            double const lag_rf = LinearTransferMatrixData_get_lag_rf(el,i_rf);
+
+            //start_per_particle_block (part0->part)
+                double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
+                double const   beta0  = LocalParticle_get_beta0(part);
+                double const   zeta   = LocalParticle_get_zeta(part);
+                double const   q      = fabs(LocalParticle_get_q0(part))
+                                        * LocalParticle_get_charge_ratio(part);
+                double const   tau    = zeta / beta0;
+                double const   phase  = DEG2RAD  * lag_rf - K_FACTOR * f_rf * tau;
+                double const energy   = q * v_rf * sin(phase);
+                LocalParticle_add_to_energy(part, energy, 1);
+            //end_per_particle_block
+        }
+
+        //start_per_particle_block (part->part)
+            double const gamma0 = LocalParticle_get_gamma0(part);
+            double const eta = alpha_p - 1.0 / (gamma0 * gamma0);
+            LocalParticle_add_to_zeta(part, -0.5 * eta * slippage_length);
+        //end_per_particle_block
     }
 }
 
