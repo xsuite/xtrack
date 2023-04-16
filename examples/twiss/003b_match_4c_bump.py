@@ -14,10 +14,10 @@ line.build_tracker()
 tw_before = line.twiss()
 
 line.match(
-    ele_start='mq.33l8.b1',
-    ele_stop='mq.23l8.b1',
-    twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
-    vary=[
+    ele_start='mq.33l8.b1', # Start of the portion of the beam line to be modified
+    ele_stop='mq.23l8.b1',  # End of the portion of the beam line to be modified
+    twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'), # Initial condition
+    vary=[ # Dipole corrector strngths to be varied
         xt.Vary(name='acbv30.l8b1', step=1e-10),
         xt.Vary(name='acbv28.l8b1', step=1e-10),
         xt.Vary(name='acbv26.l8b1', step=1e-10),
