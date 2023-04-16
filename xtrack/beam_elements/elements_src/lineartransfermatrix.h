@@ -208,6 +208,8 @@ void longitudinal_motion(LocalParticle *part0,
             double const f_rf = LinearTransferMatrixData_get_frequency_rf(el,i_rf);
             double const lag_rf = LinearTransferMatrixData_get_lag_rf(el,i_rf);
 
+            if (f_rf == 0) continue;
+
             //start_per_particle_block (part0->part)
                 double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
                 double const   beta0  = LocalParticle_get_beta0(part);
