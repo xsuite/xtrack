@@ -8,10 +8,6 @@ mad = Madx()
 mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
 mad.use('lhcb1')
 
-tw_mad_no_coupling = mad.twiss(ripken=True).dframe()
-
-tw_mad_coupling = mad.twiss(ripken=True).dframe()
-
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
 line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 
