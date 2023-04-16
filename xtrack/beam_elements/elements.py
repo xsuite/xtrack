@@ -1062,7 +1062,7 @@ class LinearTransferMatrix(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
-    def __init__(self, Q_x=0, Q_y=0,
+    def __init__(self, length=None, Q_x=0, Q_y=0,
                      beta_x_0=1.0, beta_x_1=1.0, beta_y_0=1.0, beta_y_1=1.0,
                      alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
                      disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
@@ -1070,7 +1070,8 @@ class LinearTransferMatrix(BeamElement):
                      longitudinal_mode=None,
                      Q_s=None, beta_s=None,
                      momentum_compaction_factor=None,
-                     voltage_rf=0.0, frequency_rf=0.0, lag_rf=0.0,
+                     slippage_length=None,
+                     voltage_rf=None, frequency_rf=None, lag_rf=None,
                      chroma_x=0.0, chroma_y=0.0,
                      detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
                      energy_increment=0.0, energy_ref_increment=0.0,
@@ -1101,12 +1102,45 @@ class LinearTransferMatrix(BeamElement):
         if longitudinal_mode == 'linear_fixed_qs':
             assert Q_s is not None
             assert beta_s is not None
+            assert momentum_compaction_factor is None
+            assert voltage_rf is None
+            assert frequency_rf is None
+            assert lag_rf is None
+            nargs['longitudinal_mode_flag'] = 1
             nargs['Q_s'] = Q_s
             nargs['beta_s'] = beta_s
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
-            nargs['longitudinal_mode_flag'] = 1
+        elif longitudinal_mode == 'nonlinear':
+            assert voltage_rf is not None
+            assert frequency_rf is not None
+            assert lag_rf is not None
+            assert momentum_compaction_factor is None
+            assert Q_s is None
+            assert beta_s is None
+
+            if slippage_length is None:
+                assert length is not None
+                nargs['slippage_length'] = length
+            else:
+                nargs['slippage_length'] = slippage_length
+
+            nargs['longitudinal_mode_flag'] = 2
+            nargs['voltage_rf'] = voltage_rf
+            nargs['frequency_rf'] = frequency_rf
+            nargs['lag_rf'] = lag_rf
+            nargs['momentum_compaction_factor'] = momentum_compaction_factor
+            for nn in ['frequency_rf', 'lag_rf', 'voltage_rf']:
+                if np.isscalar(nargs[nn]):
+                    nargs[nn] = [nargs[nn]]
+            assert (len(nargs['frequency_rf'])
+                    == len(nargs['lag_rf']) 
+                    == len(nargs['voltage_rf']))
+        elif longitudinal_mode == 'frozen':
+            nargs['longitudinal_mode_flag'] = 0
+        else:
+            raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
 
         nargs['beta_x_0'] = beta_x_0
         nargs['beta_y_0'] = beta_y_0

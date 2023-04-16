@@ -185,6 +185,22 @@ void longitudinal_motion(LocalParticle *part0,
             LocalParticle_set_zeta(part, new_zeta);
             LocalParticle_update_pzeta(part, new_pzeta);
         //end_per_particle_block
+
+    }
+    else if (mode_flag==2){ // non-linear motion
+
+        double const alpha_p =
+            LinearTransferMatrixData_get_momentum_compaction_factor(el);
+        double const slippage_length =
+            LinearTransferMatrixData_get_slippage_length(el);
+
+        //start_per_particle_block (part->part)
+            double const gamma0 = LocalParticle_get_gamma0(part);
+            double const eta = alpha_p - 1.0 / (gamma0 * gamma0);
+            LocalParticle_add_to_zeta(part, -0.5 * eta * slippage_length);
+        //end_per_particle_block
+
+        int64_t const n_rf = LinearTransferMatrixData_len_voltage_rf(el);
     }
 }
 
