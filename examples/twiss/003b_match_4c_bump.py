@@ -35,6 +35,8 @@ line.match(
     ]
 )
 
+#!end-doc-part
+
 tw = line.twiss()
 
 import matplotlib.pyplot as plt
