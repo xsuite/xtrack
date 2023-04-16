@@ -17,6 +17,7 @@ line.build_tracker()
 plt.close('all')
 plt.figure(1)
 
+# Compute and plot footprint
 fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 fp0.plot(color='k', label='I_oct=0')
 
