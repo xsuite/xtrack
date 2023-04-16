@@ -197,7 +197,8 @@ void longitudinal_motion(LocalParticle *part0,
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
             double const eta = alpha_p - 1.0 / (gamma0 * gamma0);
-            LocalParticle_add_to_zeta(part, -0.5 * eta * slippage_length);
+            LocalParticle_add_to_zeta(part,
+                -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
 
         int64_t const n_rf = LinearTransferMatrixData_len_voltage_rf(el);
@@ -223,7 +224,8 @@ void longitudinal_motion(LocalParticle *part0,
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
             double const eta = alpha_p - 1.0 / (gamma0 * gamma0);
-            LocalParticle_add_to_zeta(part, -0.5 * eta * slippage_length);
+            LocalParticle_add_to_zeta(part,
+                -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
     }
 }

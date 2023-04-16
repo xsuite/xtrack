@@ -1116,7 +1116,7 @@ class LinearTransferMatrix(BeamElement):
             assert voltage_rf is not None
             assert frequency_rf is not None
             assert lag_rf is not None
-            assert momentum_compaction_factor is None
+            assert momentum_compaction_factor is not None
             assert Q_s is None
             assert beta_s is None
 

@@ -17,6 +17,7 @@ line.particle_ref = xp.Particles(p0c=14e9, q0=1.0)
 
 particle0 = line.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
 
+
 line.track(particle0.copy(), num_turns=500, turn_by_turn_monitor=True)
 mon = line.record_last_track
 
@@ -28,7 +29,13 @@ circumference = line.get_length()
 
 bet_s = eta * circumference / (2 * np.pi * qs)
 
-matrix = xt.LinearTransferMatrix(beta_s=bet_s, Q_s=qs)
+# matrix = xt.LinearTransferMatrix(beta_s=bet_s, Q_s=qs)
+matrix = xt.LinearTransferMatrix(
+    voltage_rf=line['acta.31637'].voltage,
+    frequency_rf=line['acta.31637'].frequency,
+    lag_rf=line['acta.31637'].lag,
+    momentum_compaction_factor=tw.momentum_compaction_factor,
+    length=circumference)
 line_matrix = xt.Line(elements=[matrix])
 line_matrix.particle_ref = line.particle_ref.copy()
 
@@ -52,5 +59,14 @@ ax2.plot(mon_matrix.pzeta.T)
 ax1.legend()
 
 fig1.subplots_adjust(left=0.2)
+
+particles_dp0 = line.build_particles(x_norm=0, y_norm=0, 
+        delta=np.linspace(-5e-3, 5e-3, 41))
+line_matrix.track(particles_dp0.copy(), num_turns=500, turn_by_turn_monitor=True)
+mon_matrix_dp = line_matrix.record_last_track
+
+fig2 = plt.figure(2)
+fig2.suptitle(configuration)
+plt.plot(mon_matrix_dp.zeta.T, mon_matrix_dp.pzeta.T)
 
 plt.show()
