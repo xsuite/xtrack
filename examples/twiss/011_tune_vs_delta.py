@@ -45,7 +45,6 @@ plt.plot(delta_values, qx_values, label='xtrack')
 plt.plot(delta_values, qx_values_mad, label='madx')
 plt.ylabel(r'$Q_x$')
 
-
 plt.subplot(212)
 plt.plot(delta_values, qy_values, label='xtrack')
 plt.plot(delta_values, qy_values_mad, label='madx')
