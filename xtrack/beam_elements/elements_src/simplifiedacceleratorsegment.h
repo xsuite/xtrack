@@ -313,10 +313,10 @@ void SimplifiedAcceleratorSegment_track_local_particle(SimplifiedAcceleratorSegm
 
 
     remove_closed_orbit(part0,
-        SimplifiedAcceleratorSegmentData_get_x_ref_0(el),
-        SimplifiedAcceleratorSegmentData_get_px_ref_0(el),
-        SimplifiedAcceleratorSegmentData_get_y_ref_0(el),
-        SimplifiedAcceleratorSegmentData_get_py_ref_0(el));
+        SimplifiedAcceleratorSegmentData_get_x_ref(el, 0),
+        SimplifiedAcceleratorSegmentData_get_px_ref(el, 0),
+        SimplifiedAcceleratorSegmentData_get_y_ref(el, 0),
+        SimplifiedAcceleratorSegmentData_get_py_ref(el, 0));
 
     remove_dispersion(part0,
         SimplifiedAcceleratorSegmentData_get_dx(el, 0),
@@ -372,10 +372,10 @@ void SimplifiedAcceleratorSegment_track_local_particle(SimplifiedAcceleratorSegm
         SimplifiedAcceleratorSegmentData_get_dpy(el, 1));
 
     add_closed_orbit(part0,
-        SimplifiedAcceleratorSegmentData_get_x_ref_1(el),
-        SimplifiedAcceleratorSegmentData_get_px_ref_1(el),
-        SimplifiedAcceleratorSegmentData_get_y_ref_1(el),
-        SimplifiedAcceleratorSegmentData_get_py_ref_1(el));
+        SimplifiedAcceleratorSegmentData_get_x_ref(el, 1),
+        SimplifiedAcceleratorSegmentData_get_px_ref(el, 1),
+        SimplifiedAcceleratorSegmentData_get_y_ref(el, 1),
+        SimplifiedAcceleratorSegmentData_get_py_ref(el, 1));
 
     double const length = SimplifiedAcceleratorSegmentData_get_length(el);
     //start_per_particle_block (part0->part)

@@ -1007,14 +1007,6 @@ class SimplifiedAcceleratorSegment(BeamElement):
         'frequency_rf': xo.Float64[:],
         'lag_rf': xo.Float64[:],
 
-        'x_ref_0': xo.Float64,
-        'px_ref_0': xo.Float64,
-        'y_ref_0': xo.Float64,
-        'py_ref_0': xo.Float64,
-        'x_ref_1': xo.Float64,
-        'px_ref_1': xo.Float64,
-        'y_ref_1': xo.Float64,
-        'py_ref_1': xo.Float64,
 
         'betx': xo.Float64[2],
         'bety': xo.Float64[2],
@@ -1025,6 +1017,11 @@ class SimplifiedAcceleratorSegment(BeamElement):
         'dpx': xo.Float64[2],
         'dy': xo.Float64[2],
         'dpy': xo.Float64[2],
+
+        'x_ref': xo.Float64[2],
+        'px_ref': xo.Float64[2],
+        'y_ref': xo.Float64[2],
+        'py_ref': xo.Float64[2],
 
         'energy_ref_increment': xo.Float64,
         'energy_increment': xo.Float64,
@@ -1058,6 +1055,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
     def __init__(self, length=None, qx=0, qy=0,
             betx=1., bety=1., alfx=0., alfy=0.,
             dx=0., dpx=0., dy=0., dpy=0.,
+            x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
             longitudinal_mode=None,
             qs=None, bets=None,
             momentum_compaction_factor=None,
@@ -1066,8 +1064,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
             dqx=0.0, dqy=0.0,
             detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
-            x_ref_0 = 0.0, px_ref_0 = 0.0, x_ref_1 = 0.0, px_ref_1 = 0.0,
-            y_ref_0 = 0.0, py_ref_0 = 0.0, y_ref_1 = 0.0, py_ref_1 = 0.0,
+
             damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
             equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
             gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,
@@ -1161,6 +1158,18 @@ class SimplifiedAcceleratorSegment(BeamElement):
         if np.isscalar(dpy): dpy = [dpy, dpy]
         else: assert len(dpy) == 2
 
+        if np.isscalar(x_ref): x_ref = [x_ref, x_ref]
+        else: assert len(x_ref) == 2
+
+        if np.isscalar(px_ref): px_ref = [px_ref, px_ref]
+        else: assert len(px_ref) == 2
+
+        if np.isscalar(y_ref): y_ref = [y_ref, y_ref]
+        else: assert len(y_ref) == 2
+
+        if np.isscalar(py_ref): py_ref = [py_ref, py_ref]
+        else: assert len(py_ref) == 2
+
         nargs['betx'] = betx
         nargs['bety'] = bety
         nargs['alfx'] = alfx
@@ -1169,15 +1178,10 @@ class SimplifiedAcceleratorSegment(BeamElement):
         nargs['dpx'] = dpx
         nargs['dy'] = dy
         nargs['dpy'] = dpy
-
-        nargs['x_ref_0'] = x_ref_0
-        nargs['x_ref_1'] = x_ref_1
-        nargs['px_ref_0'] = px_ref_0
-        nargs['px_ref_1'] = px_ref_1
-        nargs['y_ref_0'] = y_ref_0
-        nargs['y_ref_1'] = y_ref_1
-        nargs['py_ref_0'] = py_ref_0
-        nargs['py_ref_1'] = py_ref_1
+        nargs['x_ref'] = x_ref
+        nargs['px_ref'] = px_ref
+        nargs['y_ref'] = y_ref
+        nargs['py_ref'] = py_ref
 
         # acceleration with change of reference momentum
         nargs['energy_ref_increment'] = energy_ref_increment
