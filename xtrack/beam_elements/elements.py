@@ -1090,6 +1090,7 @@ class LinearTransferMatrix(BeamElement):
         nargs['detx_y'] = detx_y
         nargs['dety_y'] = dety_y
         nargs['dety_x'] = dety_x
+        nargs['length'] = length
 
         if longitudinal_mode is None:
             if Q_s is not None:
