@@ -1000,7 +1000,7 @@ class LinearTransferMatrix(BeamElement):
 
         'longitudinal_mode_flag': xo.Int64,
         'Q_s': xo.Float64,
-        'beta_s': xo.Float64,
+        'bets': xo.Float64,
         'momentum_compaction_factor': xo.Float64,
         'slippage_length': xo.Float64,
         'voltage_rf': xo.Float64[:],
@@ -1016,10 +1016,10 @@ class LinearTransferMatrix(BeamElement):
         'y_ref_1': xo.Float64,
         'py_ref_1': xo.Float64,
 
-        'beta_x_0': xo.Float64,
-        'beta_x_1': xo.Float64,
-        'beta_y_0': xo.Float64,
-        'beta_y_1': xo.Float64,
+        'betx_0': xo.Float64,
+        'betx_1': xo.Float64,
+        'bety_0': xo.Float64,
+        'bety_1': xo.Float64,
         'alpha_x_0': xo.Float64,
         'alpha_x_1': xo.Float64,
         'alpha_y_0': xo.Float64,
@@ -1054,7 +1054,7 @@ class LinearTransferMatrix(BeamElement):
     # _rename = {
     #     'cos_s': '_cos_s',
     #     'sin_s': '_sin_s',
-    #     'beta_s': '_beta_s',
+    #     'bets': '_bets',
     #     'longitudinal_mode_flag': '_longitudinal_mode_flag',
     # }
 
@@ -1063,12 +1063,12 @@ class LinearTransferMatrix(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
     def __init__(self, length=None, qx=0, qy=0,
-                     beta_x_0=1.0, beta_x_1=1.0, beta_y_0=1.0, beta_y_1=1.0,
+                     betx_0=1.0, betx_1=1.0, bety_0=1.0, bety_1=1.0,
                      alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
                      disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
                      disp_px_0=0.0, disp_px_1=0.0, disp_py_0=0.0, disp_py_1=0.0,
                      longitudinal_mode=None,
-                     Q_s=None, beta_s=None,
+                     Q_s=None, bets=None,
                      momentum_compaction_factor=None,
                      slippage_length=None,
                      voltage_rf=None, frequency_rf=None, lag_rf=None,
@@ -1102,14 +1102,14 @@ class LinearTransferMatrix(BeamElement):
 
         if longitudinal_mode == 'linear_fixed_qs':
             assert Q_s is not None
-            assert beta_s is not None
+            assert bets is not None
             assert momentum_compaction_factor is None
             assert voltage_rf is None
             assert frequency_rf is None
             assert lag_rf is None
             nargs['longitudinal_mode_flag'] = 1
             nargs['Q_s'] = Q_s
-            nargs['beta_s'] = beta_s
+            nargs['bets'] = bets
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
@@ -1119,7 +1119,7 @@ class LinearTransferMatrix(BeamElement):
             assert lag_rf is not None
             assert momentum_compaction_factor is not None
             assert Q_s is None
-            assert beta_s is None
+            assert bets is None
 
             if slippage_length is None:
                 assert length is not None
@@ -1143,10 +1143,10 @@ class LinearTransferMatrix(BeamElement):
         else:
             raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
 
-        nargs['beta_x_0'] = beta_x_0
-        nargs['beta_y_0'] = beta_y_0
-        nargs['beta_x_1'] = beta_x_1
-        nargs['beta_y_1'] = beta_y_1
+        nargs['betx_0'] = betx_0
+        nargs['bety_0'] = bety_0
+        nargs['betx_1'] = betx_1
+        nargs['bety_1'] = bety_1
         nargs['alpha_x_0'] = alpha_x_0
         nargs['alpha_x_1'] = alpha_x_1
         nargs['alpha_y_0'] = alpha_y_0
@@ -1199,17 +1199,17 @@ class LinearTransferMatrix(BeamElement):
         if equ_emit_x > 0.0:
             assert alpha_x_1 == 0
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/beta_x_1)
-            nargs['gauss_noise_ampl_x'] = beta_x_1*nargs['gauss_noise_ampl_px']
+            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx_1)
+            nargs['gauss_noise_ampl_x'] = betx_1*nargs['gauss_noise_ampl_px']
         if equ_emit_y > 0.0:
             assert alpha_y_1 == 0
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/beta_y_1)
-            nargs['gauss_noise_ampl_y'] = beta_y_1*nargs['gauss_noise_ampl_py']
+            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety_1)
+            nargs['gauss_noise_ampl_y'] = bety_1*nargs['gauss_noise_ampl_py']
         if equ_emit_s > 0.0:
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_delta'] = np.sqrt(equ_emit_s*damping_rate_s/beta_s)
-            nargs['gauss_noise_ampl_zeta'] = beta_s*nargs['gauss_noise_ampl_delta']
+            nargs['gauss_noise_ampl_delta'] = np.sqrt(equ_emit_s*damping_rate_s/bets)
+            nargs['gauss_noise_ampl_zeta'] = bets*nargs['gauss_noise_ampl_delta']
 
         assert gauss_noise_ampl_x >= 0.0
         assert gauss_noise_ampl_px >= 0.0
