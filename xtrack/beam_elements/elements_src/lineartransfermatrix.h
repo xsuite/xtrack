@@ -88,7 +88,7 @@ void add_dispersion(
 
 /*gpufun*/
 void transverse_motion(LocalParticle *part0,
-    double const q_x, double const q_y,
+    double const qx, double const qy,
     double const chroma_x, double const chroma_y,
     double const detx_x, double const detx_y, double const dety_x, double const dety_y,
     double const alpha_x_0, double const beta_x_0, double const alpha_y_0, double const beta_y_0,
@@ -102,10 +102,10 @@ void transverse_motion(LocalParticle *part0,
     }
     else{
         detuning = 0;
-        sin_x = sin(2 * PI * q_x);
-        cos_x = cos(2 * PI * q_x);
-        sin_y = sin(2 * PI * q_y);
-        cos_y = cos(2 * PI * q_y);
+        sin_x = sin(2 * PI * qx);
+        cos_x = cos(2 * PI * qx);
+        sin_y = sin(2 * PI * qy);
+        cos_y = cos(2 * PI * qy);
     }
 
     double const sqrt_beta_prod_x = sqrt(beta_x_1 * beta_x_0);
@@ -131,11 +131,11 @@ void transverse_motion(LocalParticle *part0,
                     * LocalParticle_get_y(part)*LocalParticle_get_py(part)
                 + beta_y_0
                     * LocalParticle_get_py(part)*LocalParticle_get_py(part));
-            double phase = 2*PI*(q_x + chroma_x * LocalParticle_get_delta(part)
+            double phase = 2*PI*(qx + chroma_x * LocalParticle_get_delta(part)
                                 +detx_x * J_x + detx_y * J_y);
             cos_x = cos(phase);
             sin_x = sin(phase);
-            phase = 2*PI*(q_y + chroma_y * LocalParticle_get_delta(part)
+            phase = 2*PI*(qy + chroma_y * LocalParticle_get_delta(part)
                             +dety_x * J_x + dety_y * J_y);
             cos_y = cos(phase);
             sin_y = sin(phase);
@@ -325,8 +325,8 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_disp_py_0(el));
 
     transverse_motion(part0,
-        LinearTransferMatrixData_get_q_x(el),
-        LinearTransferMatrixData_get_q_y(el),
+        LinearTransferMatrixData_get_qx(el),
+        LinearTransferMatrixData_get_qy(el),
         LinearTransferMatrixData_get_chroma_x(el),
         LinearTransferMatrixData_get_chroma_y(el),
         LinearTransferMatrixData_get_detx_x(el),
