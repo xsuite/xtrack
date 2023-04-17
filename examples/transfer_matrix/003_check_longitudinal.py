@@ -31,6 +31,12 @@ bet_s = eta * circumference / (2 * np.pi * qs)
 
 # matrix = xt.SimplifiedAcceleratorSegment(beta_s=bet_s, Q_s=qs)
 matrix = xt.SimplifiedAcceleratorSegment(
+    qx=tw.qx, qy=tw.qy,
+    dqx=tw.dqx, dqy=tw.dqy,
+    betx=tw.betx[0], alfx=tw.alfx[0],
+    bety=tw.bety[0], alfy=tw.alfy[0],
+    dx=tw.dx[0], dpx=tw.dpx[0],
+    dy=tw.dy[0], dpy=tw.dpy[0],
     voltage_rf=line['acta.31637'].voltage,
     frequency_rf=line['acta.31637'].frequency,
     lag_rf=line['acta.31637'].lag,
