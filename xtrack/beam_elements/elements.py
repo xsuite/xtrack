@@ -1016,14 +1016,10 @@ class SimplifiedAcceleratorSegment(BeamElement):
         'y_ref_1': xo.Float64,
         'py_ref_1': xo.Float64,
 
-        'betx_0': xo.Float64,
-        'betx_1': xo.Float64,
-        'bety_0': xo.Float64,
-        'bety_1': xo.Float64,
-        'alfx_0': xo.Float64,
-        'alfx_1': xo.Float64,
-        'alfy_0': xo.Float64,
-        'alfy_1': xo.Float64,
+        'betx': xo.Float64[2],
+        'bety': xo.Float64[2],
+        'alfx': xo.Float64[2],
+        'alfy': xo.Float64[2],
 
         'dx_0': xo.Float64,
         'dx_1': xo.Float64,
@@ -1064,8 +1060,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplifiedacceleratorsegment.h')]
 
     def __init__(self, length=None, qx=0, qy=0,
-            betx_0=1.0, betx_1=1.0, bety_0=1.0, bety_1=1.0,
-            alfx_0=0.0, alfx_1=0.0, alfy_0=0.0, alfy_1=0.0,
+            betx=1., bety=1., alfx=0., alfy=0.,
             dx_0=0.0, dx_1=0.0, dy_0=0.0, dy_1=0.0,
             dpx_0=0.0, dpx_1=0.0, dpy_0=0.0, dpy_1=0.0,
             longitudinal_mode=None,
@@ -1146,14 +1141,25 @@ class SimplifiedAcceleratorSegment(BeamElement):
         else:
             raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
 
-        nargs['betx_0'] = betx_0
-        nargs['bety_0'] = bety_0
-        nargs['betx_1'] = betx_1
-        nargs['bety_1'] = bety_1
-        nargs['alfx_0'] = alfx_0
-        nargs['alfx_1'] = alfx_1
-        nargs['alfy_0'] = alfy_0
-        nargs['alfy_1'] = alfy_1
+
+        if np.isscalar(betx): betx = [betx, betx]
+        else: assert len(betx) == 2
+
+        if np.isscalar(bety): bety = [bety, bety]
+        else: assert len(bety) == 2
+
+        if np.isscalar(alfx): alfx = [alfx, alfx]
+        else: assert len(alfx) == 2
+
+        if np.isscalar(alfy): alfy = [alfy, alfy]
+        else: assert len(alfy) == 2
+
+
+        nargs['betx'] = betx
+        nargs['bety'] = bety
+        nargs['alfx'] = alfx
+        nargs['alfy'] = alfy
+
         nargs['dx_0'] = dx_0
         nargs['dx_1'] = dx_1
         nargs['dy_0'] = dy_0
@@ -1170,6 +1176,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
         nargs['y_ref_1'] = y_ref_1
         nargs['py_ref_0'] = py_ref_0
         nargs['py_ref_1'] = py_ref_1
+
         # acceleration with change of reference momentum
         nargs['energy_ref_increment'] = energy_ref_increment
         # acceleration without change of reference momentum

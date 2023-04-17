@@ -20,35 +20,37 @@ dpx = [0.7, -0.3]
 dpy = [0.4, -0.6]
 bets = 1e-3
 
-segm_1 = xt.SimplifiedAcceleratorSegment(qx=0.4, qy=0.3, qs=0.0001,
-                                 bets = bets, length=0.1,
-                                 betx_0=betx[0], betx_1=betx[1],
-                                 bety_0=bety[0], bety_1=bety[1],
-                                 alfx_0=alfx[0], alfx_1=alfx[1],
-                                 alfy_0=alfy[0], alfy_1=alfy[1],
-                                 dx_0=dx[0], dx_1=dx[1],
-                                 dpx_0=dpx[0], dpx_1=dpx[1],
-                                 dy_0=dy[0], dy_1=dy[1],
-                                 dpy_0=dpy[0], dpy_1=dpy[1],
-                                 x_ref_0=x_co[0], x_ref_1=x_co[1],
-                                 px_ref_0=px_co[0], px_ref_1=px_co[1],
-                                 y_ref_0=y_co[0], y_ref_1=y_co[1],
-                                 py_ref_0=py_co[0], py_ref_1=py_co[1])
-segm_2 = xt.SimplifiedAcceleratorSegment(qx=0.21, qy=0.32, qs=0.0003,
-                                 bets = bets, length=0.2,
-                                 dqx=2., dqy=3.,
-                                 betx_0=betx[1], betx_1=betx[0],
-                                 bety_0=bety[1], bety_1=bety[0],
-                                 alfx_0=alfx[1], alfx_1=alfx[0],
-                                 alfy_0=alfy[1], alfy_1=alfy[0],
-                                 dx_0=dx[1], dx_1=dx[0],
-                                 dpx_0=dpx[1], dpx_1=dpx[0],
-                                 dy_0=dy[1], dy_1=dy[0],
-                                 dpy_0=dpy[1], dpy_1=dpy[0],
-                                 x_ref_0=x_co[1], x_ref_1=x_co[0],
-                                 px_ref_0=px_co[1], px_ref_1=px_co[0],
-                                 y_ref_0=y_co[1], y_ref_1=y_co[0],
-                                 py_ref_0=py_co[1], py_ref_1=py_co[0])
+segm_1 = xt.SimplifiedAcceleratorSegment(
+        qx=0.4, qy=0.3, qs=0.0001,
+        bets = bets, length=0.1,
+        betx=[betx[0], betx[1]],
+        bety=[bety[0], bety[1]],
+        alfx=[alfx[0], alfx[1]],
+        alfy=[alfy[0], alfy[1]],
+        dx_0=dx[0], dx_1=dx[1],
+        dpx_0=dpx[0], dpx_1=dpx[1],
+        dy_0=dy[0], dy_1=dy[1],
+        dpy_0=dpy[0], dpy_1=dpy[1],
+        x_ref_0=x_co[0], x_ref_1=x_co[1],
+        px_ref_0=px_co[0], px_ref_1=px_co[1],
+        y_ref_0=y_co[0], y_ref_1=y_co[1],
+        py_ref_0=py_co[0], py_ref_1=py_co[1])
+segm_2 = xt.SimplifiedAcceleratorSegment(
+    qx=0.21, qy=0.32, qs=0.0003,
+    bets = bets, length=0.2,
+    dqx=2., dqy=3.,
+    betx=[betx[1], betx[0]],
+    bety=[bety[1], bety[0]],
+    alfx=[alfx[1], alfx[0]],
+    alfy=[alfy[1], alfy[0]],
+    dx_0=dx[1], dx_1=dx[0],
+    dpx_0=dpx[1], dpx_1=dpx[0],
+    dy_0=dy[1], dy_1=dy[0],
+    dpy_0=dpy[1], dpy_1=dpy[0],
+    x_ref_0=x_co[1], x_ref_1=x_co[0],
+    px_ref_0=px_co[1], px_ref_1=px_co[0],
+    y_ref_0=y_co[1], y_ref_1=y_co[0],
+    py_ref_0=py_co[1], py_ref_1=py_co[0])
 
 line = xt.Line(elements=[segm_1, segm_2], particle_ref=xp.Particles(p0c=1e9))
 line.build_tracker()

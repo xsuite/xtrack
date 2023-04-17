@@ -333,14 +333,14 @@ void SimplifiedAcceleratorSegment_track_local_particle(SimplifiedAcceleratorSegm
         SimplifiedAcceleratorSegmentData_get_detx_y(el),
         SimplifiedAcceleratorSegmentData_get_dety_x(el),
         SimplifiedAcceleratorSegmentData_get_dety_y(el),
-        SimplifiedAcceleratorSegmentData_get_alfx_0(el),
-        SimplifiedAcceleratorSegmentData_get_betx_0(el),
-        SimplifiedAcceleratorSegmentData_get_alfy_0(el),
-        SimplifiedAcceleratorSegmentData_get_bety_0(el),
-        SimplifiedAcceleratorSegmentData_get_alfx_1(el),
-        SimplifiedAcceleratorSegmentData_get_betx_1(el),
-        SimplifiedAcceleratorSegmentData_get_alfy_1(el),
-        SimplifiedAcceleratorSegmentData_get_bety_1(el));
+        SimplifiedAcceleratorSegmentData_get_alfx(el, 0),
+        SimplifiedAcceleratorSegmentData_get_betx(el, 0),
+        SimplifiedAcceleratorSegmentData_get_alfy(el, 0),
+        SimplifiedAcceleratorSegmentData_get_bety(el, 0),
+        SimplifiedAcceleratorSegmentData_get_alfx(el, 1),
+        SimplifiedAcceleratorSegmentData_get_betx(el, 1),
+        SimplifiedAcceleratorSegmentData_get_alfy(el, 1),
+        SimplifiedAcceleratorSegmentData_get_bety(el, 1));
 
     longitudinal_motion(part0, el);
 
