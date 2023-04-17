@@ -49,6 +49,19 @@ line_matrix.build_tracker()
 line_matrix.track(particle0.copy(), num_turns=500, turn_by_turn_monitor=True)
 mon_matrix = line_matrix.record_last_track
 
+# Match Gaussian distributions
+p_line = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+    nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=20e-2, line=line)
+p_matrix = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+    nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=20e-2, line=line_matrix)
+
+assert np.isclose(np.std(p_line.zeta), np.std(p_matrix.zeta), rtol=1e-2)
+assert np.isclose(np.std(p_line.pzeta), np.std(p_matrix.pzeta), rtol=1e-2)
+assert np.isclose(np.std(p_line.x), np.std(p_matrix.x), rtol=1e-2)
+assert np.isclose(np.std(p_line.px), np.std(p_matrix.px), rtol=1e-2)
+assert np.isclose(np.std(p_line.y), np.std(p_matrix.y), rtol=1e-2)
+assert np.isclose(np.std(p_line.py), np.std(p_matrix.py), rtol=1e-2)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 fig1 = plt.figure(1)
