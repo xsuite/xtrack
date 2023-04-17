@@ -1139,7 +1139,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
                 if np.isscalar(nargs[nn]):
                     nargs[nn] = [nargs[nn]]
             assert (len(nargs['frequency_rf'])
-                    == len(nargs['lag_rf']) 
+                    == len(nargs['lag_rf'])
                     == len(nargs['voltage_rf']))
         elif longitudinal_mode == 'frozen':
             nargs['longitudinal_mode_flag'] = 0
@@ -1231,6 +1231,15 @@ class SimplifiedAcceleratorSegment(BeamElement):
             nargs['gauss_noise_ampl_delta'] = np.sqrt(nargs['gauss_noise_ampl_delta']**2+gauss_noise_ampl_delta**2)
 
         super().__init__(**nargs)
+
+    @property
+    def longitudinal_mode(self):
+        ret = {
+            0: 'frozen',
+            1: 'linear_fixed_qs',
+            2: 'nonlinear'
+        }[self.longitudinal_mode_flag]
+        return ret
 
 class FirstOrderTaylorMap(BeamElement):
 

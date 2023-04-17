@@ -29,8 +29,8 @@ circumference = line.get_length()
 
 bet_s = eta * circumference / (2 * np.pi * qs)
 
-# matrix = xt.LinearTransferMatrix(beta_s=bet_s, Q_s=qs)
-matrix = xt.LinearTransferMatrix(
+# matrix = xt.SimplifiedAcceleratorSegment(beta_s=bet_s, Q_s=qs)
+matrix = xt.SimplifiedAcceleratorSegment(
     voltage_rf=line['acta.31637'].voltage,
     frequency_rf=line['acta.31637'].frequency,
     lag_rf=line['acta.31637'].lag,
