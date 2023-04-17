@@ -984,7 +984,7 @@ class DipoleEdge(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
-class LinearTransferMatrix(BeamElement):
+class SimplifiedAcceleratorSegment(BeamElement):
     _xofields={
         'length': xo.Float64,
 
@@ -1061,7 +1061,7 @@ class LinearTransferMatrix(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/simplifiedacceleratorsegment.h')]
 
     def __init__(self, length=None, qx=0, qy=0,
                      betx_0=1.0, betx_1=1.0, bety_0=1.0, bety_1=1.0,

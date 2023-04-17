@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
 
-#ifndef XTRACK_LINEARTRANSFERMATRIX_H
-#define XTRACK_LINEARTRANSFERMATRIX_H
+#ifndef XTRACK_SIMPLIFIEDACCELERATORSEGMENT_H
+#define XTRACK_SIMPLIFIEDACCELERATORSEGMENT_H
 
 /*gpufun*/
 void remove_closed_orbit(
@@ -168,13 +168,13 @@ void transverse_motion(LocalParticle *part0,
 }
 
 void longitudinal_motion(LocalParticle *part0,
-                         LinearTransferMatrixData el){
+                         SimplifiedAcceleratorSegmentData el){
 
-    int64_t const mode_flag = LinearTransferMatrixData_get_longitudinal_mode_flag(el);
+    int64_t const mode_flag = SimplifiedAcceleratorSegmentData_get_longitudinal_mode_flag(el);
 
     if (mode_flag==1){ // linear motion fixed qs
-        double const qs = LinearTransferMatrixData_get_qs(el);
-        double const bets = LinearTransferMatrixData_get_bets(el);
+        double const qs = SimplifiedAcceleratorSegmentData_get_qs(el);
+        double const bets = SimplifiedAcceleratorSegmentData_get_bets(el);
         double const sin_s = sin(2 * PI * qs);
         double const cos_s = cos(2 * PI * qs);
         //start_per_particle_block (part->part)
@@ -190,9 +190,9 @@ void longitudinal_motion(LocalParticle *part0,
     else if (mode_flag==2){ // non-linear motion
 
         double const alfp =
-            LinearTransferMatrixData_get_momentum_compaction_factor(el);
+            SimplifiedAcceleratorSegmentData_get_momentum_compaction_factor(el);
         double const slippage_length =
-            LinearTransferMatrixData_get_slippage_length(el);
+            SimplifiedAcceleratorSegmentData_get_slippage_length(el);
 
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
@@ -201,12 +201,12 @@ void longitudinal_motion(LocalParticle *part0,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
 
-        int64_t const n_rf = LinearTransferMatrixData_len_voltage_rf(el);
+        int64_t const n_rf = SimplifiedAcceleratorSegmentData_len_voltage_rf(el);
         for (int i_rf=0; i_rf<n_rf; i_rf++){
 
-            double const v_rf = LinearTransferMatrixData_get_voltage_rf(el,i_rf);
-            double const f_rf = LinearTransferMatrixData_get_frequency_rf(el,i_rf);
-            double const lag_rf = LinearTransferMatrixData_get_lag_rf(el,i_rf);
+            double const v_rf = SimplifiedAcceleratorSegmentData_get_voltage_rf(el,i_rf);
+            double const f_rf = SimplifiedAcceleratorSegmentData_get_frequency_rf(el,i_rf);
+            double const lag_rf = SimplifiedAcceleratorSegmentData_get_lag_rf(el,i_rf);
 
             if (f_rf == 0) continue;
 
@@ -309,75 +309,75 @@ void uncorrelated_gaussian_noise(LocalParticle *part0,
 }
 
 /*gpufun*/
-void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, LocalParticle* part0){
+void SimplifiedAcceleratorSegment_track_local_particle(SimplifiedAcceleratorSegmentData el, LocalParticle* part0){
 
 
     remove_closed_orbit(part0,
-        LinearTransferMatrixData_get_x_ref_0(el),
-        LinearTransferMatrixData_get_px_ref_0(el),
-        LinearTransferMatrixData_get_y_ref_0(el),
-        LinearTransferMatrixData_get_py_ref_0(el));
+        SimplifiedAcceleratorSegmentData_get_x_ref_0(el),
+        SimplifiedAcceleratorSegmentData_get_px_ref_0(el),
+        SimplifiedAcceleratorSegmentData_get_y_ref_0(el),
+        SimplifiedAcceleratorSegmentData_get_py_ref_0(el));
 
     remove_dispersion(part0,
-        LinearTransferMatrixData_get_dx_0(el),
-        LinearTransferMatrixData_get_dpx_0(el),
-        LinearTransferMatrixData_get_dy_0(el),
-        LinearTransferMatrixData_get_dpy_0(el));
+        SimplifiedAcceleratorSegmentData_get_dx_0(el),
+        SimplifiedAcceleratorSegmentData_get_dpx_0(el),
+        SimplifiedAcceleratorSegmentData_get_dy_0(el),
+        SimplifiedAcceleratorSegmentData_get_dpy_0(el));
 
     transverse_motion(part0,
-        LinearTransferMatrixData_get_qx(el),
-        LinearTransferMatrixData_get_qy(el),
-        LinearTransferMatrixData_get_dqx(el),
-        LinearTransferMatrixData_get_dqy(el),
-        LinearTransferMatrixData_get_detx_x(el),
-        LinearTransferMatrixData_get_detx_y(el),
-        LinearTransferMatrixData_get_dety_x(el),
-        LinearTransferMatrixData_get_dety_y(el),
-        LinearTransferMatrixData_get_alfx_0(el),
-        LinearTransferMatrixData_get_betx_0(el),
-        LinearTransferMatrixData_get_alfy_0(el),
-        LinearTransferMatrixData_get_bety_0(el),
-        LinearTransferMatrixData_get_alfx_1(el),
-        LinearTransferMatrixData_get_betx_1(el),
-        LinearTransferMatrixData_get_alfy_1(el),
-        LinearTransferMatrixData_get_bety_1(el));
+        SimplifiedAcceleratorSegmentData_get_qx(el),
+        SimplifiedAcceleratorSegmentData_get_qy(el),
+        SimplifiedAcceleratorSegmentData_get_dqx(el),
+        SimplifiedAcceleratorSegmentData_get_dqy(el),
+        SimplifiedAcceleratorSegmentData_get_detx_x(el),
+        SimplifiedAcceleratorSegmentData_get_detx_y(el),
+        SimplifiedAcceleratorSegmentData_get_dety_x(el),
+        SimplifiedAcceleratorSegmentData_get_dety_y(el),
+        SimplifiedAcceleratorSegmentData_get_alfx_0(el),
+        SimplifiedAcceleratorSegmentData_get_betx_0(el),
+        SimplifiedAcceleratorSegmentData_get_alfy_0(el),
+        SimplifiedAcceleratorSegmentData_get_bety_0(el),
+        SimplifiedAcceleratorSegmentData_get_alfx_1(el),
+        SimplifiedAcceleratorSegmentData_get_betx_1(el),
+        SimplifiedAcceleratorSegmentData_get_alfy_1(el),
+        SimplifiedAcceleratorSegmentData_get_bety_1(el));
 
     longitudinal_motion(part0, el);
 
     energy_and_reference_increments(part0,
-        LinearTransferMatrixData_get_energy_increment(el),
-        LinearTransferMatrixData_get_energy_ref_increment(el));
+        SimplifiedAcceleratorSegmentData_get_energy_increment(el),
+        SimplifiedAcceleratorSegmentData_get_energy_ref_increment(el));
 
-    if (LinearTransferMatrixData_get_uncorrelated_rad_damping(el) == 1){
+    if (SimplifiedAcceleratorSegmentData_get_uncorrelated_rad_damping(el) == 1){
         uncorrelated_radiation_damping(part0,
-            LinearTransferMatrixData_get_damping_factor_x(el),
-            LinearTransferMatrixData_get_damping_factor_y(el),
-            LinearTransferMatrixData_get_damping_factor_s(el));
+            SimplifiedAcceleratorSegmentData_get_damping_factor_x(el),
+            SimplifiedAcceleratorSegmentData_get_damping_factor_y(el),
+            SimplifiedAcceleratorSegmentData_get_damping_factor_s(el));
     }
 
-    if (LinearTransferMatrixData_get_uncorrelated_gauss_noise(el) == 1){
+    if (SimplifiedAcceleratorSegmentData_get_uncorrelated_gauss_noise(el) == 1){
         uncorrelated_gaussian_noise(part0,
-            LinearTransferMatrixData_get_gauss_noise_ampl_x(el),
-            LinearTransferMatrixData_get_gauss_noise_ampl_px(el),
-            LinearTransferMatrixData_get_gauss_noise_ampl_y(el),
-            LinearTransferMatrixData_get_gauss_noise_ampl_py(el),
-            LinearTransferMatrixData_get_gauss_noise_ampl_zeta(el),
-            LinearTransferMatrixData_get_gauss_noise_ampl_delta(el));
+            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_x(el),
+            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_px(el),
+            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_y(el),
+            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_py(el),
+            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_zeta(el),
+            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_delta(el));
     }
 
     add_dispersion(part0,
-        LinearTransferMatrixData_get_dx_1(el),
-        LinearTransferMatrixData_get_dpx_1(el),
-        LinearTransferMatrixData_get_dy_1(el),
-        LinearTransferMatrixData_get_dpy_1(el));
+        SimplifiedAcceleratorSegmentData_get_dx_1(el),
+        SimplifiedAcceleratorSegmentData_get_dpx_1(el),
+        SimplifiedAcceleratorSegmentData_get_dy_1(el),
+        SimplifiedAcceleratorSegmentData_get_dpy_1(el));
 
     add_closed_orbit(part0,
-        LinearTransferMatrixData_get_x_ref_1(el),
-        LinearTransferMatrixData_get_px_ref_1(el),
-        LinearTransferMatrixData_get_y_ref_1(el),
-        LinearTransferMatrixData_get_py_ref_1(el));
+        SimplifiedAcceleratorSegmentData_get_x_ref_1(el),
+        SimplifiedAcceleratorSegmentData_get_px_ref_1(el),
+        SimplifiedAcceleratorSegmentData_get_y_ref_1(el),
+        SimplifiedAcceleratorSegmentData_get_py_ref_1(el));
 
-    double const length = LinearTransferMatrixData_get_length(el);
+    double const length = SimplifiedAcceleratorSegmentData_get_length(el);
     //start_per_particle_block (part0->part)
         LocalParticle_add_to_s(part, length);
     //end_per_particle_block
