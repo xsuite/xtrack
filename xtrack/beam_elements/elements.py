@@ -999,7 +999,7 @@ class LinearTransferMatrix(BeamElement):
         'dety_x': xo.Float64,
 
         'longitudinal_mode_flag': xo.Int64,
-        'Q_s': xo.Float64,
+        'qs': xo.Float64,
         'bets': xo.Float64,
         'momentum_compaction_factor': xo.Float64,
         'slippage_length': xo.Float64,
@@ -1024,14 +1024,15 @@ class LinearTransferMatrix(BeamElement):
         'alfx_1': xo.Float64,
         'alfy_0': xo.Float64,
         'alfy_1': xo.Float64,
-        'disp_x_0': xo.Float64,
-        'disp_x_1': xo.Float64,
-        'disp_y_0': xo.Float64,
-        'disp_y_1': xo.Float64,
-        'disp_px_0': xo.Float64,
-        'disp_px_1': xo.Float64,
-        'disp_py_0': xo.Float64,
-        'disp_py_1': xo.Float64,
+
+        'dx_0': xo.Float64,
+        'dx_1': xo.Float64,
+        'dy_0': xo.Float64,
+        'dy_1': xo.Float64,
+        'dpx_0': xo.Float64,
+        'dpx_1': xo.Float64,
+        'dpy_0': xo.Float64,
+        'dpy_1': xo.Float64,
 
         'energy_ref_increment': xo.Float64,
         'energy_increment': xo.Float64,
@@ -1065,10 +1066,10 @@ class LinearTransferMatrix(BeamElement):
     def __init__(self, length=None, qx=0, qy=0,
                      betx_0=1.0, betx_1=1.0, bety_0=1.0, bety_1=1.0,
                      alfx_0=0.0, alfx_1=0.0, alfy_0=0.0, alfy_1=0.0,
-                     disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
-                     disp_px_0=0.0, disp_px_1=0.0, disp_py_0=0.0, disp_py_1=0.0,
+                     dx_0=0.0, dx_1=0.0, dy_0=0.0, dy_1=0.0,
+                     dpx_0=0.0, dpx_1=0.0, dpy_0=0.0, dpy_1=0.0,
                      longitudinal_mode=None,
-                     Q_s=None, bets=None,
+                     qs=None, bets=None,
                      momentum_compaction_factor=None,
                      slippage_length=None,
                      voltage_rf=None, frequency_rf=None, lag_rf=None,
@@ -1093,7 +1094,7 @@ class LinearTransferMatrix(BeamElement):
         nargs['length'] = length
 
         if longitudinal_mode is None:
-            if Q_s is not None:
+            if qs is not None:
                 longitudinal_mode = 'linear_fixed_qs'
             elif voltage_rf is not None:
                 longitudinal_mode = 'nonlinear'
@@ -1101,14 +1102,14 @@ class LinearTransferMatrix(BeamElement):
                 longitudinal_mode = 'frozen'
 
         if longitudinal_mode == 'linear_fixed_qs':
-            assert Q_s is not None
+            assert qs is not None
             assert bets is not None
             assert momentum_compaction_factor is None
             assert voltage_rf is None
             assert frequency_rf is None
             assert lag_rf is None
             nargs['longitudinal_mode_flag'] = 1
-            nargs['Q_s'] = Q_s
+            nargs['qs'] = qs
             nargs['bets'] = bets
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
@@ -1118,7 +1119,7 @@ class LinearTransferMatrix(BeamElement):
             assert frequency_rf is not None
             assert lag_rf is not None
             assert momentum_compaction_factor is not None
-            assert Q_s is None
+            assert qs is None
             assert bets is None
 
             if slippage_length is None:
@@ -1151,14 +1152,14 @@ class LinearTransferMatrix(BeamElement):
         nargs['alfx_1'] = alfx_1
         nargs['alfy_0'] = alfy_0
         nargs['alfy_1'] = alfy_1
-        nargs['disp_x_0'] = disp_x_0
-        nargs['disp_x_1'] = disp_x_1
-        nargs['disp_y_0'] = disp_y_0
-        nargs['disp_y_1'] = disp_y_1
-        nargs['disp_px_0'] = disp_px_0
-        nargs['disp_px_1'] = disp_px_1
-        nargs['disp_py_0'] = disp_py_0
-        nargs['disp_py_1'] = disp_py_1
+        nargs['dx_0'] = dx_0
+        nargs['dx_1'] = dx_1
+        nargs['dy_0'] = dy_0
+        nargs['dy_1'] = dy_1
+        nargs['dpx_0'] = dpx_0
+        nargs['dpx_1'] = dpx_1
+        nargs['dpy_0'] = dpy_0
+        nargs['dpy_1'] = dpy_1
         nargs['x_ref_0'] = x_ref_0
         nargs['x_ref_1'] = x_ref_1
         nargs['px_ref_0'] = px_ref_0

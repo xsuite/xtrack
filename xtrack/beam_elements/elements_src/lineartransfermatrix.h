@@ -38,24 +38,24 @@ void add_closed_orbit(
 
 /*gpufun*/
 void remove_dispersion(
-    LocalParticle* part0, double const disp_x_0, double const disp_px_0,
-    double const disp_y_0, double const disp_py_0){
+    LocalParticle* part0, double const dx_0, double const dpx_0,
+    double const dy_0, double const dpy_0){
 
     //start_per_particle_block (part0->part)
 
         // Remove dispersion
         // Symplecticity correction (not working, to be investigated)
         // LocalParticle_add_to_zeta(part, (
-        //     disp_px_0 * LocalParticle_get_x(part)
-        //     - disp_x_0 * LocalParticle_get_px(part)
-        //     + disp_py_0 * LocalParticle_get_y(part)
-        //     - disp_y_0 * LocalParticle_get_py(part)
+        //     dpx_0 * LocalParticle_get_x(part)
+        //     - dx_0 * LocalParticle_get_px(part)
+        //     + dpy_0 * LocalParticle_get_y(part)
+        //     - dy_0 * LocalParticle_get_py(part)
         //     )/LocalParticle_get_rvv(part));
         double const delta = LocalParticle_get_delta(part);
-        LocalParticle_add_to_x(part, -disp_x_0 * delta);
-        LocalParticle_add_to_px(part, -disp_px_0 * delta);
-        LocalParticle_add_to_y(part, -disp_y_0 * delta);
-        LocalParticle_add_to_py(part, -disp_py_0 * delta);
+        LocalParticle_add_to_x(part, -dx_0 * delta);
+        LocalParticle_add_to_px(part, -dpx_0 * delta);
+        LocalParticle_add_to_y(part, -dy_0 * delta);
+        LocalParticle_add_to_py(part, -dpy_0 * delta);
 
     //end_per_particle_block
 
@@ -63,24 +63,24 @@ void remove_dispersion(
 
 /*gpufun*/
 void add_dispersion(
-    LocalParticle* part0, double const disp_x_1, double const disp_px_1,
-    double const disp_y_1, double const disp_py_1){
+    LocalParticle* part0, double const dx_1, double const dpx_1,
+    double const dy_1, double const dpy_1){
 
     //start_per_particle_block (part0->part)
 
         // Add dispersion
         // Symplecticity correction (not working, to be investigated)
         // LocalParticle_add_to_zeta(part, (
-        //     disp_px_1 * LocalParticle_get_x(part)
-        //     - disp_x_1 * LocalParticle_get_px(part)
-        //     + disp_py_1 * LocalParticle_get_y(part)
-        //     - disp_y_1 * LocalParticle_get_py(part)
+        //     dpx_1 * LocalParticle_get_x(part)
+        //     - dx_1 * LocalParticle_get_px(part)
+        //     + dpy_1 * LocalParticle_get_y(part)
+        //     - dy_1 * LocalParticle_get_py(part)
         //     )/LocalParticle_get_rvv(part));
         double const delta = LocalParticle_get_delta(part);
-        LocalParticle_add_to_x(part, disp_x_1 * delta);
-        LocalParticle_add_to_px(part, disp_px_1 * delta);
-        LocalParticle_add_to_y(part, disp_y_1 * delta);
-        LocalParticle_add_to_py(part, disp_py_1 * delta);
+        LocalParticle_add_to_x(part, dx_1 * delta);
+        LocalParticle_add_to_px(part, dpx_1 * delta);
+        LocalParticle_add_to_y(part, dy_1 * delta);
+        LocalParticle_add_to_py(part, dpy_1 * delta);
 
     //end_per_particle_block
 
@@ -173,10 +173,10 @@ void longitudinal_motion(LocalParticle *part0,
     int64_t const mode_flag = LinearTransferMatrixData_get_longitudinal_mode_flag(el);
 
     if (mode_flag==1){ // linear motion fixed qs
-        double const Q_s = LinearTransferMatrixData_get_Q_s(el);
+        double const qs = LinearTransferMatrixData_get_qs(el);
         double const bets = LinearTransferMatrixData_get_bets(el);
-        double const sin_s = sin(2 * PI * Q_s);
-        double const cos_s = cos(2 * PI * Q_s);
+        double const sin_s = sin(2 * PI * qs);
+        double const cos_s = cos(2 * PI * qs);
         //start_per_particle_block (part->part)
             // We set cos_s = 999 if long map is to be skipped
             double const new_zeta = cos_s * LocalParticle_get_zeta(part) - bets * sin_s * LocalParticle_get_pzeta(part);
@@ -319,10 +319,10 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_py_ref_0(el));
 
     remove_dispersion(part0,
-        LinearTransferMatrixData_get_disp_x_0(el),
-        LinearTransferMatrixData_get_disp_px_0(el),
-        LinearTransferMatrixData_get_disp_y_0(el),
-        LinearTransferMatrixData_get_disp_py_0(el));
+        LinearTransferMatrixData_get_dx_0(el),
+        LinearTransferMatrixData_get_dpx_0(el),
+        LinearTransferMatrixData_get_dy_0(el),
+        LinearTransferMatrixData_get_dpy_0(el));
 
     transverse_motion(part0,
         LinearTransferMatrixData_get_qx(el),
@@ -366,10 +366,10 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     }
 
     add_dispersion(part0,
-        LinearTransferMatrixData_get_disp_x_1(el),
-        LinearTransferMatrixData_get_disp_px_1(el),
-        LinearTransferMatrixData_get_disp_y_1(el),
-        LinearTransferMatrixData_get_disp_py_1(el));
+        LinearTransferMatrixData_get_dx_1(el),
+        LinearTransferMatrixData_get_dpx_1(el),
+        LinearTransferMatrixData_get_dy_1(el),
+        LinearTransferMatrixData_get_dpy_1(el));
 
     add_closed_orbit(part0,
         LinearTransferMatrixData_get_x_ref_1(el),
