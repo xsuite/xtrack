@@ -1021,14 +1021,10 @@ class SimplifiedAcceleratorSegment(BeamElement):
         'alfx': xo.Float64[2],
         'alfy': xo.Float64[2],
 
-        'dx_0': xo.Float64,
-        'dx_1': xo.Float64,
-        'dy_0': xo.Float64,
-        'dy_1': xo.Float64,
-        'dpx_0': xo.Float64,
-        'dpx_1': xo.Float64,
-        'dpy_0': xo.Float64,
-        'dpy_1': xo.Float64,
+        'dx': xo.Float64[2],
+        'dpx': xo.Float64[2],
+        'dy': xo.Float64[2],
+        'dpy': xo.Float64[2],
 
         'energy_ref_increment': xo.Float64,
         'energy_increment': xo.Float64,
@@ -1061,8 +1057,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
 
     def __init__(self, length=None, qx=0, qy=0,
             betx=1., bety=1., alfx=0., alfy=0.,
-            dx_0=0.0, dx_1=0.0, dy_0=0.0, dy_1=0.0,
-            dpx_0=0.0, dpx_1=0.0, dpy_0=0.0, dpy_1=0.0,
+            dx=0., dpx=0., dy=0., dpy=0.,
             longitudinal_mode=None,
             qs=None, bets=None,
             momentum_compaction_factor=None,
@@ -1154,20 +1149,27 @@ class SimplifiedAcceleratorSegment(BeamElement):
         if np.isscalar(alfy): alfy = [alfy, alfy]
         else: assert len(alfy) == 2
 
+        if np.isscalar(dx): dx = [dx, dx]
+        else: assert len(dx) == 2
+
+        if np.isscalar(dpx): dpx = [dpx, dpx]
+        else: assert len(dpx) == 2
+
+        if np.isscalar(dy): dy = [dy, dy]
+        else: assert len(dy) == 2
+
+        if np.isscalar(dpy): dpy = [dpy, dpy]
+        else: assert len(dpy) == 2
 
         nargs['betx'] = betx
         nargs['bety'] = bety
         nargs['alfx'] = alfx
         nargs['alfy'] = alfy
+        nargs['dx'] = dx
+        nargs['dpx'] = dpx
+        nargs['dy'] = dy
+        nargs['dpy'] = dpy
 
-        nargs['dx_0'] = dx_0
-        nargs['dx_1'] = dx_1
-        nargs['dy_0'] = dy_0
-        nargs['dy_1'] = dy_1
-        nargs['dpx_0'] = dpx_0
-        nargs['dpx_1'] = dpx_1
-        nargs['dpy_0'] = dpy_0
-        nargs['dpy_1'] = dpy_1
         nargs['x_ref_0'] = x_ref_0
         nargs['x_ref_1'] = x_ref_1
         nargs['px_ref_0'] = px_ref_0

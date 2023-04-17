@@ -319,10 +319,10 @@ void SimplifiedAcceleratorSegment_track_local_particle(SimplifiedAcceleratorSegm
         SimplifiedAcceleratorSegmentData_get_py_ref_0(el));
 
     remove_dispersion(part0,
-        SimplifiedAcceleratorSegmentData_get_dx_0(el),
-        SimplifiedAcceleratorSegmentData_get_dpx_0(el),
-        SimplifiedAcceleratorSegmentData_get_dy_0(el),
-        SimplifiedAcceleratorSegmentData_get_dpy_0(el));
+        SimplifiedAcceleratorSegmentData_get_dx(el, 0),
+        SimplifiedAcceleratorSegmentData_get_dpx(el, 0),
+        SimplifiedAcceleratorSegmentData_get_dy(el, 0),
+        SimplifiedAcceleratorSegmentData_get_dpy(el, 0));
 
     transverse_motion(part0,
         SimplifiedAcceleratorSegmentData_get_qx(el),
@@ -366,10 +366,10 @@ void SimplifiedAcceleratorSegment_track_local_particle(SimplifiedAcceleratorSegm
     }
 
     add_dispersion(part0,
-        SimplifiedAcceleratorSegmentData_get_dx_1(el),
-        SimplifiedAcceleratorSegmentData_get_dpx_1(el),
-        SimplifiedAcceleratorSegmentData_get_dy_1(el),
-        SimplifiedAcceleratorSegmentData_get_dpy_1(el));
+        SimplifiedAcceleratorSegmentData_get_dx(el, 1),
+        SimplifiedAcceleratorSegmentData_get_dpx(el, 1),
+        SimplifiedAcceleratorSegmentData_get_dy(el, 1),
+        SimplifiedAcceleratorSegmentData_get_dpy(el, 1));
 
     add_closed_orbit(part0,
         SimplifiedAcceleratorSegmentData_get_x_ref_1(el),
