@@ -988,8 +988,8 @@ class LinearTransferMatrix(BeamElement):
     _xofields={
         'length': xo.Float64,
 
-        'q_x': xo.Float64,
-        'q_y': xo.Float64,
+        'qx': xo.Float64,
+        'qy': xo.Float64,
 
         'chroma_x': xo.Float64,
         'chroma_y': xo.Float64,
@@ -1062,7 +1062,7 @@ class LinearTransferMatrix(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/lineartransfermatrix.h')]
 
-    def __init__(self, length=None, Q_x=0, Q_y=0,
+    def __init__(self, length=None, qx=0, qy=0,
                      beta_x_0=1.0, beta_x_1=1.0, beta_y_0=1.0, beta_y_1=1.0,
                      alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
                      disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
@@ -1082,8 +1082,8 @@ class LinearTransferMatrix(BeamElement):
                      gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
                      **nargs):
 
-        nargs['q_x'] = Q_x
-        nargs['q_y'] = Q_y
+        nargs['qx'] = qx
+        nargs['qy'] = qy
         nargs['chroma_x'] = chroma_x
         nargs['chroma_y'] = chroma_y
         nargs['detx_x'] = detx_x
