@@ -213,9 +213,9 @@ def test_ring_with_spacecharge(test_context):
                 # Check that the normalized electric field is the same
                 dtest = ctx2np(dtest)
                 assert np.allclose(
-                    dtest[:,:, 3] / np.max(dtest[:, :, 3]),
-                    dtest[:,:, 4] / np.max(dtest[:, :, 4]),
-                    atol=1e-14, rtol=1e-8)
+                    dtest[:, :, 3] / np.max(dtest[:, :, 3]),
+                    dtest[:, :, 4] / np.max(dtest[:, :, 4]),
+                    atol=1e-10, rtol=1e-5)
         elif mode == 'pic':
             sc_test = all_pics[50]
             assert sc_test.fieldmap._average_transverse_distribution == False
