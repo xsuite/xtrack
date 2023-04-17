@@ -62,6 +62,18 @@ assert np.isclose(np.std(p_line.px), np.std(p_matrix.px), rtol=1e-2)
 assert np.isclose(np.std(p_line.y), np.std(p_matrix.y), rtol=1e-2)
 assert np.isclose(np.std(p_line.py), np.std(p_matrix.py), rtol=1e-2)
 
+tw_line = line.twiss()
+tw_matrix = line_matrix.twiss()
+
+assert np.isclose(np.mod(tw_line.qx, 1), np.mod(tw_matrix.qx, 1), atol=1e-5, rtol=0)
+assert np.isclose(np.mod(tw_line.qy, 1), np.mod(tw_matrix.qy, 1), atol=1e-5, rtol=0)
+
+# TO BE CONTINUED....
+
+
+
+
+
 import matplotlib.pyplot as plt
 plt.close('all')
 fig1 = plt.figure(1)
@@ -79,7 +91,7 @@ ax1.legend()
 
 fig1.subplots_adjust(left=0.2)
 
-particles_dp0 = line.build_particles(x_norm=0, y_norm=0, 
+particles_dp0 = line.build_particles(x_norm=0, y_norm=0,
         delta=np.linspace(-5e-3, 5e-3, 41))
 line_matrix.track(particles_dp0.copy(), num_turns=500, turn_by_turn_monitor=True)
 mon_matrix_dp = line_matrix.record_last_track
