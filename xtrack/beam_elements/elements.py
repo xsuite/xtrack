@@ -1020,10 +1020,10 @@ class LinearTransferMatrix(BeamElement):
         'betx_1': xo.Float64,
         'bety_0': xo.Float64,
         'bety_1': xo.Float64,
-        'alpha_x_0': xo.Float64,
-        'alpha_x_1': xo.Float64,
-        'alpha_y_0': xo.Float64,
-        'alpha_y_1': xo.Float64,
+        'alfx_0': xo.Float64,
+        'alfx_1': xo.Float64,
+        'alfy_0': xo.Float64,
+        'alfy_1': xo.Float64,
         'disp_x_0': xo.Float64,
         'disp_x_1': xo.Float64,
         'disp_y_0': xo.Float64,
@@ -1064,7 +1064,7 @@ class LinearTransferMatrix(BeamElement):
 
     def __init__(self, length=None, qx=0, qy=0,
                      betx_0=1.0, betx_1=1.0, bety_0=1.0, bety_1=1.0,
-                     alpha_x_0=0.0, alpha_x_1=0.0, alpha_y_0=0.0, alpha_y_1=0.0,
+                     alfx_0=0.0, alfx_1=0.0, alfy_0=0.0, alfy_1=0.0,
                      disp_x_0=0.0, disp_x_1=0.0, disp_y_0=0.0, disp_y_1=0.0,
                      disp_px_0=0.0, disp_px_1=0.0, disp_py_0=0.0, disp_py_1=0.0,
                      longitudinal_mode=None,
@@ -1147,10 +1147,10 @@ class LinearTransferMatrix(BeamElement):
         nargs['bety_0'] = bety_0
         nargs['betx_1'] = betx_1
         nargs['bety_1'] = bety_1
-        nargs['alpha_x_0'] = alpha_x_0
-        nargs['alpha_x_1'] = alpha_x_1
-        nargs['alpha_y_0'] = alpha_y_0
-        nargs['alpha_y_1'] = alpha_y_1
+        nargs['alfx_0'] = alfx_0
+        nargs['alfx_1'] = alfx_1
+        nargs['alfy_0'] = alfy_0
+        nargs['alfy_1'] = alfy_1
         nargs['disp_x_0'] = disp_x_0
         nargs['disp_x_1'] = disp_x_1
         nargs['disp_y_0'] = disp_y_0
@@ -1197,12 +1197,12 @@ class LinearTransferMatrix(BeamElement):
         assert equ_emit_s >= 0.0
 
         if equ_emit_x > 0.0:
-            assert alpha_x_1 == 0
+            assert alfx_1 == 0
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx_1)
             nargs['gauss_noise_ampl_x'] = betx_1*nargs['gauss_noise_ampl_px']
         if equ_emit_y > 0.0:
-            assert alpha_y_1 == 0
+            assert alfy_1 == 0
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety_1)
             nargs['gauss_noise_ampl_y'] = bety_1*nargs['gauss_noise_ampl_py']

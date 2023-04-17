@@ -91,8 +91,8 @@ void transverse_motion(LocalParticle *part0,
     double const qx, double const qy,
     double const dqx, double const dqy,
     double const detx_x, double const detx_y, double const dety_x, double const dety_y,
-    double const alpha_x_0, double const betx_0, double const alpha_y_0, double const bety_0,
-    double const alpha_x_1, double const betx_1, double const alpha_y_1, double const bety_1){
+    double const alfx_0, double const betx_0, double const alfy_0, double const bety_0,
+    double const alfx_1, double const betx_1, double const alfy_1, double const bety_1){
 
     int64_t detuning;
     double sin_x, cos_x, sin_y, cos_y;
@@ -118,16 +118,16 @@ void transverse_motion(LocalParticle *part0,
 
         if (detuning){
             double const J_x = 0.5 * (
-                (1.0 + alpha_x_0 * alpha_x_0) / betx_0
+                (1.0 + alfx_0 * alfx_0) / betx_0
                     * LocalParticle_get_x(part)*LocalParticle_get_x(part)
-                + 2 * alpha_x_0
+                + 2 * alfx_0
                     * LocalParticle_get_x(part)*LocalParticle_get_px(part)
                 + betx_0
                     * LocalParticle_get_px(part)*LocalParticle_get_px(part));
             double const J_y = 0.5 * (
-                (1.0 + alpha_y_0 * alpha_y_0) /bety_0
+                (1.0 + alfy_0 * alfy_0) /bety_0
                     * LocalParticle_get_y(part)*LocalParticle_get_y(part)
-                + 2*alpha_y_0
+                + 2*alfy_0
                     * LocalParticle_get_y(part)*LocalParticle_get_py(part)
                 + bety_0
                     * LocalParticle_get_py(part)*LocalParticle_get_py(part));
@@ -141,18 +141,18 @@ void transverse_motion(LocalParticle *part0,
             sin_y = sin(phase);
         }
 
-        double const M00_x = sqrt_betratio_x*(cos_x+alpha_x_0*sin_x);
+        double const M00_x = sqrt_betratio_x*(cos_x+alfx_0*sin_x);
         double const M01_x = sqrt_betprod_x*sin_x;
-        double const M10_x = ((alpha_x_0-alpha_x_1)*cos_x
-                    -(1+alpha_x_0*alpha_x_1)*sin_x
+        double const M10_x = ((alfx_0-alfx_1)*cos_x
+                    -(1+alfx_0*alfx_1)*sin_x
                     )/sqrt_betprod_x;
-        double const M11_x = (cos_x-alpha_x_1*sin_x)/sqrt_betratio_x;
-        double const M00_y = sqrt_betratio_y*(cos_y+alpha_y_0*sin_y);
+        double const M11_x = (cos_x-alfx_1*sin_x)/sqrt_betratio_x;
+        double const M00_y = sqrt_betratio_y*(cos_y+alfy_0*sin_y);
         double const M01_y = sqrt_betprod_y*sin_y;
-        double const M10_y = ((alpha_y_0-alpha_y_1)*cos_y
-                    -(1+alpha_y_0*alpha_y_1)*sin_y
+        double const M10_y = ((alfy_0-alfy_1)*cos_y
+                    -(1+alfy_0*alfy_1)*sin_y
                     )/sqrt_betprod_y;
-        double const M11_y = (cos_y-alpha_y_1*sin_y)/sqrt_betratio_y;
+        double const M11_y = (cos_y-alfy_1*sin_y)/sqrt_betratio_y;
 
         double const x_out = M00_x*LocalParticle_get_x(part) + M01_x * LocalParticle_get_px(part);
         double const px_out = M10_x*LocalParticle_get_x(part) + M11_x * LocalParticle_get_px(part);
@@ -189,14 +189,14 @@ void longitudinal_motion(LocalParticle *part0,
     }
     else if (mode_flag==2){ // non-linear motion
 
-        double const alpha_p =
+        double const alfp =
             LinearTransferMatrixData_get_momentum_compaction_factor(el);
         double const slippage_length =
             LinearTransferMatrixData_get_slippage_length(el);
 
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
-            double const eta = alpha_p - 1.0 / (gamma0 * gamma0);
+            double const eta = alfp - 1.0 / (gamma0 * gamma0);
             LocalParticle_add_to_zeta(part,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
@@ -225,7 +225,7 @@ void longitudinal_motion(LocalParticle *part0,
 
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
-            double const eta = alpha_p - 1.0 / (gamma0 * gamma0);
+            double const eta = alfp - 1.0 / (gamma0 * gamma0);
             LocalParticle_add_to_zeta(part,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
@@ -333,13 +333,13 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
         LinearTransferMatrixData_get_detx_y(el),
         LinearTransferMatrixData_get_dety_x(el),
         LinearTransferMatrixData_get_dety_y(el),
-        LinearTransferMatrixData_get_alpha_x_0(el),
+        LinearTransferMatrixData_get_alfx_0(el),
         LinearTransferMatrixData_get_betx_0(el),
-        LinearTransferMatrixData_get_alpha_y_0(el),
+        LinearTransferMatrixData_get_alfy_0(el),
         LinearTransferMatrixData_get_bety_0(el),
-        LinearTransferMatrixData_get_alpha_x_1(el),
+        LinearTransferMatrixData_get_alfx_1(el),
         LinearTransferMatrixData_get_betx_1(el),
-        LinearTransferMatrixData_get_alpha_y_1(el),
+        LinearTransferMatrixData_get_alfy_1(el),
         LinearTransferMatrixData_get_bety_1(el));
 
     longitudinal_motion(part0, el);
