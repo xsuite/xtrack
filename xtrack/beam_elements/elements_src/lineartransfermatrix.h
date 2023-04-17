@@ -89,14 +89,14 @@ void add_dispersion(
 /*gpufun*/
 void transverse_motion(LocalParticle *part0,
     double const qx, double const qy,
-    double const chroma_x, double const chroma_y,
+    double const dqx, double const dqy,
     double const detx_x, double const detx_y, double const dety_x, double const dety_y,
     double const alpha_x_0, double const beta_x_0, double const alpha_y_0, double const beta_y_0,
     double const alpha_x_1, double const beta_x_1, double const alpha_y_1, double const beta_y_1){
 
     int64_t detuning;
     double sin_x, cos_x, sin_y, cos_y;
-    if (chroma_x != 0.0 || chroma_y != 0.0 ||
+    if (dqx != 0.0 || dqy != 0.0 ||
         detx_x != 0.0 || detx_y != 0.0 || dety_x != 0.0 || dety_y != 0.0){
         detuning = 1;
     }
@@ -131,11 +131,11 @@ void transverse_motion(LocalParticle *part0,
                     * LocalParticle_get_y(part)*LocalParticle_get_py(part)
                 + beta_y_0
                     * LocalParticle_get_py(part)*LocalParticle_get_py(part));
-            double phase = 2*PI*(qx + chroma_x * LocalParticle_get_delta(part)
+            double phase = 2*PI*(qx + dqx * LocalParticle_get_delta(part)
                                 +detx_x * J_x + detx_y * J_y);
             cos_x = cos(phase);
             sin_x = sin(phase);
-            phase = 2*PI*(qy + chroma_y * LocalParticle_get_delta(part)
+            phase = 2*PI*(qy + dqy * LocalParticle_get_delta(part)
                             +dety_x * J_x + dety_y * J_y);
             cos_y = cos(phase);
             sin_y = sin(phase);
@@ -327,8 +327,8 @@ void LinearTransferMatrix_track_local_particle(LinearTransferMatrixData el, Loca
     transverse_motion(part0,
         LinearTransferMatrixData_get_qx(el),
         LinearTransferMatrixData_get_qy(el),
-        LinearTransferMatrixData_get_chroma_x(el),
-        LinearTransferMatrixData_get_chroma_y(el),
+        LinearTransferMatrixData_get_dqx(el),
+        LinearTransferMatrixData_get_dqy(el),
         LinearTransferMatrixData_get_detx_x(el),
         LinearTransferMatrixData_get_detx_y(el),
         LinearTransferMatrixData_get_dety_x(el),
