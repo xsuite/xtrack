@@ -14,7 +14,8 @@ import xobjects as xo
 num_turns = 100
 num_particles = 100000 # Enough to saturate a high-end GPU
 
-context = xo.ContextCpu(omp_num_threads=12)
+context = xo.ContextCpu(omp_num_threads='auto')
+# context = xo.ContextCupy()
 
 #################################
 # Load a line and build tracker #

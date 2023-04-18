@@ -415,12 +415,11 @@ class Tracker:
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* io_buffer){
 
-            omp_set_num_threads(12);                                                       //only_for_context cpu_openmp
             const int64_t capacity = ParticlesData_get__capacity(particles);               //only_for_context cpu_openmp
-            const int64_t num_chunks = 12;//omp_get_num_threads();                         //only_for_context cpu_openmp
-            const int64_t chunk_size = (capacity + num_chunks - 1)/num_chunks; // ceil division  //only_for_context cpu_openmp
+            const int num_threads = omp_get_max_threads();                                 //only_for_context cpu_openmp
+            const int64_t chunk_size = (capacity + num_threads - 1)/num_threads; // ceil division  //only_for_context cpu_openmp
             #pragma omp parallel for                                                       //only_for_context cpu_openmp
-            for (int chunk = 0; chunk < num_chunks; chunk++) {                             //only_for_context cpu_openmp
+            for (int chunk = 0; chunk < num_threads; chunk++) {                            //only_for_context cpu_openmp
             int64_t part_id = chunk * chunk_size;                                          //only_for_context cpu_openmp
             int64_t end_id = (chunk + 1) * chunk_size;                                     //only_for_context cpu_openmp
             if (end_id > capacity) end_id = capacity;                                      //only_for_context cpu_openmp

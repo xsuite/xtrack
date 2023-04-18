@@ -46,16 +46,22 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
 
     uint32_t slot = atomic_add(num_recorded, 1);   //only_for_context opencl
     uint32_t slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
-    uint32_t slot = *num_recorded;                 //only_for_context cpu_serial cpu_openmp
-    *num_recorded = slot + 1;                      //only_for_context cpu_serial cpu_openmp
+    
+    int64_t slot;                                  //only_for_context cpu_serial cpu_openmp
+    // There seems to be a problem when using atomic add with mismatched types,
+    // therefore we settle for critical for now.
+    #pragma omp critical (record_get_slot)         //only_for_context cpu_openmp
+    {                                              //only_for_context cpu_openmp
+    slot = (int64_t)*num_recorded;                 //only_for_context cpu_serial cpu_openmp
+    *num_recorded = (uint32_t)slot + 1;            //only_for_context cpu_serial cpu_openmp
+    }                                              //only_for_context cpu_openmp
 
     if (slot >= capacity){
         *num_recorded = capacity;
-        return -1;
-        }
-
-    return (int64_t) slot;
+        slot = -1;
     }
+    return slot;
+}
 '''
 
 
