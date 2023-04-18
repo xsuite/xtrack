@@ -29,7 +29,7 @@ circumference = line.get_length()
 
 bet_s = eta * circumference / (2 * np.pi * qs)
 
-# matrix = xt.SimplifiedAcceleratorSegment(beta_s=bet_s, Q_s=qs)
+# matrix = xt.SimplifiedAcceleratorSegment(b)
 matrix = xt.SimplifiedAcceleratorSegment(
     qx=tw.qx, qy=tw.qy,
     dqx=tw.dqx, dqy=tw.dqy,
@@ -37,10 +37,11 @@ matrix = xt.SimplifiedAcceleratorSegment(
     bety=tw.bety[0], alfy=tw.alfy[0],
     dx=tw.dx[0], dpx=tw.dpx[0],
     dy=tw.dy[0], dpy=tw.dpy[0],
-    voltage_rf=line['acta.31637'].voltage,
-    frequency_rf=line['acta.31637'].frequency,
-    lag_rf=line['acta.31637'].lag,
-    momentum_compaction_factor=tw.momentum_compaction_factor,
+    bets=bet_s, qs=qs,
+    # voltage_rf=line['acta.31637'].voltage,
+    # frequency_rf=line['acta.31637'].frequency,
+    # lag_rf=line['acta.31637'].lag,
+    # momentum_compaction_factor=tw.momentum_compaction_factor,
     length=circumference)
 line_matrix = xt.Line(elements=[matrix])
 line_matrix.particle_ref = line.particle_ref.copy()
@@ -51,9 +52,9 @@ mon_matrix = line_matrix.record_last_track
 
 # Match Gaussian distributions
 p_line = xp.generate_matched_gaussian_bunch(num_particles=1000000,
-    nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=20e-2, line=line)
+    nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=5e-2, line=line)
 p_matrix = xp.generate_matched_gaussian_bunch(num_particles=1000000,
-    nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=20e-2, line=line_matrix)
+    nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=5e-2, line=line_matrix)
 
 assert np.isclose(np.std(p_line.zeta), np.std(p_matrix.zeta), rtol=1e-2)
 assert np.isclose(np.std(p_line.pzeta), np.std(p_matrix.pzeta), rtol=1e-2)

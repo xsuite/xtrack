@@ -998,16 +998,6 @@ class SimplifiedAcceleratorSegment(BeamElement):
         'dety_y': xo.Float64,
         'dety_x': xo.Float64,
 
-        'longitudinal_mode_flag': xo.Int64,
-        'qs': xo.Float64,
-        'bets': xo.Float64,
-        'momentum_compaction_factor': xo.Float64,
-        'slippage_length': xo.Float64,
-        'voltage_rf': xo.Float64[:],
-        'frequency_rf': xo.Float64[:],
-        'lag_rf': xo.Float64[:],
-
-
         'betx': xo.Float64[2],
         'bety': xo.Float64[2],
         'alfx': xo.Float64[2],
@@ -1036,6 +1026,15 @@ class SimplifiedAcceleratorSegment(BeamElement):
         'gauss_noise_ampl_py':xo.Float64,
         'gauss_noise_ampl_zeta':xo.Float64,
         'gauss_noise_ampl_delta':xo.Float64,
+
+        'longitudinal_mode_flag': xo.Int64,
+        'qs': xo.Float64,
+        'bets': xo.Float64,
+        'momentum_compaction_factor': xo.Float64,
+        'slippage_length': xo.Float64,
+        'voltage_rf': xo.Float64[:],
+        'frequency_rf': xo.Float64[:],
+        'lag_rf': xo.Float64[:],
         }
 
     _depends_on = [RandomNormal]
