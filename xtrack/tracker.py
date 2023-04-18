@@ -522,6 +522,15 @@ class Tracker:
 
             }// if partid
             } //only_for_context cpu_openmp
+            
+            // On OpenMP we want to additionally by default reorganize all
+            // the particles.
+            #ifndef XT_OMP_SKIP_REORGANIZE                             //only_for_context cpu_openmp
+            LocalParticle lpart;                                       //only_for_context cpu_openmp
+            lpart.io_buffer = io_buffer;                               //only_for_context cpu_openmp
+            Particles_to_LocalParticle(particles, &lpart, 0, capacity);//only_for_context cpu_openmp
+            check_is_active(&lpart);                                   //only_for_context cpu_openmp
+            #endif                                                     //only_for_context cpu_openmp
         }//kernel
         """
         )

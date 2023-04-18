@@ -89,10 +89,10 @@ def test_ring_with_spacecharge(test_context, mode):
     warnings.filterwarnings('default')
 
     if (isinstance(test_context, xo.ContextPyopencl)
-        and mode.startswith('pic')):
+            and mode.startswith('pic')):
         # TODO With pyopencl the test gets to the end
         # but then hangs or crashes python
-        pytest.skip('Skipped! Known issue...')
+        pytest.skip('This test in broken on OpenCL. Known issue...')
         return
 
     # We need only particles at zeta close to the probe
