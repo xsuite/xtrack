@@ -428,7 +428,11 @@ def twiss_line(line, particle_ref=None, method='6d',
 
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
+
         betz0 = W[4, 4]**2 + W[4, 5]**2
+        if eta > 0:
+            betz0 = -betz0 # see definition in physics guide
+
         ptau_co = propagate_res['ptau']
 
         # Coupling
