@@ -230,6 +230,34 @@ void longitudinal_motion(LocalParticle *part0,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
     }
+    else if (mode_flag == 3){
+
+        double const alfp =
+            SimplifiedAcceleratorSegmentData_get_momentum_compaction_factor(el);
+        double const slippage_length =
+            SimplifiedAcceleratorSegmentData_get_slippage_length(el);
+
+        // Assume there is only one RF term (checked in the Python code)
+        double const v_rf = SimplifiedAcceleratorSegmentData_get_voltage_rf(el,0);
+        double const f_rf = SimplifiedAcceleratorSegmentData_get_frequency_rf(el,0);
+
+        //start_per_particle_block (part->part)
+            double const gamma0 = LocalParticle_get_gamma0(part);
+            double const beta0 = LocalParticle_get_beta0(part);
+            double const q0 = LocalParticle_get_q0(part);
+            double const mass0 = LocalParticle_get_mass0(part);
+            double const eta = alfp - 1.0 / (gamma0 * gamma0);
+            double const E0 = mass0 * gamma0 * C_LIGHT * C_LIGHT / QELEM;
+
+            double const qs = sqrt(q0 * fabs(eta) * slippage_length * f_rf * v_rf
+                        / (2 * PI * beta0 * beta0 * beta0 * E0 * C_LIGHT));
+
+            //TO BE CONTINUED
+
+        //end_per_particle_block
+
+    }
+
 }
 
 /*gpufun*/
