@@ -535,7 +535,7 @@ class MadLoader:
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
         if len(self.sequence.expanded_elements)==0:
-            raise ValueError(f"{sequence} has no elements, please do {sequence}.use()")
+            raise ValueError(f"{self.sequence} has no elements, please do {self.sequence}.use()")
         last_element = Dummy
         for el in self.sequence.expanded_elements:
             madelem = MadElem(el.name, el, self.sequence, madeval)
