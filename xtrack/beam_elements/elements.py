@@ -1063,13 +1063,14 @@ class SimplifiedAcceleratorSegment(BeamElement):
             dqx=0.0, dqy=0.0,
             detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
             energy_increment=0.0, energy_ref_increment=0.0,
-
             damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
             equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
             gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,
             gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,
             gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
             **nargs):
+
+        assert longitudinal_mode in ['linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', None]
 
         nargs['qx'] = qx
         nargs['qy'] = qy
@@ -1088,8 +1089,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
                 longitudinal_mode = 'nonlinear'
             else:
                 longitudinal_mode = 'frozen'
-
-        if longitudinal_mode == 'linear_fixed_qs':
+        elif longitudinal_mode == 'linear_fixed_qs':
             assert qs is not None
             assert bets is not None
             assert momentum_compaction_factor is None
@@ -1102,7 +1102,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
             nargs['voltage_rf'] = [0]
             nargs['frequency_rf'] = [0]
             nargs['lag_rf'] = [0]
-        elif longitudinal_mode == 'nonlinear':
+        elif longitudinal_mode == 'nonlinear' or longitudinal_mode == 'linear_fixed_rf':
             assert voltage_rf is not None
             assert frequency_rf is not None
             assert lag_rf is not None
@@ -1116,7 +1116,11 @@ class SimplifiedAcceleratorSegment(BeamElement):
             else:
                 nargs['slippage_length'] = slippage_length
 
-            nargs['longitudinal_mode_flag'] = 2
+            if longitudinal_mode == 'nonlinear':
+                nargs['longitudinal_mode_flag'] = 2
+            elif longitudinal_mode == 'linear_fixed_rf':
+                nargs['longitudinal_mode_flag'] = 3
+
             nargs['voltage_rf'] = voltage_rf
             nargs['frequency_rf'] = frequency_rf
             nargs['lag_rf'] = lag_rf
@@ -1124,9 +1128,14 @@ class SimplifiedAcceleratorSegment(BeamElement):
             for nn in ['frequency_rf', 'lag_rf', 'voltage_rf']:
                 if np.isscalar(nargs[nn]):
                     nargs[nn] = [nargs[nn]]
+
             assert (len(nargs['frequency_rf'])
                     == len(nargs['lag_rf'])
                     == len(nargs['voltage_rf']))
+
+            if longitudinal_mode == 'linear_fixed_rf':
+                assert len(nargs['frequency_rf']) == 1
+
         elif longitudinal_mode == 'frozen':
             nargs['longitudinal_mode_flag'] = 0
         else:
@@ -1249,7 +1258,8 @@ class SimplifiedAcceleratorSegment(BeamElement):
         ret = {
             0: 'frozen',
             1: 'linear_fixed_qs',
-            2: 'nonlinear'
+            2: 'nonlinear',
+            3: 'linear_fixed_rf'
         }[self.longitudinal_mode_flag]
         return ret
 

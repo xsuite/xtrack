@@ -8,7 +8,7 @@ line = xt.Line.from_json(
 line.build_tracker()
 
 configuration = 'above transition'
-model = 'linear'
+model = 'linear_fixed_rf'
 
 if configuration == 'above transition':
     line['acta.31637'].lag = 180.
@@ -43,7 +43,21 @@ if model == 'nonlinear':
         lag_rf=line['acta.31637'].lag,
         momentum_compaction_factor=tw.momentum_compaction_factor,
         length=circumference)
-elif model == 'linear':
+elif model == 'linear_fixed_rf':
+    matrix = xt.SimplifiedAcceleratorSegment(
+        longitudinal_mode='linear_fixed_rf',
+        qx=tw.qx, qy=tw.qy,
+        dqx=tw.dqx, dqy=tw.dqy,
+        betx=tw.betx[0], alfx=tw.alfx[0],
+        bety=tw.bety[0], alfy=tw.alfy[0],
+        dx=tw.dx[0], dpx=tw.dpx[0],
+        dy=tw.dy[0], dpy=tw.dpy[0],
+        voltage_rf=line['acta.31637'].voltage,
+        frequency_rf=line['acta.31637'].frequency,
+        lag_rf=line['acta.31637'].lag,
+        momentum_compaction_factor=tw.momentum_compaction_factor,
+        length=circumference)
+elif model == 'linear_fixed_qs':
     matrix = xt.SimplifiedAcceleratorSegment(
         qx=tw.qx, qy=tw.qy,
         dqx=tw.dqx, dqy=tw.dqy,
