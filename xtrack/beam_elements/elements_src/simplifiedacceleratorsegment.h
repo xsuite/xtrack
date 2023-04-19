@@ -247,7 +247,7 @@ void longitudinal_motion(LocalParticle *part0,
             double const q0 = LocalParticle_get_q0(part);
             double const mass0 = LocalParticle_get_mass0(part);
             double const eta = alfp - 1.0 / (gamma0 * gamma0);
-            double const E0 = mass0 * gamma0 * C_LIGHT * C_LIGHT / QELEM;
+            double const E0 = mass0 * gamma0;
 
             double const qs = sqrt(q0 * fabs(eta) * slippage_length * f_rf * v_rf
                         / (2 * PI * beta0 * beta0 * beta0 * E0 * C_LIGHT));
