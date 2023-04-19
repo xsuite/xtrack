@@ -17,18 +17,11 @@ else:
     line['acta.31637'].lag = 0.
     line.particle_ref = xp.Particles(p0c=14e9, q0=1.0)
 
-particle0 = line.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
 
-line.track(particle0.copy(), num_turns=500, turn_by_turn_monitor=True)
-mon = line.record_last_track
 
 # Build corresponding matrix
 tw = line.twiss()
-eta = tw.slip_factor # > 0 above transition
-qs = tw.qs
-circumference = line.get_length()
-
-bet_s = eta * circumference / (2 * np.pi * qs)
+circumference = tw.circumference
 
 if model == 'nonlinear':
     matrix = xt.SimplifiedAcceleratorSegment(
@@ -58,6 +51,10 @@ elif model == 'linear_fixed_rf':
         momentum_compaction_factor=tw.momentum_compaction_factor,
         length=circumference)
 elif model == 'linear_fixed_qs':
+    eta = tw.slip_factor # > 0 above transition
+    qs = tw.qs
+    circumference = line.get_length()
+    bet_s = eta * circumference / (2 * np.pi * qs)
     matrix = xt.SimplifiedAcceleratorSegment(
         qx=tw.qx, qy=tw.qy,
         dqx=tw.dqx, dqy=tw.dqy,
@@ -70,10 +67,19 @@ elif model == 'linear_fixed_qs':
 
 line_matrix = xt.Line(elements=[matrix])
 line_matrix.particle_ref = line.particle_ref.copy()
-
 line_matrix.build_tracker()
+
+
+# Compare tracking on one particle
+particle0 = line.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
+line.track(particle0.copy(), num_turns=500, turn_by_turn_monitor=True)
+mon = line.record_last_track
 line_matrix.track(particle0.copy(), num_turns=500, turn_by_turn_monitor=True)
 mon_matrix = line_matrix.record_last_track
+
+assert np.allclose(mon.zeta, mon_matrix.zeta, rtol=0, atol=1e-2*np.max(mon.zeta[:]))
+assert np.allclose(mon.pzeta, mon_matrix.pzeta, rtol=0, atol=1e-2*np.max(mon.pzeta[:]))
+# assert np.allclose(mon.x, mon_matrix.x, rtol=0, atol=1e-2*np.max(mon.x[:]))
 
 # Match Gaussian distributions
 p_line = xp.generate_matched_gaussian_bunch(num_particles=1000000,
@@ -113,8 +119,9 @@ import matplotlib.pyplot as plt
 plt.close('all')
 fig1 = plt.figure(1)
 fig1.suptitle(configuration)
-ax1 = fig1.add_subplot(211)
-ax2 = fig1.add_subplot(212, sharex=ax1)
+ax1 = fig1.add_subplot(311)
+ax2 = fig1.add_subplot(312, sharex=ax1)
+ax3 = fig1.add_subplot(313, sharex=ax1)
 ax1.set_ylabel('zeta')
 ax2.set_ylabel('pzeta')
 ax2.set_xlabel('turn')
@@ -122,6 +129,8 @@ ax1.plot(mon.zeta.T, label='lattice')
 ax1.plot(mon_matrix.zeta.T, label='matrix')
 ax2.plot(mon.pzeta.T)
 ax2.plot(mon_matrix.pzeta.T)
+ax3.plot(mon.x.T)
+ax3.plot(mon_matrix.x.T)
 ax1.legend()
 
 fig1.subplots_adjust(left=0.2)
