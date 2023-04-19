@@ -251,8 +251,16 @@ void longitudinal_motion(LocalParticle *part0,
 
             double const qs = sqrt(q0 * fabs(eta) * slippage_length * f_rf * v_rf
                         / (2 * PI * beta0 * beta0 * beta0 * E0 * C_LIGHT));
+            double const bets = eta * slippage_length / (2 * PI * qs);
 
-            //TO BE CONTINUED
+            double const sin_s = sin(2 * PI * qs);
+            double const cos_s = cos(2 * PI * qs);
+
+            double const new_zeta = cos_s * LocalParticle_get_zeta(part) - bets * sin_s * LocalParticle_get_pzeta(part);
+            double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / bets + cos_s * LocalParticle_get_pzeta(part);
+
+            LocalParticle_set_zeta(part, new_zeta);
+            LocalParticle_update_pzeta(part, new_pzeta);
 
         //end_per_particle_block
 
