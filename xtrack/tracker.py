@@ -530,6 +530,8 @@ class Tracker:
             lpart.io_buffer = io_buffer;                               //only_for_context cpu_openmp
             Particles_to_LocalParticle(particles, &lpart, 0, capacity);//only_for_context cpu_openmp
             check_is_active(&lpart);                                   //only_for_context cpu_openmp
+            count_reorganized_particles(&lpart);                       //only_for_context cpu_openmp
+            LocalParticle_to_Particles(&lpart, particles, 0, capacity);//only_for_context cpu_openmp
             #endif                                                     //only_for_context cpu_openmp
         }//kernel
         """
@@ -777,9 +779,8 @@ class Tracker:
                 and _session_to_resume is None):
             if not (particles._num_active_particles >= 0 and
                     particles._num_lost_particles >= 0):
-                if self._buffer.context.omp_num_threads == 0:
-                    raise ValueError("Particles state is not valid to run on CPU, "
-                                     "please call `particles.reorganize()` first.")
+                raise ValueError("Particles state is not valid to run on CPU, "
+                                 "please call `particles.reorganize()` first.")
 
         if _session_to_resume is not None:
             if isinstance(_session_to_resume, PipelineStatus):
@@ -958,8 +959,7 @@ class Tracker:
 
         self._check_invalidated()
 
-        if (isinstance(self._buffer.context, xo.ContextCpu)
-                and self._buffer.context.omp_num_threads == 0):
+        if isinstance(self._buffer.context, xo.ContextCpu):
             assert (particles._num_active_particles >= 0 and
                     particles._num_lost_particles >= 0), (
                         "Particles state is not valid to run on CPU, please "
