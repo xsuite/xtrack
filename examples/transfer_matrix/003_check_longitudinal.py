@@ -8,20 +8,20 @@ import xtrack as xt
 import xpart as xp
 
 
-# machine = 'sps'
-# line = xt.Line.from_json(
-#     '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
-# # I put the cavity at the end of the ring to get closer to the kick-drift model
-# line.cycle('actb.31739_aper', inplace=True)
-# configurations = ['above transition', 'below transition']
-# num_turns = 250
-# cavity_name = 'acta.31637'
+machine = 'sps'
+line = xt.Line.from_json(
+    '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
+# I put the cavity at the end of the ring to get closer to the kick-drift model
+line.cycle('actb.31739_aper', inplace=True)
+configurations = ['above transition', 'below transition']
+num_turns = 250
+cavity_name = 'acta.31637'
 
-machine = 'psb'
-line = xt.Line.from_json('../../test_data/psb_injection/line_and_particle.json')
-configurations = ['below transition']
-num_turns = 1000
-cavity_name = 'br.c02'
+# machine = 'psb'
+# line = xt.Line.from_json('../../test_data/psb_injection/line_and_particle.json')
+# configurations = ['below transition']
+# num_turns = 1000
+# cavity_name = 'br.c02'
 
 line.build_tracker()
 
