@@ -1089,7 +1089,8 @@ class SimplifiedAcceleratorSegment(BeamElement):
                 longitudinal_mode = 'nonlinear'
             else:
                 longitudinal_mode = 'frozen'
-        elif longitudinal_mode == 'linear_fixed_qs':
+
+        if longitudinal_mode == 'linear_fixed_qs':
             assert qs is not None
             assert bets is not None
             assert momentum_compaction_factor is None
