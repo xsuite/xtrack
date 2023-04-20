@@ -7,26 +7,37 @@ plt.close('all')
 import xtrack as xt
 import xpart as xp
 
-line = xt.Line.from_json(
-    '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
 
-# I put the cavity at the end of the ring to get closer to the kick-drift model
-line.cycle('actb.31739_aper', inplace=True)
+# machine = 'sps'
+# line = xt.Line.from_json(
+#     '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
+# # I put the cavity at the end of the ring to get closer to the kick-drift model
+# line.cycle('actb.31739_aper', inplace=True)
+# configurations = ['above transition', 'below transition']
+# num_turns = 250
+# cavity_name = 'acta.31637'
+
+machine = 'psb'
+line = xt.Line.from_json('../../test_data/psb_injection/line_and_particle.json')
+configurations = ['below transition']
+num_turns = 1000
+cavity_name = 'br.c02'
 
 line.build_tracker()
 
 for i_case, (configuration, longitudinal_mode) in enumerate(
-    product(['above transition', 'below transition'],
+    product(configurations,
             ['linear_fixed_qs', 'linear_fixed_rf', 'nonlinear'])):
 
     print(f'Case {i_case}: {configuration}, {longitudinal_mode}')
 
-    if configuration == 'above transition':
-        line['acta.31637'].lag = 180.
-        line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
-    else:
-        line['acta.31637'].lag = 0.
-        line.particle_ref = xp.Particles(p0c=16e9, q0=1.0)
+    if machine == 'sps':
+        if configuration == 'above transition':
+            line[cavity_name].lag = 180.
+            line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
+        else:
+            line[cavity_name].lag = 0.
+            line.particle_ref = xp.Particles(p0c=16e9, q0=1.0)
 
     # Build corresponding matrix
     tw = line.twiss()
@@ -40,9 +51,9 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
             bety=tw.bety[0], alfy=tw.alfy[0],
             dx=tw.dx[0], dpx=tw.dpx[0],
             dy=tw.dy[0], dpy=tw.dpy[0],
-            voltage_rf=line['acta.31637'].voltage,
-            frequency_rf=line['acta.31637'].frequency,
-            lag_rf=line['acta.31637'].lag,
+            voltage_rf=line[cavity_name].voltage,
+            frequency_rf=line[cavity_name].frequency,
+            lag_rf=line[cavity_name].lag,
             momentum_compaction_factor=tw.momentum_compaction_factor,
             length=circumference)
     elif longitudinal_mode == 'linear_fixed_rf':
@@ -54,9 +65,9 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
             bety=tw.bety[0], alfy=tw.alfy[0],
             dx=tw.dx[0], dpx=tw.dpx[0],
             dy=tw.dy[0], dpy=tw.dpy[0],
-            voltage_rf=line['acta.31637'].voltage,
-            frequency_rf=line['acta.31637'].frequency,
-            lag_rf=line['acta.31637'].lag,
+            voltage_rf=line[cavity_name].voltage,
+            frequency_rf=line[cavity_name].frequency,
+            lag_rf=line[cavity_name].lag,
             momentum_compaction_factor=tw.momentum_compaction_factor,
             length=circumference)
     elif longitudinal_mode == 'linear_fixed_qs':
@@ -80,10 +91,10 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
 
     # Compare tracking longitudinal tracking on one particle
     particle0_line = line.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
-    line.track(particle0_line.copy(), num_turns=250, turn_by_turn_monitor=True)
+    line.track(particle0_line.copy(), num_turns=num_turns, turn_by_turn_monitor=True)
     mon = line.record_last_track
     particle0_matrix = line_matrix.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
-    line_matrix.track(particle0_matrix.copy(), num_turns=250, turn_by_turn_monitor=True)
+    line_matrix.track(particle0_matrix.copy(), num_turns=num_turns, turn_by_turn_monitor=True)
     mon_matrix = line_matrix.record_last_track
 
     assert np.allclose(np.max(mon.zeta), np.max(mon_matrix.zeta), rtol=1e-2, atol=0)
@@ -124,10 +135,27 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     else:
         raise ValueError('Unknown configuration')
 
-    assert np.isclose(np.mod(tw_line.qx, 1), np.mod(tw_matrix.qx, 1), atol=1e-5, rtol=0)
-    assert np.isclose(np.mod(tw_line.qy, 1), np.mod(tw_matrix.qy, 1), atol=1e-5, rtol=0)
-    assert np.isclose(tw_line.dqx, tw_matrix.dqx, atol=1e-5, rtol=0)
-    assert np.isclose(tw_line.dqy, tw_matrix.dqy, atol=1e-5, rtol=0)
+    line_frac_qx = np.mod(tw_line.qx, 1)
+    line_frac_qy = np.mod(tw_line.qy, 1)
+    matrix_frac_qx = np.mod(tw_matrix.qx, 1)
+    matrix_frac_qy = np.mod(tw_matrix.qy, 1)
+
+    # Cannot resolve fractional tune above half integer
+    line_frac_qx_alias = line_frac_qx
+    line_frac_qy_alias = line_frac_qy
+    line_dqx_alias = tw_line.dqx
+    line_dqy_alias = tw_line.dqy
+    if line_frac_qx > 0.5:
+        line_frac_qx_alias = 1 - line_frac_qx
+        line_dqx_alias = -line_dqx_alias
+    if line_frac_qy > 0.5:
+        line_frac_qy_alias = 1 - line_frac_qy
+        line_dqy_alias = -line_dqy_alias
+
+    assert np.isclose(line_frac_qx_alias, matrix_frac_qx, atol=1e-5, rtol=0)
+    assert np.isclose(line_frac_qy_alias, matrix_frac_qy, atol=1e-5, rtol=0)
+    assert np.isclose(line_dqx_alias, tw_matrix.dqx, atol=1e-5, rtol=0)
+    assert np.isclose(line_dqy_alias, tw_matrix.dqy, atol=1e-5, rtol=0)
     assert np.isclose(tw_line.betx[0], tw_matrix.betx[0], atol=1e-5, rtol=0)
     assert np.isclose(tw_line.alfx[0], tw_matrix.alfx[0], atol=1e-5, rtol=0)
     assert np.isclose(tw_line.bety[0], tw_matrix.bety[0], atol=1e-5, rtol=0)
@@ -141,9 +169,8 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     assert np.isclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
     assert np.allclose(tw_matrix.betz0, tw_line.betz0, rtol=1e-2, atol=0)
 
-
     fig1 = plt.figure(1 + i_case * 10)
-    fig1.suptitle(configuration + ' - ' + longitudinal_mode)
+    fig1.suptitle(machine + ' - ' + configuration + ' - ' + longitudinal_mode)
     ax1 = fig1.add_subplot(311)
     ax2 = fig1.add_subplot(312, sharex=ax1)
     ax3 = fig1.add_subplot(313, sharex=ax1)
@@ -166,7 +193,7 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     mon_matrix_dp = line_matrix.record_last_track
 
     fig2 = plt.figure(2 + i_case*10)
-    fig2.suptitle(configuration)
+    fig2.suptitle(machine + ' - ' + configuration + ' - ' + longitudinal_mode)
     plt.plot(mon_matrix_dp.zeta.T, mon_matrix_dp.pzeta.T)
 
 plt.show()
