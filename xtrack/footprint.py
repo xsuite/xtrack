@@ -1,8 +1,6 @@
 import numpy as np
 import xobjects as xo
 import xtrack as xt
-import time
-#from cupyx.scipy.interpolate import RegularGridInterpolator
 
 class LinearRescale():
 
@@ -138,22 +136,14 @@ class Footprint():
             x_norm=self.x_norm_2d.flatten(), y_norm=self.y_norm_2d.flatten(),
             nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y)
 
-        print('Tracking particles for footprint...')
-        time0 = time.time()
         line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True)
-        line._context.synchronize()
-        print('Done tracking in',time.time()-time0,'s')
         
         assert nplike_lib.all(particles.state == 1), (
             'Some particles were lost during tracking')
         mon = line.record_last_track
         mon.auto_to_numpy = False
-        time0 = time.time()
         x_noCO = mon.x - nplike_lib.atleast_2d(nplike_lib.mean(mon.x, axis=1)).T
         y_noCO = mon.y - nplike_lib.atleast_2d(nplike_lib.mean(mon.y, axis=1)).T
-        print('Removed close orbit in',time.time()-time0)
-        print('Computing footprint...')
-        time0 = time.time()
         freq_axis = nplike_lib.fft.rfftfreq(self.n_fft)
         if self.keep_fft:
             self.fft_x = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
@@ -187,14 +177,6 @@ class Footprint():
             if self.keep_fft:
                 self.fft_x = ctx2np(self.fft_x)
                 self.fft_y = ctx2np(self.fft_y)
-
-#        fft_x = np.fft.rfft(
-#            mon.x - np.atleast_2d(np.mean(mon.x, axis=1)).T, n=self.n_fft, axis=1)
-#        fft_y = np.fft.rfft(
- #           mon.y - np.atleast_2d(np.mean(mon.y, axis=1)).T, n=self.n_fft, axis=1)
-        line._context.synchronize()
-        print('Done with FFTs in',time.time()-time0,'s')
-        print ('Done computing footprint.')
 
     def _compute_tune_shift(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon):
         nplike_lib = _context.nplike_lib
