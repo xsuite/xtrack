@@ -177,6 +177,36 @@ class Multiline:
         for nn, ll in self.lines.items():
             ll.build_tracker(_context=_context, _buffer=_buffer, **kwargs)
 
+
+    def twiss(self, lines=None, **kwargs):
+
+        '''
+        Compute the twiss parameters for the lines.
+
+        Parameters
+        ----------
+        lines: list of str
+            The lines for which the twiss parameters are computed. If None,
+            the twiss parameters are computed for all lines.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.twiss` method.
+
+        Returns
+        -------
+        out: dict
+            A dictionary with the twiss parameters for the lines.
+        '''
+
+        out = {}
+        if lines is None:
+            lines = self.lines.keys()
+
+        for nn in lines:
+            out[nn] = self.lines[nn].twiss(**kwargs)
+
+        return out
+
+
     def __getitem__(self, key):
         return self.lines[key]
 

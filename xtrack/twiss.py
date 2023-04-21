@@ -37,7 +37,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
-        delta_disp=1e-5, delta_chrom = 1e-4,
+        delta_disp=1e-5, delta_chrom = 1e-4, zeta_disp=1e-3,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=False,
@@ -143,6 +143,10 @@ def twiss_line(line, particle_ref=None, method='6d',
             - dzeta: longitudinal dispersion (d zeta / d delta)
             - dpx: horizontal dispersion (d px / d delta)
             - dpy: vertical dispersion (d y / d delta)
+            - dx_zeta: horizontal crab dispersion (d x / d zeta)
+            - dy_zeta: vertical crab dispersion (d y / d zeta)
+            - dpx_zeta: horizontal crab dispersion (d px / d zeta)
+            - dpy_zeta: vertical crab dispersion (d py / d zeta)
             - W_matrix: W matrix of the linear normal form
             - betx1: computed horizontal beta function (Mais-Ripken)
             - bety1: computed vertical beta function (Mais-Ripken)
@@ -391,12 +395,21 @@ def twiss_line(line, particle_ref=None, method='6d',
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
         delta_disp=delta_disp,
+        zeta_disp=zeta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data)
-    propagate_res['name'] = np.array(
-                                        propagate_res['name'])
+    propagate_res['name'] = np.array(propagate_res['name'])
+
+    if method == '4d':
+        # Not proper because R_matrix terms related to zeta are forced to zero
+        propagate_res.pop('dx_zeta')
+        propagate_res.pop('dpx_zeta')
+        propagate_res.pop('dy_zeta')
+        propagate_res.pop('dpy_zeta')
+
+
     twiss_res = TwissTable(data=propagate_res)
 
     twiss_res._data['particle_on_co'] = part_on_co.copy(_context=xo.context_default)
@@ -495,7 +508,8 @@ def twiss_line(line, particle_ref=None, method='6d',
 def _propagate_optics(line, W_matrix, particle_on_co,
                       mux0, muy0, muzeta0,
                       ele_start, ele_stop,
-                      nemitt_x, nemitt_y, r_sigma, delta_disp,
+                      nemitt_x, nemitt_y, r_sigma,
+                      delta_disp, zeta_disp,
                       use_full_inverse,
                       hide_thin_groups=False,
                       _continue_if_lost=False,
@@ -530,8 +544,16 @@ def _propagate_optics(line, W_matrix, particle_on_co,
         particle_on_co=particle_on_co,
         nemitt_x=nemitt_x, nemitt_y=nemitt_y,
         W_matrix=W_matrix)
+    part_zeta_disp = xp.build_particles(
+        _context=context,
+        x_norm=0,
+        delta=particle_on_co._xobject.delta[0],
+        zeta=np.array([-zeta_disp, +zeta_disp])+particle_on_co._xobject.zeta[0],
+        particle_on_co=particle_on_co,
+        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+        W_matrix=W_matrix)
 
-    part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
+    part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp, part_zeta_disp])
     part_for_twiss.s = particle_on_co._xobject.s[0]
     part_for_twiss.at_element = particle_on_co._xobject.at_element[0]
     i_start = part_for_twiss._xobject.at_element[0]
@@ -571,11 +593,28 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     py_disp_plus = line.record_last_track.py[8, i_start:i_stop+1].copy()
     delta_disp_plus = line.record_last_track.delta[8, i_start:i_stop+1].copy()
 
+    x_zeta_disp_minus = line.record_last_track.x[9, i_start:i_stop+1].copy()
+    y_zeta_disp_minus = line.record_last_track.y[9, i_start:i_stop+1].copy()
+    zeta_disp_minus = line.record_last_track.zeta[9, i_start:i_stop+1].copy()
+    px_zeta_disp_minus = line.record_last_track.px[9, i_start:i_stop+1].copy()
+    py_zeta_disp_minus = line.record_last_track.py[9, i_start:i_stop+1].copy()
+
+    x_zeta_disp_plus = line.record_last_track.x[10, i_start:i_stop+1].copy()
+    y_zeta_disp_plus = line.record_last_track.y[10, i_start:i_stop+1].copy()
+    zeta_disp_plus = line.record_last_track.zeta[10, i_start:i_stop+1].copy()
+    px_zeta_disp_plus = line.record_last_track.px[10, i_start:i_stop+1].copy()
+    py_zeta_disp_plus = line.record_last_track.py[10, i_start:i_stop+1].copy()
+
     dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dzeta = (zeta_disp_plus-zeta_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
+
+    dx_zeta = (x_zeta_disp_plus-x_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
+    dy_zeta = (y_zeta_disp_plus-y_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
+    dpx_zeta = (px_zeta_disp_plus-px_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
+    dpy_zeta = (py_zeta_disp_plus-py_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = (line.record_last_track.x[:6, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -680,6 +719,10 @@ def _propagate_optics(line, W_matrix, particle_on_co,
         'dy': dy,
         'dzeta': dzeta,
         'dpy': dpy,
+        'dx_zeta': dx_zeta,
+        'dpx_zeta': dpx_zeta,
+        'dy_zeta': dy_zeta,
+        'dpy_zeta': dpy_zeta,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
@@ -1385,6 +1428,11 @@ class TwissTable(Table):
         out.dy = out.dy
         out.dpy = -out.dpy
         out.dzeta = -out.dzeta
+
+        out.dx_zeta = out.dx_zeta
+        out.dpx_zeta = -out.dpx_zeta
+        out.dy_zeta = -out.dy_zeta
+        out.dpy_zeta = out.dpy_zeta
 
         out.W_matrix = np.array(out.W_matrix)
         out.W_matrix = out.W_matrix[::-1, :, :].copy()
