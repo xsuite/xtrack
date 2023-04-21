@@ -42,25 +42,22 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
     /*gpuglmem*/ uint32_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
 
     if(*num_recorded >= capacity){
-        return -1;}
+        return -1;
+    }
 
-    uint32_t slot = atomic_add(num_recorded, 1);   //only_for_context opencl
-    uint32_t slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
-    
-    int64_t slot;                                  //only_for_context cpu_serial cpu_openmp
-    // There seems to be a problem when using atomic add with mismatched types,
-    // therefore we settle for critical for now.
-    #pragma omp critical (record_get_slot)         //only_for_context cpu_openmp
-    {                                              //only_for_context cpu_openmp
-    slot = (int64_t)*num_recorded;                 //only_for_context cpu_serial cpu_openmp
-    *num_recorded = (uint32_t)slot + 1;            //only_for_context cpu_serial cpu_openmp
-    }                                              //only_for_context cpu_openmp
+    uint32_t slot;
+
+    slot = atomic_add(num_recorded, 1);   //only_for_context opencl
+    slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
+
+    #pragma omp atomic capture            //only_for_context cpu_openmp
+    slot = (*num_recorded)++;             //only_for_context cpu_serial cpu_openmp
 
     if (slot >= capacity){
         *num_recorded = capacity;
-        slot = -1;
+        return -1;
     }
-    return slot;
+    return (int64_t)slot;
 }
 '''
 
