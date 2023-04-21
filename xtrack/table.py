@@ -298,6 +298,9 @@ class RDMTable:
     def items(self):
         return self._data.items()
 
+    def __dir__(self):
+        return super().__dir__() + list(self._data.keys())
+
     def __iter__(self):
         return self._data.__iter__()
 
