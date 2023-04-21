@@ -409,7 +409,6 @@ def twiss_line(line, particle_ref=None, method='6d',
         propagate_res.pop('dy_zeta')
         propagate_res.pop('dpy_zeta')
 
-
     twiss_res = TwissTable(data=propagate_res)
 
     twiss_res._data['particle_on_co'] = part_on_co.copy(_context=xo.context_default)
