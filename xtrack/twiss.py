@@ -1374,10 +1374,12 @@ class TwissTable(Table):
 
     def reverse(self):
 
+        import pdb; pdb.set_trace()
+
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         new_data = {}
-        for kk, vv in self.items():
+        for kk, vv in self._data.items():
             new_data[kk] = vv
 
         for kk in self._col_names:
@@ -1429,9 +1431,7 @@ class TwissTable(Table):
         out.dzeta = -out.dzeta
 
         out.dx_zeta = out.dx_zeta
-        out.dpx_zeta = -out.dpx_zeta
         out.dy_zeta = -out.dy_zeta
-        out.dpy_zeta = out.dpy_zeta
 
         out.W_matrix = np.array(out.W_matrix)
         out.W_matrix = out.W_matrix[::-1, :, :].copy()
