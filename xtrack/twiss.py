@@ -1374,8 +1374,6 @@ class TwissTable(Table):
 
     def reverse(self):
 
-        import pdb; pdb.set_trace()
-
         assert self.values_at == 'entry', 'Not yet implemented for exit'
 
         new_data = {}
