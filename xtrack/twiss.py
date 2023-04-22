@@ -612,8 +612,10 @@ def _propagate_optics(line, W_matrix, particle_on_co,
 
     dx_zeta = (x_zeta_disp_plus-x_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
     dy_zeta = (y_zeta_disp_plus-y_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
-    dpx_zeta = (px_zeta_disp_plus-px_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
-    dpy_zeta = (py_zeta_disp_plus-py_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
+
+    # To be tested
+    # dpx_zeta = (px_zeta_disp_plus-px_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
+    # dpy_zeta = (py_zeta_disp_plus-py_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = (line.record_last_track.x[:6, i_start:i_stop+1] - x_co).T / scale_eigen
@@ -719,9 +721,7 @@ def _propagate_optics(line, W_matrix, particle_on_co,
         'dzeta': dzeta,
         'dpy': dpy,
         'dx_zeta': dx_zeta,
-        'dpx_zeta': dpx_zeta,
         'dy_zeta': dy_zeta,
-        'dpy_zeta': dpy_zeta,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
