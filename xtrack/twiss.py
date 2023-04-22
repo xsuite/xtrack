@@ -1378,7 +1378,10 @@ class TwissTable(Table):
 
         new_data = {}
         for kk, vv in self._data.items():
-            new_data[kk] = vv
+            if hasattr(vv, 'copy'):
+                new_data[kk] = vv.copy()
+            else:
+                new_data[kk] = vv
 
         for kk in self._col_names:
             if kk == 'name':
