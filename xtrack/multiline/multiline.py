@@ -193,11 +193,11 @@ class Multiline:
 
         Returns
         -------
-        out: dict
-            A dictionary with the twiss parameters for the lines.
+        out: MultiTwiss
+            A MultiTwiss object containing the twiss parameters for the lines.
         '''
 
-        out = {}
+        out = MultiTwiss()
         if lines is None:
             lines = self.lines.keys()
 
@@ -206,6 +206,41 @@ class Multiline:
 
         return out
 
+    def match(self, vary, targets, restore_if_fail=True, solver=None,
+              verbose=False, **kwargs):
+
+        '''
+        Change a set of knobs in the beam lines in order to match assigned targets.
+
+        Parameters
+        ----------
+        vary : list of str or list of Vary objects
+            List of knobs to be varied. Each knob can be a string or a Vary object
+            including the knob name and the step used for computing the Jacobian
+            for the optimization.
+        targets : list of Target objects
+            List of targets to be matched.
+        restore_if_fail : bool
+            If True, the beamline is restored to its initial state if the matching
+            fails.
+        solver : str
+            Solver to be used for the matching. Available solvers are "fsolve"
+            and "bfgs".
+        verbose : bool
+            If True, the matching steps are printed.
+        **kwargs : dict
+            Additional arguments to be passed to the twiss.
+
+        Returns
+        -------
+        result_info : dict
+            Dictionary containing information about the matching result.
+
+        '''
+
+        return xt.match.match_line(self, vary, targets,
+                          restore_if_fail=restore_if_fail,
+                          solver=solver, verbose=verbose, **kwargs)
 
     def __getitem__(self, key):
         return self.lines[key]
@@ -359,5 +394,9 @@ class Multiline:
                 line.element_refs[bbnn].scale_strength = self.vars[f'{bbnn}_scale_strength']
 
 
+class MultiTwiss(dict):
+
+    def __init__(self):
+        self.__dict__ = self
 
 

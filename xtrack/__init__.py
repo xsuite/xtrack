@@ -20,7 +20,7 @@ from .pipeline import (PipelineStatus, PipelineMultiTracker, PipelineBranch,
 
 from .monitors import *
 from . import linear_normal_form
-from .multiline import Multiline
+from .multiline import Multiline, MultiTwiss
 
 from .mad_loader import MadLoader
 
