@@ -405,9 +405,7 @@ def twiss_line(line, particle_ref=None, method='6d',
     if method == '4d':
         # Not proper because R_matrix terms related to zeta are forced to zero
         propagate_res.pop('dx_zeta')
-        propagate_res.pop('dpx_zeta')
         propagate_res.pop('dy_zeta')
-        propagate_res.pop('dpy_zeta')
 
     twiss_res = TwissTable(data=propagate_res)
 
@@ -1431,8 +1429,9 @@ class TwissTable(Table):
         out.dpy = -out.dpy
         out.dzeta = -out.dzeta
 
-        out.dx_zeta = out.dx_zeta
-        out.dy_zeta = -out.dy_zeta
+        if 'dx_zeta' in out._col_names:
+            out.dx_zeta = out.dx_zeta
+            out.dy_zeta = -out.dy_zeta
 
         out.W_matrix = np.array(out.W_matrix)
         out.W_matrix = out.W_matrix[::-1, :, :].copy()
