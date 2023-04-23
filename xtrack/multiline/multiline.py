@@ -204,6 +204,8 @@ class Multiline:
         for nn in lines:
             out[nn] = self.lines[nn].twiss(**kwargs)
 
+        out._line_names = lines
+
         return out
 
     def match(self, vary, targets, restore_if_fail=True, solver=None,
