@@ -30,27 +30,7 @@ def _error_for_match(knob_values, vary, targets, line, return_scalar,
     res_values = []
     target_values = []
     for tt in targets:
-        if isinstance (tw, xt.MultiTwiss) and not callable(tt.tar):
-            if tt.line is None:
-                raise ValueError('When using `Multiline.match`, '
-                    'a `line` must associated to each non-callable target.')
-
-        if tt.line is not None:
-            assert isinstance(tw, xt.MultiTwiss), (
-                'The line associated to a target can be provided only when '
-                'using `Multiline.match`')
-            this_tw = tw[tt.line]
-        else:
-            this_tw = tw
-
-        if isinstance(tt.tar, str):
-            if tt.at is not None:
-                res_values.append(this_tw[tt.tar, tt.at])
-            else:
-                res_values.append(this_tw[tt.tar])
-        else:
-            assert tt.at is None, '`at` cannot be provided if target is a function'
-            res_values.append(tt.tar(this_tw))
+        res_values.append(tt.eval(tw))
         target_values.append(tt.value)
 
     res_values = np.array(res_values)
@@ -111,6 +91,30 @@ class Target:
         self.at = at
         self.scale = scale
         self.line = line
+
+    def eval(self, tw):
+
+        if isinstance (tw, xt.MultiTwiss) and not callable(self.tar):
+            if self.line is None:
+                raise ValueError('When using `Multiline.match`, '
+                    'a `line` must associated to each non-callable target.')
+
+        if self.line is not None:
+            assert isinstance(tw, xt.MultiTwiss), (
+                'The line associated to a target can be provided only when '
+                'using `Multiline.match`')
+            this_tw = tw[self.line]
+        else:
+            this_tw = tw
+
+        if isinstance(self.tar, str):
+            if self.at is not None:
+                return this_tw[self.tar, self.at]
+            else:
+                return this_tw[self.tar]
+        elif callable(self.tar):
+            assert self.at is None, '`at` cannot be provided if target is a function'
+            return self.tar(this_tw)
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
