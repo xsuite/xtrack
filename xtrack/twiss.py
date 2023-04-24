@@ -295,9 +295,6 @@ def twiss_line(line, particle_ref=None, method='6d',
                         **kwargs)
         return res
 
-    mux0 = 0
-    muy0 = 0
-    muzeta0 = 0
     if ele_start is not None or ele_stop is not None:
         if ele_start is not None and ele_stop is None:
             raise ValueError(
@@ -307,6 +304,14 @@ def twiss_line(line, particle_ref=None, method='6d',
                 'ele_start must be specified if ele_stop is not None')
         assert twiss_init is not None, (
             'twiss_init must be provided if ele_start and ele_stop are used')
+
+        if twiss_init == 'preserve':
+            kwargs = locals().copy()
+            kwargs.pop('twiss_init')
+            kwargs.pop('ele_start')
+            kwargs.pop('ele_stop')
+            tw0 = twiss_line(**kwargs)
+            twiss_init = tw0.get_twiss_init(at_element=ele_start)
 
         if isinstance(ele_start, str):
             ele_start = line.element_names.index(ele_start)
@@ -322,6 +327,9 @@ def twiss_line(line, particle_ref=None, method='6d',
         muzeta0 = twiss_init.muzeta
     else:
         ele_start = 0
+        mux0 = 0
+        muy0 = 0
+        muzeta0 = 0
 
     if particle_on_co is not None:
         part_on_co = particle_on_co

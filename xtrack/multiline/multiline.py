@@ -201,8 +201,23 @@ class Multiline:
         if lines is None:
             lines = self.lines.keys()
 
-        for nn in lines:
-            out[nn] = self.lines[nn].twiss(**kwargs)
+        kwargs_per_twiss = {}
+        for arg_name in ['ele_start', 'ele_stop', 'twiss_init']:
+            if arg_name not in kwargs:
+                kwargs_per_twiss[arg_name] = len(lines) * [None]
+            elif not isinstance(kwargs[arg_name], (list, tuple)):
+                kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
+            else:
+                assert len(kwargs[arg_name]) == len(lines), \
+                    f'Length of {arg_name} must be equal to the number of lines'
+                kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
+            kwargs.pop(arg_name)
+
+        for ii, nn in enumerate(lines):
+            out[nn] = self.lines[nn].twiss(**kwargs,
+                                ele_start=kwargs_per_twiss['ele_start'][ii],
+                                ele_stop=kwargs_per_twiss['ele_stop'][ii],
+                                twiss_init=kwargs_per_twiss['twiss_init'][ii])
 
         out._line_names = lines
 
