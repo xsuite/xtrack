@@ -12,6 +12,8 @@ from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs
 from .tracker import Tracker
 from .match import Vary, Target, OrbitOnly
+from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
+                      TargetSeparation)
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
