@@ -20,7 +20,15 @@ class TargetLuminosity(xt.Target):
         self.nemitt_y = nemitt_y
         self.sigma_z = sigma_z
         self.crab = crab
-        self.scale = 1/self.value
+
+    @property
+    def scale(self):
+        if self._scale is None:
+            return 1/self.value
+
+    @scale.setter
+    def scale(self, value):
+        self._scale = value
 
     def compute_luminosity(self, tw):
         assert len(tw._line_names) == 2

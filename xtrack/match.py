@@ -119,6 +119,8 @@ class Target:
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 
+    tw0 = line.twiss(**kwargs)
+
     if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None:
         twiss_init = kwargs['twiss_init']
         assert 'ele_start' in kwargs and kwargs['ele_start'] is not None, (
@@ -159,6 +161,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             targets[ii] = Target(*tt)
         else:
             raise ValueError(f'Invalid target element {tt}')
+
+        if tt.value == 'preserve':
+            tt.value = tt.eval(tw0)
 
     if 'ele_stop' in kwargs and kwargs['ele_stop'] is not None:
         ele_stop = kwargs['ele_stop']
