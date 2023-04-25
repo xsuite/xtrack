@@ -67,11 +67,11 @@ def twiss_line(line, particle_ref=None, method='6d',
     method : {'6d', '4d'}, optional
         Method to be used for the computation. If '6d' the full 6D
         normal form is used. If '4d' the 4D normal form is used.
-    ele_start : int, optional
+    ele_start : int or str, optional
         Index of the element at which the computation starts. If not provided,
         the periodic sulution is computed. `twiss_init` must be provided if
         `ele_start` is provided.
-    ele_stop : int, optional
+    ele_stop : int or str, optional
         Index of the element at which the computation stops.
     twiss_init : TwissInit object, optional
         Initial values for the Twiss parameters.
@@ -316,7 +316,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         if isinstance(ele_start, str):
             ele_start = line.element_names.index(ele_start)
         if isinstance(ele_stop, str):
-            ele_stop = line.element_names.index(ele_stop)
+            ele_stop = line.element_names.index(ele_stop) + 1
 
         assert twiss_init.element_name == line.element_names[ele_start]
         particle_on_co = twiss_init.particle_on_co.copy()
