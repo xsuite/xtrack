@@ -76,12 +76,19 @@ def _jacobian(x, steps, fun):
         x[ii] -= steps[ii]
     return jac
 
+class TargetList:
+    def __init__(self, tars, **kwargs):
+        self.targets = [Target(tt, **kwargs) for tt in tars]
+
+class VaryList:
+    def __init__(self, vars, **kwargs):
+        self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
+
 class Vary:
     def __init__(self, name, limits=None, step=None):
         self.name = name
         self.limits = limits
         self.step = step
-
 
 class Target:
     def __init__(self, tar, value, at=None, tol=None, scale=None, line=None):
@@ -119,8 +126,6 @@ class Target:
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 
-    tw0 = line.twiss(**kwargs)
-
     if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None:
         twiss_init = kwargs['twiss_init']
         assert 'ele_start' in kwargs and kwargs['ele_start'] is not None, (
@@ -144,24 +149,35 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     if isinstance(vary, (str, Vary)):
         vary = [vary]
 
-    for ii, rr in enumerate(vary):
+    input_vary = vary
+    vary = []
+    for ii, rr in enumerate(input_vary):
         if isinstance(rr, Vary):
-            pass
+            vary.append(rr)
         elif isinstance(rr, str):
-            vary[ii] = Vary(rr)
+            vary.append(Vary(rr))
         elif isinstance(rr, (list, tuple)):
-            vary[ii] = Vary(*rr)
+            raise ValueError('Not anymore supported')
+        elif isinstance(rr, VaryList):
+            vary += rr.vary_objects
         else:
             raise ValueError(f'Invalid vary setting {rr}')
 
-    for ii, tt in enumerate(targets):
+    tw0 = line.twiss(**kwargs)
+
+    input_targets = targets
+    targets = []
+    for ii, tt in enumerate(input_targets):
         if isinstance(tt, Target):
-            pass
+            targets.append(tt)
         elif isinstance(tt, (list, tuple)):
-            targets[ii] = Target(*tt)
+            targets.append(Target(*tt))
+        elif isinstance(tt, TargetList):
+            targets += tt.targets
         else:
             raise ValueError(f'Invalid target element {tt}')
 
+    for tt in targets:
         if tt.value == 'preserve':
             tt.value = tt.eval(tw0)
 
