@@ -283,6 +283,7 @@ def luminosity_from_twiss(
     sigma_z,
     twiss_b1,
     twiss_b2,
+    f_rev=None,
     crab=None):
 
     assert crab is not None, 'crab crossing information is required'
@@ -299,8 +300,14 @@ def luminosity_from_twiss(
     else:
         crab_crossing = None
 
+    if f_rev is None:
+        if 'T_rev0' not in twiss_b1.keys():
+            raise ValueError('Revolution frequency cannot be retrieved from twiss, '
+                             'please provide f_rev')
+        f_rev = 1/twiss_b1.T_rev0
+
     lumi = luminosity(
-        f=1/twiss_b1.T_rev0,
+        f=f_rev,
         rest_mass_b1=twiss_b1.particle_on_co.mass0 * 1e-9, # GeV
         rest_mass_b2=twiss_b2_rev.particle_on_co.mass0 * 1e-9, # GeV
         nb=n_colliding_bunches,

@@ -207,11 +207,12 @@ class Multiline:
                 kwargs_per_twiss[arg_name] = len(lines) * [None]
             elif not isinstance(kwargs[arg_name], (list, tuple)):
                 kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
+                kwargs.pop(arg_name)
             else:
                 assert len(kwargs[arg_name]) == len(lines), \
                     f'Length of {arg_name} must be equal to the number of lines'
                 kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
-            kwargs.pop(arg_name)
+                kwargs.pop(arg_name)
 
         for ii, nn in enumerate(lines):
             out[nn] = self.lines[nn].twiss(**kwargs,

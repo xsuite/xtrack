@@ -8,7 +8,7 @@ from . import lumi
 class TargetLuminosity(xt.Target):
 
     def __init__(self, ip_name, luminosity, tol, num_colliding_bunches,
-                 num_particles_per_bunch, nemitt_x, nemitt_y, sigma_z,
+                 num_particles_per_bunch, nemitt_x, nemitt_y, sigma_z, f_rev,
                  crab=None):
 
         xt.Target.__init__(self, self.compute_luminosity, luminosity, tol=tol)
@@ -19,6 +19,7 @@ class TargetLuminosity(xt.Target):
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
         self.sigma_z = sigma_z
+        self.f_rev = f_rev
         self.crab = crab
 
     @property
@@ -41,6 +42,7 @@ class TargetLuminosity(xt.Target):
             sigma_z=self.sigma_z,
             twiss_b1=tw[tw._line_names[0]],
             twiss_b2=tw[tw._line_names[1]],
+            f_rev=self.f_rev,
             crab=self.crab)
 
 class TargetSeparationOrthogonalToCrossing(xt.Target):
