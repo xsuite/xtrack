@@ -28,6 +28,8 @@ class PipelineCommunicator:
         assert tag in self.messages[source].keys()
         assert bool(self.messages[source][tag])
         message = self.messages[source][tag].pop(0)
+        if hasattr(message, "get"):
+            message = message.get()
         recieve_buffer[:] = message[:]
 
     def Iprobe(self,source, tag):

@@ -263,6 +263,10 @@ class Tracker:
     def _beamstrahlung_model(self):
         return self.line._beamstrahlung_model
 
+    @property
+    def _bhabha_model(self):
+        return self.line._bhabha_model
+
     def _invalidate(self):
         if self.iscollective:
             self._invalidated_parts = self._parts
@@ -431,7 +435,7 @@ class Tracker:
 
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
-            
+
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
             ParticlesMonitorData tbt_monitor =
@@ -1148,6 +1152,8 @@ class Tracker:
                 _context=particles._buffer.context,
                 start_at_turn=0,
                 stop_at_turn=num_turns,
+                #start_at_turn=particles.at_turn[0],  # change this from 0 to particles.at_turn[0]
+                #stop_at_turn=particles.at_turn[0]+num_turns,  # change this from num_turns to at_turn+num_turns
                 particle_id_range=particles.get_active_particle_id_range()
             )
             buffer_monitor = monitor._buffer.buffer

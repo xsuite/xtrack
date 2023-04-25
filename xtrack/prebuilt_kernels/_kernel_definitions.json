@@ -2,7 +2,8 @@
     "default_only_xtrack": {
         "config": {
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
-            "XFIELDS_BB3D_NO_BEAMSTR": true
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true
         },
         "classes": [
             "Drift",
@@ -24,7 +25,8 @@
     "default_bb3d": {
         "config": {
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
-            "XFIELDS_BB3D_NO_BEAMSTR": true
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true
         },
         "classes": [
             "Drift",
@@ -53,6 +55,7 @@
             "FREEZE_VAR_rvv": true,
             "FREEZE_VAR_zeta": true,
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_MULTIPOLE_NO_SYNRAD": true
         },
         "classes": [
@@ -75,6 +78,7 @@
     "only_xtrack_taper": {
         "config": {
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_DIPOLEEDGE_TAPER": true,
             "XTRACK_MULTIPOLE_TAPER": true,
             "XTRACK_MULTIPOLE_NO_SYNRAD": false
@@ -99,6 +103,7 @@
     "only_xtrack_with_synrad": {
         "config": {
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_MULTIPOLE_NO_SYNRAD": false
         },
         "classes": [
