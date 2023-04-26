@@ -600,13 +600,13 @@ def _propagate_optics(line, W_matrix, particle_on_co,
 
     x_zeta_disp_minus = line.record_last_track.x[9, i_start:i_stop+1].copy()
     y_zeta_disp_minus = line.record_last_track.y[9, i_start:i_stop+1].copy()
-    zeta_disp_minus = line.record_last_track.zeta[9, i_start:i_stop+1].copy()
+    zeta_crab_disp_minus = line.record_last_track.zeta[9, i_start:i_stop+1].copy()
     px_zeta_disp_minus = line.record_last_track.px[9, i_start:i_stop+1].copy()
     py_zeta_disp_minus = line.record_last_track.py[9, i_start:i_stop+1].copy()
 
     x_zeta_disp_plus = line.record_last_track.x[10, i_start:i_stop+1].copy()
     y_zeta_disp_plus = line.record_last_track.y[10, i_start:i_stop+1].copy()
-    zeta_disp_plus = line.record_last_track.zeta[10, i_start:i_stop+1].copy()
+    zeta_crab_disp_plus = line.record_last_track.zeta[10, i_start:i_stop+1].copy()
     px_zeta_disp_plus = line.record_last_track.px[10, i_start:i_stop+1].copy()
     py_zeta_disp_plus = line.record_last_track.py[10, i_start:i_stop+1].copy()
 
@@ -616,8 +616,8 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
     dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
 
-    dx_zeta = (x_zeta_disp_plus-x_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
-    dy_zeta = (y_zeta_disp_plus-y_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
+    dx_zeta = (x_zeta_disp_plus-x_zeta_disp_minus)/(zeta_crab_disp_plus - zeta_crab_disp_minus)
+    dy_zeta = (y_zeta_disp_plus-y_zeta_disp_minus)/(zeta_crab_disp_plus - zeta_crab_disp_minus)
 
     # To be tested
     # dpx_zeta = (px_zeta_disp_plus-px_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
