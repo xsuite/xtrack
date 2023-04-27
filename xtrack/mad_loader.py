@@ -646,6 +646,94 @@ class MadLoader:
 
         return elem_list
 
+    def convert_quadrupole(self, mad_el):
+        drift = self.Builder(
+            mad_el.name + "_drift",
+            self.classes.Drift,
+            length=mad_el.l / 2,
+        )
+
+        if not mad_el.k1s:
+            quad_thin = self.Builder(
+                mad_el.name + "_quad",
+                self.classes.SimpleThinQuadrupole,
+                knl=[0, mad_el.k1 * mad_el.l],
+            )
+        else:
+            quad_thin = self.Builder(
+                mad_el.name + "_quad",
+                self.classes.Multipole,
+                knl=[0, mad_el.k1 * mad_el.l],
+                ksl=[0, mad_el.k1s * mad_el.l],
+            )
+        return self.convert_thin_element([drift, quad_thin, drift], mad_el)
+
+    def convert_rbend(self, mad_el):
+        drift = self.Builder(
+            mad_el.name + "_drift",
+            self.classes.Drift,
+            length=mad_el.l / 2,
+        )
+
+        bend_thin = self.Builder(
+            mad_el.name + "_bend",
+            self.classes.SimpleThinBend,
+            knl=[mad_el.k0 * mad_el.l],
+            hxl=[mad_el.angle],
+        )
+        return self.convert_thin_element([drift, bend_thin, drift], mad_el)
+
+    def convert_sbend(self, mad_el):
+        drift = self.Builder(
+            mad_el.name + "_drift",
+            self.classes.Drift,
+            length=mad_el.l / 2,
+        )
+
+        bend_thin = self.Builder(
+            mad_el.name + "_bend",
+            self.classes.SimpleThinBend,
+            knl=[mad_el.k0 * mad_el.l],
+            hxl=[mad_el.angle],
+        )
+        return self.convert_thin_element([drift, bend_thin, drift], mad_el)
+
+    def convert_sextupole(self, mad_el):
+        knl = [0, 0, mad_el.k2 * mad_el.l]
+        ksl = [0, 0, mad_el.k2s * mad_el.l]
+
+        drift = self.Builder(
+            mad_el.name + "_drift",
+            self.classes.Drift,
+            length=mad_el.l / 2,
+        )
+
+        sext_thin = self.Builder(
+            mad_el.name + "_sext",
+            self.classes.Multipole,
+            knl=knl,
+            ksl=ksl,
+        )
+        return self.convert_thin_element([drift, sext_thin, drift], mad_el)
+
+    def convert_octupole(self, mad_el):
+        knl = [0, 0, 0, mad_el.k3 * mad_el.l]
+        ksl = [0, 0, 0, mad_el.k3s * mad_el.l]
+
+        drift = self.Builder(
+            mad_el.name + "_drift",
+            self.classes.Drift,
+            length=mad_el.l / 2,
+        )
+
+        oct_thin = self.Builder(
+            mad_el.name + "_sext",
+            self.classes.Multipole,
+            knl=knl,
+            ksl=ksl,
+        )
+        return self.convert_thin_element([drift, oct_thin, drift], mad_el)
+
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
         return [
@@ -741,7 +829,6 @@ class MadLoader:
     convert_vmonitor = convert_drift_like
     convert_collimator = convert_drift_like
     convert_rcollimator = convert_drift_like
-    convert_collimator = convert_drift_like
     convert_elseparator = convert_drift_like
     convert_instrument = convert_drift_like
     convert_solenoid = convert_drift_like
