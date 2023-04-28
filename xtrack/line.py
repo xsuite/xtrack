@@ -1094,6 +1094,7 @@ class Line:
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             linear_rescale_on_knobs=None,
+            freeze_longitudinal=None, delta0=None, zeta0=None,
             keep_fft=True):
 
         '''
@@ -1157,12 +1158,18 @@ class Line:
         kwargs.pop('self')
         kwargs.pop('linear_rescale_on_knobs')
 
+        freeze_longitudinal = kwargs.pop('freeze_longitudinal')
+        delta0 = kwargs.pop('delta0')
+        zeta0 = kwargs.pop('zeta0')
+
         if linear_rescale_on_knobs:
             fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
                         linear_rescale_on_knobs=linear_rescale_on_knobs)
         else:
             fp = Footprint(**kwargs)
-            fp._compute_footprint(self)
+            fp._compute_footprint(self,
+                freeze_longitudinal=freeze_longitudinal,
+                delta0=delta0, zeta0=zeta0)
 
         return fp
 

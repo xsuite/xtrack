@@ -127,11 +127,16 @@ class Footprint():
             self.x_norm_2d = np.sqrt(2 * self.Jx_2d / nemitt_x)
             self.y_norm_2d = np.sqrt(2 * self.Jy_2d / nemitt_y)
 
-    def _compute_footprint(self, line):
+    def _compute_footprint(self, line, freeze_longitudinal=False,
+                           delta0=None, zeta0=None):
 
         particles = line.build_particles(
             x_norm=self.x_norm_2d.flatten(), y_norm=self.y_norm_2d.flatten(),
-            nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y)
+            nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y,
+            zeta=zeta0, delta=delta0,
+            freeze_longitudinal=freeze_longitudinal,
+            method={True: '4d', False: '6d'}[freeze_longitudinal]
+            )
 
         print('Tracking particles for footprint...')
         line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True)
