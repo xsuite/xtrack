@@ -680,6 +680,13 @@ class MadLoader:
             return slicing_strategy
         return None
 
+    def _make_drift_slice(self, mad_el, weight, suffix):
+        return self.Builder(
+            mad_el.name + suffix,
+            self.classes.Drift,
+            length=mad_el.l * weight,
+        )
+
     def convert_thin_element(self, xtrack_el, mad_el):
         """add aperture and transformations to a thin element
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
@@ -701,49 +708,45 @@ class MadLoader:
         return elem_list
 
     def convert_quadrupole(self, mad_el):
-        sequence = []
-        slicing_strategy = self.get_slicing_strategy(mad_el)
-
-        for weight, is_drift in slicing_strategy:
-            if is_drift:
+        def _make_thin_quad_slice(elem_weight, suffix):
+            name = mad_el.name + suffix
+            if not mad_el.k1s:
                 element = self.Builder(
-                    mad_el.name + "_drift",
-                    self.classes.Drift,
-                    length=mad_el.l / 2,
+                    name,
+                    self.classes.SimpleThinQuadrupole,
+                    knl=[0, mad_el.k1 * mad_el.l * elem_weight],
                 )
             else:
-                if not mad_el.k1s:
-                    element = self.Builder(
-                        mad_el.name + "_quad",
-                        self.classes.SimpleThinQuadrupole,
-                        knl=[0, mad_el.k1 * mad_el.l],
-                    )
-                else:
-                    element = self.Builder(
-                        mad_el.name + "_quad",
-                        self.classes.Multipole,
-                        knl=[0, mad_el.k1 * mad_el.l],
-                        ksl=[0, mad_el.k1s * mad_el.l],
-                    )
-            sequence.append(element)
+                element = self.Builder(
+                    name,
+                    self.classes.Multipole,
+                    knl=[0, mad_el.k1 * mad_el.l * elem_weight],
+                    ksl=[0, mad_el.k1s * mad_el.l * elem_weight],
+                )
+            return element
+
+        slicing_strategy = self.get_slicing_strategy(mad_el)
+        sequence = []
+        drifts, quads = 0, 0
+        for weight, is_drift in slicing_strategy:
+            if is_drift:
+                elem = self._make_drift_slice(mad_el, weight, f"$drift{drifts}")
+                drifts += 1
+            else:
+                elem = _make_thin_quad_slice(weight, f"$quad{quads}")
+                quads += 1
+            sequence.append(elem)
 
         return self.convert_thin_element(sequence, mad_el)
 
-    def slice_bend_thin(self, mad_el):
-        def _make_thin_drift_slice(weight, suffix):
-            return self.Builder(
-                mad_el.name + suffix,
-                self.classes.Drift,
-                length=mad_el.l * weight,
-            )
-
-        def _make_thin_bend_slice(weight, suffix):
+    def _slice_bend_thin(self, mad_el):
+        def _make_thin_bend_slice(slice_weight, suffix):
             bend_thin = self.Builder(
                 mad_el.name + suffix,
                 self.classes.SimpleThinBend,
                 knl=[mad_el.k0 * mad_el.l],
                 hxl=[mad_el.angle],
-                length=mad_el.l * weight,
+                length=mad_el.l * slice_weight,
             )
 
             if mad_el.angle:  # != 0
@@ -757,11 +760,12 @@ class MadLoader:
         drifts, bends = 0, 0
         for weight, is_drift in self.get_slicing_strategy(mad_el):
             if is_drift:
-                sequence.append(_make_thin_drift_slice(weight, f"$drift{drifts}"))
+                elem = self._make_drift_slice(mad_el, weight, f"$drift{drifts}")
                 drifts += 1
             else:
-                sequence.append(_make_thin_bend_slice(weight, f"$bend{bends}"))
+                elem = _make_thin_bend_slice(weight, f"$bend{bends}")
                 bends += 1
+            sequence.append(elem)
 
         # Add the dipole edge(s)
         if mad_el.e1 or mad_el.h1:
@@ -791,49 +795,58 @@ class MadLoader:
         return sequence
 
     def convert_rbend(self, mad_el):
-        sequence = self.slice_bend_thin(mad_el)
+        sequence = self._slice_bend_thin(mad_el)
         return self.convert_thin_element(sequence, mad_el)
 
     def convert_sbend(self, mad_el):
-        sequence = self.slice_bend_thin(mad_el)
+        sequence = self._slice_bend_thin(mad_el)
         return self.convert_thin_element(sequence, mad_el)
 
     def convert_sextupole(self, mad_el):
-        knl = [0, 0, mad_el.k2 * mad_el.l]
-        ksl = [0, 0, mad_el.k2s * mad_el.l]
+        def _make_thin_sext_slice(elem_weight, suffix):
+            return self.Builder(
+                mad_el.name + suffix,
+                self.classes.Multipole,
+                knl=[0, 0, mad_el.k2 * mad_el.l * elem_weight],
+                ksl=[0, 0, mad_el.k2s * mad_el.l * elem_weight],
+                length=mad_el.l * elem_weight,
+            )
 
-        drift = self.Builder(
-            mad_el.name + "_drift",
-            self.classes.Drift,
-            length=mad_el.l / 2,
-        )
+        sequence = []
+        drifts, sexts = 0, 0
+        for weight, is_drift in self.get_slicing_strategy(mad_el):
+            if is_drift:
+                elem = self._make_drift_slice(mad_el, weight, f"$drift{drifts}")
+                drifts += 1
+            else:
+                elem = _make_thin_sext_slice(weight, f"$sext{sexts}")
+                sexts += 1
+            sequence.append(elem)
 
-        sext_thin = self.Builder(
-            mad_el.name + "_sext",
-            self.classes.Multipole,
-            knl=knl,
-            ksl=ksl,
-            length=mad_el.l,
-        )
-        return self.convert_thin_element([drift, sext_thin, drift], mad_el)
+        return self.convert_thin_element(sequence, mad_el)
 
     def convert_octupole(self, mad_el):
-        knl = [0, 0, 0, mad_el.k3 * mad_el.l]
-        ksl = [0, 0, 0, mad_el.k3s * mad_el.l]
+        def _make_thin_sext_slice(elem_weight, suffix):
+            return self.Builder(
+                mad_el.name + suffix,
+                self.classes.Multipole,
+                knl=[0, 0, 0, mad_el.k3 * mad_el.l * elem_weight],
+                ksl=[0, 0, 0, mad_el.k3s * mad_el.l * elem_weight],
+                length=mad_el.l * elem_weight,
+            )
 
-        drift = self.Builder(
-            mad_el.name + "_drift",
-            self.classes.Drift,
-            length=mad_el.l / 2,
-        )
+        sequence = []
+        drifts, octs = 0, 0
+        for weight, is_drift in self.get_slicing_strategy(mad_el):
+            if is_drift:
+                elem = self._make_drift_slice(mad_el, weight, f"$drift{drifts}")
+                drifts += 1
+            else:
+                elem = _make_thin_sext_slice(weight, f"$oct{octs}")
+                octs += 1
+            sequence.append(elem)
 
-        oct_thin = self.Builder(
-            mad_el.name + "_sext",
-            self.classes.Multipole,
-            knl=knl,
-            ksl=ksl,
-        )
-        return self.convert_thin_element([drift, oct_thin, drift], mad_el)
+        return self.convert_thin_element(sequence, mad_el)
 
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
