@@ -178,6 +178,14 @@ class Multiline:
             ll.build_tracker(_context=_context, _buffer=_buffer, **kwargs)
 
 
+    def discard_trackers(self):
+        '''
+        Discard the trackers associated to the lines.
+        '''
+
+        for nn, ll in self.lines.items():
+            ll.discard_tracker()
+
     def twiss(self, lines=None, **kwargs):
 
         '''
@@ -291,12 +299,12 @@ class Multiline:
 
         Parameters
         ----------
-        clockwise_line: xt.Line
-            The line in which the beam-beam elements for the clockwise beam
-            are installed.
+        clockwise_line: str
+            Name of the line in which the beam-beam elements for the clockwise
+            beam are installed.
         anticlockwise_line: xt.Line
-            The line in which the beam-beam elements for the anticlockwise beam
-            are installed.
+            Name of the line in which the beam-beam elements for the
+            anticlockwise beam are installed.
         ip_names: list
             The names of the IPs in the lines around which the beam-beam
             elements need to be installed.
