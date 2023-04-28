@@ -468,7 +468,8 @@ class UniformSlicing:
         return [1. / self.slicing_order] * self.slicing_order
 
     def drift_weights(self) -> List[float]:
-        return [1. / self.slicing_order] * self.slicing_order
+        slices = self.slicing_order + 1
+        return [1. / slices] * slices
 
     def __iter__(self) -> Iterator[Tuple[float, bool]]:
         """
@@ -729,30 +730,43 @@ class MadLoader:
         return self.convert_thin_element(sequence, mad_el)
 
     def slice_bend_thin(self, mad_el):
-        drift = self.Builder(
-            mad_el.name + "_drift",
-            self.classes.Drift,
-            length=mad_el.l / 2,
-        )
+        def _make_thin_drift_slice(weight, suffix):
+            return self.Builder(
+                mad_el.name + suffix,
+                self.classes.Drift,
+                length=mad_el.l * weight,
+            )
 
-        bend_thin = self.Builder(
-            mad_el.name + "_bend",
-            self.classes.SimpleThinBend,
-            knl=[mad_el.k0 * mad_el.l],
-            hxl=[mad_el.angle],
-            length=mad_el.l,
-        )
-        if mad_el.angle:  # != 0
-            bend_thin.hxl = mad_el.angle
-        else:
-            bend_thin.hxl = mad_el.k0 * mad_el.l
+        def _make_thin_bend_slice(weight, suffix):
+            bend_thin = self.Builder(
+                mad_el.name + suffix,
+                self.classes.SimpleThinBend,
+                knl=[mad_el.k0 * mad_el.l],
+                hxl=[mad_el.angle],
+                length=mad_el.l * weight,
+            )
 
-        sequence = [drift, bend_thin, drift]
+            if mad_el.angle:  # != 0
+                bend_thin.hxl = mad_el.angle
+            else:
+                bend_thin.hxl = mad_el.k0 * mad_el.l
+
+            return bend_thin
+
+        sequence = []
+        drifts, bends = 0, 0
+        for weight, is_drift in self.get_slicing_strategy(mad_el):
+            if is_drift:
+                sequence.append(_make_thin_drift_slice(weight, f"$drift{drifts}"))
+                drifts += 1
+            else:
+                sequence.append(_make_thin_bend_slice(weight, f"$bend{bends}"))
+                bends += 1
 
         # Add the dipole edge(s)
         if mad_el.e1 or mad_el.h1:
             dipedge_entry = self.Builder(
-                mad_el.name + "_dipedge",
+                mad_el.name + "$dipedge",
                 self.classes.DipoleEdge,
                 e1=mad_el.e1,
                 fint=mad_el.fint,
@@ -765,7 +779,7 @@ class MadLoader:
             fintx = mad_el.fint if float(mad_el.fintx) < 0 else mad_el.fintx
 
             dipedge_exit = self.Builder(
-                mad_el.name + "_dipedge",
+                mad_el.name + "$dipedgex",
                 self.classes.DipoleEdge,
                 e1=mad_el.e2,
                 fint=fintx,

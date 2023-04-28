@@ -544,3 +544,62 @@ def test_selective_expr_import_and_replace_in_expr():
 
     assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None # multipole
     assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None # kicker
+
+def test_uniform_slicing():
+    slicing_1 = xt.mad_loader.UniformSlicing(1)
+    assert slicing_1.element_weights() == [1.0]
+    assert slicing_1.drift_weights() == [0.5] * 2
+    assert [w for w in slicing_1] == [(0.5, True), (1.0, False), (0.5, True)]
+
+    slicing_1 = xt.mad_loader.UniformSlicing(3)
+    assert slicing_1.element_weights() == [1./3.] * 3
+    assert slicing_1.drift_weights() == [0.25] * 4
+
+    elem_info, drift_info = (1./3., False), (0.25, True)
+    assert [w for w in slicing_1] == [
+        drift_info, elem_info,
+        drift_info, elem_info,
+        drift_info, elem_info,
+        drift_info,
+    ]
+
+def test_convert_sbend():
+    mad = Madx()
+
+    mad.input("""
+    bend: sbend, l=2, angle=0.2, k0=0.3, e1=0, e2=0.1, fint=0.2, fintx=-1;
+
+    ss: sequence, l=2; bend: bend, at=1; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    line = MadLoader(mad.sequence.ss).make_line()
+
+    # Check that the line looks sensible (roughly right elements)
+    expected_lengths = [None, 1., 2., 1., None, None]
+    result_lengths = [getattr(el, 'length', None) for el in line]
+    assert expected_lengths == result_lengths
+
+    expected_types = [
+        xt.Marker,
+        xt.Drift, xt.SimpleThinBend, xt.Drift, xt.DipoleEdge,
+        xt.Marker,
+    ]
+    result_types = [type(el) for el in line]
+    assert expected_types == result_types
+
+    assert (line.element_names == [
+        'ss$start',
+        'bend$drift0',
+        'bend$bend0',
+        'bend$drift1',
+        'bend$dipedgex',
+        'ss$end'
+    ])
+
+    # Check the bends
+    assert line['bend$bend0'].knl == 0.6
+    assert line['bend$bend0'].hxl == 0.2
+    assert line['bend$dipedgex'].e1 == 0.1
+    assert line['bend$dipedgex'].fint == 0.2
