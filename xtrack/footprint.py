@@ -130,6 +130,10 @@ class Footprint():
     def _compute_footprint(self, line, freeze_longitudinal=False,
                            delta0=None, zeta0=None):
 
+        if freeze_longitudinal is None:
+            # In future we could detect if the line has frozen longitudinal plane
+            freeze_longitudinal = False
+
         particles = line.build_particles(
             x_norm=self.x_norm_2d.flatten(), y_norm=self.y_norm_2d.flatten(),
             nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y,
