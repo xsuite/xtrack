@@ -675,7 +675,7 @@ class MadLoader:
         for name_regex, madx_type, slicing_strategy in self.slicing_strategies:
             if name_regex is not None and not name_regex.match(mad_el.name):
                 continue
-            if madx_type is not None and mad_el.base_type != madx_type:
+            if madx_type is not None and mad_el.base_type.name != madx_type:
                 continue
             return slicing_strategy
         return None

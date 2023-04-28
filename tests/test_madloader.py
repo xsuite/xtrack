@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 
 import xtrack.mad_loader
+from xtrack.mad_loader import UniformSlicing
 from xtrack import MadLoader
 import xtrack as xt
 from scipy.constants import c as clight
@@ -547,12 +548,12 @@ def test_selective_expr_import_and_replace_in_expr():
 
 
 def test_slicing_uniform_slicing():
-    slicing_1 = xt.mad_loader.UniformSlicing(1)
+    slicing_1 = UniformSlicing(1)
     assert slicing_1.element_weights() == [1.0]
     assert slicing_1.drift_weights() == [0.5] * 2
     assert [w for w in slicing_1] == [(0.5, True), (1.0, False), (0.5, True)]
 
-    slicing_1 = xt.mad_loader.UniformSlicing(3)
+    slicing_1 = UniformSlicing(3)
     assert slicing_1.element_weights() == [1/3] * 3
     assert slicing_1.drift_weights() == [0.25] * 4
 
@@ -658,7 +659,7 @@ def test_slicing_convert_quadrupole_to_multiple():
 
     ml = MadLoader(mad.sequence.ss)
     ml.slicing_strategies = [
-        ml.make_slicing_strategy(xt.mad_loader.UniformSlicing(2)),
+        ml.make_slicing_strategy(UniformSlicing(2)),
     ]
     line = ml.make_line()
 
@@ -705,7 +706,7 @@ def test_slicing_convert_sextupole():
 
     ml = MadLoader(mad.sequence.ss)
     ml.slicing_strategies = [
-        ml.make_slicing_strategy(xt.mad_loader.UniformSlicing(2)),
+        ml.make_slicing_strategy(UniformSlicing(2)),
     ]
     line = ml.make_line()
 
@@ -753,7 +754,7 @@ def test_slicing_convert_octupole():
 
     ml = MadLoader(mad.sequence.ss)
     ml.slicing_strategies = [
-        ml.make_slicing_strategy(xt.mad_loader.UniformSlicing(2)),
+        ml.make_slicing_strategy(UniformSlicing(2)),
     ]
     line = ml.make_line()
 
@@ -785,3 +786,41 @@ def test_slicing_convert_octupole():
     assert np.allclose(line['oct$oct1'].knl, [0, 0, 0, 0.4])
     assert np.allclose(line['oct$oct0'].ksl, [0, 0, 0, 0.6])
     assert np.allclose(line['oct$oct1'].ksl, [0, 0, 0, 0.6])
+
+
+def test_slicing_get_slicing_strategy():
+    mad = Madx()
+
+    mad.input("""
+    quad: quadrupole, l=1;
+    bend: sbend, l=1;
+
+    ss: sequence, l=5;
+        q1x: quad, at=0.5;
+        q2x: quad, at=1.5;
+        q3y: quad, at=2.5;
+        b1x: bend, at=3.5;
+        b2y: bend, at=4.5;
+    endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    ml = MadLoader(mad.sequence.ss)
+    ml.slicing_strategies = [
+        # Quadrupoles that end in `x` should be sliced into three slices
+        ml.make_slicing_strategy(
+            UniformSlicing(3), madx_type='quadrupole', name_regex=r'.*x'),
+        # All the other ones (by name) into two slices
+        ml.make_slicing_strategy(UniformSlicing(2), name_regex=r'q.*'),
+        # Bends (by type) are only one slice
+        ml.make_slicing_strategy(UniformSlicing(1), madx_type='sbend'),
+    ]
+
+    seq_elements = ml.sequence.elements
+
+    assert ml.get_slicing_strategy(seq_elements['q1x']).slicing_order == 3
+    assert ml.get_slicing_strategy(seq_elements['q2x']).slicing_order == 3
+    assert ml.get_slicing_strategy(seq_elements['q3y']).slicing_order == 2
+    assert ml.get_slicing_strategy(seq_elements['b1x']).slicing_order == 1
+    assert ml.get_slicing_strategy(seq_elements['b2y']).slicing_order == 1
