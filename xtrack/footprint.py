@@ -139,7 +139,8 @@ class Footprint():
             )
 
         print('Tracking particles for footprint...')
-        line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True)
+        line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True,
+                   freeze_longitudinal=freeze_longitudinal)
         print('Done tracking.')
 
         ctx2np = line._context.nparray_from_context_array

@@ -1146,6 +1146,13 @@ class Line:
             Example:
                 ``line.get_footprint(..., linear_rescale_on_knobs=[
                     xt.LinearRescale(knob_name='beambeam_scale', v0=0, dv-0.1)])``
+        freeze_longitudinal : bool
+            If True, the longitudinal coordinates are frozen during the particles
+            matching and the tracking.
+        delta0: float
+            Initial value of the delta coordinate.
+        zeta0: float
+            Initial value of the zeta coordinate.
 
         Returns
         -------
