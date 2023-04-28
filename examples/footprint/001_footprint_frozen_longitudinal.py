@@ -14,17 +14,26 @@ line = xt.Line.from_json(
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12)
 line.build_tracker()
 
-line.freeze_longitudinal()
-
+# Some octupoles and chromaticity to see the footprint moving
 line.vars['i_oct_b1'] = 500
+line.match(
+    targets=[xt.TargetList(['dqx', 'dqy'], value=10, tol=0.01)],
+    vary=[xt.VaryList(['ksf.b1', 'ksd.b1'], step=1e-3)])
 
 plt.close('all')
 plt.figure(1)
 
-# Compute and plot footprint
+# Compute and plot footprint on momentum
 fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                          freeze_longitudinal=True)
-fp1.plot(color='r', label='I_oct=500')
+fp1.plot(color='b', label='delta=0')
+
+# Compute and plot footprint off momentum
+fp2 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                         freeze_longitudinal=True, delta0=1e-4)
+fp2.plot(color='r', label='delta=1e-4')
+
+assert np.allclose(line.record_last_track.delta[:], 1e-4, atol=1e-12, rtol=0)
 
 plt.legend()
 
