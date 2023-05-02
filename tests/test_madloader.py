@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 
 import xtrack.mad_loader
+from xtrack.mad_loader import UniformSlicing
 from xtrack import MadLoader
 import xtrack as xt
 from scipy.constants import c as clight
@@ -544,3 +545,282 @@ def test_selective_expr_import_and_replace_in_expr():
 
     assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None # multipole
     assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None # kicker
+
+
+def test_slicing_uniform_slicing():
+    slicing_1 = UniformSlicing(1)
+    assert slicing_1.element_weights() == [1.0]
+    assert slicing_1.drift_weights() == [0.5] * 2
+    assert [w for w in slicing_1] == [(0.5, True), (1.0, False), (0.5, True)]
+
+    slicing_1 = UniformSlicing(3)
+    assert slicing_1.element_weights() == [1/3] * 3
+    assert slicing_1.drift_weights() == [0.25] * 4
+
+    elem_info, drift_info = (1./3., False), (0.25, True)
+    assert [w for w in slicing_1] == [
+        drift_info, elem_info,
+        drift_info, elem_info,
+        drift_info, elem_info,
+        drift_info,
+    ]
+
+
+def test_slicing_convert_sbend():
+    mad = Madx()
+
+    mad.input("""
+    bend: sbend, l=2, angle=0.2, k0=0.3, e1=0, e2=0.1, fint=0.2, fintx=-1;
+
+    ss: sequence, l=2; bend: bend, at=1; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    line = MadLoader(mad.sequence.ss).make_line()
+
+    # Check that the line looks sensible (roughly right elements)
+    expected_lengths = [None, 1, 2, 1, None, None]
+    result_lengths = [getattr(el, 'length', None) for el in line]
+    assert expected_lengths == result_lengths
+
+    expected_types = [
+        xt.Marker,
+        xt.Drift, xt.SimpleThinBend, xt.Drift, xt.DipoleEdge,
+        xt.Marker,
+    ]
+    result_types = [type(el) for el in line]
+    assert expected_types == result_types
+
+    assert line.element_names == [
+        'ss$start',
+        'bend$drift0',
+        'bend$bend0',
+        'bend$drift1',
+        'bend$dipedgex',
+        'ss$end'
+    ]
+
+    # Check the bends
+    assert line['bend$bend0'].knl == 0.6
+    assert line['bend$bend0'].hxl == 0.2
+    assert line['bend$dipedgex'].e1 == 0.1
+    assert line['bend$dipedgex'].fint == 0.2
+
+
+def test_slicing_convert_quadrupole_to_simple_thin_quad():
+    mad = Madx()
+
+    mad.input("""
+    quad: quadrupole, l=3, k1=0.2;
+
+    ss: sequence, l=3; quad: quad, at=1.5; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    line = MadLoader(mad.sequence.ss).make_line()
+
+    # Check that the line looks sensible (roughly right elements)
+    expected_lengths = [None, 1.5, 0, 1.5, None]
+    result_lengths = [getattr(el, 'length', None) for el in line]
+    assert expected_lengths == result_lengths
+
+    expected_types = [
+        xt.Marker,
+        xt.Drift, xt.SimpleThinQuadrupole, xt.Drift,
+        xt.Marker,
+    ]
+    result_types = [type(el) for el in line]
+    assert expected_types == result_types
+
+    assert line.element_names == [
+        'ss$start',
+        'quad$drift0',
+        'quad$quad0',
+        'quad$drift1',
+        'ss$end',
+    ]
+
+    # Check the quads
+    assert np.allclose(line['quad$quad0'].knl, [0, 0.6])
+
+
+def test_slicing_convert_quadrupole_to_multiple():
+    mad = Madx()
+
+    mad.input("""
+    quad: quadrupole, l=3, k1=0.2, k1s=0.3;
+
+    ss: sequence, l=3; quad: quad, at=1.5; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    ml = MadLoader(mad.sequence.ss)
+    ml.slicing_strategies = [
+        ml.make_slicing_strategy(UniformSlicing(2)),
+    ]
+    line = ml.make_line()
+
+    # Check that the line looks sensible (roughly right elements)
+    expected_lengths = [None, 1, 0, 1, 0, 1, None]
+    result_lengths = [getattr(el, 'length', None) for el in line]
+    assert expected_lengths == result_lengths
+
+    expected_types = [
+        xt.Marker,
+        xt.Drift, xt.Multipole, xt.Drift, xt.Multipole, xt.Drift,
+        xt.Marker,
+    ]
+    result_types = [type(el) for el in line]
+    assert expected_types == result_types
+
+    assert line.element_names == [
+        'ss$start',
+        'quad$drift0',
+        'quad$quad0',
+        'quad$drift1',
+        'quad$quad1',
+        'quad$drift2',
+        'ss$end',
+    ]
+
+    # Check the multipoles
+    assert np.allclose(line['quad$quad0'].knl, [0, 0.3])
+    assert np.allclose(line['quad$quad1'].knl, [0, 0.3])
+    assert np.allclose(line['quad$quad0'].ksl, [0, 0.45])
+    assert np.allclose(line['quad$quad1'].ksl, [0, 0.45])
+
+
+def test_slicing_convert_sextupole():
+    mad = Madx()
+
+    mad.input("""
+    sext: sextupole, l=4, k2=0.2, k2s=0.3;
+
+    ss: sequence, l=4; sext: sext, at=2; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    ml = MadLoader(mad.sequence.ss)
+    ml.slicing_strategies = [
+        ml.make_slicing_strategy(UniformSlicing(2)),
+    ]
+    line = ml.make_line()
+
+    # Check that the line looks sensible (roughly right elements)
+    expected_lengths = [None, 4/3, 2., 4/3, 2., 4/3, None]
+    result_lengths = [getattr(el, 'length', None) for el in line]
+    assert expected_lengths == result_lengths
+
+    expected_types = [
+        xt.Marker,
+        xt.Drift, xt.Multipole, xt.Drift, xt.Multipole, xt.Drift,
+        xt.Marker,
+    ]
+    result_types = [type(el) for el in line]
+    assert expected_types == result_types
+
+    assert line.element_names == [
+        'ss$start',
+        'sext$drift0',
+        'sext$sext0',
+        'sext$drift1',
+        'sext$sext1',
+        'sext$drift2',
+        'ss$end',
+    ]
+
+    # Check the multipoles
+    assert np.allclose(line['sext$sext0'].knl, [0, 0, 0.4])
+    assert np.allclose(line['sext$sext1'].knl, [0, 0, 0.4])
+    assert np.allclose(line['sext$sext0'].ksl, [0, 0, 0.6])
+    assert np.allclose(line['sext$sext1'].ksl, [0, 0, 0.6])
+
+
+
+def test_slicing_convert_octupole():
+    mad = Madx()
+
+    mad.input("""
+    oct: octupole, l=4, k3=0.2, k3s=0.3;
+
+    ss: sequence, l=4; oct: octupole, at=2; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    ml = MadLoader(mad.sequence.ss)
+    ml.slicing_strategies = [
+        ml.make_slicing_strategy(UniformSlicing(2)),
+    ]
+    line = ml.make_line()
+
+    # Check that the line looks sensible (roughly right elements)
+    expected_lengths = [None, 4/3, 2., 4/3, 2., 4/3, None]
+    result_lengths = [getattr(el, 'length', None) for el in line]
+    assert expected_lengths == result_lengths
+
+    expected_types = [
+        xt.Marker,
+        xt.Drift, xt.Multipole, xt.Drift, xt.Multipole, xt.Drift,
+        xt.Marker,
+    ]
+    result_types = [type(el) for el in line]
+    assert expected_types == result_types
+
+    assert line.element_names == [
+        'ss$start',
+        'oct$drift0',
+        'oct$oct0',
+        'oct$drift1',
+        'oct$oct1',
+        'oct$drift2',
+        'ss$end',
+    ]
+
+    # Check the multipoles
+    assert np.allclose(line['oct$oct0'].knl, [0, 0, 0, 0.4])
+    assert np.allclose(line['oct$oct1'].knl, [0, 0, 0, 0.4])
+    assert np.allclose(line['oct$oct0'].ksl, [0, 0, 0, 0.6])
+    assert np.allclose(line['oct$oct1'].ksl, [0, 0, 0, 0.6])
+
+
+def test_slicing_get_slicing_strategy():
+    mad = Madx()
+
+    mad.input("""
+    quad: quadrupole, l=1;
+    bend: sbend, l=1;
+
+    ss: sequence, l=5;
+        q1x: quad, at=0.5;
+        q2x: quad, at=1.5;
+        q3y: quad, at=2.5;
+        b1x: bend, at=3.5;
+        b2y: bend, at=4.5;
+    endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    ml = MadLoader(mad.sequence.ss)
+    ml.slicing_strategies = [
+        # Quadrupoles that end in `x` should be sliced into three slices
+        ml.make_slicing_strategy(
+            UniformSlicing(3), madx_type='quadrupole', name_regex=r'.*x'),
+        # All the other ones (by name) into two slices
+        ml.make_slicing_strategy(UniformSlicing(2), name_regex=r'q.*'),
+        # Bends (by type) are only one slice
+        ml.make_slicing_strategy(UniformSlicing(1), madx_type='sbend'),
+    ]
+
+    seq_elements = ml.sequence.elements
+
+    assert ml.get_slicing_strategy(seq_elements['q1x']).slicing_order == 3
+    assert ml.get_slicing_strategy(seq_elements['q2x']).slicing_order == 3
+    assert ml.get_slicing_strategy(seq_elements['q3y']).slicing_order == 2
+    assert ml.get_slicing_strategy(seq_elements['b1x']).slicing_order == 1
+    assert ml.get_slicing_strategy(seq_elements['b2y']).slicing_order == 1
