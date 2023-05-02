@@ -348,7 +348,7 @@ class Multiline:
             num_slices_head_on=num_slices_head_on,
             harmonic_number=harmonic_number,
             bunch_spacing_buckets=bunch_spacing_buckets,
-            sigmaz_m=sigmaz)
+            sigmaz_m=sigmaz, delay_at_ips_slots=delay_at_ips_slots)
 
         self._bb_config = {
             'dataframes': {
@@ -426,6 +426,32 @@ class Multiline:
                 self.vars[f'{bbnn}_scale_strength'] = self.vars['beambeam_scale']
                 line.element_refs[bbnn].scale_strength = self.vars[f'{bbnn}_scale_strength']
 
+    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
+                             i_bunch_cw, i_bunch_acw):
+
+        '''
+        Enable only he beam-beam elements corresponding to actual encounters
+        for the given filling pattern and the selected bunches.
+
+        Parameters
+        ----------
+
+        filling_pattern_cw: list or array
+            The filling pattern for the clockwise beam.
+        filling_pattern_acw: list or array
+            The filling pattern for the anticlockwise beam.
+        i_bunch_cw: int
+            The index of the bunch to be simulated for the clockwise beam.
+        i_bunch_acw: int
+            The index of the bunch to be simulated for the anticlockwise beam.
+        '''
+
+        apply_filling_pattern = (
+            xf.config_tools.beambeam_config_tools.config_tools.apply_filling_pattern)
+
+        apply_filling_pattern(collider=self, filling_pattern_cw=filling_pattern_cw,
+                            filling_pattern_acw=filling_pattern_acw,
+                            i_bunch_cw=i_bunch_cw, i_bunch_acw=i_bunch_acw)
 
 class MultiTwiss(dict):
 
