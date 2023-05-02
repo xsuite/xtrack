@@ -290,7 +290,8 @@ class Multiline:
                                       num_long_range_encounters_per_side,
                                       num_slices_head_on,
                                       harmonic_number, bunch_spacing_buckets,
-                                      sigmaz):
+                                      sigmaz,
+                                      delay_at_ips_slots=None):
 
         '''
         Install beam-beam elements in the lines. Elements are inserted in the
@@ -318,6 +319,10 @@ class Multiline:
             The bunch spacing in buckets.
         sigmaz: float
             The longitudinal size of the beam.
+        delay_at_ips_slots: list
+            Delay between the two beams in bunch slots for each IP. It specifies
+            which bunch of the anticlockwise beam interacts with bunch zero of
+            the clockwise beam.
 
         '''
 
