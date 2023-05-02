@@ -824,3 +824,17 @@ def test_slicing_get_slicing_strategy():
     assert ml.get_slicing_strategy(seq_elements['q3y']).slicing_order == 2
     assert ml.get_slicing_strategy(seq_elements['b1x']).slicing_order == 1
     assert ml.get_slicing_strategy(seq_elements['b2y']).slicing_order == 1
+
+
+def test_slicing_teapot():
+    little_deltas = [1/2, 1/6, 1/8, 1/10]
+    big_deltas = [None, 2/3, 3/8, 4/15]
+
+    for order in range(1, 5):
+        teapot = xt.mad_loader.TeapotSlicing(order)
+        assert teapot.element_weights() == [1 / order] * order
+
+        drifts = teapot.drift_weights()
+        assert drifts[0] == little_deltas[order - 1]
+        assert drifts[-1] == little_deltas[order - 1]
+        assert drifts[1:-1] == [big_deltas[order - 1]] * (order - 1)

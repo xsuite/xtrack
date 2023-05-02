@@ -27,9 +27,11 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 
 if the want to control how the xobject is created
 """
+import abc
+import functools
 import re
-from itertools import chain, zip_longest
-from typing import List, Iterator, Tuple
+from itertools import zip_longest
+from typing import List, Iterable, Iterator, Tuple
 
 import numpy as np
 
@@ -189,6 +191,17 @@ class MadElem:
     #    elem=self.elem
     #    if hasattr(elem, "field_errors") and elem.field_errors is not None:
     #        return FieldErrors(elem.field_errors)
+
+    def get_type_hierarchy(self, cpymad_elem=None):
+        # TODO: Maybe this should be in cpymad?
+        if cpymad_elem is None:
+            cpymad_elem = self.elem
+
+        if cpymad_elem.name == cpymad_elem.parent.name:
+            return [cpymad_elem.name]
+
+        parent_types = self.get_type_hierarchy(cpymad_elem.parent)
+        return [cpymad_elem.name] + parent_types
 
     @property
     def phase_errors(self):
@@ -460,16 +473,23 @@ class Dummy:
     type = "None"
 
 
-class UniformSlicing:
+class ThickElementSlicing(abc.ABC):
     def __init__(self, slicing_order: int):
         self.slicing_order = slicing_order
 
+    @abc.abstractmethod
     def element_weights(self) -> List[float]:
-        return [1. / self.slicing_order] * self.slicing_order
+        """Define a list of weights of length `self.slicing_order`, containing
+         the weight of each element slice.
+        """
+        pass
 
+    @abc.abstractmethod
     def drift_weights(self) -> List[float]:
-        slices = self.slicing_order + 1
-        return [1. / slices] * slices
+        """Define a list of weights of length `self.slicing_order + 1`,
+        containing the weight of each drift slice.
+        """
+        pass
 
     def __iter__(self) -> Iterator[Tuple[float, bool]]:
         """
@@ -492,6 +512,30 @@ class UniformSlicing:
                 break
 
             yield elem_weight, False
+
+
+class UniformSlicing(ThickElementSlicing):
+    def element_weights(self):
+        return [1. / self.slicing_order] * self.slicing_order
+
+    def drift_weights(self):
+        slices = self.slicing_order + 1
+        return [1. / slices] * slices
+
+
+class TeapotSlicing(ThickElementSlicing):
+    def element_weights(self):
+        return [1. / self.slicing_order] * self.slicing_order
+
+    def drift_weights(self):
+        if self.slicing_order == 1:
+            return [0.5, 0.5]
+
+        edge_weight = 1. / (2 * (1 + self.slicing_order))
+        middle_weight = self.slicing_order / (self.slicing_order ** 2 - 1)
+        middle_weights = [middle_weight] * (self.slicing_order - 1)
+
+        return [edge_weight, *middle_weights, edge_weight]
 
 
 class MadLoader:
@@ -672,13 +716,23 @@ class MadLoader:
         return (name_regex, madx_type, slicing_strategy)
 
     def get_slicing_strategy(self, mad_el):
+        def match_name(name_regex):
+            if name_regex is None:  # if regex is unspecified, catch-all
+                return True
+            return name_regex.match(mad_el.name)
+
+        def match_type(madx_type):
+            if madx_type is None:  # if type is unspecified, catch-all
+                return True
+            return madx_type in mad_el.get_type_hierarchy()
+
         for name_regex, madx_type, slicing_strategy in self.slicing_strategies:
-            if name_regex is not None and not name_regex.match(mad_el.name):
+            if not match_name(name_regex):
                 continue
-            if madx_type is not None and mad_el.base_type.name != madx_type:
+            if not match_type(madx_type):
                 continue
             return slicing_strategy
-        return None
+        raise ValueError(f"No slicing strategy found for {mad_el}")
 
     def _make_drift_slice(self, mad_el, weight, suffix):
         return self.Builder(
@@ -692,7 +746,7 @@ class MadLoader:
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
         """
         align = Alignment(mad_el, self.enable_errors, self.classes, self.Builder)
-        # perm=self.permanent_alignement(mad_el) #to be implemented
+        # perm=self.permanent_alignement(cpymad_elem) #to be implemented
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
