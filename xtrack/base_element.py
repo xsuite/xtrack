@@ -257,6 +257,11 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     allow_backtrack = False
     skip_in_loss_location_refinement = False
 
+    def __repr__(self):
+        cname=f"{self.__class__.__name__}"
+        out=",".join( [f"{aa}={getattr(self,aa)}" for aa in self._fields if not aa.startswith('_')])
+        return f"{cname}({out})"
+
     def __init__(self, *args, **kwargs):
         xo.HybridClass.__init__(self, *args, **kwargs)
 
