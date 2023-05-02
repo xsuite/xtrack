@@ -353,6 +353,8 @@ class Multiline:
             'ip_names': ip_names,
             'clockwise_line': clockwise_line,
             'anticlockwise_line': anticlockwise_line,
+            'bunch_spacing_buckets': bunch_spacing_buckets,
+            'harmonic_number': harmonic_number
         }
 
     def configure_beambeam_interactions(self, num_particles,
