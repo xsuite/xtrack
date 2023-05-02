@@ -20,4 +20,7 @@ line=ml.make_line()
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 
 line.build_tracker()
-tw = line.twiss()
+tw = line.twiss(method='4d')
+
+list(line.element_dict.items())[:200]
+
