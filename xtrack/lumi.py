@@ -205,6 +205,8 @@ def luminosity(f, nb,
 
     elif crab_crossing is not None and 'phi_crab_x_1' in crab_crossing:
 
+        raise ValueError('Not implemented yet') # Needs testing
+
         phi_crab_x_1 = crab_crossing['phi_crab_x_1']
         phi_crab_y_1 = crab_crossing['phi_crab_y_1']
         phi_crab_x_2 = crab_crossing['phi_crab_x_2']
