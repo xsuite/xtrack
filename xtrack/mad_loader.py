@@ -193,7 +193,6 @@ class MadElem:
     #        return FieldErrors(elem.field_errors)
 
     def get_type_hierarchy(self, cpymad_elem=None):
-        # TODO: Maybe this should be in cpymad?
         if cpymad_elem is None:
             cpymad_elem = self.elem
 

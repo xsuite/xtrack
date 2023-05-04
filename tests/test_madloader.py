@@ -2,6 +2,7 @@ import itertools
 import pathlib
 
 import numpy as np
+import pytest
 
 import xtrack.mad_loader
 from xtrack.mad_loader import UniformSlicing
@@ -580,13 +581,13 @@ def test_slicing_convert_sbend():
     line = MadLoader(mad.sequence.ss).make_line()
 
     # Check that the line looks sensible (roughly right elements)
-    expected_lengths = [None, 1, 2, 1, None, None]
+    expected_lengths = [None, None, 1, 2, 1, None, None]
     result_lengths = [getattr(el, 'length', None) for el in line]
     assert expected_lengths == result_lengths
 
     expected_types = [
         xt.Marker,
-        xt.Drift, xt.SimpleThinBend, xt.Drift, xt.DipoleEdge,
+        xt.DipoleEdge, xt.Drift, xt.SimpleThinBend, xt.Drift, xt.DipoleEdge,
         xt.Marker,
     ]
     result_types = [type(el) for el in line]
@@ -594,18 +595,23 @@ def test_slicing_convert_sbend():
 
     assert line.element_names == [
         'ss$start',
-        'bend$drift0',
-        'bend$bend0',
-        'bend$drift1',
-        'bend$dipedgex',
+        'bend_den',
+        'drift_bend..1',
+        'bend..1',
+        'drift_bend..2',
+        'bend_dex',
         'ss$end'
     ]
 
     # Check the bends
-    assert line['bend$bend0'].knl == 0.6
-    assert line['bend$bend0'].hxl == 0.2
-    assert line['bend$dipedgex'].e1 == 0.1
-    assert line['bend$dipedgex'].fint == 0.2
+    assert line['bend..1'].knl == 0.6
+    assert line['bend..1'].hxl == 0.2
+    assert line['bend_den'].e1 == 0.0
+    assert line['bend_den'].fint == 0.2
+    assert line['bend_den'].h == 0.3
+    assert line['bend_dex'].e1 == 0.1
+    assert line['bend_dex'].fint == 0.2
+    assert line['bend_den'].h == 0.3
 
 
 def test_slicing_convert_quadrupole_to_simple_thin_quad():
@@ -636,14 +642,14 @@ def test_slicing_convert_quadrupole_to_simple_thin_quad():
 
     assert line.element_names == [
         'ss$start',
-        'quad$drift0',
-        'quad$quad0',
-        'quad$drift1',
+        'drift_quad..1',
+        'quad..1',
+        'drift_quad..2',
         'ss$end',
     ]
 
     # Check the quads
-    assert np.allclose(line['quad$quad0'].knl, [0, 0.6])
+    assert np.allclose(line['quad..1'].knl, [0, 0.6])
 
 
 def test_slicing_convert_quadrupole_to_multiple():
@@ -678,19 +684,19 @@ def test_slicing_convert_quadrupole_to_multiple():
 
     assert line.element_names == [
         'ss$start',
-        'quad$drift0',
-        'quad$quad0',
-        'quad$drift1',
-        'quad$quad1',
-        'quad$drift2',
+        'drift_quad..1',
+        'quad..1',
+        'drift_quad..2',
+        'quad..2',
+        'drift_quad..3',
         'ss$end',
     ]
 
     # Check the multipoles
-    assert np.allclose(line['quad$quad0'].knl, [0, 0.3])
-    assert np.allclose(line['quad$quad1'].knl, [0, 0.3])
-    assert np.allclose(line['quad$quad0'].ksl, [0, 0.45])
-    assert np.allclose(line['quad$quad1'].ksl, [0, 0.45])
+    assert np.allclose(line['quad..1'].knl, [0, 0.3])
+    assert np.allclose(line['quad..2'].knl, [0, 0.3])
+    assert np.allclose(line['quad..1'].ksl, [0, 0.45])
+    assert np.allclose(line['quad..2'].ksl, [0, 0.45])
 
 
 def test_slicing_convert_sextupole():
@@ -725,20 +731,19 @@ def test_slicing_convert_sextupole():
 
     assert line.element_names == [
         'ss$start',
-        'sext$drift0',
-        'sext$sext0',
-        'sext$drift1',
-        'sext$sext1',
-        'sext$drift2',
+        'drift_sext..1',
+        'sext..1',
+        'drift_sext..2',
+        'sext..2',
+        'drift_sext..3',
         'ss$end',
     ]
 
     # Check the multipoles
-    assert np.allclose(line['sext$sext0'].knl, [0, 0, 0.4])
-    assert np.allclose(line['sext$sext1'].knl, [0, 0, 0.4])
-    assert np.allclose(line['sext$sext0'].ksl, [0, 0, 0.6])
-    assert np.allclose(line['sext$sext1'].ksl, [0, 0, 0.6])
-
+    assert np.allclose(line['sext..1'].knl, [0, 0, 0.4])
+    assert np.allclose(line['sext..2'].knl, [0, 0, 0.4])
+    assert np.allclose(line['sext..1'].ksl, [0, 0, 0.6])
+    assert np.allclose(line['sext..2'].ksl, [0, 0, 0.6])
 
 
 def test_slicing_convert_octupole():
@@ -773,19 +778,80 @@ def test_slicing_convert_octupole():
 
     assert line.element_names == [
         'ss$start',
-        'oct$drift0',
-        'oct$oct0',
-        'oct$drift1',
-        'oct$oct1',
-        'oct$drift2',
+        'drift_oct..1',
+        'oct..1',
+        'drift_oct..2',
+        'oct..2',
+        'drift_oct..3',
         'ss$end',
     ]
 
     # Check the multipoles
-    assert np.allclose(line['oct$oct0'].knl, [0, 0, 0, 0.4])
-    assert np.allclose(line['oct$oct1'].knl, [0, 0, 0, 0.4])
-    assert np.allclose(line['oct$oct0'].ksl, [0, 0, 0, 0.6])
-    assert np.allclose(line['oct$oct1'].ksl, [0, 0, 0, 0.6])
+    assert np.allclose(line['oct..1'].knl, [0, 0, 0, 0.4])
+    assert np.allclose(line['oct..2'].knl, [0, 0, 0, 0.4])
+    assert np.allclose(line['oct..1'].ksl, [0, 0, 0, 0.6])
+    assert np.allclose(line['oct..2'].ksl, [0, 0, 0, 0.6])
+
+
+
+@pytest.mark.parametrize(
+    'kicker_type,madx_params,expected_knl,expected_ksl',
+    [
+        ('kicker', 'hkick=0.3, vkick=0.2', [-0.15], [0.1]),
+        ('hkicker', 'kick=0.3', [-0.15], [0]),
+        ('vkicker', 'kick=0.2', [0], [0.1]),
+    ]
+)
+def test_slicing_convert_kicker(kicker_type, madx_params,
+                                expected_knl, expected_ksl):
+    mad = Madx()
+
+    mad.input(f"""
+    kick: {kicker_type}, l=4, lrad=4, {madx_params};
+
+    ss: sequence, l=4; kick: kick, at=2; endsequence;
+
+    beam; use, sequence=ss;
+    """)
+
+    ml = MadLoader(mad.sequence.ss)
+    ml.slicing_strategies = [
+        ml.make_slicing_strategy(UniformSlicing(2)),
+    ]
+    line = ml.make_line()
+
+    # Check that the line looks sensible (roughly right elements)
+    expected_lengths = [None, 4/3, 2., 4/3, 2., 4/3, None]
+    result_lengths = [getattr(el, 'length', None) for el in line]
+    assert expected_lengths == result_lengths
+
+    expected_types = [
+        xt.Marker,
+        xt.Drift, xt.Multipole, xt.Drift, xt.Multipole, xt.Drift,
+        xt.Marker,
+    ]
+    result_types = [type(el) for el in line]
+    assert expected_types == result_types
+
+    assert line.element_names == [
+        'ss$start',
+        'drift_kick..1',
+        'kick..1',
+        'drift_kick..2',
+        'kick..2',
+        'drift_kick..3',
+        'ss$end',
+    ]
+
+    # Check the multipoles
+    assert np.allclose(line['kick..1'].knl, expected_knl)
+    assert np.allclose(line['kick..2'].knl, expected_knl)
+    assert np.allclose(line['kick..1'].ksl, expected_ksl)
+    assert np.allclose(line['kick..2'].ksl, expected_ksl)
+    assert np.allclose(line['kick..1'].hxl, 0)
+    assert np.allclose(line['kick..2'].hxl, 0)
+    assert np.allclose(line['kick..1'].hyl, 0)
+    assert np.allclose(line['kick..2'].hyl, 0)
 
 
 def test_slicing_get_slicing_strategy():
@@ -817,7 +883,7 @@ def test_slicing_get_slicing_strategy():
         ml.make_slicing_strategy(UniformSlicing(1), madx_type='sbend'),
     ]
 
-    seq_elements = ml.sequence.elements
+    seq_elements = {elem.name: elem for elem in ml.iter_elements()}
 
     assert ml.get_slicing_strategy(seq_elements['q1x']).slicing_order == 3
     assert ml.get_slicing_strategy(seq_elements['q2x']).slicing_order == 3
