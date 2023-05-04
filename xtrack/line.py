@@ -28,7 +28,9 @@ from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
 from . import beam_elements
-from .beam_elements import Drift, BeamElement, Marker, Multipole
+from .beam_elements import (
+    Drift, BeamElement, Marker, Multipole, SimpleThinQuadrupole, SimpleThinBend,
+)
 from .footprint import Footprint, _footprint_with_linear_rescale
 from .internal_record import (start_internal_logging_for_elements_of_type,
                               stop_internal_logging_for_elements_of_type)
@@ -1866,12 +1868,19 @@ class Line:
         newline = Line(elements=[], element_names=[])
 
         for ee, nn in zip(self.elements, self.element_names):
+            ctx2np = ee._context.nparray_from_context_array
             if isinstance(ee, Multipole) and nn not in keep:
-                ctx2np = ee._context.nparray_from_context_array
                 aux = ([ee.hxl, ee.hyl]
                         + list(ctx2np(ee.knl)) + list(ctx2np(ee.ksl)))
                 if np.sum(np.abs(np.array(aux))) == 0.0:
                     continue
+            elif isinstance(ee, SimpleThinQuadrupole):
+                if np.sum(np.abs(ctx2np(ee.knl))) == 0.0:
+                    continue
+            elif isinstance(ee, SimpleThinBend):
+                if np.sum(np.abs(ctx2np(ee.knl) + ctx2np(ee.hxl))) == 0.0:
+                    continue
+
             newline.append_element(ee, nn)
 
         if inplace:
