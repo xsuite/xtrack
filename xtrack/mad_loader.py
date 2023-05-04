@@ -58,7 +58,11 @@ def rad2deg(rad):
     return rad * 180 / np.pi
 
 
-
+def evals_to_zero(var_or_val):
+    if hasattr(var_or_val, '_value'):
+        return var_or_val._value == 0
+    else:
+        return not bool(var_or_val)
 
 
 def get_value(x):
@@ -737,7 +741,7 @@ class MadLoader:
         raise ValueError(f"No slicing strategy found for {mad_el}")
 
     def _assert_element_is_thin(self, mad_el):
-        if mad_el.l:
+        if not evals_to_zero(mad_el.l):
             raise NotImplementedError(
                 f'Cannot load element {mad_el.name}, as slicing of thick'
                 f'elements of type {mad_el.base_type} is not implemented.')
@@ -1081,9 +1085,9 @@ class MadLoader:
                 hyl=0,
             )
 
-        if not mad_el.l:
+        if evals_to_zero(mad_el.l):
             return self.convert_thin_element(
-                [_make_thin_kicker_slice(1, '')], mad_el
+                [_make_thin_kicker_slice(1, '{}')], mad_el
             )
 
         sequence = []
@@ -1119,9 +1123,9 @@ class MadLoader:
                 hyl=0,
             )
 
-        if not mad_el.l:
+        if evals_to_zero(mad_el.l):
             return self.convert_thin_element(
-                [_make_thin_hkicker_slice(1, '')], mad_el
+                [_make_thin_hkicker_slice(1, '{}')], mad_el
             )
 
         sequence = []
@@ -1155,9 +1159,9 @@ class MadLoader:
                 hyl=0,
             )
 
-        if not mad_el.l:
+        if evals_to_zero(mad_el.l):
             return self.convert_thin_element(
-                [_make_thin_vkicker_slice(1, '')], mad_el
+                [_make_thin_vkicker_slice(1, '{}')], mad_el
             )
 
         sequence = []

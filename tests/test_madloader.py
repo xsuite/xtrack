@@ -578,7 +578,11 @@ def test_slicing_convert_sbend():
     beam; use, sequence=ss;
     """)
 
-    line = MadLoader(mad.sequence.ss).make_line()
+    ml = MadLoader(mad.sequence.ss, enable_slicing=True)
+    ml.slicing_strategies = [
+        ml.make_slicing_strategy(UniformSlicing(1)),
+    ]
+    line = ml.make_line()
 
     # Check that the line looks sensible (roughly right elements)
     expected_lengths = [None, None, 1, 2, 1, None, None]
@@ -625,7 +629,11 @@ def test_slicing_convert_quadrupole_to_simple_thin_quad():
     beam; use, sequence=ss;
     """)
 
-    line = MadLoader(mad.sequence.ss).make_line()
+    ml = MadLoader(mad.sequence.ss, enable_slicing=True)
+    ml.slicing_strategies = [
+        ml.make_slicing_strategy(UniformSlicing(1)),
+    ]
+    line = ml.make_line()
 
     # Check that the line looks sensible (roughly right elements)
     expected_lengths = [None, 1.5, 0, 1.5, None]
@@ -663,7 +671,7 @@ def test_slicing_convert_quadrupole_to_multiple():
     beam; use, sequence=ss;
     """)
 
-    ml = MadLoader(mad.sequence.ss)
+    ml = MadLoader(mad.sequence.ss, enable_slicing=True)
     ml.slicing_strategies = [
         ml.make_slicing_strategy(UniformSlicing(2)),
     ]
@@ -710,7 +718,7 @@ def test_slicing_convert_sextupole():
     beam; use, sequence=ss;
     """)
 
-    ml = MadLoader(mad.sequence.ss)
+    ml = MadLoader(mad.sequence.ss, enable_slicing=True)
     ml.slicing_strategies = [
         ml.make_slicing_strategy(UniformSlicing(2)),
     ]
@@ -757,7 +765,7 @@ def test_slicing_convert_octupole():
     beam; use, sequence=ss;
     """)
 
-    ml = MadLoader(mad.sequence.ss)
+    ml = MadLoader(mad.sequence.ss, enable_slicing=True)
     ml.slicing_strategies = [
         ml.make_slicing_strategy(UniformSlicing(2)),
     ]
@@ -814,7 +822,7 @@ def test_slicing_convert_kicker(kicker_type, madx_params,
     beam; use, sequence=ss;
     """)
 
-    ml = MadLoader(mad.sequence.ss)
+    ml = MadLoader(mad.sequence.ss, enable_slicing=True)
     ml.slicing_strategies = [
         ml.make_slicing_strategy(UniformSlicing(2)),
     ]
@@ -872,7 +880,7 @@ def test_slicing_get_slicing_strategy():
     beam; use, sequence=ss;
     """)
 
-    ml = MadLoader(mad.sequence.ss)
+    ml = MadLoader(mad.sequence.ss, enable_slicing=True)
     ml.slicing_strategies = [
         # Quadrupoles that end in `x` should be sliced into three slices
         ml.make_slicing_strategy(
