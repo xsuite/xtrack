@@ -590,6 +590,7 @@ class MadLoader:
         expressions_for_element_types=None,
         classes=xtrack,
         replace_in_expr=None,
+        enable_slicing=False,
     ):
 
         if expressions_for_element_types is not None:
@@ -610,9 +611,8 @@ class MadLoader:
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
 
-        self.slicing_strategies = [
-            self.make_slicing_strategy(UniformSlicing(1))
-        ]
+        self.enable_slicing = enable_slicing
+        self.slicing_strategies = []
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
@@ -715,6 +715,9 @@ class MadLoader:
         return (name_regex, madx_type, slicing_strategy)
 
     def get_slicing_strategy(self, mad_el):
+        if not self.enable_slicing:
+            raise ValueError("Slicing is not enabled. Please set "
+                             "`enable_slicing=True`")
         def match_name(name_regex):
             if name_regex is None:  # if regex is unspecified, catch-all
                 return True

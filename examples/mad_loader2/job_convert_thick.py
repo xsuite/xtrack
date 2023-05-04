@@ -1,4 +1,6 @@
+import xpart as xp
 from cpymad.madx import Madx
+from xtrack.mad_loader import MadLoader, TeapotSlicing
 
 mad = Madx()
 mad.call('lhc_sequence.madx')
@@ -6,14 +8,7 @@ mad.call('lhc_optics.madx')
 mad.beam()
 mad.sequence.lhcb1.use()
 
-import xtrack as xt
-import xpart as xp
-
-
-
-from xtrack.mad_loader import MadLoader, MadElem, TeapotSlicing
-
-ml = MadLoader(mad.sequence.lhcb1)
+ml = MadLoader(mad.sequence.lhcb1, enable_slicing=True)
 
 ml.slicing_strategies = [
     ml.make_slicing_strategy(

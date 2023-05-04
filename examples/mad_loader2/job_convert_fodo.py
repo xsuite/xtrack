@@ -1,4 +1,7 @@
+import xtrack as xt
+import xpart as xp
 from cpymad.madx import Madx
+from xtrack.mad_loader import MadLoader, MadElem
 
 mad = Madx()
 mad.input("""
@@ -16,17 +19,13 @@ use,sequence=seq;
 twiss;
 """)
 
-import xtrack as xt
-import xpart as xp
+ml = MadLoader(mad.sequence.seq, enable_slicing=True)
+ml.slicing_strategies = [
+    ml.make_slicing_strategy(xt.mad_loader.UniformSlicing(4)),  # catch all
+]
+line = ml.make_line()
 
-from xtrack.mad_loader import MadLoader, MadElem
-
-ml = MadLoader(mad.sequence.seq)
-ml.slicing_strategies=[(None,None,xt.mad_loader.UniformSlicing(4))]
-line=ml.make_line()
-
-line.particle_ref = xp.Particles(
-                    mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 
 line.build_tracker()
-tw = line.twiss()
+tw = line.twiss(method='4d')

@@ -30,7 +30,7 @@ mad2.call('lhc_optics.madx')
 mad2.beam()
 mad2.sequence.lhcb1.use()
 
-ml = MadLoader(mad2.sequence.lhcb1)
+ml = MadLoader(mad2.sequence.lhcb1, enable_slicing=True)
 
 ml.slicing_strategies = [
     ml.make_slicing_strategy(
