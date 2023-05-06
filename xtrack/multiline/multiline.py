@@ -177,6 +177,97 @@ class Multiline:
         for nn, ll in self.lines.items():
             ll.build_tracker(_context=_context, _buffer=_buffer, **kwargs)
 
+
+    def discard_trackers(self):
+        '''
+        Discard the trackers associated to the lines.
+        '''
+
+        for nn, ll in self.lines.items():
+            ll.discard_tracker()
+
+    def twiss(self, lines=None, **kwargs):
+
+        '''
+        Compute the twiss parameters for the lines.
+
+        Parameters
+        ----------
+        lines: list of str
+            The lines for which the twiss parameters are computed. If None,
+            the twiss parameters are computed for all lines.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.twiss` method.
+
+        Returns
+        -------
+        out: MultiTwiss
+            A MultiTwiss object containing the twiss parameters for the lines.
+        '''
+
+        out = MultiTwiss()
+        if lines is None:
+            lines = self.lines.keys()
+
+        kwargs_per_twiss = {}
+        for arg_name in ['ele_start', 'ele_stop', 'twiss_init']:
+            if arg_name not in kwargs:
+                kwargs_per_twiss[arg_name] = len(lines) * [None]
+            elif not isinstance(kwargs[arg_name], (list, tuple)):
+                kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
+                kwargs.pop(arg_name)
+            else:
+                assert len(kwargs[arg_name]) == len(lines), \
+                    f'Length of {arg_name} must be equal to the number of lines'
+                kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
+                kwargs.pop(arg_name)
+
+        for ii, nn in enumerate(lines):
+            out[nn] = self.lines[nn].twiss(**kwargs,
+                                ele_start=kwargs_per_twiss['ele_start'][ii],
+                                ele_stop=kwargs_per_twiss['ele_stop'][ii],
+                                twiss_init=kwargs_per_twiss['twiss_init'][ii])
+
+        out._line_names = lines
+
+        return out
+
+    def match(self, vary, targets, restore_if_fail=True, solver=None,
+              verbose=False, **kwargs):
+
+        '''
+        Change a set of knobs in the beam lines in order to match assigned targets.
+
+        Parameters
+        ----------
+        vary : list of str or list of Vary objects
+            List of knobs to be varied. Each knob can be a string or a Vary object
+            including the knob name and the step used for computing the Jacobian
+            for the optimization.
+        targets : list of Target objects
+            List of targets to be matched.
+        restore_if_fail : bool
+            If True, the beamline is restored to its initial state if the matching
+            fails.
+        solver : str
+            Solver to be used for the matching. Available solvers are "fsolve"
+            and "bfgs".
+        verbose : bool
+            If True, the matching steps are printed.
+        **kwargs : dict
+            Additional arguments to be passed to the twiss.
+
+        Returns
+        -------
+        result_info : dict
+            Dictionary containing information about the matching result.
+
+        '''
+
+        return xt.match.match_line(self, vary, targets,
+                          restore_if_fail=restore_if_fail,
+                          solver=solver, verbose=verbose, **kwargs)
+
     def __getitem__(self, key):
         return self.lines[key]
 
@@ -199,7 +290,8 @@ class Multiline:
                                       num_long_range_encounters_per_side,
                                       num_slices_head_on,
                                       harmonic_number, bunch_spacing_buckets,
-                                      sigmaz):
+                                      sigmaz,
+                                      delay_at_ips_slots=None):
 
         '''
         Install beam-beam elements in the lines. Elements are inserted in the
@@ -208,12 +300,12 @@ class Multiline:
 
         Parameters
         ----------
-        clockwise_line: xt.Line
-            The line in which the beam-beam elements for the clockwise beam
-            are installed.
+        clockwise_line: str
+            Name of the line in which the beam-beam elements for the clockwise
+            beam are installed.
         anticlockwise_line: xt.Line
-            The line in which the beam-beam elements for the anticlockwise beam
-            are installed.
+            Name of the line in which the beam-beam elements for the
+            anticlockwise beam are installed.
         ip_names: list
             The names of the IPs in the lines around which the beam-beam
             elements need to be installed.
@@ -227,6 +319,10 @@ class Multiline:
             The bunch spacing in buckets.
         sigmaz: float
             The longitudinal size of the beam.
+        delay_at_ips_slots: list
+            Delay between the two beams in bunch slots for each IP. It specifies
+            which bunch of the anticlockwise beam interacts with bunch zero of
+            the clockwise beam.
 
         '''
 
@@ -252,7 +348,7 @@ class Multiline:
             num_slices_head_on=num_slices_head_on,
             harmonic_number=harmonic_number,
             bunch_spacing_buckets=bunch_spacing_buckets,
-            sigmaz_m=sigmaz)
+            sigmaz_m=sigmaz, delay_at_ips_slots=delay_at_ips_slots)
 
         self._bb_config = {
             'dataframes': {
@@ -262,6 +358,8 @@ class Multiline:
             'ip_names': ip_names,
             'clockwise_line': clockwise_line,
             'anticlockwise_line': anticlockwise_line,
+            'bunch_spacing_buckets': bunch_spacing_buckets,
+            'harmonic_number': harmonic_number
         }
 
     def configure_beambeam_interactions(self, num_particles,
@@ -328,6 +426,36 @@ class Multiline:
                 self.vars[f'{bbnn}_scale_strength'] = self.vars['beambeam_scale']
                 line.element_refs[bbnn].scale_strength = self.vars[f'{bbnn}_scale_strength']
 
+    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
+                             i_bunch_cw, i_bunch_acw):
 
+        '''
+        Enable only he beam-beam elements corresponding to actual encounters
+        for the given filling pattern and the selected bunches.
+
+        Parameters
+        ----------
+
+        filling_pattern_cw: list or array
+            The filling pattern for the clockwise beam.
+        filling_pattern_acw: list or array
+            The filling pattern for the anticlockwise beam.
+        i_bunch_cw: int
+            The index of the bunch to be simulated for the clockwise beam.
+        i_bunch_acw: int
+            The index of the bunch to be simulated for the anticlockwise beam.
+        '''
+
+        apply_filling_pattern = (
+            xf.config_tools.beambeam_config_tools.config_tools.apply_filling_pattern)
+
+        apply_filling_pattern(collider=self, filling_pattern_cw=filling_pattern_cw,
+                            filling_pattern_acw=filling_pattern_acw,
+                            i_bunch_cw=i_bunch_cw, i_bunch_acw=i_bunch_acw)
+
+class MultiTwiss(dict):
+
+    def __init__(self):
+        self.__dict__ = self
 
 

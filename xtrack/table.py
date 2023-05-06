@@ -338,7 +338,7 @@ class RDMTable:
 
     def __repr__(self):
         n = self._nrows
-        c = len(self._data)
+        c = len(self._col_names)
         ns = "s" if n != 1 else ""
         cs = "s" if c != 1 else ""
         out = [f"{self.__class__.__name__}: {n} row{ns}, {c} col{cs}"]

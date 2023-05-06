@@ -166,8 +166,8 @@ def test_twiss_and_survey(test_context):
 
             ipart_start = line.element_names.index(range_for_partial_twiss[0])
             ipart_stop = line.element_names.index(range_for_partial_twiss[1])
-            assert len(tw_part.name) == ipart_stop - ipart_start + 1
-            assert len(tw4d_part.name) == ipart_stop - ipart_start + 1
+            assert len(tw_part.name) == ipart_stop - ipart_start + 2
+            assert len(tw4d_part.name) == ipart_stop - ipart_start + 2
 
             # Check against mad
             for twtst in [twxt, twxt4d]:

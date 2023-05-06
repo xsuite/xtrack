@@ -124,6 +124,11 @@ def test_twiss_zeta0_delta0(test_context):
     assert np.isclose(phi_c_ip1, -190e-6, atol=1e-7, rtol=0)
     assert np.isclose(phi_c_ip5, -190e-6, atol=1e-7, rtol=0)
 
+    # Check crab dispersion
+    tw6d = line.twiss()
+    assert np.isclose(tw6d['dx_zeta', 'ip1'], -190e-6, atol=1e-7, rtol=0)
+    assert np.isclose(tw6d['dy_zeta', 'ip5'], -190e-6, atol=1e-7, rtol=0)
+
 @for_all_test_contexts
 def test_get_normalized_coordinates(test_context):
 

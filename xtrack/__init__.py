@@ -11,7 +11,9 @@ from .random import *
 from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs
 from .tracker import Tracker
-from .match import Vary, Target, OrbitOnly
+from .match import Vary, Target, OrbitOnly, TargetList, VaryList
+from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
+                      TargetSeparation)
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
@@ -20,7 +22,7 @@ from .pipeline import (PipelineStatus, PipelineMultiTracker, PipelineBranch,
 
 from .monitors import *
 from . import linear_normal_form
-from .multiline import Multiline
+from .multiline import Multiline, MultiTwiss
 
 from .mad_loader import MadLoader
 
