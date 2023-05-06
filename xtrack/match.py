@@ -163,6 +163,19 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             raise ValueError(f'Invalid vary setting {rr}')
 
+    if 'twiss_init' in kwargs and kwargs['twiss_init'] == 'preserve':
+        full_twiss_kwargs = kwargs.copy()
+        full_twiss_kwargs.pop('twiss_init')
+        full_twiss_kwargs.pop('ele_start')
+        full_twiss_kwargs.pop('ele_stop')
+        tw0_full = line.twiss(**full_twiss_kwargs)
+        if isinstance(tw0_full, xt.MultiTwiss):
+            kwargs['twiss_init'] = []
+            for ll, nn in zip(tw0_full._line_names, kwargs['ele_start']):
+                kwargs['twiss_init'].append(tw0_full[ll].get_twiss_init(at_element=nn))
+        else:
+            kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=kwargs['ele_start'])
+
     tw0 = line.twiss(**kwargs)
 
     input_targets = targets
