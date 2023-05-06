@@ -35,6 +35,10 @@ fp2.plot(color='r', label='delta=1e-4')
 
 assert np.allclose(line.record_last_track.delta[:], 1e-4, atol=1e-12, rtol=0)
 
+# It is 12, 9 instead of 10, 10 because of non-linear chromaticity
+assert np.isclose((np.max(fp2.qx) - np.max(fp1.qx))/1e-4, 12, atol=0.5, rtol=0)
+assert np.isclose((np.max(fp2.qy) - np.max(fp1.qy))/1e-4, 9, atol=0.5, rtol=0)
+
 plt.legend()
 
 plt.show()
