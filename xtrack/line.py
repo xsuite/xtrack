@@ -1171,7 +1171,9 @@ class Line:
 
         if linear_rescale_on_knobs:
             fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
-                        linear_rescale_on_knobs=linear_rescale_on_knobs)
+                        linear_rescale_on_knobs=linear_rescale_on_knobs,
+                        freeze_longitudinal=freeze_longitudinal,
+                        delta0=delta0, zeta0=zeta0)
         else:
             fp = Footprint(**kwargs)
             fp._compute_footprint(self,

@@ -1,6 +1,7 @@
 import pathlib
 
 import numpy as np
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -10,7 +11,8 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
 
 @for_all_test_contexts
-def test_footprint(test_context):
+@pytest.mark.parametrize('freeze_longitudinal', [True, False])
+def test_footprint(test_context, freeze_longitudinal):
 
     nemitt_x = 1e-6
     nemitt_y = 1e-6
@@ -21,13 +23,23 @@ def test_footprint(test_context):
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12)
     line.build_tracker(_context=test_context)
 
+    if freeze_longitudinal:
+        kwargs = {'freeze_longitudinal': True}
+        for ee in line.elements:
+            if isinstance(ee, xt.Cavity):
+                ee.voltage = 0
+    else:
+        kwargs = {}
+
     line.vars['i_oct_b1'] = 0
-    fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+    fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                             **kwargs)
 
     line.vars['i_oct_b1'] = 500
     fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             n_r=11, n_theta=7, r_range=[0.05, 7],
-                            theta_range=[0.01, np.pi/2-0.01])
+                            theta_range=[0.01, np.pi/2-0.01],
+                            **kwargs)
 
     assert hasattr(fp1, 'theta_grid')
     assert hasattr(fp1, 'r_grid')
@@ -68,10 +80,9 @@ def test_footprint(test_context):
     assert np.isclose(np.max(fp1.qx[:]) - np.min(fp1.qx[:]), 4.4e-3, rtol=0, atol=1e-4)
     assert np.isclose(np.max(fp1.qy[:]) - np.min(fp1.qy[:]), 4.4e-3, rtol=0, atol=1e-4)
 
-
     line.vars['i_oct_b1'] = 0
-    fp0_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                            mode='uniform_action_grid')
+    fp0 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                             **kwargs)
 
     assert hasattr(fp0, 'theta_grid')
     assert hasattr(fp0, 'r_grid')
@@ -98,7 +109,8 @@ def test_footprint(test_context):
     fp1_jgrid = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                                 x_norm_range=[0.01, 6], y_norm_range=[0.01, 6],
                                 n_x_norm=9, n_y_norm=8,
-                                mode='uniform_action_grid')
+                                mode='uniform_action_grid',
+                                **kwargs)
 
     assert hasattr(fp1_jgrid,  'Jx_grid')
     assert hasattr(fp1_jgrid,  'Jy_grid')
@@ -144,7 +156,8 @@ def test_footprint(test_context):
                                 n_x_norm=9, n_y_norm=8,
                                 mode='uniform_action_grid',
                                 linear_rescale_on_knobs=xt.LinearRescale(
-                                    knob_name='i_oct_b1', v0=500, dv=100))
+                                knob_name='i_oct_b1', v0=500, dv=100),
+                                **kwargs)
 
 
     line.vars['i_oct_b1'] = 60000 # Particles are lost for such high octupole current
@@ -153,19 +166,22 @@ def test_footprint(test_context):
                                 n_x_norm=9, n_y_norm=8,
                                 mode='uniform_action_grid',
                                 linear_rescale_on_knobs=xt.LinearRescale(
-                                knob_name='i_oct_b1', v0=500, dv=100))
+                                knob_name='i_oct_b1', v0=500, dv=100),
+                                **kwargs)
 
     line.vars['i_oct_b1'] = 500
     fp500 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                                 x_norm_range=x_norm_range, y_norm_range=y_norm_range,
                                 n_x_norm=9, n_y_norm=8,
-                                mode='uniform_action_grid')
+                                mode='uniform_action_grid',
+                                **kwargs)
 
     line.vars['i_oct_b1'] = 600
     fp600 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                                 x_norm_range=x_norm_range, y_norm_range=y_norm_range,
                                 n_x_norm=9, n_y_norm=8,
-                                mode='uniform_action_grid')
+                                mode='uniform_action_grid',
+                                **kwargs)
 
     assert np.allclose((fp60k.qx - fp50k.qx)/(fp600.qx-fp500.qx), 100, rtol=0, atol=1e-2)
     assert np.allclose((fp60k.qy - fp50k.qy)/(fp600.qy-fp500.qy), 100, rtol=0, atol=1e-2)
