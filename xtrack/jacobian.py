@@ -26,23 +26,17 @@ class JacobianSolver:
 
     def solve(self, x0):
 
-        maskstart = None # Could be exposed to the user
-
         myf = self.func
 
         x0 = np.array(x0)
         x = x0.copy()
-        if maskstart is None:
-            maskstart = np.ones(len(myf(x0)), dtype=bool)
-        mask = maskstart.copy()
 
         self._xbest = x0.copy()
         self._penalty_best = 1e200
         ncalls = 0
         info = {}
+        mask_vars = np.ones(len(x0), dtype=bool)
         for step in range(self.maxsteps):
-            # start
-            mask[:] = maskstart
             # test penalty
             y, penalty = self._eval(x) # will need to handle mask
             ncalls += 1
@@ -52,9 +46,11 @@ class JacobianSolver:
             # Equation search
             jac = myf.get_jacobian(x) # will need to handle mask
             ncalls += len(x)
-            xstep = lstsq(jac, y, rcond=None)[0]  # newton step
+            xstep = np.zeros(len(x))
+            xstep[mask_vars] = lstsq(jac[:, mask_vars], y, rcond=None)[0]  # newton step
             newpen = penalty * 2
             alpha = -1
+            mask_vars[:] = True # for next iteration
             while newpen > penalty:  # bisec search
                 if alpha > self.n_bisections:
                     break
@@ -65,10 +61,12 @@ class JacobianSolver:
                 for ii in range(len(x)):
                     if x[ii] - this_xstep[ii] < self.limits[ii][0]:
                         this_xstep[ii] = 0
+                        mask_vars[ii] = False
                     elif x[ii] - this_xstep[ii] > self.limits[ii][1]:
                         this_xstep[ii] = 0
+                        mask_vars[ii] = False
 
-                y, newpen = self._eval(x - l * xstep)
+                y, newpen = self._eval(x - this_xstep) # will need to handle mask
 
                 ncalls += 1
             x -= l * xstep  # update solution
