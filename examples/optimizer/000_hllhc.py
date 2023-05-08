@@ -107,7 +107,6 @@ betxip1b1=betx0_IP1; betyip1b1=bety0_IP1;
 betxip1b2=betx0_IP1; betyip1b2=bety0_IP1;
 
 ''')
-prrr
 mad.input('match_on_triplet=0; call,file="slhc/toolkit/rematch_ir15b12.madx";')
 
 mad.input('call,file="slhc/toolkit/rematch_ir15b12.madx";')
@@ -128,6 +127,9 @@ exec,select(7,67,78,b2);
 call,file="slhc/toolkit/rematch_ir3b1.madx";
 call,file="slhc/toolkit/rematch_ir3b2.madx";
 call,file="slhc/toolkit/rematch_ir7b1.madx";
+''')
+prrrr
+mad.input('''
 call,file="slhc/toolkit/rematch_ir7b2.madx";
 
 

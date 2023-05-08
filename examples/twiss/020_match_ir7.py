@@ -28,3 +28,13 @@ alfx_at_ip7 = tw_ref['alfx', 'ip7']
 alfy_at_ip7 = tw_ref['alfy', 'ip7']
 dx_at_ip7 = tw_ref['dx', 'ip7']
 dpx_at_ip7 = tw_ref['dpx', 'ip7']
+
+scale = 23348.89927
+scmin = 0.03*7000./line.vars['nrj']._value
+qtlimitx28 = 1.0*225.0/scale
+qtlimitx15 = 1.0*205.0/scale
+qtlimit2 = 1.0*160.0/scale
+qtlimit3 = 1.0*200.0/scale
+qtlimit4 = 1.0*125.0/scale
+qtlimit5 = 1.0*120.0/scale
+qtlimit6 = 1.0*90.0/scale
