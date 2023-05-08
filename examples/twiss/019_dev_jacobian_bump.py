@@ -35,7 +35,8 @@ line.match(
         # I want the bump to be closed
         xt.Target('y', at='mq.21l8.b1', value='preserve', tol=1e-6, scale=1),
         xt.Target('py', at='mq.21l8.b1', value='preserve', tol=1e-7, scale=1000),
-        xt.TargetKeepPositive(lambda tw: tw['y'].min()-(-1e-3), tol=1e-6, scale=1),
+        #xt.TargetKeepPositive(lambda tw: tw['y'].min()-(-1e-3), tol=1e-6, scale=1),
+        xt.TargetInequality(lambda tw: tw['y'].min(), '>', -1e-3, tol=1e-6),
     ]
 )
 

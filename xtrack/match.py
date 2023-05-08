@@ -169,6 +169,23 @@ class TargetKeepPositive(Target):
         else:
             return 0
 
+class TargetInequality(Target):
+
+    def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None, line=None):
+        super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line)
+        assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
+        self.ineq_sign = ineq_sign
+        self.rhs = rhs
+
+    def eval(self, tw):
+        val = super().eval(tw)
+        if self.ineq_sign == '<' and val < self.rhs:
+            return 0
+        elif self.ineq_sign == '>' and val > self.rhs:
+            return 0
+        else:
+            return val - self.rhs
+
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 
