@@ -35,8 +35,8 @@ line.match(
         # I want the bump to be closed
         xt.Target('y', at='mq.21l8.b1', value='preserve', tol=1e-6, scale=1),
         xt.Target('py', at='mq.21l8.b1', value='preserve', tol=1e-7, scale=1000),
-        #xt.TargetKeepPositive(lambda tw: tw['y'].min()-(-1e-3), tol=1e-6, scale=1),
-        xt.TargetInequality(lambda tw: tw['y'].min(), '>', -1e-3, tol=1e-6),
+        # I want to limit the negative excursion ot the bump
+        xt.TargetInequality('y', '>', -1e-3, at='mq.30l8.b1', tol=1e-6),
     ]
 )
 
@@ -61,6 +61,7 @@ ax.axvline(x=line.get_s_position('mcbv.22l8.b1'), color='k', linestyle='--', alp
 # Boundaries
 ax.axvline(x=line.get_s_position('mq.33l8.b1'), color='g', linestyle='--', alpha=0.5)
 ax.axvline(x=line.get_s_position('mq.21l8.b1'), color='g', linestyle='--', alpha=0.5)
+ax.axhline(y=-1, color='b', linestyle='--', alpha=0.5)
 ax.set_xlim(line.get_s_position('mq.33l8.b1') - 10,
             line.get_s_position('mq.21l8.b1') + 10)
 ax.set_xlabel('s [m]')

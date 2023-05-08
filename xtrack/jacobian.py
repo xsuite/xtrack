@@ -46,7 +46,7 @@ class JacobianSolver:
             y, penalty = self._eval(x) # will need to handle mask
             ncalls += 1
             if penalty < self.tol:
-                _print("tolerance met")
+                # _print("tolerance met")
                 break
             # Equation search
             jac = myf.get_jacobian(x) # will need to handle mask
