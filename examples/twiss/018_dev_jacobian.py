@@ -30,6 +30,8 @@ print(f"kqtd.b1 = {line.vars['kqtd.b1']._value}")
 
 t1 = time.time()                                                                #!skip-doc
 line.match(
+    #solver='fsolve',
+    solver='jacobian',
     vary=[
         xt.Vary('kqtf.b1', step=1e-8),
         xt.Vary('kqtd.b1', step=1e-8),
@@ -38,10 +40,12 @@ line.match(
         xt.Target('qx', 62.315, tol=1e-4),
         xt.Target('qy', 60.325, tol=1e-4)])
 t2 = time.time()                                                                #!skip-doc
-print('\nTime match: ', t2-t1)                                                 #!skip-doc
+print('\nTime match: ', t2 - t1)
+
+tw_after = line.twiss()
 
 print('\nFinal twiss parameters')                                               #!skip-doc
-print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} ")
+print(f"Qx = {tw_after['qx']:.5f} Qy = {tw_after['qy']:.5f} ")
 
 # Initial value of the knobs correcting tunes an chromaticities
 print(f"kqtf.b1 = {line.vars['kqtf.b1']._value}")

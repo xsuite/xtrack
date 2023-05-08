@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 from scipy.optimize import fsolve, minimize
 
-# from .jacobian import jacobian
+from .jacobian import JacobianSolver
 from .twiss import TwissInit
 from .general import _print
 import xtrack as xt
@@ -265,24 +265,10 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
-            # raise NotImplementedError # To be finalized and tested
-            options = {}
-            if step is not None:
-                options['eps'] = step
-            res, info = jacobian(
-                                _err,
-                                xstart=x0.copy(),
-                                maskstart=None,
-                                maxsteps=100,
-                                bisec=5,
-                                tol=1e-20,
-                                maxcalls=10000,
-                                debug=False,
-                                **options
-                                )
-            result_info = info
-            if not info['success']:
-                raise RuntimeError("jacobian failed: %s" % info['message'])
+            jac_solver = JacobianSolver(func=_err)
+            res = jac_solver.solve(x0=x0.copy())
+            result_info = {'jac_solver': jac_solver}
+
         for vv, rr in zip(vary, res):
             line.vars[vv.name] = rr
     except Exception as err:
