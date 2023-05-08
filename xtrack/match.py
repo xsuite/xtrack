@@ -264,12 +264,14 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 tt.at = '_end_point'
 
     if solver is None:
-        if len(targets) != len(vary):
-            solver = 'bfgs'
-        elif np.any([vv.limits is not None for vv in vary]):
-            solver = 'bfgs'
-        else:
-            solver = 'fsolve'
+        solver = 'jacobian'
+        #old logic from before jacobian implementation
+        # if len(targets) != len(vary):
+        #     solver = 'bfgs'
+        # elif np.any([vv.limits is not None for vv in vary]):
+        #     solver = 'bfgs'
+        # else:
+        #     solver = 'fsolve'
 
     if verbose:
         _print(f'Using solver {solver}')
