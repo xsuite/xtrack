@@ -46,8 +46,12 @@ class JacobianSolver:
             # Equation search
             jac = myf.get_jacobian(x) # will need to handle mask
             ncalls += len(x)
+
+            # lstsq using only the the variables that were not at the limit
+            # in the previous step
             xstep = np.zeros(len(x))
             xstep[mask_vars] = lstsq(jac[:, mask_vars], y, rcond=None)[0]  # newton step
+
             newpen = penalty * 2
             alpha = -1
             mask_vars[:] = True # for next iteration
