@@ -5,8 +5,9 @@ from numpy.linalg import lstsq
 
 class JacobianSolver:
 
-    def __init__(self, func, maxsteps=20, tol=1e-20, n_bisections=8):
+    def __init__(self, func, limits, maxsteps=20, tol=1e-20, n_bisections=8):
         self.func = func
+        self.limits = limits
         self.maxsteps = maxsteps
         self.tol = tol
         self.n_bisections = n_bisections
@@ -59,6 +60,13 @@ class JacobianSolver:
                     break
                 alpha += 1
                 l = 2.0**-alpha
+
+                this_xstep = l * xstep
+                for ii in range(len(x)):
+                    if x[ii] - this_xstep[ii] < self.limits[ii][0]:
+                        this_xstep[ii] = 0
+                    elif x[ii] - this_xstep[ii] > self.limits[ii][1]:
+                        this_xstep[ii] = 0
 
                 y, newpen = self._eval(x - l * xstep)
 

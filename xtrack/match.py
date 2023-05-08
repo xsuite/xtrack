@@ -275,11 +275,16 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         _print(f'Using solver {solver}')
 
     steps = []
+    limits = []
     for vv in vary:
         if vv.step is not None:
             steps.append(vv.step)
         else:
             steps.append(1e-10)
+        if vv.limits is not None:
+            limits.append(vv.limits)
+        else:
+            limits.append((-1e200, 1e200))
 
     assert solver in ['fsolve', 'bfgs', 'jacobian'], (
                       f'Invalid solver {solver}.')
@@ -302,19 +307,13 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             result_info = {
                 'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
         elif solver == 'bfgs':
-            bounds =[]
-            for vv in vary:
-                if vv.limits is not None:
-                    bounds.append(vv.limits)
-                else:
-                    bounds.append((-1e30, 1e30))
             optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
-                        bounds=([vv.limits for vv in vary]),
+                        bounds=limits,
                         jac=_jac, options={'gtol':0})
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
-            jac_solver = JacobianSolver(func=_err)
+            jac_solver = JacobianSolver(func=_err, limits=limits)
             res = jac_solver.solve(x0=x0.copy())
             result_info = {'jac_solver': jac_solver}
 
