@@ -20,7 +20,7 @@ class OrbitOnly:
 class MeritFunctionForMatch:
 
     def __init__(self, vary, targets, line, return_scalar,
-                 call_counter, verbose, tw_kwargs):
+                 call_counter, verbose, tw_kwargs, steps_for_jacobian):
 
         self.vary = vary
         self.targets = targets
@@ -29,6 +29,7 @@ class MeritFunctionForMatch:
         self.call_counter = call_counter
         self.verbose = verbose
         self.tw_kwargs = tw_kwargs
+        self.steps_for_jacobian = steps_for_jacobian
 
     def __call__(self, knob_values):
 
@@ -74,20 +75,20 @@ class MeritFunctionForMatch:
         else:
             return np.array(err_values)
 
-def _jacobian(x, steps, fun):
-    x = np.array(x).copy()
-    steps = np.array(steps).copy()
-    assert len(x) == len(steps)
-    f0 = fun(x)
-    if np.isscalar(f0):
-        jac = np.zeros((1, len(x)))
-    else:
-        jac = np.zeros((len(f0), len(x)))
-    for ii in range(len(x)):
-        x[ii] += steps[ii]
-        jac[:, ii] = (fun(x) - f0) / steps[ii]
-        x[ii] -= steps[ii]
-    return jac
+    def get_jacobian(self, x):
+        x = np.array(x).copy()
+        steps = np.array(self.steps_for_jacobian).copy()
+        assert len(x) == len(steps)
+        f0 = self(x)
+        if np.isscalar(f0):
+            jac = np.zeros((1, len(x)))
+        else:
+            jac = np.zeros((len(f0), len(x)))
+        for ii in range(len(x)):
+            x[ii] += steps[ii]
+            jac[:, ii] = (self(x) - f0) / steps[ii]
+            x[ii] -= steps[ii]
+        return jac
 
 class TargetList:
     def __init__(self, tars, **kwargs):
@@ -238,9 +239,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
     _err = MeritFunctionForMatch(vary=vary, targets=targets, line=line,
                 return_scalar=return_scalar, call_counter=0, verbose=verbose,
-                tw_kwargs=kwargs)
+                tw_kwargs=kwargs, steps_for_jacobian=steps)
 
-    _jac= partial(_jacobian, steps=steps, fun=_err)
+    _jac= _err.get_jacobian
 
     x0 = [line.vars[vv.name]._value for vv in vary]
     try:
