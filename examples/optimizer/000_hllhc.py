@@ -36,18 +36,17 @@ Option,  warn,info;
 System,"rm -rf temp";
 System,"mkdir temp";
 
-system,"ln -fns ../../ slhc";
-system,"ln -fns ../../lhc lhc";
+system,"ln -fns ../../../hllhc15 slhc";
 
-call,file="lhc/lhc.seq";
-call,file="slhc/toolkit/macro.madx"; 
-call,file="slhc/hllhc_sequence.madx"; 
+call,file="slhc/lhc/lhc.seq";
+call,file="slhc/toolkit/macro.madx";
+call,file="slhc/hllhc_sequence.madx";
 !call,file="slhc/ramp/opt_ramp_1000_1500_thin.madx";
 call,file="%s";
 !exec,myslice;
 
 exec,mk_beam(7000);
-exec,check_ip(b1); exec,check_ip(b2); 
+exec,check_ip(b1); exec,check_ip(b2);
 
 use, sequence=lhcb1;
 select, flag=twiss, clear;
@@ -107,8 +106,14 @@ betxip5b2=betx0_IP5; betyip5b2=bety0_IP5;
 betxip1b1=betx0_IP1; betyip1b1=bety0_IP1;
 betxip1b2=betx0_IP1; betyip1b2=bety0_IP1;
 
-match_on_triplet=0; call,file="slhc/toolkit/rematch_ir15b12.madx";
-call,file="slhc/toolkit/rematch_ir15b12.madx";
+''')
+prrr
+mad.input('match_on_triplet=0; call,file="slhc/toolkit/rematch_ir15b12.madx";')
+
+mad.input('call,file="slhc/toolkit/rematch_ir15b12.madx";')
+
+
+mad.input('''
 
 betxip5b1=betx_IP5; betyip5b1=bety_IP5;
 betxip5b2=betx_IP5; betyip5b2=bety_IP5;

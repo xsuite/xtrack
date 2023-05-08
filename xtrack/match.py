@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 from scipy.optimize import fsolve, minimize
 
-from .jacobian import jacobian
+# from .jacobian import jacobian
 from .twiss import TwissInit
 from .general import _print
 import xtrack as xt
@@ -17,49 +17,62 @@ class OrbitOnly:
         self.zeta = zeta
         self.delta = delta
 
-def _error_for_match(knob_values, vary, targets, line, return_scalar,
-                     call_counter, verbose, tw_kwargs):
+class MeritFunctionForMatch:
 
-    _print(f"Matching: twiss call n. {call_counter['n']}       ", end='\r', flush=True)
-    call_counter['n'] += 1
+    def __init__(self, vary, targets, line, return_scalar,
+                 call_counter, verbose, tw_kwargs):
 
-    for kk, vv in zip(vary, knob_values):
-        line.vars[kk.name] = vv
-    tw = line.twiss(**tw_kwargs)
+        self.vary = vary
+        self.targets = targets
+        self.line = line
+        self.return_scalar = return_scalar
+        self.call_counter = call_counter
+        self.verbose = verbose
+        self.tw_kwargs = tw_kwargs
 
-    res_values = []
-    target_values = []
-    for tt in targets:
-        res_values.append(tt.eval(tw))
-        target_values.append(tt.value)
+    def __call__(self, knob_values):
 
-    res_values = np.array(res_values)
-    target_values = np.array(target_values)
-    err_values = res_values - target_values
+        _print(f"Matching: twiss call n. {self.call_counter}       ",
+                end='\r', flush=True)
+        self.call_counter += 1
 
-    tols = 0 * err_values
-    for ii, tt in enumerate(targets):
-        if tt.tol is not None:
-            tols[ii] = tt.tol
+        for kk, vv in zip(self.vary, knob_values):
+            self.line.vars[kk.name] = vv
+        tw = self.line.twiss(**self.tw_kwargs)
+
+        res_values = []
+        target_values = []
+        for tt in self.targets:
+            res_values.append(tt.eval(tw))
+            target_values.append(tt.value)
+
+        res_values = np.array(res_values)
+        target_values = np.array(target_values)
+        err_values = res_values - target_values
+
+        tols = 0 * err_values
+        for ii, tt in enumerate(self.targets):
+            if tt.tol is not None:
+                tols[ii] = tt.tol
+            else:
+                tols[ii] = 1e-14
+
+        if np.all(np.abs(err_values) < tols):
+            err_values *= 0
+            if self.verbose:
+                _print('Found point within tolerance!')
+
+        for ii, tt in enumerate(self.targets):
+            if tt.scale is not None:
+                err_values[ii] *= tt.scale
+
+        if self.verbose:
+            _print(f'x = {knob_values}   f(x) = {res_values}')
+
+        if self.return_scalar:
+            return np.sum(err_values * err_values)
         else:
-            tols[ii] = 1e-14
-
-    if np.all(np.abs(err_values) < tols):
-        err_values *= 0
-        if verbose:
-            _print('Found point within tolerance!')
-
-    for ii, tt in enumerate(targets):
-        if tt.scale is not None:
-            err_values[ii] *= tt.scale
-
-    if verbose:
-        _print(f'x = {knob_values}   f(x) = {res_values}')
-
-    if return_scalar:
-        return np.sum(err_values * err_values)
-    else:
-        return np.array(err_values)
+            return np.array(err_values)
 
 def _jacobian(x, steps, fun):
     x = np.array(x).copy()
@@ -223,11 +236,12 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
     return_scalar = {'fsolve': False, 'bfgs': True, 'jacobian': False}[solver]
 
-    call_counter = {'n': 0}
-    _err = partial(_error_for_match, vary=vary, targets=targets,
-                call_counter=call_counter, verbose=verbose,
-                line=line, return_scalar=return_scalar, tw_kwargs=kwargs)
+    _err = MeritFunctionForMatch(vary=vary, targets=targets, line=line,
+                return_scalar=return_scalar, call_counter=0, verbose=verbose,
+                tw_kwargs=kwargs)
+
     _jac= partial(_jacobian, steps=steps, fun=_err)
+
     x0 = [line.vars[vv.name]._value for vv in vary]
     try:
         if solver == 'fsolve':
@@ -250,7 +264,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
-            raise NotImplementedError # To be finalized and tested
+            # raise NotImplementedError # To be finalized and tested
             options = {}
             if step is not None:
                 options['eps'] = step
