@@ -31,14 +31,31 @@ class MeritFunctionForMatch:
         self.tw_kwargs = tw_kwargs
         self.steps_for_jacobian = steps_for_jacobian
 
-    def __call__(self, knob_values):
+    def _x_to_knobs(self, x):
+        knob_values = np.array(x).copy()
+        for ii, vv in enumerate(self.vary):
+            if vv.weight is not None:
+                knob_values[ii] *= vv.weight
+        return knob_values
+
+    def _knobs_to_x(self, knob_values):
+        x = np.array(knob_values).copy()
+        for ii, vv in enumerate(self.vary):
+            if vv.weight is not None:
+                x[ii] /= vv.weight
+        return x
+
+    def __call__(self, x):
 
         _print(f"Matching: twiss call n. {self.call_counter}       ",
                 end='\r', flush=True)
         self.call_counter += 1
 
+        knob_values = self._x_to_knobs(x)
+
         for kk, vv in zip(self.vary, knob_values):
             self.line.vars[kk.name] = vv
+
         tw = self.line.twiss(**self.tw_kwargs)
 
         res_values = []
@@ -77,7 +94,7 @@ class MeritFunctionForMatch:
 
     def get_jacobian(self, x):
         x = np.array(x).copy()
-        steps = np.array(self.steps_for_jacobian).copy()
+        steps = self._knobs_to_x(self.steps_for_jacobian)
         assert len(x) == len(steps)
         f0 = self(x)
         if np.isscalar(f0):
@@ -99,10 +116,11 @@ class VaryList:
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
 class Vary:
-    def __init__(self, name, limits=None, step=None):
+    def __init__(self, name, limits=None, step=None, weight=None):
         self.name = name
         self.limits = limits
         self.step = step
+        self.weight = weight
 
 class Target:
     def __init__(self, tar, value, at=None, tol=None, scale=None, line=None):
@@ -243,7 +261,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
     _jac= _err.get_jacobian
 
-    x0 = [line.vars[vv.name]._value for vv in vary]
+    x0 = _err._knobs_to_x([line.vars[vv.name]._value for vv in vary])
     try:
         if solver == 'fsolve':
             (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(),
@@ -269,7 +287,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             res = jac_solver.solve(x0=x0.copy())
             result_info = {'jac_solver': jac_solver}
 
-        for vv, rr in zip(vary, res):
+        for vv, rr in zip(vary, _err._x_to_knobs(res)):
             line.vars[vv.name] = rr
     except Exception as err:
         if restore_if_fail:
