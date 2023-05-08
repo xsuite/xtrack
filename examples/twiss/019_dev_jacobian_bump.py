@@ -14,6 +14,7 @@ line.build_tracker()
 tw_before = line.twiss()
 
 line.match(
+    verbose=True,
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions
     ele_start='mq.33l8.b1',
@@ -34,6 +35,7 @@ line.match(
         # I want the bump to be closed
         xt.Target('y', at='mq.21l8.b1', value='preserve', tol=1e-6, scale=1),
         xt.Target('py', at='mq.21l8.b1', value='preserve', tol=1e-7, scale=1000),
+        xt.TargetKeepPositive(lambda tw: tw['y', 'mb.b26l8.b1'], tol=1e-6, scale=1),
     ]
 )
 

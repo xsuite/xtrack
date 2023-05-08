@@ -155,6 +155,17 @@ class Target:
             assert self.at is None, '`at` cannot be provided if target is a function'
             return self.tar(this_tw)
 
+class TargetKeepPositive(Target):
+    def __init__(self, tar, at=None, tol=None, scale=None, line=None):
+        super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line)
+
+    def eval(self, tw):
+        val = super().eval(tw)
+        if val < 0:
+            return val
+        else:
+            return 0
+
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 

@@ -11,7 +11,8 @@ from .random import *
 from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs
 from .tracker import Tracker
-from .match import Vary, Target, OrbitOnly, TargetList, VaryList
+from .match import (Vary, Target, OrbitOnly, TargetList, VaryList,
+                    TargetKeepPositive)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
 from .loss_location_refinement import LossLocationRefinement
