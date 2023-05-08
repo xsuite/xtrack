@@ -22,8 +22,8 @@ line.match(
     twiss_init='preserve',
     # Dipole corrector strengths to be varied
     vary=[
-        xt.Vary(name='acbv32.l8b1', step=1e-10, weight=0.3),
-        xt.Vary(name='acbv28.l8b1', step=1e-10, weight=0.6),
+        xt.Vary(name='acbv32.l8b1', step=1e-10, weight=0.5),
+        xt.Vary(name='acbv28.l8b1', step=1e-10, weight=0.5),
         xt.Vary(name='acbv26.l8b1', step=1e-10),
         xt.Vary(name='acbv24.l8b1', step=1e-10),
         xt.Vary(name='acbv22.l8b1', step=1e-10),
@@ -35,7 +35,7 @@ line.match(
         # I want the bump to be closed
         xt.Target('y', at='mq.21l8.b1', value='preserve', tol=1e-6, scale=1),
         xt.Target('py', at='mq.21l8.b1', value='preserve', tol=1e-7, scale=1000),
-        xt.TargetKeepPositive(lambda tw: tw['y', 'mb.b26l8.b1'], tol=1e-6, scale=1),
+        xt.TargetKeepPositive(lambda tw: tw['y'].min()-(-1e-3), tol=1e-6, scale=1),
     ]
 )
 

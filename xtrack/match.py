@@ -56,6 +56,9 @@ class MeritFunctionForMatch:
         for kk, vv in zip(self.vary, knob_values):
             self.line.vars[kk.name] = vv
 
+        if self.verbose:
+            _print(f'x = {knob_values}')
+
         tw = self.line.twiss(**self.tw_kwargs)
 
         res_values = []
@@ -67,6 +70,9 @@ class MeritFunctionForMatch:
         res_values = np.array(res_values)
         target_values = np.array(target_values)
         err_values = res_values - target_values
+
+        if self.verbose:
+            _print(f'   f(x) = {res_values}')
 
         tols = 0 * err_values
         for ii, tt in enumerate(self.targets):
@@ -83,9 +89,6 @@ class MeritFunctionForMatch:
         for ii, tt in enumerate(self.targets):
             if tt.scale is not None:
                 err_values[ii] *= tt.scale
-
-        if self.verbose:
-            _print(f'x = {knob_values}   f(x) = {res_values}')
 
         if self.return_scalar:
             return np.sum(err_values * err_values)
