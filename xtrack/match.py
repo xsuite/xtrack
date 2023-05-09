@@ -378,7 +378,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
-            jac_solver = JacobianSolver(func=_err, limits=x_limits)
+            jac_solver = JacobianSolver(func=_err, limits=x_limits, verbose=verbose)
             res = jac_solver.solve(x0=x0.copy())
             result_info = {'jac_solver': jac_solver}
 

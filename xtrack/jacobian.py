@@ -5,7 +5,8 @@ from numpy.linalg import lstsq
 
 class JacobianSolver:
 
-    def __init__(self, func, limits, maxsteps=20, tol=1e-20, n_bisections=8):
+    def __init__(self, func, limits, maxsteps=20, tol=1e-20, n_bisections=3,
+                 verbose=False):
         self.func = func
         self.limits = limits
         self.maxsteps = maxsteps
@@ -15,6 +16,7 @@ class JacobianSolver:
         self._penalty = None
         self._penalty_best = None
         self._xbest = None
+        self.verbose = verbose
 
     def _eval(self, x):
         y = self.func(x)
@@ -62,6 +64,8 @@ class JacobianSolver:
                     break
                 alpha += 1
                 l = 2.0**-alpha
+                if self.verbose:
+                    _print(f"step {step} alpha {alpha}")
 
                 this_xstep = l * xstep
                 mask_hit_limit = np.zeros(len(x), dtype=bool)

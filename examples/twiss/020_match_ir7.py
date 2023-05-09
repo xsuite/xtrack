@@ -18,7 +18,7 @@ mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
 mad.use('lhcb1')
 
 mad.input('''
-savebeta, label=start_ir_7b1, place=s.ds.l7.b1;
+savebeta, label=bir7b1, place=s.ds.l7.b1;
 ''')
 tw_mad_ref = mad.twiss().dframe()
 
@@ -101,24 +101,25 @@ tw_mad_before = mad.twiss().dframe()
 
 t_start = time.perf_counter()
 collider.match(
+    #verbose=True,
     ele_start=ele_start_match,
     ele_stop=ele_end_match,
     twiss_init=tw_init,
     targets=[
-        xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7),
-        xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7),
-        xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7),
-        xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7),
-        xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7),
-        xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy ', value=muy_end_match),
+        xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3),
+        xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7, tol=1e-5),
+        xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7, tol=1e-3),
+        xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7, tol=1e-3),
+        xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7, tol=1e-5),
+        xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7, tol=1e-5),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match, tol=1e-5),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match, tol=1e-5),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match, tol=1e-3),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match, tol=1e-3),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match, tol=1e-3),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match, tol=1e-5),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match, tol=1e-5),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy ', value=muy_end_match, tol=1e-5),
         # xt.TargetInequality('bety', '<', 180.49-0.3, line='lhcb1', at='mq.11l7.b1'),
         # xt.TargetInequality('bety', '<', 174.5,      line='lhcb1', at='mq.9l7.b1'),
         # xt.TargetInequality('bety', '<', 176.92,     line='lhcb1', at='mq.8r7.b1'),
@@ -144,10 +145,11 @@ collider.match(
     ]
 )
 t_end = time.perf_counter()
-print(f"Matching time: {t_end - t_start:0.4f} seconds")
+
 
 tw_after = collider.lhcb1.twiss()
 
+t1 = time.perf_counter()
 mad.input(f'''
 
 qtlimitx28 = {qtlimitx28};
@@ -159,10 +161,10 @@ qtlimit5 =  {qtlimit5};
 qtlimit6 =  {qtlimit6};
 
 use,sequence=lhcb1,range=s.ds.l7.b1/e.ds.r7.b1;
-match,      sequence=lhcb1, beta0=start_ir_7b1;
+match,      sequence=lhcb1, beta0=bir7b1;
 weight,mux=10,muy=10;
 constraint, sequence=lhcb1, range=ip7,dx={dx_at_ip7},dpx ={dpx_at_ip7};
-constraint, sequence=lhcb1, range=ip7,betx{betx_at_ip7},bety={bety_at_ip7};
+constraint, sequence=lhcb1, range=ip7,betx={betx_at_ip7},bety={bety_at_ip7};
 constraint, sequence=lhcb1, range=ip7,alfx={alfx_at_ip7},alfy={alfy_at_ip7};
 constraint, sequence=lhcb1, range=e.ds.r7.b1,alfx={alfx_end_match},alfy={alfy_end_match};
 constraint, sequence=lhcb1, range=e.ds.r7.b1,betx={betx_end_match},bety={bety_end_match};
@@ -188,9 +190,10 @@ vary, name=kqt13.r7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
 jacobian,calls=15, tolerance=1e-20, bisec=3;
 endmatch;
 ''')
-
+t2 = time.perf_counter()
 mad.use(sequence='lhcb1')
 tw_mad_after = mad.twiss().dframe()
+print(f"Matching time: {t_end - t_start:0.4f} seconds")
+print(f"MAD-X matching time: {t2 - t1:0.4f} seconds")
 
-import matplotlib.pyplot as plt
 
