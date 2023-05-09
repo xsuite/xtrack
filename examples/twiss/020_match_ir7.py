@@ -1,3 +1,5 @@
+import time
+
 import xtrack as xt
 import xpart as xp
 
@@ -40,6 +42,35 @@ qtlimit4 = 1.0*125.0/scale
 qtlimit5 = 1.0*120.0/scale
 qtlimit6 = 1.0*90.0/scale
 
+
+# Break something
+
+collider.vars['kqt13.l7b1'] = collider.vars['kqt13.l7b1']._value * 1.1
+collider.vars['kqt12.l7b1'] = collider.vars['kqt12.l7b1']._value * 1.1
+collider.vars['kqtl11.l7b1'] = collider.vars['kqtl11.l7b1']._value * 0.9
+collider.vars['kqtl10.l7b1'] = collider.vars['kqtl10.l7b1']._value * 1.1
+collider.vars['kqtl9.l7b1'] = collider.vars['kqtl9.l7b1']._value * 0.8
+collider.vars['kqtl8.l7b1'] = collider.vars['kqtl8.l7b1']._value * 0.9
+collider.vars['kqtl7.l7b1'] = collider.vars['kqtl7.l7b1']._value * 1.12
+collider.vars['kq6.l7b1'] = collider.vars['kq6.l7b1']._value * 0.9
+collider.vars['kq6.r7b1'] = collider.vars['kq6.r7b1']._value * 1.1
+collider.vars['kqtl7.r7b1'] = collider.vars['kqtl7.r7b1']._value * 1.1
+collider.vars['kqtl8.r7b1'] = collider.vars['kqtl8.r7b1']._value * 0.85
+collider.vars['kqtl9.r7b1'] = collider.vars['kqtl9.r7b1']._value * 0.95
+collider.vars['kqtl10.r7b1'] = collider.vars['kqtl10.r7b1']._value * 0.85
+collider.vars['kqtl11.r7b1'] = collider.vars['kqtl11.r7b1']._value * 1.15
+collider.vars['kqt12.r7b1'] = collider.vars['kqt12.r7b1']._value * 0.9
+collider.vars['kqt13.r7b1'] = collider.vars['kqt13.r7b1']._value * 1.12
+
+
+
+
+
+
+
+tw_before = collider.lhcb1.twiss()
+
+t_start = time.perf_counter()
 collider.match(
     ele_start=ele_start_match,
     ele_stop=ele_end_match,
@@ -59,6 +90,10 @@ collider.match(
         xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match),
         xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match),
         xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy ', value=muy_end_match),
+        # xt.TargetInequality('bety', '<', 180.49-0.3, line='lhcb1', at='mq.11l7.b1'),
+        # xt.TargetInequality('bety', '<', 174.5,      line='lhcb1', at='mq.9l7.b1'),
+        # xt.TargetInequality('bety', '<', 176.92,     line='lhcb1', at='mq.8r7.b1'),
+        # xt.TargetInequality('bety', '<', 179,        line='lhcb1', at='mq.10r7.b1'),
     ],
     vary=[
         xt.Vary('kqt13.l7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
@@ -79,5 +114,10 @@ collider.match(
         xt.Vary('kqt13.r7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
     ]
 )
+t_end = time.perf_counter()
+print(f"Matching time: {t_end - t_start:0.4f} seconds")
 
 tw_after = collider.lhcb1.twiss()
+
+import matplotlib.pyplot as plt
+
