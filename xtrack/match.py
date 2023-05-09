@@ -90,6 +90,7 @@ class MeritFunctionForMatch:
             for tt in self.targets:
                 res_values.append(tt.eval(tw))
                 target_values.append(tt.value)
+            self._last_twiss = tw # for debugging
 
             res_values = np.array(res_values)
             target_values = np.array(target_values)
@@ -189,6 +190,7 @@ class Target:
         self.at = at
         self.weight = weight
         self.line = line
+        self._at_index = None
 
     @property
     def scale(self):
@@ -215,23 +217,15 @@ class Target:
 
         if isinstance(self.tar, str):
             if self.at is not None:
-                return this_tw[self.tar, self.at]
+                if self._at_index is not None:
+                    return this_tw[self.tar, self._at_index]
+                else:
+                    return this_tw[self.tar, self.at]
             else:
                 return this_tw[self.tar]
         elif callable(self.tar):
             assert self.at is None, '`at` cannot be provided if target is a function'
             return self.tar(this_tw)
-
-# class TargetKeepPositive(Target):
-#     def __init__(self, tar, at=None, tol=None, scale=None, line=None):
-#         super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line)
-
-#     def eval(self, tw):
-#         val = super().eval(tw)
-#         if val < 0:
-#             return val
-#         else:
-#             return 0
 
 class TargetInequality(Target):
 
@@ -321,6 +315,13 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         if tt.value == 'preserve':
             tt.value = tt.eval(tw0)
 
+    for tt in targets:
+        if tt.at is not None:
+            if tt.line is None:
+                tt._at_index = list(tw0.name).index(tt.at)
+            else:
+                tt._at_index = list(tw0[tt.line].name).index(tt.at)
+
     if 'ele_stop' in kwargs and kwargs['ele_stop'] is not None:
         ele_stop = kwargs['ele_stop']
         for tt in targets:
@@ -380,7 +381,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         elif solver == 'jacobian':
             jac_solver = JacobianSolver(func=_err, limits=x_limits, verbose=verbose)
             res = jac_solver.solve(x0=x0.copy())
-            result_info = {'jac_solver': jac_solver}
+            result_info = {'jac_solver': jac_solver, 'res': res}
 
         for vv, rr in zip(vary, _err._x_to_knobs(res)):
             line.vars[vv.name] = rr

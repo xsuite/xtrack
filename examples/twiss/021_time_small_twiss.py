@@ -29,7 +29,6 @@ tw = collider.twiss(
     twiss_init=tw_init,
     )
 
-line._kill_tracking = True
 
 n_repeat = 1000
 t1 = time.perf_counter()
