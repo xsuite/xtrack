@@ -157,6 +157,13 @@ tw_init = tw_ref.get_twiss_init(ele_start_match)
 ele_index_start = line.element_names.index(ele_start_match)
 ele_index_end = line.element_names.index(ele_end_match)
 
+ttt = collider.twiss(
+        ele_start=[ele_index_start],
+        ele_stop=[ele_index_end],
+        twiss_init=tw_init,
+        _keep_initial_particles=True
+        )
+
 n_repeat_twiss = 100
 t0 = time.perf_counter()
 for _ in range(n_repeat_twiss):
@@ -164,6 +171,7 @@ for _ in range(n_repeat_twiss):
         ele_start=[ele_index_start],
         ele_stop=[ele_index_end],
         twiss_init=tw_init,
+        _initial_particles=[ttt.lhcb1._initial_particles]
         )
 t1 = time.perf_counter()
 print(f"Twiss time: {1000 * (t1 - t0)/n_repeat_twiss:0.4f} ms")
