@@ -3,12 +3,24 @@ import time
 import xtrack as xt
 import xpart as xp
 
+from cpymad.madx import Madx
+
 # Load the line
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
 collider = xt.Multiline(lines={'lhcb1': line})
 collider.build_trackers()
+
+# mad model for refence
+mad = Madx()
+mad.call('../../test_data/hllhc15_noerrors_nobb/sequence.madx')
+mad.use('lhcb1')
+
+mad.input('''
+savebeta, label=start_ir_7b1, place=s.ds.l7.b1;
+''')
+tw_mad_ref = mad.twiss().dframe()
 
 tw_ref = collider.lhcb1.twiss()
 
@@ -63,12 +75,29 @@ collider.vars['kqt12.r7b1'] = collider.vars['kqt12.r7b1']._value * 0.9
 collider.vars['kqt13.r7b1'] = collider.vars['kqt13.r7b1']._value * 1.12
 
 
-
-
-
-
+mad.use('lhcb1')
+# Same in mad
+mad_pertub = mad.input(f'''
+kqt13.l7b1  = {collider.vars['kqt13.l7b1']._value};
+kqt12.l7b1  = {collider.vars['kqt12.l7b1']._value};
+kqtl11.l7b1 = {collider.vars['kqtl11.l7b1']._value};
+kqtl10.l7b1 = {collider.vars['kqtl10.l7b1']._value};
+kqtl9.l7b1  = {collider.vars['kqtl9.l7b1']._value};
+kqtl8.l7b1  = {collider.vars['kqtl8.l7b1']._value};
+kqtl7.l7b1  = {collider.vars['kqtl7.l7b1']._value};
+kq6.l7b1    = {collider.vars['kq6.l7b1']._value};
+kq6.r7b1    = {collider.vars['kq6.r7b1']._value};
+kqtl7.r7b1  = {collider.vars['kqtl7.r7b1']._value};
+kqtl8.r7b1  = {collider.vars['kqtl8.r7b1']._value};
+kqtl9.r7b1  = {collider.vars['kqtl9.r7b1']._value};
+kqtl10.r7b1 = {collider.vars['kqtl10.r7b1']._value};
+kqtl11.r7b1 = {collider.vars['kqtl11.r7b1']._value};
+kqt12.r7b1  = {collider.vars['kqt12.r7b1']._value};
+kqt13/r7b1  = {collider.vars['kqt13.r7b1']._value};
+''')
 
 tw_before = collider.lhcb1.twiss()
+tw_mad_before = mad.twiss().dframe()
 
 t_start = time.perf_counter()
 collider.match(
@@ -118,6 +147,50 @@ t_end = time.perf_counter()
 print(f"Matching time: {t_end - t_start:0.4f} seconds")
 
 tw_after = collider.lhcb1.twiss()
+
+mad.input(f'''
+
+qtlimitx28 = {qtlimitx28};
+qtlimitx15 = {qtlimitx15};
+qtlimit2 = {qtlimit2};
+qtlimit3 = {qtlimit3};
+qtlimit4 =  {qtlimit4};
+qtlimit5 =  {qtlimit5};
+qtlimit6 =  {qtlimit6};
+
+use,sequence=lhcb1,range=s.ds.l7.b1/e.ds.r7.b1;
+match,      sequence=lhcb1, beta0=start_ir_7b1;
+weight,mux=10,muy=10;
+constraint, sequence=lhcb1, range=ip7,dx={dx_at_ip7},dpx ={dpx_at_ip7};
+constraint, sequence=lhcb1, range=ip7,betx{betx_at_ip7},bety={bety_at_ip7};
+constraint, sequence=lhcb1, range=ip7,alfx={alfx_at_ip7},alfy={alfy_at_ip7};
+constraint, sequence=lhcb1, range=e.ds.r7.b1,alfx={alfx_end_match},alfy={alfy_end_match};
+constraint, sequence=lhcb1, range=e.ds.r7.b1,betx={betx_end_match},bety={bety_end_match};
+constraint, sequence=lhcb1, range=e.ds.r7.b1,dx={dx_end_match},dpx={dpx_end_match};
+constraint, sequence=lhcb1, range=e.ds.r7.b1,   mux={mux_end_match};
+constraint, sequence=lhcb1, range=e.ds.r7.b1,   muy={muy_end_match};
+vary, name=kqt13.l7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
+vary, name=kqt12.l7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
+vary, name=kqtl11.l7b1, step=1.0E-9, lower=-qtlimit4*300./550., upper=qtlimit4*300./550.;
+vary, name=kqtl10.l7b1, step=1.0E-9, lower=-qtlimit4*500./550., upper=qtlimit4*500./550.;
+vary, name=kqtl9.l7b1,  step=1.0E-9, lower=-qtlimit4*400./550., upper=qtlimit4*400./550.;
+vary, name=kqtl8.l7b1,  step=1.0E-9, lower=-qtlimit4*300./550., upper=qtlimit4*300./550.;
+vary, name=kqtl7.l7b1,  step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
+vary, name=kq6.l7b1,    step=1.0E-9, lower=-qtlimit6, upper=qtlimit6;
+vary, name=kq6.r7b1,    step=1.0E-9, lower=-qtlimit6, upper=qtlimit6;
+vary, name=kqtl7.r7b1,  step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
+vary, name=kqtl8.r7b1,  step=1.0E-9, lower=-qtlimit4*550./550., upper=qtlimit4*550./550.;
+vary, name=kqtl9.r7b1,  step=1.0E-9, lower=-qtlimit4*500./550., upper=qtlimit4*500./550.;
+vary, name=kqtl10.r7b1, step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
+vary, name=kqtl11.r7b1, step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
+vary, name=kqt12.r7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
+vary, name=kqt13.r7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
+jacobian,calls=15, tolerance=1e-20, bisec=3;
+endmatch;
+''')
+
+mad.use(sequence='lhcb1')
+tw_mad_after = mad.twiss().dframe()
 
 import matplotlib.pyplot as plt
 
