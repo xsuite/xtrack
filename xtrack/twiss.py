@@ -56,6 +56,8 @@ def twiss_line(line, particle_ref=None, method='6d',
         hide_thin_groups=False,
         _continue_if_lost=False,
         _keep_tracking_data=False,
+        _keep_initial_particles=False,
+        _initial_particles=None,
         ):
 
     """
@@ -393,7 +395,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
 
-    propagate_res = _propagate_optics(
+    propagate_res, extra_data = _propagate_optics(
         line=line,
         W_matrix=W,
         particle_on_co=part_on_co,
@@ -407,7 +409,9 @@ def twiss_line(line, particle_ref=None, method='6d',
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
         _continue_if_lost=_continue_if_lost,
-        _keep_tracking_data=_keep_tracking_data)
+        _keep_tracking_data=_keep_tracking_data,
+        _keep_initial_particles=_keep_initial_particles,
+        _initial_particles=_initial_particles)
     propagate_res['name'] = np.array(propagate_res['name'])
 
     if method == '4d':
@@ -416,6 +420,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         propagate_res.pop('dy_zeta')
 
     twiss_res = TwissTable(data=propagate_res)
+    twiss_res._data.update(extra_data)
 
     twiss_res._data['particle_on_co'] = part_on_co.copy(_context=xo.context_default)
 
@@ -518,7 +523,9 @@ def _propagate_optics(line, W_matrix, particle_on_co,
                       use_full_inverse,
                       hide_thin_groups=False,
                       _continue_if_lost=False,
-                      _keep_tracking_data=False):
+                      _keep_tracking_data=False,
+                      _keep_initial_particles=False,
+                      _initial_particles=None):
 
     ctx2np = line._context.nparray_from_context_array
 
@@ -531,39 +538,46 @@ def _propagate_optics(line, W_matrix, particle_on_co,
 
 
     context = line._context
-    part_for_twiss = xp.build_particles(_context=context,
-                        particle_ref=particle_on_co, mode='shift',
-                        x=  list(W_matrix[0, :] * scale_eigen) + [0],
-                        px= list(W_matrix[1, :] * scale_eigen) + [0],
-                        y=  list(W_matrix[2, :] * scale_eigen) + [0],
-                        py= list(W_matrix[3, :] * scale_eigen) + [0],
-                        zeta = list(W_matrix[4, :] * scale_eigen) + [0],
-                        pzeta = list(W_matrix[5, :] * scale_eigen) + [0],
-                        )
+    if _initial_particles is not None: # used in match
+        part_for_twiss = _initial_particles.copy()
+    else:
+        part_for_twiss = xp.build_particles(_context=context,
+                            particle_ref=particle_on_co, mode='shift',
+                            x=  list(W_matrix[0, :] * scale_eigen) + [0],
+                            px= list(W_matrix[1, :] * scale_eigen) + [0],
+                            y=  list(W_matrix[2, :] * scale_eigen) + [0],
+                            py= list(W_matrix[3, :] * scale_eigen) + [0],
+                            zeta = list(W_matrix[4, :] * scale_eigen) + [0],
+                            pzeta = list(W_matrix[5, :] * scale_eigen) + [0],
+                            )
 
-    part_disp = xp.build_particles(
-        _context=context,
-        x_norm=0,
-        zeta=particle_on_co._xobject.zeta[0],
-        delta=np.array([-delta_disp, +delta_disp])+particle_on_co._xobject.delta[0],
-        particle_on_co=particle_on_co,
-        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-        W_matrix=W_matrix)
-    part_zeta_disp = xp.build_particles(
-        _context=context,
-        x_norm=0,
-        delta=particle_on_co._xobject.delta[0],
-        zeta=np.array([-zeta_disp, +zeta_disp])+particle_on_co._xobject.zeta[0],
-        particle_on_co=particle_on_co,
-        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-        W_matrix=W_matrix)
+        part_disp = xp.build_particles(
+            _context=context,
+            x_norm=0,
+            zeta=particle_on_co._xobject.zeta[0],
+            delta=np.array([-delta_disp, +delta_disp])+particle_on_co._xobject.delta[0],
+            particle_on_co=particle_on_co,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            W_matrix=W_matrix)
+        part_zeta_disp = xp.build_particles(
+            _context=context,
+            x_norm=0,
+            delta=particle_on_co._xobject.delta[0],
+            zeta=np.array([-zeta_disp, +zeta_disp])+particle_on_co._xobject.zeta[0],
+            particle_on_co=particle_on_co,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            W_matrix=W_matrix)
 
-    part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp, part_zeta_disp])
-    part_for_twiss.s = particle_on_co._xobject.s[0]
-    part_for_twiss.at_element = particle_on_co._xobject.at_element[0]
+        part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp, part_zeta_disp])
+        part_for_twiss.s = particle_on_co._xobject.s[0]
+        part_for_twiss.at_element = particle_on_co._xobject.at_element[0]
+
     i_start = part_for_twiss._xobject.at_element[0]
 
     part_for_twiss.at_turn = AT_TURN_FOR_TWISS # To avoid writing in monitors
+
+    if _keep_initial_particles:
+        part_for_twiss0 = part_for_twiss.copy()
 
     #assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
     line.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
@@ -741,8 +755,12 @@ def _propagate_optics(line, W_matrix, particle_on_co,
         'bety2': bety2,
     }
 
+    extra_data = {}
     if _keep_tracking_data:
-        twiss_res_element_by_element['tracking_data'] = line.record_last_track
+        extra_data['tracking_data'] = line.record_last_track
+
+    if _keep_initial_particles:
+        extra_data['_initial_particles'] = part_for_twiss0.copy()
 
     if hide_thin_groups:
         _vars_hide_changes = [
@@ -755,7 +773,7 @@ def _propagate_optics(line, W_matrix, particle_on_co,
         for key in _vars_hide_changes:
                 twiss_res_element_by_element[key][i_replace] = np.nan
 
-    return twiss_res_element_by_element
+    return twiss_res_element_by_element, extra_data
 
 def _compute_chromaticity(line, W_matrix, particle_on_co, delta_chrom,
                     tune_x, tune_y,

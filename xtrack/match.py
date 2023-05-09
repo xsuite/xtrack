@@ -297,7 +297,14 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=kwargs['ele_start'])
 
-    tw0 = line.twiss(**kwargs)
+    tw0 = line.twiss(_keep_initial_particles=(twiss_init is not None), **kwargs)
+
+    if twiss_init is not None: # open line mode
+        if isinstance(line, xt.Multiline):
+            for llnn in tw0._line_names:
+                kwargs['_initial_particles'] = tw0[llnn]._initial_particles
+        else:
+            kwargs['_initial_particles'] = tw0._initial_particles
 
     input_targets = targets
     targets = []

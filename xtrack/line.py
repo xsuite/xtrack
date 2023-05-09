@@ -833,14 +833,17 @@ class Line:
         use_full_inverse=None,
         strengths=False,
         hide_thin_groups=False,
+        **kwargs
         ):
 
         self._check_valid_tracker()
 
-        kwargs = locals().copy()
-        kwargs.pop('self')
+        tw_kwargs = locals().copy()
+        tw_kwargs.pop('self')
+        kwargs = tw_kwargs.pop('kwargs')
+        tw_kwargs.update(kwargs)
 
-        return twiss_line(self, **kwargs)
+        return twiss_line(self, **tw_kwargs)
     twiss.__doc__ = twiss_line.__doc__
 
     def match(self, vary, targets, restore_if_fail=True, solver=None,

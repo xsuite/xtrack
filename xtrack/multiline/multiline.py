@@ -210,7 +210,7 @@ class Multiline:
             lines = self.lines.keys()
 
         kwargs_per_twiss = {}
-        for arg_name in ['ele_start', 'ele_stop', 'twiss_init']:
+        for arg_name in ['ele_start', 'ele_stop', 'twiss_init', '_initial_particles']:
             if arg_name not in kwargs:
                 kwargs_per_twiss[arg_name] = len(lines) * [None]
             elif not isinstance(kwargs[arg_name], (list, tuple)):
@@ -226,7 +226,9 @@ class Multiline:
             out[nn] = self.lines[nn].twiss(**kwargs,
                                 ele_start=kwargs_per_twiss['ele_start'][ii],
                                 ele_stop=kwargs_per_twiss['ele_stop'][ii],
-                                twiss_init=kwargs_per_twiss['twiss_init'][ii])
+                                twiss_init=kwargs_per_twiss['twiss_init'][ii],
+                                _initial_particles=kwargs_per_twiss['_initial_particles'][ii]
+                                )
 
         out._line_names = lines
 
