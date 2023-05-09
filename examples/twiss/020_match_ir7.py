@@ -40,40 +40,44 @@ qtlimit4 = 1.0*125.0/scale
 qtlimit5 = 1.0*120.0/scale
 qtlimit6 = 1.0*90.0/scale
 
-# use,sequence=lhcb1,range=s.ds.l7.b1/e.ds.r7.b1;
-# match,      sequence=lhcb1, beta0=bir7b1;
-# weight,mux=10,muy=10;
-# constraint, sequence=lhcb1, range=ip7,dx=dxip7b1,dpx =dpxip7b1;
-# constraint, sequence=lhcb1, range=ip7,betx=betxip7b1,bety=betyip7b1;
-# constraint, sequence=lhcb1, range=ip7,alfx=alfxip7b1,alfy=alfyip7b1;
-# constraint, sequence=lhcb1, range=e.ds.r7.b1,alfx=eir7b1->alfx,alfy=eir7b1->alfy;
-# constraint, sequence=lhcb1, range=e.ds.r7.b1,betx=eir7b1->betx,bety=eir7b1->bety;
-# constraint, sequence=lhcb1, range=e.ds.r7.b1,dx=eir7b1->dx,dpx=eir7b1->dpx;
-# constraint, sequence=lhcb1, range=e.ds.r7.b1,   mux=muxip7b1+eir7b1->mux;
-# constraint, sequence=lhcb1, range=e.ds.r7.b1,   muy=muyip7b1+eir7b1->muy;
-# if(match_on_aperture==1){
-# constraint, sequence=lhcb1,range=MQ.11l7.b1, bety<180.49-0.33;
-# constraint, sequence=lhcb1,range=MQ.9l7.b1, bety<174.5;
-# constraint, sequence=lhcb1,range=MQ.8r7.b1, bety<176.92;
-# constraint, sequence=lhcb1,range=MQ.10r7.b1, bety<179;
-# };
-# vary, name=kqt13.l7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
-# vary, name=kqt12.l7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
-# vary, name=kqtl11.l7b1, step=1.0E-9, lower=-qtlimit4*300./550., upper=qtlimit4*300./550.;
-# vary, name=kqtl10.l7b1, step=1.0E-9, lower=-qtlimit4*500./550., upper=qtlimit4*500./550.;
-# vary, name=kqtl9.l7b1,  step=1.0E-9, lower=-qtlimit4*400./550., upper=qtlimit4*400./550.;
-# vary, name=kqtl8.l7b1,  step=1.0E-9, lower=-qtlimit4*300./550., upper=qtlimit4*300./550.;
-# vary, name=kqtl7.l7b1,  step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
-# vary, name=kq6.l7b1,    step=1.0E-9, lower=-qtlimit6, upper=qtlimit6;
-# vary, name=kq6.r7b1,    step=1.0E-9, lower=-qtlimit6, upper=qtlimit6;
-# vary, name=kqtl7.r7b1,  step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
-# vary, name=kqtl8.r7b1,  step=1.0E-9, lower=-qtlimit4*550./550., upper=qtlimit4*550./550.;
-# vary, name=kqtl9.r7b1,  step=1.0E-9, lower=-qtlimit4*500./550., upper=qtlimit4*500./550.;
-# vary, name=kqtl10.r7b1, step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
-# vary, name=kqtl11.r7b1, step=1.0E-9, lower=-qtlimit4, upper=qtlimit4;
-# vary, name=kqt12.r7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
-# vary, name=kqt13.r7b1,  step=1.0E-9, lower=-qtlimit5, upper=qtlimit5;
-# jacobian,calls=jac_calls, tolerance=jac_tol, bisec=jac_bisec;
-# !simplex,  calls=15, tolerance=jac_tol;-
-# !lmdif,calls=200,tolerance=1.e-21;
-# endmatch;
+collider.match(
+    ele_start=ele_start_match,
+    ele_stop=ele_end_match,
+    twiss_init=tw_init,
+    targets=[
+        xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7),
+        xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7),
+        xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7),
+        xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7),
+        xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7),
+        xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy ', value=muy_end_match),
+    ],
+    vary=[
+        xt.Vary('kqt13.l7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
+        xt.Vary('kqt12.l7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
+        xt.Vary('kqtl11.l7b1', step=1.0E-9, limits=(-qtlimit4*300./550., qtlimit4*300./550.)),
+        xt.Vary('kqtl10.l7b1', step=1.0E-9, limits=(-qtlimit4*500./550., qtlimit4*500./550.)),
+        xt.Vary('kqtl9.l7b1',  step=1.0E-9, limits=(-qtlimit4*400./550., qtlimit4*400./550.)),
+        xt.Vary('kqtl8.l7b1',  step=1.0E-9, limits=(-qtlimit4*300./550., qtlimit4*300./550.)),
+        xt.Vary('kqtl7.l7b1',  step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
+        xt.Vary('kq6.l7b1',    step=1.0E-9, limits=(-qtlimit6, qtlimit6)),
+        xt.Vary('kq6.r7b1',    step=1.0E-9, limits=(-qtlimit6, qtlimit6)),
+        xt.Vary('kqtl7.r7b1',  step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
+        xt.Vary('kqtl8.r7b1',  step=1.0E-9, limits=(-qtlimit4*550./550., qtlimit4*550./550.)),
+        xt.Vary('kqtl9.r7b1',  step=1.0E-9, limits=(-qtlimit4*500./550., qtlimit4*500./550.)),
+        xt.Vary('kqtl10.r7b1', step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
+        xt.Vary('kqtl11.r7b1', step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
+        xt.Vary('kqt12.r7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
+        xt.Vary('kqt13.r7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
+    ]
+)
+
+tw_after = collider.lhcb1.twiss()
