@@ -5,6 +5,8 @@ import xpart as xp
 
 from cpymad.madx import Madx
 
+# xt._print.suppress = True
+
 # Load the line
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
@@ -175,3 +177,17 @@ for _ in range(n_repeat_twiss):
         )
 t1 = time.perf_counter()
 print(f"Twiss time: {1000 * (t1 - t0)/n_repeat_twiss:0.4f} ms")
+
+n_repeat_tracking = 100
+p_test = [ttt.lhcb1._initial_particles.copy() for _ in range(n_repeat_tracking)]
+t0 = time.perf_counter()
+for ii in range(n_repeat_tracking):
+    collider.lhcb1.track(
+        p_test[ii],
+        ele_start=ele_index_start,
+        ele_stop=ele_index_end,
+        turn_by_turn_monitor='ONE_TURN_EBE'
+        )
+t1 = time.perf_counter()
+print(f"Tracking time: {1000 * (t1 - t0)/n_repeat_tracking:0.4f} ms")
+
