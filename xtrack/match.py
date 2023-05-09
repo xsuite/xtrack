@@ -8,6 +8,24 @@ from .twiss import TwissInit
 from .general import _print
 import xtrack as xt
 
+DEFAULT_WEIGHTS = {
+    # For quantities not specified here the default weight is 1
+    'x': 10,
+    'px': 100,
+    'y': 10,
+    'py': 100,
+    'zeta': 10,
+    'delta': 100,
+    'pzeta': 100,
+    'ptau': 100,
+    'alfx': 10.,
+    'alfy': 10.,
+    'mux': 10.,
+    'muy': 10.,
+    'q1': 10.,
+    'q2': 10.,
+}
+
 class OrbitOnly:
     def __init__(self, x=0, px=0, y=0, py=0, zeta=0, delta=0):
         self.x = x
@@ -59,36 +77,42 @@ class MeritFunctionForMatch:
         if self.verbose:
             _print(f'x = {knob_values}')
 
-        tw = self.line.twiss(**self.tw_kwargs)
+        try:
+            tw = self.line.twiss(**self.tw_kwargs)
+        except Exception as ee:
+            tw = 'failed'
 
-        res_values = []
-        target_values = []
-        for tt in self.targets:
-            res_values.append(tt.eval(tw))
-            target_values.append(tt.value)
+        if tw == 'failed':
+            err_values = [1e100 for tt in self.targets]
+        else:
+            res_values = []
+            target_values = []
+            for tt in self.targets:
+                res_values.append(tt.eval(tw))
+                target_values.append(tt.value)
 
-        res_values = np.array(res_values)
-        target_values = np.array(target_values)
-        err_values = res_values - target_values
+            res_values = np.array(res_values)
+            target_values = np.array(target_values)
+            err_values = res_values - target_values
 
-        if self.verbose:
-            _print(f'   f(x) = {res_values}')
-
-        tols = 0 * err_values
-        for ii, tt in enumerate(self.targets):
-            if tt.tol is not None:
-                tols[ii] = tt.tol
-            else:
-                tols[ii] = 1e-14
-
-        if np.all(np.abs(err_values) < tols):
-            err_values *= 0
             if self.verbose:
-                _print('Found point within tolerance!')
+                _print(f'   f(x) = {res_values}')
 
-        for ii, tt in enumerate(self.targets):
-            if tt.scale is not None:
-                err_values[ii] *= tt.scale
+            tols = 0 * err_values
+            for ii, tt in enumerate(self.targets):
+                if tt.tol is not None:
+                    tols[ii] = tt.tol
+                else:
+                    tols[ii] = 1e-14
+
+            if np.all(np.abs(err_values) < tols):
+                err_values *= 0
+                if self.verbose:
+                    _print('Found point within tolerance!')
+
+            for ii, tt in enumerate(self.targets):
+                if tt.scale is not None:
+                    err_values[ii] *= tt.scale
 
         if self.return_scalar:
             return np.sum(err_values * err_values)
@@ -120,19 +144,59 @@ class VaryList:
 
 class Vary:
     def __init__(self, name, limits=None, step=None, weight=None):
+
+        if weight is None:
+            weight = 1.
+
+        if limits is None:
+            limits = (-1e200, 1e200)
+        else:
+            assert len(limits) == 2, '`limits` must have length 2.'
+
+        if step is None:
+            step = 1e-10
+
+        assert weight > 0, '`weight` must be positive.'
+
         self.name = name
-        self.limits = limits
+        self.limits = np.array(limits)
         self.step = step
         self.weight = weight
 
 class Target:
-    def __init__(self, tar, value, at=None, tol=None, scale=None, line=None):
+    def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
+                 line=None):
+
+        if scale is not None and weight is not None:
+            raise ValueError(
+                'Cannot specify both `weight` and `scale` for a target.')
+
+        if scale is not None:
+            weight = scale
+
+        if weight is None:
+            if isinstance(tar, str):
+                weight = DEFAULT_WEIGHTS.get(tar, 1.)
+            else:
+                weight = 1.
+
+        if weight <= 0:
+            raise ValueError('`weight` must be positive.')
+
         self.tar = tar
         self.value = value
         self.tol = tol
         self.at = at
-        self.scale = scale
+        self.weight = weight
         self.line = line
+
+    @property
+    def scale(self):
+        return self.weight
+
+    @scale.setter
+    def scale(self, value):
+        self.weight = value
 
     def eval(self, tw):
 
@@ -277,16 +341,10 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         _print(f'Using solver {solver}')
 
     steps = []
-    limits = []
+    knob_limits = []
     for vv in vary:
-        if vv.step is not None:
-            steps.append(vv.step)
-        else:
-            steps.append(1e-10)
-        if vv.limits is not None:
-            limits.append(vv.limits)
-        else:
-            limits.append((-1e200, 1e200))
+        steps.append(vv.step)
+        knob_limits.append(vv.limits)
 
     assert solver in ['fsolve', 'bfgs', 'jacobian'], (
                       f'Invalid solver {solver}.')
@@ -296,6 +354,11 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     _err = MeritFunctionForMatch(vary=vary, targets=targets, line=line,
                 return_scalar=return_scalar, call_counter=0, verbose=verbose,
                 tw_kwargs=kwargs, steps_for_jacobian=steps)
+
+    knob_limits = np.array(knob_limits)
+    x_lim_low = _err._knobs_to_x(np.squeeze(knob_limits[:, 0]))
+    x_lim_high = _err._knobs_to_x(np.squeeze(knob_limits[:, 1]))
+    x_limits = [(hh, ll) for hh, ll in zip(x_lim_low, x_lim_high)]
 
     _jac= _err.get_jacobian
 
@@ -310,12 +373,12 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
         elif solver == 'bfgs':
             optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
-                        bounds=limits,
+                        bounds=x_limits,
                         jac=_jac, options={'gtol':0})
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
-            jac_solver = JacobianSolver(func=_err, limits=limits)
+            jac_solver = JacobianSolver(func=_err, limits=x_limits)
             res = jac_solver.solve(x0=x0.copy())
             result_info = {'jac_solver': jac_solver}
 
@@ -323,8 +386,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             line.vars[vv.name] = rr
     except Exception as err:
         if restore_if_fail:
+            knob_values0 = _err._x_to_knobs(x0)
             for ii, rr in enumerate(vary):
-                line.vars[rr.name] = x0[ii]
+                line.vars[rr.name] = knob_values0[ii]
         _print('\n')
         raise err
     _print('\n')

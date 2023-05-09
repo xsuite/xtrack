@@ -35,7 +35,7 @@ class JacobianSolver:
         self._penalty_best = 1e200
         ncalls = 0
         info = {}
-        mask_vars = np.ones(len(x0), dtype=bool)
+        mask_for_next_step = np.ones(len(x0), dtype=bool)
         for step in range(self.maxsteps):
             # test penalty
             y, penalty = self._eval(x) # will need to handle mask
@@ -50,11 +50,13 @@ class JacobianSolver:
             # lstsq using only the the variables that were not at the limit
             # in the previous step
             xstep = np.zeros(len(x))
-            xstep[mask_vars] = lstsq(jac[:, mask_vars], y, rcond=None)[0]  # newton step
+
+            xstep[mask_for_next_step] = lstsq(jac[:, mask_for_next_step], y, rcond=None)[0]  # newton step
+            mask_for_next_step[:] = True
 
             newpen = penalty * 2
             alpha = -1
-            mask_vars[:] = True # for next iteration
+
             while newpen > penalty:  # bisec search
                 if alpha > self.n_bisections:
                     break
@@ -62,18 +64,20 @@ class JacobianSolver:
                 l = 2.0**-alpha
 
                 this_xstep = l * xstep
+                mask_hit_limit = np.zeros(len(x), dtype=bool)
                 for ii in range(len(x)):
                     if x[ii] - this_xstep[ii] < self.limits[ii][0]:
                         this_xstep[ii] = 0
-                        mask_vars[ii] = False
+                        mask_hit_limit[ii] = True
                     elif x[ii] - this_xstep[ii] > self.limits[ii][1]:
                         this_xstep[ii] = 0
-                        mask_vars[ii] = False
+                        mask_hit_limit[ii] = True
 
                 y, newpen = self._eval(x - this_xstep) # will need to handle mask
 
                 ncalls += 1
-            x -= l * xstep  # update solution
+            x -= this_xstep  # update solution
+            mask_for_next_step = ~mask_hit_limit
 
             if alpha > 30:
                 raise RuntimeError("not any progress")
