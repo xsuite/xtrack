@@ -251,18 +251,18 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 
     if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None:
-        twiss_init = kwargs['twiss_init']
+        twinit = kwargs['twiss_init']
         assert 'ele_start' in kwargs and kwargs['ele_start'] is not None, (
             'ele_start must be provided if twiss_init is provided')
-        if isinstance(twiss_init, OrbitOnly):
+        if isinstance(twinit, OrbitOnly):
             if not isinstance(kwargs['ele_start'], str):
                 element_name = line.element_names[kwargs['ele_start']]
             else:
                 element_name = kwargs['ele_start']
             particle_on_co=line.build_particles(
-                x=twiss_init.x, px=twiss_init.px,
-                y=twiss_init.y, py=twiss_init.py,
-                zeta=twiss_init.zeta, delta=twiss_init.delta)
+                x=twinit.x, px=twinit.px,
+                y=twinit.y, py=twinit.py,
+                zeta=twinit.zeta, delta=twinit.delta)
             particle_on_co.at_element = line.element_names.index(
                                                                 element_name)
             kwargs['twiss_init'] = TwissInit(
@@ -300,7 +300,11 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=kwargs['ele_start'])
 
-    tw0 = line.twiss(_keep_initial_particles=(twiss_init is not None),
+
+    _keep_initial_particles = (
+            'twiss_init' in kwargs and kwargs['twiss_init'] is not None)
+
+    tw0 = line.twiss(_keep_initial_particles=_keep_initial_particles,
                      _keep_tracking_data=True, **kwargs)
 
     if isinstance(line, xt.Multiline):
@@ -312,7 +316,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         ebe_monitor = tw0.tracking_data
     kwargs['_ebe_monitor'] = ebe_monitor
 
-    if twiss_init is not None: # open line mode
+    if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None: # open line mode
         if isinstance(line, xt.Multiline):
             for llnn in tw0._line_names:
                 kwargs['_initial_particles'] = tw0[llnn]._initial_particles
