@@ -541,6 +541,30 @@ class TeapotSlicing(ThickElementSlicing):
         return [edge_weight, *middle_weights, edge_weight]
 
 
+class SlicingStrategy:
+    def __init__(self, slicing, name=None, madx_type=None):
+        if name is not None and isinstance(name, str):
+            self.name_regex = re.compile(name)
+        else:
+            self.name_regex = None
+
+        self.madx_type = madx_type
+        self.slicing = slicing
+
+    def _match_on_name(self, mad_el):
+        if self.name_regex is None:
+            return True
+        return self.name_regex.match(mad_el.name)
+
+    def _match_on_type(self, mad_el):
+        if self.madx_type is None:
+            return True
+        return self.madx_type in mad_el.get_type_hierarchy()
+
+    def match_element(self, mad_el):
+        return self._match_on_name(mad_el) and self._match_on_type(mad_el)
+
+
 class MadLoader:
     @staticmethod
     def init_line_expressions(line, mad, replace_in_expr):  # to be added to Line....
@@ -712,32 +736,15 @@ class MadLoader:
             out[el.name] = xtel  # tbc
         return out  # tbc
 
-    def make_slicing_strategy(self, slicing_strategy, name_regex=None, madx_type=None):
-        if name_regex is not None and isinstance(name_regex, str):
-            name_regex = re.compile(name_regex)
-
-        return (name_regex, madx_type, slicing_strategy)
-
-    def get_slicing_strategy(self, mad_el):
+    def get_slicing_strategy(self, mad_el) -> ThickElementSlicing:
         if not self.enable_slicing:
             raise ValueError("Slicing is not enabled. Please set "
                              "`enable_slicing=True`")
-        def match_name(name_regex):
-            if name_regex is None:  # if regex is unspecified, catch-all
-                return True
-            return name_regex.match(mad_el.name)
 
-        def match_type(madx_type):
-            if madx_type is None:  # if type is unspecified, catch-all
-                return True
-            return madx_type in mad_el.get_type_hierarchy()
+        for strategy in self.slicing_strategies:
+            if strategy.match_element(mad_el):
+                return strategy.slicing
 
-        for name_regex, madx_type, slicing_strategy in self.slicing_strategies:
-            if not match_name(name_regex):
-                continue
-            if not match_type(madx_type):
-                continue
-            return slicing_strategy
         raise ValueError(f"No slicing strategy found for {mad_el}")
 
     def _assert_element_is_thin(self, mad_el):
