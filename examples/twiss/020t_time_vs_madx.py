@@ -193,7 +193,7 @@ endmatch;
 t2 = time.perf_counter()
 mad.use(sequence='lhcb1')
 tw_mad_after = mad.twiss().dframe()
-print(f"Matching time: {t_end - t_start:0.4f} seconds")
-print(f"MAD-X matching time: {t2 - t1:0.4f} seconds")
+print(f"Xsuite matching time: {t_end - t_start:0.4f} seconds")
+print(f"MAD-X matching time:  {t2 - t1:0.4f} seconds")
 
 

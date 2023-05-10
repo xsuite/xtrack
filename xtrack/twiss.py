@@ -58,6 +58,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         _keep_tracking_data=False,
         _keep_initial_particles=False,
         _initial_particles=None,
+        _ebe_monitor=None,
         ):
 
     """
@@ -411,7 +412,8 @@ def twiss_line(line, particle_ref=None, method='6d',
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
-        _initial_particles=_initial_particles)
+        _initial_particles=_initial_particles,
+        _ebe_monitor=_ebe_monitor)
     propagate_res['name'] = np.array(propagate_res['name'])
 
     if method == '4d':
@@ -525,7 +527,8 @@ def _propagate_optics(line, W_matrix, particle_on_co,
                       _continue_if_lost=False,
                       _keep_tracking_data=False,
                       _keep_initial_particles=False,
-                      _initial_particles=None):
+                      _initial_particles=None,
+                      _ebe_monitor=None):
 
     ctx2np = line._context.nparray_from_context_array
 
@@ -579,8 +582,12 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     if _keep_initial_particles:
         part_for_twiss0 = part_for_twiss.copy()
 
-    #assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
-    line.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
+    if _ebe_monitor is not None:
+        _monitor = _ebe_monitor
+    else:
+        _monitor = 'ONE_TURN_EBE'
+
+    line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
                   ele_start=ele_start, ele_stop=ele_stop)
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (

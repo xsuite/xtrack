@@ -1161,7 +1161,10 @@ class Tracker:
             monitor.ebe_mode = 1
             flag_monitor = 2
         elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):
-            flag_monitor = 1
+            if turn_by_turn_monitor.ebe_mode == 1:
+                flag_monitor = 2
+            else:
+                flag_monitor = 1
             monitor = turn_by_turn_monitor
             buffer_monitor = monitor._buffer.buffer
             offset_monitor = monitor._offset
