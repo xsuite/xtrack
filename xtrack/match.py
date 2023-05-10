@@ -106,14 +106,17 @@ class MeritFunctionForMatch:
                 else:
                     tols[ii] = 1e-14
 
+            if self.verbose:
+                _print(f'   err/tols = {err_values/tols}')
+
             if np.all(np.abs(err_values) < tols):
                 err_values *= 0
                 if self.verbose:
                     _print('Found point within tolerance!')
 
             for ii, tt in enumerate(self.targets):
-                if tt.scale is not None:
-                    err_values[ii] *= tt.scale
+                if tt.weight is not None:
+                    err_values[ii] *= tt.weight
 
         if self.return_scalar:
             return np.sum(err_values * err_values)

@@ -69,6 +69,8 @@ perturbed_vars['kqt13.r7b1'] = collider.vars['kqt13.r7b1']._value * 1.12
 
 tw_before = collider.lhcb1.twiss()
 
+fact_on_tol = 0.000001
+
 for i_repeat in range(1):
 
     for nn, vv in perturbed_vars.items():
@@ -76,25 +78,25 @@ for i_repeat in range(1):
 
     t_start = time.perf_counter()
     match_res = collider.match(
-        #verbose=True,
+        # verbose=True,
         ele_start=ele_start_match,
         ele_stop=ele_end_match,
         twiss_init=tw_init,
         targets=[
-            xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3),
-            xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7, tol=1e-5),
-            xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7, tol=1e-3),
-            xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7, tol=1e-3),
-            xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7, tol=1e-5),
-            xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7, tol=1e-5),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match, tol=1e-5),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match, tol=1e-5),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match, tol=1e-3),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match, tol=1e-3),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match, tol=1e-3),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match, tol=1e-5),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match, tol=1e-5),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy ', value=muy_end_match, tol=1e-5),
+            xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3*fact_on_tol),
+            xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7, tol=1e-3*fact_on_tol),
+            xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7, tol=1e-3*fact_on_tol),
+            xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match, tol=1e-3*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match, tol=1e-3*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match, tol=1e-3*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy ', value=muy_end_match, tol=1e-5*fact_on_tol),
             # xt.TargetInequality('bety', '<', 180.49-0.3, line='lhcb1', at='mq.11l7.b1'),
             # xt.TargetInequality('bety', '<', 174.5,      line='lhcb1', at='mq.9l7.b1'),
             # xt.TargetInequality('bety', '<', 176.92,     line='lhcb1', at='mq.8r7.b1'),
@@ -126,76 +128,76 @@ for i_repeat in range(1):
 tw_after = collider.lhcb1.twiss()
 
 
-_err = match_res['jac_solver'].func
-x_final = match_res['res']
+# _err = match_res['jac_solver'].func
+# x_final = match_res['res']
 
-n_repeat_err_call = 100
-t0 = time.perf_counter()
-for _ in range(n_repeat_err_call):
-    _err(x_final)
-t1 = time.perf_counter()
-print(f"Error call time: {1000 * (t1 - t0)/n_repeat_err_call:0.4f} ms")
+# n_repeat_err_call = 100
+# t0 = time.perf_counter()
+# for _ in range(n_repeat_err_call):
+#     _err(x_final)
+# t1 = time.perf_counter()
+# print(f"Error call time: {1000 * (t1 - t0)/n_repeat_err_call:0.4f} ms")
 
-n_repeat_set_knobs = 100
-t0 = time.perf_counter()
-for _ in range(n_repeat_set_knobs):
-    knob_values = _err._x_to_knobs(x_final)
-    for kk, vv in zip(_err.vary, knob_values):
-        _err.line.vars[kk.name] = vv
-t1 = time.perf_counter()
-print(f"Set knobs time: {1000 * (t1 - t0)/n_repeat_set_knobs:0.4f} ms")
+# n_repeat_set_knobs = 100
+# t0 = time.perf_counter()
+# for _ in range(n_repeat_set_knobs):
+#     knob_values = _err._x_to_knobs(x_final)
+#     for kk, vv in zip(_err.vary, knob_values):
+#         _err.line.vars[kk.name] = vv
+# t1 = time.perf_counter()
+# print(f"Set knobs time: {1000 * (t1 - t0)/n_repeat_set_knobs:0.4f} ms")
 
-tw = _err._last_twiss
-n_repeat_eval_targets = 100
-t0 = time.perf_counter()
-for _ in range(n_repeat_eval_targets):
-    for tt in _err.targets:
-        tt.eval(tw)
-t1 = time.perf_counter()
-print(f"Evaluate targets time: {1000 * (t1 - t0)/n_repeat_eval_targets:0.4f} ms")
+# tw = _err._last_twiss
+# n_repeat_eval_targets = 100
+# t0 = time.perf_counter()
+# for _ in range(n_repeat_eval_targets):
+#     for tt in _err.targets:
+#         tt.eval(tw)
+# t1 = time.perf_counter()
+# print(f"Evaluate targets time: {1000 * (t1 - t0)/n_repeat_eval_targets:0.4f} ms")
 
 
-tw_init = tw_ref.get_twiss_init(ele_start_match)
-ele_index_start = line.element_names.index(ele_start_match)
-ele_index_end = line.element_names.index(ele_end_match)
+# tw_init = tw_ref.get_twiss_init(ele_start_match)
+# ele_index_start = line.element_names.index(ele_start_match)
+# ele_index_end = line.element_names.index(ele_end_match)
 
-ttt = collider.twiss(
-        ele_start=[ele_index_start],
-        ele_stop=[ele_index_end],
-        twiss_init=tw_init,
-        _keep_initial_particles=True
-        )
+# ttt = collider.twiss(
+#         ele_start=[ele_index_start],
+#         ele_stop=[ele_index_end],
+#         twiss_init=tw_init,
+#         _keep_initial_particles=True
+#         )
 
-n_repeat_twiss = 100
-t0 = time.perf_counter()
-for _ in range(n_repeat_twiss):
-    collider.twiss(
-        ele_start=[ele_index_start],
-        ele_stop=[ele_index_end],
-        twiss_init=tw_init,
-        _initial_particles=[ttt.lhcb1._initial_particles]
-        )
-t1 = time.perf_counter()
-print(f"Twiss time: {1000 * (t1 - t0)/n_repeat_twiss:0.4f} ms")
+# n_repeat_twiss = 100
+# t0 = time.perf_counter()
+# for _ in range(n_repeat_twiss):
+#     collider.twiss(
+#         ele_start=[ele_index_start],
+#         ele_stop=[ele_index_end],
+#         twiss_init=tw_init,
+#         _initial_particles=[ttt.lhcb1._initial_particles]
+#         )
+# t1 = time.perf_counter()
+# print(f"Twiss time: {1000 * (t1 - t0)/n_repeat_twiss:0.4f} ms")
 
-n_repeat_tracking = 100
-p_test = [ttt.lhcb1._initial_particles.copy() for _ in range(n_repeat_tracking)]
-t0 = time.perf_counter()
-for ii in range(n_repeat_tracking):
-    collider.lhcb1.track(
-        p_test[ii],
-        ele_start=ele_index_start,
-        ele_stop=ele_index_end,
-        turn_by_turn_monitor='ONE_TURN_EBE'
-        )
-t1 = time.perf_counter()
-print(f"Tracking time: {1000 * (t1 - t0)/n_repeat_tracking:0.4f} ms")
+# n_repeat_tracking = 100
+# p_test = [ttt.lhcb1._initial_particles.copy() for _ in range(n_repeat_tracking)]
+# t0 = time.perf_counter()
+# for ii in range(n_repeat_tracking):
+#     collider.lhcb1.track(
+#         p_test[ii],
+#         ele_start=ele_index_start,
+#         ele_stop=ele_index_end,
+#         turn_by_turn_monitor='ONE_TURN_EBE'
+#         )
+# t1 = time.perf_counter()
+# print(f"Tracking time: {1000 * (t1 - t0)/n_repeat_tracking:0.4f} ms")
 
-n_repeat_get_monitor = 100
-xt.general._print.suppress = True
-t0 = time.perf_counter()
-for ii in range(n_repeat_get_monitor):
-    collider.lhcb1.tracker._get_monitor(p_test[0], 'ONE_TURN_EBE', 1)
-t1 = time.perf_counter()
-xt.general._print.suppress = False
-print(f"Get monitor time: {1000 * (t1 - t0)/n_repeat_get_monitor:0.4f} ms")
+# n_repeat_get_monitor = 100
+# xt.general._print.suppress = True
+# t0 = time.perf_counter()
+# for ii in range(n_repeat_get_monitor):
+#     collider.lhcb1.tracker._get_monitor(p_test[0], 'ONE_TURN_EBE', 1)
+# t1 = time.perf_counter()
+# xt.general._print.suppress = False
+# print(f"Get monitor time: {1000 * (t1 - t0)/n_repeat_get_monitor:0.4f} ms")

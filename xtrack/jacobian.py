@@ -42,6 +42,7 @@ class JacobianSolver:
             # test penalty
             y, penalty = self._eval(x) # will need to handle mask
             ncalls += 1
+            # import pdb; pdb.set_trace()
             if penalty < self.tol:
                 # _print("tolerance met")
                 break
@@ -65,7 +66,7 @@ class JacobianSolver:
                 alpha += 1
                 l = 2.0**-alpha
                 if self.verbose:
-                    _print(f"step {step} alpha {alpha}")
+                    _print(f"\n--> step {step} alpha {alpha}\n")
 
                 this_xstep = l * xstep
                 mask_hit_limit = np.zeros(len(x), dtype=bool)
