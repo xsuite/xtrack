@@ -22,11 +22,13 @@ tw_init = tw_ref.get_twiss_init(ele_start_match)
 ele_index_start = line.element_names.index(ele_start_match)
 ele_index_end = line.element_names.index(ele_end_match)
 
-tw = collider.twiss(
+ttt = collider.twiss(
     #verbose=True,
     ele_start=[ele_index_start],
     ele_stop=[ele_index_end],
     twiss_init=tw_init,
+    _keep_initial_particles=True,
+    _keep_tracking_data=True,
     )
 
 
@@ -38,6 +40,8 @@ for repeat in range(n_repeat):
         ele_start=[ele_index_start],
         ele_stop=[ele_index_end],
         twiss_init=tw_init,
+        _ebe_monitor=[ttt.lhcb1.tracking_data],
+        _initial_particles=[ttt.lhcb1._initial_particles]
         )
 t2 = time.perf_counter()
 
