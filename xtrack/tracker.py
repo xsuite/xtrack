@@ -1157,7 +1157,7 @@ class Tracker:
         elif turn_by_turn_monitor == 'ONE_TURN_EBE':
             (_, monitor, buffer_monitor, offset_monitor
                 ) = self._get_monitor(particles, turn_by_turn_monitor=True,
-                                      num_turns=len(self.line.elements)+1)
+                                      num_turns=len(self.line.element_names)+1)
             monitor.ebe_mode = 1
             flag_monitor = 2
         elif isinstance(turn_by_turn_monitor, self.particles_monitor_class):
