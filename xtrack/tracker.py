@@ -507,10 +507,12 @@ class Tracker:
                     #endif
 
                 } // for elements
+                #ifndef DISABLE_EBE_MONITOR 
                 if (flag_monitor==2){
                     // End of turn (element-by-element mode)
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
+                #endif
                 if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn);

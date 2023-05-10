@@ -182,7 +182,7 @@ n_repeat_tracking = 100
 p_test = [ttt.lhcb1._initial_particles.copy() for _ in range(n_repeat_tracking)]
 t0 = time.perf_counter()
 for ii in range(n_repeat_tracking):
-    collider.lhcb1.track(
+    collider.lhcb1.tracker.track(
         p_test[ii],
         ele_start=ele_index_start,
         ele_stop=ele_index_end,
@@ -191,3 +191,9 @@ for ii in range(n_repeat_tracking):
 t1 = time.perf_counter()
 print(f"Tracking time: {1000 * (t1 - t0)/n_repeat_tracking:0.4f} ms")
 
+n_repeat_get_monitor = 100
+t0 = time.perf_counter()
+for ii in range(n_repeat_get_monitor):
+    collider.lhcb1.tracker._get_monitor(p_test[0], 'ONE_TURN_EBE', 1)
+t1 = time.perf_counter()
+print(f"Get monitor time: {1000 * (t1 - t0)/n_repeat_get_monitor:0.4f} ms")
