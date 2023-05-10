@@ -589,6 +589,7 @@ def _propagate_optics(line, W_matrix, particle_on_co,
 
     line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
                   ele_start=ele_start, ele_stop=ele_stop)
+
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
             'Some test particles were lost during twiss!')
@@ -678,6 +679,7 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
     v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
     v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
+
     for ii in range(6):
         v1[:, ii] *= np.exp(-1j * phix)
         v2[:, ii] *= np.exp(-1j * phiy)
@@ -690,7 +692,6 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     Ws[:, :, 5] = np.imag(v3)
 
     # Computation of twiss parameters
-
     if use_full_inverse:
         betx, alfx, gamx, bety, alfy, gamy, bety1, betx2 = _extract_twiss_parameters_with_inverse(Ws)
     else:
