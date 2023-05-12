@@ -34,6 +34,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         double dpx = MultipoleData_get_knl(el, index) * inv_factorial;
         double dpy = MultipoleData_get_ksl(el, index) * inv_factorial;
 
+        #ifdef XSUITE_BACKTRACK
+        dpx = -dpx;
+        dpy = -dpy;
+        #endif
+
         #ifdef XTRACK_MULTIPOLE_TAPER
         double const delta_taper = LocalParticle_get_delta(part);
         dpx = dpx * (1 + delta_taper);
@@ -44,8 +49,13 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
         double const y   = LocalParticle_get_y(part);
         double const chi = LocalParticle_get_chi(part);
 
+        #ifndef XSUITE_BACKTRACK
         double const hxl = MultipoleData_get_hxl(el);
         double const hyl = MultipoleData_get_hyl(el);
+        #else
+        double const hxl = -MultipoleData_get_hxl(el);
+        double const hyl = -MultipoleData_get_hyl(el);
+        #endif
 
         while( index > 0 )
         {
@@ -58,6 +68,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             double this_knl = MultipoleData_get_knl(el, index);
             double this_ksl = MultipoleData_get_ksl(el, index);
 
+            #ifdef XSUITE_BACKTRACK
+            this_knl = -this_knl;
+            this_ksl = -this_ksl;
+            #endif
+
             #ifdef XTRACK_MULTIPOLE_TAPER
             this_knl = this_knl * (1 + delta_taper);
             this_ksl = this_ksl * (1 + delta_taper);
@@ -67,8 +82,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             dpy = this_ksl*inv_factorial + zim;
         }
 
-
+        #ifndef XSUITE_BACKTRACK
         double const length = MultipoleData_get_length(el); // m
+        #else
+        double const length = -MultipoleData_get_length(el); // m
+        #endif
 
         #ifndef XTRACK_MULTIPOLE_NO_SYNRAD
         // Radiation at entrance
@@ -106,6 +124,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             {
                 double b1l = chi * MultipoleData_get_knl(el, 0 );
                 double a1l = chi * MultipoleData_get_ksl(el, 0 );
+
+                #if XSUITE_BACKTRACK
+                b1l = -b1l;
+                a1l = -a1l;
+                #endif
 
                 #ifdef XTRACK_MULTIPOLE_TAPER
                 b1l = b1l * (1 + delta_taper);

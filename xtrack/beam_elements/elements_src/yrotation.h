@@ -37,9 +37,14 @@ void YRotation_single_particle(LocalParticle* part, double sin_angle, double cos
 /*gpufun*/
 void YRotation_track_local_particle(YRotationData el, LocalParticle* part0){
 
-    double const sin_angle = YRotationData_get_sin_angle(el);
-    double const cos_angle = YRotationData_get_cos_angle(el);
-    double const tan_angle = YRotationData_get_tan_angle(el);
+    double sin_angle = YRotationData_get_sin_angle(el);
+    double cos_angle = YRotationData_get_cos_angle(el);
+    double tan_angle = YRotationData_get_tan_angle(el);
+
+    #ifdef XSUITE_BACKTRACK
+        sin_angle = -sin_angle;
+        tan_angle = -tan_angle;
+    #endif
 
     //start_per_particle_block (part0->part)
         YRotation_single_particle(part, sin_angle, cos_angle, tan_angle);

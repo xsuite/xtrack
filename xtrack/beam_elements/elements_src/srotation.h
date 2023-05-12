@@ -31,8 +31,13 @@ void SRotation_single_particle(LocalParticle* part, double sin_z, double cos_z){
 /*gpufun*/
 void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
 
-    double const sin_z = SRotationData_get_sin_z(el);
-    double const cos_z = SRotationData_get_cos_z(el);
+    double sin_z = SRotationData_get_sin_z(el);
+    double cos_z = SRotationData_get_cos_z(el);
+
+    #ifdef XSUITE_BACKTRACK
+        sin_z = -sin_z;
+        cos_z =  cos_z;
+    #endif
 
     //start_per_particle_block (part0->part)
         SRotation_single_particle(part, sin_z, cos_z);

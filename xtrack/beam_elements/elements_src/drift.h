@@ -46,7 +46,10 @@ void Drift_single_particle(LocalParticle* part, double length){
 /*gpufun*/
 void Drift_track_local_particle(DriftData el, LocalParticle* part0){
 
-    double const length = DriftData_get_length(el);
+    double length = DriftData_get_length(el);
+    #ifdef XSUITE_BACKTRACK
+        length = -length;
+    #endif
 
     //start_per_particle_block (part0->part)
         Drift_single_particle(part, length);

@@ -12,6 +12,10 @@ void ReferenceEnergyIncrease_track_local_particle(ReferenceEnergyIncreaseData el
 
     double const Delta_p0c = ReferenceEnergyIncreaseData_get_Delta_p0c(el);
 
+    #if XSUITE_BACKTRACK
+        Delta_p0c = -Delta_p0c;
+    #endif
+
     //start_per_particle_block (part0->part)
 	LocalParticle_update_p0c(part,
 		LocalParticle_get_p0c(part) + Delta_p0c);
