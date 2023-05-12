@@ -36,7 +36,6 @@ void SRotation_track_local_particle(SRotationData el, LocalParticle* part0){
 
     #ifdef XSUITE_BACKTRACK
         sin_z = -sin_z;
-        cos_z =  cos_z;
     #endif
 
     //start_per_particle_block (part0->part)

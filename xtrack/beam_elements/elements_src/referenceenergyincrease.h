@@ -12,7 +12,7 @@ void ReferenceEnergyIncrease_track_local_particle(ReferenceEnergyIncreaseData el
 
     double const Delta_p0c = ReferenceEnergyIncreaseData_get_Delta_p0c(el);
 
-    #if XSUITE_BACKTRACK
+    #ifdef XSUITE_BACKTRACK
         Delta_p0c = -Delta_p0c;
     #endif
 

@@ -125,7 +125,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 double b1l = chi * MultipoleData_get_knl(el, 0 );
                 double a1l = chi * MultipoleData_get_ksl(el, 0 );
 
-                #if XSUITE_BACKTRACK
+                #ifdef XSUITE_BACKTRACK
                 b1l = -b1l;
                 a1l = -a1l;
                 #endif
