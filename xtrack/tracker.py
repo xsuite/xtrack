@@ -453,8 +453,18 @@ class Tracker:
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
 
+
+                int64_t const ele_stop = ele_start + num_ele_track;
+
+                #ifndef XSUITE_BACKTRACK
                 int64_t elem_idx = ele_start;
-                for (; elem_idx < ele_start+num_ele_track; elem_idx++){
+                int64_t const increm = 1;
+                #else
+                int64_t elem_idx = ele_stop - 1;
+                int64_t const increm = -1;
+                #endif
+
+                for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
 
                         #ifndef DISABLE_EBE_MONITOR
                         if (flag_monitor==2){
