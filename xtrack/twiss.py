@@ -250,8 +250,6 @@ def twiss_line(line, particle_ref=None, method='6d',
         raise ValueError(
             "Either `particle_ref` or `particle_co_guess` must be provided")
 
-    if method == '4d' and delta0 is None:
-        delta0 = 0
 
     if freeze_longitudinal:
         kwargs = locals().copy()
@@ -298,35 +296,29 @@ def twiss_line(line, particle_ref=None, method='6d',
                         **kwargs)
         return res
 
-    if ele_start is not None or ele_stop is not None:
-        if ele_start is not None and ele_stop is None:
-            raise ValueError(
-                'ele_stop must be specified if ele_start is not 0')
-        elif ele_start is None and ele_stop is not None:
-            raise ValueError(
-                'ele_start must be specified if ele_stop is not None')
+    if twiss_init == 'preserve':
+        # Twiss full machine with periodic boundary conditions
+        kwargs = locals().copy()
+        kwargs.pop('twiss_init')
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
+        tw0 = twiss_line(**kwargs)
+        twiss_init = tw0.get_twiss_init(at_element=ele_start)
+
+    if ele_start is not None and ele_stop is None:
+        raise ValueError('ele_stop must be specified if ele_start is not None')
+
+    if ele_stop is not None and ele_start is None:
+        raise ValueError('ele_start must be specified if ele_stop is not None')
+
+    if ele_start is not None and twiss_init is None:
         assert twiss_init is not None, (
             'twiss_init must be provided if ele_start and ele_stop are used')
 
-        if twiss_init == 'preserve':
-            kwargs = locals().copy()
-            kwargs.pop('twiss_init')
-            kwargs.pop('ele_start')
-            kwargs.pop('ele_stop')
-            tw0 = twiss_line(**kwargs)
-            twiss_init = tw0.get_twiss_init(at_element=ele_start)
-
-        if isinstance(ele_start, str):
-            ele_start = line.element_names.index(ele_start)
-        if isinstance(ele_stop, str):
-            ele_stop = line.element_names.index(ele_stop) + 1
-
-        assert twiss_init.element_name == line.element_names[ele_start]
-        particle_on_co = twiss_init.particle_on_co.copy()
-        W_matrix = twiss_init.W_matrix
-        skip_global_quantities = True
-    else:
-        ele_start = 0
+    if isinstance(ele_start, str):
+        ele_start = line.element_names.index(ele_start)
+    if isinstance(ele_stop, str):
+        ele_stop = line.element_names.index(ele_stop) + 1
 
     if twiss_init is None:
         # Periodic mode
@@ -341,6 +333,9 @@ def twiss_line(line, particle_ref=None, method='6d',
             delta_disp=delta_disp, symplectify=symplectify,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol)
+    else:
+        # force
+        skip_global_quantities = True
 
     twiss_res = _twiss_open(
         line=line,
@@ -420,6 +415,11 @@ def _twiss_open(line, twiss_init,
     mux0 = twiss_init.mux
     muy0 = twiss_init.muy
     muzeta0 = twiss_init.muzeta
+
+    if ele_start is None:
+        ele_start = 0
+
+    assert twiss_init.element_name == line.element_names[ele_start]
 
     ctx2np = line._context.nparray_from_context_array
 
@@ -858,6 +858,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
                             matrix_stability_tol):
+
+    if method == '4d' and delta0 is None:
+        delta0 = 0
 
     if particle_on_co is not None:
         part_on_co = particle_on_co
