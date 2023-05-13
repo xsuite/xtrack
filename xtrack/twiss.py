@@ -301,7 +301,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         return res
 
     # if twiss_init == 'preserve':
-    if isinstance(twiss_init, 'str'):
+    if isinstance(twiss_init, str):
         assert twiss_init in ['preserve', 'preserve_start', 'preserve_end']
         # Twiss full machine with periodic boundary conditions
         kwargs = locals().copy()
