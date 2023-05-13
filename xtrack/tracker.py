@@ -511,15 +511,16 @@ class Tracker:
 
                     // Setting the below flag will break particle losses
                     #ifndef DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
-                        isactive = check_is_active(&lpart);
-                        if (!isactive){
-                            break;
-                        }
 
-                        #ifndef XSUITE_BACKTRACK
-                            increment_at_element(&lpart, 1);
-                        #else
-                            increment_at_element(&lpart, -1);
+                    isactive = check_is_active(&lpart);
+                    if (!isactive){
+                        break;
+                    }
+
+                    #ifndef XSUITE_BACKTRACK
+                        increment_at_element(&lpart, 1);
+                    #else
+                        increment_at_element(&lpart, -1);
                     #endif //XSUITE_BACKTRACK
 
                     #endif //DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
@@ -615,6 +616,8 @@ class Tracker:
                     xo.Arg(xo.Int32, name="flag_end_turn_actions"),
                     xo.Arg(xo.Int32, name="flag_reset_s_at_end_turn"),
                     xo.Arg(xo.Int32, name="flag_monitor"),
+                    xo.Arg(xo.Int32, name='num_ele_line'),
+                    xo.Arg(xo.Float64, name='line_length'),
                     xo.Arg(xo.Int8, pointer=True, name="buffer_tbt_monitor"),
                     xo.Arg(xo.Int64, name="offset_tbt_monitor"),
                     xo.Arg(xo.Int8, pointer=True, name="io_buffer"),
@@ -1108,6 +1111,8 @@ class Tracker:
             flag_end_turn_actions=flag_end_first_turn_actions,
             flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
             flag_monitor=flag_monitor,
+            num_ele_line=len(self._tracker_data.element_names),
+            line_length=self._tracker_data.line_length,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
             io_buffer=self.io_buffer.buffer,
@@ -1125,6 +1130,8 @@ class Tracker:
                 flag_end_turn_actions=flag_end_middle_turn_actions,
                 flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
                 flag_monitor=flag_monitor,
+                num_ele_line=len(self.element_names),
+                line_length=self._tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,
@@ -1142,6 +1149,8 @@ class Tracker:
                 flag_end_turn_actions=False,
                 flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
                 flag_monitor=flag_monitor,
+                num_ele_line=len(self.element_names),
+                line_length=self._tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,

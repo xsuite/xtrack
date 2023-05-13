@@ -12,7 +12,7 @@ void Cavity_track_local_particle(CavityData el, LocalParticle* part0){
     #ifndef XSUITE_BACKTRACK
     double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
     #else
-    double const K_FACTOR = ( ( double )2.0 *PI ) / C_LIGHT;
+    double const K_FACTOR = -( ( double )2.0 *PI ) / C_LIGHT;
     #endif
     //start_per_particle_block (part0->part)
 
