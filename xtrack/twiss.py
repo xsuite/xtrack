@@ -224,6 +224,10 @@ def twiss_line(line, particle_ref=None, method='6d',
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
+    if ele_start is not None and twiss_init is None:
+        assert twiss_init is not None, (
+            'twiss_init must be provided if ele_start and ele_stop are used')
+
     if matrix_responsiveness_tol is None:
         matrix_responsiveness_tol = line.matrix_responsiveness_tol
     if matrix_stability_tol is None:
@@ -304,21 +308,6 @@ def twiss_line(line, particle_ref=None, method='6d',
         kwargs.pop('ele_stop')
         tw0 = twiss_line(**kwargs)
         twiss_init = tw0.get_twiss_init(at_element=ele_start)
-
-    if ele_start is not None and ele_stop is None:
-        raise ValueError('ele_stop must be specified if ele_start is not None')
-
-    if ele_stop is not None and ele_start is None:
-        raise ValueError('ele_start must be specified if ele_stop is not None')
-
-    if ele_start is not None and twiss_init is None:
-        assert twiss_init is not None, (
-            'twiss_init must be provided if ele_start and ele_stop are used')
-
-    if isinstance(ele_start, str):
-        ele_start = line.element_names.index(ele_start)
-    if isinstance(ele_stop, str):
-        ele_stop = line.element_names.index(ele_stop) + 1
 
     if twiss_init is None:
         # Periodic mode
@@ -416,10 +405,29 @@ def _twiss_open(line, twiss_init,
     muy0 = twiss_init.muy
     muzeta0 = twiss_init.muzeta
 
+
+    if ele_start is not None and ele_stop is None:
+        raise ValueError('ele_stop must be specified if ele_start is not None')
+
+    if ele_stop is not None and ele_start is None:
+        raise ValueError('ele_start must be specified if ele_stop is not None')
+
     if ele_start is None:
         ele_start = 0
 
-    assert twiss_init.element_name == line.element_names[ele_start]
+    if isinstance(ele_start, str):
+        ele_start = line.element_names.index(ele_start)
+    if isinstance(ele_stop, str):
+        ele_stop = line.element_names.index(ele_stop)
+
+    if twiss_init.element_name == line.element_names[ele_start]:
+        twiss_orientation = 'forward'
+    elif ele_stop is not None and twiss_init.element_name == line.element_names[ele_stop]:
+        twiss_orientation = 'backward'
+        assert isinstance(line.element_dict['ip3'], xt.Marker) # to start one downstream without having to track
+    else:
+        raise ValueError(
+            '`twiss_init` must be given at the start or end of the specified element range.')
 
     ctx2np = line._context.nparray_from_context_array
 
@@ -429,7 +437,6 @@ def _twiss_open(line, twiss_init,
     scale_transverse_y = np.sqrt(gemitt_y)*r_sigma
     scale_longitudinal = delta_disp
     scale_eigen = min(scale_transverse_x, scale_transverse_y, scale_longitudinal)
-
 
     context = line._context
     if _initial_particles is not None: # used in match
@@ -464,7 +471,13 @@ def _twiss_open(line, twiss_init,
 
         part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp, part_zeta_disp])
         part_for_twiss.s = particle_on_co._xobject.s[0]
-        part_for_twiss.at_element = particle_on_co._xobject.at_element[0]
+
+        if twiss_orientation == 'forward':
+            part_for_twiss.at_element = ele_start
+        elif twiss_orientation == 'backward':
+            part_for_twiss.at_element = ele_stop + 1 # to include the last element (assume it is a marker)
+        else:
+            raise ValueError('Invalid twiss_orientation')
 
     i_start = part_for_twiss._xobject.at_element[0]
 
@@ -478,8 +491,15 @@ def _twiss_open(line, twiss_init,
     else:
         _monitor = 'ONE_TURN_EBE'
 
+    if ele_stop is None:
+        ele_stop_track = None
+    else:
+        ele_stop_track = ele_stop + 1 # to include the last element
+
     line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
-                  ele_start=ele_start, ele_stop=ele_stop)
+                  ele_start=ele_start,
+                  ele_stop=ele_stop_track
+               )
 
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
