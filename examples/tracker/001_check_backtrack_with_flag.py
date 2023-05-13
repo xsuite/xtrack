@@ -13,6 +13,9 @@ line.vars['on_x5'] = 130
 p = xp.Particles(
     p0c=7000e9, x=1e-4, px=1e-6, y=2e-4, py=3e-6, zeta=0.01, delta=1e-4)
 
+
+line.reset_s_at_end_turn = False
+
 line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
 mon_forward = line.record_last_track
 
@@ -20,3 +23,4 @@ with xt.line._preserve_config(line):
     line.config.XSUITE_BACKTRACK = True
     line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
     mon_backtrack = line.record_last_track
+

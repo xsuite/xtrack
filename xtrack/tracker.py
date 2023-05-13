@@ -411,6 +411,8 @@ class Tracker:
                              int flag_end_turn_actions,
                              int flag_reset_s_at_end_turn,
                              int flag_monitor,
+                             int num_ele_line,
+                             double line_length,
                 /*gpuglmem*/ int8_t* buffer_tbt_monitor,
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* io_buffer){
@@ -431,7 +433,7 @@ class Tracker:
 
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
-            
+
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
             ParticlesMonitorData tbt_monitor =
@@ -449,28 +451,28 @@ class Tracker:
                     break;
                 }
 
-                if (flag_monitor==1){
-                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
-                }
-
-
                 int64_t const ele_stop = ele_start + num_ele_track;
 
                 #ifndef XSUITE_BACKTRACK
+                if (flag_monitor==1){
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                }
                 int64_t elem_idx = ele_start;
                 int64_t const increm = 1;
                 #else
                 int64_t elem_idx = ele_stop - 1;
                 int64_t const increm = -1;
+                if (flag_end_turn_actions>0){
+                    increment_at_turn_backtrack(&lpart, flag_reset_s_at_end_turn,
+                                                line_length, num_ele_line);
+                }
                 #endif
 
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
 
-                        #ifndef DISABLE_EBE_MONITOR
                         if (flag_monitor==2){
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
-                        #endif
 
                         // Get the pointer to and the type id of the `elem_idx`th
                         // element in `element_ref_data.elements`:
@@ -504,37 +506,52 @@ class Tracker:
             )
 
         src_lines.append(
-            """
+            r"""
                         } //switch
 
                     // Setting the below flag will break particle losses
                     #ifndef DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
-                    isactive = check_is_active(&lpart);
-                    if (!isactive){
-                        break;
-                    }
-                    increment_at_element(&lpart);
-                    #endif
+                        isactive = check_is_active(&lpart);
+                        if (!isactive){
+                            break;
+                        }
+
+                        #ifndef XSUITE_BACKTRACK
+                            increment_at_element(&lpart, 1);
+                        #else
+                            increment_at_element(&lpart, -1);
+                    #endif //XSUITE_BACKTRACK
+
+                    #endif //DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS
 
                 } // for elements
-                #ifndef DISABLE_EBE_MONITOR 
+
                 if (flag_monitor==2){
                     // End of turn (element-by-element mode)
                     ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                 }
-                #endif
+
+                #ifndef XSUITE_BACKTRACK
                 if (flag_end_turn_actions>0){
                     if (isactive){
                         increment_at_turn(&lpart, flag_reset_s_at_end_turn);
                     }
                 }
+                #endif //XSUITE_BACKTRACK
+
+
+                #ifdef XSUITE_BACKTRACK
+                if (flag_monitor==1){
+                    ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
+                }
+                #endif //XSUITE_BACKTRACK
             } // for turns
 
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
 
             }// if partid
             } //only_for_context cpu_openmp
-            
+
             // On OpenMP we want to additionally by default reorganize all
             // the particles.
             #ifndef XT_OMP_SKIP_REORGANIZE                             //only_for_context cpu_openmp
