@@ -506,7 +506,6 @@ def _twiss_open(line, twiss_init,
     elif twiss_orientation == 'backward':
         with xt.line._preserve_config(line):
             line.config.XSUITE_BACKTRACK = True
-            import pdb; pdb.set_trace()
             line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
                     ele_start=ele_start,
                     ele_stop=ele_stop_track)
