@@ -300,14 +300,19 @@ def twiss_line(line, particle_ref=None, method='6d',
                         **kwargs)
         return res
 
-    if twiss_init == 'preserve':
+    # if twiss_init == 'preserve':
+    if isinstance(twiss_init, 'str'):
+        assert twiss_init in ['preserve', 'preserve_start', 'preserve_end']
         # Twiss full machine with periodic boundary conditions
         kwargs = locals().copy()
         kwargs.pop('twiss_init')
         kwargs.pop('ele_start')
         kwargs.pop('ele_stop')
         tw0 = twiss_line(**kwargs)
-        twiss_init = tw0.get_twiss_init(at_element=ele_start)
+        if twiss_init == 'preserve' or twiss_init == 'preserve_start':
+            twiss_init = tw0.get_twiss_init(at_element=ele_start)
+        elif twiss_init == 'preserve_end':
+            twiss_init = tw0.get_twiss_init(at_element=ele_stop)
 
     if twiss_init is None:
         # Periodic mode
