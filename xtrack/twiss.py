@@ -429,7 +429,7 @@ def _twiss_open(line, twiss_init,
         twiss_orientation = 'forward'
     elif ele_stop is not None and twiss_init.element_name == line.element_names[ele_stop]:
         twiss_orientation = 'backward'
-        assert isinstance(line.element_dict['ip3'], xt.Marker) # to start one downstream without having to track
+        assert isinstance(line.element_dict[line.element_names[ele_stop]], xt.Marker) # to start one downstream without having to track
     else:
         raise ValueError(
             '`twiss_init` must be given at the start or end of the specified element range.')
@@ -501,10 +501,17 @@ def _twiss_open(line, twiss_init,
     else:
         ele_stop_track = ele_stop + 1 # to include the last element
 
-    line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
-                  ele_start=ele_start,
-                  ele_stop=ele_stop_track
-               )
+    if twiss_orientation == 'forward':
+        line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
+                    ele_start=ele_start,
+                    ele_stop=ele_stop_track)
+    elif twiss_orientation == 'backward':
+        with xt.line._preserve_config(line):
+            line.config.XSUITE_BACKTRACK = True
+            import pdb; pdb.set_trace()
+            line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
+                    ele_start=ele_start,
+                    ele_stop=ele_stop_track)
 
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (

@@ -23,5 +23,5 @@ tw = line.twiss()
 tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
                         twiss_init=tw.get_twiss_init('ip5'))
 
-tw_backward = line.twiss(ele_start='ip6', ele_stop='ip5',
+tw_backward = line.twiss(ele_start='ip5', ele_stop='ip6',
                          twiss_init=tw.get_twiss_init('ip6'))
