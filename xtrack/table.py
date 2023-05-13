@@ -298,6 +298,12 @@ class RDMTable:
     def items(self):
         return self._data.items()
 
+    def pop(self, key):
+        res = self._data.pop(key)
+        if key in self._col_names:
+            self._col_names.remove(key)
+        return res
+
     def __dir__(self):
         return super().__dir__() + list(self._data.keys())
 
