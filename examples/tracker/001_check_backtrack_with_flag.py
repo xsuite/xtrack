@@ -5,6 +5,13 @@ line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.build_tracker()
 
+
+
+# REMEMBER to check also the SPS and to add a global backtrackability check
+# when building the tracker
+
+
+
 line.vars['on_crab1'] = -190
 line.vars['on_crab5'] = -190
 line.vars['on_x1'] = 130
