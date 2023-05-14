@@ -13,6 +13,7 @@ from collections import UserDict, defaultdict
 import numpy as np
 import xobjects as xo
 import xpart as xp
+import xtrack as xt
 
 from .general import _print
 
@@ -794,6 +795,7 @@ class Tracker:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
+        backtrack=False,
         time=False,
         _session_to_resume=None
     ):
@@ -804,6 +806,10 @@ class Tracker:
         if freeze_longitudinal:
             raise NotImplementedError('freeze_longitudinal not implemented yet'
                                       ' for collective tracking')
+
+        if backtrack:
+            raise NotImplementedError('backtrack not available for collective'
+                                      ' tracking')
 
         self._check_invalidated()
 
@@ -966,9 +972,21 @@ class Tracker:
         num_turns=None,    # defaults to 1
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
+        backtrack=False,
         time=False,
         _force_no_end_turn_actions=False,
     ):
+
+        if backtrack:
+            if ~self._tracker_data._is_backtrackable:
+                raise ValueError("This line is not backtrackable.")
+            kwargs = locals()
+            kwargs.pop('self')
+            kwargs.pop('backtrack')
+            with xt.line._preserve_config(self):
+                self.config.XSUITE_BACKTRACK = True
+                return self._track_no_collective(**kwargs)
+
         # Add the Particles class to the config, so the kernel is recompiled
         # and stored if a new Particles class is given.
         if type(particles) != xp.Particles:

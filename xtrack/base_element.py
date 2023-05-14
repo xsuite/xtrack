@@ -254,7 +254,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     iscollective = None
     isthick = False
     behaves_like_drift = False
-    has_backtrack=True
+    has_backtrack = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
 

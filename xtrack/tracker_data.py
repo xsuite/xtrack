@@ -4,6 +4,7 @@
 # ######################################### #
 
 from typing import Tuple
+import numpy as np
 
 import xobjects as xo
 from .general import _print
@@ -72,6 +73,7 @@ class TrackerData:
         self._element_dict = element_dict
         self._element_names = tuple(element_names)
         self._elements = tuple([element_dict[ee] for ee in element_names])
+        self._is_backtrackable = np.all([ee.has_backtrack for ee in self._elements])
 
         if _buffer is None:
             common_buffer = self.common_buffer_for_elements()

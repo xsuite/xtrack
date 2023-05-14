@@ -23,8 +23,6 @@ p = xp.Particles(
 line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
 mon_forward = line.record_last_track
 
-with xt.line._preserve_config(line):
-    line.config.XSUITE_BACKTRACK = True
-    line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
-    mon_backtrack = line.record_last_track
+line.track(p, backtrack=True, turn_by_turn_monitor='ONE_TURN_EBE')
+mon_backtrack = line.record_last_track
 
