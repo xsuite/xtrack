@@ -27,7 +27,7 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta':1e-6, 'ddelta':1e-7
 }
 
-DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
+DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-11]
 
 AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
@@ -365,7 +365,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         twiss_res.pop('dx_zeta')
         twiss_res.pop('dy_zeta')
         twiss_res.muzeta[:] = 0
-        if 'qs' in twiss_res:
+        if 'qs' in twiss_res._data:
             twiss_res._data['qs'] = 0
 
     if values_at_element_exit:
