@@ -33,6 +33,8 @@ class ReferenceEnergyIncrease(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
 
+    has_backtrack = True
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(Delta_p0c=-self.Delta_p0c,
                               _context=_context, _buffer=_buffer, _offset=_offset)
@@ -47,6 +49,7 @@ class Marker(BeamElement):
 
     behaves_like_drift = True
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         "/*gpufun*/\n"
@@ -73,6 +76,7 @@ class Drift(BeamElement):
 
     isthick = True
     behaves_like_drift = True
+    has_backtrack = True
     allow_backtrack = True
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
@@ -106,6 +110,8 @@ class Cavity(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
 
+    has_backtrack = True
+
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return self.__class__(
                               voltage=-self.voltage,
@@ -131,6 +137,7 @@ class XYShift(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
@@ -309,6 +316,7 @@ class SRotation(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
@@ -373,6 +381,7 @@ class XRotation(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
@@ -607,6 +616,8 @@ class Multipole(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
+    has_backtrack = True
+
     def __init__(self, order=None, knl=None, ksl=None, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -822,6 +833,8 @@ class RFMultipole(BeamElement):
         'ps': xo.Float64[:],
     }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/rfmultipole.h')]
@@ -930,6 +943,8 @@ class DipoleEdge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
+
+    has_backtrack = True
 
     _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
     _skip_in_to_dict = ['r21', 'r43']

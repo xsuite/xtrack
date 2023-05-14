@@ -499,16 +499,10 @@ def _twiss_open(line, twiss_init,
     else:
         ele_stop_track = ele_stop + 1 # to include the last element
 
-    if twiss_orientation == 'forward':
-        line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
-                    ele_start=ele_start,
-                    ele_stop=ele_stop_track)
-    elif twiss_orientation == 'backward':
-        with xt.line._preserve_config(line):
-            line.config.XSUITE_BACKTRACK = True
-            line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
-                    ele_start=ele_start,
-                    ele_stop=ele_stop_track)
+    line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
+                ele_start=ele_start,
+                ele_stop=ele_stop_track,
+                backtrack=(twiss_orientation == 'backward'))
 
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
