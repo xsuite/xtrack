@@ -528,6 +528,11 @@ def _twiss_open(line, twiss_init,
         else:
             i_stop = len(line.element_names) - 1
 
+    recorded_state = line.record_last_track.state[:, i_start:i_stop+1].copy()
+    if not _continue_if_lost:
+        assert np.all(recorded_state == 1), (
+            'Some test particles were lost during twiss!')
+
     x_co = line.record_last_track.x[6, i_start:i_stop+1].copy()
     y_co = line.record_last_track.y[6, i_start:i_stop+1].copy()
     px_co = line.record_last_track.px[6, i_start:i_stop+1].copy()

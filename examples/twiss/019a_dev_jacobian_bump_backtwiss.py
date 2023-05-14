@@ -13,6 +13,11 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
+tw_test = line.twiss(
+    ele_start='mq.33l8.b1',
+    ele_stop='mq.17l8.b1',
+    twiss_init='preserve_end')
+
 line.match(
     #verbose=True,
     solver='jacobian',

@@ -77,10 +77,11 @@ class MeritFunctionForMatch:
         if self.verbose:
             _print(f'x = {knob_values}')
 
-        try:
-            tw = self.line.twiss(**self.tw_kwargs)
-        except Exception as ee:
-            tw = 'failed'
+        tw = self.line.twiss(**self.tw_kwargs)
+        # try:
+        #     tw = self.line.twiss(**self.tw_kwargs)
+        # except Exception as ee:
+        #     tw = 'failed'
 
         if tw == 'failed':
             err_values = [1e100 for tt in self.targets]
@@ -287,18 +288,25 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             raise ValueError(f'Invalid vary setting {rr}')
 
-    if 'twiss_init' in kwargs and kwargs['twiss_init'] == 'preserve':
+    if 'twiss_init' in kwargs and isinstance(kwargs['twiss_init'], str):
+        assert kwargs['twiss_init'] in (
+            ['preserve', 'preserve_start', 'preserve_end'])
         full_twiss_kwargs = kwargs.copy()
         full_twiss_kwargs.pop('twiss_init')
         full_twiss_kwargs.pop('ele_start')
         full_twiss_kwargs.pop('ele_stop')
         tw0_full = line.twiss(**full_twiss_kwargs)
+        if (kwargs['twiss_init'] == 'preserve'
+            or kwargs['twiss_init'] == 'preserve_start'):
+            init_at = kwargs['ele_start']
+        else:
+            init_at = kwargs['ele_stop']
         if isinstance(tw0_full, xt.MultiTwiss):
             kwargs['twiss_init'] = []
-            for ll, nn in zip(tw0_full._line_names, kwargs['ele_start']):
+            for ll, nn in zip(tw0_full._line_names, init_at):
                 kwargs['twiss_init'].append(tw0_full[ll].get_twiss_init(at_element=nn))
         else:
-            kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=kwargs['ele_start'])
+            kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=init_at)
 
 
     _keep_initial_particles = (
