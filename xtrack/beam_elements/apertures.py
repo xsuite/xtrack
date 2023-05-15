@@ -43,15 +43,12 @@ class LimitRect(BeamElement):
 
     has_backtrack = True
 
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
+
     def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, **kwargs):
 
         super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, **kwargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
 
 class LimitRacetrack(BeamElement):
@@ -109,9 +106,6 @@ class LimitRacetrack(BeamElement):
 
         super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, a=a, b=b, **kwargs)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
 
 class LimitEllipse(BeamElement):
 
@@ -134,6 +128,9 @@ class LimitEllipse(BeamElement):
             }
 
     has_backtrack = True
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
 
     def to_dict(self):
         dct = super().to_dict()
@@ -165,9 +162,6 @@ class LimitEllipse(BeamElement):
         else:
             raise ValueError("a_squ and b_squ have to be positive definite")
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
     def set_half_axes(self, a, b):
         return self.set_half_axes_squ(a * a, b * b)
 
@@ -176,14 +170,6 @@ class LimitEllipse(BeamElement):
         self.b_squ = b_squ
         self.a_b_squ = a_squ * b_squ
         return self
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
-
-    has_backtrack = True
 
 
 class LimitPolygon(BeamElement):
@@ -280,9 +266,6 @@ class LimitPolygon(BeamElement):
             ctx = self._buffer.context
             self.x_normal = ctx.nparray_to_context_array(Nx)
             self.y_normal = ctx.nparray_to_context_array(Ny)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
     @property
     def x_closed(self):
@@ -404,9 +387,6 @@ class LimitRectEllipse(BeamElement):
             **kwargs
         )
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
     def set_half_axes(self, a, b):
         return self.set_half_axes_squ(a * a, b * b)
 
@@ -445,14 +425,12 @@ class LongitudinalLimitRect(BeamElement):
 
     has_backtrack = True
 
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/apertures_src/longitudinallimitrect.h')]
+
     def __init__(self, min_zeta=-UNLIMITED, max_zeta=UNLIMITED, min_pzeta=-UNLIMITED, max_pzeta=UNLIMITED, **kwargs):
 
         super().__init__(min_zeta=min_zeta, max_zeta=max_zeta, min_pzeta=min_pzeta, max_pzeta=max_pzeta, **kwargs)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/apertures_src/longitudinallimitrect.h')]
 
 
