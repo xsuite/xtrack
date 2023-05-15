@@ -254,7 +254,11 @@ class ActionTwiss(Action):
         self.kwargs = kwargs
 
     def compute(self):
-        return self.line.twiss(**self.kwargs)
+        try:
+            return self.line.twiss(**self.kwargs)
+        except Exception:
+            return 'failed'
+
 
 class Target:
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
@@ -338,8 +342,6 @@ class TargetInequality(Target):
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
-
-
 
     if isinstance(vary, (str, Vary)):
         vary = [vary]
