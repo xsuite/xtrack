@@ -422,6 +422,28 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     return interp_line
 
+def find_adjacent_drift(line, i_element, orientation):
+
+    ii=i_element
+    found = False
+    assert orientation in ['upstream', 'downstream']
+    if orientation == 'upstream':
+        increment = -1
+    else:
+        increment = 1
+    while not(found):
+        ee = line.element_dict[line.element_names[ii]]
+        ccnn = ee.__class__.__name__
+        #_print(ccnn)
+        if ccnn == 'Drift':
+            found = True
+        elif _behaves_like_drift(ee):
+            found = True
+        else:
+            ii += increment
+
+    return ii
+
 def find_previous_drift(line, i_aperture):
 
     ii=i_aperture
@@ -448,7 +470,9 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
                           buffer_for_poly):
 
     # find previous drift
-    i_start = find_previous_drift(line, i_aperture)
+    i_start_old = find_previous_drift(line, i_aperture)
+    i_start = find_adjacent_drift(line, i_aperture, 'upstream') + 1
+    import pdb; pdb.set_trace()
 
     # Number of thin elements to characterize
     num_elements = i_aperture-i_start+1
