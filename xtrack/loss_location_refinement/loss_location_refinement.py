@@ -150,7 +150,7 @@ class LossLocationRefinement:
                     logger.debug('Replicate mode')
                     (interp_line, i_start_thin_0, i_start_thin_1, s0, s1
                             ) = interp_aperture_replicate(self._context,
-                                      self.line, self.backtrack_line,
+                                      self.line,
                                       i_aper_0, i_aper_1,
                                       self.ds,
                                       _ln_gen=self._ln_gen)
@@ -285,17 +285,14 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
 
     return part_refine
 
-def interp_aperture_replicate(context, line, backtrack_line,
+def interp_aperture_replicate(context, line,
                               i_aper_0, i_aper_1,
                               ds, _ln_gen, mode='end',):
 
     temp_buf = context.new_buffer()
 
-    i_start_thin_1 = find_previous_drift(line, i_aper_1)
-    num_elements = len(line.elements)
-    i_start_thin_0_bktr = find_previous_drift(backtrack_line,
-                                 index_in_reversed_line(num_elements, i_aper_0))
-    i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
+    i_start_thin_1 = find_adjacent_drift(line, i_aper_1, direction='upstream') + 1
+    i_start_thin_0 = find_adjacent_drift(line, i_aper_0, direction='downstream') - 1
 
     s0, s1, s_vect = generate_interp_aperture_locations(line,
                                                    i_aper_0, i_aper_1, ds)
@@ -422,12 +419,12 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     return interp_line
 
-def find_adjacent_drift(line, i_element, orientation):
+def find_adjacent_drift(line, i_element, direction):
 
     ii=i_element
     found = False
-    assert orientation in ['upstream', 'downstream']
-    if orientation == 'upstream':
+    assert direction in ['upstream', 'downstream']
+    if direction == 'upstream':
         increment = -1
     else:
         increment = 1
@@ -472,7 +469,6 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
     # find previous drift
     i_start_old = find_previous_drift(line, i_aperture)
     i_start = find_adjacent_drift(line, i_aperture, 'upstream') + 1
-    import pdb; pdb.set_trace()
 
     # Number of thin elements to characterize
     num_elements = i_aperture-i_start+1
