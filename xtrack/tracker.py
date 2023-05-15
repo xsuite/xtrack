@@ -1048,7 +1048,7 @@ class Tracker:
                 if isinstance(ele_stop, str):
                     ele_stop = self.line.element_names.index(ele_stop)
                 assert ele_stop >= 0
-                assert ele_stop < self.num_elements
+                assert ele_stop <= self.num_elements
                 if ele_stop <= ele_start:
                     # Correct for overflow:
                     num_turns += 1
