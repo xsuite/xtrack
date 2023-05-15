@@ -392,7 +392,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
     for tt in targets:
         if tt.value == 'preserve':
-            tt.value = tt.eval(data0[tt.action])
+            tt.value = tt.eval(data0)
 
     # Cache index of at for faster evaluation
     for tt in targets:
@@ -401,7 +401,6 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 tt._at_index = list(data0[tt.action].name).index(tt.at)
             else:
                 tt._at_index = list(data0[tt.action][tt.line].name).index(tt.at)
-
 
     if solver is None:
         solver = 'jacobian'
