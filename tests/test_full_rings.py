@@ -110,8 +110,7 @@ def test_full_rings(
 
     if test_backtracker:
         print('Testing backtracker')
-        backtrack_line = line.get_backtracker(_context=test_context)
-        backtrack_line.track(particles, num_turns=n_turns)
+        line.track(particles, num_turns=n_turns, backtrack=True)
 
         dtk_part = dtk.TestParticles(**input_data['particle']).copy()
 

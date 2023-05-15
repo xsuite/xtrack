@@ -2336,31 +2336,6 @@ class Line:
         else:
             return newline
 
-    def get_backtracker(self, _context=None, _buffer=None):
-
-        """
-        Get a backtracker for this line.
-
-        Parameters
-        ----------
-        _context : xobjects.Context, optional
-            The context to use for the backtracker. If None, the default
-            context is used.
-        _buffer : xobjects.Buffer, optional
-            The buffer to use for the backtracker. If None, a new buffer is
-            created from the context.
-
-        Returns
-        -------
-        line : Line
-            The modified line.
-
-        """
-
-        self._check_valid_tracker()
-        backtracker = self.tracker.get_backtracker(_context=_context,
-                                                   _buffer=_buffer)
-        return backtracker.line
 
     def _freeze(self):
         self.element_names = tuple(self.element_names)

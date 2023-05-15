@@ -12,7 +12,7 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
     #ifdef XSUITE_BACKTRACK
     return; // do not log
-    #endif
+    #else
 
     int64_t const start_at_turn = ParticlesMonitorData_get_start_at_turn(el);
     int64_t const stop_at_turn = ParticlesMonitorData_get_stop_at_turn(el);
@@ -68,6 +68,8 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
 
     //end_per_particle_block
+
+    #endif //XSUITE_BACKTRACK
 
 }
 

@@ -279,42 +279,6 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def get_backtracker(self, _context=None, _buffer=None):
-
-        """
-        Build a Tracker object that backtracks in the same line.
-        """
-
-        self._check_invalidated()
-
-        assert not self.iscollective
-
-        if _buffer is None:
-            if _context is None:
-                _context = self._buffer.context
-            _buffer = _context.new_buffer()
-
-        line = Line(elements=[], element_names=[])
-        for nn, ee in zip(self.line.element_names[::-1],
-                          self.line.elements[::-1]):
-            line.append_element(
-                    ee.get_backtrack_element(_buffer=_buffer), nn)
-
-        out = self.__class__(
-                    _buffer=_buffer,
-                    line=line,
-                    track_kernel=self.track_kernel,
-                    element_classes=self.element_classes,
-                    particles_class=self.particles_class,
-                    particles_monitor_class=self.particles_monitor_class,
-                    extra_headers=self.extra_headers,
-                    local_particle_src=self.local_particle_src,
-                )
-        out.line.config = self.config.copy()
-        out.line._extra_config = self.line._extra_config.copy()
-
-        return out
-
     def _track(self, *args, **kwargs):
         assert self.iscollective in (True, False)
         if self.iscollective:
@@ -982,6 +946,8 @@ class Tracker:
             if isinstance(backtrack, str):
                 assert backtrack == 'force'
                 force_backtrack = True
+            else:
+                force_backtrack = False
             if not(force_backtrack) and not(self._tracker_data._is_backtrackable):
                 raise ValueError("This line is not backtrackable.")
             kwargs.pop('self')

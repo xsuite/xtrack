@@ -713,20 +713,6 @@ def test_config_propagation(test_context):
     assert line2.matrix_stability_tol == 77.7
     assert line.matrix_stability_tol == 55.5
 
-    line.build_tracker(_context=test_context)
-    linebk = line.get_backtracker()
-    assert linebk.matrix_stability_tol == 55.5
-    assert linebk.config.TEST1 == True
-    assert linebk.config.TEST2 == 33.3
-
-    # Check that they are copies
-    linebk.config.TEST1 = 23.3
-    assert linebk.config.TEST1 == 23.3
-    assert line.config.TEST1 == True
-    linebk.matrix_stability_tol = 77.7
-    assert linebk.matrix_stability_tol == 77.7
-    assert line.matrix_stability_tol == 55.5
-
     line3 = line.copy()
     assert line3.config.TEST1 == True
     assert line3.config.TEST2 == 33.3
