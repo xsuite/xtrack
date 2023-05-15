@@ -60,6 +60,9 @@ class LossLocationRefinement:
                  save_refine_lines=False,
                  allowed_backtrack_types=[]):
 
+        if backtrack_line is not None:
+            raise ValueError('Backtracking line not supported anymore!')
+
         if line.iscollective:
             self._original_line = line
             self.line = line._get_non_collective_line()
@@ -84,12 +87,6 @@ class LossLocationRefinement:
         ln_gen.build_tracker(_buffer=self.line._buffer)
         ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
         self._ln_gen = ln_gen
-
-        if backtrack_line is None:
-            backtrack_line = self.line.tracker.get_backtracker(
-                _context=self._context).line
-            backtrack_line.config.XTRACK_GLOBAL_XY_LIMIT = None
-        self.backtrack_line = backtrack_line
 
         self.i_apertures, self.apertures = find_apertures(self.line)
 
@@ -257,13 +254,10 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
                 f'Cannot backtrack through element {nn} of type '
                 f'{ee.__class__.__name__}')
 
-    # backtrack_line.track(part_refine, ele_start=i_start_backtrack,
-    #                   num_elements = n_backtrack)
-    line.track(part_refine, ele_start=i_start, ele_stop=i_stop,
-                   backtrack='force')
-    # Just for check
-    # elem_backtrack = backtrack_line.elements[
-    #                     i_start_backtrack:i_start_backtrack + n_backtrack]
+    with xt.line._preserve_config(line):
+        line.config.XTRACK_GLOBAL_XY_LIMIT = None
+        line.track(part_refine, ele_start=i_start, ele_stop=i_stop,
+                    backtrack='force')
 
     # Track with extra apertures
     interp_line.track(part_refine)
