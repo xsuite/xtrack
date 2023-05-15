@@ -249,7 +249,9 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
     for nn in interp_line._original_line.element_names[
                                              i_aper_1 - n_backtrack : i_aper_1]:
         ee = interp_line._original_line.element_dict[nn]
-        if not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)):
+
+        if ((hasattr(ee, 'has_backtrack') and not ee.has_backtrack) or
+            (not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)))):
             if _skip_in_loss_location_refinement(ee):
                 return 'skipped'
             raise TypeError(

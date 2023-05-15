@@ -151,6 +151,8 @@ def generate_monitor_class(ParticlesClass):
         (BeamElement,),
         {"_ParticlesClass": ParticlesClass,
         '_xofields': _xofields,
+        'has_backtrack': True,
+        'allow_backtrack': True,
         '_extra_c_sources': _extra_c_sources,
         },
     )
