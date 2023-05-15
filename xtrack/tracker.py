@@ -977,10 +977,13 @@ class Tracker:
         _force_no_end_turn_actions=False,
     ):
 
-        if backtrack:
-            if ~self._tracker_data._is_backtrackable:
+        if backtrack != False:
+            kwargs = locals().copy()
+            if isinstance(backtrack, str):
+                assert backtrack == 'force'
+                force_backtrack = True
+            if not(force_backtrack) and not(self._tracker_data._is_backtrackable):
                 raise ValueError("This line is not backtrackable.")
-            kwargs = locals()
             kwargs.pop('self')
             kwargs.pop('backtrack')
             with xt.line._preserve_config(self):

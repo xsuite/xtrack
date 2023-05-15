@@ -8,6 +8,8 @@ from scipy.spatial import ConvexHull
 
 import xobjects as xo
 import xpart as xp
+import xtrack as xt
+
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
 
@@ -160,7 +162,7 @@ class LossLocationRefinement:
                     logger.debug('Polygon interpolation mode')
                     (interp_line, i_start_thin_0, i_start_thin_1, s0, s1
                             ) = interp_aperture_using_polygons(self._context,
-                                      self.line, self.backtrack_line,
+                                      self.line,
                                       i_aper_0, i_aper_1,
                                       self.n_theta, self.r_max, self.dr, self.ds,
                                       _ln_gen=self._ln_gen)
@@ -319,7 +321,7 @@ def interp_aperture_replicate(context, line,
 
     return interp_line, i_start_thin_0, i_start_thin_1, s0, s1
 
-def interp_aperture_using_polygons(context, line, backtrack_line,
+def interp_aperture_using_polygons(context, line,
                        i_aper_0, i_aper_1,
                        n_theta, r_max, dr, ds, _ln_gen):
 
@@ -327,13 +329,13 @@ def interp_aperture_using_polygons(context, line, backtrack_line,
 
     polygon_1, i_start_thin_1 = characterize_aperture(line,
                                  i_aper_1, n_theta, r_max, dr,
-                                 buffer_for_poly=temp_buf)
-    num_elements = len(line.elements)
-    polygon_0, i_start_thin_0_bktr = characterize_aperture(backtrack_line,
-                                 index_in_reversed_line(num_elements, i_aper_0),
+                                 buffer_for_poly=temp_buf,
+                                 coming_from='upstream')
+
+    polygon_0, i_start_thin_0 = characterize_aperture(line, i_aper_0,
                                  n_theta, r_max, dr,
-                                 buffer_for_poly=temp_buf)
-    i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
+                                 buffer_for_poly=temp_buf,
+                                 coming_from='downstream')
 
     s0, s1, s_vect = generate_interp_aperture_locations(line,
                                                    i_aper_0, i_aper_1, ds)
@@ -464,14 +466,23 @@ def index_in_reversed_line(num_elements, ii):
 
 
 def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
-                          buffer_for_poly):
+                          buffer_for_poly, coming_from='upstream'):
+
+    assert coming_from in ['upstream', 'downstream']
 
     # find previous drift
-    i_start_old = find_previous_drift(line, i_aperture)
-    i_start = find_adjacent_drift(line, i_aperture, 'upstream') + 1
-
-    # Number of thin elements to characterize
-    num_elements = i_aperture-i_start+1
+    if coming_from == 'upstream':
+        i_start = find_adjacent_drift(line, i_aperture, 'upstream') + 1
+        i_stop = i_aperture + 1
+        backtrack = False
+        index_start_thin = i_start
+    elif coming_from == 'downstream':
+        i_stop = find_adjacent_drift(line, i_aperture, 'downstream')
+        i_start = i_aperture
+        backtrack = 'force'
+        assert np.all([ee.has_backtrack for ee in
+                line.tracker._tracker_data.elements[i_start:i_stop+1]])
+        index_start_thin = i_stop - 1
 
     # Get polygon
     theta_vect = np.linspace(0, 2*np.pi, n_theta+1)[:-1]
@@ -496,7 +507,10 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
         ptest = xp.Particles(p0c=1,
                 x = x_test.copy(),
                 y = y_test.copy())
-        line.track(ptest, ele_start=i_start, num_elements=num_elements)
+        with xt.line._preserve_config(line):
+            line.config.XTRACK_GLOBAL_XY_LIMIT = None
+            line.track(ptest, ele_start=i_start, ele_stop=i_stop,
+                       backtrack=backtrack)
 
         indx_sorted = np.argsort(ptest.particle_id)
         state_sorted = np.take(ptest.state, indx_sorted)
@@ -536,5 +550,5 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
     polygon = LimitPolygon(x_vertices=res[0], y_vertices=res[1],
                               _buffer=buffer_for_poly)
 
-    return polygon, i_start
+    return polygon, index_start_thin
 
