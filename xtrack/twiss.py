@@ -302,7 +302,7 @@ def twiss_line(line, particle_ref=None, method='6d',
 
     # if twiss_init == 'preserve':
     if isinstance(twiss_init, str):
-        assert twiss_init in ['preserve', 'preserve_start', 'preserve_end']
+        assert twiss_init in ['preserve', 'preserve_start', 'preserve_end', 'periodic']
         # Twiss full machine with periodic boundary conditions
         kwargs = locals().copy()
         kwargs.pop('twiss_init')
@@ -314,7 +314,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         elif twiss_init == 'preserve_end':
             twiss_init = tw0.get_twiss_init(at_element=ele_stop)
 
-    if twiss_init is None:
+    if twiss_init is None or twiss_init=='periodic':
         # Periodic mode
         twiss_init, R_matrix = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
@@ -326,7 +326,8 @@ def twiss_line(line, particle_ref=None, method='6d',
             particle_co_guess=particle_co_guess,
             delta_disp=delta_disp, symplectify=symplectify,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol)
+            matrix_stability_tol=matrix_stability_tol,
+            ele_start=ele_start, ele_stop=ele_stop)
     else:
         # force
         skip_global_quantities = True
@@ -896,7 +897,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             R_matrix, particle_co_guess,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
-                            matrix_stability_tol):
+                            matrix_stability_tol,
+                            ele_start=None, ele_stop=None):
 
     if method == '4d' and delta0 is None:
         delta0 = 0
@@ -910,7 +912,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 co_search_settings=co_search_settings,
                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                 delta0=delta0,
-                                zeta0=zeta0)
+                                zeta0=zeta0,
+                                ele_start=ele_start, ele_stop=ele_stop)
 
     if W_matrix is not None:
         W = W_matrix
@@ -920,8 +923,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             RR = R_matrix
         else:
             RR = line.compute_one_turn_matrix_finite_differences(
-                                                steps_r_matrix=steps_r_matrix,
-                                                particle_on_co=part_on_co)
+                                        steps_r_matrix=steps_r_matrix,
+                                        particle_on_co=part_on_co,
+                                        ele_start=ele_start, ele_stop=ele_stop)
 
         W, _, _ = lnf.compute_linear_normal_form(
                                 RR, only_4d_block=(method == '4d'),
@@ -936,13 +940,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                             delta0=delta0-delta_disp,
-                            zeta0=zeta0)
+                            zeta0=zeta0,
+                            ele_start=ele_start, ele_stop=ele_stop)
         p_disp_plus = line.find_closed_orbit(particle_co_guess=particle_co_guess,
                             particle_ref=particle_ref,
                             co_search_settings=co_search_settings,
                             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                             delta0=delta0+delta_disp,
-                            zeta0=zeta0)
+                            zeta0=zeta0,
+                            ele_start=ele_start, ele_stop=ele_stop)
         p_disp_minus.move(_context=xo.context_default)
         p_disp_plus.move(_context=xo.context_default)
         dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
@@ -952,7 +958,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         dy_dpzeta = ((p_disp_plus.y[0] - p_disp_minus.y[0])
                      /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
         dpy_dpzeta = ((p_disp_plus.py[0] - p_disp_minus.py[0])
-                      /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
+                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
 
         W[4:, :] = 0
         W[:, 4:] = 0
@@ -963,16 +969,30 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
 
+    if isinstance(ele_start, str):
+        tw_init_element_name = ele_start
+    elif ele_start is None:
+        tw_init_element_name = line.element_names[0]
+    else:
+        tw_init_element_name = line.element_names[ele_start]
+
 
     twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
-                    element_name=line.element_names[0])
+                    element_name=tw_init_element_name)
 
     return twiss_init, R_matrix
 
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
+                      ele_start=None, ele_stop=None,
                       continue_on_closed_orbit_error=False):
+
+    if isinstance(ele_start, str):
+        ele_start = line.element_names.index(ele_start)
+
+    if isinstance(ele_stop, str):
+        ele_stop = line.element_names.index(ele_stop)
 
     if particle_co_guess is None:
         if particle_ref is None:
@@ -990,7 +1010,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
         particle_co_guess.zeta = 0
         particle_co_guess.delta = 0
         particle_co_guess.s = 0
-        particle_co_guess.at_element = 0
+        particle_co_guess.at_element = (ele_start or 0)
         particle_co_guess.at_turn = 0
     else:
         particle_ref = particle_co_guess
@@ -1027,15 +1047,18 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
             _error_for_co = _error_for_co_search_6d
         if zeta0 is not None:
             x0[4] = zeta0
-        if np.all(np.abs(_error_for_co(x0, particle_co_guess, line, delta_zeta, delta0, zeta0))
-                    < DEFAULT_CO_SEARCH_TOL):
+        if np.all(np.abs(_error_for_co(
+                x0, particle_co_guess, line, delta_zeta, delta0, zeta0,
+                ele_start=ele_start, ele_stop=ele_stop)) < DEFAULT_CO_SEARCH_TOL):
             res = x0
             fsolve_info = 'taken_guess'
             ier = 1
             break
 
         (res, infodict, ier, mesg
-            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, line, delta_zeta, delta0, zeta0),
+            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, line,
+                    delta_zeta, delta0, zeta0, ele_start=ele_start,
+                    ele_stop=ele_stop),
                 x0=x0,
                 full_output=True,
                 **co_search_settings)
@@ -1059,7 +1082,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-def _one_turn_map(p, particle_ref, line, delta_zeta):
+def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
@@ -1069,7 +1092,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta):
     part.delta = p[5]
     part.at_turn = AT_TURN_FOR_TWISS
 
-    line.track(part)
+    line.track(part, ele_start=ele_start, ele_stop=ele_stop)
     p_res = np.array([
            part._xobject.x[0],
            part._xobject.px[0],
@@ -1079,11 +1102,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta):
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
 
-def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -1092,8 +1115,8 @@ def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta
         0,
         p[5] - delta0])
 
-def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -1102,8 +1125,8 @@ def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0
         p[4] - zeta0,
         0])
 
-def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -1114,7 +1137,14 @@ def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta,
 
 def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
-        steps_r_matrix=None):
+        steps_r_matrix=None,
+        ele_start=None, ele_stop=None):
+
+    if isinstance(ele_start, str):
+        ele_start = line.element_names.index(ele_start)
+
+    if isinstance(ele_stop, str):
+        ele_stop = line.element_names.index(ele_stop)
 
     if steps_r_matrix is not None:
         steps_in = steps_r_matrix.copy()
@@ -1156,7 +1186,10 @@ def compute_one_turn_matrix_finite_differences(
 
     part_temp.at_turn = AT_TURN_FOR_TWISS
 
-    if particle_on_co._xobject.at_element[0]>0:
+    if ele_start is not None:
+        assert ele_stop is not None
+        line.track(part_temp, ele_start=ele_start, ele_stop=ele_stop)
+    elif particle_on_co._xobject.at_element[0]>0:
         i_start = particle_on_co._xobject.at_element[0]
         line.track(part_temp, ele_start=i_start)
         line.track(part_temp, num_elements=i_start)

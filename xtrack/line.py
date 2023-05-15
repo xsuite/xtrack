@@ -1031,7 +1031,8 @@ class Line:
                           co_search_settings={}, delta_zeta=0,
                           delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
-                          freeze_longitudinal=False):
+                          freeze_longitudinal=False,
+                          ele_start=None, ele_stop=None):
 
         """
         Find the closed orbit of the beamline.
@@ -1059,6 +1060,12 @@ class Line:
         freeze_longitudinal : bool
             If True, the longitudinal coordinates are frozen during the closed
             orbit search.
+        ele_start : int or str
+            Optional. It can be provided to find the periodic solution for
+            a portion of the beamline.
+        ele_stop : int or str
+            Optional. It can be provided to find the periodic solution for
+            a portion of the beamline.
 
         Returns
         -------
@@ -1091,7 +1098,8 @@ class Line:
         return find_closed_orbit_line(line, particle_co_guess=particle_co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
-                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error)
+                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                                 ele_start=ele_start, ele_stop=ele_stop)
 
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
@@ -1187,7 +1195,8 @@ class Line:
 
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
-            steps_r_matrix=None):
+            steps_r_matrix=None,
+            ele_start=None, ele_stop=None):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1198,6 +1207,12 @@ class Line:
         steps_r_matrix : float
             Step size for finite differences. In not given, default step sizes
             are used.
+        ele_start : str
+            Optional. It can be used to find the periodic solution for a
+            portion of the line.
+        ele_stop : str
+            Optional. It can be used to find the periodic solution for a
+            portion of the line.
 
         Returns
         -------
@@ -1218,7 +1233,7 @@ class Line:
             line = self
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                                                          steps_r_matrix)
+                        steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop)
 
 
     def get_length(self):

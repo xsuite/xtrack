@@ -753,7 +753,7 @@ class Tracker:
     def _track_with_collective(
         self,
         particles,
-        ele_start=0,
+        ele_start=None,
         ele_stop=None,     # defaults to full lattice
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
@@ -766,6 +766,9 @@ class Tracker:
 
         if time:
             t0 = perf_counter()
+
+        if ele_start is None:
+            ele_start = 0
 
         if freeze_longitudinal:
             raise NotImplementedError('freeze_longitudinal not implemented yet'
@@ -930,7 +933,7 @@ class Tracker:
     def _track_no_collective(
         self,
         particles,
-        ele_start=0,
+        ele_start=None,
         ele_stop=None,     # defaults to full lattice
         num_elements=None, # defaults to full lattice
         num_turns=None,    # defaults to 1
@@ -994,6 +997,9 @@ class Tracker:
             particles.start_tracking_at_element = -1
         if isinstance(ele_start, str):
             ele_start = self.line.element_names.index(ele_start)
+
+        if ele_start is None:
+            ele_start = 0
 
         assert ele_start >= 0
         assert ele_start <= self.num_elements
