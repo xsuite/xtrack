@@ -147,12 +147,12 @@ for _ in range(n_repeat_set_knobs):
 t1 = time.perf_counter()
 print(f"Set knobs time: {1000 * (t1 - t0)/n_repeat_set_knobs:0.4f} ms")
 
-tw = _err._last_twiss
+last_data = _err._last_data
 n_repeat_eval_targets = 100
 t0 = time.perf_counter()
 for _ in range(n_repeat_eval_targets):
     for tt in _err.targets:
-        tt.eval(tw)
+        tt.eval(last_data)
 t1 = time.perf_counter()
 print(f"Evaluate targets time: {1000 * (t1 - t0)/n_repeat_eval_targets:0.4f} ms")
 

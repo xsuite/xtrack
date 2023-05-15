@@ -37,12 +37,13 @@ class OrbitOnly:
 
 class MeritFunctionForMatch:
 
-    def __init__(self, vary, targets, line, return_scalar,
+    def __init__(self, vary, targets, line, actions, return_scalar,
                  call_counter, verbose, tw_kwargs, steps_for_jacobian):
 
         self.vary = vary
         self.targets = targets
         self.line = line
+        self.actions = actions
         self.return_scalar = return_scalar
         self.call_counter = call_counter
         self.verbose = verbose
@@ -65,7 +66,7 @@ class MeritFunctionForMatch:
 
     def __call__(self, x):
 
-        _print(f"Matching: twiss call n. {self.call_counter}       ",
+        _print(f"Matching: model call n. {self.call_counter}       ",
                 end='\r', flush=True)
         self.call_counter += 1
 
@@ -77,21 +78,23 @@ class MeritFunctionForMatch:
         if self.verbose:
             _print(f'x = {knob_values}')
 
-        tw = self.line.twiss(**self.tw_kwargs)
-        # try:
-        #     tw = self.line.twiss(**self.tw_kwargs)
-        # except Exception as ee:
-        #     tw = 'failed'
+        res_data = {}
+        failed = False
+        for aa in self.actions:
+            res_data[aa] = aa.compute()
+            if res_data[aa] == 'failed':
+                failed = True
+                break
 
-        if tw == 'failed':
+        if failed:
             err_values = [1e100 for tt in self.targets]
         else:
             res_values = []
             target_values = []
             for tt in self.targets:
-                res_values.append(tt.eval(tw))
+                res_values.append(tt.eval(res_data))
                 target_values.append(tt.value)
-            self._last_twiss = tw # for debugging
+            self._last_data = res_data # for debugging
 
             res_values = np.array(res_values)
             target_values = np.array(target_values)
@@ -168,9 +171,94 @@ class Vary:
         self.step = step
         self.weight = weight
 
+class Action:
+    def prepare(self):
+        pass
+    def compute(self):
+        return dict()
+
+class ActionTwiss(Action):
+
+    def __init__(self, line, **kwargs):
+        self.line = line
+        self.kwargs = kwargs
+
+    def prepare(self):
+        line = self.line
+        kwargs = self.kwargs
+
+        if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None:
+            twinit = kwargs['twiss_init']
+            assert 'ele_start' in kwargs and kwargs['ele_start'] is not None, (
+                'ele_start must be provided if twiss_init is provided')
+            if isinstance(twinit, OrbitOnly):
+                if not isinstance(kwargs['ele_start'], str):
+                    element_name = line.element_names[kwargs['ele_start']]
+                else:
+                    element_name = kwargs['ele_start']
+                particle_on_co=line.build_particles(
+                    x=twinit.x, px=twinit.px,
+                    y=twinit.y, py=twinit.py,
+                    zeta=twinit.zeta, delta=twinit.delta)
+                particle_on_co.at_element = line.element_names.index(
+                                                                    element_name)
+                kwargs['twiss_init'] = TwissInit(
+                    particle_on_co=particle_on_co,
+                    W_matrix=np.eye(6),
+                    element_name=element_name)
+
+        if 'twiss_init' in kwargs and isinstance(kwargs['twiss_init'], str):
+            assert kwargs['twiss_init'] in (
+                ['preserve', 'preserve_start', 'preserve_end', 'periodic'])
+            if kwargs['twiss_init'] in ['preserve', 'preserve_start', 'preserve_end']:
+                full_twiss_kwargs = kwargs.copy()
+                full_twiss_kwargs.pop('twiss_init')
+                full_twiss_kwargs.pop('ele_start')
+                full_twiss_kwargs.pop('ele_stop')
+                tw0_full = line.twiss(**full_twiss_kwargs)
+                if (kwargs['twiss_init'] == 'preserve'
+                    or kwargs['twiss_init'] == 'preserve_start'):
+                    init_at = kwargs['ele_start']
+                elif kwargs['twiss_init'] == 'preserve_end':
+                    init_at = kwargs['ele_stop']
+                if isinstance(tw0_full, xt.MultiTwiss):
+                    kwargs['twiss_init'] = []
+                    for ll, nn in zip(tw0_full._line_names, init_at):
+                        kwargs['twiss_init'].append(tw0_full[ll].get_twiss_init(at_element=nn))
+                else:
+                    kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=init_at)
+
+
+        _keep_initial_particles = (
+                'twiss_init' in kwargs and kwargs['twiss_init'] is not None)
+
+        tw0 = line.twiss(_keep_initial_particles=_keep_initial_particles,
+                        _keep_tracking_data=True, **kwargs)
+
+        if isinstance(line, xt.Multiline):
+            ebe_monitor = []
+            for llnn in tw0._line_names:
+                if tw0[llnn].tracking_data is not None:
+                    ebe_monitor.append(tw0[llnn].tracking_data)
+        else:
+            ebe_monitor = tw0.tracking_data
+        kwargs['_ebe_monitor'] = ebe_monitor
+
+        if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None: # open line mode
+            if isinstance(line, xt.Multiline):
+                for llnn in tw0._line_names:
+                    kwargs['_initial_particles'] = tw0[llnn]._initial_particles
+            else:
+                kwargs['_initial_particles'] = tw0._initial_particles
+
+        self.kwargs = kwargs
+
+    def compute(self):
+        return self.line.twiss(**self.kwargs)
+
 class Target:
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
-                 line=None):
+                 line=None, action=None):
 
         if scale is not None and weight is not None:
             raise ValueError(
@@ -189,6 +277,7 @@ class Target:
             raise ValueError('`weight` must be positive.')
 
         self.tar = tar
+        self.action = action
         self.value = value
         self.tol = tol
         self.at = at
@@ -204,32 +293,31 @@ class Target:
     def scale(self, value):
         self.weight = value
 
-    def eval(self, tw):
+    def eval(self, data):
 
-        if isinstance (tw, xt.MultiTwiss) and not callable(self.tar):
+        res = data[self.action]
+
+        if isinstance (res, xt.MultiTwiss) and not callable(self.tar):
             if self.line is None:
                 raise ValueError('When using `Multiline.match`, '
                     'a `line` must associated to each non-callable target.')
 
         if self.line is not None:
-            assert isinstance(tw, xt.MultiTwiss), (
-                'The line associated to a target can be provided only when '
-                'using `Multiline.match`')
-            this_tw = tw[self.line]
+            this_res = res[self.line]
         else:
-            this_tw = tw
+            this_res = res
 
         if isinstance(self.tar, str):
             if self.at is not None:
                 if self._at_index is not None:
-                    return this_tw[self.tar, self._at_index]
+                    return this_res[self.tar, self._at_index]
                 else:
-                    return this_tw[self.tar, self.at]
+                    return this_res[self.tar, self.at]
             else:
-                return this_tw[self.tar]
+                return this_res[self.tar]
         elif callable(self.tar):
             assert self.at is None, '`at` cannot be provided if target is a function'
-            return self.tar(this_tw)
+            return self.tar(this_res)
 
 class TargetInequality(Target):
 
@@ -251,25 +339,7 @@ class TargetInequality(Target):
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
 
-    if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None:
-        twinit = kwargs['twiss_init']
-        assert 'ele_start' in kwargs and kwargs['ele_start'] is not None, (
-            'ele_start must be provided if twiss_init is provided')
-        if isinstance(twinit, OrbitOnly):
-            if not isinstance(kwargs['ele_start'], str):
-                element_name = line.element_names[kwargs['ele_start']]
-            else:
-                element_name = kwargs['ele_start']
-            particle_on_co=line.build_particles(
-                x=twinit.x, px=twinit.px,
-                y=twinit.y, py=twinit.py,
-                zeta=twinit.zeta, delta=twinit.delta)
-            particle_on_co.at_element = line.element_names.index(
-                                                                element_name)
-            kwargs['twiss_init'] = TwissInit(
-                particle_on_co=particle_on_co,
-                W_matrix=np.eye(6),
-                element_name=element_name)
+
 
     if isinstance(vary, (str, Vary)):
         vary = [vary]
@@ -288,49 +358,6 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             raise ValueError(f'Invalid vary setting {rr}')
 
-    if 'twiss_init' in kwargs and isinstance(kwargs['twiss_init'], str):
-        assert kwargs['twiss_init'] in (
-            ['preserve', 'preserve_start', 'preserve_end'])
-        full_twiss_kwargs = kwargs.copy()
-        full_twiss_kwargs.pop('twiss_init')
-        full_twiss_kwargs.pop('ele_start')
-        full_twiss_kwargs.pop('ele_stop')
-        tw0_full = line.twiss(**full_twiss_kwargs)
-        if (kwargs['twiss_init'] == 'preserve'
-            or kwargs['twiss_init'] == 'preserve_start'):
-            init_at = kwargs['ele_start']
-        else:
-            init_at = kwargs['ele_stop']
-        if isinstance(tw0_full, xt.MultiTwiss):
-            kwargs['twiss_init'] = []
-            for ll, nn in zip(tw0_full._line_names, init_at):
-                kwargs['twiss_init'].append(tw0_full[ll].get_twiss_init(at_element=nn))
-        else:
-            kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=init_at)
-
-
-    _keep_initial_particles = (
-            'twiss_init' in kwargs and kwargs['twiss_init'] is not None)
-
-    tw0 = line.twiss(_keep_initial_particles=_keep_initial_particles,
-                     _keep_tracking_data=True, **kwargs)
-
-    if isinstance(line, xt.Multiline):
-        ebe_monitor = []
-        for llnn in tw0._line_names:
-            if tw0[llnn].tracking_data is not None:
-                ebe_monitor.append(tw0[llnn].tracking_data)
-    else:
-        ebe_monitor = tw0.tracking_data
-    kwargs['_ebe_monitor'] = ebe_monitor
-
-    if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None: # open line mode
-        if isinstance(line, xt.Multiline):
-            for llnn in tw0._line_names:
-                kwargs['_initial_particles'] = tw0[llnn]._initial_particles
-        else:
-            kwargs['_initial_particles'] = tw0._initial_particles
-
     input_targets = targets
     targets = []
     for ii, tt in enumerate(input_targets):
@@ -343,22 +370,38 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             raise ValueError(f'Invalid target element {tt}')
 
+    actions = []
+    for tt in targets:
+        if tt.action not in actions:
+            actions.append(tt.action)
+
+    if None in actions:
+        actions.remove(None)
+        actiontwiss = ActionTwiss(line, **kwargs)
+        actions.append(actiontwiss)
+        for tt in targets:
+            if tt.action is None:
+                tt.action = actiontwiss
+
+    for aa in actions:
+        aa.prepare()
+
+    data0 = {}
+    for aa in actions:
+        data0[aa] = aa.compute()
+
     for tt in targets:
         if tt.value == 'preserve':
-            tt.value = tt.eval(tw0)
+            tt.value = tt.eval(data0[tt.action])
 
+    # Cache index of at for faster evaluation
     for tt in targets:
-        if tt.at is not None:
+        if tt.at is not None and isinstance(tt.action, ActionTwiss):
             if tt.line is None:
-                tt._at_index = list(tw0.name).index(tt.at)
+                tt._at_index = list(data0[tt.action].name).index(tt.at)
             else:
-                tt._at_index = list(tw0[tt.line].name).index(tt.at)
+                tt._at_index = list(data0[tt.action][tt.line].name).index(tt.at)
 
-    if 'ele_stop' in kwargs and kwargs['ele_stop'] is not None:
-        ele_stop = kwargs['ele_stop']
-        for tt in targets:
-            if tt.at is not None and tt.at == ele_stop:
-                tt.at = '_end_point'
 
     if solver is None:
         solver = 'jacobian'
@@ -384,7 +427,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
     return_scalar = {'fsolve': False, 'bfgs': True, 'jacobian': False}[solver]
 
-    _err = MeritFunctionForMatch(vary=vary, targets=targets, line=line,
+    _err = MeritFunctionForMatch(
+                vary=vary, targets=targets,
+                line=line, actions=actions,
                 return_scalar=return_scalar, call_counter=0, verbose=verbose,
                 tw_kwargs=kwargs, steps_for_jacobian=steps)
 
