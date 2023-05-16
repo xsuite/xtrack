@@ -10,10 +10,6 @@
 void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
                        LocalParticle* part0){
 
-    #ifdef XSUITE_BACKTRACK
-    return; // do not log
-    #else
-
     int64_t const start_at_turn = ParticlesMonitorData_get_start_at_turn(el);
     int64_t const stop_at_turn = ParticlesMonitorData_get_stop_at_turn(el);
     int64_t const part_id_start = ParticlesMonitorData_get_part_id_start(el);
@@ -31,7 +27,11 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
         at_turn = LocalParticle_get_at_element(part);
     }
     else{
+        #ifdef XSUITE_BACKTRACK
+        return; // do not log (only ebe monitor supported for now in backtrack)
+        #else
         at_turn = LocalParticle_get_at_turn(part);
+        #endif
     }
     if (n_repetitions == 1){
         if (at_turn>=start_at_turn && at_turn<stop_at_turn){
@@ -68,8 +68,6 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
 
 
     //end_per_particle_block
-
-    #endif //XSUITE_BACKTRACK
 
 }
 
