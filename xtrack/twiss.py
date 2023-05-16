@@ -651,12 +651,15 @@ def _twiss_open(line, twiss_init,
 
     muzeta = np.unwrap(phizeta)/2/np.pi
 
-    mux = mux - mux[0] + mux0
-    muy = muy - muy[0] + muy0
-    muzeta = muzeta - muzeta[0] + muzeta0
-
-    mux = np.abs(mux)
-    muy = np.abs(muy)
+    if twiss_orientation == 'forward':
+        mux = mux - mux[0] + mux0
+        muy = muy - muy[0] + muy0
+        muzeta = muzeta - muzeta[0] + muzeta0
+    elif twiss_orientation == 'backward':
+        import pdb; pdb.set_trace()
+        mux = mux - mux[-1] + mux0
+        muy = muy - muy[-1] + muy0
+        muzeta = muzeta - muzeta[-1] + muzeta0
 
     twiss_res_element_by_element = {
         'name': line.element_names[i_start:i_stop] + ('_end_point',),
