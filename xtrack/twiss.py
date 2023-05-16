@@ -350,6 +350,7 @@ def twiss_line(line, particle_ref=None, method='6d',
         _ebe_monitor=_ebe_monitor)
 
     if not skip_global_quantities:
+        twiss_res._data['R_matrix'] = R_matrix
         _compute_global_quantities(
                             line=line, twiss_res=twiss_res,
                             twiss_init=twiss_init, method=method,
@@ -757,7 +758,7 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
 
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
-        betz0 = W_matrix[4, 4]**2 + W_matrix[4, 5]**2
+        betz0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
         ptau_co = twiss_res['ptau']
 
         # Coupling
@@ -784,8 +785,6 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
             twiss_res.particle_on_co._fsolve_info = part_on_co._fsolve_info
         else:
             twiss_res.particle_on_co._fsolve_info = None
-
-
 
         if eneloss_and_damping:
             assert 'R_matrix' in twiss_res._data
@@ -983,7 +982,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
                     element_name=tw_init_element_name)
 
-    return twiss_init, R_matrix
+    return twiss_init, RR
 
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
