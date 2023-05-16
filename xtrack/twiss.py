@@ -174,7 +174,7 @@ def twiss_line(line, particle_ref=None, method=None,
             - damping_constants_s:
               radiation damping constants per second (if `eneloss_and_damping` is True)
             - partition_numbers:
-                radiation partition numbers (if `eneloss_and_damping` is True)
+              radiation partition numbers (if `eneloss_and_damping` is True)
 
     Notes
     -----
@@ -222,8 +222,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
     """
 
-    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
-
     if ele_start is not None and twiss_init is None:
         assert twiss_init is not None, (
             'twiss_init must be provided if ele_start and ele_stop are used')
@@ -257,6 +255,8 @@ def twiss_line(line, particle_ref=None, method=None,
     if method is None:
         method = '6d'
 
+    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
+
     if freeze_longitudinal:
         kwargs = locals().copy()
         kwargs.pop('freeze_longitudinal')
@@ -281,6 +281,8 @@ def twiss_line(line, particle_ref=None, method=None,
         return res
 
     if at_s is not None:
+        if reverse:
+            raise NotImplementedError('`at_s` not implemented for `reverse`=True')
         # Get all arguments
         kwargs = locals().copy()
         if np.isscalar(at_s):
@@ -388,12 +390,17 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._col_names = (list(twiss_res._col_names) +
                                     list(strengths.keys()))
 
+
+    twiss_res._data['method'] = method
+    twiss_res._data['radiation_method'] = radiation_method
+    twiss_res._data['reference_frame'] = 'proper'
+
+    if reverse:
+        twiss_res = twiss_res.reverse()
+
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
 
-    if reverse:
-        raise ValueError('`twiss(..., reverse=True)` not supported anymore. '
-                         'Use `twiss(...).reverse()` instead.')
     return twiss_res
 
 def _twiss_open(line, twiss_init,
@@ -413,7 +420,7 @@ def _twiss_open(line, twiss_init,
     mux0 = twiss_init.mux
     muy0 = twiss_init.muy
     muzeta0 = twiss_init.muzeta
-
+    dzeta0 = twiss_init.dzeta
 
     if ele_start is not None and ele_stop is None:
         raise ValueError('ele_stop must be specified if ele_start is not None')
@@ -658,10 +665,12 @@ def _twiss_open(line, twiss_init,
         mux = mux - mux[0] + mux0
         muy = muy - muy[0] + muy0
         muzeta = muzeta - muzeta[0] + muzeta0
+        dzeta = dzeta - dzeta[0] + dzeta0
     elif twiss_orientation == 'backward':
         mux = mux - mux[-1] + mux0
         muy = muy - muy[-1] + muy0
         muzeta = muzeta - muzeta[-1] + muzeta0
+        dzeta = dzeta - dzeta[-1] + dzeta0
 
     twiss_res_element_by_element = {
         'name': line.element_names[i_start:i_stop] + ('_end_point',),
@@ -1292,13 +1301,46 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
 class TwissInit:
     def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
-                 mux=0, muy=0, muzeta=0.):
+                 mux=0, muy=0, muzeta=0., dzeta=0.,
+                 mux_rev=0, muy_rev=0, muzeta_rev=0., dzeta_rev=0.,
+                 reference_frame='proper'):
         self.__dict__['particle_on_co'] = particle_on_co
         self.W_matrix = W_matrix
         self.element_name = element_name
         self.mux = mux
         self.muy = muy
         self.muzeta = muzeta
+        self.dzeta = dzeta
+        self.mux_rev = mux_rev
+        self.muy_rev = muy_rev
+        self.muzeta_rev = muzeta_rev
+        self.dzeta_rev = dzeta_rev
+        self.reference_frame = reference_frame
+
+    def reverse(self):
+        out = TwissInit()
+        out.particle_on_co = self.particle_on_co.copy()
+        out.particle_on_co = self.particle_on_co.copy()
+        out.particle_on_co.x = -out.particle_on_co.x
+        out.particle_on_co.py = -out.particle_on_co.py
+        out.particle_on_co.zeta = -out.particle_on_co.zeta
+
+        out.W_matrix = self.W_matrix.copy()
+        out.W_matrix[0, :] = -out.W_matrix[0, :]
+        out.W_matrix[1, :] = out.W_matrix[1, :]
+        out.W_matrix[2, :] = out.W_matrix[2, :]
+        out.W_matrix[3, :] = -out.W_matrix[3, :]
+        out.W_matrix[4, :] = -out.W_matrix[4, :]
+        out.W_matrix[5, :] = out.W_matrix[5, :]
+
+        out.element_name = self.element_name
+        out.mux = self.mux_rev
+        out.muy = self.muy_rev
+        out.muzeta = self.muzeta_rev
+        out.mux_rev = self.mux
+        out.muy_rev = self.muy
+        out.muzeta_rev = self.muzeta
+        out.reference_frame = {'proper': 'reversed', 'reversed': 'proper'}[self.reference_frame]
 
     def __getattr__(self, name):
         if name in self.__dict__:
@@ -1356,7 +1398,13 @@ class TwissTable(Table):
                         element_name=self.name[at_element],
                         mux=self.mux[at_element],
                         muy=self.muy[at_element],
-                        muzeta=self.muzeta[at_element])
+                        muzeta=self.muzeta[at_element],
+                        dzeta=self.dzeta[at_element],
+                        mux_rev=self.mux[-1] - self.mux[at_element],
+                        muy_rev=self.muy[-1] - self.muy[at_element],
+                        muzeta_rev=self.muzeta[-1] - self.muzeta[at_element],
+                        dzeta_rev=self.dzeta[-1] - self.dzeta[at_element],
+                        reference_frame=self.reference_frame)
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y, gemitt_z=0):
 
@@ -1610,6 +1658,8 @@ class TwissTable(Table):
             # 4d calculation
             out.qs = 0
             out.muzeta[:] = 0
+
+        out._data['reference_frame'] = 'reverse'
 
         return out
 

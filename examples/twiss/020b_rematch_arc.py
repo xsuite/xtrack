@@ -1,9 +1,7 @@
-import time
+
+import numpy as np
 
 import xtrack as xt
-import xpart as xp
-
-from cpymad.madx import Madx
 
 # xt._print.suppress = True
 
@@ -13,12 +11,12 @@ collider = xt.Multiline.from_json(
 collider.build_trackers()
 collider.lhcb1.twiss_default['method'] = '4d'
 
-tw = collider.lhcb1.twiss()
-
 start_cell = 's.cell.67.b1'
 end_cell = 'e.cell.67.b1'
 start_arc = 'e.ds.r6.b1'
 end_arc = 'e.ds.l7.b1'
+
+tw = collider.lhcb1.twiss()
 
 mux_arc_target = tw['mux', end_arc] - tw['mux', start_arc]
 muy_arc_target = tw['muy', end_arc] - tw['muy', start_arc]
@@ -48,3 +46,6 @@ tw_to_start_arc = collider.lhcb1.twiss(
 
 mux_arc_from_cell = tw_to_end_arc['mux', end_arc] - tw_to_start_arc['mux', start_arc]
 muy_arc_from_cell = tw_to_end_arc['muy', end_arc] - tw_to_start_arc['muy', start_arc]
+
+assert np.isclose(mux_arc_from_cell, mux_arc_target, rtol=1e-6)
+assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
