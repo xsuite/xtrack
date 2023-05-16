@@ -8,11 +8,10 @@ from cpymad.madx import Madx
 # xt._print.suppress = True
 
 # Load the line
-line = xt.Line.from_json(
-    '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
-collider = xt.Multiline(lines={'lhcb1': line})
+collider = xt.Multiline.from_json(
+    '../../test_data/hllhc15_collider/collider_00_from_mad.json')
 collider.build_trackers()
+collider.lhcb1.twiss_default['method'] = '4d'
 
 tw = collider.lhcb1.twiss()
 

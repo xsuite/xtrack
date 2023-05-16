@@ -33,7 +33,7 @@ AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
 log = logging.getLogger(__name__)
 
-def twiss_line(line, particle_ref=None, method='6d',
+def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
@@ -254,6 +254,8 @@ def twiss_line(line, particle_ref=None, method='6d',
         raise ValueError(
             "Either `particle_ref` or `particle_co_guess` must be provided")
 
+    if method is None:
+        method = '6d'
 
     if freeze_longitudinal:
         kwargs = locals().copy()
@@ -657,7 +659,6 @@ def _twiss_open(line, twiss_init,
         muy = muy - muy[0] + muy0
         muzeta = muzeta - muzeta[0] + muzeta0
     elif twiss_orientation == 'backward':
-        import pdb; pdb.set_trace()
         mux = mux - mux[-1] + mux0
         muy = muy - muy[-1] + muy0
         muzeta = muzeta - muzeta[-1] + muzeta0

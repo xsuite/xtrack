@@ -82,6 +82,7 @@ class Line:
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
         self._extra_config['_needs_rng'] = False
+        self._extra_config['twiss_default'] = {}
 
         if isinstance(elements, dict):
             element_dict = elements
@@ -814,7 +815,7 @@ class Line:
             mode=mode,
             **kwargs)
 
-    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method='6d',
+    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method=None,
         r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
         delta_disp=1e-5, delta_chrom=1e-4,
         particle_co_guess=None, R_matrix=None, W_matrix=None,
@@ -839,6 +840,11 @@ class Line:
         self._check_valid_tracker()
 
         tw_kwargs = locals().copy()
+
+        for kk, vv in self.twiss_default.items():
+            if kk not in tw_kwargs.keys() or tw_kwargs[kk] is None:
+                tw_kwargs[kk] = vv
+
         tw_kwargs.pop('self')
         kwargs = tw_kwargs.pop('kwargs')
         tw_kwargs.update(kwargs)
@@ -2532,6 +2538,10 @@ class Line:
     def time_last_track(self):
         self._check_valid_tracker()
         return self.tracker.time_last_track
+
+    @property
+    def twiss_default(self):
+        return self._extra_config['twiss_default']
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
