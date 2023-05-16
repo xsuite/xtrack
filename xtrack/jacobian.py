@@ -30,7 +30,7 @@ class JacobianSolver:
 
         myf = self.func
 
-        x0 = np.array(x0)
+        x0 = np.array(x0, dtype=float)
         x = x0.copy()
 
         self._xbest = x0.copy()
