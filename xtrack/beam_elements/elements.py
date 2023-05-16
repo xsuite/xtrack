@@ -165,6 +165,8 @@ class Elens(BeamElement):
                'polynomial_order'       : xo.Float64
               }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
@@ -413,6 +415,7 @@ class YRotation(BeamElement):
 
     '''
 
+    has_backtrack = True
     allow_backtrack = True
 
     _xofields={
@@ -500,6 +503,8 @@ class ZetaShift(BeamElement):
     _xofields={
         'dzeta': xo.Float64,
         }
+
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
