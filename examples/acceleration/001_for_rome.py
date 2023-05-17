@@ -11,7 +11,7 @@ import xpart as xp
 import xtrack as xt
 
 T_rev = 23e-6 # 23 us
-Delta_p0c = 0 #450e9 / 10 * T_rev
+Delta_p0c = 400e9 / 10 * T_rev # energy increase per turn (400 GeV in 10 s)
 
 fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_no_spacecharge_and_particle.json')
@@ -25,7 +25,8 @@ line.append_element(energy_increase, 'energy_increase')
 
 line.build_tracker()
 
-particles = xp.Particles(p0c=26e9, zeta=np.linspace(-1, 1, 40))
+# particles = xp.Particles(p0c=26e9, zeta=np.linspace(-1, 1, 40))
+particles = xp.Particles(p0c=26e9, delta=np.linspace(-4e-3, 4e-3, 40))
 
 line.track(particles, num_turns=500, turn_by_turn_monitor=True)
 
