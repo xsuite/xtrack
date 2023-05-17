@@ -1716,18 +1716,17 @@ def _renormalize_eigenvectors(Ws):
     nuy = np.sqrt(np.abs(nuy)) # nuy is always positive
     nuzeta = np.sqrt(np.abs(nuzeta)) # nuzeta is always positive
 
-    if False:
-        for ii in range(6):
-            v1[:, ii] /= nux
-            v2[:, ii] /= nuy
-            v3[:, ii] /= nuzeta
+    for ii in range(6):
+        v1[:, ii] /= nux
+        v2[:, ii] /= nuy
+        v3[:, ii] /= nuzeta
 
-        Ws[:, :, 0] = np.real(v1)
-        Ws[:, :, 1] = np.imag(v1)
-        Ws[:, :, 2] = np.real(v2)
-        Ws[:, :, 3] = np.imag(v2)
-        Ws[:, :, 4] = np.real(v3)
-        Ws[:, :, 5] = np.imag(v3)
+    Ws[:, :, 0] = np.real(v1)
+    Ws[:, :, 1] = np.imag(v1)
+    Ws[:, :, 2] = np.real(v2)
+    Ws[:, :, 3] = np.imag(v2)
+    Ws[:, :, 4] = np.real(v3)
+    Ws[:, :, 5] = np.imag(v3)
 
     return nux, nuy, nuzeta
 

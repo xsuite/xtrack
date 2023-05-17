@@ -40,7 +40,7 @@ line = collider.lhcb1
 #     betx1=2e-4, bety2=2e-4, bety1=2e-2, betx2=2e-2,
 # )
 
-# collider.vars['l.ms'] = 0 # kill the sextupoles
+collider.vars['l.ms'] = 0 # kill the sextupoles
 atols = dict(
     dzeta=2e-7, dx=1e-4, dy=1e-4, alfx=1e-10, alfy=1e-10, dpx=1e-5, dpy=1e-5,
     nuzeta=1e-5
@@ -53,18 +53,7 @@ rtols = dict(
 atol_default = 1e-11
 rtol_default = 1e-9
 
-tw1 = line.twiss(r_sigma=0.01)
-tw2 = line.twiss(r_sigma=-0.01)
-W_central = 0.5*(tw1.W_matrix + tw2.W_matrix)
-
-from xtrack.twiss import _compute_lattice_functions
-
-lattice_funcs, _ = _compute_lattice_functions(Ws=W_central, use_full_inverse=False,
-                                           s_co=tw1.s)
-
-
-prrr
-
+tw = line.twiss(r_sigma=0.01)
 
 tw_init_ip5 = tw.get_twiss_init('ip5')
 tw_init_ip6 = tw.get_twiss_init('ip6')
