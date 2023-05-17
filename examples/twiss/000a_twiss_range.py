@@ -40,14 +40,14 @@ line = collider.lhcb1
 #     betx1=2e-4, bety2=2e-4, bety1=2e-2, betx2=2e-2,
 # )
 
-collider.vars['l.ms'] = 0 # kill the sextupoles
+#collider.vars['l.ms'] = 0 # kill the sextupoles
 atols = dict(
-    dzeta=2e-7, dx=1e-4, dy=1e-4, alfx=1e-10, alfy=1e-10, dpx=1e-5, dpy=1e-5,
+    dzeta=2e-7, dx=1e-4, dy=1e-4, alfx=4e-10, alfy=4e-10, dpx=1e-5, dpy=1e-5,
     nuzeta=1e-5
 )
 
 rtols = dict(
-    alfx=1e-9, alfy=1e-9
+    alfx=5e-9, alfy=5e-8
 )
 
 atol_default = 1e-11
@@ -71,7 +71,7 @@ tw_part = tw.rows['ip5':'ip6']
 assert tw_part.name[0] == 'ip5'
 assert tw_part.name[-1] == 'ip6'
 
-for tw_test in [tw_forward, tw_backward]:
+for check, tw_test in zip(('fw', 'bw'), [tw_forward, tw_backward]):
 
     assert tw_test.name[-1] == '_end_point'
 
