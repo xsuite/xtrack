@@ -54,6 +54,7 @@ tw = line.twiss(r_sigma=0.01)
 tw_init_ip5 = tw.get_twiss_init('ip5')
 tw_init_ip6 = tw.get_twiss_init('ip6')
 
+import pdb; pdb.set_trace()
 tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
                         twiss_init=tw_init_ip5)
 

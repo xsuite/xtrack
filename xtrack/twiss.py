@@ -242,6 +242,9 @@ def twiss_line(line, particle_ref=None, method=None,
     if reverse:
         ele_start, ele_stop = ele_stop, ele_start
 
+    if twiss_init is not None and twiss_init.reference_frame == 'reverse':
+        twiss_init = twiss_init.reverse()
+
     if ele_start is not None and twiss_init is None:
         assert twiss_init is not None, (
             'twiss_init must be provided if ele_start and ele_stop are used')
@@ -1370,6 +1373,21 @@ class TwissInit:
         self.dzeta_rev = dzeta_rev
         self.reference_frame = reference_frame
 
+    def copy(self):
+        return TwissInit(
+            particle_on_co=self.particle_on_co.copy(),
+            W_matrix=self.W_matrix.copy(),
+            element_name=self.element_name,
+            mux=self.mux,
+            muy=self.muy,
+            muzeta=self.muzeta,
+            dzeta=self.dzeta,
+            mux_rev=self.mux_rev,
+            muy_rev=self.muy_rev,
+            muzeta_rev=self.muzeta_rev,
+            dzeta_rev=self.dzeta_rev,
+            reference_frame=self.reference_frame)
+
     def reverse(self):
         out = TwissInit()
         out.particle_on_co = self.particle_on_co.copy()
@@ -1393,7 +1411,9 @@ class TwissInit:
         out.mux_rev = self.mux
         out.muy_rev = self.muy
         out.muzeta_rev = self.muzeta
-        out.reference_frame = {'proper': 'reversed', 'reversed': 'proper'}[self.reference_frame]
+        out.reference_frame = {'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
+
+        return out
 
     def __getattr__(self, name):
         if name in self.__dict__:
