@@ -19,7 +19,32 @@ collider.build_trackers()
 collider.lhcb1.twiss_default['method'] = '4d'
 
 # Introduce some coupling for testing purposes
-collider.vars['kqs.a23b1'] = 1e-5
+collider.vars['kqs.a23b1'] = 1e-4
+
+# atols = dict(
+#     alfx=1e-4, alfy=1e-4, dx=1e-4,dy=1e-4, dpx=1e-5, dpy=1e-5, zeta=1e-7,
+#     mux=1e-4,#1e-6,
+#     muy=1e-4,#1e-6,
+#     nux=3e-5, nuy=3e-5, nuzeta=1e-5,
+# )
+
+# rtols = dict(
+#     betx=2e-4, bety=2e-4, alfx=1e-4, alfy=1e-4, gamx=2e-4, gamy=2e-4,
+#     betx1=2e-4, bety2=2e-4, bety1=2e-2, betx2=2e-2,
+# )
+
+collider.vars['l.ms'] = 0 # kill the sextupoles
+atols = dict(
+    # alfx=1e-4, alfy=1e-4, dx=1e-4,dy=1e-4, dpx=1e-5, dpy=1e-5, zeta=1e-7,
+    # mux=1e-4,#1e-6,
+    # muy=1e-4,#1e-6,
+    # nux=3e-5, nuy=3e-5, nuzeta=1e-5,
+)
+
+rtols = dict(
+    # betx=2e-4, bety=2e-4, alfx=1e-4, alfy=1e-4, gamx=2e-4, gamy=2e-4,
+    # betx1=2e-4, bety2=2e-4, bety1=2e-2, betx2=2e-2,
+)
 
 tw = collider.lhcb1.twiss()
 tw_init_ip5 = tw.get_twiss_init('ip5')
@@ -38,39 +63,42 @@ tw_part = tw.rows['ip5':'ip6']
 assert tw_part.name[0] == 'ip5'
 assert tw_part.name[-1] == 'ip6'
 
+atols = dict(
+    alfx=1e-4,
+    alfy=1e-4,
+    dx=1e-4,
+    dy=1e-4,
+    dpx=1e-5,
+    dpy=1e-5,
+    dzeta=1e-7,
+    mux=1e-4,#1e-6,
+    muy=1e-4,#1e-6,
+    nux=3e-5,
+    nuy=3e-5,
+    nuzeta=1e-5,
+)
+
+rtols = dict(
+    betx=2e-4,
+    bety=2e-4,
+    alfx=1e-4,
+    alfy=1e-4,
+    gamx=2e-4,
+    gamy=2e-4,
+    betx1=2e-4,
+    bety2=2e-4,
+    bety1=2e-2,
+    betx2=2e-2,
+)
+
+
+
 for tw_test in [tw_forward, tw_backward]:
+
     assert tw_test.name[-1] == '_end_point'
 
     tw_test = tw_test.rows[:-1]
     assert np.all(tw_test.name == tw_part.name)
-
-    atols = dict(
-        alfx=1e-4,
-        alfy=1e-4,
-        dx=1e-4,
-        dy=1e-4,
-        dpx=1e-5,
-        dpy=1e-5,
-        dzeta=1e-7,
-        mux=1e-4,#1e-6,
-        muy=1e-4,#1e-6,
-        nux=3e-5,
-        nuy=3e-5,
-        nuzeta=1e-5,
-    )
-
-    rtols = dict(
-        betx=2e-4,
-        bety=2e-4,
-        alfx=1e-4,
-        alfy=1e-4,
-        gamx=2e-4,
-        gamy=2e-4,
-        betx1=2e-4,
-        bety2=2e-4,
-        bety1=2e-2,
-        betx2=2e-2,
-    )
 
     for kk in tw_test._data.keys():
         if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
@@ -95,3 +123,12 @@ for tw_test in [tw_forward, tw_backward]:
         for ii in range(this_part.shape[1]):
             assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
                             /np.linalg.norm(this_part[ii, :])), 0, atol=2e-4)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+fig = plt.figure(1, figsize=(6.4*1.2, 4.8*0.8))
+ax = fig.add_subplot(111)
+ax.plot(tw_forward.mux[:-1] - tw_part.mux, label='mux')
+ax.plot(tw_backward.mux[:-1] - tw_part.mux, label='mux')
+
+plt.show()
