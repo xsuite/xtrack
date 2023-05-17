@@ -1719,9 +1719,9 @@ class TwissTable(Table):
 
         out.twiss_init = self.twiss_init.reverse()
         i_init = np.where(out.name == out.twiss_init.element_name)[0][0]
-        out.mux = out.mux - out.mux[i_init] + out.twiss_init.mux_rev
-        out.muy = out.muy - out.muy[i_init] + out.twiss_init.muy_rev
-        out.muzeta = out.muzeta - out.muzeta[i_init] + out.twiss_init.muzeta_rev
+        out.mux = -out.mux + out.mux[i_init] + out.twiss_init.mux_rev
+        out.muy = -out.muy + out.muy[i_init] + out.twiss_init.muy_rev
+        out.muzeta = -out.muzeta + out.muzeta[i_init] + out.twiss_init.muzeta_rev
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
