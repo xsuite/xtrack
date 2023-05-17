@@ -390,7 +390,6 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._col_names = (list(twiss_res._col_names) +
                                     list(strengths.keys()))
 
-
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
     twiss_res._data['reference_frame'] = 'proper'

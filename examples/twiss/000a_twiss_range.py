@@ -17,11 +17,15 @@ collider = xt.Multiline.from_json(
 collider.build_trackers()
 
 collider.lhcb1.twiss_default['method'] = '4d'
+collider.lhcb2.twiss_default['method'] = '4d'
+collider.lhcb2.twiss_default['reverse'] = True
+
+line = collider.lhcb2
 
 # Introduce some coupling and non-zero orbit for testing purposes
-collider.vars['kqs.a23b1'] = 1e-4
-collider.lhcb1['mq.10l3.b1..2'].knl[0] = 2e-6
-collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
+# collider.vars['kqs.a23b1'] = 1e-4
+# collider.lhcb1['mq.10l3.b1..2'].knl[0] = 2e-6
+# collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
 
 # atols = dict(
 #     alfx=1e-4, alfy=1e-4, dx=1e-4,dy=1e-4, dpx=1e-5, dpy=1e-5, zeta=1e-7,
@@ -48,14 +52,14 @@ rtols = dict(
 atol_default = 1e-11
 rtol_default = 1e-9
 
-tw = collider.lhcb1.twiss()
+tw = line.twiss()
 tw_init_ip5 = tw.get_twiss_init('ip5')
 tw_init_ip6 = tw.get_twiss_init('ip6')
 
-tw_forward = collider.lhcb1.twiss(ele_start='ip5', ele_stop='ip6',
+tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
                         twiss_init=tw_init_ip5)
 
-tw_backward = collider.lhcb1.twiss(ele_start='ip5', ele_stop='ip6',
+tw_backward = line.twiss(ele_start='ip5', ele_stop='ip6',
                          twiss_init=tw_init_ip6)
 
 assert tw_init_ip5.reference_frame == 'proper'
