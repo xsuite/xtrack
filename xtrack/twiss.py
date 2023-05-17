@@ -380,8 +380,6 @@ def twiss_line(line, particle_ref=None, method=None,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
 
-    import pdb; pdb.set_trace()
-
     if not skip_global_quantities:
         twiss_res._data['R_matrix'] = R_matrix
         _compute_global_quantities(
@@ -459,7 +457,8 @@ def _twiss_open(line, twiss_init,
     particle_on_co = twiss_init.particle_on_co
     W_matrix = twiss_init.W_matrix
 
-    assert twiss_init.reference_frame == 'proper'
+    if twiss_init.reference_frame == 'reverse':
+        twiss_init = twiss_init.reverse()
 
     if ele_start is not None and ele_stop is None:
         raise ValueError('ele_stop must be specified if ele_start is not None')
@@ -1717,15 +1716,10 @@ class TwissTable(Table):
             out.particle_on_co.py = -out.particle_on_co.py
             out.particle_on_co.zeta = -out.particle_on_co.zeta
 
-        out.twiss_init = self.twiss_init.reverse()
-
-        import pdb; pdb.set_trace()
-        out.mux = -out.mux
-        out.muy = -out.muy
-        out.muzeta = -out.muzeta
-        out.mux += out.twiss_init.mux
-        out.muy += out.twiss_init.muy
-        out.muzeta += out.twiss_init.muzeta
+        out.mux = out.mux[0] - out.mux
+        out.muy = out.muy[0] - out.muy
+        out.muzeta = out.muzeta[0] - out.muzeta
+        out.dzeta = out.dzeta[0] - out.dzeta
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation

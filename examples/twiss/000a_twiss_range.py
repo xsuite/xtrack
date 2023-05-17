@@ -28,11 +28,11 @@ collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
 # collider.lhcb2['mq.10l3.b2..2'].knl[0] = 3e-6
 # collider.lhcb2['mq.10l3.b2..2'].ksl[0] = -1.3e-6
 
-# line = collider.lhcb2
-# line_name = 'lhcb2'
+line = collider.lhcb2
+line_name = 'lhcb2'
 
-line = collider.lhcb1
-line_name = 'lhcb1'
+# line = collider.lhcb1
+# line_name = 'lhcb1'
 
 # line = collider.lhcb1
 
