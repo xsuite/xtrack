@@ -21,6 +21,7 @@ collider.lhcb2.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['reverse'] = True
 
 line = collider.lhcb2
+line = collider.lhcb1
 
 # Introduce some coupling and non-zero orbit for testing purposes
 # collider.vars['kqs.a23b1'] = 1e-4

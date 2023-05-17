@@ -593,6 +593,81 @@ def _twiss_open(line, twiss_init,
     Ws[:, 4, :] = (line.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] = (line.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    twiss_res_element_by_element, i_replace  = _compute_lattice_functions(Ws, use_full_inverse, s_co)
+
+    twiss_res_element_by_element.update({
+        'name': line.element_names[i_start:i_stop] + ('_end_point',),
+        's': s_co,
+        'x': x_co,
+        'px': px_co,
+        'y': y_co,
+        'py': py_co,
+        'zeta': zeta_co,
+        'delta': delta_co,
+        'ptau': ptau_co,
+        'dx': dx,
+        'dpx': dpx,
+        'dy': dy,
+        'dzeta': dzeta,
+        'dpy': dpy,
+        'dx_zeta': dx_zeta,
+        'dy_zeta': dy_zeta,
+        'W_matrix': Ws
+    })
+
+    mux = twiss_res_element_by_element['mux']
+    muy = twiss_res_element_by_element['muy']
+    muzeta = twiss_res_element_by_element['muzeta']
+
+    if twiss_orientation == 'forward':
+        mux = mux - mux[0] + mux0
+        muy = muy - muy[0] + muy0
+        muzeta = muzeta - muzeta[0] + muzeta0
+        dzeta = dzeta - dzeta[0] + dzeta0
+    elif twiss_orientation == 'backward':
+        mux = mux - mux[-1] + mux0
+        muy = muy - muy[-1] + muy0
+        muzeta = muzeta - muzeta[-1] + muzeta0
+        dzeta = dzeta - dzeta[-1] + dzeta0
+
+    twiss_res_element_by_element['mux'] = mux
+    twiss_res_element_by_element['muy'] = muy
+    twiss_res_element_by_element['muzeta'] = muzeta
+    twiss_res_element_by_element['dzeta'] = dzeta
+
+    extra_data = {}
+    if _keep_tracking_data:
+        extra_data['tracking_data'] = line.record_last_track
+
+    if _keep_initial_particles:
+        extra_data['_initial_particles'] = part_for_twiss0.copy()
+
+    if hide_thin_groups:
+        _vars_hide_changes = [
+        'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
+        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
+        'betx1', 'bety1', 'betx2', 'bety2',
+        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
+        ]
+
+        for key in _vars_hide_changes:
+                twiss_res_element_by_element[key][i_replace] = np.nan
+
+    twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
+
+    twiss_res = TwissTable(data=twiss_res_element_by_element)
+    twiss_res._data.update(extra_data)
+
+    twiss_res._data['particle_on_co'] = particle_on_co.copy(_context=xo.context_default)
+
+    circumference = line.tracker._tracker_data.line_length
+    twiss_res._data['circumference'] = circumference
+
+    return twiss_res
+
+
+def _compute_lattice_functions(Ws, use_full_inverse, s_co):
+
     # For removal ot thin groups of elements
     i_take = [0]
     for ii in range(1, len(s_co)):
@@ -657,85 +732,33 @@ def _twiss_open(line, twiss_init,
 
     mux = np.unwrap(temp_phix)/2/np.pi
     muy = np.unwrap(temp_phiy)/2/np.pi
-
     muzeta = np.unwrap(phizeta)/2/np.pi
 
-    if twiss_orientation == 'forward':
-        mux = mux - mux[0] + mux0
-        muy = muy - muy[0] + muy0
-        muzeta = muzeta - muzeta[0] + muzeta0
-        dzeta = dzeta - dzeta[0] + dzeta0
-    elif twiss_orientation == 'backward':
-        mux = mux - mux[-1] + mux0
-        muy = muy - muy[-1] + muy0
-        muzeta = muzeta - muzeta[-1] + muzeta0
-        dzeta = dzeta - dzeta[-1] + dzeta0
-
-    twiss_res_element_by_element = {
-        'name': line.element_names[i_start:i_stop] + ('_end_point',),
-        's': s_co,
-        'x': x_co,
-        'px': px_co,
-        'y': y_co,
-        'py': py_co,
-        'zeta': zeta_co,
-        'delta': delta_co,
-        'ptau': ptau_co,
+    res = {
         'betx': betx,
         'bety': bety,
         'alfx': alfx,
         'alfy': alfy,
         'gamx': gamx,
         'gamy': gamy,
-        'dx': dx,
-        'dpx': dpx,
-        'dy': dy,
-        'dzeta': dzeta,
-        'dpy': dpy,
-        'dx_zeta': dx_zeta,
-        'dy_zeta': dy_zeta,
+        'betx1': betx1,
+        'bety1': bety1,
+        'betx2': betx2,
+        'bety2': bety2,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
         'nux': nux,
         'nuy': nuy,
         'nuzeta': nuzeta,
-        'W_matrix': Ws,
-        'betx1': betx1,
-        'bety1': bety1,
-        'betx2': betx2,
-        'bety2': bety2,
     }
+    return res, i_replace
 
-    extra_data = {}
-    if _keep_tracking_data:
-        extra_data['tracking_data'] = line.record_last_track
 
-    if _keep_initial_particles:
-        extra_data['_initial_particles'] = part_for_twiss0.copy()
 
-    if hide_thin_groups:
-        _vars_hide_changes = [
-        'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
-        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
-        'betx1', 'bety1', 'betx2', 'bety2',
-        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
-        ]
 
-        for key in _vars_hide_changes:
-                twiss_res_element_by_element[key][i_replace] = np.nan
 
-    twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
 
-    twiss_res = TwissTable(data=twiss_res_element_by_element)
-    twiss_res._data.update(extra_data)
-
-    twiss_res._data['particle_on_co'] = particle_on_co.copy(_context=xo.context_default)
-
-    circumference = line.tracker._tracker_data.line_length
-    twiss_res._data['circumference'] = circumference
-
-    return twiss_res
 
 def _compute_global_quantities(line, twiss_res, twiss_init, method,
                                delta_chrom, nemitt_x, nemitt_y,
