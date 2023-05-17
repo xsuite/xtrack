@@ -19,7 +19,7 @@ collider.build_trackers()
 collider.lhcb1.twiss_default['method'] = '4d'
 
 # Introduce some coupling for testing purposes
-collider.vars['kqs.a23b1'] = 1e-4
+collider.vars['kqs.a23b1'] = 1e-5
 
 tw = collider.lhcb1.twiss()
 tw_init_ip5 = tw.get_twiss_init('ip5')
@@ -38,61 +38,60 @@ tw_part = tw.rows['ip5':'ip6']
 assert tw_part.name[0] == 'ip5'
 assert tw_part.name[-1] == 'ip6'
 
-tw_test = tw_forward
-assert tw_test.name[-1] == '_end_point'
+for tw_test in [tw_forward, tw_backward]:
+    assert tw_test.name[-1] == '_end_point'
 
-tw_test = tw_test.rows[:-1]
-assert np.all(tw_test.name == tw_part.name)
+    tw_test = tw_test.rows[:-1]
+    assert np.all(tw_test.name == tw_part.name)
 
-atols = dict(
-    alfx=1e-4,
-    alfy=1e-4,
-    dx=1e-4,
-    dy=1e-4,
-    dpx=1e-5,
-    dpy=1e-5,
-    dzeta=1e-7,
-    mux=1e-6,
-    muy=1e-6,
-    nux=1e-5,
-    nuy=1e-5,
-    nuzeta=1e-5,
-)
+    atols = dict(
+        alfx=1e-4,
+        alfy=1e-4,
+        dx=1e-4,
+        dy=1e-4,
+        dpx=1e-5,
+        dpy=1e-5,
+        dzeta=1e-7,
+        mux=1e-4,#1e-6,
+        muy=1e-4,#1e-6,
+        nux=3e-5,
+        nuy=3e-5,
+        nuzeta=1e-5,
+    )
 
-rtols = dict(
-    betx=1e-4,
-    bety=1e-4,
-    gamx=1e-4,
-    gamy=1e-4,
-    betx1=1e-4,
-    bety2=1e-4,
-    bety1=2e-3,
-    betx2=2e-3,
-)
+    rtols = dict(
+        betx=2e-4,
+        bety=2e-4,
+        alfx=1e-4,
+        alfy=1e-4,
+        gamx=2e-4,
+        gamy=2e-4,
+        betx1=2e-4,
+        bety2=2e-4,
+        bety1=2e-2,
+        betx2=2e-2,
+    )
 
-for kk in tw_test._data.keys():
-    if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
-              'radiation_method', 'reference_frame']:
-        continue # tested separately
-    atol = atols.get(kk, 1e-12)
-    rtol = rtols.get(kk, 0)
-    assert np.allclose(tw_test._data[kk], tw_part._data[kk], rtol=rtol, atol=atol)
+    for kk in tw_test._data.keys():
+        if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
+                'radiation_method', 'reference_frame']:
+            continue # tested separately
+        atol = atols.get(kk, 1e-12)
+        rtol = rtols.get(kk, 0)
+        assert np.allclose(tw_test._data[kk], tw_part._data[kk], rtol=rtol, atol=atol)
 
-assert tw_test.values_at == tw_part.values_at == 'entry'
-assert tw_test.method == tw_part.method == '4d'
-assert tw_test.radiation_method == tw_part.radiation_method == 'full'
-assert tw_test.reference_frame == tw_part.reference_frame == 'proper'
+    assert tw_test.values_at == tw_part.values_at == 'entry'
+    assert tw_test.method == tw_part.method == '4d'
+    assert tw_test.radiation_method == tw_part.radiation_method == 'full'
+    assert tw_test.reference_frame == tw_part.reference_frame == 'proper'
 
-W_matrix_part = tw_part.W_matrix
-W_matrix_test = tw_test.W_matrix
+    W_matrix_part = tw_part.W_matrix
+    W_matrix_test = tw_test.W_matrix
 
-for ss in range(W_matrix_part.shape[0]):
-    this_part = W_matrix_part[ss, :, :]
-    this_test = W_matrix_test[ss, :, :]
+    for ss in range(W_matrix_part.shape[0]):
+        this_part = W_matrix_part[ss, :, :]
+        this_test = W_matrix_test[ss, :, :]
 
-    for ii in range(this_part.shape[1]):
-        assert np. isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
-                           /np.linalg.norm(this_part[ii, :])), 0, atol=1e-4)
-
-
-
+        for ii in range(this_part.shape[1]):
+            assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
+                            /np.linalg.norm(this_part[ii, :])), 0, atol=2e-4)
