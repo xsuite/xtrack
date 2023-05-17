@@ -28,8 +28,11 @@ collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
 # collider.lhcb2['mq.10l3.b2..2'].knl[0] = 3e-6
 # collider.lhcb2['mq.10l3.b2..2'].ksl[0] = -1.3e-6
 
-line = collider.lhcb2
-line_name = 'lhcb2'
+# line = collider.lhcb2
+# line_name = 'lhcb2'
+
+line = collider.lhcb1
+line_name = 'lhcb1'
 
 # line = collider.lhcb1
 
@@ -54,7 +57,6 @@ tw = line.twiss(r_sigma=0.01)
 tw_init_ip5 = tw.get_twiss_init('ip5')
 tw_init_ip6 = tw.get_twiss_init('ip6')
 
-import pdb; pdb.set_trace()
 tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
                         twiss_init=tw_init_ip5)
 
@@ -78,7 +80,7 @@ for check, tw_test in zip(('fw', 'bw'), [tw_forward, tw_backward]):
 
     for kk in tw_test._data.keys():
         if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
-                'radiation_method', 'reference_frame']:
+                'radiation_method', 'reference_frame', 'twiss_init']:
             continue # tested separately
         atol = atols.get(kk, atol_default)
         rtol = rtols.get(kk, rtol_default)
