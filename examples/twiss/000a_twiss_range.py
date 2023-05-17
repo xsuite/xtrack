@@ -24,17 +24,26 @@ collider.vars['kqs.a23b1'] = 1e-4
 collider.lhcb1['mq.10l3.b1..2'].knl[0] = 2e-6
 collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
 
+# collider.vars['kqs.a23b2'] = -1e-4
+# collider.lhcb2['mq.10l3.b2..2'].knl[0] = 3e-6
+# collider.lhcb2['mq.10l3.b2..2'].ksl[0] = -1.3e-6
+
 line = collider.lhcb2
+line_name = 'lhcb2'
+
 # line = collider.lhcb1
 
 #collider.vars['l.ms'] = 0 # kill the sextupoles
 atols = dict(
-    dzeta=2e-7, dx=1e-4, dy=1e-4, alfx=4e-10, alfy=4e-10, dpx=1e-5, dpy=1e-5,
+    alfx=1e-8, alfy=1e-8,
+    dzeta=2e-7, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
     nuzeta=1e-5
 )
 
 rtols = dict(
-    alfx=5e-9, alfy=5e-8, betx2=5e-9, bety1=5e-9,
+    alfx=5e-9, alfy=5e-8,
+    betx=5e-9, bety=5e-9, betx1=5e-9, bety2=5e-9, betx2=5e-9, bety1=5e-9,
+    gamx=5e-9, gamy=5e-9,
 )
 
 atol_default = 1e-11
@@ -51,7 +60,8 @@ tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
 tw_backward = line.twiss(ele_start='ip5', ele_stop='ip6',
                          twiss_init=tw_init_ip6)
 
-assert tw_init_ip5.reference_frame == 'proper'
+assert tw_init_ip5.reference_frame == (
+    {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
 assert tw_init_ip5.element_name == 'ip5'
 
 tw_part = tw.rows['ip5':'ip6']
@@ -76,7 +86,8 @@ for check, tw_test in zip(('fw', 'bw'), [tw_forward, tw_backward]):
     assert tw_test.values_at == tw_part.values_at == 'entry'
     assert tw_test.method == tw_part.method == '4d'
     assert tw_test.radiation_method == tw_part.radiation_method == 'full'
-    assert tw_test.reference_frame == tw_part.reference_frame == 'proper'
+    assert tw_test.reference_frame == tw_part.reference_frame == (
+        {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
 
     W_matrix_part = tw_part.W_matrix
     W_matrix_test = tw_test.W_matrix
