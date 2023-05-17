@@ -80,7 +80,7 @@ for check, tw_test in zip(('fw', 'bw'), [tw_forward, tw_backward]):
 
     for kk in tw_test._data.keys():
         if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
-                'radiation_method', 'reference_frame', 'twiss_init']:
+                'radiation_method', 'reference_frame', 'orientation']:
             continue # tested separately
         atol = atols.get(kk, atol_default)
         rtol = rtols.get(kk, rtol_default)

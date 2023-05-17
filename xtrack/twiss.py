@@ -242,8 +242,12 @@ def twiss_line(line, particle_ref=None, method=None,
     if reverse:
         ele_start, ele_stop = ele_stop, ele_start
 
-    if twiss_init is not None and twiss_init.reference_frame == 'reverse':
-        twiss_init = twiss_init.reverse()
+    if twiss_init is not None and twiss_init.reference_frame == 'proper':
+        assert not(reverse), ('`twiss_init` needs to be given in the '
+            'proper reference frame when `reverse` is False')
+    elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
+        assert reverse is True, ('`twiss_init` needs to be given in the '
+            'reverse reference frame when `reverse` is True')
 
     if ele_start is not None and twiss_init is None:
         assert twiss_init is not None, (
@@ -422,6 +426,19 @@ def twiss_line(line, particle_ref=None, method=None,
     if reverse:
         twiss_res = twiss_res.reverse()
 
+    if ((twiss_res.orientation == 'forward' and not reverse)
+        or (twiss_res.orientation == 'backward' and reverse)):
+        twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
+        twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
+        twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
+        twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
+    elif ((twiss_res.orientation == 'forward' and reverse)
+         or (twiss_res.orientation == 'backward' and not reverse)):
+        twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
+        twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
+        twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
+        twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
+
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
 
@@ -441,10 +458,6 @@ def _twiss_open(line, twiss_init,
 
     particle_on_co = twiss_init.particle_on_co
     W_matrix = twiss_init.W_matrix
-    mux0 = twiss_init.mux
-    muy0 = twiss_init.muy
-    muzeta0 = twiss_init.muzeta
-    dzeta0 = twiss_init.dzeta
 
     assert twiss_init.reference_frame == 'proper'
 
@@ -658,15 +671,15 @@ def _twiss_open(line, twiss_init,
     muzeta = twiss_res_element_by_element['muzeta']
 
     if twiss_orientation == 'forward':
-        mux = mux - mux[0] + mux0
-        muy = muy - muy[0] + muy0
-        muzeta = muzeta - muzeta[0] + muzeta0
-        dzeta = dzeta - dzeta[0] + dzeta0
+        mux = mux - mux[0]
+        muy = muy - muy[0]
+        muzeta = muzeta - muzeta[0]
+        dzeta = dzeta - dzeta[0]
     elif twiss_orientation == 'backward':
-        mux = mux - mux[-1] + mux0
-        muy = muy - muy[-1] + muy0
-        muzeta = muzeta - muzeta[-1] + muzeta0
-        dzeta = dzeta - dzeta[-1] + dzeta0
+        mux = mux - mux[-1]
+        muy = muy - muy[-1]
+        muzeta = muzeta - muzeta[-1]
+        dzeta = dzeta - dzeta[-1]
 
     twiss_res_element_by_element['mux'] = mux
     twiss_res_element_by_element['muy'] = muy
@@ -674,7 +687,6 @@ def _twiss_open(line, twiss_init,
     twiss_res_element_by_element['dzeta'] = dzeta
 
     extra_data = {}
-    extra_data['twiss_init'] = twiss_init
     if _keep_tracking_data:
         extra_data['tracking_data'] = line.record_last_track
 
@@ -701,6 +713,7 @@ def _twiss_open(line, twiss_init,
 
     circumference = line.tracker._tracker_data.line_length
     twiss_res._data['circumference'] = circumference
+    twiss_res._data['orientation'] = twiss_orientation
 
     return twiss_res
 
@@ -805,10 +818,6 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         circumference = line.tracker._tracker_data.line_length
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
-
-        twiss_res['twiss_init'].mux_rev = mux[-1]
-        twiss_res['twiss_init'].muy_rev = muy[-1]
-        twiss_res['twiss_init'].muzeta_rev = twiss_res['muzeta'][-1]
 
         dqx, dqy = _compute_chromaticity(
             line=line,
@@ -1361,7 +1370,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 class TwissInit:
     def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
                  mux=0, muy=0, muzeta=0., dzeta=0.,
-                 mux_rev=0, muy_rev=0, muzeta_rev=0., dzeta_rev=0.,
                  reference_frame='proper'):
         self.__dict__['particle_on_co'] = particle_on_co
         self.W_matrix = W_matrix
@@ -1370,10 +1378,6 @@ class TwissInit:
         self.muy = muy
         self.muzeta = muzeta
         self.dzeta = dzeta
-        self.mux_rev = mux_rev
-        self.muy_rev = muy_rev
-        self.muzeta_rev = muzeta_rev
-        self.dzeta_rev = dzeta_rev
         self.reference_frame = reference_frame
 
     def copy(self):
@@ -1385,10 +1389,6 @@ class TwissInit:
             muy=self.muy,
             muzeta=self.muzeta,
             dzeta=self.dzeta,
-            mux_rev=self.mux_rev,
-            muy_rev=self.muy_rev,
-            muzeta_rev=self.muzeta_rev,
-            dzeta_rev=self.dzeta_rev,
             reference_frame=self.reference_frame)
 
     def reverse(self):
@@ -1407,14 +1407,10 @@ class TwissInit:
         out.W_matrix[4, :] = -out.W_matrix[4, :]
         out.W_matrix[5, :] = out.W_matrix[5, :]
 
-        out.mux = self.mux
-        out.muy = self.muy
-        out.muzeta = self.muzeta
-        out.dzeta = self.dzeta
-        out.mux_rev = self.mux_rev
-        out.muy_rev = self.muy_rev
-        out.muzeta_rev = self.muzeta_rev
-        out.dzeta_rev = self.dzeta_rev
+        out.mux = 0
+        out.muy = 0
+        out.muzeta = 0
+        out.dzeta = 0
 
         out.element_name = self.element_name
         out.reference_frame = {'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
@@ -1479,10 +1475,6 @@ class TwissTable(Table):
                         muy=self.muy[at_element],
                         muzeta=self.muzeta[at_element],
                         dzeta=self.dzeta[at_element],
-                        mux_rev=self.mux[-1] - self.mux[at_element],
-                        muy_rev=self.muy[-1] - self.muy[at_element],
-                        muzeta_rev=self.muzeta[-1] - self.muzeta[at_element],
-                        dzeta_rev=self.dzeta[-1] - self.dzeta[at_element],
                         reference_frame=self.reference_frame)
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y, gemitt_z=0):
@@ -1726,18 +1718,14 @@ class TwissTable(Table):
             out.particle_on_co.zeta = -out.particle_on_co.zeta
 
         out.twiss_init = self.twiss_init.reverse()
-        # i_init = np.where(out.name == out.twiss_init.element_name)[0][0]
-        # out.mux = -out.mux + out.mux[i_init] + out.twiss_init.mux_rev
-        # out.muy = -out.muy + out.muy[i_init] + out.twiss_init.muy_rev
-        # out.muzeta = -out.muzeta + out.muzeta[i_init] + out.twiss_init.muzeta_rev
 
         import pdb; pdb.set_trace()
         out.mux = -out.mux
         out.muy = -out.muy
         out.muzeta = -out.muzeta
-        out.mux += (out.twiss_init.mux_rev - out.twiss_init.mux)
-        out.muy += (out.twiss_init.muy_rev - out.twiss_init.muy)
-        out.muzeta += (out.twiss_init.muzeta_rev - out.twiss_init.muzeta)
+        out.mux += out.twiss_init.mux
+        out.muy += out.twiss_init.muy
+        out.muzeta += out.twiss_init.muzeta
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
