@@ -36,27 +36,27 @@ log = logging.getLogger(__name__)
 def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None,
-        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
-        delta_disp=1e-5, delta_chrom = 1e-4, zeta_disp=1e-3,
+        r_sigma=None, nemitt_x=None, nemitt_y=None,
+        delta_disp=None, delta_chrom=None, zeta_disp=None,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
-        continue_on_closed_orbit_error=False,
-        freeze_longitudinal=False,
-        values_at_element_exit=False,
-        radiation_method='full',
-        eneloss_and_damping=False,
+        continue_on_closed_orbit_error=None,
+        freeze_longitudinal=None,
+        values_at_element_exit=None,
+        radiation_method=None,
+        eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
-        skip_global_quantities=False,
+        skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
-        symplectify=False,
-        reverse=False,
+        symplectify=None,
+        reverse=None,
         use_full_inverse=None,
-        strengths=False,
-        hide_thin_groups=False,
-        _continue_if_lost=False,
-        _keep_tracking_data=False,
-        _keep_initial_particles=False,
+        strengths=None,
+        hide_thin_groups=None,
+        _continue_if_lost=None,
+        _keep_tracking_data=None,
+        _keep_initial_particles=None,
         _initial_particles=None,
         _ebe_monitor=None,
         ):
@@ -221,6 +221,26 @@ def twiss_line(line, particle_ref=None, method=None,
             used for the propagation of the W matrix.
 
     """
+
+    # defaults
+    r_sigma=(r_sigma or 0.01)
+    nemitt_x=(nemitt_x or 1e-6)
+    nemitt_y=(nemitt_y or 1e-6,)
+    delta_disp=(delta_disp or 1e-5)
+    delta_chrom=(delta_chrom or 1e-4)
+    zeta_disp=(zeta_disp or 1e-3)
+    values_at_element_exit=(values_at_element_exit or False)
+    continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
+    freeze_longitudinal=(freeze_longitudinal or False)
+    radiation_method=(radiation_method or 'full')
+    eneloss_and_damping=(eneloss_and_damping or False)
+    symplectify=(symplectify or False)
+    reverse=(reverse or False)
+    strengths=(strengths or False)
+    hide_thin_groups=(hide_thin_groups or False)
+
+    if reverse:
+        ele_start, ele_stop = ele_stop, ele_start
 
     if ele_start is not None and twiss_init is None:
         assert twiss_init is not None, (

@@ -815,26 +815,32 @@ class Line:
             mode=mode,
             **kwargs)
 
-    def twiss(self, particle_ref=None, delta0=None, zeta0=None, method=None,
-        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=1e-6,
-        delta_disp=1e-5, delta_chrom=1e-4,
-        particle_co_guess=None, R_matrix=None, W_matrix=None,
-        steps_r_matrix=None, co_search_settings=None, at_elements=None, at_s=None,
-        values_at_element_exit=False,
-        continue_on_closed_orbit_error=False,
-        freeze_longitudinal=False,
-        radiation_method='full',
-        eneloss_and_damping=False,
+    def twiss(self, particle_ref=None, method=None,
+        particle_on_co=None, R_matrix=None, W_matrix=None,
+        delta0=None, zeta0=None,
+        r_sigma=None, nemitt_x=None, nemitt_y=None,
+        delta_disp=None, delta_chrom=None, zeta_disp=None,
+        particle_co_guess=None, steps_r_matrix=None,
+        co_search_settings=None, at_elements=None, at_s=None,
+        continue_on_closed_orbit_error=None,
+        freeze_longitudinal=None,
+        values_at_element_exit=None,
+        radiation_method=None,
+        eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
-        particle_on_co=None,
+        skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
-        symplectify=False,
-        reverse=False,
+        symplectify=None,
+        reverse=None,
         use_full_inverse=None,
-        strengths=False,
-        hide_thin_groups=False,
-        **kwargs
+        strengths=None,
+        hide_thin_groups=None,
+        _continue_if_lost=None,
+        _keep_tracking_data=None,
+        _keep_initial_particles=None,
+        _initial_particles=None,
+        _ebe_monitor=None,
         ):
 
         self._check_valid_tracker()
@@ -846,10 +852,8 @@ class Line:
                 tw_kwargs[kk] = vv
 
         tw_kwargs.pop('self')
-        kwargs = tw_kwargs.pop('kwargs')
-        tw_kwargs.update(kwargs)
-
         return twiss_line(self, **tw_kwargs)
+
     twiss.__doc__ = twiss_line.__doc__
 
     def match(self, vary, targets, restore_if_fail=True, solver=None,
