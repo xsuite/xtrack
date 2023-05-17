@@ -653,6 +653,8 @@ def _twiss_open(line, twiss_init,
     muy = twiss_res_element_by_element['muy']
     muzeta = twiss_res_element_by_element['muzeta']
 
+    import pdb; pdb.set_trace()
+
     if twiss_orientation == 'forward':
         mux = mux - mux[0] + mux0
         muy = muy - muy[0] + muy0
@@ -670,6 +672,7 @@ def _twiss_open(line, twiss_init,
     twiss_res_element_by_element['dzeta'] = dzeta
 
     extra_data = {}
+    extra_data['twiss_init'] = twiss_init
     if _keep_tracking_data:
         extra_data['tracking_data'] = line.record_last_track
 
@@ -787,11 +790,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'nuzeta': nuzeta,
     }
     return res, i_replace
-
-
-
-
-
 
 
 def _compute_global_quantities(line, twiss_res, twiss_init, method,
@@ -1693,14 +1691,6 @@ class TwissTable(Table):
         out.gamx = out.gamx
         out.gamy = out.gamy
 
-        qx = (out.qx if hasattr(out, 'qx') else np.max(out.mux))
-        qy = (out.qy if hasattr(out, 'qy') else np.max(out.muy))
-        qs = (out.qs if hasattr(out, 'qs') else np.max(out.muzeta))
-
-        out.mux = qx - out.mux
-        out.muy = qy - out.muy
-        out.muzeta = qs - out.muzeta
-
         out.dx = -out.dx
         out.dpx = out.dpx
         out.dy = out.dy
@@ -1726,6 +1716,12 @@ class TwissTable(Table):
             out.particle_on_co.x = -out.particle_on_co.x
             out.particle_on_co.py = -out.particle_on_co.py
             out.particle_on_co.zeta = -out.particle_on_co.zeta
+
+        out.twiss_init = self.twiss_init.reverse()
+        i_init = np.where(out.name == out.twiss_init.element_name)[0][0]
+        out.mux = out.mux - out.mux[i_init] + out.twiss_init.mux_rev
+        out.muy = out.muy - out.muy[i_init] + out.twiss_init.muy_rev
+        out.muzeta = out.muzeta - out.muzeta[i_init] + out.twiss_init.muzeta_rev
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation
