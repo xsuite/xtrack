@@ -1390,12 +1390,12 @@ class TwissTable(Table):
         part.zeta[:] = self.zeta[at_element]
         part.ptau[:] = self.ptau[at_element]
         part.s[:] = self.s[at_element]
-        part.at_element[:] = at_element
+        part.at_element[:] = -1
 
         W = self.W_matrix[at_element]
 
         return TwissInit(particle_on_co=part, W_matrix=W,
-                        element_name=self.name[at_element],
+                        element_name=str(self.name[at_element]),
                         mux=self.mux[at_element],
                         muy=self.muy[at_element],
                         muzeta=self.muzeta[at_element],
