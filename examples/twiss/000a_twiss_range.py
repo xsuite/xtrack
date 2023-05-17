@@ -71,11 +71,17 @@ rtols = dict(
 )
 
 for kk in tw_test._data.keys():
-    if kk in ['name', 'W_matrix']:
+    if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
+              'radiation_method', 'reference_frame']:
         continue # tested separately
     atol = atols.get(kk, 1e-12)
     rtol = rtols.get(kk, 0)
     assert np.allclose(tw_test._data[kk], tw_part._data[kk], rtol=rtol, atol=atol)
+
+assert tw_test.values_at == tw_part.values_at == 'entry'
+assert tw_test.method == tw_part.method == '4d'
+assert tw_test.radiation_method == tw_part.radiation_method == 'full'
+assert tw_test.reference_frame == tw_part.reference_frame == 'proper'
 
 W_matrix_part = tw_part.W_matrix
 W_matrix_test = tw_test.W_matrix
