@@ -89,16 +89,21 @@ collider.match(
     actions=[
         action_arc_phase_s67_b1,
         action_arc_phase_s67_b2],
-    tarrgets=[
-        xt.Target(action=action_arc_phase_s67_b1, name='mux_arc_from_cell',
+    targets=[
+        xt.Target(action=action_arc_phase_s67_b1, tar='mux_arc_from_cell',
                     value=mux_arc_target_b1, tol=1e-6),
-        xt.Target(action=action_arc_phase_s67_b1, name='muy_arc_from_cell',
+        xt.Target(action=action_arc_phase_s67_b1, tar='muy_arc_from_cell',
                     value=muy_arc_target_b1, tol=1e-6),
-        xt.Target(action=action_arc_phase_s67_b2, name='mux_arc_from_cell',
+        xt.Target(action=action_arc_phase_s67_b2, tar='mux_arc_from_cell',
                     value=mux_arc_target_b2, tol=1e-6),
-        xt.Target(action=action_arc_phase_s67_b2, name='muy_arc_from_cell',
+        xt.Target(action=action_arc_phase_s67_b2, tar='muy_arc_from_cell',
                     value=muy_arc_target_b2, tol=1e-6),
     ],
     vary=[
-        
+        xt.VaryList(['kqtf.a67b1','kqtf.a67b2','kqtd.a67b1','kqtd.a67b2'],
+                     step=1e-5),
+        xt.Vary(name='kqf.a67', step=1e-10, weight=1000),
+        xt.Vary(name='kqd.a67', step=1e-10, weight=1000),
+    ])
+
 
