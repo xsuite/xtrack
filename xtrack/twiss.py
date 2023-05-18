@@ -421,8 +421,6 @@ def twiss_line(line, particle_ref=None, method=None,
     twiss_res._data['radiation_method'] = radiation_method
     twiss_res._data['reference_frame'] = 'proper'
 
-    import pdb; pdb.set_trace()
-
     if reverse:
         twiss_res = twiss_res.reverse()
 
@@ -465,8 +463,8 @@ def _twiss_open(line, twiss_init,
     if twiss_init.reference_frame == 'reverse':
         twiss_init = twiss_init.reverse()
 
-    particle_on_co = twiss_init.particle_on_co.copy()
-    W_matrix = twiss_init.W_matrix.copy()
+    particle_on_co = twiss_init.particle_on_co
+    W_matrix = twiss_init.W_matrix
 
     if ele_start is not None and ele_stop is None:
         raise ValueError('ele_stop must be specified if ele_start is not None')

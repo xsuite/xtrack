@@ -24,15 +24,15 @@ collider.vars['kqs.a23b1'] = 1e-4
 collider.lhcb1['mq.10l3.b1..2'].knl[0] = 2e-6
 collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
 
-# collider.vars['kqs.a23b2'] = -1e-4
-# collider.lhcb2['mq.10l3.b2..2'].knl[0] = 3e-6
-# collider.lhcb2['mq.10l3.b2..2'].ksl[0] = -1.3e-6
+collider.vars['kqs.a23b2'] = -1e-4
+collider.lhcb2['mq.10l3.b2..2'].knl[0] = 3e-6
+collider.lhcb2['mq.10l3.b2..2'].ksl[0] = -1.3e-6
 
 line = collider.lhcb2
 line_name = 'lhcb2'
 
-# line = collider.lhcb1
-# line_name = 'lhcb1'
+line = collider.lhcb1
+line_name = 'lhcb1'
 
 #collider.vars['l.ms'] = 0 # kill the sextupoles
 atols = dict(
