@@ -464,11 +464,9 @@ def _twiss_open(line, twiss_init,
 
     if twiss_init.reference_frame == 'reverse':
         twiss_init = twiss_init.reverse()
-        twiss_init.particle_on_co.s = (
-            line.tracker._tracker_data.line_length - twiss_init.particle_on_co.s)
 
-    particle_on_co = twiss_init.particle_on_co
-    W_matrix = twiss_init.W_matrix
+    particle_on_co = twiss_init.particle_on_co.copy()
+    W_matrix = twiss_init.W_matrix.copy()
 
     if ele_start is not None and ele_stop is None:
         raise ValueError('ele_stop must be specified if ele_start is not None')
@@ -534,12 +532,13 @@ def _twiss_open(line, twiss_init,
             W_matrix=W_matrix)
 
         part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp, part_zeta_disp])
-        part_for_twiss.s = particle_on_co._xobject.s[0]
 
         if twiss_orientation == 'forward':
             part_for_twiss.at_element = ele_start
+            part_for_twiss.s = line.tracker._tracker_data.element_s_locations[ele_start]
         elif twiss_orientation == 'backward':
             part_for_twiss.at_element = ele_stop + 1 # to include the last element (assume it is a marker)
+            part_for_twiss.s = line.tracker._tracker_data.element_s_locations[ele_stop]
         else:
             raise ValueError('Invalid twiss_orientation')
 
