@@ -31,10 +31,8 @@ collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
 line = collider.lhcb2
 line_name = 'lhcb2'
 
-line = collider.lhcb1
-line_name = 'lhcb1'
-
 # line = collider.lhcb1
+# line_name = 'lhcb1'
 
 #collider.vars['l.ms'] = 0 # kill the sextupoles
 atols = dict(

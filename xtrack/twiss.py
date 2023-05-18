@@ -421,10 +421,11 @@ def twiss_line(line, particle_ref=None, method=None,
     twiss_res._data['radiation_method'] = radiation_method
     twiss_res._data['reference_frame'] = 'proper'
 
+    import pdb; pdb.set_trace()
+
     if reverse:
         twiss_res = twiss_res.reverse()
 
-    import pdb; pdb.set_trace()
     # twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
     # twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
     # twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
@@ -461,11 +462,13 @@ def _twiss_open(line, twiss_init,
                       _initial_particles=None,
                       _ebe_monitor=None):
 
-    particle_on_co = twiss_init.particle_on_co
-    W_matrix = twiss_init.W_matrix
-
     if twiss_init.reference_frame == 'reverse':
         twiss_init = twiss_init.reverse()
+        twiss_init.particle_on_co.s = (
+            line.tracker._tracker_data.line_length - twiss_init.particle_on_co.s)
+
+    particle_on_co = twiss_init.particle_on_co
+    W_matrix = twiss_init.W_matrix
 
     if ele_start is not None and ele_stop is None:
         raise ValueError('ele_stop must be specified if ele_start is not None')
@@ -1404,7 +1407,6 @@ class TwissInit:
 
     def reverse(self):
         out = TwissInit()
-        out.particle_on_co = self.particle_on_co.copy()
         out.particle_on_co = self.particle_on_co.copy()
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
