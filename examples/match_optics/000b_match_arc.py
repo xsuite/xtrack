@@ -83,3 +83,22 @@ mux_arc_target_b2 = twb2['mux', 's.ds.l7.b2'] - twb2['mux', 'e.ds.r6.b2']
 muy_arc_target_b2 = twb2['muy', 's.ds.l7.b2'] - twb2['muy', 'e.ds.r6.b2']
 assert np.isclose(resb2['mux_arc_from_cell'] , mux_arc_target_b2, rtol=1e-6)
 assert np.isclose(resb2['muy_arc_from_cell'] , muy_arc_target_b2, rtol=1e-6)
+
+collider.match(
+    lines=['lhcb1', 'lhcb2'],
+    actions=[
+        action_arc_phase_s67_b1,
+        action_arc_phase_s67_b2],
+    tarrgets=[
+        xt.Target(action=action_arc_phase_s67_b1, name='mux_arc_from_cell',
+                    value=mux_arc_target_b1, tol=1e-6),
+        xt.Target(action=action_arc_phase_s67_b1, name='muy_arc_from_cell',
+                    value=muy_arc_target_b1, tol=1e-6),
+        xt.Target(action=action_arc_phase_s67_b2, name='mux_arc_from_cell',
+                    value=mux_arc_target_b2, tol=1e-6),
+        xt.Target(action=action_arc_phase_s67_b2, name='muy_arc_from_cell',
+                    value=muy_arc_target_b2, tol=1e-6),
+    ],
+    vary=[
+        
+
