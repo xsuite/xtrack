@@ -1,3 +1,4 @@
+import time
 
 import numpy as np
 
@@ -96,6 +97,7 @@ starting_values = {
 # Perturb the quadrupoles
 collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
 
+t1 = time.perf_counter()
 collider.match(
     lines=['lhcb1', 'lhcb2'],
     actions=[
@@ -118,4 +120,5 @@ collider.match(
         xt.Vary(name='kqd.a67', step=1e-10, weight=1000),
     ])
 
-
+t2 = time.perf_counter()
+print(f'Elapsed time: {t2-t1} s')
