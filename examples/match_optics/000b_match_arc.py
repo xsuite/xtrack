@@ -64,12 +64,22 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
 
 action_arc_phase_s67_b1 = ActionArcPhaseAdvanceFromCell(
                     arc_name='67', line_name='lhcb1', line=collider.lhcb1)
+resb1 = action_arc_phase_s67_b1.compute()
 
-res = action_arc_phase_s67_b1.compute()
+action_arc_phase_s67_b2 = ActionArcPhaseAdvanceFromCell(
+                    arc_name='67', line_name='lhcb2', line=collider.lhcb2)
+resb2 = action_arc_phase_s67_b2.compute()
 
-tw = collider.lhcb1.twiss()
-mux_arc_target = tw['mux', 's.ds.l7.b1'] - tw['mux', 'e.ds.r6.b1']
-muy_arc_target = tw['muy', 's.ds.l7.b1'] - tw['muy', 'e.ds.r6.b1']
+# Check for b1
+twb1 = collider.lhcb1.twiss()
+mux_arc_target_b1 = twb1['mux', 's.ds.l7.b1'] - twb1['mux', 'e.ds.r6.b1']
+muy_arc_target_b1 = twb1['muy', 's.ds.l7.b1'] - twb1['muy', 'e.ds.r6.b1']
+assert np.isclose(resb1['mux_arc_from_cell'] , mux_arc_target_b1, rtol=1e-6)
+assert np.isclose(resb1['muy_arc_from_cell'] , muy_arc_target_b1, rtol=1e-6)
 
-assert np.isclose(res['mux_arc_from_cell'] , mux_arc_target, rtol=1e-6)
-assert np.isclose(res['muy_arc_from_cell'] , muy_arc_target, rtol=1e-6)
+# Check for b2
+twb2 = collider.lhcb2.twiss()
+mux_arc_target_b2 = twb2['mux', 's.ds.l7.b2'] - twb2['mux', 'e.ds.r6.b2']
+muy_arc_target_b2 = twb2['muy', 's.ds.l7.b2'] - twb2['muy', 'e.ds.r6.b2']
+assert np.isclose(resb2['mux_arc_from_cell'] , mux_arc_target_b2, rtol=1e-6)
+assert np.isclose(resb2['muy_arc_from_cell'] , muy_arc_target_b2, rtol=1e-6)
