@@ -242,12 +242,13 @@ def twiss_line(line, particle_ref=None, method=None,
     if reverse:
         ele_start, ele_stop = ele_stop, ele_start
 
-    if twiss_init is not None and twiss_init.reference_frame == 'proper':
-        assert not(reverse), ('`twiss_init` needs to be given in the '
-            'proper reference frame when `reverse` is False')
-    elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
-        assert reverse is True, ('`twiss_init` needs to be given in the '
-            'reverse reference frame when `reverse` is True')
+    if twiss_init is not None and not isinstance(twiss_init, str):
+        if twiss_init.reference_frame == 'proper':
+            assert not(reverse), ('`twiss_init` needs to be given in the '
+                'proper reference frame when `reverse` is False')
+        elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
+            assert reverse is True, ('`twiss_init` needs to be given in the '
+                'reverse reference frame when `reverse` is True')
 
     if ele_start is not None and twiss_init is None:
         assert twiss_init is not None, (
@@ -331,7 +332,6 @@ def twiss_line(line, particle_ref=None, method=None,
                         **kwargs)
         return res
 
-    # if twiss_init == 'preserve':
     if isinstance(twiss_init, str):
         assert twiss_init in ['preserve', 'preserve_start', 'preserve_end', 'periodic']
         # Twiss full machine with periodic boundary conditions
