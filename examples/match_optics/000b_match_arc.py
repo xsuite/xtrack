@@ -84,6 +84,18 @@ muy_arc_target_b2 = twb2['muy', 's.ds.l7.b2'] - twb2['muy', 'e.ds.r6.b2']
 assert np.isclose(resb2['mux_arc_from_cell'] , mux_arc_target_b2, rtol=1e-6)
 assert np.isclose(resb2['muy_arc_from_cell'] , muy_arc_target_b2, rtol=1e-6)
 
+starting_values = {
+    'kqtf.a67b1': collider.vars['kqtf.a67b1']._value,
+    'kqtf.a67b2': collider.vars['kqtf.a67b2']._value,
+    'kqtd.a67b1': collider.vars['kqtd.a67b1']._value,
+    'kqtd.a67b2': collider.vars['kqtd.a67b2']._value,
+    'kqf.a67': collider.vars['kqf.a67']._value,
+    'kqd.a67': collider.vars['kqd.a67']._value,
+}
+
+# Perturb the quadrupoles
+collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
+
 collider.match(
     lines=['lhcb1', 'lhcb2'],
     actions=[
@@ -91,13 +103,13 @@ collider.match(
         action_arc_phase_s67_b2],
     targets=[
         xt.Target(action=action_arc_phase_s67_b1, tar='mux_arc_from_cell',
-                    value=mux_arc_target_b1, tol=1e-6),
+                    value=mux_arc_target_b1, tol=1e-20),
         xt.Target(action=action_arc_phase_s67_b1, tar='muy_arc_from_cell',
-                    value=muy_arc_target_b1, tol=1e-6),
+                    value=muy_arc_target_b1, tol=1e-20),
         xt.Target(action=action_arc_phase_s67_b2, tar='mux_arc_from_cell',
-                    value=mux_arc_target_b2, tol=1e-6),
+                    value=mux_arc_target_b2, tol=1e-20),
         xt.Target(action=action_arc_phase_s67_b2, tar='muy_arc_from_cell',
-                    value=muy_arc_target_b2, tol=1e-6),
+                    value=muy_arc_target_b2, tol=1e-20),
     ],
     vary=[
         xt.VaryList(['kqtf.a67b1','kqtf.a67b2','kqtd.a67b1','kqtd.a67b2'],
