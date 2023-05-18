@@ -424,6 +424,13 @@ def twiss_line(line, particle_ref=None, method=None,
     if reverse:
         twiss_res = twiss_res.reverse()
 
+    import pdb; pdb.set_trace()
+    # twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
+    # twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
+    # twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
+    # twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
+
+
     if ((twiss_res.orientation == 'forward' and not reverse)
         or (twiss_res.orientation == 'backward' and reverse)):
         twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
@@ -669,16 +676,21 @@ def _twiss_open(line, twiss_init,
     muy = twiss_res_element_by_element['muy']
     muzeta = twiss_res_element_by_element['muzeta']
 
-    if twiss_orientation == 'forward':
-        mux = mux - mux[0]
-        muy = muy - muy[0]
-        muzeta = muzeta - muzeta[0]
-        dzeta = dzeta - dzeta[0]
-    elif twiss_orientation == 'backward':
-        mux = mux - mux[-1]
-        muy = muy - muy[-1]
-        muzeta = muzeta - muzeta[-1]
-        dzeta = dzeta - dzeta[-1]
+    mux = mux - mux[0]
+    muy = muy - muy[0]
+    muzeta = muzeta - muzeta[0]
+    dzeta = dzeta - dzeta[0]
+
+    # if twiss_orientation == 'forward':
+    #     mux = mux - mux[0]
+    #     muy = muy - muy[0]
+    #     muzeta = muzeta - muzeta[0]
+    #     dzeta = dzeta - dzeta[0]
+    # elif twiss_orientation == 'backward':
+    #     mux = mux - mux[-1]
+    #     muy = muy - muy[-1]
+    #     muzeta = muzeta - muzeta[-1]
+    #     dzeta = dzeta - dzeta[-1]
 
     twiss_res_element_by_element['mux'] = mux
     twiss_res_element_by_element['muy'] = muy
