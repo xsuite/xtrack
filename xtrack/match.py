@@ -49,6 +49,7 @@ class MeritFunctionForMatch:
         self.verbose = verbose
         self.tw_kwargs = tw_kwargs
         self.steps_for_jacobian = steps_for_jacobian
+        self.found_point_within_tolerance = False
 
     def _x_to_knobs(self, x):
         knob_values = np.array(x).copy()
@@ -115,6 +116,7 @@ class MeritFunctionForMatch:
 
             if np.all(np.abs(err_values) < tols):
                 err_values *= 0
+                self.found_point_within_tolerance = True
                 if self.verbose:
                     _print('Found point within tolerance!')
 
@@ -336,7 +338,7 @@ class TargetInequality(Target):
             return val - self.rhs
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
-                  verbose=False, **kwargs):
+                  verbose=False, assert_within_tol=True, **kwargs):
 
     if isinstance(vary, (str, Vary)):
         vary = [vary]
@@ -457,6 +459,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             jac_solver = JacobianSolver(func=_err, limits=x_limits, verbose=verbose)
             res = jac_solver.solve(x0=x0.copy())
             result_info = {'jac_solver': jac_solver, 'res': res}
+
+        if assert_within_tol and not _err.found_point_within_tolerance:
+            raise RuntimeError('Could not find point within tolerance.')
 
         for vv, rr in zip(vary, _err._x_to_knobs(res)):
             line.vars[vv.name] = rr

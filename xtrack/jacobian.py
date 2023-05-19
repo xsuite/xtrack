@@ -85,6 +85,8 @@ class JacobianSolver:
             mask_for_next_step = ~mask_hit_limit
 
             if alpha > 30:
-                raise RuntimeError("not any progress")
+                if self.verbose:
+                    _print("No progress, stopping")
+                break
 
         return self._xbest
