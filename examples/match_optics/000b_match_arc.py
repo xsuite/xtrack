@@ -43,7 +43,8 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
         tw_to_end_arc = self.line.twiss(
             ele_start=twinit_cell.element_name,
             ele_stop=self.end_arc,
-            twiss_init=twinit_cell)
+            twiss_init=twinit_cell,
+            )
 
         tw_to_start_arc = self.line.twiss(
             ele_start=self.start_arc,

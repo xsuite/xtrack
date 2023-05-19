@@ -560,6 +560,8 @@ def _twiss_open(line, twiss_init,
 
     if _ebe_monitor is not None:
         _monitor = _ebe_monitor
+    elif hasattr(line, '_reusable_ebe_monitor_for_twiss'):
+        _monitor = line._reusable_ebe_monitor_for_twiss
     else:
         _monitor = 'ONE_TURN_EBE'
 
@@ -572,6 +574,8 @@ def _twiss_open(line, twiss_init,
                 ele_start=ele_start,
                 ele_stop=ele_stop_track,
                 backtrack=(twiss_orientation == 'backward'))
+
+    line._reusable_ebe_monitor_for_twiss = line.record_last_track
 
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
@@ -701,7 +705,7 @@ def _twiss_open(line, twiss_init,
 
     extra_data = {}
     if _keep_tracking_data:
-        extra_data['tracking_data'] = line.record_last_track
+        extra_data['tracking_data'] = line.record_last_track.copy()
 
     if _keep_initial_particles:
         extra_data['_initial_particles'] = part_for_twiss0.copy()
