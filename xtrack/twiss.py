@@ -244,8 +244,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if reverse:
         ele_start, ele_stop = ele_stop, ele_start
 
-    twiss_init_input = twiss_init
-
     if twiss_init is not None and not isinstance(twiss_init, str):
         if twiss_init.reference_frame == 'proper':
             assert not(reverse), ('`twiss_init` needs to be given in the '
@@ -353,6 +351,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if twiss_init is None or twiss_init=='periodic':
         # Periodic mode
+        periodic = True
         twiss_init, R_matrix = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
@@ -368,9 +367,10 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         # force
         skip_global_quantities = True
+        periodic = False
 
     if only_twiss_init:
-        assert twiss_init_input == 'periodic'
+        assert periodic, '`only_twiss_init` can only be used in periodic mode'
         if reverse:
             return twiss_init.reverse()
         else:

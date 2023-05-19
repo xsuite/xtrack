@@ -33,22 +33,22 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
 
     def compute(self):
 
-        tw_cell_periodic = self.line.twiss(
+        twinit_cell = self.line.twiss(
                     ele_start=self.start_cell,
                     ele_stop=self.end_cell,
-                    twiss_init='periodic')
-
-        twinit_start_cell = tw_cell_periodic.get_twiss_init(self.start_cell)
+                    twiss_init='periodic',
+                    only_twiss_init=True)
+        #  twinit_cell.element_name is start_cell for b1 and end_cell for b2
 
         tw_to_end_arc = self.line.twiss(
-            ele_start=self.start_cell,
+            ele_start=twinit_cell.element_name,
             ele_stop=self.end_arc,
-            twiss_init=twinit_start_cell)
+            twiss_init=twinit_cell)
 
         tw_to_start_arc = self.line.twiss(
             ele_start=self.start_arc,
-            ele_stop=self.start_cell,
-            twiss_init=twinit_start_cell)
+            ele_stop=twinit_cell.element_name,
+            twiss_init=twinit_cell)
 
         mux_arc_from_cell = (tw_to_end_arc['mux', self.end_arc]
                              - tw_to_start_arc['mux', self.start_arc])
@@ -58,8 +58,8 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
         return {
             'mux_arc_from_cell': mux_arc_from_cell,
             'muy_arc_from_cell': muy_arc_from_cell,
-            'tw_cell_periodic': tw_cell_periodic,
-            'twinit_start_cell': twinit_start_cell,
+            # 'tw_cell_periodic': tw_cell_periodic,
+            'twinit_cell': twinit_cell,
             'tw_to_end_arc': tw_to_end_arc,
             'tw_to_start_arc': tw_to_start_arc}
 
