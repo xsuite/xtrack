@@ -34,22 +34,14 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
     def compute(self):
 
         twinit_cell = self.line.twiss(
-                    ele_start=self.start_cell,
-                    ele_stop=self.end_cell,
-                    twiss_init='periodic',
-                    only_twiss_init=True)
+                    ele_start=self.start_cell, ele_stop=self.end_cell,
+                    twiss_init='periodic', only_twiss_init=True)
         #  twinit_cell.element_name is start_cell for b1 and end_cell for b2
 
-        tw_to_end_arc = self.line.twiss(
-            ele_start=twinit_cell.element_name,
-            ele_stop=self.end_arc,
-            twiss_init=twinit_cell,
-            )
-
-        tw_to_start_arc = self.line.twiss(
-            ele_start=self.start_arc,
-            ele_stop=twinit_cell.element_name,
-            twiss_init=twinit_cell)
+        tw_to_end_arc = self.line.twiss(twiss_init=twinit_cell,
+            ele_start=twinit_cell.element_name, ele_stop=self.end_arc)
+        tw_to_start_arc = self.line.twiss(twiss_init=twinit_cell,
+            ele_start=self.start_arc,ele_stop=twinit_cell.element_name)
 
         mux_arc_from_cell = (tw_to_end_arc['mux', self.end_arc]
                              - tw_to_start_arc['mux', self.start_arc])
@@ -62,6 +54,37 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
             'twinit_cell': twinit_cell,
             'tw_to_end_arc': tw_to_end_arc,
             'tw_to_start_arc': tw_to_start_arc}
+
+class ActionMatchPhaseWithMQTs(xt.Action):
+
+    def __init__(self, arc_name, line_name, line,
+                 mux_arc_target, muy_arc_target):
+
+        self.action_arc_phase = ActionArcPhaseAdvanceFromCell(
+            arc_name=arc_name, line_name=line_name, line=line)
+        self.line = line
+        self.mux_arc_target = mux_arc_target
+        self.muy_arc_target = muy_arc_target
+
+        beam_number = line_name[-1:]
+        self.mqt_knob_names = [
+            f'kqtf.a{arc_name}b{beam_number}',
+            f'kqtd.a{arc_name}b{beam_number}']
+
+    def compute(self):
+        self.line.match(
+            actions=[self.action_arc_phase],
+            targets=[
+                xt.Target(action=self.action_arc_phase, tar='mux_arc_from_cell',
+                            value=self.mux_arc_target, tol=1e-8),
+                xt.Target(action=self.action_arc_phase, tar='muy_arc_from_cell',
+                            value=self.muy_arc_target, tol=1e-8),
+            ],
+            vary=[
+                xt.VaryList(self.mqt_knob_names, step=1e-5),
+            ])
+        return {kk: np.abs(self.line.vars[kk]._value) for kk in self.mqt_knob_names}
+
 
 action_arc_phase_s67_b1 = ActionArcPhaseAdvanceFromCell(
                     arc_name='67', line_name='lhcb1', line=collider.lhcb1)
@@ -94,34 +117,37 @@ starting_values = {
     'kqd.a67': collider.vars['kqd.a67']._value,
 }
 
-# Perturb the quadrupoles
-collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
-collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
-collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
-collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
+# # Perturb the quadrupoles
+# collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
+# collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
+# collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
+# collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
+
+action_match_mqt_s67_b1 = ActionMatchPhaseWithMQTs(
+    arc_name='67', line_name='lhcb1', line=collider.lhcb1,
+    mux_arc_target=mux_arc_target_b1, muy_arc_target=muy_arc_target_b1)
+action_match_mqt_s67_b2 = ActionMatchPhaseWithMQTs(
+    arc_name='67', line_name='lhcb2', line=collider.lhcb2,
+    mux_arc_target=mux_arc_target_b2, muy_arc_target=muy_arc_target_b2)
+
 
 t1 = time.perf_counter()
 collider.match(
-    # verbose=True,
+    verbose=True,
+    assert_within_tol=False,
     lines=['lhcb1', 'lhcb2'],
     actions=[
-        action_arc_phase_s67_b1,
-        action_arc_phase_s67_b2],
+        action_match_mqt_s67_b1,
+        action_match_mqt_s67_b2],
     targets=[
-        xt.Target(action=action_arc_phase_s67_b1, tar='mux_arc_from_cell',
-                    value=mux_arc_target_b1, tol=1e-8),
-        xt.Target(action=action_arc_phase_s67_b1, tar='muy_arc_from_cell',
-                    value=muy_arc_target_b1, tol=1e-8),
-        xt.Target(action=action_arc_phase_s67_b2, tar='mux_arc_from_cell',
-                    value=mux_arc_target_b2, tol=1e-8),
-        xt.Target(action=action_arc_phase_s67_b2, tar='muy_arc_from_cell',
-                    value=muy_arc_target_b2, tol=1e-8),
+        xt.Target(action=action_match_mqt_s67_b1, tar='kqtf.a67b1', value=0),
+        xt.Target(action=action_match_mqt_s67_b1, tar='kqtd.a67b1', value=0),
+        xt.Target(action=action_match_mqt_s67_b2, tar='kqtf.a67b2', value=0),
+        xt.Target(action=action_match_mqt_s67_b2, tar='kqtd.a67b2', value=0),
     ],
     vary=[
-        xt.VaryList(['kqtf.a67b1','kqtf.a67b2','kqtd.a67b1','kqtd.a67b2'],
-                     step=1e-5),
-        xt.Vary(name='kqf.a67', step=1e-10, weight=1000),
-        xt.Vary(name='kqd.a67', step=1e-10, weight=1000),
+        xt.Vary(name='kqf.a67', step=1e-5),
+        xt.Vary(name='kqd.a67', step=1e-5),
     ])
 
 t2 = time.perf_counter()
