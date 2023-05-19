@@ -836,6 +836,7 @@ class Line:
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
+        only_twiss_init=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,

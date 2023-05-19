@@ -54,6 +54,7 @@ def twiss_line(line, particle_ref=None, method=None,
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
+        only_twiss_init=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -238,9 +239,12 @@ def twiss_line(line, particle_ref=None, method=None,
     reverse=(reverse or False)
     strengths=(strengths or False)
     hide_thin_groups=(hide_thin_groups or False)
+    only_twiss_init=(only_twiss_init or False)
 
     if reverse:
         ele_start, ele_stop = ele_stop, ele_start
+
+    twiss_init_input = twiss_init
 
     if twiss_init is not None and not isinstance(twiss_init, str):
         if twiss_init.reference_frame == 'proper':
@@ -334,6 +338,8 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if isinstance(twiss_init, str):
         assert twiss_init in ['preserve', 'preserve_start', 'preserve_end', 'periodic']
+
+    if twiss_init in ['preserve', 'preserve_start', 'preserve_end']:
         # Twiss full machine with periodic boundary conditions
         kwargs = locals().copy()
         kwargs.pop('twiss_init')
@@ -362,6 +368,13 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         # force
         skip_global_quantities = True
+
+    if only_twiss_init:
+        assert twiss_init_input == 'periodic'
+        if reverse:
+            return twiss_init.reverse()
+        else:
+            return twiss_init
 
     twiss_res = _twiss_open(
         line=line,
