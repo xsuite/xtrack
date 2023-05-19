@@ -338,7 +338,8 @@ class TargetInequality(Target):
             return val - self.rhs
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
-                  verbose=False, assert_within_tol=True, **kwargs):
+                  verbose=False, assert_within_tol=True,
+                  solver_options={}, **kwargs):
 
     if isinstance(vary, (str, Vary)):
         vary = [vary]
@@ -456,7 +457,8 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             result_info = {'optimize_result': optimize_result}
             res = optimize_result.x
         elif solver == 'jacobian':
-            jac_solver = JacobianSolver(func=_err, limits=x_limits, verbose=verbose)
+            jac_solver = JacobianSolver(
+                func=_err, limits=x_limits, verbose=verbose, **solver_options)
             res = jac_solver.solve(x0=x0.copy())
             result_info = {'jac_solver': jac_solver, 'res': res}
 

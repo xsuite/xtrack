@@ -58,13 +58,14 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
 class ActionMatchPhaseWithMQTs(xt.Action):
 
     def __init__(self, arc_name, line_name, line,
-                 mux_arc_target, muy_arc_target):
+                 mux_arc_target, muy_arc_target, restore=True):
 
         self.action_arc_phase = ActionArcPhaseAdvanceFromCell(
             arc_name=arc_name, line_name=line_name, line=line)
         self.line = line
         self.mux_arc_target = mux_arc_target
         self.muy_arc_target = muy_arc_target
+        self.restore = restore
 
         beam_number = line_name[-1:]
         self.mqt_knob_names = [
@@ -72,6 +73,10 @@ class ActionMatchPhaseWithMQTs(xt.Action):
             f'kqtd.a{arc_name}b{beam_number}']
 
     def compute(self):
+        #store initial knob values
+        mqt_knob_values = {
+            kk: self.line.vars[kk]._value for kk in self.mqt_knob_names}
+
         self.line.match(
             actions=[self.action_arc_phase],
             targets=[
@@ -83,7 +88,14 @@ class ActionMatchPhaseWithMQTs(xt.Action):
             vary=[
                 xt.VaryList(self.mqt_knob_names, step=1e-5),
             ])
-        return {kk: np.abs(self.line.vars[kk]._value) for kk in self.mqt_knob_names}
+
+        res = {kk: np.abs(self.line.vars[kk]._value) for kk in self.mqt_knob_names}
+
+        # restore initial knob values
+        if self.restore:
+            for kk in self.mqt_knob_names:
+                self.line.vars[kk] = mqt_knob_values[kk]
+        return res
 
 
 action_arc_phase_s67_b1 = ActionArcPhaseAdvanceFromCell(
@@ -118,10 +130,13 @@ starting_values = {
 }
 
 # # Perturb the quadrupoles
-# collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
-# collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
-# collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
-# collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
+collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
+collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
+collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
+collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
+
+collider.vars['kqd.a67'] = -0.00872
+collider.vars['kqf.a67'] = 0.00877
 
 action_match_mqt_s67_b1 = ActionMatchPhaseWithMQTs(
     arc_name='67', line_name='lhcb1', line=collider.lhcb1,
@@ -135,6 +150,7 @@ t1 = time.perf_counter()
 collider.match(
     verbose=True,
     assert_within_tol=False,
+    solver_options={'n_bisections': 0, 'n_no_improvement': 1000, 'maxsteps': 2},
     lines=['lhcb1', 'lhcb2'],
     actions=[
         action_match_mqt_s67_b1,
@@ -146,9 +162,14 @@ collider.match(
         xt.Target(action=action_match_mqt_s67_b2, tar='kqtd.a67b2', value=0),
     ],
     vary=[
-        xt.Vary(name='kqf.a67', step=1e-5),
-        xt.Vary(name='kqd.a67', step=1e-5),
+        xt.Vary(name='kqf.a67', step=3e-5),
+        xt.Vary(name='kqd.a67', step=3e-5),
     ])
+
+action_match_mqt_s67_b1.restore = False
+action_match_mqt_s67_b2.restore = False
+action_match_mqt_s67_b1.compute()
+action_match_mqt_s67_b2.compute()
 
 t2 = time.perf_counter()
 print(f'Elapsed time: {t2-t1} s')

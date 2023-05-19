@@ -99,6 +99,8 @@ collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
 collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
 collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
 collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
+collider.vars['kqd.a67'] = -0.00872
+collider.vars['kqf.a67'] = 0.00877
 
 t1 = time.perf_counter()
 collider.match(

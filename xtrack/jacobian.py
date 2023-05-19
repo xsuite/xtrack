@@ -6,12 +6,13 @@ from numpy.linalg import lstsq
 class JacobianSolver:
 
     def __init__(self, func, limits, maxsteps=20, tol=1e-20, n_bisections=3,
-                 verbose=False):
+                 n_no_improvement=5, verbose=False):
         self.func = func
         self.limits = limits
         self.maxsteps = maxsteps
         self.tol = tol
         self.n_bisections = n_bisections
+        self.n_no_improvement = n_no_improvement
 
         self._penalty_best = None
         self._xbest = None
@@ -94,7 +95,7 @@ class JacobianSolver:
 
             if self.verbose:
                 _print(f"step {step} step_best {self._step_best}")
-            if step > self._step_best + 5:
+            if step > self._step_best + self.n_no_improvement:
                 if self.verbose:
                     _print("No progress, stopping")
                 break
