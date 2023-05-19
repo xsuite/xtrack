@@ -1028,31 +1028,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 stability_tol=matrix_stability_tol)
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
-        p_disp_minus = line.find_closed_orbit(
-                            particle_co_guess=particle_co_guess,
-                            particle_ref=particle_ref,
-                            co_search_settings=co_search_settings,
-                            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                            delta0=delta0-delta_disp,
-                            zeta0=zeta0,
-                            ele_start=ele_start, ele_stop=ele_stop)
-        p_disp_plus = line.find_closed_orbit(particle_co_guess=particle_co_guess,
-                            particle_ref=particle_ref,
-                            co_search_settings=co_search_settings,
-                            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                            delta0=delta0+delta_disp,
-                            zeta0=zeta0,
-                            ele_start=ele_start, ele_stop=ele_stop)
-        p_disp_minus.move(_context=xo.context_default)
-        p_disp_plus.move(_context=xo.context_default)
-        dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
-                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        dpx_dpzeta = ((p_disp_plus.px[0] - p_disp_minus.px[0])
-                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        dy_dpzeta = ((p_disp_plus.y[0] - p_disp_minus.y[0])
-                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        dpy_dpzeta = ((p_disp_plus.py[0] - p_disp_minus.py[0])
-                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
+
+        # Compute dispersion (MAD-8 manual eq. 6.13, but I needed to flip the sign ?!)
+        A_disp = RR[:4, :4]
+        b_disp = RR[:4, 5]
+        delta_disp = np.linalg.solve(A_disp - np.eye(4), b_disp)
+        dx_dpzeta = -delta_disp[0]
+        dpx_dpzeta = -delta_disp[1]
+        dy_dpzeta = -delta_disp[2]
+        dpy_dpzeta = -delta_disp[3]
 
         W[4:, :] = 0
         W[:, 4:] = 0
@@ -1062,6 +1046,42 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         W[1, 5] = dpx_dpzeta
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
+
+        # Slower computation with orbit search
+
+        # p_disp_minus = line.find_closed_orbit(
+        #                     particle_co_guess=particle_co_guess,
+        #                     particle_ref=particle_ref,
+        #                     co_search_settings=co_search_settings,
+        #                     continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+        #                     delta0=delta0-delta_disp,
+        #                     zeta0=zeta0,
+        #                     ele_start=ele_start, ele_stop=ele_stop)
+        # p_disp_plus = line.find_closed_orbit(particle_co_guess=particle_co_guess,
+        #                     particle_ref=particle_ref,
+        #                     co_search_settings=co_search_settings,
+        #                     continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+        #                     delta0=delta0+delta_disp,
+        #                     zeta0=zeta0,
+        #                     ele_start=ele_start, ele_stop=ele_stop)
+        # p_disp_minus.move(_context=xo.context_default)
+        # p_disp_plus.move(_context=xo.context_default)
+        # dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
+        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
+        # dpx_dpzeta = ((p_disp_plus.px[0] - p_disp_minus.px[0])
+        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
+        # dy_dpzeta = ((p_disp_plus.y[0] - p_disp_minus.y[0])
+        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
+        # dpy_dpzeta = ((p_disp_plus.py[0] - p_disp_minus.py[0])
+        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
+        # W[4:, :] = 0
+        # W[:, 4:] = 0
+        # W[4, 4] = 1
+        # W[5, 5] = 1
+        # W[0, 5] = dx_dpzeta
+        # W[1, 5] = dpx_dpzeta
+        # W[2, 5] = dy_dpzeta
+        # W[3, 5] = dpy_dpzeta
 
     if isinstance(ele_start, str):
         tw_init_element_name = ele_start
