@@ -525,25 +525,6 @@ def _twiss_open(line, twiss_init,
             pzeta = [0] + list(W_matrix[5, :] * -scale_eigen) + list(W_matrix[5, :] * scale_eigen),
             )
 
-        part_disp = xp.build_particles(
-            _context=context,
-            x_norm=0,
-            zeta=particle_on_co._xobject.zeta[0],
-            delta=np.array([-delta_disp, +delta_disp])+particle_on_co._xobject.delta[0],
-            particle_on_co=particle_on_co,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-            W_matrix=W_matrix)
-        part_zeta_disp = xp.build_particles(
-            _context=context,
-            x_norm=0,
-            delta=particle_on_co._xobject.delta[0],
-            zeta=np.array([-zeta_disp, +zeta_disp])+particle_on_co._xobject.zeta[0],
-            particle_on_co=particle_on_co,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-            W_matrix=W_matrix)
-
-        part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp, part_zeta_disp])
-
         if twiss_orientation == 'forward':
             part_for_twiss.at_element = ele_start
             part_for_twiss.s = line.tracker._tracker_data.element_s_locations[ele_start]
@@ -609,49 +590,6 @@ def _twiss_open(line, twiss_init,
     ptau_co = line.record_last_track.ptau[0, i_start:i_stop+1].copy()
     s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
 
-    i_disp_minus = 13
-    x_disp_minus = line.record_last_track.x[i_disp_minus, i_start:i_stop+1].copy()
-    y_disp_minus = line.record_last_track.y[i_disp_minus, i_start:i_stop+1].copy()
-    zeta_disp_minus = line.record_last_track.zeta[i_disp_minus, i_start:i_stop+1].copy()
-    px_disp_minus = line.record_last_track.px[i_disp_minus, i_start:i_stop+1].copy()
-    py_disp_minus = line.record_last_track.py[i_disp_minus, i_start:i_stop+1].copy()
-    delta_disp_minus = line.record_last_track.delta[i_disp_minus, i_start:i_stop+1].copy()
-
-    i_disp_plus = 14
-    x_disp_plus = line.record_last_track.x[i_disp_plus, i_start:i_stop+1].copy()
-    y_disp_plus = line.record_last_track.y[i_disp_plus, i_start:i_stop+1].copy()
-    zeta_disp_plus = line.record_last_track.zeta[i_disp_plus, i_start:i_stop+1].copy()
-    px_disp_plus = line.record_last_track.px[i_disp_plus, i_start:i_stop+1].copy()
-    py_disp_plus = line.record_last_track.py[i_disp_plus, i_start:i_stop+1].copy()
-    delta_disp_plus = line.record_last_track.delta[i_disp_plus, i_start:i_stop+1].copy()
-
-    i_crab_disp_minus = 15
-    x_zeta_disp_minus = line.record_last_track.x[i_crab_disp_minus, i_start:i_stop+1].copy()
-    y_zeta_disp_minus = line.record_last_track.y[i_crab_disp_minus, i_start:i_stop+1].copy()
-    zeta_crab_disp_minus = line.record_last_track.zeta[i_crab_disp_minus, i_start:i_stop+1].copy()
-    px_zeta_disp_minus = line.record_last_track.px[i_crab_disp_minus, i_start:i_stop+1].copy()
-    py_zeta_disp_minus = line.record_last_track.py[i_crab_disp_minus, i_start:i_stop+1].copy()
-
-    i_crab_disp_plus = 16
-    x_zeta_disp_plus = line.record_last_track.x[i_crab_disp_plus, i_start:i_stop+1].copy()
-    y_zeta_disp_plus = line.record_last_track.y[i_crab_disp_plus, i_start:i_stop+1].copy()
-    zeta_crab_disp_plus = line.record_last_track.zeta[i_crab_disp_plus, i_start:i_stop+1].copy()
-    px_zeta_disp_plus = line.record_last_track.px[i_crab_disp_plus, i_start:i_stop+1].copy()
-    py_zeta_disp_plus = line.record_last_track.py[i_crab_disp_plus, i_start:i_stop+1].copy()
-
-    dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dzeta = (zeta_disp_plus-zeta_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
-
-    dx_zeta = (x_zeta_disp_plus-x_zeta_disp_minus)/(zeta_crab_disp_plus - zeta_crab_disp_minus)
-    dy_zeta = (y_zeta_disp_plus-y_zeta_disp_minus)/(zeta_crab_disp_plus - zeta_crab_disp_minus)
-
-    # To be tested
-    # dpx_zeta = (px_zeta_disp_plus-px_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
-    # dpy_zeta = (py_zeta_disp_plus-py_zeta_disp_minus)/(zeta_disp_plus - zeta_disp_minus)
-
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
     Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
     Ws[:, 1, :] = 0.5 * (line.record_last_track.px[1:7, i_start:i_stop+1] - px_co).T / scale_eigen
@@ -667,6 +605,7 @@ def _twiss_open(line, twiss_init,
     Ws[:, 4, :] -= 0.5 * (line.record_last_track.zeta[7:13, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] -= 0.5 * (line.record_last_track.ptau[7:13, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+
     twiss_res_element_by_element, i_replace  = _compute_lattice_functions(Ws, use_full_inverse, s_co)
 
     twiss_res_element_by_element.update({
@@ -679,29 +618,7 @@ def _twiss_open(line, twiss_init,
         'zeta': zeta_co,
         'delta': delta_co,
         'ptau': ptau_co,
-        'dx': dx,
-        'dpx': dpx,
-        'dy': dy,
-        'dzeta': dzeta,
-        'dpy': dpy,
-        'dx_zeta': dx_zeta,
-        'dy_zeta': dy_zeta,
-        'W_matrix': Ws
     })
-
-    mux = twiss_res_element_by_element['mux']
-    muy = twiss_res_element_by_element['muy']
-    muzeta = twiss_res_element_by_element['muzeta']
-
-    mux = mux - mux[0]
-    muy = muy - muy[0]
-    muzeta = muzeta - muzeta[0]
-    dzeta = dzeta - dzeta[0]
-
-    twiss_res_element_by_element['mux'] = mux
-    twiss_res_element_by_element['muy'] = muy
-    twiss_res_element_by_element['muzeta'] = muzeta
-    twiss_res_element_by_element['dzeta'] = dzeta
 
     extra_data = {}
     if _keep_tracking_data:
@@ -799,9 +716,25 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     temp_phix[i_replace] = temp_phix[i_replace_with]
     temp_phiy[i_replace] = temp_phiy[i_replace_with]
 
-    mux = np.unwrap(temp_phix)/2/np.pi
-    muy = np.unwrap(temp_phiy)/2/np.pi
-    muzeta = np.unwrap(phizeta)/2/np.pi
+    mux = np.unwrap(temp_phix) / 2 / np.pi
+    muy = np.unwrap(temp_phiy) / 2  /np.pi
+    muzeta = np.unwrap(phizeta) / 2 / np.pi
+
+    dx = Ws[:, 0, 5] / Ws[:, 5, 5]
+    dpx = Ws[:, 1, 5] / Ws[:, 5, 5]
+    dy = Ws[:, 2, 5] / Ws[:, 5, 5]
+    dpy = Ws[:, 3, 5] / Ws[:, 5, 5]
+    dzeta = Ws[:, 4, 5] / Ws[:, 5, 5]
+
+    dx_zeta = Ws[:, 0, 4] / Ws[:, 4, 4]
+    dy_zeta = Ws[:, 2, 4] / Ws[:, 4, 4]
+    # dpx_zeta = Ws[:, 1, 4] / Ws[:, 4, 4] # To be tested
+    # dpy_zeta = Ws[:, 3, 4] / Ws[:, 4, 4] # To be tested
+
+    mux = mux - mux[0]
+    muy = muy - muy[0]
+    muzeta = muzeta - muzeta[0]
+    dzeta = dzeta - dzeta[0]
 
     res = {
         'betx': betx,
@@ -810,6 +743,13 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'alfy': alfy,
         'gamx': gamx,
         'gamy': gamy,
+        'dx': dx,
+        'dpx': dpx,
+        'dy': dy,
+        'dpy': dpy,
+        'dx_zeta': dx_zeta,
+        'dy_zeta': dy_zeta,
+        'dzeta': dzeta,
         'betx1': betx1,
         'bety1': bety1,
         'betx2': betx2,
@@ -820,6 +760,7 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'nux': nux,
         'nuy': nuy,
         'nuzeta': nuzeta,
+        'W_matrix': Ws
     }
     return res, i_replace
 
