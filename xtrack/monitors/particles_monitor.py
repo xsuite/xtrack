@@ -102,6 +102,15 @@ def _monitor_init(
             for tt, nn in self._ParticlesClass.per_particle_vars:
                 getattr(self.data, nn)[:] = 0
 
+def auto_to_numpy(self):
+    return self.flag_auto_to_numpy != 0
+
+def set_auto_to_numpy(self, flag):
+    if flag:
+        self.flag_auto_to_numpy = 1
+    else:
+        self.flag_auto_to_numpy = 0
+
 class _FieldOfMonitor:
     def __init__(self, name):
         self.name = name
@@ -139,6 +148,7 @@ def generate_monitor_class(ParticlesClass):
         "n_records": xo.Int64,
         "n_repetitions": xo.Int64,
         "repetition_period": xo.Int64,
+        "flag_auto_to_numpy": xo.Int64,
         "data": ParticlesClass._XoStruct,
     }
 
@@ -161,6 +171,7 @@ def generate_monitor_class(ParticlesClass):
     ParticlesMonitorClass.get_backtrack_element = _monitor_get_backtrack_element
     ParticlesMonitorClass.behaves_like_drift = True
     ParticlesMonitorClass.allow_backtrack = True
+    ParticlesMonitorClass.auto_to_numpy = property(auto_to_numpy, set_auto_to_numpy)
 
     per_particle_vars = ParticlesClass.per_particle_vars
     for tt, nn in per_particle_vars:

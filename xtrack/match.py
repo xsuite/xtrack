@@ -253,11 +253,14 @@ class ActionTwiss(Action):
 
         self.kwargs = kwargs
 
-    def compute(self):
+    def compute(self, allow_failure=True):
         try:
             return self.line.twiss(**self.kwargs)
-        except Exception:
-            return 'failed'
+        except Exception as ee:
+            if allow_failure:
+                return 'failed'
+            else:
+                raise ee
 
 
 class Target:
@@ -391,6 +394,8 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     data0 = {}
     for aa in actions:
         data0[aa] = aa.compute()
+        assert data0[aa] != 'failed', (
+            f'Action {aa} failed to compute initial data.')
 
     for tt in targets:
         if tt.value == 'preserve':
