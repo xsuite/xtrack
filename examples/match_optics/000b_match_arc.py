@@ -63,6 +63,37 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
             'tw_to_end_arc': tw_to_end_arc,
             'tw_to_start_arc': tw_to_start_arc}
 
+class ActionMatchPhaseWithMQTs(xt.Action):
+
+    def __init__(self, arc_name, line_name, line,
+                 mux_arc_target, muy_arc_target):
+
+        self.action_arc_phase = ActionArcPhaseAdvanceFromCell(
+            arc_name=arc_name, line_name=line_name, line=line)
+        self.line = line
+        self.mux_arc_target = mux_arc_target
+        self.muy_arc_target = muy_arc_target
+
+        beam_number = line_name[-1:]
+        self.mqt_knob_names = [
+            f'kqtf.a{arc_name}b{beam_number}',
+            f'kqtd.a{arc_name}b{beam_number}']
+
+    def compute(self):
+        self.line.match(
+            actions=[self.action_arc_phase],
+            targets=[
+                xt.Target(action=self.action_arc_phase, tar='mux_arc_from_cell',
+                            value=self.mux_arc_target, tol=1e-8),
+                xt.Target(action=self.action_arc_phase, tar='muy_arc_from_cell',
+                            value=self.muy_arc_target, tol=1e-8),
+            ],
+            vary=[
+                xt.VaryList(self.mqt_knob_names, step=1e-5),
+            ])
+        return {kk: self.line.vars[kk]._value for kk in self.mqt_knob_names}
+
+
 action_arc_phase_s67_b1 = ActionArcPhaseAdvanceFromCell(
                     arc_name='67', line_name='lhcb1', line=collider.lhcb1)
 resb1 = action_arc_phase_s67_b1.compute()
@@ -99,6 +130,15 @@ collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
 collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
 collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
 collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
+
+action_match_phase_s67_b1 = ActionMatchPhaseWithMQTs(
+    arc_name='67', line_name='lhcb1', line=collider.lhcb1,
+    mux_arc_target=mux_arc_target_b1, muy_arc_target=muy_arc_target_b1)
+action_arc_phase_s67_b2 = ActionMatchPhaseWithMQTs(
+    arc_name='67', line_name='lhcb2', line=collider.lhcb2,
+    mux_arc_target=mux_arc_target_b2, muy_arc_target=muy_arc_target_b2)
+
+prrrrrr
 
 t1 = time.perf_counter()
 collider.match(
