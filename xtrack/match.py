@@ -230,12 +230,13 @@ class ActionTwiss(Action):
 
 
         _keep_initial_particles = (
-                'twiss_init' in kwargs and kwargs['twiss_init'] is not None)
+                'twiss_init' in kwargs and kwargs['twiss_init'] is not None
+                and kwargs['twiss_init'] != 'periodic')
 
         tw0 = line.twiss(_keep_initial_particles=_keep_initial_particles,
                          **kwargs)
 
-        if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None: # open line mode
+        if _keep_initial_particles:
             if isinstance(line, xt.Multiline):
                 for llnn in tw0._line_names:
                     kwargs['_initial_particles'] = tw0[llnn]._initial_particles
