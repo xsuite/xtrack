@@ -233,16 +233,7 @@ class ActionTwiss(Action):
                 'twiss_init' in kwargs and kwargs['twiss_init'] is not None)
 
         tw0 = line.twiss(_keep_initial_particles=_keep_initial_particles,
-                        _keep_tracking_data=True, **kwargs)
-
-        if isinstance(line, xt.Multiline):
-            ebe_monitor = []
-            for llnn in tw0._line_names:
-                if tw0[llnn].tracking_data is not None:
-                    ebe_monitor.append(tw0[llnn].tracking_data)
-        else:
-            ebe_monitor = tw0.tracking_data
-        kwargs['_ebe_monitor'] = ebe_monitor
+                         **kwargs)
 
         if 'twiss_init' in kwargs and kwargs['twiss_init'] is not None: # open line mode
             if isinstance(line, xt.Multiline):
