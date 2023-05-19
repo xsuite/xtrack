@@ -20,7 +20,7 @@ class JacobianSolver:
 
     def _eval(self, x):
         y = self.func(x)
-        penalty = np.dot(y, y)
+        penalty = np.sqrt(np.dot(y, y))
         if penalty < self._penalty_best:
             self._penalty_best = penalty
             self._xbest = x.copy()
@@ -42,9 +42,9 @@ class JacobianSolver:
             # test penalty
             y, penalty = self._eval(x) # will need to handle mask
             ncalls += 1
-            # import pdb; pdb.set_trace()
             if penalty < self.tol:
-                # _print("tolerance met")
+                if self.verbose:
+                    _print("Jacobian tolerance met")
                 break
             # Equation search
             jac = myf.get_jacobian(x) # will need to handle mask

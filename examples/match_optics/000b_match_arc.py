@@ -59,7 +59,6 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
         return {
             'mux_arc_from_cell': mux_arc_from_cell,
             'muy_arc_from_cell': muy_arc_from_cell,
-            # 'tw_cell_periodic': tw_cell_periodic,
             'twinit_cell': twinit_cell,
             'tw_to_end_arc': tw_to_end_arc,
             'tw_to_start_arc': tw_to_start_arc}
@@ -97,22 +96,26 @@ starting_values = {
 
 # Perturb the quadrupoles
 collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
+collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
+collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
+collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
 
 t1 = time.perf_counter()
 collider.match(
+    # verbose=True,
     lines=['lhcb1', 'lhcb2'],
     actions=[
         action_arc_phase_s67_b1,
         action_arc_phase_s67_b2],
     targets=[
         xt.Target(action=action_arc_phase_s67_b1, tar='mux_arc_from_cell',
-                    value=mux_arc_target_b1, tol=1e-20),
+                    value=mux_arc_target_b1, tol=1e-8),
         xt.Target(action=action_arc_phase_s67_b1, tar='muy_arc_from_cell',
-                    value=muy_arc_target_b1, tol=1e-20),
+                    value=muy_arc_target_b1, tol=1e-8),
         xt.Target(action=action_arc_phase_s67_b2, tar='mux_arc_from_cell',
-                    value=mux_arc_target_b2, tol=1e-20),
+                    value=mux_arc_target_b2, tol=1e-8),
         xt.Target(action=action_arc_phase_s67_b2, tar='muy_arc_from_cell',
-                    value=muy_arc_target_b2, tol=1e-20),
+                    value=muy_arc_target_b2, tol=1e-8),
     ],
     vary=[
         xt.VaryList(['kqtf.a67b1','kqtf.a67b2','kqtd.a67b1','kqtd.a67b2'],
@@ -123,3 +126,32 @@ collider.match(
 
 t2 = time.perf_counter()
 print(f'Elapsed time: {t2-t1} s')
+
+# Checks
+resb1_after = action_arc_phase_s67_b1.compute()
+tw_init_arcb1 = resb1_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b1')
+twb1_after = collider.lhcb1.twiss(ele_start='e.ds.r6.b1',
+                                  ele_stop='s.ds.l7.b1',
+                                  twiss_init=tw_init_arcb1)
+assert np.isclose(twb1_after['mux', 's.ds.l7.b1'] - twb1_after['mux', 'e.ds.r6.b1'],
+                    mux_arc_target_b1, rtol=0, atol=1e-8)
+assert np.isclose(twb1_after['muy', 's.ds.l7.b1'] - twb1_after['muy', 'e.ds.r6.b1'],
+                    muy_arc_target_b1, rtol=0, atol=1e-8)
+assert np.isclose(twb1_after['betx', 's.cell.67.b1'], twb1_after['betx', 'e.cell.67.b1'],
+                    rtol=0, atol=1e-8)
+assert np.isclose(twb1_after['bety', 's.cell.67.b1'], twb1_after['bety', 'e.cell.67.b1'],
+                    rtol=0, atol=1e-8)
+
+resb2_after = action_arc_phase_s67_b2.compute()
+tw_init_arcb2 = resb2_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b2')
+twb2_after = collider.lhcb2.twiss(ele_start='e.ds.r6.b2',
+                                  ele_stop='s.ds.l7.b2',
+                                  twiss_init=tw_init_arcb2)
+assert np.isclose(twb2_after['mux', 's.ds.l7.b2'] - twb2_after['mux', 'e.ds.r6.b2'],
+                    mux_arc_target_b2, rtol=0, atol=1e-8)
+assert np.isclose(twb2_after['muy', 's.ds.l7.b2'] - twb2_after['muy', 'e.ds.r6.b2'],
+                    muy_arc_target_b2, rtol=0, atol=1e-8)
+assert np.isclose(twb2_after['betx', 's.cell.67.b2'], twb2_after['betx', 'e.cell.67.b2'],
+                    rtol=0, atol=1e-8)
+assert np.isclose(twb2_after['bety', 's.cell.67.b2'], twb2_after['bety', 'e.cell.67.b2'],
+                    rtol=0, atol=1e-8)
