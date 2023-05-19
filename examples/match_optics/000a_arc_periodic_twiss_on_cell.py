@@ -14,17 +14,17 @@ collider.lhcb1.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['reverse'] = True
 
-# line = collider.lhcb1
-# start_cell = 's.cell.67.b1'
-# end_cell = 'e.cell.67.b1'
-# start_arc = 'e.ds.r6.b1'
-# end_arc = 'e.ds.l7.b1'
+line = collider.lhcb1
+start_cell = 's.cell.67.b1'
+end_cell = 'e.cell.67.b1'
+start_arc = 'e.ds.r6.b1'
+end_arc = 'e.ds.l7.b1'
 
-line = collider.lhcb2
-start_cell = 's.cell.67.b2'
-end_cell = 'e.cell.67.b2'
-start_arc = 'e.ds.r6.b2'
-end_arc = 'e.ds.l7.b2'
+# line = collider.lhcb2
+# start_cell = 's.cell.67.b2'
+# end_cell = 'e.cell.67.b2'
+# start_arc = 'e.ds.r6.b2'
+# end_arc = 'e.ds.l7.b2'
 
 tw = line.twiss()
 

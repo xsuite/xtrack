@@ -681,17 +681,6 @@ def _twiss_open(line, twiss_init,
     muzeta = muzeta - muzeta[0]
     dzeta = dzeta - dzeta[0]
 
-    # if twiss_orientation == 'forward':
-    #     mux = mux - mux[0]
-    #     muy = muy - muy[0]
-    #     muzeta = muzeta - muzeta[0]
-    #     dzeta = dzeta - dzeta[0]
-    # elif twiss_orientation == 'backward':
-    #     mux = mux - mux[-1]
-    #     muy = muy - muy[-1]
-    #     muzeta = muzeta - muzeta[-1]
-    #     dzeta = dzeta - dzeta[-1]
-
     twiss_res_element_by_element['mux'] = mux
     twiss_res_element_by_element['muy'] = muy
     twiss_res_element_by_element['muzeta'] = muzeta
