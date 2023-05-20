@@ -119,7 +119,7 @@ collider.match(
         xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match, tol=1e-3),
         xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match, tol=1e-5),
         xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match, tol=1e-5),
-        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy ', value=muy_end_match, tol=1e-5),
+        xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy', value=muy_end_match, tol=1e-5),
         # xt.TargetInequality('bety', '<', 180.49-0.3, line='lhcb1', at='mq.11l7.b1'),
         # xt.TargetInequality('bety', '<', 174.5,      line='lhcb1', at='mq.9l7.b1'),
         # xt.TargetInequality('bety', '<', 176.92,     line='lhcb1', at='mq.8r7.b1'),

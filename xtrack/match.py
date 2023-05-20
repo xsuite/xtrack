@@ -166,6 +166,12 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             if ln_twiss not in twiss_actions:
                 twiss_actions[ln_twiss] = ActionTwiss(ln_twiss, **kwargs)
             tt.action = twiss_actions[ln_twiss]
+        if tt.weight is None:
+            if isinstance(tt.tar, tuple):
+                tt_name = tt.tar[0]
+            else:
+                tt_name = tt.tar
+            tt.weight = DEFAULT_WEIGHTS.get(tt_name, 1.)
 
     for vv in vary:
         if vv.container is None:
@@ -175,7 +181,10 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
                         restore_if_fail=restore_if_fail)
-    return opt.solve()
+    res =  opt.solve()
+    res['optimizer'] = opt
+
+    return res
 
 
 def closed_orbit_correction(line, line_co_ref, correction_config,
