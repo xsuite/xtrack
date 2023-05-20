@@ -148,7 +148,7 @@ action_match_mqt_s67_b2 = ActionMatchPhaseWithMQTs(
 
 t1 = time.perf_counter()
 collider.match(
-    verbose=True,
+    verbose=False,
     assert_within_tol=False,
     solver_options={'n_bisections': 3, 'min_step': 1e-5, 'maxsteps': 5,},
     lines=['lhcb1', 'lhcb2'],

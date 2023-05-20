@@ -67,8 +67,8 @@ class MeritFunctionForMatch:
 
     def __call__(self, x):
 
-        # _print(f"Matching: model call n. {self.call_counter}       ",
-        #         end='\r', flush=True)
+        _print(f"Matching: model call n. {self.call_counter}       ",
+                end='\r', flush=True)
         self.call_counter += 1
 
         knob_values = self._x_to_knobs(x)
@@ -474,7 +474,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 line.vars[rr.name] = knob_values0[ii]
         _print('\n')
         raise err
-    # _print('\n')
+    _print('\n')
     return result_info
 
 def closed_orbit_correction(line, line_co_ref, correction_config,
