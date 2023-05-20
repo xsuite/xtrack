@@ -2,12 +2,13 @@ import time
 
 import numpy as np
 
-import xtrack as xt
+import xtrack
+import xdeps as xd
 
 # xt._print.suppress = True
 
 # Load the line
-collider = xt.Multiline.from_json(
+collider = xtrack.Multiline.from_json(
     '../../test_data/hllhc15_collider/collider_00_from_mad.json')
 collider.build_trackers()
 
@@ -15,7 +16,7 @@ collider.lhcb1.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['reverse'] = True
 
-class ActionArcPhaseAdvanceFromCell(xt.Action):
+class ActionArcPhaseAdvanceFromCell(xd.Action):
     def __init__(self, arc_name, line_name, line):
         assert arc_name in ['12', '23', '34', '45', '56', '67', '78', '81']
         assert line_name in ['lhcb1', 'lhcb2']
@@ -55,7 +56,7 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
             'tw_to_end_arc': tw_to_end_arc,
             'tw_to_start_arc': tw_to_start_arc}
 
-class ActionMatchPhaseWithMQTs(xt.Action):
+class ActionMatchPhaseWithMQTs(xd.Action):
 
     def __init__(self, arc_name, line_name, line,
                  mux_arc_target, muy_arc_target, restore=False):
@@ -80,13 +81,13 @@ class ActionMatchPhaseWithMQTs(xt.Action):
         self.line.match(
             actions=[self.action_arc_phase],
             targets=[
-                xt.Target(action=self.action_arc_phase, tar='mux_arc_from_cell',
+                xd.Target(action=self.action_arc_phase, tar='mux_arc_from_cell',
                             value=self.mux_arc_target, tol=1e-8),
-                xt.Target(action=self.action_arc_phase, tar='muy_arc_from_cell',
+                xd.Target(action=self.action_arc_phase, tar='muy_arc_from_cell',
                             value=self.muy_arc_target, tol=1e-8),
             ],
             vary=[
-                xt.VaryList(self.mqt_knob_names, step=1e-5),
+                xd.VaryList(self.mqt_knob_names, self.line.vars, step=1e-5),
             ])
 
         res = {kk: np.abs(self.line.vars[kk]._value) for kk in self.mqt_knob_names}
@@ -152,14 +153,14 @@ collider.match(
     assert_within_tol=False,
     solver_options={'n_bisections': 3, 'min_step': 1e-5, 'maxsteps': 5,},
     targets=[
-        xt.Target(action=action_match_mqt_s67_b1, tar='kqtf.a67b1', value=0),
-        xt.Target(action=action_match_mqt_s67_b1, tar='kqtd.a67b1', value=0),
-        xt.Target(action=action_match_mqt_s67_b2, tar='kqtf.a67b2', value=0),
-        xt.Target(action=action_match_mqt_s67_b2, tar='kqtd.a67b2', value=0),
+        xd.Target(action=action_match_mqt_s67_b1, tar='kqtf.a67b1', value=0),
+        xd.Target(action=action_match_mqt_s67_b1, tar='kqtd.a67b1', value=0),
+        xd.Target(action=action_match_mqt_s67_b2, tar='kqtf.a67b2', value=0),
+        xd.Target(action=action_match_mqt_s67_b2, tar='kqtd.a67b2', value=0),
     ],
     vary=[
-        xt.Vary(name='kqf.a67', step=1e-5),
-        xt.Vary(name='kqd.a67', step=1e-5),
+        xd.Vary(name='kqf.a67', container=collider.vars, step=1e-5),
+        xd.Vary(name='kqd.a67', container=collider.vars, step=1e-5),
     ])
 
 action_match_mqt_s67_b1.restore = False

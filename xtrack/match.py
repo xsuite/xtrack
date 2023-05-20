@@ -7,6 +7,7 @@ from .jacobian import JacobianSolver
 from .twiss import TwissInit
 from .general import _print
 import xtrack as xt
+import xdeps as xd
 
 DEFAULT_WEIGHTS = {
     # For quantities not specified here the default weight is 1
@@ -341,19 +342,19 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
                   solver_options={}, **kwargs):
 
-    if isinstance(vary, (str, Vary)):
+    if isinstance(vary, (str, Vary, xd.Vary)):
         vary = [vary]
 
     input_vary = vary
     vary = []
     for ii, rr in enumerate(input_vary):
-        if isinstance(rr, Vary):
+        if isinstance(rr, (Vary, xd.Vary)):
             vary.append(rr)
         elif isinstance(rr, str):
             vary.append(Vary(rr))
         elif isinstance(rr, (list, tuple)):
             raise ValueError('Not anymore supported')
-        elif isinstance(rr, VaryList):
+        elif isinstance(rr, (VaryList, xd.VaryList)):
             vary += rr.vary_objects
         else:
             raise ValueError(f'Invalid vary setting {rr}')
@@ -361,11 +362,11 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     input_targets = targets
     targets = []
     for ii, tt in enumerate(input_targets):
-        if isinstance(tt, Target):
+        if isinstance(tt, (Target, xd.Target)):
             targets.append(tt)
         elif isinstance(tt, (list, tuple)):
             targets.append(Target(*tt))
-        elif isinstance(tt, TargetList):
+        elif isinstance(tt, (TargetList, xd.TargetList)):
             targets += tt.targets
         else:
             raise ValueError(f'Invalid target element {tt}')
@@ -398,6 +399,8 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
     # Cache index of at for faster evaluation
     for tt in targets:
+        if not hasattr(tt, 'at'):
+            continue
         if tt.at is not None and isinstance(tt.action, ActionTwiss):
             if tt.line is None:
                 tt._at_index = list(data0[tt.action].name).index(tt.at)
