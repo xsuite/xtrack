@@ -58,7 +58,7 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
 class ActionMatchPhaseWithMQTs(xt.Action):
 
     def __init__(self, arc_name, line_name, line,
-                 mux_arc_target, muy_arc_target, restore=True):
+                 mux_arc_target, muy_arc_target, restore=False):
 
         self.action_arc_phase = ActionArcPhaseAdvanceFromCell(
             arc_name=arc_name, line_name=line_name, line=line)
@@ -151,9 +151,6 @@ collider.match(
     verbose=False,
     assert_within_tol=False,
     solver_options={'n_bisections': 3, 'min_step': 1e-5, 'maxsteps': 5,},
-    actions=[
-        action_match_mqt_s67_b1,
-        action_match_mqt_s67_b2],
     targets=[
         xt.Target(action=action_match_mqt_s67_b1, tar='kqtf.a67b1', value=0),
         xt.Target(action=action_match_mqt_s67_b1, tar='kqtd.a67b1', value=0),

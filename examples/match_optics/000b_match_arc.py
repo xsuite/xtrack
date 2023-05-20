@@ -105,9 +105,6 @@ collider.vars['kqf.a67'] = 0.00877
 t1 = time.perf_counter()
 collider.match(
     # verbose=True,
-    actions=[
-        action_arc_phase_s67_b1,
-        action_arc_phase_s67_b2],
     targets=[
         xt.Target(action=action_arc_phase_s67_b1, tar='mux_arc_from_cell',
                     value=mux_arc_target_b1, tol=1e-8),

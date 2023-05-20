@@ -22,8 +22,8 @@ DEFAULT_WEIGHTS = {
     'alfy': 10.,
     'mux': 10.,
     'muy': 10.,
-    'q1': 10.,
-    'q2': 10.,
+    'qx': 10.,
+    'qy': 10.,
 }
 
 class OrbitOnly:
