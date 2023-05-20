@@ -6,13 +6,13 @@ from numpy.linalg import lstsq
 class JacobianSolver:
 
     def __init__(self, func, limits, maxsteps=20, tol=1e-20, n_bisections=3,
-                 n_no_improvement=5, verbose=False):
+                 min_step=1e-20, verbose=False):
         self.func = func
         self.limits = limits
         self.maxsteps = maxsteps
         self.tol = tol
         self.n_bisections = n_bisections
-        self.n_no_improvement = n_no_improvement
+        self.min_step = min_step
 
         self._penalty_best = None
         self._xbest = None
@@ -94,8 +94,8 @@ class JacobianSolver:
             mask_for_next_step = ~mask_hit_limit
 
             if self.verbose:
-                _print(f"step {step} step_best {self._step_best}")
-            if step > self._step_best + self.n_no_improvement:
+                _print(f"step {step} step_best {self._step_best} {this_xstep}")
+            if np.sqrt(np.dot(this_xstep, this_xstep)) < self.min_step:
                 if self.verbose:
                     _print("No progress, stopping")
                 break

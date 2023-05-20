@@ -150,7 +150,7 @@ t1 = time.perf_counter()
 collider.match(
     verbose=True,
     assert_within_tol=False,
-    solver_options={'n_bisections': 0, 'n_no_improvement': 1000, 'maxsteps': 2},
+    solver_options={'n_bisections': 3, 'min_step': 1e-5, 'maxsteps': 5,},
     lines=['lhcb1', 'lhcb2'],
     actions=[
         action_match_mqt_s67_b1,
@@ -162,8 +162,8 @@ collider.match(
         xt.Target(action=action_match_mqt_s67_b2, tar='kqtd.a67b2', value=0),
     ],
     vary=[
-        xt.Vary(name='kqf.a67', step=3e-5),
-        xt.Vary(name='kqd.a67', step=3e-5),
+        xt.Vary(name='kqf.a67', step=1e-5),
+        xt.Vary(name='kqd.a67', step=1e-5),
     ])
 
 action_match_mqt_s67_b1.restore = False
