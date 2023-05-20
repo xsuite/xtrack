@@ -105,7 +105,6 @@ collider.vars['kqf.a67'] = 0.00877
 t1 = time.perf_counter()
 collider.match(
     # verbose=True,
-    lines=['lhcb1', 'lhcb2'],
     actions=[
         action_arc_phase_s67_b1,
         action_arc_phase_s67_b2],

@@ -151,7 +151,6 @@ collider.match(
     verbose=False,
     assert_within_tol=False,
     solver_options={'n_bisections': 3, 'min_step': 1e-5, 'maxsteps': 5,},
-    lines=['lhcb1', 'lhcb2'],
     actions=[
         action_match_mqt_s67_b1,
         action_match_mqt_s67_b2],
