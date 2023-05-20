@@ -3,7 +3,6 @@ from functools import partial
 import numpy as np
 from scipy.optimize import fsolve, minimize
 
-from .jacobian import JacobianSolver
 from .twiss import TwissInit
 from .general import _print
 import xtrack as xt
@@ -36,151 +35,9 @@ class OrbitOnly:
         self.zeta = zeta
         self.delta = delta
 
-class MeritFunctionForMatch:
+Action = xd.Action
 
-    def __init__(self, vary, targets, line, actions, return_scalar,
-                 call_counter, verbose, tw_kwargs, steps_for_jacobian):
-
-        self.vary = vary
-        self.targets = targets
-        self.line = line
-        self.actions = actions
-        self.return_scalar = return_scalar
-        self.call_counter = call_counter
-        self.verbose = verbose
-        self.tw_kwargs = tw_kwargs
-        self.steps_for_jacobian = steps_for_jacobian
-        self.found_point_within_tolerance = False
-
-    def _x_to_knobs(self, x):
-        knob_values = np.array(x).copy()
-        for ii, vv in enumerate(self.vary):
-            if vv.weight is not None:
-                knob_values[ii] *= vv.weight
-        return knob_values
-
-    def _knobs_to_x(self, knob_values):
-        x = np.array(knob_values).copy()
-        for ii, vv in enumerate(self.vary):
-            if vv.weight is not None:
-                x[ii] /= vv.weight
-        return x
-
-    def __call__(self, x):
-
-        _print(f"Matching: model call n. {self.call_counter}       ",
-                end='\r', flush=True)
-        self.call_counter += 1
-
-        knob_values = self._x_to_knobs(x)
-
-        for kk, vv in zip(self.vary, knob_values):
-            self.line.vars[kk.name] = vv
-
-        if self.verbose:
-            _print(f'x = {knob_values}')
-
-        res_data = {}
-        failed = False
-        for aa in self.actions:
-            res_data[aa] = aa.compute()
-            if res_data[aa] == 'failed':
-                failed = True
-                break
-
-        if failed:
-            err_values = [1e100 for tt in self.targets]
-        else:
-            res_values = []
-            target_values = []
-            for tt in self.targets:
-                res_values.append(tt.eval(res_data))
-                target_values.append(tt.value)
-            self._last_data = res_data # for debugging
-
-            res_values = np.array(res_values)
-            target_values = np.array(target_values)
-            err_values = res_values - target_values
-
-            if self.verbose:
-                _print(f'   f(x) = {res_values}')
-
-            tols = 0 * err_values
-            for ii, tt in enumerate(self.targets):
-                if tt.tol is not None:
-                    tols[ii] = tt.tol
-                else:
-                    tols[ii] = 1e-14
-
-            if self.verbose:
-                _print(f'   err/tols = {err_values/tols}')
-
-            if np.all(np.abs(err_values) < tols):
-                err_values *= 0
-                self.found_point_within_tolerance = True
-                if self.verbose:
-                    _print('Found point within tolerance!')
-
-            for ii, tt in enumerate(self.targets):
-                if tt.weight is not None:
-                    err_values[ii] *= tt.weight
-
-        if self.return_scalar:
-            return np.sum(err_values * err_values)
-        else:
-            return np.array(err_values)
-
-    def get_jacobian(self, x):
-        x = np.array(x).copy()
-        steps = self._knobs_to_x(self.steps_for_jacobian)
-        assert len(x) == len(steps)
-        f0 = self(x)
-        if np.isscalar(f0):
-            jac = np.zeros((1, len(x)))
-        else:
-            jac = np.zeros((len(f0), len(x)))
-        for ii in range(len(x)):
-            x[ii] += steps[ii]
-            jac[:, ii] = (self(x) - f0) / steps[ii]
-            x[ii] -= steps[ii]
-        return jac
-
-class TargetList:
-    def __init__(self, tars, **kwargs):
-        self.targets = [Target(tt, **kwargs) for tt in tars]
-
-class VaryList:
-    def __init__(self, vars, **kwargs):
-        self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
-
-class Vary:
-    def __init__(self, name, limits=None, step=None, weight=None):
-
-        if weight is None:
-            weight = 1.
-
-        if limits is None:
-            limits = (-1e200, 1e200)
-        else:
-            assert len(limits) == 2, '`limits` must have length 2.'
-
-        if step is None:
-            step = 1e-10
-
-        assert weight > 0, '`weight` must be positive.'
-
-        self.name = name
-        self.limits = np.array(limits)
-        self.step = step
-        self.weight = weight
-
-class Action:
-    def prepare(self):
-        pass
-    def compute(self):
-        return dict()
-
-class ActionTwiss(Action):
+class ActionTwiss(xd.Action):
 
     def __init__(self, line, **kwargs):
         self.line = line
@@ -257,69 +114,25 @@ class ActionTwiss(Action):
             else:
                 raise ee
 
-
-class Target:
+class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None):
-
-        if scale is not None and weight is not None:
-            raise ValueError(
-                'Cannot specify both `weight` and `scale` for a target.')
-
-        if scale is not None:
-            weight = scale
-
-        if weight is None:
-            if isinstance(tar, str):
-                weight = DEFAULT_WEIGHTS.get(tar, 1.)
-            else:
-                weight = 1.
-
-        if weight <= 0:
-            raise ValueError('`weight` must be positive.')
-
-        self.tar = tar
-        self.action = action
-        self.value = value
-        self.tol = tol
-        self.at = at
-        self.weight = weight
+        xd.Target.__init__(self, tar=(tar, at), value=value, tol=tol,
+                            weight=weight, scale=scale, action=action)
         self.line = line
-        self._at_index = None
 
-    @property
-    def scale(self):
-        return self.weight
+class Vary(xd.Vary):
+    def __init__(self, name, limits=None, step=None, weight=None):
+        xd.Vary.__init__(self, name=name, container=None, limits=limits,
+                         step=step, weight=weight)
 
-    @scale.setter
-    def scale(self, value):
-        self.weight = value
+class VaryList:
+    def __init__(self, vars, container, **kwargs):
+        self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
-    def eval(self, data):
-
-        res = data[self.action]
-
-        if isinstance (res, xt.MultiTwiss) and not callable(self.tar):
-            if self.line is None:
-                raise ValueError('When using `Multiline.match`, '
-                    'a `line` must associated to each non-callable target.')
-
-        if self.line is not None:
-            this_res = res[self.line]
-        else:
-            this_res = res
-
-        if isinstance(self.tar, str):
-            if self.at is not None:
-                if self._at_index is not None:
-                    return this_res[self.tar, self._at_index]
-                else:
-                    return this_res[self.tar, self.at]
-            else:
-                return this_res[self.tar]
-        elif callable(self.tar):
-            assert self.at is None, '`at` cannot be provided if target is a function'
-            return self.tar(this_res)
+class TargetList:
+    def __init__(self, tars, **kwargs):
+        self.targets = [Target(tt, **kwargs) for tt in tars]
 
 class TargetInequality(Target):
 
@@ -338,147 +151,32 @@ class TargetInequality(Target):
         else:
             return val - self.rhs
 
+
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
                   solver_options={}, **kwargs):
 
-    if isinstance(vary, (str, Vary, xd.Vary)):
-        vary = [vary]
-
-    input_vary = vary
-    vary = []
-    for ii, rr in enumerate(input_vary):
-        if isinstance(rr, (Vary, xd.Vary)):
-            vary.append(rr)
-        elif isinstance(rr, str):
-            vary.append(Vary(rr))
-        elif isinstance(rr, (list, tuple)):
-            raise ValueError('Not anymore supported')
-        elif isinstance(rr, (VaryList, xd.VaryList)):
-            vary += rr.vary_objects
-        else:
-            raise ValueError(f'Invalid vary setting {rr}')
-
-    input_targets = targets
-    targets = []
-    for ii, tt in enumerate(input_targets):
-        if isinstance(tt, (Target, xd.Target)):
-            targets.append(tt)
-        elif isinstance(tt, (list, tuple)):
-            targets.append(Target(*tt))
-        elif isinstance(tt, (TargetList, xd.TargetList)):
-            targets += tt.targets
-        else:
-            raise ValueError(f'Invalid target element {tt}')
-
-    actions = []
+    twiss_actions = {}
     for tt in targets:
-        if tt.action not in actions:
-            actions.append(tt.action)
-
-    if None in actions:
-        actions.remove(None)
-        actiontwiss = ActionTwiss(line, **kwargs)
-        actions.append(actiontwiss)
-        for tt in targets:
-            if tt.action is None:
-                tt.action = actiontwiss
-
-    for aa in actions:
-        aa.prepare()
-
-    data0 = {}
-    for aa in actions:
-        data0[aa] = aa.compute()
-        assert data0[aa] != 'failed', (
-            f'Action {aa} failed to compute initial data.')
-
-    for tt in targets:
-        if tt.value == 'preserve':
-            tt.value = tt.eval(data0)
-
-    # Cache index of at for faster evaluation
-    for tt in targets:
-        if not hasattr(tt, 'at'):
-            continue
-        if tt.at is not None and isinstance(tt.action, ActionTwiss):
-            if tt.line is None:
-                tt._at_index = list(data0[tt.action].name).index(tt.at)
+        if tt.action is None:
+            if tt.line is not None:
+                ln_twiss = line[tt.line]
             else:
-                tt._at_index = list(data0[tt.action][tt.line].name).index(tt.at)
+                ln_twiss = line
+            if ln_twiss not in twiss_actions:
+                twiss_actions[ln_twiss] = ActionTwiss(ln_twiss, **kwargs)
+            tt.action = twiss_actions[ln_twiss]
 
-    if solver is None:
-        solver = 'jacobian'
-        #old logic from before jacobian implementation
-        # if len(targets) != len(vary):
-        #     solver = 'bfgs'
-        # elif np.any([vv.limits is not None for vv in vary]):
-        #     solver = 'bfgs'
-        # else:
-        #     solver = 'fsolve'
-
-    if verbose:
-        _print(f'Using solver {solver}')
-
-    steps = []
-    knob_limits = []
     for vv in vary:
-        steps.append(vv.step)
-        knob_limits.append(vv.limits)
+        if vv.container is None:
+            vv.container = line.vars
 
-    assert solver in ['fsolve', 'bfgs', 'jacobian'], (
-                      f'Invalid solver {solver}.')
+    opt = xd.Optimize(vary=vary, targets=targets, solver=solver,
+                        verbose=verbose, assert_within_tol=assert_within_tol,
+                        solver_options=solver_options,
+                        restore_if_fail=restore_if_fail)
+    return opt.solve()
 
-    return_scalar = {'fsolve': False, 'bfgs': True, 'jacobian': False}[solver]
-
-    _err = MeritFunctionForMatch(
-                vary=vary, targets=targets,
-                line=line, actions=actions,
-                return_scalar=return_scalar, call_counter=0, verbose=verbose,
-                tw_kwargs=kwargs, steps_for_jacobian=steps)
-
-    knob_limits = np.array(knob_limits)
-    x_lim_low = _err._knobs_to_x(np.squeeze(knob_limits[:, 0]))
-    x_lim_high = _err._knobs_to_x(np.squeeze(knob_limits[:, 1]))
-    x_limits = [(hh, ll) for hh, ll in zip(x_lim_low, x_lim_high)]
-
-    _jac= _err.get_jacobian
-
-    x0 = _err._knobs_to_x([line.vars[vv.name]._value for vv in vary])
-    try:
-        if solver == 'fsolve':
-            (res, infodict, ier, mesg) = fsolve(_err, x0=x0.copy(),
-                full_output=True, fprime=_jac)
-            if ier != 1:
-                raise RuntimeError("fsolve failed: %s" % mesg)
-            result_info = {
-                'res': res, 'info': infodict, 'ier': ier, 'mesg': mesg}
-        elif solver == 'bfgs':
-            optimize_result = minimize(_err, x0=x0.copy(), method='L-BFGS-B',
-                        bounds=x_limits,
-                        jac=_jac, options={'gtol':0})
-            result_info = {'optimize_result': optimize_result}
-            res = optimize_result.x
-        elif solver == 'jacobian':
-            jac_solver = JacobianSolver(
-                func=_err, limits=x_limits, verbose=verbose, **solver_options)
-            res = jac_solver.solve(x0=x0.copy())
-            result_info = {'jac_solver': jac_solver, 'res': res}
-
-        if assert_within_tol and not _err.found_point_within_tolerance:
-            raise RuntimeError('Could not find point within tolerance.')
-
-        for vv, rr in zip(vary, _err._x_to_knobs(res)):
-            line.vars[vv.name] = rr
-    except Exception as err:
-        if restore_if_fail:
-            knob_values0 = _err._x_to_knobs(x0)
-            for ii, rr in enumerate(vary):
-                line.vars[rr.name] = knob_values0[ii]
-        _print('\n')
-        raise err
-    _print('\n')
-    return result_info
 
 def closed_orbit_correction(line, line_co_ref, correction_config,
                             solver=None, verbose=False, restore_if_fail=True):
@@ -509,3 +207,4 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
                 delta=tw_ref['delta', corr['start']],
             ),
             ele_start=corr['start'], ele_stop=corr['end'])
+
