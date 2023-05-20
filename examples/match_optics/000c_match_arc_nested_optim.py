@@ -78,8 +78,7 @@ class ActionMatchPhaseWithMQTs(xd.Action):
         mqt_knob_values = {
             kk: self.line.vars[kk]._value for kk in self.mqt_knob_names}
 
-        self.line.match(
-            actions=[self.action_arc_phase],
+        opt = xd.Optimize(
             targets=[
                 xd.Target(action=self.action_arc_phase, tar='mux_arc_from_cell',
                             value=self.mux_arc_target, tol=1e-8),
@@ -89,6 +88,7 @@ class ActionMatchPhaseWithMQTs(xd.Action):
             vary=[
                 xd.VaryList(self.mqt_knob_names, self.line.vars, step=1e-5),
             ])
+        opt.solve()
 
         res = {kk: np.abs(self.line.vars[kk]._value) for kk in self.mqt_knob_names}
 
