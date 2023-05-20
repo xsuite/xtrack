@@ -124,6 +124,7 @@ for i_repeat in range(1):
     t_end = time.perf_counter()
     print(f"Matching time: {t_end - t_start:0.4f} seconds")
 
+assert match_res['optimizer'].targets[4].weight == 10.
 
 tw_after = collider.lhcb1.twiss()
 
