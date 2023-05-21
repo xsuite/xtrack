@@ -340,9 +340,10 @@ class Tracker:
                     containing_dir=XT_PREBUILT_KERNELS_LOCATION,
                     kernel_descriptions={'track_line': kernel_description},
                 )
-                self._context.kernels.update(kernels)
                 classes = (self.particles_class._XoStruct,)
-                self._current_track_kernel = self._context.kernels[('track_line', classes)]
+                #self._context.kernels.update(kernels)
+                #self._current_track_kernel = self._context.kernels[('track_line', classes)]
+                self._current_track_kernel = kernels[('track_line', classes)]
                 _element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
                     element_dict=self._tracker_data._element_dict,
