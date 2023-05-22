@@ -274,17 +274,18 @@ class TrackerData:
         out['element_classes'] = [cc._DressingClass for cc in self.element_classes]
         return out
 
-    # def __setstate__(self, state):
-    #     buffer, offset = state.pop('_element_ref_data')
-    #     self.__dict__.update(state)
-    #     self.element_classes = [cc._XoStruct for cc in self.element_classes]
+    def __setstate__(self, state):
+        buffer, offset = state.pop('_element_ref_data')
+        self.__dict__.update(state)
+        self.element_classes = [cc._XoStruct for cc in self.element_classes]
 
-    #     class ElementRefClass(xo.UnionRef):
-    #         _reftypes = self.element_classes
+        class ElementRefClass(xo.UnionRef):
+            _reftypes = self.element_classes
 
-    #     self._ElementRefClass = ElementRefClass
-    #     self._element_ref_data = self._ElementRefClass._from_buffer(
-    #         buffer=buffer,
-    #         offset=offset,
-    #     )
+        self._ElementRefClass = ElementRefClass
+        element_refs_cls = self.generate_element_ref_data(self._ElementRefClass)
+        self._element_ref_data = element_refs_cls._from_buffer(
+            buffer=buffer,
+            offset=offset,
+        )
 
