@@ -12,11 +12,15 @@ line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
 line.build_tracker()
-# collider = xt.Multiline(lines={'lhcb1': line})
-# collider.build_trackers()
 
-line.tracker._track_kernel.clear()
 lnss = pickle.dumps(line)
-
 ln = pickle.loads(lnss)
+tw = line.twiss()
 
+line.discard_tracker()
+
+collider = xt.Multiline(lines={'lhcb1': line})
+collider.build_trackers()
+
+colliderss = pickle.dumps(collider)
+coll = pickle.loads(colliderss)
