@@ -560,10 +560,12 @@ class Tracker:
             save_source_as=f'{module_name}.c' if module_name else None,
             **kwargs,
         )
-        context.kernels.update(out_kernels)
 
         classes = (self.particles_class._XoStruct,)
-        self._current_track_kernel = context.kernels[('track_line', classes)]
+        self._current_track_kernel = out_kernels[('track_line', classes)]
+        # self._current_track_kernel = context.kernels[('track_line', classes)]
+        # context.kernels.update(out_kernels)
+
 
     def get_kernel_descriptions(self, _context=None):
         if not _context:

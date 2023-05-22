@@ -266,3 +266,10 @@ class TrackerData:
     @property
     def _context(self):
         return self._element_ref_data._context
+
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out['_element_ref_data'] = (
+            self._element_ref_data._buffer, self._element_ref_data._offset)
+        out['_ElementRefClass'] = None
+        out.element_classes = [cc._DressingClass for cc in self.element_classes]

@@ -187,4 +187,11 @@ def generate_monitor_class(ParticlesClass):
 ParticlesMonitorBase = generate_monitor_class(xp.Particles)
 
 class ParticlesMonitor(ParticlesMonitorBase):
-    pass
+
+    _extra_c_sources = [
+        _pkg_root.joinpath("monitors/particles_monitor.h")
+    ]
+
+    behaves_like_drift = True
+    has_backtrack = True
+    allow_backtrack = True

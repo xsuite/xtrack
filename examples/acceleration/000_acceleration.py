@@ -11,7 +11,7 @@ import xpart as xp
 import xtrack as xt
 
 T_rev = 23e-6 # 23 us
-Delta_p0c = 0 #450e9 / 10 * T_rev
+Delta_p0c = 450e9 / 10 * T_rev
 
 fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_no_spacecharge_and_particle.json')
