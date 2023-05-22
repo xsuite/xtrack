@@ -164,11 +164,6 @@ optimize_phase_arc_67 = xd.Optimize(
     ])
 optimize_phase_arc_67.solve()
 
-action_match_mqt_s67_b1.restore = False
-action_match_mqt_s67_b2.restore = False
-action_match_mqt_s67_b1.compute()
-action_match_mqt_s67_b2.compute()
-
 t2 = time.perf_counter()
 print(f'Elapsed time: {t2-t1} s')
 
