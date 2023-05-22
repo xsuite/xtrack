@@ -279,6 +279,8 @@ class Multiline:
         return list(self.lines.keys()) + object.__dir__(self)
 
     def __getattr__(self, key):
+        if key == 'lines':
+            return object.__getattribute__(self, 'lines')
         if key in self.lines:
             return self.lines[key]
         else:
