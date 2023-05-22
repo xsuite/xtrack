@@ -139,7 +139,7 @@ def _monitor_get_backtrack_element(
 
     return xt.Marker(_context=_context, _buffer=_buffer, _offset=_offset)
 
-def generate_monitor_class(ParticlesClass):
+class ParticlesMonitor(BeamElement):
 
     _xofields = {
         "start_at_turn": xo.Int64,
@@ -151,42 +151,8 @@ def generate_monitor_class(ParticlesClass):
         "n_repetitions": xo.Int64,
         "repetition_period": xo.Int64,
         "flag_auto_to_numpy": xo.Int64,
-        "data": ParticlesClass._XoStruct,
+        "data": xp.Particles,
     }
-
-    _extra_c_sources = [
-        _pkg_root.joinpath("monitors/particles_monitor.h")
-    ]
-
-    ParticlesMonitorClass = type(
-        "ParticlesMonitor",
-        (BeamElement,),
-        {"_ParticlesClass": ParticlesClass,
-        '_xofields': _xofields,
-        'has_backtrack': True,
-        'allow_backtrack': True,
-        '_extra_c_sources': _extra_c_sources,
-        },
-    )
-
-    ParticlesMonitorClass.__init__ = _monitor_init
-    ParticlesMonitorClass.get_backtrack_element = _monitor_get_backtrack_element
-    ParticlesMonitorClass.behaves_like_drift = True
-    ParticlesMonitorClass.allow_backtrack = True
-    ParticlesMonitorClass.auto_to_numpy = property(auto_to_numpy, set_auto_to_numpy)
-
-    per_particle_vars = ParticlesClass.per_particle_vars
-    for tt, nn in per_particle_vars:
-        setattr(ParticlesMonitorClass, nn, _FieldOfMonitor(name=nn))
-
-    for nn in ['pzeta']:
-        setattr(ParticlesMonitorClass, nn, _FieldOfMonitor(name=nn))
-
-    return ParticlesMonitorClass
-
-ParticlesMonitorBase = generate_monitor_class(xp.Particles)
-
-class ParticlesMonitor(ParticlesMonitorBase):
 
     _extra_c_sources = [
         _pkg_root.joinpath("monitors/particles_monitor.h")
@@ -195,3 +161,20 @@ class ParticlesMonitor(ParticlesMonitorBase):
     behaves_like_drift = True
     has_backtrack = True
     allow_backtrack = True
+    _ParticlesClass = xp.Particles
+
+ParticlesMonitor.__init__ = _monitor_init
+ParticlesMonitor.get_backtrack_element = _monitor_get_backtrack_element
+
+ParticlesMonitor.auto_to_numpy = property(auto_to_numpy, set_auto_to_numpy)
+
+per_particle_vars = xp.Particles.per_particle_vars
+for tt, nn in per_particle_vars:
+    setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
+
+for nn in ['pzeta']:
+    setattr(ParticlesMonitor, nn, _FieldOfMonitor(name=nn))
+
+
+
+

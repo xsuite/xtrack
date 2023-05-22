@@ -1163,9 +1163,6 @@ class Tracker:
 
     @staticmethod
     def _get_default_monitor_class():
-        import xtrack as xt  # I have to do it like this
-
-        # to avoid circular import #TODO to be solved
         return xt.ParticlesMonitor
 
     def _get_monitor(self, particles, turn_by_turn_monitor, num_turns):

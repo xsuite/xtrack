@@ -90,7 +90,6 @@ class TrackerData:
         class ElementRefClass(xo.UnionRef):
             _reftypes = self.element_classes
 
-
         self.element_s_locations = tuple(element_s_locations)
         self.line_length = line_length
         self._ElementRefClass = ElementRefClass
@@ -272,4 +271,20 @@ class TrackerData:
         out['_element_ref_data'] = (
             self._element_ref_data._buffer, self._element_ref_data._offset)
         out['_ElementRefClass'] = None
-        out.element_classes = [cc._DressingClass for cc in self.element_classes]
+        out['element_classes'] = [cc._DressingClass for cc in self.element_classes]
+        return out
+
+    # def __setstate__(self, state):
+    #     buffer, offset = state.pop('_element_ref_data')
+    #     self.__dict__.update(state)
+    #     self.element_classes = [cc._XoStruct for cc in self.element_classes]
+
+    #     class ElementRefClass(xo.UnionRef):
+    #         _reftypes = self.element_classes
+
+    #     self._ElementRefClass = ElementRefClass
+    #     self._element_ref_data = self._ElementRefClass._from_buffer(
+    #         buffer=buffer,
+    #         offset=offset,
+    #     )
+
