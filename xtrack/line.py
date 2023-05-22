@@ -2579,7 +2579,13 @@ class Line:
 
             return out
 
-mathfunctions = type('math', (), {})
+class MathFunctions:
+    pass
+
+def frac(x):
+    return x % 1
+
+mathfunctions = MathFunctions()
 mathfunctions.sqrt = math.sqrt
 mathfunctions.log = math.log
 mathfunctions.log10 = math.log10
@@ -2600,7 +2606,7 @@ mathfunctions.erfc = math.erfc
 mathfunctions.floor = math.floor
 mathfunctions.ceil = math.ceil
 mathfunctions.round = np.round
-mathfunctions.frac = lambda x: (x % 1)
+mathfunctions.frac = frac
 
 
 def _deserialize_element(el, class_dict, _buffer):

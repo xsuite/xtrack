@@ -37,10 +37,6 @@ from .line import _lines_equal, _apertures_equal
 from .loss_location_refinement import _skip_in_loss_location_refinement
 
 
-
-import xpart as _xp
-ParticlesMonitor = generate_monitor_class(_xp.Particles)
-
 from ._version import __version__
 
 def Particles(*args, **kwargs):

@@ -9,6 +9,8 @@ import xtrack as xt
 from ..base_element import BeamElement
 from ..general import _pkg_root
 
+import xpart as xp
+
 
 def _monitor_init(
     self,
@@ -181,3 +183,8 @@ def generate_monitor_class(ParticlesClass):
         setattr(ParticlesMonitorClass, nn, _FieldOfMonitor(name=nn))
 
     return ParticlesMonitorClass
+
+ParticlesMonitorBase = generate_monitor_class(xp.Particles)
+
+class ParticlesMonitor(ParticlesMonitorBase):
+    pass
