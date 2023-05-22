@@ -1315,6 +1315,8 @@ class Tracker:
 
     def __getattr__(self, attr):
         # If not in self look in self.line (if not None)
+        if attr == 'line':
+            raise AttributeError(f'Tracker object has no attribute `{attr}`')
         if self.line is not None and attr in object.__dir__(self.line):
             _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
                 f' Please use `Line.{attr}` (for more info see '
@@ -1344,6 +1346,8 @@ class TrackerConfig(UserDict):
             del(self.data[idx])
 
     def __getattr__(self, idx):
+        if idx == 'data':
+            return object.__getattribute__(self, idx)
         if idx in self.data:
             return self.data[idx]
         else:
