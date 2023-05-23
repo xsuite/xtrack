@@ -177,7 +177,7 @@ class Multiline:
             _var_management_data = state.pop('_var_management_data')
         else:
             rebuild_var_sharing = False
-            state._var_sharing = None
+            state['_var_sharing'] = None
         self.__dict__.update(state)
         if rebuild_var_sharing:
             line_names = list(self.lines.keys())
