@@ -33,8 +33,9 @@ class Multiline:
         else:
             self._var_sharing = None
 
-        for ll in line_list:
-            ll._in_multiline = True
+        for nn, ll in zip(line_names, line_list):
+            ll._in_multiline = self
+            ll._name_in_multiline = nn
 
     def to_dict(self, include_var_management=True):
 
@@ -157,6 +158,12 @@ class Multiline:
                 dct = json.load(fid)
 
         return cls.from_dict(dct, **kwargs)
+
+    # def __getstate__(self):
+    #     out = self.__dict__.copy()
+    #     if '_var_sharing' in out:
+    #         out['_var_sharing'] = 'to_be_rebuilt'
+
 
     def build_trackers(self, _context=None, _buffer=None, **kwargs):
         '''

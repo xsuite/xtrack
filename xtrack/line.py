@@ -459,7 +459,7 @@ class Line:
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
-            if hasattr(self, '_in_multiline') and self._in_multiline:
+            if hasattr(self, '_in_multiline') and self._in_multiline is not None:
                 raise ValueError('The line is part ot a MultiLine object. '
                     'To save without expressions please use '
                     '`line.to_dict(include_var_management=False)`.\n'
@@ -2460,11 +2460,17 @@ class Line:
 
     @property
     def vars(self):
+        if hasattr(self, '_in_multiline'):
+            return self._in_multiline.vars
         if self._var_management is not None:
             return self._var_management['vref']
 
     @property
     def element_refs(self):
+        if hasattr(self, '_in_multiline'):
+            var_sharing = self._in_multiline.var_sharing
+            if var_sharing is not None:
+                return var_sharing._eref[self._in_multiline._name_in_multiline]
         if self._var_management is not None:
             return self._var_management['lref']
 
