@@ -98,9 +98,9 @@ class ActionMatchPhaseWithMQTs(xd.Action):
 
 # For simplicity I use the same target for all arcs
 
-def solve_optimization(opt):
-    opt.solve()
-    return opt
+def solve_optimizations(opts):
+    for opt in opts:
+        opt.solve()
 
 if __name__ == '__main__':
 
@@ -149,12 +149,22 @@ if __name__ == '__main__':
 
         optimizations_to_do.append(optimize_phase_arc)
 
+    optimizations_to_do = 8 * [optimizations_to_do[0]]
 
-    pool = mp.Pool(processes=4)
-    pool.map(solve_optimization, optimizations_to_do)
+    t1 = time.time()
+    pool = mp.Pool(processes=2)
+    pool.map(solve_optimizations, [optimizations_to_do[:4], optimizations_to_do[4:]])
+    # ],
+    #                                optimizations_to_do[4:6], optimizations_to_do[6:]])
+    t2 = time.time()
+    print(f'Time spent(parallel): {t2-t1} s')
 
+    # t1 = time.time()
     # for ii, opt in enumerate(optimizations_to_do):
-    #     ss = pickle.dumps(opt)
-    #     new_opt = pickle.loads(ss)
-    #     new_opt.solve()
+    #     # opt = pickle.loads(pickle.dumps(opt))
+    #     opt.solve()
     #     print(f'Optimization {ii} done')
+    # t2 = time.time()
+    # print(f'Time spent (serial): {t2-t1} s')
+
+    # xt.general._print.suppress = False

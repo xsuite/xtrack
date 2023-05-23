@@ -22,6 +22,30 @@
             "SimpleThinQuadrupole"
         ]
     },
+    "default_only_xtrack_backtrack": {
+        "config": {
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_GLOBAL_XY_LIMIT": 1.0,
+            "XSUITE_BACKTRACK": true
+        },
+        "classes": [
+            "Drift",
+            "Marker",
+            "Multipole",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole"
+        ]
+    },
     "default_bb3d": {
         "config": {
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
