@@ -24,7 +24,6 @@ collider.build_trackers()
 
 # # Let's see what I need to delete to make the roundtrip work
 # collider._var_sharing = None
-# collider.lhcb1._var_management = None
 
 colliderss = pickle.dumps(collider)
 coll = pickle.loads(colliderss)

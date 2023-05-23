@@ -159,10 +159,32 @@ class Multiline:
 
         return cls.from_dict(dct, **kwargs)
 
-    # def __getstate__(self):
-    #     out = self.__dict__.copy()
-    #     if '_var_sharing' in out:
-    #         out['_var_sharing'] = 'to_be_rebuilt'
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        if '_var_sharing' in out and out['_var_sharing'] is not None:
+            out['_var_sharing'] = 'to_be_rebuilt'
+            out['_var_manager'] = self._var_sharing.manager.dump()
+            out['_var_management_data'] = self._var_sharing.data
+        return out
+
+    def __setstate__(self, state):
+        import pdb; pdb .set_trace()
+        if '_var_sharing' in state and state['_var_sharing'] == 'to_be_rebuilt':
+            rebuild_var_sharing = True
+            _var_manager = state.pop('_var_manager')
+            _var_management_data = state.pop('_var_management_data')
+        else:
+            rebuild_var_sharing = False
+            state._var_sharing = None
+        self.__dict__.update(state)
+        if rebuild_var_sharing:
+            line_names = list(self.lines.keys())
+            line_list = [self.lines[nn] for nn in line_names]
+            self._var_sharing = VarSharing(lines=line_list,
+                                           names=line_names)
+            self._var_sharing.manager.load(_var_manager)
+            for kk in _var_management_data.keys():
+                self._var_sharing.data[kk].update(_var_management_data[kk])
 
 
     def build_trackers(self, _context=None, _buffer=None, **kwargs):
