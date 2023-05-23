@@ -30,6 +30,7 @@ class Multiline:
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
             self._var_sharing = VarSharing(lines=line_list, names=line_names)
+            self._multiline_vars = MiltilineVars(self)
         else:
             self._var_sharing = None
 
@@ -321,7 +322,7 @@ class Multiline:
     @property
     def vars(self):
         if self._var_sharing is not None:
-            return self._var_sharing._vref
+            return self._multiline_vars
 
     def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
                                       ip_names,
@@ -497,3 +498,13 @@ class MultiTwiss(dict):
         self.__dict__ = self
 
 
+class MiltilineVars:
+
+    def __init__(self, multiline):
+        self.multiline = multiline
+
+    def __getitem__(self, key):
+        return self.multiline._var_sharing._vref[key]
+
+    def __setitem__(self, key, value):
+        self.multiline._var_sharing._vref[key] = value

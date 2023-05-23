@@ -150,12 +150,11 @@ if __name__ == '__main__':
         optimizations_to_do.append(optimize_phase_arc)
 
 
-    # pool = mp.Pool(processes=4)
+    pool = mp.Pool(processes=4)
+    pool.map(solve_optimization, optimizations_to_do)
 
-    # pool.map(solve_optimization, optimizations_to_do)
-
-    for ii, opt in enumerate(optimizations_to_do):
-        # ss = pickle.dumps(opt)
-        # new_opt = pickle.loads(ss)
-        opt.solve()
-        print(f'Optimization {ii} done')
+    # for ii, opt in enumerate(optimizations_to_do):
+    #     ss = pickle.dumps(opt)
+    #     new_opt = pickle.loads(ss)
+    #     new_opt.solve()
+    #     print(f'Optimization {ii} done')

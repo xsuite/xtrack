@@ -15,12 +15,6 @@ line = xt.Line.from_json(
 line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
 line.build_tracker()
 
-# Try to pickle line.vars
-
-ss = pickle.dumps(line.vars)
-vars = pickle.loads(ss)
-
-
 lnss = pickle.dumps(line)
 ln = pickle.loads(lnss)
 
