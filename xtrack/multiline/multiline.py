@@ -161,6 +161,8 @@ class Multiline:
 
     def __getstate__(self):
         out = self.__dict__.copy()
+        for nn, ll in self.lines.items():
+            ll._pickled_by_multiline = True
         if '_var_sharing' in out and out['_var_sharing'] is not None:
             out['_var_sharing'] = 'to_be_rebuilt'
             out['_var_manager'] = self._var_sharing.manager.dump()
@@ -184,6 +186,8 @@ class Multiline:
             self._var_sharing.manager.load(_var_manager)
             for kk in _var_management_data.keys():
                 self._var_sharing.data[kk].update(_var_management_data[kk])
+        for nn, ll in self.lines.items():
+            ll._in_multiline = self
 
 
     def build_trackers(self, _context=None, _buffer=None, **kwargs):

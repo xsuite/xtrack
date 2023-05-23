@@ -471,7 +471,19 @@ class Line:
 
     def __getstate__(self):
         out = self.__dict__.copy()
-        if self._var_management is not None:
+
+        if '_pickled_by_multiline' in out and out['_pickled_by_multiline']:
+            # Clean flags an bypass var management (handled by multiline)
+            del(self._pickled_by_multiline)
+            del(out['_pickled_by_multiline'])
+            return out
+
+        _in_multiline = out.pop('_in_multiline', None)
+        if _in_multiline is not None and _in_multiline.vars is not None:
+            raise RuntimeError('The line is part ot a MultiLine object. '
+                'To pickle the deferred expressions you need to pickle the '
+                'entire multiline.\n ')
+        if self.vars is not None: # expressions are enabled and owned by the line
             out['_var_management'] = 'to_be_rebuilt'
             out['_var_management_dict'] = self._var_management_to_dict()
         return out
@@ -2481,7 +2493,7 @@ class Line:
 
     @property
     def vars(self):
-        if hasattr(self, '_in_multiline'):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
         if self._var_management is not None:
             return self._var_management['vref']
