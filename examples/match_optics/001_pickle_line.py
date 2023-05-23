@@ -1,5 +1,7 @@
 import pickle
 
+import numpy as np
+
 import xtrack as xt
 import xpart as xp
 
@@ -15,7 +17,11 @@ line.build_tracker()
 
 lnss = pickle.dumps(line)
 ln = pickle.loads(lnss)
-tw = line.twiss()
+
+# Check that expressions work on old and new line
+line.vars['on_x1'] = 234
+ln.vars['on_x1'] = 123
+assert np.isclose(line.twiss(method='4d')['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
 
 line.discard_tracker()
 
