@@ -380,10 +380,10 @@ class Tracker:
                 self._current_track_kernel = self._context.kernels[('track_line', classes)]
                 _element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
-                    element_dict=self.line._element_dict,
-                    element_names=self.line.element_names,
-                    element_s_locations=self.line.get_s_elements(),
-                    line_length=self.line.get_length(),
+                    element_dict=self._tracker_data._element_dict,
+                    element_names=self._tracker_data._element_names,
+                    element_s_locations=self._tracker_data.element_s_locations,
+                    line_length=self._tracker_data.line_length,
                     element_classes=_element_classes,
                     _context=self._context,
                     _buffer=self._buffer,
@@ -415,15 +415,23 @@ class Tracker:
                              int64_t offset_tbt_monitor,
                 /*gpuglmem*/ int8_t* io_buffer){
 
+            const int64_t capacity = ParticlesData_get__capacity(particles);               //only_for_context cpu_openmp
+            const int num_threads = omp_get_max_threads();                                 //only_for_context cpu_openmp
+            const int64_t chunk_size = (capacity + num_threads - 1)/num_threads; // ceil division  //only_for_context cpu_openmp
+            #pragma omp parallel for                                                       //only_for_context cpu_openmp
+            for (int chunk = 0; chunk < num_threads; chunk++) {                            //only_for_context cpu_openmp
+            int64_t part_id = chunk * chunk_size;                                          //only_for_context cpu_openmp
+            int64_t end_id = (chunk + 1) * chunk_size;                                     //only_for_context cpu_openmp
+            if (end_id > capacity) end_id = capacity;                                      //only_for_context cpu_openmp
+
+            int64_t part_id = 0;                                      //only_for_context cpu_serial
+            int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x;  //only_for_context cuda
+            int64_t part_id = get_global_id(0);                       //only_for_context opencl
+            int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
 
             LocalParticle lpart;
             lpart.io_buffer = io_buffer;
-
-            int64_t part_id = 0;                    //only_for_context cpu_serial cpu_openmp
-            int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
-            int64_t part_id = get_global_id(0);                    //only_for_context opencl
-
-
+            
             /*gpuglmem*/ int8_t* tbt_mon_pointer =
                             buffer_tbt_monitor + offset_tbt_monitor;
             ParticlesMonitorData tbt_monitor =
@@ -431,7 +439,7 @@ class Tracker:
 
             int64_t part_capacity = ParticlesData_get__capacity(particles);
             if (part_id<part_capacity){
-            Particles_to_LocalParticle(particles, &lpart, part_id);
+            Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
 
             int64_t isactive = check_is_active(&lpart);
 
@@ -513,6 +521,18 @@ class Tracker:
             LocalParticle_to_Particles(&lpart, particles, part_id, 1);
 
             }// if partid
+            } //only_for_context cpu_openmp
+            
+            // On OpenMP we want to additionally by default reorganize all
+            // the particles.
+            #ifndef XT_OMP_SKIP_REORGANIZE                             //only_for_context cpu_openmp
+            LocalParticle lpart;                                       //only_for_context cpu_openmp
+            lpart.io_buffer = io_buffer;                               //only_for_context cpu_openmp
+            Particles_to_LocalParticle(particles, &lpart, 0, capacity);//only_for_context cpu_openmp
+            check_is_active(&lpart);                                   //only_for_context cpu_openmp
+            count_reorganized_particles(&lpart);                       //only_for_context cpu_openmp
+            LocalParticle_to_Particles(&lpart, particles, 0, capacity);//only_for_context cpu_openmp
+            #endif                                                     //only_for_context cpu_openmp
         }//kernel
         """
         )
@@ -756,12 +776,11 @@ class Tracker:
         self._check_invalidated()
 
         if (isinstance(self._buffer.context, xo.ContextCpu)
-            and _session_to_resume is None):
-            assert (particles._num_active_particles >= 0 and
-                    particles._num_lost_particles >= 0), (
-                        "Particles state is not valid to run on CPU, please "
-                        "call `particles.reorganize()` first."
-                    )
+                and _session_to_resume is None):
+            if not (particles._num_active_particles >= 0 and
+                    particles._num_lost_particles >= 0):
+                raise ValueError("Particles state is not valid to run on CPU, "
+                                 "please call `particles.reorganize()` first.")
 
         if _session_to_resume is not None:
             if isinstance(_session_to_resume, PipelineStatus):

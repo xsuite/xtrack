@@ -25,6 +25,29 @@ def _monitor_init(
     auto_to_numpy=True,
 ):
 
+    '''
+    Beam element logging the coordinates of the particles passing through it.
+
+    Parameters
+    ----------
+    start_at_turn: int
+        Turn at which the monitor starts logging the particles coordinates.
+    stop_at_turn: int
+        Turn at which the monitor stops logging the particles coordinates.
+    n_repetitions: int
+        Number of times the monitor repeats the logging of the particles.
+    repetition_period: int
+        Period in number of turns for the repetition of the logging of the particles.
+    num_particles: int
+        Number of particles to be logged.
+    particle_id_range: tuple of int
+        Range of particle ids to be logged.
+    auto_to_numpy: bool
+        If True, the data is automatically converted to numpy arrays when
+        accessed.
+
+    '''
+
     if _xobject is not None:
         self.xoinitialize(_xobject=_xobject)
     else:

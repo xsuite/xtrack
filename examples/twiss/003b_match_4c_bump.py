@@ -14,9 +14,11 @@ line.build_tracker()
 tw_before = line.twiss()
 
 line.match(
+    # Portion of the beam line to be modified and initial conditions
     ele_start='mq.33l8.b1',
     ele_stop='mq.23l8.b1',
     twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+    # Dipole corrector strengths to be varied
     vary=[
         xt.Vary(name='acbv30.l8b1', step=1e-10),
         xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -35,15 +37,17 @@ line.match(
     ]
 )
 
+#!end-doc-part
+
 tw = line.twiss()
 
 import matplotlib.pyplot as plt
 plt.close('all')
-fig = plt.figure(1, figsize=(6.4*1.5, 4.8))
+fig = plt.figure(1, figsize=(6.4*1.2, 4.8*0.8))
 ax = fig.add_subplot(111)
 ax.plot(tw_before.s, tw_before.y*1000, label='y')
 ax.plot(tw.s, tw.y*1000, label='y')
-ax.axvline(x=line.get_s_position('mb.b28l8.b1'), color='k')
+ax.axvline(x=line.get_s_position('mb.b28l8.b1'), color='r', linestyle='--', alpha=0.5)
 ax.axvline(x=line.get_s_position('mcbv.30l8.b1'), color='k', linestyle='--', alpha=0.5)
 ax.axvline(x=line.get_s_position('mcbv.28l8.b1'), color='k', linestyle='--', alpha=0.5)
 ax.axvline(x=line.get_s_position('mcbv.26l8.b1'), color='k', linestyle='--', alpha=0.5)
@@ -55,6 +59,7 @@ ax.set_xlim(line.get_s_position('mq.33l8.b1') - 10,
 ax.set_xlabel('s [m]')
 ax.set_ylabel('y [mm]')
 ax.set_ylim(-0.5, 10)
+plt.subplots_adjust(bottom=.152, top=.9, left=.1, right=.95)
 plt.show()
 
 assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)

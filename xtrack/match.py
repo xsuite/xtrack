@@ -30,14 +30,7 @@ def _error_for_match(knob_values, vary, targets, line, return_scalar,
     res_values = []
     target_values = []
     for tt in targets:
-        if isinstance(tt.tar, str):
-            if tt.at is not None:
-                res_values.append(tw[tt.tar, tt.at])
-            else:
-                res_values.append(tw[tt.tar])
-        else:
-            assert tt.at is None, '`at` cannot be provided if target is a function'
-            res_values.append(tt.tar(tw))
+        res_values.append(tt.eval(tw))
         target_values.append(tt.value)
 
     res_values = np.array(res_values)
@@ -83,20 +76,52 @@ def _jacobian(x, steps, fun):
         x[ii] -= steps[ii]
     return jac
 
+class TargetList:
+    def __init__(self, tars, **kwargs):
+        self.targets = [Target(tt, **kwargs) for tt in tars]
+
+class VaryList:
+    def __init__(self, vars, **kwargs):
+        self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
+
 class Vary:
     def __init__(self, name, limits=None, step=None):
         self.name = name
         self.limits = limits
         self.step = step
 
-
 class Target:
-    def __init__(self, tar, value, at=None, tol=None, scale=None):
+    def __init__(self, tar, value, at=None, tol=None, scale=None, line=None):
         self.tar = tar
         self.value = value
         self.tol = tol
         self.at = at
         self.scale = scale
+        self.line = line
+
+    def eval(self, tw):
+
+        if isinstance (tw, xt.MultiTwiss) and not callable(self.tar):
+            if self.line is None:
+                raise ValueError('When using `Multiline.match`, '
+                    'a `line` must associated to each non-callable target.')
+
+        if self.line is not None:
+            assert isinstance(tw, xt.MultiTwiss), (
+                'The line associated to a target can be provided only when '
+                'using `Multiline.match`')
+            this_tw = tw[self.line]
+        else:
+            this_tw = tw
+
+        if isinstance(self.tar, str):
+            if self.at is not None:
+                return this_tw[self.tar, self.at]
+            else:
+                return this_tw[self.tar]
+        elif callable(self.tar):
+            assert self.at is None, '`at` cannot be provided if target is a function'
+            return self.tar(this_tw)
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, **kwargs):
@@ -124,23 +149,50 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     if isinstance(vary, (str, Vary)):
         vary = [vary]
 
-    for ii, rr in enumerate(vary):
+    input_vary = vary
+    vary = []
+    for ii, rr in enumerate(input_vary):
         if isinstance(rr, Vary):
-            pass
+            vary.append(rr)
         elif isinstance(rr, str):
-            vary[ii] = Vary(rr)
+            vary.append(Vary(rr))
         elif isinstance(rr, (list, tuple)):
-            vary[ii] = Vary(*rr)
+            raise ValueError('Not anymore supported')
+        elif isinstance(rr, VaryList):
+            vary += rr.vary_objects
         else:
             raise ValueError(f'Invalid vary setting {rr}')
 
-    for ii, tt in enumerate(targets):
+    if 'twiss_init' in kwargs and kwargs['twiss_init'] == 'preserve':
+        full_twiss_kwargs = kwargs.copy()
+        full_twiss_kwargs.pop('twiss_init')
+        full_twiss_kwargs.pop('ele_start')
+        full_twiss_kwargs.pop('ele_stop')
+        tw0_full = line.twiss(**full_twiss_kwargs)
+        if isinstance(tw0_full, xt.MultiTwiss):
+            kwargs['twiss_init'] = []
+            for ll, nn in zip(tw0_full._line_names, kwargs['ele_start']):
+                kwargs['twiss_init'].append(tw0_full[ll].get_twiss_init(at_element=nn))
+        else:
+            kwargs['twiss_init'] = tw0_full.get_twiss_init(at_element=kwargs['ele_start'])
+
+    tw0 = line.twiss(**kwargs)
+
+    input_targets = targets
+    targets = []
+    for ii, tt in enumerate(input_targets):
         if isinstance(tt, Target):
-            pass
+            targets.append(tt)
         elif isinstance(tt, (list, tuple)):
-            targets[ii] = Target(*tt)
+            targets.append(Target(*tt))
+        elif isinstance(tt, TargetList):
+            targets += tt.targets
         else:
             raise ValueError(f'Invalid target element {tt}')
+
+    for tt in targets:
+        if tt.value == 'preserve':
+            tt.value = tt.eval(tw0)
 
     if 'ele_stop' in kwargs and kwargs['ele_stop'] is not None:
         ele_stop = kwargs['ele_stop']
@@ -221,7 +273,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     except Exception as err:
         if restore_if_fail:
             for ii, rr in enumerate(vary):
-                line.vars[rr] = x0[ii]
+                line.vars[rr.name] = x0[ii]
         _print('\n')
         raise err
     _print('\n')
