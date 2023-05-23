@@ -321,7 +321,7 @@ class Multiline:
 
     @property
     def vars(self):
-        if self._var_sharing is not None:
+        # if self._var_sharing is not None:
             return self._multiline_vars
 
     def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
@@ -502,9 +502,54 @@ class MiltilineVars:
 
     def __init__(self, multiline):
         self.multiline = multiline
+        self.cache = False
+        self._cached_setters = {}
+
+    def _setter_from_cache(self, varname):
+        if varname not in self._cached_setters:
+            try:
+                self.cache = False
+                self._cached_setters[varname] = VarSetter(self.multiline, varname)
+                self.cache = True
+            except Exception as ee:
+                self.cache = True
+                raise ee
+        return self._cached_setters[varname]
 
     def __getitem__(self, key):
+        if self.cache:
+            self._setter_from_cache(key)
         return self.multiline._var_sharing._vref[key]
 
     def __setitem__(self, key, value):
-        self.multiline._var_sharing._vref[key] = value
+        if self.cache:
+            self._setter_from_cache(key)(value)
+        else:
+            self.multiline._var_sharing._vref[key] = value
+
+class VarSetter:
+    def __init__(self, multiline, varname):
+        self.multiline = multiline
+        self.varname = varname
+
+        manager = self.multiline._var_sharing.manager
+        self.fstr = manager.mk_fun(varname, **{varname: multiline.vars[varname]})
+        self.gbl = {k: r._owner for k, r in manager.containers.items()}
+        self._build_fun()
+
+    def _build_fun(self):
+        lcl = {}
+        exec(self.fstr, self.gbl.copy(), lcl)
+        self.fun = lcl[self.varname]
+
+    def __call__(self, value):
+        self.fun(**{self.varname: value})
+
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out.pop('fun')
+        return out
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._build_fun()
