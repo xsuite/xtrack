@@ -23,10 +23,10 @@ f = manager.gen_fun('on_x1', on_x1=collider.vars['on_x1'])
 fstr = manager.mk_fun('on_x1', on_x1=collider.vars['on_x1'])
 
 class VarSetter:
-    def __init__(self, collider, varname):
-        self.collider = collider
+    def __init__(self, multiline, varname):
+        self.multiline = multiline
         self.varname = varname
-        self.fstr = manager.mk_fun(varname, **{varname: collider.vars[varname]})
+        self.fstr = manager.mk_fun(varname, **{varname: multiline.vars[varname]})
         self.gbl = {k: r._owner for k, r in manager.containers.items()}
         self._build_fun()
 
