@@ -30,8 +30,10 @@ class VarSharing:
         # bind data with line.element_dict
         self._eref._owner[name] = line.element_dict
 
-        if (line._var_management is not None
-            and line._var_management["manager"] is not None):
+        if (hasattr(line, "_var_management")
+                and line._var_management is not None
+                and line._var_management["manager"] is not None):
+
             mgr1 = line._var_management["manager"]
 
             if update_existing:

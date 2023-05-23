@@ -168,7 +168,6 @@ class Multiline:
         return out
 
     def __setstate__(self, state):
-        import pdb; pdb .set_trace()
         if '_var_sharing' in state and state['_var_sharing'] == 'to_be_rebuilt':
             rebuild_var_sharing = True
             _var_manager = state.pop('_var_manager')

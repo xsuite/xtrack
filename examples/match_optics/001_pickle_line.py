@@ -27,3 +27,6 @@ collider.build_trackers()
 
 colliderss = pickle.dumps(collider)
 coll = pickle.loads(colliderss)
+
+lnss = pickle.dumps(line)
+ln = pickle.loads(lnss)
