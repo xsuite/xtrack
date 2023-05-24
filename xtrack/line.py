@@ -2925,7 +2925,7 @@ class LineVars:
 
     def __getitem__(self, key):
         if self.cache_active:
-            self._setter_from_cache(key)
+            return self._setter_from_cache(key)
         return self.line._var_sharing._vref[key]
 
     def __setitem__(self, key, value):
@@ -2943,13 +2943,18 @@ class VarSetter:
         if manager is None:
             raise RuntimeError(
                 f'Cannot access variable {varname} as the line has no xdeps manager')
-        self.owner = line._xdeps_vref[varname]._owner
+        # assuming line._xdeps_vref is a direct view of a dictionary
+        self.owner = line._xdeps_vref[varname]._owner._owner
         self.fstr = manager.mk_fun(varname, **{varname: line._xdeps_vref[varname]})
         self.gbl = {k: r._owner for k, r in manager.containers.items()}
         self._build_fun()
 
     def get_value(self):
         return self.owner[self.varname]
+
+    @property
+    def _value(self):
+        return self.get_value()
 
     def _build_fun(self):
         lcl = {}
