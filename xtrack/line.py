@@ -2908,7 +2908,7 @@ def _temp_knobs(line_or_trk, knobs: dict):
 class LineVars:
 
     def __init__(self, line):
-        self.lie = line
+        self.line = line
         self.cache_active = False
         self._cached_setters = {}
 
@@ -2916,7 +2916,7 @@ class LineVars:
         if varname not in self._cached_setters:
             try:
                 self.cache_active = False
-                self._cached_setters[varname] = VarSetter(self.lie, varname)
+                self._cached_setters[varname] = VarSetter(self.line, varname)
                 self.cache_active = True
             except Exception as ee:
                 self.cache_active = True
@@ -2926,13 +2926,13 @@ class LineVars:
     def __getitem__(self, key):
         if self.cache_active:
             self._setter_from_cache(key)
-        return self.lie._var_sharing._vref[key]
+        return self.line._var_sharing._vref[key]
 
     def __setitem__(self, key, value):
         if self.cache_active:
             self._setter_from_cache(key)(value)
         else:
-            self.lie._xdeps_vref[key] = value
+            self.line._xdeps_vref[key] = value
 
 class VarSetter:
     def __init__(self, line, varname):
@@ -2943,9 +2943,13 @@ class VarSetter:
         if manager is None:
             raise RuntimeError(
                 f'Cannot access variable {varname} as the line has no xdeps manager')
+        self.owner = line._xdeps_vref[varname]._owner
         self.fstr = manager.mk_fun(varname, **{varname: line._xdeps_vref[varname]})
         self.gbl = {k: r._owner for k, r in manager.containers.items()}
         self._build_fun()
+
+    def get_value(self):
+        return self.owner[self.varname]
 
     def _build_fun(self):
         lcl = {}

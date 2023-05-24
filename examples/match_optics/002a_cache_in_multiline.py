@@ -17,7 +17,7 @@ collider.lhcb2.twiss_default['method'] = '4d'
 collider.lhcb2.twiss_default['reverse'] = True
 
 collider.vars['on_x2'] = 123
-collider.vars.cache = True
+collider.vars.cache_active = True
 
 collider.vars['on_x1']._value
 collider.vars['on_x5']._value
