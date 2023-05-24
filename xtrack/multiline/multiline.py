@@ -30,7 +30,7 @@ class Multiline:
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
             self._var_sharing = VarSharing(lines=line_list, names=line_names)
-            self._multiline_vars = MiltilineVars(self)
+            self._multiline_vars = LineVars(self)
         else:
             self._var_sharing = None
 
@@ -508,10 +508,10 @@ class MultiTwiss(dict):
         self.__dict__ = self
 
 
-class MiltilineVars:
+class LineVars:
 
-    def __init__(self, multiline):
-        self.multiline = multiline
+    def __init__(self, line):
+        self.lie = line
         self.cache = False
         self._cached_setters = {}
 
@@ -519,7 +519,7 @@ class MiltilineVars:
         if varname not in self._cached_setters:
             try:
                 self.cache = False
-                self._cached_setters[varname] = VarSetter(self.multiline, varname)
+                self._cached_setters[varname] = VarSetter(self.lie, varname)
                 self.cache = True
             except Exception as ee:
                 self.cache = True
@@ -529,21 +529,24 @@ class MiltilineVars:
     def __getitem__(self, key):
         if self.cache:
             self._setter_from_cache(key)
-        return self.multiline._var_sharing._vref[key]
+        return self.lie._var_sharing._vref[key]
 
     def __setitem__(self, key, value):
         if self.cache:
             self._setter_from_cache(key)(value)
         else:
-            self.multiline._xdeps_vref[key] = value
+            self.lie._xdeps_vref[key] = value
 
 class VarSetter:
-    def __init__(self, multiline, varname):
-        self.multiline = multiline
+    def __init__(self, line, varname):
+        self.multiline = line
         self.varname = varname
 
         manager = self.multiline._xdeps_manager
-        self.fstr = manager.mk_fun(varname, **{varname: multiline._xdeps_vref[varname]})
+        if manager is None:
+            raise RuntimeError(
+                f'Cannot access variable {varname} as the line has no xdeps manager')
+        self.fstr = manager.mk_fun(varname, **{varname: line._xdeps_vref[varname]})
         self.gbl = {k: r._owner for k, r in manager.containers.items()}
         self._build_fun()
 
