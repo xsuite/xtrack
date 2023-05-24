@@ -1,6 +1,6 @@
 import xpart as xp
 from cpymad.madx import Madx
-from xtrack.mad_loader import MadLoader, TeapotSlicing
+from xtrack.mad_loader import MadLoader, TeapotSlicing, SlicingStrategy
 
 mad = Madx()
 mad.call('lhc_sequence.madx')
@@ -11,31 +11,16 @@ mad.sequence.lhcb1.use()
 ml = MadLoader(mad.sequence.lhcb1, enable_slicing=True)
 
 ml.slicing_strategies = [
-    ml.make_slicing_strategy(
-        name_regex=r'(mqt|mqtli|mqtlh)\..*',
-        slicing_strategy=TeapotSlicing(2),
+    SlicingStrategy(name=r'(mqt|mqtli|mqtlh)\..*', slicing=TeapotSlicing(2)),
+    SlicingStrategy(
+        name=r'(mbx|mbrb|mbrc|mbrs|mbh|mqwa|mqwb|mqy|mqm|mqmc|mqml)\..*',
+        slicing=TeapotSlicing(4),
     ),
-    ml.make_slicing_strategy(
-        name_regex=r'(mbx|mbrb|mbrc|mbrs|mbh|mqwa|mqwb|mqy|mqm|mqmc|mqml)\..*',
-        slicing_strategy=TeapotSlicing(4),
-    ),
-    ml.make_slicing_strategy(
-        madx_type='mqxb',
-        slicing_strategy=TeapotSlicing(16),
-    ),
-    ml.make_slicing_strategy(
-        madx_type='mqxa',
-        slicing_strategy=TeapotSlicing(16),
-    ),
-    ml.make_slicing_strategy(
-        madx_type='mq',
-        slicing_strategy=TeapotSlicing(2),
-    ),
-    ml.make_slicing_strategy(
-        madx_type='mb',
-        slicing_strategy=TeapotSlicing(2),
-    ),
-    ml.make_slicing_strategy(TeapotSlicing(1)),  # Default catch-all as in MAD-X
+    SlicingStrategy(madx_type='mqxb', slicing=TeapotSlicing(16)),
+    SlicingStrategy(madx_type='mqxa', slicing=TeapotSlicing(16)),
+    SlicingStrategy(madx_type='mq', slicing=TeapotSlicing(2)),
+    SlicingStrategy(madx_type='mb', slicing=TeapotSlicing(2)),
+    SlicingStrategy(TeapotSlicing(1)),  # Default catch-all as in MAD-X
 ]
 line=ml.make_line()
 
