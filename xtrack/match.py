@@ -117,7 +117,11 @@ class ActionTwiss(xd.Action):
 class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None):
-        xd.Target.__init__(self, tar=(tar, at), value=value, tol=tol,
+        if at is not None:
+            xdtar = (tar, at)
+        else:
+            xdtar = tar
+        xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action)
         self.line = line
 
@@ -126,13 +130,13 @@ class Vary(xd.Vary):
         xd.Vary.__init__(self, name=name, container=None, limits=limits,
                          step=step, weight=weight)
 
-class VaryList:
-    def __init__(self, vars, container, **kwargs):
+class VaryList(xd.VaryList):
+    def __init__(self, vars, **kwargs):
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
-class TargetList:
-    def __init__(self, tars, **kwargs):
-        self.targets = [Target(tt, **kwargs) for tt in tars]
+class TargetList(xd.TargetList):
+    def __init__(self, tars, action=None, **kwargs):
+        self.targets = [Target(tt, action=action, **kwargs) for tt in tars]
 
 class TargetInequality(Target):
 
@@ -157,7 +161,15 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   solver_options={}, **kwargs):
 
     twiss_actions = {}
+    targets_flatten = []
     for tt in targets:
+        if isinstance(tt, xd.TargetList):
+            for tt1 in tt.targets:
+                targets_flatten.append(tt1)
+        else:
+            targets_flatten.append(tt)
+
+    for tt in targets_flatten:
         if tt.action is None:
             if tt.line is not None:
                 ln_twiss = line[tt.line]
@@ -173,7 +185,14 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 tt_name = tt.tar
             tt.weight = DEFAULT_WEIGHTS.get(tt_name, 1.)
 
+    vary_flatten = []
     for vv in vary:
+        if isinstance(vv, xd.VaryList):
+            for vv1 in vv.vary_objects:
+                vary_flatten.append(vv1)
+        else:
+            vary_flatten.append(vv)
+    for vv in vary_flatten:
         if vv.container is None:
             vv.container = line.vars
 

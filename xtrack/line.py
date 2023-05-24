@@ -2913,6 +2913,12 @@ class LineVars:
         self.cache_active = False
         self._cached_setters = {}
 
+    def keys(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return self.line._xdeps_vref._owner.keys()
+
     def _setter_from_cache(self, varname):
         if varname not in self._cached_setters:
             try:
