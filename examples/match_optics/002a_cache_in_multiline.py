@@ -19,9 +19,14 @@ collider.lhcb2.twiss_default['reverse'] = True
 collider.vars['on_x2'] = 123
 collider.vars.cache = True
 
-collider.vars['on_x1'] = 2
-collider.vars['on_x5'] = 3
+collider.vars['on_x1']._value
+collider.vars['on_x5']._value
 
 collider._var_sharing = None
 
+collider.vars['on_x1'] = 234
+collider.vars['on_x5'] = 123
+
+assert np.isclose(collider['lhcb1'].twiss()['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
+assert np.isclose(collider['lhcb1'].twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
 

@@ -324,6 +324,16 @@ class Multiline:
         # if self._var_sharing is not None:
             return self._multiline_vars
 
+    @property
+    def _xdeps_vref(self):
+        if self._var_sharing is not None:
+            return self._var_sharing._vref
+
+    @property
+    def _xdeps_manager(self):
+        if self._var_sharing is not None:
+            return self._var_sharing.manager
+
     def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
                                       ip_names,
                                       num_long_range_encounters_per_side,
@@ -525,15 +535,15 @@ class MiltilineVars:
         if self.cache:
             self._setter_from_cache(key)(value)
         else:
-            self.multiline._var_sharing._vref[key] = value
+            self.multiline._xdeps_vref[key] = value
 
 class VarSetter:
     def __init__(self, multiline, varname):
         self.multiline = multiline
         self.varname = varname
 
-        manager = self.multiline._var_sharing.manager
-        self.fstr = manager.mk_fun(varname, **{varname: multiline.vars[varname]})
+        manager = self.multiline._xdeps_manager
+        self.fstr = manager.mk_fun(varname, **{varname: multiline._xdeps_vref[varname]})
         self.gbl = {k: r._owner for k, r in manager.containers.items()}
         self._build_fun()
 
