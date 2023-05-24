@@ -367,7 +367,7 @@ class RDMTable:
                 cols = args[0]
                 rows = args[1]
                 # TODO: for performance I do it like this, but to be fixed properly
-                if type(rows) is str:
+                if type(rows) is str and type(cols) is str:
                     indx = np.where(self[self._index] == rows)[0][0]
                     return self._data[cols][indx]
             else:
