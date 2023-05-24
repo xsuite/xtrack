@@ -2946,7 +2946,7 @@ class VarSetter:
                 f'Cannot access variable {varname} as the line has no xdeps manager')
         # assuming line._xdeps_vref is a direct view of a dictionary
         self.owner = line._xdeps_vref[varname]._owner._owner
-        self.fstr = manager.mk_fun(varname, **{varname: line._xdeps_vref[varname]})
+        self.fstr = manager.mk_fun('setter', **{'val': line._xdeps_vref[varname]})
         self.gbl = {k: r._owner for k, r in manager.containers.items()}
         self._build_fun()
 
@@ -2960,10 +2960,10 @@ class VarSetter:
     def _build_fun(self):
         lcl = {}
         exec(self.fstr, self.gbl.copy(), lcl)
-        self.fun = lcl[self.varname]
+        self.fun = lcl['setter']
 
     def __call__(self, value):
-        self.fun(**{self.varname: value})
+        self.fun(val=value)
 
     def __getstate__(self):
         out = self.__dict__.copy()
