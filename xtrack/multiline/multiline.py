@@ -30,7 +30,7 @@ class Multiline:
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
             self._var_sharing = VarSharing(lines=line_list, names=line_names)
-            self._multiline_vars = LineVars(self)
+            self._multiline_vars = xt.line.LineVars(self)
         else:
             self._var_sharing = None
 
@@ -507,62 +507,3 @@ class MultiTwiss(dict):
     def __init__(self):
         self.__dict__ = self
 
-
-class LineVars:
-
-    def __init__(self, line):
-        self.lie = line
-        self.cache = False
-        self._cached_setters = {}
-
-    def _setter_from_cache(self, varname):
-        if varname not in self._cached_setters:
-            try:
-                self.cache = False
-                self._cached_setters[varname] = VarSetter(self.lie, varname)
-                self.cache = True
-            except Exception as ee:
-                self.cache = True
-                raise ee
-        return self._cached_setters[varname]
-
-    def __getitem__(self, key):
-        if self.cache:
-            self._setter_from_cache(key)
-        return self.lie._var_sharing._vref[key]
-
-    def __setitem__(self, key, value):
-        if self.cache:
-            self._setter_from_cache(key)(value)
-        else:
-            self.lie._xdeps_vref[key] = value
-
-class VarSetter:
-    def __init__(self, line, varname):
-        self.multiline = line
-        self.varname = varname
-
-        manager = self.multiline._xdeps_manager
-        if manager is None:
-            raise RuntimeError(
-                f'Cannot access variable {varname} as the line has no xdeps manager')
-        self.fstr = manager.mk_fun(varname, **{varname: line._xdeps_vref[varname]})
-        self.gbl = {k: r._owner for k, r in manager.containers.items()}
-        self._build_fun()
-
-    def _build_fun(self):
-        lcl = {}
-        exec(self.fstr, self.gbl.copy(), lcl)
-        self.fun = lcl[self.varname]
-
-    def __call__(self, value):
-        self.fun(**{self.varname: value})
-
-    def __getstate__(self):
-        out = self.__dict__.copy()
-        out.pop('fun')
-        return out
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self._build_fun()
