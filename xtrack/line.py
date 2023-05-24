@@ -2486,6 +2486,8 @@ class Line:
                                             dct['_var_management_data'][kk])
             manager.load(dct['_var_manager'])
 
+        self._line_vars = LineVars(self)
+
     @property
     def record_last_track(self):
         self._check_valid_tracker()
@@ -2496,7 +2498,21 @@ class Line:
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
         if self._var_management is not None:
+            return self._line_vars
+
+    @property
+    def _xdeps_vars(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            return self._in_multiline._xdeps_vars
+        if self._var_management is not None:
             return self._var_management['vref']
+
+    @property
+    def _xdeps_manager(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            return self._in_multiline._xdeps_manager
+        if self._var_management is not None:
+            return self._var_management['manager']
 
     @property
     def element_refs(self):
@@ -2893,27 +2909,27 @@ class LineVars:
 
     def __init__(self, line):
         self.lie = line
-        self.cache = False
+        self.cache_active = False
         self._cached_setters = {}
 
     def _setter_from_cache(self, varname):
         if varname not in self._cached_setters:
             try:
-                self.cache = False
+                self.cache_active = False
                 self._cached_setters[varname] = VarSetter(self.lie, varname)
-                self.cache = True
+                self.cache_active = True
             except Exception as ee:
-                self.cache = True
+                self.cache_active = True
                 raise ee
         return self._cached_setters[varname]
 
     def __getitem__(self, key):
-        if self.cache:
+        if self.cache_active:
             self._setter_from_cache(key)
         return self.lie._var_sharing._vref[key]
 
     def __setitem__(self, key, value):
-        if self.cache:
+        if self.cache_active:
             self._setter_from_cache(key)(value)
         else:
             self.lie._xdeps_vref[key] = value
