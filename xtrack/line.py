@@ -2927,7 +2927,7 @@ class LineVars:
     def __getitem__(self, key):
         if self.cache_active:
             return self._setter_from_cache(key)
-        return self.line._var_sharing._vref[key]
+        return self.line._xdeps_vref[key]
 
     def __setitem__(self, key, value):
         if self.cache_active:
