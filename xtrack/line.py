@@ -116,6 +116,7 @@ class Line:
         self.particle_ref = particle_ref
 
         self._var_management = None
+        self._line_vars = None
         self.tracker = None
 
     @classmethod
@@ -2497,11 +2498,11 @@ class Line:
     def vars(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline.vars
-        if self._var_management is not None:
+        else:
             return self._line_vars
 
     @property
-    def _xdeps_vars(self):
+    def _xdeps_vref(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline._xdeps_vars
         if self._var_management is not None:

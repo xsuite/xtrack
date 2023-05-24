@@ -13,6 +13,7 @@ line = xt.Line.from_json(
 line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
 collider = xt.Multiline(lines={'lhcb1': line})
 collider.build_trackers()
+collider.vars.cache_active = True
 
 tw_ref = collider.lhcb1.twiss()
 

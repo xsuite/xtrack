@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 import xtrack as xt
-import xdeps as xd
+import xpart as xp
 
 # xt._print.suppress = True
 
@@ -106,6 +106,55 @@ else:
     raise ValueError('Should have raised RuntimeError')
 
 collider._var_sharing = vsharing
+line.vars['on_x2'] = 234
+
+assert np.isclose(
+    line.twiss()['py', 'ip2'], 234e-6, atol=1e-9, rtol=0)
+
+# Checks on isolated line
+
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
+line.twiss_default['method'] = '4d'
+line.build_tracker()
+
+line.vars['on_x2'] = 123
+line.vars.cache_active = True
+
+line.vars['on_x1'] = 11
+line.vars['on_x5'] = 55
+
+assert line.vars['on_x1']._value == 11
+assert line.vars['on_x5']._value == 55
+
+assert np.isclose(
+    line.twiss()['px', 'ip1'], 11e-6, atol=1e-9, rtol=0)
+assert np.isclose(
+    line.twiss()['py', 'ip5'], 55e-6, atol=1e-9, rtol=0)
+
+vman = line._var_management
+line._var_management = None
+
+line.vars['on_x1'] = 234
+line.vars['on_x5'] = 123
+
+assert line.vars['on_x1']._value == 234
+assert line.vars['on_x5']._value == 123
+
+assert np.isclose(
+    line.twiss()['px', 'ip1'], 234e-6, atol=1e-9, rtol=0)
+assert np.isclose(
+    line.twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
+
+try:
+    line.vars['on_x2'] = 234
+except RuntimeError:
+    pass
+else:
+    raise ValueError('Should have raised RuntimeError')
+
+line._var_management = vman
 line.vars['on_x2'] = 234
 
 assert np.isclose(

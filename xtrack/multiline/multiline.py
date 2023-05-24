@@ -321,8 +321,7 @@ class Multiline:
 
     @property
     def vars(self):
-        # if self._var_sharing is not None:
-            return self._multiline_vars
+        return self._multiline_vars
 
     @property
     def _xdeps_vref(self):
