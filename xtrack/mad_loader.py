@@ -619,6 +619,7 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         enable_slicing=False,
+        slicing_strategies=None,
     ):
 
         if expressions_for_element_types is not None:
@@ -640,7 +641,7 @@ class MadLoader:
         self.ignore_madtypes = ignore_madtypes
 
         self.enable_slicing = enable_slicing
-        self.slicing_strategies = []
+        self.slicing_strategies = slicing_strategies or []
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
@@ -737,15 +738,13 @@ class MadLoader:
         return out  # tbc
 
     def get_slicing_strategy(self, mad_el) -> ThickElementSlicing:
-        if not self.enable_slicing:
-            raise ValueError("Slicing is not enabled. Please set "
-                             "`enable_slicing=True`")
-
         for strategy in self.slicing_strategies:
             if strategy.match_element(mad_el):
                 return strategy.slicing
 
-        raise ValueError(f"No slicing strategy found for {mad_el}")
+        raise ValueError(f"No slicing strategy found for {mad_el}. If you wish "
+                         f"to load thick elements, set `allow_thick=True`. "
+                         f"Otherwise, please provide a slicing strategy.")
 
     def _assert_element_is_thin(self, mad_el):
         if not evals_to_zero(mad_el.l):
@@ -1260,7 +1259,6 @@ class MadLoader:
 
     def convert_crabcavity(self, ee):
         self._assert_element_is_thin(ee)
-        # passes for lhc: assert not ee.l
         # This has to be disabled, as it raises an error when l is assigned to an
         # expression:
         # for nn in ["l", "harmon", "lagf", "rv1", "rv2", "rph1", "rph2"]:
