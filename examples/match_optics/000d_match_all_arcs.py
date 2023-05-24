@@ -101,6 +101,13 @@ class ActionMatchPhaseWithMQTs(xd.Action):
 def solve_optimizations(opts):
     for opt in opts:
         opt.solve()
+        print(f'done optimization on {opt.vary[0].name}')
+
+all_knobs = []
+for arc in ['12', '23', '34', '45', '56', '67', '78', '81']:
+    all_knobs += [f'kqf.a{arc}', f'kqd.a{arc}']
+    all_knobs += [f'kqtf.a{arc}b1', f'kqtd.a{arc}b1']
+    all_knobs += [f'kqtf.a{arc}b2', f'kqtd.a{arc}b2']
 
 if __name__ == '__main__':
 
@@ -151,20 +158,23 @@ if __name__ == '__main__':
 
     optimizations_to_do = 8 * [optimizations_to_do[0]]
 
-    t1 = time.time()
-    pool = mp.Pool(processes=2)
-    pool.map(solve_optimizations, [optimizations_to_do[:4], optimizations_to_do[4:]])
-    # ],
-    #                                optimizations_to_do[4:6], optimizations_to_do[6:]])
-    t2 = time.time()
-    print(f'Time spent(parallel): {t2-t1} s')
+    collider.vars.cache_active = True
+    initial_values = {kk: collider.vars[kk]._value for kk in all_knobs} # create setters
+    collider._var_sharing = None
 
     # t1 = time.time()
-    # for ii, opt in enumerate(optimizations_to_do):
-    #     # opt = pickle.loads(pickle.dumps(opt))
-    #     opt.solve()
-    #     print(f'Optimization {ii} done')
+    # pool = mp.Pool(processes=4)
+    # pool.map(solve_optimizations, [optimizations_to_do[:2], optimizations_to_do[2:4],
+    #                                 optimizations_to_do[4:6], optimizations_to_do[6:]])
     # t2 = time.time()
-    # print(f'Time spent (serial): {t2-t1} s')
+    # print(f'Time spent(parallel): {t2-t1} s')
+
+    t1 = time.time()
+    for ii, opt in enumerate(optimizations_to_do):
+        opt = pickle.loads(pickle.dumps(opt))
+        opt.solve()
+        print(f'Optimization {ii} done')
+    t2 = time.time()
+    print(f'Time spent (serial): {t2-t1} s')
 
     # xt.general._print.suppress = False
