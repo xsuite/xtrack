@@ -605,6 +605,12 @@ def _twiss_open(line, twiss_init,
     Ws[:, 4, :] -= 0.5 * (line.record_last_track.zeta[7:13, i_start:i_stop+1] - zeta_co).T / scale_eigen
     Ws[:, 5, :] -= 0.5 * (line.record_last_track.ptau[7:13, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
 
+    dzeta = (((line.record_last_track.zeta[6, i_start:i_stop+1] - zeta_co).T
+            - (line.record_last_track.zeta[12, i_start:i_stop+1] - zeta_co).T )
+            / ((line.record_last_track.delta[6, i_start:i_stop+1] - delta_co).T
+            - (line.record_last_track.delta[12, i_start:i_stop+1] - delta_co).T))
+
+    dzeta = dzeta - dzeta[0]
 
     twiss_res_element_by_element, i_replace  = _compute_lattice_functions(Ws, use_full_inverse, s_co)
 
@@ -618,6 +624,7 @@ def _twiss_open(line, twiss_init,
         'zeta': zeta_co,
         'delta': delta_co,
         'ptau': ptau_co,
+        'dzeta': dzeta,
     })
 
     extra_data = {}
@@ -734,7 +741,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     mux = mux - mux[0]
     muy = muy - muy[0]
     muzeta = muzeta - muzeta[0]
-    dzeta = dzeta - dzeta[0]
 
     res = {
         'betx': betx,
@@ -749,7 +755,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'dpy': dpy,
         'dx_zeta': dx_zeta,
         'dy_zeta': dy_zeta,
-        'dzeta': dzeta,
         'betx1': betx1,
         'bety1': bety1,
         'betx2': betx2,

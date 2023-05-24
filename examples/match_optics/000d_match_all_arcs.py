@@ -171,9 +171,19 @@ if __name__ == '__main__':
 
     t1 = time.time()
     for ii, opt in enumerate(optimizations_to_do):
+        # restore initial values
+        for kk in all_knobs:
+            collider.vars[kk] = initial_values[kk]
+        print('pickling...')
+        tp1 = time.perf_counter()
         opt = pickle.loads(pickle.dumps(opt))
+        tp2 = time.perf_counter()
+        print(f'pickling time: {tp2-tp1} s')
+        print('solving...')
+        ts1 = time.perf_counter()
         opt.solve()
-        print(f'Optimization {ii} done')
+        ts2 = time.perf_counter()
+        print(f'Optimization {ii} done in {ts2-ts1} s')
     t2 = time.time()
     print(f'Time spent (serial): {t2-t1} s')
 
