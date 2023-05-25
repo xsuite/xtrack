@@ -4,6 +4,7 @@ import numpy as np
 
 import xtrack as xt
 import xpart as xp
+import xdeps as xd
 
 # xt._print.suppress = True
 
@@ -56,6 +57,9 @@ collider.vars['on_x2'] = 234
 
 assert np.isclose(
     collider['lhcb1'].twiss()['py', 'ip2'], 234e-6, atol=1e-9, rtol=0)
+
+collider.vars.cache_active = False
+assert isinstance(collider.vars['on_x1'], xd.refs.MutableRef)
 
 # Same check on single line within collider
 
@@ -111,6 +115,10 @@ line.vars['on_x2'] = 234
 assert np.isclose(
     line.twiss()['py', 'ip2'], 234e-6, atol=1e-9, rtol=0)
 
+line.vars.cache_active = False
+assert isinstance(line.vars['on_x1'], xd.refs.MutableRef)
+
+
 # Checks on isolated line
 
 line = xt.Line.from_json(
@@ -159,3 +167,6 @@ line.vars['on_x2'] = 234
 
 assert np.isclose(
     line.twiss()['py', 'ip2'], 234e-6, atol=1e-9, rtol=0)
+
+line.vars.cache_active = False
+assert isinstance(line.vars['on_x1'], xd.refs.MutableRef)
