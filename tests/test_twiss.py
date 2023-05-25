@@ -12,7 +12,6 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
 
-
 @for_all_test_contexts
 def test_twiss_4d_fodo_vs_beta_rel(test_context):
     ## Generate a simple line
