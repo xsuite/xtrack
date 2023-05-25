@@ -71,3 +71,14 @@ ax.set_ylabel('y [mm]')
 ax.set_ylim(-10, 10)
 plt.subplots_adjust(bottom=.152, top=.9, left=.1, right=.95)
 plt.show()
+
+assert np.isclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+assert np.isclose(tw['y', 'mq.17l8.b1'], 0, atol=1e-6, rtol=0)
+assert np.isclose(tw['py', 'mq.17l8.b1'], 0, atol=1e-8, rtol=0)
+assert np.isclose(tw['py', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
+
+assert np.isclose(tw['y', 'mb.b26l8.b1'], 3e-3, atol=1e-6, rtol=0)
+assert np.isclose(tw['py', 'mb.b26l8.b1'], 0, atol=1e-8, rtol=0)
+
+assert np.isclose(tw['y', 'mq.30l8.b1'], -1e-3, atol=1e-6, rtol=0)
+assert np.isclose(line.vars['acbv22.l8b1']._value, 38e-6, atol=0, rtol=0.02)
