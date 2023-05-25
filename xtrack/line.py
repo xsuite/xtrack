@@ -375,6 +375,7 @@ class Line:
         replace_in_expr=None,
         classes=(),
         ignored_madtypes=(),
+        allow_thick=False,
     ):
 
         """
@@ -415,9 +416,10 @@ class Line:
 
         """
 
-        class_namespace=mk_class_namespace(classes)
+        class_namespace = mk_class_namespace(classes)
 
-        loader = MadLoader(sequence,
+        loader = MadLoader(
+            sequence,
             classes=class_namespace,
             ignore_madtypes=ignored_madtypes,
             enable_errors=apply_madx_errors,
@@ -428,9 +430,10 @@ class Line:
             merge_multipoles=merge_multipoles,
             expressions_for_element_types=expressions_for_element_types,
             error_table=None,  # not implemented yet
-            replace_in_expr=replace_in_expr
-            )
-        line=loader.make_line()
+            replace_in_expr=replace_in_expr,
+            allow_thick=allow_thick,
+        )
+        line = loader.make_line()
         return line
 
     def to_dict(self, include_var_management=True):

@@ -659,6 +659,34 @@ class Multipole(BeamElement):
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
 
+class SimpleThickQuadrupole(BeamElement):
+    """A beam element modelling a thick bend.
+
+    Parameters
+    ----------
+    length : float
+        Length of the element in meters.
+
+    k1 : float
+        Quadrupole coefficient.
+    """
+    isthick = True
+
+    _xofields = {
+        'length': xo.Float64,
+        'k1': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/simplethickquad.h')]
+
+    def __init__(self, **kwargs):
+        if kwargs.get('length', 0.0) == 0.0:
+            raise ValueError("A thick element must have a length.")
+
+        self.xoinitialize(**kwargs)
+
+
 class SimpleThinQuadrupole(BeamElement):
     """An specialized version of Multipole to model a thin quadrupole
     (knl[0], ksl, hxl, hyl are all zero).
@@ -721,6 +749,104 @@ class SimpleThinQuadrupole(BeamElement):
         ctx2np = self._buffer.context.nparray_from_context_array
         return self.__class__(knl=-ctx2np(self.knl), _context=_context,
                               _buffer=_buffer, _offset=_offset)
+
+
+class CombinedFunctionMagnet(BeamElement):
+    """A specialized version of Multipole to model a thin quadrupole
+    (knl[0], ksl, hxl, hyl are all zero).
+
+    Parameters
+    ----------
+    knl : array
+        Normalized integrated strength of the normal components in units of m^-n.
+        Must be of length 2.
+
+    """
+    isthick = True
+
+    _xofields={
+        'k0': xo.Float64,
+        'k1': xo.Float64,
+        'h': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/combinedfunctionmagnet.h')]
+
+    def __init__(self, **kwargs):
+        if kwargs.get('length', 0.0) == 0.0:
+            raise ValueError("A thick element must have a length.")
+
+        self.xoinitialize(**kwargs)
+
+    @property
+    def knl(self):
+        return self._buffer.context.linked_array_type.from_array(
+            np.array([self.k0, self.k1]) * self.length,
+            mode='readonly',
+            container=self,
+        )
+
+    @property
+    def hxl(self): return self.h * self.length
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @property
+    def order(self): return 1
+
+    @property
+    def inv_factorial_order(self): return 1.0
+
+    @property
+    def ksl(self): return self._buffer.context.linked_array_type.from_array(
+        np.array([0., 0.]),
+        mode='readonly',
+        container=self,
+    )
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._buffer.context.nparray_from_context_array
+        return self.__class__(knl=-ctx2np(self.length), _context=_context,
+                              _buffer=_buffer, _offset=_offset)
+
+
+class SimpleThickBend(BeamElement):
+    """A beam element modelling a thick bend.
+
+    Parameters
+    ----------
+    length : float
+        Length of the element in meters.
+
+    k0 : float
+        Bending coefficient.
+
+    h : float
+        Rotation angle of the reference trajectory in the horizontal plane in
+        radians.
+    """
+    isthick = True
+
+    _xofields = {
+        'length': xo.Float64,
+        'k0': xo.Float64,
+        'h': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/simplethickbend.h')]
+
+    def __init__(self, **kwargs):
+        if kwargs.get('length', 0.0) == 0.0:
+            raise ValueError("A thick element must have a length.")
+
+        self.xoinitialize(**kwargs)
 
 
 class SimpleThinBend(BeamElement):
