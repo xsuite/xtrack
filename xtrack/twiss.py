@@ -78,7 +78,8 @@ def twiss_line(line, particle_ref=None, method=None,
     ele_stop : int or str, optional
         Index of the element at which the computation stops.
     twiss_init : TwissInit object, optional
-        Initial values for the Twiss parameters.
+        Initial values for the Twiss parameters. If `twiss_init="periodic"` is
+        passed, the periodic solution for the selected range is computed.
     delta0 : float, optional
         Initial value for the delta parameter.
     zeta0 : float, optional

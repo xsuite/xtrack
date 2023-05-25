@@ -384,4 +384,97 @@ def test_hide_thin_groups():
         assert tw_htg[nn][11200] == tw[nn][11200]
 
 
+def test_periodic_cell_twiss():
+    collider = xt.Multiline.from_json(test_data_folder /
+                    'hllhc15_collider/collider_00_from_mad.json')
+    collider.build_trackers()
 
+    collider.lhcb1.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['reverse'] = True
+
+    line = collider.lhcb1
+    start_cell = 's.cell.67.b1'
+    end_cell = 'e.cell.67.b1'
+    start_arc = 'e.ds.r6.b1'
+    end_arc = 'e.ds.l7.b1'
+
+    # line = collider.lhcb2
+    # start_cell = 's.cell.67.b2'
+    # end_cell = 'e.cell.67.b2'
+    # start_arc = 'e.ds.r6.b2'
+    # end_arc = 'e.ds.l7.b2'
+
+    tw = line.twiss()
+
+    assert tw.method == '4d'
+    assert tw.orientation == 'forward'
+    assert tw.reference_frame == 'proper'
+    assert 'dqx' in tw.keys() # check that periodic twiss is used
+
+    mux_arc_target = tw['mux', end_arc] - tw['mux', start_arc]
+    muy_arc_target = tw['muy', end_arc] - tw['muy', start_arc]
+
+    tw_cell = line.twiss(
+        ele_start=start_cell,
+        ele_stop=end_cell,
+        twiss_init='preserve')
+
+    assert tw_cell.method == '4d'
+    assert 'dqx' not in tw_cell.keys() # check that periodic twiss is not used
+    assert tw_cell.name[0] == start_cell
+    assert tw_cell.name[-2] == end_cell
+    assert tw_cell.method == '4d'
+    assert tw_cell.orientation == 'forward'
+    assert tw_cell.reference_frame == 'proper'
+
+    tw_cell_periodic = line.twiss(
+        method='4d',
+        ele_start=start_cell,
+        ele_stop=end_cell,
+        twiss_init='periodic')
+
+    assert tw_cell_periodic.method == '4d'
+    assert 'dqx' in tw_cell_periodic.keys() # check that periodic twiss is used
+    assert tw_cell_periodic.name[0] == start_cell
+    assert tw_cell_periodic.name[-2] == end_cell
+    assert tw_cell_periodic.method == '4d'
+    assert tw_cell_periodic.orientation == 'forward'
+    assert tw_cell_periodic.reference_frame == 'proper'
+
+    assert np.allclose(tw_cell_periodic.betx, tw_cell.betx, atol=0, rtol=1e-6)
+    assert np.allclose(tw_cell_periodic.bety, tw_cell.bety, atol=0, rtol=1e-6)
+    assert np.allclose(tw_cell_periodic.dx, tw_cell.dx, atol=1e-4, rtol=0)
+
+    assert tw_cell_periodic['mux', 0] == 0
+    assert tw_cell_periodic['muy', 0] == 0
+    assert np.isclose(tw_cell_periodic.mux[-1],
+            tw['mux', end_cell] - tw['mux', start_cell], rtol=0, atol=1e-6)
+    assert np.isclose(tw_cell_periodic.muy[-1],
+            tw['muy', end_cell] - tw['muy', start_cell], rtol=0, atol=1e-6)
+
+    twinit_start_cell = tw_cell_periodic.get_twiss_init(start_cell)
+
+    tw_to_end_arc = line.twiss(
+        ele_start=start_cell,
+        ele_stop=end_arc,
+        twiss_init=twinit_start_cell)
+    assert tw_to_end_arc.method == '4d'
+    assert tw_to_end_arc.orientation == 'forward'
+    assert tw_to_end_arc.reference_frame == 'proper'
+
+    tw_to_start_arc = line.twiss(
+        ele_start=start_arc,
+        ele_stop=start_cell,
+        twiss_init=twinit_start_cell)
+    assert tw_to_start_arc.method == '4d'
+    assert tw_to_start_arc.orientation == 'backward'
+    assert tw_to_start_arc.reference_frame == 'proper'
+
+    mux_arc_from_cell = tw_to_end_arc['mux', end_arc] - tw_to_start_arc['mux', start_arc]
+    muy_arc_from_cell = tw_to_end_arc['muy', end_arc] - tw_to_start_arc['muy', start_arc]
+
+    assert np.isclose(mux_arc_from_cell, mux_arc_target, rtol=1e-6)
+    assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
+
+    prrr
