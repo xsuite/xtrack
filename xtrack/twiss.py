@@ -444,18 +444,20 @@ def twiss_line(line, particle_ref=None, method=None,
     # twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
 
 
-    if ((twiss_res.orientation == 'forward' and not reverse)
-        or (twiss_res.orientation == 'backward' and reverse)):
-        twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
-        twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
-        twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
-        twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
-    elif ((twiss_res.orientation == 'forward' and reverse)
-         or (twiss_res.orientation == 'backward' and not reverse)):
-        twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
-        twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
-        twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
-        twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
+    if not periodic:
+        # Start phase advance with provided twiss_init
+        if ((twiss_res.orientation == 'forward' and not reverse)
+            or (twiss_res.orientation == 'backward' and reverse)):
+            twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
+            twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
+            twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
+            twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
+        elif ((twiss_res.orientation == 'forward' and reverse)
+            or (twiss_res.orientation == 'backward' and not reverse)):
+            twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
+            twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
+            twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
+            twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
 
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
