@@ -516,6 +516,9 @@ class ThickElementSlicing(abc.ABC):
 
             yield elem_weight, False
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.slicing_order})"
+
 
 class UniformSlicing(ThickElementSlicing):
     def element_weights(self):
@@ -563,6 +566,17 @@ class SlicingStrategy:
 
     def match_element(self, mad_el):
         return self._match_on_name(mad_el) and self._match_on_type(mad_el)
+
+    def __repr__(self):
+        params = {
+            'slicing': self.slicing,
+            'madx_type': self.madx_type,
+            'name': self.name_regex.pattern if self.name_regex else None,
+        }
+        formatted_params = ', '.join(
+            f'{kk}={vv!r}' for kk, vv in params.items() if vv is not None
+        )
+        return f"SlicingStrategy({formatted_params})"
 
 
 class MadLoader:
@@ -738,7 +752,18 @@ class MadLoader:
         return out  # tbc
 
     def get_slicing_strategy(self, mad_el) -> ThickElementSlicing:
-        for strategy in self.slicing_strategies:
+        """Return the slicing strategy for a given MAD-X element.
+
+        The list `self.slicing_strategies` is parsed in reverse order, so that
+        the last applicable matching strategy is returned. This mirrors the
+        approach of MAD-X, where the less specific strategies are defined first.
+
+        Parameters
+        ----------
+        mad_el: MadElement
+            The MAD-X element to be sliced.
+        """
+        for strategy in reversed(self.slicing_strategies):
             if strategy.match_element(mad_el):
                 return strategy.slicing
 
@@ -749,8 +774,9 @@ class MadLoader:
     def _assert_element_is_thin(self, mad_el):
         if not evals_to_zero(mad_el.l):
             raise NotImplementedError(
-                f'Cannot load element {mad_el.name}, as slicing of thick'
-                f'elements of type {mad_el.base_type} is not implemented.')
+                f'Cannot load element {mad_el.name}, as slicing of thick '
+                f'elements of type {"/".join(mad_el.get_type_hierarchy())} is '
+                f'not implemented.')
 
     def _make_drift_slice(self, mad_el, weight, name_pattern):
         return self.Builder(
@@ -818,11 +844,17 @@ class MadLoader:
             else:
                 hxl = mad_el.k0 * mad_el.l * slice_weight
 
+            if mad_el.k0:
+                k0l = mad_el.k0 * mad_el.l * slice_weight
+            else:
+                k0l = mad_el.angle * slice_weight
+
+
             bend_thin = self.Builder(
                 name_pattern.format(mad_el.name),
                 self.classes.SimpleThinBend,
-                knl=[mad_el.k0 * mad_el.l * slice_weight],
-                hxl=[hxl],
+                knl=[k0l],
+                hxl=hxl,
                 length=mad_el.l * slice_weight,
             )
 
@@ -1196,7 +1228,6 @@ class MadLoader:
         return self.convert_thin_element([el], mad_elem)
 
     def convert_rfcavity(self, ee):
-        self._assert_element_is_thin(ee)
         # TODO LRAD
         if ee.freq == 0 and ee.harmon:
             frequency = (
@@ -1205,7 +1236,7 @@ class MadLoader:
         else:
             frequency = ee.freq * 1e6
         if (hasattr(self.sequence, 'beam')
-            and self.sequence.beam.particle == 'ion'):
+                and self.sequence.beam.particle == 'ion'):
             scale_voltage = 1./self.sequence.beam.charge
         else:
             scale_voltage = 1.
@@ -1216,7 +1247,17 @@ class MadLoader:
             frequency=frequency,
             lag=ee.lag * 360,
         )
-        return self.convert_thin_element([el], ee)
+
+        if not evals_to_zero(ee.l):
+            sequence = [
+                self._make_drift_slice(ee, 0.5, f"drift_{{}}..1"),
+                el,
+                self._make_drift_slice(ee, 0.5, f"drift_{{}}..2"),
+            ]
+        else:
+            sequence = [el]
+
+        return self.convert_thin_element(sequence, ee)
 
     def convert_rfmultipole(self, ee):
         self._assert_element_is_thin(ee)

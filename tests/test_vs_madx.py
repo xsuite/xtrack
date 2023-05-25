@@ -5,6 +5,7 @@
 
 import pathlib
 import numpy as np
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -12,47 +13,75 @@ from xobjects.test_helpers import for_all_test_contexts
 
 from cpymad.madx import Madx
 
+from xtrack.mad_loader import SlicingStrategy, TeapotSlicing
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
 path = test_data_folder.joinpath('hllhc14_input_mad/')
 
-mad_with_errors = Madx()
-mad_with_errors.call(str(path.joinpath("final_seq.madx")))
-mad_with_errors.use(sequence='lhcb1')
-mad_with_errors.twiss()
-mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
-                          table="errtab")
-mad_with_errors.seterr(table="errtab")
-mad_with_errors.set(format=".15g")
 
-mad_b12_no_errors = Madx()
-mad_b12_no_errors.call(str(test_data_folder.joinpath(
-                               'hllhc15_noerrors_nobb/sequence.madx')))
-mad_b12_no_errors.globals['vrf400'] = 16
-mad_b12_no_errors.globals['lagrf400.b1'] = 0.5
-mad_b12_no_errors.globals['lagrf400.b2'] = 0
-mad_b12_no_errors.use(sequence='lhcb1')
-mad_b12_no_errors.twiss()
-mad_b12_no_errors.use(sequence='lhcb2')
-mad_b12_no_errors.twiss()
+@pytest.fixture(scope="module")
+def mad_with_errors():
+    mad = Madx()
+    mad.call(str(path.joinpath("final_seq.madx")))
+    mad.use(sequence='lhcb1')
+    mad.twiss()
+    mad.readtable(file=str(path.joinpath("final_errors.tfs")),
+                              table="errtab")
+    mad.seterr(table="errtab")
+    mad.set(format=".15g")
 
-mad_b4_no_errors = Madx()
-mad_b4_no_errors.call(str(test_data_folder.joinpath(
-                               'hllhc15_noerrors_nobb/sequence_b4.madx')))
-mad_b4_no_errors.globals['vrf400'] = 16
-mad_b4_no_errors.globals['lagrf400.b2'] = 0
-mad_b4_no_errors.use(sequence='lhcb2')
-mad_b4_no_errors.twiss()
+    mad.sequence.lhcb1.beam.sigt = 1e-10
+    mad.sequence.lhcb1.beam.sige = 1e-10
+    mad.sequence.lhcb1.beam.et = 1e-10
+    return mad
 
-mad_with_errors.sequence.lhcb1.beam.sigt = 1e-10
-mad_with_errors.sequence.lhcb1.beam.sige = 1e-10
-mad_with_errors.sequence.lhcb1.beam.et = 1e-10
+
+@pytest.fixture(scope="module")
+def mad_b12_no_errors():
+    mad = Madx()
+    mad.call(str(test_data_folder / 'hllhc15_noerrors_nobb/sequence.madx'))
+    mad.globals['vrf400'] = 16
+    mad.globals['lagrf400.b1'] = 0.5
+    mad.globals['lagrf400.b2'] = 0
+    mad.use(sequence='lhcb1')
+    mad.twiss()
+    mad.use(sequence='lhcb2')
+    mad.twiss()
+    return mad
+
+
+@pytest.fixture(scope="module")
+def mad_b12_no_errors_thick():
+    mad = Madx()
+    mad.call(str(test_data_folder / 'hllhc15_noerrors_nobb/sequence_thick.madx'))
+    mad.globals['vrf400'] = 16
+    mad.globals['lagrf400.b1'] = 0.5
+    mad.globals['lagrf400.b2'] = 0
+    mad.use(sequence='lhcb1')
+    mad.twiss()
+    mad.use(sequence='lhcb2')
+    mad.twiss()
+    return mad
+
+
+@pytest.fixture(scope="module")
+def mad_b4_no_errors():
+    mad = Madx()
+    mad.call(str(test_data_folder.joinpath(
+                                   'hllhc15_noerrors_nobb/sequence_b4.madx')))
+    mad.globals['vrf400'] = 16
+    mad.globals['lagrf400.b2'] = 0
+    mad.use(sequence='lhcb2')
+    mad.twiss()
+    return mad
+
 
 surv_starting_point = {
     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
     "X0": -300, "Y0": 150, "Z0": -100}
+
 
 b4_b2_mapping = {
     'mbxf.4l1..1': 'mbxf.4l1..4',
@@ -61,8 +90,9 @@ b4_b2_mapping = {
     'mb.b19r1.b2..1': 'mb.b19r1.b2..2',
     }
 
+
 @for_all_test_contexts
-def test_twiss_and_survey(test_context):
+def test_twiss_and_survey(test_context, mad_with_errors, mad_b4_no_errors, mad_b12_no_errors):
 
     for configuration in ['b1_with_errors', 'b2_no_errors']:
 
@@ -355,7 +385,7 @@ def norm(x):
 
 
 @for_all_test_contexts
-def test_line_import_from_madx(test_context):
+def test_line_import_from_madx(test_context, mad_with_errors):
 
     mad = mad_with_errors
 
@@ -528,13 +558,69 @@ def test_line_import_from_madx(test_context):
 
 
 @for_all_test_contexts
-def test_orbit_knobs(test_context):
+def test_orbit_knobs(test_context, mad_b12_no_errors):
 
     mad = mad_b12_no_errors
 
     line = xt.Line.from_madx_sequence(
         mad.sequence['lhcb1'], apply_madx_errors=False,
         deferred_expressions=True)
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+                        gamma0=mad.sequence.lhcb1.beam.gamma)
+
+    line.build_tracker(_context=test_context)
+
+    line.vars['on_x1'] = 250
+    assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
+                atol=1e-6, rtol=0)
+    line.vars['on_x1'] = -300
+    assert np.isclose(line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
+                atol=1e-6, rtol=0)
+
+    line.vars['on_x5'] = 130
+    assert np.isclose(line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
+                atol=1e-6, rtol=0)
+    line.vars['on_x5'] = -270
+    assert np.isclose(line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
+                atol=1e-6, rtol=0)
+
+
+@for_all_test_contexts
+def test_orbit_knobs_slice_lattice(test_context, mad_b12_no_errors_thick):
+
+    mad = mad_b12_no_errors_thick
+
+    # Adapted from:
+    # https://github.com/lhcopt/hllhc15/blob/
+    # d603ca2b4db08b58f241f0fe22f3067554d59f15/toolkit/macro.madx#LL3565C1-L3592C52
+    slicing_strategies = [
+        SlicingStrategy(slicing=TeapotSlicing(1)),  # Default catch-all as in MAD-X
+        SlicingStrategy(slicing=TeapotSlicing(2), madx_type='mb'),
+        SlicingStrategy(slicing=TeapotSlicing(2), madx_type='mq'),
+        SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxa'),
+        SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxb'),
+        SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxc'),
+        SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxd'),
+        SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxfa'),
+        SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxfb'),
+        SlicingStrategy(slicing=TeapotSlicing(4), madx_type='mbxa'),
+        SlicingStrategy(slicing=TeapotSlicing(4), madx_type='mbxf'),
+        SlicingStrategy(slicing=TeapotSlicing(4), madx_type='mbrd'),
+        SlicingStrategy(slicing=TeapotSlicing(4), madx_type='mqyy'),
+        SlicingStrategy(slicing=TeapotSlicing(4), madx_type='mqyl'),
+        SlicingStrategy(
+            slicing=TeapotSlicing(4),
+            name=r'(mbx|mbrb|mbrc|mbrs|mbh|mqwa|mqwb|mqy|mqm|mqmc|mqml)\..*',
+        ),
+        SlicingStrategy(slicing=TeapotSlicing(2), name=r'(mqt|mqtli|mqtlh)\..*'),
+    ]
+
+    line = xt.Line.from_madx_sequence(
+        mad.sequence['lhcb1'],
+        apply_madx_errors=False,
+        deferred_expressions=True,
+        slicing_strategies=slicing_strategies,
+    )
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                         gamma0=mad.sequence.lhcb1.beam.gamma)
 

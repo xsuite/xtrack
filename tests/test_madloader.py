@@ -882,12 +882,12 @@ def test_slicing_get_slicing_strategy():
 
     ml = MadLoader(mad.sequence.ss, enable_slicing=True)
     ml.slicing_strategies = [
-        # Quadrupoles that end in `x` should be sliced into three slices
-        SlicingStrategy(UniformSlicing(3), madx_type='quadrupole', name=r'.*x'),
-        # All the other ones (by name) into two slices
-        SlicingStrategy(UniformSlicing(2), name=r'q.*'),
         # Bends (by type) are only one slice
         SlicingStrategy(UniformSlicing(1), madx_type='sbend'),
+        # All the other ones (by name) into two slices
+        SlicingStrategy(UniformSlicing(2), name=r'q.*'),
+        # Quadrupoles that end in `x` should be sliced into three slices
+        SlicingStrategy(UniformSlicing(3), madx_type='quadrupole', name=r'.*x'),
     ]
 
     seq_elements = {elem.name: elem for elem in ml.iter_elements()}

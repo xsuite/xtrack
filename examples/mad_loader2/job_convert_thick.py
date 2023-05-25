@@ -11,18 +11,18 @@ mad.sequence.lhcb1.use()
 ml = MadLoader(mad.sequence.lhcb1, enable_slicing=True)
 
 ml.slicing_strategies = [
-    SlicingStrategy(name=r'(mqt|mqtli|mqtlh)\..*', slicing=TeapotSlicing(2)),
+    SlicingStrategy(slicing=TeapotSlicing(1)),  # Default catch-all as in MAD-X
+    SlicingStrategy(slicing=TeapotSlicing(2), madx_type='mb'),
+    SlicingStrategy(slicing=TeapotSlicing(2), madx_type='mq'),
+    SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxa'),
+    SlicingStrategy(slicing=TeapotSlicing(16), madx_type='mqxb'),
     SlicingStrategy(
-        name=r'(mbx|mbrb|mbrc|mbrs|mbh|mqwa|mqwb|mqy|mqm|mqmc|mqml)\..*',
         slicing=TeapotSlicing(4),
+        name=r'(mbx|mbrb|mbrc|mbrs|mbh|mqwa|mqwb|mqy|mqm|mqmc|mqml)\..*',
     ),
-    SlicingStrategy(madx_type='mqxb', slicing=TeapotSlicing(16)),
-    SlicingStrategy(madx_type='mqxa', slicing=TeapotSlicing(16)),
-    SlicingStrategy(madx_type='mq', slicing=TeapotSlicing(2)),
-    SlicingStrategy(madx_type='mb', slicing=TeapotSlicing(2)),
-    SlicingStrategy(TeapotSlicing(1)),  # Default catch-all as in MAD-X
+    SlicingStrategy(slicing=TeapotSlicing(2), name=r'(mqt|mqtli|mqtlh)\..*'),
 ]
-line=ml.make_line()
+line = ml.make_line()
 
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 
