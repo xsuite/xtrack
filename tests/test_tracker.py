@@ -534,3 +534,31 @@ def test_optimize_for_tracking(test_context):
     assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
     assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
     assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
+
+@for_all_test_contexts
+def test_backtrack_with_flag(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+                'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+    line.build_tracker(_context=test_context)
+
+    line.vars['on_crab1'] = -190
+    line.vars['on_crab5'] = -190
+    line.vars['on_x1'] = 130
+    line.vars['on_x5'] = 130
+
+    p = xp.Particles(
+        p0c=7000e9, x=1e-4, px=1e-6, y=2e-4, py=3e-6, zeta=0.01, delta=1e-4)
+
+    line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon_forward = line.record_last_track
+
+    line.track(p, backtrack=True, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon_backtrack = line.record_last_track
+
+    assert np.allclose(mon_forward.x, mon_backtrack.x, rtol=0, atol=1e-10)
+    assert np.allclose(mon_forward.y, mon_backtrack.y, rtol=0, atol=1e-10)
+    assert np.allclose(mon_forward.px, mon_backtrack.px, rtol=0, atol=1e-10)
+    assert np.allclose(mon_forward.py, mon_backtrack.py, rtol=0, atol=1e-10)
+    assert np.allclose(mon_forward.zeta, mon_backtrack.zeta, rtol=0, atol=1e-10)
+    assert np.allclose(mon_forward.delta, mon_backtrack.delta, rtol=0, atol=1e-10)
