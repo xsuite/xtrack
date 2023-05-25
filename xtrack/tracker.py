@@ -1329,6 +1329,9 @@ class Tracker:
         return list(set(object.__dir__(self) + dir(self.line)))
 
     def __getstate__(self):
+        if not isinstance(self, xo.ContextCpu):
+            raise TypeError("Only non-CPU trackers can be pickled.")
+
         # Remove the compiled kernels from the state
         state = self.__dict__.copy()
         state['_track_kernel'].clear()
