@@ -141,10 +141,12 @@ def test_match_orbit_bump_with_weights():
             targets=[
                 # I want the vertical orbit to be at 3 mm at mq.28l8.b1 with zero angle
                 xt.Target('y', at='mb.b26l8.b1', value=3e-3, tol=1e-4),
-                xt.Target('py', at='mb.b26l8.b1', value=0, tol=1e-6, weight=1e3),
+                xt.Target('py', at='mb.b26l8.b1', value=0, tol=1e-6),
                 # I want the bump to be closed
                 xt.Target('y', at='mq.17l8.b1', value='preserve', tol=1e-6),
                 xt.Target('py', at='mq.17l8.b1', value='preserve', tol=1e-7, weight=1e3),
+                xt.Target('y', at='mq.33l8.b1', value='preserve', tol=1e-6),
+                xt.Target('py', at='mq.33l8.b1', value='preserve', tol=1e-7, weight=1e3),
                 # I want to limit the negative excursion ot the bump
                 xt.TargetInequality('y', '>', -1e-3, at='mq.30l8.b1', tol=1e-6),
             ]
@@ -171,3 +173,11 @@ def test_match_orbit_bump_with_weights():
             'backward' if twiss_init == 'preserve_end' else 'forward')
         assert last_twiss.method == '6d'
         assert last_twiss.reference_frame == 'proper'
+
+        targets = res['optimizer'].targets
+        assert targets[0].tar == ('y', 'mb.b26l8.b1')
+        assert targets[0].weight == 10
+        assert targets[1].tar == ('py', 'mb.b26l8.b1')
+        assert targets[1].weight == 100
+        assert targets[3].tar == ('py', 'mq.17l8.b1')
+        assert targets[3].weight == 1000
