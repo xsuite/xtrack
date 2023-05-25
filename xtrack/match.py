@@ -105,7 +105,7 @@ class ActionTwiss(xd.Action):
 
         self.kwargs = kwargs
 
-    def compute(self, allow_failure=True):
+    def run(self, allow_failure=True):
         try:
             return self.line.twiss(**self.kwargs)
         except Exception as ee:

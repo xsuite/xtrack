@@ -31,7 +31,7 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
         self.start_arc = f'e.ds.r{sector_start_number}.b{beam_number}'
         self.end_arc = f's.ds.l{sector_end_number}.b{beam_number}'
 
-    def compute(self):
+    def run(self):
 
         twinit_cell = self.line.twiss(
                     ele_start=self.start_cell,
@@ -65,11 +65,11 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
 
 action_arc_phase_s67_b1 = ActionArcPhaseAdvanceFromCell(
                     arc_name='67', line_name='lhcb1', line=collider.lhcb1)
-resb1 = action_arc_phase_s67_b1.compute()
+resb1 = action_arc_phase_s67_b1.run()
 
 action_arc_phase_s67_b2 = ActionArcPhaseAdvanceFromCell(
                     arc_name='67', line_name='lhcb2', line=collider.lhcb2)
-resb2 = action_arc_phase_s67_b2.compute()
+resb2 = action_arc_phase_s67_b2.run()
 
 # Check for b1
 twb1 = collider.lhcb1.twiss()
@@ -126,7 +126,7 @@ t2 = time.perf_counter()
 print(f'Elapsed time: {t2-t1} s')
 
 # Checks
-resb1_after = action_arc_phase_s67_b1.compute()
+resb1_after = action_arc_phase_s67_b1.run()
 tw_init_arcb1 = resb1_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b1')
 twb1_after = collider.lhcb1.twiss(ele_start='e.ds.r6.b1',
                                   ele_stop='s.ds.l7.b1',
@@ -140,7 +140,7 @@ assert np.isclose(twb1_after['betx', 's.cell.67.b1'], twb1_after['betx', 'e.cell
 assert np.isclose(twb1_after['bety', 's.cell.67.b1'], twb1_after['bety', 'e.cell.67.b1'],
                     rtol=0, atol=1e-8)
 
-resb2_after = action_arc_phase_s67_b2.compute()
+resb2_after = action_arc_phase_s67_b2.run()
 tw_init_arcb2 = resb2_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b2')
 twb2_after = collider.lhcb2.twiss(ele_start='e.ds.r6.b2',
                                   ele_stop='s.ds.l7.b2',

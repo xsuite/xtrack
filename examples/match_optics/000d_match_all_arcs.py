@@ -27,7 +27,7 @@ class ActionArcPhaseAdvanceFromCell(xd.Action):
         self.start_arc = f'e.ds.r{sector_start_number}.b{beam_number}'
         self.end_arc = f's.ds.l{sector_end_number}.b{beam_number}'
 
-    def compute(self):
+    def run(self):
 
         if isinstance(self.line, xt.Multiline):
             line = self.line[self.line_name]
@@ -71,7 +71,7 @@ class ActionMatchPhaseWithMQTs(xd.Action):
             f'kqtf.a{arc_name}b{beam_number}',
             f'kqtd.a{arc_name}b{beam_number}']
 
-    def compute(self):
+    def run(self):
         #store initial knob values
         mqt_knob_values = {
             kk: self.line.vars[kk]._value for kk in self.mqt_knob_names}
