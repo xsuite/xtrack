@@ -81,6 +81,9 @@ class Drift(BeamElement):
         return self.__class__(length=-self.length,
                               _context=_context, _buffer=_buffer, _offset=_offset)
 
+    def make_thin_slice(self, weight):
+        return Drift(length=self.length * weight)
+
 
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.
@@ -778,6 +781,13 @@ class CombinedFunctionMagnet(BeamElement):
         ctx2np = self._buffer.context.nparray_from_context_array
         return self.__class__(knl=-ctx2np(self.length), _context=_context,
                               _buffer=_buffer, _offset=_offset)
+
+    def make_thin_slice(self, weight):
+        return Multipole(
+            knl=self.knl * weight,
+            hxl=self.hxl * weight,
+            length=self.length * weight,
+        )
 
 
 class SimpleThinBend(BeamElement):
