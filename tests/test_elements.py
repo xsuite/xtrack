@@ -896,8 +896,8 @@ def test_exciter(test_context):
 @pytest.mark.parametrize(
     'k0, k1, length',
     [
-        # (-0.1, 0, 0.9), will become the exact dipole
-        # (0, 0, 0.9), will become the exact dipole
+        (-0.1, 0, 0.9),  # should become the exact dipole
+        (0, 0, 0.9),  # should become the exact dipole
         (-0.1, 0.12, 0.9),
         (0, 0.12, 0.8),
         (0.15, -0.23, 0.9),
@@ -953,7 +953,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         assert np.allclose(p.px[ii], mad_results.px, atol=1e-13, rtol=0)
         assert np.allclose(p.y[ii], mad_results.y, atol=1e-13, rtol=0)
         assert np.allclose(p.py[ii], mad_results.py, atol=1e-13, rtol=0)
-        assert np.allclose(xt_tau[ii], mad_results.t, atol=2e-8, rtol=0)  #?
+        assert np.allclose(xt_tau[ii], mad_results.t, atol=2e-8, rtol=0)
         assert np.allclose(p.ptau[ii], mad_results.pt, atol=1e-13, rtol=0)
 
 

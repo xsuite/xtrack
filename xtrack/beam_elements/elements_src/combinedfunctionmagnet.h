@@ -6,8 +6,6 @@
 #ifndef XTRACK_THICKCOMBINEDFUNCTIONDIPOLE_H
 #define XTRACK_THICKCOMBINEDFUNCTIONDIPOLE_H
 
-//include_file track_thick_cfd.h for_context cpu_serial cpu_openmp
-
 /*gpufun*/
 void CombinedFunctionMagnet_track_local_particle(
         CombinedFunctionMagnetData el,

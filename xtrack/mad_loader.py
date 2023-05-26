@@ -136,6 +136,7 @@ def trim_trailing_zeros(lst):
 def is_expr(x):
     return hasattr(x, "_get_value")
 
+
 def not_zero(x):
     if is_expr(x):
         return True
@@ -692,20 +693,12 @@ class MadLoader:
         return elem_list
 
     def convert_quadrupole(self, mad_el):
-        if mad_el.l and self.allow_thick:
+        if not_zero(mad_el.l) and self.allow_thick:
             return self._convert_quadrupole_thick(mad_el)
         else:
-            return self._convert_quadrupole_thin(mad_el)
-
-    def _convert_quadrupole_thin(self, mad_el):
-        self._assert_element_is_thin(mad_el)
-        element = self.Builder(
-            mad_el.name,
-            self.classes.Multipole,
-            knl=[0, mad_el.k1 * mad_el.l],
-            ksl=[0, mad_el.k1s * mad_el.l],
-        )
-        return self.convert_thin_element([element], mad_el)
+            raise NotImplementedError(
+                "Quadrupole are not supported in thin mode."
+            )
 
     def _convert_quadrupole_thick(self, mad_el):
         if mad_el.k1s:
