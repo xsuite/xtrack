@@ -15,6 +15,7 @@ mad.sequence.lhcb1.use()
 seq = mad.sequence.lhcb1
 mad.globals.on_x1 = 0
 mad.globals.on_x5 = 0
+mad.globals.vrf400 = 0
 
 mad.input('twiss, deltap=1e-7;')
 plt.plot(mad.table.twiss.s, mad.table.twiss.x, '-')
