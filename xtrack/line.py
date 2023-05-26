@@ -2683,7 +2683,6 @@ def _is_simple_quadrupole(el):
     return (el.radiation_flag == 0 and
             el.order == 1 and
             el.knl[0] == 0 and
-            el.length == 0 and
             not any(el.ksl) and
             not el.hxl and
             not el.hyl)
