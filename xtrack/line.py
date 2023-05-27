@@ -683,6 +683,8 @@ class Line:
             be provided.
         num_turns: int, optional
             The number of turns to track through. Defaults to 1.
+        backetrack: bool, optional
+            If True, the particles are tracked backward from ele_stop to ele_start.
         turn_by_turn_monitor: bool, str or xtrack.ParticlesMonitor, optional
             If True, a turn-by-turn monitor is created. If a monitor is provided,
             it is used directly. If the string `ONE_TURN_EBE` is provided, the
