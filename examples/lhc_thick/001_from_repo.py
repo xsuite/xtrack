@@ -55,10 +55,6 @@ tw_mad1 = mad.table.twiss.dframe()
 mad.input(f"twiss, deltap={delta2};")
 tw_mad2 = mad.table.twiss.dframe()
 
-
-
-
-
 tw0 = line.twiss()
 tw1 = line.twiss(delta0=delta1)
 tw2 = line.twiss(delta0=delta2)
