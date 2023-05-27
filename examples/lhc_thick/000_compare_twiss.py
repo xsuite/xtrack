@@ -22,8 +22,6 @@ plt.plot(mad.table.twiss.s, mad.table.twiss.x, '-')
 
 plt.show()
 
-
-
 tw0 = mad.twiss()
 tw0df = tw0.dframe()
 summ0 = tw0.summary.__dict__.copy()
@@ -39,7 +37,6 @@ summ0 = tw0.summary.__dict__.copy()
     #     ee.k2 = 0
 
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, allow_thick=True)
-# line.cycle('ip7', inplace=True)
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.twiss_default['method'] = '4d'
 line.build_tracker()
