@@ -125,6 +125,15 @@ class Target(xd.Target):
                             weight=weight, scale=scale, action=action)
         self.line = line
 
+    def eval(self, data):
+        res = data[self.action]
+        if self.line is not None:
+            res = res[self.line]
+        if callable(self.tar):
+            return self.tar(res)
+        else:
+            return res[self.tar]
+
 class Vary(xd.Vary):
     def __init__(self, name, limits=None, step=None, weight=None):
         xd.Vary.__init__(self, name=name, container=None, limits=limits,
@@ -160,7 +169,6 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
                   solver_options={}, **kwargs):
 
-    twiss_actions = {}
     targets_flatten = []
     for tt in targets:
         if isinstance(tt, xd.TargetList):
@@ -170,14 +178,11 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             targets_flatten.append(tt)
 
     for tt in targets_flatten:
+        action_twiss = None
         if tt.action is None:
-            if tt.line is not None:
-                ln_twiss = line[tt.line]
-            else:
-                ln_twiss = line
-            if ln_twiss not in twiss_actions:
-                twiss_actions[ln_twiss] = ActionTwiss(ln_twiss, **kwargs)
-            tt.action = twiss_actions[ln_twiss]
+            if action_twiss is None:
+                action_twiss = ActionTwiss(line, **kwargs)
+            tt.action = action_twiss
         if tt.weight is None:
             if isinstance(tt.tar, tuple):
                 tt_name = tt.tar[0]
