@@ -547,7 +547,7 @@ def test_backtrack_with_flag(test_context):
     line.vars['on_x1'] = 130
     line.vars['on_x5'] = 130
 
-    p = xp.Particles(
+    p = xp.Particles(_context=test_context,
         p0c=7000e9, x=1e-4, px=1e-6, y=2e-4, py=3e-6, zeta=0.01, delta=1e-4)
 
     line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
