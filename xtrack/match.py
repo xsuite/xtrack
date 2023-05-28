@@ -39,9 +39,10 @@ Action = xd.Action
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, **kwargs):
+    def __init__(self, line, allow_twiss_failure, **kwargs):
         self.line = line
         self.kwargs = kwargs
+        self.allow_twiss_failure = allow_twiss_failure
 
     def prepare(self):
         line = self.line
@@ -108,13 +109,16 @@ class ActionTwiss(xd.Action):
         self.kwargs = kwargs
 
     def run(self, allow_failure=True):
-        try:
+        if not self.allow_twiss_failure or not allow_failure:
             return self.line.twiss(**self.kwargs)
-        except Exception as ee:
-            if allow_failure:
-                return 'failed'
-            else:
-                raise ee
+        else:
+            try:
+                return self.line.twiss(**self.kwargs)
+            except Exception as ee:
+                if allow_failure:
+                    return 'failed'
+                else:
+                    raise ee
 
 class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
@@ -169,7 +173,7 @@ class TargetInequality(Target):
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
-                  solver_options={}, **kwargs):
+                  solver_options={}, allow_twiss_failure=True, **kwargs):
 
     targets_flatten = []
     for tt in targets:
@@ -183,7 +187,8 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         action_twiss = None
         if tt.action is None:
             if action_twiss is None:
-                action_twiss = ActionTwiss(line, **kwargs)
+                action_twiss = ActionTwiss(
+                    line, allow_twiss_failure=allow_twiss_failure, **kwargs)
             tt.action = action_twiss
         if tt.weight is None:
             if isinstance(tt.tar, tuple):
