@@ -98,15 +98,16 @@ class ActionTwiss(xd.Action):
 
         if _keep_initial_particles:
             if isinstance(line, xt.Multiline):
+                kwargs['_initial_particles'] = []
                 for llnn in tw0._line_names:
-                    kwargs['_initial_particles'] = tw0[llnn]._initial_particles
+                    kwargs['_initial_particles'].append(
+                                        tw0[llnn]._initial_particles)
             else:
                 kwargs['_initial_particles'] = tw0._initial_particles
 
         self.kwargs = kwargs
 
     def run(self, allow_failure=True):
-        return self.line.twiss(**self.kwargs)
         try:
             return self.line.twiss(**self.kwargs)
         except Exception as ee:
@@ -181,13 +182,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     for tt in targets_flatten:
         action_twiss = None
         if tt.action is None:
-            if tt.line is not None:
-                ln_twiss = line[tt.line]
-            else:
-                ln_twiss = line
-            if ln_twiss not in twiss_actions:
-                twiss_actions[ln_twiss] = ActionTwiss(ln_twiss, **kwargs)
-            tt.action = twiss_actions[ln_twiss]
+            if action_twiss is None:
+                action_twiss = ActionTwiss(line, **kwargs)
+            tt.action = action_twiss
         if tt.weight is None:
             if isinstance(tt.tar, tuple):
                 tt_name = tt.tar[0]
