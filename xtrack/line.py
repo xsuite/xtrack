@@ -2520,7 +2520,7 @@ class Line:
     @property
     def element_refs(self):
         if hasattr(self, '_in_multiline'):
-            var_sharing = self._in_multiline.var_sharing
+            var_sharing = self._in_multiline._var_sharing
             if var_sharing is not None:
                 return var_sharing._eref[self._in_multiline._name_in_multiline]
         if self._var_management is not None:
