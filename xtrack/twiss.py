@@ -545,7 +545,7 @@ def _twiss_open(line, twiss_init,
     if _ebe_monitor is not None:
         _monitor = _ebe_monitor
     elif hasattr(line, '_reusable_ebe_monitor_for_twiss'):
-        _monitor = line._reusable_ebe_monitor_for_twiss
+        _monitor = line.tracker._tracker_data._reusable_ebe_monitor_for_twiss
     else:
         _monitor = 'ONE_TURN_EBE'
 
@@ -559,7 +559,9 @@ def _twiss_open(line, twiss_init,
                 ele_stop=ele_stop_track,
                 backtrack=(twiss_orientation == 'backward'))
 
-    line._reusable_ebe_monitor_for_twiss = line.record_last_track
+    # We keep the monitor to speed up future calls (attached to tracker data
+    # so that it is trashed if number of elements changes)
+    line.tracker._tracker_data._reusable_ebe_monitor_for_twiss = line.record_last_track
 
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
