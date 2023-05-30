@@ -8,6 +8,8 @@ from scipy.spatial import ConvexHull
 
 import xobjects as xo
 import xpart as xp
+import xtrack as xt
+
 from ..beam_elements import LimitPolygon, XYShift, SRotation, Drift, Marker
 from ..line import Line, _is_thick, _behaves_like_drift, _allow_backtrack
 
@@ -58,6 +60,9 @@ class LossLocationRefinement:
                  save_refine_lines=False,
                  allowed_backtrack_types=[]):
 
+        if backtrack_line is not None:
+            raise ValueError('Backtracking line not supported anymore!')
+
         if line.iscollective:
             self._original_line = line
             self.line = line._get_non_collective_line()
@@ -82,12 +87,6 @@ class LossLocationRefinement:
         ln_gen.build_tracker(_buffer=self.line._buffer)
         ln_gen.config.XTRACK_GLOBAL_XY_LIMIT = line.config.XTRACK_GLOBAL_XY_LIMIT
         self._ln_gen = ln_gen
-
-        if backtrack_line is None:
-            backtrack_line = self.line.tracker.get_backtracker(
-                _context=self._context).line
-            backtrack_line.config.XTRACK_GLOBAL_XY_LIMIT = None
-        self.backtrack_line = backtrack_line
 
         self.i_apertures, self.apertures = find_apertures(self.line)
 
@@ -148,9 +147,9 @@ class LossLocationRefinement:
                                            self.line.elements[i_aper_1])):
 
                     logger.debug('Replicate mode')
-                    (interp_line, i_start_thin_0, i_start_thin_1, s0, s1
+                    (interp_line, i_end_thin_0, i_start_thin_1, s0, s1
                             ) = interp_aperture_replicate(self._context,
-                                      self.line, self.backtrack_line,
+                                      self.line,
                                       i_aper_0, i_aper_1,
                                       self.ds,
                                       _ln_gen=self._ln_gen)
@@ -158,21 +157,21 @@ class LossLocationRefinement:
                 else:
 
                     logger.debug('Polygon interpolation mode')
-                    (interp_line, i_start_thin_0, i_start_thin_1, s0, s1
+                    (interp_line, i_end_thin_0, i_start_thin_1, s0, s1
                             ) = interp_aperture_using_polygons(self._context,
-                                      self.line, self.backtrack_line,
+                                      self.line,
                                       i_aper_0, i_aper_1,
                                       self.n_theta, self.r_max, self.dr, self.ds,
                                       _ln_gen=self._ln_gen)
 
                 interp_line._original_line = self._original_line
                 part_refine = refine_loss_location_single_aperture(
-                        particles,i_aper_1, i_start_thin_0,
-                        self.backtrack_line, interp_line, inplace=True,
+                        particles, i_aper_1, i_end_thin_0,
+                        self.line, interp_line, inplace=True,
                         allowed_backtrack_types=self.allowed_backtrack_types)
 
                 if self.save_refine_lines:
-                    interp_line.i_start_thin_0 = i_start_thin_0
+                    interp_line.i_start_thin_0 = i_end_thin_0
                     interp_line.i_start_thin_1 = i_start_thin_1
                     interp_line.s0 = s0
                     interp_line.s1 = s1
@@ -219,8 +218,8 @@ def find_apertures(ln_gen):
 
     return i_apertures, apertures
 
-def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
-                    backtrack_line, interp_line,
+def refine_loss_location_single_aperture(particles, i_aper_1, i_end_thin_0,
+                    line, interp_line,
                     inplace=True,
                     allowed_backtrack_types=[]):
 
@@ -239,26 +238,26 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
                     s=particles.s[mask_part],
                     chi=particles.chi[mask_part],
                     charge_ratio=particles.charge_ratio[mask_part])
-    n_backtrack = i_aper_1 - (i_start_thin_0+1)
-    num_elements = len(backtrack_line.element_names)
-    i_start_backtrack = num_elements-i_aper_1
+
+    i_start = i_end_thin_0 + 1
+    i_stop = i_aper_1
 
     # Check that we are not backtracking through element types that are not allowed
-    for nn in interp_line._original_line.element_names[
-                                             i_aper_1 - n_backtrack : i_aper_1]:
+    for nn in interp_line._original_line.element_names[i_start : i_stop]:
         ee = interp_line._original_line.element_dict[nn]
-        if not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)):
+
+        if ((hasattr(ee, 'has_backtrack') and not ee.has_backtrack) or
+            (not _allow_backtrack(ee) and not isinstance(ee, tuple(allowed_backtrack_types)))):
             if _skip_in_loss_location_refinement(ee):
                 return 'skipped'
             raise TypeError(
                 f'Cannot backtrack through element {nn} of type '
                 f'{ee.__class__.__name__}')
 
-    backtrack_line.track(part_refine, ele_start=i_start_backtrack,
-                      num_elements = n_backtrack)
-    # Just for check
-    # elem_backtrack = backtrack_line.elements[
-    #                     i_start_backtrack:i_start_backtrack + n_backtrack]
+    with xt.line._preserve_config(line):
+        line.config.XTRACK_GLOBAL_XY_LIMIT = None
+        line.track(part_refine, ele_start=i_start, ele_stop=i_stop,
+                    backtrack='force')
 
     # Track with extra apertures
     interp_line.track(part_refine)
@@ -285,17 +284,14 @@ def refine_loss_location_single_aperture(particles, i_aper_1, i_start_thin_0,
 
     return part_refine
 
-def interp_aperture_replicate(context, line, backtrack_line,
+def interp_aperture_replicate(context, line,
                               i_aper_0, i_aper_1,
                               ds, _ln_gen, mode='end',):
 
     temp_buf = context.new_buffer()
 
-    i_start_thin_1 = find_previous_drift(line, i_aper_1)
-    num_elements = len(line.elements)
-    i_start_thin_0_bktr = find_previous_drift(backtrack_line,
-                                 index_in_reversed_line(num_elements, i_aper_0))
-    i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
+    i_start_thin_1 = find_adjacent_drift(line, i_aper_1, direction='upstream') + 1
+    i_end_thin_0 = find_adjacent_drift(line, i_aper_0, direction='downstream') - 1
 
     s0, s1, s_vect = generate_interp_aperture_locations(line,
                                                    i_aper_0, i_aper_1, ds)
@@ -316,13 +312,13 @@ def interp_aperture_replicate(context, line, backtrack_line,
             aper_0=aper_to_copy.copy(_buffer=temp_buf),
             aper_1=aper_to_copy.copy(_buffer=temp_buf),
             aper_interp=interp_apertures,
-            line=line, i_start_thin_0=i_start_thin_0,
+            line=line, i_start_thin_0=i_end_thin_0,
             i_start_thin_1=i_start_thin_1,
             _ln_gen=_ln_gen)
 
-    return interp_line, i_start_thin_0, i_start_thin_1, s0, s1
+    return interp_line, i_end_thin_0, i_start_thin_1, s0, s1
 
-def interp_aperture_using_polygons(context, line, backtrack_line,
+def interp_aperture_using_polygons(context, line,
                        i_aper_0, i_aper_1,
                        n_theta, r_max, dr, ds, _ln_gen):
 
@@ -330,13 +326,13 @@ def interp_aperture_using_polygons(context, line, backtrack_line,
 
     polygon_1, i_start_thin_1 = characterize_aperture(line,
                                  i_aper_1, n_theta, r_max, dr,
-                                 buffer_for_poly=temp_buf)
-    num_elements = len(line.elements)
-    polygon_0, i_start_thin_0_bktr = characterize_aperture(backtrack_line,
-                                 index_in_reversed_line(num_elements, i_aper_0),
+                                 buffer_for_poly=temp_buf,
+                                 coming_from='upstream')
+
+    polygon_0, i_end_thin_0 = characterize_aperture(line, i_aper_0,
                                  n_theta, r_max, dr,
-                                 buffer_for_poly=temp_buf)
-    i_start_thin_0 = index_in_reversed_line(num_elements, i_start_thin_0_bktr)
+                                 buffer_for_poly=temp_buf,
+                                 coming_from='downstream')
 
     s0, s1, s_vect = generate_interp_aperture_locations(line,
                                                    i_aper_0, i_aper_1, ds)
@@ -362,11 +358,11 @@ def interp_aperture_using_polygons(context, line, backtrack_line,
             s0=s0, s1=s1, s_interp=s_vect,
             aper_0=polygon_0, aper_1=polygon_1,
             aper_interp=interp_polygons,
-            line=line, i_start_thin_0=i_start_thin_0,
+            line=line, i_start_thin_0=i_end_thin_0,
             i_start_thin_1=i_start_thin_1,
             _ln_gen=_ln_gen)
 
-    return interp_line, i_start_thin_0, i_start_thin_1, s0, s1
+    return interp_line, i_end_thin_0, i_start_thin_1, s0, s1
 
 def generate_interp_aperture_locations(line, i_aper_0, i_aper_1, ds):
 
@@ -422,6 +418,28 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     return interp_line
 
+def find_adjacent_drift(line, i_element, direction):
+
+    ii=i_element
+    found = False
+    assert direction in ['upstream', 'downstream']
+    if direction == 'upstream':
+        increment = -1
+    else:
+        increment = 1
+    while not(found):
+        ee = line.element_dict[line.element_names[ii]]
+        ccnn = ee.__class__.__name__
+        #_print(ccnn)
+        if ccnn == 'Drift':
+            found = True
+        elif _behaves_like_drift(ee):
+            found = True
+        else:
+            ii += increment
+
+    return ii
+
 def find_previous_drift(line, i_aperture):
 
     ii=i_aperture
@@ -445,13 +463,23 @@ def index_in_reversed_line(num_elements, ii):
 
 
 def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
-                          buffer_for_poly):
+                          buffer_for_poly, coming_from='upstream'):
+
+    assert coming_from in ['upstream', 'downstream']
 
     # find previous drift
-    i_start = find_previous_drift(line, i_aperture)
-
-    # Number of thin elements to characterize
-    num_elements = i_aperture-i_start+1
+    if coming_from == 'upstream':
+        i_start = find_adjacent_drift(line, i_aperture, 'upstream') + 1
+        i_stop = i_aperture + 1
+        backtrack = False
+        index_start_thin = i_start
+    elif coming_from == 'downstream':
+        i_stop = find_adjacent_drift(line, i_aperture, 'downstream')
+        i_start = i_aperture
+        backtrack = 'force'
+        assert np.all([ee.has_backtrack for ee in
+                line.tracker._tracker_data.elements[i_start:i_stop+1]])
+        index_start_thin = i_stop - 1
 
     # Get polygon
     theta_vect = np.linspace(0, 2*np.pi, n_theta+1)[:-1]
@@ -476,7 +504,10 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
         ptest = xp.Particles(p0c=1,
                 x = x_test.copy(),
                 y = y_test.copy())
-        line.track(ptest, ele_start=i_start, num_elements=num_elements)
+        with xt.line._preserve_config(line):
+            line.config.XTRACK_GLOBAL_XY_LIMIT = None
+            line.track(ptest, ele_start=i_start, ele_stop=i_stop,
+                       backtrack=backtrack)
 
         indx_sorted = np.argsort(ptest.particle_id)
         state_sorted = np.take(ptest.state, indx_sorted)
@@ -516,5 +547,5 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
     polygon = LimitPolygon(x_vertices=res[0], y_vertices=res[1],
                               _buffer=buffer_for_poly)
 
-    return polygon, i_start
+    return polygon, index_start_thin
 

@@ -33,9 +33,7 @@ class ReferenceEnergyIncrease(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(Delta_p0c=-self.Delta_p0c,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
+    has_backtrack = True
 
 
 class Marker(BeamElement):
@@ -47,14 +45,12 @@ class Marker(BeamElement):
 
     behaves_like_drift = True
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         "/*gpufun*/\n"
         "void Marker_track_local_particle(MarkerData el, LocalParticle* part0){}"
     ]
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(_context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Drift(BeamElement):
@@ -73,13 +69,10 @@ class Drift(BeamElement):
 
     isthick = True
     behaves_like_drift = True
+    has_backtrack = True
     allow_backtrack = True
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(length=-self.length,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Cavity(BeamElement):
@@ -106,12 +99,7 @@ class Cavity(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              voltage=-self.voltage,
-                              frequency=self.frequency,
-                              lag=self.lag,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
+    has_backtrack = True
 
 
 class XYShift(BeamElement):
@@ -131,14 +119,10 @@ class XYShift(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              dx=-self.dx, dy=-self.dy,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Elens(BeamElement):
@@ -181,6 +165,8 @@ class Elens(BeamElement):
                'polynomial_order'       : xo.Float64
               }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
@@ -213,17 +199,6 @@ class Elens(BeamElement):
             polynomial_order = len(coefficients_polynomial)-1
             self.polynomial_order = polynomial_order
 
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              current=self.current,
-                              inner_radius=self.inner_radius,
-                              outer_radius=self.outer_radius,
-                              elens_length=-self.elens_length,
-                              voltage=self.voltage,
-                              coefficients_polynomial = self.coefficients_polynomial,
-                              polynomial_order = self.polynomial_order,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Wire(BeamElement):
@@ -288,10 +263,6 @@ class Wire(BeamElement):
             self.post_subtract_py = post_subtract_py
 
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        raise NotImplementedError
-
-
 class SRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the s axis.
 
@@ -309,6 +280,7 @@ class SRotation(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
@@ -350,10 +322,6 @@ class SRotation(BeamElement):
         self.cos_z = np.cos(anglerad)
         self.sin_z = np.sin(anglerad)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(angle=-self.angle,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
-
 
 class XRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the x axis.
@@ -373,6 +341,7 @@ class XRotation(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
@@ -434,9 +403,6 @@ class XRotation(BeamElement):
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(angle=-self.angle,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 class YRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the y axis.
@@ -449,6 +415,7 @@ class YRotation(BeamElement):
 
     '''
 
+    has_backtrack = True
     allow_backtrack = True
 
     _xofields={
@@ -521,9 +488,6 @@ class YRotation(BeamElement):
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(angle=-self.angle,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 class ZetaShift(BeamElement):
     '''Beam element modeling a time delat.
@@ -540,6 +504,8 @@ class ZetaShift(BeamElement):
         'dzeta': xo.Float64,
         }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
 
@@ -548,11 +514,6 @@ class ZetaShift(BeamElement):
     def __init__(self, dzeta = 0, **nargs):
         nargs['dzeta'] = dzeta
         super().__init__(**nargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              dzeta = -self.dzeta,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class SynchrotronRadiationRecord(xo.HybridClass):
@@ -607,6 +568,8 @@ class Multipole(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
+    has_backtrack = True
+
     def __init__(self, order=None, knl=None, ksl=None, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -645,18 +608,6 @@ class Multipole(BeamElement):
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         self.xoinitialize(**kwargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(
-                              order=self.order,
-                              length=-self.length,
-                              hxl=-self.hxl,
-                              hyl=-self.hyl,
-                              radiation_flag=0, #TODO, I force radiation off for now
-                              knl=-ctx2np(self.knl), # TODO: maybe it can be made more efficient
-                              ksl=-ctx2np(self.ksl), # TODO: maybe it can be made more efficient
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class SimpleThinQuadrupole(BeamElement):
@@ -717,11 +668,6 @@ class SimpleThinQuadrupole(BeamElement):
         container=self,
     )
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(knl=-ctx2np(self.knl), _context=_context,
-                              _buffer=_buffer, _offset=_offset)
-
 
 class SimpleThinBend(BeamElement):
     '''A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
@@ -776,13 +722,6 @@ class SimpleThinBend(BeamElement):
         container=self,
     )
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(knl=-ctx2np(self.knl),
-                              hxl=-self.hxl,
-                              length=-self.length,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
-
 
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
@@ -821,6 +760,8 @@ class RFMultipole(BeamElement):
         'pn': xo.Float64[:],
         'ps': xo.Float64[:],
     }
+
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -889,20 +830,6 @@ class RFMultipole(BeamElement):
         self.xoinitialize(**kwargs)
 
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._context.nparray_from_context_array
-        return self.__class__(
-                              order=self.order,
-                              voltage=-self.voltage,
-                              frequency=self.frequency,
-                              lag=self.lag,
-                              knl=-ctx2np(self.knl),
-                              ksl=-ctx2np(self.ksl),
-                              pn = ctx2np(self.pn),
-                              ps = ctx2np(self.ps),
-                              _context=_context, _buffer=_buffer, _offset=_offset)
-
-
 class DipoleEdge(BeamElement):
     '''Beam element modeling a dipole edge (see MAD-X manual for detaild description).
 
@@ -930,6 +857,8 @@ class DipoleEdge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
+
+    has_backtrack = True
 
     _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
     _skip_in_to_dict = ['r21', 'r43']
@@ -973,15 +902,6 @@ class DipoleEdge(BeamElement):
 
         super().__init__(h=h, hgap=hgap, e1=e1, fint=fint, r21=r21, r43=r43,
                          **kwargs)
-
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              h=self.h,
-                              hgap=self.hgap,
-                              e1=-self.e1,
-                              fint=-self.fint,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class LinearTransferMatrix(BeamElement):

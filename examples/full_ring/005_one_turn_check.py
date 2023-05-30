@@ -25,10 +25,10 @@ test_backtracker=True
 #rtol_10turns = 1e-9; atol_10turns=2e-11
 #test_backtracker = False
 
-fname_line_particles = test_data_folder.joinpath(
-                         './hllhc_14/line_and_particle.json')
-rtol_10turns=1e-9; atol_10turns=1e-11 # 2e-10 needed for delta = 1e-3
-test_backtracker = False
+# fname_line_particles = test_data_folder.joinpath(
+#                          './hllhc_14/line_and_particle.json')
+# rtol_10turns=1e-9; atol_10turns=1e-11 # 2e-10 needed for delta = 1e-3
+# test_backtracker = False
 
 #fname_line_particles = test_data_folder.joinpath(
 #                    './sps_w_spacecharge/line_with_spacecharge_and_particle.json')
@@ -62,9 +62,6 @@ line = xt.Line.from_dict(input_data['line'])
 print('Build tracker...')
 line.build_tracker(_context=context)
 line.reset_s_at_end_turn = False
-
-if test_backtracker:
-    backtracker = line.get_backtracker(_context=context)
 
 ######################
 # Get some particles #
@@ -111,7 +108,7 @@ for vv in vars_to_check:
 #####################
 
 if test_backtracker:
-    backtracker.track(particles, num_turns=n_turns)
+    line.track(particles, num_turns=n_turns, backtrack=True)
 
     dtk_part = dtk.TestParticles.from_dict(input_data['particle']).copy()
 
@@ -168,9 +165,8 @@ for ii, (eedtk, nn) in enumerate(zip(testline.elements, testline.element_names))
         break
 
     if test_backtracker:
-        backtracker.track(particles,
-                ele_start=len(line.elements) - ii - 1,
-                num_elements=1)
+        line.track(particles, ele_start=ii, ele_stop=ii+1, backtrack=True)
+
         for vv in vars_to_check:
             xt_value = context.nparray_from_context_array(
                                         getattr(particles, vv))[ip_check]

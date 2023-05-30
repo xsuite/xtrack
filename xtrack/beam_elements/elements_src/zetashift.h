@@ -9,8 +9,13 @@
 /*gpufun*/
 void ZetaShift_track_local_particle(ZetaShiftData el, LocalParticle* part0){
 
+
+    double dzeta = ZetaShiftData_get_dzeta(el);
+    #ifdef XSUITE_BACKTRACK
+        dzeta = -dzeta;
+    #endif
+
     //start_per_particle_block (part0->part)
-    	double const dzeta = ZetaShiftData_get_dzeta(el);
 
         double const beta0 = LocalParticle_get_beta0(part);
         double const beta = LocalParticle_get_rvv(part)*beta0;
