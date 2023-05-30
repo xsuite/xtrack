@@ -202,8 +202,8 @@ def test_match_orbit_bump_within_multiline(test_context):
 
     collider.match(
         lines=['lhcb1'],
-        ele_start='mq.33l8.b1',
-        ele_stop='mq.23l8.b1',
+        ele_start=['mq.33l8.b1'],
+        ele_stop=['mq.23l8.b1'],
         twiss_init=['preserve_start'],
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),

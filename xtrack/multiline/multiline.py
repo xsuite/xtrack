@@ -27,6 +27,7 @@ class Multiline:
         self.lines.update(lines)
 
         line_names = list(self.lines.keys())
+        self.line_names = line_names
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
             self._var_sharing = VarSharing(lines=line_list, names=line_names)
