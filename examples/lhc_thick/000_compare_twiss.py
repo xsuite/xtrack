@@ -39,6 +39,7 @@ summ0 = tw0.summary.__dict__.copy()
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, allow_thick=True)
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.twiss_default['method'] = '4d'
+line.twiss_default['matrix_stability_tolerance'] = 100
 line.build_tracker()
 line.freeze_longitudinal(True)
 

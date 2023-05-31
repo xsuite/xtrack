@@ -38,11 +38,13 @@ void track_thick_bend(
 
         // Useful constants
         const double C = pz - k * ((1 / h) + x);
+        new_px = px * cos(s * h) + C * sin(s * h);
+        double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
+        // double const d_new_px_ds = new_px / new_pz;
+
         const double d_new_px_ds = C * h * cos(h * s) - h * px * sin(h * s);
 
         // Update particle coordinates
-        new_px = px * cos(s * h) + C * sin(s * h);
-        double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
 
         new_x = (new_pz * h - d_new_px_ds - k)/(h*k);
         const double D = asin(A * px) - asin(A * new_px);

@@ -22,6 +22,7 @@ for ii, tt in enumerate(theta_array):
     p = xp.Particles(p0c=1e9)
     p.x += 10
     p.px += 0.1
+    p.delta = 0.1
     bend.track(p)
 
     X0 = -rho*(1-np.cos(theta))

@@ -29,6 +29,9 @@ mad.twiss()
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, allow_thick=True)
 line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 line.twiss_default['method'] = '4d'
+line.twiss_default['matrix_stability_tol'] = 100
+
+
 line.config.XTRACK_USE_EXACT_DRIFTS = True
 line.build_tracker()
 
@@ -46,8 +49,8 @@ if kill_fringes_and_edges:
 
 tw_mad = mad.twiss().dframe()
 
-delta1 = -1e-6
-delta2 = 1e-6
+delta1 = -1e-5
+delta2 = 1e-5
 
 mad.input(f"twiss, deltap={delta1};")
 tw_mad1 = mad.table.twiss.dframe()
