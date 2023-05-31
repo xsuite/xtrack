@@ -5,7 +5,7 @@ import xpart as xp
 # hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
 
 thin = False
-kill_fringes_and_edges = True
+kill_fringes_and_edges = False
 
 mad = Madx()
 
@@ -20,6 +20,7 @@ call,file="../../../hllhc15/round/opt_round_150_1500.madx";
 {('exec,myslice;' if thin else '')}
 exec,check_ip(b1);
 exec,check_ip(b2);
+// acbv11.r8b1 = 2e-6;
 """)
 
 mad.use(sequence="lhcb1")
