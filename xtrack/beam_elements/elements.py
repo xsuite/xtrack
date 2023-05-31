@@ -790,6 +790,75 @@ class CombinedFunctionMagnet(BeamElement):
         )
 
 
+class TrueBend(BeamElement):
+    isthick = True
+
+    _xofields={
+        'k0': xo.Float64,
+        'h': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/truebend.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        if kwargs.get('length', 0.0) == 0.0:
+            raise ValueError("A thick element must have a length.")
+
+        self.xoinitialize(**kwargs)
+
+    @property
+    def knl(self):
+        return self._buffer.context.linked_array_type.from_array(
+            np.array([self.k0 * self.length]),
+            mode='readonly',
+            container=self,
+        )
+
+    @property
+    def hxl(self): return self.h * self.length
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @property
+    def order(self): return 1
+
+    @property
+    def inv_factorial_order(self): return 1.0
+
+    @property
+    def ksl(self): return self._buffer.context.linked_array_type.from_array(
+        np.array([0.]),
+        mode='readonly',
+        container=self,
+    )
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._buffer.context.nparray_from_context_array
+        return self.__class__(
+            length=-ctx2np(self.length),
+            k0=self.k0,
+            h=self.h,
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
+        )
+
+    def make_thin_slice(self, weight):
+        return Multipole(
+            knl=self.knl * weight,
+            hxl=self.hxl * weight,
+            length=self.length * weight,
+        )
+
+
 class SimpleThinBend(BeamElement):
     '''A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
     knl : array
