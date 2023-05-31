@@ -450,9 +450,10 @@ class RDMTable:
     ):
         view, col_list = self._get_view_col_list(rows, cols)
 
-        # add index
-        if self._index not in col_list:
-            col_list.insert(0, self._index)
+        # index always first
+        if self._index in col_list:
+            col_list.remove(self._index)
+        col_list.insert(0, self._index)
 
         cut = -1
         viewrows = len(view)

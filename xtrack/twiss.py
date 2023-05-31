@@ -229,7 +229,7 @@ def twiss_line(line, particle_ref=None, method=None,
     nemitt_x=(nemitt_x or 1e-6)
     nemitt_y=(nemitt_y or 1e-6,)
     delta_disp=(delta_disp or 1e-5)
-    delta_chrom=(delta_chrom or 1e-6)
+    delta_chrom=(delta_chrom or 1e-5)
     zeta_disp=(zeta_disp or 1e-3)
     values_at_element_exit=(values_at_element_exit or False)
     continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
@@ -545,7 +545,7 @@ def _twiss_open(line, twiss_init,
     if _ebe_monitor is not None:
         _monitor = _ebe_monitor
     elif hasattr(line, '_reusable_ebe_monitor_for_twiss'):
-        _monitor = line._reusable_ebe_monitor_for_twiss
+        _monitor = line.tracker._tracker_data._reusable_ebe_monitor_for_twiss
     else:
         _monitor = 'ONE_TURN_EBE'
 
@@ -559,7 +559,9 @@ def _twiss_open(line, twiss_init,
                 ele_stop=ele_stop_track,
                 backtrack=(twiss_orientation == 'backward'))
 
-    line._reusable_ebe_monitor_for_twiss = line.record_last_track
+    # We keep the monitor to speed up future calls (attached to tracker data
+    # so that it is trashed if number of elements changes)
+    line.tracker._tracker_data._reusable_ebe_monitor_for_twiss = line.record_last_track
 
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (

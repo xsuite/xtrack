@@ -1,0 +1,23 @@
+select, flag=makethin, clear;
+select, flag=makethin, class=mb, slice=2;
+select, flag=makethin, class=mq, slice=2;
+select, flag=makethin, class=mqxa,  slice=16;
+select, flag=makethin, class=mqxb,  slice=16;
+select, flag=makethin, pattern=mbx\.,    slice=4;
+select, flag=makethin, pattern=mbrb\.,   slice=4;
+select, flag=makethin, pattern=mbrc\.,   slice=4;
+select, flag=makethin, pattern=mbrs\.,   slice=4;
+select, flag=makethin, pattern=mbh\.,    slice=4;
+select, flag=makethin, pattern=mqwa\.,   slice=4;
+select, flag=makethin, pattern=mqwb\.,   slice=4;
+select, flag=makethin, pattern=mqy\.,    slice=4;
+select, flag=makethin, pattern=mqm\.,    slice=4;
+select, flag=makethin, pattern=mqmc\.,   slice=4;
+select, flag=makethin, pattern=mqml\.,   slice=4;
+select, flag=makethin, pattern=mqtlh\.,  slice=2;
+select, flag=makethin, pattern=mqtli\.,  slice=2;
+select, flag=makethin, pattern=mqt\.  ,  slice=2;
+!thin lens
+beam;use,sequence=lhcb1; makethin, sequence=lhcb1,style=teapot;
+beam;use,sequence=lhcb2; makethin, sequence=lhcb2,style=teapot;
+is_thin=1;

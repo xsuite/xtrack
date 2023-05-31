@@ -10,10 +10,11 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
+from typing import List
 
 import numpy as np
 
-from . import linear_normal_form as lnf
+from . import linear_normal_form as lnf, slicing
 
 import xobjects as xo
 import xpart as xp
@@ -686,6 +687,8 @@ class Line:
             be provided.
         num_turns: int, optional
             The number of turns to track through. Defaults to 1.
+        backetrack: bool, optional
+            If True, the particles are tracked backward from ele_stop to ele_start.
         turn_by_turn_monitor: bool, str or xtrack.ParticlesMonitor, optional
             If True, a turn-by-turn monitor is created. If a monitor is provided,
             it is used directly. If the string `ONE_TURN_EBE` is provided, the
@@ -1282,6 +1285,44 @@ class Line:
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop)
+
+    def make_thin_line(self, slicing_strategies: List[slicing.Strategy]):
+        thin_names = []
+        thin_elements = []
+
+        for name in self.element_names:
+            element = self[name]
+
+            if not element.isthick or isinstance(element, Drift):
+                thin_names.append(name)
+                thin_elements.append(element)
+                continue
+
+            chosen_slicing = None
+            for strategy in reversed(slicing_strategies):
+                if strategy.match_element(name, element):
+                    chosen_slicing = strategy.slicing
+                    break
+
+            if not chosen_slicing:
+                raise ValueError(f'No slicing strategy found for the element '
+                                 f'{name}: {element}.')
+
+            drift_idx, element_idx = 0, 0
+            for weight, is_drift in chosen_slicing:
+                if is_drift:
+                    thin_slice = Drift(length=element.length * weight)
+                    slice_name = f'drift_{name}..{drift_idx}'
+                    drift_idx += 1
+                else:
+                    thin_slice = element.make_thin_slice(weight)
+                    slice_name = f'{name}..{element_idx}'
+                    element_idx += 1
+
+                thin_names.append(slice_name)
+                thin_elements.append(thin_slice)
+
+        return Line(elements=thin_elements, element_names=thin_names)
 
 
     def get_length(self):
@@ -2418,6 +2459,10 @@ class Line:
     def __len__(self):
         return len(self.element_names)
 
+    def items(self):
+        for name in self.element_names:
+            yield name, self.element_dict[name]
+
     def _var_management_to_dict(self):
         out = {}
         out['_var_management_data'] = deepcopy(self._var_management['data'])
@@ -2521,9 +2566,9 @@ class Line:
     @property
     def element_refs(self):
         if hasattr(self, '_in_multiline'):
-            var_sharing = self._in_multiline.var_sharing
+            var_sharing = self._in_multiline._var_sharing
             if var_sharing is not None:
-                return var_sharing._eref[self._in_multiline._name_in_multiline]
+                return var_sharing._eref[self._name_in_multiline]
         if self._var_management is not None:
             return self._var_management['lref']
 

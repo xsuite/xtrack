@@ -814,14 +814,23 @@ class MadLoader:
         else:
             h = 0.0
 
-        return self.Builder(
-            mad_el.name,
-            self.classes.CombinedFunctionMagnet,
-            k0=mad_el.k0 or h,
-            k1=mad_el.k1,
-            h=h,
-            length=mad_el.l,
-        )
+        if not_zero(mad_el.k1):
+            return self.Builder(
+                mad_el.name,
+                self.classes.CombinedFunctionMagnet,
+                k0=mad_el.k0 or h,
+                k1=mad_el.k1,
+                h=h,
+                length=mad_el.l,
+            )
+        else:
+            return self.Builder(
+                mad_el.name,
+                self.classes.TrueBend,
+                k0=mad_el.k0 or h,
+                h=h,
+                length=mad_el.l,
+            )
 
     def convert_sextupole(self, mad_el):
         thin_sext = self.Builder(

@@ -27,6 +27,7 @@ class Multiline:
         self.lines.update(lines)
 
         line_names = list(self.lines.keys())
+        self.line_names = line_names
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
             self._var_sharing = VarSharing(lines=line_list, names=line_names)
@@ -240,30 +241,15 @@ class Multiline:
 
         out = MultiTwiss()
         if lines is None:
-            lines = self.lines.keys()
+            lines = self.line_names
 
-        kwargs_per_twiss = {}
-        for arg_name in ['ele_start', 'ele_stop', 'twiss_init',
-                         '_initial_particles', '_ebe_monitor']:
-            if arg_name not in kwargs:
-                kwargs_per_twiss[arg_name] = len(lines) * [None]
-            elif not isinstance(kwargs[arg_name], (list, tuple)):
-                kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
-                kwargs.pop(arg_name)
-            else:
-                assert len(kwargs[arg_name]) == len(lines), \
-                    f'Length of {arg_name} must be equal to the number of lines'
-                kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
-                kwargs.pop(arg_name)
+        kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, lines)
 
         for ii, nn in enumerate(lines):
-            out[nn] = self.lines[nn].twiss(**kwargs,
-                                ele_start=kwargs_per_twiss['ele_start'][ii],
-                                ele_stop=kwargs_per_twiss['ele_stop'][ii],
-                                twiss_init=kwargs_per_twiss['twiss_init'][ii],
-                                _initial_particles=kwargs_per_twiss['_initial_particles'][ii],
-                                _ebe_monitor=kwargs_per_twiss['_ebe_monitor'][ii]
-                                )
+            this_kwargs = kwargs.copy()
+            for kk in kwargs_per_twiss.keys():
+                this_kwargs[kk] = kwargs_per_twiss[kk][ii]
+            out[nn] = self.lines[nn].twiss(**this_kwargs)
 
         out._line_names = lines
 
@@ -300,6 +286,10 @@ class Multiline:
             Dictionary containing information about the matching result.
 
         '''
+
+        line_names = kwargs.get('lines', self.line_names)
+        kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, line_names)
+        kwargs.update(kwargs_per_twiss)
 
         return xt.match.match_line(self, vary, targets,
                           restore_if_fail=restore_if_fail,
@@ -506,3 +496,18 @@ class MultiTwiss(dict):
     def __init__(self):
         self.__dict__ = self
 
+def _dispatch_twiss_kwargs(kwargs, lines):
+    kwargs_per_twiss = {}
+    for arg_name in ['ele_start', 'ele_stop', 'twiss_init',
+                        '_initial_particles', '_ebe_monitor']:
+        if arg_name not in kwargs:
+            continue
+        if not isinstance(kwargs[arg_name], (list, tuple)):
+            kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
+            kwargs.pop(arg_name)
+        else:
+            assert len(kwargs[arg_name]) == len(lines), \
+                f'Length of {arg_name} must be equal to the number of lines'
+            kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
+            kwargs.pop(arg_name)
+    return kwargs, kwargs_per_twiss
