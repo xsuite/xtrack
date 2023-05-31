@@ -77,9 +77,6 @@ class Drift(BeamElement):
     def make_thin_slice(self, weight):
         return Drift(length=self.length * weight)
 
-=======
->>>>>>> main
-
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.
 
