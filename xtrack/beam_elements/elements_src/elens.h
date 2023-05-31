@@ -9,7 +9,12 @@
 /*gpufun*/
 void Elens_track_local_particle(ElensData el, LocalParticle* part0){
 
-    double const elens_length = ElensData_get_elens_length(el);
+    double elens_length = ElensData_get_elens_length(el);
+
+    #ifdef XSUITE_BACKTRACK
+        elens_length = -elens_length;
+    #endif
+
     double const inner_radius = ElensData_get_inner_radius(el);
     double const outer_radius = ElensData_get_outer_radius(el);
     double const current = ElensData_get_current(el);

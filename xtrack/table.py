@@ -298,6 +298,12 @@ class RDMTable:
     def items(self):
         return self._data.items()
 
+    def pop(self, key):
+        res = self._data.pop(key)
+        if key in self._col_names:
+            self._col_names.remove(key)
+        return res
+
     def __dir__(self):
         return super().__dir__() + list(self._data.keys())
 
@@ -360,6 +366,10 @@ class RDMTable:
             elif len(args) == 2:
                 cols = args[0]
                 rows = args[1]
+                # TODO: for performance I do it like this, but to be fixed properly
+                if type(rows) is str and type(cols) is str:
+                    indx = np.where(self[self._index] == rows)[0][0]
+                    return self._data[cols][indx]
             else:
                 if self._multiple_row_selections:
                     cols = args[0]
@@ -440,9 +450,10 @@ class RDMTable:
     ):
         view, col_list = self._get_view_col_list(rows, cols)
 
-        # add index
-        if self._index not in col_list:
-            col_list.insert(0, self._index)
+        # index always first
+        if self._index in col_list:
+            col_list.remove(self._index)
+        col_list.insert(0, self._index)
 
         cut = -1
         viewrows = len(view)

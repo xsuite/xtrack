@@ -146,13 +146,14 @@ def test_backtrack(test_context):
             zeta=1.)
 
     for element in elements:
-        element_backtrack = element.get_backtrack_element(_context=test_context)
+        line_test = xt.Line(elements=[element])
+        line_test.build_tracker(_context=test_context)
 
-        # track forth and back
+        # track forward and backward
         new_particles = xp.Particles.from_dict(dtk_particle.to_dict(),
                                                _context=test_context)
-        element.track(new_particles)
-        element_backtrack.track(new_particles)
+        line_test.track(new_particles)
+        line_test.track(new_particles, backtrack=True)
 
         # assert that nothing changed
         for k in 'x,px,y,py,zeta,delta'.split(','):

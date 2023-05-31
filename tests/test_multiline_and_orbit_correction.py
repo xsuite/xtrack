@@ -75,7 +75,7 @@ def test_multiline_and_orbit_correction(test_context):
 
     # Add correction term to all dipole correctors
     collider.vars['on_corr_co'] = 1
-    for kk in list(collider.vars._owner.keys()):
+    for kk in list(collider.vars.keys()):
         if kk.startswith('acb'):
             collider.vars['corr_co_'+kk] = 0
             collider.vars[kk] += (collider.vars['corr_co_'+kk]

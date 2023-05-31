@@ -1,0 +1,1 @@
+cp ../../../xmask/examples/hllhc15_collision/collider_00_from_mad.json .
