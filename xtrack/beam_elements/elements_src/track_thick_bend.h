@@ -31,35 +31,36 @@ void track_thick_bend(
     // Useful constants
     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
     const double A = 1.0 / sqrt(POW2(one_plus_delta) - POW2(py));
-    const double B = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
+    const double pz = sqrt(POW2(one_plus_delta) - POW2(px) - POW2(py));
 
-    if (NONZERO(h)) {
+    // if (NONZERO(h)) {
         // The case for non-zero curvature, s is arc length
 
         // Useful constants
-        const double C = B - k * ((1 / h) + x);
+        const double C = pz - k * ((1 / h) + x);
         const double d_new_px_ds = C * h * cos(h * s) - h * px * sin(h * s);
 
         // Update particle coordinates
-        new_x = (B * h - d_new_px_ds - k)/(h*k);
         new_px = px * cos(s * h) + C * sin(s * h);
+        double const new_pz = sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py));
 
+        new_x = (new_pz * h - d_new_px_ds - k)/(h*k);
         const double D = asin(A * px) - asin(A * new_px);
         new_y = y + ((py * s) / (k / h)) + (py / k) * D;
 
         new_ell = ell + ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
-    }
-    else {
-        // The case for zero curvature -- straight bend, s is Cartesian length
+    // }
+    // else {
+    //     // The case for zero curvature -- straight bend, s is Cartesian length
 
-        new_px = px - k * s;
-        new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - B) / k;
+    //     new_px = px - k * s;
+    //     new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - B) / k;
 
-        const double D = asin(A * px) - asin(A * new_px);
-        new_y = y + (py / k) * D;
+    //     const double D = asin(A * px) - asin(A * new_px);
+    //     new_y = y + (py / k) * D;
 
-        new_ell = ell + (one_plus_delta / k) * D;
-    }
+    //     new_ell = ell + (one_plus_delta / k) * D;
+    // }
 
     // Update Particles object
     LocalParticle_set_x(part, new_x);
