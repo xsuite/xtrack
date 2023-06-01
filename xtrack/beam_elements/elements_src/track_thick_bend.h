@@ -16,8 +16,13 @@ void track_thick_bend(
         const double k,       // normal dipole strength
         const double h        // curvature
 ) {
-    const double rvv = LocalParticle_get_rvv(part);
 
+    if(fabs(k) < 1e-8 && fabs(h) < 1e-8) {
+        Drift_single_particle(part, length);
+        return;
+    }
+
+    const double rvv = LocalParticle_get_rvv(part);
     // Particle coordinates
     const double x = LocalParticle_get_x(part);
     const double y = LocalParticle_get_y(part);
@@ -52,7 +57,7 @@ void track_thick_bend(
 
         new_ell = ell + ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
     }
-    else if (fabs(k) > 1e-8) {
+    else {
          // The case for zero curvature -- straight bend, s is Cartesian length
 
          new_px = px - k * s;
@@ -63,9 +68,7 @@ void track_thick_bend(
 
          new_ell = ell + (one_plus_delta / k) * D;
     }
-    else{
-        Drift_single_particle(part, length);
-    }
+
 
     // Update Particles object
     LocalParticle_set_x(part, new_x);
