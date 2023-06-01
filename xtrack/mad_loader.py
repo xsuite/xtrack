@@ -761,6 +761,7 @@ class MadLoader:
             _tan = tan
 
         if enable_entry_edge and mad_el.type == 'rbend':
+            # For the rbend edge import we flat edge faces
             dipedge_entry = self.Builder(
                 mad_el.name + "_den",
                 self.classes.DipoleEdge,
@@ -769,6 +770,7 @@ class MadLoader:
             )
             sequence = [dipedge_entry] + sequence
         elif enable_entry_edge and mad_el.type == 'sbend':
+            # For the sbend edge import we assume k0l = angle
             dipedge_entry = self.Builder(
                 mad_el.name + "_den",
                 self.classes.DipoleEdge,
@@ -780,6 +782,7 @@ class MadLoader:
             sequence = [dipedge_entry] + sequence
 
         if enable_exit_edge and mad_el.type == 'rbend':
+            # For the rbend edge import we flat edge faces
             dipedge_exit = self.Builder(
                 mad_el.name + "_dex",
                 self.classes.DipoleEdge,
@@ -788,6 +791,7 @@ class MadLoader:
             )
             sequence = sequence + [dipedge_exit]
         elif enable_entry_edge and mad_el.type == 'sbend':
+            # For the sbend edge import we assume k0l = angle
             dipedge_exit = self.Builder(
                 mad_el.name + "_dex",
                 self.classes.DipoleEdge,
