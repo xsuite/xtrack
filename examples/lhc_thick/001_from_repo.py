@@ -5,7 +5,7 @@ import xpart as xp
 # hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
 
 thin = False
-kill_fringes_and_edges = False
+kill_fringes_and_edges = True
 
 mad = Madx()
 
