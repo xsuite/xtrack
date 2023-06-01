@@ -72,7 +72,10 @@ class Drift(BeamElement):
     has_backtrack = True
     allow_backtrack = True
 
-    _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
+        ]
 
     def make_thin_slice(self, weight):
         return Drift(length=self.length * weight)
@@ -745,6 +748,7 @@ class TrueBend(BeamElement):
     }
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/truebend.h'),
     ]
