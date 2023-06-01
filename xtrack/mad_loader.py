@@ -774,7 +774,7 @@ class MadLoader:
                 mad_el.name + "_dex",
                 self.classes.DipoleEdge,
                 r21= h * _tan(0.5 * k0 * l),
-                r43= k0 * _tan(0.5 * k0 * l),
+                r43= -k0 * _tan(0.5 * k0 * l),
             )
             sequence = sequence + [dipedge_exit]
 
