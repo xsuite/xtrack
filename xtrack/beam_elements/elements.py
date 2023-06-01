@@ -986,6 +986,7 @@ class DipoleEdge(BeamElement):
     '''
 
     _xofields = {
+            'mode': xo.Int64,
             'r21': xo.Float64,
             'r43': xo.Float64,
             'hgap': xo.Float64,
@@ -999,8 +1000,14 @@ class DipoleEdge(BeamElement):
 
     has_backtrack = True
 
-    _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
-    _skip_in_to_dict = ['r21', 'r43']
+    _rename = {
+        'r21': '_r21',
+        'r43': '_r43',
+        'hgap': '_hgap',
+        'h': '_h',
+        'e1': '_e1',
+        'fint': '_fint',
+    }
 
     def __init__(
         self,
@@ -1010,37 +1017,116 @@ class DipoleEdge(BeamElement):
         e1=None,
         hgap=None,
         fint=None,
+        mode=None,
         **kwargs
     ):
 
-        if r21 is not None or r43 is not None:
-            raise NotImplementedError(
-                "Please initialize using `h`, `e1`, `hgap` and `fint`")
+        self.xoinitialize(**kwargs)
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            return
+        if '_r21' in kwargs.keys():
+            # has been set with underscored variables
+            return
 
-        if hgap is None:
-            hgap = 0.
-        if h is None:
-            h = 0.
-        if e1 is None:
-            e1 = 0.
-        if fint is None:
-            fint = 0.
+        # To have them initalized
+        self.mode = 0
+        self._hgap = (hgap or 0)
+        self._h = (h or 0)
+        self._e1 = (e1 or 0)
+        self._fint = (fint or 0)
+        self._r21 = (r21 or 0)
+        self._r43 = (r43 or 0)
 
-        # Check that the argument e1 is not too close to ( 2k + 1 ) * pi/2
-        # so that the cos in the denominator of the r43 calculation and
-        # the tan in the r21 calculations blow up
-        assert not np.isclose(np.absolute(np.cos(e1)), 0)
+        if mode is not None:
+            self.mode = mode
+        elif r21 is not None or r43 is not None:
+            self.mode = 1
+        else:
+            self.mode = 0
 
-        corr = np.float64(2.0) * h * hgap * fint
-        r21 = h * np.tan(e1)
-        temp = corr / np.cos(e1) * (np.float64(1) + np.sin(e1) * np.sin(e1))
+        if self.mode == 0:
+            self._update_r21_r43()
 
-        # again, the argument to the tan calculation should be limited
-        assert not np.isclose(np.absolute(np.cos(e1 - temp)), 0)
-        r43 = -h * np.tan(e1 - temp)
+    def _update_r21_r43(self):
+        corr = np.float64(2.0) * self.h * self.hgap * self.fint
+        r21 = self.h * np.tan(self.e1)
+        temp = corr / np.cos(self.e1) * (
+            np.float64(1) + np.sin(self.e1) * np.sin(self.e1))
+        r43 = -self.h * np.tan(self.e1 - temp)
+        self._r21 = r21
+        self._r43 = r43
+        self.mode = 0
 
-        super().__init__(h=h, hgap=hgap, e1=e1, fint=fint, r21=r21, r43=r43,
-                         **kwargs)
+    @property
+    def h(self):
+        if self.mode == 0:
+            return self._h
+        else:
+            raise ValueError(
+                "`h` is not defined because r21 and r43 were provided directly")
+
+    @h.setter
+    def h(self, value):
+        self._h = value
+        self._update_r21_r43()
+
+    @property
+    def e1(self):
+        if self.mode == 0:
+            return self._e1
+        else:
+            raise ValueError(
+                "`e1` is not defined because r21 and r43 were provided directly")
+
+    @e1.setter
+    def e1(self, value):
+        self._e1 = value
+        self._update_r21_r43()
+
+    @property
+    def hgap(self):
+        if self.mode == 0:
+            return self._hgap
+        else:
+            raise ValueError(
+                "`hgap` is not defined because r21 and r43 were provided directly")
+
+    @hgap.setter
+    def hgap(self, value):
+        self._hgap = value
+        self._update_r21_r43()
+
+    @property
+    def fint(self):
+        if self.mode == 0:
+            return self._fint
+        else:
+            raise ValueError(
+                "`fint` is not defined because r21 and r43 were provided directly")
+
+    @fint.setter
+    def fint(self, value):
+        self._fint = value
+        self._update_r21_r43()
+
+    @property
+    def r21(self):
+        return self._r21
+
+    @r21.setter
+    def r21(self, value):
+        self._r21 = value
+        self.mode = 1
+
+    @property
+    def r43(self):
+        return self._r43
+
+    @r43.setter
+    def r43(self, value):
+        self._r43 = value
+        self.mode = 1
+
 
 
 class LinearTransferMatrix(BeamElement):
