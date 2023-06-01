@@ -34,6 +34,7 @@ from itertools import zip_longest
 from typing import List, Iterable, Iterator, Tuple
 
 import numpy as np
+from math import tan
 
 import xtrack, xobjects
 
@@ -595,6 +596,7 @@ class MadLoader:
             buffer = xobjects.context_default.new_buffer()
 
         line = self.classes.Line()
+        self.line = line
 
         if self.enable_expressions:
             madeval = MadLoader.init_line_expressions(line, mad,
@@ -722,14 +724,10 @@ class MadLoader:
         )
 
     def convert_rbend(self, mad_el):
-        angle = mad_el.angle or (mad_el.k0 * mad_el.l)
-
         return self._convert_bend(
             mad_el,
             enable_entry_edge=True,
             enable_exit_edge=True,
-            add_to_e1=angle / 2,
-            add_to_e2=angle / 2,
         )
 
     def convert_sbend(self, mad_el):
@@ -744,39 +742,39 @@ class MadLoader:
         mad_el,
         enable_entry_edge=True,
         enable_exit_edge=True,
-        add_to_e1=0,
-        add_to_e2=0,
     ):
         if not_zero(mad_el.l) and self.allow_thick:
             sequence = [self._convert_bend_thick(mad_el)]
         else:
             sequence = [self._convert_bend_thin(mad_el)]
 
-        # Add the dipole edge(s)
-        new_h = mad_el.k0 or mad_el.angle / mad_el.l
+        l = mad_el.l
+        h = mad_el.angle / l
+        if not mad_el.k0:
+            k0 = mad_el.angle / l
+        else:
+            k0 = mad_el.k0
 
-        if enable_entry_edge:
+        if issubclass(self.Builder, ElementBuilderWithExpr):
+            _tan = self.line._var_management['fref'].tan
+        else:
+            _tan = tan
+
+        if enable_entry_edge and mad_el.type == 'rbend':
             dipedge_entry = self.Builder(
                 mad_el.name + "_den",
                 self.classes.DipoleEdge,
-                e1=mad_el.e1 + add_to_e1,
-                fint=mad_el.fint,
-                hgap=mad_el.hgap,
-                h=new_h,
+                r21= h * _tan(0.5 * k0 * l),
+                r43= -k0 * _tan(0.5 * k0 * l),
             )
             sequence = [dipedge_entry] + sequence
 
-        if enable_exit_edge:
-            new_e2 = mad_el.e2 + add_to_e2
-            fintx = mad_el.fint if float(mad_el.fintx) < 0 else mad_el.fintx
-
+        if enable_exit_edge and mad_el.type == 'rbend':
             dipedge_exit = self.Builder(
                 mad_el.name + "_dex",
                 self.classes.DipoleEdge,
-                e1=new_e2,
-                fint=fintx,
-                hgap=mad_el.hgap,
-                h=new_h,
+                r21= h * _tan(0.5 * k0 * l),
+                r43= k0 * _tan(0.5 * k0 * l),
             )
             sequence = sequence + [dipedge_exit]
 
