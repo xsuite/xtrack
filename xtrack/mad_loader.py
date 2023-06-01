@@ -768,6 +768,16 @@ class MadLoader:
                 r43= -k0 * _tan(0.5 * k0 * l),
             )
             sequence = [dipedge_entry] + sequence
+        elif enable_entry_edge and mad_el.type == 'sbend':
+            dipedge_entry = self.Builder(
+                mad_el.name + "_den",
+                self.classes.DipoleEdge,
+                e1=mad_el.e1,
+                fint=mad_el.fint,
+                hgap=mad_el.hgap,
+                h=k0
+            )
+            sequence = [dipedge_entry] + sequence
 
         if enable_exit_edge and mad_el.type == 'rbend':
             dipedge_exit = self.Builder(
@@ -775,6 +785,16 @@ class MadLoader:
                 self.classes.DipoleEdge,
                 r21= h * _tan(0.5 * k0 * l),
                 r43= -k0 * _tan(0.5 * k0 * l),
+            )
+            sequence = sequence + [dipedge_exit]
+        elif enable_entry_edge and mad_el.type == 'sbend':
+            dipedge_exit = self.Builder(
+                mad_el.name + "_dex",
+                self.classes.DipoleEdge,
+                e1=mad_el.e1,
+                fint=mad_el.fint,
+                hgap=mad_el.hgap,
+                h=k0
             )
             sequence = sequence + [dipedge_exit]
 
