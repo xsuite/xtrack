@@ -40,7 +40,6 @@ void track_thick_bend(
 
     if (fabs(h) > 1e-8) {
         // The case for non-zero curvature, s is arc length
-
         // Useful constants
         const double C = pz - k * ((1 / h) + x);
         new_px = px * cos(s * h) + C * sin(s * h);
@@ -58,17 +57,15 @@ void track_thick_bend(
         new_ell = ell + ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
     }
     else {
-         // The case for zero curvature -- straight bend, s is Cartesian length
+        // The case for zero curvature -- straight bend, s is Cartesian length
+        new_px = px - k * s;
+        new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k;
 
-         new_px = px - k * s;
-         new_x = x + (sqrt(POW2(one_plus_delta) - POW2(new_px) - POW2(py)) - pz) / k;
+        const double D = asin(A * px) - asin(A * new_px);
+        new_y = y + (py / k) * D;
 
-         const double D = asin(A * px) - asin(A * new_px);
-         new_y = y + (py / k) * D;
-
-         new_ell = ell + (one_plus_delta / k) * D;
+        new_ell = ell + (one_plus_delta / k) * D;
     }
-
 
     // Update Particles object
     LocalParticle_set_x(part, new_x);
