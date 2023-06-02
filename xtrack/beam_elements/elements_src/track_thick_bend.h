@@ -28,10 +28,9 @@ void track_thick_bend(
     const double y = LocalParticle_get_y(part);
     const double px = LocalParticle_get_px(part);
     const double py = LocalParticle_get_py(part);
-    const double ell = LocalParticle_get_zeta(part) / rvv;
     const double s = length;
 
-    double new_x, new_px, new_y, new_ell;
+    double new_x, new_px, new_y, delta_ell;
 
     // Useful constants
     const double one_plus_delta = LocalParticle_get_delta(part) + 1.0;
@@ -54,7 +53,7 @@ void track_thick_bend(
         const double D = asin(A * px) - asin(A * new_px);
         new_y = y + ((py * s) / (k / h)) + (py / k) * D;
 
-        new_ell = ell + ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
+        delta_ell = ((one_plus_delta * s * h) / k) + (one_plus_delta / k) * D;
     }
     else {
         // The case for zero curvature -- straight bend, s is Cartesian length
@@ -64,14 +63,14 @@ void track_thick_bend(
         const double D = asin(A * px) - asin(A * new_px);
         new_y = y + (py / k) * D;
 
-        new_ell = ell + (one_plus_delta / k) * D;
+        delta_ell = (one_plus_delta / k) * D;
     }
 
     // Update Particles object
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_px(part, new_px);
     LocalParticle_set_y(part, new_y);
-    LocalParticle_set_zeta(part, new_ell * rvv);
+    LocalParticle_add_to_zeta(part, length - delta_ell / rvv);
     LocalParticle_add_to_s(part, s);
 }
 
