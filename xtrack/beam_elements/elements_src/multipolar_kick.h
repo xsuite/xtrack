@@ -29,6 +29,7 @@ void multipolar_kick(
 
     double const x   = LocalParticle_get_x(part);
     double const y   = LocalParticle_get_y(part);
+    double const chi = LocalParticle_get_chi(part);
 
     while( index > 0 )
     {
@@ -46,6 +47,9 @@ void multipolar_kick(
         dpx = knl[index] * inv_factorial + zre;
         dpy = ksl[index] * inv_factorial + zim;
     }
+
+    dpx = -chi * dpx; // rad
+    dpy =  chi * dpy; // rad
 
     LocalParticle_add_to_px(part, weight * dpx);
     LocalParticle_add_to_py(part, weight * dpy);
