@@ -45,6 +45,8 @@ from .general import _print
 
 clight = 299792458
 
+DEFAULT_BEND_N_MULT_KICKS = 5
+
 
 def iterable(obj):
     return hasattr(obj, "__iter__")
@@ -243,7 +245,6 @@ class MadElem:
         elif isinstance(par.value, str):
             return par.value  # no need to make a Par for strings
         elif self.madeval is not None and par.expr is not None:
-            print(par.expr)
             return self.madeval(par.expr)
         else:
             return par.value
@@ -838,7 +839,10 @@ class MadLoader:
         else:
             h = 0.0
 
-        if not_zero(mad_el.k1) or not self.use_true_thick_bends:
+        if not self.use_true_thick_bends:
+            num_multipole_kicks = 0
+            if mad_el.k2:
+                num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
             return self.Builder(
                 mad_el.name,
                 self.classes.CombinedFunctionMagnet,
@@ -846,14 +850,20 @@ class MadLoader:
                 k1=mad_el.k1,
                 h=h,
                 length=mad_el.l,
+                knl=[0, 0, mad_el.k2 * mad_el.l],
             )
         else:
+            num_multipole_kicks = 0
+            if mad_el.k1 or mad_el.k2:
+                num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
             return self.Builder(
                 mad_el.name,
                 self.classes.TrueBend,
                 k0=mad_el.k0 or h,
                 h=h,
                 length=mad_el.l,
+                knl=[0, mad_el.k1 * mad_el.l, mad_el.k2 * mad_el.l],
+                num_multipole_kicks=num_multipole_kicks,
             )
 
     def convert_sextupole(self, mad_el):

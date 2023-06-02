@@ -779,11 +779,11 @@ class TrueBend(BeamElement):
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
         order = kwargs.get('order', max(order_from_kl, 0))
+        kwargs['order'] = order
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
-
         self.xoinitialize(**kwargs)
 
     @property
