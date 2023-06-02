@@ -702,7 +702,8 @@ class CombinedFunctionMagnet(BeamElement):
 
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
-        order = kwargs.get('order', max(len(knl), len(ksl), 2) - 1)
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(0, order_from_kl))
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
@@ -776,7 +777,8 @@ class TrueBend(BeamElement):
 
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
-        order = kwargs.get('order', max(len(knl), len(ksl), 2) - 1)
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(order_from_kl, 0))
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
