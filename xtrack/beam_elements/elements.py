@@ -682,26 +682,34 @@ class CombinedFunctionMagnet(BeamElement):
         'k1': xo.Float64,
         'h': xo.Float64,
         'length': xo.Float64,
+        'knl': xo.Float64[5],
+        'ksl': xo.Float64[5],
+        'num_multipole_kicks': xo.Int64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
     }
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
         _pkg_root.joinpath('beam_elements/elements_src/combinedfunctionmagnet.h'),
     ]
 
     def __init__(self, **kwargs):
-        if kwargs.get('length', 0.0) == 0.0:
+        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
-        self.xoinitialize(**kwargs)
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(0, order_from_kl))
+        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
-    @property
-    def knl(self):
-        return self._buffer.context.linked_array_type.from_array(
-            np.array([self.k0, self.k1]) * self.length,
-            mode='readonly',
-            container=self,
-        )
+        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+
+        self.xoinitialize(**kwargs)
 
     @property
     def hxl(self): return self.h * self.length
@@ -712,29 +720,33 @@ class CombinedFunctionMagnet(BeamElement):
     @property
     def radiation_flag(self): return 0.0
 
-    @property
-    def order(self): return 1
-
-    @property
-    def inv_factorial_order(self): return 1.0
-
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0., 0.]),
-        mode='readonly',
-        container=self,
-    )
-
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(knl=-ctx2np(self.length), _context=_context,
-                              _buffer=_buffer, _offset=_offset)
+        return self.__class__(
+            length=-ctx2np(self.length),
+            k0=self.k0,
+            k1=self.k1,
+            h=self.h,
+            knl=-ctx2np(self.knl),
+            ksl=-ctx2np(self.ksl),
+            num_multipole_kicks=self.num_multipole_kicks,
+            order=self.order,
+            inv_factorial_order=self.inv_factorial_order,
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
+        )
 
     def make_thin_slice(self, weight):
+        combined_knl = self.knl.copy()
+        combined_knl[0:2] += np.array([self.k0, self.k1]) * self.length
         return Multipole(
-            knl=self.knl * weight,
-            hxl=self.hxl * weight,
+            knl=combined_knl * weight,
+            ksl=self.ksl * weight,
+            hxl=self.h * self.length * weight,
             length=self.length * weight,
+            order=self.order,
+            inv_factorial_order=self.inv_factorial_order,
         )
 
 
@@ -745,27 +757,34 @@ class TrueBend(BeamElement):
         'k0': xo.Float64,
         'h': xo.Float64,
         'length': xo.Float64,
+        'knl': xo.Float64[5],
+        'ksl': xo.Float64[5],
+        'num_multipole_kicks': xo.Int64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
     }
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
         _pkg_root.joinpath('beam_elements/elements_src/truebend.h'),
     ]
 
     def __init__(self, **kwargs):
-        if kwargs.get('length', 0.0) == 0.0:
+        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
-        self.xoinitialize(**kwargs)
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(order_from_kl, 0))
+        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
-    @property
-    def knl(self):
-        return self._buffer.context.linked_array_type.from_array(
-            np.array([self.k0 * self.length]),
-            mode='readonly',
-            container=self,
-        )
+        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+
+        self.xoinitialize(**kwargs)
 
     @property
     def hxl(self): return self.h * self.length
@@ -776,35 +795,32 @@ class TrueBend(BeamElement):
     @property
     def radiation_flag(self): return 0.0
 
-    @property
-    def order(self): return 1
-
-    @property
-    def inv_factorial_order(self): return 1.0
-
-    @property
-    def ksl(self): return self._buffer.context.linked_array_type.from_array(
-        np.array([0.]),
-        mode='readonly',
-        container=self,
-    )
-
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         ctx2np = self._buffer.context.nparray_from_context_array
         return self.__class__(
             length=-ctx2np(self.length),
             k0=self.k0,
             h=self.h,
+            knl=-ctx2np(self.knl),
+            ksl=-ctx2np(self.ksl),
+            num_multipole_kicks=self.num_multipole_kicks,
+            order=self.order,
+            inv_factorial_order=self.inv_factorial_order,
             _context=_context,
             _buffer=_buffer,
             _offset=_offset,
         )
 
     def make_thin_slice(self, weight):
+        combined_knl = self.knl.copy()
+        combined_knl[0] += self.k0 * self.length
         return Multipole(
-            knl=self.knl * weight,
-            hxl=self.hxl * weight,
+            knl=combined_knl * weight,
+            ksl=self.ksl * weight,
+            hxl=self.h * self.length * weight,
             length=self.length * weight,
+            order=self.order,
+            inv_factorial_order=self.inv_factorial_order,
         )
 
 

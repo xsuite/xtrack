@@ -534,6 +534,7 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         allow_thick=False,
+        use_true_thick_bends=True,
     ):
 
         if expressions_for_element_types is not None:
@@ -553,6 +554,7 @@ class MadLoader:
         self.replace_in_expr = replace_in_expr
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
+        self.use_true_thick_bends = use_true_thick_bends
 
         self.allow_thick = allow_thick
 
@@ -836,7 +838,7 @@ class MadLoader:
         else:
             h = 0.0
 
-        if not_zero(mad_el.k1):
+        if not_zero(mad_el.k1) or not self.use_true_thick_bends:
             return self.Builder(
                 mad_el.name,
                 self.classes.CombinedFunctionMagnet,
