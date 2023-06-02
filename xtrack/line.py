@@ -379,6 +379,7 @@ class Line:
         classes=(),
         ignored_madtypes=(),
         allow_thick=False,
+        use_true_thick_bends=True,
     ):
 
         """
@@ -411,6 +412,13 @@ class Line:
             classes are used.
         ignored_madtypes : tuple, optional
             Tuple of MAD-X element types to be ignored.
+        allow_thick : bool, optional
+            If true, thick elements are allowed. Otherwise, an error is raised
+            if a thick element is encountered.
+        use_true_thick_bends : bool, optional
+            If true, xt.TrueBend is used for thick bends with no quadrupolar
+            component. Otherwise, xt.CombinedFunctionMagnet is used. Only used
+            if allow_thick is true.
 
         Returns
         -------
@@ -435,6 +443,7 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
+            use_true_thick_bends=use_true_thick_bends,
         )
         line = loader.make_line()
         return line
