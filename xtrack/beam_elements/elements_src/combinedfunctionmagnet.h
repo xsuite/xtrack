@@ -17,8 +17,23 @@ void CombinedFunctionMagnet_track_local_particle(
     const double k1 = CombinedFunctionMagnetData_get_k1(el);
     const double h = CombinedFunctionMagnetData_get_h(el);
 
+    const int num_multipole_kicks = CombinedFunctionMagnetData_get_num_multipole_kicks(el);
+    const int order = CombinedFunctionMagnetData_get_order(el);
+    const double inv_factorial_order = CombinedFunctionMagnetData_get_inv_factorial_order(el);
+
+    const double *knl = CombinedFunctionMagnetData_getp1_knl(el, 0);
+    const double *ksl = CombinedFunctionMagnetData_getp1_ksl(el, 0);
+
+    const double slice_length = length / (num_multipole_kicks + 1);
+    const double kick_weight = 1. / num_multipole_kicks;
+
     //start_per_particle_block (part0->part)
-        track_thick_cfd(part, length, k0, k1, h);
+        track_thick_bend(part, slice_length, k0, h);
+
+        for (int ii = 0; ii < num_multipole_kicks; ii++) {
+            multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+            track_thick_cfd(part, slice_length, k0, k1, h);
+        }
     //end_per_particle_block
 }
 
