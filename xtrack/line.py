@@ -2399,7 +2399,7 @@ class Line:
             return newline
 
     def build_twiss_init(self, element_name, x=0, px=0, y=0, py=0, zeta=0, delta=0,
-                         betx=1, alfx=0, bety=1, alfy=0, bets=1,
+                         betx=1, alfx=0, bety=1, alfy=0, bets=1, qs=None,
                          dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
                          mux=0, muy=0, muzeta=0, reference_frame=None):
 
@@ -2412,7 +2412,7 @@ class Line:
             length=1., # dummy
             qx=0.55, # dummy
             qy=0.57, # dummy
-            qs=0.00001, # dummy
+            qs=(qs or 0.0000001), # dummy if not provided
             bets=bets,
             betx=betx,
             bety=bety,

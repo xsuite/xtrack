@@ -39,6 +39,7 @@ muy = tw['muy', ele_init]
 muzeta = tw['muzeta', ele_init]
 dzeta = tw['dzeta', ele_init]
 bets = tw.betz0
+qs = tw.qs
 reference_frame = 'proper'
 
 tw_init = line.build_twiss_init(element_name=ele_init,
@@ -46,7 +47,7 @@ tw_init = line.build_twiss_init(element_name=ele_init,
     betx=betx, bety=bety, alfx=alfx, alfy=alfy,
     dx=dx, dy=dy, dpx=dpx, dpy=dpy,
     mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
-    bets=bets, reference_frame=reference_frame)
+    bets=bets, qs=qs, reference_frame=reference_frame)
 
 tw_test = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
@@ -88,6 +89,7 @@ atols = dict(
     alfx=1e-8, alfy=1e-8,
     dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
     nuzeta=1e-5, dx_zeta=1e-4, dy_zeta=1e-4, betx2=1e-3, bety1=1e-3,
+    muzeta=1e-7,
 )
 
 rtols = dict(
