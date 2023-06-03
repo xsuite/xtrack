@@ -48,7 +48,7 @@ tw_init = line.build_twiss_init(element_name=ele_init,
     mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
     bets=bets, reference_frame=reference_frame)
 
-tw_check = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
+tw_test = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
 
 import matplotlib.pyplot as plt
@@ -60,22 +60,71 @@ spdisp = plt.subplot(3,1,3, sharex=spbet)
 
 spbet.plot(tw['s'], tw['betx'])
 spbet.plot(tw['s'], tw['bety'])
-spbet.plot(tw_check['s'], tw_check['betx'], '--')
-spbet.plot(tw_check['s'], tw_check['bety'], '--')
+spbet.plot(tw_test['s'], tw_test['betx'], '--')
+spbet.plot(tw_test['s'], tw_test['bety'], '--')
 
 spco.plot(tw['s'], tw['x'])
 spco.plot(tw['s'], tw['y'])
-spco.plot(tw_check['s'], tw_check['x'], '--')
-spco.plot(tw_check['s'], tw_check['y'], '--')
+spco.plot(tw_test['s'], tw_test['x'], '--')
+spco.plot(tw_test['s'], tw_test['y'], '--')
 
 spdisp.plot(tw['s'], tw['dx'])
 spdisp.plot(tw['s'], tw['dy'])
-spdisp.plot(tw_check['s'], tw_check['dx'], '--')
-spdisp.plot(tw_check['s'], tw_check['dy'], '--')
+spdisp.plot(tw_test['s'], tw_test['dx'], '--')
+spdisp.plot(tw_test['s'], tw_test['dy'], '--')
 
 spbet.set_ylabel(r'$\beta_{x,y}$ [m]')
 spco.set_ylabel(r'(Closed orbit)$_{x,y}$ [m]')
 spdisp.set_ylabel(r'$D_{x,y}$ [m]')
 spdisp.set_xlabel('s [m]')
 
+assert tw_test.name[-1] == '_end_point'
+tw_part = tw.rows['e.cell.45.b1':'ip6']
+
+tw_test = tw_test.rows[:-1]
+assert np.all(tw_test.name == tw_part.name)
+
+atols = dict(
+    alfx=1e-8, alfy=1e-8,
+    dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
+    nuzeta=1e-5, dx_zeta=1e-4, dy_zeta=1e-4, betx2=1e-3, bety1=1e-3,
+)
+
+rtols = dict(
+    alfx=5e-9, alfy=5e-8,
+    betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8,
+    gamx=1e-8, gamy=1e-8,
+)
+
+atol_default = 1e-11
+rtol_default = 1e-9
+
+
+for kk in tw_test._data.keys():
+    if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
+            'radiation_method', 'reference_frame', 'orientation']:
+        continue # tested separately
+    atol = atols.get(kk, atol_default)
+    rtol = rtols.get(kk, rtol_default)
+    assert np.allclose(
+        tw_test._data[kk], tw_part._data[kk], rtol=rtol, atol=atol)
+
+assert tw_test.values_at == tw_part.values_at == 'entry'
+assert tw_test.method == tw_part.method == '4d'
+assert tw_test.radiation_method == tw_part.radiation_method == 'full'
+assert tw_test.reference_frame == tw_part.reference_frame == (
+    {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
+
+W_matrix_part = tw_part.W_matrix
+W_matrix_test = tw_test.W_matrix
+
+for ss in range(W_matrix_part.shape[0]):
+    this_part = W_matrix_part[ss, :, :]
+    this_test = W_matrix_test[ss, :, :]
+
+    for ii in range(this_part.shape[1]):
+        assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
+                        /np.linalg.norm(this_part[ii, :])), 0, atol=2e-4)
+
 plt.show()
+
