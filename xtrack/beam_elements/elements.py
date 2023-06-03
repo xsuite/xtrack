@@ -905,7 +905,7 @@ class DipoleEdge(BeamElement):
 
 
 class SimplifiedAcceleratorSegment(BeamElement):
-    
+
     _xofields={
         'length': xo.Float64,
 
