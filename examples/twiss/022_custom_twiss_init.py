@@ -39,7 +39,6 @@ muy = tw['muy', ele_init]
 muzeta = tw['muzeta', ele_init]
 dzeta = tw['dzeta', ele_init]
 bets = tw.betz0
-qs = tw.qs
 reference_frame = 'proper'
 
 tw_init = line.build_twiss_init(element_name=ele_init,
@@ -47,7 +46,7 @@ tw_init = line.build_twiss_init(element_name=ele_init,
     betx=betx, bety=bety, alfx=alfx, alfy=alfy,
     dx=dx, dy=dy, dpx=dpx, dpy=dpy,
     mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
-    bets=bets, qs=qs, reference_frame=reference_frame)
+    bets=bets, reference_frame=reference_frame)
 
 tw_test = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
