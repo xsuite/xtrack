@@ -40,36 +40,12 @@ dzeta = tw['dzeta', ele_init]
 bets = tw.betz0
 reference_frame = 'proper'
 
-
-aux_segment = xt.SimplifiedAcceleratorSegment(
-    length=1., # dummy
-    qx=0.55, # dummy
-    qy=0.57, # dummy
-    qs=0.00001, # dummy
-    bets=bets,
-    betx=betx,
-    bety=bety,
-    alfx=alfx,
-    alfy=alfy,
-    dx=dx,
-    dy=dy,
-    dpx=dpx,
-    dpy=dpy,
-)
-
-aux_line = xt.Line(elements=[aux_segment])
-aux_line.particle_ref = line.particle_ref.copy()
-aux_line.build_tracker()
-aux_tw = aux_line.twiss()
-
-W_matrix = aux_tw.W_matrix[0]
-
-tw_init = xt.twiss.TwissInit(
-    particle_on_co=line.build_particles(x=x, px=px, y=y, py=py, zeta=zeta,
-                                        delta=delta),
-    W_matrix=W_matrix, element_name=ele_init,
+tw_init = line.build_twiss_init(element_name=ele_init,
+    x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+    betx=betx, bety=bety, alfx=alfx, alfy=alfy,
+    dx=dx, dy=dy, dpx=dpx, dpy=dpy,
     mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
-    reference_frame=reference_frame)
+    bets=bets, reference_frame=reference_frame)
 
 tw_check = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
