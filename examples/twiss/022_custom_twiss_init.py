@@ -14,10 +14,11 @@ line = xt.Line.from_json(
 line.particle_ref = xp.Particles(
                     mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
 line.build_tracker()
+line.vars['on_disp'] = 1
 
 tw = line.twiss()
 
-ele_init = 'e.ds.l4.b1'
+ele_init = 'e.cell.45.b1'
 
 x = tw['x', ele_init]
 y = tw['y', ele_init]
@@ -49,3 +50,32 @@ tw_init = line.build_twiss_init(element_name=ele_init,
 
 tw_check = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
+
+import matplotlib.pyplot as plt
+
+fig1 = plt.figure(1, figsize=(6.4, 4.8*1.5))
+spbet = plt.subplot(3,1,1)
+spco = plt.subplot(3,1,2, sharex=spbet)
+spdisp = plt.subplot(3,1,3, sharex=spbet)
+
+spbet.plot(tw['s'], tw['betx'])
+spbet.plot(tw['s'], tw['bety'])
+spbet.plot(tw_check['s'], tw_check['betx'], '--')
+spbet.plot(tw_check['s'], tw_check['bety'], '--')
+
+spco.plot(tw['s'], tw['x'])
+spco.plot(tw['s'], tw['y'])
+spco.plot(tw_check['s'], tw_check['x'], '--')
+spco.plot(tw_check['s'], tw_check['y'], '--')
+
+spdisp.plot(tw['s'], tw['dx'])
+spdisp.plot(tw['s'], tw['dy'])
+spdisp.plot(tw_check['s'], tw_check['dx'], '--')
+spdisp.plot(tw_check['s'], tw_check['dy'], '--')
+
+spbet.set_ylabel(r'$\beta_{x,y}$ [m]')
+spco.set_ylabel(r'(Closed orbit)$_{x,y}$ [m]')
+spdisp.set_ylabel(r'$D_{x,y}$ [m]')
+spdisp.set_xlabel('s [m]')
+
+plt.show()
