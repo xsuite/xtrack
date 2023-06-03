@@ -128,7 +128,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
     '''
                     }
                     if (check_is_active(&lpart)>0 && flag_increment_at_element){
-                            increment_at_element(&lpart);
+                            increment_at_element(&lpart, 1);
                     }
                 }
             } //only_for_context cpu_openmp
@@ -254,6 +254,7 @@ class BeamElement(xo.HybridClass, metaclass=MetaBeamElement):
     iscollective = None
     isthick = False
     behaves_like_drift = False
+    has_backtrack = False
     allow_backtrack = False
     skip_in_loss_location_refinement = False
 

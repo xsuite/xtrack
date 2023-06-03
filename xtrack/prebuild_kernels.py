@@ -60,8 +60,9 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
 
 
 def get_element_class_by_name(name: str) -> type:
-    from xtrack.monitors import generate_monitor_class
-    monitor_cls = generate_monitor_class(xp.Particles)
+    # from xtrack.monitors import generate_monitor_class
+    # monitor_cls = generate_monitor_class(xp.Particles)
+    monitor_cls = xt.ParticlesMonitor
 
     try:
         from xfields import element_classes as xf_element_classes

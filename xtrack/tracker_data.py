@@ -4,6 +4,7 @@
 # ######################################### #
 
 from typing import Tuple
+import numpy as np
 
 import xobjects as xo
 from .general import _print
@@ -72,6 +73,7 @@ class TrackerData:
         self._element_dict = element_dict
         self._element_names = tuple(element_names)
         self._elements = tuple([element_dict[ee] for ee in element_names])
+        self._is_backtrackable = np.all([ee.has_backtrack for ee in self._elements])
 
         if _buffer is None:
             common_buffer = self.common_buffer_for_elements()
@@ -87,7 +89,6 @@ class TrackerData:
 
         class ElementRefClass(xo.UnionRef):
             _reftypes = self.element_classes
-
 
         self.element_s_locations = tuple(element_s_locations)
         self.line_length = line_length
@@ -264,3 +265,27 @@ class TrackerData:
     @property
     def _context(self):
         return self._element_ref_data._context
+
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        out['_element_ref_data'] = (
+            self._element_ref_data._buffer, self._element_ref_data._offset)
+        out['_ElementRefClass'] = None
+        out['element_classes'] = [cc._DressingClass for cc in self.element_classes]
+        return out
+
+    def __setstate__(self, state):
+        buffer, offset = state.pop('_element_ref_data')
+        self.__dict__.update(state)
+        self.element_classes = [cc._XoStruct for cc in self.element_classes]
+
+        class ElementRefClass(xo.UnionRef):
+            _reftypes = self.element_classes
+
+        self._ElementRefClass = ElementRefClass
+        element_refs_cls = self.generate_element_ref_data(self._ElementRefClass)
+        self._element_ref_data = element_refs_cls._from_buffer(
+            buffer=buffer,
+            offset=offset,
+        )
+
