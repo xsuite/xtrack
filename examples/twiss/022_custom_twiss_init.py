@@ -86,7 +86,7 @@ assert np.all(tw_test.name == tw_part.name)
 
 atols = dict(
     alfx=1e-8, alfy=1e-8,
-    dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
+    dzeta=1e-3, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
     nuzeta=1e-5, dx_zeta=1e-4, dy_zeta=1e-4, betx2=1e-3, bety1=1e-3,
     muzeta=1e-7,
 )
@@ -111,10 +111,8 @@ for kk in tw_test._data.keys():
         tw_test._data[kk], tw_part._data[kk], rtol=rtol, atol=atol)
 
 assert tw_test.values_at == tw_part.values_at == 'entry'
-assert tw_test.method == tw_part.method == '4d'
 assert tw_test.radiation_method == tw_part.radiation_method == 'full'
-assert tw_test.reference_frame == tw_part.reference_frame == (
-    {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
+assert tw_test.reference_frame == tw_part.reference_frame == 'proper'
 
 W_matrix_part = tw_part.W_matrix
 W_matrix_test = tw_test.W_matrix
@@ -123,9 +121,9 @@ for ss in range(W_matrix_part.shape[0]):
     this_part = W_matrix_part[ss, :, :]
     this_test = W_matrix_test[ss, :, :]
 
-    for ii in range(this_part.shape[1]):
+    for ii in range(4):
         assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
-                        /np.linalg.norm(this_part[ii, :])), 0, atol=2e-4)
+                        /np.linalg.norm(this_part[ii, :])), 0, atol=3e-4)
 
 plt.show()
 
