@@ -66,8 +66,8 @@ for tw in [tw4d, tw6d]:
     assert np.isclose(tw.qx, 0.4 + 0.21, atol=1e-7, rtol=0)
     assert np.isclose(tw.qy, 0.3 + 0.32, atol=1e-7, rtol=0)
 
-    assert np.isclose(tw.dqx, 2, atol=1e-3, rtol=0)
-    assert np.isclose(tw.dqy, 3, atol=1e-3, rtol=0)
+    assert np.isclose(tw.dqx, 2, atol=1e-5, rtol=0)
+    assert np.isclose(tw.dqy, 3, atol=1e-5, rtol=0)
 
     assert np.allclose(tw.s, [0, 0.1, 0.1 + 0.2], atol=1e-7, rtol=0)
     assert np.allclose(tw.mux, [0, 0.4, 0.4 + 0.21], atol=1e-7, rtol=0)
