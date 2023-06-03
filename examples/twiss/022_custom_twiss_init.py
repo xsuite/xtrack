@@ -1,0 +1,75 @@
+# copyright ############################### #
+# This file is part of the Xtrack Package.  #
+# Copyright (c) CERN, 2021.                 #
+# ######################################### #
+
+import numpy as np
+
+import xtrack as xt
+import xpart as xp
+
+
+line = xt.Line.from_json(
+    '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+line.particle_ref = xp.Particles(
+                    mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
+line.build_tracker()
+
+tw = line.twiss()
+
+ele_init = 'e.ds.l4.b1'
+
+x = tw['x', ele_init]
+y = tw['y', ele_init]
+px = tw['px', ele_init]
+py = tw['py', ele_init]
+zeta = tw['zeta', ele_init]
+delta = tw['delta', ele_init]
+betx = tw['betx', ele_init]
+bety = tw['bety', ele_init]
+alfx = tw['alfx', ele_init]
+alfy = tw['alfy', ele_init]
+dx = tw['dx', ele_init]
+dy = tw['dy', ele_init]
+dpx = tw['dpx', ele_init]
+dpy = tw['dpy', ele_init]
+mux = tw['mux', ele_init]
+muy = tw['muy', ele_init]
+muzeta = tw['muzeta', ele_init]
+dzeta = tw['dzeta', ele_init]
+bets = tw.betz0
+reference_frame = 'proper'
+
+
+aux_segment = xt.SimplifiedAcceleratorSegment(
+    length=1., # dummy
+    qx=0.55, # dummy
+    qy=0.57, # dummy
+    qs=0.00001, # dummy
+    bets=bets,
+    betx=betx,
+    bety=bety,
+    alfx=alfx,
+    alfy=alfy,
+    dx=dx,
+    dy=dy,
+    dpx=dpx,
+    dpy=dpy,
+)
+
+aux_line = xt.Line(elements=[aux_segment])
+aux_line.particle_ref = line.particle_ref.copy()
+aux_line.build_tracker()
+aux_tw = aux_line.twiss()
+
+W_matrix = aux_tw.W_matrix[0]
+
+tw_init = xt.twiss.TwissInit(
+    particle_on_co=line.build_particles(x=x, px=px, y=y, py=py, zeta=zeta,
+                                        delta=delta),
+    W_matrix=W_matrix, element_name=ele_init,
+    mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
+    reference_frame=reference_frame)
+
+tw_check = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
+
