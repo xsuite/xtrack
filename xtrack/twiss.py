@@ -806,6 +806,8 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
         betz0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
+        if eta > 0: # above transition
+            betz0 = -betz0
         ptau_co = twiss_res['ptau']
 
         # Coupling
