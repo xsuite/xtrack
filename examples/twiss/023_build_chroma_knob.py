@@ -27,21 +27,28 @@ line.match(
                xt.Target('dqy', 2.0, tol=0.001)])
 
 # record values of the knobs
-values_before = [line.vars[vv.name]._value for vv in vary]
 knob_name = 'dqx.b1'
 knob_before = 2.0
+
+# TODO: Remember to handle the limits!
+
+vary_aux = []
+for vv in vary:
+    line.vars[vv.name + '_from_' + knob_name] = 0
+    line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
+    vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
 line.match(
-    vary=vary,
+    vary=vary_aux,
     targets = [xt.Target('dqx', 3.0, tol=0.001),
                xt.Target('dqy', 2.0, tol=0.001)])
 knob_after = 3.0
-values_after = [line.vars[vv.name]._value for vv in vary]
-
 line.vars[knob_name] = knob_after
-for ii, vv in enumerate(vary):
-    line.vars[vv.name] += ((values_before[ii] - values_after[ii])
-                            * (line.vars[knob_name] - knob_after)
-                            / (knob_before - knob_after))
+
+for ii, vv in enumerate(vary_aux):
+    line.vars[vv.name] = (line.vars[vv.name]._value
+                          * (line.vars[knob_name] - knob_before)
+                          / (knob_after - knob_before))
+
 
 
 
