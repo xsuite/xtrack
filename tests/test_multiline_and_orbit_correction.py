@@ -111,7 +111,6 @@ def test_multiline_and_orbit_correction(test_context):
     tw_before = collider.lhcb1.twiss()
 
     collider.lhcb1.correct_closed_orbit(
-                             verbose=True,
                              reference=collider.lhcb1_co_ref,
                              correction_config=correction_config)
 
