@@ -1146,14 +1146,14 @@ class SimplifiedAcceleratorSegment(BeamElement):
         assert equ_emit_s >= 0.0
 
         if equ_emit_x > 0.0:
-            assert alfx[0] == 0
+            assert alfx[1] == 0
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx[0])
+            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx[1])
             nargs['gauss_noise_ampl_x'] = betx[0]*nargs['gauss_noise_ampl_px']
         if equ_emit_y > 0.0:
-            assert alfy[0] == 0
+            assert alfy[1] == 0
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety[0])
+            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety[1])
             nargs['gauss_noise_ampl_y'] = bety[0]*nargs['gauss_noise_ampl_py']
         if equ_emit_s > 0.0:
             nargs['uncorrelated_gauss_noise'] = True
