@@ -23,7 +23,7 @@ import xtrack as xt
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line)
-from .match import match_line, closed_orbit_correction
+from .match import match_line, closed_orbit_correction, match_knob_line
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -974,6 +974,15 @@ class Line:
         return match_line(self, vary, targets,
                           restore_if_fail=restore_if_fail,
                           solver=solver, verbose=verbose, **kwargs)
+
+    def match_knob(self, knob_name, vary, targets,
+                   knob_value_start, knob_value_end,
+                   **kwargs):
+
+        match_knob_line(self, vary=vary, targets=targets,
+                        knob_name=knob_name, knob_value_start=knob_value_start,
+                        knob_value_end=knob_value_end, **kwargs)
+
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
                element0=0, reverse=False):

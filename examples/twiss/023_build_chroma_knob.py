@@ -1,5 +1,7 @@
 import json
-import time
+
+import numpy as np
+
 import xtrack as xt
 import xpart as xp
 
@@ -23,34 +25,35 @@ line.build_tracker()
 vary=[ xt.Vary('ksf.b1', step=1e-8),  xt.Vary('ksd.b1', step=1e-8)]
 line.match(
     vary=vary,
-    targets = [xt.Target('dqx', 2.0, tol=0.001),
-               xt.Target('dqy', 2.0, tol=0.001)])
+    targets = [xt.Target('dqx', 2.0, tol=1e-6),
+               xt.Target('dqy', 2.0, tol=1e-6)])
 
-# record values of the knobs
-knob_name = 'dqx.b1'
-knob_value_start = 2.0
+line.match_knob('dqx.b1',
+            knob_value_start=2.0,
+            knob_value_end=3.0,
+            vary=[ xt.Vary('ksf.b1', step=1e-8), xt.Vary('ksd.b1', step=1e-8)],
+            targets=[
+                xt.Target('dqx', 3.0, tol=1e-6),
+                xt.Target('dqy', 'preserve', tol=1e-6)])
 
-# TODO: Remember to handle the limits!
+line.match_knob('dqy.b1',
+            knob_value_start=2.0,
+            knob_value_end=3.0,
+            vary=[ xt.Vary('ksf.b1', step=1e-8), xt.Vary('ksd.b1', step=1e-8)],
+            targets=[
+                xt.Target('dqx', 'preserve', tol=1e-6),
+                xt.Target('dqy', 3.0, tol=1e-6)])
 
-vary_aux = []
-for vv in vary:
-    line.vars[vv.name + '_from_' + knob_name] = 0
-    line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
-    vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
-line.match(
-    vary=vary_aux,
-    targets = [xt.Target('dqx', 3.0, tol=0.001),
-               xt.Target('dqy', 'preserve', tol=0.001)])
-knob_value_end = 3.0
-line.vars[knob_name] = knob_value_end
+tw = line.twiss()
+assert np.isclose(tw.dqx, 2.0, atol=1e-6)
+assert np.isclose(tw.dqy, 2.0, atol=1e-6)
 
-for ii, vv in enumerate(vary_aux):
-    line.vars[vv.name] = (line.vars[vv.name]._value
-                          * (line.vars[knob_name] - knob_value_start)
-                          / (knob_value_end - knob_value_start))
+line.vars['dqx.b1'] = 6.0
+line.vars['dqy.b1'] = 7.0
 
-line.vars[knob_name] = knob_value_start
-
+tw = line.twiss()
+assert np.isclose(tw.dqx, 6.0, atol=1e-4)
+assert np.isclose(tw.dqy, 7.0, atol=1e-4)
 
 
 

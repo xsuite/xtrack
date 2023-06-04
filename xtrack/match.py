@@ -261,3 +261,25 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             ),
             ele_start=corr['start'], ele_stop=corr['end'])
 
+def match_knob_line(line, knob_name, vary, targets,
+                    knob_value_start, knob_value_end, **kwargs):
+
+    vary_aux = []
+    for vv in vary:
+        if vv.limits[0] != -1e200 or vv.limits[1] != 1e200:
+            raise ValueError('Cannot match knobs with limits')
+        line.vars[vv.name + '_from_' + knob_name] = 0
+        line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
+        vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
+
+    line.match(vary=vary_aux, targets = targets, **kwargs)
+
+    line.vars[knob_name] = knob_value_end
+    for vv in vary_aux:
+        line.vars[vv.name] = (line.vars[vv.name]._value
+                              * (line.vars[knob_name] - knob_value_start)
+                              / (knob_value_end - knob_value_start))
+
+    line.vars[knob_name] = knob_value_start
+
+    _print('Matched knob: ', knob_name)
