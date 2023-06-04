@@ -1060,6 +1060,9 @@ class SimplifiedAcceleratorSegment(BeamElement):
 
         elif longitudinal_mode == 'frozen':
             nargs['longitudinal_mode_flag'] = 0
+            nargs['voltage_rf'] = [0]
+            nargs['frequency_rf'] = [0]
+            nargs['lag_rf'] = [0]
         else:
             raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
 
@@ -1143,15 +1146,15 @@ class SimplifiedAcceleratorSegment(BeamElement):
         assert equ_emit_s >= 0.0
 
         if equ_emit_x > 0.0:
-            assert alfx_1 == 0
+            assert alfx[0] == 0
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx_1)
-            nargs['gauss_noise_ampl_x'] = betx_1*nargs['gauss_noise_ampl_px']
+            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx[0])
+            nargs['gauss_noise_ampl_x'] = betx[0]*nargs['gauss_noise_ampl_px']
         if equ_emit_y > 0.0:
-            assert alfy_1 == 0
+            assert alfy[0] == 0
             nargs['uncorrelated_gauss_noise'] = True
-            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety_1)
-            nargs['gauss_noise_ampl_y'] = bety_1*nargs['gauss_noise_ampl_py']
+            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety[0])
+            nargs['gauss_noise_ampl_y'] = bety[0]*nargs['gauss_noise_ampl_py']
         if equ_emit_s > 0.0:
             nargs['uncorrelated_gauss_noise'] = True
             nargs['gauss_noise_ampl_delta'] = np.sqrt(equ_emit_s*damping_rate_s/bets)
