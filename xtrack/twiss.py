@@ -246,6 +246,11 @@ def twiss_line(line, particle_ref=None, method=None,
         ele_start, ele_stop = ele_stop, ele_start
 
     if twiss_init is not None and not isinstance(twiss_init, str):
+        twiss_init = twiss_init.copy() # To avoid changing the one provided
+
+        if twiss_init.reference_frame is None:
+            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
+
         if twiss_init.reference_frame == 'proper':
             assert not(reverse), ('`twiss_init` needs to be given in the '
                 'proper reference frame when `reverse` is False')
