@@ -15,6 +15,7 @@ from .match import (Vary, Target, OrbitOnly, TargetList, VaryList,
                     TargetInequality, Action)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
+from .twiss import TwissInit
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)

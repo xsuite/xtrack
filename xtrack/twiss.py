@@ -1356,11 +1356,70 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
     return auxtracker, names_inserted_markers
 
 
-
 class TwissInit:
+
     def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
-                 mux=0, muy=0, muzeta=0., dzeta=0.,
-                 reference_frame='proper'):
+                line=None, particle_ref=None,
+                x=None, px=None, y=None, py=None, zeta=None, delta=None,
+                betx=None, alfx=None, bety=None, alfy=None, bets=None,
+                dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
+                mux=0, muy=0, muzeta=0, reference_frame=None):
+
+        if particle_on_co is None:
+            assert particle_ref is not None or line is not None, (
+                "`particle_ref` or `line` must be provided if `particle_on_co` "
+                "is None")
+            particle_on_co=xp.build_particles(x=x, px=px, y=y, py=py, zeta=zeta,
+                    delta=delta, particle_ref=particle_ref, line=line)
+        else:
+            assert x is None, "`x` must be None if `particle_on_co` is provided"
+            assert px is None, "`px` must be None if `particle_on_co` is provided"
+            assert y is None, "`y` must be None if `particle_on_co` is provided"
+            assert py is None, "`py` must be None if `particle_on_co` is provided"
+            assert zeta is None, "`zeta` must be None if `particle_on_co` is provided"
+            assert delta is None, "`delta` must be None if `particle_on_co` is provided"
+            assert particle_ref is None, (
+                "`particle_ref` must be None if `particle_on_co` is provided")
+
+        if W_matrix is None:
+            alfx = alfx or 0
+            alfy = alfy or 0
+            betx = betx or 1
+            bety = bety or 1
+            bets = bets or 1
+            dx = dx or 0
+            dpx = dpx or 0
+            dy = dy or 0
+            dpy = dpy or 0
+
+            aux_segment = xt.SimplifiedAcceleratorSegment(
+                length=1., # dummy
+                qx=0.55, # dummy
+                qy=0.57, # dummy
+                qs=0.0000001, # dummy
+                bets=bets,
+                betx=betx,
+                bety=bety,
+                alfx=alfx,
+                alfy=alfy,
+                dx=dx,
+                dy=dy,
+                dpx=dpx,
+                dpy=dpy,
+                )
+            aux_line = xt.Line(elements=[aux_segment])
+            aux_line.particle_ref = particle_on_co.copy()
+            aux_line.build_tracker()
+            aux_tw = aux_line.twiss()
+            W_matrix = aux_tw.W_matrix[0]
+
+        else:
+            assert betx is None, "`betx` must be None if `W_matrix` is provided"
+            assert alfx is None, "`alfx` must be None if `W_matrix` is provided"
+            assert bety is None, "`bety` must be None if `W_matrix` is provided"
+            assert alfy is None, "`alfy` must be None if `W_matrix` is provided"
+            assert bets is None, "`bets` must be None if `W_matrix` is provided"
+
         self.__dict__['particle_on_co'] = particle_on_co
         self.W_matrix = W_matrix
         self.element_name = element_name
@@ -1848,3 +1907,7 @@ def _extract_knl_ksl(line, names):
         k_dict[f'k{jj}sl'] = ksl_array[:, jj]
 
     return k_dict
+
+
+
+

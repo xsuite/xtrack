@@ -2428,49 +2428,6 @@ class Line:
         else:
             return newline
 
-    def build_twiss_init(self, element_name, x=0, px=0, y=0, py=0, zeta=0, delta=0,
-                         betx=1, alfx=0, bety=1, alfy=0, bets=1, qs=None,
-                         dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
-                         mux=0, muy=0, muzeta=0, reference_frame=None):
-
-        if "reverse" in self.twiss_default and self.twiss_default["reverse"]:
-            reference_frame = "reverse"
-        else:
-            reference_frame = "proper"
-
-        aux_segment = xt.SimplifiedAcceleratorSegment(
-            length=1., # dummy
-            qx=0.55, # dummy
-            qy=0.57, # dummy
-            qs=(qs or 0.0000001), # dummy if not provided
-            bets=bets,
-            betx=betx,
-            bety=bety,
-            alfx=alfx,
-            alfy=alfy,
-            dx=dx,
-            dy=dy,
-            dpx=dpx,
-            dpy=dpy,
-            )
-
-        aux_line = xt.Line(elements=[aux_segment])
-        aux_line.particle_ref = self.particle_ref.copy()
-        aux_line.build_tracker()
-        aux_tw = aux_line.twiss()
-
-        W_matrix = aux_tw.W_matrix[0]
-
-        tw_init = xt.twiss.TwissInit(
-            particle_on_co=self.build_particles(x=x, px=px, y=y, py=py, zeta=zeta,
-                                                delta=delta),
-            W_matrix=W_matrix, element_name=element_name,
-            mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
-            reference_frame=reference_frame)
-
-        return tw_init
-
-
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
