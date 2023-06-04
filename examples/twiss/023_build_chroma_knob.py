@@ -40,7 +40,7 @@ for vv in vary:
 line.match(
     vary=vary_aux,
     targets = [xt.Target('dqx', 3.0, tol=0.001),
-               xt.Target('dqy', 2.0, tol=0.001)])
+               xt.Target('dqy', 'preserve', tol=0.001)])
 knob_after = 3.0
 line.vars[knob_name] = knob_after
 
@@ -48,6 +48,8 @@ for ii, vv in enumerate(vary_aux):
     line.vars[vv.name] = (line.vars[vv.name]._value
                           * (line.vars[knob_name] - knob_before)
                           / (knob_after - knob_before))
+
+line.vars[knob_name] = knob_before
 
 
 
