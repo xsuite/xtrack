@@ -119,16 +119,16 @@ class Slicer:
         self.line = line
         self.slicing_strategies = slicing_strategies
         self.has_expresions = line.vars is not None
+        self.thin_names = []
 
     def slice_in_place(self):
         line = self.line
-        thin_names = []
 
         for name in line.element_names:
             element = line[name]
 
             if not element.isthick or isinstance(element, xt.Drift):
-                thin_names.append(name)
+                self.thin_names.append(name)
                 continue
 
             chosen_slicing = None
@@ -141,41 +141,37 @@ class Slicer:
                 raise ValueError(f'No slicing strategy found for the element '
                                  f'{name}: {element}.')
 
-            thin_names += self._make_slices(element, chosen_slicing, name)
+            self._make_slices(element, chosen_slicing, name)
 
             if self.has_expresions:
                 type(element).delete_element_ref(self.line.element_refs[name])
                 del self.line.element_dict[name]
                 self.line.element_dict[name] = xt.Marker()
 
-        line.element_names = thin_names
+        line.element_names = self.thin_names
 
     def _make_slices(self, element, chosen_slicing, name):
-        thin_names = []
-        ref = self.line.element_refs[name]
-
         drift_idx, element_idx = 0, 0
+
         for weight, is_drift in chosen_slicing:
             if is_drift:
                 slice_name = f'drift_{name}..{drift_idx}'
-                xt.Drift.add_thin_slice_with_expr(
-                    weight=weight,
-                    refs=self.line.element_refs,
-                    thick_name=name,
-                    slice_name=slice_name,
-                )
+                obj_to_slice = xt.Drift(element.length * weight)
                 drift_idx += 1
             else:
                 slice_name = f'{name}..{element_idx}'
-                element.add_thin_slice_with_expr(
+                obj_to_slice = element
+                element_idx += 1
+
+            if self.has_expresions:
+                type(obj_to_slice).add_thin_slice_with_expr(
                     weight=weight,
                     refs=self.line.element_refs,
                     thick_name=name,
                     slice_name=slice_name,
                 )
-                element_idx += 1
+            else:
+                slice = obj_to_slice.make_thin_slice(weight=weight)
+                self.line.element_dict[slice_name] = slice
 
-            thin_names.append(slice_name)
-            # line.element_dict[slice_name] = thin_slice
-
-        return thin_names
+            self.thin_names.append(slice_name)
