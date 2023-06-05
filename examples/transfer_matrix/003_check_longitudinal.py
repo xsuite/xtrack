@@ -123,13 +123,13 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     tw_matrix = line_matrix.twiss()
 
     if configuration == 'above transition':
-        assert tw_line.betz0 < 0
-        assert tw_matrix.betz0 < 0
+        assert tw_line.betz0 > 0
+        assert tw_matrix.betz0 > 0
         assert tw_line.slip_factor > 0
         assert tw_matrix.slip_factor > 0
     elif configuration == 'below transition':
-        assert tw_line.betz0 > 0
-        assert tw_matrix.betz0 > 0
+        assert tw_line.betz0 < 0
+        assert tw_matrix.betz0 < 0
         assert tw_line.slip_factor < 0
         assert tw_matrix.slip_factor < 0
     else:
