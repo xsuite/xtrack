@@ -1053,7 +1053,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         tw_init_element_name = line.element_names[ele_start]
 
     twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
-                    element_name=tw_init_element_name)
+                           element_name=tw_init_element_name,
+                           reference_frame='proper')
 
     return twiss_init, RR
 
