@@ -8,20 +8,20 @@ import xtrack as xt
 import xpart as xp
 
 
-machine = 'sps'
-line = xt.Line.from_json(
-    '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
-# I put the cavity at the end of the ring to get closer to the kick-drift model
-line.cycle('actb.31739_aper', inplace=True)
-configurations = ['above transition', 'below transition']
-num_turns = 250
-cavity_name = 'acta.31637'
+# machine = 'sps'
+# line = xt.Line.from_json(
+#     '../../test_data/sps_w_spacecharge/line_no_spacecharge_and_particle.json')
+# # I put the cavity at the end of the ring to get closer to the kick-drift model
+# line.cycle('actb.31739_aper', inplace=True)
+# configurations = ['above transition', 'below transition']
+# num_turns = 250
+# cavity_name = 'acta.31637'
 
-# machine = 'psb'
-# line = xt.Line.from_json('../../test_data/psb_injection/line_and_particle.json')
-# configurations = ['below transition']
-# num_turns = 1000
-# cavity_name = 'br.c02'
+machine = 'psb'
+line = xt.Line.from_json('../../test_data/psb_injection/line_and_particle.json')
+configurations = ['below transition']
+num_turns = 1000
+cavity_name = 'br.c02'
 
 line.build_tracker()
 
@@ -168,6 +168,11 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     assert tw_matrix.s[0] == 0
     assert np.isclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
     assert np.allclose(tw_matrix.betz0, tw_line.betz0, rtol=1e-2, atol=0)
+
+    assert np.allclose(np.squeeze(mon.zeta), np.squeeze(mon_matrix.zeta),
+                       rtol=0, atol=2e-2*np.max(np.squeeze(mon.zeta)))
+    assert np.allclose(np.squeeze(mon.pzeta), np.squeeze(mon_matrix.pzeta),
+                          rtol=0, atol=3e-2*np.max(np.squeeze(mon.pzeta)))
 
     fig1 = plt.figure(1 + i_case * 10)
     fig1.suptitle(machine + ' - ' + configuration + ' - ' + longitudinal_mode)
