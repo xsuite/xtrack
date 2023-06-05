@@ -412,45 +412,27 @@ def twiss_line(line, particle_ref=None, method=None,
                             steps_r_matrix=steps_r_matrix,
                             eneloss_and_damping=eneloss_and_damping)
 
-        tw_chrom_res = []
-        for dd in [-delta_chrom, delta_chrom]:
-            tw_init_chrom  = twiss_init.copy()
-            tw_init_chrom.delta += dd
+        cols_chrom, scalars_chrom = _compute_chromatic_functions(
+            line=line,
+            twiss_init=twiss_init,
+            delta_chrom=delta_chrom,
+            steps_r_matrix=steps_r_matrix,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            matrix_stability_tol=matrix_stability_tol,
+            symplectify=symplectify,
+            method=method,
+            use_full_inverse=use_full_inverse,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            r_sigma=r_sigma,
+            delta_disp=delta_disp,
+            zeta_disp=zeta_disp,
+            ele_start=ele_start,
+            ele_stop=ele_stop)
+        twiss_res._data.update(cols_chrom)
+        twiss_res._data.update(scalars_chrom)
+        twiss_res._col_names += list(cols_chrom.keys())
 
-            RR_chrom = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=tw_init_chrom.particle_on_co.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-            (WW_chrom, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                    only_4d_block=method=='4d',
-                                    responsiveness_tol=matrix_responsiveness_tol,
-                                    stability_tol=matrix_stability_tol,
-                                    symplectify=symplectify)
-            tw_init_chrom.W_matrix = WW_chrom
-
-
-            tw_chrom_res.append(
-                _twiss_open(
-                    line=line,
-                    twiss_init=tw_init_chrom,
-                    ele_start=ele_start, ele_stop=ele_stop,
-                    nemitt_x=nemitt_x,
-                    nemitt_y=nemitt_y,
-                    r_sigma=r_sigma,
-                    delta_disp=delta_disp,
-                    zeta_disp=zeta_disp,
-                    use_full_inverse=use_full_inverse,
-                    hide_thin_groups=False,
-                    _continue_if_lost=False,
-                    _keep_tracking_data=False,
-                    _keep_initial_particles=False,
-                    _initial_particles=None,
-                    _ebe_monitor=None))
-
-        twiss_res._data['dmux'] = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
-        twiss_res._data['dmuy'] = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
-        twiss_res._col_names += ['dmux', 'dmuy']
-        twiss_res._data['dqx_new'] = twiss_res.dmux[-1]
-        twiss_res._data['dqy_new'] = twiss_res.dmuy[-1]
 
     if method == '4d':
         # Not proper because R_matrix terms related to zeta are forced to zero
@@ -832,17 +814,6 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
 
-        dqx, dqy = _compute_chromaticity(
-            line=line,
-            W_matrix=twiss_init.W_matrix, method=method,
-            particle_on_co=twiss_init.particle_on_co,
-            delta_chrom=delta_chrom,
-            tune_x=mux[-1], tune_y=muy[-1],
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify, steps_r_matrix=steps_r_matrix)
-
         dzeta = twiss_res['dzeta']
         qs = np.abs(twiss_res['muzeta'][-1])
         eta = -dzeta[-1]/circumference
@@ -869,7 +840,7 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         c_r1_avg = np.trapz(r1, s_vect)/(circumference)
         c_r2_avg = np.trapz(r2, s_vect)/(circumference)
         twiss_res._data.update({
-            'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
+            'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
@@ -887,73 +858,56 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
                 particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
             twiss_res._data.update(eneloss_damp_res)
 
-def _compute_chromaticity(line, W_matrix, particle_on_co, delta_chrom,
-                    tune_x, tune_y,
-                    nemitt_x, nemitt_y, matrix_responsiveness_tol,
-                    matrix_stability_tol, symplectify, steps_r_matrix,
-                    method='6d'
-                    ):
+def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
+                    matrix_responsiveness_tol, matrix_stability_tol, symplectify,
+                    method='6d', use_full_inverse=False,
+                    nemitt_x=None, nemitt_y=None,
+                    r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
+                    ele_start=None, ele_stop=None):
 
-    context = line._context
+    tw_chrom_res = []
+    for dd in [-delta_chrom, delta_chrom]:
+        tw_init_chrom  = twiss_init.copy()
+        tw_init_chrom.delta += dd
 
-    part_chrom_plus = xp.build_particles(
-                _context=context,
-                x_norm=0,
-                zeta=particle_on_co._xobject.zeta[0], delta=delta_chrom,
-                particle_on_co=particle_on_co,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=W_matrix)
-    RR_chrom_plus = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_plus.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-    (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
-                            only_4d_block=method=='4d',
-                            responsiveness_tol=matrix_responsiveness_tol,
-                            stability_tol=matrix_stability_tol,
-                            symplectify=symplectify)
-    qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
-    qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
+        RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                                    particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                    steps_r_matrix=steps_r_matrix)
+        (WW_chrom, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                                only_4d_block=method=='4d',
+                                responsiveness_tol=matrix_responsiveness_tol,
+                                stability_tol=matrix_stability_tol,
+                                symplectify=symplectify)
+        tw_init_chrom.W_matrix = WW_chrom
 
-    part_chrom_minus = xp.build_particles(
-                _context=context,
-                x_norm=0,
-                zeta=particle_on_co._xobject.zeta[0], delta=-delta_chrom,
-                particle_on_co=particle_on_co,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=W_matrix)
-    RR_chrom_minus = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_minus.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-    (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
-                            only_4d_block=(method=='4d'),
-                            symplectify=symplectify,
-                            stability_tol=matrix_stability_tol,
-                            responsiveness_tol=matrix_responsiveness_tol)
-    qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
-    qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
 
-    dist_from_half_integer_x = np.modf(tune_x)[0] - 0.5
-    dist_from_half_integer_y = np.modf(tune_y)[0] - 0.5
+        tw_chrom_res.append(
+            _twiss_open(
+                line=line,
+                twiss_init=tw_init_chrom,
+                ele_start=ele_start, ele_stop=ele_stop,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                r_sigma=r_sigma,
+                delta_disp=delta_disp,
+                zeta_disp=zeta_disp,
+                use_full_inverse=use_full_inverse,
+                hide_thin_groups=False,
+                _continue_if_lost=False,
+                _keep_tracking_data=False,
+                _keep_initial_particles=False,
+                _initial_particles=None,
+                _ebe_monitor=None))
 
-    if np.abs(qx_chrom_plus - qx_chrom_minus) > np.abs(dist_from_half_integer_x):
-        raise NotImplementedError(
-                "Qx too close to half integer, impossible to evaluate Q'x")
-    if np.abs(qy_chrom_plus - qy_chrom_minus) > np.abs(dist_from_half_integer_y):
-        raise NotImplementedError(
-                "Qy too close to half integer, impossible to evaluate Q'y")
+    dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
+    dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
+    dqx = dmux[-1]
+    dqy = dmuy[-1]
 
-    dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
-    dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
+    cols_chrom = {'dmux': dmux, 'dmuy': dmuy}
+    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
 
-    if dist_from_half_integer_x > 0:
-        dqx = -dqx
-
-    if dist_from_half_integer_y > 0:
-        dqy = -dqy
-
-    return dqx, dqy
+    return cols_chrom, scalars_chrom
 
 
 def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0):

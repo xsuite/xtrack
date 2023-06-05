@@ -32,8 +32,8 @@ def test_twiss_psb(test_context):
     # With the approximation beta ~= beta0 we have delta ~= pzeta ~= 1/beta0 ptau
     # ==> ptau ~= beta0 delta ==> dptau / ddelta~= beta0
 
-    assert np.isclose(tw.dqx, twmad.summary.dq1 * beta0, rtol=0, atol=1e-6)
-    assert np.isclose(tw.dqy, twmad.summary.dq2 * beta0, rtol=0, atol=1e-6)
+    assert np.isclose(tw.dqx, twmad.summary.dq1 * beta0, rtol=0, atol=1e-5)
+    assert np.isclose(tw.dqy, twmad.summary.dq2 * beta0, rtol=0, atol=1e-5)
 
     dx_ref = np.interp(tw.s, twmad.s, twmad.dx * beta0)
     betx_ref = np.interp(tw.s, twmad.s, twmad.betx)
