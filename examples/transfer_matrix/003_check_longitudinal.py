@@ -140,22 +140,8 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     matrix_frac_qx = np.mod(tw_matrix.qx, 1)
     matrix_frac_qy = np.mod(tw_matrix.qy, 1)
 
-    # Cannot resolve fractional tune above half integer
-    line_frac_qx_alias = line_frac_qx
-    line_frac_qy_alias = line_frac_qy
-    line_dqx_alias = tw_line.dqx
-    line_dqy_alias = tw_line.dqy
-    if line_frac_qx > 0.5:
-        line_frac_qx_alias = 1 - line_frac_qx
-        line_dqx_alias = -line_dqx_alias
-    if line_frac_qy > 0.5:
-        line_frac_qy_alias = 1 - line_frac_qy
-        line_dqy_alias = -line_dqy_alias
-
-    assert np.isclose(line_frac_qx_alias, matrix_frac_qx, atol=1e-5, rtol=0)
-    assert np.isclose(line_frac_qy_alias, matrix_frac_qy, atol=1e-5, rtol=0)
-    assert np.isclose(line_dqx_alias, tw_matrix.dqx, atol=1e-5, rtol=0)
-    assert np.isclose(line_dqy_alias, tw_matrix.dqy, atol=1e-5, rtol=0)
+    assert np.isclose(line_frac_qx, matrix_frac_qx, atol=1e-5, rtol=0)
+    assert np.isclose(line_frac_qy, matrix_frac_qy, atol=1e-5, rtol=0)
     assert np.isclose(tw_line.betx[0], tw_matrix.betx[0], atol=1e-5, rtol=0)
     assert np.isclose(tw_line.alfx[0], tw_matrix.alfx[0], atol=1e-5, rtol=0)
     assert np.isclose(tw_line.bety[0], tw_matrix.bety[0], atol=1e-5, rtol=0)
