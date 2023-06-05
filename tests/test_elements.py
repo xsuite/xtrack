@@ -417,19 +417,15 @@ def test_linear_transfer(test_context):
     alpha_x_0 = -0.5
     beta_x_0 = 100.0
     disp_x_0 =  1.8
-    disp_px_0 = 2.2
     alpha_x_1 = 2.1
     beta_x_1 = 2.0
     disp_x_1 = 3.3
-    disp_px_1 = 3.7
     alpha_y_0 = -0.4
     beta_y_0 = 8.0
     disp_y_0 = -0.2
-    disp_py_0 = -0.4
     alpha_y_1 = 0.7
     beta_y_1 = 0.3
     disp_y_1 = -1.9
-    disp_py_1 = -2.9
     Q_x = 0.27
     Q_y = 0.34
     beta_s = 856.9
@@ -447,10 +443,10 @@ def test_linear_transfer(test_context):
     py_ref_1 = 5E-4
 
     arc = xt.LinearTransferMatrix(_context=test_context,
-        alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0, disp_px_0=disp_px_0,
-        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1, disp_px_1=disp_px_1,
-        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0, disp_py_0=disp_py_0,
-        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1, disp_py_1=disp_py_1,
+        alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
         Q_x=Q_x, Q_y=Q_y,
         beta_s=beta_s, Q_s=Q_s,
         chroma_x=0.0, chroma_y=0.0,
@@ -462,18 +458,18 @@ def test_linear_transfer(test_context):
     arc.track(particles)
 
     dtk_arc = dtk.elements.LinearTransferMatrix(
-        alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0, disp_px_0=disp_px_0,
-        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1, disp_px_1=disp_px_1,
-        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0, disp_py_0=disp_py_0,
-        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1, disp_py_1=disp_py_1,
+        alpha_x_0=alpha_x_0, beta_x_0=beta_x_0, disp_x_0=disp_x_0,
+        alpha_x_1=alpha_x_1, beta_x_1=beta_x_1, disp_x_1=disp_x_1,
+        alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
+        alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
         Q_x=Q_x, Q_y=Q_y,
-        beta_s=beta_s, Q_s=Q_s,
+        beta_s=-beta_s, Q_s=Q_s, # Note the minus sign (convention has changed)
         chroma_x=0.0, chroma_y=0.0,
         detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
         energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
         x_ref_0 = x_ref_0, px_ref_0 = px_ref_0, x_ref_1 = x_ref_1, px_ref_1 = px_ref_1,
         y_ref_0 = y_ref_0, py_ref_0 = py_ref_0, y_ref_1 = y_ref_1, py_ref_1 = py_ref_1)
-    
+
     dtk_arc.track(dtk_particle)
 
     assert np.isclose(test_context.nparray_from_context_array(particles.x)[0],
@@ -519,7 +515,7 @@ def test_linear_transfer_chroma_detuning(test_context):
     Q_x = 0.27
     Q_y = 0.34
     beta_s = 856.9
-    Q_s = 0.001    
+    Q_s = 0.001
     #energy_ref_increment = 1.2E9
     energy_ref_increment = 0.0 # There seems to be a bug for non-zero values
     energy_increment = 4.8E8
@@ -557,7 +553,7 @@ def test_linear_transfer_chroma_detuning(test_context):
     alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
     alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
     Q_x=Q_x, Q_y=Q_y,
-    beta_s=beta_s, Q_s=Q_s,
+    beta_s=-beta_s, Q_s=Q_s, # Note the minus sign (convention has changed)
     chroma_x=chroma_x, chroma_y=chroma_y,
     detx_x=detx_x, detx_y=detx_y, dety_y=dety_y, dety_x=dety_x,
     energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
@@ -644,7 +640,7 @@ def test_linear_transfer_uncorrelated_damping(test_context):
     alpha_y_0=alpha_y_0, beta_y_0=beta_y_0, disp_y_0=disp_y_0,
     alpha_y_1=alpha_y_1, beta_y_1=beta_y_1, disp_y_1=disp_y_1,
     Q_x=Q_x, Q_y=Q_y,
-    beta_s=beta_s, Q_s=Q_s,
+    beta_s=-beta_s, Q_s=Q_s, # Note the minus sign (convention has changed)
     chroma_x=0.0, chroma_y=0.0,
     detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
     energy_ref_increment=energy_ref_increment,energy_increment=energy_increment,
