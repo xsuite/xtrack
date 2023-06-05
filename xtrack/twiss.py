@@ -412,6 +412,46 @@ def twiss_line(line, particle_ref=None, method=None,
                             steps_r_matrix=steps_r_matrix,
                             eneloss_and_damping=eneloss_and_damping)
 
+        tw_chrom_res = []
+        for dd in [-delta_chrom, delta_chrom]:
+            tw_init_chrom  = twiss_init.copy()
+            tw_init_chrom.delta += dd
+
+            RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                                        particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                        steps_r_matrix=steps_r_matrix)
+            (WW_chrom, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                                    only_4d_block=method=='4d',
+                                    responsiveness_tol=matrix_responsiveness_tol,
+                                    stability_tol=matrix_stability_tol,
+                                    symplectify=symplectify)
+            tw_init_chrom.W_matrix = WW_chrom
+
+
+            tw_chrom_res.append(
+                _twiss_open(
+                    line=line,
+                    twiss_init=tw_init_chrom,
+                    ele_start=ele_start, ele_stop=ele_stop,
+                    nemitt_x=nemitt_x,
+                    nemitt_y=nemitt_y,
+                    r_sigma=r_sigma,
+                    delta_disp=delta_disp,
+                    zeta_disp=zeta_disp,
+                    use_full_inverse=use_full_inverse,
+                    hide_thin_groups=False,
+                    _continue_if_lost=False,
+                    _keep_tracking_data=False,
+                    _keep_initial_particles=False,
+                    _initial_particles=None,
+                    _ebe_monitor=None))
+
+        twiss_res._data['dmux'] = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
+        twiss_res._data['dmuy'] = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
+        twiss_res._col_names += ['dmux', 'dmuy']
+        twiss_res._data['dqx_new'] = twiss_res.dmux[-1]
+        twiss_res._data['dqy_new'] = twiss_res.dmuy[-1]
+
     if method == '4d':
         # Not proper because R_matrix terms related to zeta are forced to zero
         twiss_res.pop('dx_zeta')
