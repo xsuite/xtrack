@@ -9,6 +9,8 @@ import re
 from itertools import zip_longest
 from typing import List, Tuple, Iterator
 
+import xtrack as xt
+
 
 class ElementSlicingScheme(abc.ABC):
     def __init__(self, slicing_order: int):
@@ -110,3 +112,70 @@ class Strategy:
             f'{kk}={vv!r}' for kk, vv in params.items() if vv is not None
         )
         return f"{type(self).__name__}({formatted_params})"
+
+
+class Slicer:
+    def __init__(self, line, slicing_strategies):
+        self.line = line
+        self.slicing_strategies = slicing_strategies
+        self.has_expresions = line.vars is not None
+
+    def slice_in_place(self):
+        line = self.line
+        thin_names = []
+
+        for name in line.element_names:
+            element = line[name]
+
+            if not element.isthick or isinstance(element, xt.Drift):
+                thin_names.append(name)
+                continue
+
+            chosen_slicing = None
+            for strategy in reversed(self.slicing_strategies):
+                if strategy.match_element(name, element):
+                    chosen_slicing = strategy.slicing
+                    break
+
+            if not chosen_slicing:
+                raise ValueError(f'No slicing strategy found for the element '
+                                 f'{name}: {element}.')
+
+            thin_names += self._make_slices(element, chosen_slicing, name)
+
+            if self.has_expresions:
+                type(element).delete_element_ref(self.line.element_refs[name])
+                del self.line.element_dict[name]
+                self.line.element_dict[name] = xt.Marker()
+
+        line.element_names = thin_names
+
+    def _make_slices(self, element, chosen_slicing, name):
+        thin_names = []
+        ref = self.line.element_refs[name]
+
+        drift_idx, element_idx = 0, 0
+        for weight, is_drift in chosen_slicing:
+            if is_drift:
+                slice_name = f'drift_{name}..{drift_idx}'
+                xt.Drift.add_thin_slice_with_expr(
+                    weight=weight,
+                    refs=self.line.element_refs,
+                    thick_name=name,
+                    slice_name=slice_name,
+                )
+                drift_idx += 1
+            else:
+                slice_name = f'{name}..{element_idx}'
+                element.add_thin_slice_with_expr(
+                    weight=weight,
+                    refs=self.line.element_refs,
+                    thick_name=name,
+                    slice_name=slice_name,
+                )
+                element_idx += 1
+
+            thin_names.append(slice_name)
+            # line.element_dict[slice_name] = thin_slice
+
+        return thin_names

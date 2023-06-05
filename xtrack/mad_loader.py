@@ -654,6 +654,14 @@ class MadLoader:
             out[el.name] = xtel  # tbc
         return out  # tbc
 
+    @property
+    def math(self):
+        if issubclass(self.Builder, ElementBuilderWithExpr):
+            return self.line._var_management['fref']
+
+        import math
+        return math
+
     def _assert_element_is_thin(self, mad_el):
         if not evals_to_zero(mad_el.l):
             if self.allow_thick:
@@ -707,8 +715,8 @@ class MadLoader:
 
     def _convert_quadrupole_thick(self, mad_el):
         if mad_el.k1s:
-            tilt = -np.atan2(mad_el.k1s, mad_el.k1) / 2
-            k1 = 0.5 * np.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
+            tilt = -self.math.atan2(mad_el.k1s, mad_el.k1) / 2
+            k1 = 0.5 * self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
         else:
             tilt = None
             k1 = mad_el.k1
@@ -758,18 +766,13 @@ class MadLoader:
         else:
             k0 = mad_el.k0
 
-        if issubclass(self.Builder, ElementBuilderWithExpr):
-            _tan = self.line._var_management['fref'].tan
-        else:
-            _tan = tan
-
         if enable_entry_edge and mad_el.type == 'rbend':
             # For the rbend edge import we assume flat edge faces
             dipedge_entry = self.Builder(
                 mad_el.name + "_den",
                 self.classes.DipoleEdge,
-                r21= h * _tan(0.5 * k0 * l),
-                r43= -k0 * _tan(0.5 * k0 * l),
+                r21= h * self.math.tan(0.5 * k0 * l),
+                r43= -k0 * self.math.tan(0.5 * k0 * l),
             )
             sequence = [dipedge_entry] + sequence
         elif enable_entry_edge and mad_el.type == 'sbend':
@@ -789,8 +792,8 @@ class MadLoader:
             dipedge_exit = self.Builder(
                 mad_el.name + "_dex",
                 self.classes.DipoleEdge,
-                r21= h * _tan(0.5 * k0 * l),
-                r43= -k0 * _tan(0.5 * k0 * l),
+                r21= h * self.math.tan(0.5 * k0 * l),
+                r43= -k0 * self.math.tan(0.5 * k0 * l),
             )
             sequence = sequence + [dipedge_exit]
         elif enable_entry_edge and mad_el.type == 'sbend':

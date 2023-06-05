@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from numbers import Number
 from scipy.special import factorial
 
 import xobjects as xo
@@ -79,6 +80,10 @@ class Drift(BeamElement):
 
     def make_thin_slice(self, weight):
         return Drift(length=self.length * weight)
+
+    def add_thin_slice_with_expr(weight, refs, thick_name, slice_name):
+        refs[slice_name] = Drift()
+        refs[slice_name].length = _get_expr(refs[thick_name].length) * weight
 
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.
@@ -564,6 +569,10 @@ class Multipole(BeamElement):
         'ksl': xo.Float64[:],
         }
 
+    _rename = {
+        'order': '_order',
+    }
+
     _depends_on = [RandomUniform, RandomExponential]
 
     _extra_c_sources = [
@@ -613,6 +622,15 @@ class Multipole(BeamElement):
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         self.xoinitialize(**kwargs)
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
 
 class SimpleThinQuadrupole(BeamElement):
@@ -745,9 +763,55 @@ class CombinedFunctionMagnet(BeamElement):
             ksl=self.ksl * weight,
             hxl=self.h * self.length * weight,
             length=self.length * weight,
-            order=self.order,
             inv_factorial_order=self.inv_factorial_order,
         )
+
+    @staticmethod
+    def add_thin_slice_with_expr(weight, refs, thick_name, slice_name):
+        self_ref = refs[thick_name]
+
+        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = refs[slice_name]
+
+        ref.knl[0] = (_get_expr(self_ref.k0) * _get_expr(self_ref.length)
+                      + _get_expr(self_ref.knl[0])) * weight
+        ref.knl[1] = (_get_expr(self_ref.k1) * _get_expr(self_ref.length)
+                      + _get_expr(self_ref.knl[1])) * weight
+
+        order = 1
+        for ii in range(2, 5):
+            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+
+            if _nonzero(ref.knl[ii]):
+                order = max(order, ii)
+
+        for ii in range(5):
+            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+
+            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+                order = max(order, ii)
+
+        ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
+        ref.length = _get_expr(self_ref.length) * weight
+        ref.order = order
+        ref.inv_factorial_order = _get_expr(self_ref.inv_factorial_order)
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the array fields
+        for field in ['knl', 'ksl']:
+            for ii in range(5):
+                _unregister_if_preset(getattr(ref, field)[ii])
+
+        # Remove the scalar fields
+        for field in [
+            'k0', 'k1', 'h', 'length', 'num_multipole_kicks', 'order',
+            'inv_factorial_order',
+        ]:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref[field])
 
 
 class TrueBend(BeamElement):
@@ -804,7 +868,6 @@ class TrueBend(BeamElement):
             knl=-ctx2np(self.knl),
             ksl=-ctx2np(self.ksl),
             num_multipole_kicks=self.num_multipole_kicks,
-            order=self.order,
             inv_factorial_order=self.inv_factorial_order,
             _context=_context,
             _buffer=_buffer,
@@ -822,6 +885,50 @@ class TrueBend(BeamElement):
             order=self.order,
             inv_factorial_order=self.inv_factorial_order,
         )
+
+    @staticmethod
+    def add_thin_slice_with_expr(weight, refs, thick_name, slice_name):
+        self_ref = refs[thick_name]
+
+        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = refs[slice_name]
+
+        ref.knl[0] = (_get_expr(self_ref.k0) * _get_expr(self_ref.length)
+                      + _get_expr(self_ref.knl[0])) * weight
+        order = 0
+        for ii in range(1, 5):
+            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+
+            if _nonzero(self_ref.knl[ii]):  # order is max ii where knl[ii] is expr or nonzero
+                order = ii
+
+        for ii in range(5):
+            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+
+            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+                order = max(order, ii)
+
+        ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
+        ref.length = _get_expr(self_ref.length) * weight
+        ref.order = order
+        ref.inv_factorial_order = _get_expr(self_ref.inv_factorial_order)
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the array fields
+        for field in ['knl', 'ksl']:
+            for ii in range(5):
+                _unregister_if_preset(getattr(ref, field)[ii])
+
+        # Remove the scalar fields
+        for field in [
+            'k0', 'h', 'length', 'num_multipole_kicks', 'order',
+            'inv_factorial_order',
+        ]:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref[field])
 
 
 class SimpleThinBend(BeamElement):
@@ -1431,3 +1538,29 @@ def _angle_from_trig(cos=None, sin=None, tan=None):
 
     angle = np.arctan2(sin, cos)
     return angle, cos, sin, tan
+
+
+def _unregister_if_preset(ref):
+    try:
+        ref._manager.unregister(ref)
+    except KeyError:
+        pass
+
+
+def _get_expr(knob):
+    if knob is None:
+        return 0
+    if hasattr(knob, '_expr'):
+        if knob._expr is None:
+            return knob._get_value()
+        return knob._expr
+    if isinstance(knob, Number):
+        return knob
+    raise ValueError(f'Cannot get expression for {knob}.')
+
+
+def _nonzero(val_or_expr):
+    if isinstance(val_or_expr, Number):
+        return val_or_expr != 0
+
+    return val_or_expr._expr

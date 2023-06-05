@@ -27,7 +27,7 @@ mad.use(sequence="lhcb1")
 seq = mad.sequence.lhcb1
 mad.twiss()
 
-line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, allow_thick=True)
+line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, allow_thick=True, deferred_expressions=True)
 line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 line.twiss_default['method'] = '4d'
 line.twiss_default['matrix_stability_tol'] = 100
@@ -35,6 +35,8 @@ line.twiss_default['matrix_stability_tol'] = 100
 
 line.config.XTRACK_USE_EXACT_DRIFTS = True
 line.build_tracker()
+
+line.to_json('lhc_thick_with_knobs.json', include_var_management=True)
 
 if kill_fringes_and_edges:
     for ee in seq.elements:

@@ -524,7 +524,7 @@ class Line:
         file: str or file-like object
             The file to save to. If a string is provided, a file is opened and
             closed. If a file-like object is provided, it is used directly.
-        **kwargs: dict
+        **kwargs:
             Additional keyword arguments are passed to the `Line.to_dict` method.
 
         '''
@@ -2709,6 +2709,7 @@ mathfunctions.tan = math.tan
 mathfunctions.asin = math.asin
 mathfunctions.acos = math.acos
 mathfunctions.atan = math.atan
+mathfunctions.atan2 = math.atan2
 mathfunctions.sinh = math.sinh
 mathfunctions.cosh = math.cosh
 mathfunctions.tanh = math.tanh
