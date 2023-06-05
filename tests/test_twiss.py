@@ -565,8 +565,8 @@ def test_twiss_range(test_context):
                         assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
                                         /np.linalg.norm(this_part[ii, :])), 0, atol=2e-4)
 
-
-def test_twiss_against_matrix():
+@for_all_test_contexts
+def test_twiss_against_matrix(test_context):
     x_co = [1e-3, 2e-3]
     px_co = [2e-6, -3e-6]
     y_co = [3e-3, 4e-3]
@@ -583,7 +583,7 @@ def test_twiss_against_matrix():
 
     segm_1 = xt.LineSegmentMap(
             qx=0.4, qy=0.3, qs=0.0001,
-            bets = bets, length=0.1,
+            bets=bets, length=0.1,
             betx=[betx[0], betx[1]],
             bety=[bety[0], bety[1]],
             alfx=[alfx[0], alfx[1]],
@@ -598,7 +598,7 @@ def test_twiss_against_matrix():
             py_ref=[py_co[0], py_co[1]])
     segm_2 = xt.LineSegmentMap(
             qx=0.21, qy=0.32, qs=0.0003,
-            bets = bets, length=0.2,
+            bets=bets, length=0.2,
             dqx=2., dqy=3.,
             betx=[betx[1], betx[0]],
             bety=[bety[1], bety[0]],
@@ -614,7 +614,7 @@ def test_twiss_against_matrix():
             py_ref=[py_co[1], py_co[0]])
 
     line = xt.Line(elements=[segm_1, segm_2], particle_ref=xp.Particles(p0c=1e9))
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
 
     tw4d = line.twiss(method='4d')
     tw6d = line.twiss()
