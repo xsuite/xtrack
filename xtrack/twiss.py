@@ -15,7 +15,7 @@ import xpart as xp
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
-from .table import Table
+from xdeps import Table
 from .general import _print
 
 
@@ -1492,6 +1492,8 @@ class TwissInit:
             self.__dict__[name] = value
 
 class TwissTable(Table):
+
+    _error_on_row_not_found = True
 
     def to_pandas(self, index=None, columns=None):
         if columns is None:
