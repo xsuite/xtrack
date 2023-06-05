@@ -1446,13 +1446,12 @@ class TwissInit:
             reference_frame=self.reference_frame)
 
     def reverse(self):
-        out = TwissInit()
-        out.particle_on_co = self.particle_on_co.copy()
+        out = TwissInit(particle_on_co=self.particle_on_co.copy(),
+                        W_matrix=self.W_matrix.copy())
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
 
-        out.W_matrix = self.W_matrix.copy()
         out.W_matrix[0, :] = -out.W_matrix[0, :]
         out.W_matrix[1, :] = out.W_matrix[1, :]
         out.W_matrix[2, :] = out.W_matrix[2, :]
