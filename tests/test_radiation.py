@@ -183,7 +183,7 @@ def test_ring_with_radiation(test_context):
             )
 
         assert np.isclose(np.std(mon.x[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0] * np.abs(tw['betz0'])),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode1'][0] * tw['betx'][0]),
             rtol=0.2, atol=0
             )
 
