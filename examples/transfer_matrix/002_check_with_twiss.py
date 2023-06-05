@@ -3,9 +3,6 @@ import numpy as np
 import xtrack as xt
 import xpart as xp
 
-# TODO try to go to kick drift in longitudinal and see if chrmaticity and
-# dispersion accuracy is improved when goig to larger synchrotron tunes
-
 x_co = [1e-3, 2e-3]
 px_co = [2e-6, -3e-6]
 y_co = [3e-3, 4e-3]
