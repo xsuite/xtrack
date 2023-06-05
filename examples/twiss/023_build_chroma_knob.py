@@ -18,10 +18,6 @@ line.twiss_default['method'] = '4d'
 line.twiss_default['freeze_longitudinal'] = True
 line.build_tracker()
 
-#########
-# Twiss #
-#########
-
 vary=[ xt.Vary('ksf.b1', step=1e-8),  xt.Vary('ksd.b1', step=1e-8)]
 line.match(
     vary=vary,
