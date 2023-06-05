@@ -1017,7 +1017,7 @@ def test_simplified_accelerator_segment(test_context):
     y_ref_1 = 4E-2
     py_ref_1 = 5E-4
 
-    arc = xt.SimplifiedAcceleratorSegment(_context=test_context,
+    arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_1), betx=(beta_x_0, beta_x_1),
         dx=(disp_x_0, disp_x_1), dpx=(disp_px_0, disp_px_1),
         alfy=(alpha_y_0, alpha_y_1), bety=(beta_y_0, beta_y_1),
@@ -1107,7 +1107,7 @@ def test_simplified_accelerator_segment_chroma_detuning(test_context):
     dety_y = -6E-4
     dety_x = 3E-3
 
-    arc = xt.SimplifiedAcceleratorSegment(_context=test_context,
+    arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_1), betx=(beta_x_0, beta_x_1),
         dx=(disp_x_0, disp_x_1), dpx=(0.0, 0.0),
         alfy=(alpha_y_0, alpha_y_1), bety=(beta_y_0, beta_y_1),
@@ -1193,7 +1193,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping(test_context):
                                        _context=test_context)
 
 
-    arc = xt.SimplifiedAcceleratorSegment(_context=test_context,
+    arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_1), betx=(beta_x_0, beta_x_1),
         dx=(disp_x_0, disp_x_1), dpx=(0.0, 0.0),
         alfy=(alpha_y_0, alpha_y_1), bety=(beta_y_0, beta_y_1),
@@ -1337,7 +1337,7 @@ def test_simplified_accelerator_segment_uncorrelated_damping_equilibrium(test_co
     particles._init_random_number_generator()
 
 
-    arc = xt.SimplifiedAcceleratorSegment(_context=test_context,
+    arc = xt.LineSegmentMap(_context=test_context,
         alfx=(alpha_x_0, alpha_x_0), betx=(beta_x_0, beta_x_0),
         dx=(0.0, 0.0), dpx=(0.0, 0.0),
         alfy=(alpha_y_0, alpha_y_0), bety=(beta_y_0, beta_y_0),

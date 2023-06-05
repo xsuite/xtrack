@@ -20,7 +20,7 @@ dpx = [0.7, -0.3]
 dpy = [0.4, -0.6]
 bets = 1e-3
 
-segm_1 = xt.SimplifiedAcceleratorSegment(
+segm_1 = xt.LineSegmentMap(
         qx=0.4, qy=0.3, qs=0.0001,
         bets = bets, length=0.1,
         betx=[betx[0], betx[1]],
@@ -35,7 +35,7 @@ segm_1 = xt.SimplifiedAcceleratorSegment(
         px_ref=[px_co[0], px_co[1]],
         y_ref=[y_co[0], y_co[1]],
         py_ref=[py_co[0], py_co[1]])
-segm_2 = xt.SimplifiedAcceleratorSegment(
+segm_2 = xt.LineSegmentMap(
         qx=0.21, qy=0.32, qs=0.0003,
         bets = bets, length=0.2,
         dqx=2., dqy=3.,

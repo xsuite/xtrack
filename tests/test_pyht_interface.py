@@ -194,7 +194,7 @@ def test_instability_cpu_gpu(test_context):
     particles.delta[::2] = np2ctx(delta0)
     particles.state[1::2] = 0
 
-    arc = xt.SimplifiedAcceleratorSegment(
+    arc = xt.LineSegmentMap(
         _context=test_context,
         betx=beta_x,
         bety=beta_y,

@@ -1397,7 +1397,7 @@ class TwissInit:
             dy = dy or 0
             dpy = dpy or 0
 
-            aux_segment = xt.SimplifiedAcceleratorSegment(
+            aux_segment = xt.LineSegmentMap(
                 length=1., # dummy
                 qx=0.55, # dummy
                 qy=0.57, # dummy

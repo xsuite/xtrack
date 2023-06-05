@@ -3,8 +3,8 @@
 // Copyright (c) CERN, 2021.                 //
 // ######################################### //
 
-#ifndef XTRACK_SIMPLIFIEDACCELERATORSEGMENT_H
-#define XTRACK_SIMPLIFIEDACCELERATORSEGMENT_H
+#ifndef XTRACK_LINESEGMENTMAP_H
+#define XTRACK_LINESEGMENTMAP_H
 
 /*gpufun*/
 void remove_closed_orbit(
@@ -168,13 +168,13 @@ void transverse_motion(LocalParticle *part0,
 }
 
 void longitudinal_motion(LocalParticle *part0,
-                         SimplifiedAcceleratorSegmentData el){
+                         LineSegmentMapData el){
 
-    int64_t const mode_flag = SimplifiedAcceleratorSegmentData_get_longitudinal_mode_flag(el);
+    int64_t const mode_flag = LineSegmentMapData_get_longitudinal_mode_flag(el);
 
     if (mode_flag==1){ // linear motion fixed qs
-        double const qs = SimplifiedAcceleratorSegmentData_get_qs(el);
-        double const bets = SimplifiedAcceleratorSegmentData_get_bets(el);
+        double const qs = LineSegmentMapData_get_qs(el);
+        double const bets = LineSegmentMapData_get_bets(el);
         double const sin_s = sin(2 * PI * qs);
         double const cos_s = cos(2 * PI * qs);
         //start_per_particle_block (part->part)
@@ -190,9 +190,9 @@ void longitudinal_motion(LocalParticle *part0,
     else if (mode_flag==2){ // non-linear motion
 
         double const alfp =
-            SimplifiedAcceleratorSegmentData_get_momentum_compaction_factor(el);
+            LineSegmentMapData_get_momentum_compaction_factor(el);
         double const slippage_length =
-            SimplifiedAcceleratorSegmentData_get_slippage_length(el);
+            LineSegmentMapData_get_slippage_length(el);
 
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
@@ -201,12 +201,12 @@ void longitudinal_motion(LocalParticle *part0,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
 
-        int64_t const n_rf = SimplifiedAcceleratorSegmentData_len_voltage_rf(el);
+        int64_t const n_rf = LineSegmentMapData_len_voltage_rf(el);
         for (int i_rf=0; i_rf<n_rf; i_rf++){
 
-            double const v_rf = SimplifiedAcceleratorSegmentData_get_voltage_rf(el,i_rf);
-            double const f_rf = SimplifiedAcceleratorSegmentData_get_frequency_rf(el,i_rf);
-            double const lag_rf = SimplifiedAcceleratorSegmentData_get_lag_rf(el,i_rf);
+            double const v_rf = LineSegmentMapData_get_voltage_rf(el,i_rf);
+            double const f_rf = LineSegmentMapData_get_frequency_rf(el,i_rf);
+            double const lag_rf = LineSegmentMapData_get_lag_rf(el,i_rf);
 
             if (f_rf == 0) continue;
 
@@ -233,13 +233,13 @@ void longitudinal_motion(LocalParticle *part0,
     else if (mode_flag == 3){
 
         double const alfp =
-            SimplifiedAcceleratorSegmentData_get_momentum_compaction_factor(el);
+            LineSegmentMapData_get_momentum_compaction_factor(el);
         double const slippage_length =
-            SimplifiedAcceleratorSegmentData_get_slippage_length(el);
+            LineSegmentMapData_get_slippage_length(el);
 
         // Assume there is only one RF term (checked in the Python code)
-        double const v_rf = SimplifiedAcceleratorSegmentData_get_voltage_rf(el,0);
-        double const f_rf = SimplifiedAcceleratorSegmentData_get_frequency_rf(el,0);
+        double const v_rf = LineSegmentMapData_get_voltage_rf(el,0);
+        double const f_rf = LineSegmentMapData_get_frequency_rf(el,0);
 
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
@@ -345,75 +345,75 @@ void uncorrelated_gaussian_noise(LocalParticle *part0,
 }
 
 /*gpufun*/
-void SimplifiedAcceleratorSegment_track_local_particle(SimplifiedAcceleratorSegmentData el, LocalParticle* part0){
+void LineSegmentMap_track_local_particle(LineSegmentMapData el, LocalParticle* part0){
 
 
     remove_closed_orbit(part0,
-        SimplifiedAcceleratorSegmentData_get_x_ref(el, 0),
-        SimplifiedAcceleratorSegmentData_get_px_ref(el, 0),
-        SimplifiedAcceleratorSegmentData_get_y_ref(el, 0),
-        SimplifiedAcceleratorSegmentData_get_py_ref(el, 0));
+        LineSegmentMapData_get_x_ref(el, 0),
+        LineSegmentMapData_get_px_ref(el, 0),
+        LineSegmentMapData_get_y_ref(el, 0),
+        LineSegmentMapData_get_py_ref(el, 0));
 
     remove_dispersion(part0,
-        SimplifiedAcceleratorSegmentData_get_dx(el, 0),
-        SimplifiedAcceleratorSegmentData_get_dpx(el, 0),
-        SimplifiedAcceleratorSegmentData_get_dy(el, 0),
-        SimplifiedAcceleratorSegmentData_get_dpy(el, 0));
+        LineSegmentMapData_get_dx(el, 0),
+        LineSegmentMapData_get_dpx(el, 0),
+        LineSegmentMapData_get_dy(el, 0),
+        LineSegmentMapData_get_dpy(el, 0));
 
     transverse_motion(part0,
-        SimplifiedAcceleratorSegmentData_get_qx(el),
-        SimplifiedAcceleratorSegmentData_get_qy(el),
-        SimplifiedAcceleratorSegmentData_get_dqx(el),
-        SimplifiedAcceleratorSegmentData_get_dqy(el),
-        SimplifiedAcceleratorSegmentData_get_detx_x(el),
-        SimplifiedAcceleratorSegmentData_get_detx_y(el),
-        SimplifiedAcceleratorSegmentData_get_dety_x(el),
-        SimplifiedAcceleratorSegmentData_get_dety_y(el),
-        SimplifiedAcceleratorSegmentData_get_alfx(el, 0),
-        SimplifiedAcceleratorSegmentData_get_betx(el, 0),
-        SimplifiedAcceleratorSegmentData_get_alfy(el, 0),
-        SimplifiedAcceleratorSegmentData_get_bety(el, 0),
-        SimplifiedAcceleratorSegmentData_get_alfx(el, 1),
-        SimplifiedAcceleratorSegmentData_get_betx(el, 1),
-        SimplifiedAcceleratorSegmentData_get_alfy(el, 1),
-        SimplifiedAcceleratorSegmentData_get_bety(el, 1));
+        LineSegmentMapData_get_qx(el),
+        LineSegmentMapData_get_qy(el),
+        LineSegmentMapData_get_dqx(el),
+        LineSegmentMapData_get_dqy(el),
+        LineSegmentMapData_get_detx_x(el),
+        LineSegmentMapData_get_detx_y(el),
+        LineSegmentMapData_get_dety_x(el),
+        LineSegmentMapData_get_dety_y(el),
+        LineSegmentMapData_get_alfx(el, 0),
+        LineSegmentMapData_get_betx(el, 0),
+        LineSegmentMapData_get_alfy(el, 0),
+        LineSegmentMapData_get_bety(el, 0),
+        LineSegmentMapData_get_alfx(el, 1),
+        LineSegmentMapData_get_betx(el, 1),
+        LineSegmentMapData_get_alfy(el, 1),
+        LineSegmentMapData_get_bety(el, 1));
 
     longitudinal_motion(part0, el);
 
     energy_and_reference_increments(part0,
-        SimplifiedAcceleratorSegmentData_get_energy_increment(el),
-        SimplifiedAcceleratorSegmentData_get_energy_ref_increment(el));
+        LineSegmentMapData_get_energy_increment(el),
+        LineSegmentMapData_get_energy_ref_increment(el));
 
-    if (SimplifiedAcceleratorSegmentData_get_uncorrelated_rad_damping(el) == 1){
+    if (LineSegmentMapData_get_uncorrelated_rad_damping(el) == 1){
         uncorrelated_radiation_damping(part0,
-            SimplifiedAcceleratorSegmentData_get_damping_factor_x(el),
-            SimplifiedAcceleratorSegmentData_get_damping_factor_y(el),
-            SimplifiedAcceleratorSegmentData_get_damping_factor_s(el));
+            LineSegmentMapData_get_damping_factor_x(el),
+            LineSegmentMapData_get_damping_factor_y(el),
+            LineSegmentMapData_get_damping_factor_s(el));
     }
 
-    if (SimplifiedAcceleratorSegmentData_get_uncorrelated_gauss_noise(el) == 1){
+    if (LineSegmentMapData_get_uncorrelated_gauss_noise(el) == 1){
         uncorrelated_gaussian_noise(part0,
-            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_x(el),
-            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_px(el),
-            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_y(el),
-            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_py(el),
-            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_zeta(el),
-            SimplifiedAcceleratorSegmentData_get_gauss_noise_ampl_delta(el));
+            LineSegmentMapData_get_gauss_noise_ampl_x(el),
+            LineSegmentMapData_get_gauss_noise_ampl_px(el),
+            LineSegmentMapData_get_gauss_noise_ampl_y(el),
+            LineSegmentMapData_get_gauss_noise_ampl_py(el),
+            LineSegmentMapData_get_gauss_noise_ampl_zeta(el),
+            LineSegmentMapData_get_gauss_noise_ampl_delta(el));
     }
 
     add_dispersion(part0,
-        SimplifiedAcceleratorSegmentData_get_dx(el, 1),
-        SimplifiedAcceleratorSegmentData_get_dpx(el, 1),
-        SimplifiedAcceleratorSegmentData_get_dy(el, 1),
-        SimplifiedAcceleratorSegmentData_get_dpy(el, 1));
+        LineSegmentMapData_get_dx(el, 1),
+        LineSegmentMapData_get_dpx(el, 1),
+        LineSegmentMapData_get_dy(el, 1),
+        LineSegmentMapData_get_dpy(el, 1));
 
     add_closed_orbit(part0,
-        SimplifiedAcceleratorSegmentData_get_x_ref(el, 1),
-        SimplifiedAcceleratorSegmentData_get_px_ref(el, 1),
-        SimplifiedAcceleratorSegmentData_get_y_ref(el, 1),
-        SimplifiedAcceleratorSegmentData_get_py_ref(el, 1));
+        LineSegmentMapData_get_x_ref(el, 1),
+        LineSegmentMapData_get_px_ref(el, 1),
+        LineSegmentMapData_get_y_ref(el, 1),
+        LineSegmentMapData_get_py_ref(el, 1));
 
-    double const length = SimplifiedAcceleratorSegmentData_get_length(el);
+    double const length = LineSegmentMapData_get_length(el);
     //start_per_particle_block (part0->part)
         LocalParticle_add_to_s(part, length);
     //end_per_particle_block

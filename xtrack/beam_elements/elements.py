@@ -904,7 +904,7 @@ class DipoleEdge(BeamElement):
                          **kwargs)
 
 
-class SimplifiedAcceleratorSegment(BeamElement):
+class LineSegmentMap(BeamElement):
 
     _xofields={
         'length': xo.Float64,
@@ -970,7 +970,7 @@ class SimplifiedAcceleratorSegment(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/simplifiedacceleratorsegment.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/linesegmentmap.h')]
 
     def __init__(self, length=None, qx=0, qy=0,
             betx=1., bety=1., alfx=0., alfy=0.,
@@ -1344,7 +1344,7 @@ class LinearTransferMatrix(BeamElement):
                      **nargs):
 
         _print('Warning: `LinearTransferMatrix` is deprecated and will be removed in the future. '
-               'Please use `SimplifiedAcceleratorSegment` instead.')
+               'Please use `LineSegmentMap` instead.')
         if (chroma_x==0 and chroma_y==0
             and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
 

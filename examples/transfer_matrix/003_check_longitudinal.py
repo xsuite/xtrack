@@ -44,7 +44,7 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     circumference = tw.circumference
 
     if longitudinal_mode == 'nonlinear':
-        matrix = xt.SimplifiedAcceleratorSegment(
+        matrix = xt.LineSegmentMap(
             qx=tw.qx, qy=tw.qy,
             dqx=tw.dqx, dqy=tw.dqy,
             betx=tw.betx[0], alfx=tw.alfx[0],
@@ -57,7 +57,7 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
             momentum_compaction_factor=tw.momentum_compaction_factor,
             length=circumference)
     elif longitudinal_mode == 'linear_fixed_rf':
-        matrix = xt.SimplifiedAcceleratorSegment(
+        matrix = xt.LineSegmentMap(
             longitudinal_mode='linear_fixed_rf',
             qx=tw.qx, qy=tw.qy,
             dqx=tw.dqx, dqy=tw.dqy,
@@ -75,7 +75,7 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
         qs = tw.qs
         circumference = line.get_length()
         bet_s = eta * circumference / (2 * np.pi * qs)
-        matrix = xt.SimplifiedAcceleratorSegment(
+        matrix = xt.LineSegmentMap(
             qx=tw.qx, qy=tw.qy,
             dqx=tw.dqx, dqy=tw.dqy,
             betx=tw.betx[0], alfx=tw.alfx[0],

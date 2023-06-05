@@ -57,7 +57,7 @@ particles = xp.Particles(_context=context,
                          delta=sigma_delta*np.ones(n_macroparticles,dtype=float),
                          )
 
-arc12 = xt.SimplifiedAcceleratorSegment(
+arc12 = xt.LineSegmentMap(
         alfx=[alpha_x_IP1,alpha_x_IP2],
         betx=[beta_x_IP1,beta_x_IP2],
         dx=[dispersion_IP1,dispersion_IP2],
@@ -67,7 +67,7 @@ arc12 = xt.SimplifiedAcceleratorSegment(
         energy_ref_increment=energy_increment,
         energy_increment=0)
 
-arc21 = xt.SimplifiedAcceleratorSegment(
+arc21 = xt.LineSegmentMap(
         alfx=[alpha_x_IP2,alpha_x_IP1],
         betx=[beta_x_IP2,beta_x_IP1],
         dx=[dispersion_IP2,dispersion_IP1],

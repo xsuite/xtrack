@@ -20,7 +20,7 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "SimplifiedAcceleratorSegment"
+            "LineSegmentMap"
         ]
     },
     "default_only_xtrack_backtrack": {

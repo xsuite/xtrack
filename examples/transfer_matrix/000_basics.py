@@ -16,7 +16,7 @@ q_y_set = .31
 q_s_set = .01
 # Test branches with and without detuning
 for chrm in [1e-5, 0]:
-    el = xt.SimplifiedAcceleratorSegment(_context=context,
+    el = xt.LineSegmentMap(_context=context,
             qx=q_x_set, qy=q_y_set, qs=q_s_set,
             bets=800.,
             dqx=chrm
