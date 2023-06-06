@@ -19,7 +19,7 @@ from . import linear_normal_form as lnf, slicing
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-
+from .slicing import Slicer
 
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -722,6 +722,10 @@ class Line:
             freeze_longitudinal=freeze_longitudinal,
             time=time,
             **kwargs)
+
+    def slice_in_place(self, slicing_strategies):
+        slicer = Slicer(self, slicing_strategies)
+        return slicer.slice_in_place()
 
     def build_particles(
         self,

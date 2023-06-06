@@ -760,7 +760,7 @@ class CombinedFunctionMagnet(BeamElement):
     def make_slice(self, weight):
         combined_knl = self.knl.copy()
         combined_knl[0:2] += np.array([self.k0, self.k1]) * self.length
-        order = max(_get_order(combined_knl), _get_order(self.ksl), 1, self.order)
+        order = max(_get_order(combined_knl), _get_order(self.ksl), self.order)
         thin_multipole = Multipole(
             knl=combined_knl * weight,
             ksl=self.ksl * weight,
@@ -1574,5 +1574,5 @@ def _nonzero(val_or_expr):
 def _get_order(array):
     nonzero_indices = np.where(array)
     if not np.any(nonzero_indices):
-        return -1
+        return 0
     return np.max(nonzero_indices)
