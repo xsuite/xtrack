@@ -760,14 +760,12 @@ class CombinedFunctionMagnet(BeamElement):
     def make_slice(self, weight):
         combined_knl = self.knl.copy()
         combined_knl[0:2] += np.array([self.k0, self.k1]) * self.length
-        order = max(_get_order(combined_knl), _get_order(self.ksl), self.order)
         thin_multipole = Multipole(
             knl=combined_knl * weight,
             ksl=self.ksl * weight,
             hxl=self.h * self.length * weight,
             length=self.length * weight,
         )
-        thin_multipole.order = order
         return thin_multipole
 
     @staticmethod
@@ -881,14 +879,12 @@ class TrueBend(BeamElement):
     def make_slice(self, weight):
         combined_knl = self.knl.copy()
         combined_knl[0] += self.k0 * self.length
-        order = max(_get_order(combined_knl), _get_order(self.ksl), self.order)
         thin_multipole = Multipole(
             knl=combined_knl * weight,
             ksl=self.ksl * weight,
             hxl=self.h * self.length * weight,
             length=self.length * weight,
         )
-        thin_multipole.order = order
         return thin_multipole
 
     @staticmethod
