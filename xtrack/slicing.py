@@ -115,7 +115,18 @@ class Strategy:
 
 
 class Slicer:
-    def __init__(self, line, slicing_strategies):
+    def __init__(self, line, slicing_strategies: List[Strategy]):
+        """
+        An object that slices a line in place according to a list of slicing
+        strategies.
+
+        Parameters
+        ----------
+        line : Line
+            The line to slice.
+        slicing_strategies : List[Strategy]
+            A list of slicing strategies to apply to the line.
+        """
         self.line = line
         self.slicing_strategies = slicing_strategies
         self.has_expresions = line.vars is not None
@@ -127,10 +138,17 @@ class Slicer:
         for name in line.element_names:
             element = line[name]
 
+            # Don't slice already thin elements and drifts
             if not element.isthick or isinstance(element, xt.Drift):
                 self.thin_names.append(name)
                 continue
 
+            # At the beginning of the element we will insert a marker of
+            # the same name as the current thick element. We keep the old
+            # element in the line for now, as we might need its expressions.
+            self.thin_names.append(name)
+
+            # Choose a slicing strategy for the element
             chosen_slicing = None
             for strategy in reversed(self.slicing_strategies):
                 if strategy.match_element(name, element):
@@ -141,16 +159,22 @@ class Slicer:
                 raise ValueError(f'No slicing strategy found for the element '
                                  f'{name}: {element}.')
 
+            # Add the slices to the line.element_dict
             self._make_slices(element, chosen_slicing, name)
 
+            # Remove the thick element and its expressions
             if self.has_expresions:
                 type(element).delete_element_ref(self.line.element_refs[name])
-                del self.line.element_dict[name]
-                self.line.element_dict[name] = xt.Marker() # Does not do anything yet
+            self.line.element_dict[name] = xt.Marker()
 
+        # Commit the changes to the line
         line.element_names = self.thin_names
 
     def _make_slices(self, element, chosen_slicing, name):
+        """
+        Add the slices to the line.element_dict. If the element has expressions
+        then the expressions will be added to the slices.
+        """
         drift_idx, element_idx = 0, 0
         drift_to_slice = xt.Drift(length=element.length)
 
