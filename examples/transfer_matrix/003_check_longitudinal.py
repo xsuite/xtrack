@@ -6,6 +6,7 @@ plt.close('all')
 
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 
 
 # machine = 'sps'
@@ -16,12 +17,14 @@ import xpart as xp
 # configurations = ['above transition', 'below transition']
 # num_turns = 250
 # cavity_name = 'acta.31637'
+# sigmaz=0.20
 
 machine = 'psb'
 line = xt.Line.from_json('../../test_data/psb_injection/line_and_particle.json')
 configurations = ['below transition']
 num_turns = 1000
 cavity_name = 'br.c02'
+sigmaz = 22.
 
 line.build_tracker()
 
@@ -186,5 +189,19 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     fig2 = plt.figure(2 + i_case*10)
     fig2.suptitle(machine + ' - ' + configuration + ' - ' + longitudinal_mode)
     plt.plot(mon_matrix_dp.zeta.T, mon_matrix_dp.pzeta.T)
+
+    particles_matrix = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+        nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=sigmaz, line=line_matrix)
+
+    particles_line = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+        nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=sigmaz, line=line)
+
+    particles_matrix.move(_context=xo.context_default)
+    particles_line.move(_context=xo.context_default)
+
+    assert np.isclose(np.std(particles_matrix.zeta), np.std(particles_line.zeta),
+                      atol=0, rtol=2e-2)
+    assert np.isclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
+        atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
 
 plt.show()

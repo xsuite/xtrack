@@ -666,12 +666,14 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         configurations = ['above transition', 'below transition']
         num_turns = 250
         cavity_name = 'acta.31637'
+        sigmaz=0.20
     elif machine == 'psb':
         line = xt.Line.from_json(test_data_folder /
             'psb_injection/line_and_particle.json')
         configurations = ['below transition']
         num_turns = 1000
         cavity_name = 'br.c02'
+        sigmaz = 22.
     else:
         raise ValueError(f'Unknown machine {machine}')
 
@@ -811,6 +813,20 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
                         rtol=0, atol=2e-2*np.max(np.squeeze(mon.zeta)))
         assert np.allclose(np.squeeze(mon.pzeta), np.squeeze(mon_matrix.pzeta),
                             rtol=0, atol=3e-2*np.max(np.squeeze(mon.pzeta)))
+
+        particles_matrix = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+            nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=sigmaz, line=line_matrix)
+
+        particles_line = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+            nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=sigmaz, line=line)
+
+        particles_matrix.move(_context=xo.context_default)
+        particles_line.move(_context=xo.context_default)
+
+        assert np.isclose(np.std(particles_matrix.zeta), np.std(particles_line.zeta),
+                        atol=0, rtol=2e-2)
+        assert np.isclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
+                        atol=0, rtol=2e-2)
 
 @for_all_test_contexts
 def test_custom_twiss_init(test_context):
