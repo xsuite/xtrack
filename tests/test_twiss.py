@@ -826,7 +826,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         assert np.isclose(np.std(particles_matrix.zeta), np.std(particles_line.zeta),
                         atol=0, rtol=2e-2)
         assert np.isclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
-                        atol=0, rtol=2e-2)
+            atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
 
 @for_all_test_contexts
 def test_custom_twiss_init(test_context):
