@@ -1,3 +1,5 @@
+import time
+
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
@@ -13,23 +15,22 @@ def mkbend(length=1,angle=0.1,steps=60):
         el.append(xt.Drift(length=length*dd))
     return el
 
-# for step in range(1,20):
+t1 = time.perf_counter()
+for step in range(1,20):
 
-#     elements=mkbend(1,0.1,step)
-#     line=xt.Line(elements,
-#                  particle_ref=xp.Particles(mass0=xp.ELECTRON_MASS_EV,p0c=100e9,_context=ctx))
-#     line.build_tracker(_context=ctx)
-#     line.configure_radiation(model='mean')
-
-    # pp=line.build_particles()
-
-    # line.track(pp)
-    # line.tracker._current_track_kernel
-    # print(step)
-    # print(f"px = {pp.px[0]}")
-    # print(f"py = {pp.py[0]}")
-    # print(f"pt = {pp.ptau[0]}")
-
+    elements=mkbend(1,0.1,step)
+    line=xt.Line(elements,
+                 particle_ref=xp.Particles(mass0=xp.ELECTRON_MASS_EV,p0c=100e9,_context=ctx))
+    line.build_tracker(_context=ctx)
+    line.configure_radiation(model='mean')
+    pp=line.build_particles()
+    line.track(pp)
+    print(step)
+    print(f"px = {pp.px[0]}")
+    print(f"py = {pp.py[0]}")
+    print(f"pt = {pp.ptau[0]}")
+t2 = time.perf_counter()
+print(f"Time: {t2-t1}")
 
 elements=mkbend(1,0.1, 2)
 line=xt.Line(elements,
