@@ -765,6 +765,9 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         p_matrix = xp.generate_matched_gaussian_bunch(num_particles=1000000,
             nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=5e-2, line=line_matrix, engine='linear')
 
+        p_line.move(_context=xo.context_default)
+        p_matrix.move(_context=xo.context_default)
+
         assert np.isclose(np.std(p_line.zeta), np.std(p_matrix.zeta), rtol=1e-2)
         assert np.isclose(np.std(p_line.pzeta), np.std(p_matrix.pzeta), rtol=2e-2)
         assert np.isclose(np.std(p_line.x), np.std(p_matrix.x), rtol=1e-2)
