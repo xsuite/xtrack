@@ -78,12 +78,14 @@ class Drift(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
         ]
 
-    def make_thin_slice(self, weight):
+    def make_slice(self, weight):
         return Drift(length=self.length * weight)
 
-    def add_thin_slice_with_expr(weight, refs, thick_name, slice_name):
+    @staticmethod
+    def add_slice_with_expr(weight, refs, thick_name, slice_name):
         refs[slice_name] = Drift()
         refs[slice_name].length = _get_expr(refs[thick_name].length) * weight
+
 
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.
@@ -755,19 +757,21 @@ class CombinedFunctionMagnet(BeamElement):
             _offset=_offset,
         )
 
-    def make_thin_slice(self, weight):
+    def make_slice(self, weight):
         combined_knl = self.knl.copy()
         combined_knl[0:2] += np.array([self.k0, self.k1]) * self.length
-        return Multipole(
+        order = max(_get_order(combined_knl), _get_order(self.ksl), 1, self.order)
+        thin_multipole = Multipole(
             knl=combined_knl * weight,
             ksl=self.ksl * weight,
             hxl=self.h * self.length * weight,
             length=self.length * weight,
-            inv_factorial_order=self.inv_factorial_order,
         )
+        thin_multipole.order = order
+        return thin_multipole
 
     @staticmethod
-    def add_thin_slice_with_expr(weight, refs, thick_name, slice_name):
+    def add_slice_with_expr(weight, refs, thick_name, slice_name):
         self_ref = refs[thick_name]
 
         refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
@@ -874,20 +878,21 @@ class TrueBend(BeamElement):
             _offset=_offset,
         )
 
-    def make_thin_slice(self, weight):
+    def make_slice(self, weight):
         combined_knl = self.knl.copy()
         combined_knl[0] += self.k0 * self.length
-        return Multipole(
+        order = max(_get_order(combined_knl), _get_order(self.ksl), self.order)
+        thin_multipole = Multipole(
             knl=combined_knl * weight,
             ksl=self.ksl * weight,
             hxl=self.h * self.length * weight,
             length=self.length * weight,
-            order=self.order,
-            inv_factorial_order=self.inv_factorial_order,
         )
+        thin_multipole.order = order
+        return thin_multipole
 
     @staticmethod
-    def add_thin_slice_with_expr(weight, refs, thick_name, slice_name):
+    def add_slice_with_expr(weight, refs, thick_name, slice_name):
         self_ref = refs[thick_name]
 
         refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
@@ -1564,3 +1569,10 @@ def _nonzero(val_or_expr):
         return val_or_expr != 0
 
     return val_or_expr._expr
+
+
+def _get_order(array):
+    nonzero_indices = np.where(array)
+    if not np.any(nonzero_indices):
+        return -1
+    return np.max(nonzero_indices)

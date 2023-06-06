@@ -146,17 +146,18 @@ class Slicer:
             if self.has_expresions:
                 type(element).delete_element_ref(self.line.element_refs[name])
                 del self.line.element_dict[name]
-                self.line.element_dict[name] = xt.Marker()
+                self.line.element_dict[name] = xt.Marker() # Does not do anything yet
 
         line.element_names = self.thin_names
 
     def _make_slices(self, element, chosen_slicing, name):
         drift_idx, element_idx = 0, 0
+        drift_to_slice = xt.Drift(length=element.length)
 
         for weight, is_drift in chosen_slicing:
             if is_drift:
                 slice_name = f'drift_{name}..{drift_idx}'
-                obj_to_slice = xt.Drift(element.length * weight)
+                obj_to_slice = drift_to_slice
                 drift_idx += 1
             else:
                 slice_name = f'{name}..{element_idx}'
@@ -164,14 +165,14 @@ class Slicer:
                 element_idx += 1
 
             if self.has_expresions:
-                type(obj_to_slice).add_thin_slice_with_expr(
+                type(obj_to_slice).add_slice_with_expr(
                     weight=weight,
                     refs=self.line.element_refs,
                     thick_name=name,
                     slice_name=slice_name,
                 )
             else:
-                slice = obj_to_slice.make_thin_slice(weight=weight)
-                self.line.element_dict[slice_name] = slice
+                slice_element = obj_to_slice.make_slice(weight=weight)
+                self.line.element_dict[slice_name] = slice_element
 
             self.thin_names.append(slice_name)
