@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .shared_knobs import VarSharing
+from ..match import match_knob_line
 import xobjects as xo
 import xtrack as xt
 import xfields as xf
@@ -294,6 +295,36 @@ class Multiline:
         return xt.match.match_line(self, vary, targets,
                           restore_if_fail=restore_if_fail,
                           solver=solver, verbose=verbose, **kwargs)
+
+    def match_knob(self, knob_name, vary, targets,
+                knob_value_start=0, knob_value_end=1,
+                **kwargs):
+
+        '''
+        Match a new knob in the beam line such that the specified targets are
+        matched when the knob is set to the value `knob_value_end` and the
+        state of the line before tha matching is recovered when the knob is
+        set to the value `knob_value_start`.
+
+        Parameters
+        ----------
+        knob_name : str
+            Name of the knob to be matched.
+        vary : list of str or list of Vary objects
+            List of existing knobs to be varied.
+        targets : list of Target objects
+            List of targets to be matched.
+        knob_value_start : float
+            Value of the knob before the matching. Defaults to 0.
+        knob_value_end : float
+            Value of the knob after the matching. Defaults to 1.
+
+        '''
+        raise NotImplementedError # Untested
+
+        match_knob_line(self, vary=vary, targets=targets,
+                        knob_name=knob_name, knob_value_start=knob_value_start,
+                        knob_value_end=knob_value_end, **kwargs)
 
     def __getitem__(self, key):
         return self.lines[key]

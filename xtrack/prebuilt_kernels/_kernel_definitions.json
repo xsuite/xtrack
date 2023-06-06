@@ -19,7 +19,8 @@
             "DipoleEdge",
             "LinearTransferMatrix",
             "SimpleThinBend",
-            "SimpleThinQuadrupole"
+            "SimpleThinQuadrupole",
+            "LineSegmentMap"
         ]
     },
     "default_only_xtrack_backtrack": {

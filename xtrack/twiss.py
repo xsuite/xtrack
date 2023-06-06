@@ -15,7 +15,7 @@ import xpart as xp
 from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
-from .table import Table
+from xdeps import Table
 from .general import _print
 
 
@@ -246,6 +246,11 @@ def twiss_line(line, particle_ref=None, method=None,
         ele_start, ele_stop = ele_stop, ele_start
 
     if twiss_init is not None and not isinstance(twiss_init, str):
+        twiss_init = twiss_init.copy() # To avoid changing the one provided
+
+        if twiss_init.reference_frame is None:
+            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
+
         if twiss_init.reference_frame == 'proper':
             assert not(reverse), ('`twiss_init` needs to be given in the '
                 'proper reference frame when `reverse` is False')
@@ -406,6 +411,28 @@ def twiss_line(line, particle_ref=None, method=None,
                             symplectify=symplectify,
                             steps_r_matrix=steps_r_matrix,
                             eneloss_and_damping=eneloss_and_damping)
+
+        cols_chrom, scalars_chrom = _compute_chromatic_functions(
+            line=line,
+            twiss_init=twiss_init,
+            delta_chrom=delta_chrom,
+            steps_r_matrix=steps_r_matrix,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            matrix_stability_tol=matrix_stability_tol,
+            symplectify=symplectify,
+            method=method,
+            use_full_inverse=use_full_inverse,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            r_sigma=r_sigma,
+            delta_disp=delta_disp,
+            zeta_disp=zeta_disp,
+            ele_start=ele_start,
+            ele_stop=ele_stop)
+        twiss_res._data.update(cols_chrom)
+        twiss_res._data.update(scalars_chrom)
+        twiss_res._col_names += list(cols_chrom.keys())
+
 
     if method == '4d':
         # Not proper because R_matrix terms related to zeta are forced to zero
@@ -787,17 +814,6 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
 
-        dqx, dqy = _compute_chromaticity(
-            line=line,
-            W_matrix=twiss_init.W_matrix, method=method,
-            particle_on_co=twiss_init.particle_on_co,
-            delta_chrom=delta_chrom,
-            tune_x=mux[-1], tune_y=muy[-1],
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-            matrix_responsiveness_tol=matrix_responsiveness_tol,
-            matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify, steps_r_matrix=steps_r_matrix)
-
         dzeta = twiss_res['dzeta']
         qs = np.abs(twiss_res['muzeta'][-1])
         eta = -dzeta[-1]/circumference
@@ -806,6 +822,8 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
         betz0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
+        if eta < 0: # below transition
+            betz0 = -betz0
         ptau_co = twiss_res['ptau']
 
         # Coupling
@@ -822,7 +840,7 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         c_r1_avg = np.trapz(r1, s_vect)/(circumference)
         c_r2_avg = np.trapz(r2, s_vect)/(circumference)
         twiss_res._data.update({
-            'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
+            'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
@@ -840,73 +858,66 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
                 particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
             twiss_res._data.update(eneloss_damp_res)
 
-def _compute_chromaticity(line, W_matrix, particle_on_co, delta_chrom,
-                    tune_x, tune_y,
-                    nemitt_x, nemitt_y, matrix_responsiveness_tol,
-                    matrix_stability_tol, symplectify, steps_r_matrix,
-                    method='6d'
-                    ):
+def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
+                    matrix_responsiveness_tol, matrix_stability_tol, symplectify,
+                    method='6d', use_full_inverse=False,
+                    nemitt_x=None, nemitt_y=None,
+                    r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
+                    ele_start=None, ele_stop=None):
 
-    context = line._context
+    tw_chrom_res = []
+    for dd in [-delta_chrom, delta_chrom]:
+        tw_init_chrom  = twiss_init.copy()
+        part_co = tw_init_chrom.particle_on_co
 
-    part_chrom_plus = xp.build_particles(
-                _context=context,
+        part_chrom = xp.build_particles(
+                _context=line._context,
                 x_norm=0,
-                zeta=particle_on_co._xobject.zeta[0], delta=delta_chrom,
-                particle_on_co=particle_on_co,
+                zeta=tw_init_chrom._xobject.zeta[0],
+                delta=part_co._xobject.delta[0] + dd,
+                particle_on_co=part_co,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=W_matrix)
-    RR_chrom_plus = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_plus.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-    (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
-                            only_4d_block=method=='4d',
-                            responsiveness_tol=matrix_responsiveness_tol,
-                            stability_tol=matrix_stability_tol,
-                            symplectify=symplectify)
-    qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
-    qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
+                W_matrix=tw_init_chrom.W_matrix)
+        tw_init_chrom.particle_on_co = part_chrom
 
-    part_chrom_minus = xp.build_particles(
-                _context=context,
-                x_norm=0,
-                zeta=particle_on_co._xobject.zeta[0], delta=-delta_chrom,
-                particle_on_co=particle_on_co,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=W_matrix)
-    RR_chrom_minus = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_minus.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-    (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
-                            only_4d_block=(method=='4d'),
-                            symplectify=symplectify,
-                            stability_tol=matrix_stability_tol,
-                            responsiveness_tol=matrix_responsiveness_tol)
-    qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
-    qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
+        RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                                    particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                    steps_r_matrix=steps_r_matrix)
+        (WW_chrom, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                                only_4d_block=method=='4d',
+                                responsiveness_tol=matrix_responsiveness_tol,
+                                stability_tol=matrix_stability_tol,
+                                symplectify=symplectify)
+        tw_init_chrom.W_matrix = WW_chrom
 
-    dist_from_half_integer_x = np.modf(tune_x)[0] - 0.5
-    dist_from_half_integer_y = np.modf(tune_y)[0] - 0.5
 
-    if np.abs(qx_chrom_plus - qx_chrom_minus) > np.abs(dist_from_half_integer_x):
-        raise NotImplementedError(
-                "Qx too close to half integer, impossible to evaluate Q'x")
-    if np.abs(qy_chrom_plus - qy_chrom_minus) > np.abs(dist_from_half_integer_y):
-        raise NotImplementedError(
-                "Qy too close to half integer, impossible to evaluate Q'y")
+        tw_chrom_res.append(
+            _twiss_open(
+                line=line,
+                twiss_init=tw_init_chrom,
+                ele_start=ele_start, ele_stop=ele_stop,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                r_sigma=r_sigma,
+                delta_disp=delta_disp,
+                zeta_disp=zeta_disp,
+                use_full_inverse=use_full_inverse,
+                hide_thin_groups=False,
+                _continue_if_lost=False,
+                _keep_tracking_data=False,
+                _keep_initial_particles=False,
+                _initial_particles=None,
+                _ebe_monitor=None))
 
-    dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
-    dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
+    dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
+    dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
+    dqx = dmux[-1]
+    dqy = dmuy[-1]
 
-    if dist_from_half_integer_x > 0:
-        dqx = -dqx
+    cols_chrom = {'dmux': dmux, 'dmuy': dmuy}
+    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
 
-    if dist_from_half_integer_y > 0:
-        dqy = -dqy
-
-    return dqx, dqy
+    return cols_chrom, scalars_chrom
 
 
 def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0):
@@ -1046,7 +1057,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         tw_init_element_name = line.element_names[ele_start]
 
     twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
-                    element_name=tw_init_element_name)
+                           element_name=tw_init_element_name,
+                           reference_frame='proper')
 
     return twiss_init, RR
 
@@ -1354,11 +1366,70 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
     return auxtracker, names_inserted_markers
 
 
-
 class TwissInit:
+
     def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
-                 mux=0, muy=0, muzeta=0., dzeta=0.,
-                 reference_frame='proper'):
+                line=None, particle_ref=None,
+                x=None, px=None, y=None, py=None, zeta=None, delta=None,
+                betx=None, alfx=None, bety=None, alfy=None, bets=None,
+                dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
+                mux=0, muy=0, muzeta=0, reference_frame=None):
+
+        if particle_on_co is None:
+            assert particle_ref is not None or line is not None, (
+                "`particle_ref` or `line` must be provided if `particle_on_co` "
+                "is None")
+            particle_on_co=xp.build_particles(x=x, px=px, y=y, py=py, zeta=zeta,
+                    delta=delta, particle_ref=particle_ref, line=line)
+        else:
+            assert x is None, "`x` must be None if `particle_on_co` is provided"
+            assert px is None, "`px` must be None if `particle_on_co` is provided"
+            assert y is None, "`y` must be None if `particle_on_co` is provided"
+            assert py is None, "`py` must be None if `particle_on_co` is provided"
+            assert zeta is None, "`zeta` must be None if `particle_on_co` is provided"
+            assert delta is None, "`delta` must be None if `particle_on_co` is provided"
+            assert particle_ref is None, (
+                "`particle_ref` must be None if `particle_on_co` is provided")
+
+        if W_matrix is None:
+            alfx = alfx or 0
+            alfy = alfy or 0
+            betx = betx or 1
+            bety = bety or 1
+            bets = bets or 1
+            dx = dx or 0
+            dpx = dpx or 0
+            dy = dy or 0
+            dpy = dpy or 0
+
+            aux_segment = xt.LineSegmentMap(
+                length=1., # dummy
+                qx=0.55, # dummy
+                qy=0.57, # dummy
+                qs=0.0000001, # dummy
+                bets=bets,
+                betx=betx,
+                bety=bety,
+                alfx=alfx,
+                alfy=alfy,
+                dx=dx,
+                dy=dy,
+                dpx=dpx,
+                dpy=dpy,
+                )
+            aux_line = xt.Line(elements=[aux_segment])
+            aux_line.particle_ref = particle_on_co.copy()
+            aux_line.build_tracker()
+            aux_tw = aux_line.twiss()
+            W_matrix = aux_tw.W_matrix[0]
+
+        else:
+            assert betx is None, "`betx` must be None if `W_matrix` is provided"
+            assert alfx is None, "`alfx` must be None if `W_matrix` is provided"
+            assert bety is None, "`bety` must be None if `W_matrix` is provided"
+            assert alfy is None, "`alfy` must be None if `W_matrix` is provided"
+            assert bets is None, "`bets` must be None if `W_matrix` is provided"
+
         self.__dict__['particle_on_co'] = particle_on_co
         self.W_matrix = W_matrix
         self.element_name = element_name
@@ -1380,13 +1451,12 @@ class TwissInit:
             reference_frame=self.reference_frame)
 
     def reverse(self):
-        out = TwissInit()
-        out.particle_on_co = self.particle_on_co.copy()
+        out = TwissInit(particle_on_co=self.particle_on_co.copy(),
+                        W_matrix=self.W_matrix.copy())
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
 
-        out.W_matrix = self.W_matrix.copy()
         out.W_matrix[0, :] = -out.W_matrix[0, :]
         out.W_matrix[1, :] = out.W_matrix[1, :]
         out.W_matrix[2, :] = out.W_matrix[2, :]
@@ -1422,6 +1492,8 @@ class TwissInit:
             self.__dict__[name] = value
 
 class TwissTable(Table):
+
+    _error_on_row_not_found = True
 
     def to_pandas(self, index=None, columns=None):
         if columns is None:
@@ -1846,3 +1918,7 @@ def _extract_knl_ksl(line, names):
         k_dict[f'k{jj}sl'] = ksl_array[:, jj]
 
     return k_dict
+
+
+
+

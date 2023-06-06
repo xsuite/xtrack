@@ -24,7 +24,7 @@ from .slicing import Slicer
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line)
-from .match import match_line, closed_orbit_correction
+from .match import match_line, closed_orbit_correction, match_knob_line
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -991,6 +991,36 @@ class Line:
         return match_line(self, vary, targets,
                           restore_if_fail=restore_if_fail,
                           solver=solver, verbose=verbose, **kwargs)
+
+    def match_knob(self, knob_name, vary, targets,
+                   knob_value_start=0, knob_value_end=1,
+                   **kwargs):
+
+        '''
+        Match a new knob in the beam line such that the specified targets are
+        matched when the knob is set to the value `knob_value_end` and the
+        state of the line before tha matching is recovered when the knob is
+        set to the value `knob_value_start`.
+
+        Parameters
+        ----------
+        knob_name : str
+            Name of the knob to be matched.
+        vary : list of str or list of Vary objects
+            List of existing knobs to be varied.
+        targets : list of Target objects
+            List of targets to be matched.
+        knob_value_start : float
+            Value of the knob before the matching. Defaults to 0.
+        knob_value_end : float
+            Value of the knob after the matching. Defaults to 1.
+
+        '''
+
+        match_knob_line(self, vary=vary, targets=targets,
+                        knob_name=knob_name, knob_value_start=knob_value_start,
+                        knob_value_end=knob_value_end, **kwargs)
+
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
                element0=0, reverse=False):
@@ -2453,7 +2483,6 @@ class Line:
         else:
             return newline
 
-
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
@@ -2495,7 +2524,7 @@ class Line:
     def _check_valid_tracker(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
+                "This line does not have a valid tracker, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
     @property

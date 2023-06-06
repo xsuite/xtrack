@@ -1,6 +1,8 @@
 import pathlib
 import json
+from itertools import product
 
+import pytest
 import numpy as np
 from cpymad.madx import Madx
 
@@ -564,3 +566,359 @@ def test_twiss_range(test_context):
                     for ii in range(this_part.shape[1]):
                         assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
                                         /np.linalg.norm(this_part[ii, :])), 0, atol=2e-4)
+
+@for_all_test_contexts
+def test_twiss_against_matrix(test_context):
+    x_co = [1e-3, 2e-3]
+    px_co = [2e-6, -3e-6]
+    y_co = [3e-3, 4e-3]
+    py_co = [4e-6, -5e-6]
+    betx = [1., 2.]
+    bety = [3., 4.]
+    alfx = [0, 0.1]
+    alfy = [0.2, 0.]
+    dx = [10, 0]
+    dy = [0, 20]
+    dpx = [0.7, -0.3]
+    dpy = [0.4, -0.6]
+    bets = 1e-3
+
+    segm_1 = xt.LineSegmentMap(
+            qx=0.4, qy=0.3, qs=0.0001,
+            bets=bets, length=0.1,
+            betx=[betx[0], betx[1]],
+            bety=[bety[0], bety[1]],
+            alfx=[alfx[0], alfx[1]],
+            alfy=[alfy[0], alfy[1]],
+            dx=[dx[0], dx[1]],
+            dpx=[dpx[0], dpx[1]],
+            dy=[dy[0], dy[1]],
+            dpy=[dpy[0], dpy[1]],
+            x_ref=[x_co[0], x_co[1]],
+            px_ref=[px_co[0], px_co[1]],
+            y_ref=[y_co[0], y_co[1]],
+            py_ref=[py_co[0], py_co[1]])
+    segm_2 = xt.LineSegmentMap(
+            qx=0.21, qy=0.32, qs=0.0003,
+            bets=bets, length=0.2,
+            dqx=2., dqy=3.,
+            betx=[betx[1], betx[0]],
+            bety=[bety[1], bety[0]],
+            alfx=[alfx[1], alfx[0]],
+            alfy=[alfy[1], alfy[0]],
+            dx=[dx[1], dx[0]],
+            dpx=[dpx[1], dpx[0]],
+            dy=[dy[1], dy[0]],
+            dpy=[dpy[1], dpy[0]],
+            x_ref=[x_co[1], x_co[0]],
+            px_ref=[px_co[1], px_co[0]],
+            y_ref=[y_co[1], y_co[0]],
+            py_ref=[py_co[1], py_co[0]])
+
+    line = xt.Line(elements=[segm_1, segm_2], particle_ref=xp.Particles(p0c=1e9))
+    line.build_tracker(_context=test_context)
+
+    tw4d = line.twiss(method='4d')
+    tw6d = line.twiss()
+
+    assert np.isclose(tw6d.qs, 0.0004, atol=1e-7, rtol=0)
+    assert np.isclose(tw6d.betz0, 1e-3, atol=1e-7, rtol=0)
+
+    for tw in [tw4d, tw6d]:
+
+        assert np.isclose(tw.qx, 0.4 + 0.21, atol=1e-7, rtol=0)
+        assert np.isclose(tw.qy, 0.3 + 0.32, atol=1e-7, rtol=0)
+
+        assert np.isclose(tw.dqx, 2, atol=1e-5, rtol=0)
+        assert np.isclose(tw.dqy, 3, atol=1e-5, rtol=0)
+
+        assert np.allclose(tw.s, [0, 0.1, 0.1 + 0.2], atol=1e-7, rtol=0)
+        assert np.allclose(tw.mux, [0, 0.4, 0.4 + 0.21], atol=1e-7, rtol=0)
+        assert np.allclose(tw.muy, [0, 0.3, 0.3 + 0.32], atol=1e-7, rtol=0)
+
+        assert np.allclose(tw.betx, [1, 2, 1], atol=1e-7, rtol=0)
+        assert np.allclose(tw.bety, [3, 4, 3], atol=1e-7, rtol=0)
+
+        assert np.allclose(tw.alfx, [0, 0.1, 0], atol=1e-7, rtol=0)
+        assert np.allclose(tw.alfy, [0.2, 0, 0.2], atol=1e-7, rtol=0)
+
+        assert np.allclose(tw.dx, [10, 0, 10], atol=1e-4, rtol=0)
+        assert np.allclose(tw.dy, [0, 20, 0], atol=1e-4, rtol=0)
+        assert np.allclose(tw.dpx, [0.7, -0.3, 0.7], atol=1e-5, rtol=0)
+        assert np.allclose(tw.dpy, [0.4, -0.6, 0.4], atol=1e-5, rtol=0)
+
+        assert np.allclose(tw.x, [1e-3, 2e-3, 1e-3], atol=1e-7, rtol=0)
+        assert np.allclose(tw.px, [2e-6, -3e-6, 2e-6], atol=1e-12, rtol=0)
+        assert np.allclose(tw.y, [3e-3, 4e-3, 3e-3], atol=1e-7, rtol=0)
+        assert np.allclose(tw.py, [4e-6, -5e-6, 4e-6], atol=1e-12, rtol=0)
+
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('machine', ['sps', 'psb'])
+def test_longitudinal_plane_against_matrix(machine, test_context):
+
+    if machine == 'sps':
+        line = xt.Line.from_json(test_data_folder /
+            'sps_w_spacecharge/line_no_spacecharge_and_particle.json')
+        # I put the cavity at the end of the ring to get closer to the kick-drift model
+        line.cycle('actb.31739_aper', inplace=True)
+        configurations = ['above transition', 'below transition']
+        num_turns = 250
+        cavity_name = 'acta.31637'
+        sigmaz=0.20
+    elif machine == 'psb':
+        line = xt.Line.from_json(test_data_folder /
+            'psb_injection/line_and_particle.json')
+        configurations = ['below transition']
+        num_turns = 1000
+        cavity_name = 'br.c02'
+        sigmaz = 22.
+    else:
+        raise ValueError(f'Unknown machine {machine}')
+
+    line.build_tracker(_context=test_context)
+
+    for i_case, (configuration, longitudinal_mode) in enumerate(
+        product(configurations,
+                ['linear_fixed_qs', 'linear_fixed_rf', 'nonlinear'])):
+
+        print(f'Case {i_case}: {configuration}, {longitudinal_mode}')
+
+        if machine == 'sps':
+            if configuration == 'above transition':
+                line[cavity_name].lag = 180.
+                line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
+            else:
+                line[cavity_name].lag = 0.
+                line.particle_ref = xp.Particles(p0c=16e9, q0=1.0)
+
+        # Build corresponding matrix
+        tw = line.twiss()
+        circumference = tw.circumference
+
+        if longitudinal_mode == 'nonlinear':
+            matrix = xt.LineSegmentMap(
+                qx=tw.qx, qy=tw.qy,
+                dqx=tw.dqx, dqy=tw.dqy,
+                betx=tw.betx[0], alfx=tw.alfx[0],
+                bety=tw.bety[0], alfy=tw.alfy[0],
+                dx=tw.dx[0], dpx=tw.dpx[0],
+                dy=tw.dy[0], dpy=tw.dpy[0],
+                voltage_rf=line[cavity_name].voltage,
+                frequency_rf=line[cavity_name].frequency,
+                lag_rf=line[cavity_name].lag,
+                momentum_compaction_factor=tw.momentum_compaction_factor,
+                length=circumference)
+        elif longitudinal_mode == 'linear_fixed_rf':
+            matrix = xt.LineSegmentMap(
+                longitudinal_mode='linear_fixed_rf',
+                qx=tw.qx, qy=tw.qy,
+                dqx=tw.dqx, dqy=tw.dqy,
+                betx=tw.betx[0], alfx=tw.alfx[0],
+                bety=tw.bety[0], alfy=tw.alfy[0],
+                dx=tw.dx[0], dpx=tw.dpx[0],
+                dy=tw.dy[0], dpy=tw.dpy[0],
+                voltage_rf=line[cavity_name].voltage,
+                frequency_rf=line[cavity_name].frequency,
+                lag_rf=line[cavity_name].lag,
+                momentum_compaction_factor=tw.momentum_compaction_factor,
+                length=circumference)
+        elif longitudinal_mode == 'linear_fixed_qs':
+            eta = tw.slip_factor # > 0 above transition
+            qs = tw.qs
+            circumference = line.get_length()
+            bet_s = eta * circumference / (2 * np.pi * qs)
+            matrix = xt.LineSegmentMap(
+                qx=tw.qx, qy=tw.qy,
+                dqx=tw.dqx, dqy=tw.dqy,
+                betx=tw.betx[0], alfx=tw.alfx[0],
+                bety=tw.bety[0], alfy=tw.alfy[0],
+                dx=tw.dx[0], dpx=tw.dpx[0],
+                dy=tw.dy[0], dpy=tw.dpy[0],
+                bets=bet_s, qs=qs,
+                length=circumference)
+
+        line_matrix = xt.Line(elements=[matrix])
+        line_matrix.particle_ref = line.particle_ref.copy()
+        line_matrix.build_tracker()
+
+        # Compare tracking longitudinal tracking on one particle
+        particle0_line = line.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
+        line.track(particle0_line.copy(), num_turns=num_turns, turn_by_turn_monitor=True)
+        mon = line.record_last_track
+        particle0_matrix = line_matrix.build_particles(x_norm=0, y_norm=0, zeta=1e-3)
+        line_matrix.track(particle0_matrix.copy(), num_turns=num_turns, turn_by_turn_monitor=True)
+        mon_matrix = line_matrix.record_last_track
+
+        assert np.allclose(np.max(mon.zeta), np.max(mon_matrix.zeta), rtol=1e-2, atol=0)
+        assert np.allclose(np.max(mon.pzeta), np.max(mon_matrix.pzeta), rtol=1e-2, atol=0)
+        assert np.allclose(np.max(mon.x), np.max(mon_matrix.x), rtol=1e-2, atol=0)
+
+        assert np.allclose(mon.zeta, mon_matrix.zeta, rtol=0, atol=5e-2*np.max(mon.zeta.T))
+        assert np.allclose(mon.pzeta, mon_matrix.pzeta, rtol=0, atol=5e-2*np.max(mon.pzeta[:]))
+        assert np.allclose(mon.x, mon_matrix.x, rtol=0, atol=5e-2*np.max(mon.x.T)) # There is some phase difference...
+
+        # Match Gaussian distributions
+        p_line = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+            nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=5e-2, line=line, engine='linear')
+        p_matrix = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+            nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=5e-2, line=line_matrix, engine='linear')
+
+        p_line.move(_context=xo.context_default)
+        p_matrix.move(_context=xo.context_default)
+
+        assert np.isclose(np.std(p_line.zeta), np.std(p_matrix.zeta), rtol=1e-2)
+        assert np.isclose(np.std(p_line.pzeta), np.std(p_matrix.pzeta), rtol=2e-2)
+        assert np.isclose(np.std(p_line.x), np.std(p_matrix.x), rtol=1e-2)
+        assert np.isclose(np.std(p_line.px), np.std(p_matrix.px), rtol=1e-2)
+        assert np.isclose(np.std(p_line.y), np.std(p_matrix.y), rtol=1e-2)
+        assert np.isclose(np.std(p_line.py), np.std(p_matrix.py), rtol=1e-2)
+
+        # Compare twiss
+        tw_line = line.twiss()
+        tw_matrix = line_matrix.twiss()
+
+        if configuration == 'above transition':
+            assert tw_line.betz0 > 0
+            assert tw_matrix.betz0 > 0
+            assert tw_line.slip_factor > 0
+            assert tw_matrix.slip_factor > 0
+        elif configuration == 'below transition':
+            assert tw_line.betz0 < 0
+            assert tw_matrix.betz0 < 0
+            assert tw_line.slip_factor < 0
+            assert tw_matrix.slip_factor < 0
+        else:
+            raise ValueError('Unknown configuration')
+
+        line_frac_qx = np.mod(tw_line.qx, 1)
+        line_frac_qy = np.mod(tw_line.qy, 1)
+        matrix_frac_qx = np.mod(tw_matrix.qx, 1)
+        matrix_frac_qy = np.mod(tw_matrix.qy, 1)
+
+        assert np.isclose(line_frac_qx, matrix_frac_qx, atol=1e-5, rtol=0)
+        assert np.isclose(line_frac_qy, matrix_frac_qy, atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.betx[0], tw_matrix.betx[0], atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.alfx[0], tw_matrix.alfx[0], atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.bety[0], tw_matrix.bety[0], atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.alfy[0], tw_matrix.alfy[0], atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.dx[0], tw_matrix.dx[0], atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.dpx[0], tw_matrix.dpx[0], atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.dy[0], tw_matrix.dy[0], atol=1e-5, rtol=0)
+        assert np.isclose(tw_line.dpy[0], tw_matrix.dpy[0], atol=1e-5, rtol=0)
+
+        assert tw_matrix.s[0] == 0
+        assert np.isclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
+        assert np.allclose(tw_matrix.betz0, tw_line.betz0, rtol=1e-2, atol=0)
+
+        assert np.allclose(np.squeeze(mon.zeta), np.squeeze(mon_matrix.zeta),
+                        rtol=0, atol=2e-2*np.max(np.squeeze(mon.zeta)))
+        assert np.allclose(np.squeeze(mon.pzeta), np.squeeze(mon_matrix.pzeta),
+                            rtol=0, atol=3e-2*np.max(np.squeeze(mon.pzeta)))
+
+        particles_matrix = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+            nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=sigmaz, line=line_matrix)
+
+        particles_line = xp.generate_matched_gaussian_bunch(num_particles=1000000,
+            nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=sigmaz, line=line)
+
+        particles_matrix.move(_context=xo.context_default)
+        particles_line.move(_context=xo.context_default)
+
+        assert np.isclose(np.std(particles_matrix.zeta), np.std(particles_line.zeta),
+                        atol=0, rtol=2e-2)
+        assert np.isclose(np.std(particles_matrix.pzeta), np.std(particles_line.pzeta),
+            atol=0, rtol=(25e-2 if longitudinal_mode.startswith('linear') else 2e-2))
+
+@for_all_test_contexts
+def test_custom_twiss_init(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+            'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
+    line.particle_ref = xp.Particles(
+                        mass0=xp.PROTON_MASS_EV, q0=1, energy0=7e12)
+    line.build_tracker()
+    line.vars['on_disp'] = 1
+
+    tw = line.twiss()
+
+    ele_init = 'e.cell.45.b1'
+
+    x = tw['x', ele_init]
+    y = tw['y', ele_init]
+    px = tw['px', ele_init]
+    py = tw['py', ele_init]
+    zeta = tw['zeta', ele_init]
+    delta = tw['delta', ele_init]
+    betx = tw['betx', ele_init]
+    bety = tw['bety', ele_init]
+    alfx = tw['alfx', ele_init]
+    alfy = tw['alfy', ele_init]
+    dx = tw['dx', ele_init]
+    dy = tw['dy', ele_init]
+    dpx = tw['dpx', ele_init]
+    dpy = tw['dpy', ele_init]
+    mux = tw['mux', ele_init]
+    muy = tw['muy', ele_init]
+    muzeta = tw['muzeta', ele_init]
+    dzeta = tw['dzeta', ele_init]
+    bets = tw.betz0
+    reference_frame = 'proper'
+
+    tw_init = xt.TwissInit(element_name=ele_init,
+        x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+        betx=betx, bety=bety, alfx=alfx, alfy=alfy,
+        dx=dx, dy=dy, dpx=dpx, dpy=dpy,
+        mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
+        bets=bets, reference_frame=reference_frame,
+        particle_ref=line.particle_ref)
+
+    tw_test = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
+
+    assert tw_test.name[-1] == '_end_point'
+    tw_part = tw.rows['e.cell.45.b1':'ip6']
+
+    tw_test = tw_test.rows[:-1]
+    assert np.all(tw_test.name == tw_part.name)
+
+    atols = dict(
+        alfx=1e-8, alfy=1e-8,
+        dzeta=1e-3, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
+        nuzeta=1e-5, dx_zeta=1e-4, dy_zeta=1e-4, betx2=1e-3, bety1=1e-3,
+        muzeta=1e-7,
+    )
+
+    rtols = dict(
+        alfx=5e-9, alfy=5e-8,
+        betx=1e-8, bety=1e-8, betx1=1e-8, bety2=1e-8,
+        gamx=1e-8, gamy=1e-8,
+    )
+
+    atol_default = 1e-11
+    rtol_default = 1e-9
+
+
+    for kk in tw_test._data.keys():
+        if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
+                'radiation_method', 'reference_frame', 'orientation']:
+            continue # tested separately
+        atol = atols.get(kk, atol_default)
+        rtol = rtols.get(kk, rtol_default)
+        assert np.allclose(
+            tw_test._data[kk], tw_part._data[kk], rtol=rtol, atol=atol)
+
+    assert tw_test.values_at == tw_part.values_at == 'entry'
+    assert tw_test.radiation_method == tw_part.radiation_method == 'full'
+    assert tw_test.reference_frame == tw_part.reference_frame == 'proper'
+
+    W_matrix_part = tw_part.W_matrix
+    W_matrix_test = tw_test.W_matrix
+
+    for ss in range(W_matrix_part.shape[0]):
+        this_part = W_matrix_part[ss, :, :]
+        this_test = W_matrix_test[ss, :, :]
+
+        for ii in range(4):
+            assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
+                            /np.linalg.norm(this_part[ii, :])), 0, atol=3e-4)

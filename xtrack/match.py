@@ -26,15 +26,6 @@ DEFAULT_WEIGHTS = {
     'qy': 10.,
 }
 
-class OrbitOnly:
-    def __init__(self, x=0, px=0, y=0, py=0, zeta=0, delta=0):
-        self.x = x
-        self.px = px
-        self.y = y
-        self.py = py
-        self.zeta = zeta
-        self.delta = delta
-
 Action = xd.Action
 
 class ActionTwiss(xd.Action):
@@ -69,20 +60,7 @@ class ActionTwiss(xd.Action):
             _keep_ini_particles_list = [False] * len(twinit_list)
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
                     twinit_list, ele_start_list, ele_stop_list)):
-                if isinstance(twinit, OrbitOnly):
-                    if not isinstance(ele_start, str):
-                        raise ValueError(
-                            'ele_start must be a string if twiss_init is OrbitOnly')
-                    element_name = ele_start
-                    particle_on_co=line.build_particles(
-                        x=twinit.x, px=twinit.px,
-                        y=twinit.y, py=twinit.py,
-                        zeta=twinit.zeta, delta=twinit.delta)
-                    particle_on_co.at_element = -1 # Handled through element_name
-                    twinit_list[ii] = TwissInit(
-                        particle_on_co=particle_on_co,
-                        W_matrix=np.eye(6),
-                        element_name=element_name)
+                if isinstance(twinit, xt.TwissInit):
                     _keep_ini_particles_list[ii] = True
                 elif isinstance(twinit, str):
                     assert twinit in (
@@ -245,13 +223,17 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             for kk in ['x', 'px', 'y', 'py']:
                 targets.append(xt.Target(kk, at=tt, value=tw_ref[kk, tt], tol=1e-9))
 
+        assert isinstance(corr['start'], str)
+
         line.match(
             solver=solver,
             verbose=verbose,
             restore_if_fail=restore_if_fail,
             vary=vary,
             targets=targets,
-            twiss_init=xt.OrbitOnly(
+            twiss_init=xt.TwissInit(
+                line=line,
+                element_name=corr['start'],
                 x=tw_ref['x', corr['start']],
                 px=tw_ref['px', corr['start']],
                 y=tw_ref['y', corr['start']],
@@ -261,3 +243,25 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             ),
             ele_start=corr['start'], ele_stop=corr['end'])
 
+def match_knob_line(line, knob_name, vary, targets,
+                    knob_value_start, knob_value_end, **kwargs):
+
+    vary_aux = []
+    for vv in vary:
+        if vv.limits[0] != -1e200 or vv.limits[1] != 1e200:
+            raise ValueError('Cannot match knobs with limits')
+        line.vars[vv.name + '_from_' + knob_name] = 0
+        line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
+        vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
+
+    line.match(vary=vary_aux, targets = targets, **kwargs)
+
+    line.vars[knob_name] = knob_value_end
+    for vv in vary_aux:
+        line.vars[vv.name] = (line.vars[vv.name]._value
+                              * (line.vars[knob_name] - knob_value_start)
+                              / (knob_value_end - knob_value_start))
+
+    line.vars[knob_name] = knob_value_start
+
+    _print('Matched knob: ', knob_name)

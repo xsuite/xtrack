@@ -12,7 +12,7 @@ import xpart as xp
 
 from ..base_element import BeamElement
 from ..random import RandomUniform, RandomExponential, RandomNormal
-from ..general import _pkg_root
+from ..general import _pkg_root, _print
 from ..internal_record import RecordIndex, RecordIdentifier
 
 
@@ -1256,6 +1256,345 @@ class DipoleEdge(BeamElement):
         self.mode = 1
 
 
+class LineSegmentMap(BeamElement):
+
+    _xofields={
+        'length': xo.Float64,
+
+        'qx': xo.Float64,
+        'qy': xo.Float64,
+
+        'dqx': xo.Float64,
+        'dqy': xo.Float64,
+        'detx_x': xo.Float64,
+        'detx_y': xo.Float64,
+        'dety_y': xo.Float64,
+        'dety_x': xo.Float64,
+
+        'betx': xo.Float64[2],
+        'bety': xo.Float64[2],
+        'alfx': xo.Float64[2],
+        'alfy': xo.Float64[2],
+
+        'dx': xo.Float64[2],
+        'dpx': xo.Float64[2],
+        'dy': xo.Float64[2],
+        'dpy': xo.Float64[2],
+
+        'x_ref': xo.Float64[2],
+        'px_ref': xo.Float64[2],
+        'y_ref': xo.Float64[2],
+        'py_ref': xo.Float64[2],
+
+        'energy_ref_increment': xo.Float64,
+        'energy_increment': xo.Float64,
+        'uncorrelated_rad_damping': xo.Int64,
+        'damping_factor_x':xo.Float64,
+        'damping_factor_y':xo.Float64,
+        'damping_factor_s':xo.Float64,
+        'uncorrelated_gauss_noise': xo.Int64,
+        'gauss_noise_ampl_x':xo.Float64,
+        'gauss_noise_ampl_px':xo.Float64,
+        'gauss_noise_ampl_y':xo.Float64,
+        'gauss_noise_ampl_py':xo.Float64,
+        'gauss_noise_ampl_zeta':xo.Float64,
+        'gauss_noise_ampl_delta':xo.Float64,
+
+        'longitudinal_mode_flag': xo.Int64,
+        'qs': xo.Float64,
+        'bets': xo.Float64,
+        'momentum_compaction_factor': xo.Float64,
+        'slippage_length': xo.Float64,
+        'voltage_rf': xo.Float64[:],
+        'frequency_rf': xo.Float64[:],
+        'lag_rf': xo.Float64[:],
+        }
+
+    _depends_on = [RandomNormal]
+    isthick = True
+
+    # _rename = {
+    #     'cos_s': '_cos_s',
+    #     'sin_s': '_sin_s',
+    #     'bets': '_bets',
+    #     'longitudinal_mode_flag': '_longitudinal_mode_flag',
+    # }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/linesegmentmap.h')]
+
+    def __init__(self, length=None, qx=0, qy=0,
+            betx=1., bety=1., alfx=0., alfy=0.,
+            dx=0., dpx=0., dy=0., dpy=0.,
+            x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
+            longitudinal_mode=None,
+            qs=None, bets=None,
+            momentum_compaction_factor=None,
+            slippage_length=None,
+            voltage_rf=None, frequency_rf=None, lag_rf=None,
+            dqx=0.0, dqy=0.0,
+            detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+            energy_increment=0.0, energy_ref_increment=0.0,
+            damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
+            equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
+            gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,
+            gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,
+            gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
+            **nargs):
+
+        assert longitudinal_mode in ['linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', None]
+
+        nargs['qx'] = qx
+        nargs['qy'] = qy
+        nargs['dqx'] = dqx
+        nargs['dqy'] = dqy
+        nargs['detx_x'] = detx_x
+        nargs['detx_y'] = detx_y
+        nargs['dety_y'] = dety_y
+        nargs['dety_x'] = dety_x
+        nargs['length'] = length
+
+        if longitudinal_mode is None:
+            if qs is not None:
+                longitudinal_mode = 'linear_fixed_qs'
+            elif voltage_rf is not None:
+                longitudinal_mode = 'nonlinear'
+            else:
+                longitudinal_mode = 'frozen'
+
+        if longitudinal_mode == 'linear_fixed_qs':
+            assert qs is not None
+            assert bets is not None
+            assert momentum_compaction_factor is None
+            assert voltage_rf is None
+            assert frequency_rf is None
+            assert lag_rf is None
+            nargs['longitudinal_mode_flag'] = 1
+            nargs['qs'] = qs
+            nargs['bets'] = bets
+            nargs['voltage_rf'] = [0]
+            nargs['frequency_rf'] = [0]
+            nargs['lag_rf'] = [0]
+        elif longitudinal_mode == 'nonlinear' or longitudinal_mode == 'linear_fixed_rf':
+            assert voltage_rf is not None
+            assert frequency_rf is not None
+            assert lag_rf is not None
+            assert momentum_compaction_factor is not None
+            assert qs is None
+            assert bets is None
+
+            if slippage_length is None:
+                assert length is not None
+                nargs['slippage_length'] = length
+            else:
+                nargs['slippage_length'] = slippage_length
+
+            if longitudinal_mode == 'nonlinear':
+                nargs['longitudinal_mode_flag'] = 2
+            elif longitudinal_mode == 'linear_fixed_rf':
+                nargs['longitudinal_mode_flag'] = 3
+
+            nargs['voltage_rf'] = voltage_rf
+            nargs['frequency_rf'] = frequency_rf
+            nargs['lag_rf'] = lag_rf
+            nargs['momentum_compaction_factor'] = momentum_compaction_factor
+            for nn in ['frequency_rf', 'lag_rf', 'voltage_rf']:
+                if np.isscalar(nargs[nn]):
+                    nargs[nn] = [nargs[nn]]
+
+            assert (len(nargs['frequency_rf'])
+                    == len(nargs['lag_rf'])
+                    == len(nargs['voltage_rf']))
+
+            if longitudinal_mode == 'linear_fixed_rf':
+                assert len(nargs['frequency_rf']) == 1
+
+        elif longitudinal_mode == 'frozen':
+            nargs['longitudinal_mode_flag'] = 0
+            nargs['voltage_rf'] = [0]
+            nargs['frequency_rf'] = [0]
+            nargs['lag_rf'] = [0]
+        else:
+            raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
+
+
+        if np.isscalar(betx): betx = [betx, betx]
+        else: assert len(betx) == 2
+
+        if np.isscalar(bety): bety = [bety, bety]
+        else: assert len(bety) == 2
+
+        if np.isscalar(alfx): alfx = [alfx, alfx]
+        else: assert len(alfx) == 2
+
+        if np.isscalar(alfy): alfy = [alfy, alfy]
+        else: assert len(alfy) == 2
+
+        if np.isscalar(dx): dx = [dx, dx]
+        else: assert len(dx) == 2
+
+        if np.isscalar(dpx): dpx = [dpx, dpx]
+        else: assert len(dpx) == 2
+
+        if np.isscalar(dy): dy = [dy, dy]
+        else: assert len(dy) == 2
+
+        if np.isscalar(dpy): dpy = [dpy, dpy]
+        else: assert len(dpy) == 2
+
+        if np.isscalar(x_ref): x_ref = [x_ref, x_ref]
+        else: assert len(x_ref) == 2
+
+        if np.isscalar(px_ref): px_ref = [px_ref, px_ref]
+        else: assert len(px_ref) == 2
+
+        if np.isscalar(y_ref): y_ref = [y_ref, y_ref]
+        else: assert len(y_ref) == 2
+
+        if np.isscalar(py_ref): py_ref = [py_ref, py_ref]
+        else: assert len(py_ref) == 2
+
+        nargs['betx'] = betx
+        nargs['bety'] = bety
+        nargs['alfx'] = alfx
+        nargs['alfy'] = alfy
+        nargs['dx'] = dx
+        nargs['dpx'] = dpx
+        nargs['dy'] = dy
+        nargs['dpy'] = dpy
+        nargs['x_ref'] = x_ref
+        nargs['px_ref'] = px_ref
+        nargs['y_ref'] = y_ref
+        nargs['py_ref'] = py_ref
+
+        # acceleration with change of reference momentum
+        nargs['energy_ref_increment'] = energy_ref_increment
+        # acceleration without change of reference momentum
+        nargs['energy_increment'] = energy_increment
+
+        if damping_rate_x < 0.0 or damping_rate_y < 0.0 or damping_rate_s < 0.0:
+            raise ValueError('Damping rates cannot be negative')
+        if damping_rate_x > 0.0 or damping_rate_y > 0.0 or damping_rate_s > 0.0:
+            nargs['uncorrelated_rad_damping'] = True
+            nargs['damping_factor_x'] = 1.0-damping_rate_x/2.0
+            nargs['damping_factor_y'] = 1.0-damping_rate_y/2.0
+            nargs['damping_factor_s'] = 1.0-damping_rate_s/2.0
+        else:
+            nargs['uncorrelated_rad_damping'] = False
+
+        if equ_emit_x < 0.0 or equ_emit_y < 0.0 or equ_emit_s < 0.0:
+            raise ValueError('Equilibrium emittances cannot be negative')
+        nargs['uncorrelated_gauss_noise'] = False
+        nargs['gauss_noise_ampl_x'] = 0.0
+        nargs['gauss_noise_ampl_px'] = 0.0
+        nargs['gauss_noise_ampl_y'] = 0.0
+        nargs['gauss_noise_ampl_py'] = 0.0
+        nargs['gauss_noise_ampl_zeta'] = 0.0
+        nargs['gauss_noise_ampl_delta'] = 0.0
+
+        assert equ_emit_x >= 0.0
+        assert equ_emit_y >= 0.0
+        assert equ_emit_s >= 0.0
+
+        if equ_emit_x > 0.0:
+            assert alfx[1] == 0
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx[1])
+            nargs['gauss_noise_ampl_x'] = betx[0]*nargs['gauss_noise_ampl_px']
+        if equ_emit_y > 0.0:
+            assert alfy[1] == 0
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety[1])
+            nargs['gauss_noise_ampl_y'] = bety[0]*nargs['gauss_noise_ampl_py']
+        if equ_emit_s > 0.0:
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_delta'] = np.sqrt(equ_emit_s*damping_rate_s/bets)
+            nargs['gauss_noise_ampl_zeta'] = bets*nargs['gauss_noise_ampl_delta']
+
+        assert gauss_noise_ampl_x >= 0.0
+        assert gauss_noise_ampl_px >= 0.0
+        assert gauss_noise_ampl_y >= 0.0
+        assert gauss_noise_ampl_py >= 0.0
+        assert gauss_noise_ampl_zeta >= 0.0
+        assert gauss_noise_ampl_delta >= 0.0
+
+        if gauss_noise_ampl_x > 0.0 or gauss_noise_ampl_px > 0.0 or gauss_noise_ampl_y > 0.0 or gauss_noise_ampl_py > 0.0 or gauss_noise_ampl_zeta > 0.0 or gauss_noise_ampl_delta > 0.0:
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_x'] = np.sqrt(nargs['gauss_noise_ampl_x']**2+gauss_noise_ampl_x**2)
+            nargs['gauss_noise_ampl_px'] = np.sqrt(nargs['gauss_noise_ampl_px']**2+gauss_noise_ampl_px**2)
+            nargs['gauss_noise_ampl_y'] = np.sqrt(nargs['gauss_noise_ampl_y']**2+gauss_noise_ampl_y**2)
+            nargs['gauss_noise_ampl_py'] = np.sqrt(nargs['gauss_noise_ampl_py']**2+gauss_noise_ampl_py**2)
+            nargs['gauss_noise_ampl_zeta'] = np.sqrt(nargs['gauss_noise_ampl_zeta']**2+gauss_noise_ampl_zeta**2)
+            nargs['gauss_noise_ampl_delta'] = np.sqrt(nargs['gauss_noise_ampl_delta']**2+gauss_noise_ampl_delta**2)
+
+        super().__init__(**nargs)
+
+    @property
+    def longitudinal_mode(self):
+        ret = {
+            0: 'frozen',
+            1: 'linear_fixed_qs',
+            2: 'nonlinear',
+            3: 'linear_fixed_rf'
+        }[self.longitudinal_mode_flag]
+        return ret
+
+class FirstOrderTaylorMap(BeamElement):
+
+    '''
+    First order Taylor map.
+
+    Parameters
+    ----------
+    length : float
+        length of the element in meters.
+    m0 : array_like
+        6x1 array of the zero order Taylor map coefficients.
+    m1 : array_like
+        6x6 array of the first order Taylor map coefficients.
+    radiation_flag : int
+        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
+
+    '''
+
+    isthick = True
+
+    _xofields={
+        'radiation_flag': xo.Int64,
+        'length': xo.Float64,
+        'm0': xo.Float64[6],
+        'm1': xo.Float64[6,6]}
+
+    _depends_on = [RandomUniform, RandomExponential]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
+
+    _internal_record_class = SynchrotronRadiationRecord # not functional,
+    # included for compatibility with Multipole
+
+    def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
+        nargs['radiation_flag'] = radiation_flag
+        nargs['length'] = length
+        if m0 is None:
+            nargs['m0'] = np.zeros(6,dtype=np.float64)
+        else:
+            if len(np.shape(m0)) == 1 and np.shape(m0)[0] == 6:
+                nargs['m0'] = m0
+            else:
+                raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
+        if m1 is None:
+            nargs['m1'] = np.eye(6,dtype=np.float64)
+        else:
+            if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
+                nargs['m1'] = m1
+            else:
+                raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
+        super().__init__(**nargs)
+
 
 class LinearTransferMatrix(BeamElement):
     _xofields={
@@ -1331,6 +1670,8 @@ class LinearTransferMatrix(BeamElement):
                      gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
                      **nargs):
 
+        _print('Warning: `LinearTransferMatrix` is deprecated and will be removed in the future. '
+               'Please use `LineSegmentMap` instead.')
         if (chroma_x==0 and chroma_y==0
             and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
 
@@ -1462,61 +1803,6 @@ class LinearTransferMatrix(BeamElement):
     @property
     def beta_y_1(self):
         return self.beta_prod_y*self.beta_ratio_y
-
-class FirstOrderTaylorMap(BeamElement):
-
-    '''
-    First order Taylor map.
-
-    Parameters
-    ----------
-    length : float
-        length of the element in meters.
-    m0 : array_like
-        6x1 array of the zero order Taylor map coefficients.
-    m1 : array_like
-        6x6 array of the first order Taylor map coefficients.
-    radiation_flag : int
-        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
-
-    '''
-
-    isthick = True
-
-    _xofields={
-        'radiation_flag': xo.Int64,
-        'length': xo.Float64,
-        'm0': xo.Float64[6],
-        'm1': xo.Float64[6,6]}
-
-    _depends_on = [RandomUniform, RandomExponential]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
-
-    _internal_record_class = SynchrotronRadiationRecord # not functional,
-    # included for compatibility with Multipole
-
-    def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
-        nargs['radiation_flag'] = radiation_flag
-        nargs['length'] = length
-        if m0 is None:
-            nargs['m0'] = np.zeros(6,dtype=np.float64)
-        else:
-            if len(np.shape(m0)) == 1 and np.shape(m0)[0] == 6:
-                nargs['m0'] = m0
-            else:
-                raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
-        if m1 is None:
-            nargs['m1'] = np.eye(6,dtype=np.float64)
-        else:
-            if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
-                nargs['m1'] = m1
-            else:
-                raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
-        super().__init__(**nargs)
 
 
 def _angle_from_trig(cos=None, sin=None, tan=None):
