@@ -167,6 +167,7 @@ void transverse_motion(LocalParticle *part0,
 
 }
 
+/*gpufun*/
 void longitudinal_motion(LocalParticle *part0,
                          LineSegmentMapData el){
 
@@ -285,6 +286,7 @@ void uncorrelated_radiation_damping(LocalParticle *part0,
     //end_per_particle_block
 }
 
+/*gpufun*/
 void energy_and_reference_increments(LocalParticle *part0,
     double const energy_increment, double const energy_ref_increment){
 
@@ -317,6 +319,7 @@ void energy_and_reference_increments(LocalParticle *part0,
 
 }
 
+/*gpufun*/
 void uncorrelated_gaussian_noise(LocalParticle *part0,
                     double const gauss_noise_ampl_x,
                     double const gauss_noise_ampl_px,
