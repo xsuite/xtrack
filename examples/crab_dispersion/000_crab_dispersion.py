@@ -7,8 +7,10 @@ collider = xt.Multiline.from_json(
 )
 collider.build_trackers()
 
+
 line = collider.lhcb1
 line.cycle('ip2', inplace=True)
+tw4d = line.twiss(method='4d')
 
 tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
                      twiss_init=xt.TwissInit(element_name=line.element_names[0],
@@ -41,12 +43,14 @@ dx_zeta_4d_rf_on_crab_on = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zet
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
-plt.plot(tw_plus.s, dx_zeta_rf_off_crab_off, label='rf off, crab off')
-plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_off, label='rf on, crab off')
-plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_on, label='rf on, crab on')
+plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_on, label='rf on, crab on', color='g')
+plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_off, label='rf on, crab off', color='b')
+plt.plot(tw_plus.s, dx_zeta_rf_off_crab_off, label='rf off, crab off', color='r')
+plt.axvline(x=line.get_s_position('ip4'), color='k', linestyle='--', label='ip4')
 plt.legend()
 plt.xlabel('s [m]')
 plt.ylabel('dx/dzeta')
+
 
 line.vars['on_crab1'] = 0
 tw_crab_off = line.twiss()
