@@ -139,7 +139,7 @@ def enumerate_kernels() -> Iterator[Tuple[str, dict]]:
 
 def get_suitable_kernel(
         config: dict,
-        installed_element_classes,
+        line_element_classes,
         verbose=False,
 ) -> Optional[Tuple[str, list]]:
     """
@@ -157,7 +157,7 @@ def get_suitable_kernel(
         return
 
     requested_class_names = [
-        cls._DressingClass.__name__ for cls in installed_element_classes
+        cls._DressingClass.__name__ for cls in line_element_classes
     ]
 
     for module_name, kernel_metadata in enumerate_kernels():

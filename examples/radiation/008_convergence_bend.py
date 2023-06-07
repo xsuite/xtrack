@@ -41,5 +41,5 @@ line.configure_radiation(model='mean')
 from xtrack.prebuild_kernels import get_suitable_kernel
 get_suitable_kernel(
     config=line.config,
-    installed_element_classes=line.tracker.installed_element_classes,
+    line_element_classes=line.tracker.line_element_classes,
     verbose=True)
