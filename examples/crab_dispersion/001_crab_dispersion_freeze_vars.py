@@ -24,4 +24,15 @@ plt.close('all')
 plt.figure(1)
 plt.plot(tw_plus_closed.s, cl_dx_zeta_4d_rf_on_crab_off, label='rf on, crab on', color='g')
 
+tw = line.twiss()
+W = tw.W_matrix
+
+# copilot please implement the following equation
+# \begin{equation}
+# D_x^\zeta = \left(W_{15} -\frac{W_{16}W_{65}}{W_{66}}\right)\left( W_{55}\ -  \frac{W_{56}W_{65}}{W_{66}} \right)^{-1}
+# \end{equation}
+
+dx_zeta = (W[:, 0, 4] - W[:, 0, 5] * W[:, 5, 4] / W[:, 5, 5]) / (
+             W[:, 5, 5] - W[:, 5, 4] * W[:, 4, 5] / W[:, 5, 5])
+
 plt.show()
