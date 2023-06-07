@@ -41,7 +41,8 @@ line = line0.copy()
 n_slice_bends = 4
 n_slice_quads = 20
 n_slice_mb = 2
-n_slice_mq = 20
+n_slice_mq = 10
+n_slice_mqt = 5
 n_slice_mqx = 60
 
 slicing_strategies = [
@@ -50,6 +51,7 @@ slicing_strategies = [
     Strategy(slicing=Teapot(n_slice_quads), element_type=xt.CombinedFunctionMagnet),
     Strategy(slicing=Teapot(n_slice_mb), name=r'^mb\..*'),
     Strategy(slicing=Teapot(n_slice_mq), name=r'^mq\..*'),
+    Strategy(slicing=Teapot(n_slice_mq), name=r'^mqt\..*'),
     Strategy(slicing=Teapot(n_slice_mqx), name=r'^mqx.*'),
 ]
 
