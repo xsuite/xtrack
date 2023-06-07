@@ -759,19 +759,19 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     muy = np.unwrap(temp_phiy) / 2  /np.pi
     muzeta = np.unwrap(phizeta) / 2 / np.pi
 
-    dx = Ws[:, 0, 5] / Ws[:, 5, 5]
-    dpx = Ws[:, 1, 5] / Ws[:, 5, 5]
-    dy = Ws[:, 2, 5] / Ws[:, 5, 5]
-    dpy = Ws[:, 3, 5] / Ws[:, 5, 5]
-    dzeta = Ws[:, 4, 5] / Ws[:, 5, 5]
-
-    dx_zeta_old = Ws[:, 0, 4] / Ws[:, 4, 4]
-    dy_zeta_old = Ws[:, 2, 4] / Ws[:, 4, 4]
-
     dx_zeta = (Ws[:, 0, 4] - Ws[:, 0, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
                Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
     dy_zeta = (Ws[:, 2, 4] - Ws[:, 2, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
                 Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
+
+    dx_pzeta = (Ws[:, 0, 5] - Ws[:, 0, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
+    dpx_pzeta = (Ws[:, 1, 5] - Ws[:, 1, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
+    dy_pzeta = (Ws[:, 2, 5] - Ws[:, 2, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
+    dpy_pzeta = (Ws[:, 3, 5] - Ws[:, 3, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
 
     mux = mux - mux[0]
     muy = muy - muy[0]
@@ -784,10 +784,10 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'alfy': alfy,
         'gamx': gamx,
         'gamy': gamy,
-        'dx': dx,
-        'dpx': dpx,
-        'dy': dy,
-        'dpy': dpy,
+        'dx': dx_pzeta,
+        'dpx': dpx_pzeta,
+        'dy': dy_pzeta,
+        'dpy': dpy_pzeta,
         'dx_zeta': dx_zeta,
         'dy_zeta': dy_zeta,
         'betx1': betx1,
@@ -801,8 +801,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'nuy': nuy,
         'nuzeta': nuzeta,
         'W_matrix': Ws,
-        '_dx_zeta_old': dx_zeta_old,
-        '_dy_zeta_old': dy_zeta_old,
     }
     return res, i_replace
 
