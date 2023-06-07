@@ -1871,7 +1871,7 @@ class Line:
         self._var_management = None # Disable expressions
 
         # Unfreeze the line
-        self.element_names = list(self.element_names)
+        self.discard_tracker()
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
