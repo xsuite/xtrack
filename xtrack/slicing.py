@@ -9,6 +9,8 @@ import re
 from itertools import zip_longest
 from typing import List, Tuple, Iterator
 
+from .general import _print
+
 import xtrack as xt
 
 
@@ -135,7 +137,9 @@ class Slicer:
     def slice_in_place(self):
         line = self.line
 
-        for name in line.element_names:
+        n_elements = len(line)
+        for ii, name in enumerate(line.element_names):
+            _print(f'Slicing line: {100*(ii + 1)/n_elements:.0f}%', end='\r', flush=True)
             element = line[name]
 
             # Don't slice already thin elements and drifts
