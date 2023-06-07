@@ -51,7 +51,7 @@ slicing_strategies = [
     Strategy(slicing=Teapot(n_slice_quads), element_type=xt.CombinedFunctionMagnet),
     Strategy(slicing=Teapot(n_slice_mb), name=r'^mb\..*'),
     Strategy(slicing=Teapot(n_slice_mq), name=r'^mq\..*'),
-    Strategy(slicing=Teapot(n_slice_mq), name=r'^mqt\..*'),
+    Strategy(slicing=Teapot(n_slice_mq), name=r'^mqt.*'),
     Strategy(slicing=Teapot(n_slice_mqx), name=r'^mqx.*'),
 ]
 
@@ -70,39 +70,61 @@ print(f"Thick: qx = {tw0_before.qx} \tqy = {tw0_before.qy}")
 print(f"Thin:  qx = {tw_after.qx} \tqy = {tw_after.qy}")
 print(f"Diffs: qx = {tw_after.qx - tw0_before.qx} \tqy = {tw_after.qy - tw0_before.qy}")
 
+thick_arc_bends = False
+thick_arc_quads = False
 
-# mad.input(
-# f'''
-#   select, flag=makethin, clear;
-#   select, flag=makethin, class=mb, slice={('0' if thick_arc_bends else '2')};
-#   select, flag=makethin, class=mq, slice={('0' if thick_arc_quads else '2')};
-#   select, flag=makethin, class=mqxa,  slice={n_slice_mqx};  !old triplet
-#   select, flag=makethin, class=mqxb,  slice={n_slice_mqx};  !old triplet
-#   select, flag=makethin, class=mqxc,  slice={n_slice_mqx};  !new mqxa (q1,q3)
-#   select, flag=makethin, class=mqxd,  slice={n_slice_mqx};  !new mqxb (q2a,q2b)
-#   select, flag=makethin, class=mqxfa, slice={n_slice_mqx};  !new (q1,q3 v1.1)
-#   select, flag=makethin, class=mqxfb, slice={n_slice_mqx};  !new (q2a,q2b v1.1)
-#   select, flag=makethin, class=mbxa,  slice={n_slice_mb};   !new d1
-#   select, flag=makethin, class=mbxf,  slice={n_slice_mb};   !new d1 (v1.1)
-#   select, flag=makethin, class=mbrd,  slice={n_slice_mb};   !new d2 (if needed)
-#   select, flag=makethin, class=mqyy,  slice={n_slice_mq};   !new q4
-#   select, flag=makethin, class=mqyl,  slice={n_slice_mq};   !new q5
-#   select, flag=makethin, pattern=mbx\.,    slice={n_slice_mb};
-#   select, flag=makethin, pattern=mbrb\.,   slice={n_slice_mb};
-#   select, flag=makethin, pattern=mbrc\.,   slice={n_slice_mb};
-#   select, flag=makethin, pattern=mbrs\.,   slice={n_slice_mb};
-#   select, flag=makethin, pattern=mbh\.,    slice={n_slice_mb};
-#   select, flag=makethin, pattern=mqwa\.,   slice=4;
-#   select, flag=makethin, pattern=mqwb\.,   slice=4;
-#   select, flag=makethin, pattern=mqy\.,    slice=4;
-#   select, flag=makethin, pattern=mqm\.,    slice=4;
-#   select, flag=makethin, pattern=mqmc\.,   slice=4;
-#   select, flag=makethin, pattern=mqml\.,   slice=4;
-#   select, flag=makethin, pattern=mqtlh\.,  slice=2;
-#   select, flag=makethin, pattern=mqtli\.,  slice=2;
-#   select, flag=makethin, pattern=mqt\.  ,  slice=2;
+twmad_thick = mad.twiss().dframe()
 
-#   beam;
-#   use,sequence=lhcb1; makethin,sequence=lhcb1,makedipedge=false,style=teapot;
-#   use,sequence=lhcb2; makethin,sequence=lhcb2,makedipedge=false,style=teapot;
-# ''')
+mad.input(
+f'''
+  select, flag=makethin, clear;
+  select, flag=makethin, class=mb, slice={('0' if thick_arc_bends else n_slice_mb)};
+  select, flag=makethin, class=mq, slice={('0' if thick_arc_quads else n_slice_mq)};
+  select, flag=makethin, class=mqxa,  slice={n_slice_mqx};  !old triplet
+  select, flag=makethin, class=mqxb,  slice={n_slice_mqx};  !old triplet
+  select, flag=makethin, class=mqxc,  slice={n_slice_mqx};  !new mqxa (q1,q3)
+  select, flag=makethin, class=mqxd,  slice={n_slice_mqx};  !new mqxb (q2a,q2b)
+  select, flag=makethin, class=mqxfa, slice={n_slice_mqx};  !new (q1,q3 v1.1)
+  select, flag=makethin, class=mqxfb, slice={n_slice_mqx};  !new (q2a,q2b v1.1)
+  select, flag=makethin, class=mbxa,  slice={n_slice_bends};   !new d1
+  select, flag=makethin, class=mbxf,  slice={n_slice_bends};   !new d1 (v1.1)
+  select, flag=makethin, class=mbrd,  slice={n_slice_bends};   !new d2 (if needed)
+  select, flag=makethin, class=mqyy,  slice={n_slice_mq};   !new q4
+  select, flag=makethin, class=mqyl,  slice={n_slice_mq};   !new q5
+  select, flag=makethin, pattern=mbx\.,    slice={n_slice_bends};
+  select, flag=makethin, pattern=mbrb\.,   slice={n_slice_bends};
+  select, flag=makethin, pattern=mbrc\.,   slice={n_slice_bends};
+  select, flag=makethin, pattern=mbrs\.,   slice={n_slice_bends};
+  select, flag=makethin, pattern=mbh\.,    slice={n_slice_bends};
+  select, flag=makethin, pattern=mqwa\.,   slice={n_slice_quads};
+  select, flag=makethin, pattern=mqwb\.,   slice={n_slice_quads};
+  select, flag=makethin, pattern=mqy\.,    slice={n_slice_quads};
+  select, flag=makethin, pattern=mqm\.,    slice={n_slice_quads};
+  select, flag=makethin, pattern=mqmc\.,   slice={n_slice_quads};
+  select, flag=makethin, pattern=mqml\.,   slice={n_slice_quads};
+  select, flag=makethin, pattern=mqtlh\.,  slice={n_slice_mqt};
+  select, flag=makethin, pattern=mqtli\.,  slice={n_slice_mqt};
+  select, flag=makethin, pattern=mqt\.  ,  slice={n_slice_mqt};
+
+  beam;
+  use,sequence=lhcb1; makethin,sequence=lhcb1,makedipedge=false,style=teapot;
+  use,sequence=lhcb2; makethin,sequence=lhcb2,makedipedge=false,style=teapot;
+  use, sequence=lhcb1;
+  use, sequence=lhcb2;
+''')
+
+twmad_thin = mad.twiss().dframe()
+
+# Compare tunes
+print(f"Xsuite thick: qx = {tw0_before.qx} \tqy = {tw0_before.qy}")
+print(f"Xsuite thin:  qx = {tw_after.qx} \tqy = {tw_after.qy}")
+print(f"Xsuite diffs: qx = {tw_after.qx - tw0_before.qx} \tqy = {tw_after.qy - tw0_before.qy}")
+
+qx_mad_before = twmad_thick.mux[-1]
+qy_mad_before = twmad_thick.muy[-1]
+qx_mad_after = twmad_thin.mux[-1]
+qy_mad_after = twmad_thin.muy[-1]
+
+print(f"MAD-X thick: qx = {qx_mad_before} \tqy = {qy_mad_before}")
+print(f"MAD-X thin:  qx = {qx_mad_after} \tqy = {qy_mad_after}")
+print(f"MAD-X diffs: qx = {qx_mad_after - qx_mad_before} \tqy = {qy_mad_after - qy_mad_before}")
