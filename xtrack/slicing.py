@@ -16,6 +16,9 @@ import xtrack as xt
 
 class ElementSlicingScheme(abc.ABC):
     def __init__(self, slicing_order: int):
+        if slicing_order < 1:
+            raise ValueError("A slicing scheme must have at least one slice.")
+
         self.slicing_order = slicing_order
 
     @abc.abstractmethod
@@ -153,15 +156,23 @@ class Slicer:
             self.thin_names.append(name)
 
             # Choose a slicing strategy for the element
+            slicing_found = False
             chosen_slicing = None
             for strategy in reversed(self.slicing_strategies):
                 if strategy.match_element(name, element):
+                    slicing_found = True
                     chosen_slicing = strategy.slicing
                     break
 
-            if not chosen_slicing:
+            if not slicing_found:
                 raise ValueError(f'No slicing strategy found for the element '
                                  f'{name}: {element}.')
+
+            # If the chose slicing is explicitly None, then we keep the current
+            # thick element and don't add any slices.
+            if chosen_slicing is None:
+                self.thin_names.append(name)
+                continue
 
             # Add the slices to the line.element_dict
             self._make_slices(element, chosen_slicing, name)
