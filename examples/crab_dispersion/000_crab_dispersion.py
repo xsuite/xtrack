@@ -78,14 +78,7 @@ plt.legend()
 plt.xlabel('s [m]')
 plt.ylabel('dx/dzeta')
 
-plt.figure(10)
-plt.plot(tw_plus.s, cl_dx_zeta_4d_rf_on_crab_on, label='rf on, crab on', color='g')
-plt.plot(tw_plus.s, cl_dx_zeta_rf_off_crab_on, label='rf off, crab on', color='m')
-plt.plot(tw_plus.s, cl_dx_zeta_4d_rf_on_crab_off, label='rf on, crab off', color='b')
-plt.plot(tw_plus.s, cl_dx_zeta_rf_off_crab_off, label='rf off, crab off', color='r')
-plt.legend()
-plt.xlabel('s [m]')
-plt.ylabel('dx/dzeta')
+
 
 
 
@@ -103,6 +96,16 @@ plt.legend()
 plt.xlabel('s [m]')
 plt.ylabel('dx/dzeta')
 
+
+plt.figure(10)
+plt.plot(tw_plus.s, cl_dx_zeta_4d_rf_on_crab_on, label='rf on, crab on', color='g')
+plt.plot(tw_plus.s, cl_dx_zeta_rf_off_crab_on, label='rf off, crab on', color='m')
+plt.plot(tw_plus.s, cl_dx_zeta_4d_rf_on_crab_off, label='rf on, crab off', color='b')
+plt.plot(tw_plus.s, cl_dx_zeta_rf_off_crab_off, label='rf off, crab off', color='r')
+plt.plot(tw_plus.s, tw_crab_on.dx_zeta, '--', label='6d', color='k', linewidth=2)
+plt.legend()
+plt.xlabel('s [m]')
+plt.ylabel('dx/dzeta')
 
 plt.show()
 

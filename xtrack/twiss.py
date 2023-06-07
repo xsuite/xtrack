@@ -765,10 +765,13 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     dpy = Ws[:, 3, 5] / Ws[:, 5, 5]
     dzeta = Ws[:, 4, 5] / Ws[:, 5, 5]
 
-    dx_zeta = Ws[:, 0, 4] / Ws[:, 4, 4]
-    dy_zeta = Ws[:, 2, 4] / Ws[:, 4, 4]
-    # dpx_zeta = Ws[:, 1, 4] / Ws[:, 4, 4] # To be tested
-    # dpy_zeta = Ws[:, 3, 4] / Ws[:, 4, 4] # To be tested
+    dx_zeta_old = Ws[:, 0, 4] / Ws[:, 4, 4]
+    dy_zeta_old = Ws[:, 2, 4] / Ws[:, 4, 4]
+
+    dx_zeta = (Ws[:, 0, 4] - Ws[:, 0, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
+               Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
+    dy_zeta = (Ws[:, 2, 4] - Ws[:, 2, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
+                Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
 
     mux = mux - mux[0]
     muy = muy - muy[0]
@@ -797,7 +800,9 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'nux': nux,
         'nuy': nuy,
         'nuzeta': nuzeta,
-        'W_matrix': Ws
+        'W_matrix': Ws,
+        '_dx_zeta_old': dx_zeta_old,
+        '_dy_zeta_old': dy_zeta_old,
     }
     return res, i_replace
 
