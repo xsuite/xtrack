@@ -81,10 +81,18 @@ class TrackerData:
                 _buffer = common_buffer
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
 
+        installed_element_classes = set(ee._XoStruct for ee in self._elements)
         if not element_classes:
-            element_classes = set(ee._XoStruct for ee in self._elements)
-            element_classes |= set(extra_element_classes)
+            element_classes = (
+                installed_element_classes | set(extra_element_classes))
             element_classes = sorted(element_classes, key=lambda cc: cc.__name__)
+        else:
+            if not installed_element_classes.issubset(set(element_classes)):
+                raise ValueError(
+                    f'The following classes are not in `element_classes`: '
+                    f'{installed_element_classes - set(element_classes)}')
+
+        self.installed_element_classes = installed_element_classes
         self.element_classes = element_classes
 
         class ElementRefClass(xo.UnionRef):

@@ -330,7 +330,7 @@ class Tracker:
         if (self.use_prebuilt_kernels and compile != 'force'
                 and isinstance(self._context, xo.ContextCpu)):
             kernel_info = get_suitable_kernel(
-                self.config, self.element_classes
+                self.config, self._tracker_data.installed_element_classes
             )
             if kernel_info:
                 module_name, modules_classes = kernel_info
