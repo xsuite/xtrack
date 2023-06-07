@@ -10,7 +10,7 @@ from xtrack.slicing import Teapot, Strategy
 thin = False
 kill_fringes_and_edges = True
 
-mq_slice_list = np.arange(8, 12, 2)
+mq_slice_list = np.arange(2, 12, 2)
 
 diff_qx_xsuite_list = []
 diff_qy_xsuite_list = []
@@ -153,8 +153,8 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.plot(mq_slice_list, diff_qx_xsuite_list, label='qx xsuite', color='g')
 plt.plot(mq_slice_list, diff_qy_xsuite_list, label='qy xsuite', color='m')
-plt.plot(mq_slice_list, diff_qx_mad_list, label='qx mad', color='b')
-plt.plot(mq_slice_list, diff_qy_mad_list, label='qy mad', color='r')
+plt.plot(mq_slice_list, diff_qx_mad_list, '--', label='qx mad', color='b')
+plt.plot(mq_slice_list, diff_qy_mad_list, '--', label='qy mad', color='r')
 plt.legend()
 plt.xlabel('n_slice_mq')
 plt.ylabel(r'$Q_{thin} - Q_{thick}$')
