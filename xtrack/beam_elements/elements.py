@@ -796,7 +796,6 @@ class CombinedFunctionMagnet(BeamElement):
         ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
         ref.length = _get_expr(self_ref.length) * weight
         ref.order = order
-        ref.inv_factorial_order = _get_expr(self_ref.inv_factorial_order)
 
     @staticmethod
     def delete_element_ref(ref):
@@ -912,7 +911,6 @@ class TrueBend(BeamElement):
         ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
         ref.length = _get_expr(self_ref.length) * weight
         ref.order = order
-        ref.inv_factorial_order = _get_expr(self_ref.inv_factorial_order)
 
     @staticmethod
     def delete_element_ref(ref):
