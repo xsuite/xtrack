@@ -854,6 +854,7 @@ class MadLoader:
                 h=h,
                 length=mad_el.l,
                 knl=[0, 0, mad_el.k2 * mad_el.l],
+                num_multipole_kicks=num_multipole_kicks,
             )
         else:
             num_multipole_kicks = 0
