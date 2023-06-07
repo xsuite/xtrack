@@ -411,7 +411,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
 
     interp_line.build_tracker(_buffer=_buffer,
                               track_kernel=_ln_gen.tracker.track_kernel,
-                              element_classes=_ln_gen.tracker.element_classes)
+                              kernel_element_classes=_ln_gen.tracker.kernel_element_classes)
     interp_line.reset_s_at_end_turn = False
     interp_line.config.XTRACK_GLOBAL_XY_LIMIT = _ln_gen.config.XTRACK_GLOBAL_XY_LIMIT
 

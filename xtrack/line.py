@@ -1580,7 +1580,7 @@ class Line:
         if self._has_valid_tracker():
             new_line.build_tracker(_buffer=self._buffer,
                                    track_kernel=self.tracker.track_kernel,
-                                   element_classes=self.tracker.element_classes)
+                                   kernel_element_classes=self.tracker.kernel_element_classes)
             #TODO: handle config and other metadata
 
         return new_line
@@ -1629,11 +1629,11 @@ class Line:
         if has_valid_tracker:
             buffer = self._buffer
             track_kernel = self.tracker.track_kernel
-            element_classes = self.tracker.element_classes
+            kernel_element_classes = self.tracker.kernel_element_classes
         else:
             buffer = None
             track_kernel = None
-            element_classes = None
+            kernel_element_classes = None
 
         if inplace:
             self.unfreeze()
@@ -1649,7 +1649,7 @@ class Line:
         if has_valid_tracker:
             new_line.build_tracker(_buffer=buffer,
                                    track_kernel=track_kernel,
-                                   element_classes=element_classes)
+                                   kernel_element_classes=kernel_element_classes)
             #TODO: handle config and other metadata
 
         return new_line
@@ -1860,7 +1860,6 @@ class Line:
         self._freeze()
 
         self.tracker._tracker_data = tracker_data
-        self.tracker._element_classes = tracker_data.element_classes
 
         self.use_prebuilt_kernels = False
 

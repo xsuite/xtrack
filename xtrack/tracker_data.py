@@ -41,7 +41,7 @@ class TrackerData:
             element_names,
             element_s_locations,
             line_length,
-            element_classes=None,
+            kernel_element_classes=None,
             extra_element_classes=(),
             element_ref_data=None,
             _context=None,
@@ -61,11 +61,11 @@ class TrackerData:
             List of element s locations.
         line_length : float
             Length of the line.
-        element_classes : list, optional
+        kernel_element_classes : list, optional
             Explicit list of classes of elements of the line; if `None`,
             will be inferred from list.
         extra_element_classes : tuple, optional
-            If `element_classes` is `None`, this list will be used to augment
+            If `kernel_element_classes` is `None`, this list will be used to augment
             the inferred list of element classes.
         element_ref_data : ElementRefData, optional
         """
@@ -82,21 +82,21 @@ class TrackerData:
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
 
         installed_element_classes = set(ee._XoStruct for ee in self._elements)
-        if not element_classes:
-            element_classes = (
+        if not kernel_element_classes:
+            kernel_element_classes = (
                 installed_element_classes | set(extra_element_classes))
-            element_classes = sorted(element_classes, key=lambda cc: cc.__name__)
+            kernel_element_classes = sorted(kernel_element_classes, key=lambda cc: cc.__name__)
         else:
-            if not installed_element_classes.issubset(set(element_classes)):
+            if not installed_element_classes.issubset(set(kernel_element_classes)):
                 raise ValueError(
-                    f'The following classes are not in `element_classes`: '
-                    f'{installed_element_classes - set(element_classes)}')
+                    f'The following classes are not in `kernel_element_classes`: '
+                    f'{installed_element_classes - set(kernel_element_classes)}')
 
         self.installed_element_classes = installed_element_classes
-        self.element_classes = element_classes
+        self.kernel_element_classes = kernel_element_classes
 
         class ElementRefClass(xo.UnionRef):
-            _reftypes = self.element_classes
+            _reftypes = self.kernel_element_classes
 
         self.element_s_locations = tuple(element_s_locations)
         self.line_length = line_length
@@ -207,10 +207,10 @@ class TrackerData:
                            f'`extra_element_classes`?')
 
         # With the reftypes loaded we can create our classes
-        element_classes = [elem._XoStruct for elem in element_hybrid_classes]
+        kernel_element_classes = [elem._XoStruct for elem in element_hybrid_classes]
 
         class ElementRefClass(xo.UnionRef):
-            _reftypes = element_classes
+            _reftypes = kernel_element_classes
 
         # We can now load the line from the buffer
         element_refs_cls = cls.generate_element_ref_data(ElementRefClass)
@@ -247,7 +247,7 @@ class TrackerData:
             element_names=temp_line.element_names,
             element_s_locations=temp_line.get_s_elements(),
             line_length=temp_line.get_length(),
-            element_classes=element_classes,
+            kernel_element_classes=kernel_element_classes,
             element_ref_data=element_ref_data,
         )
         tracker_data._ElementRefClass = ElementRefClass
@@ -279,16 +279,16 @@ class TrackerData:
         out['_element_ref_data'] = (
             self._element_ref_data._buffer, self._element_ref_data._offset)
         out['_ElementRefClass'] = None
-        out['element_classes'] = [cc._DressingClass for cc in self.element_classes]
+        out['kernel_element_classes'] = [cc._DressingClass for cc in self.kernel_element_classes]
         return out
 
     def __setstate__(self, state):
         buffer, offset = state.pop('_element_ref_data')
         self.__dict__.update(state)
-        self.element_classes = [cc._XoStruct for cc in self.element_classes]
+        self.kernel_element_classes = [cc._XoStruct for cc in self.kernel_element_classes]
 
         class ElementRefClass(xo.UnionRef):
-            _reftypes = self.element_classes
+            _reftypes = self.kernel_element_classes
 
         self._ElementRefClass = ElementRefClass
         element_refs_cls = self.generate_element_ref_data(self._ElementRefClass)

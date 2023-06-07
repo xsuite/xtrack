@@ -52,7 +52,7 @@ class Tracker:
         use_prebuilt_kernels=True,
         enable_pipeline_hold=False,
         track_kernel=None,
-        element_classes=None,
+        kernel_element_classes=None,
         particles_class=xp.Particles,
         particles_monitor_class=None,
         extra_headers=(),
@@ -79,15 +79,15 @@ class Tracker:
             raise NotImplementedError("Skip compilation is not implemented in "
                                       "collective mode")
 
-        if track_kernel is None and element_classes is not None:
-            raise ValueError('The kernel relies on `element_classes` ordering, '
-                             'so `element_classes` must be given if '
+        if track_kernel is None and kernel_element_classes is not None:
+            raise ValueError('The kernel relies on `kernel_element_classes` ordering, '
+                             'so `kernel_element_classes` must be given if '
                              '`track_kernel` is None.')
 
-        if element_classes is None and track_kernel is not None:
+        if kernel_element_classes is None and track_kernel is not None:
             raise ValueError(
-                'The kernel relies on `element_classes` ordering, so '
-                '`track_kernel` must be given if `element_classes` is None.'
+                'The kernel relies on `kernel_element_classes` ordering, so '
+                '`track_kernel` must be given if `kernel_element_classes` is None.'
             )
 
         if particles_class is None:
@@ -133,7 +133,7 @@ class Tracker:
             element_names=line.element_names,
             element_s_locations=line.get_s_elements(),
             line_length=line.get_length(),
-            element_classes=element_classes,
+            kernel_element_classes=kernel_element_classes,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             element_ref_data=_element_ref_data,
             _context=_context,
@@ -229,8 +229,8 @@ class Tracker:
         return self._track_kernel
 
     @property
-    def element_classes(self):
-            return self._tracker_data.element_classes
+    def kernel_element_classes(self):
+            return self._tracker_data.kernel_element_classes
 
     @property
     def config(self):
@@ -344,13 +344,13 @@ class Tracker:
                 #self._context.kernels.update(kernels)
                 #self._current_track_kernel = self._context.kernels[('track_line', classes)]
                 self._current_track_kernel = kernels[('track_line', classes)]
-                _element_classes = [cls._XoStruct for cls in modules_classes]
+                _kernel_element_classes = [cls._XoStruct for cls in modules_classes]
                 self._tracker_data = TrackerData(
                     element_dict=self._tracker_data._element_dict,
                     element_names=self._tracker_data._element_names,
                     element_s_locations=self._tracker_data.element_s_locations,
                     line_length=self._tracker_data.line_length,
-                    element_classes=_element_classes,
+                    kernel_element_classes=_kernel_element_classes,
                     _context=self._context,
                     _buffer=self._buffer,
                 )
@@ -449,7 +449,7 @@ class Tracker:
         """
         )
 
-        for ii, cc in enumerate(self.element_classes):
+        for ii, cc in enumerate(self.kernel_element_classes):
             ccnn = cc.__name__.replace("Data", "")
             src_lines.append(
                 f"""
@@ -551,7 +551,7 @@ class Tracker:
             sources=[source_track],
             kernel_descriptions=kernels,
             extra_headers=self._config_to_headers() + headers,
-            extra_classes=self.element_classes,
+            extra_classes=self.kernel_element_classes,
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
                         local_particle_src=self.local_particle_src)],
