@@ -1,5 +1,8 @@
 from cpymad.madx import Madx
 
+import xtrack as xt
+import xpart as xp
+
 bumper_names = ['bi1.bsw1l1.1', 'bi1.bsw1l1.2', 'bi1.bsw1l1.3', 'bi1.bsw1l1.4']
 thick_bumpers = {
 'bi1.bsw1l1.1' : {'k0_name': 'k0BI1BSW1L11'},
@@ -80,7 +83,58 @@ bi1.bsw1l1.4, k2 := BSW_K2L/l_bsw1l1.4;
 
 ''')
 
-
 twmad = mad.twiss()
 
 
+
+line = xt.Line.from_madx_sequence(mad.sequence.psb1,
+                                  allow_thick=True,
+                                  apply_madx_errors=True,
+                                  deferred_expressions=True)
+line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
+                                gamma0=mad.sequence.psb1.beam.gamma)
+line.build_tracker()
+line.to_json('psb_with_chicane.json')
+
+tw = line.twiss(method='4d')
+twmad = mad.twiss()
+
+beta0 = line.particle_ref.beta0[0]
+
+dqx_mad = twmad.summary.dq1 * beta0
+dqy_mad = twmad.summary.dq2 * beta0
+
+print(f'qx_mad =     {twmad.summary.q1}')
+print(f'qx_xsuite =  {tw.qx}')
+print(f'qy_mad =     {twmad.summary.q2}')
+print(f'qy_xsuite =  {tw.qy}')
+
+print(f'dqx_mad =     {dqx_mad}')
+print(f'dqx_xsuite =  {tw.dqx}')
+print(f'dqy_mad =     {dqy_mad}')
+print(f'dqy_xsuite =  {tw.dqy}')
+
+import matplotlib.pyplot as plt
+plt.close('all')
+sp1 = plt.subplot(3,1,1)
+plt.plot(tw.s, tw.betx, label='xtrack')
+plt.plot(twmad.s, twmad.betx, label='madx')
+plt.plot(tw.s, tw.bety, label='xtrack')
+plt.plot(twmad.s, twmad.bety, label='madx')
+plt.legend()
+
+plt.subplot(3,1,2, sharex=sp1)
+plt.plot(tw.s, tw.dx, label='xtrack')
+plt.plot(twmad.s, twmad.dx * beta0, label='madx')
+plt.plot(tw.s, tw.dy, label='xtrack')
+plt.plot(twmad.s, twmad.dy * beta0, label='madx')
+
+plt.subplot(3,1,3, sharex=sp1)
+plt.plot(tw.s, tw.x, label='xtrack')
+plt.plot(twmad.s, twmad.x, label='madx')
+plt.plot(tw.s, tw.y, label='xtrack')
+plt.plot(twmad.s, twmad.y, label='madx')
+
+plt.legend()
+
+plt.show()
