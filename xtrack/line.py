@@ -2626,6 +2626,17 @@ class Line:
         self._element_dict.update(value)
 
     @property
+    def element_names(self):
+        return self._element_names
+
+    @element_names.setter
+    def element_names(self, value):
+        if not hasattr(self, '_element_names'):
+            self._element_names = []
+        self._frozen_check()
+        self._element_names = value
+
+    @property
     def elements(self):
         return tuple([self.element_dict[nn] for nn in self.element_names])
 
