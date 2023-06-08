@@ -1329,6 +1329,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     auxline = xt.Line(elements=list(tracker.line.elements).copy(),
                       element_names=list(tracker.line.element_names).copy())
+    auxline.particle_ref = tracker.line.particle_ref.copy()
 
     names_inserted_markers = []
     markers = []
