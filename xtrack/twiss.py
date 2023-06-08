@@ -435,9 +435,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
 
     if method == '4d':
-        # Not proper because R_matrix terms related to zeta are forced to zero
-        twiss_res.pop('dx_zeta')
-        twiss_res.pop('dy_zeta')
         twiss_res.muzeta[:] = 0
         if 'qs' in twiss_res._data:
             twiss_res._data['qs'] = 0
@@ -1007,6 +1004,13 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         dy_dpzeta = -delta_disp[2]
         dpy_dpzeta = -delta_disp[3]
 
+        b_disp_crab = RR[:4, 4]
+        delta_disp_crab = np.linalg.solve(A_disp - np.eye(4), b_disp_crab)
+        dx_zeta = -delta_disp_crab[0]
+        dpx_zeta = -delta_disp_crab[1]
+        dy_zeta = -delta_disp_crab[2]
+        dpy_zeta = -delta_disp_crab[3]
+
         W[4:, :] = 0
         W[:, 4:] = 0
         W[4, 4] = 1
@@ -1015,6 +1019,10 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         W[1, 5] = dpx_dpzeta
         W[2, 5] = dy_dpzeta
         W[3, 5] = dpy_dpzeta
+        W[0, 4] = dx_zeta
+        W[1, 4] = dpx_zeta
+        W[2, 4] = dy_zeta
+        W[3, 4] = dpy_zeta
 
         # Slower computation with orbit search
 
