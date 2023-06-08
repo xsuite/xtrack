@@ -1442,7 +1442,7 @@ class TwissInit:
                 dpy=dpy,
                 )
             aux_line = xt.Line(elements=[aux_segment])
-            aux_line.particle_ref = particle_on_co.copy()
+            aux_line.particle_ref = particle_on_co.copy(_context=xo.context_default)
             aux_line.build_tracker()
             aux_tw = aux_line.twiss()
             W_matrix = aux_tw.W_matrix[0]
