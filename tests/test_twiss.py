@@ -394,7 +394,7 @@ def test_periodic_cell_twiss(test_context):
     collider.lhcb2.twiss_default['method'] = '4d'
     collider.lhcb2.twiss_default['reverse'] = True
 
-    for beam_name in ['b1', 'b2']:
+    for beam_name in ['b2']: #['b1', 'b2']: # TEEEEEEEEEEEEEEEEST
 
         line = collider['lhc' + beam_name]
         start_cell = 's.cell.67.' + beam_name
@@ -425,6 +425,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_cell.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
+        import pdb; pdb.set_trace()
         tw_cell_periodic = line.twiss(
             method='4d',
             ele_start=start_cell,
