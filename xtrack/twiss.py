@@ -243,8 +243,66 @@ def twiss_line(line, particle_ref=None, method=None,
     hide_thin_groups=(hide_thin_groups or False)
     only_twiss_init=(only_twiss_init or False)
 
+    if freeze_longitudinal:
+        kwargs = locals().copy()
+        kwargs.pop('freeze_longitudinal')
+
+        with xt.freeze_longitudinal(line):
+            return twiss_line(**kwargs)
+    elif freeze_energy:
+        kwargs = locals().copy()
+        kwargs.pop('freeze_energy')
+
+        with xt.line._preserve_config(line):
+            line.freeze_energy()
+            return twiss_line(freeze_energy=False, **kwargs)
+
+    if radiation_method != 'full':
+        kwargs = locals().copy()
+        kwargs.pop('radiation_method')
+        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
+        assert freeze_longitudinal is False
+        with xt.line._preserve_config(line):
+            if radiation_method == 'kick_as_co':
+                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
+                assert eneloss_and_damping is False
+                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
+            elif radiation_method == 'scale_as_co':
+                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
+                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
+            res = twiss_line(**kwargs)
+        return res
+
+    if at_s is not None:
+        if reverse:
+            raise NotImplementedError('`at_s` not implemented for `reverse`=True')
+        # Get all arguments
+        kwargs = locals().copy()
+        if np.isscalar(at_s):
+            at_s = [at_s]
+        assert at_elements is None
+        (auxtracker, names_inserted_markers
+            ) = _build_auxiliary_tracker_with_extra_markers(
+            tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
+            algorithm='insert')
+        kwargs.pop('line')
+        kwargs.pop('at_s')
+        kwargs.pop('at_elements')
+        kwargs.pop('matrix_responsiveness_tol')
+        kwargs.pop('matrix_stability_tol')
+        res = twiss_line(line=auxtracker.line,
+                        at_elements=names_inserted_markers,
+                        matrix_responsiveness_tol=matrix_responsiveness_tol,
+                        matrix_stability_tol=matrix_stability_tol,
+                        **kwargs)
+        return res
+
     if reverse:
         ele_start, ele_stop = ele_stop, ele_start
+        if twiss_init == 'preserve' or twiss_init == 'preserve_start':
+            twiss_init = 'preserve_end'
+        elif twiss_init == 'preserve_end':
+            twiss_init = 'preserve_start'
 
     if method == '4d' and freeze_energy is None:
         freeze_energy = True
@@ -287,7 +345,6 @@ def twiss_line(line, particle_ref=None, method=None,
             ' replaced by drifts')
         line = line._get_non_collective_line()
 
-
     if particle_ref is None and particle_co_guess is None:
         raise ValueError(
             "Either `particle_ref` or `particle_co_guess` must be provided")
@@ -296,61 +353,6 @@ def twiss_line(line, particle_ref=None, method=None,
         method = '6d'
 
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
-
-    if freeze_longitudinal:
-        kwargs = locals().copy()
-        kwargs.pop('freeze_longitudinal')
-
-        with xt.freeze_longitudinal(line):
-            return twiss_line(**kwargs)
-    elif freeze_energy:
-        kwargs = locals().copy()
-        kwargs.pop('freeze_energy')
-
-        with xt.line._preserve_config(line):
-            line.freeze_energy()
-            return twiss_line(freeze_energy=False, **kwargs)
-
-
-    if radiation_method != 'full':
-        kwargs = locals().copy()
-        kwargs.pop('radiation_method')
-        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
-        assert freeze_longitudinal is False
-        with xt.line._preserve_config(line):
-            if radiation_method == 'kick_as_co':
-                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
-                assert eneloss_and_damping is False
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-            elif radiation_method == 'scale_as_co':
-                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
-                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-            res = twiss_line(**kwargs)
-        return res
-
-    if at_s is not None:
-        if reverse:
-            raise NotImplementedError('`at_s` not implemented for `reverse`=True')
-        # Get all arguments
-        kwargs = locals().copy()
-        if np.isscalar(at_s):
-            at_s = [at_s]
-        assert at_elements is None
-        (auxtracker, names_inserted_markers
-            ) = _build_auxiliary_tracker_with_extra_markers(
-            tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
-            algorithm='insert')
-        kwargs.pop('line')
-        kwargs.pop('at_s')
-        kwargs.pop('at_elements')
-        kwargs.pop('matrix_responsiveness_tol')
-        kwargs.pop('matrix_stability_tol')
-        res = twiss_line(line=auxtracker.line,
-                        at_elements=names_inserted_markers,
-                        matrix_responsiveness_tol=matrix_responsiveness_tol,
-                        matrix_stability_tol=matrix_stability_tol,
-                        **kwargs)
-        return res
 
     if isinstance(twiss_init, str):
         assert twiss_init in ['preserve', 'preserve_start', 'preserve_end', 'periodic']
@@ -611,8 +613,6 @@ def _twiss_open(line, twiss_init,
     elif twiss_orientation == 'backward':
         i_start = ele_start
         if ele_stop_track is not None:
-            assert ele_stop_track >= ele_start, (
-                'Not yet supported in backward mode')
             i_stop = ele_stop_track
         else:
             i_stop = len(line.element_names) - 1

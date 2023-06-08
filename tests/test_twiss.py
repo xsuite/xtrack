@@ -422,9 +422,10 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell.name[0] == start_cell
         assert tw_cell.name[-2] == end_cell
         assert tw_cell.method == '4d'
-        assert tw_cell.orientation == 'forward'
+        assert tw_cell.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_cell.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
+        import pdb; pdb.set_trace()
         tw_cell_periodic = line.twiss(
             method='4d',
             ele_start=start_cell,
@@ -436,7 +437,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell_periodic.name[0] == start_cell
         assert tw_cell_periodic.name[-2] == end_cell
         assert tw_cell_periodic.method == '4d'
-        assert tw_cell_periodic.orientation == 'forward'
+        assert tw_cell_periodic.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_cell_periodic.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         assert np.allclose(tw_cell_periodic.betx, tw_cell.betx, atol=0, rtol=1e-6)
@@ -499,7 +500,7 @@ def test_twiss_range(test_context):
         atols = dict(
             alfx=1e-8, alfy=1e-8,
             dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-            nuzeta=1e-5
+            nuzeta=1e-5, dx_zeta=5e-9, dy_zeta=5e-9,
         )
 
         rtols = dict(
