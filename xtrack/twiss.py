@@ -297,12 +297,23 @@ def twiss_line(line, particle_ref=None, method=None,
                         **kwargs)
         return res
 
+    if ele_start is not None or ele_stop is not None:
+        assert ele_start is not None and ele_stop is not None, (
+            'ele_start and ele_stop must be provided together')
+
     if reverse:
+        if ele_start is not None and ele_stop is not None:
+            assert ele_start <= ele_stop, (
+                'ele_start must be smaller than ele_stop in reverse mode')
         ele_start, ele_stop = ele_stop, ele_start
         if twiss_init == 'preserve' or twiss_init == 'preserve_start':
             twiss_init = 'preserve_end'
         elif twiss_init == 'preserve_end':
             twiss_init = 'preserve_start'
+    else:
+        if ele_start is not None and ele_stop is not None:
+            assert ele_start >= ele_stop, (
+                'ele_start must be larger than ele_stop in forward mode')
 
     if method == '4d' and freeze_energy is None:
         freeze_energy = True
@@ -372,6 +383,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if twiss_init is None or twiss_init=='periodic':
         # Periodic mode
         periodic = True
+
         twiss_init, R_matrix = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
@@ -972,6 +984,20 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             matrix_stability_tol,
                             ele_start=None, ele_stop=None):
 
+    if ele_start is not None or ele_stop is not None:
+        assert ele_start is not None and ele_stop is not None, (
+            'ele_start and ele_stop must be both None or both not None')
+        # Periodic solution is always computed tracking forward
+        if ele_start < ele_stop:
+            ele_start_periodic = ele_start
+            ele_stop_periodic = ele_stop
+        else:
+            ele_start_periodic = ele_stop
+            ele_stop_periodic = ele_start
+    else:
+        ele_start_periodic = None
+        ele_stop_periodic = None
+
     if method == '4d' and delta0 is None:
         delta0 = 0
 
@@ -985,7 +1011,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                 delta0=delta0,
                                 zeta0=zeta0,
-                                ele_start=ele_start, ele_stop=ele_stop)
+                                ele_start=ele_start_periodic,
+                                ele_stop=ele_stop_periodic)
 
     if W_matrix is not None:
         W = W_matrix
@@ -997,7 +1024,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             RR = line.compute_one_turn_matrix_finite_differences(
                                         steps_r_matrix=steps_r_matrix,
                                         particle_on_co=part_on_co,
-                                        ele_start=ele_start, ele_stop=ele_stop)
+                                        ele_start=ele_start_periodic,
+                                        ele_stop=ele_stop_periodic)
 
         W, _, _ = lnf.compute_linear_normal_form(
                                 RR, only_4d_block=(method == '4d'),
@@ -1036,48 +1064,12 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         W[2, 4] = dy_zeta
         W[3, 4] = dpy_zeta
 
-        # Slower computation with orbit search
-
-        # p_disp_minus = line.find_closed_orbit(
-        #                     particle_co_guess=particle_co_guess,
-        #                     particle_ref=particle_ref,
-        #                     co_search_settings=co_search_settings,
-        #                     continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-        #                     delta0=delta0-delta_disp,
-        #                     zeta0=zeta0,
-        #                     ele_start=ele_start, ele_stop=ele_stop)
-        # p_disp_plus = line.find_closed_orbit(particle_co_guess=particle_co_guess,
-        #                     particle_ref=particle_ref,
-        #                     co_search_settings=co_search_settings,
-        #                     continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-        #                     delta0=delta0+delta_disp,
-        #                     zeta0=zeta0,
-        #                     ele_start=ele_start, ele_stop=ele_stop)
-        # p_disp_minus.move(_context=xo.context_default)
-        # p_disp_plus.move(_context=xo.context_default)
-        # dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
-        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        # dpx_dpzeta = ((p_disp_plus.px[0] - p_disp_minus.px[0])
-        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        # dy_dpzeta = ((p_disp_plus.y[0] - p_disp_minus.y[0])
-        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        # dpy_dpzeta = ((p_disp_plus.py[0] - p_disp_minus.py[0])
-        #              /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        # W[4:, :] = 0
-        # W[:, 4:] = 0
-        # W[4, 4] = 1
-        # W[5, 5] = 1
-        # W[0, 5] = dx_dpzeta
-        # W[1, 5] = dpx_dpzeta
-        # W[2, 5] = dy_dpzeta
-        # W[3, 5] = dpy_dpzeta
-
     if isinstance(ele_start, str):
-        tw_init_element_name = ele_start
-    elif ele_start is None:
+        tw_init_element_name = ele_start_periodic
+    elif ele_start_periodic is None:
         tw_init_element_name = line.element_names[0]
     else:
-        tw_init_element_name = line.element_names[ele_start]
+        tw_init_element_name = line.element_names[ele_start_periodic]
 
     twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
                            element_name=tw_init_element_name,
