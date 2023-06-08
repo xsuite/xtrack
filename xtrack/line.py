@@ -1654,6 +1654,26 @@ class Line:
 
         return new_line
 
+    def freeze_energy(self, state=True):
+
+        """
+        Freeze energy in tracked Particles objects.
+
+        Parameters
+        ----------
+        state: bool
+            If True, energy is frozen. If False, it is unfrozen.
+
+        """
+
+        assert state in (True, False)
+        assert self.iscollective is False, ('Cannot freeze energy '
+                        'in collective mode (not yet implemented)')
+        if state:
+            self.freeze_vars(xp.Particles.part_energy_varnames())
+        else:
+            self.unfreeze_vars(xp.Particles.part_energy_varnames())
+
     def freeze_longitudinal(self, state=True):
 
         """

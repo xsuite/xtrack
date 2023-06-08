@@ -42,6 +42,7 @@ def twiss_line(line, particle_ref=None, method=None,
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
+        freeze_energy=None,
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
@@ -245,6 +246,9 @@ def twiss_line(line, particle_ref=None, method=None,
     if reverse:
         ele_start, ele_stop = ele_stop, ele_start
 
+    if method == '4d' and freeze_energy is None:
+        freeze_energy = True
+
     if twiss_init is not None and not isinstance(twiss_init, str):
         twiss_init = twiss_init.copy() # To avoid changing the one provided
 
@@ -299,6 +303,14 @@ def twiss_line(line, particle_ref=None, method=None,
 
         with xt.freeze_longitudinal(line):
             return twiss_line(**kwargs)
+    elif freeze_energy:
+        kwargs = locals().copy()
+        kwargs.pop('freeze_energy')
+
+        with xt.line._preserve_config(line):
+            line.freeze_energy()
+            return twiss_line(freeze_energy=False, **kwargs)
+
 
     if radiation_method != 'full':
         kwargs = locals().copy()
