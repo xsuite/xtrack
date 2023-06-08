@@ -102,6 +102,34 @@
             "LineSegmentMap"
         ]
     },
+    "only_xtrack_frozen_energy": {
+        "config": {
+            "FREEZE_VAR_delta": true,
+            "FREEZE_VAR_ptau": true,
+            "FREEZE_VAR_rpp": true,
+            "FREEZE_VAR_rvv": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_GLOBAL_XY_LIMIT": 1.0
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "Marker",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole",
+            "LineSegmentMap"
+        ]
+    },
     "only_xtrack_taper": {
         "config": {
             "XFIELDS_BB3D_NO_BEAMSTR": true,
