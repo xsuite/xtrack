@@ -7,106 +7,28 @@ collider = xt.Multiline.from_json(
 )
 collider.build_trackers()
 
+collider.vars['vrf400'] = 16
+collider.vars['on_crab1'] = -190
+collider.vars['on_crab5'] = -190
 
 line = collider.lhcb1
-line.cycle('ip2', inplace=True)
-tw4d = line.twiss(method='4d')
 
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                     twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                             line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                                line=line, zeta=-d_zeta))
-dx_zeta_rf_off_crab_off = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
+tw6d_rf_on = line.twiss()
+tw4d_rf_on = line.twiss(method='4d')
 
-tw_plus_closed = line.twiss(method='4d', zeta0=d_zeta)
-tw_minus_closed = line.twiss(method='4d', zeta0=-d_zeta)
-cl_dx_zeta_rf_off_crab_off = (tw_plus_closed.x - tw_minus_closed.x)/(tw_plus_closed.zeta - tw_minus_closed.zeta)
-
-line.vars['vrf400'] = 16
-
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                     twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                             line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                                line=line, zeta=-d_zeta))
-dx_zeta_4d_rf_on_crab_off = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
-
-tw_plus_closed = line.twiss(method='4d', zeta0=d_zeta)
-tw_minus_closed = line.twiss(method='4d', zeta0=-d_zeta)
-cl_dx_zeta_4d_rf_on_crab_off = (tw_plus_closed.x - tw_minus_closed.x)/(tw_plus_closed.zeta - tw_minus_closed.zeta)
-
-line.vars['on_crab1'] = -190
-
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                                line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                                line=line, zeta=-d_zeta))
-dx_zeta_4d_rf_on_crab_on = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
-
-tw_plus_closed = line.twiss(method='4d', zeta0=d_zeta)
-tw_minus_closed = line.twiss(method='4d', zeta0=-d_zeta)
-cl_dx_zeta_4d_rf_on_crab_on = (tw_plus_closed.x - tw_minus_closed.x)/(tw_plus_closed.zeta - tw_minus_closed.zeta)
-
-line.vars['vrf400'] = 0
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                                line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
-                                                line=line, zeta=-d_zeta))
-dx_zeta_rf_off_crab_on = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
-
-tw_plus_closed = line.twiss(method='4d', zeta0=d_zeta)
-tw_minus_closed = line.twiss(method='4d', zeta0=-d_zeta)
-cl_dx_zeta_rf_off_crab_on = (tw_plus_closed.x - tw_minus_closed.x)/(tw_plus_closed.zeta - tw_minus_closed.zeta)
-
+collider.vars['vrf400'] = 0
+tw4d_rf_off = line.twiss(method='4d')
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
-plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_on, label='rf on, crab on', color='g')
-plt.plot(tw_plus.s, dx_zeta_rf_off_crab_on, label='rf off, crab on', color='m')
-plt.plot(tw_plus.s, dx_zeta_4d_rf_on_crab_off, label='rf on, crab off', color='b')
-plt.plot(tw_plus.s, dx_zeta_rf_off_crab_off, label='rf off, crab off', color='r')
-plt.axvline(x=line.get_s_position('ip4'), color='k', linestyle='--', label='ip4')
+plt.plot(tw6d_rf_on.s, tw6d_rf_on.dx_zeta, label='6D - RF on')
+plt.plot(tw4d_rf_on.s, tw4d_rf_on.dx_zeta, '--', label='4D - RF on')
+plt.plot(tw4d_rf_off.s, tw4d_rf_off.dx_zeta, label='4D - RF off')
 plt.legend()
 plt.xlabel('s [m]')
 plt.ylabel('dx/dzeta')
-
-
-
-
-
-line.vars['vrf400'] = 16
-
-line.vars['on_crab1'] = 0
-tw_crab_off = line.twiss()
-line.vars['on_crab1'] = -190
-tw_crab_on = line.twiss()
-
-plt.figure(2)
-plt.plot(tw_crab_on.s, tw_crab_on.dx_zeta, label='crab on')
-plt.plot(tw_crab_off.s, tw_crab_off.dx_zeta, label='crab off')
-plt.legend()
-plt.xlabel('s [m]')
-plt.ylabel('dx/dzeta')
-
-
-plt.figure(10)
-plt.plot(tw_plus.s, cl_dx_zeta_4d_rf_on_crab_on, label='rf on, crab on', color='g')
-plt.plot(tw_plus.s, cl_dx_zeta_rf_off_crab_on, label='rf off, crab on', color='m')
-plt.plot(tw_plus.s, cl_dx_zeta_4d_rf_on_crab_off, label='rf on, crab off', color='b')
-plt.plot(tw_plus.s, cl_dx_zeta_rf_off_crab_off, label='rf off, crab off', color='r')
-plt.plot(tw_plus.s, tw_crab_on.dx_zeta, '--', label='6d', color='k', linewidth=2)
-plt.legend()
-plt.xlabel('s [m]')
-plt.ylabel('dx/dzeta')
-
 plt.show()
+
 
 
