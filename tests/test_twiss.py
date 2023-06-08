@@ -437,7 +437,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell_periodic.name[0] == start_cell
         assert tw_cell_periodic.name[-2] == end_cell
         assert tw_cell_periodic.method == '4d'
-        assert tw_cell_periodic.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
+        assert tw_cell_periodic.orientation == 'forward'
         assert tw_cell_periodic.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         assert np.allclose(tw_cell_periodic.betx, tw_cell.betx, atol=0, rtol=1e-6)
