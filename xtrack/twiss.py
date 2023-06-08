@@ -580,7 +580,7 @@ def _twiss_open(line, twiss_init,
 
     if _ebe_monitor is not None:
         _monitor = _ebe_monitor
-    elif hasattr(line, '_reusable_ebe_monitor_for_twiss'):
+    elif hasattr(line.tracker._tracker_data, '_reusable_ebe_monitor_for_twiss'):
         _monitor = line.tracker._tracker_data._reusable_ebe_monitor_for_twiss
     else:
         _monitor = 'ONE_TURN_EBE'
