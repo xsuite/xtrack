@@ -315,6 +315,9 @@ def twiss_line(line, particle_ref=None, method=None,
             assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop), (
                 'ele_start must be larger than ele_stop in forward mode')
 
+    if ele_start is not None:
+        assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop)
+
     if method == '4d' and freeze_energy is None:
         freeze_energy = True
 
@@ -384,6 +387,7 @@ def twiss_line(line, particle_ref=None, method=None,
         # Periodic mode
         periodic = True
 
+        import pdb; pdb.set_trace()
         twiss_init, R_matrix = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
@@ -987,16 +991,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
             'ele_start and ele_stop must be both None or both not None')
-        # Periodic solution is always computed tracking forward
-        if ele_start < ele_stop:
-            ele_start_periodic = ele_start
-            ele_stop_periodic = ele_stop
-        else:
-            ele_start_periodic = ele_stop
-            ele_stop_periodic = ele_start
-    else:
-        ele_start_periodic = None
-        ele_stop_periodic = None
+
+    if ele_start is not None:
+        assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop)
 
     if method == '4d' and delta0 is None:
         delta0 = 0
@@ -1011,8 +1008,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                 delta0=delta0,
                                 zeta0=zeta0,
-                                ele_start=ele_start_periodic,
-                                ele_stop=ele_stop_periodic)
+                                ele_start=ele_start,
+                                ele_stop=ele_stop)
 
     if W_matrix is not None:
         W = W_matrix
@@ -1024,8 +1021,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             RR = line.compute_one_turn_matrix_finite_differences(
                                         steps_r_matrix=steps_r_matrix,
                                         particle_on_co=part_on_co,
-                                        ele_start=ele_start_periodic,
-                                        ele_stop=ele_stop_periodic)
+                                        ele_start=ele_start,
+                                        ele_stop=ele_stop)
 
         W, _, _ = lnf.compute_linear_normal_form(
                                 RR, only_4d_block=(method == '4d'),
@@ -1065,11 +1062,11 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         W[3, 4] = dpy_zeta
 
     if isinstance(ele_start, str):
-        tw_init_element_name = ele_start_periodic
-    elif ele_start_periodic is None:
+        tw_init_element_name = ele_start
+    elif ele_start is None:
         tw_init_element_name = line.element_names[0]
     else:
-        tw_init_element_name = line.element_names[ele_start_periodic]
+        tw_init_element_name = line.element_names[ele_start]
 
     twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
                            element_name=tw_init_element_name,
