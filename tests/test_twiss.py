@@ -63,33 +63,36 @@ def test_coupled_beta(test_context):
     mad.twiss() # I see to need to do it twice to get the right coupling in madx?!
 
     tw_mad_coupling = mad.twiss(ripken=True).dframe()
+    tw_mad_coupling.set_index('name', inplace=True)
 
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
     line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 
     line.build_tracker(_context=test_context)
 
-    tw = line.twiss()
+    tw6d = line.twiss()
+    tw4d = line.twiss(method='4d')
 
-    twdf = tw.to_pandas()
-    twdf.set_index('name', inplace=True)
+    for tw in (tw6d, tw4d):
 
-    ips = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7', 'ip8']
-    betx2_at_ips = twdf.loc[ips, 'betx2'].values
-    bety1_at_ips = twdf.loc[ips, 'bety1'].values
+        twdf = tw.to_pandas()
+        twdf.set_index('name', inplace=True)
 
-    tw_mad_coupling.set_index('name', inplace=True)
-    beta12_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta12'].values
-    beta21_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta21'].values
+        ips = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7', 'ip8']
+        betx2_at_ips = twdf.loc[ips, 'betx2'].values
+        bety1_at_ips = twdf.loc[ips, 'bety1'].values
 
-    assert np.allclose(betx2_at_ips, beta12_mad_at_ips, rtol=1e-4, atol=0)
-    assert np.allclose(bety1_at_ips, beta21_mad_at_ips, rtol=1e-4, atol=0)
+        beta12_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta12'].values
+        beta21_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta21'].values
 
-    #cmin_ref = mad.table.summ.dqmin[0] # dqmin is not calculated correctly in madx
-                                        # (https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/1152)
-    cmin_ref = 0.001972093557# obtained with madx with trial and error
+        assert np.allclose(betx2_at_ips, beta12_mad_at_ips, rtol=1e-4, atol=0)
+        assert np.allclose(bety1_at_ips, beta21_mad_at_ips, rtol=1e-4, atol=0)
 
-    assert np.isclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
+        #cmin_ref = mad.table.summ.dqmin[0] # dqmin is not calculated correctly in madx
+                                            # (https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/1152)
+        cmin_ref = 0.001972093557# obtained with madx with trial and error
+
+        assert np.isclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
 
 
 @for_all_test_contexts
