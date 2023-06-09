@@ -860,6 +860,7 @@ class Line:
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
+        freeze_energy=None,
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,

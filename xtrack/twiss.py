@@ -249,7 +249,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         with xt.freeze_longitudinal(line):
             return twiss_line(**kwargs)
-    elif freeze_energy or method=='4d':
+    elif freeze_energy or (freeze_energy is None and method=='4d'):
         if not line._energy_is_frozen():
             kwargs = locals().copy()
             kwargs.pop('freeze_energy')
@@ -1554,7 +1554,11 @@ class TwissTable(Table):
         gemitt_x = nemitt_x / (beta0 * gamma0)
         gemitt_y = nemitt_y / (beta0 * gamma0)
 
-        Ws = self.W_matrix
+        Ws = self.W_matrix.copy()
+
+        if self.method == '4d':
+            Ws[:, 4:, 4:] = 0
+
         v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
         v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
         v3 = Ws[:,:,4] + 1j * Ws[:,:,5]
@@ -1575,20 +1579,22 @@ class TwissTable(Table):
         res_data['s'] = self.s.copy()
         res_data['name'] = self.name
 
+        # Longitudinal plane is untested
+
         res_data['Sigma'] = Sigma
         res_data['Sigma11'] = Sigma[:, 0, 0]
         res_data['Sigma12'] = Sigma[:, 0, 1]
         res_data['Sigma13'] = Sigma[:, 0, 2]
         res_data['Sigma14'] = Sigma[:, 0, 3]
-        res_data['Sigma15'] = Sigma[:, 0, 4]
-        res_data['Sigma16'] = Sigma[:, 0, 5]
+        # res_data['Sigma15'] = Sigma[:, 0, 4]
+        # res_data['Sigma16'] = Sigma[:, 0, 5]
 
         res_data['Sigma21'] = Sigma[:, 1, 0]
         res_data['Sigma22'] = Sigma[:, 1, 1]
         res_data['Sigma23'] = Sigma[:, 1, 2]
         res_data['Sigma24'] = Sigma[:, 1, 3]
-        res_data['Sigma25'] = Sigma[:, 1, 4]
-        res_data['Sigma26'] = Sigma[:, 1, 5]
+        # res_data['Sigma25'] = Sigma[:, 1, 4]
+        # res_data['Sigma26'] = Sigma[:, 1, 5]
 
         res_data['Sigma31'] = Sigma[:, 2, 0]
         res_data['Sigma32'] = Sigma[:, 2, 1]
@@ -1598,12 +1604,12 @@ class TwissTable(Table):
         res_data['Sigma42'] = Sigma[:, 3, 1]
         res_data['Sigma43'] = Sigma[:, 3, 2]
         res_data['Sigma44'] = Sigma[:, 3, 3]
-        res_data['Sigma51'] = Sigma[:, 4, 0]
-        res_data['Sigma52'] = Sigma[:, 4, 1]
+        # res_data['Sigma51'] = Sigma[:, 4, 0]
+        # res_data['Sigma52'] = Sigma[:, 4, 1]
 
         res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
         res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
-        res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
+        # res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
         return Table(res_data)
 
