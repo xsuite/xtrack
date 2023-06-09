@@ -387,7 +387,6 @@ def twiss_line(line, particle_ref=None, method=None,
         # Periodic mode
         periodic = True
 
-        import pdb; pdb.set_trace()
         twiss_init, R_matrix = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,

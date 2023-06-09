@@ -425,7 +425,6 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_cell.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
-        import pdb; pdb.set_trace()
         tw_cell_periodic = line.twiss(
             method='4d',
             ele_start=start_cell,
