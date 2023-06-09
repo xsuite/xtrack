@@ -250,10 +250,9 @@ def twiss_line(line, particle_ref=None, method=None,
         with xt.freeze_longitudinal(line):
             return twiss_line(**kwargs)
     elif freeze_energy or method=='4d':
-        kwargs = locals().copy()
-        kwargs.pop('freeze_energy')
-
         if not line._energy_is_frozen():
+            kwargs = locals().copy()
+            kwargs.pop('freeze_energy')
             with xt.line._preserve_config(line):
                 line.freeze_energy()
                 return twiss_line(freeze_energy=False, **kwargs)
