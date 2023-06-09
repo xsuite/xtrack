@@ -282,6 +282,7 @@ class TrackerData:
         out['_ElementRefClass'] = None
         out['kernel_element_classes'] = [cc._DressingClass for cc in self.kernel_element_classes]
         out['line_element_classes'] = [cc._DressingClass for cc in self.line_element_classes]
+        out['extra_element_classes'] = [cc._DressingClass for cc in self.extra_element_classes]
         return out
 
     def __setstate__(self, state):
@@ -289,6 +290,7 @@ class TrackerData:
         self.__dict__.update(state)
         self.kernel_element_classes = [cc._XoStruct for cc in self.kernel_element_classes]
         self.line_element_classes = [cc._XoStruct for cc in self.line_element_classes]
+        self.extra_element_classes = [cc._XoStruct for cc in self.extra_element_classes]
 
         class ElementRefClass(xo.UnionRef):
             _reftypes = self.kernel_element_classes
