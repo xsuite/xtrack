@@ -441,16 +441,19 @@ class Tracker:
                 printf("elm_idx %d ele_start %d ele_stop %d increm %d\n",
                         (int) elem_idx, (int) ele_start, (int) ele_stop, (int) increm);
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
-
+                        printf("elm_idx %d\n", (int) elem_idx);
                         if (flag_monitor==2){
+                            printf("Entering monitor\n");
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
+                        printf("Passed monitor\n");
 
                         // Get the pointer to and the type id of the `elem_idx`th
                         // element in `element_ref_data.elements`:
                         /*gpuglmem*/ void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
                         int64_t elem_type = ElementRefData_typeid_elements(elem_ref_data, elem_idx);
 
+                        printf("elm_idx %d elem_type %d\n", (int) elem_idx, (int) elem_type);
                         switch(elem_type){
         """
         )
@@ -473,7 +476,9 @@ class Tracker:
                 )
             src_lines.append(
                 f"""
+                            printf("Entering elm_idx %d elem_type %d {ccnn}\\n", (int) elem_idx, (int) elem_type);
                             {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
+                            printf("Passed elm_idx %d elem_type %d {ccnn}\\n", (int) elem_idx, (int) elem_type);
                             break;"""
             )
 
@@ -1297,10 +1302,18 @@ class Tracker:
     @property
     def _current_track_kernel(self):
         try:
-            return self.track_kernel[self._hashable_config()]
+            out =  self.track_kernel[self._hashable_config()]
         except KeyError:
             self._build_kernel(compile=True)
-            return self._current_track_kernel
+            out = self._current_track_kernel
+
+        assert out.description.args[1].name == 'tracker_data'
+        kernel_tracker_data_type = out.description.args[1].atype
+        kernel_element_ref_class = kernel_tracker_data_type.elements.ftype._itemtype
+        assert (len(kernel_element_ref_class._reftypes)
+                == len(self._tracker_data._ElementRefClass._reftypes))
+
+        return out
 
     @_current_track_kernel.setter
     def _current_track_kernel(self, value):
