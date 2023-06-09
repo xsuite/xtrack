@@ -438,22 +438,16 @@ class Tracker:
                 }
                 #endif
 
-                printf("elm_idx %d ele_start %d ele_stop %d increm %d\n",
-                        (int) elem_idx, (int) ele_start, (int) ele_stop, (int) increm);
                 for (; ((elem_idx >= ele_start) && (elem_idx < ele_stop)); elem_idx+=increm){
-                        printf("elm_idx %d\n", (int) elem_idx);
                         if (flag_monitor==2){
-                            printf("Entering monitor\n");
                             ParticlesMonitor_track_local_particle(tbt_monitor, &lpart);
                         }
-                        printf("Passed monitor\n");
 
                         // Get the pointer to and the type id of the `elem_idx`th
                         // element in `element_ref_data.elements`:
                         /*gpuglmem*/ void* el = ElementRefData_member_elements(elem_ref_data, elem_idx);
                         int64_t elem_type = ElementRefData_typeid_elements(elem_ref_data, elem_idx);
 
-                        printf("elm_idx %d elem_type %d\n", (int) elem_idx, (int) elem_type);
                         switch(elem_type){
         """
         )
@@ -476,9 +470,7 @@ class Tracker:
                 )
             src_lines.append(
                 f"""
-                            printf("Entering elm_idx %d elem_type %d {ccnn}\\n", (int) elem_idx, (int) elem_type);
                             {ccnn}_track_local_particle(({ccnn}Data) el, &lpart);
-                            printf("Passed elm_idx %d elem_type %d {ccnn}\\n", (int) elem_idx, (int) elem_type);
                             break;"""
             )
 
