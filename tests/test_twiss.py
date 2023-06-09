@@ -922,3 +922,52 @@ def test_custom_twiss_init(test_context):
         for ii in range(4):
             assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
                             /np.linalg.norm(this_part[ii, :])), 0, atol=3e-4)
+
+@for_all_test_contexts
+def test_crab_dispersion(test_context):
+
+    collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_collider/collider_00_from_mad.json')
+    collider.build_trackers(_context=test_context)
+
+    collider.vars['vrf400'] = 16
+    collider.vars['on_crab1'] = -190
+    collider.vars['on_crab5'] = -190
+
+    line = collider.lhcb1
+
+    tw6d_rf_on = line.twiss()
+    tw4d_rf_on = line.twiss(method='4d')
+
+    collider.vars['vrf400'] = 0
+    tw4d_rf_off = line.twiss(method='4d')
+
+    collider.vars['vrf400'] = 16
+    collider.vars['on_crab1'] = 0
+    collider.vars['on_crab5'] = 0
+
+    line = collider.lhcb1
+
+    tw6d_rf_on_crab_off = line.twiss()
+    tw4d_rf_on_crab_off = line.twiss(method='4d')
+
+    assert np.allclose(tw4d_rf_on['delta'], 0, rtol=0, atol=1e-12)
+    assert np.allclose(tw4d_rf_off['delta'], 0, rtol=0, atol=1e-12)
+    assert np.allclose(tw4d_rf_on_crab_off['delta'], 0, rtol=0, atol=1e-12)
+
+    assert np.isclose(tw6d_rf_on['dx_zeta', 'ip1'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw6d_rf_on['dy_zeta', 'ip5'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_on['dx_zeta', 'ip1'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_on['dy_zeta', 'ip5'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_off['dx_zeta', 'ip1'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_off['dy_zeta', 'ip5'], -190e-6, rtol=1e-4, atol=0)
+
+    assert np.allclose(tw6d_rf_on_crab_off['dx_zeta'], 0, rtol=0, atol=1e-8)
+    assert np.allclose(tw6d_rf_on_crab_off['dy_zeta'], 0, rtol=0, atol=1e-8)
+    assert np.allclose(tw4d_rf_on_crab_off['dx_zeta'], 0, rtol=0, atol=1e-8)
+    assert np.allclose(tw4d_rf_on_crab_off['dy_zeta'], 0, rtol=0, atol=1e-8)
+
+    assert np.allclose(tw6d_rf_on['dx_zeta'], tw4d_rf_on['dx_zeta'], rtol=0, atol=1e-7)
+    assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_on['dy_zeta'], rtol=0, atol=1e-7)
+    assert np.allclose(tw6d_rf_on['dx_zeta'], tw4d_rf_off['dx_zeta'], rtol=0, atol=1e-7)
+    assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_off['dy_zeta'], rtol=0, atol=1e-7)
