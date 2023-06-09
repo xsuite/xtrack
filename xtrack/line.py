@@ -1674,6 +1674,13 @@ class Line:
         else:
             self.unfreeze_vars(xp.Particles.part_energy_varnames())
 
+    def _energy_is_frozen(self):
+        for vn in xp.Particles.part_energy_varnames():
+            flag_name = f'FREEZE_VAR_{vn}'
+            if flag_name not in self.config or self.config[flag_name] == False:
+                return False
+        return True
+
     def freeze_longitudinal(self, state=True):
 
         """
@@ -1708,6 +1715,9 @@ class Line:
 
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = True
+
+    def _var_is_frozen(self, variable_name):
+        return self.config[f'FREEZE_VAR_{variable_name}'] == True
 
     def unfreeze_vars(self, variable_names):
 
