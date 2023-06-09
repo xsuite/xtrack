@@ -74,6 +74,7 @@ class TrackerData:
         self._element_names = tuple(element_names)
         self._elements = tuple([element_dict[ee] for ee in element_names])
         self._is_backtrackable = np.all([ee.has_backtrack for ee in self._elements])
+        self.extra_element_classes = extra_element_classes
 
         if _buffer is None:
             common_buffer = self.common_buffer_for_elements()
