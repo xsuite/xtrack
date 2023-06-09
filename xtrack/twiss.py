@@ -254,7 +254,7 @@ def twiss_line(line, particle_ref=None, method=None,
             kwargs = locals().copy()
             kwargs.pop('freeze_energy')
             with xt.line._preserve_config(line):
-                line.freeze_energy()
+                line.freeze_energy(force=True) # need to force for collective lines
                 return twiss_line(freeze_energy=False, **kwargs)
 
     if radiation_method != 'full':

@@ -1654,7 +1654,7 @@ class Line:
 
         return new_line
 
-    def freeze_energy(self, state=True):
+    def freeze_energy(self, state=True, force=False):
 
         """
         Freeze energy in tracked Particles objects.
@@ -1667,8 +1667,9 @@ class Line:
         """
 
         assert state in (True, False)
-        assert self.iscollective is False, ('Cannot freeze energy '
-                        'in collective mode (not yet implemented)')
+        if not force:
+            assert self.iscollective is False, ('Cannot freeze energy '
+                            'in collective mode (not yet implemented)')
         if state:
             self.freeze_vars(xp.Particles.part_energy_varnames())
         else:
