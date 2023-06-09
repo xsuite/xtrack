@@ -338,17 +338,8 @@ class Tracker:
             )
             if kernel_info:
                 module_name, modules_classes = kernel_info
-                kernel_description = self.get_kernel_descriptions()['track_line']
-                kernels = self._context.kernels_from_file(
-                    module_name=module_name,
-                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
-                    kernel_descriptions={'track_line': kernel_description},
-                )
-                classes = (self.particles_class._XoStruct,)
-                #self._context.kernels.update(kernels)
-                #self._current_track_kernel = self._context.kernels[('track_line', classes)]
-                self._current_track_kernel = kernels[('track_line', classes)]
                 _kernel_element_classes = [cls._XoStruct for cls in modules_classes]
+
                 self._tracker_data = TrackerData(
                     element_dict=self._tracker_data._element_dict,
                     element_names=self._tracker_data._element_names,
@@ -358,6 +349,15 @@ class Tracker:
                     _context=self._context,
                     _buffer=self._buffer,
                 )
+
+                kernel_description = self.get_kernel_descriptions()['track_line']
+                kernels = self._context.kernels_from_file(
+                    module_name=module_name,
+                    containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+                    kernel_descriptions={'track_line': kernel_description},
+                )
+                classes = (self.particles_class._XoStruct,)
+                self._current_track_kernel = kernels[('track_line', classes)]
                 return
 
         context = self._tracker_data._buffer.context
