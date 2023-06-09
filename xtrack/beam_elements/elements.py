@@ -709,6 +709,10 @@ class CombinedFunctionMagnet(BeamElement):
         'inv_factorial_order': xo.Float64,
     }
 
+    _rename = {
+        'order': '_order',
+    }
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
@@ -724,12 +728,22 @@ class CombinedFunctionMagnet(BeamElement):
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
         order = kwargs.get('order', max(0, order_from_kl))
-        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
 
         self.xoinitialize(**kwargs)
+
+        self.order = order
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
     @property
     def hxl(self): return self.h * self.length
@@ -829,6 +843,10 @@ class TrueBend(BeamElement):
         'inv_factorial_order': xo.Float64,
     }
 
+    _rename = {
+        'order': '_order',
+    }
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
@@ -844,12 +862,22 @@ class TrueBend(BeamElement):
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
         order = kwargs.get('order', max(order_from_kl, 0))
-        kwargs['order'] = order
-        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+
         self.xoinitialize(**kwargs)
+
+        self.order = order
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
     @property
     def hxl(self): return self.h * self.length
