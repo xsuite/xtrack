@@ -1103,7 +1103,7 @@ class Tracker:
         self._current_track_kernel.description.n_threads = particles._capacity
 
         # First turn
-        self._check_start_stop_consistency(num_elements_first_turn)
+        assert num_elements_first_turn >= 0
         self._current_track_kernel(
             buffer=self._tracker_data._buffer.buffer,
             tracker_data=self._tracker_data._element_ref_data,
@@ -1123,7 +1123,7 @@ class Tracker:
 
         # Middle turns
         if num_middle_turns > 0:
-            self._check_start_stop_consistency(self.num_elements)
+            assert self.num_elements > 0
             self._current_track_kernel(
                 buffer=self._tracker_data._buffer.buffer,
                 tracker_data=self._tracker_data._element_ref_data,
@@ -1143,7 +1143,7 @@ class Tracker:
 
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
-            self._check_start_stop_consistency(num_elements_last_turn)
+            assert num_elements_last_turn > 0
             self._current_track_kernel(
                 buffer=self._tracker_data._buffer.buffer,
                 tracker_data=self._tracker_data._element_ref_data,
@@ -1278,19 +1278,6 @@ class Tracker:
             tracker.line.particle_ref = xp.Particles.from_dict(particle_ref)
 
         return tracker
-
-    def _check_start_stop_consistency(self, n_ele_track):
-        if 'XSUITE_BACKTRACK' in self.config and self.config.XSUITE_BACKTRACK:
-            if n_ele_track > 0:
-                raise ValueError(
-                    "When using backtrack ele_start must be greater than ele_stop.")
-        else:
-            if n_ele_track < 0:
-                raise ValueError(
-                    "When not using backtrack, ele_start must be smaller than ele_stop.")
-        if np.abs(n_ele_track) > self.num_elements:
-            raise ValueError(
-                "The number of elements to track is greater than the number of elements in the lattice.")
 
     def _hashable_config(self):
         items = ((k, v) for k, v in self.config.items() if v is not False)

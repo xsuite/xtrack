@@ -303,7 +303,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if reverse:
         if ele_start is not None and ele_stop is not None:
-            assert ele_start <= ele_stop, (
+            assert _str_to_index(line, ele_start) >= _str_to_index(line, ele_stop), (
                 'ele_start must be smaller than ele_stop in reverse mode')
         ele_start, ele_stop = ele_stop, ele_start
         if twiss_init == 'preserve' or twiss_init == 'preserve_start':
@@ -312,7 +312,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_init = 'preserve_start'
     else:
         if ele_start is not None and ele_stop is not None:
-            assert ele_start >= ele_stop, (
+            assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop), (
                 'ele_start must be larger than ele_stop in forward mode')
 
     if method == '4d' and freeze_energy is None:
@@ -1937,6 +1937,10 @@ def _extract_knl_ksl(line, names):
 
     return k_dict
 
-
+def _str_to_index(line, ele):
+    if isinstance(ele, str):
+        return line.element_names.index(ele)
+    else:
+        return ele
 
 
