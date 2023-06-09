@@ -151,6 +151,7 @@ class Tracker:
             self._zerodrift = Drift(_context=_buffer.context, length=0)
 
         self._track_kernel = track_kernel or {}
+        self._tracker_data_cache = {}
 
         self.line = line
         self.line.tracker = self
@@ -357,8 +358,8 @@ class Tracker:
                     kernel_descriptions={'track_line': kernel_description},
                 )
                 classes = (self.particles_class._XoStruct,)
-                self._current_track_kernel = kernels[('track_line', classes)]
-                return
+
+                return kernels[('track_line', classes)]
 
         context = self._tracker_data._buffer.context
 
@@ -565,10 +566,7 @@ class Tracker:
         )
 
         classes = (self.particles_class._XoStruct,)
-        self._current_track_kernel = out_kernels[('track_line', classes)]
-        # self._current_track_kernel = context.kernels[('track_line', classes)]
-        # context.kernels.update(out_kernels)
-
+        return out_kernels[('track_line', classes)]
 
     def get_kernel_descriptions(self, _context=None):
         if not _context:
@@ -1293,12 +1291,18 @@ class Tracker:
 
     @property
     def _current_track_kernel(self):
-        try:
-            out =  self.track_kernel[self._hashable_config()]
-        except KeyError:
-            self._build_kernel(compile=True)
-            out = self._current_track_kernel
 
+        hash_config = self._hashable_config()
+
+        if hash_config not in self.track_kernel:
+            new_kernel = self._build_kernel(compile=True)
+            self.track_kernel[hash_config] = new_kernel
+            self._tracker_data_cache[hash_config] = self._tracker_data
+
+        out = self.track_kernel[hash_config]
+        self._tracker_data = self._tracker_data_cache[hash_config]
+
+        # sanity check
         assert out.description.args[1].name == 'tracker_data'
         kernel_tracker_data_type = out.description.args[1].atype
         kernel_element_ref_class = kernel_tracker_data_type.elements.ftype._itemtype
@@ -1306,10 +1310,6 @@ class Tracker:
                 == len(self._tracker_data._ElementRefClass._reftypes))
 
         return out
-
-    @_current_track_kernel.setter
-    def _current_track_kernel(self, value):
-        self.track_kernel[self._hashable_config()] = value
 
     @property
     def reset_s_at_end_turn(self):
@@ -1327,17 +1327,17 @@ class Tracker:
     def skip_end_turn_actions(self, value):
         self.line.skip_end_turn_actions = value
 
-    def __getattr__(self, attr):
-        # If not in self look in self.line (if not None)
-        if attr == 'line':
-            raise AttributeError(f'Tracker object has no attribute `{attr}`')
-        if self.line is not None and attr in object.__dir__(self.line):
-            _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
-                f' Please use `Line.{attr}` (for more info see '
-                'https://github.com/xsuite/xsuite/issues/322)')
-            return getattr(self.line, attr)
-        else:
-            raise AttributeError(f'Tracker object has no attribute `{attr}`')
+    # def __getattr__(self, attr):
+    #     # If not in self look in self.line (if not None)
+    #     if attr == 'line':
+    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
+    #     if self.line is not None and attr in object.__dir__(self.line):
+    #         _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
+    #             f' Please use `Line.{attr}` (for more info see '
+    #             'https://github.com/xsuite/xsuite/issues/322)')
+    #         return getattr(self.line, attr)
+    #     else:
+    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
 
     def __dir__(self):
         return list(set(object.__dir__(self) + dir(self.line)))
