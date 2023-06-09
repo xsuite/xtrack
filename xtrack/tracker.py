@@ -1302,6 +1302,7 @@ class Tracker:
         out = self.track_kernel[hash_config]
 
         if hash_config not in self._tracker_data_cache:
+            assert out.description.args[1].name == 'tracker_data'
             kernel_tracker_data_type = out.description.args[1].atype
             kernel_element_ref_class = kernel_tracker_data_type.elements.ftype._itemtype
             kernel_element_classes = kernel_element_ref_class._reftypes
