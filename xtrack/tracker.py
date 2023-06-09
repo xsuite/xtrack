@@ -1300,6 +1300,20 @@ class Tracker:
             self._tracker_data_cache[hash_config] = self._tracker_data
 
         out = self.track_kernel[hash_config]
+
+        if hash_config not in self._tracker_data_cache:
+            td = TrackerData(
+                    element_dict=self._tracker_data._element_dict,
+                    element_names=self._tracker_data._element_names,
+                    element_s_locations=self._tracker_data.element_s_locations,
+                    line_length=self._tracker_data.line_length,
+                    kernel_element_classes=_kernel_element_classes,
+                    _context=self._context,
+                    _buffer=self._buffer,
+                )
+
+        prrrrrr
+
         self._tracker_data = self._tracker_data_cache[hash_config]
 
         # sanity check
