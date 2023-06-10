@@ -236,8 +236,8 @@ def regenerate_kernels():
                               compile='force')
 
         save_kernel_metadata(module_name=module_name,
-                             config=tracker.config,
-                             kernel_element_classes=tracker.kernel_element_classes)
+            config=tracker.config,
+            kernel_element_classes=tracker._tracker_data_base.kernel_element_classes)
 
 
 def clear_kernels():
