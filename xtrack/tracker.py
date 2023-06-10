@@ -124,6 +124,7 @@ class Tracker:
             ele_dict_non_collective = line.element_dict
 
         tracker_data = TrackerData(
+            allow_move=True, # Will move elements to the same buffer
             element_dict=ele_dict_non_collective,
             element_names=line.element_names,
             element_s_locations=line.get_s_elements(),

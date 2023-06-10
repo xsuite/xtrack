@@ -37,6 +37,7 @@ class TrackerData:
             line_length,
             kernel_element_classes=None,
             extra_element_classes=(),
+            allow_move=False,
             _context=None,
             _buffer=None,
             _offset=None,
@@ -62,6 +63,9 @@ class TrackerData:
             the inferred list of element classes.
         """
 
+        if _offset is not None:
+            raise ValueError('`_offset` is not supported yet')
+
         self._element_dict = element_dict
         self._element_names = tuple(element_names)
         self._elements = tuple([element_dict[ee] for ee in element_names])
@@ -74,7 +78,7 @@ class TrackerData:
                 _buffer = common_buffer
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
 
-        check_passed = self.check_elements_in_common_buffer(_buffer, allow_move=True)
+        check_passed = self.check_elements_in_common_buffer(_buffer, allow_move=allow_move)
         if not check_passed:
             raise RuntimeError('The elements are not in the same buffer')
 
