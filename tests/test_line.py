@@ -653,7 +653,7 @@ def test_optimize_multipoles(test_context):
     for nn in test_line.element_names:
         if nn in ('d1', 'd2'):
             assert type(test_line.element_dict[nn]) is xt.SimpleThinBend
-        elif nn == 'q1':
+        elif nn == 'q1' or nn == 'q3':
             assert type(test_line.element_dict[nn]) is xt.SimpleThinQuadrupole
         else:
             assert type(test_line.element_dict[nn]) is xt.Multipole
