@@ -84,7 +84,9 @@ class TrackerData:
                 _buffer = common_buffer
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
 
-        self.move_elements_to_common_buffer(_buffer)
+        check_passed = self.check_elements_in_common_buffer(_buffer, allow_move=True)
+        if not check_passed:
+            raise RuntimeError('The elements are not in the same buffer')
 
         line_element_classes = set(ee._XoStruct for ee in self._elements)
         if not kernel_element_classes:
@@ -93,7 +95,7 @@ class TrackerData:
             kernel_element_classes = sorted(kernel_element_classes, key=lambda cc: cc.__name__)
         else:
             if not line_element_classes.issubset(set(kernel_element_classes)):
-                raise ValueError(
+                raise RuntimeError(
                     f'The following classes are not in `kernel_element_classes`: '
                     f'{line_element_classes - set(kernel_element_classes)}')
 
@@ -159,14 +161,19 @@ class TrackerData:
             _buffer=buffer,
         )
 
-    def move_elements_to_common_buffer(self, buffer):
+    def check_elements_in_common_buffer(self, buffer, allow_move=False):
         """
         Move all the elements to the common buffer, if they are not already
         there.
         """
         for ee in self._elements:
             if ee._buffer is not buffer:
-                ee.move(_buffer=buffer)
+                if allow_move:
+                    ee.move(_buffer=buffer)
+                else:
+                    return False
+
+        return True
 
     def build_ref_data(self, buffer):
         """
