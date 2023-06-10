@@ -132,19 +132,8 @@ class TrackerData:
         together with the offset to the header in the buffer.
         These two are sufficient for recreating the line.
         """
-        _element_ref_data = self._element_ref_data
-        if not buffer:
-            buffer = _element_ref_data._buffer
 
-        if buffer is not _element_ref_data._buffer:
-            _element_ref_data = self.move_elements_and_build_ref_data(buffer)
-
-        header = self.build_header(
-            buffer=buffer,
-            element_ref_data_offset=_element_ref_data._offset,
-        )
-
-        return buffer, header._offset
+        raise NotImplementedError('This method is not supported anymore')
 
 
     def check_elements_in_common_buffer(self, buffer, allow_move=False):
