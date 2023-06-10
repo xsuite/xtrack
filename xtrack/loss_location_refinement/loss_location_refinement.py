@@ -366,8 +366,8 @@ def interp_aperture_using_polygons(context, line,
 
 def generate_interp_aperture_locations(line, i_aper_0, i_aper_1, ds):
 
-    s0 = line.tracker._tracker_data.element_s_locations[i_aper_0]
-    s1 = line.tracker._tracker_data.element_s_locations[i_aper_1]
+    s0 = line.tracker._tracker_data_base.element_s_locations[i_aper_0]
+    s1 = line.tracker._tracker_data_base.element_s_locations[i_aper_1]
     assert s1>=s0
     n_segments = int(np.ceil((s1-s0)/ds))
     if n_segments <= 1:
@@ -388,7 +388,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
         ee = line.elements[i_ele]
         if not _behaves_like_drift(ee):
             assert not _is_thick(ee)
-            ss_ee = line.tracker._tracker_data.element_s_locations[i_ele]
+            ss_ee = line.tracker._tracker_data_base.element_s_locations[i_ele]
             elements.append(ee.copy(_buffer=_buffer))
             s_elements.append(ss_ee)
     i_sorted = np.argsort(s_elements)
@@ -410,8 +410,7 @@ def build_interp_line(_buffer, s0, s1, s_interp, aper_0, aper_1, aper_interp,
     interp_line = Line(elements=ele_all)
 
     interp_line.build_tracker(_buffer=_buffer,
-                              track_kernel=_ln_gen.tracker.track_kernel,
-                              kernel_element_classes=_ln_gen.tracker.kernel_element_classes)
+                              track_kernel=_ln_gen.tracker.track_kernel)
     interp_line.reset_s_at_end_turn = False
     interp_line.config.XTRACK_GLOBAL_XY_LIMIT = _ln_gen.config.XTRACK_GLOBAL_XY_LIMIT
 
@@ -478,7 +477,7 @@ def characterize_aperture(line, i_aperture, n_theta, r_max, dr,
         i_start = i_aperture
         backtrack = 'force'
         assert np.all([ee.has_backtrack for ee in
-                line.tracker._tracker_data.elements[i_start:i_stop+1]])
+                line.tracker._tracker_data_base.elements[i_start:i_stop+1]])
         index_start_thin = i_stop - 1
 
     # Get polygon

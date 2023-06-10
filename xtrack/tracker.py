@@ -52,7 +52,6 @@ class Tracker:
         use_prebuilt_kernels=True,
         enable_pipeline_hold=False,
         track_kernel=None,
-        kernel_element_classes=None,
         particles_class=xp.Particles,
         particles_monitor_class=None,
         extra_headers=(),
@@ -73,17 +72,6 @@ class Tracker:
         if not compile and self.iscollective:
             raise NotImplementedError("Skip compilation is not implemented in "
                                       "collective mode")
-
-        if track_kernel is None and kernel_element_classes is not None:
-            raise ValueError('The kernel relies on `kernel_element_classes` ordering, '
-                             'so `kernel_element_classes` must be given if '
-                             '`track_kernel` is None.')
-
-        if kernel_element_classes is None and track_kernel is not None:
-            raise ValueError(
-                'The kernel relies on `kernel_element_classes` ordering, so '
-                '`track_kernel` must be given if `kernel_element_classes` is None.'
-            )
 
         if particles_class is None:
             particles_class = xp.Particles
@@ -123,19 +111,19 @@ class Tracker:
         else:
             ele_dict_non_collective = line.element_dict
 
-        tracker_data = TrackerData(
+        tracker_data_base = TrackerData(
             allow_move=True, # Will move elements to the same buffer
             element_dict=ele_dict_non_collective,
             element_names=line.element_names,
             element_s_locations=line.get_s_elements(),
             line_length=line.get_length(),
-            kernel_element_classes=kernel_element_classes,
+            kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,
             _buffer=_buffer)
         line._freeze()
 
-        _buffer = tracker_data._buffer
+        _buffer = tracker_data_base._buffer
 
         if io_buffer is None:
             io_buffer = new_io_buffer(_context=_buffer.context)
@@ -147,13 +135,13 @@ class Tracker:
 
         self._track_kernel = track_kernel or {}
         self._tracker_data_cache = {}
+        self._tracker_data_cache[None] = tracker_data_base
 
         self.line = line
         self.line.tracker = self
-        self._tracker_data = tracker_data
 
         if compile:
-            _ = self._current_track_kernel  # This triggers compilation
+            _ = self.get_track_kernel_and_data_for_present_config()  # This triggers compilation
 
     def _split_parts_for_colletctive_mode(self, line, _buffer):
 
@@ -225,12 +213,12 @@ class Tracker:
         return self._track_kernel
 
     @property
-    def kernel_element_classes(self):
-            return self._tracker_data.kernel_element_classes
+    def _tracker_data_base(self):
+        return self._tracker_data_cache[None]
 
     @property
     def line_element_classes(self):
-        return self._tracker_data.line_element_classes
+        return self._tracker_data_cache[None].line_element_classes
 
     @property
     def config(self):
@@ -238,7 +226,7 @@ class Tracker:
 
     @property
     def _buffer(self):
-        return self._tracker_data._buffer
+        return self._tracker_data_cache[None]._buffer
 
     @property
     def num_elements(self):
@@ -246,7 +234,7 @@ class Tracker:
 
     @property
     def _element_dict_non_collective(self):
-        return self._tracker_data._element_dict
+        return self._tracker_data_cache[None]._element_dict
 
     @property
     def matrix_responsiveness_tol(self):
@@ -269,8 +257,7 @@ class Tracker:
             self._invalidated_parts = self._parts
             self._parts = None
         else:
-            self._invalidated_tracker_data = self._tracker_data
-            self._tracker_data = None
+            self._tracker_data_cache = None
         self._is_invalidated = True
 
     def _check_invalidated(self):
@@ -346,7 +333,7 @@ class Tracker:
 
                 return kernels[('track_line', classes)]
 
-        context = self._tracker_data._buffer.context
+        context = self._tracker_data_cache[None]._buffer.context
 
         headers = []
 
@@ -524,7 +511,7 @@ class Tracker:
 
         source_track = "\n".join(src_lines)
 
-        kernels = self.get_kernel_descriptions(self._tracker_data.kernel_element_classes)
+        kernels = self.get_kernel_descriptions(self.kernel_element_classes)
 
         # Compile!
         if isinstance(self._context, xo.ContextCpu):
@@ -934,6 +921,10 @@ class Tracker:
         _force_no_end_turn_actions=False,
     ):
 
+        self._check_invalidated()
+
+        track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
+
         if backtrack != False:
             kwargs = locals().copy()
             if isinstance(backtrack, str):
@@ -941,7 +932,7 @@ class Tracker:
                 force_backtrack = True
             else:
                 force_backtrack = False
-            if not(force_backtrack) and not(self._tracker_data._is_backtrackable):
+            if not(force_backtrack) and not(tracker_data._is_backtrackable):
                 raise ValueError("This line is not backtrackable.")
             kwargs.pop('self')
             kwargs.pop('backtrack')
@@ -968,8 +959,6 @@ class Tracker:
 
             with _freeze_longitudinal(self.line):
                 return self._track_no_collective(**kwargs)
-
-        self._check_invalidated()
 
         if isinstance(self._buffer.context, xo.ContextCpu):
             assert (particles._num_active_particles >= 0 and
@@ -1081,13 +1070,13 @@ class Tracker:
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
-        self._current_track_kernel.description.n_threads = particles._capacity
+        track_kernel.description.n_threads = particles._capacity
 
         # First turn
         assert num_elements_first_turn >= 0
-        self._current_track_kernel(
-            buffer=self._tracker_data._buffer.buffer,
-            tracker_data=self._tracker_data._element_ref_data,
+        track_kernel(
+            buffer=tracker_data._buffer.buffer,
+            tracker_data=tracker_data._element_ref_data,
             particles=particles._xobject,
             num_turns=1,
             ele_start=ele_start,
@@ -1095,8 +1084,8 @@ class Tracker:
             flag_end_turn_actions=flag_end_first_turn_actions,
             flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
             flag_monitor=flag_monitor,
-            num_ele_line=len(self._tracker_data.element_names),
-            line_length=self._tracker_data.line_length,
+            num_ele_line=len(tracker_data.element_names),
+            line_length=tracker_data.line_length,
             buffer_tbt_monitor=buffer_monitor,
             offset_tbt_monitor=offset_monitor,
             io_buffer=self.io_buffer.buffer,
@@ -1105,9 +1094,9 @@ class Tracker:
         # Middle turns
         if num_middle_turns > 0:
             assert self.num_elements > 0
-            self._current_track_kernel(
-                buffer=self._tracker_data._buffer.buffer,
-                tracker_data=self._tracker_data._element_ref_data,
+            track_kernel(
+                buffer=tracker_data._buffer.buffer,
+                tracker_data=tracker_data._element_ref_data,
                 particles=particles._xobject,
                 num_turns=num_middle_turns,
                 ele_start=0, # always full turn
@@ -1115,8 +1104,8 @@ class Tracker:
                 flag_end_turn_actions=flag_end_middle_turn_actions,
                 flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
                 flag_monitor=flag_monitor,
-                num_ele_line=len(self._tracker_data.element_names),
-                line_length=self._tracker_data.line_length,
+                num_ele_line=len(tracker_data.element_names),
+                line_length=tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,
@@ -1125,9 +1114,9 @@ class Tracker:
         # Last turn, only if incomplete
         if num_elements_last_turn > 0:
             assert num_elements_last_turn > 0
-            self._current_track_kernel(
-                buffer=self._tracker_data._buffer.buffer,
-                tracker_data=self._tracker_data._element_ref_data,
+            track_kernel(
+                buffer=tracker_data._buffer.buffer,
+                tracker_data=tracker_data._element_ref_data,
                 particles=particles._xobject,
                 num_turns=1,
                 ele_start=0,
@@ -1135,8 +1124,8 @@ class Tracker:
                 flag_end_turn_actions=False,
                 flag_reset_s_at_end_turn=self.reset_s_at_end_turn,
                 flag_monitor=flag_monitor,
-                num_ele_line=len(self._tracker_data.element_names),
-                line_length=self._tracker_data.line_length,
+                num_ele_line=len(tracker_data.element_names),
+                line_length=tracker_data.line_length,
                 buffer_tbt_monitor=buffer_monitor,
                 offset_tbt_monitor=offset_monitor,
                 io_buffer=self.io_buffer.buffer,
@@ -1215,8 +1204,7 @@ class Tracker:
                 headers.append(f'#undef {k}')
         return headers
 
-    @property
-    def _current_track_kernel(self):
+    def get_track_kernel_and_data_for_present_config(self):
 
         hash_config = self._hashable_config()
 
@@ -1224,29 +1212,30 @@ class Tracker:
             new_kernel = self._build_kernel(compile=True)
             self.track_kernel[hash_config] = new_kernel
 
-        out = self.track_kernel[hash_config]
+        out_kernel = self.track_kernel[hash_config]
 
         if hash_config not in self._tracker_data_cache:
-            kernel_element_classes = _element_classes_from_track_kernel(out)
+            kernel_element_classes = _element_classes_from_track_kernel(out_kernel)
+            td_base = self._tracker_data_base[None]
             td = TrackerData(
-                element_dict=self._tracker_data._element_dict,
-                element_names=self._tracker_data._element_names,
-                element_s_locations=self._tracker_data.element_s_locations,
-                line_length=self._tracker_data.line_length,
+                element_dict=td_base._element_dict,
+                element_names=td_base._element_names,
+                element_s_locations=td_base.element_s_locations,
+                line_length=td_base.line_length,
                 kernel_element_classes=kernel_element_classes,
-                extra_element_classes=self._tracker_data.extra_element_classes,
+                extra_element_classes=td_base.extra_element_classes,
                 _context=self._context,
                 _buffer=self._buffer)
 
             self._tracker_data_cache[hash_config] = td
 
-        self._tracker_data = self._tracker_data_cache[hash_config]
+        out_tracker_data = self._tracker_data_cache[hash_config]
 
         # sanity check
-        assert (len(_element_classes_from_track_kernel(out))
-                == len(self._tracker_data.kernel_element_classes))
+        assert (len(_element_classes_from_track_kernel(out_kernel))
+                == len(out_tracker_data.kernel_element_classes))
 
-        return out
+        return out_kernel, out_tracker_data
 
     @property
     def reset_s_at_end_turn(self):

@@ -1580,8 +1580,7 @@ class Line:
 
         if self._has_valid_tracker():
             new_line.build_tracker(_buffer=self._buffer,
-                                   track_kernel=self.tracker.track_kernel,
-                                   kernel_element_classes=self.tracker.kernel_element_classes)
+                                   track_kernel=self.tracker.track_kernel)
             #TODO: handle config and other metadata
 
         return new_line
@@ -1630,11 +1629,9 @@ class Line:
         if has_valid_tracker:
             buffer = self._buffer
             track_kernel = self.tracker.track_kernel
-            kernel_element_classes = self.tracker.kernel_element_classes
         else:
             buffer = None
             track_kernel = None
-            kernel_element_classes = None
 
         if inplace:
             self.unfreeze()
@@ -1649,8 +1646,7 @@ class Line:
 
         if has_valid_tracker:
             new_line.build_tracker(_buffer=buffer,
-                                   track_kernel=track_kernel,
-                                   kernel_element_classes=kernel_element_classes)
+                                   track_kernel=track_kernel)
             #TODO: handle config and other metadata
 
         return new_line
@@ -1881,7 +1877,7 @@ class Line:
         self.use_simple_quadrupoles()
 
         if verbose: _print("Rebuild tracker data")
-        tracker_data = xt.tracker_data.TrackerData(
+        td_init = xt.tracker_data.TrackerData(
             element_dict=self.element_dict,
             element_names=self.element_names,
             element_s_locations=self.get_s_elements(),
@@ -1891,7 +1887,8 @@ class Line:
 
         self._freeze()
 
-        self.tracker._tracker_data = tracker_data
+        self.tracker._tracker_data_cache.clear()
+        self.tracker._tracker_data_cache[None] = td_init
 
         self.use_prebuilt_kernels = False
 

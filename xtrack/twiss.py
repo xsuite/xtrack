@@ -580,10 +580,10 @@ def _twiss_open(line, twiss_init,
 
         if twiss_orientation == 'forward':
             part_for_twiss.at_element = ele_start
-            part_for_twiss.s = line.tracker._tracker_data.element_s_locations[ele_start]
+            part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[ele_start]
         elif twiss_orientation == 'backward':
             part_for_twiss.at_element = ele_stop + 1 # to include the last element (assume it is a marker)
-            part_for_twiss.s = line.tracker._tracker_data.element_s_locations[ele_stop]
+            part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[ele_stop]
         else:
             raise ValueError('Invalid twiss_orientation')
 
@@ -594,8 +594,8 @@ def _twiss_open(line, twiss_init,
 
     if _ebe_monitor is not None:
         _monitor = _ebe_monitor
-    elif hasattr(line.tracker._tracker_data, '_reusable_ebe_monitor_for_twiss'):
-        _monitor = line.tracker._tracker_data._reusable_ebe_monitor_for_twiss
+    elif hasattr(line.tracker._tracker_data_base, '_reusable_ebe_monitor_for_twiss'):
+        _monitor = line.tracker._tracker_data_base._reusable_ebe_monitor_for_twiss
     else:
         _monitor = 'ONE_TURN_EBE'
 
@@ -611,7 +611,7 @@ def _twiss_open(line, twiss_init,
 
     # We keep the monitor to speed up future calls (attached to tracker data
     # so that it is trashed if number of elements changes)
-    line.tracker._tracker_data._reusable_ebe_monitor_for_twiss = line.record_last_track
+    line.tracker._tracker_data_base._reusable_ebe_monitor_for_twiss = line.record_last_track
 
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
@@ -705,7 +705,7 @@ def _twiss_open(line, twiss_init,
 
     twiss_res._data['particle_on_co'] = particle_on_co.copy(_context=xo.context_default)
 
-    circumference = line.tracker._tracker_data.line_length
+    circumference = line.tracker._tracker_data_base.line_length
     twiss_res._data['circumference'] = circumference
     twiss_res._data['orientation'] = twiss_orientation
 
@@ -834,7 +834,7 @@ def _compute_global_quantities(line, twiss_res, twiss_init, method,
         s_vect = twiss_res['s']
         mux = twiss_res['mux']
         muy = twiss_res['muy']
-        circumference = line.tracker._tracker_data.line_length
+        circumference = line.tracker._tracker_data_base.line_length
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
 
@@ -1364,7 +1364,6 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
         _buffer=tracker._buffer,
         line=auxline,
         track_kernel=tracker.track_kernel,
-        kernel_element_classes=tracker.kernel_element_classes,
         particles_class=tracker.particles_class,
         particles_monitor_class=None,
         local_particle_src=tracker.local_particle_src
