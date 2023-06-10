@@ -26,6 +26,8 @@ class SerializationHeader(xo.Struct):
 
 
 class TrackerData:
+
+    # This is now duplicated and should be removed
     @staticmethod
     def generate_element_ref_data(element_ref_class) -> 'ElementRefData':
         class ElementRefData(Struct):

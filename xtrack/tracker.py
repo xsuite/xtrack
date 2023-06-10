@@ -340,7 +340,8 @@ class Tracker:
             if kernel_info:
                 module_name, modules_classes = kernel_info
 
-                kernel_description = self.get_kernel_descriptions()['track_line']
+                kernel_description = self.get_kernel_descriptions(
+                                            modules_classes)['track_line']
                 kernels = self._context.kernels_from_file(
                     module_name=module_name,
                     containing_dir=XT_PREBUILT_KERNELS_LOCATION,
@@ -528,7 +529,7 @@ class Tracker:
 
         source_track = "\n".join(src_lines)
 
-        kernels = self.get_kernel_descriptions(context)
+        kernels = self.get_kernel_descriptions(self._tracker_data.kernel_element_classes)
 
         # Compile!
         if isinstance(self._context, xo.ContextCpu):
@@ -557,16 +558,17 @@ class Tracker:
         classes = (self.particles_class._XoStruct,)
         return out_kernels[('track_line', classes)]
 
-    def get_kernel_descriptions(self, _context=None):
-        if not _context:
-            _context = self._context
+    def get_kernel_descriptions(self, kernel_element_classes):
+
+        tdata_type = _element_ref_data_class_from_element_classes(
+            kernel_element_classes)
 
         kernel_descriptions = {
             "track_line": xo.Kernel(
                 c_name='track_line',
                 args=[
                     xo.Arg(xo.Int8, pointer=True, name="buffer"),
-                    xo.Arg(self._tracker_data._element_ref_data.__class__, name="tracker_data"),
+                    xo.Arg(tdata_type, name="tracker_data"),
                     xo.Arg(self.particles_class._XoStruct, name="particles"),
                     xo.Arg(xo.Int32, name="num_turns"),
                     xo.Arg(xo.Int32, name="ele_start"),
@@ -1421,3 +1423,23 @@ def _element_classes_from_track_kernel(kernel):
     kernel_element_ref_class = kernel_tracker_data_type.elements.ftype._itemtype
     kernel_element_classes = kernel_element_ref_class._reftypes
     return kernel_element_classes
+
+def _element_ref_data_class_from_element_classes(element_classes):
+
+    # exctrace XoStruct if needed
+    element_classes_xostruct = []
+    for cc in element_classes:
+        if issubclass(cc, xo.Struct):
+            element_classes_xostruct.append(cc)
+        else:
+            element_classes_xostruct.append(cc._XoStruct)
+
+    class ElementRefClass(xo.UnionRef):
+        _reftypes = element_classes_xostruct
+
+    class ElementRefData(xo.Struct):
+            elements = ElementRefClass[:]
+            names = xo.String[:]
+            _overridable = False
+
+    return ElementRefData
