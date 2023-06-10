@@ -333,7 +333,9 @@ class Tracker:
 
                 return kernels[('track_line', classes)]
 
-        context = self._tracker_data_cache[None]._buffer.context
+        context = self._tracker_data_base._buffer.context
+
+        kernel_element_classes = self._tracker_data_base.kernel_element_classes
 
         headers = []
 
@@ -425,7 +427,7 @@ class Tracker:
         """
         )
 
-        for ii, cc in enumerate(self.kernel_element_classes):
+        for ii, cc in enumerate(kernel_element_classes):
             ccnn = cc.__name__.replace("Data", "")
             src_lines.append(
                 f"""
@@ -511,7 +513,7 @@ class Tracker:
 
         source_track = "\n".join(src_lines)
 
-        kernels = self.get_kernel_descriptions(self.kernel_element_classes)
+        kernels = self.get_kernel_descriptions(kernel_element_classes)
 
         # Compile!
         if isinstance(self._context, xo.ContextCpu):
@@ -527,7 +529,7 @@ class Tracker:
             sources=[source_track],
             kernel_descriptions=kernels,
             extra_headers=self._config_to_headers() + headers,
-            extra_classes=self.kernel_element_classes,
+            extra_classes=kernel_element_classes,
             apply_to_source=[
                 partial(_handle_per_particle_blocks,
                         local_particle_src=self.local_particle_src)],
@@ -1216,7 +1218,7 @@ class Tracker:
 
         if hash_config not in self._tracker_data_cache:
             kernel_element_classes = _element_classes_from_track_kernel(out_kernel)
-            td_base = self._tracker_data_base[None]
+            td_base = self._tracker_data_base
             td = TrackerData(
                 element_dict=td_base._element_dict,
                 element_names=td_base._element_names,
