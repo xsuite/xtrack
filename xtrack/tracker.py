@@ -339,17 +339,6 @@ class Tracker:
             )
             if kernel_info:
                 module_name, modules_classes = kernel_info
-                _kernel_element_classes = [cls._XoStruct for cls in modules_classes]
-
-                self._tracker_data = TrackerData(
-                    element_dict=self._tracker_data._element_dict,
-                    element_names=self._tracker_data._element_names,
-                    element_s_locations=self._tracker_data.element_s_locations,
-                    line_length=self._tracker_data.line_length,
-                    kernel_element_classes=_kernel_element_classes,
-                    _context=self._context,
-                    _buffer=self._buffer,
-                )
 
                 kernel_description = self.get_kernel_descriptions()['track_line']
                 kernels = self._context.kernels_from_file(
@@ -1297,7 +1286,6 @@ class Tracker:
         if hash_config not in self.track_kernel:
             new_kernel = self._build_kernel(compile=True)
             self.track_kernel[hash_config] = new_kernel
-            self._tracker_data_cache[hash_config] = self._tracker_data
 
         out = self.track_kernel[hash_config]
 
