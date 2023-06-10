@@ -84,6 +84,8 @@ class TrackerData:
                 _buffer = common_buffer
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
 
+        self.move_elements_to_common_buffer(_buffer)
+
         line_element_classes = set(ee._XoStruct for ee in self._elements)
         if not kernel_element_classes:
             kernel_element_classes = (
@@ -107,7 +109,7 @@ class TrackerData:
         if element_ref_data and element_ref_data._buffer is _buffer:
             self._element_ref_data = element_ref_data
         else:
-            self._element_ref_data = self.move_elements_and_build_ref_data(_buffer)
+            self._element_ref_data = self.build_ref_data(_buffer)
 
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,
@@ -157,7 +159,16 @@ class TrackerData:
             _buffer=buffer,
         )
 
-    def move_elements_and_build_ref_data(self, buffer):
+    def move_elements_to_common_buffer(self, buffer):
+        """
+        Move all the elements to the common buffer, if they are not already
+        there.
+        """
+        for ee in self._elements:
+            if ee._buffer is not buffer:
+                ee.move(_buffer=buffer)
+
+    def build_ref_data(self, buffer):
         """
         Ensure all the elements of the line are in the buffer (which will be
         created if `buffer` is equal to `None`), and write the line metadata
@@ -172,17 +183,8 @@ class TrackerData:
             _buffer=buffer,
         )
 
-        # Move all the elements into buffer, so they don't get duplicated.
-        # We only do it now, as we need to make sure element_ref_data is already
-        # allocated after reftype_names.
-        moved_element_dict = {}
-        for name, elem in self._element_dict.items():
-            if elem._buffer is not buffer:
-                elem.move(_buffer=buffer)
-            moved_element_dict[name] = elem._xobject
-
         element_ref_data.elements = [
-            moved_element_dict[name] for name in self.element_names
+            self._element_dict[name]._xobject for name in self.element_names
         ]
 
         return element_ref_data
