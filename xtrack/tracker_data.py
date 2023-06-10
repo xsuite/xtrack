@@ -29,16 +29,6 @@ class SerializationHeader(xo.Struct):
 
 class TrackerData:
 
-    # This is now duplicated and should be removed
-    @staticmethod
-    def generate_element_ref_data(element_ref_class) -> 'ElementRefData':
-        class ElementRefData(Struct):
-            elements = element_ref_class[:]
-            names = xo.String[:]
-            _overridable = False
-
-        return ElementRefData
-
     def __init__(
             self,
             element_dict,
@@ -210,13 +200,14 @@ class TrackerData:
 
     def __setstate__(self, state):
         buffer, offset = state.pop('_element_ref_data')
+        kernel_element_classes = state.pop('kernel_element_classes')
+        kernel_element_classes = [cc._XoStruct for cc in kernel_element_classes]
         self.__dict__.update(state)
-        self.kernel_element_classes = [cc._XoStruct for cc in self.kernel_element_classes]
         self.line_element_classes = [cc._XoStruct for cc in self.line_element_classes]
         self.extra_element_classes = [cc._XoStruct for cc in self.extra_element_classes]
 
         element_refs_cls = xt.tracker._element_ref_data_class_from_element_classes(
-                                            self.kernel_element_classes)
+                                            kernel_element_classes)
         self._element_ref_data = element_refs_cls._from_buffer(
             buffer=buffer,
             offset=offset,
