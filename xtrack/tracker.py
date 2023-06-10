@@ -1302,10 +1302,7 @@ class Tracker:
         out = self.track_kernel[hash_config]
 
         if hash_config not in self._tracker_data_cache:
-            assert out.description.args[1].name == 'tracker_data'
-            kernel_tracker_data_type = out.description.args[1].atype
-            kernel_element_ref_class = kernel_tracker_data_type.elements.ftype._itemtype
-            kernel_element_classes = kernel_element_ref_class._reftypes
+            kernel_element_classes = _element_classes_from_track_kernel(out)
             td = TrackerData(
                 element_dict=self._tracker_data._element_dict,
                 element_names=self._tracker_data._element_names,
@@ -1321,10 +1318,8 @@ class Tracker:
         self._tracker_data = self._tracker_data_cache[hash_config]
 
         # sanity check
-        assert out.description.args[1].name == 'tracker_data'
-        kernel_tracker_data_type = out.description.args[1].atype
-        kernel_element_ref_class = kernel_tracker_data_type.elements.ftype._itemtype
-        assert (len(kernel_element_ref_class._reftypes)
+        kernel_element_classes = _element_classes_from_track_kernel(out)
+        assert (len(kernel_element_classes)
                 == len(self._tracker_data._ElementRefClass._reftypes))
 
         return out
@@ -1430,3 +1425,11 @@ class TrackerPartNonCollective:
     def __repr__(self):
         return (f'TrackerPartNonCollective({self.ele_start_in_tracker}, '
                 f'{self.ele_stop_in_tracker})')
+
+
+def _element_classes_from_track_kernel(kernel):
+    assert kernel.description.args[1].name == 'tracker_data'
+    kernel_tracker_data_type = kernel.description.args[1].atype
+    kernel_element_ref_class = kernel_tracker_data_type.elements.ftype._itemtype
+    kernel_element_classes = kernel_element_ref_class._reftypes
+    return kernel_element_classes
