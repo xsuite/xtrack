@@ -384,7 +384,7 @@ def test_tracker_config(test_context):
     line.track(p)
     assert p.x[0] == 7.0
     assert p.y[0] == 0.0
-    first_kernel = line.tracker._current_track_kernel
+    first_kernel, first_data = line.tracker.get_track_kernel_and_data_for_present_config()
 
     p = particles.copy()
     line.config.TEST_FLAG = False
@@ -392,13 +392,17 @@ def test_tracker_config(test_context):
     line.track(p)
     assert p.x[0] == 0.0
     assert p.y[0] == 42.0
-    assert line.tracker._current_track_kernel is not first_kernel
+    current_kernel, current_data = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert current_kernel is not first_kernel
+    assert current_data is not first_data
 
     line.config.TEST_FLAG = 2
     line.config.TEST_FLAG_BOOL = False
     assert len(line.tracker.track_kernel) == 3 # As line.track_kernel.keys() =
                                           # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
-    assert line.tracker._current_track_kernel is first_kernel
+    current_kernel, current_data = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert current_kernel is first_kernel
+    assert current_data is first_data
 
 
 @for_all_test_contexts
@@ -438,6 +442,10 @@ def test_optimize_for_tracking(test_context):
     assert n_markers_optimize_ip15 == 2
 
     line.optimize_for_tracking()
+
+    assert type(line['mb.b10l3.b1..1']) is xt.SimpleThinBend
+    assert type(line['mq.10l3.b1..1']) is xt.SimpleThinQuadrupole
+
     df_optimize = line.to_pandas()
     n_markers_optimize = (df_optimize.element_type == 'Marker').sum()
     assert n_markers_optimize == 0
@@ -464,6 +472,7 @@ def test_optimize_for_tracking(test_context):
     assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
     assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
     assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
+
 
 @for_all_test_contexts
 def test_backtrack_with_flag(test_context):

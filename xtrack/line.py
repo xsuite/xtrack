@@ -1882,6 +1882,7 @@ class Line:
             element_names=self.element_names,
             element_s_locations=self.get_s_elements(),
             line_length=self.get_length(),
+            allow_move=True,
             extra_element_classes=(self.tracker.particles_monitor_class._XoStruct,),
             _buffer=self._buffer)
 
@@ -1893,7 +1894,7 @@ class Line:
         self.use_prebuilt_kernels = False
 
         if compile:
-            _ = self.tracker._current_track_kernel # This triggers compilation
+            _ = self.tracker.get_track_kernel_and_data_for_present_config()
 
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):
@@ -2739,7 +2740,6 @@ def _is_simple_quadrupole(el):
     return (el.radiation_flag == 0 and
             el.order == 1 and
             el.knl[0] == 0 and
-            el.length == 0 and
             not any(el.ksl) and
             not el.hxl and
             not el.hyl)
