@@ -37,7 +37,6 @@ class TrackerData:
             line_length,
             kernel_element_classes=None,
             extra_element_classes=(),
-            element_ref_data=None,
             _context=None,
             _buffer=None,
             _offset=None,
@@ -61,7 +60,6 @@ class TrackerData:
         extra_element_classes : tuple, optional
             If `kernel_element_classes` is `None`, this list will be used to augment
             the inferred list of element classes.
-        element_ref_data : ElementRefData, optional
         """
 
         self._element_dict = element_dict
@@ -95,12 +93,9 @@ class TrackerData:
                     f'The following classes are not in `kernel_element_classes`: '
                     f'{line_element_classes - set(kernel_element_classes)}')
 
-        if element_ref_data and element_ref_data._buffer is _buffer:
-            self._element_ref_data = element_ref_data
-        else:
-            ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
-                                                kernel_element_classes)
-            self._element_ref_data = self.build_ref_data(_buffer, ElementRefData)
+        ElementRefDataClass = xt.tracker._element_ref_data_class_from_element_classes(
+                                            kernel_element_classes)
+        self._element_ref_data = self.build_ref_data(_buffer, ElementRefDataClass)
 
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,

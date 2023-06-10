@@ -57,7 +57,6 @@ class Tracker:
         particles_monitor_class=None,
         extra_headers=(),
         local_particle_src=None,
-        _element_ref_data=None,
     ):
 
         # Check if there are collective elements
@@ -66,10 +65,6 @@ class Tracker:
             if _check_is_collective(ee):
                 self.iscollective = True
                 break
-
-        if _element_ref_data and self.iscollective:
-            raise ValueError('The argument element_ref_data is not '
-                             'supported in collective mode.')
 
         if enable_pipeline_hold and not self.iscollective:
             raise ValueError("`enable_pipeline_hold` is not implemented in "
@@ -135,7 +130,6 @@ class Tracker:
             line_length=line.get_length(),
             kernel_element_classes=kernel_element_classes,
             extra_element_classes=(particles_monitor_class._XoStruct,),
-            element_ref_data=_element_ref_data,
             _context=_context,
             _buffer=_buffer)
         line._freeze()
@@ -1199,71 +1193,11 @@ class Tracker:
 
     def to_binary_file(self, path):
 
-        if self.iscollective:
-            raise TypeError("Only non-collective trackers can be binary serialized.")
-
-        tracker_data = self._tracker_data
-
-        # Serialise the tracker_data (line)
-        if not isinstance(tracker_data._context, xo.ContextCpu):
-            buffer = xo.ContextCpu().new_buffer(0)
-        else:
-            buffer = None
-
-        buffer, header_offset = tracker_data.to_binary(buffer)
-
-        # Serialise the knobs
-        var_management = {}
-        if self.line._var_management:
-            var_management = self.line._var_management_to_dict()
-
-        # Serialise the reference particle
-        particle_ref = None
-        if self.particle_ref:
-            particle_ref = self.particle_ref.to_dict()
-
-        with open(path, 'wb') as f:
-            np.save(f, header_offset)
-            np.save(f, buffer.buffer)
-            np.save(f, var_management, allow_pickle=True)
-            np.save(f, particle_ref, allow_pickle=True)
+       raise NotImplementedError('to_binary_file not implemented anymore')
 
     @classmethod
     def from_binary_file(cls, path, particles_monitor_class=None, **kwargs) -> 'Tracker':
-        if not particles_monitor_class:
-            particles_monitor_class = cls._get_default_monitor_class()
-
-        with open(path, 'rb') as f:
-            header_offset = np.load(f)
-            np_buffer = np.load(f)
-            var_management_dict = np.load(f, allow_pickle=True).item()
-            particle_ref = np.load(f, allow_pickle=True).item()
-
-        xbuffer = xo.ContextCpu().new_buffer(np_buffer.nbytes)
-        # make sure that if we carry on using the buffer we
-        # don't overwrite things, by marking everything as used
-        xbuffer.allocate(np_buffer.nbytes)
-        xbuffer.buffer = np_buffer
-        tracker_data = TrackerData.from_binary(
-            xbuffer,
-            header_offset,
-            extra_element_classes=(particles_monitor_class,),
-        )
-
-        tracker = Tracker(
-            line=Line(elements=tracker_data._element_dict,
-                         element_names=tracker_data._element_names),
-            _element_ref_data=tracker_data._element_ref_data,
-            **kwargs,
-        )
-
-        if var_management_dict:
-            tracker.line._init_var_management(var_management_dict)
-
-        if particle_ref is not None:
-            tracker.line.particle_ref = xp.Particles.from_dict(particle_ref)
-
-        return tracker
+        raise NotImplementedError('from_binary_file not implemented anymore')
 
     def _hashable_config(self):
         items = ((k, v) for k, v in self.config.items() if v is not False)
