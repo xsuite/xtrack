@@ -7,6 +7,8 @@ from typing import Tuple
 import numpy as np
 
 import xobjects as xo
+import xtrack as xt
+
 from .general import _print
 
 from xobjects.struct import Struct, MetaStruct
@@ -89,6 +91,10 @@ class TrackerData:
             raise RuntimeError('The elements are not in the same buffer')
 
         line_element_classes = set(ee._XoStruct for ee in self._elements)
+        self.line_element_classes = line_element_classes
+        self.element_s_locations = tuple(element_s_locations)
+        self.line_length = line_length
+
         if not kernel_element_classes:
             kernel_element_classes = (
                 line_element_classes | set(extra_element_classes))
@@ -99,19 +105,12 @@ class TrackerData:
                     f'The following classes are not in `kernel_element_classes`: '
                     f'{line_element_classes - set(kernel_element_classes)}')
 
-        self.line_element_classes = line_element_classes
-        self.kernel_element_classes = kernel_element_classes
-
-        class ElementRefClass(xo.UnionRef):
-            _reftypes = self.kernel_element_classes
-
-        self.element_s_locations = tuple(element_s_locations)
-        self.line_length = line_length
-        self._ElementRefClass = ElementRefClass
         if element_ref_data and element_ref_data._buffer is _buffer:
             self._element_ref_data = element_ref_data
         else:
-            self._element_ref_data = self.build_ref_data(_buffer)
+            ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
+                                                kernel_element_classes)
+            self._element_ref_data = self.build_ref_data(_buffer, ElementRefData)
 
     def common_buffer_for_elements(self):
         """If all `self.elements` elements are in the same buffer,
@@ -147,19 +146,6 @@ class TrackerData:
 
         return buffer, header._offset
 
-    def build_header(self, buffer, element_ref_data_offset) -> SerializationHeader:
-        """
-        Build a serialization header in the buffer. This contains all
-        the necessary for decoding the line metadata.
-        """
-        return SerializationHeader(
-            element_ref_data_offset=element_ref_data_offset,
-            reftype_names=[
-                reftype._DressingClass.__name__
-                for reftype in self._ElementRefClass._reftypes
-            ],
-            _buffer=buffer,
-        )
 
     def check_elements_in_common_buffer(self, buffer, allow_move=False):
         """
@@ -175,16 +161,15 @@ class TrackerData:
 
         return True
 
-    def build_ref_data(self, buffer):
+    def build_ref_data(self, buffer, element_ref_data_class):
         """
         Ensure all the elements of the line are in the buffer (which will be
         created if `buffer` is equal to `None`), and write the line metadata
         to it. If the buffer is empty, the metadata will be at the beginning.
         Returns the metadata xobject.
         """
-        element_refs_cls = self.generate_element_ref_data(self._ElementRefClass)
 
-        element_ref_data = element_refs_cls(
+        element_ref_data = element_ref_data_class(
             elements=len(self._elements),
             names=list(self._element_names),
             _buffer=buffer,
@@ -202,69 +187,8 @@ class TrackerData:
         buffer: xo.context.XBuffer,
         header_offset: int,
         extra_element_classes: tuple = (),
-    ) -> 'TrackerData':
-        header = SerializationHeader._from_buffer(
-            buffer=buffer,
-            offset=header_offset,
-        )
-
-        element_hybrid_classes = []
-        element_namespace = mk_class_namespace(extra_classes=extra_element_classes)
-        for reftype in header.reftype_names:
-            if hasattr(element_namespace, reftype):
-                element_hybrid_classes.append(getattr(element_namespace, reftype))
-            else:
-                ValueError(f'Cannot find the type `{reftype}`. Is it custom '
-                           f'and you forgot to include the class in '
-                           f'`extra_element_classes`?')
-
-        # With the reftypes loaded we can create our classes
-        kernel_element_classes = [elem._XoStruct for elem in element_hybrid_classes]
-
-        class ElementRefClass(xo.UnionRef):
-            _reftypes = kernel_element_classes
-
-        # We can now load the line from the buffer
-        element_refs_cls = cls.generate_element_ref_data(ElementRefClass)
-        element_ref_data = element_refs_cls._from_buffer(
-            buffer=buffer,
-            offset=int(header.element_ref_data_offset)
-        )
-
-        # Recreate and redress line elements
-        hybrid_cls_for_xstruct = {
-            elem._XoStruct: elem for elem in element_hybrid_classes
-        }
-
-        element_dict = {}
-        num_elements = len(element_ref_data.elements)
-        elements = element_ref_data.elements
-        names = element_ref_data.names
-        for ii, elem in enumerate(elements):
-            _print('Loading line from binary: '
-                f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
-            name = names[ii]
-            if name in element_dict:
-                continue
-
-            hybrid_cls = hybrid_cls_for_xstruct[elem.__class__]
-            element_dict[name] = hybrid_cls(_xobject=elem)
-
-        temp_line = Line(
-            elements=element_dict,
-            element_names=element_ref_data.names,
-        )
-        tracker_data = TrackerData(
-            element_dict=temp_line.element_dict,
-            element_names=temp_line.element_names,
-            element_s_locations=temp_line.get_s_elements(),
-            line_length=temp_line.get_length(),
-            kernel_element_classes=kernel_element_classes,
-            element_ref_data=element_ref_data,
-        )
-        tracker_data._ElementRefClass = ElementRefClass
-
-        return tracker_data
+    ):
+        raise NotImplementedError('This method is not supported anymore')
 
     @property
     def elements(self):
@@ -290,7 +214,6 @@ class TrackerData:
         out = self.__dict__.copy()
         out['_element_ref_data'] = (
             self._element_ref_data._buffer, self._element_ref_data._offset)
-        out['_ElementRefClass'] = None
         out['kernel_element_classes'] = [cc._DressingClass for cc in self.kernel_element_classes]
         out['line_element_classes'] = [cc._DressingClass for cc in self.line_element_classes]
         out['extra_element_classes'] = [cc._DressingClass for cc in self.extra_element_classes]
@@ -303,13 +226,14 @@ class TrackerData:
         self.line_element_classes = [cc._XoStruct for cc in self.line_element_classes]
         self.extra_element_classes = [cc._XoStruct for cc in self.extra_element_classes]
 
-        class ElementRefClass(xo.UnionRef):
-            _reftypes = self.kernel_element_classes
-
-        self._ElementRefClass = ElementRefClass
-        element_refs_cls = self.generate_element_ref_data(self._ElementRefClass)
+        element_refs_cls = xt.tracker._element_ref_data_class_from_element_classes(
+                                            self.kernel_element_classes)
         self._element_ref_data = element_refs_cls._from_buffer(
             buffer=buffer,
             offset=offset,
         )
+
+    @property
+    def kernel_element_classes(self):
+        return self._element_ref_data.elements._itemtype._reftypes
 
