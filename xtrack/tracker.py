@@ -925,8 +925,6 @@ class Tracker:
 
         self._check_invalidated()
 
-        track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
-
         if backtrack != False:
             kwargs = locals().copy()
             if isinstance(backtrack, str):
@@ -934,7 +932,7 @@ class Tracker:
                 force_backtrack = True
             else:
                 force_backtrack = False
-            if not(force_backtrack) and not(tracker_data._is_backtrackable):
+            if not(force_backtrack) and not(self._tracker_data_base._is_backtrackable):
                 raise ValueError("This line is not backtrackable.")
             kwargs.pop('self')
             kwargs.pop('backtrack')
@@ -1072,6 +1070,7 @@ class Tracker:
         if self.line._needs_rng and not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
+        track_kernel, tracker_data = self.get_track_kernel_and_data_for_present_config()
         track_kernel.description.n_threads = particles._capacity
 
         # First turn
