@@ -161,8 +161,10 @@ for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
 
     print(f'qx_mad =     {twmad.summary.q1}')
     print(f'qx_xsuite =  {tw.qx}')
+    print(f'qx_ptc =     {twptc.mu1[-1]}')
     print(f'qy_mad =     {twmad.summary.q2}')
     print(f'qy_xsuite =  {tw.qy}')
+    print(f'qy_ptc =     {twptc.mu2[-1]}')
 
     print(f'dqx_mad =     {dqx_mad}')
     print(f'dqx_xsuite =  {tw.dqx}')

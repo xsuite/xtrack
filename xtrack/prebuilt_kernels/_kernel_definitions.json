@@ -20,7 +20,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "LineSegmentMap"
+            "TrueBend",
+            "CombinedFunctionMagnet"
         ]
     },
     "default_only_xtrack_backtrack": {
@@ -44,7 +45,9 @@
             "DipoleEdge",
             "LinearTransferMatrix",
             "SimpleThinBend",
-            "SimpleThinQuadrupole"
+            "SimpleThinQuadrupole",
+            "TrueBend",
+            "CombinedFunctionMagnet"
         ]
     },
     "default_bb3d": {
@@ -86,8 +89,8 @@
         },
         "classes": [
             "Drift",
-            "Multipole",
             "Marker",
+            "Multipole",
             "ReferenceEnergyIncrease",
             "Cavity",
             "XYShift",
@@ -99,7 +102,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "LineSegmentMap"
+            "TrueBend",
+            "CombinedFunctionMagnet"
         ]
     },
     "only_xtrack_frozen_energy": {
@@ -127,7 +131,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "LineSegmentMap"
+            "TrueBend",
+            "CombinedFunctionMagnet"
         ]
     },
     "only_xtrack_taper": {
