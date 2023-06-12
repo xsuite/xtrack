@@ -150,11 +150,6 @@ class Slicer:
                 self.thin_names.append(name)
                 continue
 
-            # At the beginning of the element we will insert a marker of
-            # the same name as the current thick element. We keep the old
-            # element in the line for now, as we might need its expressions.
-            self.thin_names.append(name)
-
             # Choose a slicing strategy for the element
             slicing_found = False
             chosen_slicing = None
@@ -173,6 +168,11 @@ class Slicer:
             if chosen_slicing is None:
                 self.thin_names.append(name)
                 continue
+
+            # At the beginning of the element we will insert a marker of
+            # the same name as the current thick element. We keep the old
+            # element in the line for now, as we might need its expressions.
+            self.thin_names.append(name)
 
             # Add the slices to the line.element_dict
             self._make_slices(element, chosen_slicing, name)
