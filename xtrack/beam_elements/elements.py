@@ -87,6 +87,145 @@ class Drift(BeamElement):
         container[slice_name].length = _get_expr(container[thick_name].length) * weight
 
 
+class Henonmap(BeamElement):
+    '''Beam element representing a Henon-like map with an arbitrary polynomial kick.
+
+    Parameters
+    ----------
+
+    sin_omega_x : float
+        Sine of linear angular frequency in the horizontal plane. Default is ``0``.
+    cos_omega_x : float
+        Cosine of linear angular frequency in the horizontal plane. Default is ``1``.
+    sin_omega_y: float
+        Sine of linear angular frequency in the vertical plane. Default is ``0``.
+    cos_omega_y: float
+        Cosine of linear angular frequency in the vertical plane. Default is ``1``.
+    twiss_params: array of floats
+        An array of the form [alpha_x, beta_x, alpha_y, beta_y] used for coordinate 
+        normalisation and denormalisation. Default is ``[0, 1, 0, 1]``.
+    fx_coeffs: array of floats
+        An array that contains the coefficients of monomials of the form x^n*y*m that 
+        represent the nonlinearities of the map in the horizontal plane. It is 
+        calculated at initialisation based on the multipole coefficients provided.
+    fx_x_exps: array of floats
+        An array containing the exponents, n, of x for all monomials of the form 
+        x^n*y^m that represent the nonlinearities of the map in the horizontal plane. 
+        It is calculated at initialisation based on the multipole coefficients provided.
+    fx_y_exps: array of floats
+        An array containing the exponents, m, of y for all monomials of the form 
+        x^n*y^m that represent the nonlinearities of the map in the horizontal plane. 
+        It is calculated at initialisation based on the multipole coefficients provided.
+    fy_coeffs: array of floats
+        An array that contains the coefficients of monomials of the form x^n*y*m that 
+        represent the nonlinearities of the map in the vertical plane. It is 
+        calculated at initialisation based on the multipole coefficients provided.
+    fy_x_exps: array of floats
+        An array containing the exponents, n, of x for all monomials of the form 
+        x^n*y^m that represent the nonlinearities of the map in the vertical plane. 
+        It is calculated at initialisation based on the multipole coefficients provided.
+    fy_y_exps: array of floats
+        An array containing the exponents, m, of y for all monomials of the form 
+        x^n*y^m that represent the nonlinearities of the map in the vertical plane. 
+        It is calculated at initialisation based on the multipole coefficients provided.
+    n_fx_coeffs: int
+        Length of the arrays fx_coeffs, fx_x_exps, and fx_y_exps.
+    n_fy_coeffs: int
+        Length of the arrays fy_coeffs, fy_x_exps, and fy_y_exps.
+    n_turns: int
+        Number of turns to track. Default is ``1``.
+
+    Comments
+    --------
+
+    - The user provides omega_x and omega_y, their sin and cos is calculated at 
+      initialisation.
+    - The user provides "multipole_coeffs", an array of floats, that contains the 
+      strength of the multipoles present in the map. Default is ``[0]``.
+
+    '''
+
+    _xofields = {
+        'sin_omega_x': xo.Float64,
+        'cos_omega_x': xo.Float64,
+        'sin_omega_y': xo.Float64,
+        'cos_omega_y': xo.Float64,
+        'n_turns': xo.Int64,
+        'twiss_params': xo.Float64[:],
+        'fx_coeffs': xo.Float64[:],
+        'fx_x_exps': xo.Int64[:],
+        'fx_y_exps': xo.Int64[:],
+        'fy_coeffs': xo.Float64[:],
+        'fy_x_exps': xo.Int64[:],
+        'fy_y_exps': xo.Int64[:],
+        'n_fx_coeffs': xo.Int64,
+        'n_fy_coeffs': xo.Int64,
+        'norm': xo.Int64,
+    }
+
+    isthick = False
+    behaves_like_drift = False
+
+    _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/henonmap.h')]
+
+    def __init__(self, omega_x = 0.,
+                       omega_y = 0.,
+                       n_turns = 1, 
+                       twiss_params = [0., 1., 0., 1.],
+                       multipole_coeffs = [0.],
+                       norm = False, 
+                       **kwargs):
+        if '_xobject' not in kwargs:
+            kwargs.setdefault('sin_omega_x', np.sin(omega_x))
+            kwargs.setdefault('cos_omega_x', np.cos(omega_x))
+            kwargs.setdefault('sin_omega_y', np.sin(omega_y))
+            kwargs.setdefault('cos_omega_y', np.cos(omega_y))
+            kwargs.setdefault('n_turns', n_turns)
+            kwargs.setdefault('twiss_params', twiss_params)
+
+            fx_coeffs = []
+            fx_x_exps = []
+            fx_y_exps = []
+            fy_coeffs = []
+            fy_x_exps = []
+            fy_y_exps = []
+            for n in range(2, len(multipole_coeffs) + 2):
+                for k in range(0, n + 1):
+                    if (k % 4) == 0:
+                        fx_coeffs.append(multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
+                        fx_x_exps.append(n - k)
+                        fx_y_exps.append(k)
+                    elif (k % 4) == 2:
+                        fx_coeffs.append(-1 * multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
+                        fx_x_exps.append(n - k)
+                        fx_y_exps.append(k)
+                    elif (k % 4) == 1:
+                        fy_coeffs.append(multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
+                        fy_x_exps.append(n - k)
+                        fy_y_exps.append(k)
+                    else:
+                        fy_coeffs.append(-1 * multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
+                        fy_x_exps.append(n - k)
+                        fy_y_exps.append(k)
+            kwargs.setdefault('fx_coeffs', fx_coeffs)
+            kwargs.setdefault('fx_x_exps', fx_x_exps)
+            kwargs.setdefault('fx_y_exps', fx_y_exps)
+            kwargs.setdefault('fy_coeffs', fy_coeffs)
+            kwargs.setdefault('fy_x_exps', fy_x_exps)
+            kwargs.setdefault('fy_y_exps', fy_y_exps)
+            kwargs.setdefault('n_fx_coeffs', len(fx_coeffs))
+            kwargs.setdefault('n_fy_coeffs', len(fy_coeffs))
+
+            if norm == True:
+                kwargs.setdefault('norm', 1)
+            else:
+                kwargs.setdefault('norm', 0)
+
+        super().__init__(**kwargs)
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        raise NotImplementedError
+
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.
 
