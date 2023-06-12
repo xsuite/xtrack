@@ -206,7 +206,7 @@ def test_thick_multipolar_component(element_type, h):
     ids=['true bend', 'combined function magnet'],
 )
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
-def test_import_thick_from_madx(use_true_thick_bends, with_knobs, bend_type):
+def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type):
     mad = Madx()
 
     mad.input(f"""
@@ -400,7 +400,11 @@ def test_import_thick_quad_from_madx(with_knobs):
     ids=['true bend', 'combined function magnet'],
 )
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
-def test_import_from_madx_and_slice(use_true_thick_bends, with_knobs, bend_type):
+def test_import_thick_bend_from_madx_and_slice(
+        use_true_thick_bends,
+        with_knobs,
+        bend_type,
+):
     mad = Madx()
     mad.input(f"""
     knob_a := 1.0;
@@ -425,8 +429,8 @@ def test_import_from_madx_and_slice(use_true_thick_bends, with_knobs, bend_type)
 
     line.slice_in_place(slicing_strategies=[Strategy(Uniform(2))])
 
-    elems = (line[f'elem..{ii}'] for ii in range(2))
-    drifts = (line[f'drift_elem..{ii}'] for ii in range(2))
+    elems = [line[f'elem..{ii}'] for ii in range(2)]
+    drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
 
     # Verify that the slices are correct
     for elem in elems:
@@ -448,13 +452,75 @@ def test_import_from_madx_and_slice(use_true_thick_bends, with_knobs, bend_type)
     line.vars['knob_a'] = 2.0
     line.vars['knob_b'] = 3.0
 
+    # Verify that the line has been adjusted correctly
+    for elem in elems:
+        assert np.isclose(elem.length, 1.5, atol=1e-16)
+        assert np.allclose(elem.knl, [0.6, 0.9, 1.2, 0, 0], atol=1e-16)
+        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.isclose(elem.hxl, 0.1, atol=1e-16)  # hl = angle / slice_count
+        assert np.isclose(elem.hyl, 0, atol=1e-16)
+
+    for drift in drifts:
+        assert np.isclose(drift.length, 1, atol=1e-16)
+
+
+@pytest.mark.parametrize(
+    'with_knobs',
+    [True, False],
+    ids=['with knobs', 'no knobs'],
+)
+def test_import_thick_quad_from_madx_and_slice(with_knobs):
+    mad = Madx()
+    mad.input(f"""
+    knob_a := 0.0;
+    knob_b := 2.0;
+    ss: sequence, l:=knob_b, refer=entry;
+        elem: quadrupole, at=0, k1:=0.1 + knob_a, k1s:=0.2 + knob_a, l:=knob_b;
+    endsequence;
+    """)
+    mad.beam()
+    mad.use(sequence='ss')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.ss,
+        deferred_expressions=with_knobs,
+        allow_thick=True,
+    )
+
+    line.slice_in_place(slicing_strategies=[Strategy(Uniform(2))])
+
+    elems = [line[f'elem..{ii}'] for ii in range(2)]
+    drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
+
     # Verify that the slices are correct
     for elem in elems:
         assert np.isclose(elem.length, 1.0, atol=1e-16)
-        assert np.allclose(elem.knl, [0.6, 0.9, 1.2, 0, 0], atol=1e-16)
+        expected_k1l = 0.5 * np.sqrt(0.01 + 0.04) * 2
+        assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
         assert np.allclose(elem.ksl, 0, atol=1e-16)
-        assert np.isclose(elem.hxl, 0.75, atol=1e-16)
+        assert np.isclose(elem.hxl, 0, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
 
     for drift in drifts:
         assert np.isclose(drift.length, 2/3, atol=1e-16)
+
+    # Finish the test here if we are not using knobs
+    if not with_knobs:
+        assert line.vars is None
+        return
+
+    # Change the knob values
+    line.vars['knob_a'] = 2.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    for elem in elems:
+        assert np.isclose(elem.length, 1.5, atol=1e-16)
+        expected_k1l = 0.5 * np.sqrt(2.2 ** 2 + 2.1 ** 2) * 3
+        assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
+        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.isclose(elem.hxl, 0, atol=1e-16)
+        assert np.isclose(elem.hyl, 0, atol=1e-16)
+
+    for drift in drifts:
+        assert np.isclose(drift.length, 1, atol=1e-16)
