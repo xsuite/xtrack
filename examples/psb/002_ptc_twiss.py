@@ -1,11 +1,27 @@
+import numpy as np
 from cpymad.madx import Madx
+
 
 import xtrack as xt
 import xpart as xp
 import matplotlib.pyplot as plt
 
 plt.close('all')
-for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
+qx_test = np.linspace(4.45, 4.495, 10)
+qy_test = 4.4 + qx_test * 0.0
+qx_mad =[]
+qy_mad =[]
+dqx_mad2 =[]
+dqy_mad2 =[]
+qx_xsuite =[]
+qy_xsuite =[]
+dqx_xsuite =[]
+dqy_xsuite =[]
+qx_ptc =[]
+qy_ptc =[]
+dqx_ptc =[]
+dqy_ptc =[]
+for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
 
     bumper_names = ['bi1.bsw1l1.1', 'bi1.bsw1l1.2', 'bi1.bsw1l1.3', 'bi1.bsw1l1.4']
     thick_bumpers = {
@@ -42,7 +58,7 @@ for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
     # Match tunes
     mad.input(f'''
     QH = {qx};
-    QV = 4.4;
+    QV = {qy};
 
     MATCH, Sequence=psb1;
         VARY, NAME = kbrqf, STEP = 1e-3;
@@ -92,7 +108,13 @@ for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
     ''')
 
     # Twiss and ptc twiss with errors
-    twmad = mad.twiss().dframe()
+    twmad = mad.twiss()
+
+    beta0 = mad.sequence.psb1.beam.beta
+    qx_mad.append(twmad.summary.q1)
+    qy_mad.append(twmad.summary.q2)
+
+    twmad = twmad.dframe()
 
     mad.input('''
     ptc_create_universe;
@@ -100,14 +122,13 @@ for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
     ptc_setswitch, debuglevel=0, nocavity=false, fringe=true,
                 exact_mis=true, time=true, totalpath=true;
     PTC_ALIGN;
-    ptc_twiss, closed_orbit, table=ptc_twiss, icase=4, no=2,
+    ptc_twiss, closed_orbit, table=ptc_twiss, icase=4, no=3,
                 summary_table=ptc_twiss_summary;
-    qx0=table(ptc_twiss_summary,Q1);
-    qy0=table(ptc_twiss_summary,Q2);
-    value, qx0, qy0;
     ptc_end;
     ''')
     twptc = mad.table.ptc_twiss.dframe()
+    qx_ptc.append(mad.table.ptc_twiss.mu1[-1])
+    qy_ptc.append(mad.table.ptc_twiss.mu2[-1])
 
     mad.use(sequence='psb1') # wipes out the errors
 
@@ -139,7 +160,9 @@ for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
 
     ''')
 
-    twmad2 = mad.twiss().dframe()
+    twmad2 = mad.twiss()
+    dqx_mad2.append(twmad2.summary.dq1 * beta0)
+    dqy_mad2.append(twmad2.summary.dq2 * beta0)
 
 
     line = xt.Line.from_madx_sequence(mad.sequence.psb1,
@@ -152,25 +175,12 @@ for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
     line.to_json('psb_with_chicane.json')
 
     tw = line.twiss(method='4d')
-    twmad = mad.twiss()
+    qx_xsuite.append(tw.qx)
+    qy_xsuite.append(tw.qy)
+    dqx_xsuite.append(tw.dqx)
+    dqy_xsuite.append(tw.dqy)
 
     beta0 = line.particle_ref.beta0[0]
-
-    dqx_mad = twmad.summary.dq1 * beta0
-    dqy_mad = twmad.summary.dq2 * beta0
-
-    print(f'qx_mad =     {twmad.summary.q1}')
-    print(f'qx_xsuite =  {tw.qx}')
-    print(f'qx_ptc =     {twptc.mu1[-1]}')
-    print(f'qy_mad =     {twmad.summary.q2}')
-    print(f'qy_xsuite =  {tw.qy}')
-    print(f'qy_ptc =     {twptc.mu2[-1]}')
-
-    print(f'dqx_mad =     {dqx_mad}')
-    print(f'dqx_xsuite =  {tw.dqx}')
-    print(f'dqy_mad =     {dqy_mad}')
-    print(f'dqy_xsuite =  {tw.dqy}')
-
 
     plt.figure(1+ii)
     sp1 = plt.subplot(3,1,1)
@@ -195,5 +205,32 @@ for ii, qx in enumerate([4.45, 4.47, 4.49, 4.495]):
     plt.plot(twmad.s, twmad.y, label='madx')
 
     plt.legend()
+
+plt.figure(100)
+sp1 = plt.subplot(2,1,1)
+# plt.plot(qx_test, qx_mad, label='madx')
+plt.plot(qx_test, qx_xsuite, label='xtrack')
+plt.plot(qx_test, qx_ptc, label='ptc')
+plt.legend()
+
+plt.subplot(2,1,2, sharex=sp1, sharey=sp1)
+# plt.plot(qx_test, qy_mad, label='madx')
+plt.plot(qx_test, qy_xsuite, label='xtrack')
+plt.plot(qx_test, qy_ptc, label='ptc')
+plt.legend()
+
+plt.figure(101)
+sp1 = plt.subplot(2,1,1)
+plt.plot(qx_test, dqx_mad2, label='madx')
+plt.plot(qx_test, dqx_xsuite, label='xtrack')
+plt.legend()
+
+plt.subplot(2,1,2, sharex=sp1, sharey=sp1)
+plt.plot(qx_test, dqy_mad2, label='madx')
+plt.plot(qx_test, dqy_xsuite, label='xtrack')
+plt.legend()
+
+
+
 
 plt.show()
