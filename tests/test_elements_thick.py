@@ -11,6 +11,7 @@ from xobjects.test_helpers import for_all_test_contexts
 
 import xtrack as xt
 from xtrack.mad_loader import MadLoader
+from xtrack.slicing import Strategy, Uniform
 
 
 @pytest.mark.parametrize(
@@ -184,8 +185,6 @@ def test_thick_multipolar_component(element_type, h):
     line_with_slices.build_tracker()
     line_with_slices.track(p_with_slices, turn_by_turn_monitor='ONE_TURN_EBE')
 
-    print(f'with slices: {line_with_slices.record_last_track.x}')
-
     # Check that the results are the same
     for attr in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
         assert np.allclose(
@@ -194,3 +193,268 @@ def test_thick_multipolar_component(element_type, h):
             atol=1e-14,
             rtol=0,
         )
+
+
+@pytest.mark.parametrize(
+    'with_knobs',
+    [True, False],
+    ids=['with knobs', 'no knobs'],
+)
+@pytest.mark.parametrize(
+    'use_true_thick_bends',
+    [True, False],
+    ids=['true bend', 'combined function magnet'],
+)
+@pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
+def test_import_thick_from_madx(use_true_thick_bends, with_knobs, bend_type):
+    mad = Madx()
+
+    mad.input(f"""
+    knob_a := 1.0;
+    knob_b := 2.0;
+    ! Make the sequence a bit longer to accommodate rbends
+    ss: sequence, l:=2 * knob_b, refer=entry;
+        elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
+            k0:=0.2 * knob_a, k1:=0.3 * knob_a, k2:=0.4 * knob_a,
+            fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
+            e1:=0.7 * knob_a, e2:=0.8 * knob_a;
+    endsequence;
+    """)
+    mad.beam()
+    mad.use(sequence='ss')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.ss,
+        deferred_expressions=with_knobs,
+        allow_thick=True,
+        use_true_thick_bends=use_true_thick_bends,
+    )
+
+    elem_den = line['elem_den']
+    elem = line['elem']
+    elem_dex = line['elem_dex']
+
+    # Check that the line has correct values to start with
+    expected_type = xt.TrueBend if use_true_thick_bends else xt.CombinedFunctionMagnet
+    assert isinstance(elem, expected_type)
+    assert isinstance(elem_den, xt.DipoleEdge)
+    assert isinstance(elem_dex, xt.DipoleEdge)
+
+    # Element:
+    assert np.isclose(elem.length, 2.0, atol=1e-16)
+    assert np.isclose(elem.k0, 0.2, atol=1e-16)
+    assert np.isclose(elem.h, 0.05, atol=1e-16)  # h = angle / L
+    assert np.allclose(elem.ksl, 0.0, atol=1e-16)
+
+    if use_true_thick_bends:
+        assert np.allclose(
+            elem.knl,
+            np.array([0, 0.6, 0.8, 0, 0]),  # knl = [0, k1 * L, k2 * L, 0, 0]
+            atol=1e-16,
+        )
+    else:
+        assert np.isclose(elem.k1, 0.3, atol=1e-16)
+        assert np.allclose(
+            elem.knl,
+            np.array([0, 0, 0.8, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
+            atol=1e-16,
+        )
+
+    # Edges:
+    if bend_type == 'sbend':
+        assert np.isclose(elem_den.fint, 0.5, atol=1e-16)
+        assert np.isclose(elem_den.hgap, 0.6, atol=1e-16)
+        assert np.isclose(elem_den.e1, 0.7, atol=1e-16)
+        assert np.isclose(elem_den.h, 0.2, atol=1e-16)  # h = k0
+
+        assert np.isclose(elem_dex.fint, 0.5, atol=1e-16)
+        assert np.isclose(elem_dex.hgap, 0.6, atol=1e-16)
+        assert np.isclose(elem_dex.e1, 0.8, atol=1e-16)
+        assert np.isclose(elem_dex.h, 0.2, atol=1e-16)  # h = k0
+    elif bend_type == 'rbend':
+        # h := angle / L
+        # r21 := h * tan(0.5 * k0 * L)
+        expected_r21 = (0.1 / 2.0) * np.tan(0.5 * 0.2 * 2.0)
+        # r43 := -k0 * tan(0.5 * k0 * L)
+        expected_r43 = -0.2 * np.tan(0.5 * 0.2 * 2.0)
+        assert np.isclose(elem_den.r21, expected_r21, atol=1e-16)
+        assert np.isclose(elem_den.r43, expected_r43, atol=1e-16)
+    else:
+        raise ValueError(f'Unknown bend type: {bend_type}')
+
+    # Finish the test here if we are not using knobs
+    if not with_knobs:
+        assert line.vars is None
+        return
+
+    # Change the knob values
+    line.vars['knob_a'] = 2.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    # Element:
+    assert np.isclose(elem.length, 3.0, atol=1e-16)
+    assert np.isclose(elem.k0, 0.4, atol=1e-16)
+    assert np.isclose(elem.h, 0.2 / 3.0, atol=1e-16)  # h = angle / length
+    assert np.allclose(elem.ksl, 0.0, atol=1e-16)
+
+    if use_true_thick_bends:
+        assert np.allclose(
+            elem.knl,
+            np.array([0, 1.8, 2.4, 0, 0]),  # knl = [0, k1 * L, k2 * L, 0, 0]
+            atol=1e-16,
+        )
+    else:
+        assert np.isclose(elem.k1, 0.6, atol=1e-16)
+        assert np.allclose(
+            elem.knl,
+            np.array([0, 0, 2.4, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
+            atol=1e-16,
+        )
+
+    # Edges:
+    if bend_type == 'sbend':
+        assert np.isclose(elem_den.fint, 1.0, atol=1e-16)
+        assert np.isclose(elem_den.hgap, 1.2, atol=1e-16)
+        assert np.isclose(elem_den.e1, 1.4, atol=1e-16)
+        assert np.isclose(elem_den.h, 0.4, atol=1e-16)  # h = k0
+
+        assert np.isclose(elem_dex.fint, 1.0, atol=1e-16)
+        assert np.isclose(elem_dex.hgap, 1.2, atol=1e-16)
+        assert np.isclose(elem_dex.e1, 1.6, atol=1e-16)
+        assert np.isclose(elem_dex.h, 0.4, atol=1e-16)  # h = k0
+    elif bend_type == 'rbend':
+        # h := angle / L
+        # r21 := h * tan(0.5 * k0 * L)
+        expected_r21 = (0.2 / 3.0) * np.tan(0.5 * 0.4 * 3.0)
+        # r43 := -k0 * tan(0.5 * k0 * L)
+        expected_r43 = -0.4 * np.tan(0.5 * 0.4 * 3.0)
+        assert np.isclose(elem_den.r21, expected_r21, atol=1e-16)
+        assert np.isclose(elem_den.r43, expected_r43, atol=1e-16)
+    else:
+        raise ValueError(f'Unknown bend type: {bend_type}')
+
+
+@pytest.mark.parametrize('with_knobs', [False, True])
+def test_import_thick_quad_from_madx(with_knobs):
+    mad = Madx()
+
+    mad.input(f"""
+    knob_a := 0.0;
+    knob_b := 2.0;
+    ss: sequence, l:=knob_b, refer=entry;
+        elem: quadrupole, at=0, k1:=0.1 + knob_a, k1s:=0.2 + knob_a, l:=knob_b;
+    endsequence;
+    """)
+    mad.beam()
+    mad.use(sequence='ss')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.ss,
+        allow_thick=True,
+        deferred_expressions=with_knobs,
+    )
+
+    elem_tilt_entry = line['elem_tilt_entry']
+    elem = line['elem']
+    elem_tilt_exit = line['elem_tilt_exit']
+
+    # Verify that the line has been imported correctly
+    assert np.isclose(elem.length, 2.0, atol=1e-16)
+    assert np.isclose(elem.k1, 0.5 * np.sqrt(0.01 + 0.04), atol=1e-16)
+
+    expected_tilt_before = -np.arctan2(0.2, 0.1) / 2
+    tilt_entry = elem_tilt_entry.angle / 180 * np.math.pi  # rotation takes degrees
+    assert np.isclose(tilt_entry, expected_tilt_before, atol=1e-16)
+    tilt_exit = elem_tilt_exit.angle / 180 * np.math.pi  # ditto
+    assert np.isclose(-expected_tilt_before, tilt_exit, atol=1e-16)
+
+    # Finish the test here if we are not using knobs
+    if not with_knobs:
+        assert line.vars is None
+        return
+
+    # Change the knob values
+    line.vars['knob_a'] = 1.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the line has been adjusted correctly
+    assert np.isclose(elem.length, 3.0, atol=1e-16)
+    assert np.isclose(elem.k1, 0.5 * np.sqrt(1.21 + 1.44), atol=1e-16)
+
+    expected_tilt_after = -np.arctan2(1.2, 1.1) / 2
+    changed_tilt_entry = elem_tilt_entry.angle / 180 * np.math.pi  # rotation takes degrees
+    assert np.isclose(changed_tilt_entry, expected_tilt_after, atol=1e-16)
+    changed_tilt_exit = elem_tilt_exit.angle / 180 * np.math.pi  # ditto
+    assert np.isclose(-expected_tilt_after, changed_tilt_exit, atol=1e-16)
+
+
+@pytest.mark.parametrize(
+    'with_knobs',
+    [True, False],
+    ids=['with knobs', 'no knobs'],
+)
+@pytest.mark.parametrize(
+    'use_true_thick_bends',
+    [True, False],
+    ids=['true bend', 'combined function magnet'],
+)
+@pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
+def test_import_from_madx_and_slice(use_true_thick_bends, with_knobs, bend_type):
+    mad = Madx()
+    mad.input(f"""
+    knob_a := 1.0;
+    knob_b := 2.0;
+    ! Make the sequence a bit longer to accommodate rbends
+    ss: sequence, l:=2 * knob_b, refer=entry;
+        elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
+            k0:=0.2 * knob_a, k1:=0.3 * knob_a, k2:=0.4 * knob_a,
+            fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
+            e1:=0.7 * knob_a, e2:=0.8 * knob_a;
+    endsequence;
+    """)
+    mad.beam()
+    mad.use(sequence='ss')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.ss,
+        deferred_expressions=with_knobs,
+        allow_thick=True,
+        use_true_thick_bends=use_true_thick_bends,
+    )
+
+    line.slice_in_place(slicing_strategies=[Strategy(Uniform(2))])
+
+    elems = (line[f'elem..{ii}'] for ii in range(2))
+    drifts = (line[f'drift_elem..{ii}'] for ii in range(2))
+
+    # Verify that the slices are correct
+    for elem in elems:
+        assert np.isclose(elem.length, 1.0, atol=1e-16)
+        assert np.allclose(elem.knl, [0.2, 0.3, 0.4, 0, 0], atol=1e-16)
+        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.isclose(elem.hxl, 0.05, atol=1e-16)
+        assert np.isclose(elem.hyl, 0, atol=1e-16)
+
+    for drift in drifts:
+        assert np.isclose(drift.length, 2/3, atol=1e-16)
+
+    # Finish the test here if we are not using knobs
+    if not with_knobs:
+        assert line.vars is None
+        return
+
+    # Change the knob values
+    line.vars['knob_a'] = 2.0
+    line.vars['knob_b'] = 3.0
+
+    # Verify that the slices are correct
+    for elem in elems:
+        assert np.isclose(elem.length, 1.0, atol=1e-16)
+        assert np.allclose(elem.knl, [0.6, 0.9, 1.2, 0, 0], atol=1e-16)
+        assert np.allclose(elem.ksl, 0, atol=1e-16)
+        assert np.isclose(elem.hxl, 0.75, atol=1e-16)
+        assert np.isclose(elem.hyl, 0, atol=1e-16)
+
+    for drift in drifts:
+        assert np.isclose(drift.length, 2/3, atol=1e-16)
