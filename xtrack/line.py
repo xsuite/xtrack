@@ -10,15 +10,16 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
+from typing import List
 
 import numpy as np
 
-from . import linear_normal_form as lnf
+from . import linear_normal_form as lnf, slicing
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-
+from .slicing import Slicer
 
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -377,6 +378,8 @@ class Line:
         replace_in_expr=None,
         classes=(),
         ignored_madtypes=(),
+        allow_thick=False,
+        use_true_thick_bends=True,
     ):
 
         """
@@ -409,6 +412,13 @@ class Line:
             classes are used.
         ignored_madtypes : tuple, optional
             Tuple of MAD-X element types to be ignored.
+        allow_thick : bool, optional
+            If true, thick elements are allowed. Otherwise, an error is raised
+            if a thick element is encountered.
+        use_true_thick_bends : bool, optional
+            If true, xt.TrueBend is used for thick bends with no quadrupolar
+            component. Otherwise, xt.CombinedFunctionMagnet is used. Only used
+            if allow_thick is true.
 
         Returns
         -------
@@ -417,9 +427,10 @@ class Line:
 
         """
 
-        class_namespace=mk_class_namespace(classes)
+        class_namespace = mk_class_namespace(classes)
 
-        loader = MadLoader(sequence,
+        loader = MadLoader(
+            sequence,
             classes=class_namespace,
             ignore_madtypes=ignored_madtypes,
             enable_errors=apply_madx_errors,
@@ -430,9 +441,11 @@ class Line:
             merge_multipoles=merge_multipoles,
             expressions_for_element_types=expressions_for_element_types,
             error_table=None,  # not implemented yet
-            replace_in_expr=replace_in_expr
-            )
-        line=loader.make_line()
+            replace_in_expr=replace_in_expr,
+            allow_thick=allow_thick,
+            use_true_thick_bends=use_true_thick_bends,
+        )
+        line = loader.make_line()
         return line
 
     def to_dict(self, include_var_management=True):
@@ -511,7 +524,7 @@ class Line:
         file: str or file-like object
             The file to save to. If a string is provided, a file is opened and
             closed. If a file-like object is provided, it is used directly.
-        **kwargs: dict
+        **kwargs:
             Additional keyword arguments are passed to the `Line.to_dict` method.
 
         '''
@@ -643,7 +656,7 @@ class Line:
 
         """
 
-        self.element_names = list(self.element_names)
+        self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
             self.tracker = None
@@ -709,6 +722,10 @@ class Line:
             freeze_longitudinal=freeze_longitudinal,
             time=time,
             **kwargs)
+
+    def slice_in_place(self, slicing_strategies):
+        slicer = Slicer(self, slicing_strategies)
+        return slicer.slice_in_place()
 
     def build_particles(
         self,
@@ -1313,6 +1330,44 @@ class Line:
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop)
 
+    def make_thin_line(self, slicing_strategies: List[slicing.Strategy]):
+        thin_names = []
+        thin_elements = []
+
+        for name in self.element_names:
+            element = self[name]
+
+            if not element.isthick or isinstance(element, Drift):
+                thin_names.append(name)
+                thin_elements.append(element)
+                continue
+
+            chosen_slicing = None
+            for strategy in reversed(slicing_strategies):
+                if strategy.match_element(name, element):
+                    chosen_slicing = strategy.slicing
+                    break
+
+            if not chosen_slicing:
+                raise ValueError(f'No slicing strategy found for the element '
+                                 f'{name}: {element}.')
+
+            drift_idx, element_idx = 0, 0
+            for weight, is_drift in chosen_slicing:
+                if is_drift:
+                    thin_slice = Drift(length=element.length * weight)
+                    slice_name = f'drift_{name}..{drift_idx}'
+                    drift_idx += 1
+                else:
+                    thin_slice = element.make_thin_slice(weight)
+                    slice_name = f'{name}..{element_idx}'
+                    element_idx += 1
+
+                thin_names.append(slice_name)
+                thin_elements.append(thin_slice)
+
+        return Line(elements=thin_elements, element_names=thin_names)
+
 
     def get_length(self):
 
@@ -1844,7 +1899,7 @@ class Line:
         self._var_management = None # Disable expressions
 
         # Unfreeze the line
-        self.element_names = list(self.element_names)
+        self.discard_tracker()
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
@@ -2475,6 +2530,10 @@ class Line:
     def __len__(self):
         return len(self.element_names)
 
+    def items(self):
+        for name in self.element_names:
+            yield name, self.element_dict[name]
+
     def _var_management_to_dict(self):
         out = {}
         out['_var_management_data'] = deepcopy(self._var_management['data'])
@@ -2596,6 +2655,17 @@ class Line:
         self._element_dict.update(value)
 
     @property
+    def element_names(self):
+        return self._element_names
+
+    @element_names.setter
+    def element_names(self, value):
+        if not hasattr(self, '_element_names'):
+            self._element_names = []
+        self._frozen_check()
+        self._element_names = value
+
+    @property
     def elements(self):
         return tuple([self.element_dict[nn] for nn in self.element_names])
 
@@ -2712,6 +2782,7 @@ mathfunctions.tan = math.tan
 mathfunctions.asin = math.asin
 mathfunctions.acos = math.acos
 mathfunctions.atan = math.atan
+mathfunctions.atan2 = math.atan2
 mathfunctions.sinh = math.sinh
 mathfunctions.cosh = math.cosh
 mathfunctions.tanh = math.tanh

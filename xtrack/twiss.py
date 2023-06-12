@@ -22,9 +22,9 @@ from .general import _print
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
-    'dx':1e-7, 'dpx':1e-10,
-    'dy':1e-7, 'dpy':1e-10,
-    'dzeta':1e-6, 'ddelta':1e-7
+    'dx':1e-6, 'dpx':1e-7,
+    'dy':1e-6, 'dpy':1e-7,
+    'dzeta':1e-5, 'ddelta':1e-6
 }
 
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-11]
@@ -228,7 +228,7 @@ def twiss_line(line, particle_ref=None, method=None,
     # defaults
     r_sigma=(r_sigma or 0.01)
     nemitt_x=(nemitt_x or 1e-6)
-    nemitt_y=(nemitt_y or 1e-6,)
+    nemitt_y=(nemitt_y or 1e-6)
     delta_disp=(delta_disp or 1e-5)
     delta_chrom=(delta_chrom or 1e-5)
     zeta_disp=(zeta_disp or 1e-3)

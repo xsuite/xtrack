@@ -27,10 +27,14 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 
 if the want to control how the xobject is created
 """
-
-from typing import List
+import abc
+import functools
+import re
+from itertools import zip_longest
+from typing import List, Iterable, Iterator, Tuple
 
 import numpy as np
+from math import tan
 
 import xtrack, xobjects
 
@@ -40,6 +44,8 @@ from .general import _print
 # Generic functions
 
 clight = 299792458
+
+DEFAULT_BEND_N_MULT_KICKS = 5
 
 
 def iterable(obj):
@@ -55,7 +61,11 @@ def rad2deg(rad):
     return rad * 180 / np.pi
 
 
-
+def evals_to_zero(var_or_val):
+    if hasattr(var_or_val, '_value'):
+        return var_or_val._value == 0
+    else:
+        return not bool(var_or_val)
 
 
 def get_value(x):
@@ -129,6 +139,7 @@ def trim_trailing_zeros(lst):
 def is_expr(x):
     return hasattr(x, "_get_value")
 
+
 def not_zero(x):
     if is_expr(x):
         return True
@@ -188,6 +199,16 @@ class MadElem:
     #    elem=self.elem
     #    if hasattr(elem, "field_errors") and elem.field_errors is not None:
     #        return FieldErrors(elem.field_errors)
+
+    def get_type_hierarchy(self, cpymad_elem=None):
+        if cpymad_elem is None:
+            cpymad_elem = self.elem
+
+        if cpymad_elem.name == cpymad_elem.parent.name:
+            return [cpymad_elem.name]
+
+        parent_types = self.get_type_hierarchy(cpymad_elem.parent)
+        return [cpymad_elem.name] + parent_types
 
     @property
     def phase_errors(self):
@@ -391,11 +412,13 @@ class Aperture:
 
 
 class Alignment:
-    def __init__(self, mad_el, enable_errors, classes, Builder):
+    def __init__(self, mad_el, enable_errors, classes, Builder, custom_tilt=None):
         self.mad_el = mad_el
         self.tilt = mad_el.get("tilt", 0)  # some elements do not have tilt
         if self.tilt:
             self.tilt = rad2deg(self.tilt)
+        if custom_tilt is not None:
+            self.tilt += rad2deg(custom_tilt)
         self.name = mad_el.name
         self.dx = 0
         self.dy = 0
@@ -510,7 +533,9 @@ class MadLoader:
         ignore_madtypes=(),
         expressions_for_element_types=None,
         classes=xtrack,
-        replace_in_expr=None
+        replace_in_expr=None,
+        allow_thick=False,
+        use_true_thick_bends=True,
     ):
 
         if expressions_for_element_types is not None:
@@ -530,9 +555,14 @@ class MadLoader:
         self.replace_in_expr = replace_in_expr
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
+        self.use_true_thick_bends = use_true_thick_bends
+
+        self.allow_thick = allow_thick
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
+        if len(self.sequence.expanded_elements)==0:
+            raise ValueError(f"{self.sequence} has no elements, please do {self.sequence}.use()")
         last_element = Dummy
         for el in self.sequence.expanded_elements:
             madelem = MadElem(el.name, el, self.sequence, madeval)
@@ -569,6 +599,7 @@ class MadLoader:
             buffer = xobjects.context_default.new_buffer()
 
         line = self.classes.Line()
+        self.line = line
 
         if self.enable_expressions:
             madeval = MadLoader.init_line_expressions(line, mad,
@@ -623,12 +654,43 @@ class MadLoader:
             out[el.name] = xtel  # tbc
         return out  # tbc
 
-    def convert_thin_element(self, xtrack_el, mad_el):
+    @property
+    def math(self):
+        if issubclass(self.Builder, ElementBuilderWithExpr):
+            return self.line._var_management['fref']
+
+        import math
+        return math
+
+    def _assert_element_is_thin(self, mad_el):
+        if not evals_to_zero(mad_el.l):
+            if self.allow_thick:
+                raise NotImplementedError(
+                    f'Cannot load element {mad_el.name}, as thick elements of '
+                    f'type {"/".join(mad_el.get_type_hierarchy())} are not '
+                    f'yet supported.'
+                )
+            else:
+                raise ValueError(
+                    f'Element {mad_el.name} is thick, but importing thick '
+                    f'elements is disabled. Did you forget to set '
+                    f'`allow_thick=True`?'
+                )
+
+    def _make_drift_slice(self, mad_el, weight, name_pattern):
+        return self.Builder(
+            name_pattern.format(mad_el.name),
+            self.classes.Drift,
+            length=mad_el.l * weight,
+        )
+
+    def convert_thin_element(self, xtrack_el, mad_el, custom_tilt=None):
         """add aperture and transformations to a thin element
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
         """
-        align = Alignment(mad_el, self.enable_errors, self.classes, self.Builder)
-        # perm=self.permanent_alignement(mad_el) #to be implemented
+        align = Alignment(
+            mad_el, self.enable_errors, self.classes, self.Builder, custom_tilt)
+        # perm=self.permanent_alignement(cpymad_elem) #to be implemented
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
@@ -642,6 +704,217 @@ class MadLoader:
         # elem_list.extend(perm.exit())
 
         return elem_list
+
+    def convert_quadrupole(self, mad_el):
+        if not_zero(mad_el.l) and self.allow_thick:
+            return self._convert_quadrupole_thick(mad_el)
+        else:
+            raise NotImplementedError(
+                "Quadrupole are not supported in thin mode."
+            )
+
+    def _convert_quadrupole_thick(self, mad_el):
+        if mad_el.k1s:
+            tilt = -self.math.atan2(mad_el.k1s, mad_el.k1) / 2
+            k1 = 0.5 * self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
+        else:
+            tilt = None
+            k1 = mad_el.k1
+
+        return self.convert_thin_element(
+            [
+                self.Builder(
+                    mad_el.name,
+                    self.classes.CombinedFunctionMagnet,
+                    k1=k1,
+                    length=mad_el.l,
+                ),
+            ],
+            mad_el,
+            custom_tilt=tilt,
+        )
+
+    def convert_rbend(self, mad_el):
+        return self._convert_bend(
+            mad_el,
+            enable_entry_edge=True,
+            enable_exit_edge=True,
+        )
+
+    def convert_sbend(self, mad_el):
+        return self._convert_bend(
+            mad_el,
+            enable_entry_edge=True,
+            enable_exit_edge=True,
+        )
+
+    def _convert_bend(
+        self,
+        mad_el,
+        enable_entry_edge=True,
+        enable_exit_edge=True,
+    ):
+        if not_zero(mad_el.l) and self.allow_thick:
+            sequence = [self._convert_bend_thick(mad_el)]
+        else:
+            sequence = [self._convert_bend_thin(mad_el)]
+
+        l = mad_el.l
+        h = mad_el.angle / l
+        if not mad_el.k0:
+            k0 = mad_el.angle / l
+        else:
+            k0 = mad_el.k0
+
+        if enable_entry_edge and mad_el.type == 'rbend':
+            # For the rbend edge import we assume flat edge faces
+            dipedge_entry = self.Builder(
+                mad_el.name + "_den",
+                self.classes.DipoleEdge,
+                r21= h * self.math.tan(0.5 * k0 * l),
+                r43= -k0 * self.math.tan(0.5 * k0 * l),
+            )
+            sequence = [dipedge_entry] + sequence
+        elif enable_entry_edge and mad_el.type == 'sbend':
+            # For the sbend edge import we assume k0l = angle
+            dipedge_entry = self.Builder(
+                mad_el.name + "_den",
+                self.classes.DipoleEdge,
+                e1=mad_el.e1,
+                fint=mad_el.fint,
+                hgap=mad_el.hgap,
+                h=k0
+            )
+            sequence = [dipedge_entry] + sequence
+
+        if enable_exit_edge and mad_el.type == 'rbend':
+            # For the rbend edge import we assume flat edge faces
+            dipedge_exit = self.Builder(
+                mad_el.name + "_dex",
+                self.classes.DipoleEdge,
+                r21= h * self.math.tan(0.5 * k0 * l),
+                r43= -k0 * self.math.tan(0.5 * k0 * l),
+            )
+            sequence = sequence + [dipedge_exit]
+        elif enable_entry_edge and mad_el.type == 'sbend':
+            # For the sbend edge import we assume k0l = angle
+            dipedge_exit = self.Builder(
+                mad_el.name + "_dex",
+                self.classes.DipoleEdge,
+                e1=mad_el.e1,
+                fint=mad_el.fint,
+                hgap=mad_el.hgap,
+                h=k0
+            )
+            sequence = sequence + [dipedge_exit]
+
+        return self.convert_thin_element(sequence, mad_el)
+
+    def _convert_bend_thin(self, mad_el):
+        self._assert_element_is_thin(mad_el)
+
+        if not_zero(mad_el.angle):
+            hxl = mad_el.angle
+        else:
+            hxl = mad_el.k0 * mad_el.l
+
+        if mad_el.k0:
+            k0l = mad_el.k0 * mad_el.l
+        else:
+            k0l = mad_el.angle
+
+        if not mad_el.k1:
+            k1l = 0
+        else:
+            k1l = mad_el.k1 * mad_el.l
+
+        return self.Builder(
+            mad_el.name,
+            self.classes.Multipole,
+            knl=[k0l, k1l],
+            hxl=[hxl],
+            length=mad_el.l,
+        )
+
+    def _convert_bend_thick(self, mad_el):
+        if mad_el.angle:
+            h = mad_el.angle / mad_el.l
+        else:
+            h = 0.0
+
+        if not self.use_true_thick_bends:
+            num_multipole_kicks = 0
+            if mad_el.k2:
+                num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
+            return self.Builder(
+                mad_el.name,
+                self.classes.CombinedFunctionMagnet,
+                k0=mad_el.k0 or h,
+                k1=mad_el.k1,
+                h=h,
+                length=mad_el.l,
+                knl=[0, 0, mad_el.k2 * mad_el.l],
+                num_multipole_kicks=num_multipole_kicks,
+            )
+        else:
+            num_multipole_kicks = 0
+            if mad_el.k1 or mad_el.k2:
+                num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
+            return self.Builder(
+                mad_el.name,
+                self.classes.TrueBend,
+                k0=mad_el.k0 or h,
+                h=h,
+                length=mad_el.l,
+                knl=[0, mad_el.k1 * mad_el.l, mad_el.k2 * mad_el.l],
+                num_multipole_kicks=num_multipole_kicks,
+            )
+
+    def convert_sextupole(self, mad_el):
+        thin_sext = self.Builder(
+            mad_el.name,
+            self.classes.Multipole,
+            knl=[0, 0, mad_el.k2 * mad_el.l],
+            ksl=[0, 0, mad_el.k2s * mad_el.l],
+            length=mad_el.l,
+        )
+
+        if not_zero(mad_el.l):
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_sext,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_sext]
+
+        return self.convert_thin_element(sequence, mad_el)
+
+    def convert_octupole(self, mad_el):
+        thin_oct = self.Builder(
+            mad_el.name,
+            self.classes.Multipole,
+            knl=[0, 0, 0, mad_el.k3 * mad_el.l],
+            ksl=[0, 0, 0, mad_el.k3s * mad_el.l],
+            length=mad_el.l,
+        )
+
+        if not_zero(mad_el.l):
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_oct,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_oct]
+
+        return self.convert_thin_element(sequence, mad_el)
 
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
@@ -738,12 +1011,12 @@ class MadLoader:
     convert_vmonitor = convert_drift_like
     convert_collimator = convert_drift_like
     convert_rcollimator = convert_drift_like
-    convert_collimator = convert_drift_like
     convert_elseparator = convert_drift_like
     convert_instrument = convert_drift_like
     convert_solenoid = convert_drift_like
 
     def convert_multipole(self, mad_elem):
+        self._assert_element_is_thin(mad_elem)
         # getting max length of knl and ksl
         knl = mad_elem.knl
         ksl = mad_elem.ksl
@@ -767,55 +1040,96 @@ class MadLoader:
         el.length = mad_elem.lrad
         return self.convert_thin_element([el], mad_elem)
 
-    def convert_kicker(self, mad_elem):
-        hkick = [-mad_elem.hkick] if mad_elem.hkick else []
-        vkick = [mad_elem.vkick] if mad_elem.vkick else []
-        el = self.Builder(
-            mad_elem.name,
+    def convert_kicker(self, mad_el):
+        hkick = [-mad_el.hkick] if mad_el.hkick else []
+        vkick = [mad_el.vkick] if mad_el.vkick else []
+        thin_kicker = self.Builder(
+            mad_el.name,
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_elem.lrad,
+            length=mad_el.lrad,
             hxl=0,
             hyl=0,
         )
-        return self.convert_thin_element([el], mad_elem)
+
+        if not_zero(mad_el.l):
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_kicker,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_kicker]
+
+        return self.convert_thin_element(sequence, mad_el)
 
     convert_tkicker = convert_kicker
 
-    def convert_hkicker(self, mad_elem):
-        if mad_elem.hkick:
+    def convert_hkicker(self, mad_el):
+        if mad_el.hkick:
             raise ValueError(
                 "hkicker with hkick is not supported, please use kick instead")
-        hkick = [-mad_elem.kick] if mad_elem.kick else []
+
+        hkick = [-mad_el.kick] if mad_el.kick else []
         vkick = []
-        el = self.Builder(
-            mad_elem.name,
+        thin_hkicker = self.Builder(
+            mad_el.name,
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_elem.lrad,
+            length=mad_el.lrad,
             hxl=0,
             hyl=0,
         )
-        return self.convert_thin_element([el], mad_elem)
 
-    def convert_vkicker(self, mad_elem):
-        if mad_elem.vkick:
+        if not_zero(mad_el.l):
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_hkicker,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_hkicker]
+
+        return self.convert_thin_element(sequence, mad_el)
+
+    def convert_vkicker(self, mad_el):
+        if mad_el.vkick:
             raise ValueError(
                 "vkicker with vkick is not supported, please use kick instead")
+
         hkick = []
-        vkick = [mad_elem.kick] if mad_elem.kick else []
-        el = self.Builder(
-            mad_elem.name,
+        vkick = [mad_el.kick] if mad_el.kick else []
+        thin_vkicker = self.Builder(
+            mad_el.name,
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_elem.lrad,
+            length=mad_el.lrad,
             hxl=0,
             hyl=0,
         )
-        return self.convert_thin_element([el], mad_elem)
+
+        if not_zero(mad_el.l):
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_vkicker,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_vkicker]
+
+        return self.convert_thin_element(sequence, mad_el)
 
     def convert_dipedge(self, mad_elem):
         # TODO LRAD
@@ -838,7 +1152,7 @@ class MadLoader:
         else:
             frequency = ee.freq * 1e6
         if (hasattr(self.sequence, 'beam')
-            and self.sequence.beam.particle == 'ion'):
+                and self.sequence.beam.particle == 'ion'):
             scale_voltage = 1./self.sequence.beam.charge
         else:
             scale_voltage = 1.
@@ -849,9 +1163,20 @@ class MadLoader:
             frequency=frequency,
             lag=ee.lag * 360,
         )
-        return self.convert_thin_element([el], ee)
+
+        if not evals_to_zero(ee.l):
+            sequence = [
+                self._make_drift_slice(ee, 0.5, f"drift_{{}}..1"),
+                el,
+                self._make_drift_slice(ee, 0.5, f"drift_{{}}..2"),
+            ]
+        else:
+            sequence = [el]
+
+        return self.convert_thin_element(sequence, ee)
 
     def convert_rfmultipole(self, ee):
+        self._assert_element_is_thin(ee)
         # TODO LRAD
         if ee.harmon:
             raise NotImplementedError
@@ -871,6 +1196,7 @@ class MadLoader:
         return self.convert_thin_element([el], ee)
 
     def convert_wire(self, ee):
+        self._assert_element_is_thin(ee)
         if len(ee.L_phy) == 1:
             # the index [0] is present because in MAD-X multiple wires can
             # be defined within the same element
@@ -889,6 +1215,7 @@ class MadLoader:
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
+        self._assert_element_is_thin(ee)
         # This has to be disabled, as it raises an error when l is assigned to an
         # expression:
         # for nn in ["l", "harmon", "lagf", "rv1", "rv2", "rph1", "rph2"]:
@@ -917,6 +1244,7 @@ class MadLoader:
         return self.convert_thin_element([el], ee)
 
     def convert_beambeam(self, ee):
+        self._assert_element_is_thin(ee)
         import xfields as xf
 
         if ee.slot_id == 6 or ee.slot_id == 60:
@@ -1053,4 +1381,3 @@ class MadLoader:
         ee.dy = 0
         ee.ds = 0
         return self.convert_thin_element([el_transverse,el_longitudinal], ee)
-

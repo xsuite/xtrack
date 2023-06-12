@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+from numbers import Number
 from scipy.special import factorial
 
 import xobjects as xo
@@ -72,7 +73,18 @@ class Drift(BeamElement):
     has_backtrack = True
     allow_backtrack = True
 
-    _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
+        ]
+
+    def make_slice(self, weight):
+        return Drift(length=self.length * weight)
+
+    @staticmethod
+    def add_slice_with_expr(weight, refs, thick_name, slice_name):
+        refs[slice_name] = Drift()
+        refs[slice_name].length = _get_expr(refs[thick_name].length) * weight
 
 
 class Cavity(BeamElement):
@@ -559,6 +571,10 @@ class Multipole(BeamElement):
         'ksl': xo.Float64[:],
         }
 
+    _rename = {
+        'order': '_order',
+    }
+
     _depends_on = [RandomUniform, RandomExponential]
 
     _extra_c_sources = [
@@ -608,6 +624,15 @@ class Multipole(BeamElement):
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         self.xoinitialize(**kwargs)
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
 
 
 class SimpleThinQuadrupole(BeamElement):
@@ -667,6 +692,242 @@ class SimpleThinQuadrupole(BeamElement):
         mode='readonly',
         container=self,
     )
+
+
+class CombinedFunctionMagnet(BeamElement):
+    isthick = True
+
+    _xofields={
+        'k0': xo.Float64,
+        'k1': xo.Float64,
+        'h': xo.Float64,
+        'length': xo.Float64,
+        'knl': xo.Float64[5],
+        'ksl': xo.Float64[5],
+        'num_multipole_kicks': xo.Int64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/combinedfunctionmagnet.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
+            raise ValueError("A thick element must have a length.")
+
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(0, order_from_kl))
+        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
+
+        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+
+        self.xoinitialize(**kwargs)
+
+    @property
+    def hxl(self): return self.h * self.length
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._buffer.context.nparray_from_context_array
+        return self.__class__(
+            length=-ctx2np(self.length),
+            k0=self.k0,
+            k1=self.k1,
+            h=self.h,
+            knl=-ctx2np(self.knl),
+            ksl=-ctx2np(self.ksl),
+            num_multipole_kicks=self.num_multipole_kicks,
+            order=self.order,
+            inv_factorial_order=self.inv_factorial_order,
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
+        )
+
+    def make_slice(self, weight):
+        combined_knl = self.knl.copy()
+        combined_knl[0:2] += np.array([self.k0, self.k1]) * self.length
+        thin_multipole = Multipole(
+            knl=combined_knl * weight,
+            ksl=self.ksl * weight,
+            hxl=self.h * self.length * weight,
+            length=self.length * weight,
+        )
+        return thin_multipole
+
+    @staticmethod
+    def add_slice_with_expr(weight, refs, thick_name, slice_name):
+        self_ref = refs[thick_name]
+
+        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = refs[slice_name]
+
+        ref.knl[0] = (_get_expr(self_ref.k0) * _get_expr(self_ref.length)
+                      + _get_expr(self_ref.knl[0])) * weight
+        ref.knl[1] = (_get_expr(self_ref.k1) * _get_expr(self_ref.length)
+                      + _get_expr(self_ref.knl[1])) * weight
+
+        order = 1
+        for ii in range(2, 5):
+            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+
+            if _nonzero(ref.knl[ii]):
+                order = max(order, ii)
+
+        for ii in range(5):
+            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+
+            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+                order = max(order, ii)
+
+        ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
+        ref.length = _get_expr(self_ref.length) * weight
+        ref.order = order
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the array fields
+        for field in ['knl', 'ksl']:
+            for ii in range(5):
+                _unregister_if_preset(getattr(ref, field)[ii])
+
+        # Remove the scalar fields
+        for field in [
+            'k0', 'k1', 'h', 'length', 'num_multipole_kicks', 'order',
+            'inv_factorial_order',
+        ]:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref[field])
+
+
+class TrueBend(BeamElement):
+    isthick = True
+
+    _xofields={
+        'k0': xo.Float64,
+        'h': xo.Float64,
+        'length': xo.Float64,
+        'knl': xo.Float64[5],
+        'ksl': xo.Float64[5],
+        'num_multipole_kicks': xo.Int64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/truebend.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
+            raise ValueError("A thick element must have a length.")
+
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(order_from_kl, 0))
+        kwargs['order'] = order
+        kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
+
+        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+        self.xoinitialize(**kwargs)
+
+    @property
+    def hxl(self): return self.h * self.length
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
+        ctx2np = self._buffer.context.nparray_from_context_array
+        return self.__class__(
+            length=-ctx2np(self.length),
+            k0=self.k0,
+            h=self.h,
+            knl=-ctx2np(self.knl),
+            ksl=-ctx2np(self.ksl),
+            num_multipole_kicks=self.num_multipole_kicks,
+            inv_factorial_order=self.inv_factorial_order,
+            _context=_context,
+            _buffer=_buffer,
+            _offset=_offset,
+        )
+
+    def make_slice(self, weight):
+        combined_knl = self.knl.copy()
+        combined_knl[0] += self.k0 * self.length
+        thin_multipole = Multipole(
+            knl=combined_knl * weight,
+            ksl=self.ksl * weight,
+            hxl=self.h * self.length * weight,
+            length=self.length * weight,
+        )
+        return thin_multipole
+
+    @staticmethod
+    def add_slice_with_expr(weight, refs, thick_name, slice_name):
+        self_ref = refs[thick_name]
+
+        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = refs[slice_name]
+
+        ref.knl[0] = (_get_expr(self_ref.k0) * _get_expr(self_ref.length)
+                      + _get_expr(self_ref.knl[0])) * weight
+        order = 0
+        for ii in range(1, 5):
+            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+
+            if _nonzero(self_ref.knl[ii]):  # order is max ii where knl[ii] is expr or nonzero
+                order = ii
+
+        for ii in range(5):
+            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+
+            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+                order = max(order, ii)
+
+        ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
+        ref.length = _get_expr(self_ref.length) * weight
+        ref.order = order
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the array fields
+        for field in ['knl', 'ksl']:
+            for ii in range(5):
+                _unregister_if_preset(getattr(ref, field)[ii])
+
+        # Remove the scalar fields
+        for field in [
+            'k0', 'h', 'length', 'num_multipole_kicks', 'order',
+            'inv_factorial_order',
+        ]:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref[field])
 
 
 class SimpleThinBend(BeamElement):
@@ -847,6 +1108,7 @@ class DipoleEdge(BeamElement):
     '''
 
     _xofields = {
+            'mode': xo.Int64,
             'r21': xo.Float64,
             'r43': xo.Float64,
             'hgap': xo.Float64,
@@ -860,8 +1122,14 @@ class DipoleEdge(BeamElement):
 
     has_backtrack = True
 
-    _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
-    _skip_in_to_dict = ['r21', 'r43']
+    _rename = {
+        'r21': '_r21',
+        'r43': '_r43',
+        'hgap': '_hgap',
+        'h': '_h',
+        'e1': '_e1',
+        'fint': '_fint',
+    }
 
     def __init__(
         self,
@@ -871,37 +1139,115 @@ class DipoleEdge(BeamElement):
         e1=None,
         hgap=None,
         fint=None,
+        mode=None,
         **kwargs
     ):
 
-        if r21 is not None or r43 is not None:
-            raise NotImplementedError(
-                "Please initialize using `h`, `e1`, `hgap` and `fint`")
+        self.xoinitialize(**kwargs)
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            return
+        if '_r21' in kwargs.keys():
+            # has been set with underscored variables
+            return
 
-        if hgap is None:
-            hgap = 0.
-        if h is None:
-            h = 0.
-        if e1 is None:
-            e1 = 0.
-        if fint is None:
-            fint = 0.
+        # To have them initalized
+        self.mode = 0
+        self._hgap = (hgap or 0)
+        self._h = (h or 0)
+        self._e1 = (e1 or 0)
+        self._fint = (fint or 0)
+        self._r21 = (r21 or 0)
+        self._r43 = (r43 or 0)
 
-        # Check that the argument e1 is not too close to ( 2k + 1 ) * pi/2
-        # so that the cos in the denominator of the r43 calculation and
-        # the tan in the r21 calculations blow up
-        assert not np.isclose(np.absolute(np.cos(e1)), 0)
+        if mode is not None:
+            self.mode = mode
+        elif r21 is not None or r43 is not None:
+            self.mode = 1
+        else:
+            self.mode = 0
 
-        corr = np.float64(2.0) * h * hgap * fint
-        r21 = h * np.tan(e1)
-        temp = corr / np.cos(e1) * (np.float64(1) + np.sin(e1) * np.sin(e1))
+        if self.mode == 0:
+            self._update_r21_r43()
 
-        # again, the argument to the tan calculation should be limited
-        assert not np.isclose(np.absolute(np.cos(e1 - temp)), 0)
-        r43 = -h * np.tan(e1 - temp)
+    def _update_r21_r43(self):
+        corr = np.float64(2.0) * self.h * self.hgap * self.fint
+        r21 = self.h * np.tan(self.e1)
+        temp = corr / np.cos(self.e1) * (
+            np.float64(1) + np.sin(self.e1) * np.sin(self.e1))
+        r43 = -self.h * np.tan(self.e1 - temp)
+        self._r21 = r21
+        self._r43 = r43
+        self.mode = 0
 
-        super().__init__(h=h, hgap=hgap, e1=e1, fint=fint, r21=r21, r43=r43,
-                         **kwargs)
+    @property
+    def h(self):
+        if self.mode == 0:
+            return self._h
+        else:
+            raise ValueError(
+                "`h` is not defined because r21 and r43 were provided directly")
+
+    @h.setter
+    def h(self, value):
+        self._h = value
+        self._update_r21_r43()
+
+    @property
+    def e1(self):
+        if self.mode == 0:
+            return self._e1
+        else:
+            raise ValueError(
+                "`e1` is not defined because r21 and r43 were provided directly")
+
+    @e1.setter
+    def e1(self, value):
+        self._e1 = value
+        self._update_r21_r43()
+
+    @property
+    def hgap(self):
+        if self.mode == 0:
+            return self._hgap
+        else:
+            raise ValueError(
+                "`hgap` is not defined because r21 and r43 were provided directly")
+
+    @hgap.setter
+    def hgap(self, value):
+        self._hgap = value
+        self._update_r21_r43()
+
+    @property
+    def fint(self):
+        if self.mode == 0:
+            return self._fint
+        else:
+            raise ValueError(
+                "`fint` is not defined because r21 and r43 were provided directly")
+
+    @fint.setter
+    def fint(self, value):
+        self._fint = value
+        self._update_r21_r43()
+
+    @property
+    def r21(self):
+        return self._r21
+
+    @r21.setter
+    def r21(self, value):
+        self._r21 = value
+        self.mode = 1
+
+    @property
+    def r43(self):
+        return self._r43
+
+    @r43.setter
+    def r43(self, value):
+        self._r43 = value
+        self.mode = 1
 
 
 class LineSegmentMap(BeamElement):
@@ -1366,31 +1712,6 @@ class FirstOrderTaylorMap(BeamElement):
         super().__init__(**nargs)
 
 
-def _angle_from_trig(cos=None, sin=None, tan=None):
-    """
-    Given at least two values of (cos, sin, tan), return the angle in radians.
-    Raises ValueError if the values are inconsistent.
-    """
-    sin_given, cos_given, tan_given = (trig is not None for trig in (sin, cos, tan))
-
-    if sum([sin_given, cos_given, tan_given]) <= 1:
-        raise ValueError('At least two of (cos, sin, tan) must be given')
-
-    if sin_given and cos_given:
-        tan = tan if tan_given else sin / cos
-    elif sin_given and tan_given:
-        cos = cos if cos_given else sin / tan
-    elif cos_given and tan_given:
-        sin = sin if sin_given else cos * tan
-
-    if (not np.isclose(sin**2 + cos**2, 1, atol=1e-13)
-            or not np.isclose(sin / cos, tan, atol=1e-13)):
-        raise ValueError('Given values of sin, cos, tan are inconsistent '
-                         'with each other.')
-
-    angle = np.arctan2(sin, cos)
-    return angle, cos, sin, tan
-
 class LinearTransferMatrix(BeamElement):
     _xofields={
         'no_detuning': xo.Int64,
@@ -1598,3 +1919,62 @@ class LinearTransferMatrix(BeamElement):
     @property
     def beta_y_1(self):
         return self.beta_prod_y*self.beta_ratio_y
+
+
+def _angle_from_trig(cos=None, sin=None, tan=None):
+    """
+    Given at least two values of (cos, sin, tan), return the angle in radians.
+    Raises ValueError if the values are inconsistent.
+    """
+    sin_given, cos_given, tan_given = (trig is not None for trig in (sin, cos, tan))
+
+    if sum([sin_given, cos_given, tan_given]) <= 1:
+        raise ValueError('At least two of (cos, sin, tan) must be given')
+
+    if sin_given and cos_given:
+        tan = tan if tan_given else sin / cos
+    elif sin_given and tan_given:
+        cos = cos if cos_given else sin / tan
+    elif cos_given and tan_given:
+        sin = sin if sin_given else cos * tan
+
+    if (not np.isclose(sin**2 + cos**2, 1, atol=1e-13)
+            or not np.isclose(sin / cos, tan, atol=1e-13)):
+        raise ValueError('Given values of sin, cos, tan are inconsistent '
+                         'with each other.')
+
+    angle = np.arctan2(sin, cos)
+    return angle, cos, sin, tan
+
+
+def _unregister_if_preset(ref):
+    try:
+        ref._manager.unregister(ref)
+    except KeyError:
+        pass
+
+
+def _get_expr(knob):
+    if knob is None:
+        return 0
+    if hasattr(knob, '_expr'):
+        if knob._expr is None:
+            return knob._get_value()
+        return knob._expr
+    if isinstance(knob, Number):
+        return knob
+    raise ValueError(f'Cannot get expression for {knob}.')
+
+
+def _nonzero(val_or_expr):
+    if isinstance(val_or_expr, Number):
+        return val_or_expr != 0
+
+    return val_or_expr._expr
+
+
+def _get_order(array):
+    nonzero_indices = np.where(array)
+    if not np.any(nonzero_indices):
+        return 0
+    return np.max(nonzero_indices)
