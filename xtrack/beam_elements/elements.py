@@ -991,6 +991,127 @@ class LineSegmentMap(BeamElement):
             gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
             **nargs):
 
+        '''
+        Map representing a simplified segment of a beamline.
+
+        Parameters
+        ----------
+        length : float
+            Length of the segment in meters.
+        qx : float
+            Horizontal tune or phase advance of the segment.
+        qy : float
+            Vertical tune or phase advance of the segment.
+        betx : tuple of length 2 or float
+            Horizontal beta function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        bety : tuple of length 2 or float
+            Vertical beta function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        alfx : tuple of length 2 or float
+            Horizontal alpha function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        alfy : tuple of length 2 or float
+            Vertical alpha function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dx : tuple of length 2 or float
+            Horizontal dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dpx : tuple of length 2 or float
+            Px dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dy : tuple of length 2 or float
+            Vertical dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dpy : tuple of length 2 or float
+            Py dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        x_ref : tuple of length 2 or float
+            Horizontal position of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        px_ref : tuple of length 2 or float
+            Px coordinate of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        y_ref : tuple of length 2 or float
+            Vertical position of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        py_ref : tuple of length 2 or float
+            Py coordinate of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        longitudinal_mode : str
+            Longitudinal mode of the segment. Can be one of ``'linear_fixed_qs'``,
+            ``'nonlinear'``, ``'linear_fixed_rf'`` or ``'frozen'``.
+        qs : float
+            Synchrotron tune of the segment. Only used if ``longitudinal_mode``
+            is ``'linear_fixed_qs'``.
+        bets : float
+            Synchrotron beta function of the segment. Only used if
+            ``longitudinal_mode`` is ``'linear_fixed_qs'``.
+        momentum_compaction_factor : float
+            Momentum compaction factor of the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        slippage_length : float
+            Slippage length of the segment. Only used if ``longitudinal_mode``
+            is ``'nonlinear'`` or ``'linear_fixed_rf'``. If not given, the
+            ``length`` of the segment is used.
+        voltage_rf : list of float
+            List of voltages of the RF kicks in the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        frequency_rf : list of float
+            List of frequencies of the RF kicks in the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        lag_rf : list of float
+            List of lag of the RF kicks in the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        dqx : float
+            Horizontal chromaticity of the segment.
+        dqy : float
+            Vertical chromaticity of the segment.
+        detx_x : float
+            Anharmonicity xx coefficient. Optional, default is ``0``.
+        detx_y : float
+            Anharmonicity xy coefficient. Optional, default is ``0``.
+        dety_y : float
+            Anharmonicity yy coefficient. Optional, default is ``0``.
+        energy_increment : float
+            Energy increment of the segment in eV.
+        energy_ref_increment : float
+            Increment of the reference energy in eV.
+        damping_rate_x : float
+            Horizontal damping rate on the particles motion. Optional, default is ``0``.
+        damping_rate_y : float
+            Vertical damping rate on the particles motion. Optional, default is ``0``.
+        damping_rate_s : float
+            Longitudinal damping rate on the particles motion. Optional, default is ``0``.
+        equ_emit_x : float
+            Horizontal equilibrium emittance. Optional.
+        equ_emit_y : float
+            Vertical equilibrium emittance. Optional.
+        equ_emit_s : float
+            Longitudinal equilibrium emittance. Optional.
+        gauss_noise_ampl_x : float
+            Amplitude of Gaussian noise on the horizontal position. Optional, default is ``0``.
+        gauss_noise_ampl_px : float
+            Amplitude of Gaussian noise on the horizontal momentum. Optional, default is ``0``.
+        gauss_noise_ampl_y : float
+            Amplitude of Gaussian noise on the vertical position. Optional, default is ``0``.
+        gauss_noise_ampl_py : float
+            Amplitude of Gaussian noise on the vertical momentum. Optional, default is ``0``.
+        gauss_noise_ampl_zeta : float
+            Amplitude of Gaussian noise on the longitudinal position. Optional, default is ``0``.
+        gauss_noise_ampl_delta : float
+            Amplitude of Gaussian noise on the longitudinal momentum. Optional, default is ``0``.
+
+        '''
+
         assert longitudinal_mode in ['linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', None]
 
         nargs['qx'] = qx
