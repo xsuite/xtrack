@@ -1053,8 +1053,9 @@ class LineSegmentMap(BeamElement):
             Synchrotron tune of the segment. Only used if ``longitudinal_mode``
             is ``'linear_fixed_qs'``.
         bets : float
-            Synchrotron beta function of the segment. Only used if
-            ``longitudinal_mode`` is ``'linear_fixed_qs'``.
+            Synchrotron beta function of the segment (positive above transition,
+            negative below transition). Only used if ``longitudinal_mode``
+            is ``'linear_fixed_qs'``.
         momentum_compaction_factor : float
             Momentum compaction factor of the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
