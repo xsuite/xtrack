@@ -1893,19 +1893,7 @@ class Line:
         self.use_simple_quadrupoles()
 
         if verbose: _print("Rebuild tracker data")
-        td_init = xt.tracker_data.TrackerData(
-            element_dict=self.element_dict,
-            element_names=self.element_names,
-            element_s_locations=self.get_s_elements(),
-            line_length=self.get_length(),
-            allow_move=True,
-            extra_element_classes=(self.tracker.particles_monitor_class._XoStruct,),
-            _buffer=self._buffer)
-
-        self._freeze()
-
-        self.tracker._tracker_data_cache.clear()
-        self.tracker._tracker_data_cache[None] = td_init
+        self.build_tracker()
 
         self.use_prebuilt_kernels = False
 
@@ -2103,11 +2091,6 @@ class Line:
             Line with consecutive drifts merged
 
         '''
-
-        if self._var_management is not None:
-            raise NotImplementedError('`merge_consecutive_drifts` not'
-                                      ' available when deferred expressions are'
-                                      ' used')
 
         self._frozen_check()
 
