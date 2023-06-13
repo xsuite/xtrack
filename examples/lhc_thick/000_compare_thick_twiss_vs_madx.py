@@ -52,8 +52,8 @@ if kill_fringes_and_edges:
 
 tw_mad = mad.twiss().dframe()
 
-delta1 = -1e-5
-delta2 = 1e-5
+delta1 = -1e-4
+delta2 = 1e-4
 
 mad.input(f"twiss, deltap={delta1};")
 tw_mad1 = mad.table.twiss.dframe()

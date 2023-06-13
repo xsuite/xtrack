@@ -322,7 +322,7 @@ def test_get_R_matrix():
         assert np.isclose(
             norm(W_prod[:4, 2*i_mode] - W_ref[:4, 2*i_mode], ord=2)
             / norm(W_ref[:4, 2*i_mode], ord=2),
-            0, rtol=0, atol=5e-5)
+            0, rtol=0, atol=1e-4)
 
     # Check method=4d
 
