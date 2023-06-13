@@ -1,9 +1,10 @@
 import numpy as np
 from cpymad.madx import Madx
 
-
 import xtrack as xt
 import xpart as xp
+import xdeps as xd
+
 import matplotlib.pyplot as plt
 
 plt.close('all')
@@ -21,6 +22,10 @@ qx_ptc =[]
 qy_ptc =[]
 dqx_ptc =[]
 dqy_ptc =[]
+betx_sel_xsuite = []
+betx_sel_ptc = []
+bety_sel_xsuite = []
+bety_sel_ptc = []
 for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
 
     bumper_names = ['bi1.bsw1l1.1', 'bi1.bsw1l1.2', 'bi1.bsw1l1.3', 'bi1.bsw1l1.4']
@@ -129,6 +134,9 @@ for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
     twptc = mad.table.ptc_twiss.dframe()
     qx_ptc.append(mad.table.ptc_twiss.mu1[-1])
     qy_ptc.append(mad.table.ptc_twiss.mu2[-1])
+    t_ptc = xd.Table(mad.table.ptc_twiss)
+    betx_sel_ptc.append(t_ptc['betx', 'br.stscrap22:1'])
+    bety_sel_ptc.append(t_ptc['bety', 'br.stscrap22:1'])
 
     mad.use(sequence='psb1') # wipes out the errors
 
@@ -179,6 +187,9 @@ for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
     qy_xsuite.append(tw.qy)
     dqx_xsuite.append(tw.dqx)
     dqy_xsuite.append(tw.dqy)
+    betx_sel_xsuite.append(tw['betx', 'br.stscrap22'])
+    bety_sel_xsuite.append(tw['bety', 'br.stscrap22'])
+
 
     beta0 = line.particle_ref.beta0[0]
 
@@ -228,6 +239,17 @@ plt.legend()
 plt.subplot(2,1,2, sharex=sp1, sharey=sp1)
 plt.plot(qx_test, dqy_mad2, label='madx')
 plt.plot(qx_test, dqy_xsuite, label='xtrack')
+plt.legend()
+
+plt.figure(102)
+sp1 = plt.subplot(2,1,1)
+plt.plot(qx_test, betx_sel_xsuite, label='xtrack')
+plt.plot(qx_test, betx_sel_ptc, label='ptc')
+plt.legend()
+
+plt.subplot(2,1,2, sharex=sp1, sharey=sp1)
+plt.plot(qx_test, bety_sel_xsuite, label='xtrack')
+plt.plot(qx_test, bety_sel_ptc, label='ptc')
 plt.legend()
 
 
