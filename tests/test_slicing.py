@@ -68,6 +68,7 @@ def test_slicing_strategy_matching():
         ('mq10', xt.CombinedFunctionMagnet(length=1.0)),
         ('something', xt.TrueBend(length=1.0)),
         ('mb20', xt.TrueBend(length=1.0)),
+        ('keep_thin', xt.Multipole(length=1.0)),
         ('mb21', xt.CombinedFunctionMagnet(length=1.0)),
     ]
 
@@ -122,6 +123,8 @@ def test_slicing_strategy_matching():
         # Two slices for 'mb20':
         'mb20',  # Marker
         'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1', 'drift_mb20..2',
+        # Keep thin:
+        'keep_thin',
         # Three slices for 'mb21' (it's a CFD!):
         'mb21',  # Marker
         'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1', 'drift_mb21..2',
@@ -135,6 +138,8 @@ def test_slicing_strategy_matching():
             assert isinstance(element, xt.CombinedFunctionMagnet)
         elif name == 'keep_drifts' or name.startswith('drift_'):
             assert isinstance(element, xt.Drift)
+        elif name == 'keep_thin':
+            assert isinstance(element, xt.Multipole)
         elif name[-3:-1] == '..':
             assert isinstance(element, xt.Multipole)
         else:
