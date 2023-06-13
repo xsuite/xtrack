@@ -76,17 +76,25 @@ line.vars['on_chicane'] = 1
 
 # Add a marker to the line
 line.discard_tracker()
-line.insert_element(element=xt.Marker(), name='mymarker', at_s=80.)
+line.insert_element(element=xt.Marker(), name='marker_for_match', at_s=80.)
+line.build_tracker()
 line.vars['on_chicane'] = 0
 tw_nochicane = line.twiss()
 
-# line.match_knob('on_chicane_betbeat_corr',
-#         knob_value_start=0,
-#         knob_value_end=1,
-#         vary=[ xt.Vary('ksf.b1', step=1e-8), xt.Vary('ksd.b1', step=1e-8)],
-#         targets=[
-#             xt.Target('dqx', 3.0, tol=1e-6),
-#             xt.Target('dqy', 'preserve', tol=1e-6)])
+line.vars['on_chicane'] =  1
+line.match_knob('on_chicane_betabeat_corr',
+    knob_value_start=0,
+    knob_value_end=1,
+    vary=[
+        xt.Vary('kbrqd3corr', step=1e-5),
+        xt.Vary('kbrqd14corr', step=1e-5),
+    ],
+    targets = [
+        xt.Target('bety', at='marker_for_match',
+                    value=tw_nochicane['bety', 'marker_for_match'], tol=1e-4, scale=1),
+        xt.Target('alfy', at='marker_for_match',
+                    value=tw_nochicane['alfy', 'marker_for_match'], tol=1e-4, scale=1)
+    ])
 
 plt.show()
 
