@@ -1212,7 +1212,7 @@ class DipoleEdge(BeamElement):
         if self.mode == 0:
             return self._h
         else:
-            raise ValueError(
+            raise AttributeError(
                 "`h` is not defined because r21 and r43 were provided directly")
 
     @h.setter
