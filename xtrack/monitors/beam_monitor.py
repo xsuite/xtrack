@@ -27,11 +27,7 @@ class BPMRecord(xo.Struct):
     at_turn = xo.Int64[:]
     x_cen = xo.Float64[:]
     y_cen = xo.Float64[:]
-    time = xo.Float64[:]
-    x_cen_index = xo.Float64[:]
-    y_cen_index = xo.Float64[:]
     summed_particles = xo.Int64[:]
-    summed_particles_index = xo.Int64[:]
     last_particle_id = xo.Int64[:]
 
 class BPM(xt.BeamElement):
@@ -72,8 +68,7 @@ class BPM(xt.BeamElement):
             samples_per_turn = 1
         if sampling_frequency is None:
             sampling_frequency = 1
-        data = {prop: [0]*(stop_at_turn-start_at_turn)*samples_per_turn for prop in self.properties} # particle data
-
+        data = {prop: [0]*int((stop_at_turn-start_at_turn)*samples_per_turn*1.05) for prop in self.properties} # 5% safety for particles much ahead
         super().__init__(particle_id_start=particle_id_start,num_particles=num_particles,start_at_turn=start_at_turn, stop_at_turn=stop_at_turn,samples_per_turn=samples_per_turn,sampling_frequency=sampling_frequency,data=data, **kwargs)
     
 
