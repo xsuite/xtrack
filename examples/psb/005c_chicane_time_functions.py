@@ -28,7 +28,9 @@ line.vars['bsw_k0l'] = (line.functions.fun_bsw_k0l(line.vars['t_turn_s'])
 line.vars['bsw_k2l'] = (line.functions.fun_bsw_k2l(line.vars['t_turn_s'])
                         * line.vars['on_chicane_k2'])
 
-t_test = np.linspace(0, 6e-3, 200)
+line.to_json('psb_02_with_chicane_time_functions.json')
+
+t_test = np.linspace(0, 6e-3, 100)
 
 k0_bsw1 = []
 k2l_bsw1 = []
