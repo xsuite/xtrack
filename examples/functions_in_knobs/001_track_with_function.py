@@ -19,19 +19,27 @@ tw = line.twiss()
 line.vars['on_x1'] = 0
 
 # Define the function
-line.functions['ramp_on_sep1'] = xd.FunctionPieceWiseLinear(
-    x=np.array([0, 5, 20, 40, 50,  60]) * 1e-3, # ms
-    y=np.array([0, 0,  2,  2,  1, 0.5]) # knob value
+line.functions['f_on_sep1'] = xd.FunctionPieceWiseLinear(
+    x=np.array([0, 5, 20, 40, 50]) * 1e-3, # ms
+    y=np.array([0, 0,  2,  2,  1]) # knob value
 )
 
 # Drive the knob with the function
-line.vars['on_sep1'] = line.functions.ramp_on_sep1(line.vars['t_turn_s'])
+line.vars['on_sep1'] = line.functions.f_on_sep1(line.vars['t_turn_s'])
 
 # Track a particle on the closed orbit
 p = line.build_particles(x=0)
 line.enable_time_dependent_vars = True
 line.track(p, num_turns=1000, turn_by_turn_monitor=True)
 mon = line.record_last_track
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.plot(mon.at_turn.T * tw.T_rev0*1e3, mon.y.T)
+plt.xlabel('time [ms]')
+plt.ylabel('y [m]')
+plt.show()
 
 
 
