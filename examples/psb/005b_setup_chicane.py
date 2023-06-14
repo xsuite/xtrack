@@ -22,19 +22,21 @@ line.element_refs['bi1.bsw1l1.1'].h._info() # Check no reference system curvatur
 line.element_refs['bi1.bsw1l1.1_den'].r21._info() # Check no horizontal edge focusing
 
 # Build chicane knob (k0)
-line.vars['bsw_k0l_ref'] = 6.6e-2
-line.vars['on_chicane'] = 0
+line.vars['bsw_k0l'] = 0
+line.vars['k0bi1bsw1l11'] = (line.vars['bsw_k0l'] / line['bi1.bsw1l1.1'].length)
+line.vars['k0bi1bsw1l12'] = (-line.vars['bsw_k0l'] / line['bi1.bsw1l1.2'].length)
+line.vars['k0bi1bsw1l13'] = (-line.vars['bsw_k0l'] / line['bi1.bsw1l1.3'].length)
+line.vars['k0bi1bsw1l14'] = (line.vars['bsw_k0l'] / line['bi1.bsw1l1.4'].length)
 
-line.vars['k0bi1bsw1l11'] = (line.vars['on_chicane'] * line.vars['bsw_k0l_ref']
-                             / line['bi1.bsw1l1.1'].length)
-line.vars['k0bi1bsw1l12'] = (-line.vars['on_chicane'] * line.vars['bsw_k0l_ref']
-                                / line['bi1.bsw1l1.2'].length)
-line.vars['k0bi1bsw1l13'] = (-line.vars['on_chicane'] * line.vars['bsw_k0l_ref']
-                                / line['bi1.bsw1l1.3'].length)
-line.vars['k0bi1bsw1l14'] = (line.vars['on_chicane'] * line.vars['bsw_k0l_ref']
-                                / line['bi1.bsw1l1.4'].length)
 # Inspect:
 line.vars['k0bi1bsw1l11']._info()
+
+# Build knob to model eddy currents (k2)
+line.vars['bsw_k2l'] = 0
+line.element_refs['bi1.bsw1l1.1'].k2 = line.vars['bsw_k2l'] / line['bi1.bsw1l1.1'].length
+line.element_refs['bi1.bsw1l1.2'].k2 = -line.vars['bsw_k2l'] / line['bi1.bsw1l1.2'].length
+line.element_refs['bi1.bsw1l1.3'].k2 = -line.vars['bsw_k2l'] / line['bi1.bsw1l1.3'].length
+line.element_refs['bi1.bsw1l1.4'].k2 = line.vars['bsw_k2l'] / line['bi1.bsw1l1.4'].length
 
 # Match tunes (with chicane off)
 line.match(
@@ -46,19 +48,20 @@ line.match(
         xt.Vary('kbrqd', step=1e-5)],
 )
 
-# Inspect bump and induced beta beating for different bump amplitudes
+# Inspect bump and induced beta beating for different bump amplitudes (and no eddy currents)
 plt.close('all')
+bsw_k0l_ref = 6.6e-2 # Full bump amplitude
 
-chicane_values = np.linspace(0, 1, 5)
+bsw_k0l_values = np.linspace(0, bsw_k0l_ref, 5)
 fig1 = plt.figure(1)
 sp1 = plt.subplot(3,1,1)
 sp2 = plt.subplot(3,1,2, sharex=sp1)
 sp3 = plt.subplot(3,1,3, sharex=sp1)
 
-colors = plt.cm.rainbow(np.linspace(0,1,len(chicane_values)))
+colors = plt.cm.rainbow(np.linspace(0,1,len(bsw_k0l_values)))
 
-for ii, vv in enumerate(chicane_values[::-1]):
-    line.vars['on_chicane'] = vv
+for ii, vv in enumerate(bsw_k0l_values[::-1]):
+    line.vars['bsw_k0l'] = vv
     tw = line.twiss()
 
     sp1.plot(tw.s, tw.x, color=colors[ii])
@@ -69,32 +72,3 @@ sp1.set_ylabel('x [m]')
 sp2.set_ylabel('betx [m]')
 sp3.set_ylabel('bety [m]')
 sp3.set_xlabel('s [m]')
-
-line.vars['on_chicane'] = 1
-
-# Match beta beating correction knob
-
-# Add a marker to the line
-line.discard_tracker()
-line.insert_element(element=xt.Marker(), name='marker_for_match', at_s=80.)
-line.build_tracker()
-line.vars['on_chicane'] = 0
-tw_nochicane = line.twiss()
-
-line.vars['on_chicane'] =  1
-line.match_knob('on_chicane_betabeat_corr',
-    knob_value_start=0,
-    knob_value_end=1,
-    vary=[
-        xt.Vary('kbrqd3corr', step=1e-5),
-        xt.Vary('kbrqd14corr', step=1e-5),
-    ],
-    targets = [
-        xt.Target('bety', at='marker_for_match',
-                    value=tw_nochicane['bety', 'marker_for_match'], tol=1e-4, scale=1),
-        xt.Target('alfy', at='marker_for_match',
-                    value=tw_nochicane['alfy', 'marker_for_match'], tol=1e-4, scale=1)
-    ])
-
-plt.show()
-
