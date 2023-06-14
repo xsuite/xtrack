@@ -90,24 +90,26 @@ class Tracker:
         self._enable_pipeline_hold = enable_pipeline_hold
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
-        if self.iscollective:
-            (parts, part_names, _element_part, _element_index_in_part,
-                _part_element_index, noncollective_xelements) = (
-                self._split_parts_for_colletctive_mode(line, _buffer))
+        # Some data for collective mode prepared also for non-collective lines
+        # to allow collective actions by the tracker (e.g. time-functions on knobs)
+        (parts, part_names, _element_part, _element_index_in_part,
+            _part_element_index, noncollective_xelements) = (
+            self._split_parts_for_collective_mode(line, _buffer))
 
+        assert len(line.element_names) == len(_element_index_in_part)
+        assert len(line.element_names) == len(_element_part)
+        if len(line.element_names) > 0:
+            assert _element_part[-1] == len(parts) - 1
+        self._parts = parts
+        self._part_names = part_names
+        self._element_part = _element_part
+        self._element_index_in_part = _element_index_in_part
+
+        if self.iscollective:
             # Build tracker for all non-collective elements
             # (with collective elements replaced by Drifts)
             ele_dict_non_collective = {
                 nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
-
-            assert len(line.element_names) == len(_element_index_in_part)
-            assert len(line.element_names) == len(_element_part)
-            assert _element_part[-1] == len(parts) - 1
-            self._parts = parts
-            self._part_names = part_names
-            self._element_part = _element_part
-            self._element_index_in_part = _element_index_in_part
-
         else:
             ele_dict_non_collective = line.element_dict
 
@@ -143,7 +145,7 @@ class Tracker:
         if compile:
             _ = self.get_track_kernel_and_data_for_present_config()  # This triggers compilation
 
-    def _split_parts_for_colletctive_mode(self, line, _buffer):
+    def _split_parts_for_collective_mode(self, line, _buffer):
 
         # Split the sequence
         parts = []
