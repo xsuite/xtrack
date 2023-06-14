@@ -2781,11 +2781,25 @@ class Functions:
             raise AttributeError(f'Unknown function {name}')
 
     def to_dict(self):
-        return {}
+        fdict = {}
+        for kk, ff in self._funcs.items():
+            fdict[kk] = ff.to_dict()
+            fdict['__class__'] = ff.__class__.__name__
+        out = {'_funcs': fdict}
+        return out
 
     @classmethod
     def from_dict(cls, dct):
-        return cls()
+        _funcs = {}
+        import xdeps
+        for kk, ff in dct['_funcs'].items():
+            ffcls = getattr(xdeps, ff.pop('__class__'))
+            _funcs[kk] = ffcls.from_dict(ff)
+        out = cls()
+        out._funcs.update(_funcs)
+        return out
+
+
 
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
