@@ -1,4 +1,4 @@
-from ..line import mathfunctions
+from ..line import Functions
 import xdeps
 
 class VarSharing:
@@ -8,7 +8,9 @@ class VarSharing:
 
         mgr = xdeps.Manager()
         newvref = mgr.ref({}, "vars")
-        newfref = mgr.ref(mathfunctions, "f")
+
+        functions = Functions()
+        newfref = mgr.ref(functions, "f")
 
         newe = {} # new root container
         neweref = mgr.ref(newe, "eref") # new root ref

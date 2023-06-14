@@ -2529,14 +2529,17 @@ class Line:
         _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
 
+        functions = Functions()
+
         manager = xd.Manager()
         _vref = manager.ref(_var_values, 'vars')
-        _fref = manager.ref(mathfunctions, 'f')
+        _fref = manager.ref(functions, 'f')
         _lref = manager.ref(self.element_dict, 'element_refs')
 
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
+        self._var_management['data']['functions'] = functions
 
         self._var_management['manager'] = manager
         self._var_management['lref'] = _lref
@@ -2545,7 +2548,10 @@ class Line:
 
         if dct is not None:
             manager = self._var_management['manager']
-            for kk in self._var_management['data'].keys():
+            for kk in dct['_var_management_data'].keys():
+                if kk == 'functions':
+                    dct['_var_management_data'][kk] = Functions.from_dict(
+                                            dct['_var_management_data'][kk])
                 self._var_management['data'][kk].update(
                                             dct['_var_management_data'][kk])
             manager.load(dct['_var_manager'])
@@ -2745,7 +2751,12 @@ class Functions:
         else:
             raise AttributeError(f'Unknown function {name}')
 
-mathfunctions = Functions()
+    def to_dict():
+        return {}
+
+    @classmethod
+    def from_dict(cls, dct):
+        return cls()
 
 
 def _deserialize_element(el, class_dict, _buffer):
