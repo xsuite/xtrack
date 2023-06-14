@@ -14,9 +14,8 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
                                  gamma0=mad.sequence.lhcb1.beam.gamma)
 line.build_tracker()
 
-ramp_on_x8 = xd.FunctionPieceWiseLinear(x=[0, 1, 3, 5],
-                                        y=[0, 100, 100, 0])
-
+line.functions['ramp_on_x8'] = xd.FunctionPieceWiseLinear(x=[0, 1, 3, 5],
+                                                          y=[0, 100, 100, 0])
 
 # Test a knob involving functions
 line.vars['on_x8'] = 100

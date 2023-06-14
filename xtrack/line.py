@@ -2784,7 +2784,7 @@ class Functions:
         fdict = {}
         for kk, ff in self._funcs.items():
             fdict[kk] = ff.to_dict()
-            fdict['__class__'] = ff.__class__.__name__
+            fdict[kk]['__class__'] = ff.__class__.__name__
         out = {'_funcs': fdict}
         return out
 
