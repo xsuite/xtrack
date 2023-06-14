@@ -2553,6 +2553,8 @@ class Line:
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
 
+        _vref['t_turn_s'] = 0.0
+
         if dct is not None:
             manager = self._var_management['manager']
             for kk in dct['_var_management_data'].keys():
