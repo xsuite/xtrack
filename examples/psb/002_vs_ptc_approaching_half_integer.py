@@ -123,10 +123,14 @@ for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
 
     mad.input('''
     ptc_create_universe;
-    ptc_create_layout, model=2, method=2, nst=5, exact=true;
+    ptc_create_layout, model=3, method=6, nst=5, exact=true;
     ptc_setswitch, debuglevel=0, nocavity=false, fringe=true,
                 exact_mis=true, time=true, totalpath=true;
+    select_ptc_normal, q1=0, q2=0;
+    select_ptc_normal, dq1=1, dq2=1;
+    select_ptc_normal, dq1=2, dq2=2;
     PTC_ALIGN;
+    ptc_normal, closed_orbit, normal, icase=5, no=3;
     ptc_twiss, closed_orbit, table=ptc_twiss, icase=4, no=3,
                 summary_table=ptc_twiss_summary;
     ptc_end;
@@ -134,6 +138,8 @@ for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
     twptc = mad.table.ptc_twiss.dframe()
     qx_ptc.append(mad.table.ptc_twiss.mu1[-1])
     qy_ptc.append(mad.table.ptc_twiss.mu2[-1])
+    dqx_ptc.append(mad.table.normal_results.value[2] * beta0)
+    dqy_ptc.append(mad.table.normal_results.value[3] * beta0)
     t_ptc = xd.Table(mad.table.ptc_twiss)
     betx_sel_ptc.append(t_ptc['betx', 'br.stscrap22:1'])
     bety_sel_ptc.append(t_ptc['bety', 'br.stscrap22:1'])
@@ -232,13 +238,13 @@ plt.legend()
 
 plt.figure(101)
 sp1 = plt.subplot(2,1,1)
-plt.plot(qx_test, dqx_mad2, label='madx')
 plt.plot(qx_test, dqx_xsuite, label='xtrack')
+plt.plot(qx_test, dqx_ptc, label='ptc')
 plt.legend()
 
 plt.subplot(2,1,2, sharex=sp1, sharey=sp1)
-plt.plot(qx_test, dqy_mad2, label='madx')
 plt.plot(qx_test, dqy_xsuite, label='xtrack')
+plt.plot(qx_test, dqy_ptc, label='ptc')
 plt.legend()
 
 plt.figure(102)
