@@ -297,6 +297,9 @@ def twiss_line(line, particle_ref=None, method=None,
                         **kwargs)
         return res
 
+    if line.enable_time_dependent_vars:
+        raise RuntimeError('Time dependent variables not supported in Twiss')
+
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
             'ele_start and ele_stop must be provided together')
@@ -1076,6 +1079,10 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       ele_start=None, ele_stop=None,
                       continue_on_closed_orbit_error=False):
 
+    if line.enable_time_dependent_vars:
+        raise RuntimeError(
+            'Time-dependent vars not supported in closed orbit search')
+
     if isinstance(ele_start, str):
         ele_start = line.element_names.index(ele_start)
 
@@ -1227,6 +1234,10 @@ def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
         steps_r_matrix=None,
         ele_start=None, ele_stop=None):
+
+    if line.enable_time_dependent_vars:
+        raise RuntimeError(
+            'Time-dependent vars not supported in one-turn matrix computation')
 
     if isinstance(ele_start, str):
         ele_start = line.element_names.index(ele_start)

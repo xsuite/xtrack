@@ -80,9 +80,11 @@ class Line:
         self._extra_config['reset_s_at_end_turn'] = True
         self._extra_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self._extra_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
+        self._extra_config['t0_time_dependent_vars'] = 0.
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
         self._extra_config['_needs_rng'] = False
+        self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
 
         if isinstance(elements, dict):
@@ -2686,6 +2688,23 @@ class Line:
     @_needs_rng.setter
     def _needs_rng(self, value):
         self._extra_config['_needs_rng'] = value
+
+    @property
+    def enable_time_dependent_vars(self):
+        return self._extra_config['enable_time_dependent_vars']
+
+    @enable_time_dependent_vars.setter
+    def enable_time_dependent_vars(self, value):
+        assert value in (True, False)
+        self._extra_config['enable_time_dependent_vars'] = value
+
+    @property
+    def t0_time_dependent_vars(self):
+        return self._extra_config['t0_time_dependent_vars']
+
+    @t0_time_dependent_vars.setter
+    def t0_time_dependent_vars(self, value):
+        self._extra_config['t0_time_dependent_vars'] = value
 
     @property
     def time_last_track(self):

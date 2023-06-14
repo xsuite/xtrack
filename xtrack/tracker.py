@@ -10,6 +10,8 @@ import logging
 from functools import partial
 from collections import UserDict, defaultdict
 
+from scipy.constants import c as clight
+
 import numpy as np
 import xobjects as xo
 import xpart as xp
@@ -270,7 +272,7 @@ class Tracker:
 
     def _track(self, *args, **kwargs):
         assert self.iscollective in (True, False)
-        if self.iscollective:
+        if self.iscollective or self.line.enable_time_dependent_vars:
             return self._track_with_collective(*args, **kwargs)
         else:
             return self._track_no_collective(*args, **kwargs)
@@ -805,6 +807,20 @@ class Tracker:
             if (flag_monitor and (ele_start == 0 or tt>0)): # second condition is for delayed start
                 if not(tt_resume is not None and tt == tt_resume):
                     monitor.track(particles)
+
+            if self.line.enable_time_dependent_vars:
+                # Find first active particle
+                ii_first_active = (particles.state > 0).argmax()
+                if ii_first_active == 0 and particles._xobject.state[0] <= 0:
+                    # No active particles
+                    break
+
+                # Needs to be generalized for acceleration
+                beta0 = particles._xobject.beta0[ii_first_active]
+                at_turn = particles._xobject.at_turn[ii_first_active]
+                t_turn = (at_turn * self._tracker_data_base.line_length
+                          / (beta0 * clight)) + self.line.t0_time_dependent_vars
+                self.vars['t_turn_s'] = t_turn
 
             moveback_to_buffer = None
             moveback_to_offset = None
