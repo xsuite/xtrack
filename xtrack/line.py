@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import List
+from typing import Any, List
 
 import numpy as np
 
@@ -2577,6 +2577,13 @@ class Line:
             return self._line_vars
 
     @property
+    def functions(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            return self._in_multiline.functions
+        else:
+            return self._var_management['fref']
+
+    @property
     def _xdeps_vref(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             return self._in_multiline._xdeps_vars
@@ -2751,10 +2758,26 @@ class Functions:
         frac = frac,
     )
 
-    def __getattr__(self, name):
-        if name in self._mathfunctions:
+    def __init__(self):
+        object.__setattr__(self, '_funcs', {})
+
+    def __setitem__(self, name, value):
+        self._funcs[name] = value
+
+    def __getitem__(self, name):
+        if name in self._funcs:
+            return self._funcs[name]
+        elif name in self._mathfunctions:
             return self._mathfunctions[name]
         else:
+            raise KeyError(f'Unknown function {name}')
+
+    def __getattr__(self, name):
+        if name == '_funcs':
+            return object.__getattribute__(self, '_funcs')
+        try:
+            return self[name]
+        except KeyError:
             raise AttributeError(f'Unknown function {name}')
 
     def to_dict(self):
