@@ -536,6 +536,8 @@ class MadLoader:
         replace_in_expr=None,
         allow_thick=False,
         use_true_thick_bends=True,
+        enable_edges=True,
+        enable_fringes=True,
     ):
 
         if expressions_for_element_types is not None:
@@ -555,9 +557,11 @@ class MadLoader:
         self.replace_in_expr = replace_in_expr
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
-        self.use_true_thick_bends = use_true_thick_bends
 
         self.allow_thick = allow_thick
+        self.use_true_thick_bends = use_true_thick_bends
+        self.enable_edges = enable_edges
+        self.enable_fringes = enable_fringes
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
@@ -737,15 +741,19 @@ class MadLoader:
     def convert_rbend(self, mad_el):
         return self._convert_bend(
             mad_el,
-            enable_entry_edge=True,
-            enable_exit_edge=True,
+            enable_entry_edge=self.enable_edges,
+            enable_exit_edge=self.enable_edges,
+            enable_entry_fringe=self.enable_fringes,
+            enable_exit_fringe=self.enable_fringes,
         )
 
     def convert_sbend(self, mad_el):
         return self._convert_bend(
             mad_el,
-            enable_entry_edge=True,
-            enable_exit_edge=True,
+            enable_entry_edge=self.enable_edges,
+            enable_exit_edge=self.enable_edges,
+            enable_entry_fringe=self.enable_fringes,
+            enable_exit_fringe=self.enable_fringes,
         )
 
     def _convert_bend(
@@ -753,6 +761,8 @@ class MadLoader:
         mad_el,
         enable_entry_edge=True,
         enable_exit_edge=True,
+        enable_entry_fringe=True,
+        enable_exit_fringe=True,
     ):
         if not_zero(mad_el.l) and self.allow_thick:
             sequence = [self._convert_bend_thick(mad_el)]
@@ -766,6 +776,7 @@ class MadLoader:
         else:
             k0 = mad_el.k0
 
+        # Add edge elements if enabled
         if enable_entry_edge and mad_el.type == 'rbend':
             # For the rbend edge import we assume flat edge faces
             dipedge_entry = self.Builder(
@@ -807,6 +818,31 @@ class MadLoader:
                 h=k0
             )
             sequence = sequence + [dipedge_exit]
+
+        # Add fringes if enabled
+        if enable_entry_fringe:
+            fringe_entry = self.Builder(
+                mad_el.name + "_fen",
+                self.classes.Fringe,
+                angle=mad_el.e1,
+                fint=mad_el.fint,
+                hgap=mad_el.hgap,
+                k=k0,
+                exit=False,
+            )
+            sequence = [fringe_entry] + sequence
+
+        if enable_exit_fringe:
+            fringe_exit = self.Builder(
+                mad_el.name + "_fex",
+                self.classes.Fringe,
+                angle=mad_el.e2,
+                fint=mad_el.fint,
+                hgap=mad_el.hgap,
+                k=k0,
+                exit=True,
+            )
+            sequence = sequence + [fringe_exit]
 
         return self.convert_thin_element(sequence, mad_el)
 
