@@ -1542,7 +1542,8 @@ class Line:
         '''
 
         self._frozen_check()
-        assert name not in self.element_dict.keys()
+        if element in self.element_dict and element is not self.element_dict[name]:
+            raise ValueError('Element already present in the line')
         self.element_dict[name] = element
         self.element_names.append(name)
         return self
