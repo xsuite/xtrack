@@ -2709,35 +2709,43 @@ class Line:
 
             return out
 
-class MathFunctions:
-    pass
-
 def frac(x):
     return x % 1
 
-mathfunctions = MathFunctions()
-mathfunctions.sqrt = math.sqrt
-mathfunctions.log = math.log
-mathfunctions.log10 = math.log10
-mathfunctions.exp = math.exp
-mathfunctions.sin = math.sin
-mathfunctions.cos = math.cos
-mathfunctions.tan = math.tan
-mathfunctions.asin = math.asin
-mathfunctions.acos = math.acos
-mathfunctions.atan = math.atan
-mathfunctions.atan2 = math.atan2
-mathfunctions.sinh = math.sinh
-mathfunctions.cosh = math.cosh
-mathfunctions.tanh = math.tanh
-mathfunctions.sinc = np.sinc
-mathfunctions.abs = math.fabs
-mathfunctions.erf = math.erf
-mathfunctions.erfc = math.erfc
-mathfunctions.floor = math.floor
-mathfunctions.ceil = math.ceil
-mathfunctions.round = np.round
-mathfunctions.frac = frac
+class Functions:
+
+    _mathfunctions = dict(
+        sqrt = math.sqrt,
+        log = math.log,
+        log10 = math.log10,
+        exp = math.exp,
+        sin = math.sin,
+        cos = math.cos,
+        tan = math.tan,
+        asin = math.asin,
+        acos = math.acos,
+        atan = math.atan,
+        atan2 = math.atan2,
+        sinh = math.sinh,
+        cosh = math.cosh,
+        tanh = math.tanh,
+        sinc = np.sinc,
+        abs = math.fabs,
+        erf = math.erf,
+        erfc = math.erfc,
+        floor = math.floor,
+        ceil = math.ceil,
+        round = np.round,
+        frac = frac,
+    )
+
+    def __getattr__(self, name):
+        if name in self._mathfunctions:
+            return self._mathfunctions[name]
+        else:
+            raise AttributeError(f'Unknown function {name}')
+
+mathfunctions = Functions()
 
 
 def _deserialize_element(el, class_dict, _buffer):
