@@ -2481,6 +2481,10 @@ class Line:
     def _var_management_to_dict(self):
         out = {}
         out['_var_management_data'] = deepcopy(self._var_management['data'])
+        for kk in out['_var_management_data'].keys():
+            if hasattr(out['_var_management_data'][kk], 'to_dict'):
+                out['_var_management_data'][kk] = (
+                    out['_var_management_data'][kk].to_dict())
         out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
@@ -2552,8 +2556,10 @@ class Line:
                 if kk == 'functions':
                     dct['_var_management_data'][kk] = Functions.from_dict(
                                             dct['_var_management_data'][kk])
-                self._var_management['data'][kk].update(
-                                            dct['_var_management_data'][kk])
+                    self._var_management['data'][kk] = dct['_var_management_data'][kk]
+                else:
+                    self._var_management['data'][kk].update(
+                                                dct['_var_management_data'][kk])
             manager.load(dct['_var_manager'])
 
         self._line_vars = LineVars(self)
@@ -2751,13 +2757,12 @@ class Functions:
         else:
             raise AttributeError(f'Unknown function {name}')
 
-    def to_dict():
+    def to_dict(self):
         return {}
 
     @classmethod
     def from_dict(cls, dct):
         return cls()
-
 
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
