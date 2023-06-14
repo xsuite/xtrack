@@ -33,10 +33,13 @@ line.vars['k0bi1bsw1l11']._info()
 
 # Build knob to model eddy currents (k2)
 line.vars['bsw_k2l'] = 0
-line.element_refs['bi1.bsw1l1.1'].k2 = line.vars['bsw_k2l'] / line['bi1.bsw1l1.1'].length
-line.element_refs['bi1.bsw1l1.2'].k2 = -line.vars['bsw_k2l'] / line['bi1.bsw1l1.2'].length
-line.element_refs['bi1.bsw1l1.3'].k2 = -line.vars['bsw_k2l'] / line['bi1.bsw1l1.3'].length
-line.element_refs['bi1.bsw1l1.4'].k2 = line.vars['bsw_k2l'] / line['bi1.bsw1l1.4'].length
+line.element_refs['bi1.bsw1l1.1'].knl[2] = line.vars['bsw_k2l']
+line.element_refs['bi1.bsw1l1.2'].knl[2] = -line.vars['bsw_k2l']
+line.element_refs['bi1.bsw1l1.3'].knl[2] = -line.vars['bsw_k2l']
+line.element_refs['bi1.bsw1l1.4'].knl[2] = line.vars['bsw_k2l']
+
+# Save to file
+line.to_json('psb_01_with_chicane.json')
 
 # Match tunes (with chicane off)
 line.match(
@@ -72,3 +75,26 @@ sp1.set_ylabel('x [m]')
 sp2.set_ylabel('betx [m]')
 sp3.set_ylabel('bety [m]')
 sp3.set_xlabel('s [m]')
+
+# Inspect eddy currents effect (at start chicane ramp)
+line.vars['bsw_k0l'] = bsw_k0l_ref * 0.95
+
+bsw_k2l_ref = -9.7429e-2 # Maximum ramp rate
+
+fig2 = plt.figure(2)
+sp1 = plt.subplot(3,1,1)
+sp2 = plt.subplot(3,1,2, sharex=sp1)
+sp3 = plt.subplot(3,1,3, sharex=sp1)
+for ii, vv in enumerate([bsw_k2l_ref, 0]):
+    line.vars['bsw_k2l'] = vv
+    tw = line.twiss()
+
+    sp1.plot(tw.s, tw.x)
+    sp2.plot(tw.s, tw.betx)
+    sp3.plot(tw.s, tw.bety)
+
+sp1.set_ylabel('x [m]')
+sp2.set_ylabel('betx [m]')
+sp3.set_ylabel('bety [m]')
+sp3.set_xlabel('s [m]')
+plt.show()
