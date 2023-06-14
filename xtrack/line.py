@@ -2577,7 +2577,7 @@ class Line:
     @property
     def functions(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline.functions
+            raise NotImplementedError('`functions` not available yet in multiline')
         else:
             return self._var_management['fref']
 
