@@ -37,7 +37,7 @@ class VarSharing:
                 and line._var_management["manager"] is not None):
 
             mgr1 = line._var_management["manager"]
-            if len(mgr1.containers["functions"]._owner.keys()) > 0:
+            if len(mgr1.containers["f"]._owner._funcs.keys()) > 0:
                 raise NotImplementedError("Functions not supported yet in multiline")
 
             if update_existing:
