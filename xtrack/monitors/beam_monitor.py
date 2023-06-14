@@ -7,7 +7,7 @@ Date: 2023-06-10
 import xtrack as xt
 import xpart as xp
 import xobjects as xo
-
+import numpy as np
 from pathlib import Path
 
 
@@ -74,8 +74,20 @@ class BPM(xt.BeamElement):
 
     def __getattr__(self, attr):
         if attr in self.properties:
-            val = getattr(self.data, attr)
-            val = val.to_nparray()#self.data._buffer.context.nparray_from_context_array(val) # val.to_nparray() 
+            if (attr == 'x_cen' or attr == 'y_cen'):
+                position_sum = getattr(self.data, attr)
+                position_sum = position_sum.to_nparray()
+                summed_particles = getattr(self.data,'summed_particles')
+                summed_particles = summed_particles.to_nparray()
+                val = np.zeros((len(position_sum)))
+                for i in range(len(position_sum)):
+                    if summed_particles[i] != 0:
+                        val[i] = position_sum[i]/summed_particles[i]
+                    else:
+                        val[i] = 0
+            else:
+               val = getattr(self.data, attr) 
+               val = val.to_nparray()#self.data._buffer.context.nparray_from_context_array(val) # val.to_nparray() 
             return val
         return super().__getattr__(attr)
 
