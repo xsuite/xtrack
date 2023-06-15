@@ -58,46 +58,46 @@ line.vars['kbrqd14corr'] = (line.vars['on_chicane_beta_corr']
 # Correct tunes #
 #################
 
-# # Split quadrupole strengths in two components
-# line.vars['kbrqf_0'] = line.vars['kbrqf']._value
-# line.vars['kbrqd_0'] = line.vars['kbrqd']._value
-# line.vars['kbrqf_corr'] = 0
-# line.vars['kbrqd_corr'] = 0
-# line.vars['kbrqf'] = line.vars['kbrqf_0'] + line.vars['kbrqf_corr']
-# line.vars['kbrqd'] = line.vars['kbrqd_0'] + line.vars['kbrqd_corr']
+# Split quadrupole strengths in two components
+line.vars['kbrqf_0'] = line.vars['kbrqf']._value
+line.vars['kbrqd_0'] = line.vars['kbrqd']._value
+line.vars['kbrqf_corr'] = 0
+line.vars['kbrqd_corr'] = 0
+line.vars['kbrqf'] = line.vars['kbrqf_0'] + line.vars['kbrqf_corr']
+line.vars['kbrqd'] = line.vars['kbrqd_0'] + line.vars['kbrqd_corr']
 
 
-# kbrqf_corr_list = []
-# kbrqd_corr_list = []
-# for ii, tt in enumerate(t_correct):
-#     print(f'Correct tune at t = {tt * 1e3:.2f} ms   \n')
-#     line.vars['t_turn_s'] = tt
+kbrqf_corr_list = []
+kbrqd_corr_list = []
+for ii, tt in enumerate(t_correct):
+    print(f'Correct tune at t = {tt * 1e3:.2f} ms   \n')
+    line.vars['t_turn_s'] = tt
 
-#     line.match(
-#         #verbose=True,
-#         vary=[
-#             xt.Vary('kbrqf_corr', step=1e-4),
-#             xt.Vary('kbrqd_corr', step=1e-4),
-#         ],
-#         targets = [
-#             xt.Target('qx', value=tw0.qx, tol=1e-5, scale=1),
-#             xt.Target('qy', value=tw0.qy, tol=1e-5, scale=1)
-#         ]
-#     )
+    line.match(
+        #verbose=True,
+        vary=[
+            xt.Vary('kbrqf_corr', step=1e-4),
+            xt.Vary('kbrqd_corr', step=1e-4),
+        ],
+        targets = [
+            xt.Target('qx', value=tw0.qx, tol=1e-5, scale=1),
+            xt.Target('qy', value=tw0.qy, tol=1e-5, scale=1)
+        ]
+    )
 
-#     kbrqf_corr_list.append(line.vars['kbrqf_corr']._value)
-#     kbrqd_corr_list.append(line.vars['kbrqd_corr']._value)
+    kbrqf_corr_list.append(line.vars['kbrqf_corr']._value)
+    kbrqd_corr_list.append(line.vars['kbrqd_corr']._value)
 
-# line.functions['fun_kqf_corr'] = xd.FunctionPieceWiseLinear(
-#     x=t_correct, y=kbrqf_corr_list)
-# line.functions['fun_kqd_corr'] = xd.FunctionPieceWiseLinear(
-#     x=t_correct, y=kbrqd_corr_list)
+line.functions['fun_kqf_corr'] = xd.FunctionPieceWiseLinear(
+    x=t_correct, y=kbrqf_corr_list)
+line.functions['fun_kqd_corr'] = xd.FunctionPieceWiseLinear(
+    x=t_correct, y=kbrqd_corr_list)
 
-# line.vars['on_chicane_tune_corr'] = 1
-# line.vars['kbrqf_corr'] = (line.vars['on_chicane_tune_corr']
-#                             * line.functions.fun_kqf_corr(line.vars['t_turn_s']))
-# line.vars['kbrqd_corr'] = (line.vars['on_chicane_tune_corr']
-#                             * line.functions.fun_kqd_corr(line.vars['t_turn_s']))
+line.vars['on_chicane_tune_corr'] = 1
+line.vars['kbrqf_corr'] = (line.vars['on_chicane_tune_corr']
+                            * line.functions.fun_kqf_corr(line.vars['t_turn_s']))
+line.vars['kbrqd_corr'] = (line.vars['on_chicane_tune_corr']
+                            * line.functions.fun_kqd_corr(line.vars['t_turn_s']))
 
 
 t_test = np.linspace(0, 6e-3, 100)
