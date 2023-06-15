@@ -80,6 +80,8 @@ line.vars['kbrqd3corr'] = (line.vars['on_chicane_beta_corr']
 line.vars['kbrqd14corr'] = (line.vars['on_chicane_beta_corr']
                         * line.functions.fun_qd14_corr(line.vars['t_turn_s']))
 
+# Save
+line.vars['t_turn_s'] = 0
 line.to_json('psb_03_with_chicane_corrected.json')
 
 
