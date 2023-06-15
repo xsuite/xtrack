@@ -27,7 +27,7 @@ line.discard_tracker()
 slicing_strategies = [
     Strategy(slicing=Teapot(1)),  # Default
     Strategy(slicing=Teapot(3), element_type=xt.TrueBend),
-    Strategy(slicing=Teapot(10), element_type=xt.CombinedFunctionMagnet),
+    Strategy(slicing=Teapot(5), element_type=xt.CombinedFunctionMagnet),
 ]
 
 print("Slicing thick elements...")
