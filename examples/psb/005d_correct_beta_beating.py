@@ -25,6 +25,9 @@ line.vars['on_chicane_k2'] = 1
 
 t_correct = np.linspace(0, 5.5e-3, 30)
 
+# LInk vars
+# line.vars['kbrqd14corr'] = line.vars['kbrqd3corr']
+
 kbrqf_corr_list = []
 kbrqd_corr_list = []
 kbrqd3corr_list = []
@@ -132,6 +135,18 @@ plt.legend()
 sp2 = plt.subplot(2,1,2, sharex=sp1)
 plt.plot(t_test*1e3, bety_at_mker , label='bety at marker')
 plt.plot(t_test*1e3, bety_at_mker_uncorrected, label='bety at marker (uncorrected)')
+plt.legend()
+plt.xlabel('time [ms]')
+
+
+plt.figure(3)
+sp1 = plt.subplot(2,1,1)
+plt.plot(t_correct*1e3, kbrqf_corr_list, label='kbrqfcorr')
+plt.plot(t_correct*1e3, kbrqd_corr_list, label='kbrqdcorr')
+plt.legend()
+plt.subplot(2,1,2, sharex=sp1)
+plt.plot(t_correct*1e3, kbrqd3corr_list, label='kbrqd3corr')
+plt.plot(t_correct*1e3, kbrqd14corr_list, label='kbrqd14corr')
 plt.legend()
 plt.xlabel('time [ms]')
 
