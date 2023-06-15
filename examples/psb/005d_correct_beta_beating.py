@@ -48,10 +48,10 @@ line.functions['fun_qd3_corr'] = xd.FunctionPieceWiseLinear(
 line.functions['fun_qd14_corr'] = xd.FunctionPieceWiseLinear(
     x=t_correct, y=kbrqd14corr_list)
 
-line.vars['on_chicane_corr'] = 1
-line.vars['kbrqd3corr'] = (line.vars['on_chicane_corr']
+line.vars['on_chicane_beta_corr'] = 1
+line.vars['kbrqd3corr'] = (line.vars['on_chicane_beta_corr']
                          * line.functions.fun_qd3_corr(line.vars['t_turn_s']))
-line.vars['kbrqd14corr'] = (line.vars['on_chicane_corr']
+line.vars['kbrqd14corr'] = (line.vars['on_chicane_beta_corr']
                         * line.functions.fun_qd14_corr(line.vars['t_turn_s']))
 
 
@@ -70,7 +70,7 @@ for ii, tt in enumerate(t_test):
     print(f'Twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
     line.vars['t_turn_s'] = tt
 
-    line.vars['on_chicane_corr'] = 1
+    line.vars['on_chicane_beta_corr'] = 1
     tw = line.twiss()
 
     qx.append(tw.qx)
@@ -81,7 +81,7 @@ for ii, tt in enumerate(t_test):
     k0_bsw2.append(line['bi1.bsw1l1.2'].k0)
     k2l_bsw2.append(line['bi1.bsw1l1.2'].knl[2])
 
-    line.vars['on_chicane_corr'] = 0
+    line.vars['on_chicane_beta_corr'] = 0
     tw_uncorr = line.twiss()
     bety_at_qde3_uncorrected.append(tw_uncorr['bety', 'br.qde3'])
 
