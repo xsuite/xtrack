@@ -380,6 +380,8 @@ class Line:
         ignored_madtypes=(),
         allow_thick=False,
         use_true_thick_bends=True,
+        enable_edges=True,
+        enable_fringes=True,
     ):
 
         """
@@ -419,6 +421,10 @@ class Line:
             If true, xt.TrueBend is used for thick bends with no quadrupolar
             component. Otherwise, xt.CombinedFunctionMagnet is used. Only used
             if allow_thick is true.
+        enable_edges : bool, optional
+            If true, edge effects are enabled for all elements.
+        enable_fringes : bool, optional
+            If true, fringe fields are enabled for all elements.
 
         Returns
         -------
@@ -444,6 +450,8 @@ class Line:
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
             use_true_thick_bends=use_true_thick_bends,
+            enable_edges=enable_edges,
+            enable_fringes=enable_fringes,
         )
         line = loader.make_line()
         return line
