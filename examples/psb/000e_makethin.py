@@ -64,7 +64,66 @@ for ii, dd in enumerate(delta_values):
     qx_thin_list[ii] = tt_thin.qx
 
 plt.close('all')
+
+t_test = np.linspace(0, 6e-3, 100)
+
+k0_bsw1 = []
+k2_bsw1 = []
+k0_bsw2 = []
+k2_bsw2 = []
+qx = []
+qy = []
+bety_at_mker = []
+bety_at_mker_uncorrected = []
+qy_uncorrected = []
+for ii, tt in enumerate(t_test):
+    print(f'Twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
+    line.vars['t_turn_s'] = tt
+
+    line.vars['on_chicane_beta_corr'] = 1
+    line.vars['on_chicane_tune_corr'] = 1
+    tw = line.twiss()
+
+    qx.append(tw.qx)
+    qy.append(tw.qy)
+    bety_at_mker.append(tw['bety', 'mker_match'])
+    k0_bsw1.append(line['bi1.bsw1l1.1..1'].knl[0] / line['bi1.bsw1l1.1..1'].length)
+    k2_bsw1.append(line['bi1.bsw1l1.1..1'].knl[2] / line['bi1.bsw1l1.1..1'].length)
+    k0_bsw2.append(line['bi1.bsw1l1.2..1'].knl[0] / line['bi1.bsw1l1.2..1'].length)
+    k2_bsw2.append(line['bi1.bsw1l1.2..1'].knl[2] / line['bi1.bsw1l1.2..1'].length)
+
+    line.vars['on_chicane_beta_corr'] = 0
+    line.vars['on_chicane_tune_corr'] = 0
+    tw_uncorr = line.twiss()
+    bety_at_mker_uncorrected.append(tw_uncorr['bety', 'mker_match'])
+    qy_uncorrected.append(tw_uncorr.qy)
+
+import matplotlib.pyplot as plt
+plt.close('all')
 plt.figure(1)
+sp1 = plt.subplot(2,1,1)
+plt.plot(t_test*1e3, k0_bsw1, label='k0 bsw1')
+plt.plot(t_test*1e3, k0_bsw2, label='k0 bsw2')
+plt.legend()
+plt.subplot(2,1,2, sharex=sp1)
+plt.plot(t_test*1e3, k2_bsw1, label='k2l bsw1')
+plt.plot(t_test*1e3, k2_bsw2, label='k2l bsw2')
+plt.legend()
+plt.xlabel('time [ms]')
+
+plt.figure(2)
+sp1 = plt.subplot(2,1,1, sharex=sp1)
+plt.plot(t_test*1e3, qy, label='qy')
+plt.plot(t_test*1e3, qy_uncorrected, label='qy (uncorrected)')
+plt.legend()
+sp2 = plt.subplot(2,1,2, sharex=sp1)
+plt.plot(t_test*1e3, bety_at_mker , label='bety at marker')
+plt.plot(t_test*1e3, bety_at_mker_uncorrected, label='bety at marker (uncorrected)')
+plt.legend()
+plt.xlabel('time [ms]')
+
+
+plt.figure(101)
 
 plt.plot(delta_values, qx_thin_list, label='qy thin')
 plt.plot(delta_values, qx_thick_list, label='qy thick')
@@ -73,10 +132,9 @@ plt.plot(delta_values, qy_thick_list, label='qx thick')
 
 plt.xlabel('delta')
 plt.ylabel('tune')
-plt.show()
 
 # plot difference
-plt.figure(2)
+plt.figure(102)
 plt.plot(delta_values, qx_thick_list - qx_thin_list, label='qx thick - thin')
 plt.plot(delta_values, qy_thick_list - qy_thin_list, label='qy thick - thin')
 plt.xlabel('delta')
