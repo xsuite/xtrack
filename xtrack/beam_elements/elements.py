@@ -888,33 +888,6 @@ class TrueBend(BeamElement):
     @property
     def radiation_flag(self): return 0.0
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(
-            length=-ctx2np(self.length),
-            k0=self.k0,
-            h=self.h,
-            knl=-ctx2np(self.knl),
-            ksl=-ctx2np(self.ksl),
-            num_multipole_kicks=self.num_multipole_kicks,
-            inv_factorial_order=self.inv_factorial_order,
-            _context=_context,
-            _buffer=_buffer,
-            _offset=_offset,
-        )
-
-    def make_slice(self, weight):
-        combined_knl = self.knl.copy()
-        combined_knl[0] += self.k0 * self.length
-        thin_multipole = Multipole(
-            knl=combined_knl * weight,
-            ksl=self.ksl * weight,
-            hxl=self.h * self.length * weight,
-            length=self.length * weight,
-        )
-        return thin_multipole
-
-    @staticmethod
     def add_slice_with_expr(weight, refs, thick_name, slice_name):
         self_ref = refs[thick_name]
 
