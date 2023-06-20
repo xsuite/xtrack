@@ -725,7 +725,7 @@ class MadLoader:
             [
                 self.Builder(
                     mad_el.name,
-                    self.classes.CombinedFunctionMagnet,
+                    self.classes.Quadrupole,
                     k1=k1,
                     length=mad_el.l,
                 ),
