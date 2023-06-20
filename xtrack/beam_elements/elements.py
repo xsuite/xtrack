@@ -798,7 +798,110 @@ class CombinedFunctionMagnet(BeamElement):
             _unregister_if_preset(getattr(ref, field))
 
         # Remove the ref to the element itself
-        _unregister_if_preset(ref[field])
+        _unregister_if_preset(ref)
+
+
+class Quadrupole(BeamElement):
+    isthick = True
+
+    _xofields={
+        'k1': xo.Float64,
+        'length': xo.Float64,
+        'knl': xo.Float64[5],
+        'ksl': xo.Float64[5],
+        'num_multipole_kicks': xo.Int64,
+        'order': xo.Int64,
+        'inv_factorial_order': xo.Float64,
+    }
+
+    _rename = {
+        'order': '_order',
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/track_thick_cfd.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/quadrupole.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
+            raise ValueError("A thick element must have a length.")
+
+        knl = kwargs.get('knl', np.array([]))
+        ksl = kwargs.get('ksl', np.array([]))
+        order_from_kl = max(len(knl), len(ksl)) - 1
+        order = kwargs.get('order', max(0, order_from_kl))
+
+        kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
+        kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+
+        self.xoinitialize(**kwargs)
+
+        self.order = order
+
+    @property
+    def order(self):
+        return self._order
+
+    @order.setter
+    def order(self, value):
+        self._order = value
+        self.inv_factorial_order = 1.0 / factorial(value, exact=True)
+
+    @property
+    def hxl(self): return self.h * self.length
+
+    @property
+    def hyl(self): return 0.0
+
+    @property
+    def radiation_flag(self): return 0.0
+
+    @staticmethod
+    def add_slice_with_expr(weight, refs, thick_name, slice_name):
+        self_ref = refs[thick_name]
+
+        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = refs[slice_name]
+
+        ref.knl[0] = 0.
+        ref.knl[1] = (_get_expr(self_ref.k1) * _get_expr(self_ref.length)
+                      + _get_expr(self_ref.knl[1])) * weight
+
+        order = 1
+        for ii in range(2, 5):
+            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+
+            if _nonzero(ref.knl[ii]):
+                order = max(order, ii)
+
+        for ii in range(5):
+            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+
+            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+                order = max(order, ii)
+
+        ref.hxl = 0
+        ref.length = _get_expr(self_ref.length) * weight
+        ref.order = order
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the array fields
+        for field in ['knl', 'ksl']:
+            for ii in range(5):
+                _unregister_if_preset(getattr(ref, field)[ii])
+
+        # Remove the scalar fields
+        for field in [
+            'k1', 'length', 'num_multipole_kicks', 'order', 'inv_factorial_order',
+        ]:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref)
 
 
 class TrueBend(BeamElement):
