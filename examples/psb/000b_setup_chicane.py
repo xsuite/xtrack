@@ -114,6 +114,10 @@ assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].l
 assert np.isclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
 tw = line.twiss()
+assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.0457367, rtol=0, atol=1e-5)
+assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
+assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.20006, rtol=0, atol=1e-4)
+assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.91701, rtol=0, atol=1e-4)
 assert np.isclose(tw.qy, 4.474490031799888, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
 assert np.isclose(tw.qx, 4.396711590204319, rtol=0, atol=1e-6)
 assert np.isclose(tw.dqy, -8.636405235646905, rtol=0, atol=1e-4)
@@ -130,6 +134,10 @@ assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].l
 assert np.isclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
 tw = line.twiss()
+assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.04588556, rtol=0, atol=1e-5)
+assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
+assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.263928, rtol=0, atol=1e-4)
+assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.322020, rtol=0, atol=1e-4)
 assert np.isclose(tw.qy, 4.471798396829118, rtol=0, atol=1e-6)
 assert np.isclose(tw.qx, 4.398925843617764, rtol=0, atol=1e-6)
 assert np.isclose(tw.dqy, -8.20730683661175, rtol=0, atol=1e-4)
@@ -148,6 +156,10 @@ assert np.isclose(line['bi1.bsw1l1.3'].k0, 0, rtol=0, atol=1e-10)
 assert np.isclose(line['bi1.bsw1l1.4'].k0, 0, rtol=0, atol=1e-10)
 
 tw = line.twiss()
+assert np.isclose(tw['x', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
+assert np.isclose(tw['y', 'bi1.tstr1l1'], 0, rtol=0, atol=1e-5)
+assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.2996347, rtol=0, atol=1e-4)
+assert np.isclose(tw['bety', 'bi1.tstr1l1'], 3.838857, rtol=0, atol=1e-4)
 assert np.isclose(tw.qy, 4.45, rtol=0, atol=1e-6)
 assert np.isclose(tw.qx, 4.4, rtol=0, atol=1e-6)
 assert np.isclose(tw.dqy, -7.149781341846406, rtol=0, atol=1e-4)
