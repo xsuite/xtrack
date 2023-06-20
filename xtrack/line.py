@@ -1745,6 +1745,27 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
+    def configure_bend_method(self, method='expanded'):
+
+        """
+        Configure the method used to track bends.
+
+        Parameters
+        ----------
+        method: str
+            Method to use. Can be 'expanded' or 'full'. Default is 'expanded',
+            which is more appropriate for large accelerators (i.e. bends with
+            small bending angles).
+
+        """
+
+        if method not in ['expanded', 'full']:
+            raise ValueError(f'Unknown bend method {method}')
+
+        for ee in self.elements:
+            if isinstance(ee, xt.Bend):
+                ee.method = {'expanded': 0, 'full': 1}[method]
+
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             mode='deprecated'):
 

@@ -20,7 +20,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "TrueBend",
+            "Bend",
+            "Quadrupole",
             "CombinedFunctionMagnet"
         ]
     },
@@ -46,7 +47,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "TrueBend",
+            "Bend",
+            "Quadrupole",
             "CombinedFunctionMagnet"
         ]
     },
@@ -102,7 +104,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "TrueBend",
+            "Bend",
+            "Quadrupole",
             "CombinedFunctionMagnet"
         ]
     },
@@ -131,7 +134,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "TrueBend",
+            "Bend",
+            "Quadrupole",
             "CombinedFunctionMagnet"
         ]
     },
