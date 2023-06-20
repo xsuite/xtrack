@@ -727,7 +727,10 @@ class CombinedFunctionMagnet(BeamElement):
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(0, order_from_kl))
+        order = kwargs.get('order', max(4, order_from_kl))
+
+        if order > 4:
+            raise NotImplementedError # Untested
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
@@ -832,7 +835,10 @@ class Quadrupole(BeamElement):
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(0, order_from_kl))
+        order = kwargs.get('order', max(4, order_from_kl))
+
+        if order > 4:
+            raise NotImplementedError # Untested
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
@@ -938,7 +944,10 @@ class Bend(BeamElement):
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
-        order = kwargs.get('order', max(order_from_kl, 0))
+        order = kwargs.get('order', max(order_from_kl, 4))
+
+        if order > 4:
+            raise NotImplementedError # Untested
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
