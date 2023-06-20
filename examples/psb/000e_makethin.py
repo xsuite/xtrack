@@ -32,6 +32,9 @@ slicing_strategies = [
 
 print("Slicing thick elements...")
 line.slice_in_place(slicing_strategies)
+
+line.to_json('psb_04_with_chicane_corrected_thin.json')
+
 line.build_tracker()
 
 tw_thin = line.twiss()

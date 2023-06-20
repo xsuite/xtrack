@@ -118,3 +118,120 @@ qy_ptc = mad.table.ptc_twiss.mu2[-1]
 dqx_ptc = mad.table.normal_results.value[2] * beta0
 dqy_ptc = mad.table.normal_results.value[3] * beta0
 t_ptc = xd.Table(mad.table.ptc_twiss)
+
+line_thick = xt.Line.from_json('psb_03_with_chicane_corrected.json')
+line_thick.build_tracker()
+
+line_thick.vars['on_chicane_beta_corr'] = 0
+line_thick.vars['on_chicane_tune_corr'] = 0
+
+t_test = np.linspace(0, 6e-3, 20)
+
+qx = []
+qy = []
+dqx = []
+dqy = []
+bety_at_scraper = []
+qx_ptc = []
+qy_ptc = []
+dqx_ptc = []
+dqy_ptc = []
+bety_at_scraper_ptc = []
+for ii, tt in enumerate(t_test):
+    print(f'Twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
+    line_thick.vars['t_turn_s'] = tt
+
+    tw = line_thick.twiss()
+    bety_at_scraper.append(tw['bety', 'br.stscrap22'])
+    qx.append(tw.qx)
+    qy.append(tw.qy)
+    dqx.append(tw.dqx)
+    dqy.append(tw.dqy)
+
+    mad.globals.bsw_k0l = line_thick.vars['bsw_k0l']._value
+    mad.globals.bsw_k2l = line_thick.vars['bsw_k2l']._value
+
+    mad.input('''
+    SELECT,FLAG=ERROR,CLEAR;
+    SELECT,FLAG=ERROR,PATTERN=BI1.BSW1L1.1;
+    SELECT,FLAG=ERROR,PATTERN=BI1.BSW1L1.4;
+    EFCOMP, DKN:={+BSW_K0L, 0, +BSW_K2L};
+    !EFCOMP, DKN:={0, 0, +BSW_K2L};
+
+    SELECT,FLAG=ERROR,CLEAR;
+    SELECT,FLAG=ERROR,PATTERN=BI1.BSW1L1.2;
+    SELECT,FLAG=ERROR,PATTERN=BI1.BSW1L1.3;
+    EFCOMP, DKN:={-BSW_K0L, 0, -BSW_K2L};
+
+    ''')
+
+    mad.input('''
+        ptc_create_universe;
+        ptc_create_layout, model=3, method=6, nst=5, exact=true;
+        ptc_setswitch, debuglevel=0, nocavity=false, fringe=true,
+                    exact_mis=true, time=true, totalpath=true;
+        select_ptc_normal, q1=0, q2=0;
+        select_ptc_normal, dq1=1, dq2=1;
+        select_ptc_normal, dq1=2, dq2=2;
+        PTC_ALIGN;
+        ptc_normal, closed_orbit, normal, icase=5, no=3;
+        ptc_twiss, closed_orbit, table=ptc_twiss, icase=4, no=3,
+                    summary_table=ptc_twiss_summary;
+        ptc_end;
+        ''')
+
+    qx_ptc.append(mad.table.ptc_twiss.mu1[-1])
+    qy_ptc.append(mad.table.ptc_twiss.mu2[-1])
+    dqx_ptc.append(mad.table.normal_results.value[2] * beta0)
+    dqy_ptc.append(mad.table.normal_results.value[3] * beta0)
+
+    tw_ptc = xd.Table(mad.table.ptc_twiss)
+
+    bety_at_scraper_ptc.append(tw_ptc['bety', 'br.stscrap22:1'])
+
+qx = np.array(qx)
+qy = np.array(qy)
+bety_at_scraper = np.array(bety_at_scraper)
+qx_ptc = np.array(qx_ptc)
+qy_ptc = np.array(qy_ptc)
+bety_at_scraper_ptc = np.array(bety_at_scraper_ptc)
+
+import matplotlib.pyplot as plt
+plt.close('all')
+
+fig1 = plt.figure(1)
+sp1 = plt.subplot(2,1,1)
+
+plt.plot(t_test*1e3, qy, label='qy')
+plt.plot(t_test*1e3, qy_ptc, label='qy ptc')
+plt.ylabel('tune')
+
+
+plt.legend()
+
+sp2 = plt.subplot(2,1,2, sharex=sp1)
+plt.plot(t_test*1e3, bety_at_scraper, label='bety at scraper')
+plt.plot(t_test*1e3, bety_at_scraper_ptc, label='bety at scraper ptc')
+
+plt.legend()
+
+plt.xlabel('time [ms]')
+plt.ylabel('beta [m]')
+
+plt.figure(2)
+sp1 = plt.subplot(2,1,1, sharex=sp1)
+plt.plot(t_test*1e3, dqx, label='xsuite')
+plt.plot(t_test*1e3, dqx_ptc, label='xsuite')
+plt.ylabel('dqx')
+plt.legend()
+
+sp2 = plt.subplot(2,1,2, sharex=sp1)
+plt.plot(t_test*1e3, dqy, label='dqy')
+plt.plot(t_test*1e3, dqy_ptc, label='dqy ptc')
+plt.ylabel('dqy')
+plt.legend()
+
+plt.xlabel('time [ms]')
+
+plt.show()
+
