@@ -17,8 +17,8 @@ void CombinedFunctionMagnet_track_local_particle(
     const double k1 = CombinedFunctionMagnetData_get_k1(el);
     const double h = CombinedFunctionMagnetData_get_h(el);
 
-    const int num_multipole_kicks = CombinedFunctionMagnetData_get_num_multipole_kicks(el);
-    const int order = CombinedFunctionMagnetData_get_order(el);
+    const int64_t num_multipole_kicks = CombinedFunctionMagnetData_get_num_multipole_kicks(el);
+    const int64_t order = CombinedFunctionMagnetData_get_order(el);
     const double inv_factorial_order = CombinedFunctionMagnetData_get_inv_factorial_order(el);
 
     const double *knl = CombinedFunctionMagnetData_getp1_knl(el, 0);

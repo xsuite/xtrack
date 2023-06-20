@@ -15,8 +15,8 @@ void Quadrupole_track_local_particle(
     const double length = QuadrupoleData_get_length(el);
     const double k1 = QuadrupoleData_get_k1(el);
 
-    const int num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
-    const int order = QuadrupoleData_get_order(el);
+    const int64_t num_multipole_kicks = QuadrupoleData_get_num_multipole_kicks(el);
+    const int64_t order = QuadrupoleData_get_order(el);
     const double inv_factorial_order = QuadrupoleData_get_inv_factorial_order(el);
 
     const double *knl = QuadrupoleData_getp1_knl(el, 0);
