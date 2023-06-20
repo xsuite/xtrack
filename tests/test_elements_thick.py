@@ -53,7 +53,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
     use, sequence=ss;
     """)
 
-    ml = MadLoader(mad.sequence.ss, allow_thick=True, use_true_thick_bends=False)
+    ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
 
@@ -90,7 +90,7 @@ def test_thick_bend_survey():
 
     p0 = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV, x=0.7, px=-0.4, delta=0.0)
 
-    el = xt.TrueBend(k0=k, h=h, length=circumference, num_multipole_kicks=0)
+    el = xt.Bend(k0=k, h=h, length=circumference, num_multipole_kicks=0, method=1)
     line = xt.Line(elements=[el])
     line.reset_s_at_end_turn = False
     line.build_tracker()
@@ -133,7 +133,7 @@ def test_thick_bend_survey():
     assert errors < 2e-6
 
 
-@pytest.mark.parametrize('element_type', [xt.TrueBend, xt.CombinedFunctionMagnet])
+@pytest.mark.parametrize('element_type', [xt.Bend, xt.CombinedFunctionMagnet])
 @pytest.mark.parametrize('h', [0.0, 0.1])
 def test_thick_multipolar_component(element_type, h):
     bend_length = 1.0
@@ -215,7 +215,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     ! Make the sequence a bit longer to accommodate rbends
     ss: sequence, l:=2 * knob_b, refer=entry;
         elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
-            k0:=0.2 * knob_a, k1:=0.3 * knob_a, k2:=0.4 * knob_a,
+            k0:=0.2 * knob_a, k1=0, k2:=0.4 * knob_a,
             fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
             e1:=0.7 * knob_a, e2:=0.8 * knob_a;
     endsequence;
@@ -227,16 +227,16 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
         sequence=mad.sequence.ss,
         deferred_expressions=with_knobs,
         allow_thick=True,
-        use_true_thick_bends=use_true_thick_bends,
     )
+    line.configure_bend_method({False: 'expanded', True: 'full'}[
+                                use_true_thick_bends])
 
     elem_den = line['elem_den']
     elem = line['elem']
     elem_dex = line['elem_dex']
 
     # Check that the line has correct values to start with
-    expected_type = xt.TrueBend if use_true_thick_bends else xt.CombinedFunctionMagnet
-    assert isinstance(elem, expected_type)
+    assert elem.method == {False: 0, True: 1}[use_true_thick_bends]
     assert isinstance(elem_den, xt.DipoleEdge)
     assert isinstance(elem_dex, xt.DipoleEdge)
 
@@ -246,19 +246,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     assert np.isclose(elem.h, 0.05, atol=1e-16)  # h = angle / L
     assert np.allclose(elem.ksl, 0.0, atol=1e-16)
 
-    if use_true_thick_bends:
-        assert np.allclose(
-            elem.knl,
-            np.array([0, 0.6, 0.8, 0, 0]),  # knl = [0, k1 * L, k2 * L, 0, 0]
-            atol=1e-16,
-        )
-    else:
-        assert np.isclose(elem.k1, 0.3, atol=1e-16)
-        assert np.allclose(
-            elem.knl,
-            np.array([0, 0, 0.8, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-            atol=1e-16,
-        )
+    assert np.allclose(
+        elem.knl,
+        np.array([0, 0, 0.8, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
+        atol=1e-16,
+    )
 
     # Edges:
     if bend_type == 'sbend':
@@ -298,19 +290,11 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     assert np.isclose(elem.h, 0.2 / 3.0, atol=1e-16)  # h = angle / length
     assert np.allclose(elem.ksl, 0.0, atol=1e-16)
 
-    if use_true_thick_bends:
-        assert np.allclose(
-            elem.knl,
-            np.array([0, 1.8, 2.4, 0, 0]),  # knl = [0, k1 * L, k2 * L, 0, 0]
-            atol=1e-16,
-        )
-    else:
-        assert np.isclose(elem.k1, 0.6, atol=1e-16)
-        assert np.allclose(
-            elem.knl,
-            np.array([0, 0, 2.4, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
-            atol=1e-16,
-        )
+    assert np.allclose(
+        elem.knl,
+        np.array([0, 0, 2.4, 0, 0]),  # knl = [0, 0, k2 * L, 0, 0]
+        atol=1e-16,
+    )
 
     # Edges:
     if bend_type == 'sbend':
@@ -412,7 +396,7 @@ def test_import_thick_bend_from_madx_and_slice(
     ! Make the sequence a bit longer to accommodate rbends
     ss: sequence, l:=2 * knob_b, refer=entry;
         elem: {bend_type}, at=0, angle:=0.1 * knob_a, l:=knob_b,
-            k0:=0.2 * knob_a, k1:=0.3 * knob_a, k2:=0.4 * knob_a,
+            k0:=0.2 * knob_a, k1=0, k2:=0.4 * knob_a,
             fint:=0.5 * knob_a, hgap:=0.6 * knob_a,
             e1:=0.7 * knob_a, e2:=0.8 * knob_a;
     endsequence;
@@ -424,7 +408,6 @@ def test_import_thick_bend_from_madx_and_slice(
         sequence=mad.sequence.ss,
         deferred_expressions=with_knobs,
         allow_thick=True,
-        use_true_thick_bends=use_true_thick_bends,
     )
 
     line.slice_in_place(slicing_strategies=[Strategy(Uniform(2))])
@@ -435,7 +418,7 @@ def test_import_thick_bend_from_madx_and_slice(
     # Verify that the slices are correct
     for elem in elems:
         assert np.isclose(elem.length, 1.0, atol=1e-16)
-        assert np.allclose(elem.knl, [0.2, 0.3, 0.4, 0, 0], atol=1e-16)
+        assert np.allclose(elem.knl, [0.2, 0, 0.4, 0, 0], atol=1e-16)
         assert np.allclose(elem.ksl, 0, atol=1e-16)
         assert np.isclose(elem.hxl, 0.05, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
@@ -455,7 +438,7 @@ def test_import_thick_bend_from_madx_and_slice(
     # Verify that the line has been adjusted correctly
     for elem in elems:
         assert np.isclose(elem.length, 1.5, atol=1e-16)
-        assert np.allclose(elem.knl, [0.6, 0.9, 1.2, 0, 0], atol=1e-16)
+        assert np.allclose(elem.knl, [0.6, 0., 1.2, 0, 0], atol=1e-16)
         assert np.allclose(elem.ksl, 0, atol=1e-16)
         assert np.isclose(elem.hxl, 0.1, atol=1e-16)  # hl = angle / slice_count
         assert np.isclose(elem.hyl, 0, atol=1e-16)

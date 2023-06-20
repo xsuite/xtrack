@@ -82,9 +82,9 @@ class Drift(BeamElement):
         return Drift(length=self.length * weight)
 
     @staticmethod
-    def add_slice_with_expr(weight, refs, thick_name, slice_name):
-        refs[slice_name] = Drift()
-        refs[slice_name].length = _get_expr(refs[thick_name].length) * weight
+    def add_slice(weight, container, thick_name, slice_name):
+        container[slice_name] = Drift()
+        container[slice_name].length = _get_expr(container[thick_name].length) * weight
 
 
 class Cavity(BeamElement):
@@ -758,32 +758,32 @@ class CombinedFunctionMagnet(BeamElement):
     def radiation_flag(self): return 0.0
 
     @staticmethod
-    def add_slice_with_expr(weight, refs, thick_name, slice_name):
-        self_ref = refs[thick_name]
+    def add_slice(weight, container, thick_name, slice_name):
+        self_or_ref = container[thick_name]
 
-        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
-        ref = refs[slice_name]
+        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = container[slice_name]
 
-        ref.knl[0] = (_get_expr(self_ref.k0) * _get_expr(self_ref.length)
-                      + _get_expr(self_ref.knl[0])) * weight
-        ref.knl[1] = (_get_expr(self_ref.k1) * _get_expr(self_ref.length)
-                      + _get_expr(self_ref.knl[1])) * weight
+        ref.knl[0] = (_get_expr(self_or_ref.k0) * _get_expr(self_or_ref.length)
+                      + _get_expr(self_or_ref.knl[0])) * weight
+        ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
+                      + _get_expr(self_or_ref.knl[1])) * weight
 
         order = 1
         for ii in range(2, 5):
-            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
 
             if _nonzero(ref.knl[ii]):
                 order = max(order, ii)
 
         for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
-            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
                 order = max(order, ii)
 
-        ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
-        ref.length = _get_expr(self_ref.length) * weight
+        ref.hxl = _get_expr(self_or_ref.h) * _get_expr(self_or_ref.length) * weight
+        ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
 
     @staticmethod
@@ -866,31 +866,31 @@ class Quadrupole(BeamElement):
     def radiation_flag(self): return 0.0
 
     @staticmethod
-    def add_slice_with_expr(weight, refs, thick_name, slice_name):
-        self_ref = refs[thick_name]
+    def add_slice(weight, container, thick_name, slice_name):
+        self_or_ref = container[thick_name]
 
-        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
-        ref = refs[slice_name]
+        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = container[slice_name]
 
         ref.knl[0] = 0.
-        ref.knl[1] = (_get_expr(self_ref.k1) * _get_expr(self_ref.length)
-                      + _get_expr(self_ref.knl[1])) * weight
+        ref.knl[1] = (_get_expr(self_or_ref.k1) * _get_expr(self_or_ref.length)
+                      + _get_expr(self_or_ref.knl[1])) * weight
 
         order = 1
         for ii in range(2, 5):
-            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
 
             if _nonzero(ref.knl[ii]):
                 order = max(order, ii)
 
         for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
-            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
                 order = max(order, ii)
 
         ref.hxl = 0
-        ref.length = _get_expr(self_ref.length) * weight
+        ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
 
     @staticmethod
@@ -976,29 +976,29 @@ class Bend(BeamElement):
     @property
     def radiation_flag(self): return 0.0
 
-    def add_slice_with_expr(weight, refs, thick_name, slice_name):
-        self_ref = refs[thick_name]
+    def add_slice(weight, container, thick_name, slice_name):
+        self_or_ref = container[thick_name]
 
-        refs[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
-        ref = refs[slice_name]
+        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        ref = container[slice_name]
 
-        ref.knl[0] = (_get_expr(self_ref.k0) * _get_expr(self_ref.length)
-                      + _get_expr(self_ref.knl[0])) * weight
+        ref.knl[0] = (_get_expr(self_or_ref.k0) * _get_expr(self_or_ref.length)
+                      + _get_expr(self_or_ref.knl[0])) * weight
         order = 0
         for ii in range(1, 5):
-            ref.knl[ii] = _get_expr(self_ref.knl[ii]) * weight
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
 
-            if _nonzero(self_ref.knl[ii]):  # order is max ii where knl[ii] is expr or nonzero
+            if _nonzero(self_or_ref.knl[ii]):  # order is max ii where knl[ii] is expr or nonzero
                 order = ii
 
         for ii in range(5):
-            ref.ksl[ii] = _get_expr(self_ref.ksl[ii]) * weight
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
-            if _nonzero(self_ref.ksl[ii]):  # update in the same way for ksl
+            if _nonzero(self_or_ref.ksl[ii]):  # update in the same way for ksl
                 order = max(order, ii)
 
-        ref.hxl = _get_expr(self_ref.h) * _get_expr(self_ref.length) * weight
-        ref.length = _get_expr(self_ref.length) * weight
+        ref.hxl = _get_expr(self_or_ref.h) * _get_expr(self_or_ref.length) * weight
+        ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
 
     @staticmethod

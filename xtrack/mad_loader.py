@@ -841,16 +841,23 @@ class MadLoader:
             h = 0.0
 
         num_multipole_kicks = 0
-        if mad_el.k1 or mad_el.k2:
+        if mad_el.k2:
             num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
+        if mad_el.k1:
+            cls = self.classes.CombinedFunctionMagnet
+            kwargs = dict(k1=mad_el.k1)
+        else:
+            cls = self.classes.Bend
+            kwargs = {}
         return self.Builder(
             mad_el.name,
-            self.classes.Bend,
+            cls,
             k0=mad_el.k0 or h,
             h=h,
             length=mad_el.l,
             knl=[0, mad_el.k1 * mad_el.l, mad_el.k2 * mad_el.l],
             num_multipole_kicks=num_multipole_kicks,
+            **kwargs,
         )
 
     def convert_sextupole(self, mad_el):
