@@ -904,7 +904,7 @@ class Quadrupole(BeamElement):
         _unregister_if_preset(ref)
 
 
-class TrueBend(BeamElement):
+class Bend(BeamElement):
     isthick = True
 
     _xofields={
@@ -926,7 +926,7 @@ class TrueBend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
         _pkg_root.joinpath('beam_elements/elements_src/track_thick_bend.h'),
         _pkg_root.joinpath('beam_elements/elements_src/multipolar_kick.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/truebend.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/bend.h'),
     ]
 
     def __init__(self, **kwargs):

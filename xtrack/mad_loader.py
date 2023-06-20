@@ -862,7 +862,7 @@ class MadLoader:
                 num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
             return self.Builder(
                 mad_el.name,
-                self.classes.TrueBend,
+                self.classes.Bend,
                 k0=mad_el.k0 or h,
                 h=h,
                 length=mad_el.l,
