@@ -62,12 +62,12 @@ def test_slicing_teapot():
 def test_slicing_strategy_matching():
     elements = [
         ('keep_this', xt.CombinedFunctionMagnet(length=1.0)),
-        ('mb10', xt.TrueBend(length=1.0)),
+        ('mb10', xt.Bend(length=1.0)),
         ('keep_drifts', xt.Drift(length=1.0)),
         ('mb11', xt.CombinedFunctionMagnet(length=1.0)),
         ('mq10', xt.CombinedFunctionMagnet(length=1.0)),
-        ('something', xt.TrueBend(length=1.0)),
-        ('mb20', xt.TrueBend(length=1.0)),
+        ('something', xt.Bend(length=1.0)),
+        ('mb20', xt.Bend(length=1.0)),
         ('keep_thin', xt.Multipole(length=1.0)),
         ('mb21', xt.CombinedFunctionMagnet(length=1.0)),
     ]
@@ -76,7 +76,7 @@ def test_slicing_strategy_matching():
         # Default: one slice
         Strategy(slicing=Uniform(1)),
         # All bends: two slices
-        Strategy(slicing=Teapot(2), element_type=xt.TrueBend),
+        Strategy(slicing=Teapot(2), element_type=xt.Bend),
         # All CFDs: three slices
         Strategy(slicing=Uniform(3), element_type=xt.CombinedFunctionMagnet),
         # If the name starts with mb: five slices (the bend and the cfd 'mb11')
@@ -175,7 +175,7 @@ def test_slicing_strategy_matching():
 
 @pytest.mark.parametrize(
     'element_type',
-    [xt.TrueBend, xt.CombinedFunctionMagnet],
+    [xt.Bend, xt.CombinedFunctionMagnet],
 )
 def test_slicing_thick_bend_simple(element_type):
     has_k1 = element_type is xt.CombinedFunctionMagnet
