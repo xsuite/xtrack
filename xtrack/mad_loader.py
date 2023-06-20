@@ -535,7 +535,6 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         allow_thick=False,
-        use_true_thick_bends=True,
     ):
 
         if expressions_for_element_types is not None:
@@ -555,7 +554,6 @@ class MadLoader:
         self.replace_in_expr = replace_in_expr
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
-        self.use_true_thick_bends = use_true_thick_bends
 
         self.allow_thick = allow_thick
 
@@ -842,33 +840,18 @@ class MadLoader:
         else:
             h = 0.0
 
-        if not self.use_true_thick_bends:
-            num_multipole_kicks = 0
-            if mad_el.k2:
-                num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
-            return self.Builder(
-                mad_el.name,
-                self.classes.CombinedFunctionMagnet,
-                k0=mad_el.k0 or h,
-                k1=mad_el.k1,
-                h=h,
-                length=mad_el.l,
-                knl=[0, 0, mad_el.k2 * mad_el.l],
-                num_multipole_kicks=num_multipole_kicks,
-            )
-        else:
-            num_multipole_kicks = 0
-            if mad_el.k1 or mad_el.k2:
-                num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
-            return self.Builder(
-                mad_el.name,
-                self.classes.Bend,
-                k0=mad_el.k0 or h,
-                h=h,
-                length=mad_el.l,
-                knl=[0, mad_el.k1 * mad_el.l, mad_el.k2 * mad_el.l],
-                num_multipole_kicks=num_multipole_kicks,
-            )
+        num_multipole_kicks = 0
+        if mad_el.k1 or mad_el.k2:
+            num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
+        return self.Builder(
+            mad_el.name,
+            self.classes.Bend,
+            k0=mad_el.k0 or h,
+            h=h,
+            length=mad_el.l,
+            knl=[0, mad_el.k1 * mad_el.l, mad_el.k2 * mad_el.l],
+            num_multipole_kicks=num_multipole_kicks,
+        )
 
     def convert_sextupole(self, mad_el):
         thin_sext = self.Builder(

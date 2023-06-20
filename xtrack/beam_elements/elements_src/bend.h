@@ -27,14 +27,26 @@ void Bend_track_local_particle(
 
     const int64_t method = BendData_get_method(el);
 
-    //start_per_particle_block (part0->part)
-        track_thick_bend(part, slice_length, k0, h);
+    if (method == 0){
+            //start_per_particle_block (part0->part)
+            track_thick_cfd(part, slice_length, k0, 0, h);
 
-        for (int ii = 0; ii < num_multipole_kicks; ii++) {
-            multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+            for (int ii = 0; ii < num_multipole_kicks; ii++) {
+                multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+                track_thick_cfd(part, slice_length, k0, 0, h);
+            }
+        //end_per_particle_block
+    }
+    else{
+        //start_per_particle_block (part0->part)
             track_thick_bend(part, slice_length, k0, h);
-        }
-    //end_per_particle_block
+
+            for (int ii = 0; ii < num_multipole_kicks; ii++) {
+                multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
+                track_thick_bend(part, slice_length, k0, h);
+            }
+        //end_per_particle_block
+    }
 }
 
 #endif // XTRACK_TRUEBEND_H
