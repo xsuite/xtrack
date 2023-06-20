@@ -15,8 +15,8 @@ void Bend_track_local_particle(
     const double k0 = BendData_get_k0(el);
     const double h = BendData_get_h(el);
 
-    const int num_multipole_kicks = BendData_get_num_multipole_kicks(el);
-    const int order = BendData_get_order(el);
+    const int64_t num_multipole_kicks = BendData_get_num_multipole_kicks(el);
+    const int64_t order = BendData_get_order(el);
     const double inv_factorial_order = BendData_get_inv_factorial_order(el);
 
     const double *knl = BendData_getp1_knl(el, 0);
@@ -24,6 +24,8 @@ void Bend_track_local_particle(
 
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;
+
+    const int64_t method = BendData_get_method(el);
 
     //start_per_particle_block (part0->part)
         track_thick_bend(part, slice_length, k0, h);

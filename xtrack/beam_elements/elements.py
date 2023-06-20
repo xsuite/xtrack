@@ -916,6 +916,7 @@ class Bend(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
+        'method': xo.Int64,
     }
 
     _rename = {
@@ -940,6 +941,8 @@ class Bend(BeamElement):
 
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
+
+        kwargs['method'] = kwargs.get('method', 0)
 
         self.xoinitialize(**kwargs)
 
