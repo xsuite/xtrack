@@ -156,7 +156,7 @@ dqx_ptc = ptc_ref['dqx_ptc']
 dqy_ptc = ptc_ref['dqy_ptc']
 bety_at_scraper_ptc = ptc_ref['bety_at_scraper_ptc']
 
-
+# Check against ptc (correction off)
 line.vars['on_chicane_beta_corr'] = 0
 line.vars['on_chicane_tune_corr'] = 0
 qx_thick = []
@@ -199,5 +199,43 @@ assert np.allclose(dqx_thin, dqx_ptc, atol=0.5, rtol=0)
 assert np.allclose(dqy_thin, dqy_ptc, atol=0.5, rtol=0)
 assert np.allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2)
 assert np.allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
+
+# Check correction
+line.vars['on_chicane_beta_corr'] = 1
+line.vars['on_chicane_tune_corr'] = 1
+qx_thick_corr = []
+qy_thick_corr = []
+bety_at_scraper_thick_corr = []
+qx_thin_corr = []
+qy_thin_corr = []
+bety_at_scraper_thin_corr = []
+for ii, tt in enumerate(t_test):
+    print(f'Check against correction, twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
+    line_thick.vars['t_turn_s'] = tt
+    line.vars['t_turn_s'] = tt
+
+    tw_thick = line_thick.twiss()
+    bety_at_scraper_thick_corr.append(tw_thick['bety', 'br.stscrap22'])
+    qx_thick_corr.append(tw_thick.qx)
+    qy_thick_corr.append(tw_thick.qy)
+
+    tw_thin = line.twiss()
+    bety_at_scraper_thin_corr.append(tw_thin['bety', 'br.stscrap22'])
+    qx_thin_corr.append(tw_thin.qx)
+    qy_thin_corr.append(tw_thin.qy)
+
+qx_thick_corr = np.array(qx_thick_corr)
+qy_thick_corr = np.array(qy_thick_corr)
+bety_at_scraper_thick_corr = np.array(bety_at_scraper_thick_corr)
+qx_thin_corr = np.array(qx_thin_corr)
+qy_thin_corr = np.array(qy_thin_corr)
+bety_at_scraper_thin_corr = np.array(bety_at_scraper_thin_corr)
+
+assert np.allclose(qx_thick_corr, qx_ptc[-1], atol=3e-3, rtol=0)
+assert np.allclose(qy_thick_corr, qy_ptc[-1], atol=3e-3, rtol=0)
+assert np.allclose(qx_thin_corr, qx_ptc[-1], atol=3e-3, rtol=0)
+assert np.allclose(qy_thin_corr, qy_ptc[-1], atol=3e-3, rtol=0)
+assert np.allclose(bety_at_scraper_thick_corr, bety_at_scraper_ptc[-1], atol=0, rtol=1e-2)
+
 
 plt.show()
