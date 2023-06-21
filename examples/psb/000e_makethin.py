@@ -142,7 +142,6 @@ plt.xlabel('delta')
 plt.ylabel('tune')
 plt.legend()
 
-
 import json
 with open('ptc_ref.json', 'r') as fid:
     ptc_ref = json.load(fid)
@@ -151,6 +150,12 @@ for kk, vv in ptc_ref.items():
     ptc_ref[kk] = np.array(vv)
 
 t_test = ptc_ref['t_test']
+qx_ptc = ptc_ref['qx_ptc']
+qy_ptc = ptc_ref['qy_ptc']
+dqx_ptc = ptc_ref['dqx_ptc']
+dqy_ptc = ptc_ref['dqy_ptc']
+bety_at_scraper_ptc = ptc_ref['bety_at_scraper_ptc']
+
 
 line.vars['on_chicane_beta_corr'] = 0
 line.vars['on_chicane_tune_corr'] = 0
@@ -183,5 +188,16 @@ for ii, tt in enumerate(t_test):
     dqx_thin.append(tw_thin.dqx)
     dqy_thin.append(tw_thin.dqy)
 
+
+assert np.allclose(qx_thick, qx_ptc, atol=2e-4, rtol=0)
+assert np.allclose(qy_thick, qy_ptc, atol=2e-4, rtol=0)
+assert np.allclose(qx_thin, qx_ptc, atol=1e-3, rtol=0)
+assert np.allclose(qy_thin, qy_ptc, atol=1e-3, rtol=0)
+assert np.allclose(dqx_thick, dqx_ptc, atol=0.5, rtol=0)
+assert np.allclose(dqy_thick, dqy_ptc, atol=0.5, rtol=0)
+assert np.allclose(dqx_thin, dqx_ptc, atol=0.5, rtol=0)
+assert np.allclose(dqy_thin, dqy_ptc, atol=0.5, rtol=0)
+assert np.allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2)
+assert np.allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
 
 plt.show()
