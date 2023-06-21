@@ -1,9 +1,11 @@
+import json
 import numpy as np
 from cpymad.madx import Madx
 
 import xtrack as xt
 import xpart as xp
 import xdeps as xd
+import xobjects as xo
 
 import matplotlib.pyplot as plt
 
@@ -129,7 +131,7 @@ line_thin.build_tracker()
 line_thin.vars['on_chicane_beta_corr'] = 0
 line_thin.vars['on_chicane_tune_corr'] = 0
 
-t_test = np.linspace(0, 6e-3, 20)
+t_test = np.linspace(0, 6e-3, 100)
 
 qx_thick = []
 qy_thick = []
@@ -219,7 +221,32 @@ dqy_thin = np.array(dqy_thin)
 bety_at_scraper_thin = np.array(bety_at_scraper_thin)
 qx_ptc = np.array(qx_ptc)
 qy_ptc = np.array(qy_ptc)
+dqx_ptc = np.array(dqx_ptc)
+dqy_ptc = np.array(dqy_ptc)
 bety_at_scraper_ptc = np.array(bety_at_scraper_ptc)
+
+assert np.allclose(qx_thick, qx_ptc, atol=2e-4, rtol=0)
+assert np.allclose(qy_thick, qy_ptc, atol=2e-4, rtol=0)
+assert np.allclose(qx_thin, qx_ptc, atol=1e-3, rtol=0)
+assert np.allclose(qy_thin, qy_ptc, atol=1e-3, rtol=0)
+assert np.allclose(dqx_thick, dqx_ptc, atol=0.5, rtol=0)
+assert np.allclose(dqy_thick, dqy_ptc, atol=0.5, rtol=0)
+assert np.allclose(dqx_thin, dqx_ptc, atol=0.5, rtol=0)
+assert np.allclose(dqy_thin, dqy_ptc, atol=0.5, rtol=0)
+assert np.allclose(bety_at_scraper_thick, bety_at_scraper_ptc, atol=0, rtol=1e-2)
+assert np.allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
+
+with open('ptc_ref.json', 'w') as fid:
+    json.dump({
+        't_test': t_test,
+        'qx_ptc': qx_ptc,
+        'qy_ptc': qy_ptc,
+        'dqx_ptc': dqx_ptc,
+        'dqy_ptc': dqy_ptc,
+        'bety_at_scraper_ptc': bety_at_scraper_ptc,
+    }, fid, cls=xo.JEncoder)
+
+
 
 
 import matplotlib.pyplot as plt
