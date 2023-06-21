@@ -94,7 +94,7 @@ def test_slicing_strategy_matching():
         element_names=[name for name, _ in elements],
     )
 
-    line.slice_in_place(slicing_strategies)
+    line.slice_thick_elements(slicing_strategies)
 
     # Check that the slices are as expected:
     expected_names = [
@@ -191,7 +191,7 @@ def test_slicing_thick_bend_simple(element_type):
         **additional_kwargs
     )
     line = xt.Line(elements=[bend], element_names=['bend'])
-    line.slice_in_place([Strategy(slicing=Teapot(2))])
+    line.slice_thick_elements([Strategy(slicing=Teapot(2))])
 
     assert len(line) == 6  # marker + 2 slices + 3 drifts
 

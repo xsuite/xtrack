@@ -410,7 +410,7 @@ def test_import_thick_bend_from_madx_and_slice(
         allow_thick=True,
     )
 
-    line.slice_in_place(slicing_strategies=[Strategy(Uniform(2))])
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
     elems = [line[f'elem..{ii}'] for ii in range(2)]
     drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
@@ -470,7 +470,7 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
         allow_thick=True,
     )
 
-    line.slice_in_place(slicing_strategies=[Strategy(Uniform(2))])
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
     elems = [line[f'elem..{ii}'] for ii in range(2)]
     drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]

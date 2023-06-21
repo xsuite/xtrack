@@ -69,7 +69,7 @@ for ii, mq_sl in enumerate(mq_slice_list):
     ]
 
     print("Slicing thick elements...")
-    line.slice_in_place(slicing_strategies)
+    line.slice_thick_elements(slicing_strategies)
 
     print("Building tracker...")
     line.build_tracker()
