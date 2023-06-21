@@ -524,7 +524,9 @@ class MadLoader:
         self,
         sequence,
         enable_expressions=False,
-        enable_errors=False,
+        enable_errors=None,
+        enable_field_errors=None,
+        enable_align_errors=None,
         enable_apertures=False,
         skip_markers=False,
         merge_drifts=False,
@@ -537,13 +539,36 @@ class MadLoader:
         allow_thick=False,
     ):
 
+
+        if enable_errors is not None:
+            if enable_field_errors is None:
+                enable_field_errors = enable_errors
+            if enable_align_errors is None:
+                enable_align_errors = enable_errors
+
+        if enable_field_errors is None:
+            enable_field_errors = False
+        if enable_align_errors is None:
+            enable_align_errors = False
+
+        if allow_thick and enable_apertures:
+            raise NotImplementedError(
+                "Apertures are not yet supported for thick elements"
+            )
+
+        if allow_thick and enable_field_errors:
+            raise NotImplementedError(
+                "Field errors are not yet supported for thick elements"
+            )
+
         if expressions_for_element_types is not None:
             assert enable_expressions, ("Expressions must be enabled if "
                                 "`expressions_for_element_types` is not None")
 
         self.sequence = sequence
         self.enable_expressions = enable_expressions
-        self.enable_errors = enable_errors
+        self.enable_field_errors = enable_field_errors
+        self.enable_align_errors = enable_align_errors
         self.error_table = error_table
         self.skip_markers = skip_markers
         self.merge_drifts = merge_drifts
@@ -687,12 +712,12 @@ class MadLoader:
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
         """
         align = Alignment(
-            mad_el, self.enable_errors, self.classes, self.Builder, custom_tilt)
+            mad_el, self.enable_align_errors, self.classes, self.Builder, custom_tilt)
         # perm=self.permanent_alignement(cpymad_elem) #to be implemented
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
-            aper = Aperture(mad_el, self.enable_errors, self)
+            aper = Aperture(mad_el, self.enable_align_errors, self)
             elem_list.extend(aper.entry())
             elem_list.extend(aper.aperture())
             elem_list.extend(aper.exit())
@@ -1011,7 +1036,7 @@ class MadLoader:
         knl = mad_elem.knl
         ksl = mad_elem.ksl
         lmax = max(non_zero_len(knl), non_zero_len(ksl), 1)
-        if mad_elem.field_errors is not None and self.enable_errors:
+        if mad_elem.field_errors is not None and self.enable_field_errors:
             dkn = mad_elem.field_errors.dkn
             dks = mad_elem.field_errors.dks
             lmax = max(lmax, non_zero_len(dkn), non_zero_len(dks))

@@ -375,7 +375,9 @@ class Line:
         sequence,
         deferred_expressions=False,
         install_apertures=False,
-        apply_madx_errors=False,
+        apply_madx_errors=None,
+        enable_field_errors=None,
+        enable_align_errors=None,
         skip_markers=False,
         merge_drifts=False,
         merge_multipoles=False,
@@ -400,6 +402,10 @@ class Line:
             If true, aperture information is installed in the line.
         apply_madx_errors : bool, optional
             If true, errors are applied to the line.
+        enable_field_errors : bool, optional
+            If true, field errors are imported.
+        enable_align_errors : bool, optional
+            If true, alignment errors are imported.
         skip_markers : bool, optional
             If true, markers are skipped.
         merge_drifts : bool, optional
@@ -434,6 +440,8 @@ class Line:
             classes=class_namespace,
             ignore_madtypes=ignored_madtypes,
             enable_errors=apply_madx_errors,
+            enable_field_errors=enable_field_errors,
+            enable_align_errors=enable_align_errors,
             enable_apertures=install_apertures,
             enable_expressions=deferred_expressions,
             skip_markers=skip_markers,
