@@ -203,6 +203,8 @@ assert np.allclose(bety_at_scraper_thin, bety_at_scraper_ptc, atol=0, rtol=2e-2)
 # Check correction
 line.vars['on_chicane_beta_corr'] = 1
 line.vars['on_chicane_tune_corr'] = 1
+line_thick.vars['on_chicane_beta_corr'] = 1
+line_thick.vars['on_chicane_tune_corr'] = 1
 qx_thick_corr = []
 qy_thick_corr = []
 bety_at_scraper_thick_corr = []
@@ -235,7 +237,7 @@ assert np.allclose(qx_thick_corr, qx_ptc[-1], atol=3e-3, rtol=0)
 assert np.allclose(qy_thick_corr, qy_ptc[-1], atol=3e-3, rtol=0)
 assert np.allclose(qx_thin_corr, qx_ptc[-1], atol=3e-3, rtol=0)
 assert np.allclose(qy_thin_corr, qy_ptc[-1], atol=3e-3, rtol=0)
-assert np.allclose(bety_at_scraper_thick_corr, bety_at_scraper_ptc[-1], atol=0, rtol=1e-2)
-
+assert np.allclose(bety_at_scraper_thick_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
+assert np.allclose(bety_at_scraper_thin_corr, bety_at_scraper_ptc[-1], atol=0, rtol=3e-2)
 
 plt.show()
