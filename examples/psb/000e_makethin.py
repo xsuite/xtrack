@@ -4,8 +4,6 @@ import numpy as np
 import pandas as pd
 
 import xtrack as xt
-import xpart as xp
-import xdeps as xd
 
 from xtrack.slicing import Teapot, Strategy
 
