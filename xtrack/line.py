@@ -3100,7 +3100,7 @@ class LineVars:
 
     def __init__(self, line):
         self.line = line
-        self.cache_active = False
+        self._cache_active = False
         self._cached_setters = {}
 
     def keys(self):
@@ -3133,6 +3133,16 @@ class LineVars:
             self._setter_from_cache(key)(value)
         else:
             self.line._xdeps_vref[key] = value
+
+    @property
+    def cache_active(self):
+        return self._cache_active
+
+    @cache_active.setter
+    def cache_active(self, value):
+        assert value in (True, False)
+        self._cache_active = value
+        self.line._xdeps_manager._tree_frozen = value
 
 class VarSetter:
     def __init__(self, line, varname):
