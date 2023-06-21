@@ -12,12 +12,12 @@ kill_fringes_and_edges = True
 mad = Madx()
 
 mad.input(f"""
-call,file="../../../hllhc15/util/lhc.seq";
-call,file="../../../hllhc15/hllhc_sequence.madx";
+call,file="../../test_data/hllhc15_thick/lhc.seq";
+call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
 seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
-call,file="../../../hllhc15/round/opt_round_150_1500.madx";
+call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
 """)
 
 mad.use(sequence="lhcb1")
