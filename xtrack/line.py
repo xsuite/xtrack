@@ -19,6 +19,7 @@ from . import linear_normal_form as lnf, slicing
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
+import xdeps as xd
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -2548,7 +2549,6 @@ class Line:
     def _init_var_management(self, dct=None):
 
         from collections import defaultdict
-        import xdeps as xd
 
         _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
@@ -2847,9 +2847,8 @@ class Functions:
     @classmethod
     def from_dict(cls, dct):
         _funcs = {}
-        import xdeps
         for kk, ff in dct['_funcs'].items():
-            ffcls = getattr(xdeps, ff.pop('__class__'))
+            ffcls = getattr(xd, ff.pop('__class__'))
             _funcs[kk] = ffcls.from_dict(ff)
         out = cls()
         out._funcs.update(_funcs)
@@ -3128,6 +3127,9 @@ class LineVars:
 
     def __setitem__(self, key, value):
         if self.cache_active:
+            if xd.refs._isref(value) or isinstance(value, VarSetter):
+                raise ValueError('Cannot set a variable to a ref when the '
+                                 'cache is active')
             self._setter_from_cache(key)(value)
         else:
             self.line._xdeps_vref[key] = value
