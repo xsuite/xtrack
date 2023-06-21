@@ -668,7 +668,9 @@ def _twiss_open(line, twiss_init,
 
     dzeta = dzeta - dzeta[0]
 
-    twiss_res_element_by_element, i_replace  = _compute_lattice_functions(Ws, use_full_inverse, s_co)
+    twiss_res_element_by_element = {}
+
+    lattice_functions, i_replace  = _compute_lattice_functions(Ws, use_full_inverse, s_co)
 
     twiss_res_element_by_element.update({
         'name': line.element_names[i_start:i_stop] + ('_end_point',),
@@ -680,8 +682,11 @@ def _twiss_open(line, twiss_init,
         'zeta': zeta_co,
         'delta': delta_co,
         'ptau': ptau_co,
-        'dzeta': dzeta,
     })
+
+    twiss_res_element_by_element.update(lattice_functions)
+
+    twiss_res_element_by_element['dzeta'] = dzeta
 
     extra_data = {}
     if _keep_tracking_data:

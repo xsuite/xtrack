@@ -552,13 +552,21 @@ class Line:
         import pandas as pd
 
         elements_df = pd.DataFrame({
-            'element_type': element_types,
             's': s_elements,
+            'element_type': element_types,
             'name': self.element_names,
             'isthick': isthick,
             'element': elements
         })
         return elements_df
+
+    def get_table(self):
+        df = self.to_pandas()
+
+        data = {kk: df[kk].values for kk in df.columns}
+        data.pop('element')
+
+        return xd.Table(data=data)
 
     def copy(self, _context=None, _buffer=None):
         '''
