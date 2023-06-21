@@ -29,7 +29,7 @@ slicing_strategies = [
 ]
 
 print("Slicing thick elements...")
-line.slice_in_place(slicing_strategies)
+line.slice_thick_elements(slicing_strategies)
 
 line.to_json('psb_04_with_chicane_corrected_thin.json')
 

@@ -738,7 +738,7 @@ class Line:
             time=time,
             **kwargs)
 
-    def slice_in_place(self, slicing_strategies):
+    def slice_thick_elements(self, slicing_strategies):
         slicer = Slicer(self, slicing_strategies)
         return slicer.slice_in_place()
 
