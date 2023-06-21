@@ -24,7 +24,8 @@ mad.use(sequence="lhcb1")
 seq = mad.sequence.lhcb1
 mad.twiss()
 
-line = xt.Line.from_madx_sequence(mad.sequence.lhcb1, allow_thick=True, deferred_expressions=True)
+line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
+            allow_thick=True, deferred_expressions=True)
 line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 line.twiss_default['method'] = '4d'
 line.twiss_default['matrix_stability_tol'] = 100
