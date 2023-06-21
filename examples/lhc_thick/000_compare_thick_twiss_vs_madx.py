@@ -14,15 +14,10 @@ mad = Madx()
 mad.input(f"""
 call,file="../../../hllhc15/util/lhc.seq";
 call,file="../../../hllhc15/hllhc_sequence.madx";
-call,file="../../../hllhc15/toolkit/macro.madx";
 seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
-exec,mk_beam(7000);
+beam, sequence=lhcb1, particle=proton, pc=7000;
 call,file="../../../hllhc15/round/opt_round_150_1500.madx";
-{('exec,myslice;' if thin else '')}
-exec,check_ip(b1);
-exec,check_ip(b2);
-// acbv11.r8b1 = 2e-6;
 """)
 
 mad.use(sequence="lhcb1")
