@@ -87,8 +87,8 @@ class BPM(xt.BeamElement):
                     else:
                         val[i] = 0
             else:
-               val = getattr(self.data, attr) 
-               val = val.to_nparray()#self.data._buffer.context.nparray_from_context_array(val) # val.to_nparray() 
+                val = getattr(self.data, attr)
+                val = val.to_nparray()#self.data._buffer.context.nparray_from_context_array(val) # val.to_nparray()
             return val
         return super().__getattr__(attr)
 
