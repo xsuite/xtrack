@@ -739,6 +739,17 @@ class Line:
             **kwargs)
 
     def slice_thick_elements(self, slicing_strategies):
+        """
+        Slice thick elements in the line. Slicing is done in place.
+
+        Parameters
+        ----------
+        slicing_strategies : list
+            List of slicing Strategy objects.
+
+        """
+
+        self._frozen_check()
         slicer = Slicer(self, slicing_strategies)
         return slicer.slice_in_place()
 
