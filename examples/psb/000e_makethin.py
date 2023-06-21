@@ -127,12 +127,10 @@ plt.xlabel('time [ms]')
 
 
 plt.figure(101)
-
 plt.plot(delta_values, qx_thin_list, label='qy thin')
 plt.plot(delta_values, qx_thick_list, label='qy thick')
 plt.plot(delta_values, qy_thin_list, label='qx thin')
 plt.plot(delta_values, qy_thick_list, label='qx thick')
-
 plt.xlabel('delta')
 plt.ylabel('tune')
 
@@ -143,4 +141,47 @@ plt.plot(delta_values, qy_thick_list - qy_thin_list, label='qy thick - thin')
 plt.xlabel('delta')
 plt.ylabel('tune')
 plt.legend()
+
+
+import json
+with open('ptc_ref.json', 'r') as fid:
+    ptc_ref = json.load(fid)
+
+for kk, vv in ptc_ref.items():
+    ptc_ref[kk] = np.array(vv)
+
+t_test = ptc_ref['t_test']
+
+line.vars['on_chicane_beta_corr'] = 0
+line.vars['on_chicane_tune_corr'] = 0
+qx_thick = []
+qy_thick = []
+dqx_thick = []
+dqy_thick = []
+bety_at_scraper_thick = []
+qx_thin = []
+qy_thin = []
+dqx_thin = []
+dqy_thin = []
+bety_at_scraper_thin = []
+for ii, tt in enumerate(t_test):
+    print(f'Check against ptc, twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
+    line_thick.vars['t_turn_s'] = tt
+    line.vars['t_turn_s'] = tt
+
+    tw_thick = line_thick.twiss()
+    bety_at_scraper_thick.append(tw_thick['bety', 'br.stscrap22'])
+    qx_thick.append(tw_thick.qx)
+    qy_thick.append(tw_thick.qy)
+    dqx_thick.append(tw_thick.dqx)
+    dqy_thick.append(tw_thick.dqy)
+
+    tw_thin = line.twiss()
+    bety_at_scraper_thin.append(tw_thin['bety', 'br.stscrap22'])
+    qx_thin.append(tw_thin.qx)
+    qy_thin.append(tw_thin.qy)
+    dqx_thin.append(tw_thin.dqx)
+    dqy_thin.append(tw_thin.dqy)
+
+
 plt.show()
