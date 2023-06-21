@@ -81,6 +81,8 @@ class Line:
         self._extra_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self._extra_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
         self._extra_config['t0_time_dependent_vars'] = 0.
+        self._extra_config['dt_update_time_dependent_vars'] = 0.
+        self._extra_config['_t_last_update_time_dependent_vars'] = None
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
         self._extra_config['_needs_rng'] = False
@@ -2722,6 +2724,22 @@ class Line:
     @t0_time_dependent_vars.setter
     def t0_time_dependent_vars(self, value):
         self._extra_config['t0_time_dependent_vars'] = value
+
+    @property
+    def dt_update_time_dependent_vars(self):
+        return self._extra_config['dt_update_time_dependent_vars']
+
+    @dt_update_time_dependent_vars.setter
+    def dt_update_time_dependent_vars(self, value):
+        self._extra_config['dt_update_time_dependent_vars'] = value
+
+    @property
+    def _t_last_update_time_dependent_vars(self):
+        return self._extra_config['_t_last_update_time_dependent_vars']
+
+    @_t_last_update_time_dependent_vars.setter
+    def _t_last_update_time_dependent_vars(self, value):
+        self._extra_config['_t_last_update_time_dependent_vars'] = value
 
     @property
     def time_last_track(self):

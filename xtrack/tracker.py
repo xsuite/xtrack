@@ -820,7 +820,13 @@ class Tracker:
                 at_turn = particles._xobject.at_turn[ii_first_active]
                 t_turn = (at_turn * self._tracker_data_base.line_length
                           / (beta0 * clight)) + self.line.t0_time_dependent_vars
-                self.vars['t_turn_s'] = t_turn
+
+                if (self.line._t_last_update_time_dependent_vars is None
+                    or self.line.dt_update_time_dependent_vars is None
+                    or t_turn > self.line._t_last_update_time_dependent_vars
+                                + self.line.dt_update_time_dependent_vars):
+                    self.line._t_last_update_time_dependent_vars = t_turn
+                    self.vars['t_turn_s'] = t_turn
 
             moveback_to_buffer = None
             moveback_to_offset = None
