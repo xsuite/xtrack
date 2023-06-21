@@ -1295,12 +1295,18 @@ class Tracker:
 
     def __getstate__(self):
         if not isinstance(self._context, xo.ContextCpu):
-            raise TypeError("Only non-CPU trackers can be pickled.")
+            raise TypeError("Only CPU trackers can be pickled.")
 
         # Remove the compiled kernels from the state
         state = self.__dict__.copy()
         state['_track_kernel'].clear()
         return state
+
+    def check_compatibility_with_prebuilt_kernels(self):
+        get_suitable_kernel(
+            config=self.line.config,
+            line_element_classes=self.line_element_classes,
+            verbose=True)
 
 
 class TrackerConfig(UserDict):

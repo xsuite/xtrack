@@ -30,7 +30,6 @@ line.twiss_default['method'] = '4d'
 line.twiss_default['matrix_stability_tol'] = 100
 
 
-line.config.XTRACK_USE_EXACT_DRIFTS = True
 line.build_tracker()
 
 line.to_json('lhc_thick_with_knobs.json', include_var_management=True)
