@@ -228,17 +228,18 @@ plt.close('all')
 fig1 = plt.figure(1)
 sp1 = plt.subplot(2,1,1)
 
-plt.plot(t_test*1e3, qy_thick, label='qy')
-plt.plot(t_test*1e3, qy_ptc, label='qy ptc')
+plt.plot(t_test*1e3, qy_thick, '-', color='C0', label='xsuite thick')
+plt.plot(t_test*1e3, qy_thin, '-.', color='C1', label='xsuite thin')
+plt.plot(t_test*1e3, qy_ptc, '--', color='C2', label='ptc')
 plt.ylabel('tune')
 
 
 plt.legend()
 
 sp2 = plt.subplot(2,1,2, sharex=sp1)
-plt.plot(t_test*1e3, bety_at_scraper_thick, label='xsuite thick')
-plt.plot(t_test*1e3, bety_at_scraper_thin, label='xsuite thin')
-plt.plot(t_test*1e3, bety_at_scraper_ptc, label='ptc')
+plt.plot(t_test*1e3, bety_at_scraper_thick, '-', color='C0', label='xsuite thick')
+plt.plot(t_test*1e3, bety_at_scraper_thin, '-.', label='xsuite thin')
+plt.plot(t_test*1e3, bety_at_scraper_ptc, '--',label='ptc')
 plt.ylim(bottom=0)
 
 plt.legend()
