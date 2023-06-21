@@ -18,6 +18,16 @@ line.build_tracker()
 p = line.build_particles(x=0, px=0, y=0, py=0, delta=0, zeta=0)
 
 line.enable_time_dependent_vars = True
+line.vars.cache_active = True
 
+print('Tracking...')
 line.track(p, num_turns=6000, time=True)
+print(f'Done in {line.time_last_track:.4} s')
 
+import matplotlib.pyplot as plt
+
+plt.close('all')
+plt.figure(1)
+plt.plot(monitor.x.T)
+
+plt.show()
