@@ -70,8 +70,9 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
 
         mad_results = mad.table.mytracksumm[-1]
 
-        p = p0.copy(_context=xo.ContextCpu())
+        p = p0.copy(_context=test_context)
         line_thick.track(p, _force_no_end_turn_actions=True)
+        p.move(_context=xo.context_default)
 
         xt_tau = p.zeta/p.beta0
         assert np.allclose(p.x[ii], mad_results.x, atol=1e-13, rtol=0)
@@ -132,10 +133,10 @@ def test_thick_bend_survey():
     errors = np.max(np.abs(rhos - 10 / (2 * np.math.pi)))
     assert errors < 2e-6
 
-
+@for_all_test_contexts
 @pytest.mark.parametrize('element_type', [xt.Bend, xt.CombinedFunctionMagnet])
 @pytest.mark.parametrize('h', [0.0, 0.1])
-def test_thick_multipolar_component(element_type, h):
+def test_thick_multipolar_component(test_context, element_type, h):
     bend_length = 1.0
     k0 = h
     knl = np.array([0.0, 0.01, -0.02, 0.03])
@@ -175,14 +176,15 @@ def test_thick_multipolar_component(element_type, h):
     )
 
     # Track some particles
-    p0 = xp.Particles(x=0.1, px=0.2, y=0.3, py=0.4, zeta=0.5, delta=0.6)
+    p0 = xp.Particles(x=0.1, px=0.2, y=0.3, py=0.4, zeta=0.5, delta=0.6,
+                      _context=test_context)
 
-    p_no_slices = p0.copy()
-    line_no_slices.build_tracker()
+    p_no_slices = p0.copy(_context=test_context)
+    line_no_slices.build_tracker(_context=test_context)
     line_no_slices.track(p_no_slices)
 
     p_with_slices = p0.copy()
-    line_with_slices.build_tracker()
+    line_with_slices.build_tracker(_context=test_context)
     line_with_slices.track(p_with_slices, turn_by_turn_monitor='ONE_TURN_EBE')
 
     # Check that the results are the same
@@ -193,7 +195,6 @@ def test_thick_multipolar_component(element_type, h):
             atol=1e-14,
             rtol=0,
         )
-
 
 @pytest.mark.parametrize(
     'with_knobs',
