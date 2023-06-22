@@ -13,7 +13,8 @@ line = xt.Line.from_json('psb_01_with_chicane.json')
 line.build_tracker()
 line.twiss_default['method'] = '4d'
 
-df = pd.read_csv('chicane_collapse.csv', delimiter=',', skipinitialspace=True)
+df = pd.read_csv('../../test_data/psb_chicane/chicane_collapse.csv',
+                 delimiter=',', skipinitialspace=True)
 
 line.functions['fun_bsw_k0l'] = xd.FunctionPieceWiseLinear(
     x=df['time'].values, y=df['bsw_k0l'].values)
