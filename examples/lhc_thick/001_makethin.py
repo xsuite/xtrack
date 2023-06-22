@@ -1,5 +1,6 @@
-import xtrack as xt
+import numpy as np
 
+import xtrack as xt
 from xtrack.slicing import Teapot, Strategy
 
 line = xt.Line.from_json('lhc_thick_with_knobs.json')
@@ -32,3 +33,30 @@ beta_beat_y_at_ips = [tw['bety', f'ip{nn}'] / tw_thick['bety', f'ip{nn}'] - 1
 
 assert np.allclose(beta_beat_x_at_ips, 0, atol=3e-3)
 assert np.allclose(beta_beat_y_at_ips, 0, atol=3e-3)
+
+# Checks on orbit knobs
+assert np.isclose(tw_thick['px', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw_thick['py', 'ip5'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['px', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['py', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['py', 'ip5'], 0, rtol=0, atol=1e-7)
+
+line.vars['on_x1'] = 50
+line.vars['on_x5'] = 60
+line_thick.vars['on_x1'] = 50
+line_thick.vars['on_x5'] = 60
+
+tw = line.twiss()
+tw_thick = line_thick.twiss()
+
+assert np.isclose(tw_thick['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
+assert np.isclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw_thick['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
+assert np.isclose(tw['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
+assert np.isclose(tw['py', 'ip1'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
