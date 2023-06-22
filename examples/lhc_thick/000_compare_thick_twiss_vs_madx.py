@@ -70,7 +70,6 @@ dqy_diff_xs = (tw2.muy[-1] - tw1.muy[-1]) / (delta2 - delta1)
 
 tw0 = line.twiss()
 
-
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.plot(tw_mad1.s, tw_mad2.mux - tw_mad1.mux, label='madx')
@@ -88,7 +87,9 @@ print(f'dqy xsuite:      {tw0.dqy}')
 print(f'dqy mad diff:    {dqy_diff_mad}')
 print(f'dqy mad nochrom: {twmad.summary.dq2}')
 
-assert np.isclose(tw0.dqx, 2, 5e-2)
-assert np.isclose(tw0.dqy, 2, 5e-2)
+assert np.isclose(tw0.dqx, twmad.summary.dq1, atol=0.2, rtol=0)
+assert np.isclose(tw0.dqy, twmad.summary.dq2, atol=0.2, rtol=0)
+assert np.isclose(tw0.qx, twmad.summary.q1, atol=1e-6, rtol=0)
+assert np.isclose(tw0.qy, twmad.summary.q2, atol=1e-6, rtol=0)
 
 plt.show()
