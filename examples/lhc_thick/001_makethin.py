@@ -4,7 +4,8 @@ import numpy as np
 import xtrack as xt
 from xtrack.slicing import Teapot, Strategy
 
-line = xt.Line.from_json('lhc_thick_with_knobs.json')
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.twiss_default['method'] = '4d'
 line.build_tracker()
 
 line_thick = line.copy()
