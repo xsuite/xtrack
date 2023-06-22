@@ -20,7 +20,9 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "LineSegmentMap"
+            "Bend",
+            "Quadrupole",
+            "CombinedFunctionMagnet"
         ]
     },
     "default_only_xtrack_backtrack": {
@@ -44,7 +46,10 @@
             "DipoleEdge",
             "LinearTransferMatrix",
             "SimpleThinBend",
-            "SimpleThinQuadrupole"
+            "SimpleThinQuadrupole",
+            "Bend",
+            "Quadrupole",
+            "CombinedFunctionMagnet"
         ]
     },
     "default_bb3d": {
@@ -55,8 +60,8 @@
         },
         "classes": [
             "Drift",
-            "Marker",
             "Multipole",
+            "Marker",
             "ReferenceEnergyIncrease",
             "Cavity",
             "XYShift",
@@ -68,6 +73,7 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
+            "LineSegmentMap",
             "BeamBeamBiGaussian2D",
             "BeamBeamBiGaussian3D"
         ]
@@ -97,7 +103,40 @@
             "DipoleEdge",
             "LinearTransferMatrix",
             "SimpleThinBend",
-            "SimpleThinQuadrupole"
+            "SimpleThinQuadrupole",
+            "Bend",
+            "Quadrupole",
+            "CombinedFunctionMagnet"
+        ]
+    },
+    "only_xtrack_frozen_energy": {
+        "config": {
+            "FREEZE_VAR_delta": true,
+            "FREEZE_VAR_ptau": true,
+            "FREEZE_VAR_rpp": true,
+            "FREEZE_VAR_rvv": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XTRACK_GLOBAL_XY_LIMIT": 1.0
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "Marker",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole",
+            "Bend",
+            "Quadrupole",
+            "CombinedFunctionMagnet"
         ]
     },
     "only_xtrack_taper": {
@@ -122,13 +161,13 @@
             "DipoleEdge",
             "LinearTransferMatrix",
             "SimpleThinBend",
-            "SimpleThinQuadrupole"
+            "SimpleThinQuadrupole",
+            "LineSegmentMap"
         ]
     },
     "only_xtrack_with_synrad": {
         "config": {
             "XFIELDS_BB3D_NO_BEAMSTR": true,
-            "XTRACK_MULTIPOLE_NO_SYNRAD": false,
             "XTRACK_GLOBAL_XY_LIMIT": 1.0
         },
         "classes": [
@@ -145,7 +184,9 @@
             "DipoleEdge",
             "LinearTransferMatrix",
             "SimpleThinBend",
-            "SimpleThinQuadrupole"
+            "SimpleThinQuadrupole",
+            "LineSegmentMap"
         ]
+
     }
 }

@@ -204,14 +204,18 @@ class Slicer:
                 element_idx += 1
 
             if self.has_expresions:
-                type(obj_to_slice).add_slice_with_expr(
+                type(obj_to_slice).add_slice(
                     weight=weight,
-                    refs=self.line.element_refs,
+                    container=self.line.element_refs,
                     thick_name=name,
                     slice_name=slice_name,
                 )
             else:
-                slice_element = obj_to_slice.make_slice(weight=weight)
-                self.line.element_dict[slice_name] = slice_element
+                type(obj_to_slice).add_slice(
+                    weight=weight,
+                    container=self.line.element_dict,
+                    thick_name=name,
+                    slice_name=slice_name,
+                )
 
             self.thin_names.append(slice_name)

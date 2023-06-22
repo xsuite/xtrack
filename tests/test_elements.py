@@ -43,6 +43,9 @@ def test_constructor(test_context):
         xt.Wire(_context=test_context, current=3.),
         xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3,4],
                    sampling_frequency=1e3),
+        xt.Bend(_context=test_context, length=1.),
+        xt.Quadrupole(_context=test_context, length=1.),
+        xt.CombinedFunctionMagnet(_context=test_context, length=1.),
     ]
 
     # test to_dict / from_dict

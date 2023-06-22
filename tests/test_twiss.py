@@ -63,33 +63,36 @@ def test_coupled_beta(test_context):
     mad.twiss() # I see to need to do it twice to get the right coupling in madx?!
 
     tw_mad_coupling = mad.twiss(ripken=True).dframe()
+    tw_mad_coupling.set_index('name', inplace=True)
 
     line = xt.Line.from_madx_sequence(mad.sequence.lhcb1)
     line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 
     line.build_tracker(_context=test_context)
 
-    tw = line.twiss()
+    tw6d = line.twiss()
+    tw4d = line.twiss(method='4d')
 
-    twdf = tw.to_pandas()
-    twdf.set_index('name', inplace=True)
+    for tw in (tw6d, tw4d):
 
-    ips = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7', 'ip8']
-    betx2_at_ips = twdf.loc[ips, 'betx2'].values
-    bety1_at_ips = twdf.loc[ips, 'bety1'].values
+        twdf = tw.to_pandas()
+        twdf.set_index('name', inplace=True)
 
-    tw_mad_coupling.set_index('name', inplace=True)
-    beta12_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta12'].values
-    beta21_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta21'].values
+        ips = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7', 'ip8']
+        betx2_at_ips = twdf.loc[ips, 'betx2'].values
+        bety1_at_ips = twdf.loc[ips, 'bety1'].values
 
-    assert np.allclose(betx2_at_ips, beta12_mad_at_ips, rtol=1e-4, atol=0)
-    assert np.allclose(bety1_at_ips, beta21_mad_at_ips, rtol=1e-4, atol=0)
+        beta12_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta12'].values
+        beta21_mad_at_ips = tw_mad_coupling.loc[[ip + ':1' for ip in ips], 'beta21'].values
 
-    #cmin_ref = mad.table.summ.dqmin[0] # dqmin is not calculated correctly in madx
-                                        # (https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/1152)
-    cmin_ref = 0.001972093557# obtained with madx with trial and error
+        assert np.allclose(betx2_at_ips, beta12_mad_at_ips, rtol=1e-4, atol=0)
+        assert np.allclose(bety1_at_ips, beta21_mad_at_ips, rtol=1e-4, atol=0)
 
-    assert np.isclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
+        #cmin_ref = mad.table.summ.dqmin[0] # dqmin is not calculated correctly in madx
+                                            # (https://github.com/MethodicalAcceleratorDesign/MAD-X/issues/1152)
+        cmin_ref = 0.001972093557# obtained with madx with trial and error
+
+        assert np.isclose(tw.c_minus, cmin_ref, rtol=0, atol=1e-5)
 
 
 @for_all_test_contexts
@@ -319,7 +322,7 @@ def test_get_R_matrix():
         assert np.isclose(
             norm(W_prod[:4, 2*i_mode] - W_ref[:4, 2*i_mode], ord=2)
             / norm(W_ref[:4, 2*i_mode], ord=2),
-            0, rtol=0, atol=5e-5)
+            0, rtol=0, atol=1e-4)
 
     # Check method=4d
 
@@ -422,7 +425,7 @@ def test_periodic_cell_twiss(test_context):
         assert tw_cell.name[0] == start_cell
         assert tw_cell.name[-2] == end_cell
         assert tw_cell.method == '4d'
-        assert tw_cell.orientation == 'forward'
+        assert tw_cell.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
         assert tw_cell.reference_frame == {'b1':'proper', 'b2':'reverse'}[beam_name]
 
         tw_cell_periodic = line.twiss(
@@ -499,7 +502,7 @@ def test_twiss_range(test_context):
         atols = dict(
             alfx=1e-8, alfy=1e-8,
             dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-            nuzeta=1e-5
+            nuzeta=1e-5, dx_zeta=5e-9, dy_zeta=5e-9,
         )
 
         rtols = dict(
@@ -922,3 +925,52 @@ def test_custom_twiss_init(test_context):
         for ii in range(4):
             assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
                             /np.linalg.norm(this_part[ii, :])), 0, atol=3e-4)
+
+@for_all_test_contexts
+def test_crab_dispersion(test_context):
+
+    collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_collider/collider_00_from_mad.json')
+    collider.build_trackers(_context=test_context)
+
+    collider.vars['vrf400'] = 16
+    collider.vars['on_crab1'] = -190
+    collider.vars['on_crab5'] = -190
+
+    line = collider.lhcb1
+
+    tw6d_rf_on = line.twiss()
+    tw4d_rf_on = line.twiss(method='4d')
+
+    collider.vars['vrf400'] = 0
+    tw4d_rf_off = line.twiss(method='4d')
+
+    collider.vars['vrf400'] = 16
+    collider.vars['on_crab1'] = 0
+    collider.vars['on_crab5'] = 0
+
+    line = collider.lhcb1
+
+    tw6d_rf_on_crab_off = line.twiss()
+    tw4d_rf_on_crab_off = line.twiss(method='4d')
+
+    assert np.allclose(tw4d_rf_on['delta'], 0, rtol=0, atol=1e-12)
+    assert np.allclose(tw4d_rf_off['delta'], 0, rtol=0, atol=1e-12)
+    assert np.allclose(tw4d_rf_on_crab_off['delta'], 0, rtol=0, atol=1e-12)
+
+    assert np.isclose(tw6d_rf_on['dx_zeta', 'ip1'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw6d_rf_on['dy_zeta', 'ip5'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_on['dx_zeta', 'ip1'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_on['dy_zeta', 'ip5'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_off['dx_zeta', 'ip1'], -190e-6, rtol=1e-4, atol=0)
+    assert np.isclose(tw4d_rf_off['dy_zeta', 'ip5'], -190e-6, rtol=1e-4, atol=0)
+
+    assert np.allclose(tw6d_rf_on_crab_off['dx_zeta'], 0, rtol=0, atol=1e-8)
+    assert np.allclose(tw6d_rf_on_crab_off['dy_zeta'], 0, rtol=0, atol=1e-8)
+    assert np.allclose(tw4d_rf_on_crab_off['dx_zeta'], 0, rtol=0, atol=1e-8)
+    assert np.allclose(tw4d_rf_on_crab_off['dy_zeta'], 0, rtol=0, atol=1e-8)
+
+    assert np.allclose(tw6d_rf_on['dx_zeta'], tw4d_rf_on['dx_zeta'], rtol=0, atol=1e-7)
+    assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_on['dy_zeta'], rtol=0, atol=1e-7)
+    assert np.allclose(tw6d_rf_on['dx_zeta'], tw4d_rf_off['dx_zeta'], rtol=0, atol=1e-7)
+    assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_off['dy_zeta'], rtol=0, atol=1e-7)

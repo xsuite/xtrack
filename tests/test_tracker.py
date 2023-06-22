@@ -304,76 +304,6 @@ def _get_at_turn_element(particles):
     all_together = len(at_turn)==1 and len(at_element)==1 and len(at_s)==1
     return all_together, at_turn[0], at_element[0], at_s[0]
 
-
-def test_tracker_binary_serialization(tmp_path):
-    tmp_file = tmp_path / 'test_tracker_binary_serialization.npy'
-    file_path = tmp_file.resolve()
-
-    line = xt.Line(
-        elements={
-            'mn': xt.Multipole(knl=[1, 2]),
-            'ms': xt.Multipole(ksl=[3]),
-            'd': xt.Drift(length=4),
-        },
-        element_names=['mn', 'd', 'ms', 'd', 'mn'],
-    )
-
-    line.build_tracker(_context=xo.context_default)
-
-    line.tracker.to_binary_file(file_path)
-    new_line = xt.Tracker.from_binary_file(file_path).line
-
-    assert new_line._buffer is not line.tracker._buffer
-
-    assert line.element_names == new_line.element_names
-
-    assert [elem.__class__.__name__ for elem in line.elements] == \
-           ['Multipole', 'Drift', 'Multipole', 'Drift', 'Multipole']
-    assert line.elements[0]._xobject._offset == \
-           new_line.elements[4]._xobject._offset
-    assert line.elements[1]._xobject._offset == \
-           new_line.elements[3]._xobject._offset
-
-    assert len(set(elem._xobject._buffer for elem in new_line.elements)) == 1
-
-    assert (new_line.elements[0].knl == [1, 2]).all()
-    assert new_line.elements[1].length == 4
-    assert (new_line.elements[2].ksl == [3]).all()
-
-
-def test_tracker_binary_serialisation_with_knobs(tmp_path):
-    tmp_file = tmp_path / 'test_tracker_binary_serialization.npy'
-    tmp_file_path = tmp_file.resolve()
-
-    line_with_knobs_path = (Path(__file__).parent /
-                            '../test_data/hllhc15_noerrors_nobb' /
-                            'line_w_knobs_and_particle.json')
-    with open(line_with_knobs_path.resolve(), 'r') as line_file:
-        line_dict = json.load(line_file)
-    line_with_knobs = xt.Line.from_dict(line_dict['line'])
-
-    line_with_knobs.build_tracker(_context=xo.context_default)
-    line_with_knobs.particle_ref = xp.Particles.from_dict(line_dict['particle'])
-    line_with_knobs.tracker.to_binary_file(tmp_file_path)
-    new_line = xt.Tracker.from_binary_file(tmp_file_path).line
-
-    assert line_with_knobs._var_management.keys() == new_line._var_management.keys()
-
-    new_line.vars['on_x1'] = 250
-    assert np.isclose(new_line.twiss(at_elements=['ip1'])['px'][0], 250e-6,
-                      atol=1e-6, rtol=0)
-    new_line.vars['on_x1'] = -300
-    assert np.isclose(new_line.twiss(at_elements=['ip1'])['px'][0], -300e-6,
-                      atol=1e-6, rtol=0)
-
-    new_line.vars['on_x5'] = 130
-    assert np.isclose(new_line.twiss(at_elements=['ip5'])['py'][0], 130e-6,
-                      atol=1e-6, rtol=0)
-    new_line.vars['on_x5'] = -270
-    assert np.isclose(new_line.twiss(at_elements=['ip5'])['py'][0], -270e-6,
-                      atol=1e-6, rtol=0)
-
-
 def test_tracker_hashable_config():
     line = xt.Line([])
     line.build_tracker()
@@ -454,7 +384,7 @@ def test_tracker_config(test_context):
     line.track(p)
     assert p.x[0] == 7.0
     assert p.y[0] == 0.0
-    first_kernel = line.tracker._current_track_kernel
+    first_kernel, first_data = line.tracker.get_track_kernel_and_data_for_present_config()
 
     p = particles.copy()
     line.config.TEST_FLAG = False
@@ -462,13 +392,17 @@ def test_tracker_config(test_context):
     line.track(p)
     assert p.x[0] == 0.0
     assert p.y[0] == 42.0
-    assert line.tracker._current_track_kernel is not first_kernel
+    current_kernel, current_data = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert current_kernel is not first_kernel
+    assert current_data is not first_data
 
     line.config.TEST_FLAG = 2
     line.config.TEST_FLAG_BOOL = False
     assert len(line.tracker.track_kernel) == 3 # As line.track_kernel.keys() =
                                           # dict_keys([(), (('TEST_FLAG', 2),), (('TEST_FLAG_BOOL', True),)])
-    assert line.tracker._current_track_kernel is first_kernel
+    current_kernel, current_data = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert current_kernel is first_kernel
+    assert current_data is first_data
 
 
 @for_all_test_contexts
@@ -508,6 +442,10 @@ def test_optimize_for_tracking(test_context):
     assert n_markers_optimize_ip15 == 2
 
     line.optimize_for_tracking()
+
+    assert type(line['mb.b10l3.b1..1']) is xt.SimpleThinBend
+    assert type(line['mq.10l3.b1..1']) is xt.SimpleThinQuadrupole
+
     df_optimize = line.to_pandas()
     n_markers_optimize = (df_optimize.element_type == 'Marker').sum()
     assert n_markers_optimize == 0
@@ -534,6 +472,7 @@ def test_optimize_for_tracking(test_context):
     assert np.allclose(p_no_optimized.py, p_optimized.py, rtol=0, atol=1e-14)
     assert np.allclose(p_no_optimized.zeta, p_optimized.zeta, rtol=0, atol=1e-11)
     assert np.allclose(p_no_optimized.delta, p_optimized.delta, rtol=0, atol=1e-14)
+
 
 @for_all_test_contexts
 def test_backtrack_with_flag(test_context):

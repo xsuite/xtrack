@@ -95,7 +95,10 @@ void transverse_motion(LocalParticle *part0,
     double const alfx_1, double const betx_1, double const alfy_1, double const bety_1){
 
     int64_t detuning;
-    double sin_x, cos_x, sin_y, cos_y;
+    double sin_x = 0;
+    double cos_x = 0;
+    double sin_y = 0;
+    double cos_y = 0;
     if (dqx != 0.0 || dqy != 0.0 ||
         detx_x != 0.0 || detx_y != 0.0 || dety_x != 0.0 || dety_y != 0.0){
         detuning = 1;

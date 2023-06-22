@@ -1,162 +1,115 @@
+import time
 import numpy as np
-from cpymad.madx import Madx
-import xtrack as xt
-import xpart as xp
 
+import xtrack as xt
 from xtrack.slicing import Teapot, Strategy
 
-# hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
+line = xt.Line.from_json('lhc_thick_with_knobs.json')
+line.build_tracker()
 
-thin = False
-kill_fringes_and_edges = True
+line_thick = line.copy()
+line_thick.build_tracker()
 
-mq_slice_list = np.arange(2, 12, 2)
+slicing_strategies = [
+    Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
+    Strategy(slicing=Teapot(4), element_type=xt.Bend),
+    Strategy(slicing=Teapot(20), element_type=xt.Quadrupole),
+    Strategy(slicing=Teapot(2), name=r'^mb\..*'),
+    Strategy(slicing=Teapot(5), name=r'^mq\..*'),
+    Strategy(slicing=Teapot(2), name=r'^mqt.*'),
+    Strategy(slicing=Teapot(60), name=r'^mqx.*'),
+]
 
-diff_qx_xsuite_list = []
-diff_qy_xsuite_list = []
-diff_qx_mad_list = []
-diff_qy_mad_list = []
+line.discard_tracker()
+line.slice_thick_elements(slicing_strategies=slicing_strategies)
+line.build_tracker()
 
+tw = line.twiss()
+tw_thick = line_thick.twiss()
 
-for ii, mq_sl in enumerate(mq_slice_list):
-    mad = Madx()
+beta_beat_x_at_ips = [tw['betx', f'ip{nn}'] / tw_thick['betx', f'ip{nn}'] - 1
+                        for nn in range(1, 9)]
+beta_beat_y_at_ips = [tw['bety', f'ip{nn}'] / tw_thick['bety', f'ip{nn}'] - 1
+                        for nn in range(1, 9)]
 
-    mad.input(f"""
-    call,file="../../../hllhc15/util/lhc.seq";
-    call,file="../../../hllhc15/hllhc_sequence.madx";
-    call,file="../../../hllhc15/toolkit/macro.madx";
-    seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
-    seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
-    exec,mk_beam(7000);
-    call,file="../../../hllhc15/round/opt_round_150_1500.madx";
-    {('exec,myslice;' if thin else '')}
-    exec,check_ip(b1);
-    exec,check_ip(b2);
-    // acbv11.r8b1 = 2e-6;
-    """)
+assert np.allclose(beta_beat_x_at_ips, 0, atol=3e-3)
+assert np.allclose(beta_beat_y_at_ips, 0, atol=3e-3)
 
-    mad.use(sequence="lhcb1")
-    seq = mad.sequence.lhcb1
-    mad.twiss()
+# Checks on orbit knobs
+assert np.isclose(tw_thick['px', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw_thick['py', 'ip5'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['px', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['py', 'ip1'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=1e-7)
+assert np.isclose(tw['py', 'ip5'], 0, rtol=0, atol=1e-7)
 
-    if ii == 0:
-        line0 = xt.Line.from_madx_sequence(
-            mad.sequence.lhcb1, allow_thick=True, deferred_expressions=True)
-        line0.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
-        line0.twiss_default['method'] = '4d'
-        line0.twiss_default['matrix_stability_tol'] = 100
-        line0.build_tracker()
-        tw0_before = line0.twiss()
+line.vars['on_x1'] = 50
+line.vars['on_x5'] = 60
+line_thick.vars['on_x1'] = 50
+line_thick.vars['on_x5'] = 60
 
-    line = line0.copy()
+tw = line.twiss()
+tw_thick = line_thick.twiss()
 
-    n_slice_bends = 4
-    n_slice_quads = 20
-    n_slice_mb = 2
-    # n_slice_mq = 10
-    n_slice_mq = mq_sl
-    n_slice_mqt = 5
-    n_slice_mqx = 60
+assert np.isclose(tw_thick['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
+assert np.isclose(tw_thick['py', 'ip1'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw_thick['px', 'ip5'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw_thick['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
+assert np.isclose(tw['px', 'ip1'], 50e-6, rtol=0, atol=5e-7)
+assert np.isclose(tw['py', 'ip1'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=5e-7)
+assert np.isclose(tw['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
 
-    slicing_strategies = [
-        Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
-        Strategy(slicing=Teapot(n_slice_bends), element_type=xt.TrueBend),
-        Strategy(slicing=Teapot(n_slice_quads), element_type=xt.CombinedFunctionMagnet),
-        Strategy(slicing=Teapot(n_slice_mb), name=r'^mb\..*'),
-        Strategy(slicing=Teapot(n_slice_mq), name=r'^mq\..*'),
-        Strategy(slicing=Teapot(n_slice_mq), name=r'^mqt.*'),
-        Strategy(slicing=Teapot(n_slice_mqx), name=r'^mqx.*'),
-    ]
+t1 = time.time()                                                                #!skip-doc
+line_thick.match(
+    vary=[
+        xt.Vary('kqtf.b1', step=1e-8),
+        xt.Vary('kqtd.b1', step=1e-8),
+        xt.Vary('ksf.b1', step=1e-8),
+        xt.Vary('ksd.b1', step=1e-8),
+    ],
+    targets = [
+        xt.Target('qx', 62.27, tol=1e-4),
+        xt.Target('qy', 60.29, tol=1e-4),
+        xt.Target('dqx', 10.0, tol=0.05),
+        xt.Target('dqy', 12.0, tol=0.05)])
+t2 = time.time()                                                                #!skip-doc
+print('\nTime match thick: ', t2-t1)
 
-    print("Slicing thick elements...")
-    line.slice_in_place(slicing_strategies)
+line.match(
+    vary=[
+        xt.Vary('kqtf.b1', step=1e-8),
+        xt.Vary('kqtd.b1', step=1e-8),
+        xt.Vary('ksf.b1', step=1e-8),
+        xt.Vary('ksd.b1', step=1e-8),
+    ],
+    targets = [
+        xt.Target('qx', 62.27, tol=1e-4),
+        xt.Target('qy', 60.29, tol=1e-4),
+        xt.Target('dqx', 10.0, tol=0.05),
+        xt.Target('dqy', 12.0, tol=0.05)])
+t2 = time.time()
+print('\nTime match thin: ', t2-t1)
 
-    print("Building tracker...")
-    line.build_tracker()
+tw = line.twiss()
+tw_thick = line_thick.twiss()
 
-    tw0_after = line0.twiss()
-    tw_after = line.twiss()
+assert np.isclose(tw_thick.qx, 62.27, rtol=0, atol=1e-4)
+assert np.isclose(tw_thick.qy, 60.29, rtol=0, atol=1e-4)
+assert np.isclose(tw_thick.dqx, 10.0, rtol=0, atol=0.05)
+assert np.isclose(tw_thick.dqy, 12.0, rtol=0, atol=0.05)
+assert np.isclose(tw.qx, 62.27, rtol=0, atol=1e-4)
+assert np.isclose(tw.qy, 60.29, rtol=0, atol=1e-4)
+assert np.isclose(tw.dqx, 10.0, rtol=0, atol=0.05)
+assert np.isclose(tw.dqy, 12.0, rtol=0, atol=0.05)
 
-    # Compare tunes
-    print("Tunes before slicing:")
-    print(f"Thick: qx = {tw0_before.qx} \tqy = {tw0_before.qy}")
-    print(f"Thin:  qx = {tw_after.qx} \tqy = {tw_after.qy}")
-    print(f"Diffs: qx = {tw_after.qx - tw0_before.qx} \tqy = {tw_after.qy - tw0_before.qy}")
-
-    thick_arc_bends = False
-    thick_arc_quads = False
-
-    twmad_thick = mad.twiss().dframe()
-
-    mad.input(
-    f'''
-    select, flag=makethin, clear;
-    select, flag=makethin, class=mb, slice={('0' if thick_arc_bends else n_slice_mb)};
-    select, flag=makethin, class=mq, slice={('0' if thick_arc_quads else n_slice_mq)};
-    select, flag=makethin, class=mqxa,       slice={n_slice_mqx};  !old triplet
-    select, flag=makethin, class=mqxb,       slice={n_slice_mqx};  !old triplet
-    select, flag=makethin, class=mqxc,       slice={n_slice_mqx};  !new mqxa (q1,q3)
-    select, flag=makethin, class=mqxd,       slice={n_slice_mqx};  !new mqxb (q2a,q2b)
-    select, flag=makethin, class=mqxfa,      slice={n_slice_mqx};  !new (q1,q3 v1.1)
-    select, flag=makethin, class=mqxfb,      slice={n_slice_mqx};  !new (q2a,q2b v1.1)
-    select, flag=makethin, class=mbxa,       slice={n_slice_bends};   !new d1
-    select, flag=makethin, class=mbxf,       slice={n_slice_bends};   !new d1 (v1.1)
-    select, flag=makethin, class=mbrd,       slice={n_slice_bends};   !new d2 (if needed)
-    select, flag=makethin, class=mqyy,       slice={n_slice_mq};   !new q4
-    select, flag=makethin, class=mqyl,       slice={n_slice_mq};   !new q5
-    select, flag=makethin, pattern=mbx\.,    slice={n_slice_bends};
-    select, flag=makethin, pattern=mbrb\.,   slice={n_slice_bends};
-    select, flag=makethin, pattern=mbrc\.,   slice={n_slice_bends};
-    select, flag=makethin, pattern=mbrs\.,   slice={n_slice_bends};
-    select, flag=makethin, pattern=mbh\.,    slice={n_slice_bends};
-    select, flag=makethin, pattern=mqwa\.,   slice={n_slice_quads};
-    select, flag=makethin, pattern=mqwb\.,   slice={n_slice_quads};
-    select, flag=makethin, pattern=mqy\.,    slice={n_slice_quads};
-    select, flag=makethin, pattern=mqm\.,    slice={n_slice_quads};
-    select, flag=makethin, pattern=mqmc\.,   slice={n_slice_quads};
-    select, flag=makethin, pattern=mqml\.,   slice={n_slice_quads};
-    select, flag=makethin, pattern=mqtlh\.,  slice={n_slice_mqt};
-    select, flag=makethin, pattern=mqtli\.,  slice={n_slice_mqt};
-    select, flag=makethin, pattern=mqt\.  ,  slice={n_slice_mqt};
-
-    beam;
-    use,sequence=lhcb1; makethin,sequence=lhcb1,makedipedge=true,style=teapot;
-    use,sequence=lhcb2; makethin,sequence=lhcb2,makedipedge=true,style=teapot;
-    use, sequence=lhcb2;
-    use, sequence=lhcb1;
-
-    ''')
-
-    twmad_thin = mad.twiss().dframe()
-
-    # Compare tunes
-    print(f"Xsuite thick: qx = {tw0_before.qx} \tqy = {tw0_before.qy}")
-    print(f"Xsuite thin:  qx = {tw_after.qx} \tqy = {tw_after.qy}")
-
-    qx_mad_before = twmad_thick.mux[-1]
-    qy_mad_before = twmad_thick.muy[-1]
-    qx_mad_after = twmad_thin.mux[-1]
-    qy_mad_after = twmad_thin.muy[-1]
-
-    print(f"MAD-X thick: qx = {qx_mad_before} \tqy = {qy_mad_before}")
-    print(f"MAD-X thin:  qx = {qx_mad_after} \tqy = {qy_mad_after}")
-
-    print(f"Xsuite diffs: qx = {tw_after.qx - tw0_before.qx} \tqy = {tw_after.qy - tw0_before.qy}")
-    print(f"MAD-X diffs: qx = {qx_mad_after - qx_mad_before} \tqy = {qy_mad_after - qy_mad_before}")
-
-    diff_qx_xsuite_list.append(tw_after.qx - tw0_before.qx)
-    diff_qy_xsuite_list.append(tw_after.qy - tw0_before.qy)
-    diff_qx_mad_list.append(qx_mad_after - qx_mad_before)
-    diff_qy_mad_list.append(qy_mad_after - qy_mad_before)
-
-import matplotlib.pyplot as plt
-plt.close('all')
-plt.plot(mq_slice_list, diff_qx_xsuite_list, label='qx xsuite', color='g')
-plt.plot(mq_slice_list, diff_qy_xsuite_list, label='qy xsuite', color='m')
-plt.plot(mq_slice_list, diff_qx_mad_list, '--', label='qx mad', color='b')
-plt.plot(mq_slice_list, diff_qy_mad_list, '--', label='qy mad', color='r')
-plt.legend()
-plt.xlabel('n_slice_mq')
-plt.ylabel(r'$Q_{thin} - Q_{thick}$')
-plt.grid()
-plt.show()
+assert np.isclose(line.vars['kqtf.b1']._value, line_thick.vars['kqtf.b1']._value,
+                    rtol=0.03, atol=0)
+assert np.isclose(line.vars['kqtd.b1']._value, line_thick.vars['kqtd.b1']._value,
+                    rtol=0.03, atol=0)
+assert np.isclose(line.vars['ksf.b1']._value, line_thick.vars['ksf.b1']._value,
+                    rtol=0.01, atol=0)
+assert np.isclose(line.vars['ksd.b1']._value, line_thick.vars['ksd.b1']._value,
+                    rtol=0.01, atol=0)

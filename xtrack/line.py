@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import List
+from typing import Any, List
 
 import numpy as np
 
@@ -19,6 +19,7 @@ from . import linear_normal_form as lnf, slicing
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
+import xdeps as xd
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -80,9 +81,13 @@ class Line:
         self._extra_config['reset_s_at_end_turn'] = True
         self._extra_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self._extra_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
+        self._extra_config['t0_time_dependent_vars'] = 0.
+        self._extra_config['dt_update_time_dependent_vars'] = 0.
+        self._extra_config['_t_last_update_time_dependent_vars'] = None
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
         self._extra_config['_needs_rng'] = False
+        self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
 
         if isinstance(elements, dict):
@@ -370,7 +375,9 @@ class Line:
         sequence,
         deferred_expressions=False,
         install_apertures=False,
-        apply_madx_errors=False,
+        apply_madx_errors=None,
+        enable_field_errors=None,
+        enable_align_errors=None,
         skip_markers=False,
         merge_drifts=False,
         merge_multipoles=False,
@@ -398,6 +405,10 @@ class Line:
             If true, aperture information is installed in the line.
         apply_madx_errors : bool, optional
             If true, errors are applied to the line.
+        enable_field_errors : bool, optional
+            If true, field errors are imported.
+        enable_align_errors : bool, optional
+            If true, alignment errors are imported.
         skip_markers : bool, optional
             If true, markers are skipped.
         merge_drifts : bool, optional
@@ -417,6 +428,7 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
+<<<<<<< HEAD
         use_true_thick_bends : bool, optional
             If true, xt.TrueBend is used for thick bends with no quadrupolar
             component. Otherwise, xt.CombinedFunctionMagnet is used. Only used
@@ -425,6 +437,8 @@ class Line:
             If true, edge effects are enabled for all elements.
         enable_fringes : bool, optional
             If true, fringe fields are enabled for all elements.
+=======
+>>>>>>> rename_thick_elements
 
         Returns
         -------
@@ -440,6 +454,8 @@ class Line:
             classes=class_namespace,
             ignore_madtypes=ignored_madtypes,
             enable_errors=apply_madx_errors,
+            enable_field_errors=enable_field_errors,
+            enable_align_errors=enable_align_errors,
             enable_apertures=install_apertures,
             enable_expressions=deferred_expressions,
             skip_markers=skip_markers,
@@ -561,13 +577,21 @@ class Line:
         import pandas as pd
 
         elements_df = pd.DataFrame({
-            'element_type': element_types,
             's': s_elements,
+            'element_type': element_types,
             'name': self.element_names,
             'isthick': isthick,
             'element': elements
         })
         return elements_df
+
+    def get_table(self):
+        df = self.to_pandas()
+
+        data = {kk: df[kk].values for kk in df.columns}
+        data.pop('element')
+
+        return xd.Table(data=data)
 
     def copy(self, _context=None, _buffer=None):
         '''
@@ -731,7 +755,18 @@ class Line:
             time=time,
             **kwargs)
 
-    def slice_in_place(self, slicing_strategies):
+    def slice_thick_elements(self, slicing_strategies):
+        """
+        Slice thick elements in the line. Slicing is done in place.
+
+        Parameters
+        ----------
+        slicing_strategies : list
+            List of slicing Strategy objects.
+
+        """
+
+        self._frozen_check()
         slicer = Slicer(self, slicing_strategies)
         return slicer.slice_in_place()
 
@@ -885,6 +920,7 @@ class Line:
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
+        freeze_energy=None,
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
@@ -1549,7 +1585,8 @@ class Line:
         '''
 
         self._frozen_check()
-        assert name not in self.element_dict.keys()
+        if element in self.element_dict and element is not self.element_dict[name]:
+            raise ValueError('Element already present in the line')
         self.element_dict[name] = element
         self.element_names.append(name)
         return self
@@ -1603,8 +1640,7 @@ class Line:
 
         if self._has_valid_tracker():
             new_line.build_tracker(_buffer=self._buffer,
-                                   track_kernel=self.tracker.track_kernel,
-                                   element_classes=self.tracker.element_classes)
+                                   track_kernel=self.tracker.track_kernel)
             #TODO: handle config and other metadata
 
         return new_line
@@ -1653,11 +1689,9 @@ class Line:
         if has_valid_tracker:
             buffer = self._buffer
             track_kernel = self.tracker.track_kernel
-            element_classes = self.tracker.element_classes
         else:
             buffer = None
             track_kernel = None
-            element_classes = None
 
         if inplace:
             self.unfreeze()
@@ -1672,11 +1706,38 @@ class Line:
 
         if has_valid_tracker:
             new_line.build_tracker(_buffer=buffer,
-                                   track_kernel=track_kernel,
-                                   element_classes=element_classes)
+                                   track_kernel=track_kernel)
             #TODO: handle config and other metadata
 
         return new_line
+
+    def freeze_energy(self, state=True, force=False):
+
+        """
+        Freeze energy in tracked Particles objects.
+
+        Parameters
+        ----------
+        state: bool
+            If True, energy is frozen. If False, it is unfrozen.
+
+        """
+
+        assert state in (True, False)
+        if not force:
+            assert self.iscollective is False, ('Cannot freeze energy '
+                            'in collective mode (not yet implemented)')
+        if state:
+            self.freeze_vars(xp.Particles.part_energy_varnames())
+        else:
+            self.unfreeze_vars(xp.Particles.part_energy_varnames())
+
+    def _energy_is_frozen(self):
+        for vn in xp.Particles.part_energy_varnames():
+            flag_name = f'FREEZE_VAR_{vn}'
+            if flag_name not in self.config or self.config[flag_name] == False:
+                return False
+        return True
 
     def freeze_longitudinal(self, state=True):
 
@@ -1713,6 +1774,9 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = True
 
+    def _var_is_frozen(self, variable_name):
+        return self.config[f'FREEZE_VAR_{variable_name}'] == True
+
     def unfreeze_vars(self, variable_names):
 
         """
@@ -1727,6 +1791,27 @@ class Line:
 
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
+
+    def configure_bend_method(self, method='expanded'):
+
+        """
+        Configure the method used to track bends.
+
+        Parameters
+        ----------
+        method: str
+            Method to use. Can be 'expanded' or 'full'. Default is 'expanded',
+            which is more appropriate for large accelerators (i.e. bends with
+            small bending angles).
+
+        """
+
+        if method not in ['expanded', 'full']:
+            raise ValueError(f'Unknown bend method {method}')
+
+        for ee in self.elements:
+            if isinstance(ee, xt.Bend):
+                ee.method = {'expanded': 0, 'full': 1}[method]
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,
                             mode='deprecated'):
@@ -1873,23 +1958,12 @@ class Line:
         self.use_simple_quadrupoles()
 
         if verbose: _print("Rebuild tracker data")
-        tracker_data = xt.tracker_data.TrackerData(
-            element_dict=self.element_dict,
-            element_names=self.element_names,
-            element_s_locations=self.get_s_elements(),
-            line_length=self.get_length(),
-            extra_element_classes=(self.tracker.particles_monitor_class._XoStruct,),
-            _buffer=self._buffer)
-
-        self._freeze()
-
-        self.tracker._tracker_data = tracker_data
-        self.tracker._element_classes = tracker_data.element_classes
+        self.build_tracker()
 
         self.use_prebuilt_kernels = False
 
         if compile:
-            _ = self.tracker._current_track_kernel # This triggers compilation
+            _ = self.tracker.get_track_kernel_and_data_for_present_config()
 
     def start_internal_logging_for_elements_of_type(self,
                                                     element_type, capacity):
@@ -2082,11 +2156,6 @@ class Line:
             Line with consecutive drifts merged
 
         '''
-
-        if self._var_management is not None:
-            raise NotImplementedError('`merge_consecutive_drifts` not'
-                                      ' available when deferred expressions are'
-                                      ' used')
 
         self._frozen_check()
 
@@ -2477,6 +2546,10 @@ class Line:
     def _var_management_to_dict(self):
         out = {}
         out['_var_management_data'] = deepcopy(self._var_management['data'])
+        for kk in out['_var_management_data'].keys():
+            if hasattr(out['_var_management_data'][kk], 'to_dict'):
+                out['_var_management_data'][kk] = (
+                    out['_var_management_data'][kk].to_dict())
         out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
@@ -2493,8 +2566,8 @@ class Line:
     def _check_valid_tracker(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                "This line does not have a valid tracker, most probably because the corresponding line has been unfrozen. "
-                "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
+                "This line does not have a valid tracker. "
+                "Please build the tracke using `line.build_tracker(...)`.")
 
     @property
     def iscollective(self):
@@ -2520,28 +2593,35 @@ class Line:
     def _init_var_management(self, dct=None):
 
         from collections import defaultdict
-        import xdeps as xd
 
         _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
 
+        functions = Functions()
+
         manager = xd.Manager()
         _vref = manager.ref(_var_values, 'vars')
-        _fref = manager.ref(mathfunctions, 'f')
+        _fref = manager.ref(functions, 'f')
         _lref = manager.ref(self.element_dict, 'element_refs')
 
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
+        self._var_management['data']['functions'] = functions
 
         self._var_management['manager'] = manager
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
 
+        _vref['t_turn_s'] = 0.0
+
         if dct is not None:
             manager = self._var_management['manager']
-            for kk in self._var_management['data'].keys():
+            for kk in dct['_var_management_data'].keys():
+                if kk == 'functions':
+                    dct['_var_management_data'][kk] = Functions.from_dict(
+                                            dct['_var_management_data'][kk])
                 self._var_management['data'][kk].update(
                                             dct['_var_management_data'][kk])
             manager.load(dct['_var_manager'])
@@ -2559,6 +2639,13 @@ class Line:
             return self._in_multiline.vars
         else:
             return self._line_vars
+
+    @property
+    def functions(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            raise NotImplementedError('`functions` not available yet in multiline')
+        else:
+            return self._var_management['fref']
 
     @property
     def _xdeps_vref(self):
@@ -2666,6 +2753,39 @@ class Line:
         self._extra_config['_needs_rng'] = value
 
     @property
+    def enable_time_dependent_vars(self):
+        return self._extra_config['enable_time_dependent_vars']
+
+    @enable_time_dependent_vars.setter
+    def enable_time_dependent_vars(self, value):
+        assert value in (True, False)
+        self._extra_config['enable_time_dependent_vars'] = value
+
+    @property
+    def t0_time_dependent_vars(self):
+        return self._extra_config['t0_time_dependent_vars']
+
+    @t0_time_dependent_vars.setter
+    def t0_time_dependent_vars(self, value):
+        self._extra_config['t0_time_dependent_vars'] = value
+
+    @property
+    def dt_update_time_dependent_vars(self):
+        return self._extra_config['dt_update_time_dependent_vars']
+
+    @dt_update_time_dependent_vars.setter
+    def dt_update_time_dependent_vars(self, value):
+        self._extra_config['dt_update_time_dependent_vars'] = value
+
+    @property
+    def _t_last_update_time_dependent_vars(self):
+        return self._extra_config['_t_last_update_time_dependent_vars']
+
+    @_t_last_update_time_dependent_vars.setter
+    def _t_last_update_time_dependent_vars(self, value):
+        self._extra_config['_t_last_update_time_dependent_vars'] = value
+
+    @property
     def time_last_track(self):
         self._check_valid_tracker()
         return self.tracker.time_last_track
@@ -2705,35 +2825,79 @@ class Line:
 
             return out
 
-class MathFunctions:
-    pass
-
 def frac(x):
     return x % 1
 
-mathfunctions = MathFunctions()
-mathfunctions.sqrt = math.sqrt
-mathfunctions.log = math.log
-mathfunctions.log10 = math.log10
-mathfunctions.exp = math.exp
-mathfunctions.sin = math.sin
-mathfunctions.cos = math.cos
-mathfunctions.tan = math.tan
-mathfunctions.asin = math.asin
-mathfunctions.acos = math.acos
-mathfunctions.atan = math.atan
-mathfunctions.atan2 = math.atan2
-mathfunctions.sinh = math.sinh
-mathfunctions.cosh = math.cosh
-mathfunctions.tanh = math.tanh
-mathfunctions.sinc = np.sinc
-mathfunctions.abs = math.fabs
-mathfunctions.erf = math.erf
-mathfunctions.erfc = math.erfc
-mathfunctions.floor = math.floor
-mathfunctions.ceil = math.ceil
-mathfunctions.round = np.round
-mathfunctions.frac = frac
+class Functions:
+
+    _mathfunctions = dict(
+        sqrt = math.sqrt,
+        log = math.log,
+        log10 = math.log10,
+        exp = math.exp,
+        sin = math.sin,
+        cos = math.cos,
+        tan = math.tan,
+        asin = math.asin,
+        acos = math.acos,
+        atan = math.atan,
+        atan2 = math.atan2,
+        sinh = math.sinh,
+        cosh = math.cosh,
+        tanh = math.tanh,
+        sinc = np.sinc,
+        abs = math.fabs,
+        erf = math.erf,
+        erfc = math.erfc,
+        floor = math.floor,
+        ceil = math.ceil,
+        round = np.round,
+        frac = frac,
+    )
+
+    def __init__(self):
+        object.__setattr__(self, '_funcs', {})
+
+    def __setitem__(self, name, value):
+        self._funcs[name] = value
+
+    def __getitem__(self, name):
+        if name in self._funcs:
+            return self._funcs[name]
+        elif name in self._mathfunctions:
+            return self._mathfunctions[name]
+        else:
+            raise KeyError(f'Unknown function {name}')
+
+    def __getattr__(self, name):
+        if name == '_funcs':
+            return object.__getattribute__(self, '_funcs')
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(f'Unknown function {name}')
+
+    def update(self, other):
+        self._funcs.update(other._funcs)
+
+    def to_dict(self):
+        fdict = {}
+        for kk, ff in self._funcs.items():
+            fdict[kk] = ff.to_dict()
+            fdict[kk]['__class__'] = ff.__class__.__name__
+        out = {'_funcs': fdict}
+        return out
+
+    @classmethod
+    def from_dict(cls, dct):
+        _funcs = {}
+        for kk, ff in dct['_funcs'].items():
+            ffcls = getattr(xd, ff.pop('__class__'))
+            _funcs[kk] = ffcls.from_dict(ff)
+        out = cls()
+        out._funcs.update(_funcs)
+        return out
+
 
 
 def _deserialize_element(el, class_dict, _buffer):
@@ -2980,7 +3144,7 @@ class LineVars:
 
     def __init__(self, line):
         self.line = line
-        self.cache_active = False
+        self._cache_active = False
         self._cached_setters = {}
 
     def keys(self):
@@ -3007,9 +3171,22 @@ class LineVars:
 
     def __setitem__(self, key, value):
         if self.cache_active:
+            if xd.refs._isref(value) or isinstance(value, VarSetter):
+                raise ValueError('Cannot set a variable to a ref when the '
+                                 'cache is active')
             self._setter_from_cache(key)(value)
         else:
             self.line._xdeps_vref[key] = value
+
+    @property
+    def cache_active(self):
+        return self._cache_active
+
+    @cache_active.setter
+    def cache_active(self, value):
+        assert value in (True, False)
+        self._cache_active = value
+        self.line._xdeps_manager._tree_frozen = value
 
 class VarSetter:
     def __init__(self, line, varname):

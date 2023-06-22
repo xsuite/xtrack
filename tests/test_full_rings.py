@@ -149,24 +149,6 @@ def test_full_rings(
         assert np.isclose(parttest._xobject.zeta[0], part_co._xobject.zeta[0],
                           rtol=0, atol=5e-11)
 
-    ###############################
-    # Verify binary serialization #
-    ###############################
-
-    tmp_file = tmp_path / 'test_full_rings.npy'
-    tmp_file_path = tmp_file.resolve()
-    line.tracker.to_binary_file(tmp_file_path)
-    new_line = xt.Tracker.from_binary_file(tmp_file_path).line
-
-    assert np.all(new_line._buffer.buffer == new_line._buffer.buffer)
-    if line._var_management:
-        assert new_line._var_management_to_dict() == \
-            line._var_management_to_dict()
-    else:
-        assert line._var_management is \
-            new_line._var_management is None
-
-
 @for_all_test_contexts
 def test_freeze_vars(test_context):
     test_data_folder.joinpath('hllhc_14/line_and_particle.json'),
