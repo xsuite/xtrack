@@ -1907,6 +1907,8 @@ class Line:
         if verbose: _print("Disable xdeps expressions")
         self._var_management = None # Disable expressions
 
+        buffer = self._buffer
+
         # Unfreeze the line
         self.discard_tracker()
 
@@ -1941,7 +1943,7 @@ class Line:
         self.use_simple_quadrupoles()
 
         if verbose: _print("Rebuild tracker data")
-        self.build_tracker()
+        self.build_tracker(_buffer=buffer)
 
         self.use_prebuilt_kernels = False
 
