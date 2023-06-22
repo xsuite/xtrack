@@ -187,6 +187,9 @@ def test_thick_multipolar_component(test_context, element_type, h):
     line_with_slices.build_tracker(_context=test_context)
     line_with_slices.track(p_with_slices, turn_by_turn_monitor='ONE_TURN_EBE')
 
+    p_no_slices.move(_context=xo.context_default)
+    p_with_slices.move(_context=xo.context_default)
+
     # Check that the results are the same
     for attr in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
         assert np.allclose(
