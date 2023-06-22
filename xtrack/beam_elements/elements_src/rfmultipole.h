@@ -15,8 +15,12 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
     /*gpuglmem*/ double const* ps = RFMultipoleData_getp1_ps(el, 0);
     int64_t const order = RFMultipoleData_get_order(el);
     double const frequency = RFMultipoleData_get_frequency(el);
-    double const voltage = RFMultipoleData_get_voltage(el);
+    double voltage = RFMultipoleData_get_voltage(el);
     double const lag = RFMultipoleData_get_lag(el);
+
+    #ifdef XSUITE_BACKTRACK
+        voltage = -voltage;
+    #endif
 
     //start_per_particle_block (part0->part)
         double const k = frequency * ( 2.0 * PI / C_LIGHT);
@@ -46,8 +50,13 @@ void RFMultipole_track_local_particle(RFMultipoleData el, LocalParticle* part0){
             double const pn_kk = DEG2RAD * pn[kk] - ktau;
             double const ps_kk = DEG2RAD * ps[kk] - ktau;
 
-            double const bal_n_kk = knl[kk]/factorial;
-            double const bal_s_kk = ksl[kk]/factorial;
+            double bal_n_kk = knl[kk]/factorial;
+            double bal_s_kk = ksl[kk]/factorial;
+
+            #ifdef XSUITE_BACKTRACK
+                bal_n_kk = -bal_n_kk;
+                bal_s_kk = -bal_s_kk;
+            #endif
 
             double const cn = cos(pn_kk);
             double const cs = cos(ps_kk);

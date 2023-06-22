@@ -11,7 +11,7 @@ import xpart as xp
 
 from ..base_element import BeamElement
 from ..random import RandomUniform, RandomExponential, RandomNormal
-from ..general import _pkg_root
+from ..general import _pkg_root, _print
 from ..internal_record import RecordIndex, RecordIdentifier
 
 
@@ -33,9 +33,7 @@ class ReferenceEnergyIncrease(BeamElement):
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/referenceenergyincrease.h')]
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(Delta_p0c=-self.Delta_p0c,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
+    has_backtrack = True
 
 
 class Marker(BeamElement):
@@ -47,14 +45,12 @@ class Marker(BeamElement):
 
     behaves_like_drift = True
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         "/*gpufun*/\n"
         "void Marker_track_local_particle(MarkerData el, LocalParticle* part0){}"
     ]
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(_context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Drift(BeamElement):
@@ -73,13 +69,10 @@ class Drift(BeamElement):
 
     isthick = True
     behaves_like_drift = True
+    has_backtrack = True
     allow_backtrack = True
 
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/drift.h')]
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(length=-self.length,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Cavity(BeamElement):
@@ -106,12 +99,7 @@ class Cavity(BeamElement):
         _pkg_root.joinpath('headers/constants.h'),
         _pkg_root.joinpath('beam_elements/elements_src/cavity.h')]
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              voltage=-self.voltage,
-                              frequency=self.frequency,
-                              lag=self.lag,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
+    has_backtrack = True
 
 
 class XYShift(BeamElement):
@@ -131,14 +119,10 @@ class XYShift(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xyshift.h')]
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              dx=-self.dx, dy=-self.dy,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Elens(BeamElement):
@@ -181,6 +165,8 @@ class Elens(BeamElement):
                'polynomial_order'       : xo.Float64
               }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/elens.h')]
 
@@ -213,17 +199,6 @@ class Elens(BeamElement):
             polynomial_order = len(coefficients_polynomial)-1
             self.polynomial_order = polynomial_order
 
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              current=self.current,
-                              inner_radius=self.inner_radius,
-                              outer_radius=self.outer_radius,
-                              elens_length=-self.elens_length,
-                              voltage=self.voltage,
-                              coefficients_polynomial = self.coefficients_polynomial,
-                              polynomial_order = self.polynomial_order,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class Wire(BeamElement):
@@ -288,10 +263,6 @@ class Wire(BeamElement):
             self.post_subtract_py = post_subtract_py
 
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        raise NotImplementedError
-
-
 class SRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the s axis.
 
@@ -309,6 +280,7 @@ class SRotation(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/srotation.h')]
@@ -350,10 +322,6 @@ class SRotation(BeamElement):
         self.cos_z = np.cos(anglerad)
         self.sin_z = np.sin(anglerad)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(angle=-self.angle,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
-
 
 class XRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the x axis.
@@ -373,6 +341,7 @@ class XRotation(BeamElement):
         }
 
     allow_backtrack = True
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/xrotation.h')]
@@ -434,9 +403,6 @@ class XRotation(BeamElement):
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(angle=-self.angle,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 class YRotation(BeamElement):
     '''Beam element modeling an rotation of the reference system around the y axis.
@@ -449,6 +415,7 @@ class YRotation(BeamElement):
 
     '''
 
+    has_backtrack = True
     allow_backtrack = True
 
     _xofields={
@@ -521,9 +488,6 @@ class YRotation(BeamElement):
         self.sin_angle = np.sin(anglerad)
         self.tan_angle = np.tan(anglerad)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(angle=-self.angle,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 class ZetaShift(BeamElement):
     '''Beam element modeling a time delat.
@@ -540,6 +504,8 @@ class ZetaShift(BeamElement):
         'dzeta': xo.Float64,
         }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/zetashift.h')]
 
@@ -548,11 +514,6 @@ class ZetaShift(BeamElement):
     def __init__(self, dzeta = 0, **nargs):
         nargs['dzeta'] = dzeta
         super().__init__(**nargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              dzeta = -self.dzeta,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class SynchrotronRadiationRecord(xo.HybridClass):
@@ -607,6 +568,8 @@ class Multipole(BeamElement):
 
     _internal_record_class = SynchrotronRadiationRecord
 
+    has_backtrack = True
+
     def __init__(self, order=None, knl=None, ksl=None, **kwargs):
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -645,18 +608,6 @@ class Multipole(BeamElement):
         kwargs["inv_factorial_order"] = 1.0 / factorial(order, exact=True)
 
         self.xoinitialize(**kwargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(
-                              order=self.order,
-                              length=-self.length,
-                              hxl=-self.hxl,
-                              hyl=-self.hyl,
-                              radiation_flag=0, #TODO, I force radiation off for now
-                              knl=-ctx2np(self.knl), # TODO: maybe it can be made more efficient
-                              ksl=-ctx2np(self.ksl), # TODO: maybe it can be made more efficient
-                              _context=_context, _buffer=_buffer, _offset=_offset)
 
 
 class SimpleThinQuadrupole(BeamElement):
@@ -717,11 +668,6 @@ class SimpleThinQuadrupole(BeamElement):
         container=self,
     )
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(knl=-ctx2np(self.knl), _context=_context,
-                              _buffer=_buffer, _offset=_offset)
-
 
 class SimpleThinBend(BeamElement):
     '''A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
@@ -776,13 +722,6 @@ class SimpleThinBend(BeamElement):
         container=self,
     )
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._buffer.context.nparray_from_context_array
-        return self.__class__(knl=-ctx2np(self.knl),
-                              hxl=-self.hxl,
-                              length=-self.length,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
-
 
 class RFMultipole(BeamElement):
     '''Beam element modeling a thin modulated multipole, with strengths dependent on the z coordinate:
@@ -821,6 +760,8 @@ class RFMultipole(BeamElement):
         'pn': xo.Float64[:],
         'ps': xo.Float64[:],
     }
+
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('headers/constants.h'),
@@ -889,20 +830,6 @@ class RFMultipole(BeamElement):
         self.xoinitialize(**kwargs)
 
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        ctx2np = self._context.nparray_from_context_array
-        return self.__class__(
-                              order=self.order,
-                              voltage=-self.voltage,
-                              frequency=self.frequency,
-                              lag=self.lag,
-                              knl=-ctx2np(self.knl),
-                              ksl=-ctx2np(self.ksl),
-                              pn = ctx2np(self.pn),
-                              ps = ctx2np(self.ps),
-                              _context=_context, _buffer=_buffer, _offset=_offset)
-
-
 class DipoleEdge(BeamElement):
     '''Beam element modeling a dipole edge (see MAD-X manual for detaild description).
 
@@ -930,6 +857,8 @@ class DipoleEdge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
+
+    has_backtrack = True
 
     _store_in_to_dict = ['h', 'e1', 'hgap', 'fint']
     _skip_in_to_dict = ['r21', 'r43']
@@ -975,14 +904,492 @@ class DipoleEdge(BeamElement):
                          **kwargs)
 
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.__class__(
-                              h=self.h,
-                              hgap=self.hgap,
-                              e1=-self.e1,
-                              fint=-self.fint,
-                              _context=_context, _buffer=_buffer, _offset=_offset)
+class LineSegmentMap(BeamElement):
 
+    _xofields={
+        'length': xo.Float64,
+
+        'qx': xo.Float64,
+        'qy': xo.Float64,
+
+        'dqx': xo.Float64,
+        'dqy': xo.Float64,
+        'detx_x': xo.Float64,
+        'detx_y': xo.Float64,
+        'dety_y': xo.Float64,
+        'dety_x': xo.Float64,
+
+        'betx': xo.Float64[2],
+        'bety': xo.Float64[2],
+        'alfx': xo.Float64[2],
+        'alfy': xo.Float64[2],
+
+        'dx': xo.Float64[2],
+        'dpx': xo.Float64[2],
+        'dy': xo.Float64[2],
+        'dpy': xo.Float64[2],
+
+        'x_ref': xo.Float64[2],
+        'px_ref': xo.Float64[2],
+        'y_ref': xo.Float64[2],
+        'py_ref': xo.Float64[2],
+
+        'energy_ref_increment': xo.Float64,
+        'energy_increment': xo.Float64,
+        'uncorrelated_rad_damping': xo.Int64,
+        'damping_factor_x':xo.Float64,
+        'damping_factor_y':xo.Float64,
+        'damping_factor_s':xo.Float64,
+        'uncorrelated_gauss_noise': xo.Int64,
+        'gauss_noise_ampl_x':xo.Float64,
+        'gauss_noise_ampl_px':xo.Float64,
+        'gauss_noise_ampl_y':xo.Float64,
+        'gauss_noise_ampl_py':xo.Float64,
+        'gauss_noise_ampl_zeta':xo.Float64,
+        'gauss_noise_ampl_delta':xo.Float64,
+
+        'longitudinal_mode_flag': xo.Int64,
+        'qs': xo.Float64,
+        'bets': xo.Float64,
+        'momentum_compaction_factor': xo.Float64,
+        'slippage_length': xo.Float64,
+        'voltage_rf': xo.Float64[:],
+        'frequency_rf': xo.Float64[:],
+        'lag_rf': xo.Float64[:],
+        }
+
+    _depends_on = [RandomNormal]
+    isthick = True
+
+    # _rename = {
+    #     'cos_s': '_cos_s',
+    #     'sin_s': '_sin_s',
+    #     'bets': '_bets',
+    #     'longitudinal_mode_flag': '_longitudinal_mode_flag',
+    # }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/linesegmentmap.h')]
+
+    def __init__(self, length=None, qx=0, qy=0,
+            betx=1., bety=1., alfx=0., alfy=0.,
+            dx=0., dpx=0., dy=0., dpy=0.,
+            x_ref=0.0, px_ref=0.0, y_ref=0.0, py_ref=0.0,
+            longitudinal_mode=None,
+            qs=None, bets=None,
+            momentum_compaction_factor=None,
+            slippage_length=None,
+            voltage_rf=None, frequency_rf=None, lag_rf=None,
+            dqx=0.0, dqy=0.0,
+            detx_x=0.0, detx_y=0.0, dety_y=0.0, dety_x=0.0,
+            energy_increment=0.0, energy_ref_increment=0.0,
+            damping_rate_x = 0.0, damping_rate_y = 0.0, damping_rate_s = 0.0,
+            equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
+            gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,
+            gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,
+            gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
+            **nargs):
+
+        '''
+        Map representing a simplified segment of a beamline.
+
+        Parameters
+        ----------
+        length : float
+            Length of the segment in meters.
+        qx : float
+            Horizontal tune or phase advance of the segment.
+        qy : float
+            Vertical tune or phase advance of the segment.
+        betx : tuple of length 2 or float
+            Horizontal beta function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        bety : tuple of length 2 or float
+            Vertical beta function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        alfx : tuple of length 2 or float
+            Horizontal alpha function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        alfy : tuple of length 2 or float
+            Vertical alpha function at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dx : tuple of length 2 or float
+            Horizontal dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dpx : tuple of length 2 or float
+            Px dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dy : tuple of length 2 or float
+            Vertical dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        dpy : tuple of length 2 or float
+            Py dispersion at the entrance and exit of the segment.
+            If a float is given, the same value is used for both entrance and exit.
+        x_ref : tuple of length 2 or float
+            Horizontal position of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        px_ref : tuple of length 2 or float
+            Px coordinate of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        y_ref : tuple of length 2 or float
+            Vertical position of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        py_ref : tuple of length 2 or float
+            Py coordinate of the reference position at the entrance and
+            exit of the segment (it is the closed orbit no other effects are
+            present that perturb the closed orbit).
+            If a float is given, the same value is used for both entrance and exit.
+        longitudinal_mode : str
+            Longitudinal mode of the segment. Can be one of ``'linear_fixed_qs'``,
+            ``'nonlinear'``, ``'linear_fixed_rf'`` or ``'frozen'``.
+        qs : float
+            Synchrotron tune of the segment. Only used if ``longitudinal_mode``
+            is ``'linear_fixed_qs'``.
+        bets : float
+            Synchrotron beta function of the segment (positive above transition,
+            negative below transition). Only used if ``longitudinal_mode``
+            is ``'linear_fixed_qs'``.
+        momentum_compaction_factor : float
+            Momentum compaction factor of the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        slippage_length : float
+            Slippage length of the segment. Only used if ``longitudinal_mode``
+            is ``'nonlinear'`` or ``'linear_fixed_rf'``. If not given, the
+            ``length`` of the segment is used.
+        voltage_rf : list of float
+            List of voltages of the RF kicks in the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        frequency_rf : list of float
+            List of frequencies of the RF kicks in the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        lag_rf : list of float
+            List of lag of the RF kicks in the segment. Only used if
+            ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
+        dqx : float
+            Horizontal chromaticity of the segment.
+        dqy : float
+            Vertical chromaticity of the segment.
+        detx_x : float
+            Anharmonicity xx coefficient. Optional, default is ``0``.
+        detx_y : float
+            Anharmonicity xy coefficient. Optional, default is ``0``.
+        dety_y : float
+            Anharmonicity yy coefficient. Optional, default is ``0``.
+        energy_increment : float
+            Energy increment of the segment in eV.
+        energy_ref_increment : float
+            Increment of the reference energy in eV.
+        damping_rate_x : float
+            Horizontal damping rate on the particles motion. Optional, default is ``0``.
+        damping_rate_y : float
+            Vertical damping rate on the particles motion. Optional, default is ``0``.
+        damping_rate_s : float
+            Longitudinal damping rate on the particles motion. Optional, default is ``0``.
+        equ_emit_x : float
+            Horizontal equilibrium emittance. Optional.
+        equ_emit_y : float
+            Vertical equilibrium emittance. Optional.
+        equ_emit_s : float
+            Longitudinal equilibrium emittance. Optional.
+        gauss_noise_ampl_x : float
+            Amplitude of Gaussian noise on the horizontal position. Optional, default is ``0``.
+        gauss_noise_ampl_px : float
+            Amplitude of Gaussian noise on the horizontal momentum. Optional, default is ``0``.
+        gauss_noise_ampl_y : float
+            Amplitude of Gaussian noise on the vertical position. Optional, default is ``0``.
+        gauss_noise_ampl_py : float
+            Amplitude of Gaussian noise on the vertical momentum. Optional, default is ``0``.
+        gauss_noise_ampl_zeta : float
+            Amplitude of Gaussian noise on the longitudinal position. Optional, default is ``0``.
+        gauss_noise_ampl_delta : float
+            Amplitude of Gaussian noise on the longitudinal momentum. Optional, default is ``0``.
+
+        '''
+
+        assert longitudinal_mode in ['linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', None]
+
+        nargs['qx'] = qx
+        nargs['qy'] = qy
+        nargs['dqx'] = dqx
+        nargs['dqy'] = dqy
+        nargs['detx_x'] = detx_x
+        nargs['detx_y'] = detx_y
+        nargs['dety_y'] = dety_y
+        nargs['dety_x'] = dety_x
+        nargs['length'] = length
+
+        if longitudinal_mode is None:
+            if qs is not None:
+                longitudinal_mode = 'linear_fixed_qs'
+            elif voltage_rf is not None:
+                longitudinal_mode = 'nonlinear'
+            else:
+                longitudinal_mode = 'frozen'
+
+        if longitudinal_mode == 'linear_fixed_qs':
+            assert qs is not None
+            assert bets is not None
+            assert momentum_compaction_factor is None
+            assert voltage_rf is None
+            assert frequency_rf is None
+            assert lag_rf is None
+            nargs['longitudinal_mode_flag'] = 1
+            nargs['qs'] = qs
+            nargs['bets'] = bets
+            nargs['voltage_rf'] = [0]
+            nargs['frequency_rf'] = [0]
+            nargs['lag_rf'] = [0]
+        elif longitudinal_mode == 'nonlinear' or longitudinal_mode == 'linear_fixed_rf':
+            assert voltage_rf is not None
+            assert frequency_rf is not None
+            assert lag_rf is not None
+            assert momentum_compaction_factor is not None
+            assert qs is None
+            assert bets is None
+
+            if slippage_length is None:
+                assert length is not None
+                nargs['slippage_length'] = length
+            else:
+                nargs['slippage_length'] = slippage_length
+
+            if longitudinal_mode == 'nonlinear':
+                nargs['longitudinal_mode_flag'] = 2
+            elif longitudinal_mode == 'linear_fixed_rf':
+                nargs['longitudinal_mode_flag'] = 3
+
+            nargs['voltage_rf'] = voltage_rf
+            nargs['frequency_rf'] = frequency_rf
+            nargs['lag_rf'] = lag_rf
+            nargs['momentum_compaction_factor'] = momentum_compaction_factor
+            for nn in ['frequency_rf', 'lag_rf', 'voltage_rf']:
+                if np.isscalar(nargs[nn]):
+                    nargs[nn] = [nargs[nn]]
+
+            assert (len(nargs['frequency_rf'])
+                    == len(nargs['lag_rf'])
+                    == len(nargs['voltage_rf']))
+
+            if longitudinal_mode == 'linear_fixed_rf':
+                assert len(nargs['frequency_rf']) == 1
+
+        elif longitudinal_mode == 'frozen':
+            nargs['longitudinal_mode_flag'] = 0
+            nargs['voltage_rf'] = [0]
+            nargs['frequency_rf'] = [0]
+            nargs['lag_rf'] = [0]
+        else:
+            raise ValueError('longitudinal_mode must be one of "linear_fixed_qs", "nonlinear" or "frozen"')
+
+
+        if np.isscalar(betx): betx = [betx, betx]
+        else: assert len(betx) == 2
+
+        if np.isscalar(bety): bety = [bety, bety]
+        else: assert len(bety) == 2
+
+        if np.isscalar(alfx): alfx = [alfx, alfx]
+        else: assert len(alfx) == 2
+
+        if np.isscalar(alfy): alfy = [alfy, alfy]
+        else: assert len(alfy) == 2
+
+        if np.isscalar(dx): dx = [dx, dx]
+        else: assert len(dx) == 2
+
+        if np.isscalar(dpx): dpx = [dpx, dpx]
+        else: assert len(dpx) == 2
+
+        if np.isscalar(dy): dy = [dy, dy]
+        else: assert len(dy) == 2
+
+        if np.isscalar(dpy): dpy = [dpy, dpy]
+        else: assert len(dpy) == 2
+
+        if np.isscalar(x_ref): x_ref = [x_ref, x_ref]
+        else: assert len(x_ref) == 2
+
+        if np.isscalar(px_ref): px_ref = [px_ref, px_ref]
+        else: assert len(px_ref) == 2
+
+        if np.isscalar(y_ref): y_ref = [y_ref, y_ref]
+        else: assert len(y_ref) == 2
+
+        if np.isscalar(py_ref): py_ref = [py_ref, py_ref]
+        else: assert len(py_ref) == 2
+
+        nargs['betx'] = betx
+        nargs['bety'] = bety
+        nargs['alfx'] = alfx
+        nargs['alfy'] = alfy
+        nargs['dx'] = dx
+        nargs['dpx'] = dpx
+        nargs['dy'] = dy
+        nargs['dpy'] = dpy
+        nargs['x_ref'] = x_ref
+        nargs['px_ref'] = px_ref
+        nargs['y_ref'] = y_ref
+        nargs['py_ref'] = py_ref
+
+        # acceleration with change of reference momentum
+        nargs['energy_ref_increment'] = energy_ref_increment
+        # acceleration without change of reference momentum
+        nargs['energy_increment'] = energy_increment
+
+        if damping_rate_x < 0.0 or damping_rate_y < 0.0 or damping_rate_s < 0.0:
+            raise ValueError('Damping rates cannot be negative')
+        if damping_rate_x > 0.0 or damping_rate_y > 0.0 or damping_rate_s > 0.0:
+            nargs['uncorrelated_rad_damping'] = True
+            nargs['damping_factor_x'] = 1.0-damping_rate_x/2.0
+            nargs['damping_factor_y'] = 1.0-damping_rate_y/2.0
+            nargs['damping_factor_s'] = 1.0-damping_rate_s/2.0
+        else:
+            nargs['uncorrelated_rad_damping'] = False
+
+        if equ_emit_x < 0.0 or equ_emit_y < 0.0 or equ_emit_s < 0.0:
+            raise ValueError('Equilibrium emittances cannot be negative')
+        nargs['uncorrelated_gauss_noise'] = False
+        nargs['gauss_noise_ampl_x'] = 0.0
+        nargs['gauss_noise_ampl_px'] = 0.0
+        nargs['gauss_noise_ampl_y'] = 0.0
+        nargs['gauss_noise_ampl_py'] = 0.0
+        nargs['gauss_noise_ampl_zeta'] = 0.0
+        nargs['gauss_noise_ampl_delta'] = 0.0
+
+        assert equ_emit_x >= 0.0
+        assert equ_emit_y >= 0.0
+        assert equ_emit_s >= 0.0
+
+        if equ_emit_x > 0.0:
+            assert alfx[1] == 0
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_px'] = np.sqrt(equ_emit_x*damping_rate_x/betx[1])
+            nargs['gauss_noise_ampl_x'] = betx[0]*nargs['gauss_noise_ampl_px']
+        if equ_emit_y > 0.0:
+            assert alfy[1] == 0
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_py'] = np.sqrt(equ_emit_y*damping_rate_y/bety[1])
+            nargs['gauss_noise_ampl_y'] = bety[0]*nargs['gauss_noise_ampl_py']
+        if equ_emit_s > 0.0:
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_delta'] = np.sqrt(equ_emit_s*damping_rate_s/bets)
+            nargs['gauss_noise_ampl_zeta'] = bets*nargs['gauss_noise_ampl_delta']
+
+        assert gauss_noise_ampl_x >= 0.0
+        assert gauss_noise_ampl_px >= 0.0
+        assert gauss_noise_ampl_y >= 0.0
+        assert gauss_noise_ampl_py >= 0.0
+        assert gauss_noise_ampl_zeta >= 0.0
+        assert gauss_noise_ampl_delta >= 0.0
+
+        if gauss_noise_ampl_x > 0.0 or gauss_noise_ampl_px > 0.0 or gauss_noise_ampl_y > 0.0 or gauss_noise_ampl_py > 0.0 or gauss_noise_ampl_zeta > 0.0 or gauss_noise_ampl_delta > 0.0:
+            nargs['uncorrelated_gauss_noise'] = True
+            nargs['gauss_noise_ampl_x'] = np.sqrt(nargs['gauss_noise_ampl_x']**2+gauss_noise_ampl_x**2)
+            nargs['gauss_noise_ampl_px'] = np.sqrt(nargs['gauss_noise_ampl_px']**2+gauss_noise_ampl_px**2)
+            nargs['gauss_noise_ampl_y'] = np.sqrt(nargs['gauss_noise_ampl_y']**2+gauss_noise_ampl_y**2)
+            nargs['gauss_noise_ampl_py'] = np.sqrt(nargs['gauss_noise_ampl_py']**2+gauss_noise_ampl_py**2)
+            nargs['gauss_noise_ampl_zeta'] = np.sqrt(nargs['gauss_noise_ampl_zeta']**2+gauss_noise_ampl_zeta**2)
+            nargs['gauss_noise_ampl_delta'] = np.sqrt(nargs['gauss_noise_ampl_delta']**2+gauss_noise_ampl_delta**2)
+
+        super().__init__(**nargs)
+
+    @property
+    def longitudinal_mode(self):
+        ret = {
+            0: 'frozen',
+            1: 'linear_fixed_qs',
+            2: 'nonlinear',
+            3: 'linear_fixed_rf'
+        }[self.longitudinal_mode_flag]
+        return ret
+
+class FirstOrderTaylorMap(BeamElement):
+
+    '''
+    First order Taylor map.
+
+    Parameters
+    ----------
+    length : float
+        length of the element in meters.
+    m0 : array_like
+        6x1 array of the zero order Taylor map coefficients.
+    m1 : array_like
+        6x6 array of the first order Taylor map coefficients.
+    radiation_flag : int
+        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
+
+    '''
+
+    isthick = True
+
+    _xofields={
+        'radiation_flag': xo.Int64,
+        'length': xo.Float64,
+        'm0': xo.Float64[6],
+        'm1': xo.Float64[6,6]}
+
+    _depends_on = [RandomUniform, RandomExponential]
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('headers/synrad_spectrum.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
+
+    _internal_record_class = SynchrotronRadiationRecord # not functional,
+    # included for compatibility with Multipole
+
+    def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
+        nargs['radiation_flag'] = radiation_flag
+        nargs['length'] = length
+        if m0 is None:
+            nargs['m0'] = np.zeros(6,dtype=np.float64)
+        else:
+            if len(np.shape(m0)) == 1 and np.shape(m0)[0] == 6:
+                nargs['m0'] = m0
+            else:
+                raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
+        if m1 is None:
+            nargs['m1'] = np.eye(6,dtype=np.float64)
+        else:
+            if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
+                nargs['m1'] = m1
+            else:
+                raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
+        super().__init__(**nargs)
+
+
+def _angle_from_trig(cos=None, sin=None, tan=None):
+    """
+    Given at least two values of (cos, sin, tan), return the angle in radians.
+    Raises ValueError if the values are inconsistent.
+    """
+    sin_given, cos_given, tan_given = (trig is not None for trig in (sin, cos, tan))
+
+    if sum([sin_given, cos_given, tan_given]) <= 1:
+        raise ValueError('At least two of (cos, sin, tan) must be given')
+
+    if sin_given and cos_given:
+        tan = tan if tan_given else sin / cos
+    elif sin_given and tan_given:
+        cos = cos if cos_given else sin / tan
+    elif cos_given and tan_given:
+        sin = sin if sin_given else cos * tan
+
+    if (not np.isclose(sin**2 + cos**2, 1, atol=1e-13)
+            or not np.isclose(sin / cos, tan, atol=1e-13)):
+        raise ValueError('Given values of sin, cos, tan are inconsistent '
+                         'with each other.')
+
+    angle = np.arctan2(sin, cos)
+    return angle, cos, sin, tan
 
 class LinearTransferMatrix(BeamElement):
     _xofields={
@@ -1058,6 +1465,8 @@ class LinearTransferMatrix(BeamElement):
                      gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
                      **nargs):
 
+        _print('Warning: `LinearTransferMatrix` is deprecated and will be removed in the future. '
+               'Please use `LineSegmentMap` instead.')
         if (chroma_x==0 and chroma_y==0
             and detx_x==0 and detx_y==0 and dety_y==0 and dety_x==0):
 
@@ -1189,84 +1598,3 @@ class LinearTransferMatrix(BeamElement):
     @property
     def beta_y_1(self):
         return self.beta_prod_y*self.beta_ratio_y
-
-class FirstOrderTaylorMap(BeamElement):
-
-    '''
-    First order Taylor map.
-
-    Parameters
-    ----------
-    length : float
-        length of the element in meters.
-    m0 : array_like
-        6x1 array of the zero order Taylor map coefficients.
-    m1 : array_like
-        6x6 array of the first order Taylor map coefficients.
-    radiation_flag : int
-        Flag for synchrotron radiation. 0 - no radiation, 1 - radiation on.
-
-    '''
-
-    isthick = True
-
-    _xofields={
-        'radiation_flag': xo.Int64,
-        'length': xo.Float64,
-        'm0': xo.Float64[6],
-        'm1': xo.Float64[6,6]}
-
-    _depends_on = [RandomUniform, RandomExponential]
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('headers/constants.h'),
-        _pkg_root.joinpath('headers/synrad_spectrum.h'),
-        _pkg_root.joinpath('beam_elements/elements_src/firstordertaylormap.h')]
-
-    _internal_record_class = SynchrotronRadiationRecord # not functional,
-    # included for compatibility with Multipole
-
-    def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
-        nargs['radiation_flag'] = radiation_flag
-        nargs['length'] = length
-        if m0 is None:
-            nargs['m0'] = np.zeros(6,dtype=np.float64)
-        else:
-            if len(np.shape(m0)) == 1 and np.shape(m0)[0] == 6:
-                nargs['m0'] = m0
-            else:
-                raise ValueError(f'Wrong shape for m0: {np.shape(m0)}')
-        if m1 is None:
-            nargs['m1'] = np.eye(6,dtype=np.float64)
-        else:
-            if len(np.shape(m1)) == 2 and np.shape(m1)[0] == 6 and np.shape(m1)[1] == 6:
-                nargs['m1'] = m1
-            else:
-                raise ValueError(f'Wrong shape for m1: {np.shape(m1)}')
-        super().__init__(**nargs)
-
-
-def _angle_from_trig(cos=None, sin=None, tan=None):
-    """
-    Given at least two values of (cos, sin, tan), return the angle in radians.
-    Raises ValueError if the values are inconsistent.
-    """
-    sin_given, cos_given, tan_given = (trig is not None for trig in (sin, cos, tan))
-
-    if sum([sin_given, cos_given, tan_given]) <= 1:
-        raise ValueError('At least two of (cos, sin, tan) must be given')
-
-    if sin_given and cos_given:
-        tan = tan if tan_given else sin / cos
-    elif sin_given and tan_given:
-        cos = cos if cos_given else sin / tan
-    elif cos_given and tan_given:
-        sin = sin if sin_given else cos * tan
-
-    if (not np.isclose(sin**2 + cos**2, 1, atol=1e-13)
-            or not np.isclose(sin / cos, tan, atol=1e-13)):
-        raise ValueError('Given values of sin, cos, tan are inconsistent '
-                         'with each other.')
-
-    angle = np.arctan2(sin, cos)
-    return angle, cos, sin, tan

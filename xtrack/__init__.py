@@ -11,9 +11,10 @@ from .random import *
 from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs
 from .tracker import Tracker
-from .match import Vary, Target, OrbitOnly, TargetList, VaryList
+from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
+from .twiss import TwissInit
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
@@ -35,10 +36,6 @@ from .line import _is_drift, _behaves_like_drift, _is_aperture, _is_thick, _allo
 from .line import _lines_equal, _apertures_equal
 from .loss_location_refinement import _skip_in_loss_location_refinement
 
-
-
-import xpart as _xp
-ParticlesMonitor = generate_monitor_class(_xp.Particles)
 
 from ._version import __version__
 

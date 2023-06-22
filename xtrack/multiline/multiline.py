@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .shared_knobs import VarSharing
+from ..match import match_knob_line
 import xobjects as xo
 import xtrack as xt
 import xfields as xf
@@ -27,14 +28,17 @@ class Multiline:
         self.lines.update(lines)
 
         line_names = list(self.lines.keys())
+        self.line_names = line_names
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
             self._var_sharing = VarSharing(lines=line_list, names=line_names)
+            self._multiline_vars = xt.line.LineVars(self)
         else:
             self._var_sharing = None
 
-        for ll in line_list:
-            ll._in_multiline = True
+        for nn, ll in zip(line_names, line_list):
+            ll._in_multiline = self
+            ll._name_in_multiline = nn
 
     def to_dict(self, include_var_management=True):
 
@@ -158,6 +162,37 @@ class Multiline:
 
         return cls.from_dict(dct, **kwargs)
 
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        for nn, ll in self.lines.items():
+            ll._pickled_by_multiline = True
+        if '_var_sharing' in out and out['_var_sharing'] is not None:
+            out['_var_sharing'] = 'to_be_rebuilt'
+            out['_var_manager'] = self._var_sharing.manager.dump()
+            out['_var_management_data'] = self._var_sharing.data
+        return out
+
+    def __setstate__(self, state):
+        if '_var_sharing' in state and state['_var_sharing'] == 'to_be_rebuilt':
+            rebuild_var_sharing = True
+            _var_manager = state.pop('_var_manager')
+            _var_management_data = state.pop('_var_management_data')
+        else:
+            rebuild_var_sharing = False
+            state['_var_sharing'] = None
+        self.__dict__.update(state)
+        if rebuild_var_sharing:
+            line_names = list(self.lines.keys())
+            line_list = [self.lines[nn] for nn in line_names]
+            self._var_sharing = VarSharing(lines=line_list,
+                                           names=line_names)
+            self._var_sharing.manager.load(_var_manager)
+            for kk in _var_management_data.keys():
+                self._var_sharing.data[kk].update(_var_management_data[kk])
+        for nn, ll in self.lines.items():
+            ll._in_multiline = self
+
+
     def build_trackers(self, _context=None, _buffer=None, **kwargs):
         '''
         Build the trackers for the lines.
@@ -207,26 +242,15 @@ class Multiline:
 
         out = MultiTwiss()
         if lines is None:
-            lines = self.lines.keys()
+            lines = self.line_names
 
-        kwargs_per_twiss = {}
-        for arg_name in ['ele_start', 'ele_stop', 'twiss_init']:
-            if arg_name not in kwargs:
-                kwargs_per_twiss[arg_name] = len(lines) * [None]
-            elif not isinstance(kwargs[arg_name], (list, tuple)):
-                kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
-                kwargs.pop(arg_name)
-            else:
-                assert len(kwargs[arg_name]) == len(lines), \
-                    f'Length of {arg_name} must be equal to the number of lines'
-                kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
-                kwargs.pop(arg_name)
+        kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, lines)
 
         for ii, nn in enumerate(lines):
-            out[nn] = self.lines[nn].twiss(**kwargs,
-                                ele_start=kwargs_per_twiss['ele_start'][ii],
-                                ele_stop=kwargs_per_twiss['ele_stop'][ii],
-                                twiss_init=kwargs_per_twiss['twiss_init'][ii])
+            this_kwargs = kwargs.copy()
+            for kk in kwargs_per_twiss.keys():
+                this_kwargs[kk] = kwargs_per_twiss[kk][ii]
+            out[nn] = self.lines[nn].twiss(**this_kwargs)
 
         out._line_names = lines
 
@@ -264,9 +288,43 @@ class Multiline:
 
         '''
 
+        line_names = kwargs.get('lines', self.line_names)
+        kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, line_names)
+        kwargs.update(kwargs_per_twiss)
+
         return xt.match.match_line(self, vary, targets,
                           restore_if_fail=restore_if_fail,
                           solver=solver, verbose=verbose, **kwargs)
+
+    def match_knob(self, knob_name, vary, targets,
+                knob_value_start=0, knob_value_end=1,
+                **kwargs):
+
+        '''
+        Match a new knob in the beam line such that the specified targets are
+        matched when the knob is set to the value `knob_value_end` and the
+        state of the line before tha matching is recovered when the knob is
+        set to the value `knob_value_start`.
+
+        Parameters
+        ----------
+        knob_name : str
+            Name of the knob to be matched.
+        vary : list of str or list of Vary objects
+            List of existing knobs to be varied.
+        targets : list of Target objects
+            List of targets to be matched.
+        knob_value_start : float
+            Value of the knob before the matching. Defaults to 0.
+        knob_value_end : float
+            Value of the knob after the matching. Defaults to 1.
+
+        '''
+        raise NotImplementedError # Untested
+
+        match_knob_line(self, vary=vary, targets=targets,
+                        knob_name=knob_name, knob_value_start=knob_value_start,
+                        knob_value_end=knob_value_end, **kwargs)
 
     def __getitem__(self, key):
         return self.lines[key]
@@ -275,6 +333,8 @@ class Multiline:
         return list(self.lines.keys()) + object.__dir__(self)
 
     def __getattr__(self, key):
+        if key == 'lines':
+            return object.__getattribute__(self, 'lines')
         if key in self.lines:
             return self.lines[key]
         else:
@@ -282,8 +342,17 @@ class Multiline:
 
     @property
     def vars(self):
+        return self._multiline_vars
+
+    @property
+    def _xdeps_vref(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
+
+    @property
+    def _xdeps_manager(self):
+        if self._var_sharing is not None:
+            return self._var_sharing.manager
 
     def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
                                       ip_names,
@@ -458,4 +527,18 @@ class MultiTwiss(dict):
     def __init__(self):
         self.__dict__ = self
 
-
+def _dispatch_twiss_kwargs(kwargs, lines):
+    kwargs_per_twiss = {}
+    for arg_name in ['ele_start', 'ele_stop', 'twiss_init',
+                        '_initial_particles', '_ebe_monitor']:
+        if arg_name not in kwargs:
+            continue
+        if not isinstance(kwargs[arg_name], (list, tuple)):
+            kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
+            kwargs.pop(arg_name)
+        else:
+            assert len(kwargs[arg_name]) == len(lines), \
+                f'Length of {arg_name} must be equal to the number of lines'
+            kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
+            kwargs.pop(arg_name)
+    return kwargs, kwargs_per_twiss

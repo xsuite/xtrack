@@ -23,13 +23,15 @@ class TargetLuminosity(xt.Target):
         self.crab = crab
 
     @property
-    def scale(self):
-        if self._scale is None:
-            return 1/self.value
+    def weight(self):
+        if self._weight is None:
+            return 1 / self.value
+        else:
+            return self._weight
 
-    @scale.setter
-    def scale(self, value):
-        self._scale = value
+    @weight.setter
+    def weight(self, value):
+        self._weight = value
 
     def compute_luminosity(self, tw):
         assert len(tw._line_names) == 2

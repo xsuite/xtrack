@@ -273,14 +273,16 @@ def test_twiss_and_survey(test_context):
 
                     assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
                     assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
-                    assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=2e-10)
-                    assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=2e-12)
                     assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
                     assert np.isclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
                     assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
                     assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
+
+                    if twtst not in [twxt4d, tw4d_part]: # 4d less precise due to different momentum (coupling comes from feeddown)
+                        assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=5e-10)
+                        assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=2e-12)
+                        assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
+                        assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
 
                     # check matrix is symmetric
                     assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)

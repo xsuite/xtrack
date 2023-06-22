@@ -60,8 +60,9 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
 
 
 def get_element_class_by_name(name: str) -> type:
-    from xtrack.monitors import generate_monitor_class
-    monitor_cls = generate_monitor_class(xp.Particles)
+    # from xtrack.monitors import generate_monitor_class
+    # monitor_cls = generate_monitor_class(xp.Particles)
+    monitor_cls = xt.ParticlesMonitor
 
     try:
         from xfields import element_classes as xf_element_classes
@@ -80,7 +81,7 @@ def get_element_class_by_name(name: str) -> type:
 def save_kernel_metadata(
         module_name: str,
         config: dict,
-        element_classes,
+        kernel_element_classes,
 ):
     out_file = XT_PREBUILT_KERNELS_LOCATION / f'{module_name}.json'
 
@@ -92,7 +93,7 @@ def save_kernel_metadata(
 
     kernel_metadata = {
         'config': config.data,
-        'classes': [cls._DressingClass.__name__ for cls in element_classes],
+        'classes': [cls._DressingClass.__name__ for cls in kernel_element_classes],
         'versions': {
             'xtrack': xt.__version__,
             'xfields': xf_version,
@@ -138,7 +139,7 @@ def enumerate_kernels() -> Iterator[Tuple[str, dict]]:
 
 def get_suitable_kernel(
         config: dict,
-        element_classes,
+        line_element_classes,
         verbose=False,
 ) -> Optional[Tuple[str, list]]:
     """
@@ -156,7 +157,7 @@ def get_suitable_kernel(
         return
 
     requested_class_names = [
-        cls._DressingClass.__name__ for cls in element_classes
+        cls._DressingClass.__name__ for cls in line_element_classes
     ]
 
     for module_name, kernel_metadata in enumerate_kernels():
@@ -213,13 +214,13 @@ def regenerate_kernels():
         config = metadata['config']
         element_class_names = metadata['classes']
 
-        element_classes = [
+        kernel_element_classes = [
             get_element_class_by_name(class_name)
             for class_name in element_class_names
         ]
 
         elements = []
-        for cls in element_classes:
+        for cls in kernel_element_classes:
             if cls.__name__ in BEAM_ELEMENTS_INIT_DEFAULTS:
                 element = cls(**BEAM_ELEMENTS_INIT_DEFAULTS[cls.__name__])
             else:
@@ -235,8 +236,8 @@ def regenerate_kernels():
                               compile='force')
 
         save_kernel_metadata(module_name=module_name,
-                             config=tracker.config,
-                             element_classes=tracker.element_classes)
+            config=tracker.config,
+            kernel_element_classes=tracker._tracker_data_base.kernel_element_classes)
 
 
 def clear_kernels():

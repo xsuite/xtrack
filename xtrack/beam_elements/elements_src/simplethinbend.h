@@ -6,15 +6,24 @@
 #ifndef XTRACK_FASTDIPOLE_H
 #define XTRACK_FASTDIPOLE_H
 
+
+
 /*gpufun*/
 void SimpleThinBend_track_local_particle(SimpleThinBendData el, LocalParticle* part0){
         // Horizontal bend
 
+        double knl0 = SimpleThinBendData_get_knl(el, 0);
+        double hxl = SimpleThinBendData_get_hxl(el);
+        double length = SimpleThinBendData_get_length(el); // m
+
+        #ifdef XSUITE_BACKTRACK
+            knl0 = -knl0;
+            hxl = -hxl;
+            length = -length;
+        #endif
+
         //start_per_particle_block (part0->part)
             double const chi = LocalParticle_get_chi(part);
-            double const knl0 = SimpleThinBendData_get_knl(el, 0);
-            double const hxl = SimpleThinBendData_get_hxl(el);
-            double const length = SimpleThinBendData_get_length(el); // m
 
             double dpx = - chi * knl0;
 
