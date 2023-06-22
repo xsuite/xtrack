@@ -1,12 +1,12 @@
 from cpymad.madx import Madx
 import xtrack as xt
 import xpart as xp
+import xdeps as xd
 
 import numpy as np
 
 # hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
 
-thin = False
 kill_fringes_and_edges = True
 
 mad = Madx()
@@ -76,8 +76,9 @@ plt.plot(tw_mad1.s, tw_mad2.mux - tw_mad1.mux, label='madx')
 plt.plot(tw0.s, tw2.mux - tw1.mux, label='xtrack')
 
 twmad = mad.twiss(table='twiss')
+tmad = xd.Table(twmad)
 
-print(f'Config: {thin=} {kill_fringes_and_edges=} \n' )
+print(f'Config: {kill_fringes_and_edges=} \n' )
 print(f'dqx xsuite diff: {dqx_diff_xs}')
 print(f'dqx xsuite:      {tw0.dqx}')
 print(f'dqx mad diff:    {dqx_diff_mad}')
@@ -91,5 +92,9 @@ assert np.isclose(tw0.dqx, twmad.summary.dq1, atol=0.2, rtol=0)
 assert np.isclose(tw0.dqy, twmad.summary.dq2, atol=0.2, rtol=0)
 assert np.isclose(tw0.qx, twmad.summary.q1, atol=1e-6, rtol=0)
 assert np.isclose(tw0.qy, twmad.summary.q2, atol=1e-6, rtol=0)
+assert np.isclose(tw0['betx', 'ip1'], tmad['betx', 'ip1:1'], atol=0, rtol=1e-5)
+assert np.isclose(tw0['bety', 'ip1'], tmad['bety', 'ip1:1'], atol=0, rtol=1e-5)
+assert np.isclose(tw0['betx', 'ip5'], tmad['betx', 'ip5:1'], atol=0, rtol=1e-5)
+assert np.isclose(tw0['bety', 'ip5'], tmad['bety', 'ip5:1'], atol=0, rtol=1e-5)
 
 plt.show()

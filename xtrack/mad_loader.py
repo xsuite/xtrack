@@ -729,7 +729,10 @@ class MadLoader:
         return elem_list
 
     def convert_quadrupole(self, mad_el):
-        if not_zero(mad_el.l) and self.allow_thick:
+        if self.allow_thick:
+            if not mad_el.l:
+                raise ValueError(
+                    "Thick quadrupole with legth zero are not supported.")
             return self._convert_quadrupole_thick(mad_el)
         else:
             raise NotImplementedError(
@@ -880,7 +883,7 @@ class MadLoader:
             k0=mad_el.k0 or h,
             h=h,
             length=mad_el.l,
-            knl=[0, mad_el.k1 * mad_el.l, mad_el.k2 * mad_el.l],
+            knl=[0, 0, mad_el.k2 * mad_el.l],
             num_multipole_kicks=num_multipole_kicks,
             **kwargs,
         )
