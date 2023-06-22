@@ -62,7 +62,7 @@ assert np.isclose(tw['py', 'ip1'], 0, rtol=0, atol=5e-7)
 assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=5e-7)
 assert np.isclose(tw['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
 
-t1 = time.time()                                                                #!skip-doc
+t1 = time.time()
 line_thick.match(
     vary=[
         xt.Vary('kqtf.b1', step=1e-8),
@@ -75,7 +75,7 @@ line_thick.match(
         xt.Target('qy', 60.29, tol=1e-4),
         xt.Target('dqx', 10.0, tol=0.05),
         xt.Target('dqy', 12.0, tol=0.05)])
-t2 = time.time()                                                                #!skip-doc
+t2 = time.time()
 print('\nTime match thick: ', t2-t1)
 
 line.match(
