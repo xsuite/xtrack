@@ -19,8 +19,8 @@ void Bend_track_local_particle(
     const int64_t order = BendData_get_order(el);
     const double inv_factorial_order = BendData_get_inv_factorial_order(el);
 
-    const double *knl = BendData_getp1_knl(el, 0);
-    const double *ksl = BendData_getp1_ksl(el, 0);
+    /*gpuglmem*/ const double *knl = BendData_getp1_knl(el, 0);
+    /*gpuglmem*/ const double *ksl = BendData_getp1_ksl(el, 0);
 
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;

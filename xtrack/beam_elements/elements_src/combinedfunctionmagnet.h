@@ -21,8 +21,8 @@ void CombinedFunctionMagnet_track_local_particle(
     const int64_t order = CombinedFunctionMagnetData_get_order(el);
     const double inv_factorial_order = CombinedFunctionMagnetData_get_inv_factorial_order(el);
 
-    const double *knl = CombinedFunctionMagnetData_getp1_knl(el, 0);
-    const double *ksl = CombinedFunctionMagnetData_getp1_ksl(el, 0);
+    /*gpuglmem*/ const double *knl = CombinedFunctionMagnetData_getp1_knl(el, 0);
+    /*gpuglmem*/ const double *ksl = CombinedFunctionMagnetData_getp1_ksl(el, 0);
 
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;
