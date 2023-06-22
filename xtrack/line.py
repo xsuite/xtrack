@@ -3138,6 +3138,10 @@ class LineVars:
 
     def _setter_from_cache(self, varname):
         if varname not in self._cached_setters:
+            if self.line._xdeps_manager is None:
+                raise RuntimeError(
+                    f'Cannot access variable {varname} as the line has no '
+                    'xdeps manager')
             try:
                 self.cache_active = False
                 self._cached_setters[varname] = VarSetter(self.line, varname)
@@ -3178,7 +3182,7 @@ class VarSetter:
 
         manager = self.multiline._xdeps_manager
         if manager is None:
-            raise RuntimeError(
+            raise imeError(
                 f'Cannot access variable {varname} as the line has no xdeps manager')
         # assuming line._xdeps_vref is a direct view of a dictionary
         self.owner = line._xdeps_vref[varname]._owner._owner
