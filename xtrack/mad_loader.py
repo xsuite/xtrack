@@ -858,7 +858,7 @@ class MadLoader:
             wedge_exit = self.Builder(
                 mad_el.name + "_wedge_exit",
                 self.classes.Wedge,
-                angle=mad_el.e2,
+                angle=-mad_el.e2,
                 k=k0,
             )
             fringe_exit = self.Builder(
@@ -866,12 +866,12 @@ class MadLoader:
                 self.classes.Fringe,
                 fint=mad_el.fintx or mad_el.fint,
                 hgap=mad_el.hgap,
-                k=k0,
+                k=-k0,
             )
             rotation_exit = self.Builder(
                 mad_el.name + "_yrot_exit",
                 self.classes.YRotation,
-                angle=rad2deg(mad_el.e2),
+                angle=-rad2deg(mad_el.e2),
             )
             sequence = sequence + [wedge_exit, fringe_exit, rotation_exit]
 
