@@ -864,7 +864,7 @@ class MadLoader:
             fringe_exit = self.Builder(
                 mad_el.name + "_fringe_exit",
                 self.classes.Fringe,
-                fint=mad_el.fintx or mad_el.fint,
+                fint=mad_el.fint,
                 hgap=mad_el.hgap,
                 k=-k0,
             )

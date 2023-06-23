@@ -32,14 +32,6 @@ use, sequence=psb1;
 twiss;
 ''')
 
-for el in mad.sequence.psb1.expanded_elements:
-    # el.kill_ent_fringe = True
-    # el.kill_exi_fringe = True
-    if hasattr(el, 'fint'):
-        el.fint = 0
-        el.fintx = 0
-        el.hgap = 0
-
 mad.input("PTC_CREATE_UNIVERSE; PTC_CREATE_LAYOUT, model=2; PTC_TWISS; PTC_END;")
 tw_ptc_summ = mad.table.ptc_twiss.summary
 tw_ptc = xd.Table(mad.table.ptc_twiss)
