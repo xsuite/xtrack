@@ -82,8 +82,8 @@ class Drift(BeamElement):
         return Drift(length=self.length * weight)
 
     @staticmethod
-    def add_slice(weight, container, thick_name, slice_name):
-        container[slice_name] = Drift()
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
+        container[slice_name] = Drift(_buffer=_buffer)
         container[slice_name].length = _get_expr(container[thick_name].length) * weight
 
 
@@ -758,10 +758,11 @@ class CombinedFunctionMagnet(BeamElement):
     def radiation_flag(self): return 0.0
 
     @staticmethod
-    def add_slice(weight, container, thick_name, slice_name):
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
         self_or_ref = container[thick_name]
 
-        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5),
+                                          _buffer=_buffer)
         ref = container[slice_name]
 
         ref.knl[0] = (_get_expr(self_or_ref.k0) * _get_expr(self_or_ref.length)
@@ -866,10 +867,11 @@ class Quadrupole(BeamElement):
     def radiation_flag(self): return 0.0
 
     @staticmethod
-    def add_slice(weight, container, thick_name, slice_name):
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
         self_or_ref = container[thick_name]
 
-        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5),
+                                          _buffer=_buffer)
         ref = container[slice_name]
 
         ref.knl[0] = 0.
@@ -976,10 +978,12 @@ class Bend(BeamElement):
     @property
     def radiation_flag(self): return 0.0
 
-    def add_slice(weight, container, thick_name, slice_name):
+    @staticmethod
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
         self_or_ref = container[thick_name]
 
-        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5))
+        container[slice_name] = Multipole(knl=np.zeros(5), ksl=np.zeros(5),
+                                          _buffer=_buffer)
         ref = container[slice_name]
 
         ref.knl[0] = (_get_expr(self_or_ref.k0) * _get_expr(self_or_ref.length)
