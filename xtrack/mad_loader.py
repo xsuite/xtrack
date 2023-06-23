@@ -147,6 +147,13 @@ def not_zero(x):
         return x != 0
 
 
+def value_if_expr(x):
+    if is_expr(x):
+        return x._value
+    else:
+        return x
+
+
 def eval_list(par, madeval):
     if madeval is None:
         return par.value
@@ -826,7 +833,7 @@ class MadLoader:
                 mad_el.name + "_dex",
                 self.classes.DipoleEdge,
                 e1=mad_el.e2,
-                fint=mad_el.fint,
+                fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
                 hgap=mad_el.hgap,
                 h=k0
             )
@@ -861,10 +868,11 @@ class MadLoader:
                 angle=-mad_el.e2,
                 k=k0,
             )
+
             fringe_exit = self.Builder(
                 mad_el.name + "_fringe_exit",
                 self.classes.Fringe,
-                fint=mad_el.fint,
+                fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
                 hgap=mad_el.hgap,
                 k=-k0,
             )
