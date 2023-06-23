@@ -75,10 +75,10 @@ def test_psb_chicane(test_context):
 
     line.vars['bsw_k2l'] = bsw_k2l_ref
     line.vars['bsw_k0l'] = bsw_k0l_ref
-    assert np.isclose(line['bi1.bsw1l1.1'].knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
