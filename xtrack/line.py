@@ -388,7 +388,7 @@ class Line:
         allow_thick=False,
         use_true_thick_bends=True,
         enable_edges=True,
-        enable_fringes=True,
+        enable_fringes=False,
     ):
 
         """
@@ -428,7 +428,6 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
-<<<<<<< HEAD
         use_true_thick_bends : bool, optional
             If true, xt.TrueBend is used for thick bends with no quadrupolar
             component. Otherwise, xt.CombinedFunctionMagnet is used. Only used
@@ -437,8 +436,6 @@ class Line:
             If true, edge effects are enabled for all elements.
         enable_fringes : bool, optional
             If true, fringe fields are enabled for all elements.
-=======
->>>>>>> rename_thick_elements
 
         Returns
         -------

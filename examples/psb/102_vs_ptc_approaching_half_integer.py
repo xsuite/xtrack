@@ -179,10 +179,14 @@ for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
     dqy_mad2.append(twmad2.summary.dq2 * beta0)
 
 
-    line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                    allow_thick=True,
-                                    apply_madx_errors=True,
-                                    deferred_expressions=True)
+    line = xt.Line.from_madx_sequence(
+        mad.sequence.psb1,
+        allow_thick=True,
+        apply_madx_errors=True,
+        deferred_expressions=True,
+        enable_edges=True,
+        enable_fringes=False,
+    )
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                                 gamma0=mad.sequence.psb1.beam.gamma)
     line.configure_bend_method('full')

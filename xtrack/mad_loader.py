@@ -539,7 +539,7 @@ class MadLoader:
         allow_thick=False,
         use_true_thick_bends=True,
         enable_edges=True,
-        enable_fringes=True,
+        enable_fringes=False,
     ):
 
 
@@ -764,22 +764,10 @@ class MadLoader:
         )
 
     def convert_rbend(self, mad_el):
-        return self._convert_bend(
-            mad_el,
-            enable_entry_edge=self.enable_edges,
-            enable_exit_edge=self.enable_edges,
-            enable_entry_fringe=self.enable_fringes,
-            enable_exit_fringe=self.enable_fringes,
-        )
+        return self._convert_bend(mad_el)
 
     def convert_sbend(self, mad_el):
-        return self._convert_bend(
-            mad_el,
-            enable_entry_edge=self.enable_edges,
-            enable_exit_edge=self.enable_edges,
-            enable_entry_fringe=self.enable_fringes,
-            enable_exit_fringe=self.enable_fringes,
-        )
+        return self._convert_bend(mad_el)
 
     def _convert_bend(
         self,
@@ -802,7 +790,7 @@ class MadLoader:
             k0 = mad_el.k0
 
         # Add edge elements if enabled
-        if enable_entry_edge and mad_el.type == 'rbend':
+        if self.enable_edges and mad_el.type == 'rbend':
             # For the rbend edge import we assume flat edge faces
             dipedge_entry = self.Builder(
                 mad_el.name + "_den",
@@ -811,7 +799,7 @@ class MadLoader:
                 r43=-k0 * self.math.tan(0.5 * k0 * l),
             )
             sequence = [dipedge_entry] + sequence
-        elif enable_entry_edge and mad_el.type == 'sbend':
+        elif self.enable_edges and mad_el.type == 'sbend':
             # For the sbend edge import we assume k0l = angle
             dipedge_entry = self.Builder(
                 mad_el.name + "_den",
@@ -823,7 +811,7 @@ class MadLoader:
             )
             sequence = [dipedge_entry] + sequence
 
-        if enable_exit_edge and mad_el.type == 'rbend':
+        if self.enable_edges and mad_el.type == 'rbend':
             # For the rbend edge import we assume flat edge faces
             dipedge_exit = self.Builder(
                 mad_el.name + "_dex",
@@ -832,7 +820,7 @@ class MadLoader:
                 r43=-k0 * self.math.tan(0.5 * k0 * l),
             )
             sequence = sequence + [dipedge_exit]
-        elif enable_exit_edge and mad_el.type == 'sbend':
+        elif self.enable_edges and mad_el.type == 'sbend':
             # For the sbend edge import we assume k0l = angle
             dipedge_exit = self.Builder(
                 mad_el.name + "_dex",
@@ -845,29 +833,47 @@ class MadLoader:
             sequence = sequence + [dipedge_exit]
 
         # Add fringes if enabled
-        if enable_entry_fringe:
+        if self.enable_fringes:
+            rotation_entry = self.Builder(
+                mad_el.name + "_yrot_entry",
+                self.classes.YRotation,
+                angle=-rad2deg(mad_el.e1),
+            )
             fringe_entry = self.Builder(
-                mad_el.name + "_fen",
+                mad_el.name + "_fringe_entry",
                 self.classes.Fringe,
-                angle=mad_el.e1,
                 fint=mad_el.fint,
                 hgap=mad_el.hgap,
                 k=k0,
-                exit=False,
             )
-            sequence = [fringe_entry] + sequence
+            wedge_entry = self.Builder(
+                mad_el.name + "_wedge_entry",
+                self.classes.Wedge,
+                angle=-mad_el.e1,
+                k=k0,
+            )
+            sequence = [rotation_entry, fringe_entry, wedge_entry] + sequence
 
-        if enable_exit_fringe:
-            fringe_exit = self.Builder(
-                mad_el.name + "_fex",
-                self.classes.Fringe,
+        if self.enable_fringes:
+            wedge_exit = self.Builder(
+                mad_el.name + "_wedge_exit",
+                self.classes.Wedge,
                 angle=mad_el.e2,
-                fint=mad_el.fint,
+                k=k0,
+            )
+            fringe_exit = self.Builder(
+                mad_el.name + "_fringe_exit",
+                self.classes.Fringe,
+                fint=mad_el.fintx or mad_el.fint,
                 hgap=mad_el.hgap,
                 k=k0,
-                exit=True,
             )
-            sequence = sequence + [fringe_exit]
+            rotation_exit = self.Builder(
+                mad_el.name + "_yrot_exit",
+                self.classes.YRotation,
+                angle=rad2deg(mad_el.e2),
+            )
+            sequence = sequence + [wedge_exit, fringe_exit, rotation_exit]
 
         return self.convert_thin_element(sequence, mad_el)
 
