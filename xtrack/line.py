@@ -3184,7 +3184,7 @@ class VarSetter:
 
         manager = self.multiline._xdeps_manager
         if manager is None:
-            raise imeError(
+            raise RuntimeError(
                 f'Cannot access variable {varname} as the line has no xdeps manager')
         # assuming line._xdeps_vref is a direct view of a dictionary
         self.owner = line._xdeps_vref[varname]._owner._owner
