@@ -15,7 +15,6 @@ void Wedge_single_particle(
         const double k0       // Dipole strength
 ) {
     if (fabs(k0) < 10e-10) {
-        printf("Wedge_single_particle: k0 is too small, skipping tracking %e\n", k0);
         const double sin_ = sin(theta);
         const double cos_ = cos(theta);
         const double tan_ = tan(theta);
@@ -47,8 +46,6 @@ void Wedge_single_particle(
     const double D = asin(A * px) - asin(A * new_px);
     const double delta_y = py * (theta + D) / b1;
     const double delta_ell = one_plus_delta * (theta + D) / b1;
-
-    printf("delta_y = %e\n", delta_y);
 
     // Update particle coordinates
     LocalParticle_set_x(part, new_x);

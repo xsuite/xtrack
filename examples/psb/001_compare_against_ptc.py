@@ -21,8 +21,8 @@ mad = Madx()
 
 # Load model
 mad.input('''
-call, file = 'psb.seq';
-call, file = 'psb_fb_lhc.str';
+call, file = '../../test_data/psb_chicane/psb.seq';
+call, file = '../../test_data/psb_chicane/psb_fb_lhc.str';
 beam, particle=PROTON, pc=0.5708301551893517;
 use, sequence=psb1;
 twiss;
@@ -131,7 +131,7 @@ line_thin.build_tracker()
 line_thin.vars['on_chicane_beta_corr'] = 0
 line_thin.vars['on_chicane_tune_corr'] = 0
 
-t_test = np.linspace(0, 6e-3, 100)
+t_test = np.linspace(0, 6e-3, 10)
 
 qx_thick = []
 qy_thick = []

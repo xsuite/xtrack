@@ -50,13 +50,3 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
 line.configure_bend_method('full')
 line.to_json('psb_00_from_mad.json')
 
-line.build_tracker()
-tw = line.twiss(method='4d')
-
-print("PTC twiss summary:")
-print(f"qx = {tw_ptc_summ.q1}")
-print(f"qy = {tw_ptc_summ.q2}")
-
-print("xtrack twiss summary:")
-print(f"qx = {tw.qx}")
-print(f"qy = {tw.qy}")

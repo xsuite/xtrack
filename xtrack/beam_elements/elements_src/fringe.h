@@ -66,6 +66,8 @@ void Fringe_single_particle(
 }
 
 
+// From MAD-NG, refactored from PTC: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
+
 /*gpufun*/
 void MadNG_Fringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
@@ -147,7 +149,7 @@ void Fringe_track_local_particle(
     const double k = FringeData_get_k(el);
 
     //start_per_particle_block (part0->part)
-        Fringe_single_particle(part, fint, hgap, k);
+        MadNG_Fringe_single_particle(part, fint, hgap, k);
     //end_per_particle_block
 }
 
