@@ -810,7 +810,10 @@ class Tracker:
 
             if self.line.enable_time_dependent_vars:
                 # Find first active particle
-                ii_first_active = (particles.state > 0).argmax()
+                state = particles.state
+                if isinstance(particles._context, xo.ContextPyopencl):
+                    state = state.get()
+                ii_first_active = (state > 0).argmax()
                 if ii_first_active == 0 and particles._xobject.state[0] <= 0:
                     # No active particles
                     break
