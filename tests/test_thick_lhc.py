@@ -78,7 +78,7 @@ def test_slicing_lhc_thick(test_context):
     line.build_tracker(_context=test_context)
 
     line_thick = line.copy()
-    line_thick.build_tracker()
+    line_thick.build_tracker(_context=test_context)
 
     slicing_strategies = [
         Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
