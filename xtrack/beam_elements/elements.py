@@ -2052,7 +2052,10 @@ def _get_expr(knob):
         return 0
     if hasattr(knob, '_expr'):
         if knob._expr is None:
-            return knob._get_value()
+            value = knob._get_value()
+            if hasattr(value, 'get'): # For pyopencl scalars
+                value = value.get()
+            return value
         return knob._expr
     if isinstance(knob, Number):
         return knob
