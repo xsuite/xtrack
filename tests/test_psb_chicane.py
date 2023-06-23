@@ -333,7 +333,7 @@ def test_psb_chicane(test_context):
     qy_thin_corr = []
     bety_at_scraper_thin_corr = []
     for ii, tt in enumerate(t_test):
-        print(f'Check against correction, twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
+        print(f'Check correction, twiss at t = {tt*1e3:.2f} ms   ', end='\r', flush=True)
         line_thick.vars['t_turn_s'] = tt
         line.vars['t_turn_s'] = tt
 
