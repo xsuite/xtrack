@@ -95,10 +95,10 @@ def test_psb_chicane(test_context):
     assert np.isclose(tw.dqx, -3.560656125021211, rtol=0, atol=1e-4)
 
     line.vars['bsw_k2l'] = bsw_k2l_ref / 3
-    assert np.isclose(line['bi1.bsw1l1.1'].knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], -bsw_k2l_ref / 3, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], bsw_k2l_ref / 3, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.1'].k0, bsw_k0l_ref / line['bi1.bsw1l1.1'].length, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.2'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.2'].length, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].length, rtol=0, atol=1e-10)
@@ -117,10 +117,10 @@ def test_psb_chicane(test_context):
     # Switch off bsws
     line.vars['bsw_k0l'] = 0
     line.vars['bsw_k2l'] = 0
-    assert np.isclose(line['bi1.bsw1l1.1'].knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.2'].knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.3'].knl[2], 0, rtol=0, atol=1e-10)
-    assert np.isclose(line['bi1.bsw1l1.4'].knl[2], 0, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.1']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.2']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.3']._xobject.knl[2], 0, rtol=0, atol=1e-10)
+    assert np.isclose(line['bi1.bsw1l1.4']._xobject.knl[2], 0, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.1'].k0, 0, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.2'].k0, 0, rtol=0, atol=1e-10)
     assert np.isclose(line['bi1.bsw1l1.3'].k0, 0, rtol=0, atol=1e-10)
