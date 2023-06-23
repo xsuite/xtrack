@@ -437,7 +437,9 @@ class YRotation(BeamElement):
         }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')
+    ]
 
     _store_in_to_dict = ['angle']
 
@@ -1021,6 +1023,58 @@ class Bend(BeamElement):
 
         # Remove the ref to the element itself
         _unregister_if_preset(ref[field])
+
+
+class Fringe(BeamElement):
+    """Fringe field element.
+
+    Parameters
+    ----------
+    fint : float
+        Fringe field integral in units of m^-1.
+    hgap : float
+        Half gap in units of m.
+    k : float
+        Normalized integrated strength of the normal component in units of 1/m.
+    """
+
+    _xofields = {
+        'fint': xo.Float64,
+        'hgap': xo.Float64,
+        'k': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/fringe.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        self.xoinitialize(**kwargs)
+
+
+class Wedge(BeamElement):
+    """Wedge field element.
+
+    Parameters
+    ----------
+    angle : float
+        Angle of the wedge in radians.
+    k : float
+        Normalized integrated strength of the normal component in units of 1/m.
+    """
+
+    _xofields = {
+        'angle': xo.Float64,
+        'k': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        self.xoinitialize(**kwargs)
 
 
 class SimpleThinBend(BeamElement):
