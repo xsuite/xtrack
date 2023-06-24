@@ -11,6 +11,47 @@
 #define POW4(X) ((X)*(X)*(X)*(X))
 
 /*gpufun*/
+void Fringe_Gianni_single_particle(
+        LocalParticle* part,  // LocalParticle to track
+        const double fint,    // Fringe field integral
+        const double hgap,    // Half gap
+        const double k0       // Dipole strength
+) {
+
+    const double rvv = LocalParticle_get_rvv(part);
+    // Particle coordinates
+    const double y = LocalParticle_get_y(part);
+    const double px = LocalParticle_get_px(part);
+    const double py = LocalParticle_get_py(part);
+    const double delta = LocalParticle_get_delta(part);
+
+    const double one_plus_delta = (1 + delta);
+    const double one_plus_delta_sq = one_plus_delta * one_plus_delta;
+
+    const double pz_sq = one_plus_delta_sq - POW2(px) - POW2(py);
+    const double pz = sqrt(pz_sq);
+    const double xp = px / pz;
+    const double yp = py / pz;
+
+    const double dpz_dpx = -xp;
+    const double dpz_dpy = -yp;
+    const double dpz_ddelta = one_plus_delta / pz;
+
+    const double dxp_dpx =    -px/pz_sq * dpz_dpx     + 1/pz;
+    const double dxp_dpy =    -px/pz_sq * dpz_dpy;
+    const double dxp_ddelta = -px/pz_sq * dpz_ddelta;
+
+    const double dyp_dpx =    -py/pz_sq * dpz_dpx;
+    const double dyp_dpy =    -py/pz_sq * dpz_dpy     + 1/pz;
+    const double dyp_ddelta = -py/pz_sq * dpz_ddelta;
+
+
+
+}
+
+
+
+/*gpufun*/
 void Fringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
