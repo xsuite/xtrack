@@ -93,7 +93,30 @@ def test_var_cache(test_context):
     line = collider['lhcb1']
 
     line.vars['on_x2'] = 123
+
+    assert 'on_x5' in line.vars
+    assert 'on_x9' not in line.vars
+
+    assert xd.refs._isref(line.vars['on_x5'])
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
+
     line.vars.cache_active = True
+
+    assert 'on_x5' in line.vars
+    assert 'on_x9' not in line.vars
+
+    assert isinstance(line.vars['on_x5'], xt.line.VarSetter)
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
 
     line.vars['on_x1'] = 11
     line.vars['on_x5'] = 55
@@ -135,7 +158,27 @@ def test_var_cache(test_context):
     line.build_tracker(_context=test_context)
 
     line.vars['on_x2'] = 123
+
+    assert xd.refs._isref(line.vars['on_x5'])
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
+
     line.vars.cache_active = True
+
+    assert 'on_x5' in line.vars
+    assert 'on_x9' not in line.vars
+
+    assert isinstance(line.vars['on_x5'], xt.line.VarSetter)
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
 
     line.vars['on_x1'] = 11
     line.vars['on_x5'] = 55
