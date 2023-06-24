@@ -3160,7 +3160,7 @@ class LineVars:
         return self._cached_setters[varname]
 
     def __getitem__(self, key):
-        if key not in self.line._xdeps_vref._owner:
+        if key not in self: # uses __contains__ method
             raise KeyError(f'Variable `{key}` not found')
         if self.cache_active:
             return self._setter_from_cache(key)
