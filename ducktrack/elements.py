@@ -581,6 +581,15 @@ class BeamMonitor(Element):
 
 
 class DipoleEdge(Element):
+
+    @classmethod
+    def from_dict(cls, dct):
+        dct = dct.copy()
+        for kk in list(dct.keys()):
+            if kk.startswith("_"):
+                dct[kk[1:]] = dct[kk]
+        return super(DipoleEdge, cls).from_dict(dct)
+
     _description = [
         ("h", "1/m", "Curvature", 0),
         ("e1", "rad", "Face angle", 0),
