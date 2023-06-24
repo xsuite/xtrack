@@ -25,10 +25,9 @@ void Fringe_Gianni_single_particle(
     const double py = LocalParticle_get_py(part);
     const double delta = LocalParticle_get_delta(part);
 
-    const double one_plus_delta = (1 + delta);
-    const double one_plus_delta_sq = one_plus_delta * one_plus_delta;
+    const double one_plus_delta = delta + 1.0;
 
-    const double pz_sq = one_plus_delta_sq - POW2(px) - POW2(py);
+    const double pz_sq = POW2(one_plus_delta) - POW2(px) - POW2(py);
     const double pz = sqrt(pz_sq);
     const double xp = px / pz;
     const double yp = py / pz;
@@ -45,33 +44,30 @@ void Fringe_Gianni_single_particle(
     const double dyp_dpy =    -py/pz_sq * dpz_dpy     + 1/pz;
     const double dyp_ddelta = -py/pz_sq * dpz_ddelta;
 
-    const double pz_cube = pz * pz_sq;
-    const double pz_forth = pz_sq * pz_sq;
-
-    const double phix_top = one_plus_delta_sq - POW2(px);
-    const double phix = phix_top / pz_cube;
-    const double dphix_dpx =    -3 / pz_forth * dpz_dpx    * phix_top - 2 * px / pz_cube;
-    const double dphix_dpy =    -3 / pz_forth * dpz_dpy    * phix_top;
-    const double dphix_ddelta = -3 / pz_forth * dpz_ddelta * phix_top - 2 * one_plus_delta / pz_cube;
-
-    const double phiy_top = one_plus_delta_sq - POW2(py);
-    const double phiy = phiy_top / pz_cube;
-    const double dphiy_dpx =    -3 / pz_forth * dpz_dpx    * phiy_top;
-    const double dphiy_dpy =    -3 / pz_forth * dpz_dpy    * phiy_top - 2 * py / pz_cube;
-    const double dphiy_ddelta = -3 / pz_forth * dpz_ddelta * phiy_top - 2 * one_plus_delta / pz_cube;
-
     const double phi0 = xp / (1 + POW2(yp));
     const double dphi0_dxp = 1 / (1 + POW2(yp));
     const double dphi0_dyp = -2 * xp * yp / POW2(1 + POW2(yp));
 
+    const double phi1 = 1 + 2 * POW2(xp) + POW2(xp) * POW2(yp);
+    const double dphi1_dxp = 4 * xp + 2 * POW2(yp) * xp;
+    const double dphi1_dyp = 2 * POW2(xp) * yp;
+
+    const double dphi0_dpx = dphi0_dxp * dxp_dpx + dphi0_dyp * dyp_dpx;
+    const double dphi0_dpy = dphi0_dxp * dxp_dpy + dphi0_dyp * dyp_dpy;
+    const double dphi0_ddelta = dphi0_dxp * dxp_ddelta + dphi0_dyp * dyp_ddelta;
+
+    const double dphi1_dpx = dphi1_dxp * dxp_dpx + dphi1_dyp * dyp_dpx;
+    const double dphi1_dpy = dphi1_dxp * dxp_dpy + dphi1_dyp * dyp_dpy;
+    const double dphi1_ddelta = dphi1_dxp * dxp_ddelta + dphi1_dyp * dyp_ddelta;
+
     const double g = 2 * hgap;
-    const double Phi = k0 * phi0 - g * k0 * k0 * fint * (phiy + xp * xp * phix);
-    const double dPhi_dpx = k0 * (dphi0_dxp * dxp_dpx + dphi0_dyp * dyp_dpx)
-        - g * k0 * k0 * fint * (dphiy_dpx + 2 * xp * dxp_dpx * phix + xp * xp * dphix_dpx);
-    const double dPhi_dpy = k0 * (dphi0_dxp * dxp_dpy + dphi0_dyp * dyp_dpy)
-        - g * k0 * k0 * fint * (dphiy_dpy + 2 * xp * dxp_dpy * phix + xp * xp * dphix_dpy);
-    const double dPhi_ddelta = k0 * (dphi0_dxp * dxp_ddelta + dphi0_dyp * dyp_ddelta)
-        - g * k0 * k0 * fint * (dphiy_ddelta + 2 * xp * dxp_ddelta * phix + xp * xp * dphix_ddelta);
+    const double Phi = k0 * atan(phi0) - g * k0 * k0 * fint * pz * phi1;
+    const double dPhi_dpx = k0 * 1 / (1 + POW2(phi0)) * dphi0_dpx
+                    - g * k0 * k0 * fint * (pz * dphi1_dpx + phi1 * dpz_dpx);
+    const double dPhi_dpy = k0 * 1 / (1 + POW2(phi0)) * dphi0_dpy
+                    - g * k0 * k0 * fint * (pz * dphi1_dpy + phi1 * dpz_dpy);
+    const double dPhi_ddelta = k0 * 1 / (1 + POW2(phi0)) * dphi0_ddelta
+                    - g * k0 * k0 * fint * (pz * dphi1_ddelta + phi1 * dpz_ddelta);
 
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * dPhi_dpy * y));
     const double delta_x = dPhi_dpx * POW2(new_y) / 2;
