@@ -3138,6 +3138,12 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return self.line._xdeps_vref._owner.keys()
 
+    def __contains__(self, key):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return key in self.line._xdeps_vref._owner
+
     def _setter_from_cache(self, varname):
         if varname not in self._cached_setters:
             if self.line._xdeps_manager is None:
@@ -3154,6 +3160,8 @@ class LineVars:
         return self._cached_setters[varname]
 
     def __getitem__(self, key):
+        if key not in self.line._xdeps_vref._owner:
+            raise KeyError(f'Variable `{key}` not found')
         if self.cache_active:
             return self._setter_from_cache(key)
         return self.line._xdeps_vref[key]

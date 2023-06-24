@@ -21,8 +21,8 @@ mad = Madx()
 
 # Load model
 mad.input('''
-call, file = 'psb.seq';
-call, file = 'psb_fb_lhc.str';
+call, file = '../../test_data/psb_chicane/psb.seq';
+call, file = '../../test_data/psb_chicane/psb_fb_lhc.str';
 beam, particle=PROTON, pc=0.5708301551893517;
 use, sequence=psb1;
 twiss;
