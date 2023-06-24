@@ -50,21 +50,40 @@ void Fringe_Gianni_single_particle(
 
     const double phix_top = one_plus_delta_sq - POW2(px);
     const double phix = phix_top / pz_cube;
-    const double dphix_dpx = -3 /pz_forth * dpz_dpx * phix_top - 2 * px / pz_cube;
-    const double dphix_dpy = -3 /pz_forth * dpz_dpy * phix_top;
-    const double dphix_ddelta = -3 /pz_forth * dpz_ddelta * phix_top - 2 * one_plus_delta / pz_cube;
+    const double dphix_dpx =    -3 / pz_forth * dpz_dpx    * phix_top - 2 * px / pz_cube;
+    const double dphix_dpy =    -3 / pz_forth * dpz_dpy    * phix_top;
+    const double dphix_ddelta = -3 / pz_forth * dpz_ddelta * phix_top - 2 * one_plus_delta / pz_cube;
 
     const double phiy_top = one_plus_delta_sq - POW2(py);
     const double phiy = phiy_top / pz_cube;
-    const double dphiy_dpx = -3 /pz_forth * dpz_dpx * phiy_top;
-    const double dphiy_dpy = -3 /pz_forth * dpz_dpy * phiy_top - 2 * py / pz_cube;
-    const double dphiy_ddelta = -3 /pz_forth * dpz_ddelta * phiy_top - 2 * one_plus_delta / pz_cube;
+    const double dphiy_dpx =    -3 / pz_forth * dpz_dpx    * phiy_top;
+    const double dphiy_dpy =    -3 / pz_forth * dpz_dpy    * phiy_top - 2 * py / pz_cube;
+    const double dphiy_ddelta = -3 / pz_forth * dpz_ddelta * phiy_top - 2 * one_plus_delta / pz_cube;
 
+    const double phi0 = xp / (1 + POW2(yp));
+    const double dphi0_dxp = 1 / (1 + POW2(yp));
+    const double dphi0_dyp = -2 * xp * yp / POW2(1 + POW2(yp));
 
+    const double g = 2 * hgap;
+    const double Phi = k0 * phi0 - g * k0 * k0 * fint * (phiy + xp * xp * phix);
+    const double dPhi_dpx = k0 * (dphi0_dxp * dxp_dpx + dphi0_dyp * dyp_dpx)
+        - g * k0 * k0 * fint * (dphiy_dpx + 2 * xp * dxp_dpx * phix + xp * xp * dphix_dpx);
+    const double dPhi_dpy = k0 * (dphi0_dxp * dxp_dpy + dphi0_dyp * dyp_dpy)
+        - g * k0 * k0 * fint * (dphiy_dpy + 2 * xp * dxp_dpy * phix + xp * xp * dphix_dpy);
+    const double dPhi_ddelta = k0 * (dphi0_dxp * dxp_ddelta + dphi0_dyp * dyp_ddelta)
+        - g * k0 * k0 * fint * (dphiy_ddelta + 2 * xp * dxp_ddelta * phix + xp * xp * dphix_ddelta);
+
+    const double new_y = 2 * y / (1 + sqrt(1 - 2 * dPhi_dpy * y));
+    const double delta_x = dPhi_dpx * POW2(new_y) / 2;
+    const double delta_py = -Phi * new_y;
+    const double delta_zeta = - 1 / (2 * rvv) * dPhi_ddelta * POW2(new_y);
+
+    LocalParticle_add_to_x(part, delta_x);
+    LocalParticle_add_to_py(part, delta_py);
+    LocalParticle_add_to_zeta(part, delta_zeta);
+    LocalParticle_set_y(part, new_y);
 
 }
-
-
 
 /*gpufun*/
 void Fringe_single_particle(
@@ -119,6 +138,7 @@ void Fringe_single_particle(
     LocalParticle_set_y(part, new_y);
     LocalParticle_add_to_py(part, delta_py);
     LocalParticle_add_to_zeta(part, -delta_ell / rvv);
+
 }
 
 
@@ -205,7 +225,11 @@ void Fringe_track_local_particle(
     const double k = FringeData_get_k(el);
 
     //start_per_particle_block (part0->part)
-        MadNG_Fringe_single_particle(part, fint, hgap, k);
+        #ifdef XTRACK_FRINGE_GIANNI
+           Fringe_Gianni_single_particle(part, fint, hgap, k);
+        #else
+            MadNG_Fringe_single_particle(part, fint, hgap, k);
+        #endif
     //end_per_particle_block
 }
 
