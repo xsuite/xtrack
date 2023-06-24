@@ -45,6 +45,21 @@ void Fringe_Gianni_single_particle(
     const double dyp_dpy =    -py/pz_sq * dpz_dpy     + 1/pz;
     const double dyp_ddelta = -py/pz_sq * dpz_ddelta;
 
+    const double pz_cube = pz * pz_sq;
+    const double pz_forth = pz_sq * pz_sq;
+
+    const double phix_top = one_plus_delta_sq - POW2(px);
+    const double phix = phix_top / pz_cube;
+    const double dphix_dpx = -3 /pz_forth * dpz_dpx * phix_top - 2 * px / pz_cube;
+    const double dphix_dpy = -3 /pz_forth * dpz_dpy * phix_top;
+    const double dphix_ddelta = -3 /pz_forth * dpz_ddelta * phix_top - 2 * one_plus_delta / pz_cube;
+
+    const double phiy_top = one_plus_delta_sq - POW2(py);
+    const double phiy = phiy_top / pz_cube;
+    const double dphiy_dpx = -3 /pz_forth * dpz_dpx * phiy_top;
+    const double dphiy_dpy = -3 /pz_forth * dpz_dpy * phiy_top - 2 * py / pz_cube;
+    const double dphiy_ddelta = -3 /pz_forth * dpz_ddelta * phiy_top - 2 * one_plus_delta / pz_cube;
+
 
 
 }
