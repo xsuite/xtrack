@@ -169,8 +169,6 @@ void PTC_Fringe_single_particle(
         return;
     }
 
-    printf("PTC fringe!\n");
-
     const double b = k0; // PTC naming convention
 
     double fsad=0.0;
