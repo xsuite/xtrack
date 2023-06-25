@@ -265,15 +265,17 @@ void Fringe_track_local_particle(
     const double k = FringeData_get_k(el);
 
     //start_per_particle_block (part0->part)
-        #ifdef XTRACK_FRINGE_MADNG
-            MadNG_Fringe_single_particle(part, fint, hgap, k);
-        #else
-            #ifdef XTRACK_FRINGE_PTC
-                PTC_Fringe_single_particle(part, fint, hgap, k);
-            #else
-                Fringe_single_particle(part, fint, hgap, k);
-            #endif
-        #endif
+        //MadNG_Fringe_single_particle(part, fint, hgap, k);
+        PTC_Fringe_single_particle(part, fint, hgap, k);
+        // #ifdef XTRACK_FRINGE_MADNG
+        //     MadNG_Fringe_single_particle(part, fint, hgap, k);
+        // #else
+        //     #ifdef XTRACK_FRINGE_PTC
+        //         PTC_Fringe_single_particle(part, fint, hgap, k);
+        //     #else
+        //         Fringe_single_particle(part, fint, hgap, k);
+        //     #endif
+        // #endif
     //end_per_particle_block
 }
 
