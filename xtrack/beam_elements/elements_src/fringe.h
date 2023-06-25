@@ -70,7 +70,7 @@ void Fringe_single_particle(
                     - g * k0 * k0 * fint * (pz * dphi1_ddelta + phi1 * dpz_ddelta);
 
     // printf("dPhi_dpy = %e\n", dPhi_dpy);
-    // printf("Psi = %e\n", Phi);
+    // printf("Phi = %e\n", Phi);
 
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * dPhi_dpy * y));
     const double delta_x = dPhi_dpx * POW2(new_y) / 2;
@@ -228,6 +228,8 @@ void PTC_Fringe_single_particle(
 
     const double new_y = 2.0 * y / (1.0 + sqrt(1.0 - 2.0 * BB * y));
     double new_py = py - fi0 * new_y;
+    // printf("fi0 = %e\n", fi0);
+    // printf("BBy = %e\n", BB);
 
     BB = 0;
     BB = fi_1 * D_1_1 + BB;
