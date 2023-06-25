@@ -11,7 +11,7 @@
 #define POW4(X) ((X)*(X)*(X)*(X))
 
 /*gpufun*/
-void Fringe_Gianni_single_particle(
+void Fringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
         const double hgap,    // Half gap
@@ -69,6 +69,9 @@ void Fringe_Gianni_single_particle(
     const double dPhi_ddelta = k0 * 1 / (1 + POW2(phi0)) * dphi0_ddelta
                     - g * k0 * k0 * fint * (pz * dphi1_ddelta + phi1 * dpz_ddelta);
 
+    // printf("dPhi_dpy = %e\n", dPhi_dpy);
+    // printf("Psi = %e\n", Phi);
+
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * dPhi_dpy * y));
     const double delta_x = dPhi_dpx * POW2(new_y) / 2;
     const double delta_py = -Phi * new_y;
@@ -80,63 +83,6 @@ void Fringe_Gianni_single_particle(
     LocalParticle_set_y(part, new_y);
 
 }
-
-/*gpufun*/
-void Fringe_single_particle(
-        LocalParticle* part,  // LocalParticle to track
-        const double fint,    // Fringe field integral
-        const double hgap,    // Half gap
-        const double k0       // Dipole strength
-) {
-    const double rvv = LocalParticle_get_rvv(part);
-    // Particle coordinates
-    const double y = LocalParticle_get_y(part);
-    const double px = LocalParticle_get_px(part);
-    const double py = LocalParticle_get_py(part);
-    const double delta = LocalParticle_get_delta(part);
-
-    // Translate input variables
-    const double g = 2 * hgap;
-    const double K = fint;
-    const double b0 = k0;
-
-    // Useful constants
-    const double one_plus_delta = (1 + delta);
-    const double one_plus_delta_sq = one_plus_delta * one_plus_delta;
-
-    const double pz = sqrt(one_plus_delta_sq - POW2(px) - POW2(py));
-    const double x_prime = px / pz;
-    const double y_prime = py / pz;
-
-    const double px2 = POW2(px);
-    const double px3 = px2 * px;
-    const double py2 = POW2(py);
-    const double pz2 = POW2(pz);
-    const double pz3 = pz2 * pz;
-    const double pz5 = pz2 * pz3;
-    const double kk = g * POW2(b0) * K;
-
-    // Phi and its derivatives
-    const double Phi = (b0 * x_prime)/(1 + POW2(y_prime)) - \
-        kk * ((one_plus_delta_sq - py2)/pz3 + px2/pz2 * ((one_plus_delta_sq - px2)/(pz3)));
-    const double dPhi_dpx = 2 * kk * (px3/pz5 - (one_plus_delta_sq - px2)*px/pz5);
-    const double dPhi_dpy = 2 * kk * py/pz3;
-    const double dPhi_ddelta = -2 * kk * (one_plus_delta * px2/pz5 + one_plus_delta/pz3);
-
-    // Map
-    const double new_y = (2 * y) / (1 + sqrt(1 - 2 * dPhi_dpy * y));
-    const double delta_x = (dPhi_dpx * POW2(new_y)) / 2;
-    const double delta_py = -Phi * new_y;
-    const double delta_ell = -(dPhi_ddelta * POW2(new_y)) / 2;
-
-    // Update the particle
-    LocalParticle_add_to_x(part, delta_x);
-    LocalParticle_set_y(part, new_y);
-    LocalParticle_add_to_py(part, delta_py);
-    LocalParticle_add_to_zeta(part, -delta_ell / rvv);
-
-}
-
 
 // From MAD-NG, refactored from PTC: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
 
@@ -197,6 +143,9 @@ void MadNG_Fringe_single_particle(
     const double ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
     const double kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
 
+    // printf("ky = %e\n", ky);
+    // printf("k0*fi0 = %e\n", fi0);
+
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
     const double new_x  = x  + 0.5*kx*POW2(y);
     const double new_py = py              - 4*c3*POW3(y)             - b0*tan(fi0)*y;
@@ -207,6 +156,101 @@ void MadNG_Fringe_single_particle(
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
     LocalParticle_set_zeta(part, new_zeta);
+}
+
+/*gpufun*/
+void PTC_Fringe_single_particle(
+        LocalParticle* part,  // LocalParticle to track
+        const double fint,    // Fringe field integral
+        const double hgap,    // Half gap
+        const double k0       // Dipole strength
+) {
+    if (fabs(k0) < 10e-10) {
+        return;
+    }
+
+    printf("PTC fringe!\n");
+
+    const double b = k0; // PTC naming convention
+
+    double fsad=0.0;
+    if(fint*hgap != 0.){
+      fsad=1./(fint*hgap*2)/36.0;
+    }
+
+    // Particle coordinates
+    const double x = LocalParticle_get_x(part);
+    const double px = LocalParticle_get_px(part);
+    const double y = LocalParticle_get_y(part);
+    const double py = LocalParticle_get_py(part);
+    const double zeta = LocalParticle_get_zeta(part);
+    const double delta = LocalParticle_get_delta(part);
+    const double rvv = LocalParticle_get_rvv(part);
+
+    const double el = zeta * rvv;
+
+    // if(k%TIME) then
+    //    PZ=sqrt(1.0_dp+2.0_dp*X(5)/el%beta0+x(5)**2-X(2)**2-X(4)**2)
+    //    TIME_FAC=1.0_dp/el%beta0+X(5)
+    //    rel_p=sqrt(1.0_dp+2.0_dp*X(5)/el%beta0+x(5)**2)
+    // else
+    const double pz = sqrt((1.0 + delta)*(1.0 + delta) - px * px - py * py);
+    const double time_fac = 1.0 + delta;
+    const double rel_p = time_fac;
+    const double c3 = b * b * fsad / rel_p;
+
+    const double xp = px / pz;
+    const double yp = py / pz;
+
+
+    const double D_1_1 = (1.0 + xp * xp) / pz;
+    const double D_2_1 =  xp * yp / pz;
+    const double D_3_1 = -xp;
+    const double D_1_2 = xp * yp / pz;
+    const double D_2_2 = (1.0 + yp * yp)/pz;
+    const double D_3_2 = -yp;
+    const double D_1_3 = -time_fac * xp / (pz * pz);
+    const double D_2_3 = -time_fac * yp / (pz * pz);
+    const double D_3_3 =  time_fac / pz;
+
+    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) * pz;
+    const double co2 = b / cos(fi0) / cos(fi0);
+    const double co1 = co2 / (1.0 + (xp / POW2(1.0 + yp * yp)));
+
+    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) * pz);
+    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) * pz;
+    const double fi_3 = -co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp));
+
+    fi0 = b * tan(fi0);
+
+    double BB = 0;
+    BB = fi_1 * D_1_2 + BB;
+    BB = fi_2 * D_2_2 + BB;
+    BB = fi_3 * D_3_2 + BB;
+
+    const double new_y = 2.0 * y / (1.0 + sqrt(1.0 - 2.0 * BB * y));
+    double new_py = py - fi0 * new_y;
+
+    BB = 0;
+    BB = fi_1 * D_1_1 + BB;
+    BB = fi_2 * D_2_1 + BB;
+    BB = fi_3 * D_3_1 + BB;
+    const double new_x = x + 0.5 * BB * new_y * new_y;
+
+    BB = 0;
+    BB = fi_1 * D_1_3 + BB;
+    BB = fi_2 * D_2_3 + BB;
+    BB = fi_3 * D_3_3 + BB;
+    double new_el = el - 0.5 * BB * new_y * new_y;
+
+
+    new_py = new_py - 4 * c3 * POW3(new_y);
+    new_el = new_el + c3 * POW4(new_y) / POW2(rel_p) * time_fac;
+
+    LocalParticle_set_x(part, new_x);
+    LocalParticle_set_y(part, new_y);
+    LocalParticle_set_py(part, new_py);
+    LocalParticle_set_zeta(part, new_el / rvv);
 }
 
 
@@ -221,10 +265,14 @@ void Fringe_track_local_particle(
     const double k = FringeData_get_k(el);
 
     //start_per_particle_block (part0->part)
-        #ifdef XTRACK_FRINGE_GIANNI
-           Fringe_Gianni_single_particle(part, fint, hgap, k);
-        #else
+        #ifdef XTRACK_FRINGE_MADNG
             MadNG_Fringe_single_particle(part, fint, hgap, k);
+        #else
+            #ifdef XTRACK_FRINGE_PTC
+                PTC_Fringe_single_particle(part, fint, hgap, k);
+            #else
+                Fringe_single_particle(part, fint, hgap, k);
+            #endif
         #endif
     //end_per_particle_block
 }
