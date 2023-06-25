@@ -147,9 +147,9 @@ void MadNG_Fringe_single_particle(
     // printf("k0*fi0 = %e\n", fi0);
 
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
-    const double new_x  = x  + 0.5*kx*POW2(y);
-    const double new_py = py              - 4*c3*POW3(y)             - b0*tan(fi0)*y;
-    const double new_t = t + 0.5*kz*POW2(y) +   c3*POW4(y)*POW2(relp)*tfac;
+    const double new_x  = x  + 0.5*kx*POW2(new_y);
+    const double new_py = py              - 4*c3*POW3(y)             - b0*tan(fi0)*new_y;
+    const double new_t = t + 0.5*kz*POW2(y) +   c3*POW4(new_y)*POW2(relp)*tfac;
     const double new_zeta = new_t * beta0;
 
     LocalParticle_set_x(part, new_x);
@@ -266,16 +266,16 @@ void Fringe_track_local_particle(
 
     //start_per_particle_block (part0->part)
         //MadNG_Fringe_single_particle(part, fint, hgap, k);
-        PTC_Fringe_single_particle(part, fint, hgap, k);
-        // #ifdef XTRACK_FRINGE_MADNG
-        //     MadNG_Fringe_single_particle(part, fint, hgap, k);
-        // #else
-        //     #ifdef XTRACK_FRINGE_PTC
-        //         PTC_Fringe_single_particle(part, fint, hgap, k);
-        //     #else
-        //         Fringe_single_particle(part, fint, hgap, k);
-        //     #endif
-        // #endif
+        // PTC_Fringe_single_particle(part, fint, hgap, k);
+        #ifdef XTRACK_FRINGE_MADNG
+            MadNG_Fringe_single_particle(part, fint, hgap, k);
+        #else
+            #ifdef XTRACK_FRINGE_GIANNI
+                Fringe_single_particle(part, fint, hgap, k);
+            #else
+                PTC_Fringe_single_particle(part, fint, hgap, k);
+            #endif
+        #endif
     //end_per_particle_block
 }
 
