@@ -37,8 +37,8 @@ class BPM(xt.BeamElement):
         'num_particles': xo.Int64,
         'start_at_turn':xo.Int64,
         'stop_at_turn' :xo.Int64,
-        'samples_per_turn':xo.Int64,
-        'sampling_frequency':xo.Int64,
+        'rev_frequency':xo.Float64,
+        'sampling_frequency':xo.Float64,
         '_index':xt.RecordIndex,
         'data':BPMRecord,
     }
@@ -51,7 +51,7 @@ class BPM(xt.BeamElement):
     _extra_c_sources = [Path(__file__).parent.absolute().joinpath('BPM.h')]
 
     
-    def __init__(self, *, particle_id_start=None,num_particles=None,start_at_turn=None, stop_at_turn=None,samples_per_turn=None,sampling_frequency=None, _xobject=None, **kwargs):
+    def __init__(self, *, particle_id_start=None,num_particles=None,start_at_turn=None, stop_at_turn=None,rev_frequency=None,sampling_frequency=None, _xobject=None, **kwargs):
         """
         Monitor to save the transversal centroid data of the tracked particles
         """
@@ -65,12 +65,12 @@ class BPM(xt.BeamElement):
             start_at_turn = 0
         if stop_at_turn is None:
             stop_at_turn = 0
-        if samples_per_turn is None:
-            samples_per_turn = 1
+        if rev_frequency is None:
+            rev_frequency = 1
         if sampling_frequency is None:
             sampling_frequency = 1
-        data = {prop: [0]*int((stop_at_turn-start_at_turn)*samples_per_turn*1.05) for prop in self.properties} # 5% safety for particles much ahead
-        super().__init__(particle_id_start=particle_id_start,num_particles=num_particles,start_at_turn=start_at_turn, stop_at_turn=stop_at_turn,samples_per_turn=samples_per_turn,sampling_frequency=sampling_frequency,data=data, **kwargs)
+        data = {prop: [0]*int((stop_at_turn-start_at_turn)*(sampling_frequency/rev_frequency)*1.05) for prop in self.properties} # 5% safety for particles much ahead
+        super().__init__(particle_id_start=particle_id_start,num_particles=num_particles,start_at_turn=start_at_turn, stop_at_turn=stop_at_turn,rev_frequency=rev_frequency,sampling_frequency=sampling_frequency,data=data, **kwargs)
     
 
     def __getattr__(self, attr):
