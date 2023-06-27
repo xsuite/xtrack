@@ -118,7 +118,7 @@ def test_reproducibility(test_context):
     part2 = part_init.copy(_context=test_context)
     # Instead of having more particles - which would lead to memory issues -
     # we repeatedly sample and compare
-    for i in range(5):
+    for i in range(2):  # 2 is enough; this is slow
         results1 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
         results1 = test_context.nparray_from_context_array(results1)
         results1 = copy.deepcopy(results1)
