@@ -62,7 +62,7 @@ def test_random_generation(test_context):
 
     telem.track(part)
 
-    # Use turn-by turin monitor to acquire some statistics
+    # Use turn-by-turn monitor to acquire some statistics
     line = xt.Line(elements=[telem])
     line.build_tracker(_buffer=telem._buffer)
 
@@ -103,8 +103,6 @@ def test_direct_sampling(test_context):
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_reproducibility(test_context):
     # 1e8 samples in total
-    # We don't loop over more repeats as with the other tests, as the
-    # Rutherford sampling is slow
     n_seeds = int(1e5)
     n_samples_per_seed = int(1e3)
     x_init = np.random.uniform(0.001, 0.003, n_seeds)
@@ -121,10 +119,10 @@ def test_reproducibility(test_context):
     # Instead of having more particles - which would lead to memory issues -
     # we repeatedly sample and compare
     for i in range(5):
-        results  = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
-        results1 = test_context.nparray_from_context_array(results)
+        results1 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
+        results1 = test_context.nparray_from_context_array(results1)
         results1 = copy.deepcopy(results1)
-        results  = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
-        results2 = test_context.nparray_from_context_array(results)
+        results2 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
+        results2 = test_context.nparray_from_context_array(results2)
         assert np.all(results1 == results2)
 

@@ -44,7 +44,7 @@ def test_random_generation(test_context):
     telem.track(part)
 
     # Use turn-by-turn monitor to acquire some statistics
-    line=xt.Line(elements=[telem])
+    line = xt.Line(elements=[telem])
     line.build_tracker(_buffer=telem._buffer)
 
     line.track(part, num_turns=1e6, turn_by_turn_monitor=True)
@@ -86,9 +86,10 @@ def test_reproducibility(test_context):
     # Instead of having more particles - which would lead to memory issues -
     # we repeatedly sample and compare
     for i in range(100):
-        results  = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
-        results1 = test_context.nparray_from_context_array(results)
+        results1 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
+        results1 = test_context.nparray_from_context_array(results1)
         results1 = copy.deepcopy(results1)
-        results  = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
-        results2 = test_context.nparray_from_context_array(results)
+        results2 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
+        results2 = test_context.nparray_from_context_array(results2)
         assert np.all(results1 == results2)
+
