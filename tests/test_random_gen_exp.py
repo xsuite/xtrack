@@ -72,3 +72,22 @@ def test_direct_sampling(test_context):
         exp = np.exp(-bin_centers)
         assert np.allclose(hstgm, exp, rtol=1e-10, atol=1E-2)
 
+
+@for_all_test_contexts
+def test_reproducibility(test_context):
+    import copy
+    n_seeds = int(1e5)
+    n_samples_per_seed = int(1e3)
+    x_init = np.random.uniform(0.001, 0.003, n_seeds)
+    part_init = xp.Particles(x=x_init, p0c=4e11)
+    part_init._init_random_number_generator(seeds=np.arange(n_seeds, dtype=int))
+    ran = xt.RandomExponential(_context=test_context)
+    part1 = part_init.copy()
+    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
+    results1   = copy.deepcopy(results)
+    part2 = part_init.copy()
+    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
+    results2   = copy.deepcopy(results)
+    assert np.all(results1 == results2)
+
+

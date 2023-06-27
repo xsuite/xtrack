@@ -70,3 +70,20 @@ def test_direct_sampling(test_context):
         hstgm, bin_edges = np.histogram(samples[i_part],  bins=50, range=(0, 1), density=True)
         assert np.allclose(hstgm, 1, rtol=1e-10, atol=0.03)
 
+
+@for_all_test_contexts
+def test_reproducibility(test_context):
+    import copy
+    n_seeds = int(1e6)
+    n_samples_per_seed = int(1e3)
+    x_init = np.random.uniform(0.001, 0.003, n_seeds)
+    part_init = xp.Particles(x=x_init, p0c=4e11)
+    part_init._init_random_number_generator(seeds=np.arange(n_seeds, dtype=int))
+    ran = xt.RandomUniform(_context=test_context)
+    part1 = part_init.copy()
+    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
+    results1   = copy.deepcopy(results)
+    part2 = part_init.copy()
+    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
+    results2   = copy.deepcopy(results)
+    assert np.all(results1 == results2)

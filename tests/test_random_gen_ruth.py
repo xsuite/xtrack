@@ -98,3 +98,26 @@ def test_direct_sampling(test_context):
         ruth = np.array([ruth_PDF(t, rA, rB) for t in bin_centers ])
         np.allclose(hstgm[:-10], ruth[:-10], rtol=5e-2, atol=1)
 
+
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+def test_reproducibility(test_context):
+    import copy
+    n_seeds = int(1e5)
+    n_samples_per_seed = int(1e3)
+    x_init = np.random.uniform(0.001, 0.003, n_seeds)
+    part_init = xp.Particles(x=x_init, p0c=4e11)
+    part_init._init_random_number_generator(seeds=np.arange(n_seeds, dtype=int))
+    ran = xt.RandomRutherford(_context=test_context)
+    ran.A = rA
+    ran.B = rB
+    ran.lower_val = t0
+    ran.upper_val = t1
+    ran.Newton_iterations = iterations
+    part1 = part_init.copy()
+    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
+    results1   = copy.deepcopy(results)
+    part2 = part_init.copy()
+    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
+    results2   = copy.deepcopy(results)
+    assert np.all(results1 == results2)
+
