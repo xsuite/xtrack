@@ -6,6 +6,7 @@
 from pathlib import Path
 
 import numpy as np
+import copy
 
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
@@ -19,7 +20,7 @@ t0 = 0.001
 t1 = 0.02
 rA = 0.0012306225579197868
 rB = 53.50625
-iterations = 20
+iterations = 7
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_random_generation(test_context):
@@ -87,7 +88,7 @@ def test_direct_sampling(test_context):
     ran.lower_val = t0
     ran.upper_val = t1
     ran.Newton_iterations = iterations
-    samples, _ = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
+    samples = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
     samples = test_context.nparray_from_context_array(samples)
 
     for i_part in range(n_seeds):
@@ -101,7 +102,9 @@ def test_direct_sampling(test_context):
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_reproducibility(test_context):
-    import copy
+    # 1e8 samples in total
+    # We don't loop over more repeats as with the other tests, as the
+    # Rutherford sampling is slow
     n_seeds = int(1e5)
     n_samples_per_seed = int(1e3)
     x_init = np.random.uniform(0.001, 0.003, n_seeds)
@@ -114,10 +117,14 @@ def test_reproducibility(test_context):
     ran.upper_val = t1
     ran.Newton_iterations = iterations
     part1 = part_init.copy(_context=test_context)
-    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
-    results1   = copy.deepcopy(results)
     part2 = part_init.copy(_context=test_context)
-    results, _ = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
-    results2   = copy.deepcopy(results)
-    assert np.all(results1 == results2)
+    # Instead of having more particles - which would lead to memory issues -
+    # we repeatedly sample and compare
+    for i in range(5):
+        results  = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
+        results1 = test_context.nparray_from_context_array(results)
+        results1 = copy.deepcopy(results1)
+        results  = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
+        results2 = test_context.nparray_from_context_array(results)
+        assert np.all(results1 == results2)
 

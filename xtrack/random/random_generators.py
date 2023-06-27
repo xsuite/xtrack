@@ -72,7 +72,7 @@ class RandomUniform(BeamElement):
 
         return np.reshape(samples[:n_samples_per_seed*n_seeds],
                     (-1, n_samples_per_seed)
-                ), particles
+                )
 
 
 class RandomExponential(RandomUniform):
