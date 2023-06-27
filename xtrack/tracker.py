@@ -1152,8 +1152,6 @@ class Tracker:
                 _context=particles._buffer.context,
                 start_at_turn=0,
                 stop_at_turn=num_turns,
-                #start_at_turn=particles.at_turn[0],  # change this from 0 to particles.at_turn[0]
-                #stop_at_turn=particles.at_turn[0]+num_turns,  # change this from num_turns to at_turn+num_turns
                 particle_id_range=particles.get_active_particle_id_range()
             )
             buffer_monitor = monitor._buffer.buffer
