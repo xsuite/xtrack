@@ -53,6 +53,7 @@ class RandomUniform(BeamElement):
             if n_seeds is not None:
                 _print("Warning: both 'particles' and 'n_seeds' are given, but "
                       + "are not compatible. Ignoring 'n_seeds'...")
+            particles.move(_context=context)
             n_seeds = len(particles._rng_s1)
         if n_seeds is None:
             n_seeds = 1000
