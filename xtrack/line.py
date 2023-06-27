@@ -121,6 +121,7 @@ class Line:
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
         self._compound_relation = {}
+        self._compound_for_element = {}
 
         self.particle_ref = particle_ref
 
@@ -1586,6 +1587,29 @@ class Line:
 
     def add_compound_relation(self, compound_name, component_names):
         self._compound_relation[compound_name] = component_names
+        for name in component_names:
+            self._compound_for_element[name] = compound_name
+
+    @property
+    def compound_relation(self):
+        return self._compound_relation
+
+    def is_top_level_element(self, element_name):
+        """
+        Return True if the element is not part of a compound element, or if it
+        is the entry element of a compound element.
+        """
+        if element_name not in self._compound_for_element:
+            return True
+
+        compound_name = self._compound_for_element[element_name]
+        if self.compound_relation[compound_name][0] == element_name:
+            return True
+
+        return False
+
+    def get_compound_mask(self):
+        return [self.is_top_level_element(name) for name in self.element_names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """

@@ -35,6 +35,7 @@ class TrackerData:
             element_names,
             element_s_locations,
             line_length,
+            compound_mask=None,
             kernel_element_classes=None,
             extra_element_classes=(),
             allow_move=False,
@@ -86,6 +87,10 @@ class TrackerData:
         self.line_element_classes = line_element_classes
         self.element_s_locations = tuple(element_s_locations)
         self.line_length = line_length
+
+        if compound_mask is None:
+            compound_mask = np.zeros(len(element_names), dtype=np.bool)
+        self.compound_mask = compound_mask
 
         if not kernel_element_classes:
             kernel_element_classes = (
