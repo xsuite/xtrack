@@ -120,6 +120,7 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
+        self._compound_relation = {}
 
         self.particle_ref = particle_ref
 
@@ -388,6 +389,7 @@ class Line:
         classes=(),
         ignored_madtypes=(),
         allow_thick=False,
+        use_compound_elements=True,
     ):
 
         """
@@ -427,6 +429,11 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
+        use_compound_elements : bool, optional
+            If true, elements that are one element in madx but multiple elements
+            in xtrack will be grouped together with a marker attached in front,
+            and will be accessible through __getattr__. Otherwise, the line will
+            be flattened.
 
         Returns
         -------
@@ -453,6 +460,7 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
+            use_compound_elements=use_compound_elements,
         )
         line = loader.make_line()
         return line
@@ -1459,7 +1467,7 @@ class Line:
         assert name is not None
         if element is None:
             assert name in self.element_names
-            element  = self.element_dict[name]
+            element = self.element_dict[name]
 
         self._frozen_check()
 
@@ -1575,6 +1583,9 @@ class Line:
         self.element_dict[name] = element
         self.element_names.append(name)
         return self
+
+    def add_compound_relation(self, compound_name, component_names):
+        self._compound_relation[compound_name] = component_names
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
@@ -2804,8 +2815,13 @@ class Line:
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
+            if ii in self._compound_relation:
+                component_names = self._compound_relation[ii]
+                return [self.element_dict[name] for name in component_names]
+
             if ii not in self.element_names:
                 raise IndexError(f'No installed element with name {ii}')
+
             return self.element_dict.__getitem__(ii)
         else:
             names = self.element_names.__getitem__(ii)
@@ -3050,8 +3066,8 @@ class Node:
     def __repr__(self):
         return f"Node({self.s}, {self.what}, from_={self.from_}, name={self.name})"
 
-At = Node
 
+At = Node
 
 
 def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, naming_scheme='{}{}'):
