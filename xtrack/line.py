@@ -194,6 +194,9 @@ class Line:
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
 
+        if 'compound_relation' in dct.keys():
+            self._compound_relation = dct['compound_relation'].copy()
+
         _print('Done loading line from dict.           ')
 
         return self
@@ -488,6 +491,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
+        out['compound_relation'] = self.compound_relation.copy()
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -1438,36 +1442,39 @@ class Line:
         else:
             return s
 
-    def insert_element(self, index=None, element=None, name=None, at_s=None,
+    def insert_element(self, name, element=None, index=None, at_s=None,
                        s_tol=1e-6):
 
-        '''Insert an element in the line.
+        """Insert an element in the line.
 
         Parameters
         ----------
+        name: str
+            Name of the element.
         index: int, optional
             Index of the element in the line. If `index` is provided, `at_s`
             must be None.
         element: xline.Element, optional
-            Element to be inserted. If `element` is provided, `name` must be
-            provided.
-        name: str
-            Name of the element. If `name` is provided, `element` must be
-            provided.
+            Element to be inserted. If not given, the element of the given name
+            already present in the line is used.
         at_s: float, optional
             Position of the element in the line. If `at_s` is provided, `index`
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line.
-        '''
+        """
 
         if isinstance(index, str):
             assert index in self.element_names
             index = self.element_names.index(index)
 
-        assert name is not None
         if element is None:
-            assert name in self.element_names
+            if name not in self.element_names:
+                raise ValueError(
+                    f'Element {name} not found in the line. You must either '
+                    f'give an `element` or a name of an element already '
+                    f'present in the line.'
+                )
             element = self.element_dict[name]
 
         self._frozen_check()
@@ -1477,92 +1484,92 @@ class Line:
                     "Either `index` or `at_s` must be provided"
                 )
 
-        if at_s is not None:
-            s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
-
-            if not _is_thick(element) or np.abs(element.length)==0:
-                i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
-                if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
-                    return self.insert_element(index=i_closest,
-                                            element=element, name=name)
-
-            s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-
-            s_start_ele = at_s
-            i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-
-            # Shortcut for thin element without drift splitting
-            if (not _is_thick(element)
-                and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s)<1e-10):
-                    return self.insert_element(index=i_first_drift_to_cut,
-                                              element=element, name=name)
-
-            if _is_thick(element) and np.abs(element.length)>0:
-                s_end_ele = at_s + element.length
-            else:
-                s_end_ele = s_start_ele
-
-            i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-            if _is_thick(element) and element.length > 0:
-                assert i_first_drift_to_cut <= i_last_drift_to_cut
-            name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
-            name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
-            first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
-            last_drift_to_cut = self.element_dict[name_last_drift_to_cut]
-
-            assert _is_drift(first_drift_to_cut)
-            assert _is_drift(last_drift_to_cut)
-
-            for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
-                e_to_replace = self.element_dict[self.element_names[ii]]
-                if (not _is_drift(e_to_replace) and
-                    not isinstance(e_to_replace, Marker) and
-                    not _is_aperture(e_to_replace)):
-                    raise ValueError('Cannot replace active element '
-                                        f'{self.element_names[ii]}')
-
-            l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
-            l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
-            assert l_left_part >= 0
-            assert l_right_part >= 0
-            name_left = name_first_drift_to_cut + '_part0'
-            name_right = name_last_drift_to_cut + '_part1'
-
-            self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
-            i_insert = i_first_drift_to_cut
-
-            drift_base = self.element_dict[self.element_names[i_insert]]
-            drift_left = drift_base.copy()
-            drift_left.length = l_left_part
-            drift_right = drift_base.copy()
-            drift_right.length = l_right_part
-
-            # Insert
-            assert name_left not in self.element_names
-            assert name_right not in self.element_names
-
-            names_to_insert = []
-
-            if drift_left.length > 0:
-                names_to_insert.append(name_left)
-                self.element_dict[name_left] = drift_left
-            names_to_insert.append(name)
-            self.element_dict[name] = element
-            if drift_right.length > 0:
-                names_to_insert.append(name_right)
-                self.element_dict[name_right] = drift_right
-
-            self.element_names[i_insert] = names_to_insert[-1]
-            if len(names_to_insert) > 1:
-                for nn in names_to_insert[:-1][::-1]:
-                    self.element_names.insert(i_insert, nn)
-
-        else:
-            if _is_thick(element) and np.abs(element.length)>0:
-                raise NotImplementedError('use `at_s` to insert thick elements')
+        if at_s is None:
+            if _is_thick(element) and np.abs(element.length) > 0:
+                raise NotImplementedError('Use `at_s` to insert thick elements')
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
             self.element_names.insert(index, name)
+            return
+
+        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+
+        if not _is_thick(element) or np.abs(element.length) == 0:
+            i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
+            if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
+                return self.insert_element(index=i_closest,
+                                        element=element, name=name)
+
+        s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
+
+        s_start_ele = at_s
+        i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
+
+        # Shortcut for thin element without drift splitting
+        if (not _is_thick(element)
+                and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s) < 1e-10):
+            return self.insert_element(index=i_first_drift_to_cut,
+                                       element=element, name=name)
+
+        if _is_thick(element) and np.abs(element.length) > 0:
+            s_end_ele = at_s + element.length
+        else:
+            s_end_ele = s_start_ele
+
+        i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
+        if _is_thick(element) and element.length > 0:
+            assert i_first_drift_to_cut <= i_last_drift_to_cut
+        name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
+        name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
+        first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
+        last_drift_to_cut = self.element_dict[name_last_drift_to_cut]
+
+        assert _is_drift(first_drift_to_cut)
+        assert _is_drift(last_drift_to_cut)
+
+        for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
+            e_to_replace = self.element_dict[self.element_names[ii]]
+            if (not _is_drift(e_to_replace) and
+                not isinstance(e_to_replace, Marker) and
+                not _is_aperture(e_to_replace)):
+                raise ValueError('Cannot replace active element '
+                                    f'{self.element_names[ii]}')
+
+        l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
+        l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
+        assert l_left_part >= 0
+        assert l_right_part >= 0
+        name_left = name_first_drift_to_cut + '_part0'
+        name_right = name_last_drift_to_cut + '_part1'
+
+        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
+        i_insert = i_first_drift_to_cut
+
+        drift_base = self.element_dict[self.element_names[i_insert]]
+        drift_left = drift_base.copy()
+        drift_left.length = l_left_part
+        drift_right = drift_base.copy()
+        drift_right.length = l_right_part
+
+        # Insert
+        assert name_left not in self.element_names
+        assert name_right not in self.element_names
+
+        names_to_insert = []
+
+        if drift_left.length > 0:
+            names_to_insert.append(name_left)
+            self.element_dict[name_left] = drift_left
+        names_to_insert.append(name)
+        self.element_dict[name] = element
+        if drift_right.length > 0:
+            names_to_insert.append(name_right)
+            self.element_dict[name_right] = drift_right
+
+        self.element_names[i_insert] = names_to_insert[-1]
+        if len(names_to_insert) > 1:
+            for nn in names_to_insert[:-1][::-1]:
+                self.element_names.insert(i_insert, nn)
 
         return self
 
@@ -1648,7 +1655,7 @@ class Line:
             if ff:
                 new_elements.append(ee)
             else:
-                if _is_thick(ee) and not _is_drift(ee):
+                if ee.isthick and not _is_drift(ee):
                     new_elements.append(Drift(length=ee.length))
                 else:
                     new_elements.append(Drift(length=0))
@@ -2039,7 +2046,7 @@ class Line:
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
     def remove_markers(self, inplace=True, keep=None):
-        '''
+        """
         Remove markers from the line
 
         Parameters
@@ -2048,13 +2055,7 @@ class Line:
             If True, remove markers from the line (default: True)
         keep : str or list of str
             Name of the markers to keep (default: None)
-        '''
-
-        if self._var_management is not None:
-            raise NotImplementedError('`remove_markers` not'
-                                      ' available when deferred expressions are'
-                                      ' used')
-
+        """
         self._frozen_check()
 
         if keep is None:
@@ -2947,7 +2948,6 @@ class Functions:
         return out
 
 
-
 def _deserialize_element(el, class_dict, _buffer):
     eldct = el.copy()
     eltype = class_dict[eldct.pop('__class__')]
@@ -2988,7 +2988,9 @@ def freeze_longitudinal(tracker):
         tracker.config.clear()
         tracker.config.update(config)
 
+
 _freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
+
 
 def mk_class_namespace(extra_classes):
     try:
@@ -3007,17 +3009,22 @@ def mk_class_namespace(extra_classes):
 def _is_drift(element): # can be removed if length is zero
     return isinstance(element, (beam_elements.Drift,) )
 
+
 def _behaves_like_drift(element):
     return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
+
 
 def _is_aperture(element):
     return element.__class__.__name__.startswith('Limit')
 
+
 def _is_thick(element):
-    return  hasattr(element, "isthick") and element.isthick
+    return hasattr(element, "isthick") and element.isthick
+
 
 def _allow_backtrack(element):
     return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+
 
 def _next_name(prefix, names, name_format='{}{}'):
     """Return an available element name by appending a number"""
@@ -3048,6 +3055,7 @@ def _dicts_equal(dict1, dict2):
             return False
     return True
 
+
 def _apertures_equal(ap1, ap2):
     if not _is_aperture(ap1) or not _is_aperture(ap2):
         raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
@@ -3057,11 +3065,13 @@ def _apertures_equal(ap1, ap2):
     ap2 = ap2.to_dict()
     return _dicts_equal(ap1, ap2)
 
+
 def _lines_equal(line1, line2):
     return _dicts_equal(line1.to_dict(), line2.to_dict())
 
 
 DEG2RAD = np.pi / 180.
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -3153,6 +3163,7 @@ def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, nami
 
     return flat_nodes
 
+
 @contextmanager
 def _preserve_config(ln_or_trk):
     from xtrack.tracker import TrackerConfig
@@ -3163,6 +3174,7 @@ def _preserve_config(ln_or_trk):
     finally:
         ln_or_trk.config.clear()
         ln_or_trk.config.update(config)
+
 
 @contextmanager
 def freeze_longitudinal(ln_or_trk):
@@ -3176,6 +3188,7 @@ def freeze_longitudinal(ln_or_trk):
     finally:
         ln_or_trk.config.clear()
         ln_or_trk.config.update(config)
+
 
 @contextmanager
 def _temp_knobs(line_or_trk, knobs: dict):
@@ -3248,6 +3261,7 @@ class LineVars:
         assert value in (True, False)
         self._cache_active = value
         self.line._xdeps_manager._tree_frozen = value
+
 
 class VarSetter:
     def __init__(self, line, varname):

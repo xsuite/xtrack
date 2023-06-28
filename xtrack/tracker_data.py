@@ -56,6 +56,9 @@ class TrackerData:
             List of element s locations.
         line_length : float
             Length of the line.
+        compound_mask : list, optional
+            List of booleans indicating whether the element is an entry of a
+            compound element, or a standalone element.
         kernel_element_classes : list, optional
             Explicit list of classes of elements of the line; if `None`,
             will be inferred from list.
@@ -90,7 +93,7 @@ class TrackerData:
 
         if compound_mask is None:
             compound_mask = np.zeros(len(element_names), dtype=np.bool)
-        self.compound_mask = compound_mask
+        self.compound_mask = np.array(compound_mask)
 
         if not kernel_element_classes:
             kernel_element_classes = (

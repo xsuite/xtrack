@@ -144,7 +144,7 @@ class Slicer:
         n_elements = len(line)
         for ii, name in enumerate(line.element_names):
             _print(f'Slicing line: {100*(ii + 1)/n_elements:.0f}%', end='\r', flush=True)
-            element = line[name]
+            element = line.element_dict[name]
 
             # Don't slice already thin elements and drifts
             if not element.isthick or isinstance(element, xt.Drift):
@@ -224,7 +224,7 @@ class Slicer:
                 container=container,
                 thick_name=name,
                 slice_name=slice_name,
-                _buffer=self.line[name]._buffer,
+                _buffer=self.line.element_dict[name]._buffer,
                 )
 
             slices_to_append.append(slice_name)

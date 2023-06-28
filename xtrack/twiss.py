@@ -707,7 +707,6 @@ def _twiss_open(line, twiss_init,
                 twiss_res_element_by_element[key][i_replace] = np.nan
 
     twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
-    twiss_res_element_by_element['top_level'] = np.array(line.get_compound_mask()[i_start:i_stop+1] + [True])  # add end point
 
     twiss_res = TwissTable(data=twiss_res_element_by_element)
     twiss_res._data.update(extra_data)

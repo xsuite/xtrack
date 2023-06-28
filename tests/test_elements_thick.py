@@ -236,7 +236,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
                                 use_true_thick_bends])
 
     elem_den = line['elem_den']
-    elem = line['elem']
+    elem = line['elem_core']
     elem_dex = line['elem_dex']
 
     # Check that the line has correct values to start with
@@ -344,7 +344,7 @@ def test_import_thick_quad_from_madx(with_knobs):
     )
 
     elem_tilt_entry = line['elem_tilt_entry']
-    elem = line['elem']
+    elem = line['elem_core']
     elem_tilt_exit = line['elem_tilt_exit']
 
     # Verify that the line has been imported correctly
@@ -416,8 +416,8 @@ def test_import_thick_bend_from_madx_and_slice(
 
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
-    elems = [line[f'elem..{ii}'] for ii in range(2)]
-    drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
+    elems = [line[f'elem_core..{ii}'] for ii in range(2)]
+    drifts = [line[f'drift_elem_core..{ii}'] for ii in range(2)]
 
     # Verify that the slices are correct
     for elem in elems:
@@ -476,8 +476,8 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
-    elems = [line[f'elem..{ii}'] for ii in range(2)]
-    drifts = [line[f'drift_elem..{ii}'] for ii in range(2)]
+    elems = [line[f'elem_core..{ii}'] for ii in range(2)]
+    drifts = [line[f'drift_elem_core..{ii}'] for ii in range(2)]
 
     # Verify that the slices are correct
     for elem in elems:
