@@ -19,8 +19,13 @@ void XYShift_single_particle(LocalParticle* part, double dx, double dy){
 /*gpufun*/
 void XYShift_track_local_particle(XYShiftData el, LocalParticle* part0){
 
-    double const dx = XYShiftData_get_dx(el);
-    double const dy = XYShiftData_get_dy(el);
+    double dx = XYShiftData_get_dx(el);
+    double dy = XYShiftData_get_dy(el);
+
+    #ifdef XSUITE_BACKTRACK
+        dx = -dx;
+        dy = -dy;
+    #endif
 
     //start_per_particle_block (part0->part)
         XYShift_single_particle(part, dx, dy);

@@ -12,6 +12,11 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
     double r21 = DipoleEdgeData_get_r21(el);
     double r43 = DipoleEdgeData_get_r43(el);
 
+    #ifdef XSUITE_BACKTRACK
+        r21 = -r21;
+        r43 = -r43;
+    #endif
+
     //start_per_particle_block (part0->part)
 	double const x = LocalParticle_get_x(part);
 	double const y = LocalParticle_get_y(part);

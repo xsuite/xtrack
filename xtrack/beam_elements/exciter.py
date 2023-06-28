@@ -94,6 +94,8 @@ class Exciter(BeamElement):
         'samples': xo.Float32[:],
         }
 
+    has_backtrack = True
+
     _extra_c_sources = [_pkg_root.joinpath('beam_elements/elements_src/exciter.h')]
 
 

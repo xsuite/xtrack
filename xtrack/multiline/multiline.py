@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .shared_knobs import VarSharing
+from ..match import match_knob_line
 import xobjects as xo
 import xtrack as xt
 import xfields as xf
@@ -27,14 +28,17 @@ class Multiline:
         self.lines.update(lines)
 
         line_names = list(self.lines.keys())
+        self.line_names = line_names
         line_list = [self.lines[nn] for nn in line_names]
         if link_vars:
             self._var_sharing = VarSharing(lines=line_list, names=line_names)
+            self._multiline_vars = xt.line.LineVars(self)
         else:
             self._var_sharing = None
 
-        for ll in line_list:
-            ll._in_multiline = True
+        for nn, ll in zip(line_names, line_list):
+            ll._in_multiline = self
+            ll._name_in_multiline = nn
 
     def to_dict(self, include_var_management=True):
 
@@ -158,6 +162,37 @@ class Multiline:
 
         return cls.from_dict(dct, **kwargs)
 
+    def __getstate__(self):
+        out = self.__dict__.copy()
+        for nn, ll in self.lines.items():
+            ll._pickled_by_multiline = True
+        if '_var_sharing' in out and out['_var_sharing'] is not None:
+            out['_var_sharing'] = 'to_be_rebuilt'
+            out['_var_manager'] = self._var_sharing.manager.dump()
+            out['_var_management_data'] = self._var_sharing.data
+        return out
+
+    def __setstate__(self, state):
+        if '_var_sharing' in state and state['_var_sharing'] == 'to_be_rebuilt':
+            rebuild_var_sharing = True
+            _var_manager = state.pop('_var_manager')
+            _var_management_data = state.pop('_var_management_data')
+        else:
+            rebuild_var_sharing = False
+            state['_var_sharing'] = None
+        self.__dict__.update(state)
+        if rebuild_var_sharing:
+            line_names = list(self.lines.keys())
+            line_list = [self.lines[nn] for nn in line_names]
+            self._var_sharing = VarSharing(lines=line_list,
+                                           names=line_names)
+            self._var_sharing.manager.load(_var_manager)
+            for kk in _var_management_data.keys():
+                self._var_sharing.data[kk].update(_var_management_data[kk])
+        for nn, ll in self.lines.items():
+            ll._in_multiline = self
+
+
     def build_trackers(self, _context=None, _buffer=None, **kwargs):
         '''
         Build the trackers for the lines.
@@ -177,6 +212,120 @@ class Multiline:
         for nn, ll in self.lines.items():
             ll.build_tracker(_context=_context, _buffer=_buffer, **kwargs)
 
+
+    def discard_trackers(self):
+        '''
+        Discard the trackers associated to the lines.
+        '''
+
+        for nn, ll in self.lines.items():
+            ll.discard_tracker()
+
+    def twiss(self, lines=None, **kwargs):
+
+        '''
+        Compute the twiss parameters for the lines.
+
+        Parameters
+        ----------
+        lines: list of str
+            The lines for which the twiss parameters are computed. If None,
+            the twiss parameters are computed for all lines.
+        **kwargs: dict
+            Additional keyword arguments are passed to the `Line.twiss` method.
+
+        Returns
+        -------
+        out: MultiTwiss
+            A MultiTwiss object containing the twiss parameters for the lines.
+        '''
+
+        out = MultiTwiss()
+        if lines is None:
+            lines = self.line_names
+
+        kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, lines)
+
+        for ii, nn in enumerate(lines):
+            this_kwargs = kwargs.copy()
+            for kk in kwargs_per_twiss.keys():
+                this_kwargs[kk] = kwargs_per_twiss[kk][ii]
+            out[nn] = self.lines[nn].twiss(**this_kwargs)
+
+        out._line_names = lines
+
+        return out
+
+    def match(self, vary, targets, restore_if_fail=True, solver=None,
+              verbose=False, **kwargs):
+
+        '''
+        Change a set of knobs in the beam lines in order to match assigned targets.
+
+        Parameters
+        ----------
+        vary : list of str or list of Vary objects
+            List of knobs to be varied. Each knob can be a string or a Vary object
+            including the knob name and the step used for computing the Jacobian
+            for the optimization.
+        targets : list of Target objects
+            List of targets to be matched.
+        restore_if_fail : bool
+            If True, the beamline is restored to its initial state if the matching
+            fails.
+        solver : str
+            Solver to be used for the matching. Available solvers are "fsolve"
+            and "bfgs".
+        verbose : bool
+            If True, the matching steps are printed.
+        **kwargs : dict
+            Additional arguments to be passed to the twiss.
+
+        Returns
+        -------
+        result_info : dict
+            Dictionary containing information about the matching result.
+
+        '''
+
+        line_names = kwargs.get('lines', self.line_names)
+        kwargs, kwargs_per_twiss = _dispatch_twiss_kwargs(kwargs, line_names)
+        kwargs.update(kwargs_per_twiss)
+
+        return xt.match.match_line(self, vary, targets,
+                          restore_if_fail=restore_if_fail,
+                          solver=solver, verbose=verbose, **kwargs)
+
+    def match_knob(self, knob_name, vary, targets,
+                knob_value_start=0, knob_value_end=1,
+                **kwargs):
+
+        '''
+        Match a new knob in the beam line such that the specified targets are
+        matched when the knob is set to the value `knob_value_end` and the
+        state of the line before tha matching is recovered when the knob is
+        set to the value `knob_value_start`.
+
+        Parameters
+        ----------
+        knob_name : str
+            Name of the knob to be matched.
+        vary : list of str or list of Vary objects
+            List of existing knobs to be varied.
+        targets : list of Target objects
+            List of targets to be matched.
+        knob_value_start : float
+            Value of the knob before the matching. Defaults to 0.
+        knob_value_end : float
+            Value of the knob after the matching. Defaults to 1.
+
+        '''
+        raise NotImplementedError # Untested
+
+        match_knob_line(self, vary=vary, targets=targets,
+                        knob_name=knob_name, knob_value_start=knob_value_start,
+                        knob_value_end=knob_value_end, **kwargs)
+
     def __getitem__(self, key):
         return self.lines[key]
 
@@ -184,6 +333,8 @@ class Multiline:
         return list(self.lines.keys()) + object.__dir__(self)
 
     def __getattr__(self, key):
+        if key == 'lines':
+            return object.__getattribute__(self, 'lines')
         if key in self.lines:
             return self.lines[key]
         else:
@@ -191,15 +342,25 @@ class Multiline:
 
     @property
     def vars(self):
+        return self._multiline_vars
+
+    @property
+    def _xdeps_vref(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
+
+    @property
+    def _xdeps_manager(self):
+        if self._var_sharing is not None:
+            return self._var_sharing.manager
 
     def install_beambeam_interactions(self, clockwise_line, anticlockwise_line,
                                       ip_names,
                                       num_long_range_encounters_per_side,
                                       num_slices_head_on,
                                       harmonic_number, bunch_spacing_buckets,
-                                      sigmaz):
+                                      sigmaz,
+                                      delay_at_ips_slots=None):
 
         '''
         Install beam-beam elements in the lines. Elements are inserted in the
@@ -208,12 +369,12 @@ class Multiline:
 
         Parameters
         ----------
-        clockwise_line: xt.Line
-            The line in which the beam-beam elements for the clockwise beam
-            are installed.
+        clockwise_line: str
+            Name of the line in which the beam-beam elements for the clockwise
+            beam are installed.
         anticlockwise_line: xt.Line
-            The line in which the beam-beam elements for the anticlockwise beam
-            are installed.
+            Name of the line in which the beam-beam elements for the
+            anticlockwise beam are installed.
         ip_names: list
             The names of the IPs in the lines around which the beam-beam
             elements need to be installed.
@@ -227,6 +388,10 @@ class Multiline:
             The bunch spacing in buckets.
         sigmaz: float
             The longitudinal size of the beam.
+        delay_at_ips_slots: list
+            Delay between the two beams in bunch slots for each IP. It specifies
+            which bunch of the anticlockwise beam interacts with bunch zero of
+            the clockwise beam.
 
         '''
 
@@ -252,7 +417,7 @@ class Multiline:
             num_slices_head_on=num_slices_head_on,
             harmonic_number=harmonic_number,
             bunch_spacing_buckets=bunch_spacing_buckets,
-            sigmaz_m=sigmaz)
+            sigmaz_m=sigmaz, delay_at_ips_slots=delay_at_ips_slots)
 
         self._bb_config = {
             'dataframes': {
@@ -262,6 +427,8 @@ class Multiline:
             'ip_names': ip_names,
             'clockwise_line': clockwise_line,
             'anticlockwise_line': anticlockwise_line,
+            'bunch_spacing_buckets': bunch_spacing_buckets,
+            'harmonic_number': harmonic_number
         }
 
     def configure_beambeam_interactions(self, num_particles,
@@ -328,6 +495,50 @@ class Multiline:
                 self.vars[f'{bbnn}_scale_strength'] = self.vars['beambeam_scale']
                 line.element_refs[bbnn].scale_strength = self.vars[f'{bbnn}_scale_strength']
 
+    def apply_filling_pattern(self, filling_pattern_cw, filling_pattern_acw,
+                             i_bunch_cw, i_bunch_acw):
 
+        '''
+        Enable only he beam-beam elements corresponding to actual encounters
+        for the given filling pattern and the selected bunches.
 
+        Parameters
+        ----------
 
+        filling_pattern_cw: list or array
+            The filling pattern for the clockwise beam.
+        filling_pattern_acw: list or array
+            The filling pattern for the anticlockwise beam.
+        i_bunch_cw: int
+            The index of the bunch to be simulated for the clockwise beam.
+        i_bunch_acw: int
+            The index of the bunch to be simulated for the anticlockwise beam.
+        '''
+
+        apply_filling_pattern = (
+            xf.config_tools.beambeam_config_tools.config_tools.apply_filling_pattern)
+
+        apply_filling_pattern(collider=self, filling_pattern_cw=filling_pattern_cw,
+                            filling_pattern_acw=filling_pattern_acw,
+                            i_bunch_cw=i_bunch_cw, i_bunch_acw=i_bunch_acw)
+
+class MultiTwiss(dict):
+
+    def __init__(self):
+        self.__dict__ = self
+
+def _dispatch_twiss_kwargs(kwargs, lines):
+    kwargs_per_twiss = {}
+    for arg_name in ['ele_start', 'ele_stop', 'twiss_init',
+                        '_initial_particles', '_ebe_monitor']:
+        if arg_name not in kwargs:
+            continue
+        if not isinstance(kwargs[arg_name], (list, tuple)):
+            kwargs_per_twiss[arg_name] = len(lines) * [kwargs[arg_name]]
+            kwargs.pop(arg_name)
+        else:
+            assert len(kwargs[arg_name]) == len(lines), \
+                f'Length of {arg_name} must be equal to the number of lines'
+            kwargs_per_twiss[arg_name] = list(kwargs[arg_name])
+            kwargs.pop(arg_name)
+    return kwargs, kwargs_per_twiss

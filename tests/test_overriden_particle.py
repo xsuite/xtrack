@@ -21,8 +21,18 @@ def test_purely_longitudinal(test_context):
     line = xt.Line(elements=[xt.Cavity(voltage=1e6, frequency=1e6)])
     line.build_tracker(compile=False, _context=test_context)
 
+    kn, _ = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert kn.description.args[2].atype._DressingClass is Particles
+
     line.track(p_fixed)
+
+    kn, _ = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert kn.description.args[2].atype._DressingClass is ParticlesPurelyLongitudinal
+
     line.track(p)
+
+    kn, _ = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert kn.description.args[2].atype._DressingClass is Particles
 
     d_fixed = p_fixed.to_dict()
     d = {k: v for k, v in p.to_dict().items() if k in d_fixed}
@@ -31,6 +41,10 @@ def test_purely_longitudinal(test_context):
     for k in d.keys():
         assert np.allclose(d[k], d_fixed[k])
 
+    line.track(p_fixed)
+
+    kn, _ = line.tracker.get_track_kernel_and_data_for_present_config()
+    assert kn.description.args[2].atype._DressingClass is ParticlesPurelyLongitudinal
 
 @for_all_test_contexts
 def test_per_particle_kernel(test_context, mocker):

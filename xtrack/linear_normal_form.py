@@ -159,12 +159,14 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
 
     ##################################################
     #### Sort modes such that (1,2,3) is close to (x,y,zeta) ####
-    for i in [1,2]:
-        if abs(v0[:,modes[0]])[0] < abs(v0[:,modes[i]])[0]:
-            modes[0], modes[i] = modes[i], modes[0]
+    # Identify the longitudinal mode
+    for i in [0,1]:
+        if abs(v0[:,modes[2]])[5] < abs(v0[:,modes[i]])[5]:
+            modes[2], modes[i] = modes[i], modes[2]
 
-    if abs(v0[:,modes[1]])[2] < abs(v0[:,modes[2]])[2]:
-        modes[2], modes[1] = modes[1], modes[2]
+    # Identify the vertical mode
+    if abs(v0[:,modes[1]])[2] < abs(v0[:,modes[0]])[2]:
+        modes[0], modes[1] = modes[1], modes[0]
 
     ##################################################
     #### Rotate eigenvectors to the Courant-Snyder parameterization ####
