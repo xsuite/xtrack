@@ -2604,11 +2604,10 @@ class Line:
         if dct is not None:
             manager = self._var_management['manager']
             for kk in dct['_var_management_data'].keys():
+                data_item = dct['_var_management_data'][kk]
                 if kk == 'functions':
-                    dct['_var_management_data'][kk] = Functions.from_dict(
-                                            dct['_var_management_data'][kk])
-                self._var_management['data'][kk].update(
-                                            dct['_var_management_data'][kk].copy())
+                    data_item = Functions.from_dict(data_item)
+                self._var_management['data'][kk].update(data_item)
             manager.load(dct['_var_manager'])
 
         self._line_vars = LineVars(self)
