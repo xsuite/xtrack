@@ -13,12 +13,14 @@ test_data_folder = pathlib.Path(
 path_line = test_data_folder.joinpath(
                 'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
 
-with open(path_line) as f:
-    dct = json.load(f)
 
 
 @for_all_test_contexts
 def test_match_tune_chromaticity(test_context):
+
+    with open(path_line) as f:
+        dct = json.load(f)
+
     line = xt.Line.from_dict(dct['line'])
     line.particle_ref = xp.Particles.from_dict(dct['particle'])
 
