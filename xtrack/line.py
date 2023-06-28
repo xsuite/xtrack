@@ -2608,7 +2608,7 @@ class Line:
                     dct['_var_management_data'][kk] = Functions.from_dict(
                                             dct['_var_management_data'][kk])
                 self._var_management['data'][kk].update(
-                                            dct['_var_management_data'][kk])
+                                            dct['_var_management_data'][kk].copy())
             manager.load(dct['_var_manager'])
 
         self._line_vars = LineVars(self)
