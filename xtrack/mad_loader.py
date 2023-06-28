@@ -359,7 +359,7 @@ class CompoundElement:
         for el in component_elements:
             el.add_to_line(line, buffer)
 
-        line.add_compound_relation(
+        line.define_compound(
             compound_name=self.name,
             component_names=[el.name for el in component_elements],
         )

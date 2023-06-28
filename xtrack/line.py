@@ -491,7 +491,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
-        out['compound_relation'] = self.compound_relation.copy()
+        out['compound_relation'] = self.compounds.copy()
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -1592,13 +1592,13 @@ class Line:
         self.element_names.append(name)
         return self
 
-    def add_compound_relation(self, compound_name, component_names):
+    def define_compound(self, compound_name, component_names):
         self._compound_relation[compound_name] = component_names
         for name in component_names:
             self._compound_for_element[name] = compound_name
 
     @property
-    def compound_relation(self):
+    def compounds(self):
         return self._compound_relation
 
     def is_top_level_element(self, element_name):
@@ -1610,7 +1610,7 @@ class Line:
             return True
 
         compound_name = self._compound_for_element[element_name]
-        if self.compound_relation[compound_name][0] == element_name:
+        if self.compounds[compound_name][0] == element_name:
             return True
 
         return False
@@ -1655,7 +1655,7 @@ class Line:
             if ff:
                 new_elements.append(ee)
             else:
-                if ee.isthick and not _is_drift(ee):
+                if _is_thick(ee) and not _is_drift(ee):
                     new_elements.append(Drift(length=ee.length))
                 else:
                     new_elements.append(Drift(length=0))

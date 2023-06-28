@@ -185,7 +185,7 @@ class Slicer:
             self.line.element_dict[name] = xt.Marker()
 
             # Add the compound relations
-            self.line.add_compound_relation(name, slices_to_add)
+            self.line.define_compound(name, slices_to_add)
 
         # Commit the changes to the line
         line.element_names = self.thin_names
