@@ -140,6 +140,13 @@ def nonzero_or_expr(x):
         return x != 0
 
 
+def value_if_expr(x):
+    if is_expr(x):
+        return x._get_value()
+    else:
+        return x
+
+
 def eval_list(par, madeval):
     if madeval is None:
         return par.value
