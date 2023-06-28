@@ -3,6 +3,7 @@
         "config": {
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_GLOBAL_XY_LIMIT": 1.0
         },
         "classes": [
@@ -29,6 +30,7 @@
         "config": {
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_GLOBAL_XY_LIMIT": 1.0,
             "XSUITE_BACKTRACK": true
         },
@@ -56,6 +58,7 @@
         "config": {
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_GLOBAL_XY_LIMIT": 1.0
         },
         "classes": [
@@ -87,6 +90,8 @@
             "FREEZE_VAR_zeta": true,
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
             "XTRACK_GLOBAL_XY_LIMIT": 1.0
         },
         "classes": [
@@ -117,6 +122,7 @@
             "FREEZE_VAR_rvv": true,
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_GLOBAL_XY_LIMIT": 1.0
         },
         "classes": [
@@ -142,6 +148,7 @@
     "only_xtrack_taper": {
         "config": {
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_DIPOLEEDGE_TAPER": true,
             "XTRACK_MULTIPOLE_TAPER": true,
             "XTRACK_MULTIPOLE_NO_SYNRAD": false,
@@ -168,6 +175,8 @@
     "only_xtrack_with_synrad": {
         "config": {
             "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": false
             "XTRACK_GLOBAL_XY_LIMIT": 1.0
         },
         "classes": [

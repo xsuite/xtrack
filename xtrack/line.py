@@ -72,6 +72,7 @@ class Line:
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
         self.config.XFIELDS_BB3D_NO_BEAMSTR = True
+        self.config.XFIELDS_BB3D_NO_BHABHA = True
         self.config.XTRACK_GLOBAL_XY_LIMIT = 1.0
 
         # Config parameters not exposed to C code
@@ -86,6 +87,7 @@ class Line:
         self._extra_config['_t_last_update_time_dependent_vars'] = None
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
+        self._extra_config['_bhabha_model'] = None
         self._extra_config['_needs_rng'] = False
         self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
@@ -1775,6 +1777,7 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
+
     def configure_bend_method(self, method='expanded'):
 
         """
@@ -1796,8 +1799,9 @@ class Line:
             if isinstance(ee, xt.Bend):
                 ee.method = {'expanded': 0, 'full': 1}[method]
 
-    def configure_radiation(self, model=None, model_beamstrahlung=None,
-                            mode='deprecated'):
+
+    def configure_radiation(self, model=None, model_beamstrahlung=None, 
+                            model_bhabha=None, mode='deprecated'):
 
         """
         Configure radiation within the line.
@@ -1808,7 +1812,8 @@ class Line:
             Radiation model to use. Can be 'mean', 'quantum' or None.
         model_beamstrahlung: str
             Beamstrahlung model to use. Can be 'mean', 'quantum' or None.
-
+        model_bhabha: str
+            Bhabha model to use. Can be 'quantum' or None.
         """
 
         if mode != 'deprecated':
@@ -1818,6 +1823,7 @@ class Line:
 
         assert model in [None, 'mean', 'quantum']
         assert model_beamstrahlung in [None, 'mean', 'quantum']
+        assert model_bhabha in [None, 'quantum']
 
         if model == 'mean':
             radiation_flag = 1
@@ -1839,6 +1845,13 @@ class Line:
             beamstrahlung_flag = 0
             self._beamstrahlung_model = None
 
+        if model_bhabha == 'quantum':
+            bhabha_flag = 1
+            self._bhabha_model = 'quantum'
+        else:
+            bhabha_flag = 0
+            self._bhabha_model = None
+
         for kk, ee in self.element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
@@ -1846,12 +1859,15 @@ class Line:
         for kk, ee in self.element_dict.items():
             if hasattr(ee, 'flag_beamstrahlung'):
                 ee.flag_beamstrahlung = beamstrahlung_flag
+            if hasattr(ee, 'flag_bhabha'):
+                ee.flag_bhabha = bhabha_flag
 
-        if radiation_flag == 2 or beamstrahlung_flag == 2:
+        if radiation_flag == 2 or beamstrahlung_flag == 2 or bhabha_flag == 1:
             self._needs_rng = True
 
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
+        self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
 
     def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
@@ -2729,6 +2745,14 @@ class Line:
         self._extra_config['_beamstrahlung_model'] = value
 
     @property
+    def _bhabha_model(self):
+        return self._extra_config['_bhabha_model']
+
+    @_bhabha_model.setter
+    def _bhabha_model(self, value):
+        self._extra_config['_bhabha_model'] = value
+
+    @property
     def _needs_rng(self):
         return self._extra_config['_needs_rng']
 
@@ -3124,6 +3148,7 @@ def _temp_knobs(line_or_trk, knobs: dict):
         for kk, vv in old_values.items():
             line_or_trk.vars[kk] = vv
 
+
 class LineVars:
 
     def __init__(self, line):
@@ -3222,3 +3247,4 @@ class VarSetter:
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._build_fun()
+

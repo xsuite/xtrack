@@ -256,6 +256,10 @@ class Tracker:
     def _beamstrahlung_model(self):
         return self.line._beamstrahlung_model
 
+    @property
+    def _bhabha_model(self):
+        return self.line._bhabha_model
+
     def _invalidate(self):
         if self.iscollective:
             self._invalidated_parts = self._parts
