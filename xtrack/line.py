@@ -195,7 +195,8 @@ class Line:
             self._extra_config.update(dct['_extra_config'])
 
         if 'compound_relation' in dct.keys():
-            self._compound_relation = dct['compound_relation'].copy()
+            for compound_name, components in dct['compound_relation'].items():
+                self.define_compound(compound_name, components)
 
         _print('Done loading line from dict.           ')
 

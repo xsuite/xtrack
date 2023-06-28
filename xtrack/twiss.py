@@ -517,7 +517,6 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
 
     if group_compound_elements:
-        import pdb; pdb.set_trace()
         compound_mask = np.zeros_like(twiss_res.s, dtype=bool)
         compound_mask[-1] = True
         compound_mask[:-1] = line.tracker._tracker_data_base.compound_mask
