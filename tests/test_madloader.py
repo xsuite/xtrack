@@ -212,21 +212,21 @@ def test_tilt_shift_and_errors():
             assert np.isclose(line['elm2_offset_exit'].dy,
                                 -on_err * mad_elm2.align_errors.dy, rtol=0, atol=1e-13)
 
-        for ii in range(line['elm2'].order+1):
+        for ii in range(line['elm2_core'].order+1):
             ref = 0
             if len(mad_elm2.knl)>ii:
                 ref += mad_elm2.knl[ii]
             if opt['enable_errors'] and len(mad_elm2.field_errors.dkn)>ii:
                 ref += mad_elm2.field_errors.dkn[ii]
-            assert np.isclose(line['elm2'].knl[ii], ref, rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_core'].knl[ii], ref, rtol=0, atol=1e-13)
 
-        for ii in range(line['elm2'].order+1):
+        for ii in range(line['elm2_core'].order+1):
             ref = 0
             if len(mad_elm2.ksl)>ii:
                 ref += mad_elm2.ksl[ii]
             if opt['enable_errors'] and len(mad_elm2.field_errors.dks)>ii:
                 ref += mad_elm2.field_errors.dks[ii]
-            assert np.isclose(line['elm2'].ksl[ii], ref, rtol=0, atol=1e-13)
+            assert np.isclose(line['elm2_core'].ksl[ii], ref, rtol=0, atol=1e-13)
 
     for opt in gen_options(opt2):
         ml=MadLoader(mad.sequence.seq,**opt)
