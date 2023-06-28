@@ -931,6 +931,7 @@ class Line:
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
+        group_compound_elements=None,
         only_twiss_init=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -2840,9 +2841,9 @@ class Line:
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
-            if ii in self._compound_relation:
-                component_names = self._compound_relation[ii]
-                return [self.element_dict[name] for name in component_names]
+            # if ii in self._compound_relation:
+            #     component_names = self._compound_relation[ii]
+            #     return [self.element_dict[name] for name in component_names]
 
             if ii not in self.element_names:
                 raise IndexError(f'No installed element with name {ii}')

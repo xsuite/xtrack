@@ -55,6 +55,7 @@ def twiss_line(line, particle_ref=None, method=None,
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
+        group_compound_elements=None,
         only_twiss_init=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -106,6 +107,8 @@ def twiss_line(line, particle_ref=None, method=None,
     hide_thin_groups : bool, optional
         If True, values associate to elements in thin groups are replacede with
         NaNs.
+    group_compound_elements : bool, optional
+        If True, elements in compounds are grouped together.
     values_at_element_exit : bool, optional (False)
         If True, the Twiss parameters are computed at the exit of the
         elements. If False (default), the Twiss parameters are computed at the
@@ -241,6 +244,7 @@ def twiss_line(line, particle_ref=None, method=None,
     reverse=(reverse or False)
     strengths=(strengths or False)
     hide_thin_groups=(hide_thin_groups or False)
+    group_compound_elements=(group_compound_elements or False)
     only_twiss_init=(only_twiss_init or False)
 
     if freeze_longitudinal:
@@ -512,6 +516,14 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
             twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
 
+    if group_compound_elements:
+        import pdb; pdb.set_trace()
+        compound_mask = np.zeros_like(twiss_res.s, dtype=bool)
+        compound_mask[-1] = True
+        compound_mask[:-1] = line.tracker._tracker_data_base.compound_mask
+        for kk in twiss_res._col_names:
+            twiss_res._data[kk] = twiss_res._data[kk][compound_mask]
+
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
 
@@ -704,7 +716,7 @@ def _twiss_open(line, twiss_init,
         ]
 
         for key in _vars_hide_changes:
-                twiss_res_element_by_element[key][i_replace] = np.nan
+            twiss_res_element_by_element[key][i_replace] = np.nan
 
     twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
 
