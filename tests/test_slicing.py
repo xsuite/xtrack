@@ -172,6 +172,37 @@ def test_slicing_strategy_matching():
     expected_something_drift_lens = [1/5] * 5
     assert _lengths_of_drifts('something') == expected_something_drift_lens
 
+    # Test accessing compound elements
+    assert line.compound_relation['mb10'] == [
+        'mb10', 'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1',
+        'drift_mb10..2', 'mb10..2', 'drift_mb10..3', 'mb10..3', 'drift_mb10..4',
+        'mb10..4', 'drift_mb10..5',
+    ]
+    assert line.compound_relation['mb11'] == [
+        'mb11', 'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1',
+        'drift_mb11..2', 'mb11..2', 'drift_mb11..3', 'mb11..3', 'drift_mb11..4',
+        'mb11..4', 'drift_mb11..5',
+    ]
+    assert line.compound_relation['mq10'] == [
+        'mq10', 'drift_mq10..0', 'mq10..0', 'drift_mq10..1',
+    ]
+    assert line.compound_relation['something'] == [
+        'something', 'drift_something..0', 'something..0', 'drift_something..1',
+        'something..1', 'drift_something..2', 'something..2',
+        'drift_something..3', 'something..3', 'drift_something..4',
+    ]
+    assert line.compound_relation['mb20'] == [
+        'mb20', 'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1',
+        'drift_mb20..2',
+    ]
+    assert line.compound_relation['mb21'] == [
+        'mb21', 'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1',
+        'drift_mb21..2', 'mb21..2', 'drift_mb21..3',
+    ]
+    assert list(line.compound_relation.keys()) == [
+        'mb10', 'mb11', 'mq10', 'something', 'mb20', 'mb21',
+    ]
+
 
 @pytest.mark.parametrize(
     'element_type',
