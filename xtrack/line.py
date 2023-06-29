@@ -3227,6 +3227,18 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return key in self.line._xdeps_vref._owner
 
+    def get_independent_vars(self):
+
+        """
+        Returns the list of independent variables in the line.
+        """
+
+        out = []
+        for kk in self.keys():
+            if self[kk]._expr is None:
+                out.append(kk)
+        return out
+
     def _setter_from_cache(self, varname):
         if varname not in self._cached_setters:
             if self.line._xdeps_manager is None:
