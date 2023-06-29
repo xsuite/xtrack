@@ -45,3 +45,26 @@ line.build_tracker()
 
 tw = line.twiss()
 tw_comp = line.twiss(group_compound_elements=True)
+
+for nn in tw._col_names:
+    assert len(tw[nn]) == len(tw['name'])
+    assert len(tw_comp[nn]) == len(tw_comp['name'])
+
+assert 'bi1.bsw1l1.2_entry' in tw.name
+assert 'bi1.bsw1l1.2_offset_entry' in tw.name
+assert 'bi1.bsw1l1.2_den' in tw.name
+assert 'bi1.bsw1l1.2' in tw.name
+assert 'bi1.bsw1l1.2_dex' in tw.name
+assert 'bi1.bsw1l1.2_offset_exit' in tw.name
+assert 'bi1.bsw1l1.2_exit' in tw.name
+
+assert 'bi1.bsw1l1.2_entry' in tw_comp.name
+assert 'bi1.bsw1l1.2_offset_entry' not in tw_comp.name
+assert 'bi1.bsw1l1.2_den' not in tw_comp.name
+assert 'bi1.bsw1l1.2' not in tw_comp.name
+assert 'bi1.bsw1l1.2_dex' not in tw_comp.name
+assert 'bi1.bsw1l1.2_offset_exit' not in tw_comp.name
+assert 'bi1.bsw1l1.2_exit' not in tw_comp.name
+
+assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
+assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
