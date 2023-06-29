@@ -29,6 +29,8 @@ select,flag=error,pattern=bi1.bsw1l1.3*;
 select,flag=error,pattern=bi1.bsw1l1.4*;
 ealign, dx=-0.0442;
 
+k0bi1bsw1l11 = 1e-2; // To have some non-zero orbit
+
 twiss;
 ''')
 
@@ -71,3 +73,22 @@ assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
 
 assert np.allclose(tw_comp['W_matrix', 'bi1.bsw1l1.2_entry'],
                    tw['W_matrix', 'bi1.bsw1l1.2_entry'], rtol=0, atol=1e-15)
+
+tw_init = tw.get_twiss_init('bi1.ksw16l1_entry')
+tw_init_comp = tw_comp.get_twiss_init('bi1.ksw16l1_entry')
+
+assert np.allclose(tw_init_comp.W_matrix, tw_init.W_matrix,
+                    rtol=0, atol=1e-15)
+assert np.isclose(tw_init_comp.mux, tw_init.mux, rtol=0, atol=1e-15)
+assert np.isclose(tw_init_comp.x, tw_init.x, rtol=0, atol=1e-15)
+
+tw_comp_local = line.twiss(group_compound_elements=True,
+                           twiss_init=tw_init_comp,
+                           ele_start='bi1.ksw16l1_entry',
+                           ele_stop='br.stscrap161')
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.plot(tw.s, tw.x)
+plt.plot(tw_comp.s, tw_comp.x)
+plt.show()
