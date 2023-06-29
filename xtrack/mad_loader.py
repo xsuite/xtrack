@@ -344,17 +344,18 @@ class CompoundElement:
         self.elements = subsequence
         self.name = name
 
-        for el in self.elements:
-            if el.name == name:
-                el.name = name + "_core"
-
     def add_to_line(self, line, buffer):
         start_marker = ElementBuilder(
-            name=self.name,
+            name=self.name+"_entry",
             type=xtrack.Marker,
         )
 
-        component_elements = [start_marker] + self.elements
+        end_marker = ElementBuilder(
+            name=self.name+"_exit",
+            type=xtrack.Marker,
+        )
+
+        component_elements = [start_marker] + self.elements + [end_marker]
 
         for el in component_elements:
             el.add_to_line(line, buffer)

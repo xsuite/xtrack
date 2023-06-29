@@ -517,11 +517,13 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
 
     if group_compound_elements:
+        _data = twiss_res._data
         compound_mask = np.zeros_like(twiss_res.s, dtype=bool)
         compound_mask[-1] = True
         compound_mask[:-1] = line.tracker._tracker_data_base.compound_mask
         for kk in twiss_res._col_names:
-            twiss_res._data[kk] = twiss_res._data[kk][compound_mask]
+            _data[kk] = _data[kk][compound_mask]
+        twiss_res = TwissTable(_data, col_names=twiss_res._col_names)
 
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
