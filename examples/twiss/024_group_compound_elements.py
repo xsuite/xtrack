@@ -68,3 +68,6 @@ assert 'bi1.bsw1l1.2_exit' not in tw_comp.name
 
 assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
 assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
+
+assert np.allclose(tw_comp['W_matrix', 'bi1.bsw1l1.2_entry'],
+                   tw['W_matrix', 'bi1.bsw1l1.2_entry'], rtol=0, atol=1e-15)
