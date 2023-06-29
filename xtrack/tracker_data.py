@@ -36,6 +36,7 @@ class TrackerData:
             element_s_locations,
             line_length,
             compound_mask=None,
+            element_compound_names=None,
             kernel_element_classes=None,
             extra_element_classes=(),
             allow_move=False,
@@ -94,6 +95,7 @@ class TrackerData:
         if compound_mask is None:
             compound_mask = np.zeros(len(element_names), dtype=np.bool)
         self.compound_mask = np.array(compound_mask)
+        self.element_compound_names = np.array(element_compound_names)
 
         if not kernel_element_classes:
             kernel_element_classes = (

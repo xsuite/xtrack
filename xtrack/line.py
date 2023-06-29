@@ -1620,6 +1620,10 @@ class Line:
     def get_compound_mask(self):
         return [self.is_top_level_element(name) for name in self.element_names]
 
+    def _get_element_compound_names(self):
+        return [self._compound_for_element[name] if name in self._compound_for_element else name
+                for name in self.element_names]
+
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
         Return a new line with only the elements satisfying a given condition.

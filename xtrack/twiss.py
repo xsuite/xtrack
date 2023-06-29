@@ -726,6 +726,9 @@ def _twiss_open(line, twiss_init,
         for kk in list(twiss_res_element_by_element.keys()):
             twiss_res_element_by_element[kk] = (
                 twiss_res_element_by_element[kk][compound_mask])
+        twiss_res_element_by_element['name'][:-1] = (
+            line.tracker._tracker_data_base.element_compound_names[
+                i_start:i_stop+1][compound_mask[:-1]])
 
     twiss_res = TwissTable(data=twiss_res_element_by_element)
     twiss_res._data.update(extra_data)
