@@ -1924,6 +1924,7 @@ class Line:
         self._var_management = None # Disable expressions
 
         buffer = self._buffer
+        io_buffer = self.tracker.io_buffer
 
         # Unfreeze the line
         self.discard_tracker()
@@ -1959,7 +1960,7 @@ class Line:
         self.use_simple_quadrupoles()
 
         if verbose: _print("Rebuild tracker data")
-        self.build_tracker(_buffer=buffer)
+        self.build_tracker(_buffer=buffer, io_buffer=io_buffer)
 
         self.use_prebuilt_kernels = False
 

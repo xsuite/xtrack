@@ -90,6 +90,7 @@ def test_record_single_table(test_context):
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
     num_turns0 = 10
     num_turns1 = 3
+    line.optimize_for_tracking()
     line.track(part, num_turns=num_turns0)
     line.track(part, num_turns=num_turns1)
 
