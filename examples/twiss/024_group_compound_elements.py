@@ -71,6 +71,9 @@ assert 'bi1.bsw1l1.2_exit' not in tw_comp.name
 assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
 assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
 
+assert np.isclose(tw_comp['px', 'br1.dhz16l1'],
+                  tw['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
+
 assert np.allclose(tw_comp['W_matrix', 'bi1.bsw1l1.2_entry'],
                    tw['W_matrix', 'bi1.bsw1l1.2_entry'], rtol=0, atol=1e-15)
 
@@ -86,6 +89,32 @@ tw_comp_local = line.twiss(group_compound_elements=True,
                            twiss_init=tw_init_comp,
                            ele_start='bi1.ksw16l1_entry',
                            ele_stop='br.stscrap161')
+tw_local = line.twiss(twiss_init=tw_init,
+                        ele_start='bi1.ksw16l1_entry',
+                        ele_stop='br.stscrap161')
+
+for nn in tw_local._col_names:
+    assert len(tw_local[nn]) == len(tw_local['name'])
+    assert len(tw_comp_local[nn]) == len(tw_comp_local['name'])
+
+assert 'br.bhz161_entry' in tw_local.name
+assert 'br.bhz161_den' in tw_local.name
+assert 'br.bhz161' in tw_local.name
+assert 'br.bhz161_dex' in tw_local.name
+assert 'br.bhz161_exit' in tw_local.name
+
+assert 'br.bhz161_entry' in tw_comp_local.name
+assert 'br.bhz161_den' not in tw_comp_local.name
+assert 'br.bhz161' not in tw_comp_local.name
+assert 'br.bhz161_dex' not in tw_comp_local.name
+assert 'br.bhz161_exit' not in tw_comp_local.name
+
+assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap161'
+assert tw_comp_local['name', -1] == tw_local['name', -1] == '_end_point'
+
+assert np.isclose(tw_comp_local['px', 'br1.dhz16l1'],
+                  tw_local['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
+
 
 import matplotlib.pyplot as plt
 plt.close('all')

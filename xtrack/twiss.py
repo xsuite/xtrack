@@ -720,9 +720,10 @@ def _twiss_open(line, twiss_init,
 
     if group_compound_elements:
         compound_mask = np.zeros_like(twiss_res_element_by_element['s'], dtype=bool)
+        n_mask = len(compound_mask)
         compound_mask[-1] = True
         compound_mask[:-1] = (
-            line.tracker._tracker_data_base.compound_mask[i_start:i_stop+1])
+            line.tracker._tracker_data_base.compound_mask[i_start:i_start+n_mask-1])
         for kk in list(twiss_res_element_by_element.keys()):
             twiss_res_element_by_element[kk] = (
                 twiss_res_element_by_element[kk][compound_mask])
