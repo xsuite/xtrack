@@ -1406,6 +1406,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     auxtracker = xt.Tracker(
         _buffer=tracker._buffer,
+        io_buffer=tracker.io_buffer,
         line=auxline,
         track_kernel=tracker.track_kernel,
         particles_class=tracker.particles_class,
