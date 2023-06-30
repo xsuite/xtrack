@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 line = xt.Line.from_json('psb_00_from_mad.json')
 line.build_tracker()
 line.twiss_default['method'] = '4d'
+line.twiss_default['group_compound_elements'] = True
 
 tw0 = line.twiss()
 

@@ -13,7 +13,7 @@ test_data_folder = pathlib.Path(
 
 @for_all_test_contexts
 def test_var_cache(test_context):
-    # Load the line
+    # Load the collider
     collider = xt.Multiline.from_json(test_data_folder /
                     'hllhc15_collider/collider_00_from_mad.json')
     collider.build_trackers(_context=test_context)
@@ -23,8 +23,32 @@ def test_var_cache(test_context):
     collider.lhcb2.twiss_default['reverse'] = True
 
     collider.vars['on_x2'] = 123
+
+    assert 'on_x5' in collider.vars
+    assert 'on_x9' not in collider.vars
+
+    assert xd.refs._isref(collider.vars['on_x5'])
+    try:
+        collider.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
+
     collider.vars.cache_active = True
 
+    assert 'on_x5' in collider.vars
+    assert 'on_x9' not in collider.vars
+
+    assert isinstance(collider.vars['on_x5'], xt.line.VarSetter)
+    try:
+        collider.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
+
+    assert isinstance(collider.vars['on_x1'], xt.line.VarSetter)
     collider.vars['on_x1'] = 11
     collider.vars['on_x5'] = 55
 
@@ -35,9 +59,6 @@ def test_var_cache(test_context):
         collider['lhcb1'].twiss()['px', 'ip1'], 11e-6, atol=1e-9, rtol=0)
     assert np.isclose(
         collider['lhcb1'].twiss()['py', 'ip5'], 55e-6, atol=1e-9, rtol=0)
-
-    vsharing = collider._var_sharing
-    collider._var_sharing = None
 
     collider.vars['on_x1'] = 234
     collider.vars['on_x5'] = 123
@@ -50,14 +71,6 @@ def test_var_cache(test_context):
     assert np.isclose(
         collider['lhcb1'].twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
 
-    try:
-        collider.vars['on_x2'] = 234
-    except RuntimeError:
-        pass
-    else:
-        raise ValueError('Should have raised RuntimeError')
-
-    collider._var_sharing = vsharing
     collider.vars['on_x2'] = 234
 
     assert np.isclose(
@@ -80,7 +93,30 @@ def test_var_cache(test_context):
     line = collider['lhcb1']
 
     line.vars['on_x2'] = 123
+
+    assert 'on_x5' in line.vars
+    assert 'on_x9' not in line.vars
+
+    assert xd.refs._isref(line.vars['on_x5'])
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
+
     line.vars.cache_active = True
+
+    assert 'on_x5' in line.vars
+    assert 'on_x9' not in line.vars
+
+    assert isinstance(line.vars['on_x5'], xt.line.VarSetter)
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
 
     line.vars['on_x1'] = 11
     line.vars['on_x5'] = 55
@@ -93,9 +129,6 @@ def test_var_cache(test_context):
     assert np.isclose(
         line.twiss()['py', 'ip5'], 55e-6, atol=1e-9, rtol=0)
 
-    vsharing = collider._var_sharing
-    collider._var_sharing = None
-
     line.vars['on_x1'] = 234
     line.vars['on_x5'] = 123
 
@@ -107,14 +140,6 @@ def test_var_cache(test_context):
     assert np.isclose(
         line.twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
 
-    try:
-        line.vars['on_x2'] = 234
-    except RuntimeError:
-        pass
-    else:
-        raise ValueError('Should have raised RuntimeError')
-
-    collider._var_sharing = vsharing
     line.vars['on_x2'] = 234
 
     assert np.isclose(
@@ -133,7 +158,27 @@ def test_var_cache(test_context):
     line.build_tracker(_context=test_context)
 
     line.vars['on_x2'] = 123
+
+    assert xd.refs._isref(line.vars['on_x5'])
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
+
     line.vars.cache_active = True
+
+    assert 'on_x5' in line.vars
+    assert 'on_x9' not in line.vars
+
+    assert isinstance(line.vars['on_x5'], xt.line.VarSetter)
+    try:
+        line.vars['on_x9']
+    except KeyError:
+        pass
+    else:
+        raise ValueError('Should have raised KeyError')
 
     line.vars['on_x1'] = 11
     line.vars['on_x5'] = 55
@@ -146,9 +191,6 @@ def test_var_cache(test_context):
     assert np.isclose(
         line.twiss()['py', 'ip5'], 55e-6, atol=1e-9, rtol=0)
 
-    vman = line._var_management
-    line._var_management = None
-
     line.vars['on_x1'] = 234
     line.vars['on_x5'] = 123
 
@@ -160,14 +202,6 @@ def test_var_cache(test_context):
     assert np.isclose(
         line.twiss()['py', 'ip5'], 123e-6, atol=1e-9, rtol=0)
 
-    try:
-        line.vars['on_x2'] = 234
-    except RuntimeError:
-        pass
-    else:
-        raise ValueError('Should have raised RuntimeError')
-
-    line._var_management = vman
     line.vars['on_x2'] = 234
 
     assert np.isclose(

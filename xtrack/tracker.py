@@ -121,6 +121,8 @@ class Tracker:
             element_names=line.element_names,
             element_s_locations=line.get_s_elements(),
             line_length=line.get_length(),
+            compound_mask=line.get_compound_mask(),
+            element_compound_names=line._get_element_compound_names(),
             kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,
@@ -255,6 +257,10 @@ class Tracker:
     @property
     def _beamstrahlung_model(self):
         return self.line._beamstrahlung_model
+
+    @property
+    def _bhabha_model(self):
+        return self.line._bhabha_model
 
     def _invalidate(self):
         if self.iscollective:
@@ -1250,6 +1256,8 @@ class Tracker:
                 element_names=td_base._element_names,
                 element_s_locations=td_base.element_s_locations,
                 line_length=td_base.line_length,
+                compound_mask=td_base.compound_mask,
+                element_compound_names=td_base.element_compound_names,
                 kernel_element_classes=kernel_element_classes,
                 extra_element_classes=td_base.extra_element_classes,
                 _context=self._context,
