@@ -1245,6 +1245,8 @@ class DipoleEdge(BeamElement):
     ----------
     h : float
         Curvature in 1/m.
+    k : float
+        Strength in 1/m.
     e1 : float
         Face angle in rad.
     hgap : float
@@ -1260,6 +1262,7 @@ class DipoleEdge(BeamElement):
             'r43': xo.Float64,
             'hgap': xo.Float64,
             'h': xo.Float64,
+            'k': xo.Float64,
             'e1': xo.Float64,
             'fint': xo.Float64,
             }
@@ -1273,7 +1276,7 @@ class DipoleEdge(BeamElement):
         'r21': '_r21',
         'r43': '_r43',
         'hgap': '_hgap',
-        'h': '_h',
+        'k': '_k',
         'e1': '_e1',
         'fint': '_fint',
     }
@@ -1282,13 +1285,16 @@ class DipoleEdge(BeamElement):
         self,
         r21=None,
         r43=None,
-        h=None,
+        k=None,
         e1=None,
         hgap=None,
         fint=None,
         mode=None,
         **kwargs
     ):
+
+        if 'h' in kwargs.keys():
+            k = kwargs.pop('h') # For backward compatibility
 
         self.xoinitialize(**kwargs)
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -1300,7 +1306,7 @@ class DipoleEdge(BeamElement):
         # To have them initalized
         self.mode = 0
         self._hgap = (hgap or 0)
-        self._h = (h or 0)
+        self._k = (k or 0)
         self._e1 = (e1 or 0)
         self._fint = (fint or 0)
         self._r21 = (r21 or 0)
@@ -1317,26 +1323,26 @@ class DipoleEdge(BeamElement):
             self._update_r21_r43()
 
     def _update_r21_r43(self):
-        corr = np.float64(2.0) * self.h * self.hgap * self.fint
-        r21 = self.h * np.tan(self.e1)
+        corr = np.float64(2.0) * self.k * self.hgap * self.fint
+        r21 = self.k * np.tan(self.e1)
         temp = corr / np.cos(self.e1) * (
             np.float64(1) + np.sin(self.e1) * np.sin(self.e1))
-        r43 = -self.h * np.tan(self.e1 - temp)
+        r43 = -self.k * np.tan(self.e1 - temp)
         self._r21 = r21
         self._r43 = r43
         self.mode = 0
 
     @property
-    def h(self):
+    def k(self):
         if self.mode == 0:
-            return self._h
+            return self._k
         else:
             raise AttributeError(
-                "`h` is not defined because r21 and r43 were provided directly")
+                "`k` is not defined because r21 and r43 were provided directly")
 
-    @h.setter
-    def h(self, value):
-        self._h = value
+    @k.setter
+    def k(self, value):
+        self._k = value
         self._update_r21_r43()
 
     @property
