@@ -1045,6 +1045,7 @@ class Fringe(BeamElement):
     }
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
         _pkg_root.joinpath('beam_elements/elements_src/fringe.h'),
     ]
 
