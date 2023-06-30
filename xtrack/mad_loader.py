@@ -656,6 +656,7 @@ class MadLoader:
 
     def make_line(self, buffer=None):
         """Create a new line in buffer"""
+
         mad = self.sequence._madx
 
         if buffer is None:
@@ -829,10 +830,6 @@ class MadLoader:
     def _convert_bend(
         self,
         mad_el,
-        enable_entry_edge=True,
-        enable_exit_edge=True,
-        enable_entry_fringe=True,
-        enable_exit_fringe=True,
     ):
         if value_if_expr(mad_el.l) != 0 and self.allow_thick:
             sequence = [self._convert_bend_thick(mad_el)]
