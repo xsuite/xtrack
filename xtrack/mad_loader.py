@@ -570,9 +570,7 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         allow_thick=False,
-        use_true_thick_bends=True,
-        enable_edges=True,
-        enable_fringes=False,
+        dipole_edge_model=None,
         use_compound_elements=True,
     ):
 
@@ -617,10 +615,12 @@ class MadLoader:
         self.ignore_madtypes = ignore_madtypes
 
         self.allow_thick = allow_thick
-        self.use_true_thick_bends = use_true_thick_bends
-        self.enable_edges = enable_edges
-        self.enable_fringes = enable_fringes
         self.use_compound_elements = use_compound_elements
+
+        if dipole_edge_model is None:
+            dipole_edge_model = 'linear'
+        assert dipole_edge_model in ['linear', 'full', 'suppress']
+        self.dipole_edge_model = dipole_edge_model
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
@@ -844,50 +844,51 @@ class MadLoader:
             k0 = mad_el.k0
 
         # Add edge elements if enabled
-        if self.enable_edges and mad_el.type == 'rbend':
-            # For the rbend edge import we assume flat edge faces
-            dipedge_entry = self.Builder(
-                mad_el.name + "_den",
-                self.classes.DipoleEdge,
-                r21=h * self.math.tan(0.5 * k0 * l),
-                r43=-k0 * self.math.tan(0.5 * k0 * l),
-            )
-            sequence = [dipedge_entry] + sequence
-        elif self.enable_edges and mad_el.type == 'sbend':
-            # For the sbend edge import we assume k0l = angle
-            dipedge_entry = self.Builder(
-                mad_el.name + "_den",
-                self.classes.DipoleEdge,
-                e1=mad_el.e1,
-                fint=mad_el.fint,
-                hgap=mad_el.hgap,
-                h=k0
-            )
-            sequence = [dipedge_entry] + sequence
+        if self.dipole_edge_model == 'linear':
+            if mad_el.type == 'rbend':
+                # For the rbend edge import we assume flat edge faces
+                dipedge_entry = self.Builder(
+                    mad_el.name + "_den",
+                    self.classes.DipoleEdge,
+                    r21=h * self.math.tan(0.5 * k0 * l),
+                    r43=-k0 * self.math.tan(0.5 * k0 * l),
+                )
+                sequence = [dipedge_entry] + sequence
+            elif mad_el.type == 'sbend':
+                # For the sbend edge import we assume k0l = angle
+                dipedge_entry = self.Builder(
+                    mad_el.name + "_den",
+                    self.classes.DipoleEdge,
+                    e1=mad_el.e1,
+                    fint=mad_el.fint,
+                    hgap=mad_el.hgap,
+                    h=k0
+                )
+                sequence = [dipedge_entry] + sequence
 
-        if self.enable_edges and mad_el.type == 'rbend':
-            # For the rbend edge import we assume flat edge faces
-            dipedge_exit = self.Builder(
-                mad_el.name + "_dex",
-                self.classes.DipoleEdge,
-                r21=h * self.math.tan(0.5 * k0 * l),
-                r43=-k0 * self.math.tan(0.5 * k0 * l),
-            )
-            sequence = sequence + [dipedge_exit]
-        elif self.enable_edges and mad_el.type == 'sbend':
-            # For the sbend edge import we assume k0l = angle
-            dipedge_exit = self.Builder(
-                mad_el.name + "_dex",
-                self.classes.DipoleEdge,
-                e1=mad_el.e2,
-                fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
-                hgap=mad_el.hgap,
-                h=k0
-            )
-            sequence = sequence + [dipedge_exit]
+            if mad_el.type == 'rbend':
+                # For the rbend edge import we assume flat edge faces
+                dipedge_exit = self.Builder(
+                    mad_el.name + "_dex",
+                    self.classes.DipoleEdge,
+                    r21=h * self.math.tan(0.5 * k0 * l),
+                    r43=-k0 * self.math.tan(0.5 * k0 * l),
+                )
+                sequence = sequence + [dipedge_exit]
+            elif mad_el.type == 'sbend':
+                # For the sbend edge import we assume k0l = angle
+                dipedge_exit = self.Builder(
+                    mad_el.name + "_dex",
+                    self.classes.DipoleEdge,
+                    e1=mad_el.e2,
+                    fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
+                    hgap=mad_el.hgap,
+                    h=k0
+                )
+                sequence = sequence + [dipedge_exit]
 
-        # Add fringes if enabled
-        if self.enable_fringes:
+        elif self.dipole_edge_model == 'full':
+
             rotation_entry = self.Builder(
                 mad_el.name + "_yrot_entry",
                 self.classes.YRotation,
@@ -908,7 +909,6 @@ class MadLoader:
             )
             sequence = [rotation_entry, fringe_entry, wedge_entry] + sequence
 
-        if self.enable_fringes:
             wedge_exit = self.Builder(
                 mad_el.name + "_wedge_exit",
                 self.classes.Wedge,
@@ -933,7 +933,7 @@ class MadLoader:
         return self.make_compound_elem(sequence, mad_el)
 
     def _convert_bend_thin(self, mad_el):
-        self._assert_element_is_thin(mad_el)
+        self_assert_element_is_thin(mad_el)
 
         if nonzero_or_expr(mad_el.angle):
             hxl = mad_el.angle

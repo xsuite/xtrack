@@ -394,8 +394,7 @@ class Line:
         classes=(),
         ignored_madtypes=(),
         allow_thick=False,
-        enable_edges=True,
-        enable_fringes=False,
+        dipole_edge_model='linear',
         use_compound_elements=True,
     ):
 
@@ -436,10 +435,8 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
-        enable_edges : bool, optional
-            If true, edge effects are enabled for all elements.
-        enable_fringes : bool, optional
-            If true, fringe fields are enabled for all elements.
+        dipole_edge_model : str, optional
+            It can be 'linear', 'full' or 'suppress'. Default is 'linear'.
         use_compound_elements : bool, optional
             If true, elements that are one element in madx but multiple elements
             in xtrack will be grouped together with a marker attached in front,
@@ -471,8 +468,7 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
-            enable_edges=enable_edges,
-            enable_fringes=enable_fringes,
+            dipole_edge_model=dipole_edge_model,
             use_compound_elements=use_compound_elements,
         )
         line = loader.make_line()

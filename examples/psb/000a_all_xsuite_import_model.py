@@ -41,8 +41,7 @@ line = xt.Line.from_madx_sequence(
     allow_thick=True,
     enable_align_errors=True,
     deferred_expressions=True,
-    enable_edges=False,
-    enable_fringes=True,
+    dipole_edge_model='full'
 )
 
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
