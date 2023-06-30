@@ -1071,6 +1071,7 @@ class Wedge(BeamElement):
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
         _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
     ]
 
