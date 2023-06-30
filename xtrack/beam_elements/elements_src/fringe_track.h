@@ -11,8 +11,8 @@
 #define POW4(X) ((X)*(X)*(X)*(X))
 
 
-
-// From MAD-NG, refactored from PTC: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/master/libs/ptc/src/Sh_def_kind.f90#L4936
+// From MAD-NG:
+// https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
 
 /*gpufun*/
 void MadNG_Fringe_single_particle(
