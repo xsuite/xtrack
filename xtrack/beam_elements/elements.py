@@ -1261,9 +1261,9 @@ class DipoleEdge(BeamElement):
             'r21': xo.Float64,
             'r43': xo.Float64,
             'hgap': xo.Float64,
-            'h': xo.Float64,
             'k': xo.Float64,
             'e1': xo.Float64,
+            'e1_fd': xo.Float64,
             'fint': xo.Float64,
             }
 
@@ -1278,6 +1278,7 @@ class DipoleEdge(BeamElement):
         'hgap': '_hgap',
         'k': '_k',
         'e1': '_e1',
+        'e1_fd': '_e1_fd',
         'fint': '_fint',
     }
 
@@ -1286,15 +1287,14 @@ class DipoleEdge(BeamElement):
         r21=None,
         r43=None,
         k=None,
+        h=None,
         e1=None,
+        e1_fd=None,
         hgap=None,
         fint=None,
         mode=None,
         **kwargs
     ):
-
-        if 'h' in kwargs.keys():
-            k = kwargs.pop('h') # For backward compatibility
 
         self.xoinitialize(**kwargs)
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -1307,7 +1307,9 @@ class DipoleEdge(BeamElement):
         self.mode = 0
         self._hgap = (hgap or 0)
         self._k = (k or 0)
+        self._h = (h or 0)
         self._e1 = (e1 or 0)
+        self._e1_fd = (e1_fd or 0)
         self._fint = (fint or 0)
         self._r21 = (r21 or 0)
         self._r43 = (r43 or 0)
@@ -1325,9 +1327,10 @@ class DipoleEdge(BeamElement):
     def _update_r21_r43(self):
         corr = np.float64(2.0) * self.k * self.hgap * self.fint
         r21 = self.k * np.tan(self.e1)
-        temp = corr / np.cos(self.e1) * (
-            np.float64(1) + np.sin(self.e1) * np.sin(self.e1))
-        r43 = -self.k * np.tan(self.e1 - temp)
+        e1_v = self.e1 + self.e1_fd
+        temp = corr / np.cos(e1_v) * (
+            np.float64(1) + np.sin(e1_v) * np.sin(e1_v))
+        r43 = -self.k * np.tan(e1_v - temp)
         self._r21 = r21
         self._r43 = r43
         self.mode = 0
@@ -1356,6 +1359,19 @@ class DipoleEdge(BeamElement):
     @e1.setter
     def e1(self, value):
         self._e1 = value
+        self._update_r21_r43()
+
+    @property
+    def e1_fd(self):
+        if self.mode == 0:
+            return self._e1_fd
+        else:
+            raise ValueError(
+                "`e1_fd` is not defined because r21 and r43 were provided directly")
+
+    @e1_fd.setter
+    def e1_fd(self, value):
+        self._e1_fd = value
         self._update_r21_r43()
 
     @property

@@ -847,11 +847,21 @@ class MadLoader:
         if self.dipole_edge_model == 'linear':
             if mad_el.type == 'rbend':
                 # For the rbend edge import we assume flat edge faces
+                # dipedge_entry = self.Builder(
+                #     mad_el.name + "_den",
+                #     self.classes.DipoleEdge,
+                #     r21=h * self.math.tan(0.5 * k0 * l),
+                #     r43=-k0 * self.math.tan(0.5 * k0 * l),
+                # )
                 dipedge_entry = self.Builder(
                     mad_el.name + "_den",
                     self.classes.DipoleEdge,
-                    r21=h * self.math.tan(0.5 * k0 * l),
-                    r43=-k0 * self.math.tan(0.5 * k0 * l),
+                    e1=mad_el.e1,
+                    e1_fd = (k0 - h) * l / 2,
+                    fint=mad_el.fint,
+                    hgap=mad_el.hgap,
+                    k=k0,
+                    h=h
                 )
                 sequence = [dipedge_entry] + sequence
             elif mad_el.type == 'sbend':
@@ -862,7 +872,8 @@ class MadLoader:
                     e1=mad_el.e1,
                     fint=mad_el.fint,
                     hgap=mad_el.hgap,
-                    k=k0
+                    k=k0,
+                    h=h
                 )
                 sequence = [dipedge_entry] + sequence
 
