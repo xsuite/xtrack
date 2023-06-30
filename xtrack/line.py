@@ -1641,6 +1641,10 @@ class Line:
     def get_compound_mask(self):
         return [self.is_top_level_element(name) for name in self.element_names]
 
+    def _get_element_compound_names(self):
+        return [self._compound_for_element[name] if name in self._compound_for_element else name
+                for name in self.element_names]
+
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
         Return a new line with only the elements satisfying a given condition.
@@ -1989,6 +1993,7 @@ class Line:
         self._var_management = None # Disable expressions
 
         buffer = self._buffer
+        io_buffer = self.tracker.io_buffer
 
         # Unfreeze the line
         self.discard_tracker()
@@ -2024,7 +2029,7 @@ class Line:
         self.use_simple_quadrupoles()
 
         if verbose: _print("Rebuild tracker data")
-        self.build_tracker(_buffer=buffer)
+        self.build_tracker(_buffer=buffer, io_buffer=io_buffer)
 
         self.use_prebuilt_kernels = False
 
@@ -3243,6 +3248,18 @@ class LineVars:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
         return key in self.line._xdeps_vref._owner
+
+    def get_independent_vars(self):
+
+        """
+        Returns the list of independent variables in the line.
+        """
+
+        out = []
+        for kk in self.keys():
+            if self[kk]._expr is None:
+                out.append(kk)
+        return out
 
     def _setter_from_cache(self, varname):
         if varname not in self._cached_setters:

@@ -4,6 +4,7 @@
 # ######################################### #
 
 import numpy as np
+import json
 
 import xtrack as xt
 import xpart as xp
@@ -90,6 +91,7 @@ def test_record_single_table(test_context):
     part = xp.Particles(_context=test_context, p0c=6.5e12, x=[1e-3,2e-3,3e-3])
     num_turns0 = 10
     num_turns1 = 3
+    line.optimize_for_tracking()
     line.track(part, num_turns=num_turns0)
     line.track(part, num_turns=num_turns1)
 
@@ -187,6 +189,94 @@ def test_record_single_table(test_context):
     for i_turn in range(num_turns):
         assert np.sum((record.at_turn[:num_recorded] == i_turn)) == (num_particles
                                                             * (n_kicks0 + n_kicks1))
+
+
+@for_all_test_contexts
+def test_record_with_twiss(test_context):
+    class TestElementRecord(xo.HybridClass):
+        _xofields = {
+            '_index': xt.RecordIndex,
+            'generated_rr': xo.Float64[:],
+            'at_element': xo.Int64[:],
+            'at_turn': xo.Int64[:],
+            'particle_id': xo.Int64[:]
+            }
+
+    extra_src = []
+
+    extra_src.append(r'''
+        /*gpufun*/
+        void TestElement_track_local_particle(TestElementData el, LocalParticle* part0){
+
+            // Extract the record and record_index
+            TestElementRecordData record = TestElementData_getp_internal_record(el, part0);
+            RecordIndex record_index = NULL;
+            if (record){
+                record_index = TestElementRecordData_getp__index(record);
+            }
+
+            int64_t n_kicks = TestElementData_get_n_kicks(el);
+            //printf("n_kicks %d\n", (int)n_kicks);
+
+            //start_per_particle_block (part0->part)
+
+                for (int64_t i = 0; i < n_kicks; i++) {
+                    // We don't apply the kick, otherwise the twiss fails
+                    double rr = 1e-6 * RandomUniform_generate(part);
+
+                    if (record){
+                        // Get a slot in the record (this is thread safe)
+                        int64_t i_slot = RecordIndex_get_slot(record_index);
+                        // The returned slot id is negative if record is NULL or if record is full
+
+                        if (i_slot>=0){
+                            TestElementRecordData_set_at_element(record, i_slot,
+                                                        LocalParticle_get_at_element(part));
+                            TestElementRecordData_set_at_turn(record, i_slot,
+                                                        LocalParticle_get_at_turn(part));
+                            TestElementRecordData_set_particle_id(record, i_slot,
+                                                        LocalParticle_get_particle_id(part));
+                            TestElementRecordData_set_generated_rr(record, i_slot, rr);
+                        }
+                    }
+                }
+
+
+            //end_per_particle_block
+        }
+        ''')
+
+    class TestElement(xt.BeamElement):
+        _xofields={
+            'n_kicks': xo.Int64,
+            }
+
+        _internal_record_class = TestElementRecord
+
+        _depends_on = [xt.RandomUniform]
+
+        _extra_c_sources = extra_src
+
+    n_kicks0 = 5
+    n_kicks1 = 3
+
+    path_line_particles = xt._pkg_root.parent / 'test_data' / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(path_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data['line'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+    line.insert_element(element=TestElement(n_kicks=n_kicks0), name='test0', at_s=line.get_s_position('ip1'))
+    line.insert_element(element=TestElement(n_kicks=n_kicks1), name='test1', at_s=line.get_s_position('ip5'))
+
+    line._needs_rng = True
+    line.build_tracker(_context=test_context)
+    record = line.start_internal_logging_for_elements_of_type(
+                                                        TestElement, capacity=10000)
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=6.5e12)
+    io_buffer = line.tracker.io_buffer
+    line.twiss(at_s=np.linspace(0, line.get_length(), 500))
+    
 
 
 @for_all_test_contexts

@@ -426,6 +426,7 @@ def twiss_line(line, particle_ref=None, method=None,
         zeta_disp=zeta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
+        group_compound_elements=group_compound_elements,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
@@ -461,7 +462,9 @@ def twiss_line(line, particle_ref=None, method=None,
             delta_disp=delta_disp,
             zeta_disp=zeta_disp,
             ele_start=ele_start,
-            ele_stop=ele_stop)
+            ele_stop=ele_stop,
+            hide_thin_groups=hide_thin_groups,
+            group_compound_elements=group_compound_elements)
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -516,14 +519,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
             twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
 
-    if group_compound_elements:
-        _data = twiss_res._data
-        compound_mask = np.zeros_like(twiss_res.s, dtype=bool)
-        compound_mask[-1] = True
-        compound_mask[:-1] = line.tracker._tracker_data_base.compound_mask
-        for kk in twiss_res._col_names:
-            _data[kk] = _data[kk][compound_mask]
-        twiss_res = TwissTable(_data, col_names=twiss_res._col_names)
+
 
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
@@ -536,6 +532,7 @@ def _twiss_open(line, twiss_init,
                       delta_disp, zeta_disp,
                       use_full_inverse,
                       hide_thin_groups=False,
+                      group_compound_elements=False,
                       _continue_if_lost=False,
                       _keep_tracking_data=False,
                       _keep_initial_particles=False,
@@ -720,6 +717,21 @@ def _twiss_open(line, twiss_init,
             twiss_res_element_by_element[key][i_replace] = np.nan
 
     twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
+
+    if group_compound_elements:
+        compound_mask = np.zeros_like(twiss_res_element_by_element['s'], dtype=bool)
+        n_mask = len(compound_mask)
+        compound_mask[-1] = True
+        compound_mask[:-1] = (
+            line.tracker._tracker_data_base.compound_mask[i_start:i_start+n_mask-1])
+        for kk in list(twiss_res_element_by_element.keys()):
+            twiss_res_element_by_element[kk] = (
+                twiss_res_element_by_element[kk][compound_mask])
+
+        ## To use the name of the compounds (not done for now)
+        # twiss_res_element_by_element['name'][:-1] = (
+        #     line.tracker._tracker_data_base.element_compound_names[
+        #         i_start:i_stop+1][compound_mask[:-1]])
 
     twiss_res = TwissTable(data=twiss_res_element_by_element)
     twiss_res._data.update(extra_data)
@@ -908,7 +920,9 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                     method='6d', use_full_inverse=False,
                     nemitt_x=None, nemitt_y=None,
                     r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
-                    ele_start=None, ele_stop=None):
+                    ele_start=None, ele_stop=None,
+                    hide_thin_groups=False,
+                    group_compound_elements=False):
 
     tw_chrom_res = []
     for dd in [-delta_chrom, delta_chrom]:
@@ -947,7 +961,8 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                 delta_disp=delta_disp,
                 zeta_disp=zeta_disp,
                 use_full_inverse=use_full_inverse,
-                hide_thin_groups=False,
+                hide_thin_groups=hide_thin_groups,
+                group_compound_elements=group_compound_elements,
                 _continue_if_lost=False,
                 _keep_tracking_data=False,
                 _keep_initial_particles=False,
@@ -1392,6 +1407,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     auxtracker = xt.Tracker(
         _buffer=tracker._buffer,
+        io_buffer=tracker.io_buffer,
         line=auxline,
         track_kernel=tracker.track_kernel,
         particles_class=tracker.particles_class,
