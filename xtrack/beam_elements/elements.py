@@ -1259,7 +1259,7 @@ class DipoleEdge(BeamElement):
     '''
 
     _xofields = {
-            'mode': xo.Int64,
+            '_linear_mode': xo.Int64,
             'r21': xo.Float64,
             'r43': xo.Float64,
             'hgap': xo.Float64,
@@ -1267,9 +1267,14 @@ class DipoleEdge(BeamElement):
             'e1': xo.Float64,
             'e1_fd': xo.Float64,
             'fint': xo.Float64,
+            'model': xo.Int64,
+            'side': xo.Int64,
             }
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
 
     has_backtrack = True
@@ -1282,6 +1287,8 @@ class DipoleEdge(BeamElement):
         'e1': '_e1',
         'e1_fd': '_e1_fd',
         'fint': '_fint',
+        'model': '_model',
+        'side': '_side',
     }
 
     def __init__(
@@ -1294,7 +1301,9 @@ class DipoleEdge(BeamElement):
         e1_fd=None,
         hgap=None,
         fint=None,
-        mode=None,
+        model=None,
+        side=None,
+        _linear_mode=None,
         **kwargs
     ):
 
@@ -1306,7 +1315,7 @@ class DipoleEdge(BeamElement):
             return
 
         # To have them initalized
-        self.mode = 0
+        self._linear_mode = 0
         self._hgap = (hgap or 0)
         self._k = (k or 0)
         self._h = (h or 0)
@@ -1315,15 +1324,19 @@ class DipoleEdge(BeamElement):
         self._fint = (fint or 0)
         self._r21 = (r21 or 0)
         self._r43 = (r43 or 0)
+        self._side = (side or 0)
 
-        if mode is not None:
-            self.mode = mode
+        self.model = (model or 'linear')
+
+        # _linear_mode is set to 0 if r21 and r43 are given directly
+        if _linear_mode is not None:
+            self._linear_mode = _linear_mode
         elif r21 is not None or r43 is not None:
-            self.mode = 1
+            self._linear_mode = 1
         else:
-            self.mode = 0
+            self._linear_mode = 0
 
-        if self.mode == 0:
+        if self._linear_mode == 0:
             self._update_r21_r43()
 
     def _update_r21_r43(self):
@@ -1335,11 +1348,11 @@ class DipoleEdge(BeamElement):
         r43 = -self.k * np.tan(e1_v - temp)
         self._r21 = r21
         self._r43 = r43
-        self.mode = 0
+        self._linear_mode = 0
 
     @property
     def k(self):
-        if self.mode == 0:
+        if self._linear_mode == 0:
             return self._k
         else:
             raise AttributeError(
@@ -1352,7 +1365,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def e1(self):
-        if self.mode == 0:
+        if self._linear_mode == 0:
             return self._e1
         else:
             raise ValueError(
@@ -1365,7 +1378,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def e1_fd(self):
-        if self.mode == 0:
+        if self._linear_mode == 0:
             return self._e1_fd
         else:
             raise ValueError(
@@ -1378,7 +1391,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def hgap(self):
-        if self.mode == 0:
+        if self._linear_mode == 0:
             return self._hgap
         else:
             raise ValueError(
@@ -1391,7 +1404,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def fint(self):
-        if self.mode == 0:
+        if self._linear_mode == 0:
             return self._fint
         else:
             raise ValueError(
@@ -1409,7 +1422,7 @@ class DipoleEdge(BeamElement):
     @r21.setter
     def r21(self, value):
         self._r21 = value
-        self.mode = 1
+        self._linear_mode = 1
 
     @property
     def r43(self):
@@ -1418,8 +1431,39 @@ class DipoleEdge(BeamElement):
     @r43.setter
     def r43(self, value):
         self._r43 = value
-        self.mode = 1
+        self._linear_mode = 1
 
+    @property
+    def model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._model]
+
+    @model.setter
+    def model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
+        }[value]
+
+    @property
+    def side(self):
+        return {
+            0: 'entry',
+            1: 'exit',
+        }[self._side]
+
+    @side.setter
+    def side(self, value):
+        assert value in ['entry', 'exit']
+        self._side = {
+            'entry': 0,
+            'exit': 1,
+        }[value]
 
 class LineSegmentMap(BeamElement):
 
