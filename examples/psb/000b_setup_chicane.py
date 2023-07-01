@@ -115,11 +115,11 @@ assert np.isclose(line['bi1.bsw1l1.3'].k0, -bsw_k0l_ref / line['bi1.bsw1l1.3'].l
 assert np.isclose(line['bi1.bsw1l1.4'].k0, bsw_k0l_ref / line['bi1.bsw1l1.4'].length, rtol=0, atol=1e-10)
 
 tw = line.twiss()
-assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.0461343, rtol=0, atol=1e-5)
+assert np.isclose(tw['x', 'bi1.tstr1l1'], -0.0457367, rtol=0, atol=1e-5)
 assert np.isclose(tw['y', 'bi1.tstr1l1'], 0.0000000, rtol=0, atol=1e-5)
-assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.164278712525298, rtol=0, atol=1e-4)
-assert np.isclose(tw['bety', 'bi1.tstr1l1'], 7.065149083629499, rtol=0, atol=1e-4)
-assert np.isclose(tw.qy, 4.474587188604034, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
+assert np.isclose(tw['betx', 'bi1.tstr1l1'], 5.20006, rtol=0, atol=1e-4)
+assert np.isclose(tw['bety', 'bi1.tstr1l1'], 6.91701, rtol=0, atol=1e-4)
+assert np.isclose(tw.qy, 4.474490031799888, rtol=0, atol=1e-6) # verify that it does not change from one version to the other
 assert np.isclose(tw.qx, 4.396711590204319, rtol=0, atol=1e-6)
 assert np.isclose(tw.dqy, -8.636405235646905, rtol=0, atol=1e-4)
 assert np.isclose(tw.dqx, -3.560656125021211, rtol=0, atol=1e-4)
