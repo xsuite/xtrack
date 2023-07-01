@@ -1854,7 +1854,7 @@ class Line:
 
         for ee in self.elements:
             if isinstance(ee, xt.Bend):
-                ee.method = {'expanded': 0, 'full': 1}[core]
+                ee.model = {'expanded': 0, 'full': 1}[core]
 
             if isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
