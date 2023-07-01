@@ -1851,6 +1851,13 @@ class Line:
             if isinstance(ee, xt.Bend):
                 ee.method = {'expanded': 0, 'full': 1}[method]
 
+    def configure_dipole_edge_model(self, model):
+
+        assert model in ('linear', 'full', 'suppressed')
+
+        for ee in self.elements:
+            if isinstance(ee, xt.DipoleEdge):
+                ee.model = model
 
     def configure_radiation(self, model=None, model_beamstrahlung=None, 
                             model_bhabha=None, mode='deprecated'):

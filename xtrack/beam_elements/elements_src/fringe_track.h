@@ -196,7 +196,11 @@ void MadNG_Fringe_single_particle(
 //         const double hgap,    // Half gap
 //         const double k0       // Dipole strength
 // ) {
-
+//
+//     if (fabs(k0) < 10e-10) {
+//         return;
+//     }
+//
 //     const double rvv = LocalParticle_get_rvv(part);
 //     // Particle coordinates
 //     const double y = LocalParticle_get_y(part);
