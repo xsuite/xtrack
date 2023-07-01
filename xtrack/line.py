@@ -1830,36 +1830,36 @@ class Line:
             self.config[f'FREEZE_VAR_{name}'] = False
 
 
-    def configure_bend_method(self, method='expanded'):
+    def configure_bend_model(self, core='expanded', edge='linear'):
 
         """
         Configure the method used to track bends.
 
         Parameters
         ----------
-        method: str
-            Method to use. Can be 'expanded' or 'full'. Default is 'expanded',
-            which is more appropriate for large accelerators (i.e. bends with
-            small bending angles).
-
+        core: str
+            Medel to be used for the thick bend cores. Can be 'expanded' or '
+            full'. Default is 'expanded', which is more appropriate for
+            large accelerators (i.e. bends with small bending angles).
+        edge: str
+            Model to be used for the bend edges. Can be 'linear', 'full'
+            or 'suppressed'. Default is 'linear'.
         """
 
-        if method not in ['expanded', 'full']:
-            raise ValueError(f'Unknown bend method {method}')
+        if core not in ['expanded', 'full']:
+            raise ValueError(f'Unknown bend model {core}')
+
+        if edge not in ['linear', 'full', 'suppressed']:
+            raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
             if isinstance(ee, xt.Bend):
-                ee.method = {'expanded': 0, 'full': 1}[method]
+                ee.method = {'expanded': 0, 'full': 1}[core]
 
-    def configure_dipole_edge_model(self, model):
-
-        assert model in ('linear', 'full', 'suppressed')
-
-        for ee in self.elements:
             if isinstance(ee, xt.DipoleEdge):
-                ee.model = model
+                ee.model = edge
 
-    def configure_radiation(self, model=None, model_beamstrahlung=None, 
+    def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
 
         """

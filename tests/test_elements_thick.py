@@ -91,7 +91,7 @@ def test_thick_bend_survey():
 
     p0 = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV, x=0.7, px=-0.4, delta=0.0)
 
-    el = xt.Bend(k0=k, h=h, length=circumference, num_multipole_kicks=0, method=1)
+    el = xt.Bend(k0=k, h=h, length=circumference, num_multipole_kicks=0, model=1)
     line = xt.Line(elements=[el])
     line.reset_s_at_end_turn = False
     line.build_tracker()
@@ -232,15 +232,15 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
         deferred_expressions=with_knobs,
         allow_thick=True,
     )
-    line.configure_bend_method({False: 'expanded', True: 'full'}[
-                                use_true_thick_bends])
+    line.configure_bend_model(core={False: 'expanded', True: 'full'}[
+                              use_true_thick_bends])
 
     elem_den = line['elem_den']
     elem = line['elem']
     elem_dex = line['elem_dex']
 
     # Check that the line has correct values to start with
-    assert elem.method == {False: 0, True: 1}[use_true_thick_bends]
+    assert elem.model == {False: 0, True: 1}[use_true_thick_bends]
     assert isinstance(elem_den, xt.DipoleEdge)
     assert isinstance(elem_dex, xt.DipoleEdge)
 

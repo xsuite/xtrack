@@ -184,12 +184,10 @@ for ii, (qx, qy) in enumerate(zip(qx_test, qy_test)):
         allow_thick=True,
         apply_madx_errors=True,
         deferred_expressions=True,
-        enable_edges=True,
-        enable_fringes=False,
     )
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                                 gamma0=mad.sequence.psb1.beam.gamma)
-    line.configure_bend_method('full')
+    line.configure_bend_model(core='full', edge='full')
     line.build_tracker()
     line.to_json('psb_with_chicane.json')
 

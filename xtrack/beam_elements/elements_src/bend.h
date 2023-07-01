@@ -25,9 +25,9 @@ void Bend_track_local_particle(
     const double slice_length = length / (num_multipole_kicks + 1);
     const double kick_weight = 1. / num_multipole_kicks;
 
-    const int64_t method = BendData_get_method(el);
+    const int64_t model = BendData_get_model(el);
 
-    if (method == 0){
+    if (model == 0){
             //start_per_particle_block (part0->part)
             track_thick_cfd(part, slice_length, k0, 0, h);
 
