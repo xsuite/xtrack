@@ -1324,9 +1324,9 @@ class DipoleEdge(BeamElement):
         self._fint = (fint or 0)
         self._r21 = (r21 or 0)
         self._r43 = (r43 or 0)
-        self._side = (side or 0)
 
         self.model = (model or 'linear')
+        self.side = (side or 'entry')
 
         # _linear_mode is set to 0 if r21 and r43 are given directly
         if _linear_mode is not None:

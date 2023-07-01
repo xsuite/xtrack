@@ -864,7 +864,8 @@ class MadLoader:
                     fint=mad_el.fint,
                     hgap=mad_el.hgap,
                     k=k0,
-                    h=h
+                    h=h,
+                    side='entry'
                 )
                 sequence = [dipedge_entry] + sequence
 
@@ -876,7 +877,8 @@ class MadLoader:
                     e1_fd = (k0 - h) * l / 2,
                     fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
                     hgap=mad_el.hgap,
-                    k=k0
+                    k=k0,
+                    side='exit'
                 )
                 sequence = sequence + [dipedge_exit]
 
