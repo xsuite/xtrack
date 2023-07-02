@@ -48,10 +48,16 @@ ang = line['mbb.10150'].k0 * line['mbb.10150'].length
 assert np.isclose(line['mbb.10150_den'].e1, ang / 2, atol=1e-11, rtol=0)
 assert np.isclose(line['mbb.10150_dex'].e1, ang / 2, atol=1e-11, rtol=0)
 
-tw0 = line.twiss()
-assert np.isclose(twmad.s[-1], tw0.s[-1], atol=1e-11, rtol=0)
+tw = line.twiss()
+assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
+assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
+assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
+assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
+assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
 
 line.configure_bend_model(edge='full', core='full')
+
+tw = line.twiss()
 
 assert line['mbb.10150_den'].model == 'full'
 assert line['mbb.10150_den'].side == 'entry'
@@ -61,5 +67,48 @@ assert line['mbb.10150_den']._linear_mode == 0
 assert line['mbb.10150_dex']._linear_mode == 0
 assert line['mbb.10150'].model == 'full'
 
-tw1 = line.twiss()
+assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
+assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
+assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
+assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.01)
+assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.01)
+
+line.configure_bend_model(core='expanded')
+
+tw = line.twiss()
+
+assert line['mbb.10150_den'].model == 'full'
+assert line['mbb.10150_den'].side == 'entry'
+assert line['mbb.10150_dex'].model == 'full'
+assert line['mbb.10150_dex'].side == 'exit'
+assert line['mbb.10150_den']._linear_mode == 0
+assert line['mbb.10150_dex']._linear_mode == 0
+assert line['mbb.10150'].model == 'expanded'
+
+assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
+assert np.isclose(twmad.summary.q1, tw.qx, rtol=0, atol=1e-7)
+assert np.isclose(twmad.summary.q2, tw.qy, rtol=0, atol=1e-7)
+assert np.isclose(twmad.summary.dq1, tw.dqx, rtol=0, atol=0.2)
+assert np.isclose(twmad.summary.dq2, tw.dqy, rtol=0, atol=0.2)
+
+line.configure_bend_model(edge='linear')
+
+assert line['mbb.10150_den'].model == 'linear'
+assert line['mbb.10150_den'].side == 'entry'
+assert line['mbb.10150_dex'].model == 'linear'
+assert line['mbb.10150_dex'].side == 'exit'
+assert line['mbb.10150_den']._linear_mode == 0
+assert line['mbb.10150_dex']._linear_mode == 0
+assert line['mbb.10150'].model == 'expanded'
+
+line.configure_bend_model(core='full')
+line.configure_bend_model(edge='full')
+
+assert line['mbb.10150_den'].model == 'full'
+assert line['mbb.10150_den'].side == 'entry'
+assert line['mbb.10150_dex'].model == 'full'
+assert line['mbb.10150_dex'].side == 'exit'
+assert line['mbb.10150_den']._linear_mode == 0
+assert line['mbb.10150_dex']._linear_mode == 0
+assert line['mbb.10150'].model == 'full'
 
