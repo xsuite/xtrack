@@ -570,7 +570,6 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         allow_thick=False,
-        dipole_edge_model=None,
         use_compound_elements=True,
     ):
 
@@ -616,11 +615,6 @@ class MadLoader:
 
         self.allow_thick = allow_thick
         self.use_compound_elements = use_compound_elements
-
-        if dipole_edge_model is None:
-            dipole_edge_model = 'linear'
-        assert dipole_edge_model in ['linear', 'full', 'suppress']
-        self.dipole_edge_model = dipole_edge_model
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
@@ -854,76 +848,31 @@ class MadLoader:
                 f'Unknown bend type {mad_el.type}.'
             )
 
-        # Add edge elements if enabled
-        if self.dipole_edge_model == 'linear':
-                dipedge_entry = self.Builder(
-                    mad_el.name + "_den",
-                    self.classes.DipoleEdge,
-                    e1=e1,
-                    e1_fd = (k0 - h) * l / 2,
-                    fint=mad_el.fint,
-                    hgap=mad_el.hgap,
-                    k=k0,
-                    h=h,
-                    side='entry'
-                )
-                sequence = [dipedge_entry] + sequence
+        dipedge_entry = self.Builder(
+            mad_el.name + "_den",
+            self.classes.DipoleEdge,
+            e1=e1,
+            e1_fd = (k0 - h) * l / 2,
+            fint=mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            h=h,
+            side='entry'
+        )
+        sequence = [dipedge_entry] + sequence
 
-                # For the sbend edge import we assume k0l = angle
-                dipedge_exit = self.Builder(
-                    mad_el.name + "_dex",
-                    self.classes.DipoleEdge,
-                    e1=e2,
-                    e1_fd = (k0 - h) * l / 2,
-                    fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
-                    hgap=mad_el.hgap,
-                    k=k0,
-                    side='exit'
-                )
-                sequence = sequence + [dipedge_exit]
-
-        elif self.dipole_edge_model == 'full':
-
-            rotation_entry = self.Builder(
-                mad_el.name + "_yrot_entry",
-                self.classes.YRotation,
-                angle=-rad2deg(mad_el.e1),
-            )
-            fringe_entry = self.Builder(
-                mad_el.name + "_fringe_entry",
-                self.classes.Fringe,
-                fint=mad_el.fint,
-                hgap=mad_el.hgap,
-                k=k0,
-            )
-            wedge_entry = self.Builder(
-                mad_el.name + "_wedge_entry",
-                self.classes.Wedge,
-                angle=-mad_el.e1,
-                k=k0,
-            )
-            sequence = [rotation_entry, fringe_entry, wedge_entry] + sequence
-
-            wedge_exit = self.Builder(
-                mad_el.name + "_wedge_exit",
-                self.classes.Wedge,
-                angle=-mad_el.e2,
-                k=k0,
-            )
-
-            fringe_exit = self.Builder(
-                mad_el.name + "_fringe_exit",
-                self.classes.Fringe,
-                fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
-                hgap=mad_el.hgap,
-                k=-k0,
-            )
-            rotation_exit = self.Builder(
-                mad_el.name + "_yrot_exit",
-                self.classes.YRotation,
-                angle=-rad2deg(mad_el.e2),
-            )
-            sequence = sequence + [wedge_exit, fringe_exit, rotation_exit]
+        # For the sbend edge import we assume k0l = angle
+        dipedge_exit = self.Builder(
+            mad_el.name + "_dex",
+            self.classes.DipoleEdge,
+            e1=e2,
+            e1_fd = (k0 - h) * l / 2,
+            fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            side='exit'
+        )
+        sequence = sequence + [dipedge_exit]
 
         return self.make_compound_elem(sequence, mad_el)
 

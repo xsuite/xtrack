@@ -394,7 +394,6 @@ class Line:
         classes=(),
         ignored_madtypes=(),
         allow_thick=False,
-        dipole_edge_model='linear',
         use_compound_elements=True,
     ):
 
@@ -468,7 +467,6 @@ class Line:
             error_table=None,  # not implemented yet
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
-            dipole_edge_model=dipole_edge_model,
             use_compound_elements=use_compound_elements,
         )
         line = loader.make_line()
