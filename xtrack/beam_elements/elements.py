@@ -931,6 +931,7 @@ class Bend(BeamElement):
 
     _rename = {
         'order': '_order',
+        'model': '_model'
     }
 
     _extra_c_sources = [
@@ -945,6 +946,8 @@ class Bend(BeamElement):
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
+        model = kwargs.pop('model', None)
+
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
         order_from_kl = max(len(knl), len(ksl)) - 1
@@ -956,11 +959,25 @@ class Bend(BeamElement):
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
 
-        kwargs['model'] = kwargs.get('model', 0)
-
         self.xoinitialize(**kwargs)
 
+        self.model = (model or 'expanded')
         self.order = order
+
+    @property
+    def model(self):
+        return {
+            0: 'expanded',
+            1: 'full'
+        }[self._model]
+
+    @model.setter
+    def model(self, value):
+        assert value in ['expanded', 'full']
+        self._model = {
+            'expanded': 0,
+            'full': 1
+        }[value]
 
     @property
     def order(self):

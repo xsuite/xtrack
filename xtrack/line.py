@@ -1826,7 +1826,7 @@ class Line:
             self.config[f'FREEZE_VAR_{name}'] = False
 
 
-    def configure_bend_model(self, core='expanded', edge='linear'):
+    def configure_bend_model(self, core=None, edge=None):
 
         """
         Configure the method used to track bends.
@@ -1835,24 +1835,23 @@ class Line:
         ----------
         core: str
             Medel to be used for the thick bend cores. Can be 'expanded' or '
-            full'. Default is 'expanded', which is more appropriate for
-            large accelerators (i.e. bends with small bending angles).
+            full'.
         edge: str
             Model to be used for the bend edges. Can be 'linear', 'full'
-            or 'suppressed'. Default is 'linear'.
+            or 'suppressed'.
         """
 
-        if core not in ['expanded', 'full']:
+        if core not in [None, 'expanded', 'full']:
             raise ValueError(f'Unknown bend model {core}')
 
-        if edge not in ['linear', 'full', 'suppressed']:
+        if edge not in [None, 'linear', 'full', 'suppressed']:
             raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
-            if isinstance(ee, xt.Bend):
-                ee.model = {'expanded': 0, 'full': 1}[core]
+            if core is not None and isinstance(ee, xt.Bend):
+                ee.model = core
 
-            if isinstance(ee, xt.DipoleEdge):
+            if edge is not None and isinstance(ee, xt.DipoleEdge):
                 ee.model = edge
 
     def configure_radiation(self, model=None, model_beamstrahlung=None,

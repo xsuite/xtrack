@@ -38,8 +38,6 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
 
     }
     else if (model == 1){
-        printf("In non-linear edge model\n");
-
         double const e1 = DipoleEdgeData_get_e1(el);
         double const fint = DipoleEdgeData_get_fint(el);
         double const hgap = DipoleEdgeData_get_hgap(el);
@@ -60,7 +58,6 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
                 //end_per_particle_block
             }
             //start_per_particle_block (part0->part)
-                printf("In fringe entry, fint = %e, hgap = %e, k = %e\n", fint, hgap, k);
                 MadNG_Fringe_single_particle(part, fint, hgap, k);
             //end_per_particle_block
             if (sin_ > -99.){
@@ -76,7 +73,6 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
                 //end_per_particle_block
             }
             //start_per_particle_block (part0->part)
-                printf("In fringe exit, fint = %e, hgap = %e, k = %e\n", fint, hgap, k);
                 MadNG_Fringe_single_particle(part, fint, hgap, -k);
             //end_per_particle_block
             if (sin_ > -99.){
