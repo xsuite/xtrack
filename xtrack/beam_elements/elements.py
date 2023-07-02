@@ -1067,6 +1067,7 @@ class Fringe(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+        raise NotImplementedError # untested
         self.xoinitialize(**kwargs)
 
 
@@ -1093,6 +1094,7 @@ class Wedge(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+        raise NotImplementedError # Untested
         self.xoinitialize(**kwargs)
 
 
