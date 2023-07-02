@@ -1245,8 +1245,6 @@ class DipoleEdge(BeamElement):
 
     Parameters
     ----------
-    h : float
-        Curvature in 1/m.
     k : float
         Strength in 1/m.
     e1 : float
@@ -1255,6 +1253,16 @@ class DipoleEdge(BeamElement):
         Equivalent gap in m.
     fint : float
         Fringe integral.
+    e1_fd : float
+        Term added to e1 only of for the linear mode and only in the vertical
+        plane to acconut for non zero angle in the closed orbit when entering
+        the finger field (feed down effect).
+    model : str
+        Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
+        Default is 'linear'.
+    side : str
+        Side of the bend on which the edge is located. It can be 'entry' or
+        'exit'. Default is 'entry'.
 
     '''
 
@@ -1296,7 +1304,6 @@ class DipoleEdge(BeamElement):
         r21=None,
         r43=None,
         k=None,
-        h=None,
         e1=None,
         e1_fd=None,
         hgap=None,
@@ -1306,6 +1313,11 @@ class DipoleEdge(BeamElement):
         _linear_mode=None,
         **kwargs
     ):
+
+        # For backward compatibility
+        if 'h' in kwargs.keys():
+            assert k is None
+            k = kwargs.pop('h')
 
         self.xoinitialize(**kwargs)
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
@@ -1318,7 +1330,6 @@ class DipoleEdge(BeamElement):
         self._linear_mode = 0
         self._hgap = (hgap or 0)
         self._k = (k or 0)
-        self._h = (h or 0)
         self._e1 = (e1 or 0)
         self._e1_fd = (e1_fd or 0)
         self._fint = (fint or 0)

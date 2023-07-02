@@ -856,7 +856,6 @@ class MadLoader:
             fint=mad_el.fint,
             hgap=mad_el.hgap,
             k=k0,
-            h=h,
             side='entry'
         )
         sequence = [dipedge_entry] + sequence

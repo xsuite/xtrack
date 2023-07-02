@@ -434,8 +434,6 @@ class Line:
         allow_thick : bool, optional
             If true, thick elements are allowed. Otherwise, an error is raised
             if a thick element is encountered.
-        dipole_edge_model : str, optional
-            It can be 'linear', 'full' or 'suppress'. Default is 'linear'.
         use_compound_elements : bool, optional
             If true, elements that are one element in madx but multiple elements
             in xtrack will be grouped together with a marker attached in front,
