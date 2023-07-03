@@ -30,7 +30,7 @@ def test_sps_thick(test_context, deferred_expressions):
         allow_thick=True)
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                                     gamma0=mad.sequence.sps.beam.gamma)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
     line.twiss_default['method'] = '4d'
 
     # Check a bend
@@ -150,7 +150,7 @@ def test_sps_thick(test_context, deferred_expressions):
     ]
 
     line.slice_thick_elements(slicing_strategies)
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
 
     # Check a bend
     assert line.element_names[111] == 'mbb.10150_entry'
