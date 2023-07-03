@@ -1334,6 +1334,8 @@ class DipoleEdge(BeamElement):
         if 'h' in kwargs.keys():
             assert k is None
             k = kwargs.pop('h')
+        if '_h' in kwargs.keys():
+            kwargs['_k'] = kwargs.pop('_h')
 
         self.xoinitialize(**kwargs)
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:

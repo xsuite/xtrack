@@ -586,12 +586,15 @@ class DipoleEdge(Element):
     def from_dict(cls, dct):
         dct = dct.copy()
         for kk in list(dct.keys()):
+            if kk == "h" or kk == "_h":
+                dct["k"] = dct[kk]
+                continue
             if kk.startswith("_"):
                 dct[kk[1:]] = dct[kk]
         return super(DipoleEdge, cls).from_dict(dct)
 
     _description = [
-        ("h", "1/m", "Curvature", 0),
+        ("k", "1/m", "Curvature", 0),
         ("e1", "rad", "Face angle", 0),
         ("hgap", "m", "Equivalent gap", 0),
         ("fint", "", "Fringe integral", 0),
@@ -601,9 +604,9 @@ class DipoleEdge(Element):
         tan = p._m.tan
         sin = p._m.sin
         cos = p._m.cos
-        corr = 2 * self.h * self.hgap * self.fint
-        r21 = self.h * tan(self.e1)
-        r43 = -self.h * tan(
+        corr = 2 * self.k * self.hgap * self.fint
+        r21 = self.k * tan(self.e1)
+        r43 = -self.k * tan(
             self.e1 - corr / cos(self.e1) * (1 + sin(self.e1) ** 2)
         )
         p.px += r21 * p.x
@@ -678,7 +681,7 @@ class LinearTransferMatrix(Element):
         old_py=p.py
 
         p.x -= self.disp_x_0 * p.delta + self.x_ref_0
-        p.px -= self.disp_px_0 * p.delta + self.px_ref_0  
+        p.px -= self.disp_px_0 * p.delta + self.px_ref_0
         p.y -= self.disp_y_0 * p.delta + self.y_ref_0
         p.py -= self.disp_py_0 * p.delta + self.py_ref_0
         # p.zeta += (self.disp_px_0*old_x - self.disp_x_0*old_px + self.disp_py_0*old_y - self.disp_y_0*old_py)/p.rvv
