@@ -961,7 +961,8 @@ class Bend(BeamElement):
 
         self.xoinitialize(**kwargs)
 
-        self.model = (model or 'expanded')
+        if model is not None:
+            self.model = model
         self.order = order
 
     @property
@@ -1286,7 +1287,6 @@ class DipoleEdge(BeamElement):
     '''
 
     _xofields = {
-            '_linear_mode': xo.Int64,
             'r21': xo.Float64,
             'r43': xo.Float64,
             'hgap': xo.Float64,
@@ -1320,8 +1320,6 @@ class DipoleEdge(BeamElement):
 
     def __init__(
         self,
-        r21=None,
-        r43=None,
         k=None,
         e1=None,
         e1_fd=None,
@@ -1329,7 +1327,6 @@ class DipoleEdge(BeamElement):
         fint=None,
         model=None,
         side=None,
-        _linear_mode=None,
         **kwargs
     ):
 
@@ -1341,33 +1338,23 @@ class DipoleEdge(BeamElement):
         self.xoinitialize(**kwargs)
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             return
-        if '_r21' in kwargs.keys():
-            # has been set with underscored variables
-            return
 
-        # To have them initalized
-        self._linear_mode = 0
-        self._hgap = (hgap or 0)
-        self._k = (k or 0)
-        self._e1 = (e1 or 0)
-        self._e1_fd = (e1_fd or 0)
-        self._fint = (fint or 0)
-        self._r21 = (r21 or 0)
-        self._r43 = (r43 or 0)
+        if hgap is not None:
+            self._hgap = hgap
+        if k is not None:
+            self._k = k
+        if e1 is not None:
+            self._e1 = e1
+        if e1_fd is not None:
+            self._e1_fd = e1_fd
+        if fint is not None:
+            self._fint = fint
+        if model is not None:
+            self.model = model
+        if side is not None:
+            self.side = side
 
-        self.model = (model or 'linear')
-        self.side = (side or 'entry')
-
-        # _linear_mode is set to 0 if r21 and r43 are given directly
-        if _linear_mode is not None:
-            self._linear_mode = _linear_mode
-        elif r21 is not None or r43 is not None:
-            self._linear_mode = 1
-        else:
-            self._linear_mode = 0
-
-        if self._linear_mode == 0:
-            self._update_r21_r43()
+        self._update_r21_r43()
 
     def _update_r21_r43(self):
         corr = np.float64(2.0) * self.k * self.hgap * self.fint
@@ -1382,11 +1369,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def k(self):
-        if self._linear_mode == 0:
-            return self._k
-        else:
-            raise AttributeError(
-                "`k` is not defined because r21 and r43 were provided directly")
+        return self._k
 
     @k.setter
     def k(self, value):
@@ -1395,11 +1378,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def e1(self):
-        if self._linear_mode == 0:
-            return self._e1
-        else:
-            raise ValueError(
-                "`e1` is not defined because r21 and r43 were provided directly")
+        return self._e1
 
     @e1.setter
     def e1(self, value):
@@ -1408,11 +1387,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def e1_fd(self):
-        if self._linear_mode == 0:
-            return self._e1_fd
-        else:
-            raise ValueError(
-                "`e1_fd` is not defined because r21 and r43 were provided directly")
+        return self._e1_fd
 
     @e1_fd.setter
     def e1_fd(self, value):
@@ -1421,11 +1396,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def hgap(self):
-        if self._linear_mode == 0:
-            return self._hgap
-        else:
-            raise ValueError(
-                "`hgap` is not defined because r21 and r43 were provided directly")
+        return self._hgap
 
     @hgap.setter
     def hgap(self, value):
@@ -1434,11 +1405,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def fint(self):
-        if self._linear_mode == 0:
-            return self._fint
-        else:
-            raise ValueError(
-                "`fint` is not defined because r21 and r43 were provided directly")
+        return self._fint
 
     @fint.setter
     def fint(self, value):
