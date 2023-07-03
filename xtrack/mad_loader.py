@@ -831,7 +831,7 @@ class MadLoader:
         l_curv = mad_el.l
         h = mad_el.angle / l_curv
 
-        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc:
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and mad_el.angle:
             R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
             l_curv = R * mad_el.angle
             h = 1 / R
