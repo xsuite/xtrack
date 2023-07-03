@@ -212,6 +212,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
 def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type):
     mad = Madx()
+    mad.options.rbarc = False
 
     mad.input(f"""
     knob_a := 1.0;
@@ -240,7 +241,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     elem_dex = line['elem_dex']
 
     # Check that the line has correct values to start with
-    assert elem.model == {False: 0, True: 1}[use_true_thick_bends]
+    assert elem.model == {False: 'expanded', True: 'full'}[use_true_thick_bends]
     assert isinstance(elem_den, xt.DipoleEdge)
     assert isinstance(elem_dex, xt.DipoleEdge)
 
@@ -257,26 +258,19 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     )
 
     # Edges:
-    if bend_type == 'sbend':
-        assert np.isclose(elem_den.fint, 0.5, atol=1e-16)
-        assert np.isclose(elem_den.hgap, 0.6, atol=1e-16)
-        assert np.isclose(elem_den.e1, 0.7, atol=1e-16)
-        assert np.isclose(elem_den.h, 0.2, atol=1e-16)  # h = k0
+    assert np.isclose(elem_den.fint, 0.5, atol=1e-16)
+    assert np.isclose(elem_den.hgap, 0.6, atol=1e-16)
+    assert np.isclose(elem_den.e1,
+                      {'rbend': 0.7 + 0.1 / 2, 'sbend': 0.7}[bend_type],
+                      atol=1e-16)
+    assert np.isclose(elem_den.k, 0.2, atol=1e-16)
 
-        assert np.isclose(elem_dex.fint, 0.5, atol=1e-16)
-        assert np.isclose(elem_dex.hgap, 0.6, atol=1e-16)
-        assert np.isclose(elem_dex.e1, 0.8, atol=1e-16)
-        assert np.isclose(elem_dex.h, 0.2, atol=1e-16)  # h = k0
-    elif bend_type == 'rbend':
-        # h := angle / L
-        # r21 := h * tan(0.5 * k0 * L)
-        expected_r21 = (0.1 / 2.0) * np.tan(0.5 * 0.2 * 2.0)
-        # r43 := -k0 * tan(0.5 * k0 * L)
-        expected_r43 = -0.2 * np.tan(0.5 * 0.2 * 2.0)
-        assert np.isclose(elem_den.r21, expected_r21, atol=1e-16)
-        assert np.isclose(elem_den.r43, expected_r43, atol=1e-16)
-    else:
-        raise ValueError(f'Unknown bend type: {bend_type}')
+    assert np.isclose(elem_dex.fint, 0.5, atol=1e-16)
+    assert np.isclose(elem_dex.hgap, 0.6, atol=1e-16)
+    assert np.isclose(elem_dex.e1,
+                     {'rbend': 0.8 + 0.1 / 2, 'sbend': 0.8}[bend_type],
+                      atol=1e-16)
+    assert np.isclose(elem_dex.k, 0.2, atol=1e-16)
 
     # Finish the test here if we are not using knobs
     if not with_knobs:
@@ -301,27 +295,19 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
     )
 
     # Edges:
-    if bend_type == 'sbend':
-        assert np.isclose(elem_den.fint, 1.0, atol=1e-16)
-        assert np.isclose(elem_den.hgap, 1.2, atol=1e-16)
-        assert np.isclose(elem_den.e1, 1.4, atol=1e-16)
-        assert np.isclose(elem_den.h, 0.4, atol=1e-16)  # h = k0
+    assert np.isclose(elem_den.fint, 1.0, atol=1e-16)
+    assert np.isclose(elem_den.hgap, 1.2, atol=1e-16)
+    assert np.isclose(elem_den.e1,
+        {'rbend': 1.4 + 0.2 / 2, 'sbend': 1.4}[bend_type],
+        atol=1e-16)
+    assert np.isclose(elem_den.k, 0.4, atol=1e-16)
 
-        assert np.isclose(elem_dex.fint, 1.0, atol=1e-16)
-        assert np.isclose(elem_dex.hgap, 1.2, atol=1e-16)
-        assert np.isclose(elem_dex.e1, 1.6, atol=1e-16)
-        assert np.isclose(elem_dex.h, 0.4, atol=1e-16)  # h = k0
-    elif bend_type == 'rbend':
-        # h := angle / L
-        # r21 := h * tan(0.5 * k0 * L)
-        expected_r21 = (0.2 / 3.0) * np.tan(0.5 * 0.4 * 3.0)
-        # r43 := -k0 * tan(0.5 * k0 * L)
-        expected_r43 = -0.4 * np.tan(0.5 * 0.4 * 3.0)
-        assert np.isclose(elem_den.r21, expected_r21, atol=1e-16)
-        assert np.isclose(elem_den.r43, expected_r43, atol=1e-16)
-    else:
-        raise ValueError(f'Unknown bend type: {bend_type}')
-
+    assert np.isclose(elem_dex.fint, 1.0, atol=1e-16)
+    assert np.isclose(elem_dex.hgap, 1.2, atol=1e-16)
+    assert np.isclose(elem_dex.e1,
+        {'rbend': 1.6 + 0.2 / 2, 'sbend': 1.6}[bend_type],
+        atol=1e-16)
+    assert np.isclose(elem_dex.k, 0.4, atol=1e-16)
 
 @pytest.mark.parametrize('with_knobs', [False, True])
 def test_import_thick_quad_from_madx(with_knobs):
@@ -382,18 +368,13 @@ def test_import_thick_quad_from_madx(with_knobs):
     [True, False],
     ids=['with knobs', 'no knobs'],
 )
-@pytest.mark.parametrize(
-    'use_true_thick_bends',
-    [True, False],
-    ids=['true bend', 'combined function magnet'],
-)
 @pytest.mark.parametrize('bend_type', ['rbend', 'sbend'])
 def test_import_thick_bend_from_madx_and_slice(
-        use_true_thick_bends,
         with_knobs,
         bend_type,
 ):
     mad = Madx()
+    mad.options.rbarc = False
     mad.input(f"""
     knob_a := 1.0;
     knob_b := 2.0;

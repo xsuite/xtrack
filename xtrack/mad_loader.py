@@ -881,7 +881,7 @@ class MadLoader:
             self.classes.DipoleEdge,
             e1=e1,
             e1_fd = (k0 - h) * l_curv / 2,
-            fint=mad_el.fintx,
+            fint=mad_el.fint,
             hgap=mad_el.hgap,
             k=k0,
             side='entry'
