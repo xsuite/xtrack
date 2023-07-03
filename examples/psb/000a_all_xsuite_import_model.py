@@ -32,10 +32,6 @@ ealign, dx=-0.0442;
 twiss;
 ''')
 
-mad.input("PTC_CREATE_UNIVERSE; PTC_CREATE_LAYOUT, model=2; PTC_TWISS; PTC_END;")
-tw_ptc_summ = mad.table.ptc_twiss.summary
-tw_ptc = xd.Table(mad.table.ptc_twiss)
-
 line = xt.Line.from_madx_sequence(
     sequence=mad.sequence.psb1,
     allow_thick=True,
