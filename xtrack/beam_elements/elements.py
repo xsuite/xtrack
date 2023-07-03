@@ -1367,7 +1367,6 @@ class DipoleEdge(BeamElement):
         r43 = -self.k * np.tan(e1_v - temp)
         self._r21 = r21
         self._r43 = r43
-        self._linear_mode = 0
 
     @property
     def k(self):
@@ -1418,19 +1417,9 @@ class DipoleEdge(BeamElement):
     def r21(self):
         return self._r21
 
-    @r21.setter
-    def r21(self, value):
-        self._r21 = value
-        self._linear_mode = 1
-
     @property
     def r43(self):
         return self._r43
-
-    @r43.setter
-    def r43(self, value):
-        self._r43 = value
-        self._linear_mode = 1
 
     @property
     def model(self):
