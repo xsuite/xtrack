@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
+# Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
 import io
@@ -20,6 +20,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xdeps as xd
+from .compounds import CompoundContainer
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -1601,7 +1602,14 @@ class Line:
         for name in component_names:
             self._compound_for_element[name] = compound_name
 
-    def insert_in_compound(self, where, compound_name, component_names):
+    def replace_in_compound(self, where, compound_name, component_names):
+        """
+        Insert/replace elements in a compound.
+
+        Accomplishes the same thing as `self.compounds[compound_name][where] =
+        component_names`, while also correctly updating the internal state of
+        _compound_for_element.
+        """
         start = where.start if isinstance(where, slice) else where
         stop = where.stop if isinstance(where, slice) else where + 1
         old_names = self._compound_relation[compound_name][start:stop]

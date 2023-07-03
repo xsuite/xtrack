@@ -333,29 +333,40 @@ class ElementBuilderWithExpr(ElementBuilder):
         return xtel
 
 
-class CompoundElement:
+class CompoundElementBuilder:
     """A builder-like object for holding elements that should become a compound
     element in the final lattice."""
     def __init__(
         self,
         name: str,
-        subsequence: List[ElementBuilder],
+        core: List[ElementBuilder],
+        entry_transform: List[ElementBuilder],
+        exit_transform: List[ElementBuilder],
+        aperture: List[ElementBuilder],
     ):
-        self.elements = subsequence
         self.name = name
+        self.core = core
+        self.entry_transform = entry_transform
+        self.exit_transform = exit_transform
+        self.aperture = aperture
 
     def add_to_line(self, line, buffer):
         start_marker = ElementBuilder(
-            name=self.name+"_entry",
+            name=self.name + "_entry",
             type=xtrack.Marker,
         )
 
         end_marker = ElementBuilder(
-            name=self.name+"_exit",
+            name=self.name + "_exit",
             type=xtrack.Marker,
         )
 
-        component_elements = [start_marker] + self.elements + [end_marker]
+        component_elements = (
+            [start_marker] +
+            self.aperture +
+            self.entry_transform + self.core + self.exit_transform +
+            [end_marker]
+        )
 
         for el in component_elements:
             el.add_to_line(line, buffer)
@@ -417,7 +428,7 @@ class Aperture:
                     dy=-self.dy,
                 )
             )
-        if nonzero_or_expr(self.aper_tilt):
+        if self.aper_tilt:
             out.append(
                 self.Builder(
                     self.name + "_aper_tilt_exit",
@@ -585,11 +596,6 @@ class MadLoader:
         if enable_align_errors is None:
             enable_align_errors = False
 
-        if allow_thick and enable_apertures:
-            raise NotImplementedError(
-                "Apertures are not yet supported for thick elements"
-            )
-
         if allow_thick and enable_field_errors:
             raise NotImplementedError(
                 "Field errors are not yet supported for thick elements"
@@ -702,7 +708,7 @@ class MadLoader:
 
     def add_elements(
         self,
-        elements: List[Union[ElementBuilder, CompoundElement]],
+        elements: List[Union[ElementBuilder, CompoundElementBuilder]],
         line,
         buffer,
     ):
@@ -763,23 +769,29 @@ class MadLoader:
             If not None, the element will be additionally tilted by this
             amount.
         """
+        # TODO: Implement permanent alignment
+
         align = Alignment(
             mad_el, self.enable_align_errors, self.classes, self.Builder, custom_tilt)
-        # perm=self.permanent_alignment(cpymad_elem) #to be implemented
-        elem_list = []
-        # elem_list.extend(perm.entry())
+
+        aperture_seq = []
         if self.enable_apertures and mad_el.has_aperture():
             aper = Aperture(mad_el, self.enable_align_errors, self)
-            elem_list.extend(aper.entry())
-            elem_list.extend(aper.aperture())
-            elem_list.extend(aper.exit())
-        elem_list.extend(align.entry())
-        elem_list.extend(xtrack_el)
-        elem_list.extend(align.exit())
-        # elem_list.extend(perm.exit())
+            aperture_seq = aper.entry() + aper.aperture() + aper.exit()
+
+        align_entry, align_exit = align.entry(), align.exit()
+        elem_list = aperture_seq + align_entry + xtrack_el + align_exit
 
         if self.use_compound_elements and len(elem_list) > 1:
-            return [CompoundElement(name=mad_el.name, subsequence=elem_list)]
+            return [
+                CompoundElementBuilder(
+                    name=mad_el.name,
+                    core=xtrack_el,
+                    entry_transform=align.entry(),
+                    exit_transform=align.exit(),
+                    aperture=aperture_seq,
+                ),
+            ]
         else:
             return elem_list
 

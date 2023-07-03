@@ -5,6 +5,7 @@
 
 import abc
 import re
+from collections import defaultdict
 
 from itertools import zip_longest
 from typing import List, Tuple, Iterator
@@ -12,6 +13,8 @@ from typing import List, Tuple, Iterator
 from .general import _print
 
 import xtrack as xt
+
+APER_ELEMS_REGEX = re.compile(r'(.*)_aper(_(tilt|offset)_(entry|exit))?')
 
 
 class ElementSlicingScheme(abc.ABC):
@@ -133,13 +136,15 @@ class Slicer:
             A list of slicing strategies to apply to the line.
         """
         self.line = line
+        self.compounds = line.compounds.copy()
         self.slicing_strategies = slicing_strategies
         self.has_expresions = line.vars is not None
         self.thin_names = []
 
     def slice_in_place(self):
         line = self.line
-        compound_relations = {}
+
+        apertures = defaultdict(list)
 
         n_elements = len(line)
         for ii, name in enumerate(line.element_names):
@@ -149,6 +154,12 @@ class Slicer:
             # Don't slice already thin elements and drifts
             if not element.isthick or isinstance(element, xt.Drift):
                 self.thin_names.append(name)
+
+                # Memorise the apertures so we can re-add them between slices
+                match = APER_ELEMS_REGEX.match(name)
+                if match:
+                    apertures[match.group(1)].append(name)
+
                 continue
 
             # Choose a slicing strategy for the element
@@ -164,20 +175,24 @@ class Slicer:
                 raise ValueError(f'No slicing strategy found for the element '
                                  f'{name}: {element}.')
 
-            # If the chose slicing is explicitly None, then we keep the current
+            # If the chosen slicing is explicitly None, then we keep the current
             # thick element and don't add any slices.
             if chosen_slicing is None:
                 self.thin_names.append(name)
                 continue
 
+
+            # Make the slices and add them to line.element_dict (so far inactive)
+            slices_to_add = self._make_slices(
+                element=element,
+                chosen_slicing=chosen_slicing,
+                name=name,
+                interleave=apertures[name],
+            )
             # At the beginning of the element we will insert a marker of
             # the same name as the current thick element. We keep the old
             # element in the line for now, as we might need its expressions.
-            slices_to_add = [name]
-
-            # Add the slices to the line.element_dict
-            slices_to_add += self._make_slices(element, chosen_slicing, name)
-            self.thin_names += slices_to_add
+            self.thin_names += [name] + slices_to_add
 
             # Remove the thick element and its expressions
             if self.has_expresions:
@@ -185,12 +200,17 @@ class Slicer:
             self.line.element_dict[name] = xt.Marker()
 
             # Add the compound relations
-            self.line.define_compound(name, slices_to_add)
+            parent_compound = line._compound_for_element.get(name, None)
+            if not parent_compound:
+                self.line.define_compound(name, slices_to_add)
+            else:
+                idx_to_replace = line.compounds[parent_compound].index(name)
+                self.line.replace_in_compound(idx_to_replace, name, slices_to_add)
 
         # Commit the changes to the line
         line.element_names = self.thin_names
 
-    def _make_slices(self, element, chosen_slicing, name):
+    def _make_slices(self, element, chosen_slicing, name, interleave=()):
         """
         Add the slices to the line.element_dict. If the element has expressions
         then the expressions will be added to the slices.
@@ -203,6 +223,7 @@ class Slicer:
         drift_idx, element_idx = 0, 0
         drift_to_slice = xt.Drift(length=element.length)
         slices_to_append = []
+        seen_first_slice = False
 
         for weight, is_drift in chosen_slicing:
             if is_drift:
@@ -226,6 +247,10 @@ class Slicer:
                 slice_name=slice_name,
                 _buffer=self.line.element_dict[name]._buffer,
                 )
+
+            if not is_drift and not seen_first_slice:
+                slices_to_append += interleave
+                seen_first_slice = True
 
             slices_to_append.append(slice_name)
 
