@@ -50,8 +50,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'linear'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'expanded'
 
     ang = line['mbb.10150'].k0 * line['mbb.10150'].length
@@ -73,8 +71,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'full'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'full'
 
     assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
@@ -91,8 +87,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'full'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'expanded'
 
     assert np.isclose(twmad.s[-1], tw.s[-1], atol=1e-11, rtol=0)
@@ -107,16 +101,12 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'linear'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'expanded'
 
     assert line['mbb.10150_den'].model == 'linear'
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'linear'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'expanded'
 
     line.configure_bend_model(core='full')
@@ -126,8 +116,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'full'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'full'
 
     # Test from_dict/to_dict roundtrip
@@ -138,8 +126,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'full'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'full'
 
     line.discard_tracker()
@@ -199,8 +185,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'full'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
 
     line.configure_bend_model(edge='linear')
 
@@ -208,8 +192,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'linear'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
 
     line.configure_bend_model(edge='full')
 
@@ -217,8 +199,6 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_den'].side == 'entry'
     assert line['mbb.10150_dex'].model == 'full'
     assert line['mbb.10150_dex'].side == 'exit'
-    assert line['mbb.10150_den']._linear_mode == 0
-    assert line['mbb.10150_dex']._linear_mode == 0
 
     tw = line.twiss()
 

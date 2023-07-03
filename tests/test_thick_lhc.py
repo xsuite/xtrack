@@ -48,9 +48,7 @@ def test_madloader_lhc_thick(test_context):
 
     for ee in line.elements:
         if isinstance(ee, xt.DipoleEdge):
-            ee.r21 = 0
-            ee.r43 = 0
-
+            ee.k = 0
 
     tw0 = line.twiss()
     twmad = mad.twiss(table='twiss')
