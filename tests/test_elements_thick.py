@@ -511,3 +511,52 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     for drift in drifts:
         assert np.isclose(drift.length, 1, atol=1e-16)
+
+
+def test_import_thick_with_apertures_and_slice():
+    mad = Madx()
+
+    mad.input("""
+    k1=0.2;
+    tilt=0.1;
+
+    elm: sbend,
+        k1:=k1,
+        l=1,
+        angle=0.1,
+        tilt=0.2,
+        apertype="rectellipse",
+        aperture={0.1,0.2,0.11,0.22},
+        aper_tol={0.1,0.2,0.3},
+        aper_tilt:=tilt,
+        aper_offset={0.2, 0.3};
+
+    seq: sequence, l=1;
+    elm: elm, at=0.5;
+    endsequence;
+
+    beam;
+    use, sequence=seq;
+    """)
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.seq,
+        allow_thick=True,
+        install_apertures=True,
+        deferred_expressions=True,
+        use_compound_elements=True,
+    )
+
+    assert line.compounds == {
+        'elm': [
+            'elm_entry', 'elm_aper_tilt_entry', 'elm_aper_offset_entry',
+            'elm_aper',
+            'elm_aper_offset_exit', 'elm_aper_tilt_exit',
+            'elm_tilt_entry', 'elm_den', 'elm', 'elm_dex', 'elm_tilt_exit',
+            'elm_exit',
+        ],
+    }
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+
+    import ipdb; ipdb.set_trace()

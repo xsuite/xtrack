@@ -121,8 +121,7 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
-        self._compound_relation = {}
-        self._compound_for_element = {}
+        self.compound_container = CompoundContainer(self)
 
         self.particle_ref = particle_ref
 
@@ -1569,12 +1568,14 @@ class Line:
         replaced_names = self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1]
         self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = names_to_insert
 
-        # Update compound relation
-        left_compound = self._compound_for_element.get(name_first_drift_to_cut)
-        right_compound = self._compound_for_element.get(name_last_drift_to_cut)
+        # Update compound container if the inserted element falls in the middle
+        # of a compound element.
+        _compounds = self.compound_container
+        left_compound = _compounds.compound_for_element(name_first_drift_to_cut)
+        right_compound = _compounds.compound_for_element(name_last_drift_to_cut)
         if left_compound is not None and left_compound == right_compound:
-            self.remove_from_compound(replaced_names)
-            self.define_compound(left_compound, names_to_insert)
+            _compounds.remove_elements(replaced_names)
+            _compounds.add_to_compound(left_compound, names_to_insert)
 
         return self
 
@@ -1596,62 +1597,6 @@ class Line:
         self.element_dict[name] = element
         self.element_names.append(name)
         return self
-
-    def define_compound(self, compound_name, component_names):
-        self._compound_relation[compound_name] = component_names
-        for name in component_names:
-            self._compound_for_element[name] = compound_name
-
-    def replace_in_compound(self, where, compound_name, component_names):
-        """
-        Insert/replace elements in a compound.
-
-        Accomplishes the same thing as `self.compounds[compound_name][where] =
-        component_names`, while also correctly updating the internal state of
-        _compound_for_element.
-        """
-        start = where.start if isinstance(where, slice) else where
-        stop = where.stop if isinstance(where, slice) else where + 1
-        old_names = self._compound_relation[compound_name][start:stop]
-        self._compound_relation[compound_name][start:stop] = component_names
-
-        for name in old_names:
-            del self._compound_for_element[name]
-
-        for name in component_names:
-            self._compound_for_element[name] = compound_name
-
-    def remove_from_compound(self, component_names):
-        for name in component_names:
-            if name in self.compounds:
-                raise ValueError('This is a compound name, not a component name')
-            compound_name = self._compound_for_element.pop(name)
-            self._compound_relation[compound_name].remove(name)
-
-    @property
-    def compounds(self):
-        return self._compound_relation
-
-    def is_top_level_element(self, element_name):
-        """
-        Return True if the element is not part of a compound element, or if it
-        is the entry element of a compound element.
-        """
-        if element_name not in self._compound_for_element:
-            return True
-
-        compound_name = self._compound_for_element[element_name]
-        if self.compounds[compound_name][0] == element_name:
-            return True
-
-        return False
-
-    def get_compound_mask(self):
-        return [self.is_top_level_element(name) for name in self.element_names]
-
-    def _get_element_compound_names(self):
-        return [self._compound_for_element[name] if name in self._compound_for_element else name
-                for name in self.element_names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
