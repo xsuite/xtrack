@@ -111,8 +111,20 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line['mbb.10150_dex']._linear_mode == 0
     assert line['mbb.10150'].model == 'expanded'
 
+    # Test from_dict/to_dict roundtrip
+    dct = line.to_dict()
+    line = xt.Line.from_dict(dct)
+
     line.configure_bend_model(core='full')
     line.configure_bend_model(edge='full')
+
+    assert line['mbb.10150_den'].model == 'linear'
+    assert line['mbb.10150_den'].side == 'entry'
+    assert line['mbb.10150_dex'].model == 'linear'
+    assert line['mbb.10150_dex'].side == 'exit'
+    assert line['mbb.10150_den']._linear_mode == 0
+    assert line['mbb.10150_dex']._linear_mode == 0
+    assert line['mbb.10150'].model == 'expanded'
 
     assert line['mbb.10150_den'].model == 'full'
     assert line['mbb.10150_den'].side == 'entry'
