@@ -305,6 +305,11 @@ class SRotation(BeamElement):
         calculate the missing values from the others. If more than necessary
         parameters are given, their consistency will be checked.
         """
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if angle is None and (cos_z is not None or sin_z is not None):
             anglerad, cos_angle, sin_angle, _ = _angle_from_trig(cos_z, sin_z)
         elif angle is not None:
@@ -374,6 +379,11 @@ class XRotation(BeamElement):
         parameters are given, their consistency will be checked.
         """
         # Note MAD-X node_value('other_bv ') is ignored
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         at_least_one_trig = sum(trig is not None for trig
                                 in (cos_angle, sin_angle, tan_angle)) > 0
 
@@ -437,7 +447,9 @@ class YRotation(BeamElement):
         }
 
     _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')]
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/yrotation.h')
+    ]
 
     _store_in_to_dict = ['angle']
 
@@ -456,6 +468,11 @@ class YRotation(BeamElement):
         """
         #Note MAD-X node_value('other_bv ') is ignored
         #     minus sign follows MAD-X convention
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         at_least_one_trig = sum(
             trig is not None for trig
                 in (cos_angle, sin_angle, tan_angle)
@@ -524,6 +541,11 @@ class ZetaShift(BeamElement):
     _store_in_to_dict = ['dzeta']
 
     def __init__(self, dzeta = 0, **nargs):
+
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self.xoinitialize(**nargs)
+            return
+
         nargs['dzeta'] = dzeta
         super().__init__(**nargs)
 
@@ -655,12 +677,13 @@ class SimpleThinQuadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
-        if knl is None:
-            knl = np.zeros(2)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
+
+        if knl is None:
+            knl = np.zeros(2)
 
         if len(knl) != 2:
             raise ValueError("For a quadrupole, len(knl) must be 2.")
@@ -721,6 +744,37 @@ class CombinedFunctionMagnet(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        """
+        Implementation of combined function magnet (i.e. a bending magnet with
+        a quadrupole component).
+
+        Parameters
+        ----------
+        k0 : float
+            Strength of the horizontal dipolar component in units of m^-1.
+        k1 : float
+            Strength of the horizontal quadrupolar component in units of m^-2.
+        h : float
+            Curvature of the reference trajectory in units of m^-1.
+        length : float
+            Length of the element in units of m.
+        knl : array
+            Integrated strength of the high-order normal multipolar components
+            (knl[0] and knl[1] should not be used).
+        ksl : array
+            Integrated strength of the high-order skew multipolar components
+            (ksl[0] and ksl[1] should not be used).
+        num_multipole_kicks : int
+            Number of multipole kicks used to model high order multipolar
+            components.
+
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
@@ -830,6 +884,28 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        """
+        Quadrupole element.
+
+        Parameters
+        ----------
+        k1 : float
+            Strength of the quadrupole component in m^-2.
+        length : float
+            Length of the element in meters.
+        knl : array_like, optional
+            Integrated strength of the high-order normal multipolar components
+            (knl[0] and knl[1] should not be used).
+        ksl : array_like, optional
+            Integrated strength of the high-order skew multipolar components
+            (ksl[0] and ksl[1] should not be used).
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
@@ -924,11 +1000,12 @@ class Bend(BeamElement):
         'num_multipole_kicks': xo.Int64,
         'order': xo.Int64,
         'inv_factorial_order': xo.Float64,
-        'method': xo.Int64,
+        'model': xo.Int64,
     }
 
     _rename = {
         'order': '_order',
+        'model': '_model'
     }
 
     _extra_c_sources = [
@@ -940,8 +1017,37 @@ class Bend(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        """
+        Bending magnet element.
+
+        Parameters
+        ----------
+        k0 : float
+            Strength of the dipole component in m^-1.
+        h : float
+            Curvature of the reference trajectory in m^-1.
+        length : float
+            Length of the element in m.
+        knl : array_like, optional
+            Integrated strength of the high-order normal multipolar components
+            (knl[0] and knl[1] should not be used).
+        ksl : array_like, optional
+            Integrated strength of the high-order skew multipolar components
+            (ksl[0] and ksl[1] should not be used).
+        model: str, optional
+            Model used for the computation. It can be 'expanded' or 'full'.
+            Default is 'expanded'.
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
+
+        model = kwargs.pop('model', None)
 
         knl = kwargs.get('knl', np.array([]))
         ksl = kwargs.get('ksl', np.array([]))
@@ -954,11 +1060,26 @@ class Bend(BeamElement):
         kwargs['knl'] = np.pad(knl, (0, 5 - len(knl)), 'constant')
         kwargs['ksl'] = np.pad(ksl, (0, 5 - len(ksl)), 'constant')
 
-        kwargs['method'] = kwargs.get('method', 0)
-
         self.xoinitialize(**kwargs)
 
+        if model is not None:
+            self.model = model
         self.order = order
+
+    @property
+    def model(self):
+        return {
+            0: 'expanded',
+            1: 'full'
+        }[self._model]
+
+    @model.setter
+    def model(self, value):
+        assert value in ['expanded', 'full']
+        self._model = {
+            'expanded': 0,
+            'full': 1
+        }[value]
 
     @property
     def order(self):
@@ -1023,6 +1144,62 @@ class Bend(BeamElement):
         _unregister_if_preset(ref[field])
 
 
+class Fringe(BeamElement):
+    """Fringe field element.
+
+    Parameters
+    ----------
+    fint : float
+        Fringe field integral in units of m^-1.
+    hgap : float
+        Half gap in units of m.
+    k : float
+        Normalized integrated strength of the normal component in units of 1/m.
+    """
+
+    _xofields = {
+        'fint': xo.Float64,
+        'hgap': xo.Float64,
+        'k': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/fringe.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        raise NotImplementedError # untested
+        self.xoinitialize(**kwargs)
+
+
+class Wedge(BeamElement):
+    """Wedge field element.
+
+    Parameters
+    ----------
+    angle : float
+        Angle of the wedge in radians.
+    k : float
+        Normalized integrated strength of the normal component in units of 1/m.
+    """
+
+    _xofields = {
+        'angle': xo.Float64,
+        'k': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge.h'),
+    ]
+
+    def __init__(self, **kwargs):
+        raise NotImplementedError # Untested
+        self.xoinitialize(**kwargs)
+
+
 class SimpleThinBend(BeamElement):
     '''A specialized version of Multipole to model a thin bend (ksl, hyl are all zero).
     knl : array
@@ -1044,6 +1221,11 @@ class SimpleThinBend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if knl is None:
             knl = np.zeros(1)
 
@@ -1189,28 +1371,43 @@ class DipoleEdge(BeamElement):
 
     Parameters
     ----------
-    h : float
-        Curvature in 1/m.
+    k : float
+        Strength in 1/m.
     e1 : float
         Face angle in rad.
     hgap : float
         Equivalent gap in m.
     fint : float
         Fringe integral.
+    e1_fd : float
+        Term added to e1 only of for the linear mode and only in the vertical
+        plane to acconut for non zero angle in the closed orbit when entering
+        the finger field (feed down effect).
+    model : str
+        Model to be used for the edge. It can be 'linear', 'full' or 'suppress'.
+        Default is 'linear'.
+    side : str
+        Side of the bend on which the edge is located. It can be 'entry' or
+        'exit'. Default is 'entry'.
 
     '''
 
     _xofields = {
-            'mode': xo.Int64,
             'r21': xo.Float64,
             'r43': xo.Float64,
             'hgap': xo.Float64,
-            'h': xo.Float64,
+            'k': xo.Float64,
             'e1': xo.Float64,
+            'e1_fd': xo.Float64,
             'fint': xo.Float64,
+            'model': xo.Int64,
+            'side': xo.Int64,
             }
 
     _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/track_yrotation.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/wedge_track.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/fringe_track.h'),
         _pkg_root.joinpath('beam_elements/elements_src/dipoleedge.h')]
 
     has_backtrack = True
@@ -1219,79 +1416,80 @@ class DipoleEdge(BeamElement):
         'r21': '_r21',
         'r43': '_r43',
         'hgap': '_hgap',
-        'h': '_h',
+        'k': '_k',
         'e1': '_e1',
+        'e1_fd': '_e1_fd',
         'fint': '_fint',
+        'model': '_model',
+        'side': '_side',
     }
 
     def __init__(
         self,
-        r21=None,
-        r43=None,
-        h=None,
+        k=None,
         e1=None,
+        e1_fd=None,
         hgap=None,
         fint=None,
-        mode=None,
+        model=None,
+        side=None,
         **kwargs
     ):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        # For backward compatibility
+        if 'h' in kwargs.keys():
+            assert k is None
+            k = kwargs.pop('h')
+        if '_h' in kwargs.keys():
+            kwargs['_k'] = kwargs.pop('_h')
 
         self.xoinitialize(**kwargs)
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             return
-        if '_r21' in kwargs.keys():
-            # has been set with underscored variables
-            return
 
-        # To have them initalized
-        self.mode = 0
-        self._hgap = (hgap or 0)
-        self._h = (h or 0)
-        self._e1 = (e1 or 0)
-        self._fint = (fint or 0)
-        self._r21 = (r21 or 0)
-        self._r43 = (r43 or 0)
+        if hgap is not None:
+            self._hgap = hgap
+        if k is not None:
+            self._k = k
+        if e1 is not None:
+            self._e1 = e1
+        if e1_fd is not None:
+            self._e1_fd = e1_fd
+        if fint is not None:
+            self._fint = fint
+        if model is not None:
+            self.model = model
+        if side is not None:
+            self.side = side
 
-        if mode is not None:
-            self.mode = mode
-        elif r21 is not None or r43 is not None:
-            self.mode = 1
-        else:
-            self.mode = 0
-
-        if self.mode == 0:
-            self._update_r21_r43()
+        self._update_r21_r43()
 
     def _update_r21_r43(self):
-        corr = np.float64(2.0) * self.h * self.hgap * self.fint
-        r21 = self.h * np.tan(self.e1)
-        temp = corr / np.cos(self.e1) * (
-            np.float64(1) + np.sin(self.e1) * np.sin(self.e1))
-        r43 = -self.h * np.tan(self.e1 - temp)
+        corr = np.float64(2.0) * self.k * self.hgap * self.fint
+        r21 = self.k * np.tan(self.e1)
+        e1_v = self.e1 + self.e1_fd
+        temp = corr / np.cos(e1_v) * (
+            np.float64(1) + np.sin(e1_v) * np.sin(e1_v))
+        r43 = -self.k * np.tan(e1_v - temp)
         self._r21 = r21
         self._r43 = r43
-        self.mode = 0
 
     @property
-    def h(self):
-        if self.mode == 0:
-            return self._h
-        else:
-            raise AttributeError(
-                "`h` is not defined because r21 and r43 were provided directly")
+    def k(self):
+        return self._k
 
-    @h.setter
-    def h(self, value):
-        self._h = value
+    @k.setter
+    def k(self, value):
+        self._k = value
         self._update_r21_r43()
 
     @property
     def e1(self):
-        if self.mode == 0:
-            return self._e1
-        else:
-            raise ValueError(
-                "`e1` is not defined because r21 and r43 were provided directly")
+        return self._e1
 
     @e1.setter
     def e1(self, value):
@@ -1299,12 +1497,17 @@ class DipoleEdge(BeamElement):
         self._update_r21_r43()
 
     @property
+    def e1_fd(self):
+        return self._e1_fd
+
+    @e1_fd.setter
+    def e1_fd(self, value):
+        self._e1_fd = value
+        self._update_r21_r43()
+
+    @property
     def hgap(self):
-        if self.mode == 0:
-            return self._hgap
-        else:
-            raise ValueError(
-                "`hgap` is not defined because r21 and r43 were provided directly")
+        return self._hgap
 
     @hgap.setter
     def hgap(self, value):
@@ -1313,11 +1516,7 @@ class DipoleEdge(BeamElement):
 
     @property
     def fint(self):
-        if self.mode == 0:
-            return self._fint
-        else:
-            raise ValueError(
-                "`fint` is not defined because r21 and r43 were provided directly")
+        return self._fint
 
     @fint.setter
     def fint(self, value):
@@ -1328,20 +1527,41 @@ class DipoleEdge(BeamElement):
     def r21(self):
         return self._r21
 
-    @r21.setter
-    def r21(self, value):
-        self._r21 = value
-        self.mode = 1
-
     @property
     def r43(self):
         return self._r43
 
-    @r43.setter
-    def r43(self, value):
-        self._r43 = value
-        self.mode = 1
+    @property
+    def model(self):
+        return {
+            0: 'linear',
+            1: 'full',
+           -1: 'suppressed',
+        }[self._model]
 
+    @model.setter
+    def model(self, value):
+        assert value in ['linear', 'full', 'suppressed']
+        self._model = {
+            'linear': 0,
+            'full': 1,
+            'suppressed': -1,
+        }[value]
+
+    @property
+    def side(self):
+        return {
+            0: 'entry',
+            1: 'exit',
+        }[self._side]
+
+    @side.setter
+    def side(self, value):
+        assert value in ['entry', 'exit']
+        self._side = {
+            'entry': 0,
+            'exit': 1,
+        }[value]
 
 class LineSegmentMap(BeamElement):
 
@@ -1551,6 +1771,10 @@ class LineSegmentMap(BeamElement):
             Amplitude of Gaussian noise on the longitudinal momentum. Optional, default is ``0``.
 
         '''
+
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self._xobject = nargs['_xobject']
+            return
 
         assert longitudinal_mode in ['linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', None]
 
@@ -1786,6 +2010,11 @@ class FirstOrderTaylorMap(BeamElement):
     # included for compatibility with Multipole
 
     def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
+
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self.xoinitialize(**nargs)
+            return
+
         nargs['radiation_flag'] = radiation_flag
         nargs['length'] = length
         if m0 is None:
@@ -1878,6 +2107,10 @@ class LinearTransferMatrix(BeamElement):
                      equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
                      gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
                      **nargs):
+
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self.xoinitialize(**nargs)
+            return
 
         _print('Warning: `LinearTransferMatrix` is deprecated and will be removed in the future. '
                'Please use `LineSegmentMap` instead.')

@@ -49,7 +49,7 @@ def test_psb_chicane(test_context):
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                                 gamma0=mad.sequence.psb1.beam.gamma)
     line.twiss_default['method'] = '4d'
-    line.configure_bend_method('full')
+    line.configure_bend_model(core='full')
 
     # Build chicane knob (k0)
     line.vars['bsw_k0l'] = 0

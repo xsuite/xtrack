@@ -139,11 +139,12 @@ class Slicer:
 
     def slice_in_place(self):
         line = self.line
+        compound_relations = {}
 
         n_elements = len(line)
         for ii, name in enumerate(line.element_names):
             _print(f'Slicing line: {100*(ii + 1)/n_elements:.0f}%', end='\r', flush=True)
-            element = line[name]
+            element = line.element_dict[name]
 
             # Don't slice already thin elements and drifts
             if not element.isthick or isinstance(element, xt.Drift):
@@ -172,15 +173,19 @@ class Slicer:
             # At the beginning of the element we will insert a marker of
             # the same name as the current thick element. We keep the old
             # element in the line for now, as we might need its expressions.
-            self.thin_names.append(name)
+            slices_to_add = [name]
 
             # Add the slices to the line.element_dict
-            self._make_slices(element, chosen_slicing, name)
+            slices_to_add += self._make_slices(element, chosen_slicing, name)
+            self.thin_names += slices_to_add
 
             # Remove the thick element and its expressions
             if self.has_expresions:
                 type(element).delete_element_ref(self.line.element_refs[name])
             self.line.element_dict[name] = xt.Marker()
+
+            # Add the compound relations
+            self.line.define_compound(name, slices_to_add)
 
         # Commit the changes to the line
         line.element_names = self.thin_names
@@ -189,9 +194,15 @@ class Slicer:
         """
         Add the slices to the line.element_dict. If the element has expressions
         then the expressions will be added to the slices.
+
+        Returns
+        -------
+        list
+            A list of the names of the slices that were added.
         """
         drift_idx, element_idx = 0, 0
         drift_to_slice = xt.Drift(length=element.length)
+        slices_to_append = []
 
         for weight, is_drift in chosen_slicing:
             if is_drift:
@@ -213,7 +224,9 @@ class Slicer:
                 container=container,
                 thick_name=name,
                 slice_name=slice_name,
-                _buffer=self.line[name]._buffer,
+                _buffer=self.line.element_dict[name]._buffer,
                 )
 
-            self.thin_names.append(slice_name)
+            slices_to_append.append(slice_name)
+
+        return slices_to_append

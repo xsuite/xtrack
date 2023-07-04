@@ -31,7 +31,7 @@ import abc
 import functools
 import re
 from itertools import zip_longest
-from typing import List, Iterable, Iterator, Tuple
+from typing import List, Iterable, Iterator, Tuple, Union
 
 import numpy as np
 from math import tan
@@ -59,13 +59,6 @@ def set_if_not_none(dct, key, val):
 
 def rad2deg(rad):
     return rad * 180 / np.pi
-
-
-def evals_to_zero(var_or_val):
-    if hasattr(var_or_val, '_value'):
-        return var_or_val._value == 0
-    else:
-        return not bool(var_or_val)
 
 
 def get_value(x):
@@ -140,11 +133,18 @@ def is_expr(x):
     return hasattr(x, "_get_value")
 
 
-def not_zero(x):
+def nonzero_or_expr(x):
     if is_expr(x):
         return True
     else:
         return x != 0
+
+
+def value_if_expr(x):
+    if is_expr(x):
+        return x._value
+    else:
+        return x
 
 
 def eval_list(par, madeval):
@@ -310,7 +310,7 @@ class ElementBuilder:
         return "Element(%s, %s, %s)" % (self.name, self.type, self.attrs)
 
     def __setattr__(self, k, v):
-        if hasattr(self, "attrs"):
+        if hasattr(self, "attrs") and k not in ('name', 'type', 'attrs'):
             self.attrs[k] = v
         else:
             super().__setattr__(k, v)
@@ -331,6 +331,39 @@ class ElementBuilderWithExpr(ElementBuilder):
         for k, p in self.attrs.items():
             set_expr(elref, k, p)
         return xtel
+
+
+class CompoundElement:
+    """A builder-like object for holding elements that should become a compound
+    element in the final lattice."""
+    def __init__(
+        self,
+        name: str,
+        subsequence: List[ElementBuilder],
+    ):
+        self.elements = subsequence
+        self.name = name
+
+    def add_to_line(self, line, buffer):
+        start_marker = ElementBuilder(
+            name=self.name+"_entry",
+            type=xtrack.Marker,
+        )
+
+        end_marker = ElementBuilder(
+            name=self.name+"_exit",
+            type=xtrack.Marker,
+        )
+
+        component_elements = [start_marker] + self.elements + [end_marker]
+
+        for el in component_elements:
+            el.add_to_line(line, buffer)
+
+        line.define_compound(
+            compound_name=self.name,
+            component_names=[el.name for el in component_elements],
+        )
 
 
 class Aperture:
@@ -384,7 +417,7 @@ class Aperture:
                     dy=-self.dy,
                 )
             )
-        if not_zero(self.aper_tilt):
+        if nonzero_or_expr(self.aper_tilt):
             out.append(
                 self.Builder(
                     self.name + "_aper_tilt_exit",
@@ -537,8 +570,8 @@ class MadLoader:
         classes=xtrack,
         replace_in_expr=None,
         allow_thick=False,
+        use_compound_elements=True,
     ):
-
 
         if enable_errors is not None:
             if enable_field_errors is None:
@@ -581,6 +614,7 @@ class MadLoader:
         self.ignore_madtypes = ignore_madtypes
 
         self.allow_thick = allow_thick
+        self.use_compound_elements = use_compound_elements
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
@@ -616,6 +650,7 @@ class MadLoader:
 
     def make_line(self, buffer=None):
         """Create a new line in buffer"""
+
         mad = self.sequence._madx
 
         if buffer is None:
@@ -667,14 +702,14 @@ class MadLoader:
 
     def add_elements(
         self,
-        elements: List[ElementBuilder],
+        elements: List[Union[ElementBuilder, CompoundElement]],
         line,
         buffer,
     ):
         out = {}  # tbc
         for el in elements:
-            xtel = el.add_to_line(line, buffer)
-            out[el.name] = xtel  # tbc
+            xt_element = el.add_to_line(line, buffer)
+            out[el.name] = xt_element  # tbc
         return out  # tbc
 
     @property
@@ -686,7 +721,7 @@ class MadLoader:
         return math
 
     def _assert_element_is_thin(self, mad_el):
-        if not evals_to_zero(mad_el.l):
+        if value_if_expr(mad_el.l) != 0:
             if self.allow_thick:
                 raise NotImplementedError(
                     f'Cannot load element {mad_el.name}, as thick elements of '
@@ -707,13 +742,30 @@ class MadLoader:
             length=mad_el.l * weight,
         )
 
-    def convert_thin_element(self, xtrack_el, mad_el, custom_tilt=None):
-        """add aperture and transformations to a thin element
+    def make_compound_elem(
+            self,
+            xtrack_el,
+            mad_el,
+            custom_tilt=None,
+    ):
+        """Add aperture and transformations to a thin element:
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
+
+        Parameters
+        ----------
+        xtrack_el: list
+            List of xtrack elements to which the aperture and transformations
+            should be added.
+        mad_el: MadElement
+            The element for which the aperture and transformations should be
+            added.
+        custom_tilt: float, optional
+            If not None, the element will be additionally tilted by this
+            amount.
         """
         align = Alignment(
             mad_el, self.enable_align_errors, self.classes, self.Builder, custom_tilt)
-        # perm=self.permanent_alignement(cpymad_elem) #to be implemented
+        # perm=self.permanent_alignment(cpymad_elem) #to be implemented
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
@@ -726,7 +778,10 @@ class MadLoader:
         elem_list.extend(align.exit())
         # elem_list.extend(perm.exit())
 
-        return elem_list
+        if self.use_compound_elements and len(elem_list) > 1:
+            return [CompoundElement(name=mad_el.name, subsequence=elem_list)]
+        else:
+            return elem_list
 
     def convert_quadrupole(self, mad_el):
         if self.allow_thick:
@@ -747,7 +802,7 @@ class MadLoader:
             tilt = None
             k1 = mad_el.k1
 
-        return self.convert_thin_element(
+        return self.make_compound_elem(
             [
                 self.Builder(
                     mad_el.name,
@@ -761,113 +816,32 @@ class MadLoader:
         )
 
     def convert_rbend(self, mad_el):
-        return self._convert_bend(
-            mad_el,
-            enable_entry_edge=True,
-            enable_exit_edge=True,
-        )
+        return self._convert_bend(mad_el)
 
     def convert_sbend(self, mad_el):
-        return self._convert_bend(
-            mad_el,
-            enable_entry_edge=True,
-            enable_exit_edge=True,
-        )
+        return self._convert_bend(mad_el)
 
     def _convert_bend(
         self,
         mad_el,
-        enable_entry_edge=True,
-        enable_exit_edge=True,
     ):
-        if not_zero(mad_el.l) and self.allow_thick:
-            sequence = [self._convert_bend_thick(mad_el)]
-        else:
-            sequence = [self._convert_bend_thin(mad_el)]
 
-        l = mad_el.l
-        h = mad_el.angle / l
+        assert self.allow_thick, "Bends are not supported in thin mode."
+
+        l_curv = mad_el.l
+        h = mad_el.angle / l_curv
+
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and mad_el.angle:
+            R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
+            l_curv = R * mad_el.angle
+            h = 1 / R
+
         if not mad_el.k0:
-            k0 = mad_el.angle / l
+            k0 = h
         else:
             k0 = mad_el.k0
 
-        if enable_entry_edge and mad_el.type == 'rbend':
-            # For the rbend edge import we assume flat edge faces
-            dipedge_entry = self.Builder(
-                mad_el.name + "_den",
-                self.classes.DipoleEdge,
-                r21=h * self.math.tan(0.5 * k0 * l),
-                r43=-k0 * self.math.tan(0.5 * k0 * l),
-            )
-            sequence = [dipedge_entry] + sequence
-        elif enable_entry_edge and mad_el.type == 'sbend':
-            # For the sbend edge import we assume k0l = angle
-            dipedge_entry = self.Builder(
-                mad_el.name + "_den",
-                self.classes.DipoleEdge,
-                e1=mad_el.e1,
-                fint=mad_el.fint,
-                hgap=mad_el.hgap,
-                h=k0
-            )
-            sequence = [dipedge_entry] + sequence
-
-        if enable_exit_edge and mad_el.type == 'rbend':
-            # For the rbend edge import we assume flat edge faces
-            dipedge_exit = self.Builder(
-                mad_el.name + "_dex",
-                self.classes.DipoleEdge,
-                r21=h * self.math.tan(0.5 * k0 * l),
-                r43=-k0 * self.math.tan(0.5 * k0 * l),
-            )
-            sequence = sequence + [dipedge_exit]
-        elif enable_exit_edge and mad_el.type == 'sbend':
-            # For the sbend edge import we assume k0l = angle
-            dipedge_exit = self.Builder(
-                mad_el.name + "_dex",
-                self.classes.DipoleEdge,
-                e1=mad_el.e2,
-                fint=mad_el.fint,
-                hgap=mad_el.hgap,
-                h=k0
-            )
-            sequence = sequence + [dipedge_exit]
-
-        return self.convert_thin_element(sequence, mad_el)
-
-    def _convert_bend_thin(self, mad_el):
-        self._assert_element_is_thin(mad_el)
-
-        if not_zero(mad_el.angle):
-            hxl = mad_el.angle
-        else:
-            hxl = mad_el.k0 * mad_el.l
-
-        if mad_el.k0:
-            k0l = mad_el.k0 * mad_el.l
-        else:
-            k0l = mad_el.angle
-
-        if not mad_el.k1:
-            k1l = 0
-        else:
-            k1l = mad_el.k1 * mad_el.l
-
-        return self.Builder(
-            mad_el.name,
-            self.classes.Multipole,
-            knl=[k0l, k1l],
-            hxl=[hxl],
-            length=mad_el.l,
-        )
-
-    def _convert_bend_thick(self, mad_el):
-        if mad_el.angle:
-            h = mad_el.angle / mad_el.l
-        else:
-            h = 0.0
-
+        # Convert bend core
         num_multipole_kicks = 0
         if mad_el.k2:
             num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
@@ -877,16 +851,64 @@ class MadLoader:
         else:
             cls = self.classes.Bend
             kwargs = {}
-        return self.Builder(
+        bend_core = self.Builder(
             mad_el.name,
             cls,
-            k0=mad_el.k0 or h,
+            k0=k0,
             h=h,
-            length=mad_el.l,
-            knl=[0, 0, mad_el.k2 * mad_el.l],
+            length=l_curv,
+            knl=[0, 0, mad_el.k2 * l_curv],
             num_multipole_kicks=num_multipole_kicks,
             **kwargs,
         )
+
+        sequence = [bend_core]
+
+        # Convert dipedge
+        if mad_el.type == 'sbend':
+            e1 = mad_el.e1
+            e2 = mad_el.e2
+        elif mad_el.type == 'rbend':
+            e1 = mad_el.e1 + mad_el.angle / 2
+            e2 = mad_el.e2 + mad_el.angle / 2
+        else:
+            raise NotImplementedError(
+                f'Unknown bend type {mad_el.type}.'
+            )
+
+        dipedge_entry = self.Builder(
+            mad_el.name + "_den",
+            self.classes.DipoleEdge,
+            e1=e1,
+            e1_fd = (k0 - h) * l_curv / 2,
+            fint=mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            side='entry'
+        )
+        sequence = [dipedge_entry] + sequence
+
+        # For the sbend edge import we assume k0l = angle
+        dipedge_exit = self.Builder(
+            mad_el.name + "_dex",
+            self.classes.DipoleEdge,
+            e1=e2,
+            e1_fd = (k0 - h) * l_curv / 2,
+            fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            side='exit'
+        )
+        sequence = sequence + [dipedge_exit]
+
+        return self.make_compound_elem(sequence, mad_el)
+
+    def _convert_bend_thick(self, mad_el):
+        if mad_el.angle:
+            h = mad_el.angle / mad_el.l
+        else:
+            h = 0.0
+
 
     def convert_sextupole(self, mad_el):
         thin_sext = self.Builder(
@@ -897,7 +919,7 @@ class MadLoader:
             length=mad_el.l,
         )
 
-        if not_zero(mad_el.l):
+        if value_if_expr(mad_el.l) != 0:
             if not self.allow_thick:
                 self._assert_element_is_thin(mad_el)
 
@@ -909,7 +931,7 @@ class MadLoader:
         else:
             sequence = [thin_sext]
 
-        return self.convert_thin_element(sequence, mad_el)
+        return self.make_compound_elem(sequence, mad_el)
 
     def convert_octupole(self, mad_el):
         thin_oct = self.Builder(
@@ -920,7 +942,7 @@ class MadLoader:
             length=mad_el.l,
         )
 
-        if not_zero(mad_el.l):
+        if value_if_expr(mad_el.l) != 0:
             if not self.allow_thick:
                 self._assert_element_is_thin(mad_el)
 
@@ -932,7 +954,7 @@ class MadLoader:
         else:
             sequence = [thin_oct]
 
-        return self.convert_thin_element(sequence, mad_el)
+        return self.make_compound_elem(sequence, mad_el)
 
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
@@ -1018,11 +1040,11 @@ class MadLoader:
 
     def convert_marker(self, mad_elem):
         el = self.Builder(mad_elem.name, self.classes.Marker)
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
     def convert_drift_like(self, mad_elem):
         el = self.Builder(mad_elem.name, self._drift, length=mad_elem.l)
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
     convert_monitor = convert_drift_like
     convert_hmonitor = convert_drift_like
@@ -1056,7 +1078,7 @@ class MadLoader:
             el.hxl = mad_elem.knl[0]  # in madx angle=0 -> dipole
             el.hyl = mad_elem.ksl[0]  # in madx angle=0 -> dipole
         el.length = mad_elem.lrad
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
     def convert_kicker(self, mad_el):
         hkick = [-mad_el.hkick] if mad_el.hkick else []
@@ -1071,7 +1093,7 @@ class MadLoader:
             hyl=0,
         )
 
-        if not_zero(mad_el.l):
+        if value_if_expr(mad_el.l) != 0:
             if not self.allow_thick:
                 self._assert_element_is_thin(mad_el)
 
@@ -1083,7 +1105,7 @@ class MadLoader:
         else:
             sequence = [thin_kicker]
 
-        return self.convert_thin_element(sequence, mad_el)
+        return self.make_compound_elem(sequence, mad_el)
 
     convert_tkicker = convert_kicker
 
@@ -1104,7 +1126,7 @@ class MadLoader:
             hyl=0,
         )
 
-        if not_zero(mad_el.l):
+        if value_if_expr(mad_el.l) != 0:
             if not self.allow_thick:
                 self._assert_element_is_thin(mad_el)
 
@@ -1116,7 +1138,7 @@ class MadLoader:
         else:
             sequence = [thin_hkicker]
 
-        return self.convert_thin_element(sequence, mad_el)
+        return self.make_compound_elem(sequence, mad_el)
 
     def convert_vkicker(self, mad_el):
         if mad_el.vkick:
@@ -1135,7 +1157,7 @@ class MadLoader:
             hyl=0,
         )
 
-        if not_zero(mad_el.l):
+        if value_if_expr(mad_el.l) != 0:
             if not self.allow_thick:
                 self._assert_element_is_thin(mad_el)
 
@@ -1147,7 +1169,7 @@ class MadLoader:
         else:
             sequence = [thin_vkicker]
 
-        return self.convert_thin_element(sequence, mad_el)
+        return self.make_compound_elem(sequence, mad_el)
 
     def convert_dipedge(self, mad_elem):
         # TODO LRAD
@@ -1159,7 +1181,7 @@ class MadLoader:
             hgap=mad_elem.hgap,
             fint=mad_elem.fint,
         )
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
     def convert_rfcavity(self, ee):
         # TODO LRAD
@@ -1182,7 +1204,7 @@ class MadLoader:
             lag=ee.lag * 360,
         )
 
-        if not evals_to_zero(ee.l):
+        if value_if_expr(ee.l) != 0:
             sequence = [
                 self._make_drift_slice(ee, 0.5, f"drift_{{}}..1"),
                 el,
@@ -1191,7 +1213,7 @@ class MadLoader:
         else:
             sequence = [el]
 
-        return self.convert_thin_element(sequence, ee)
+        return self.make_compound_elem(sequence, ee)
 
     def convert_rfmultipole(self, ee):
         self._assert_element_is_thin(ee)
@@ -1211,7 +1233,7 @@ class MadLoader:
             pn=[v * 360 for v in ee.pnl],
             ps=[v * 360 for v in ee.psl],
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_wire(self, ee):
         self._assert_element_is_thin(ee)
@@ -1227,7 +1249,7 @@ class MadLoader:
                 xma=ee.xma[0],
                 yma=ee.yma[0],
             )
-            return self.convert_thin_element([el], ee)
+            return self.make_compound_elem([el], ee)
         else:
             # TODO: add multiple elements for multiwire configuration
             raise ValueError("Multiwire configuration not supported")
@@ -1259,7 +1281,7 @@ class MadLoader:
                 pn=[ee.lag * 360 + 90],  # TODO: Changed sign to match sixtrack
                 # To be checked!!!!
             )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_beambeam(self, ee):
         self._assert_element_is_thin(ee)
@@ -1317,7 +1339,7 @@ class MadLoader:
                 d_px=0,
                 d_py=0,
             )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_placeholder(self, ee):
         # assert not is_expr(ee.slot_id) can be done only after release MADX 5.09
@@ -1346,7 +1368,7 @@ class MadLoader:
             el = self.Builder(ee.name, self.classes.SCInterpolatedProfile)
         else:
             el = self.Builder(ee.name, self._drift, length=ee.l)
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_matrix(self, ee):
         length = ee.l
@@ -1364,28 +1386,28 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_srotation(self, ee):
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.SRotation, angle=angle
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_xrotation(self, ee):
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.XRotation, angle=angle
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_yrotation(self, ee):
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.YRotation, angle=angle
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_translation(self, ee):
         el_transverse = self.Builder(
@@ -1398,4 +1420,4 @@ class MadLoader:
         ee.dx = 0
         ee.dy = 0
         ee.ds = 0
-        return self.convert_thin_element([el_transverse,el_longitudinal], ee)
+        return self.make_compound_elem([el_transverse,el_longitudinal], ee)
