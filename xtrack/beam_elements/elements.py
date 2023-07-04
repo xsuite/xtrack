@@ -305,6 +305,11 @@ class SRotation(BeamElement):
         calculate the missing values from the others. If more than necessary
         parameters are given, their consistency will be checked.
         """
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if angle is None and (cos_z is not None or sin_z is not None):
             anglerad, cos_angle, sin_angle, _ = _angle_from_trig(cos_z, sin_z)
         elif angle is not None:
@@ -374,6 +379,11 @@ class XRotation(BeamElement):
         parameters are given, their consistency will be checked.
         """
         # Note MAD-X node_value('other_bv ') is ignored
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         at_least_one_trig = sum(trig is not None for trig
                                 in (cos_angle, sin_angle, tan_angle)) > 0
 
@@ -458,6 +468,11 @@ class YRotation(BeamElement):
         """
         #Note MAD-X node_value('other_bv ') is ignored
         #     minus sign follows MAD-X convention
+
+        if '_xobject' in kwargs and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         at_least_one_trig = sum(
             trig is not None for trig
                 in (cos_angle, sin_angle, tan_angle)
@@ -526,6 +541,11 @@ class ZetaShift(BeamElement):
     _store_in_to_dict = ['dzeta']
 
     def __init__(self, dzeta = 0, **nargs):
+
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self.xoinitialize(**nargs)
+            return
+
         nargs['dzeta'] = dzeta
         super().__init__(**nargs)
 
@@ -657,12 +677,13 @@ class SimpleThinQuadrupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
     def __init__(self, knl=None, **kwargs):
-        if knl is None:
-            knl = np.zeros(2)
 
         if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
             self.xoinitialize(**kwargs)
             return
+
+        if knl is None:
+            knl = np.zeros(2)
 
         if len(knl) != 2:
             raise ValueError("For a quadrupole, len(knl) must be 2.")
@@ -1200,6 +1221,11 @@ class SimpleThinBend(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
 
     def __init__(self, knl=None, **kwargs):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if knl is None:
             knl = np.zeros(1)
 
@@ -1409,6 +1435,10 @@ class DipoleEdge(BeamElement):
         side=None,
         **kwargs
     ):
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
 
         # For backward compatibility
         if 'h' in kwargs.keys():
@@ -1742,6 +1772,10 @@ class LineSegmentMap(BeamElement):
 
         '''
 
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self._xobject = nargs['_xobject']
+            return
+
         assert longitudinal_mode in ['linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', None]
 
         nargs['qx'] = qx
@@ -1976,6 +2010,11 @@ class FirstOrderTaylorMap(BeamElement):
     # included for compatibility with Multipole
 
     def __init__(self, length = 0.0, m0 = None, m1 = None,radiation_flag=0,**nargs):
+
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self.xoinitialize(**nargs)
+            return
+
         nargs['radiation_flag'] = radiation_flag
         nargs['length'] = length
         if m0 is None:
@@ -2068,6 +2107,10 @@ class LinearTransferMatrix(BeamElement):
                      equ_emit_x = 0.0, equ_emit_y = 0.0, equ_emit_s = 0.0,
                      gauss_noise_ampl_x=0.0,gauss_noise_ampl_px=0.0,gauss_noise_ampl_y=0.0,gauss_noise_ampl_py=0.0,gauss_noise_ampl_zeta=0.0,gauss_noise_ampl_delta=0.0,
                      **nargs):
+
+        if '_xobject' in nargs.keys() and nargs['_xobject'] is not None:
+            self.xoinitialize(**nargs)
+            return
 
         _print('Warning: `LinearTransferMatrix` is deprecated and will be removed in the future. '
                'Please use `LineSegmentMap` instead.')
