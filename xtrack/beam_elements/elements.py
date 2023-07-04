@@ -723,6 +723,37 @@ class CombinedFunctionMagnet(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        """
+        Implementation of combined function magnet (i.e. a bending magnet with
+        a quadrupole component).
+
+        Parameters
+        ----------
+        k0 : float
+            Strength of the horizontal dipolar component in units of m^-1.
+        k1 : float
+            Strength of the horizontal quadrupolar component in units of m^-2.
+        h : float
+            Curvature of the reference trajectory in units of m^-1.
+        length : float
+            Length of the element in units of m.
+        knl : array
+            Integrated strength of the high-order normal multipolar components
+            (knl[0] and knl[1] should not be used).
+        ksl : array
+            Integrated strength of the high-order skew multipolar components
+            (ksl[0] and ksl[1] should not be used).
+        num_multipole_kicks : int
+            Number of multipole kicks used to model high order multipolar
+            components.
+
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
@@ -832,6 +863,28 @@ class Quadrupole(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        """
+        Quadrupole element.
+
+        Parameters
+        ----------
+        k1 : float
+            Strength of the quadrupole component in m^-2.
+        length : float
+            Length of the element in meters.
+        knl : array_like, optional
+            Integrated strength of the high-order normal multipolar components
+            (knl[0] and knl[1] should not be used).
+        ksl : array_like, optional
+            Integrated strength of the high-order skew multipolar components
+            (ksl[0] and ksl[1] should not be used).
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
@@ -943,6 +996,33 @@ class Bend(BeamElement):
     ]
 
     def __init__(self, **kwargs):
+
+        """
+        Bending magnet element.
+
+        Parameters
+        ----------
+        k0 : float
+            Strength of the dipole component in m^-1.
+        h : float
+            Curvature of the reference trajectory in m^-1.
+        length : float
+            Length of the element in m.
+        knl : array_like, optional
+            Integrated strength of the high-order normal multipolar components
+            (knl[0] and knl[1] should not be used).
+        ksl : array_like, optional
+            Integrated strength of the high-order skew multipolar components
+            (ksl[0] and ksl[1] should not be used).
+        model: str, optional
+            Model used for the computation. It can be 'expanded' or 'full'.
+            Default is 'expanded'.
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
         if kwargs.get('length', 0.0) == 0.0 and not '_xobject' in kwargs:
             raise ValueError("A thick element must have a length.")
 
