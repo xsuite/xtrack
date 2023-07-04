@@ -572,6 +572,7 @@ class Line:
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
         isthick = np.array(list(map(_is_thick, elements)))
+        compound_name = self._get_element_compound_names()
 
         import pandas as pd
 
@@ -580,6 +581,7 @@ class Line:
             'element_type': element_types,
             'name': self.element_names,
             'isthick': isthick,
+            'compound_name': compound_name,
             'element': elements
         })
         return elements_df
