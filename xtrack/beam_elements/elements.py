@@ -1234,7 +1234,7 @@ class SimpleThinBend(BeamElement):
             return
 
         if len(knl) != 1:
-            raise ValueError("For a quadrupole, len(knl) must be 1.")
+            raise ValueError("For a SimpleThinBend, len(knl) must be 1.")
 
         kwargs["knl"] = knl
         self.xoinitialize(**kwargs)

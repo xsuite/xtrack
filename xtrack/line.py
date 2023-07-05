@@ -2334,7 +2334,7 @@ class Line:
         for name, element in self.element_dict.items():
             if _is_simple_quadrupole(element):
                 fast_quad = beam_elements.SimpleThinQuadrupole(
-                    knl=element.knl,
+                    knl=element.knl[:2],
                     _context=element._context,
                 )
                 self.element_dict[name] = fast_quad
@@ -2350,7 +2350,7 @@ class Line:
         for name, element in self.element_dict.items():
             if _is_simple_dipole(element):
                 fast_di = beam_elements.SimpleThinBend(
-                    knl=element.knl,
+                    knl=element.knl[:1],
                     hxl=element.hxl,
                     length=element.length,
                     _context=element._context,
