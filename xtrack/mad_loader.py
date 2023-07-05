@@ -1413,11 +1413,9 @@ class MadLoader:
         el_transverse = self.Builder(
             ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
-        dzeta = ee.ds*self.sequence.beam.beta
-        el_longitudinal = self.Builder(
-            ee.name, self.classes.ZetaShift, dzeta=dzeta
-        )
+        if ee.ds:
+            raise NotImplementedError # Need to implement ShiftS element
         ee.dx = 0
         ee.dy = 0
         ee.ds = 0
-        return self.make_compound_elem([el_transverse,el_longitudinal], ee)
+        return self.make_compound_elem([el_transverse], ee)
