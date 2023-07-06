@@ -9,6 +9,8 @@
 #define POW2(X) ((X)*(X))
 #define NONZERO(X) ((X) != 0.0)
 
+// From madx: https://github.com/MethodicalAcceleratorDesign/MAD-X/blob/8695bd422dc403a01aa185e9fea16603bbd5b3e1/src/trrun.f90#L4320
+
 /*gpufun*/
 void track_thick_cfd(
         LocalParticle* part,  // LocalParticle to track
@@ -29,12 +31,11 @@ void track_thick_cfd(
     const double px = LocalParticle_get_px(part);
     const double py = LocalParticle_get_py(part);
     const double pt = LocalParticle_get_ptau(part);
+    const double rvv = LocalParticle_get_rvv(part);
 
-    const double beti = 1.0 / (LocalParticle_get_rvv(part) * beta0);
     // In MAD-X (delta + 1) is computed:
     // const double delta_plus_1 = sqrt(pt*pt + 2.0*pt*beti + 1.0);
     const double delta_plus_1 = LocalParticle_get_delta(part) + 1;
-    const double bet = delta_plus_1 / (beti + pt);
 
     const double k0 = k0_ / delta_plus_1;
     const double k1 = k1_ / delta_plus_1;
@@ -127,13 +128,14 @@ void track_thick_cfd(
     else {
         length_ += 0.5 * POW2(D) * length;
     }
-    z_ = length * beti - length_ / bet;
+
+    const double dzeta = length - length_ / rvv;
 
     LocalParticle_set_x(part, x_);
     LocalParticle_set_px(part, px_);
     LocalParticle_set_y(part, y_);
     LocalParticle_set_py(part, py_);
-    LocalParticle_add_to_zeta(part, z_ * beta0);
+    LocalParticle_add_to_zeta(part, dzeta);
     LocalParticle_add_to_s(part, length);
 }
 
