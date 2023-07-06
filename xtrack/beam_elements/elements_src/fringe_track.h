@@ -86,10 +86,9 @@ void Fringe_single_particle(
     const double ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
     const double kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
 
-    printf("k0 = %e\n", k0);
-    printf("fi0 = %e\n", fi0);
-    printf("ky = %e\n", ky);
-    printf("k0*fi0 = %e\n", fi0);
+    printf("NG kx = %e\n", kx);
+    printf("NG ky = %e\n", ky);
+    printf("NG kz = %e\n", kz);
 
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
     const double new_x  = x  + 0.5 * kx * POW2(new_y);
@@ -141,7 +140,7 @@ void Fringe_single_particle(
     const double delta = LocalParticle_get_delta(part);
     const double rvv = LocalParticle_get_rvv(part);
 
-    const double el = zeta * rvv;
+    const double tau = zeta / beta0;
 
     // if(k%TIME) then
     //    PZ=sqrt(1.0_dp+2.0_dp*X(5)/el%beta0+x(5)**2-X(2)**2-X(4)**2)
@@ -200,21 +199,23 @@ void Fringe_single_particle(
     BB = fi_2 * D_2_1 + BB;
     BB = fi_3 * D_3_1 + BB;
     const double new_x = x + 0.5 * BB * new_y * new_y;
+    printf("BBx = %e\n", BB);
 
     BB = 0;
     BB = fi_1 * D_1_3 + BB;
     BB = fi_2 * D_2_3 + BB;
     BB = fi_3 * D_3_3 + BB;
-    double new_el = el - 0.5 * BB * new_y * new_y;
+    double d_tau = 0.5 * BB * new_y * new_y;
+    printf("BBel = %e\n", BB);
 
 
     new_py = new_py - 4 * c3 * POW3(new_y);
-    new_el = new_el + c3 * POW4(new_y) / POW2(rel_p) * time_fac;
+    d_tau = d_tau + c3 * POW4(new_y) / POW2(rel_p) * time_fac;
 
     LocalParticle_set_x(part, new_x);
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
-    LocalParticle_set_zeta(part, new_el / rvv);
+    LocalParticle_add_to_zeta(part, -d_tau * beta0); // PTC uses tau = ct
 }
 #endif // XTRACK_FRINGE_FROM_PTC
 
