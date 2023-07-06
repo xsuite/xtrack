@@ -34,15 +34,16 @@ void MadNG_Fringe_single_particle(
     const double py = LocalParticle_get_py(part);
     const double t = LocalParticle_get_zeta(part) / beta0;
     const double pt = LocalParticle_get_ptau(part);
+    const double delta = LocalParticle_get_delta(part);
 
     const double fh = hgap * fint;
     const double fsad = (fh > 10e-10) ? 1./(72 * fh) : 0;
     const double k0w = k0;
 
-    const double _beta = 1. / (beta0 * rvv);
-    const double b0 = k0w * LocalParticle_get_charge_ratio(part) * LocalParticle_get_q0(part);
+    const double _beta = 1. / beta0 ;
+    const double b0 = k0w; // MAD does something with the charge (to be checked)
 
-    const double dpp = 1. + 2*_beta*pt + POW2(pt);
+    const double dpp = POW2(1. + delta);
     const double pz = sqrt(dpp - POW2(px) - POW2(py));
     const double _pz = 1./pz;
     const double relp = 1./sqrt(dpp);
@@ -75,9 +76,10 @@ void MadNG_Fringe_single_particle(
     // printf("k0*fi0 = %e\n", fi0);
 
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
-    const double new_x  = x  + 0.5*kx*POW2(new_y);
-    const double new_py = py              - 4*c3*POW3(y)             - b0*tan(fi0)*new_y;
-    const double new_t = t + 0.5*kz*POW2(y) +   c3*POW4(new_y)*POW2(relp)*tfac;
+    const double new_x  = x  + 0.5 * kx * POW2(new_y);
+    const double new_py = py - 4 * c3 * POW3(new_y) - b0 * tan(fi0) * new_y;
+    const double new_t = t + 0.5 * kz * POW2(new_y) + c3 * POW4(new_y) * POW2(relp) * tfac;
+
     const double new_zeta = new_t * beta0;
 
     LocalParticle_set_x(part, new_x);

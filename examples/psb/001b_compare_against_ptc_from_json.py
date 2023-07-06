@@ -10,7 +10,7 @@ import xobjects as xo
 import matplotlib.pyplot as plt
 
 core = 'full'
-edge = 'linear'
+edge = 'full'
 
 line_thick = xt.Line.from_json('psb_03_with_chicane_corrected.json')
 line_thick.build_tracker()
