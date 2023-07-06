@@ -205,7 +205,7 @@ void Fringe_single_particle(
     BB = fi_1 * D_1_3 + BB;
     BB = fi_2 * D_2_3 + BB;
     BB = fi_3 * D_3_3 + BB;
-    double d_tau = 0.5 * BB * new_y * new_y;
+    double d_tau = -0.5 * BB * new_y * new_y;
     printf("BBel = %e\n", BB);
 
 
