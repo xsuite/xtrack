@@ -44,8 +44,7 @@ if kill_fringes_and_edges:
 
     for ee in line.elements:
         if isinstance(ee, xt.DipoleEdge):
-            ee.r21 = 0
-            ee.r43 = 0
+            ee.k = 0
 
 tw_mad = mad.twiss().dframe()
 
