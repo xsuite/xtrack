@@ -152,6 +152,9 @@ class TargetInequality(Target):
         self.ineq_sign = ineq_sign
         self.rhs = rhs
 
+    def __repr__(self):
+        return f'TargetInequality({self.tar} {self.ineq_sign} {self.rhs}, tol={self.tol}, weight={self.weight})'
+
     def eval(self, tw):
         val = super().eval(tw)
         if self.ineq_sign == '<' and val < self.rhs:
