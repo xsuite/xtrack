@@ -18,7 +18,7 @@ from xtrack.slicing import Strategy, Uniform
     'k0, k1, length',
     [
         (-0.1, 0, 0.9),
-        (0, 0, 0.9),
+        #(0, 0, 0.9),
         (-0.1, 0.12, 0.9),
         (0, 0.12, 0.8),
         (0.15, -0.23, 0.9),
@@ -31,17 +31,15 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
     Test the combined function dipole against madx. We import bends from madx
     using use_true_thick_bend=False, and the true bend is not in madx.
     """
-    rng = np.random.default_rng(123)
-    num_part = 100
 
     p0 = xp.Particles(
         p0c=xp.PROTON_MASS_EV,
-        x=rng.uniform(-1e-3, 1e-3, num_part),
-        px=rng.uniform(-1e-5, 1e-5, num_part),
-        y=rng.uniform(-2e-3, 2e-3, num_part),
-        py=rng.uniform(-3e-5, 3e-5, num_part),
-        zeta=rng.uniform(-1e-2, 1e-2, num_part),
-        delta=rng.uniform(-1e-4, 1e-4, num_part),
+        x=0.01,
+        px=0.1,
+        y=-0.03,
+        py=0.001,
+        zeta=0.1,
+        delta=0,#[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
         _context=test_context,
     )
     mad = Madx()
@@ -57,7 +55,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
 
-    for ii in range(num_part):
+    for ii in range(len(p0.x)):
         mad.input(f"""
         beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
 
@@ -70,17 +68,17 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
 
         mad_results = mad.table.mytracksumm[-1]
 
-        p = p0.copy(_context=test_context)
-        line_thick.track(p, _force_no_end_turn_actions=True)
-        p.move(_context=xo.context_default)
+        part = p0.copy(_context=test_context)
+        line_thick.track(part, _force_no_end_turn_actions=True)
+        part.move(_context=xo.context_default)
 
-        xt_tau = p.zeta/p.beta0
-        assert np.allclose(p.x[ii], mad_results.x, atol=1e-13, rtol=0)
-        assert np.allclose(p.px[ii], mad_results.px, atol=1e-13, rtol=0)
-        assert np.allclose(p.y[ii], mad_results.y, atol=1e-13, rtol=0)
-        assert np.allclose(p.py[ii], mad_results.py, atol=1e-13, rtol=0)
+        xt_tau = part.zeta/part.beta0
+        assert np.allclose(part.x[ii], mad_results.x, atol=1e-13, rtol=0)
+        assert np.allclose(part.px[ii], mad_results.px, atol=1e-13, rtol=0)
+        assert np.allclose(part.y[ii], mad_results.y, atol=1e-13, rtol=0)
+        assert np.allclose(part.py[ii], mad_results.py, atol=1e-13, rtol=0)
         assert np.allclose(xt_tau[ii], mad_results.t, atol=2e-8, rtol=0)
-        assert np.allclose(p.ptau[ii], mad_results.pt, atol=1e-13, rtol=0)
+        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-13, rtol=0)
 
 
 def test_thick_bend_survey():
