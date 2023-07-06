@@ -33,7 +33,8 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
     """
 
     p0 = xp.Particles(
-        p0c=xp.PROTON_MASS_EV,
+        mass0=xp.PROTON_MASS_EV,
+        beta0=0.5,
         x=0.01,
         px=0.1,
         y=-0.03,
