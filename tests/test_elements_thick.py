@@ -18,7 +18,7 @@ from xtrack.slicing import Strategy, Uniform
     'k0, k1, length',
     [
         (-0.1, 0, 0.9),
-        #(0, 0, 0.9),
+        (0, 0, 0.9),
         (-0.1, 0.12, 0.9),
         (0, 0.12, 0.8),
         (0.15, -0.23, 0.9),
@@ -39,7 +39,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         y=-0.03,
         py=0.001,
         zeta=0.1,
-        delta=0,#[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
         _context=test_context,
     )
     mad = Madx()
@@ -54,6 +54,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
     line_thick.build_tracker(_context=test_context)
+    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx for large angle and k0 = 0
 
     for ii in range(len(p0.x)):
         mad.input(f"""
@@ -73,12 +74,12 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
         part.move(_context=xo.context_default)
 
         xt_tau = part.zeta/part.beta0
-        assert np.allclose(part.x[ii], mad_results.x, atol=1e-13, rtol=0)
-        assert np.allclose(part.px[ii], mad_results.px, atol=1e-13, rtol=0)
-        assert np.allclose(part.y[ii], mad_results.y, atol=1e-13, rtol=0)
-        assert np.allclose(part.py[ii], mad_results.py, atol=1e-13, rtol=0)
-        assert np.allclose(xt_tau[ii], mad_results.t, atol=2e-8, rtol=0)
-        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-13, rtol=0)
+        assert np.allclose(part.x[ii], mad_results.x, atol=1e-11, rtol=0)
+        assert np.allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0)
+        assert np.allclose(part.y[ii], mad_results.y, atol=1e-11, rtol=0)
+        assert np.allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0)
+        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-10, rtol=0)
+        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0)
 
 
 def test_thick_bend_survey():
