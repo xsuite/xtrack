@@ -58,7 +58,7 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
                 //end_per_particle_block
             }
             //start_per_particle_block (part0->part)
-                MadNG_Fringe_single_particle(part, fint, hgap, k);
+                Fringe_single_particle(part, fint, hgap, k);
             //end_per_particle_block
             if (sin_ > -99.){
                 //start_per_particle_block (part0->part)
@@ -73,7 +73,7 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
                 //end_per_particle_block
             }
             //start_per_particle_block (part0->part)
-                MadNG_Fringe_single_particle(part, fint, hgap, -k);
+                Fringe_single_particle(part, fint, hgap, -k);
             //end_per_particle_block
             if (sin_ > -99.){
                 //start_per_particle_block (part0->part)

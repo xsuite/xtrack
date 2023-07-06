@@ -11,11 +11,13 @@
 #define POW4(X) ((X)*(X)*(X)*(X))
 
 
-// From MAD-NG:
+#ifndef XTRACK_FRINGE_FROM_PTC
+
+// MAD-NG implementation
 // https://github.com/MethodicalAcceleratorDesign/MAD/blob/d3cabd9cdebde62ebedb51bab61ac033b9159489/src/madl_dynmap.mad#L1864
 
 /*gpufun*/
-void MadNG_Fringe_single_particle(
+void Fringe_single_particle(
         LocalParticle* part,  // LocalParticle to track
         const double fint,    // Fringe field integral
         const double hgap,    // Half gap
@@ -24,6 +26,7 @@ void MadNG_Fringe_single_particle(
     if (fabs(k0) < 10e-10) {
         return;
     }
+
     const double rvv = LocalParticle_get_rvv(part);
     const double beta0 = LocalParticle_get_beta0(part);
 
@@ -38,19 +41,25 @@ void MadNG_Fringe_single_particle(
 
     const double fh = hgap * fint;
     const double fsad = (fh > 10e-10) ? 1./(72 * fh) : 0;
+    printf("NG fsad = %e\n", fsad);
     const double k0w = k0;
 
+    //const double _beta = 1. / (beta0 * rvv);
     const double _beta = 1. / beta0 ;
     const double b0 = k0w; // MAD does something with the charge (to be checked)
 
-    const double dpp = POW2(1. + delta);
+    const double dpp = 1. + 2*_beta*pt + POW2(pt);
+    //const double dpp = POW2(1. + delta);
     const double pz = sqrt(dpp - POW2(px) - POW2(py));
+    printf("NG pz = %e\n", pz);
     const double _pz = 1./pz;
     const double relp = 1./sqrt(dpp);
     const double tfac = -(_beta + pt);
+    printf("NG tfac = %e\n", tfac);
 
     const double c2 = b0*fh*2;
     const double c3 = POW2(b0)*fsad*relp;
+    printf("NG c3 = %e\n", c3);
 
     const double xp = px/pz;
     const double yp = py/pz;
@@ -62,18 +71,25 @@ void MadNG_Fringe_single_particle(
     const double fi0 = atan((xp*_yp2)) - c2*(1 + xp2*(1+yp2))*pz;
     const double co2 = b0/POW2(cos(fi0));
     const double co1 = co2/(1 + POW2(xp*_yp2))*_yp2;
+    printf("NG co1 = %e\n", co1);
     const double co3 = co2*c2;
 
     const double fi1 =    co1          - co3*2*xp*(1+yp2)*pz;
     const double fi2 = -2*co1*xyp*_yp2 - co3*2*xp*xyp    *pz;
     const double fi3 =                 - co3*(1 + xp2*(1+yp2));
 
+    printf("NG fi1 = %e\n", fi1);
+    printf("NG fi2 = %e\n", fi2);
+    printf("NG fi3 = %e\n", fi3);
+
     const double kx = fi1*(1+xp2)*_pz   + fi2*xyp*_pz       - fi3*xp;
     const double ky = fi1*xyp*_pz       + fi2*yp2*_pz       - fi3*yp;
     const double kz = fi1*tfac*xp*POW2(_pz) + fi2*tfac*yp*POW2(_pz) - fi3*tfac*_pz;
 
-    // printf("ky = %e\n", ky);
-    // printf("k0*fi0 = %e\n", fi0);
+    printf("k0 = %e\n", k0);
+    printf("fi0 = %e\n", fi0);
+    printf("ky = %e\n", ky);
+    printf("k0*fi0 = %e\n", fi0);
 
     const double new_y = 2 * y / (1 + sqrt(1 - 2 * ky * y));
     const double new_x  = x  + 0.5 * kx * POW2(new_y);
@@ -88,104 +104,119 @@ void MadNG_Fringe_single_particle(
     LocalParticle_set_zeta(part, new_zeta);
 }
 
+#endif // no XTRACK_FRINGE_FROM_PTC
 
 
+
+#ifdef XTRACK_FRINGE_FROM_PTC
 // The following is ported from PTC:
 
-// /*gpufun*/
-// void PTC_Fringe_single_particle(
-//         LocalParticle* part,  // LocalParticle to track
-//         const double fint,    // Fringe field integral
-//         const double hgap,    // Half gap
-//         const double k0       // Dipole strength
-// ) {
-//     if (fabs(k0) < 10e-10) {
-//         return;
-//     }
+/*gpufun*/
+void Fringe_single_particle(
+        LocalParticle* part,  // LocalParticle to track
+        const double fint,    // Fringe field integral
+        const double hgap,    // Half gap
+        const double k0       // Dipole strength
+) {
+    if (fabs(k0) < 10e-10) {
+        return;
+    }
 
-//     const double b = k0; // PTC naming convention
+    const double b = k0; // PTC naming convention
 
-//     double fsad=0.0;
-//     if(fint*hgap != 0.){
-//       fsad=1./(fint*hgap*2)/36.0;
-//     }
+    double fsad=0.0;
+    if(fint*hgap != 0.){
+      fsad=1./(fint*hgap*2)/36.0;
+    }
+    printf("PTC fsad = %e\n", fsad);
 
-//     // Particle coordinates
-//     const double x = LocalParticle_get_x(part);
-//     const double px = LocalParticle_get_px(part);
-//     const double y = LocalParticle_get_y(part);
-//     const double py = LocalParticle_get_py(part);
-//     const double zeta = LocalParticle_get_zeta(part);
-//     const double delta = LocalParticle_get_delta(part);
-//     const double rvv = LocalParticle_get_rvv(part);
+    // Particle coordinates
+    const double beta0 = LocalParticle_get_beta0(part);
+    const double x = LocalParticle_get_x(part);
+    const double px = LocalParticle_get_px(part);
+    const double y = LocalParticle_get_y(part);
+    const double py = LocalParticle_get_py(part);
+    const double zeta = LocalParticle_get_zeta(part);
+    const double ptau = LocalParticle_get_ptau(part);
+    const double delta = LocalParticle_get_delta(part);
+    const double rvv = LocalParticle_get_rvv(part);
 
-//     const double el = zeta * rvv;
+    const double el = zeta * rvv;
 
-//     // if(k%TIME) then
-//     //    PZ=sqrt(1.0_dp+2.0_dp*X(5)/el%beta0+x(5)**2-X(2)**2-X(4)**2)
-//     //    TIME_FAC=1.0_dp/el%beta0+X(5)
-//     //    rel_p=sqrt(1.0_dp+2.0_dp*X(5)/el%beta0+x(5)**2)
-//     // else
-//     const double pz = sqrt((1.0 + delta)*(1.0 + delta) - px * px - py * py);
-//     const double time_fac = 1.0 + delta;
-//     const double rel_p = time_fac;
-//     const double c3 = b * b * fsad / rel_p;
+    // if(k%TIME) then
+    //    PZ=sqrt(1.0_dp+2.0_dp*X(5)/el%beta0+x(5)**2-X(2)**2-X(4)**2)
+    //    TIME_FAC=1.0_dp/el%beta0+X(5)
+    //    rel_p=sqrt(1.0_dp+2.0_dp*X(5)/el%beta0+x(5)**2)
+    // else
+    const double pz = sqrt((1.0 + delta)*(1.0 + delta) - px * px - py * py);
+    printf("ptc pz = %e\n", pz);
+    const double time_fac = 1/beta0 + ptau;
+    printf("ptc time_fac = %e\n", time_fac);
+    const double rel_p = sqrt(1. + 2*ptau/beta0 + POW2(ptau));
+    const double c3 = b * b * fsad / rel_p;
+    printf("ptc c3 = %e\n", c3);
 
-//     const double xp = px / pz;
-//     const double yp = py / pz;
+    const double xp = px / pz;
+    const double yp = py / pz;
+
+    const double D_1_1 = (1.0 + xp * xp) / pz;
+    const double D_2_1 =  xp * yp / pz;
+    const double D_3_1 = -xp;
+    const double D_1_2 = xp * yp / pz;
+    const double D_2_2 = (1.0 + yp * yp)/pz;
+    const double D_3_2 = -yp;
+    const double D_1_3 = -time_fac * xp / (pz * pz);
+    const double D_2_3 = -time_fac * yp / (pz * pz);
+    const double D_3_3 =  time_fac / pz;
+
+    double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) * pz;
+    printf("ptc fi0 = %e\n", fi0);
+    const double co2 = b / cos(fi0) / cos(fi0);
+    const double co1 = co2 / (1.0 + POW2(xp / POW2(1.0 + yp * yp)));
+    printf("ptc co1 = %e\n", co1);
+
+    const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) * pz);
+    const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) * pz;
+    const double fi_3 = -co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp));
+
+    printf("ptc fi_1 = %e\n", fi_1);
+    printf("ptc fi_2 = %e\n", fi_2);
+    printf("ptc fi_3 = %e\n", fi_3);
+
+    fi0 = b * tan(fi0);
+
+    double BB = 0;
+    BB = fi_1 * D_1_2 + BB;
+    BB = fi_2 * D_2_2 + BB;
+    BB = fi_3 * D_3_2 + BB;
+
+    const double new_y = 2.0 * y / (1.0 + sqrt(1.0 - 2.0 * BB * y));
+    double new_py = py - fi0 * new_y;
+
+    printf("BBy = %e\n", BB);
+
+    BB = 0;
+    BB = fi_1 * D_1_1 + BB;
+    BB = fi_2 * D_2_1 + BB;
+    BB = fi_3 * D_3_1 + BB;
+    const double new_x = x + 0.5 * BB * new_y * new_y;
+
+    BB = 0;
+    BB = fi_1 * D_1_3 + BB;
+    BB = fi_2 * D_2_3 + BB;
+    BB = fi_3 * D_3_3 + BB;
+    double new_el = el - 0.5 * BB * new_y * new_y;
 
 
-//     const double D_1_1 = (1.0 + xp * xp) / pz;
-//     const double D_2_1 =  xp * yp / pz;
-//     const double D_3_1 = -xp;
-//     const double D_1_2 = xp * yp / pz;
-//     const double D_2_2 = (1.0 + yp * yp)/pz;
-//     const double D_3_2 = -yp;
-//     const double D_1_3 = -time_fac * xp / (pz * pz);
-//     const double D_2_3 = -time_fac * yp / (pz * pz);
-//     const double D_3_3 =  time_fac / pz;
+    new_py = new_py - 4 * c3 * POW3(new_y);
+    new_el = new_el + c3 * POW4(new_y) / POW2(rel_p) * time_fac;
 
-//     double fi0 = atan((xp / (1.0 + yp * yp)))-b * fint * hgap * 2.0 * ( 1.0 + xp * xp *(2.0 + yp * yp)) * pz;
-//     const double co2 = b / cos(fi0) / cos(fi0);
-//     const double co1 = co2 / (1.0 + (xp / POW2(1.0 + yp * yp)));
-
-//     const double fi_1 = co1 / (1.0 + yp*yp) - co2 * b * fint * hgap * 2.0*(2.0 * xp * (2.0 + yp * yp) * pz);
-//     const double fi_2 = -co1 * 2.0 * xp * yp / POW2(1.0 + yp * yp) - co2 * b * fint * hgap * 2.0 * (2.0 * xp* xp * yp) * pz;
-//     const double fi_3 = -co2 * b * fint * hgap * 2.0 * (1.0 + xp * xp * (2.0 + yp*yp));
-
-//     fi0 = b * tan(fi0);
-
-//     double BB = 0;
-//     BB = fi_1 * D_1_2 + BB;
-//     BB = fi_2 * D_2_2 + BB;
-//     BB = fi_3 * D_3_2 + BB;
-
-//     const double new_y = 2.0 * y / (1.0 + sqrt(1.0 - 2.0 * BB * y));
-//     double new_py = py - fi0 * new_y;
-//     // printf("fi0 = %e\n", fi0);
-//     // printf("BBy = %e\n", BB);
-
-//     BB = 0;
-//     BB = fi_1 * D_1_1 + BB;
-//     BB = fi_2 * D_2_1 + BB;
-//     BB = fi_3 * D_3_1 + BB;
-//     const double new_x = x + 0.5 * BB * new_y * new_y;
-
-//     BB = 0;
-//     BB = fi_1 * D_1_3 + BB;
-//     BB = fi_2 * D_2_3 + BB;
-//     BB = fi_3 * D_3_3 + BB;
-//     double new_el = el - 0.5 * BB * new_y * new_y;
-
-
-//     new_py = new_py - 4 * c3 * POW3(new_y);
-//     new_el = new_el + c3 * POW4(new_y) / POW2(rel_p) * time_fac;
-
-//     LocalParticle_set_x(part, new_x);
-//     LocalParticle_set_y(part, new_y);
-//     LocalParticle_set_py(part, new_py);
-//     LocalParticle_set_zeta(part, new_el / rvv);
-// }
+    LocalParticle_set_x(part, new_x);
+    LocalParticle_set_y(part, new_y);
+    LocalParticle_set_py(part, new_py);
+    LocalParticle_set_zeta(part, new_el / rvv);
+}
+#endif // XTRACK_FRINGE_FROM_PTC
 
 
 // The following is derived from https://cds.cern.ch/record/2857004
