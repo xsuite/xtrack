@@ -521,5 +521,5 @@ def test_fringe_implementations(test_context):
     assert np.isclose(p_ng.s, p_ptc.s, rtol=0, atol=1e-12)
     assert np.isclose(p_ng.zeta, p_ptc.zeta, rtol=0, atol=1e-10)
 
-    assert np.isclose(np.linalg.det(R_ng), 1, rtol=0, atol=1e-8)
-    assert np.isclose(np.linalg.det(R_ptc), 1, rtol=0, atol=1e-8)
+    assert np.isclose(np.linalg.det(R_ng), 1, rtol=0, atol=1e-8) # Symplecticity check
+    assert np.isclose(np.linalg.det(R_ptc), 1, rtol=0, atol=1e-8) # Symplecticity check
