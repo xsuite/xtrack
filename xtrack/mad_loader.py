@@ -143,7 +143,7 @@ def nonzero_or_expr(x):
 
 def value_if_expr(x):
     if is_expr(x):
-        return x._get_value()
+        return x._value
     else:
         return x
 
@@ -593,7 +593,6 @@ class MadLoader:
         use_compound_elements=True,
     ):
 
-
         if enable_errors is not None:
             if enable_field_errors is None:
                 enable_field_errors = enable_errors
@@ -666,6 +665,7 @@ class MadLoader:
 
     def make_line(self, buffer=None):
         """Create a new line in buffer"""
+
         mad = self.sequence._madx
 
         if buffer is None:
@@ -837,113 +837,32 @@ class MadLoader:
         )
 
     def convert_rbend(self, mad_el):
-        return self._convert_bend(
-            mad_el,
-            enable_entry_edge=True,
-            enable_exit_edge=True,
-        )
+        return self._convert_bend(mad_el)
 
     def convert_sbend(self, mad_el):
-        return self._convert_bend(
-            mad_el,
-            enable_entry_edge=True,
-            enable_exit_edge=True,
-        )
+        return self._convert_bend(mad_el)
 
     def _convert_bend(
         self,
         mad_el,
-        enable_entry_edge=True,
-        enable_exit_edge=True,
     ):
-        if value_if_expr(mad_el.l) != 0 and self.allow_thick:
-            sequence = [self._convert_bend_thick(mad_el)]
-        else:
-            sequence = [self._convert_bend_thin(mad_el)]
 
-        l = mad_el.l
-        h = mad_el.angle / l
+        assert self.allow_thick, "Bends are not supported in thin mode."
+
+        l_curv = mad_el.l
+        h = mad_el.angle / l_curv
+
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and mad_el.angle:
+            R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
+            l_curv = R * mad_el.angle
+            h = 1 / R
+
         if not mad_el.k0:
-            k0 = mad_el.angle / l
+            k0 = h
         else:
             k0 = mad_el.k0
 
-        if enable_entry_edge and mad_el.type == 'rbend':
-            # For the rbend edge import we assume flat edge faces
-            dipedge_entry = self.Builder(
-                mad_el.name + "_den",
-                self.classes.DipoleEdge,
-                r21=h * self.math.tan(0.5 * k0 * l),
-                r43=-k0 * self.math.tan(0.5 * k0 * l),
-            )
-            sequence = [dipedge_entry] + sequence
-        elif enable_entry_edge and mad_el.type == 'sbend':
-            # For the sbend edge import we assume k0l = angle
-            dipedge_entry = self.Builder(
-                mad_el.name + "_den",
-                self.classes.DipoleEdge,
-                e1=mad_el.e1,
-                fint=mad_el.fint,
-                hgap=mad_el.hgap,
-                h=k0
-            )
-            sequence = [dipedge_entry] + sequence
-
-        if enable_exit_edge and mad_el.type == 'rbend':
-            # For the rbend edge import we assume flat edge faces
-            dipedge_exit = self.Builder(
-                mad_el.name + "_dex",
-                self.classes.DipoleEdge,
-                r21=h * self.math.tan(0.5 * k0 * l),
-                r43=-k0 * self.math.tan(0.5 * k0 * l),
-            )
-            sequence = sequence + [dipedge_exit]
-        elif enable_exit_edge and mad_el.type == 'sbend':
-            # For the sbend edge import we assume k0l = angle
-            dipedge_exit = self.Builder(
-                mad_el.name + "_dex",
-                self.classes.DipoleEdge,
-                e1=mad_el.e2,
-                fint=mad_el.fint,
-                hgap=mad_el.hgap,
-                h=k0
-            )
-            sequence = sequence + [dipedge_exit]
-
-        return self.make_compound_elem(sequence, mad_el)
-
-    def _convert_bend_thin(self, mad_el):
-        self._assert_element_is_thin(mad_el)
-
-        if nonzero_or_expr(mad_el.angle):
-            hxl = mad_el.angle
-        else:
-            hxl = mad_el.k0 * mad_el.l
-
-        if mad_el.k0:
-            k0l = mad_el.k0 * mad_el.l
-        else:
-            k0l = mad_el.angle
-
-        if not mad_el.k1:
-            k1l = 0
-        else:
-            k1l = mad_el.k1 * mad_el.l
-
-        return self.Builder(
-            mad_el.name,
-            self.classes.Multipole,
-            knl=[k0l, k1l],
-            hxl=[hxl],
-            length=mad_el.l,
-        )
-
-    def _convert_bend_thick(self, mad_el):
-        if mad_el.angle:
-            h = mad_el.angle / mad_el.l
-        else:
-            h = 0.0
-
+        # Convert bend core
         num_multipole_kicks = 0
         if mad_el.k2:
             num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
@@ -953,16 +872,64 @@ class MadLoader:
         else:
             cls = self.classes.Bend
             kwargs = {}
-        return self.Builder(
+        bend_core = self.Builder(
             mad_el.name,
             cls,
-            k0=mad_el.k0 or h,
+            k0=k0,
             h=h,
-            length=mad_el.l,
-            knl=[0, 0, mad_el.k2 * mad_el.l],
+            length=l_curv,
+            knl=[0, 0, mad_el.k2 * l_curv],
             num_multipole_kicks=num_multipole_kicks,
             **kwargs,
         )
+
+        sequence = [bend_core]
+
+        # Convert dipedge
+        if mad_el.type == 'sbend':
+            e1 = mad_el.e1
+            e2 = mad_el.e2
+        elif mad_el.type == 'rbend':
+            e1 = mad_el.e1 + mad_el.angle / 2
+            e2 = mad_el.e2 + mad_el.angle / 2
+        else:
+            raise NotImplementedError(
+                f'Unknown bend type {mad_el.type}.'
+            )
+
+        dipedge_entry = self.Builder(
+            mad_el.name + "_den",
+            self.classes.DipoleEdge,
+            e1=e1,
+            e1_fd = (k0 - h) * l_curv / 2,
+            fint=mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            side='entry'
+        )
+        sequence = [dipedge_entry] + sequence
+
+        # For the sbend edge import we assume k0l = angle
+        dipedge_exit = self.Builder(
+            mad_el.name + "_dex",
+            self.classes.DipoleEdge,
+            e1=e2,
+            e1_fd = (k0 - h) * l_curv / 2,
+            fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            side='exit'
+        )
+        sequence = sequence + [dipedge_exit]
+
+        return self.make_compound_elem(sequence, mad_el)
+
+    def _convert_bend_thick(self, mad_el):
+        if mad_el.angle:
+            h = mad_el.angle / mad_el.l
+        else:
+            h = 0.0
+
 
     def convert_sextupole(self, mad_el):
         thin_sext = self.Builder(
@@ -1467,11 +1434,9 @@ class MadLoader:
         el_transverse = self.Builder(
             ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
-        dzeta = ee.ds*self.sequence.beam.beta
-        el_longitudinal = self.Builder(
-            ee.name, self.classes.ZetaShift, dzeta=dzeta
-        )
+        if ee.ds:
+            raise NotImplementedError # Need to implement ShiftS element
         ee.dx = 0
         ee.dy = 0
         ee.ds = 0
-        return self.make_compound_elem([el_transverse,el_longitudinal], ee)
+        return self.make_compound_elem([el_transverse], ee)

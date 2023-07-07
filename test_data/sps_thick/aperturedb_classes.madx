@@ -1,0 +1,575 @@
+!---|----1----|----2----|----3----|----4----|----5----|----6----|----7----|----8
+
+!--------------------------------------------------------------------------
+! SPS Aperture Data Base
+! G.Arduini - last modified 1/6/2006
+!
+!--------------------------------------------------------------------------
+
+AP: MARKER;
+
+!!ACL,96,96,circular,3.52913,800 MHz TWC,Ramillon
+ACL, APERTYPE=ELLIPSE, APERTURE={0.048,0.048};
+
+!! aperture definition of TWC200 cavity sections
+ACTCME, APERTYPE=ELLIPSE, APERTURE={0.065,0.065};
+ACTCMF, APERTYPE=ELLIPSE, APERTURE={0.065,0.065};
+ACTCMG, APERTYPE=ELLIPSE, APERTURE={0.065,0.065};
+ACTCMH, APERTYPE=ELLIPSE, APERTURE={0.065,0.065};
+ACTCMI, APERTYPE=ELLIPSE, APERTURE={0.065,0.065};
+ACTCMJ, APERTYPE=ELLIPSE, APERTURE={0.065,0.065};
+
+!!AEG,83,83,circular,0.5593,,Ramillon
+AEG, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!AEP,156,156,circular,1,,Ramillon
+AEP, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!AEPA,156,156,circular,0.723,,Ramillon
+AEPA, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!AEPC,156,156,circular,0.7227,,Ramillon
+AEPC, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!AERB,83,83,circular,0.685,,Ramillon
+AERB, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!AESA,83,83,circular,0.2305,,Ramillon
+AESA, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+/*
+!!AET,104,104,circular,0.21,,Ramillon - REmoved during SD 2004-2006
+AET, APERTYPE=ELLIPSE, APERTURE={0.052,0.052};
+*/
+
+!!AETA,104,104,circular,0.21,,Ramillon
+AETA, APERTYPE=ELLIPSE, APERTURE={0.052,0.052};
+
+!!AEW,83,83,circular,0.5105,,G. Lambert (SL-HRF),,,,
+AEW, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!AEWA,83,83,circular,0.5105,,Ramillon
+AEWA, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!AEWB,83,83,circular,0.5661,,Ramillon
+AEWB, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+/*
+!!AEWZ,83,83,circular,0.566,,J.F. Malo - Removed during SD 2004-2006
+AEWZ, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+*/
+
+!!APWL,83,83,circular,0.776,,T. Bohl, 1/6/2006 - LHC long. pick-up
+APWL, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!BBSR,156,156,circular,0.41,C. Fischer, e-mail 12/12/03
+BBSR, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!BDH,142,100,rectangular,2.32,100 mm is the width of the electrode,W. Hofle
+BDH, APERTYPE=RECTANGLE, APERTURE={0.071,0.05};
+
+!!BDV,130,38,rectangular,1.46,,W. Hofle
+BDV, APERTYPE=RECTANGLE, APERTURE={0.065,0.019};
+
+!!BFCT,156,156,circular,0.48,,H. Jakob,,,,
+BCTFR, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+BIPMH, APERTYPE=RACETRACK, APERTURE={0.068,0.0328,0.0101};
+BIPMV, APERTYPE=RACETRACK, APERTURE={0.068,0.0328,0.0101};
+
+!!BPCE,206,206,circular, R. Jones. The aperture of the body is 221 mm. C.Boccard.
+BPCE, APERTYPE=ELLIPSE, APERTURE={0.103,0.103};
+
+!!BPCL,115,115,circular,0.72,,J. Camas -drawing,,,,
+BPCL, APERTYPE=ELLIPSE, APERTURE={0.0575,0.0575};
+
+!!BPCN,76,76,circular,0.236,,J.P. Papis
+BPCN, APERTYPE=ELLIPSE, APERTURE={0.038,0.038};
+
+!!BPCR,156,156,circular,0.598,,J.P. Papis
+BPCR, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!BPD,269,269,circular,0.4,,J.P. Papis
+!BPD, APERTYPE=ELLIPSE, APERTURE={0.1345,0.1345}; ! Removed in 2014
+
+!!BPH,154,44,rectangular,0.275,,J.P. Papis  \\cern.ch\dfs\Workspaces\d\drawings\sps\8051-00\51000158.tif
+!!NB! BPH is often equipped with synchro light shieldings and the aperture is reduced to 145,35.8.  \\cern.ch\dfs\Workspaces\d\drawings\sps\8051-00\51001176.tif
+BPH, APERTYPE=RECTANGLE, APERTURE={0.0725,0.0179};
+
+!!BPHA,269,269,circular,0.5,,J.P. Papis
+!BPHA, APERTYPE=ELLIPSE, APERTURE={0.1345,0.1345}; ! Removed in 2014
+
+!!BPMBH,156,156,circular,0.13,,J.Camas
+BPMBH, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!BPMBV,83,83,circular,0.13,,J. Camas
+BPMBV, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!BPNB,76,76,circular,0.364,,J.P. Papis
+BPNB, APERTYPE=ELLIPSE, APERTURE={0.038,0.038};
+
+!!BPNC,76,76,circular,0.562,,J.P. Papis
+BPNC, APERTYPE=ELLIPSE, APERTURE={0.038,0.038};
+
+/*
+!!BPSG, 120,75, rectangular, 1.7, G. Burtin - 1.7 GHz Schottky monitor - removed during SD2004-2006
+BPSG, APERTYPE=RECTANGLE,APERTURE={0.06,0.0375};
+*/
+
+!!BPSH,163,264,,3.38,, Schottky, D. Stellfeld+ Drawing 8032_14_049_0
+BPSH, APERTYPE=ELLIPSE, APERTURE={0.0815,0.132};
+
+
+/*
+!!BPSM,156,156,circular,0.45,C. Fischer, e-mail 12/12/03, Luminescence monitor - removed during SD 2004-2006
+!BPSM, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+*/
+
+
+!!BPSV,264,163,3.38,, Schottky, D. Stellfeld+ Drawing 8032_14_050_0
+BPSV, APERTYPE=ELLIPSE, APERTURE={0.132,0.0815};
+
+!!BPV,83,83,square,0.275,,J.P. Papis  \\cern.ch\dfs\Workspaces\d\drawings\sps\8051-00\51000157.tif
+BPV, APERTYPE=RECTANGLE, APERTURE={0.0415,0.0415};
+
+!!BPVA,269,269,circular,0.5,,J.P. Papis
+!BPVA, APERTYPE=ELLIPSE, APERTURE={0.1345,0.1345}; ! Removed in 2014
+
+!!BPVC,76,76,circular,0.562,,J.P. Papis
+BPVC, APERTYPE=ELLIPSE, APERTURE={0.038,0.038};
+
+!!BPVT,83,83,square,0.4,,J. Camas
+BPVT, APERTYPE=RECTANGLE, APERTURE={0.0415,0.0415};
+
+!!BPW,154,154,circular,0.86,,Drawing 8022.0045.0
+BPW, APERTYPE=ELLIPSE, APERTURE={0.077,0.077};
+
+!!BRCZ,100,100,circular,0.36,,O.Aberle Jan 2010 - COLLIMATOR
+BRCZ, APERTYPE=ELLIPSE, APERTURE={0.050,0.050};
+
+!!BRSC,156,268,#N/A,0.53,,J. Camas - CORRECTED BY S. HUTCHINKS - E-MAIL 27/02/2004
+BRSC, APERTYPE=RECTANGLE, APERTURE={0.078,0.134};
+
+!!BSHV,156,156,circular,0.45,,J. Camas   ! SCRAPERS
+BSHV, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!BSMH,390,273,elliptical?,0.61,,J. Camas
+BSMH, APERTYPE=ELLIPSE, APERTURE={0.195,0.1365};
+
+!!BSMH1,222,75,rectangular,0.255,,J. Camas  Taken out 2014
+!BSMH1, APERTYPE=RECTANGLE, APERTURE={0.111,0.0375};
+
+!!BSPV,156,156,circular,0.275,,J. Camas   Taken out 2014
+!BSPV, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!BTV,156,156,circular,0.45,,J. Camas
+BTV, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!BTVEL,268,60,rectangular,0.53,,C. Fischer, e-mail 12/12/03
+BTVEL, APERTYPE=RECTANGLE, APERTURE={0.134,0.03};
+
+!!BTVES,268,60,rectangular,0.33,,C. Fischer, e-mail 12/12/03
+BTVES, APERTYPE=RECTANGLE, APERTURE={0.134,0.03};
+
+!!BTVS,156,156,circular,0.45,,C. Fischer, e-mail 12/12/03
+BTVS, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!BWSA,155,155,circular,,C. Fischer, e-mail, 12/12/03, rotational Wire scanner
+BWSA, APERTYPE=ELLIPSE, APERTURE={0.0775,0.0775};
+
+!!! To be checked
+!!BWSC,116.5,116.5,RECTANGULAR,,C. Fischer, e-mail, 12/12/03, linear Wire scanner at rest
+BWSC, APERTYPE=RECTANGLE, APERTURE={0.05825,0.05825};
+
+!!BWSC,57,57,RECTANGULAR,,C. Fischer, e-mail, 12/12/03, linear Wire scanner, when scanning
+BWSC, APERTYPE=RECTANGLE, APERTURE={0.0285,0.0285};
+
+!!BWSD,139,139,RECTANGULAR,,C. Fischer, e-mail, 12/12/03, linear Wire scanner at rest
+BWSD, APERTYPE=RECTANGLE, APERTURE={0.0695,0.0695};
+
+!!BWSD,57,57,RECTANGULAR,,C. Fischer, e-mail, 12/12/03, linear Wire scanner, when scanning
+BWSD, APERTYPE=RECTANGLE, APERTURE={0.0285,0.0285};
+!!! End to be checked
+
+
+!!LOD,83,83,circular,0.677,,Ramillon + SPSLGSSSxxxx
+LOD, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!LOE,152,38.3,elliptical,0.74,,Ramillon + SPSLGSSSxxxx
+LOE, APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+
+!!LOEN,152,38.3,elliptical,0.656,,Ramillon + SPSLGSSSxxxx
+LOEN, APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+
+!!LOF,152,38.3,elliptical,0.705,,Ramillon + SPSLGSSSxxxx
+LOF, APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+
+!!LSD,83,83,circular,0.42,,Ramillon + SPSLGSSSxxxx
+LSD, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!LSE,152,38.3,elliptical,0.74,,Ramillon + SPSLGSSSxxxx
+LSE, APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+
+!!LSEN,152,38.3,elliptical,0.72,,Ramillon + SPSLGSSSxxxx
+LSEN, APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+
+!!LSF,152,38.3,elliptical,0.423,,Ramillon + SPSLGSSSxxxx
+LSF, APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+
+!!LQSA,83,83,circular,0.542,,Ramillon + SPSLGSSSxxxx
+LQSA, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!MBA,142.4,34.5,rectangular,6.26,Included -9.6 mm H due to beam sagitta,Ramillon
+!!ap.MBA: AP, e1=152 - 9.6, e2=34.5 ! take into account sagitta
+MBA, APERTYPE=RECTANGLE, APERTURE={0.0712,0.01725};
+
+!!MBB,119.4,48.5,rectangular,6.26,Included -9.6 mm H due to beam sagitta,Ramillon
+!!ap.MBB: AP, e1=129 - 9.6, e2=48.5 ! take into account sagitta
+MBB, APERTYPE=RECTANGLE, APERTURE={0.0597,0.02425};
+
+!!MDH,152,35.3,rectangular,0.25,,Ramillon+SPSLGSSSxxxx
+MDH, APERTYPE=RECTANGLE, APERTURE={0.076,0.01765};
+
+!!MDHA,253,45,elliptical,0.306,,SPSLNINS0042
+MDHA, APERTYPE=ELLIPSE, APERTURE={0.1265,0.0225};
+
+!!MDHB,256,106,rectangular,0.25,,Ramillon+SPSLGSSSxxxx
+MDHB, APERTYPE=RECTANGLE, APERTURE={0.128,0.053};
+
+!!MDHD,166,125,rectangular,0.36,Do not know the thickness of the vacuum chamber.
+!The size is reduced taking into account the displacement
+!of the element w.r.t. the beam,SPSLNINS0005
+MDHD, APERTYPE=RECTANGLE, APERTURE={0.083,0.0625};
+
+!!MDPH,155,83,elliptical,0.25,,SPSLNINS0006
+MDPH, APERTYPE=ELLIPSE, APERTURE={0.155/2,0.083/2};
+
+!!MDSH,120,54,elliptical,0.7,Displacement w.r.t. circulating beam. To be checked with Jan
+MDSH, APERTYPE=ELLIPSE, APERTURE={0.06,0.027};
+
+!!MDV,83,83,circular,0.25,,Ramillon+SPSLGSSSxxxx
+MDV, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!MDVA,142,142,circular,0.424,,Ramillon+SPSLGSSSxxxx
+MDVA, APERTYPE=ELLIPSE, APERTURE={0.071,0.071};
+
+!!MKDHB,105,60,rectangular,1.6,,G. Schroeder via C. Arimatea,,,,
+MKDHB, APERTYPE=RECTANGLE, APERTURE={0.0525,0.030};
+
+!!MKDVA,75,56,rectangular,2.892,,G. Schroeder via C. Arimatea,,,,
+MKDVA, APERTYPE=RECTANGLE, APERTURE={0.0375,0.028};
+
+!!MKDVB,83,56,rectangular,2.892,,G. Schroeder via C. Arimatea,,,,
+MKDVB, APERTYPE=RECTANGLE, APERTURE={0.0415,0.028};
+
+!!MKEL,147.7,35,rectangular,,E. Gaxiola, e-mail 18/09/2003
+MKEL, APERTYPE=RECTANGLE, APERTURE={0.07385,0.0175};
+
+!!MKES,135,32,rectangular,,E. Gaxiola, e-mail 18/09/2003
+MKES, APERTYPE=RECTANGLE, APERTURE={0.0675,0.016};
+
+!!MKP,140,54,rectangular,,E. Gaxiola (MKP-L - 4 modules) - 12/5/2006
+MKP, APERTYPE=RECTANGLE, APERTURE={0.07,0.027};
+
+!!MKPA,100,61,rectangular,,E. Gaxiola (MKP-S - 5 modules) - 12/5/2006
+MKPA, APERTYPE=RECTANGLE, APERTURE={0.05,0.0305};
+
+!!MKPC,100,61,rectangular,,E. Gaxiola (MKP-S - 2 modules) - 12/5/2006
+MKPC, APERTYPE=RECTANGLE, APERTURE={0.05,0.0305};
+
+
+/*
+!!MKQH,135,33.9,rectangular,0.96,,J. Uythoven, e-mail 12/12/03 and e-mail 15/12/03
+!MKQH, APERTYPE=RECTANGLE, APERTURE={0.0675,0.01695};
+*/
+
+
+!!MKQH,115,32.3,elliptical,0.96,,with shielding - 2004 - F.Caspers e-mail 14/01/04
+MKQH, APERTYPE=ellipse, APERTURE={0.0575,0.01615};
+
+!!MKQV,102,56,rectangular,1.416,,G. Schroeder via C. Arimatea
+MKQV, APERTYPE=RECTANGLE, APERTURE={0.051,0.028};
+
+!!MPLH,152,35.3,rectangular,2.06,,SPSLNINS0009
+MPLH, APERTYPE=RECTANGLE, APERTURE={0.076,0.01765};
+
+!!MPLV,83,83,circular,,,Ramillon
+MPLV, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+!!MPNH,156,56,elliptical,2.04,,SPSLNINS0044
+MPNH, APERTYPE=ELLIPSE, APERTURE={0.078,0.028};
+
+!!MPSH,152,35.3,rectangular,0.714,,SPSLNINS0046
+MPSH, APERTYPE=RECTANGLE, APERTURE={0.076,0.01765};
+
+!!MPSV,83,83,circular,0.275,,SPSLNINS0009
+MPSV, APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+
+
+
+
+/*
+!!PODH,156,156,circular,0.35,,SPSLNINS0028 - removed during SD 2004-2006
+!PODH, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+*/
+
+
+!!QMS,152,38,elliptical,0.705,,SPSLNINS0003
+QMS, APERTYPE=ELLIPSE, APERTURE={0.076,0.019};
+
+!!QSE,95,95,circular,0.42, J. M. Jimenez - See approval e-mail (SPS/aperture) on 03/02/2004 Taken out 2014
+!QSE, APERTYPE=ELLIPSE, APERTURE={0.0475,0.0475};
+
+/*
+!!TAL11431,166,166,rectangular,1.25,,M. Owen - removed in SD 2004-2006
+position as returned by BT: 78 mm (H & V) when retracted for TAL11431
+Only innner and down jaws are present
+TAL, APERTYPE=RECTANGLE, APERTURE={0.078,0.078};
+*/
+
+!!TAL11772,166,166,rectangular,1.25,,M. Owen
+!!position as returned by BT: 68 mm (V) when retracted for TAL11772
+!!Only up jaw is present
+!!TAL11772.F, APERTYPE=RECTANGLE, APERTURE={0.1339,0.068};
+
+!!TBSJB,121.6,32,rectangular,2.1,,
+TBSJB, APERTYPE=RECTANGLE, APERTURE={0.0608,0.016};
+
+!!TBSM,156,156,circular,2,,SPSLNINS0003
+TBSM, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!TCE,129,48.5,rectangular,2.7,,SPSLNINS0011
+TCE, APERTYPE=RECTANGLE, APERTURE={0.0645,0.02425};
+
+!!!LHC collimator. TCSM
+TCSM, APERTYPE=ELLIPSE, APERTURE={0.03,0.04};
+
+!!TIDP,146,30,rectangular,4.3,entry 146 x 30 exit 147 x 31 -
+!this is true when it is at 0 position - for 30 mm position the aperture is 86 mm,M. Owen
+TIDP, APERTYPE=RECTANGLE, APERTURE={0.041,0.015}; !TIDP at 32 mm
+
+! TPST. Protection of MST and MSE extraction septa. B.Balhan
+! https://edms.cern.ch/file/1491626/0.1/SPS-TPST-EC-0001-00-10.pdf
+! 0.1365 = 0.273/2, 0.08825 = (0.040+0.273/2)/2. See: http://project-sps-optics.web.cern.ch/project-SPS-optics/2015/aperture/APERTURE_SPS.cdf
+TPST_003, APERTYPE=RECTANGLE, APERTURE={0.08825,0.1365}, APER_OFFSET={-0.04825,0};
+
+
+
+/********************************************************************
+ * Vacuum equipment
+ ********************************************************************/
+
+!!VVFA,150,150,circular,0.334,,J. Arnold
+VVFA, APERTYPE=ELLIPSE, APERTURE={0.075,0.075};
+
+!!VVFAB,150,150,circular,0.384,,J. Arnold
+!VVFAB, APERTYPE=ELLIPSE, APERTURE={0.075,0.075};  (not used any more 2010)
+
+!!VVFB,250,250,circular,0.37,,J. Arnold
+VVFB, APERTYPE=ELLIPSE, APERTURE={0.125,0.125};
+
+!!VVSA,100,100,circular,0.175,,J. Arnold
+VVSA, APERTYPE=ELLIPSE, APERTURE={0.050,0.050};
+
+!!VVSB,156,156,circular,0.175,,J. Arnold
+VVSB, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+!!VVSE,261,261,circular,0.12,,J. Arnold
+VVSE, APERTYPE=ELLIPSE, APERTURE={0.1305,0.1305};
+
+!!VVSF,261,261,circular,0.18,,J. Arnold
+VVSF, APERTYPE=ELLIPSE, APERTURE={0.1305,0.1305};
+
+!!ZKHA,152,216,rectangular?,1,,X. Altuna+drawing 8032_14_0182_0
+ZKHA, APERTYPE=RECTANGLE, APERTURE={0.076,0.108};
+
+!!ZKV,156,55,rectangular?,1.002,,X. Altuna+drawing 8032_14_0063_0+Th. Bohl
+ZKV, APERTYPE=RECTANGLE, APERTURE={0.078,0.0275};
+
+
+
+
+
+!! WAMPAC1
+!!WAMPAC,140,140,circular,1.5,,V. Baglin 8/1/03
+ap.WAMPAC1: AP,APERTYPE=ELLIPSE,APERTURE={0.07,0.07};
+ap.UP.WAMPAC1: ap.WAMPAC1;
+ ap.DO.WAMPAC1: ap.WAMPAC1;
+
+
+!! WAMPAC3
+!! WAMPAC3,67,67,circular,0.36,,J.M. Jimenez + V. Baglin 25/11/03
+ ap.WAMPAC3: AP,APERTYPE=ELLIPSE,APERTURE={0.0335,0.0335};
+ ap.up.WAMPAC3: ap.WAMPAC3;
+ ap.do.WAMPAC3: ap.WAMPAC3;
+
+
+
+
+
+/*****************************************************************************
+ * SECTOR 5
+ *****************************************************************************/
+
+
+
+!!SEY51740,129,49.3,rectangular,0.5,J.M. Jimenez
+!ap.SEY517: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
+!ap.UP.SEY517: ap.SEY517;
+!ap.DO.SEY517: ap.SEY517;
+
+
+!! Pick-up calorimeter + shielded pick-up
+!!CAL51839,152,35.3,rectangular,2.94,J.M. Jimenez
+!ap.CAL51839: AP,APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
+!ap.UP.CAL51839: ap.CAL51839;
+!ap.DO.CAL51839: ap.CAL51839;
+
+!! Retarding field detector (J-M Laurent) + pick-up calorimeter + reference pick-up
+!!CAL51854,129,49.3,rectangular,3.196,J.M. Jimenez
+!ap.CAL51854: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
+!ap.UP.CAL51854: ap.CAL51854;
+!ap.DO.CAL51854: ap.CAL51854;
+
+
+
+
+
+
+
+/********************************* Under investigation O.Berrig
+!! Reference chamber + gas analyzer
+!!VBB51858,129,49.3,rectangular,1.586,J.M. Jimenez
+!ap.VBB51858: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
+!ap.UP.VBB51858: ap.VBB51858;
+ ap.DO.VBB51858: ap.VBB51858;
+
+!! Reference chamber + old retarding field detector (J.M. Laurent)
+!!VBB51871,129,49.3,rectangular,5.88,J.M. Jimenez
+!ap.VBB51871: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
+!ap.UP.VBB51871: ap.VBB51871;
+!ap.DO.VBB51871: ap.VBB51871;
+
+!!VBB51880,129,49.3,rectangular,6.47,J.M. Jimenez
+!ap.VBB51880: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
+!ap.UP.VBB51880: ap.VBB51880;
+!ap.DO.VBB51880: ap.VBB51880;
+
+!! NEG
+!!NEG51934,156,156,circular,2.0,J.M. Jimenez
+!ap.NEG51934: AP,APERTYPE=ELLIPSE,APERTURE={0.078,0.078};
+!ap.UP.NEG51934: ap.NEG51934;
+!ap.DO.NEG51934: ap.NEG51934;
+
+!! NEG
+!!NEG51937,129,49.3,rectangular,2.0,J.M. Jimenez
+!ap.NEG51937: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
+!ap.UP.NEG51937: ap.NEG51937;
+!ap.DO.NEG51937: ap.NEG51937;
+
+!! NEG
+!!NEG51940,156,156,circular,2.0,J.M. Jimenez
+!ap.NEG51940: AP,APERTYPE=ELLIPSE,APERTURE={0.078,0.078};
+!ap.UP.NEG51940: ap.NEG51940;
+!ap.DO.NEG51940: ap.NEG51940;
+
+!! Reference chamber not coated
+!!MBBVAC51954,129,49.3,rectangular,6.66,J.M. Jimenez
+!ap.MBBVAC51954: AP,APERTYPE=RECTANGLE,APERTURE={0.0645,0.02465};
+!ap.UP.MBBVAC51954: ap.MBBVAC51954;
+!ap.DO.MBBVAC51954: ap.MBBVAC51954;
+
+****************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+!!BBLR3WLSS2,102,38,rectangular,0.72,J.P. Koutchouk 29/09/03 - New BBLR with 3 wires
+!! latest data from F. Zimmermann e-mail 27/1/04
+ap.BBLR3WLSS2: AP, e1=102, e2=40 !(aperture for centred beam)
+! ap.BBLR3WLSS2: AP, e1=118, e2=40 !(aperture for bumped beam if horizontal wire installed outwards)
+ap.UP.BBLR3WLSS2: ap.BBLR3WLSS2
+ap.DO.BBLR3WLSS2: ap.BBLR3WLSS2
+
+
+
+
+!!ROMANPOT, 80, 80, circular,0.596 (including all the parts with 80 mm diameter)
+ap.ROMANPOT: AP, e1=80.0, e2=80.0
+ap.UP.ROMANPOT: ap.ROMANPOT
+ap.DO.ROMANPOT: ap.ROMANPOT
+
+
+
+
+=================================================
+
+!!!!!!Missing apertures
+
+VZBA,#N/A,#N/A,#N/A,1.875,J. Arnold
+Positions TPSG west extraction
+
+=============================================
+
+!!!!!!!!!!Requiring ad-hoc definition
+!!! Done
+MKP
+MKPC
+QFA1,213,40.6,elliptical,3.791,,as QMAK
+MKDHA,96,56,rectangular,1.6,,G. Schroeder via C. Arimatea,,,,
+MKDHB,105,60,rectangular,1.6,,G. Schroeder via C. Arimatea,,,,
+MKDVA,75,65,rectangular,2.892,,G. Schroeder via C. Arimatea,,,,
+MKDVB,83,56,rectangular,2.892,,G. Schroeder via C. Arimatea,,,,
+MKE-S
+MKE-L
+
+QED,83,83,circular,0.72,,Ramillon + SPSLGSSSxxxx
+QEF,152,38.3,elliptical,0.698,,Ramillon + SPSLGSSSxxxx
+BPMBH/V  BPMBH is 156 mm diam / BPMBV is 83 mm diam. J. Camas
+vacuum test bench
+!!!Done
+
+
+================================================
+
+*/
+
+return;
+
+
+
+
+
+
+
+!!QD,83,83,circular,3.085,,Ramillon
+ QD,   APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+ QDA,  APERTYPE=ELLIPSE, APERTURE={0.0755,0.0455};
+
+!!QF,152,38.3,elliptical,3.085,,Ramillon
+ QF,  APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+
+
+return;

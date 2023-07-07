@@ -1,0 +1,742 @@
+
+AP: MARKER;
+
+!!QMA,151,91,romboidal,3.791,,
+QFA.11610,   APERTYPE=ELLIPSE,   APERTURE={0.0755,0.0455};
+
+!!QMAK,213,40.6,elliptical,3.791
+QFA.21610,   APERTYPE=ELLIPSE,   APERTURE={0.1065,0.0203};
+QFA.21810,   APERTYPE=ELLIPSE,   APERTURE={0.1065,0.0203};
+QFA.41810,   APERTYPE=ELLIPSE,   APERTURE={0.1065,0.0203};
+QFA.61810,   APERTYPE=ELLIPSE,   APERTURE={0.1065,0.0203};
+
+
+
+!!QEF,152,38.3,elliptical,0.698,,Ramillon + SPSLGSSSxxxx
+QE.11402,    APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+QE.30202,    APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+QE.50202,    APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+QE.51402,    APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+QE.60402,    APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+QE.60602,    APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+
+!!QED,83,83,circular,0.72,,Ramillon + SPSLGSSSxxxx
+QE.60302,    APERTYPE=ELLIPSE,   APERTURE={0.0415,0.0415};
+QE.60502,    APERTYPE=ELLIPSE,   APERTURE={0.0415,0.0415};
+
+
+
+!!QECD,152,38.3,elliptical,0.698,,Ramillon + SPSLGSSSxxxx
+QECD.30602,  APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+QECD.31402,  APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+QECD.53402,  APERTYPE=ELLIPSE,   APERTURE={0.076,0.01915};
+
+
+
+
+seqedit, sequence=sps;
+
+
+
+/**************************************************************************************
+ * SECTOR 2
+ **************************************************************************************/
+
+!! NORTH extraction
+!! The ZS are horizontal kickers made of tungsten wires.
+!! it is assumed that the aperture is symmetric (CERN SL-98-055 BT)
+!! The TPST (protection element upstream) is on the same line of the MSTs (CERN SL-98-055 BT)
+!! MSEs have an offset with respect to the girder position
+!! The aperture settings have been taken from operational files (see following):
+!! http://cern-accelerators-optics.web.cern.ch/cern-accelerators-optics/SPS/position_septa.xls  B.Balhan
+
+
+Select, flag=seqedit, pattern="^ZS.21633$";
+ap.UP.ZS21633:AP,APERTYPE=RECTANGLE,APERTURE={68/1000,0.046/2};
+ap.DO.ZS21633:AP,APERTYPE=RECTANGLE,APERTURE={63.34/1000,0.046/2};
+Install, element=ap.do.ZS21633, at:=ZS___001->l/2, from=selected;
+Install, element=ap.up.ZS21633, at:=-ZS___001->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^ZS.21639$";
+ap.UP.ZS21639:AP,APERTYPE=RECTANGLE,APERTURE={62.12/1000,0.046/2};
+ap.DO.ZS21639:AP,APERTYPE=RECTANGLE,APERTURE={57.45/1000,0.046/2};
+Install, element=ap.do.ZS21638, at:=ZS___001->l/2, from=selected;
+Install, element=ap.up.ZS21638, at:=-ZS___001->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^ZS.21655$";
+ap.UP.ZS21655:AP,APERTYPE=RECTANGLE,APERTURE={56.23/1000,0.046/2};
+ap.DO.ZS21655:AP,APERTYPE=RECTANGLE,APERTURE={51.57/1000,0.046/2};
+Install, element=ap.do.ZS21655, at:=ZS___001->l/2, from=selected;
+Install, element=ap.up.ZS21655, at:=-ZS___001->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^ZS.21671$";
+ap.UP.ZS21671:AP,APERTYPE=RECTANGLE,APERTURE={50.35/1000,0.046/2};
+ap.DO.ZS21671:AP,APERTYPE=RECTANGLE,APERTURE={45.68/1000,0.046/2};
+Install, element=ap.do.ZS21671, at:=ZS___003->l/2, from=selected;
+Install, element=ap.up.ZS21671, at:=-ZS___003->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^ZS.21676$";
+ap.UP.ZS21676:AP,APERTYPE=RECTANGLE,APERTURE={44.46/1000,0.046/2};
+ap.DO.ZS21676:AP,APERTYPE=RECTANGLE,APERTURE={39.80/1000,0.046/2};
+Install, element=ap.do.ZS21676, at:=ZS___003->l/2, from=selected;
+Install, element=ap.up.ZS21676, at:=-ZS___003->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+Select, flag=seqedit, pattern="^TPST.21759$";
+ap.UP.TPST21759:AP,APERTYPE=RECTANGLE,APERTURE={39.40/1000,0.078};
+ap.DO.TPST21759:AP,APERTYPE=RECTANGLE,APERTURE={40.46/1000,0.078};
+Install, element=ap.do.TPST21759, at:=TPST->l/2, from=selected;
+Install, element=ap.up.TPST21759, at:=-TPST->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MST.21774$";
+ap.UP.MST21774:AP,APERTYPE=RECTANGLE,APERTURE={40.79/1000,0.078};
+ap.DO.MST21774:AP,APERTYPE=RECTANGLE,APERTURE={41.98/1000,0.078};
+Install, element=ap.do.MST21774, at:=MST->l/2, from=selected;
+Install, element=ap.up.MST21774, at:=-MST->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MST.21779$";
+ap.UP.MST21779:AP,APERTYPE=RECTANGLE,APERTURE={42.40/1000,0.078};
+ap.DO.MST21779:AP,APERTYPE=RECTANGLE,APERTURE={43.59/1000,0.078};
+Install, element=ap.do.MST21779, at:=MST->l/2, from=selected;
+Install, element=ap.up.MST21779, at:=-MST->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MST.21794$";
+ap.UP.MST21794:AP,APERTYPE=RECTANGLE,APERTURE={44.01/1000,0.078};
+ap.DO.MST21794:AP,APERTYPE=RECTANGLE,APERTURE={45.20/1000,0.078};
+Install, element=ap.do.MST21794, at:=MST->l/2, from=selected;
+Install, element=ap.up.MST21794, at:=-MST->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+Select, flag=seqedit, pattern="^MSE.21832$";
+ap.UP.MSE21832:AP, APERTYPE=RECTANGLE, APERTURE={52.70/1000,0.078};
+ap.DO.MSE21832:AP, APERTYPE=RECTANGLE, APERTURE={51.67/1000,0.078};
+Install, element=ap.do.MSE21832, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE21832, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.21837$";
+ap.UP.MSE21837:AP,APERTYPE=RECTANGLE,APERTURE={51.84/1000,0.078};
+ap.DO.MSE21837:AP,APERTYPE=RECTANGLE,APERTURE={53.72/1000,0.078};
+Install, element=ap.do.MSE21837, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE21837, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.21852$";
+ap.UP.MSE21852:AP,APERTYPE=RECTANGLE,APERTURE={55.11/1000,0.078};
+ap.DO.MSE21852:AP,APERTYPE=RECTANGLE,APERTURE={59.89/1000,0.078};
+Install, element=ap.do.MSE21852, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE21852, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.21857$";
+ap.UP.MSE21857:AP,APERTYPE=RECTANGLE,APERTURE={62.50/1000,0.078};
+ap.DO.MSE21857:AP,APERTYPE=RECTANGLE,APERTURE={70.19/1000,0.078};
+Install, element=ap.do.MSE21857, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE21857, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.21872$";
+ap.UP.MSE21872:AP,APERTYPE=RECTANGLE,APERTURE={74.00/1000,0.078};
+ap.DO.MSE21872:AP,APERTYPE=RECTANGLE,APERTURE={84.60/1000,0.078};
+Install, element=ap.do.MSE21872, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE21872, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+/**************************************************************************************
+ * SECTOR 4
+ **************************************************************************************/
+
+Select, flag=seqedit, pattern="^VVSB.41731$";
+ap.UP.VVSB: AP,APERTYPE=CIRCLE,APERTURE={0.156,0.156};
+ap.DO.VVSB: AP,APERTYPE=CIRCLE,APERTURE={0.156,0.156};
+Install, element=ap.up.VVSB, at:=VVSB->l/2, from=selected;
+Install, element=ap.do.VVSB, at:=VVSB->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+!! COLDEX
+!!COLDEXCAL,67,67,circular,2.232,,V. Baglin 8/1/03
+ ap.COLDEX: AP,APERTYPE=ELLIPSE,APERTURE={0.0335,0.0335};
+ ap.up.COLDEX: ap.COLDEX;
+ ap.do.COLDEX: ap.COLDEX;
+ Select, flag=seqedit, pattern="^XCLD.41737$";
+ Install, element=ap.up.COLDEX, at:=XCLD->l/2, from=selected;
+ Install, element=ap.do.COLDEX, at:=XCLD->l/2, from=selected;
+ select, flag=seqedit, clear = true;
+
+/**** Temporarily removed because collision with  XCLD.41737  *****
+ Select, flag=seqedit, pattern="^QDA.41710$";
+ Install, element=ap.up.WAMPAC3, at:=9.79+0.48, from=selected;
+ Install, element=ap.do.WAMPAC3, at:=9.79+0.48+0.36, from=selected;
+ select, flag=seqedit, clear = true;
+ ******************************************************************/
+
+!! EAST EXTRACTION(LSS4)
+
+!! MSE, for the circulating beam there is virtually no vertical aperture limitation.
+!! It is assumed that the aperture is symmetric
+!! MSEs have an offset with respect to the girder position (CERN SL-2002-014 BT).
+!! The aperture settings have been taken from operational files (see following):
+!! http://cern-accelerators-optics.web.cern.ch/cern-accelerators-optics/SPS/position_septa.xls  B.Balhan
+
+Select, flag=seqedit, pattern="^TPSG.41832$";
+ap.UP.TPSG41832:AP,APERTYPE=RECTANGLE,APERTURE={49.00/1000,0.078};
+ap.DO.TPSG41832:AP,APERTYPE=RECTANGLE,APERTURE={46.40/1000,0.078};
+Install, element=ap.do.TPSG41832, at:=TPSG->l/2, from=selected;
+Install, element=ap.up.TPSG41832, at:=-TPSG->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.41837$";
+ap.UP.MSE41837:AP,APERTYPE=RECTANGLE,APERTURE={46.91/1000,0.078};
+ap.DO.MSE41837:AP,APERTYPE=RECTANGLE,APERTURE={44.71/1000,0.078};
+Install, element=ap.do.MSE41837, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE41837, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.41852$";
+ap.UP.MSE41852:AP,APERTYPE=RECTANGLE,APERTURE={44.63/1000,0.078};
+ap.DO.MSE41852:AP,APERTYPE=RECTANGLE,APERTURE={46.43/1000,0.078};
+Install, element=ap.do.MSE41852, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE41852, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.41856$";
+ap.UP.MSE41856:AP,APERTYPE=RECTANGLE,APERTURE={48.02/1000,0.078};
+ap.DO.MSE41856:AP,APERTYPE=RECTANGLE,APERTURE={53.82/1000,0.078};
+Install, element=ap.do.MSE41856, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE41856, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.41871$";
+ap.UP.MSE41871:AP,APERTYPE=RECTANGLE,APERTURE={57.08/1000,0.078};
+ap.DO.MSE41871:AP,APERTYPE=RECTANGLE,APERTURE={66.88/1000,0.078};
+Install, element=ap.do.MSE41871, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE41871, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.41876$";
+ap.UP.MSE41876:AP,APERTYPE=RECTANGLE,APERTURE={71.81/1000,0.078};
+ap.DO.MSE41876:AP,APERTYPE=RECTANGLE,APERTURE={85.61/1000,0.078};
+Install, element=ap.do.MSE41876, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE41876, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.41891$";
+ap.UP.MSE41891:AP,APERTYPE=RECTANGLE,APERTURE={92.21/1000,0.078};
+ap.DO.MSE41891:AP,APERTYPE=RECTANGLE,APERTURE={110.0/1000,0.078};
+Install, element=ap.do.MSE41891, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE41891, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+
+/**************************************************************************************
+ * SECTOR 5
+ **************************************************************************************/
+
+Select, flag=seqedit, pattern="^QF.51410$";
+!!VC downstream QF.51410,156,156,circular,Drawing:SPSLNINS0085
+ap.do.QF51410: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.do.QF51410, at:=QF.51410->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MBB.51470$";
+!!VC uptream MBB.51470,156,156,circular,Drawing:SPSLNINS0085
+ap.up.MBB51470: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.up.MBB51470, at:=-MBB.51470->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^QF.51610$";
+!!VC downstream QF.51610,152,35.3,rectangular, MBA, Drawing:SPSLNINS0085
+ap.do.QF51610: MARKER, APERTYPE=RECTANGLE, APERTURE={0.076,0.01765};
+Install, element=ap.do.QF51610, at:= QF.51610->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC MDHW.51633,152,35.3,rectangular, MBA, Drawing:SPSLNINS0085
+!!! MDHW.51633, APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
+
+!!VC MDHW.51634,152,38.7,rectangular, MBA, Drawing:SPSBIPMH002. Moveable - IPMH(ionization profile monitor) - J.Koopman
+!!! MDHW.51634, APERTYPE=RECTANGLE, APERTURE={0.152/2,0.0387/2};
+
+!!VC MDHW.51637,152,35.3,rectangular, MBA, Drawing:SPSLNINS0085
+MDHW.51637, APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
+
+!!VC downstream MDHW.51637,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^MDHW.51637$";
+ap.do.MDHW.51637: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.do.MDHW.51637, at:= MDHW.51637->L/2+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+!!VC around BSHV.51659,156,156,circular,Drawing:SPSLNINS0085
+!!! BSHV.51659, APERTYPE=CIRCLE,APERTURE={0.078,0.078};
+
+!!VC upstream BPMB.51705,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^BPMB.51705$";
+ap.up.BPMB.51705: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.up.BPMB.51705, at:=-BPMB.51705->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!BIPMV,80, 84, rectangular, NEW-IPM in position 51734,
+!!see e-mail C. Fischer 2/10/2003
+!!! MDVW.51734,  APERTYPE=RECTANGLE, APERTURE={0.04  ,0.0415};
+
+!!MDVW,83,83,circular,Ramillon+LSS5 drawing+Camas IPM area
+!!! MDVW.51732,  APERTYPE=ELLIPSE,   APERTURE={0.0415,0.0415};
+!!! MDVW.51736,  APERTYPE=ELLIPSE,   APERTURE={0.0415,0.0415};
+
+!!VC downstream MDVW.51736,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^MDVW.51736$";
+ap.do.MDVW.51736: AP,APERTYPE=CIRCLE,APERTURE={0.078,0.078};
+Install, element=ap.do.MDVW.51736, at:= MDVW.51736->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+ !! SLAC.51745, 61mm X 61mm rectangular  O.Aberle.
+ !! This separator will be installed in the 2010/2011 shutdown.
+ Select, flag=seqedit, pattern="^SLAC.51745$";
+ ap.up.SLAC.51745: MARKER, APERTYPE=RECTANGLE, APERTURE={0.061,0.061};
+ ap.do.SLAC.51745: MARKER, APERTYPE=RECTANGLE, APERTURE={0.061,0.061};
+ Install, element=ap.up.SLAC.51745, at:=-SLAC.51745->L/2, from=selected;
+ Install, element=ap.do.SLAC.51745, at:= SLAC.51745->L/2, from=selected;
+ Select, flag=seqedit, clear = true;
+
+
+
+
+
+
+
+!!VC around MDPH.51753,128,48.3,rectangular, MBB. Drawing:SPSLNINS0085
+!!! MDPH.51753, APERTYPE=RECTANGLE,APERTURE={0.128/2,0.0483/2};
+
+!!VC around MDPH.51754,128,48.3,rectangular, MBB. Drawing:SPSLNINS0085
+!!! MDPH.51754, APERTYPE=RECTANGLE,APERTURE={0.128/2,0.0483/2};
+
+
+!!VC downstream BBLR.51774,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^BBLR.51774$";
+ap.do.BBLR.51774: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.do.BBLR.51774, at:= BBLR.51774->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+
+
+
+
+
+!!VC upstream BPMB.51805,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^BPMB.51805$";
+ap.up.BPMB.51805: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.up.BPMB.51805, at:=-BPMB.51805->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+
+
+!!MDHW51832,140,48.5,rectangular, ? WAMPAC2, XSD1 ?
+!! Laurent Faisandel is working on new vacuum chamber
+!!! MDHW.51832,  APERTYPE=RECTELLIPSE, APERTURE={0.140/2, 0.0485/2, 0.140/2, 0.057};
+
+!!VC downstream MDHW.51832,140,48.5,rectellipse,Drawing:SPSLNINS0085, type: MDHW
+Select, flag=seqedit, pattern="^MDHW.51832$";
+!!! ap1.do.MDHW.51832: MARKER,  APERTYPE=RECTELLIPSE, APERTURE={0.140/2, 0.0485/2, 0.140/2, 0.057};
+!!! Install, element=ap1.do.MDHW.51832, at:=0.653, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC downstream MDHW.51832,152,56.4,rectangular,Drawing:SPSLNINS0085, type: MBN
+!!! Select, flag=seqedit, pattern="^MDHW.51832$";
+!!! ap2.do.MDHW.51832: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.152/2,0.0564/2};
+!!! Install, element=ap2.do.MDHW.51832, at:=0.653+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+!!VC upstream MDHW.51836,152,56.4,rectangular,Drawing:SPSLNINS0085, type: MBN
+!!! Select, flag=seqedit, pattern="^MDHW.51836$";
+!!! ap1.up.MDHW.51836: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.152/2,0.0564/2};
+!!! Install, element=ap1.up.MDHW.51836, at:=-0.653-0.137, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC upstream MDHW.51836,156,156,circular,Drawing:SPSLNINS0085
+!!! Select, flag=seqedit, pattern="^MDHW.51836$";
+!!! ap2.up.MDHW.51836: MARKER,  APERTYPE=CIRCLE,APERTURE={0.156/2,0.156/2};
+!!! Install, element=ap2.up.MDHW.51836, at:=-0.653-0.137+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+!!VC upstream MDHW.51836,156,156,circular,Drawing:SPSLNINS0085
+!!! Select, flag=seqedit, pattern="^MDHW.51836$";
+!!! ap3.up.MDHW.51836: MARKER,  APERTYPE=CIRCLE,APERTURE={0.156/2,0.156/2};
+!!! Install, element=ap3.up.MDHW.51836, at:=-0.653, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC upstream MDHW.51836,140,48.5,rectellipse,Drawing:SPSLNINS0085, type: MDHW
+!!! Select, flag=seqedit, pattern="^MDHW.51836$";
+!!! ap4.up.MDHW.51836: MARKER,  APERTYPE=RECTELLIPSE, APERTURE={0.140/2, 0.0485/2, 0.140/2, 0.057};
+!!! Install, element=ap4.up.MDHW.51836, at:=-0.653+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!MDHW51836,140,48.5,rectangular, ? Warm Strip detector (36 channels), XSD2 ?
+!!! MDHW.51836,  APERTYPE=RECTELLIPSE, APERTURE={0.140/2, 0.0485/2, 0.140/2, 0.057};
+
+!!MDHW51838,140,48.5,rectangular, ? Variable aperture strip detector (48 channels), EcEx ?
+!!! MDHW.51838,  APERTYPE=RECTELLIPSE, APERTURE={0.140/2, 0.0485/2, 0.140/2, 0.057};
+
+!!VC downstream VVSB.51839,120,48,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^VVSB.51839$";
+ap1.do.VVSB.51839: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.120/2,0.048/2};
+Install, element=ap1.do.VVSB.51839, at:=VVSB.51839->L/2+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC downstream VVSB.51839,120,48,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^VVSB.51839$";
+ap2.do.VVSB.51839: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.120/2,0.048/2};
+Install, element=ap2.do.VVSB.51839, at:=VVSB.51839->L/2+0.137+1.100, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+!!VC upstream MDHW.51853,152,56.4,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap1.up.MDHW.51853: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.152/2,0.0564/2};
+Install, element=ap1.up.MDHW.51853, at:=-0.406-0.810, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC upstream MDHW.51853,152,56.4,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap2.up.MDHW.51853: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.152/2,0.0564/2};
+Install, element=ap2.up.MDHW.51853, at:=-0.406, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!MDHW51853,140,48.5,rectangular, ? Cold strip detector, SDneg ?
+!!! MDHW.51853,  APERTYPE=RECTELLIPSE, APERTURE={0.140/2, 0.0485/2, 0.140/2, 0.057};
+
+!!VC downstream MDHW.51853,140,48.5,rectellipse,Drawing:SPSLNINS0085, type: MDHW
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap1.do.MDHW.51853: MARKER,  APERTYPE=RECTELLIPSE, APERTURE={0.140/2, 0.0485/2, 0.140/2, 0.057};
+Install, element=ap1.up.MDHW.51853, at:=0.654, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC downstream MDHW.51853,152,56.4,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap2.do.MDHW.51853: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.152/2,0.0564/2};
+Install, element=ap2.up.MDHW.51853, at:=0.654+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC downstream MDHW.51853,152,56.4,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap3.do.MDHW.51853: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.152/2,0.0564/2};
+Install, element=ap3.do.MDHW.51853, at:=0.654+0.810, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC upstream MDHW.51853,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap4.do.MDHW.51853: MARKER,  APERTYPE=CIRCLE,APERTURE={0.156/2,0.156/2};
+Install, element=ap4.do.MDHW.51853, at:=0.654+0.810+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC upstream MDHW.51853,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap5.do.MDHW.51853: MARKER,  APERTYPE=CIRCLE,APERTURE={0.156/2,0.156/2};
+Install, element=ap5.do.MDHW.51853, at:=0.654+0.810+0.137, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC downstream MDHW.51853,120,48,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap6.do.MDHW.51853: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.120/2,0.048/2};
+Install, element=ap6.do.MDHW.51853, at:=0.654+0.810+0.137+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC downstream MDHW.51853,120,48,rectangular,Drawing:SPSLNINS0085, type: MBN
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap7.do.MDHW.51853: MARKER,  APERTYPE=RECTANGLE,APERTURE={0.120/2,0.048/2};
+Install, element=ap7.do.MDHW.51853, at:=0.654+0.810+0.137+1.100, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC upstream MDHW.51853,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^MDHW.51853$";
+ap8.do.MDHW.51853: MARKER,  APERTYPE=CIRCLE,APERTURE={0.156/2,0.156/2};
+Install, element=ap8.do.MDHW.51853, at:=0.654+0.810+0.137+1.100+0.00001, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+!!VC upstream QSE.51897,159,159,circular,Drawing:SPSLNINS0085
+!!VC. Drawing: SPSLNINS0094
+Select, flag=seqedit, pattern="^QSE.51897$";
+ap.up.QSE.51897: MARKER ,APERTYPE=CIRCLE,APERTURE={0.078,0.078};
+Install, element=ap.up.QSE.51897, at:= -QSE.51897->L/2, from=selected;
+Install, element=ap.up.QSE.51897, at:= -QSE.51897->L/2-3.444-6.660, from=selected;
+Select, flag=seqedit, clear = true;
+
+!!VC downstream QD.51910,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^QD.51910$";
+ap.do.QD.51910: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.do.QD.51910, at:= QD.51910->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+!! VC upstream and downstream TCSP.51934,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^TCSP.51934$";
+ap.up.TCSP.51934: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+ap.do.TCSP.51934: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.up.TCSP.51934, at:=-TCSP.51934->L/2, from=selected;
+Install, element=ap.do.TCSP.51934, at:= TCSP.51934->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+!! VC upstream BWSA.51995,156,156,circular,Drawing:SPSLNINS0085
+Select, flag=seqedit, pattern="^BWSA.51995$";
+ap.up.BWSA.51995: MARKER, APERTYPE=CIRCLE, APERTURE={0.078,0.078};
+Install, element=ap.up.BWSA.51995, at:=-BWSA.51995->L/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+
+/**************************************************************************************
+ * SECTOR 6
+ **************************************************************************************/
+
+ !! ZS.61676, 165mm X 45.6mm rectangular  B.Balhan.
+ !! This separator will be installed in the 2010/2011 shutdown.
+ Select, flag=seqedit, pattern="^ZS.61676$";
+ ap.up.ZS.61676: MARKER, APERTYPE=RECTANGLE, APERTURE={0.165,0.0456};
+ ap.do.ZS.61676: MARKER, APERTYPE=RECTANGLE, APERTURE={0.165,0.0456};
+ Install, element=ap.up.ZS.61676, at:=-ZS.61676->L/2, from=selected;
+ Install, element=ap.do.ZS.61676, at:= ZS.61676->L/2, from=selected;
+ Select, flag=seqedit, clear = true;
+
+
+
+
+
+
+
+
+/************************** Under investigation 10/12/2007 ****************
+
+Select, flag=seqedit, pattern="^QF.51810$";
+Install, element=ap.up.VBB51858, at:=11.945+3.085/2.0, from=selected;
+Install, element=ap.do.VBB51858, at:=11.945+1.586+3.085/2.0, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^QF.51810$";
+Install, element=ap.up.VBB51871, at:=13.531+3.085/2.0, from=selected;
+Install, element=ap.do.VBB51871, at:=13.531+5.88+3.085/2.0, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^QF.51810$";
+Install, element=ap.up.VBB51880, at:=19.748+3.085/2.0, from=selected;
+Install, element=ap.do.VBB51880, at:=19.748+6.47+3.085/2.0-0.1212, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^QD.51910$";
+Install, element=ap.up.NEG51934, at:=2.622+3.085/2.0+0.467+0.896, from=selected;
+Install, element=ap.do.NEG51934, at:=2.622+2.0+3.085/2.0, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^QD.51910$";
+Install, element=ap.up.NEG51937, at:=4.622+3.085/2.0, from=selected;
+Install, element=ap.do.NEG51937, at:=4.622+2.0+3.085/2.0, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^QD.51910$";
+Install, element=ap.up.NEG51940, at:=6.622+3.085/2.0, from=selected;
+Install, element=ap.do.NEG51940, at:=6.622+2.0+3.085/2.0, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^QD.51910$";
+Install, element=ap.up.MBBVAC51954, at:=9.297+3.085/2.0, from=selected;
+Install, element=ap.do.MBBVAC51954, at:=9.297+6.66+3.085/2.0, from=selected;
+Select, flag=seqedit, clear = true;
+
+ ************************************************************************/
+
+
+
+
+/**************************************************************************************
+ * SECTOR 6
+ **************************************************************************************/
+
+!! WEST EXTRACTION(LSS6)
+!! MSE, for the circulating beam there is virtually no vertical aperture limitation.
+!! It is assumed that the aperture is symmetric
+!! MSEs have an offset with respect to the girder position (CERN SL-98-055 BT).
+!! The TPSG (protection element upstream) is on the same line of the MSTs (B. Balhan 23/09/03)
+!! The aperture settings have been taken from operational files (see following):
+!! http://cern-accelerators-optics.web.cern.ch/cern-accelerators-optics/SPS/position_septa.xls  B.Balhan
+
+Select, flag=seqedit, pattern="^MSE.61832$";
+ap.UP.MSE61832:AP,APERTYPE=RECTANGLE,APERTURE={58.00/1000,0.078};
+ap.DO.MSE61832:AP,APERTYPE=RECTANGLE,APERTURE={57.13/1000,0.078};
+Install, element=ap.do.MSE61832, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE61832, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+Select, flag=seqedit, pattern="^MSE.61837$";
+ap.UP.MSE61837:AP,APERTYPE=RECTANGLE,APERTURE={57.38/1000,0.078};
+ap.DO.MSE61837:AP,APERTYPE=RECTANGLE,APERTURE={59.42/1000,0.078};
+Install, element=ap.do.MSE61837, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE61837, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+Select, flag=seqedit, pattern="^MSE.61852$";
+ap.UP.MSE61852:AP,APERTYPE=RECTANGLE,APERTURE={60.88/1000,0.078};
+ap.DO.MSE61852:AP,APERTYPE=RECTANGLE,APERTURE={65.82/1000,0.078};
+Install, element=ap.do.MSE61852, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE61852, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MSE.61857$";
+ap.UP.MSE61857:AP,APERTYPE=RECTANGLE,APERTURE={68.50/1000,0.078};
+ap.DO.MSE61857:AP,APERTYPE=RECTANGLE,APERTURE={76.35/1000,0.078};
+Install, element=ap.do.MSE61857, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE61857, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+Select, flag=seqedit, pattern="^MSE.61872$";
+ap.UP.MSE61872:AP,APERTYPE=RECTANGLE,APERTURE={80.24/1000,0.078};
+ap.DO.MSE61872:AP,APERTYPE=RECTANGLE,APERTURE={91.00/1000,0.078};
+Install, element=ap.do.MSE61872, at:=MSE->l/2, from=selected;
+Install, element=ap.up.MSE61872, at:=-MSE->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+Select, flag=seqedit, pattern="^TPSG.61773$";
+ap.UP.TPSG61773:AP,APERTYPE=RECTANGLE,APERTURE={39.00/1000,0.078};
+ap.DO.TPSG61773:AP,APERTYPE=RECTANGLE,APERTURE={41.53/1000,0.078};
+Install, element=ap.do.TPSG61773, at:=TPSGS->l/2, from=selected;
+Install, element=ap.up.TPSG61773, at:=-TPSGS->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+Select, flag=seqedit, pattern="^TPSG.61776$";
+ap.UP.TPSG61776:AP,APERTYPE=RECTANGLE,APERTURE={41.83/1000,0.078};
+ap.DO.TPSG61776:AP,APERTYPE=RECTANGLE,APERTURE={44.36/1000,0.078};
+Install, element=ap.do.TPSG61776, at:=TPSGS->l/2, from=selected;
+Install, element=ap.up.TPSG61776, at:=-TPSGS->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MST.61779$";
+ap.UP.MST61779:AP,APERTYPE=RECTANGLE,APERTURE={45.85/1000,0.078};
+ap.DO.MST61779:AP,APERTYPE=RECTANGLE,APERTURE={49.32/1000,0.078};
+Install, element=ap.do.MST61779, at:=MST->l/2, from=selected;
+Install, element=ap.up.MST61779, at:=-MST->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+Select, flag=seqedit, pattern="^MST.61794$";
+ap.UP.MST61794:AP,APERTYPE=RECTANGLE,APERTURE={50.53/1000,0.078};
+ap.DO.MST61794:AP,APERTYPE=RECTANGLE,APERTURE={54.00/1000,0.078};
+Install, element=ap.do.MST61794, at:=MST->l/2, from=selected;
+Install, element=ap.up.MST61794, at:=-MST->l/2, from=selected;
+Select, flag=seqedit, clear = true;
+
+
+
+
+
+
+/*
+!!BBLR21938  --- NOT OK!!!!!select, seqedit, pattern=QDA21910[1]
+install, ap.UP.BBLR3W, at=8.275-QMA[L]/2-BBLR[L]/2, from=selected
+install, ap.DO.BBLR3W, at=8.275-QMA[L]/2+BBLR[L]/2, from=selected
+select, seqedit, clear
+
+select, flag=seqedit, range=#s;
+install, element=ap.UP.BBLR3WLSS2, at:=1774.415-BBLR->L/2, from=selected;
+install, element=ap.DO.BBLR3WLSS2, at:=1774.415+BBLR->L/2, from=selected;
+select, flag=seqedit, clear = true;
+select, flag=seqedit, range=#s;
+install, element=ap.UP.BBLR3WLSS2, at:=1775.463-BBLR->L/2, from=selected;
+install, element=ap.DO.BBLR3WLSS2, at:=1775.463+BBLR->L/2, from=selected;
+select, flag=seqedit, clear = true;
+*/
+
+
+
+ENDEDIT;
+
+
+return;
+
+! Apertures from FS EDMS 1828905
+mask_aper = (74) / 2. * 1e-3;
+!!! mask.519.1, apertype=rectangle, aperture = {mask_aper, mask_aper};
+!!! mask.519.2, apertype=rectangle, aperture = {mask_aper, mask_aper};
+
+
+QFA.51610,   APERTYPE=ELLIPSE,   APERTURE={0.0755,0.0455};
+QFA.51810,   APERTYPE=ELLIPSE,   APERTURE={0.0755,0.0455};
+
+
+! Aperture wrt circulating beam
+! Upstream aperture
+!!! tidvg, apertype=ellipse, aperture = {37.8e-3, 17.7e-3};
+! Downstream aperture
+!!! tidvg_end, apertype=ellipse, aperture = {37.8e-3, 20.6e-3};
+! Downstream aperture
+!!! TIDVG.51872, apertype=ellipse, aperture = {37.8e-3, 20.6e-3};
+
+mkdha.51751,apertype=rectangle,aperture:={ 0.048, 0.028};
+mkdha.51754,apertype=rectangle,aperture:={ 0.048, 0.028};
+mdvw.51694,  APERTYPE=ELLIPSE,   APERTURE={0.0415,0.0415};
+mdvw.51696,  APERTYPE=ELLIPSE,   APERTURE={0.0415,0.0415};
+
+! missing aperture definitions
+tcxhw.51651, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+tecs.51652, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+XRP.51791, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};  !!! NEW
+TCPC.51794, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};  !!! swapped position
+TQCD.51795, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};  !!! swapped position
+TACW.51797, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};  
+TECS.51799, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+BTV.51858, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};   !!! NEW
+XRP.51993, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};   !!! NEW
+TQCD.51997, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};  !!! NEW
+TACW.51998, APERTYPE=ELLIPSE, APERTURE={0.078,0.078};
+
+TMADI.51896, APERTYPE=rectangle, aperture = {0.037, 0.037};
+TMADI.51901, APERTYPE=rectangle, aperture = {0.037, 0.037};
+
+
+! other LSS !!!!!!!!!!!!!!!!!!!!!!!!!
+
+vvfb.21801, apertype=rectangle, aperture = {217e-3/2, 58e-3/2};
+qspl.61809, apertype=rectangle, aperture = {217e-3/2, 58e-3/2};
+!!! vbca.41807, apertype=rectangle, aperture = {217e-3/2, 58e-3/2};
+
+
+
+
+QF.11810,  APERTYPE=ELLIPSE, APERTURE={0.076,0.01915};
+QD.11710,  APERTYPE=ELLIPSE, APERTURE={0.0415,0.0415};
+
+! From ECR EDMS 2060403
+!!! tmask.11802 , apertype=rectangle, aperture = {76e-3, 19.15e-3};
+!!! tmask.11897 , apertype=rectangle, aperture = {76e-3, 30e-3};
+
+
+! BCTFS.11640
+MDHW.11732, APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
+MDHW.11737, APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
+MDHW.11738, APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
+MDHW.11754, APERTYPE=RECTANGLE,APERTURE={0.076,0.01765};
+

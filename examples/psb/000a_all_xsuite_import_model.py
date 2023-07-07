@@ -32,11 +32,13 @@ ealign, dx=-0.0442;
 twiss;
 ''')
 
-line = xt.Line.from_madx_sequence(mad.sequence.psb1,
-                                allow_thick=True,
-                                enable_align_errors=True,
-                                deferred_expressions=True)
+line = xt.Line.from_madx_sequence(
+    sequence=mad.sequence.psb1,
+    allow_thick=True,
+    enable_align_errors=True,
+    deferred_expressions=True,
+)
+line.configure_bend_model(core='full')
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                             gamma0=mad.sequence.psb1.beam.gamma)
-line.configure_bend_method('full')
 line.to_json('psb_00_from_mad.json')

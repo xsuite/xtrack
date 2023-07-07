@@ -572,6 +572,7 @@ class Line:
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
         isthick = np.array(list(map(_is_thick, elements)))
+        compound_name = self._get_element_compound_names()
 
         import pandas as pd
 
@@ -580,6 +581,7 @@ class Line:
             'element_type': element_types,
             'name': self.element_names,
             'isthick': isthick,
+            'compound_name': compound_name,
             'element': elements
         })
         return elements_df
@@ -1803,29 +1805,35 @@ class Line:
             self.config[f'FREEZE_VAR_{name}'] = False
 
 
-    def configure_bend_method(self, method='expanded'):
+    def configure_bend_model(self, core=None, edge=None):
 
         """
         Configure the method used to track bends.
 
         Parameters
         ----------
-        method: str
-            Method to use. Can be 'expanded' or 'full'. Default is 'expanded',
-            which is more appropriate for large accelerators (i.e. bends with
-            small bending angles).
-
+        core: str
+            Medel to be used for the thick bend cores. Can be 'expanded' or '
+            full'.
+        edge: str
+            Model to be used for the bend edges. Can be 'linear', 'full'
+            or 'suppressed'.
         """
 
-        if method not in ['expanded', 'full']:
-            raise ValueError(f'Unknown bend method {method}')
+        if core not in [None, 'expanded', 'full']:
+            raise ValueError(f'Unknown bend model {core}')
+
+        if edge not in [None, 'linear', 'full', 'suppressed']:
+            raise ValueError(f'Unknown bend edge model {edge}')
 
         for ee in self.elements:
-            if isinstance(ee, xt.Bend):
-                ee.method = {'expanded': 0, 'full': 1}[method]
+            if core is not None and isinstance(ee, xt.Bend):
+                ee.model = core
 
+            if edge is not None and isinstance(ee, xt.DipoleEdge):
+                ee.model = edge
 
-    def configure_radiation(self, model=None, model_beamstrahlung=None, 
+    def configure_radiation(self, model=None, model_beamstrahlung=None,
                             model_bhabha=None, mode='deprecated'):
 
         """

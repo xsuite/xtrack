@@ -123,6 +123,7 @@ t_ptc = xd.Table(mad.table.ptc_twiss)
 
 line_thick = xt.Line.from_json('psb_03_with_chicane_corrected.json')
 line_thick.build_tracker()
+line_thick.configure_bend_model(core='full', edge='full')
 line_thick.vars['on_chicane_beta_corr'] = 0
 line_thick.vars['on_chicane_tune_corr'] = 0
 

@@ -469,7 +469,7 @@ def test_mad_elements_import():
 
         assert isinstance(line['de0'], xt.DipoleEdge)
         assert line.get_s_position('de0') == 0.38
-        assert line['de0'].h == 0.1
+        assert line['de0'].k == 0.1
         assert line['de0'].e1 == 3
         assert line['de0'].fint == 4
         assert line['de0'].hgap == 0.02
