@@ -40,9 +40,7 @@ opt = line.match(
     ]
 )
 
-prrrr
-
-#!end-doc-part
+opt.solve()
 
 tw = line.twiss()
 
