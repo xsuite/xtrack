@@ -132,9 +132,9 @@ class Target(xd.Target):
             return res[self.tar]
 
 class Vary(xd.Vary):
-    def __init__(self, name, limits=None, step=None, weight=None):
+    def __init__(self, name, limits=None, step=None, weight=None, max_step=None):
         xd.Vary.__init__(self, name=name, container=None, limits=limits,
-                         step=step, weight=weight)
+                         step=step, weight=weight, max_step=max_step)
 
 class VaryList(xd.VaryList):
     def __init__(self, vars, **kwargs):
