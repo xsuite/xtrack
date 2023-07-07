@@ -547,16 +547,14 @@ def test_import_thick_with_apertures_and_slice():
         use_compound_elements=True,
     )
 
-    assert line.compounds == {
-        'elm': [
-            'elm_entry', 'elm_aper_tilt_entry', 'elm_aper_offset_entry',
-            'elm_aper',
-            'elm_aper_offset_exit', 'elm_aper_tilt_exit',
-            'elm_tilt_entry', 'elm_den', 'elm', 'elm_dex', 'elm_tilt_exit',
-            'elm_exit',
-        ],
-    }
+    assert line.get_compound('elm') == [
+        'elm_entry', 'elm_aper_tilt_entry', 'elm_aper_offset_entry',
+        'elm_aper',
+        'elm_aper_offset_exit', 'elm_aper_tilt_exit',
+        'elm_tilt_entry', 'elm_den', 'elm', 'elm_dex', 'elm_tilt_exit',
+        'elm_exit',
+    ]
 
-    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+    # line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
     import ipdb; ipdb.set_trace()

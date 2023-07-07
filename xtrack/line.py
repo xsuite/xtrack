@@ -1574,10 +1574,13 @@ class Line:
         left_compound = _compounds.compound_for_element(name_first_drift_to_cut)
         right_compound = _compounds.compound_for_element(name_last_drift_to_cut)
         if left_compound is not None and left_compound == right_compound:
-            _compounds.remove_elements(replaced_names)
-            _compounds.add_to_compound(left_compound, names_to_insert)
+            raise ValueError('Inserting elements in the middle of a compound'
+                             'is not supported.')
 
         return self
+
+    def get_compound(self, name):
+        return self.compound_container.subsequence(name)
 
     def append_element(self, element, name):
 
