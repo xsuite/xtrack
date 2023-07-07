@@ -523,7 +523,7 @@ class MadLoader:
         from xdeps.madxutils import MadxEval
 
         _var_values = line._var_management["data"]["var_values"]
-        _var_values.default_factory = lambda: 0
+        _var_values.default_factory = lambda: 0.
         for name, par in mad.globals.cmdpar.items():
             if replace_in_expr is not None:
                 for k, v in replace_in_expr.items():
