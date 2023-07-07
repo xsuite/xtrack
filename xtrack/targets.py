@@ -22,6 +22,9 @@ class TargetLuminosity(xt.Target):
         self.f_rev = f_rev
         self.crab = crab
 
+    def __repr__(self):
+        return f'TargetLuminosity(ip_name={self.ip_name}, luminosity={self.value}, tol={self.tol})'
+
     @property
     def weight(self):
         if self._weight is None:
@@ -52,6 +55,9 @@ class TargetSeparationOrthogonalToCrossing(xt.Target):
     def __init__(self, ip_name):
         xt.Target.__init__(self, tar=self.projection, value=0, tol=1e-6, scale=1)
         self.ip_name = ip_name
+
+    def __repr__(self):
+        return f'TargetSeparationOrthogonalToCrossing(ip_name={self.ip_name})'
 
     def projection(self, tw):
         assert len(tw._line_names) == 2
@@ -108,6 +114,9 @@ class TargetSeparation(xt.Target):
         self.plane = plane
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
+
+    def __repr__(self):
+        return f'TargetSeparation(ip_name={self.ip_name}, value={self.value}, tol={self.tol})'
 
     def get_separation(self, tw):
 
