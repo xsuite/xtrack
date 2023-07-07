@@ -167,7 +167,8 @@ class TargetInequality(Target):
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
-                  solver_options={}, allow_twiss_failure=True, **kwargs):
+                  solver_options={}, allow_twiss_failure=True,
+                  solve=True, **kwargs):
 
     targets_flatten = []
     for tt in targets:
@@ -206,10 +207,13 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
                         restore_if_fail=restore_if_fail)
-    res =  opt.solve()
-    res['optimizer'] = opt
 
-    return res
+    if solve:
+        res =  opt.solve()
+        res['optimizer'] = opt
+        return res
+    else:
+        return opt
 
 
 def closed_orbit_correction(line, line_co_ref, correction_config,
