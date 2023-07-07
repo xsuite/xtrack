@@ -5,8 +5,14 @@
 
 class ThinCompound:
     def __init__(self, elements):
-        self.elements = set(elements)
+        self.elements = list(elements)
 
+        self.core = self.elements
+        self.aperture = []
+        self.entry_transform = []
+        self.exit_transform = []
+        self.entry_other = []
+        self.exit_other = []
 
 class ThickCompound:
     """A logical beam element that is composed of other elements.
@@ -41,12 +47,12 @@ class ThickCompound:
             entry_other=(),
             exit_other=(),
     ):
-        self.core = set(core)
-        self.aperture = set(aperture)
-        self.entry_transform = set(entry_transform)
-        self.exit_transform = set(exit_transform)
-        self.entry_other = set(entry_other)
-        self.exit_other = set(exit_other)
+        self.core = list(core)
+        self.aperture = list(aperture)
+        self.entry_transform = list(entry_transform)
+        self.exit_transform = list(exit_transform)
+        self.entry_other = list(entry_other)
+        self.exit_other = list(exit_other)
 
     def __repr__(self):
         return (
@@ -61,9 +67,9 @@ class ThickCompound:
     @property
     def elements(self):
         return (
-            self.core | self.aperture |
-            self.entry_transform | self.exit_transform |
-            self.entry_other | self.exit_other
+            self.entry_other + self.aperture +
+            self.entry_transform + self.core + self.exit_transform +
+            self.exit_other
         )
 
 
@@ -89,21 +95,27 @@ class CompoundContainer:
     def __repr__(self):
         return f'CompoundContainer({self._compounds})'
 
+    # def subsequence(self, compound_name):
+    #     """A subsequence of `line.element_names` corresponding to the compound.
+    #     """
+    #     begin, end = None, None
+    #     compound_elements = self._compounds[compound_name].elements
+    #     for i, name in enumerate(self._line.element_names):
+    #         if name in compound_elements and begin is None:
+    #             begin = i
+    #         elif name in compound_elements:
+    #             end = i + 1
+    #
+    #     return self._line.element_names[begin:end]
+
     def subsequence(self, compound_name):
-        """A subsequence of `line.element_names` corresponding to the compound.
-        """
-        begin, end = None, None
-        compound_elements = self._compounds[compound_name].elements
-        for i, name in enumerate(self._line.element_names):
-            if name in compound_elements and begin is None:
-                begin = i
-            elif name in compound_elements:
-                end = i + 1
+        return self.compound_for_name(compound_name).elements
 
-        return self._line.element_names[begin:end]
+    def compound_for_name(self, compound_name):
+        return self._compounds.get(compound_name)
 
-    def compound_for_element(self, name):
-        return self._compounds.get(name, None)
+    def compound_for_element(self, element_name):
+        return self._compound_name_for_element.get(element_name)
 
     def has_element(self, name):
         return name in self._compound_name_for_element

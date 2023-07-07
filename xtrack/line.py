@@ -572,7 +572,7 @@ class Line:
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
         isthick = np.array(list(map(_is_thick, elements)))
-        compound_name = self._get_element_compound_names()
+        compound_name = self.get_element_compound_names()
 
         import pandas as pd
 
@@ -1581,12 +1581,55 @@ class Line:
 
         return self
 
-    def get_compound(self, name):
+    def get_compound_by_name(self, name):
+        if not self.compound_container:
+            return None
+        return self.compound_container.compound_for_name(name)
+
+    def get_compound_subsequence(self, name):
+        if not self.compound_container:
+            return None
         return self.compound_container.subsequence(name)
+
+    def get_compound_for_element(self, name):
+        if not self.compound_container:
+            return None
+        return self.compound_container.compound_for_element(name)
+
+    def get_element_compound_names(self):
+        return [
+            self.get_compound_for_element(name)
+            for name in self.element_names
+        ]
+
+    def get_collapsed_names(self):
+        collapsed_names = []
+        idx = 0
+        while idx < len(self.element_names):
+            name = self.element_names[idx]
+            compound_name = self.get_compound_for_element(name)
+            if compound_name is None:
+                collapsed_names.append(name)
+                idx += 1
+                continue
+
+            subseq = self.get_compound_subsequence(compound_name)
+            if subseq[0] == name and self.element_names[idx:idx+len(subseq)] != subseq:
+                raise AssertionError(
+                    f"The compound {compound_name} is inconsistent with the "
+                    f"line. This is not supposed to happen!"
+                )
+            else:
+                idx += len(subseq)
+            collapsed_names.append(compound_name)
+
+        return collapsed_names
+
+
 
     def append_element(self, element, name):
 
-        '''Append element to the end of the lattice
+        """Append element to the end of the lattice
 
         Parameters
         ----------
@@ -1594,7 +1637,7 @@ class Line:
             Element to append
         name : str
             Name of the element to append
-        '''
+        """
 
         self._frozen_check()
         if element in self.element_dict and element is not self.element_dict[name]:

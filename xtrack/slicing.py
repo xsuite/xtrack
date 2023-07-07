@@ -10,6 +10,7 @@ from collections import defaultdict
 from itertools import zip_longest
 from typing import List, Tuple, Iterator
 
+from .compounds import ThickCompound
 from .general import _print
 
 import xtrack as xt
@@ -136,84 +137,110 @@ class Slicer:
             A list of slicing strategies to apply to the line.
         """
         self.line = line
-        self.compounds = line.compounds.copy()
+        # self.compound_container = line.compound_container.copy()
         self.slicing_strategies = slicing_strategies
         self.has_expresions = line.vars is not None
-        self.thin_names = []
 
     def slice_in_place(self):
-        line = self.line
+        thin_names = []
 
-        apertures = defaultdict(list)
-
-        n_elements = len(line)
-        for ii, name in enumerate(line.element_names):
+        collapsed_names = self.line.get_collapsed_names()
+        n_elements = len(collapsed_names)
+        for ii, name in enumerate(collapsed_names):
             _print(f'Slicing line: {100*(ii + 1)/n_elements:.0f}%', end='\r', flush=True)
-            element = line.element_dict[name]
 
-            # Don't slice already thin elements and drifts
-            if not element.isthick or isinstance(element, xt.Drift):
-                self.thin_names.append(name)
-
-                # Memorise the apertures so we can re-add them between slices
-                match = APER_ELEMS_REGEX.match(name)
-                if match:
-                    apertures[match.group(1)].append(name)
-
-                continue
-
-            # Choose a slicing strategy for the element
-            slicing_found = False
-            chosen_slicing = None
-            for strategy in reversed(self.slicing_strategies):
-                if strategy.match_element(name, element):
-                    slicing_found = True
-                    chosen_slicing = strategy.slicing
-                    break
-
-            if not slicing_found:
-                raise ValueError(f'No slicing strategy found for the element '
-                                 f'{name}: {element}.')
-
-            # If the chosen slicing is explicitly None, then we keep the current
-            # thick element and don't add any slices.
-            if chosen_slicing is None:
-                self.thin_names.append(name)
-                continue
-
-
-            # Make the slices and add them to line.element_dict (so far inactive)
-            slices_to_add = self._make_slices(
-                element=element,
-                chosen_slicing=chosen_slicing,
-                name=name,
-                interleave=apertures[name],
-            )
-            # At the beginning of the element we will insert a marker of
-            # the same name as the current thick element. We keep the old
-            # element in the line for now, as we might need its expressions.
-            self.thin_names += [name] + slices_to_add
-
-            # Remove the thick element and its expressions
-            if self.has_expresions:
-                type(element).delete_element_ref(self.line.element_refs[name])
-            self.line.element_dict[name] = xt.Marker()
-
-            # Add the compound relations
-            parent_compound = line._compound_for_element.get(name, None)
-            if not parent_compound:
-                self.line.define_compound(name, slices_to_add)
+            compound = self.line.get_compound_by_name(name)
+            if compound is not None:
+                thin_names += self._slice_compound(name, compound)
             else:
-                idx_to_replace = line.compounds[parent_compound].index(name)
-                self.line.replace_in_compound(idx_to_replace, name, slices_to_add)
+                element = self.line.element_dict[name]
+                thin_names += self._slice_element(name, element)
 
         # Commit the changes to the line
-        line.element_names = self.thin_names
+        self.line.compound_container = None
+        self.line.element_names = thin_names
 
-    def _make_slices(self, element, chosen_slicing, name, interleave=()):
+    def _slice_compound(self, name, compound):
+        sliced_core = []
+        for name in compound.core:
+            element = self.line.element_dict[name]
+            sliced_core += self._slice_element(name, element)
+
+        updated_core = []
+        slice_idx = 0
+        for slice_name in sliced_core:
+            element = self.line.element_dict[slice_name]
+            if isinstance(element, xt.Drift):
+                updated_core.append(slice_name)
+                continue
+
+            # Copy the apertures and transformations with a new name
+            updated_core += (
+                self._make_copies(compound.aperture, slice_idx) +
+                self._make_copies(compound.entry_transform, slice_idx) +
+                [slice_name] +
+                self._make_copies(compound.exit_transform, slice_idx)
+            )
+            slice_idx += 1
+
+        return compound.entry_other + updated_core + compound.exit_other
+
+    def _slice_element(self, name, element, wrap_slice=None):
+        # Don't slice already thin elements and drifts
+        if not element.isthick or isinstance(element, xt.Drift):
+            return [name]
+
+        # Choose a slicing strategy for the element
+        slicing_found = False
+        chosen_slicing = None
+        for strategy in reversed(self.slicing_strategies):
+            if strategy.match_element(name, element):
+                slicing_found = True
+                chosen_slicing = strategy.slicing
+                break
+
+        if not slicing_found:
+            raise ValueError(f'No slicing strategy found for the element '
+                             f'{name}: {element}.')
+
+        # If the chosen slicing is explicitly None, then we keep the current
+        # thick element and don't add any slices.
+        if chosen_slicing is None:
+            return [name]
+
+        # Make the slices and add them to line.element_dict (so far inactive)
+        slices_to_add = self._make_slices(
+            element=element,
+            chosen_slicing=chosen_slicing,
+            name=name,
+            wrap_slice=wrap_slice,
+        )
+
+        # Remove the thick element and its expressions
+        if self.has_expresions:
+            type(element).delete_element_ref(self.line.element_refs[name])
+        # self.line.element_dict[name] = xt.Marker()
+        del self.line.element_dict[name]
+
+        return slices_to_add
+
+    def _make_slices(self, element, chosen_slicing, name, wrap_slice=None):
         """
         Add the slices to the line.element_dict. If the element has expressions
         then the expressions will be added to the slices.
+
+        Parameters
+        ----------
+        element : BeamElement
+            A thick element to slice.
+        chosen_slicing : ElementSlicingScheme
+            The slicing scheme to use for the element.
+        name : str
+            The name of the element.
+        wrap_slice : Optional[callable]
+            A function that takes a slice and returns a list of slices. This
+            can be used to add transformations and apertures. If None, then
+            it will default to lambda x: [x].
 
         Returns
         -------
@@ -223,7 +250,6 @@ class Slicer:
         drift_idx, element_idx = 0, 0
         drift_to_slice = xt.Drift(length=element.length)
         slices_to_append = []
-        seen_first_slice = False
 
         for weight, is_drift in chosen_slicing:
             if is_drift:
@@ -246,12 +272,21 @@ class Slicer:
                 thick_name=name,
                 slice_name=slice_name,
                 _buffer=self.line.element_dict[name]._buffer,
-                )
+            )
 
-            if not is_drift and not seen_first_slice:
-                slices_to_append += interleave
-                seen_first_slice = True
-
-            slices_to_append.append(slice_name)
+            if wrap_slice is not None:
+                slices_to_append += wrap_slice(slice_name)
+            else:
+                slices_to_append.append(slice_name)
 
         return slices_to_append
+
+    def _make_copies(self, element_names, index):
+        new_names = []
+        for element_name in element_names:
+            element = self.line.element_dict[element_name]
+            new_element_name = f'{element_name}..{index}'
+            self.line.element_dict[new_element_name] = element.copy()
+            new_names.append(new_element_name)
+
+        return new_names
