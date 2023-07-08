@@ -78,8 +78,8 @@ for i_repeat in range(1):
         collider.vars[nn]= vv
 
     t_start = time.perf_counter()
-    match_res = collider.match(
-        # verbose=True,
+    opt = collider.match(
+        solve=False,
         ele_start=ele_start_match,
         ele_stop=ele_end_match,
         twiss_init=tw_init,
@@ -122,15 +122,16 @@ for i_repeat in range(1):
             xt.Vary('kqt13.r7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
         ]
     )
+    match_res = opt.solve()
     t_end = time.perf_counter()
     print(f"Matching time: {t_end - t_start:0.4f} seconds")
 
-assert match_res['optimizer'].targets[4].weight == 10.
+assert opt.targets[4].weight == 10.
 
 tw_after = collider.lhcb1.twiss()
 
 
-_err = match_res['jac_solver'].func
+_err = opt._err
 x_final = match_res['res']
 
 n_repeat_err_call = 100
