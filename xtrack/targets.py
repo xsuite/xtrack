@@ -13,8 +13,10 @@ class TargetLuminosity(xt.Target):
 
         if log:
             value = np.log10(luminosity)
+            tol = np.log10(tol)
         else:
             value = luminosity
+            tol = tol
 
         xt.Target.__init__(self, self.compute_luminosity, value, tol=tol)
 
