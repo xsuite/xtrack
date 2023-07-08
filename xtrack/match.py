@@ -168,6 +168,7 @@ class TargetInequality(Target):
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
+                  n_steps_max=20,
                   solve=True, **kwargs):
 
     targets_flatten = []
@@ -206,6 +207,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     opt = xd.Optimize(vary=vary, targets=targets, solver=solver,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
+                        n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail)
 
     if solve:
@@ -251,7 +253,8 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             ele_start=corr['start'], ele_stop=corr['end'])
 
 def match_knob_line(line, knob_name, vary, targets,
-                    knob_value_start, knob_value_end, **kwargs):
+                    knob_value_start, knob_value_end,
+                    **kwargs):
 
     vary_aux = []
     for vv in vary:

@@ -957,7 +957,7 @@ class Line:
     twiss.__doc__ = twiss_line.__doc__
 
     def match(self, vary, targets, solve=True, restore_if_fail=True, solver=None,
-                  verbose=False, **kwargs):
+                  verbose=False, n_steps_max=20, **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -1036,7 +1036,9 @@ class Line:
         '''
         return match_line(self, vary, targets, solve=solve,
                           restore_if_fail=restore_if_fail,
-                          solver=solver, verbose=verbose, **kwargs)
+                          solver=solver, verbose=verbose,
+                          n_steps_max=n_steps_max,
+                          **kwargs)
 
     def match_knob(self, knob_name, vary, targets,
                    knob_value_start=0, knob_value_end=1,
