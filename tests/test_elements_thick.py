@@ -513,6 +513,9 @@ def test_fringe_implementations(test_context):
     R_ptc = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())
     line.track(p_ptc)
 
+    p_ng.move(_context=xo.context_default)
+    p_ptc.move(_context=xo.context_default)
+
     assert np.isclose(p_ng.x, p_ptc.x, rtol=0, atol=1e-10)
     assert np.isclose(p_ng.px, p_ptc.px, rtol=0, atol=1e-12)
     assert np.isclose(p_ng.y, p_ptc.y, rtol=0, atol=1e-12)
