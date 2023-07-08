@@ -9,9 +9,14 @@ class TargetLuminosity(xt.Target):
 
     def __init__(self, ip_name, luminosity, tol, num_colliding_bunches,
                  num_particles_per_bunch, nemitt_x, nemitt_y, sigma_z, f_rev,
-                 crab=None, weight=None):
+                 crab=None, weight=None, log=True):
 
-        xt.Target.__init__(self, self.compute_luminosity, luminosity, tol=tol)
+        if log:
+            value = np.log10(luminosity)
+        else:
+            value = luminosity
+
+        xt.Target.__init__(self, self.compute_luminosity, value, tol=tol)
 
         self.ip_name = ip_name
         self.num_colliding_bunches = num_colliding_bunches
@@ -22,6 +27,7 @@ class TargetLuminosity(xt.Target):
         self.f_rev = f_rev
         self.crab = crab
         self.weight = weight
+        self.log = log
 
     def __repr__(self):
         return f'TargetLuminosity(ip_name={self.ip_name}, luminosity={self.value}, tol={self.tol})'
@@ -39,7 +45,7 @@ class TargetLuminosity(xt.Target):
 
     def compute_luminosity(self, tw):
         assert len(tw._line_names) == 2
-        return lumi.luminosity_from_twiss(
+        out = lumi.luminosity_from_twiss(
             n_colliding_bunches=self.num_colliding_bunches,
             num_particles_per_bunch=self.num_particles_per_bunch,
             ip_name=self.ip_name,
@@ -50,6 +56,9 @@ class TargetLuminosity(xt.Target):
             twiss_b2=tw[tw._line_names[1]],
             f_rev=self.f_rev,
             crab=self.crab)
+        if self.log:
+            out = np.log10(out)
+        return out
 
 class TargetSeparationOrthogonalToCrossing(xt.Target):
 
