@@ -120,7 +120,7 @@ class TargetSeparation(xt.Target):
         self.ineq_sign = ineq_sign
 
     def __repr__(self):
-        return f'TargetSeparation(ip_name={self.ip_name}, value={self.value}, tol={self.tol})'
+        return f'TargetSeparation(ip_name={self.ip_name}, value={self.value}, tol={self.tol}, ineq_sign={self.ineq_sign})'
 
     def get_separation(self, tw):
 
@@ -130,7 +130,6 @@ class TargetSeparation(xt.Target):
 
         if self.separation is not None:
             out = np.abs(tw1[self.plane, self.ip_name] - tw2[self.plane, self.ip_name])
-            target_value = self.separation
         elif self.separation_norm is not None:
             nemitt = self.nemitt_x if self.plane == 'x' else self.nemitt_y
             sigma1 = np.sqrt(
