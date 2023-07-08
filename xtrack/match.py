@@ -146,8 +146,10 @@ class TargetList(xd.TargetList):
 
 class TargetInequality(Target):
 
-    def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None, line=None):
-        super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line)
+    def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
+                 line=None, weight=None):
+        super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line,
+                         weight=weight)
         assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
         self.ineq_sign = ineq_sign
         self.rhs = rhs

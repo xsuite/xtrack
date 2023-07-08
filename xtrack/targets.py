@@ -9,7 +9,7 @@ class TargetLuminosity(xt.Target):
 
     def __init__(self, ip_name, luminosity, tol, num_colliding_bunches,
                  num_particles_per_bunch, nemitt_x, nemitt_y, sigma_z, f_rev,
-                 crab=None):
+                 crab=None, weight=None):
 
         xt.Target.__init__(self, self.compute_luminosity, luminosity, tol=tol)
 
@@ -21,6 +21,7 @@ class TargetLuminosity(xt.Target):
         self.sigma_z = sigma_z
         self.f_rev = f_rev
         self.crab = crab
+        self.weight = weight
 
     def __repr__(self):
         return f'TargetLuminosity(ip_name={self.ip_name}, luminosity={self.value}, tol={self.tol})'
@@ -81,7 +82,8 @@ class TargetSeparationOrthogonalToCrossing(xt.Target):
 class TargetSeparation(xt.Target):
 
     def __init__(self, ip_name, separation=None, separation_norm=None,
-                 plane=None, nemitt_x=None, nemitt_y=None, tol=None, scale=None):
+                 plane=None, nemitt_x=None, nemitt_y=None, tol=None, scale=None,
+                 ineq_sign=None):
 
 
         # For now nemitt is a scalar, we can move to a tuple for different
@@ -104,6 +106,7 @@ class TargetSeparation(xt.Target):
                           # the two beams computed as sqrt(dx**2 + dy**2)
             raise ValueError('plane must be provided')
         assert plane in ['x', 'y']
+        assert ineq_sign in [None, '<', '>']
 
         xt.Target.__init__(self, tar=self.get_separation, value=value, tol=tol,
                             scale=scale)
@@ -114,6 +117,7 @@ class TargetSeparation(xt.Target):
         self.plane = plane
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
+        self.ineq_sign = ineq_sign
 
     def __repr__(self):
         return f'TargetSeparation(ip_name={self.ip_name}, value={self.value}, tol={self.tol})'
@@ -125,7 +129,8 @@ class TargetSeparation(xt.Target):
         tw2 = tw[tw._line_names[1]].reverse()
 
         if self.separation is not None:
-            return np.abs(tw1[self.plane, self.ip_name] - tw2[self.plane, self.ip_name])
+            out = np.abs(tw1[self.plane, self.ip_name] - tw2[self.plane, self.ip_name])
+            target_value = self.separation
         elif self.separation_norm is not None:
             nemitt = self.nemitt_x if self.plane == 'x' else self.nemitt_y
             sigma1 = np.sqrt(
@@ -139,4 +144,14 @@ class TargetSeparation(xt.Target):
             sep_norm = np.abs((tw1[self.plane, self.ip_name] - tw2[self.plane, self.ip_name]
                         )) / sigma
 
-            return sep_norm
+            out = sep_norm
+
+        if self.ineq_sign is not None:
+            if self.ineq_sign == '<':
+                if out < self.value:
+                    out = self.value
+            elif self.ineq_sign == '>':
+                if out > self.value:
+                    out = self.value
+
+        return out
