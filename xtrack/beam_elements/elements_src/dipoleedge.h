@@ -38,6 +38,14 @@ void DipoleEdge_track_local_particle(DipoleEdgeData el, LocalParticle* part0){
 
     }
     else if (model == 1){
+
+        #ifdef XSUITE_BACKTRACK
+            //start_per_particle_block (part0->part)
+                LocalParticle_kill_particle(part, -32);
+            //end_per_particle_block
+            return;
+        #endif
+
         double const e1 = DipoleEdgeData_get_e1(el);
         double const fint = DipoleEdgeData_get_fint(el);
         double const hgap = DipoleEdgeData_get_hgap(el);

@@ -15,6 +15,12 @@ void multipolar_kick(
     /*gpuglmem*/ const double *ksl,
     const double weight
 ) {
+
+    #ifdef XSUITE_BACKTRACK
+        LocalParticle_kill_particle(part, -31);
+        return;
+    #else
+
     int64_t index = order;
     double inv_factorial = inv_factorial_order;
 
@@ -53,6 +59,8 @@ void multipolar_kick(
 
     LocalParticle_add_to_px(part, weight * dpx);
     LocalParticle_add_to_py(part, weight * dpy);
+
+    #endif // not XSUITE_BACKTRACK
 }
 
 #endif // XTRACK_MULTIPOLAR_KICK_H

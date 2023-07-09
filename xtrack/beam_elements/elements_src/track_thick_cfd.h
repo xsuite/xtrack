@@ -14,18 +14,18 @@
 /*gpufun*/
 void track_thick_cfd(
         LocalParticle* part,  // LocalParticle to track
-        const double length,  // length of the element
+        double length,        // length of the element
         const double k0_,     // normal dipole strength
         const double k1_,     // normal quadrupole strength
         const double h        // curvature
 ) {
+
     // Check if it's a drift
     if (k0_ == 0.0 && k1_ == 0.0) {
         Drift_single_particle(part, length);
         return;
     }
 
-    const double beta0 = LocalParticle_get_beta0(part);
     const double x = LocalParticle_get_x(part);
     const double y = LocalParticle_get_y(part);
     const double px = LocalParticle_get_px(part);

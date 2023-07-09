@@ -990,6 +990,7 @@ class Quadrupole(BeamElement):
 
 class Bend(BeamElement):
     isthick = True
+    has_backtrack = True
 
     _xofields={
         'k0': xo.Float64,
