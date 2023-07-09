@@ -13,7 +13,7 @@ class TargetLuminosity(xt.Target):
 
         if log:
             value = np.log10(luminosity)
-            tol = np.log10(tol)
+            tol = np.log10(tol/luminosity + 1) # equivalent (luminosity - target)/target < tol / target
         else:
             value = luminosity
             tol = tol
