@@ -123,6 +123,38 @@
             "XTRACK_MULTIPOLE_NO_SYNRAD": true,
             "XFIELDS_BB3D_NO_BEAMSTR": true,
             "XFIELDS_BB3D_NO_BHABHA": true,
+            "XTRACK_GLOBAL_XY_LIMIT": 1.0,
+            "XSUITE_BACKTRACK": true
+        },
+        "classes": [
+            "Drift",
+            "Multipole",
+            "Marker",
+            "ReferenceEnergyIncrease",
+            "Cavity",
+            "XYShift",
+            "Elens",
+            "Wire",
+            "SRotation",
+            "RFMultipole",
+            "DipoleEdge",
+            "LinearTransferMatrix",
+            "SimpleThinBend",
+            "SimpleThinQuadrupole",
+            "Bend",
+            "Quadrupole",
+            "CombinedFunctionMagnet"
+        ]
+    },
+    "only_xtrack_backtrack_frozen_energy": {
+        "config": {
+            "FREEZE_VAR_delta": true,
+            "FREEZE_VAR_ptau": true,
+            "FREEZE_VAR_rpp": true,
+            "FREEZE_VAR_rvv": true,
+            "XTRACK_MULTIPOLE_NO_SYNRAD": true,
+            "XFIELDS_BB3D_NO_BEAMSTR": true,
+            "XFIELDS_BB3D_NO_BHABHA": true,
             "XTRACK_GLOBAL_XY_LIMIT": 1.0
         },
         "classes": [
