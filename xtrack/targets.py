@@ -157,6 +157,7 @@ class TargetSeparation(xt.Target):
             out = sep_norm
 
         if self.ineq_sign is not None:
+            raise NotImplementedError # untested
             if self.ineq_sign == '<':
                 if out < self.value:
                     out = self.value
