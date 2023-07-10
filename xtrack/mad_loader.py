@@ -518,7 +518,8 @@ class MadLoader:
     @staticmethod
     def init_line_expressions(line, mad, replace_in_expr):  # to be added to Line....
         """Enable expressions"""
-        line._init_var_management()
+        if line._var_management is None:
+            line._init_var_management()
 
         from xdeps.madxutils import MadxEval
 
