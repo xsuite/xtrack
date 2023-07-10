@@ -10,17 +10,17 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import Any, List
+from typing import List, Optional
 
 import numpy as np
 
-from . import linear_normal_form as lnf, slicing
+from . import linear_normal_form as lnf
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xdeps as xd
-from .compounds import CompoundContainer
+from .compounds import CompoundContainer, CompoundType
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -1581,26 +1581,49 @@ class Line:
 
         return self
 
-    def get_compound_by_name(self, name):
+    def get_compound_by_name(self, name) -> Optional[CompoundType]:
+        """Get a compound object by its name."""
         if not self.compound_container:
             return None
         return self.compound_container.compound_for_name(name)
 
-    def get_compound_subsequence(self, name):
+    def get_compound_subsequence(self, name) -> Optional[List[str]]:
+        """The sequence of element names corresponding to the compound name."""
         if not self.compound_container:
             return None
         return self.compound_container.subsequence(name)
 
-    def get_compound_for_element(self, name):
+    def get_compound_for_element(self, name) -> Optional[str]:
+        """Get the compound name for an element name."""
         if not self.compound_container:
             return None
         return self.compound_container.compound_for_element(name)
 
-    def get_element_compound_names(self):
+    def get_element_compound_names(self) -> List[Optional[str]]:
+        """Get the compound names for all elements."""
         return [
             self.get_compound_for_element(name)
             for name in self.element_names
         ]
+
+    def get_compound_mask(self) -> List[bool]:
+        """The mask of elements that are entry to a compound, or not in one."""
+        if not self.compound_container:
+            return [True] * len(self.element_names)
+
+        mask = [False] * len(self.element_names)
+        for idx, name in enumerate(self.element_names):
+            compound = self.get_compound_for_element(name)
+
+            if compound is None:
+                mask[idx] = True
+                continue
+
+            subseq = self.get_compound_subsequence(compound)
+            if subseq[0] == name:
+                mask[idx] = True
+
+        return mask
 
     def get_collapsed_names(self):
         collapsed_names = []

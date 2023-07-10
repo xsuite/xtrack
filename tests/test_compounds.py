@@ -5,21 +5,35 @@
 
 import numpy as np
 import xtrack as xt
+from cpymad.madx import Madx
+
+from xtrack.compounds import ThinCompound, ThickCompound
+from xtrack.slicing import Strategy, Uniform
 
 
-def test_insert_in_compound():
-    # Check that compound relation is correctly updated
-    # when inserting a new element in the middle of the compound
-    line = xt.Line(
-        elements=[xt.Drift(length=1) for i in range(5)],
-        element_names=['d1', 'd2', 'd3', 'd4', 'd5'],
+def test_slicing_preserve_thick_compound_if_unsliced():
+    mad = Madx()
+    mad.options.rbarc = False
+    mad.input(f"""
+    ! Make the sequence a bit longer to accommodate rbends
+    ss: sequence, l:=2, refer=entry;
+        slice: sbend, at=0, l:=1, angle:=0.1, k0:=0.2, k1=0.1;
+        keep: sbend, at=1, l:=1, angle:=0.1, k0:=0.4, k1=0;
+    endsequence;
+    """)
+    mad.beam()
+    mad.use(sequence='ss')
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.ss,
+        deferred_expressions=True,
+        allow_thick=True,
     )
-    line.define_compound('d', ['d2', 'd3', 'd4'])
 
-    assert line.compounds == {'d': ['d2', 'd3', 'd4']}
-    assert line._compound_for_element == {'d2': 'd', 'd3': 'd', 'd4': 'd'}
+    line.slice_thick_elements(slicing_strategies=[
+        Strategy(Uniform(2), name='slice'),
+        Strategy(None, name='keep'),
+    ])
 
-    line.insert_element(name='new_d3', element=xt.Drift(length=2), at_s=1.5)
-
-    assert line.compounds == {'d': ['d2_part0', 'new_d3', 'd4_part1']}
-    assert line._compound_for_element == {'d2_part0': 'd', 'new_d3': 'd', 'd4_part1': 'd'}
+    assert isinstance(line.get_compound_by_name('slice'), ThinCompound)
+    assert isinstance(line.get_compound_by_name('keep'), ThickCompound)

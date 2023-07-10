@@ -3,6 +3,11 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
+from typing import Union
+
+CompoundType = Union['ThinCompound', 'ThickCompound']
+
+
 class ThinCompound:
     def __init__(self, elements):
         self.elements = list(elements)
@@ -13,6 +18,10 @@ class ThinCompound:
         self.exit_transform = []
         self.entry_other = []
         self.exit_other = []
+
+    def __repr__(self):
+        return f'ThinCompound({self.elements})'
+
 
 class ThickCompound:
     """A logical beam element that is composed of other elements.
@@ -95,19 +104,6 @@ class CompoundContainer:
     def __repr__(self):
         return f'CompoundContainer({self._compounds})'
 
-    # def subsequence(self, compound_name):
-    #     """A subsequence of `line.element_names` corresponding to the compound.
-    #     """
-    #     begin, end = None, None
-    #     compound_elements = self._compounds[compound_name].elements
-    #     for i, name in enumerate(self._line.element_names):
-    #         if name in compound_elements and begin is None:
-    #             begin = i
-    #         elif name in compound_elements:
-    #             end = i + 1
-    #
-    #     return self._line.element_names[begin:end]
-
     def subsequence(self, compound_name):
         return self.compound_for_name(compound_name).elements
 
@@ -129,3 +125,7 @@ class CompoundContainer:
         for component_name in self._compounds[name].elements:
             del self._compound_name_for_element[component_name]
         del self._compounds[name]
+
+    @property
+    def compound_names(self):
+        return self._compounds.keys()

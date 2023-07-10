@@ -536,8 +536,44 @@ def test_import_thick_with_apertures_and_slice():
         'elm_exit',
     ]
 
-    import ipdb; ipdb.set_trace()
-
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
-    import ipdb; ipdb.set_trace()
+    assert line.get_compound_subsequence('elm') == [
+        'elm_entry',                    # entry marker
+        'elm_aper_tilt_entry..0',       # ┐
+        'elm_aper_offset_entry..0',     # │
+        'elm_aper..0',                  # ├ entry edge aperture
+        'elm_aper_offset_exit..0',      # │
+        'elm_aper_tilt_exit..0',        # ┘
+        'elm_tilt_entry..0',            # ┐
+        'elm_den',                      # ├ entry edge (+transform)
+        'elm_tilt_exit..0',             # ┘
+        'drift_elm..0',                 # drift 0
+        'elm_aper_tilt_entry..1',       # ┐
+        'elm_aper_offset_entry..1',     # │
+        'elm_aper..1',                  # ├ slice 1 aperture
+        'elm_aper_offset_exit..1',      # │
+        'elm_aper_tilt_exit..1',        # ┘
+        'elm_tilt_entry..1',            # ┐
+        'elm..0',                       # ├ slice 0 (+transform)
+        'elm_tilt_exit..1',             # ┘
+        'drift_elm..1',                 # drift 1
+        'elm_aper_tilt_entry..2',       # ┐
+        'elm_aper_offset_entry..2',     # │
+        'elm_aper..2',                  # ├ slice 2 aperture
+        'elm_aper_offset_exit..2',      # │
+        'elm_aper_tilt_exit..2',        # ┘
+        'elm_tilt_entry..2',            # ┐
+        'elm..1',                       # ├ slice 1 (+transform)
+        'elm_tilt_exit..2',             # ┘
+        'drift_elm..2',                 # drift 2
+        'elm_aper_tilt_entry..3',       # ┐
+        'elm_aper_offset_entry..3',     # │
+        'elm_aper..3',                  # ├ exit edge aperture
+        'elm_aper_offset_exit..3',      # │
+        'elm_aper_tilt_exit..3',        # ┘
+        'elm_tilt_entry..3',            # ┐
+        'elm_dex',                      # ├ exit edge (+transform)
+        'elm_tilt_exit..3',             # ┘
+        'elm_exit',                     # exit marker
+    ]
