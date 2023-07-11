@@ -20,7 +20,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xdeps as xd
-from .compounds import CompoundContainer, CompoundType
+from .compounds import CompoundContainer, CompoundType, Compound
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -1488,12 +1488,31 @@ class Line:
                     "Either `index` or `at_s` must be provided"
                 )
 
-        if at_s is None:
+        if index is not None:
             if _is_thick(element) and np.abs(element.length) > 0:
                 raise NotImplementedError('Use `at_s` to insert thick elements')
+
+            left_name = self.element_names[index - 1]
+            left_cpd_name = self.get_compound_for_element(left_name)
+            right_name = self.element_names[index]
+            right_cpd_name = self.get_compound_for_element(right_name)
+            compound = None
+            if left_cpd_name == right_cpd_name and left_cpd_name is not None:
+                compound = self.compound_container.compound_for_name(left_cpd_name)
+                if isinstance(compound, Compound):
+                    raise ValueError(
+                        'Inserting an element inside an unsliced compound is '
+                        'not supported.'
+                    )
+
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
             self.element_names.insert(index, name)
+
+            if compound:
+                compound.elements.add(name)
+                self.compound_container.define_compound(left_cpd_name, compound)
+
             return
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
@@ -1552,6 +1571,17 @@ class Line:
         drift_right = drift_base.copy()
         drift_right.length = l_right_part
 
+        # Check if not illegally inserting in a compound
+        _compounds = self.compound_container
+        left_compound = _compounds.compound_name_for_element(name_first_drift_to_cut)
+        right_compound = _compounds.compound_name_for_element(name_last_drift_to_cut)
+        compound = None
+        if left_compound is not None and left_compound == right_compound:
+            compound = _compounds.compound_for_name(left_compound)
+            if isinstance(compound, Compound):
+                raise ValueError('Inserting an element in the middle of an '
+                                 'unsliced compound is not supported.')
+
         # Insert
         assert name_left not in self.element_names
         assert name_right not in self.element_names
@@ -1572,12 +1602,12 @@ class Line:
 
         # Update compound container if the inserted element falls in the middle
         # of a compound element.
-        _compounds = self.compound_container
-        left_compound = _compounds.compound_name_for_element(name_first_drift_to_cut)
-        right_compound = _compounds.compound_name_for_element(name_last_drift_to_cut)
-        if left_compound is not None and left_compound == right_compound:
-            raise ValueError('Inserting elements in the middle of a compound'
-                             'is not supported.')
+        if compound:
+            compound_name = left_compound
+            _compounds.remove_compound(compound_name)
+            compound.elements -= set(replaced_names)
+            compound.elements |= set(names_to_insert)
+            _compounds.define_compound(compound_name, compound)
 
         return self
 

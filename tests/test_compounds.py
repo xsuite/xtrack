@@ -2,6 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
+import pytest
 
 import xtrack as xt
 from cpymad.madx import Madx
@@ -123,7 +124,6 @@ def test_slicing_preserve_thick_compound_if_unsliced():
     mad = Madx()
     mad.options.rbarc = False
     mad.input(f"""
-    ! Make the sequence a bit longer to accommodate rbends
     ss: sequence, l:=2, refer=entry;
         slice: sbend, at=0, l:=1, angle:=0.1, k0:=0.2, k1=0.1;
         keep: sbend, at=1, l:=1, angle:=0.1, k0:=0.4, k1=0;
@@ -158,3 +158,101 @@ def test_slicing_preserve_thick_compound_if_unsliced():
     assert line.get_compound_subsequence('keep') == [
         'keep_entry', 'keep_den', 'keep', 'keep_dex', 'keep_exit',
     ]
+
+
+@pytest.fixture
+def line_with_compounds():
+    elements = [
+        ('a', xt.Marker()),         # ┐
+        ('b', xt.Marker()),         # │
+        ('c', xt.Drift(length=1)),  # ├ test_1
+        ('d', xt.Marker()),         # ┘
+        ('e', xt.Drift(length=1)),  # ┐
+        ('f', xt.Drift(length=1)),  # ┴ test_2
+        ('g', xt.Marker()),
+    ]
+    line = xt.Line(
+        element_names=[name for name, _ in elements],
+        elements=[element for _, element in elements],
+    )
+
+    compound = Compound(entry='a', exit_='d', aperture=['b'], core=['c'])
+    line.compound_container.define_compound('test_1', compound)
+
+    sliced_compound = SlicedCompound({'e', 'f'})
+    line.compound_container.define_compound('test_2', sliced_compound)
+
+    return line
+
+
+def test_line_insert_thin_by_index_into_compound(line_with_compounds):
+    line = line_with_compounds
+
+    with pytest.raises(ValueError, match='compound'):
+        line.insert_element(element=xt.Marker(), index=2, name='c2')
+
+
+def test_line_insert_thin_by_index_into_sliced_compound(line_with_compounds):
+    line = line_with_compounds
+
+    line.insert_element(element=xt.Marker(), index=5, name='e2')
+
+    assert line.get_compound_subsequence('test_2') == ['e', 'e2', 'f']
+
+
+def test_line_insert_thin_by_index_next_to_compound(line_with_compounds):
+    line = line_with_compounds
+
+    line.insert_element(element=xt.Marker(), index=6, name='f2')
+    assert line.get_compound_subsequence('test_2') == ['e', 'f']
+
+    line.insert_element(element=xt.Marker(), index=4, name='d2')
+    assert line.get_compound_subsequence('test_1') == ['a', 'b', 'c', 'd']
+
+    assert line.element_names == ['a', 'b', 'c', 'd', 'd2', 'e', 'f', 'f2', 'g']
+
+
+def test_line_insert_thin_by_s_next_to_compound(line_with_compounds):
+    line = line_with_compounds
+
+    line.insert_element(element=xt.Marker(), at_s=0, name='a0')
+
+    assert line.get_compound_subsequence('test_1') == ['a', 'b', 'c', 'd']
+    assert line.element_names == ['a0', 'a', 'b', 'c', 'd', 'e', 'f', 'g']
+
+
+@pytest.mark.parametrize('at_s', [0.5, 1])
+def test_line_insert_thin_by_s_into_compound(line_with_compounds, at_s):
+    line = line_with_compounds
+
+    with pytest.raises(ValueError, match='compound'):
+        line.insert_element(element=xt.Marker(), at_s=at_s, name='in_c')
+
+
+def test_line_insert_thin_by_s_into_sliced_compound(line_with_compounds):
+    line = line_with_compounds
+
+    line.insert_element(element=xt.Marker(), at_s=2, name='e2')
+
+    assert line.get_compound_subsequence('test_2') == ['e', 'e2', 'f']
+
+
+def test_line_insert_thick_by_s_into_compound(line_with_compounds):
+    line = line_with_compounds
+
+    with pytest.raises(ValueError, match='compound'):
+        line.insert_element(element=xt.Drift(length=0.5), at_s=0.25, name='in_c')
+
+
+def test_line_insert_thick_by_s_into_sliced_compound(line_with_compounds):
+    line = line_with_compounds
+
+    line.insert_element(element=xt.Drift(length=1), at_s=1.5, name='ef')
+
+    expected_names = ['e_part0', 'ef', 'f_part1']
+    result_names = line.get_compound_subsequence('test_2')
+    assert result_names == expected_names
+
+    expected_lengths = [0.5, 1, 0.5]
+    result_lengths = [line[name].length for name in result_names]
+    assert result_lengths == expected_lengths
