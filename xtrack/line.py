@@ -3319,7 +3319,7 @@ class LineVars:
 
         for nn in defined_vars:
             if (self.line._xdeps_vref[nn]._expr is None):
-                self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]._value
+                self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]
 
 
 class VarSetter:
