@@ -22,6 +22,9 @@ class SlicedCompound:
     def __repr__(self):
         return f'{type(self).__name__}({self.elements})'
 
+    def to_dict(self):
+        return {'elements': list(self.elements)}
+
 
 class Compound:
     """A logical beam element that is composed of other elements.
@@ -82,6 +85,16 @@ class Compound:
             self.exit
         )
 
+    def to_dict(self):
+        return {
+            'core': list(self.core),
+            'aperture': list(self.aperture),
+            'entry_transform': list(self.entry_transform),
+            'exit_transform': list(self.exit_transform),
+            'entry': list(self.entry)[0],
+            'exit_': list(self.exit)[0],
+        }
+
 
 class CompoundContainer:
     """Container for storing compound elements.
@@ -122,3 +135,26 @@ class CompoundContainer:
     @property
     def compound_names(self) -> Iterable[str]:
         return self._compounds.keys()
+
+    @classmethod
+    def from_dict(cls, compounds_dict):
+        compounds = {}
+        for name, compound_dict in compounds_dict.items():
+            class_name = compound_dict.pop('__class__')
+            if class_name == 'Compound':
+                compound_class = Compound
+            elif class_name == 'SlicedCompound':
+                compound_class = SlicedCompound
+            else:
+                raise ValueError(f'Unknown compound class {class_name}')
+
+            compound = compound_class(**compound_dict)
+            compounds[name] = compound
+
+        return cls(compounds=compounds)
+
+    def to_dict(self):
+        return {
+            name: compound.to_dict()
+            for name, compound in self._compounds.items()
+        }

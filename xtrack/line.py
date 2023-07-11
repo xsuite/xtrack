@@ -194,9 +194,9 @@ class Line:
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
 
-        if 'compound_relation' in dct.keys():
-            for compound_name, components in dct['compound_relation'].items():
-                self.define_compound(compound_name, components)
+        if 'compound_container' in dct.keys():
+            compounds = dct['compound_container']
+            self.compound_container = CompoundContainer.from_dict(compounds)
 
         _print('Done loading line from dict.           ')
 
@@ -492,7 +492,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
-        out['compound_relation'] = self.compounds.copy()
+        out['compound_relation'] = self.compound_container.to_dict()
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
