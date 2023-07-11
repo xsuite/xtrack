@@ -21,3 +21,5 @@ All these numbers are assigned by the optics matcher
 - call rematch_ir3b1, rematch_ir7b1, rematch_ir3b2, rematch_ir7b2
     - inputs are the beta blocks
     - output are the strengths for the IR quads
+- calls selectIRAUX of the two ATS IRs
+    
