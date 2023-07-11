@@ -1,4 +1,5 @@
 from cpymad.madx import Madx
+import xtrack as xt
 
 def get_beta_blocks(mad, names):
     out = {}
@@ -50,3 +51,38 @@ mad.input('''
     exec,selectIR15(5,45,56,b1);
     ''')
 out_sel_ir15_5 = get_beta_blocks(mad, ['bir5b1', 'eir5b1'])
+
+collider = xt.Multiline.from_json('hllhc.json')
+collider.build_trackers()
+collider.vars.load_madx_optics_file('../../../hllhc15/toolkit/macro.madx')
+
+twpresq_r = collider.lhcb1.twiss(
+    twiss_init=xt.TwissInit(
+        element_name='ip5', betx=0.5, bety=0.5, line=collider.lhcb1),
+    ele_start='ip5', ele_stop='ip6')
+twpresq_l = collider.lhcb1.twiss(
+    twiss_init=xt.TwissInit(
+        element_name='ip5', betx=0.5, bety=0.5, line=collider.lhcb1),
+    ele_start='ip4', ele_stop='ip5')
+
+twsq_r = collider.lhcb1.twiss(
+    twiss_init=xt.TwissInit(
+        element_name='ip5', betx=0.15, bety=0.15, line=collider.lhcb1),
+    ele_start='ip5', ele_stop='ip6')
+twsq_l = collider.lhcb1.twiss(
+    twiss_init=xt.TwissInit(
+        element_name='ip5', betx=0.15, bety=0.15, line=collider.lhcb1),
+    ele_start='ip4', ele_stop='ip5')
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+plt.plot(twpresq_r.s, twpresq_r.betx, 'g', label='presq')
+plt.plot(twpresq_l.s, twpresq_l.betx, 'g')
+plt.plot(twsq_r.s, twsq_r.betx, 'r', label='sq')
+plt.plot(twsq_l.s, twsq_l.betx, 'r')
+
+plt.plot(twpresq_r['s', 'e.ds.r5.b1'], out_sel_aux_5['eir5b1']['betx'], 'or', label='sel_aux')
+plt.plot(twpresq_r['s', 'e.ds.r5.b1'], out_sel_ir15_5['eir5b1']['betx'], 'og', label='sel_15')
+plt.legend()
+plt.show()
