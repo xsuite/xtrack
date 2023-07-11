@@ -3291,6 +3291,36 @@ class LineVars:
         self._cache_active = value
         self.line._xdeps_manager._tree_frozen = value
 
+    def load_madx_optics_file(self, filename):
+        from cpymad.madx import Madx
+        mad = Madx()
+        mad.options.echo = False
+        mad.options.info = False
+        mad.options.warn = False
+        mad.call(str(filename))
+
+        assert self.cache_active is False, (
+            'Cannot load optics file when cache is active')
+
+        mad.input('''
+        elm: marker; seq: sequence, l=1; e:elm, at=0.5; endsequence;
+        beam; use,sequence=seq;''')
+
+        defined_vars = set(mad.globals.keys())
+
+        xt.general._print.suppress = True
+        dummy_line = xt.Line.from_madx_sequence(mad.sequence.seq,
+                                                deferred_expressions=True)
+        xt.general._print.suppress = False
+
+        self.line._xdeps_vref._owner.update(
+            {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
+        self.line._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
+
+        for nn in defined_vars:
+            if (self.line._xdeps_vref[nn]._expr is None):
+                self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]._value
+
 
 class VarSetter:
     def __init__(self, line, varname):

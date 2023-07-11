@@ -33,12 +33,10 @@ collider._xdeps_vref._owner.update(
     {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
 collider._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
 
-collider._var_sharing.sync()
+# collider._var_sharing.sync()
 
 for nn in defined_vars:
-    if (collider._xdeps_vref[nn]._expr is None
-        and len(collider._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
-        ):
+    if (collider._xdeps_vref[nn]._expr is None):
         collider._xdeps_vref[nn] = collider._xdeps_vref._owner[nn]
 
 collider.vars['on_x1'] = 30
