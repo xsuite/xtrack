@@ -152,6 +152,14 @@ def test_slicing_strategy_matching():
             if nn.startswith(f'drift_{name}')
         ]
 
+    # Check markers
+    assert isinstance(line['mb10'], xt.Marker)
+    assert isinstance(line['mb11'], xt.Marker)
+    assert isinstance(line['mq10'], xt.Marker)
+    assert isinstance(line['something'], xt.Marker)
+    assert isinstance(line['mb20'], xt.Marker)
+    assert isinstance(line['mb21'], xt.Marker)
+
     # Teapot
     expected_mb20_drift_lens = [1/6, 2/3, 1/6]
     assert _lengths_of_drifts('mb20') == expected_mb20_drift_lens

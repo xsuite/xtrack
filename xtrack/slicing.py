@@ -255,9 +255,9 @@ class Slicer:
         if f'{name}_entry' not in self.line.element_dict:
             self.line.element_dict[name] = xt.Marker()
             slices_to_add = [name] + slices_to_add
-
-        # Delete the original element
-        del self.line.element_dict[name]
+        else:
+            # Delete the original element
+            del self.line.element_dict[name]
 
         return slices_to_add
 
