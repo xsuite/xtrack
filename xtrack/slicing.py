@@ -10,7 +10,7 @@ from collections import defaultdict
 from itertools import zip_longest
 from typing import List, Tuple, Iterator, Optional
 
-from .compounds import ThinCompound
+from .compounds import SlicedCompound
 from .general import _print
 
 import xtrack as xt
@@ -157,10 +157,10 @@ class Slicer:
 
             # Create a new compound with the sliced elements
             if subsequence is not None:
-                thin_compound = ThinCompound(elements=subsequence)
+                thin_compound = SlicedCompound(elements=subsequence)
                 self.line.compound_container.define_compound(name, thin_compound)
             elif compound:
-                subsequence = compound.elements
+                subsequence = self._order_set_by_line(compound.elements)
             else:
                 subsequence = [name]
 
@@ -173,7 +173,7 @@ class Slicer:
         """Slice compound and return slice names, or None if no slicing."""
         sliced_core = []
         slicing_was_performed = False
-        for core_el_name in compound.core:
+        for core_el_name in self._order_set_by_line(compound.core):
             element = self.line.element_dict[core_el_name]
             slice_names = self._slice_element(core_el_name, element)
             if slice_names is None:
@@ -193,16 +193,22 @@ class Slicer:
                 updated_core.append(slice_name)
                 continue
 
+            aperture = self._order_set_by_line(compound.aperture)
+            entry_transform = self._order_set_by_line(compound.entry_transform)
+            exit_transform = self._order_set_by_line(compound.exit_transform)
+            compound_entry = self._order_set_by_line(compound.entry)
+            compound_exit = self._order_set_by_line(compound.exit)
+
             # Copy the apertures and transformations with a new name
             updated_core += (
-                self._make_copies(compound.aperture, slice_idx) +
-                self._make_copies(compound.entry_transform, slice_idx) +
+                self._make_copies(aperture, slice_idx) +
+                self._make_copies(entry_transform, slice_idx) +
                 [slice_name] +
-                self._make_copies(compound.exit_transform, slice_idx)
+                self._make_copies(exit_transform, slice_idx)
             )
             slice_idx += 1
 
-        subsequence = compound.entry_other + updated_core + compound.exit_other
+        subsequence = compound_entry + updated_core + compound_exit
 
         # Remove the existing compound
         self.line.compound_container.remove_compound(name)
@@ -313,3 +319,8 @@ class Slicer:
             new_names.append(new_element_name)
 
         return new_names
+
+    def _order_set_by_line(self, set_to_order):
+        """Order a set of element names by their order in the line."""
+        assert isinstance(set_to_order, set)
+        return sorted(set_to_order, key=self.line.element_names.index)

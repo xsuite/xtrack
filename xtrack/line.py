@@ -121,7 +121,7 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
-        self.compound_container = CompoundContainer(self)
+        self.compound_container = CompoundContainer()
 
         self.particle_ref = particle_ref
 
@@ -1573,8 +1573,8 @@ class Line:
         # Update compound container if the inserted element falls in the middle
         # of a compound element.
         _compounds = self.compound_container
-        left_compound = _compounds.compound_for_element(name_first_drift_to_cut)
-        right_compound = _compounds.compound_for_element(name_last_drift_to_cut)
+        left_compound = _compounds.compound_name_for_element(name_first_drift_to_cut)
+        right_compound = _compounds.compound_name_for_element(name_last_drift_to_cut)
         if left_compound is not None and left_compound == right_compound:
             raise ValueError('Inserting elements in the middle of a compound'
                              'is not supported.')
@@ -1587,17 +1587,34 @@ class Line:
             return None
         return self.compound_container.compound_for_name(name)
 
-    def get_compound_subsequence(self, name) -> Optional[List[str]]:
-        """The sequence of element names corresponding to the compound name."""
-        if not self.compound_container:
-            return None
-        return self.compound_container.subsequence(name)
+    def get_compound_subsequence(self, name) -> List[str]:
+        """The sequence of element names corresponding to the compound name.
+
+        Equivalent to `sorted(compound.elements, key=self.element_names.index)`
+        but should be faster due to the assumption that compounds are contiguous.
+        """
+        element_set = self.get_compound_by_name(name).elements
+        compound_len = len(element_set)
+        subsequence = None
+
+        for idx, element_name in enumerate(self.element_names):
+            if element_name in element_set:
+                subsequence = self.element_names[idx:idx + compound_len]
+                break
+
+        if subsequence is None or set(subsequence) != element_set:
+            raise AssertionError(
+                f'Compound {name} is corrupted, as its elements {element_set} '
+                f'are not a contiguous subsequence of the line.'
+            )
+
+        return subsequence
 
     def get_compound_for_element(self, name) -> Optional[str]:
         """Get the compound name for an element name."""
         if not self.compound_container:
             return None
-        return self.compound_container.compound_for_element(name)
+        return self.compound_container.compound_name_for_element(name)
 
     def get_element_compound_names(self) -> List[Optional[str]]:
         """Get the compound names for all elements."""
@@ -1606,49 +1623,39 @@ class Line:
             for name in self.element_names
         ]
 
+    def _enumerate_top_level(self):
+        idx = 0
+        while idx < len(self):
+            element_name = self.element_names[idx]
+            compound_name = self.get_compound_for_element(element_name)
+
+            # Not a compound, set the mask field to True
+            if compound_name is None:
+                yield idx, compound_name
+                idx += 1
+                continue
+
+            # Is (the first element) in a compound
+            yield idx, compound_name
+            compound = self.get_compound_by_name(compound_name)
+            idx += len(compound.elements)  # skip the remaining elements
+
     def get_compound_mask(self) -> List[bool]:
         """The mask of elements that are entry to a compound, or not in one."""
         if not self.compound_container:
-            return [True] * len(self.element_names)
+            return [True] * len(self)
 
-        mask = [False] * len(self.element_names)
-        for idx, name in enumerate(self.element_names):
-            compound = self.get_compound_for_element(name)
-
-            if compound is None:
-                mask[idx] = True
-                continue
-
-            subseq = self.get_compound_subsequence(compound)
-            if subseq[0] == name:
-                mask[idx] = True
+        mask = [False] * len(self)
+        for element_idx, compound_name in self._enumerate_top_level():
+            mask[element_idx] = True
 
         return mask
 
     def get_collapsed_names(self):
-        collapsed_names = []
-        idx = 0
-        while idx < len(self.element_names):
-            name = self.element_names[idx]
-            compound_name = self.get_compound_for_element(name)
-            if compound_name is None:
-                collapsed_names.append(name)
-                idx += 1
-                continue
-
-            subseq = self.get_compound_subsequence(compound_name)
-            if subseq[0] == name and self.element_names[idx:idx+len(subseq)] != subseq:
-                raise AssertionError(
-                    f"The compound {compound_name} is inconsistent with the "
-                    f"line. This is not supposed to happen!"
-                )
-            else:
-                idx += len(subseq)
-            collapsed_names.append(compound_name)
-
-        return collapsed_names
-
-
+        return [
+            compound_name or self.element_names[element_idx]
+            for element_idx, compound_name in self._enumerate_top_level()
+        ]
 
     def append_element(self, element, name):
 

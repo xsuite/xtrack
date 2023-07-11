@@ -3,27 +3,27 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-from typing import Union
+from typing import Union, Optional, Iterable
 
-CompoundType = Union['ThinCompound', 'ThickCompound']
+CompoundType = Union['SlicedCompound', 'Compound']
 
 
-class ThinCompound:
+class SlicedCompound:
     def __init__(self, elements):
-        self.elements = list(elements)
+        self.elements = set(elements)
 
         self.core = self.elements
-        self.aperture = []
-        self.entry_transform = []
-        self.exit_transform = []
-        self.entry_other = []
-        self.exit_other = []
+        self.aperture = set()
+        self.entry_transform = set()
+        self.exit_transform = set()
+        self.entry = set()
+        self.exit = set()
 
     def __repr__(self):
-        return f'ThinCompound({self.elements})'
+        return f'{type(self).__name__}({self.elements})'
 
 
-class ThickCompound:
+class Compound:
     """A logical beam element that is composed of other elements.
 
     This models a thick element with the structure:
@@ -41,7 +41,7 @@ class ThickCompound:
     the transformations and apertures to be correctly applied to the slices.
 
     The sliced element is expected to have the following structure:
-    ML T(EL) T(D0) A T(S1) T(D1) A T(S2) ... T(DN E1) MR, where:
+    ML T(EL) D0 A T(S1) D1 A T(S2) ... DN T(E1) MR, where:
     - S1, S2, ... are the slices of the core C, and
     - D0, D1, ... are the drifts between the slices, and
     - EL, ER are the entry and exit edges, and
@@ -53,32 +53,33 @@ class ThickCompound:
             aperture=(),
             entry_transform=(),
             exit_transform=(),
-            entry_other=(),
-            exit_other=(),
+            entry=None,
+            exit_=None,
     ):
-        self.core = list(core)
-        self.aperture = list(aperture)
-        self.entry_transform = list(entry_transform)
-        self.exit_transform = list(exit_transform)
-        self.entry_other = list(entry_other)
-        self.exit_other = list(exit_other)
+        self.core = set(core)
+        self.aperture = set(aperture)
+        self.entry_transform = set(entry_transform)
+        self.exit_transform = set(exit_transform)
+
+        self.entry = {entry} if entry is not None else []
+        self.exit = {exit_} if exit_ is not None else []
 
     def __repr__(self):
         return (
-            f'ThickCompound(core={self.core}, '
+            f'{type(self).__name__}(core={self.core}, '
             f'aperture={self.aperture}, '
             f'entry_transform={self.entry_transform}, '
             f'exit_transform={self.exit_transform}, '
-            f'entry_other={self.entry_other}, '
-            f'exit_other={self.exit_other})'
+            f'entry={self.entry}, '
+            f'exit={self.exit})'
         )
 
     @property
     def elements(self):
         return (
-            self.entry_other + self.aperture +
-            self.entry_transform + self.core + self.exit_transform +
-            self.exit_other
+            self.entry | self.aperture |
+            self.entry_transform | self.core | self.exit_transform |
+            self.exit
         )
 
 
@@ -88,9 +89,7 @@ class CompoundContainer:
     Maintains a bidirectional mapping between compound names and the
     elements that belong to them.
     """
-    def __init__(self, line, compounds=None):
-        self._line = line
-
+    def __init__(self, compounds=None):
         if compounds is None:
             self._compounds = {}
             self._compound_name_for_element = {}
@@ -104,17 +103,11 @@ class CompoundContainer:
     def __repr__(self):
         return f'CompoundContainer({self._compounds})'
 
-    def subsequence(self, compound_name):
-        return self.compound_for_name(compound_name).elements
-
-    def compound_for_name(self, compound_name):
+    def compound_for_name(self, compound_name) -> Optional[CompoundType]:
         return self._compounds.get(compound_name)
 
-    def compound_for_element(self, element_name):
+    def compound_name_for_element(self, element_name) -> Optional[str]:
         return self._compound_name_for_element.get(element_name)
-
-    def has_element(self, name):
-        return name in self._compound_name_for_element
 
     def define_compound(self, name, compound):
         self._compounds[name] = compound
@@ -127,5 +120,5 @@ class CompoundContainer:
         del self._compounds[name]
 
     @property
-    def compound_names(self):
+    def compound_names(self) -> Iterable[str]:
         return self._compounds.keys()

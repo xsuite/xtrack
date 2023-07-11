@@ -37,7 +37,7 @@ import numpy as np
 from math import tan
 
 import xtrack, xobjects
-from .compounds import ThickCompound
+from .compounds import Compound
 
 from .general import _print
 
@@ -375,13 +375,13 @@ class CompoundElementBuilder:
         def _get_names(builder_elements):
             return [elem.name for elem in builder_elements]
 
-        compound = ThickCompound(
+        compound = Compound(
             core=_get_names(self.core),
             aperture=_get_names(self.aperture),
             entry_transform=_get_names(self.entry_transform),
             exit_transform=_get_names(self.exit_transform),
-            entry_other=[start_marker.name],
-            exit_other=[end_marker.name],
+            entry=start_marker.name,
+            exit_=end_marker.name,
         )
         line.compound_container.define_compound(self.name, compound)
 
