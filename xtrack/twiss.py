@@ -1858,6 +1858,14 @@ class TwissTable(Table):
     @classmethod
     def concatenate(cls, tables_to_concat):
 
+        # Check values_at compatibility
+        assert len(set([tt.values_at for tt in tables_to_concat])) == 1, (
+            'All tables must have the same values_at')
+
+        # Check reference_frame compatibility
+        assert len(set([tt.reference_frame for tt in tables_to_concat])) == 1, (
+            'All tables must have the same reference_frame')
+
         # trim away common markers
         ind_per_table = []
         for ii, tt in enumerate(tables_to_concat):
@@ -1898,7 +1906,10 @@ class TwissTable(Table):
 
             i_start = i_end
 
-        new_table = xt.twiss.TwissTable(new_data)
+        new_table = cls(new_data)
+        new_table._data['values_at'] = tables_to_concat[0].values_at
+        new_table._data['reference_frame'] = tables_to_concat[0].reference_frame
+        new_table._data['particle_on_co'] = tables_to_concat[0].particle_on_co
 
         return new_table
 

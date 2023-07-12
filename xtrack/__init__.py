@@ -14,7 +14,7 @@ from .tracker import Tracker
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
-from .twiss import TwissInit
+from .twiss import TwissInit, TwissTable
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
