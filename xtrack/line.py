@@ -3232,6 +3232,15 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return self.line._xdeps_vref._owner.keys()
 
+    def get_table(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        name = np.array(list(self.keys()))
+        value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
+
+        return xd.Table({'name': name, 'value': value})
+
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
             raise RuntimeError(

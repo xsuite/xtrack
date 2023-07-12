@@ -46,6 +46,8 @@ def get_arc_periodic_solution(collider, line_name=None, arc_name=None):
         twiss_init=twinit_cell)
 
     res = xt.TwissTable.concatenate([tw_to_start_arc, tw_to_end_arc])
+    res['mux'] = res['mux'] - res['mux', start_arc]
+    res['muy'] = res['muy'] - res['muy', start_arc]
 
     return res
 

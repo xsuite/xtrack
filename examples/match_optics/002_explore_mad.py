@@ -54,7 +54,8 @@ out_sel_ir15_5 = get_beta_blocks(mad, ['bir5b1', 'eir5b1'])
 
 collider = xt.Multiline.from_json('hllhc.json')
 collider.build_trackers()
-collider.vars.load_madx_optics_file('../../../hllhc15/toolkit/macro.madx')
+collider.vars.load_madx_optics_file(
+    "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
 twpresq_r = collider.lhcb1.twiss(
     twiss_init=xt.TwissInit(
