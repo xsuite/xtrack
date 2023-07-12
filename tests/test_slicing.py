@@ -101,34 +101,40 @@ def test_slicing_strategy_matching():
         # Kept CFD:
         'keep_this',
         # 5 slices for mb10:
-        'mb10',  # Marker
+        'mb10_entry',  # Marker
         'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1', 'drift_mb10..2',
         'mb10..2', 'drift_mb10..3', 'mb10..3', 'drift_mb10..4', 'mb10..4',
         'drift_mb10..5',
+        'mb10_exit',  # Marker
         # Kept drift:
         'keep_drifts',
         # Five slices for mb11:
-        'mb11',  # Marker
+        'mb11_entry',  # Marker
         'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1', 'drift_mb11..2',
         'mb11..2', 'drift_mb11..3', 'mb11..3', 'drift_mb11..4', 'mb11..4',
         'drift_mb11..5',
+        'mb11_exit',  # Marker
         # One slice for 'mq10':
-        'mq10',  # Marker
+        'mq10_entry',  # Marker
         'drift_mq10..0', 'mq10..0', 'drift_mq10..1',
+        'mq10_exit',  # Marker
         # Four slices for 'something':
-        'something',  # Marker
+        'something_entry',  # Marker
         'drift_something..0', 'something..0', 'drift_something..1',
         'something..1', 'drift_something..2', 'something..2',
         'drift_something..3', 'something..3', 'drift_something..4',
+        'something_exit',  # Marker
         # Two slices for 'mb20':
-        'mb20',  # Marker
+        'mb20_entry',  # Marker
         'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1', 'drift_mb20..2',
+        'mb20_exit',  # Marker
         # Keep thin:
         'keep_thin',
         # Three slices for 'mb21' (it's a CFD!):
-        'mb21',  # Marker
+        'mb21_entry',  # Marker
         'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1', 'drift_mb21..2',
         'mb21..2', 'drift_mb21..3',
+        'mb21_exit',  # Marker
     ]
     assert line.element_names == expected_names
 
@@ -153,12 +159,18 @@ def test_slicing_strategy_matching():
         ]
 
     # Check markers
-    assert isinstance(line['mb10'], xt.Marker)
-    assert isinstance(line['mb11'], xt.Marker)
-    assert isinstance(line['mq10'], xt.Marker)
-    assert isinstance(line['something'], xt.Marker)
-    assert isinstance(line['mb20'], xt.Marker)
-    assert isinstance(line['mb21'], xt.Marker)
+    assert isinstance(line['mb10_entry'], xt.Marker)
+    assert isinstance(line['mb11_entry'], xt.Marker)
+    assert isinstance(line['mq10_entry'], xt.Marker)
+    assert isinstance(line['something_entry'], xt.Marker)
+    assert isinstance(line['mb20_entry'], xt.Marker)
+    assert isinstance(line['mb21_entry'], xt.Marker)
+    assert isinstance(line['mb10_exit'], xt.Marker)
+    assert isinstance(line['mb11_exit'], xt.Marker)
+    assert isinstance(line['mq10_exit'], xt.Marker)
+    assert isinstance(line['something_exit'], xt.Marker)
+    assert isinstance(line['mb20_exit'], xt.Marker)
+    assert isinstance(line['mb21_exit'], xt.Marker)
 
     # Teapot
     expected_mb20_drift_lens = [1/6, 2/3, 1/6]
@@ -182,30 +194,31 @@ def test_slicing_strategy_matching():
 
     # Test accessing compound elements
     assert line.get_compound_subsequence('mb10') == [
-        'mb10', 'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1',
+        'mb10_entry', 'drift_mb10..0', 'mb10..0', 'drift_mb10..1', 'mb10..1',
         'drift_mb10..2', 'mb10..2', 'drift_mb10..3', 'mb10..3', 'drift_mb10..4',
-        'mb10..4', 'drift_mb10..5',
+        'mb10..4', 'drift_mb10..5', 'mb10_exit',
     ]
     assert line.get_compound_subsequence('mb11') == [
-        'mb11', 'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1',
+        'mb11_entry', 'drift_mb11..0', 'mb11..0', 'drift_mb11..1', 'mb11..1',
         'drift_mb11..2', 'mb11..2', 'drift_mb11..3', 'mb11..3', 'drift_mb11..4',
-        'mb11..4', 'drift_mb11..5',
+        'mb11..4', 'drift_mb11..5', 'mb11_exit',
     ]
     assert line.get_compound_subsequence('mq10') == [
-        'mq10', 'drift_mq10..0', 'mq10..0', 'drift_mq10..1',
+        'mq10_entry', 'drift_mq10..0', 'mq10..0', 'drift_mq10..1', 'mq10_exit',
     ]
     assert line.get_compound_subsequence('something') == [
-        'something', 'drift_something..0', 'something..0', 'drift_something..1',
-        'something..1', 'drift_something..2', 'something..2',
-        'drift_something..3', 'something..3', 'drift_something..4',
+        'something_entry', 'drift_something..0', 'something..0',
+        'drift_something..1', 'something..1', 'drift_something..2',
+        'something..2', 'drift_something..3', 'something..3',
+        'drift_something..4', 'something_exit',
     ]
     assert line.get_compound_subsequence('mb20') == [
-        'mb20', 'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1',
-        'drift_mb20..2',
+        'mb20_entry', 'drift_mb20..0', 'mb20..0', 'drift_mb20..1', 'mb20..1',
+        'drift_mb20..2', 'mb20_exit',
     ]
     assert line.get_compound_subsequence('mb21') == [
-        'mb21', 'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1',
-        'drift_mb21..2', 'mb21..2', 'drift_mb21..3',
+        'mb21_entry', 'drift_mb21..0', 'mb21..0', 'drift_mb21..1', 'mb21..1',
+        'drift_mb21..2', 'mb21..2', 'drift_mb21..3', 'mb21_exit',
     ]
     assert list(line.compound_container.compound_names) == [
         'mb10', 'mb11', 'mq10', 'something', 'mb20', 'mb21',
@@ -232,7 +245,7 @@ def test_slicing_thick_bend_simple(element_type):
     line = xt.Line(elements=[bend], element_names=['bend'])
     line.slice_thick_elements([Strategy(slicing=Teapot(2))])
 
-    assert len(line) == 6  # marker + 2 slices + 3 drifts
+    assert len(line) == 7  # 2 markers + 2 slices + 3 drifts
 
     assert line['drift_bend..0'].length == 3.0 * 1/6
     assert line['drift_bend..1'].length == 3.0 * 2/3
