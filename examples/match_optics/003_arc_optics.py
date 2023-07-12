@@ -10,14 +10,12 @@ collider.vars.load_madx_optics_file(
 
 arc_periodic_solution =lm.get_arc_periodic_solution(collider)
 
-twpresq = collider.lhcb1.twiss(
-    twiss_init=xt.TwissInit(
-        element_name='ip1', betx=0.5, bety=0.5, line=collider.lhcb1),
-    ele_start='ip1', ele_stop='ip2')
-
-mux = twpresq['mux', 's.ds.l2.b1'] - twpresq['mux', 'e.ds.r1.b1']
-
-assert np.isclose(arc_periodic_solution['lhcb1']['12'].mux[-1],
-                  collider.vars['mux12b1']._value, atol=5e-4, rtol=0)
-assert np.isclose(arc_periodic_solution['lhcb1']['12'].muy[-1],
-                    collider.vars['muy12b1']._value, atol=5e-4, rtol=0)
+for aa in ['12', '23', '34', '45', '56', '67', '78', '81']:
+    assert np.isclose(arc_periodic_solution['lhcb1'][aa].mux[-1],
+                        collider.vars[f'mux{aa}b1']._value, atol=1e-10, rtol=0)
+    assert np.isclose(arc_periodic_solution['lhcb1'][aa].muy[-1],
+                        collider.vars[f'muy{aa}b1']._value, atol=1e-10, rtol=0)
+    assert np.isclose(arc_periodic_solution['lhcb2'][aa].mux[-1],
+                        collider.vars[f'mux{aa}b2']._value, atol=1e-10, rtol=0)
+    assert np.isclose(arc_periodic_solution['lhcb2'][aa].muy[-1],
+                        collider.vars[f'muy{aa}b2']._value, atol=1e-10, rtol=0)

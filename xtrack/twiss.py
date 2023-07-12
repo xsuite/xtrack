@@ -1902,7 +1902,11 @@ class TwissTable(Table):
                     tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1]])
                 if kk in ['mux', 'muy', 'dzeta', 's']:
                     new_data[kk][i_start:i_end] -= new_data[kk][i_start]
-                    new_data[kk][i_start:i_end] += new_data[kk][i_start-1]
+                    if ii > 0:
+                        new_data[kk][i_start:i_end] += new_data[kk][i_start-1]
+                        new_data[kk][i_start:i_end] += (
+                            tables_to_concat[ii-1][kk][-1]
+                            - tables_to_concat[ii-1][kk][ind_per_table[ii-1][1]-1])
 
             i_start = i_end
 
