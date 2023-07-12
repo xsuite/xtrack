@@ -791,18 +791,32 @@ class MadLoader:
         align_entry, align_exit = align.entry(), align.exit()
         elem_list = aperture_seq + align_entry + xtrack_el + align_exit
 
-        if self.use_compound_elements and len(elem_list) > 1:
-            return [
-                CompoundElementBuilder(
-                    name=mad_el.name,
-                    core=xtrack_el,
-                    entry_transform=align.entry(),
-                    exit_transform=align.exit(),
-                    aperture=aperture_seq,
-                ),
-            ]
-        else:
+        if not self.use_compound_elements:
             return elem_list
+
+        is_singleton = len(elem_list) == 1
+        if is_singleton:
+            is_drift = isinstance(elem_list[0], self.classes.Drift)
+            if is_drift:
+                return elem_list
+
+            is_thick = getattr(elem_list[0].type, 'isthick', False)
+            if not is_thick:
+                return elem_list
+
+            thick_len = value_if_expr(elem_list[0].attrs.get('length', 0))
+            if thick_len == 0:
+                return elem_list
+
+        return [
+            CompoundElementBuilder(
+                name=mad_el.name,
+                core=xtrack_el,
+                entry_transform=align.entry(),
+                exit_transform=align.exit(),
+                aperture=aperture_seq,
+            ),
+        ]
 
     def convert_quadrupole(self, mad_el):
         if self.allow_thick:
