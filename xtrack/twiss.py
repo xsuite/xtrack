@@ -1853,6 +1853,54 @@ class TwissTable(Table):
 
         return out
 
+    ind_per_table = []
+
+    @classmethod
+    def concatenate(cls, tables_to_concat):
+
+        # trim away common markers
+        ind_per_table = []
+        for ii, tt in enumerate(tables_to_concat):
+            this_ind = [0, len(tt)]
+            if ii > 0:
+                if tt.name[0] in tables_to_concat[ii-1].name:
+                    assert tt.name[0] == tables_to_concat[ii-1].name[ind_per_table[ii-1][1]-1]
+                    ind_per_table[ii-1][1] -= 1
+            if ii < len(tables_to_concat) - 1:
+                if tt.name[-1] == '_end_point':
+                    this_ind[1] -= 1
+
+            ind_per_table.append(this_ind)
+
+        n_elem = sum([ind[1] - ind[0] for ind in ind_per_table])
+
+        new_data = {}
+        for kk in tables_to_concat[0]._col_names:
+            if kk == 'W_matrix':
+                new_data[kk] = np.empty(
+                    (n_elem, 6, 6), dtype=tables_to_concat[0][kk].dtype)
+                continue
+            new_data[kk] = np.empty(n_elem, dtype=tables_to_concat[0][kk].dtype)
+
+        i_start = 0
+        for ii, tt in enumerate(tables_to_concat):
+            i_end = i_start + ind_per_table[ii][1] - ind_per_table[ii][0]
+            for kk in tt._col_names:
+                if kk == 'W_matrix':
+                    new_data[kk][i_start:i_end] = (
+                        tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1], :, :])
+                    continue
+                new_data[kk][i_start:i_end] = (
+                    tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1]])
+                if kk in ['mux', 'muy', 'dzeta', 's']:
+                    new_data[kk][i_start:i_end] -= new_data[kk][i_start]
+                    new_data[kk][i_start:i_end] += new_data[kk][i_start-1]
+
+            i_start = i_end
+
+        new_table = xt.twiss.TwissTable(new_data)
+
+        return new_table
 
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
