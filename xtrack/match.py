@@ -114,6 +114,9 @@ class ActionTwiss(xd.Action):
 class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None):
+        if tol is None:
+            tol = 1e-10
+
         if at is not None:
             xdtar = (tar, at)
         else:
@@ -121,6 +124,11 @@ class Target(xd.Target):
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action)
         self.line = line
+
+        if isinstance(value, xt.multiline.MultiTwiss):
+            self.value=value[line][xdtar]
+        if isinstance(value, xt.TwissTable):
+            self.value=value[xdtar]
 
     def eval(self, data):
         res = data[self.action]
