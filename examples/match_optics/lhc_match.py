@@ -4,6 +4,9 @@ ARC_NAMES = ['12', '23', '34', '45', '56', '67', '78', '81']
 
 def get_arc_periodic_solution(collider, line_name=None, arc_name=None):
 
+    assert collider.lhcb1.twiss_default.get('reverse', False) is False
+    assert collider.lhcb2.twiss_default['reverse'] is True
+
     if line_name is None or arc_name is None:
         assert line_name is None and arc_name is None
         res = {'lhcb1': {}, 'lhcb2': {}}
