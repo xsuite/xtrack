@@ -523,3 +523,65 @@ def test_fringe_implementations(test_context):
 
     assert np.isclose(np.linalg.det(R_ng), 1, rtol=0, atol=1e-8) # Symplecticity check
     assert np.isclose(np.linalg.det(R_ptc), 1, rtol=0, atol=1e-8) # Symplecticity check
+
+
+@for_all_test_contexts
+def test_backtrack_with_bend_and_quadrupole(test_context):
+
+    # Check bend
+    b = xt.Bend(k0=0.2, h=0.1, length=1.0)
+    line = xt.Line(elements=[b])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                            zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+    p3 = p1.copy(_context=test_context)
+    line.configure_bend_model(core='full')
+    line.track(p3, backtrack=True)
+    p3.move(_context=xo.context_default)
+    assert np.all(p3.state == -30)
+    p4 = p1.copy(_context=test_context)
+    line.configure_bend_model(core='expanded')
+    b.num_multipole_kicks = 3
+    line.track(p4, backtrack=True)
+    p4.move(_context=xo.context_default)
+    assert np.all(p4.state == -31)
+
+    # Same for quadrupole
+    q = xt.Quadrupole(k1=0.2, length=1.0)
+    line = xt.Line(elements=[q])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                                zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+    p4 = p1.copy(_context=test_context)
+    q.num_multipole_kicks = 4
+    line.track(p4, backtrack=True)
+    assert np.all(p4.state == -31)
+    de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
+    line = xt.Line(elements=[de])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                                zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p1.move(_context=xo.context_default)
+    assert np.all(p1.state == 1)
+    line.configure_bend_model(edge='full')
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+    p2.move(_context=xo.context_default)
+    assert np.all(p2.state == -32)
