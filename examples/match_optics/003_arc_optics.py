@@ -21,51 +21,40 @@ for aa in ['12', '23', '34', '45', '56', '67', '78', '81']:
                         collider.vars[f'muy{aa}b2']._value, atol=1e-10, rtol=0)
 
 
-# ip_name = 'ip5'
-# ele_start = 's.ds.r4.b1'
-# ele_stop = 'e.ds.l6.b1'
+tw_presq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
+        line_name='lhcb1', ele_start='s.ds.r8.b1', ele_stop='e.ds.l2.b1',
+        beta_star_x=0.5, beta_star_y = 0.5)
 
-ip_name = 'ip1'
-line_name = 'lhcb1'
-ele_start = 's.ds.r8.b1'
-ele_stop = 'e.ds.l2.b1'
+assert np.isclose(
+    tw_presq_ip1_b1['mux', 'ip1'] -  tw_presq_ip1_b1['mux', 's.ds.l1.b1'],
+    collider.vars['muxip1b1_l']._value, atol=1e-10, rtol=0)
+assert np.isclose(
+    tw_presq_ip1_b1['muy', 'ip1'] -  tw_presq_ip1_b1['muy', 's.ds.l1.b1'],
+    collider.vars['muyip1b1_l']._value, atol=1e-10, rtol=0)
+assert np.isclose(
+    tw_presq_ip1_b1['mux', 'e.ds.r1.b1'] -  tw_presq_ip1_b1['mux', 'ip1'],
+    collider.vars['muxip1b1_r']._value, atol=1e-10, rtol=0)
+assert np.isclose(
+    tw_presq_ip1_b1['muy', 'e.ds.r1.b1'] -  tw_presq_ip1_b1['muy', 'ip1'],
+    collider.vars['muyip1b1_r']._value, atol=1e-10, rtol=0)
 
-ip_name = 'ip1'
-line_name = 'lhcb2'
-ele_start = 's.ds.r8.b2'
-ele_stop = 'e.ds.l2.b2'
+# TODO: need to generalize to both beams and IP2, check betx0_ip1
 
-beta_star_x = 0.5
-beta_star_y = 0.5
+tw_sq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
+        line_name='lhcb1', ele_start='s.ds.r7.b1', ele_stop='e.ds.l3.b1',
+        beta_star_x=0.15, beta_star_y = 0.15)
+vt = collider.vars.get_table()
 
-
-assert collider.lhcb1.twiss_default.get('reverse', False) is False
-assert collider.lhcb2.twiss_default['reverse'] is True
-assert collider.lhcb1.element_names[1] == 'ip1'
-assert collider.lhcb2.element_names[1] == 'ip1.l1'
-assert collider.lhcb1.element_names[-2] == 'ip1.l1'
-assert collider.lhcb2.element_names[-2] == 'ip1'
+# Check that the phase advance the whole ATS section is preserved
+assert np.isclose(
+        tw_sq_ip1_b1['mux', 'e.ds.r2.b1'] - tw_sq_ip1_b1['mux', 's.ds.l8.b1'],
+        (vt['value', 'muxip8b1']+vt['value', 'mux81b1']+vt['value', 'muxip1b1']
+            + vt['value', 'mux12b1'] +  vt['value', 'muxip2b1']),
+        atol=1e-9, rtol=0)
 
 
-if ip_name == 'ip1':
-    ele_stop_left = 'ip1.l1'
-    ele_start_right = 'ip1'
-else:
-    ele_stop_left = ip_name
-    ele_start_right = ip_name
 
-tw_left = collider[line_name].twiss(ele_start=ele_start, ele_stop=ele_stop_left,
-                    twiss_init=xt.TwissInit(line=collider[line_name],
-                                            element_name=ele_stop_left,
-                                            betx=beta_star_x,
-                                            bety=beta_star_y))
-tw_right = collider[line_name].twiss(ele_start=ele_start_right, ele_stop=ele_stop,
-                    twiss_init=xt.TwissInit(line=collider[line_name],
-                                            element_name=ele_start_right,
-                                            betx=beta_star_x,
-                                            bety=beta_star_y))
 
-tw_ip = xt.TwissTable.concatenate([tw_left, tw_right])
 
 
 

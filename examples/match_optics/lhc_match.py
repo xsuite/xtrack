@@ -54,3 +54,36 @@ def get_arc_periodic_solution(collider, line_name=None, arc_name=None):
 
     return res
 
+def propagate_optics_from_beta_star(collider, ip_name, line_name,
+                                    beta_star_x, beta_star_y,
+                                    ele_start, ele_stop):
+
+    assert collider.lhcb1.twiss_default.get('reverse', False) is False
+    assert collider.lhcb2.twiss_default['reverse'] is True
+    assert collider.lhcb1.element_names[1] == 'ip1'
+    assert collider.lhcb2.element_names[1] == 'ip1.l1'
+    assert collider.lhcb1.element_names[-2] == 'ip1.l1'
+    assert collider.lhcb2.element_names[-2] == 'ip1'
+
+    if ip_name == 'ip1':
+        ele_stop_left = 'ip1.l1'
+        ele_start_right = 'ip1'
+    else:
+        ele_stop_left = ip_name
+        ele_start_right = ip_name
+
+    tw_left = collider[line_name].twiss(ele_start=ele_start, ele_stop=ele_stop_left,
+                    twiss_init=xt.TwissInit(line=collider[line_name],
+                                            element_name=ele_stop_left,
+                                            betx=beta_star_x,
+                                            bety=beta_star_y))
+    tw_right = collider[line_name].twiss(ele_start=ele_start_right, ele_stop=ele_stop,
+                        twiss_init=xt.TwissInit(line=collider[line_name],
+                                                element_name=ele_start_right,
+                                                betx=beta_star_x,
+                                                bety=beta_star_y))
+
+    tw_ip = xt.TwissTable.concatenate([tw_left, tw_right])
+
+    return tw_ip
+
