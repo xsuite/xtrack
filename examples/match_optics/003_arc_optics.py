@@ -54,9 +54,16 @@ assert np.isclose(
 
 # Change of arc phase advance wrt periodic solution
 dmux_81 = ((tw_sq_ip1_b1['mux', 's.ds.l1.b1'] - tw_sq_ip1_b1['mux', 'e.ds.r8.b1'])
-     - (tw_presq_ip1_b1['mux', 's.ds.l1.b1'] - tw_presq_ip1_b1['mux', 'e.ds.r8.b1']))
+           - vt['value', 'mux81b1'])
 
+# Change ip1_l phase advance wrt presquezed solution
+dmux_ip1_l = (tw_sq_ip1_b1['mux', 'ip1'] - tw_sq_ip1_b1['mux', 's.ds.l1.b1']
+              - vt['value', 'muxip1b1_l'])
 
+muxip8b1_sq = (tw_sq_ip1_b1['mux', 'e.ds.r8.b1'] - tw_sq_ip1_b1['mux', 's.ds.l8.b1'])
+
+assert np.isclose(muxip8b1_sq - vt['value', 'muxip8b1'], -(dmux_81 + dmux_ip1_l),
+                  atol=1e-9, rtol=0)
 
 
 
