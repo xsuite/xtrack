@@ -225,6 +225,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     for vv in vary_flatten:
         if vv.container is None:
             vv.container = line.vars
+            vv._complete_limits_and_step_from_defaults()
 
     opt = xd.Optimize(vary=vary, targets=targets, solver=solver,
                         verbose=verbose, assert_within_tol=assert_within_tol,
