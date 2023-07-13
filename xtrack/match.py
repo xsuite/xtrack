@@ -30,9 +30,10 @@ Action = xd.Action
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, allow_twiss_failure, **kwargs):
+    def __init__(self, line, allow_twiss_failure, ref_twiss=None, **kwargs):
         self.line = line
         self.kwargs = kwargs
+        self.ref_twiss = ref_twiss
         self.allow_twiss_failure = allow_twiss_failure
 
     def prepare(self):
@@ -51,11 +52,20 @@ class ActionTwiss(xd.Action):
                 assert isinstance(twinit_list, list)
                 assert isinstance(ele_start_list, list)
                 assert isinstance(ele_stop_list, list)
+                if self.ref_twiss is not None:
+                    if isinstance(self.ref_twiss, xt.multiline.MultiTwiss):
+                        ref_twiss_list = [self.ref_twiss[nn] for nn in line_names]
+                    else:
+                        assert isinstance(self.ref_twiss, (list, tuple)), (
+                            'ref_twiss for a Multiline match must be either a MultiTwiss, '
+                            'a list or a tuple')
+                        ref_twiss_list = self.ref_twiss
             else:
                 twinit_list = [kwargs['twiss_init']]
                 ele_start_list = [kwargs['ele_start']]
                 ele_stop_list = [kwargs['ele_stop']]
                 line_list = [line]
+                ref_twiss_list = [self.ref_twiss]
 
             _keep_ini_particles_list = [False] * len(twinit_list)
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
@@ -72,13 +82,15 @@ class ActionTwiss(xd.Action):
                         full_twiss_kwargs.pop('ele_stop')
                         if 'lines' in full_twiss_kwargs:
                             full_twiss_kwargs.pop('lines')
-                        tw0_full = line_list[ii].twiss(**full_twiss_kwargs)
+                        ref_twiss = ref_twiss_list[ii]
+                        if ref_twiss is None:
+                            ref_twiss = line_list[ii].twiss(**full_twiss_kwargs)
                         if (twinit == 'preserve' or twinit == 'preserve_start'):
                             init_at = ele_start
                         elif kwargs['twiss_init'] == 'preserve_end':
                             init_at = ele_stop
-                        assert not isinstance(tw0_full, xt.MultiTwiss)
-                        twinit_list[ii] = tw0_full.get_twiss_init(at_element=init_at)
+                        assert not isinstance(ref_twiss, xt.MultiTwiss)
+                        twinit_list[ii] = ref_twiss.get_twiss_init(at_element=init_at)
                         _keep_ini_particles_list[ii] = True
 
             if ismultiline:

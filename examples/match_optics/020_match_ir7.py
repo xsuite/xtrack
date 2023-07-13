@@ -80,7 +80,8 @@ for i_repeat in range(1):
         solve=False,
         ele_start=ele_start_match,
         ele_stop=ele_end_match,
-        twiss_init=tw_init,
+        ref_twiss=[tw_ref],
+        twiss_init='preserve',
         targets=[
             xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), at='ip7',
                           line='lhcb1', value=tw_ref),
