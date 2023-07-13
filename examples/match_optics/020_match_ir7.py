@@ -114,24 +114,9 @@ for i_repeat in range(1):
                  'kqtl9.l7b1', 'kqtl8.l7b1', 'kqtl7.l7b1', 'kq6.l7b1',
                  'kq6.r7b1', 'kqtl7.r7b1', 'kqtl8.r7b1', 'kqtl9.r7b1',
                  'kqtl10.r7b1', 'kqtl11.r7b1', 'kqt12.r7b1', 'kqt13.r7b1'))
-            # xt.Vary('kqt13.l7b1', ), # step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
-            # xt.Vary('kqt12.l7b1', ), # step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
-            # xt.Vary('kqtl11.l7b1',), # step=1.0E-9, limits=(-qtlimit4*300./550., qtlimit4*300./550.)),
-            # xt.Vary('kqtl10.l7b1',), # step=1.0E-9, limits=(-qtlimit4*500./550., qtlimit4*500./550.)),
-            # xt.Vary('kqtl9.l7b1', ), # step=1.0E-9, limits=(-qtlimit4*400./550., qtlimit4*400./550.)),
-            # xt.Vary('kqtl8.l7b1', ), # step=1.0E-9, limits=(-qtlimit4*300./550., qtlimit4*300./550.)),
-            # xt.Vary('kqtl7.l7b1', ), # step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            # xt.Vary('kq6.l7b1',   ), # step=1.0E-9, limits=(-qtlimit6, qtlimit6)),
-            # xt.Vary('kq6.r7b1',   ), # step=1.0E-9, limits=(-qtlimit6, qtlimit6)),
-            # xt.Vary('kqtl7.r7b1', ), # step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            # xt.Vary('kqtl8.r7b1', ), # step=1.0E-9, limits=(-qtlimit4*550./550., qtlimit4*550./550.)),
-            # xt.Vary('kqtl9.r7b1', ), # step=1.0E-9, limits=(-qtlimit4*500./550., qtlimit4*500./550.)),
-            # xt.Vary('kqtl10.r7b1',), # step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            # xt.Vary('kqtl11.r7b1',), # step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            # xt.Vary('kqt12.r7b1', ), # step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
-            # xt.Vary('kqt13.r7b1', ), # step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
         ]
     )
+
     match_res = opt.solve()
     t_end = time.perf_counter()
     print(f"Matching time: {t_end - t_start:0.4f} seconds")
