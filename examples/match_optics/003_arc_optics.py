@@ -52,6 +52,10 @@ assert np.isclose(
             + vt['value', 'mux12b1'] +  vt['value', 'muxip2b1']),
         atol=1e-9, rtol=0)
 
+# Change of arc phase advance wrt periodic solution
+dmux_81 = ((tw_sq_ip1_b1['mux', 's.ds.l1.b1'] - tw_sq_ip1_b1['mux', 'e.ds.r8.b1'])
+     - (tw_presq_ip1_b1['mux', 's.ds.l1.b1'] - tw_presq_ip1_b1['mux', 'e.ds.r8.b1']))
+
 
 
 
