@@ -83,8 +83,9 @@ for i_repeat in range(1):
         table_for_twiss_init=[tw_ref],
         twiss_init='preserve',
         targets=[
-            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), at='ip7',
-                          line='lhcb1', value=tw_ref),
+            xt.TargetList(
+                ('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                at='ip7', line='lhcb1', value=tw_ref),
             xt.TargetList(
                 ('alfx', 'alfy', 'betx', 'bety', 'dx', 'dpx', 'mux', 'muy'),
                 at='e.ds.r7.b1',line='lhcb1', value=tw_ref),
