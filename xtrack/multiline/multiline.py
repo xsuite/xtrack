@@ -456,7 +456,7 @@ class Multiline:
         separation_bumps: dict
             Dictionary previding the plane of the separation bump in the IPs
             where separation is present. The keys are the IP names and the
-            values are the plane ("x" or "y"). This information needs to be 
+            values are the plane ("x" or "y"). This information needs to be
             provided only when use_antisymmetry is True.
 
         '''
