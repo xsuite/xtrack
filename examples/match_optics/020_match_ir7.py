@@ -70,8 +70,6 @@ perturbed_vars['kqt13.r7b1'] = collider.vars['kqt13.r7b1']._value * 1.12
 
 tw_before = collider.lhcb1.twiss()
 
-fact_on_tol = 0.001
-
 for i_repeat in range(1):
 
     for nn, vv in perturbed_vars.items():
@@ -84,20 +82,20 @@ for i_repeat in range(1):
         ele_stop=ele_end_match,
         twiss_init=tw_init,
         targets=[
-            xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy', value=muy_end_match, tol=1e-5*fact_on_tol),
+            xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7,      tol=1e-10),
+            xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7,     tol=1e-10),
+            xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7,    tol=1e-10),
+            xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7,    tol=1e-10),
+            xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7,    tol=1e-10),
+            xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7,    tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match, tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match, tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match, tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match, tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match,   tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match,  tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match,  tol=1e-10),
+            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy',  value=muy_end_match,  tol=1e-10),
             # xt.TargetInequality('bety', '<', 180.49-0.3, line='lhcb1', at='mq.11l7.b1'),
             # xt.TargetInequality('bety', '<', 174.5,      line='lhcb1', at='mq.9l7.b1'),
             # xt.TargetInequality('bety', '<', 176.92,     line='lhcb1', at='mq.8r7.b1'),
