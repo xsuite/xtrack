@@ -3225,23 +3225,23 @@ class LineVars:
         self.line = line
         self._cache_active = False
         self._cached_setters = {}
-        if '__vary_defaults' not in self.line._xdeps_vref._owner.keys():
-            self.line._xdeps_vref._owner['__vary_defaults'] = {}
+        if '__vary_default' not in self.line._xdeps_vref._owner.keys():
+            self.line._xdeps_vref._owner['__vary_default'] = {}
 
     def keys(self):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
         out = list(self.line._xdeps_vref._owner.keys()).copy()
-        out.pop('__vary_defaults')
+        out.pop('__vary_default')
         return out
 
     @property
-    def vary_defaults(self):
+    def vary_default(self):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        return self.line._xdeps_vref._owner['__vary_defaults']
+        return self.line._xdeps_vref._owner['__vary_default']
 
     def get_table(self):
         if self.line._xdeps_vref is None:

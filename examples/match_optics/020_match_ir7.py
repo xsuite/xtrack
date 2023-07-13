@@ -15,6 +15,34 @@ collider = xt.Multiline(lines={'lhcb1': line})
 collider.build_trackers()
 collider.vars.cache_active = True
 
+scale = 23348.89927
+scmin = 0.03*7000./line.vars['nrj']._value
+qtlimitx28 = 1.0*225.0/scale
+qtlimitx15 = 1.0*205.0/scale
+qtlimit2 = 1.0*160.0/scale
+qtlimit3 = 1.0*200.0/scale
+qtlimit4 = 1.0*125.0/scale
+qtlimit5 = 1.0*120.0/scale
+qtlimit6 = 1.0*90.0/scale
+
+collider.vars.vary_default.update({
+    'kqt13.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+    'kqt12.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+    'kqtl11.l7b1': {'step': 1.0E-9, 'limits': (-qtlimit4*300./550., qtlimit4*300./550.)},
+    'kqtl10.l7b1': {'step': 1.0E-9, 'limits': (-qtlimit4*500./550., qtlimit4*500./550.)},
+    'kqtl9.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*400./550., qtlimit4*400./550.)},
+    'kqtl8.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*300./550., qtlimit4*300./550.)},
+    'kqtl7.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kq6.l7b1':    {'step': 1.0E-9, 'limits': (-qtlimit6, qtlimit6)},
+    'kq6.r7b1':    {'step': 1.0E-9, 'limits': (-qtlimit6, qtlimit6)},
+    'kqtl7.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kqtl8.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*550./550., qtlimit4*550./550.)},
+    'kqtl9.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*500./550., qtlimit4*500./550.)},
+    'kqtl10.r7b1': {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kqtl11.r7b1': {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kqt12.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+    'kqt13.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+})
 tw_ref = collider.lhcb1.twiss()
 
 ele_start_match = 's.ds.l7.b1'
@@ -36,16 +64,6 @@ alfx_at_ip7 = tw_ref['alfx', 'ip7']
 alfy_at_ip7 = tw_ref['alfy', 'ip7']
 dx_at_ip7 = tw_ref['dx', 'ip7']
 dpx_at_ip7 = tw_ref['dpx', 'ip7']
-
-scale = 23348.89927
-scmin = 0.03*7000./line.vars['nrj']._value
-qtlimitx28 = 1.0*225.0/scale
-qtlimitx15 = 1.0*205.0/scale
-qtlimit2 = 1.0*160.0/scale
-qtlimit3 = 1.0*200.0/scale
-qtlimit4 = 1.0*125.0/scale
-qtlimit5 = 1.0*120.0/scale
-qtlimit6 = 1.0*90.0/scale
 
 
 # Break something
