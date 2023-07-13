@@ -88,11 +88,7 @@ for i_repeat in range(1):
             xt.TargetList(
                 ('alfx', 'alfy', 'betx', 'bety', 'dx', 'dpx', 'mux', 'muy'),
                 at='e.ds.r7.b1',line='lhcb1', value=tw_ref),
-            # xt.TargetInequality('bety', '<', 180.49-0.3, line='lhcb1', at='mq.11l7.b1'),
-            # xt.TargetInequality('bety', '<', 174.5,      line='lhcb1', at='mq.9l7.b1'),
-            # xt.TargetInequality('bety', '<', 176.92,     line='lhcb1', at='mq.8r7.b1'),
-            # xt.TargetInequality('bety', '<', 179,        line='lhcb1', at='mq.10r7.b1'),
-        ],
+            ],
         vary=[
             xt.Vary('kqt13.l7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
             xt.Vary('kqt12.l7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
