@@ -54,18 +54,20 @@ class ActionTwiss(xd.Action):
                 assert isinstance(ele_stop_list, list)
                 if self.table_for_twiss_init is not None:
                     if isinstance(self.table_for_twiss_init, xt.multiline.MultiTwiss):
-                        table_for_twiss_init_list = [self.table_for_twiss_init[nn] for nn in line_names]
+                        table_for_twinit_list = [self.table_for_twiss_init[nn] for nn in line_names]
                     else:
                         assert isinstance(self.table_for_twiss_init, (list, tuple)), (
                             'table_for_twiss_init for a Multiline match must be either a MultiTwiss, '
                             'a list or a tuple')
-                        table_for_twiss_init_list = self.table_for_twiss_init
+                        table_for_twinit_list = self.table_for_twiss_init
+                else:
+                    table_for_twinit_list = [None] * len(twinit_list)
             else:
                 twinit_list = [kwargs['twiss_init']]
                 ele_start_list = [kwargs['ele_start']]
                 ele_stop_list = [kwargs['ele_stop']]
                 line_list = [line]
-                table_for_twiss_init_list = [self.table_for_twiss_init]
+                table_for_twinit_list = [self.table_for_twiss_init]
 
             _keep_ini_particles_list = [False] * len(twinit_list)
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
@@ -82,7 +84,7 @@ class ActionTwiss(xd.Action):
                         full_twiss_kwargs.pop('ele_stop')
                         if 'lines' in full_twiss_kwargs:
                             full_twiss_kwargs.pop('lines')
-                        tab_twinit = table_for_twiss_init_list[ii]
+                        tab_twinit = table_for_twinit_list[ii]
                         if tab_twinit is None:
                             tab_twinit = line_list[ii].twiss(**full_twiss_kwargs)
                         if (twinit == 'preserve' or twinit == 'preserve_start'):
