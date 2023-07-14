@@ -2694,6 +2694,10 @@ class Line:
             return self._line_vars
 
     @property
+    def varval(self):
+        return self.vars.val
+
+    @property
     def functions(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
             raise NotImplementedError('`functions` not available yet in multiline')
@@ -3227,6 +3231,7 @@ class LineVars:
         self._cached_setters = {}
         if '__vary_default' not in self.line._xdeps_vref._owner.keys():
             self.line._xdeps_vref._owner['__vary_default'] = {}
+        self.val = VarValues(self)
 
     def keys(self):
         if self.line._xdeps_vref is None:
@@ -3341,6 +3346,19 @@ class LineVars:
                 and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
                 ):
                 self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]
+
+
+
+class VarValues:
+
+    def __init__(self, vars):
+        self.vars = vars
+
+    def __getitem__(self, key):
+        return self.vars[key]._value
+
+    def __setitem__(self, key, value):
+        self.vars[key] = value
 
 class VarSetter:
     def __init__(self, line, varname):

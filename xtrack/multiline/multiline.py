@@ -345,6 +345,10 @@ class Multiline:
         return self._multiline_vars
 
     @property
+    def varval(self):
+        return self.vars.val
+
+    @property
     def _xdeps_vref(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
