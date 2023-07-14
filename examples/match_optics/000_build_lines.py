@@ -44,6 +44,17 @@ collider.build_trackers()
 
 tw = collider.twiss()
 
+nrj = 7000.
+scale = 23348.89927*0.9
+scmin = 0.03*7000./nrj
+qtlimitx28 = 1.0*225.0/scale
+qtlimitx15 = 1.0*205.0/scale
+qtlimit2 = 1.0*160.0/scale
+qtlimit3 = 1.0*200.0/scale
+qtlimit4 = 1.0*125.0/scale
+qtlimit5 = 1.0*120.0/scale
+qtlimit6 = 1.0*90.0/scale
+
 
 collider.vars.vary_default.update({
     'kqtf.a12b1': {'step': 1e-8, 'limits': None},
@@ -94,6 +105,27 @@ collider.vars.vary_default.update({
     'kqd.a78': {'step': 1e-10, 'limits': None},
     'kqf.a81': {'step': 1e-10, 'limits': None},
     'kqd.a81': {'step': 1e-10, 'limits': None},
+
+    'kq5.l2b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
+    'kq4.l2b1':    {'step': 1.0E-6, 'limits': (-qtlimit2,       -qtlimit2*scmin)},
+    'kq6.l2b1':    {'step': 1.0E-6, 'limits': (-qtlimit2,       -qtlimit2*scmin)},
+    'kq7.l2b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
+    'kq8.l2b1':    {'step': 1.0E-6, 'limits': (-qtlimit3,       -qtlimit3*scmin*0.9)},
+    'kq9.l2b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
+    'kq10.l2b':    {'step': 1.0E-6, 'limits': (-qtlimit3,       -qtlimit3*scmin)},
+    'kqtl11.l2b1': {'step': 1.0E-6, 'limits': (-qtlimit4,       qtlimit4)},
+    'kqt12.l2b1':  {'step': 1.0E-6, 'limits': (-qtlimit5,       qtlimit5)},
+    'kqt13.l2b1':  {'step': 1.0E-6, 'limits': (-qtlimit5,       qtlimit5)},
+    'kq4.r2b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
+    'kq5.r2b1':    {'step': 1.0E-6, 'limits': (-qtlimit2,       -qtlimit2*scmin)},
+    'kq6.r2b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
+    'kq7.r2b1':    {'step': 1.0E-6, 'limits': (-qtlimit3,       -qtlimit3*scmin)},
+    'kq8.r2b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
+    'kq9.r2b1':    {'step': 1.0E-6, 'limits': (-qtlimit3,       -qtlimit3*scmin)},
+    'kq10.r2b1':   {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
+    'kqtl11.r2b1': {'step': 1.0E-6, 'limits': (-qtlimit4,       qtlimit4)},
+    'kqt12.r2b1':  {'step': 1.0E-6, 'limits': (-qtlimit5,       qtlimit5)},
+    'kqt13.r2b1':  {'step': 1.0E-6, 'limits': (-qtlimit5,       qtlimit5)},
 })
 
 collider.to_json('hllhc.json')
