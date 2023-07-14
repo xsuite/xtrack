@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
+# Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
 import io
@@ -10,16 +10,17 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import Any, List
+from typing import List, Optional
 
 import numpy as np
 
-from . import linear_normal_form as lnf, slicing
+from . import linear_normal_form as lnf
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xdeps as xd
+from .compounds import CompoundContainer, CompoundType, Compound
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -120,8 +121,7 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
-        self._compound_relation = {}
-        self._compound_for_element = {}
+        self.compound_container = CompoundContainer()
 
         self.particle_ref = particle_ref
 
@@ -194,9 +194,9 @@ class Line:
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
 
-        if 'compound_relation' in dct.keys():
-            for compound_name, components in dct['compound_relation'].items():
-                self.define_compound(compound_name, components)
+        if 'compound_container' in dct.keys():
+            compounds = dct['compound_container']
+            self.compound_container = CompoundContainer.from_dict(compounds)
 
         _print('Done loading line from dict.           ')
 
@@ -492,7 +492,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
-        out['compound_relation'] = self.compounds.copy()
+        out['compound_relation'] = self.compound_container.to_dict()
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -572,7 +572,7 @@ class Line:
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
         isthick = np.array(list(map(_is_thick, elements)))
-        compound_name = self._get_element_compound_names()
+        compound_name = self.get_element_compound_names()
 
         import pandas as pd
 
@@ -1490,12 +1490,31 @@ class Line:
                     "Either `index` or `at_s` must be provided"
                 )
 
-        if at_s is None:
+        if index is not None:
             if _is_thick(element) and np.abs(element.length) > 0:
                 raise NotImplementedError('Use `at_s` to insert thick elements')
+
+            left_name = self.element_names[index - 1]
+            left_cpd_name = self.get_compound_for_element(left_name)
+            right_name = self.element_names[index]
+            right_cpd_name = self.get_compound_for_element(right_name)
+            compound = None
+            if left_cpd_name == right_cpd_name and left_cpd_name is not None:
+                compound = self.compound_container.compound_for_name(left_cpd_name)
+                if isinstance(compound, Compound):
+                    raise ValueError(
+                        'Inserting an element inside an unsliced compound is '
+                        'not supported.'
+                    )
+
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
             self.element_names.insert(index, name)
+
+            if compound:
+                compound.elements.add(name)
+                self.compound_container.define_compound(left_cpd_name, compound)
+
             return
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
@@ -1503,8 +1522,8 @@ class Line:
         if not _is_thick(element) or np.abs(element.length) == 0:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
-                return self.insert_element(index=i_closest,
-                                        element=element, name=name)
+                return self.insert_element(
+                    index=i_closest, element=element, name=name)
 
         s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
 
@@ -1538,8 +1557,8 @@ class Line:
             if (not _is_drift(e_to_replace) and
                 not isinstance(e_to_replace, Marker) and
                 not _is_aperture(e_to_replace)):
-                raise ValueError('Cannot replace active element '
-                                    f'{self.element_names[ii]}')
+                raise ValueError(
+                    f'Cannot replace active element {self.element_names[ii]}')
 
         l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
         l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
@@ -1548,14 +1567,22 @@ class Line:
         name_left = name_first_drift_to_cut + '_part0'
         name_right = name_last_drift_to_cut + '_part1'
 
-        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
-        i_insert = i_first_drift_to_cut
-
-        drift_base = self.element_dict[self.element_names[i_insert]]
+        drift_base = self.element_dict[name_first_drift_to_cut]
         drift_left = drift_base.copy()
         drift_left.length = l_left_part
         drift_right = drift_base.copy()
         drift_right.length = l_right_part
+
+        # Check if not illegally inserting in a compound
+        _compounds = self.compound_container
+        left_compound = _compounds.compound_name_for_element(name_first_drift_to_cut)
+        right_compound = _compounds.compound_name_for_element(name_last_drift_to_cut)
+        compound = None
+        if left_compound is not None and left_compound == right_compound:
+            compound = _compounds.compound_for_name(left_compound)
+            if isinstance(compound, Compound):
+                raise ValueError('Inserting an element in the middle of an '
+                                 'unsliced compound is not supported.')
 
         # Insert
         assert name_left not in self.element_names
@@ -1572,16 +1599,99 @@ class Line:
             names_to_insert.append(name_right)
             self.element_dict[name_right] = drift_right
 
-        self.element_names[i_insert] = names_to_insert[-1]
-        if len(names_to_insert) > 1:
-            for nn in names_to_insert[:-1][::-1]:
-                self.element_names.insert(i_insert, nn)
+        replaced_names = self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1]
+        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = names_to_insert
+
+        # Update compound container if the inserted element falls in the middle
+        # of a compound element.
+        if compound:
+            compound_name = left_compound
+            _compounds.remove_compound(compound_name)
+            compound.elements -= set(replaced_names)
+            compound.elements |= set(names_to_insert)
+            _compounds.define_compound(compound_name, compound)
 
         return self
 
+    def get_compound_by_name(self, name) -> Optional[CompoundType]:
+        """Get a compound object by its name."""
+        if not self.compound_container:
+            return None
+        return self.compound_container.compound_for_name(name)
+
+    def get_compound_subsequence(self, name) -> List[str]:
+        """The sequence of element names corresponding to the compound name.
+
+        Equivalent to `sorted(compound.elements, key=self.element_names.index)`
+        but should be faster due to the assumption that compounds are contiguous.
+        """
+        element_set = self.get_compound_by_name(name).elements
+        compound_len = len(element_set)
+        subsequence = None
+
+        for idx, element_name in enumerate(self.element_names):
+            if element_name in element_set:
+                subsequence = self.element_names[idx:idx + compound_len]
+                break
+
+        if subsequence is None or set(subsequence) != element_set:
+            raise AssertionError(
+                f'Compound {name} is corrupted, as its elements {element_set} '
+                f'are not a contiguous subsequence of the line.'
+            )
+
+        return subsequence
+
+    def get_compound_for_element(self, name) -> Optional[str]:
+        """Get the compound name for an element name."""
+        if not self.compound_container:
+            return None
+        return self.compound_container.compound_name_for_element(name)
+
+    def get_element_compound_names(self) -> List[Optional[str]]:
+        """Get the compound names for all elements."""
+        return [
+            self.get_compound_for_element(name)
+            for name in self.element_names
+        ]
+
+    def _enumerate_top_level(self):
+        idx = 0
+        while idx < len(self):
+            element_name = self.element_names[idx]
+            compound_name = self.get_compound_for_element(element_name)
+
+            # Not a compound, set the mask field to True
+            if compound_name is None:
+                yield idx, compound_name
+                idx += 1
+                continue
+
+            # Is (the first element) in a compound
+            yield idx, compound_name
+            compound = self.get_compound_by_name(compound_name)
+            idx += len(compound.elements)  # skip the remaining elements
+
+    def get_compound_mask(self) -> List[bool]:
+        """The mask of elements that are entry to a compound, or not in one."""
+        if not self.compound_container:
+            return [True] * len(self)
+
+        mask = [False] * len(self)
+        for element_idx, compound_name in self._enumerate_top_level():
+            mask[element_idx] = True
+
+        return mask
+
+    def get_collapsed_names(self):
+        return [
+            compound_name or self.element_names[element_idx]
+            for element_idx, compound_name in self._enumerate_top_level()
+        ]
+
     def append_element(self, element, name):
 
-        '''Append element to the end of the lattice
+        """Append element to the end of the lattice
 
         Parameters
         ----------
@@ -1589,7 +1699,7 @@ class Line:
             Element to append
         name : str
             Name of the element to append
-        '''
+        """
 
         self._frozen_check()
         if element in self.element_dict and element is not self.element_dict[name]:
@@ -1597,36 +1707,6 @@ class Line:
         self.element_dict[name] = element
         self.element_names.append(name)
         return self
-
-    def define_compound(self, compound_name, component_names):
-        self._compound_relation[compound_name] = component_names
-        for name in component_names:
-            self._compound_for_element[name] = compound_name
-
-    @property
-    def compounds(self):
-        return self._compound_relation
-
-    def is_top_level_element(self, element_name):
-        """
-        Return True if the element is not part of a compound element, or if it
-        is the entry element of a compound element.
-        """
-        if element_name not in self._compound_for_element:
-            return True
-
-        compound_name = self._compound_for_element[element_name]
-        if self.compounds[compound_name][0] == element_name:
-            return True
-
-        return False
-
-    def get_compound_mask(self):
-        return [self.is_top_level_element(name) for name in self.element_names]
-
-    def _get_element_compound_names(self):
-        return [self._compound_for_element[name] if name in self._compound_for_element else name
-                for name in self.element_names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """

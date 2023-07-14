@@ -122,7 +122,7 @@ class Tracker:
             element_s_locations=line.get_s_elements(),
             line_length=line.get_length(),
             compound_mask=line.get_compound_mask(),
-            element_compound_names=line._get_element_compound_names(),
+            element_compound_names=line.get_element_compound_names(),
             kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,

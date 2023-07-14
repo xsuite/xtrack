@@ -589,3 +589,87 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     line.track(p2, backtrack=True)
     p2.move(_context=xo.context_default)
     assert np.all(p2.state == -32)
+
+def test_import_thick_with_apertures_and_slice():
+    mad = Madx()
+
+    mad.input("""
+    k1=0.2;
+    tilt=0.1;
+
+    elm: sbend,
+        k1:=k1,
+        l=1,
+        angle=0.1,
+        tilt=0.2,
+        apertype="rectellipse",
+        aperture={0.1,0.2,0.11,0.22},
+        aper_tol={0.1,0.2,0.3},
+        aper_tilt:=tilt,
+        aper_offset={0.2, 0.3};
+
+    seq: sequence, l=1;
+    elm: elm, at=0.5;
+    endsequence;
+
+    beam;
+    use, sequence=seq;
+    """)
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.seq,
+        allow_thick=True,
+        install_apertures=True,
+        deferred_expressions=True,
+        use_compound_elements=True,
+    )
+
+    assert line.get_compound_subsequence('elm') == [
+        'elm_entry', 'elm_aper_tilt_entry', 'elm_aper_offset_entry',
+        'elm_aper',
+        'elm_aper_offset_exit', 'elm_aper_tilt_exit',
+        'elm_tilt_entry', 'elm_den', 'elm', 'elm_dex', 'elm_tilt_exit',
+        'elm_exit',
+    ]
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+
+    assert line.get_compound_subsequence('elm') == [
+        'elm_entry',                    # entry marker
+        'elm_aper_tilt_entry..0',       # ┐
+        'elm_aper_offset_entry..0',     # │
+        'elm_aper..0',                  # ├ entry edge aperture
+        'elm_aper_offset_exit..0',      # │
+        'elm_aper_tilt_exit..0',        # ┘
+        'elm_tilt_entry..0',            # ┐
+        'elm_den',                      # ├ entry edge (+transform)
+        'elm_tilt_exit..0',             # ┘
+        'drift_elm..0',                 # drift 0
+        'elm_aper_tilt_entry..1',       # ┐
+        'elm_aper_offset_entry..1',     # │
+        'elm_aper..1',                  # ├ slice 1 aperture
+        'elm_aper_offset_exit..1',      # │
+        'elm_aper_tilt_exit..1',        # ┘
+        'elm_tilt_entry..1',            # ┐
+        'elm..0',                       # ├ slice 0 (+transform)
+        'elm_tilt_exit..1',             # ┘
+        'drift_elm..1',                 # drift 1
+        'elm_aper_tilt_entry..2',       # ┐
+        'elm_aper_offset_entry..2',     # │
+        'elm_aper..2',                  # ├ slice 2 aperture
+        'elm_aper_offset_exit..2',      # │
+        'elm_aper_tilt_exit..2',        # ┘
+        'elm_tilt_entry..2',            # ┐
+        'elm..1',                       # ├ slice 1 (+transform)
+        'elm_tilt_exit..2',             # ┘
+        'drift_elm..2',                 # drift 2
+        'elm_aper_tilt_entry..3',       # ┐
+        'elm_aper_offset_entry..3',     # │
+        'elm_aper..3',                  # ├ exit edge aperture
+        'elm_aper_offset_exit..3',      # │
+        'elm_aper_tilt_exit..3',        # ┘
+        'elm_tilt_entry..3',            # ┐
+        'elm_dex',                      # ├ exit edge (+transform)
+        'elm_tilt_exit..3',             # ┘
+        'elm_exit',                     # exit marker
+    ]
