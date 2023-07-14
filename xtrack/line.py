@@ -3233,7 +3233,6 @@ class LineVars:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
         out = list(self.line._xdeps_vref._owner.keys()).copy()
-        out.pop('__vary_default')
         return out
 
     @property
