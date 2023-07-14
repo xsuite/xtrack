@@ -85,22 +85,7 @@ muy_arc_target_b2 = twb2['muy', 's.ds.l7.b2'] - twb2['muy', 'e.ds.r6.b2']
 assert np.isclose(resb2['mux_arc_from_cell'] , mux_arc_target_b2, rtol=1e-6)
 assert np.isclose(resb2['muy_arc_from_cell'] , muy_arc_target_b2, rtol=1e-6)
 
-starting_values = {
-    'kqtf.a67b1': collider.vars['kqtf.a67b1']._value,
-    'kqtf.a67b2': collider.vars['kqtf.a67b2']._value,
-    'kqtd.a67b1': collider.vars['kqtd.a67b1']._value,
-    'kqtd.a67b2': collider.vars['kqtd.a67b2']._value,
-    'kqf.a67': collider.vars['kqf.a67']._value,
-    'kqd.a67': collider.vars['kqd.a67']._value,
-}
 
-# Perturb the quadrupoles
-collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
-collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
-collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
-collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
-collider.vars['kqd.a67'] = -0.00872
-collider.vars['kqf.a67'] = 0.00877
 
 t1 = time.perf_counter()
 collider.match(
