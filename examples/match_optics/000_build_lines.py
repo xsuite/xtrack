@@ -112,7 +112,7 @@ collider.vars.vary_default.update({
     'kq7.l2b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
     'kq8.l2b1':    {'step': 1.0E-6, 'limits': (-qtlimit3,       -qtlimit3*scmin*0.9)},
     'kq9.l2b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
-    'kq10.l2b':    {'step': 1.0E-6, 'limits': (-qtlimit3,       -qtlimit3*scmin)},
+    'kq10.l2b1':    {'step': 1.0E-6, 'limits': (-qtlimit3,       -qtlimit3*scmin)},
     'kqtl11.l2b1': {'step': 1.0E-6, 'limits': (-qtlimit4,       qtlimit4)},
     'kqt12.l2b1':  {'step': 1.0E-6, 'limits': (-qtlimit5,       qtlimit5)},
     'kqt13.l2b1':  {'step': 1.0E-6, 'limits': (-qtlimit5,       qtlimit5)},
