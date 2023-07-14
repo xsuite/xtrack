@@ -283,7 +283,7 @@ def match_knob_line(line, knob_name, vary, targets,
 
     vary_aux = []
     for vv in vary:
-        if vv.limits[0] != -1e200 or vv.limits[1] != 1e200:
+        if vv.limits is not None:
             raise ValueError('Cannot match knobs with limits')
         line.vars[vv.name + '_from_' + knob_name] = 0
         line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
