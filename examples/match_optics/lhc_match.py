@@ -54,6 +54,25 @@ def get_arc_periodic_solution(collider, line_name=None, arc_name=None):
 
     return res
 
+
+class ActionArcPhaseAdvanceFromCell(xt.Action):
+
+    def __init__(self, collider, line_name, arc_name):
+
+        self.collider = collider
+        self.line_name = line_name
+        self.arc_name = arc_name
+
+    def run(self):
+
+        tw_arc = get_arc_periodic_solution(
+            self.collider, line_name=self.line_name, arc_name=self.arc_name)
+
+        return {'table': tw_arc,
+                'mux': tw_arc['mux', -1] - tw_arc['mux', 0],
+                'muy': tw_arc['muy', -1] - tw_arc['muy', 0]}
+
+
 def propagate_optics_from_beta_star(collider, ip_name, line_name,
                                     beta_star_x, beta_star_y,
                                     ele_start, ele_stop):
