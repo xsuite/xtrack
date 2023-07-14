@@ -1,5 +1,5 @@
 """
-Monitor to save the centroid of the many slices within a turn (like an actual BPM)
+Monitor to save the centroid of the many slices or time slots within a turn (like an actual BPM)
 
 Author: Rahul Singh
 Date: 2023-06-10
@@ -78,6 +78,7 @@ class BPM(xt.BeamElement):
             if (attr == 'x_cen' or attr == 'y_cen'):
                 position_sum = getattr(self.data, attr)
                 position_sum = position_sum.to_nparray()
+# Convert from position sum to centroid for each time slot
                 summed_particles = getattr(self.data,'summed_particles')
                 summed_particles = summed_particles.to_nparray()
                 val = np.zeros((len(position_sum)))
