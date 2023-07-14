@@ -18,23 +18,6 @@ action_phase_b1 = lm.ActionArcPhaseAdvanceFromCell(
 action_phase_b2 = lm.ActionArcPhaseAdvanceFromCell(
                     collider=collider, line_name='lhcb2', arc_name=arc_name)
 
-starting_values = {
-    'kqtf.a67b1': collider.vars['kqtf.a67b1']._value,
-    'kqtf.a67b2': collider.vars['kqtf.a67b2']._value,
-    'kqtd.a67b1': collider.vars['kqtd.a67b1']._value,
-    'kqtd.a67b2': collider.vars['kqtd.a67b2']._value,
-    'kqf.a67': collider.vars['kqf.a67']._value,
-    'kqd.a67': collider.vars['kqd.a67']._value,
-}
-
-# Perturb the quadrupoles
-collider.vars['kqtf.a67b1'] = starting_values['kqtf.a67b1'] * 1.1
-collider.vars['kqtf.a67b2'] = starting_values['kqtf.a67b2'] * 0.9
-collider.vars['kqtd.a67b1'] = starting_values['kqtd.a67b1'] * 0.15
-collider.vars['kqtd.a67b2'] = starting_values['kqtd.a67b2'] * 1.15
-collider.vars['kqd.a67'] = -0.00872
-collider.vars['kqf.a67'] = 0.00877
-
 opt=collider.match(
     solve=False,
     targets=[
@@ -49,3 +32,4 @@ opt=collider.match(
                      f'kqf.a{arc_name}', f'kqd.a{arc_name}'
                      ]),
     ])
+opt.solve()
