@@ -217,6 +217,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 tt_name = tt.tar
             tt.weight = DEFAULT_WEIGHTS.get(tt_name, 1.)
 
+    if not isinstance(vary, (list, tuple)):
+        vary = [vary]
+
     vary_flatten = []
     for vv in vary:
         if isinstance(vv, xd.VaryList):
