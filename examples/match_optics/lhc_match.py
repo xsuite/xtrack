@@ -72,6 +72,41 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
                 'mux': tw_arc['mux', -1] - tw_arc['mux', 0],
                 'muy': tw_arc['muy', -1] - tw_arc['muy', 0]}
 
+def match_arc_phase_advance(collider, arc_name,
+                            target_mux_b1, target_muy_b1,
+                            target_mux_b2, target_muy_b2,
+                            solve=True):
+
+    assert collider.lhcb1.twiss_default.get('reverse', False) is False
+    assert collider.lhcb2.twiss_default['reverse'] is True
+
+    assert arc_name in ARC_NAMES
+
+    action_phase_b1 = ActionArcPhaseAdvanceFromCell(
+                    collider=collider, line_name='lhcb1', arc_name=arc_name)
+    action_phase_b2 = ActionArcPhaseAdvanceFromCell(
+                        collider=collider, line_name='lhcb2', arc_name=arc_name)
+
+    opt=collider.match(
+        solve=False,
+        targets=[
+            action_phase_b1.target('mux', target_mux_b1),
+            action_phase_b1.target('muy', target_muy_b1),
+            action_phase_b2.target('mux', target_mux_b2),
+            action_phase_b2.target('muy', target_muy_b2),
+        ],
+        vary=[
+            xt.VaryList([f'kqtf.a{arc_name}b1', f'kqtd.a{arc_name}b1',
+                        f'kqtf.a{arc_name}b2', f'kqtd.a{arc_name}b2',
+                        f'kqf.a{arc_name}', f'kqd.a{arc_name}'
+                        ]),
+        ])
+    if solve:
+        opt.solve()
+
+    return opt
+
+
 
 def propagate_optics_from_beta_star(collider, ip_name, line_name,
                                     beta_star_x, beta_star_y,
