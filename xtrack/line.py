@@ -492,7 +492,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
-        out['compound_relation'] = self.compound_container.to_dict()
+        out['compound_container'] = self.compound_container.to_dict()
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -3139,21 +3139,21 @@ def _dicts_equal(dict1, dict2):
     if not isinstance(dict1, dict) or not isinstance(dict2, dict):
         raise ValueError
     if set(dict1.keys()) != set(dict2.keys()):
-        return False
+        raise ValueError
     for key in dict1.keys():
         if hasattr(dict1[key], '__iter__'):
             if not hasattr(dict2[key], '__iter__'):
-                return False
+                raise ValueError
             elif isinstance(dict1[key], dict):
                 if not isinstance(dict2[key], dict):
-                    return False
+                    raise ValueError
                 else:
                     if not _dicts_equal(dict1[key], dict2[key]):
-                        return False
+                        raise ValueError
             elif not np.array_equal(dict1[key], dict2[key]):
-                return False
+                raise ValueError
         elif dict1[key] != dict2[key]:
-            return False
+            raise ValueError
     return True
 
 

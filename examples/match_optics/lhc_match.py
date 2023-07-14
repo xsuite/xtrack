@@ -105,4 +105,3 @@ def propagate_optics_from_beta_star(collider, ip_name, line_name,
     tw_ip = xt.TwissTable.concatenate([tw_left, tw_right])
 
     return tw_ip
-

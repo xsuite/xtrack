@@ -23,7 +23,10 @@ class SlicedCompound:
         return f'{type(self).__name__}({self.elements})'
 
     def to_dict(self):
-        return {'elements': list(self.elements)}
+        return {
+            '__class__': 'SlicedCompound',
+            'elements': list(self.elements),
+        }
 
 
 class Compound:
@@ -87,6 +90,7 @@ class Compound:
 
     def to_dict(self):
         return {
+            '__class__': 'Compound',
             'core': list(self.core),
             'aperture': list(self.aperture),
             'entry_transform': list(self.entry_transform),
@@ -139,8 +143,8 @@ class CompoundContainer:
     @classmethod
     def from_dict(cls, compounds_dict):
         compounds = {}
-        for name, compound_dict in compounds_dict.items():
-            class_name = compound_dict.pop('__class__')
+        for nn, ccdd in compounds_dict.items():
+            class_name = ccdd.pop('__class__')
             if class_name == 'Compound':
                 compound_class = Compound
             elif class_name == 'SlicedCompound':
@@ -148,8 +152,8 @@ class CompoundContainer:
             else:
                 raise ValueError(f'Unknown compound class {class_name}')
 
-            compound = compound_class(**compound_dict)
-            compounds[name] = compound
+            compound = compound_class(**ccdd)
+            compounds[nn] = compound
 
         return cls(compounds=compounds)
 
