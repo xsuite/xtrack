@@ -41,8 +41,7 @@ class Marker(BeamElement):
     """A marker beam element with no effect on the particles.
     """
 
-    _xofields = {
-        '_dummy': xo.Int64}
+    _xofields = {}
 
     behaves_like_drift = True
     allow_backtrack = True
