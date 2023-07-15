@@ -189,35 +189,35 @@ class TargetInequality(Target):
 
 class TargetPhaseAdvance(Target):
 
-    def __init__(self, tar, value, at_a=None, at_b=None,  **kwargs):
+    def __init__(self, tar, value, at_1=None, at_0=None,  **kwargs):
 
         super().__init__(tar=self.compute, value=value, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
-        if at_a is None:
-            at_a = '__ele_start__'
-        if at_b is None:
-            at_b = '__ele_stop__'
-        self.at_a = at_a
-        self.at_b = at_b
+        if at_1 is None:
+            at_1 = '__ele_stop__'
+        if at_0 is None:
+            at_0 = '__ele_start__'
+        self.at_1 = at_1
+        self.at_0 = at_0
 
     def __repr__(self):
-        return f'TargetPhaseAdvance(at_a={self.at_a}, at_b={self.at_b}, value={self.value}, tol={self.tol}, weight={self.weight})'
+        return f'TargetPhaseAdvance({self.var}({self.at_1}) - {self.var}({self.at_0}), value={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
 
-        if self.at_a == '__ele_start__':
-            mu_a = tw[self.var, 0]
+        if self.at_1 == '__ele_stop__':
+            mu_1 = tw[self.var, -1]
         else:
-            mu_a = tw[self.var, self.at_a]
+            mu_1 = tw[self.var, self.at_1]
 
-        if self.at_b == '__ele_stop__':
-            mu_b = tw[self.var, -1]
+        if self.at_0 == '__ele_start__':
+            mu_0 = tw[self.var, 0]
         else:
-            mu_b = tw[self.var, self.at_b]
+            mu_0 = tw[self.var, self.at_0]
 
-        return mu_b - mu_a
+        return mu_1 - mu_0
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,

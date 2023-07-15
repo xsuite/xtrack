@@ -16,6 +16,9 @@ tw_sq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
 mux_compensate = (tw_sq_ip1_b1['mux', 's.ds.l2.b1'] - tw_sq_ip1_b1['mux', 'ip1']
                    - collider.varval['muxip1b1_r'] - collider.varval['mux12b1'])
 mux_ir2_target = collider.varval['muxip2b1'] - mux_compensate
+muy_compensate = (tw_sq_ip1_b1['muy', 's.ds.l2.b1'] - tw_sq_ip1_b1['muy', 'ip1']
+                  - collider.varval['muyip1b1_r'] - collider.varval['muy12b1'])
+muy_ir2_target = collider.varval['muyip2b1'] - muy_compensate
 
 opt = collider.lhcb1.match(
     solve=False,
@@ -32,6 +35,7 @@ opt = collider.lhcb1.match(
         xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
                 value=arc_periodic_solution['lhcb1']['23'], at='e.ds.r2.b1'),
         xt.TargetPhaseAdvance('mux', mux_ir2_target),
+        xt.TargetPhaseAdvance('muy', muy_ir2_target),
     ],
     vary=xt.VaryList(
         ['kq4.l2b1', 'kq5.l2b1',  'kq6.l2b1', 'kq7.l2b1', 'kq8.l2b1',
