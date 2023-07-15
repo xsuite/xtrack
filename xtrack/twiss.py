@@ -1479,6 +1479,14 @@ class TwissInit:
             aux_tw = aux_line.twiss()
             W_matrix = aux_tw.W_matrix[0]
 
+            # TODO: to be further investigated
+            # if reference_frame is None and line is not None:
+            #     reverse = line.twiss_default.get('reverse', False)
+            #     if reverse:
+            #         reference_frame = 'reverse'
+            # elif reference_frame is None:
+            #     reference_frame = 'proper'
+
         else:
             assert betx is None, "`betx` must be None if `W_matrix` is provided"
             assert alfx is None, "`alfx` must be None if `W_matrix` is provided"

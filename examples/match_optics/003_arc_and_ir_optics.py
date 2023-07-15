@@ -38,7 +38,7 @@ assert np.isclose(
     tw_presq_ip1_b1['muy', 'e.ds.r1.b1'] -  tw_presq_ip1_b1['muy', 'ip1'],
     collider.vars['muyip1b1_r']._value, atol=1e-10, rtol=0)
 
-# TODO: need to generalize to both beams and IP2, check betx0_ip1
+# Beam 1
 
 tw_sq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
         line_name='lhcb1', ele_start='s.ds.r7.b1', ele_stop='e.ds.l3.b1',
@@ -64,6 +64,15 @@ muxip8b1_sq = (tw_sq_ip1_b1['mux', 'e.ds.r8.b1'] - tw_sq_ip1_b1['mux', 's.ds.l8.
 
 assert np.isclose(muxip8b1_sq - vt['value', 'muxip8b1'], -(dmux_81 + dmux_ip1_l),
                   atol=1e-9, rtol=0)
+
+
+# Beam 2
+import ipdb; ipdb.set_trace()
+tw_sq_ip1_b2 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
+        line_name='lhcb2', ele_start='s.ds.r7.b2', ele_stop='e.ds.l3.b2',
+        beta_star_x=0.15, beta_star_y = 0.15)
+
+
 
 
 
