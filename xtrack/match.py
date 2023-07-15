@@ -187,7 +187,7 @@ class TargetInequality(Target):
         else:
             return val - self.rhs
 
-class TargetPhaseAdvance(Target):
+class TargetRelPhaseAdvance(Target):
 
     def __init__(self, tar, value, at_1=None, at_0=None,  **kwargs):
 
