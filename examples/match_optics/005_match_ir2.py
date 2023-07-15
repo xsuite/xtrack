@@ -10,7 +10,8 @@ default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w
 
 tw_sq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
         line_name='lhcb1', ele_start='s.ds.r8.b1', ele_stop='e.ds.l2.b1',
-        beta_star_x=0.15, beta_star_y = 0.15)
+        beta_star_x=collider.varval['betxip1b1'],
+        beta_star_y=collider.varval['betyip1b1'])
 
 mux_compensate = (tw_sq_ip1_b1['mux', 's.ds.l2.b1'] - tw_sq_ip1_b1['mux', 'ip1']
                    - collider.varval['muxip1b1_r'] - collider.varval['mux12b1'])
