@@ -42,7 +42,6 @@ for bn in ['b1', 'b2']:
 
     opt = collider[f'lhc{bn}'].match(
         solve=False,
-        solver_options={'n_bisections': 5},
         ele_start=f's.ds.l2.{bn}', ele_stop=f'e.ds.r2.{bn}',
         # Left boundary
         twiss_init='preserve_start', table_for_twiss_init=tw_sq_ip1,
