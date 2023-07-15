@@ -22,4 +22,6 @@ All these numbers are assigned by the optics matcher
     - inputs are the beta blocks
     - output are the strengths for the IR quads
 - calls selectIRAUX of the two ATS IRs
-    
+
+Questions:
+ - How do we handle energy dependence of limits?

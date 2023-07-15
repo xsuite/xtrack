@@ -147,3 +147,78 @@ def propagate_optics_from_beta_star(collider, ip_name, line_name,
     tw_ip = xt.TwissTable.concatenate([tw_left, tw_right])
 
     return tw_ip
+
+class ActionPhase_23_34(xt.Action):
+
+    def __init__(self, collider):
+        self.collider = collider
+
+    def run(self):
+        try:
+            tw_arc = get_arc_periodic_solution(self.collider, arc_name=['23', '34'])
+        except ValueError:
+            # Twiss failed
+            return {
+                'mux_23_34_b1': 1e100,
+                'muy_23_34_b1': 1e100,
+                'mux_23_34_b2': 1e100,
+                'muy_23_34_b2': 1e100,
+            }
+        tw_23_b1 = tw_arc['lhcb1']['23']
+        tw_23_b2 = tw_arc['lhcb2']['23']
+        mux_23_b1 = tw_23_b1['mux', 's.ds.l3.b1'] - tw_23_b1['mux', 'e.ds.r2.b1']
+        muy_23_b1 = tw_23_b1['muy', 's.ds.l3.b1'] - tw_23_b1['muy', 'e.ds.r2.b1']
+        mux_23_b2 = tw_23_b2['mux', 's.ds.l3.b2'] - tw_23_b2['mux', 'e.ds.r2.b2']
+        muy_23_b2 = tw_23_b2['muy', 's.ds.l3.b2'] - tw_23_b2['muy', 'e.ds.r2.b2']
+
+        tw34_b1 = tw_arc['lhcb1']['34']
+        tw34_b2 = tw_arc['lhcb2']['34']
+        mux_34_b1 = tw34_b1['mux', 's.ds.l4.b1'] - tw34_b1['mux', 'e.ds.r3.b1']
+        muy_34_b1 = tw34_b1['muy', 's.ds.l4.b1'] - tw34_b1['muy', 'e.ds.r3.b1']
+        mux_34_b2 = tw34_b2['mux', 's.ds.l4.b2'] - tw34_b2['mux', 'e.ds.r3.b2']
+        muy_34_b2 = tw34_b2['muy', 's.ds.l4.b2'] - tw34_b2['muy', 'e.ds.r3.b2']
+
+        return {
+            'mux_23_34_b1': mux_23_b1 + mux_34_b1,
+            'muy_23_34_b1': muy_23_b1 + muy_34_b1,
+            'mux_23_34_b2': mux_23_b2 + mux_34_b2,
+            'muy_23_34_b2': muy_23_b2 + muy_34_b2
+        }
+
+class ActionPhase_67_78(xt.Action):
+
+    def __init__(self, collider):
+        self.collider = collider
+
+    def run(self):
+        try:
+            tw_arc = get_arc_periodic_solution(self.collider, arc_name=['67', '78'])
+        except ValueError:
+            # Twiss failed
+            return {
+                'mux_67_78_b1': 1e100,
+                'muy_67_78_b1': 1e100,
+                'mux_67_78_b2': 1e100,
+                'muy_67_78_b2': 1e100,
+            }
+        tw_67_b1 = tw_arc['lhcb1']['67']
+        tw_67_b2 = tw_arc['lhcb2']['67']
+        mux_67_b1 = tw_67_b1['mux', 's.ds.l7.b1'] - tw_67_b1['mux', 'e.ds.r6.b1']
+        muy_67_b1 = tw_67_b1['muy', 's.ds.l7.b1'] - tw_67_b1['muy', 'e.ds.r6.b1']
+        mux_67_b2 = tw_67_b2['mux', 's.ds.l7.b2'] - tw_67_b2['mux', 'e.ds.r6.b2']
+        muy_67_b2 = tw_67_b2['muy', 's.ds.l7.b2'] - tw_67_b2['muy', 'e.ds.r6.b2']
+
+        tw78_b1 = tw_arc['lhcb1']['78']
+        tw78_b2 = tw_arc['lhcb2']['78']
+        mux_78_b1 = tw78_b1['mux', 's.ds.l8.b1'] - tw78_b1['mux', 'e.ds.r7.b1']
+        muy_78_b1 = tw78_b1['muy', 's.ds.l8.b1'] - tw78_b1['muy', 'e.ds.r7.b1']
+        mux_78_b2 = tw78_b2['mux', 's.ds.l8.b2'] - tw78_b2['mux', 'e.ds.r7.b2']
+        muy_78_b2 = tw78_b2['muy', 's.ds.l8.b2'] - tw78_b2['muy', 'e.ds.r7.b2']
+
+        return {
+            'mux_67_78_b1': mux_67_b1 + mux_78_b1,
+            'muy_67_78_b1': muy_67_b1 + muy_78_b1,
+            'mux_67_78_b2': mux_67_b2 + mux_78_b2,
+            'muy_67_78_b2': muy_67_b2 + muy_78_b2
+        }
+
