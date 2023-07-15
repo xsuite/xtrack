@@ -187,6 +187,37 @@ class TargetInequality(Target):
         else:
             return val - self.rhs
 
+class TargetPhaseAdvance(Target):
+
+    def __init__(self, tar, value, at_a=None, at_b=None,  **kwargs):
+
+        super().__init__(tar=self.compute, value=value, **kwargs)
+
+        assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
+        self.var = tar
+        if at_a is None:
+            at_a = '__ele_start__'
+        if at_b is None:
+            at_b = '__ele_stop__'
+        self.at_a = at_a
+        self.at_b = at_b
+
+    def __repr__(self):
+        return f'TargetPhaseAdvance(at_a={self.at_a}, at_b={self.at_b}, value={self.value}, tol={self.tol}, weight={self.weight})'
+
+    def compute(self, tw):
+
+        if self.at_a == '__ele_start__':
+            mu_a = tw[self.var, 0]
+        else:
+            mu_a = tw[self.var, self.at_a]
+
+        if self.at_b == '__ele_stop__':
+            mu_b = tw[self.var, -1]
+        else:
+            mu_b = tw[self.var, self.at_b]
+
+        return mu_b - mu_a
 
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
