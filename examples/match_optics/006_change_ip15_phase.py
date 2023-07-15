@@ -47,23 +47,40 @@ for bn in ['b1', 'b2']:
         twiss_init='preserve_start', table_for_twiss_init=tw_sq_ip1,
         targets=[
             # IP optics
-            xt.TargetList(('alfx', 'alfy', 'dx', 'dpx'), value=0, at='ip2'),
-            xt.Target('betx', value=collider.varval[f'betxip2{bn}'], at='ip2'),
-            xt.Target('bety', value=collider.varval[f'betyip2{bn}'], at='ip2'),
+            xt.TargetList(('alfx', 'alfy', 'dx', 'dpx'), value=0, at='ip2',    tag='stage2'),
+            xt.Target('betx', value=collider.varval[f'betxip2{bn}'], at='ip2', tag='stage2'),
+            xt.Target('bety', value=collider.varval[f'betyip2{bn}'], at='ip2', tag='stage2'),
             # Right boundary
-            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), tag='stage0',
                     value=arc_periodic_solution[f'lhc{bn}']['23'], at=f'e.ds.r2.{bn}'),
-            xt.TargetRelPhaseAdvance('mux', mux_ir2_target),
-            xt.TargetRelPhaseAdvance('muy', muy_ir2_target),
+            xt.TargetRelPhaseAdvance('mux', mux_ir2_target, tag='stage0'),
+            xt.TargetRelPhaseAdvance('muy', muy_ir2_target, tag='stage0'),
         ],
-        vary=xt.VaryList(
-            [f'kq4.l2{bn}', f'kq5.l2{bn}',  f'kq6.l2{bn}',    f'kq7.l2{bn}',   f'kq8.l2{bn}',
-             f'kq4.r2{bn}', f'kq5.r2{bn}',  f'kq6.r2{bn}',    f'kq7.r2{bn}',   f'kq8.r2{bn}',
-             f'kq9.l2{bn}', f'kq10.l2{bn}', f'kqtl11.l2{bn}', f'kqt12.l2{bn}', f'kqt13.l2{bn}',
-             f'kq9.r2{bn}', f'kq10.r2{bn}', f'kqtl11.r2{bn}', f'kqt12.r2{bn}', f'kqt13.r2{bn}']
-        )
+        vary=[
+            xt.VaryList([
+                f'kq9.l2{bn}', f'kq10.l2{bn}', f'kqtl11.l2{bn}', f'kqt12.l2{bn}', f'kqt13.l2{bn}',
+                f'kq9.r2{bn}', f'kq10.r2{bn}', f'kqtl11.r2{bn}', f'kqt12.r2{bn}', f'kqt13.r2{bn}'],
+                tag='stage0'),
+            xt.VaryList(
+                [f'kq4.l2{bn}', f'kq5.l2{bn}',  f'kq6.l2{bn}',    f'kq7.l2{bn}',   f'kq8.l2{bn}',
+                 f'kq6.r2{bn}',    f'kq7.r2{bn}',   f'kq8.r2{bn}'],
+                tag='stage1'),
+            xt.VaryList([f'kq4.r2{bn}', f'kq5.r2{bn}'], tag='stage2')
+        ]
     )
 
+    opt.disable_all_vary()
+    opt.disable_all_targets()
+
+    opt.enable_vary(tag='stage0')
+    opt.enable_targets(tag='stage0')
+    opt.solve()
+
+    opt.enable_vary(tag='stage1')
+    opt.solve()
+
+    opt.enable_vary(tag='stage2')
+    opt.enable_targets(tag='stage2')
     opt.solve()
 
 # Check
