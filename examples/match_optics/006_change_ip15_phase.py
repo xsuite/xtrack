@@ -8,8 +8,8 @@ collider.vars.load_madx_optics_file(
 
 d_mux_15_b1 = 0.1
 d_muy_15_b1 = 0.12
-d_mux_15_b2 = -0.9
-d_muy_15_b2 = -0.95
+d_mux_15_b2 = -0.09
+d_muy_15_b2 = -0.15
 
 # d_mux_15_b1 = 0
 # d_muy_15_b1 = 0
@@ -25,7 +25,7 @@ class ActionPhase_23_34(xt.Action):
 
     def run(self):
         try:
-            tw_arc = lm.get_arc_periodic_solution(self.collider)
+            tw_arc = lm.get_arc_periodic_solution(self.collider, arc_name=['23', '34'])
         except ValueError:
             # Twiss failed
             return {

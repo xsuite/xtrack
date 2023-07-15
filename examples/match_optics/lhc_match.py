@@ -7,16 +7,20 @@ def get_arc_periodic_solution(collider, line_name=None, arc_name=None):
     assert collider.lhcb1.twiss_default.get('reverse', False) is False
     assert collider.lhcb2.twiss_default['reverse'] is True
 
+    if arc_name is None:
+        arc_name = ARC_NAMES
+
+    if line_name is None:
+        line_name = ['lhcb1', 'lhcb2']
+
     if line_name is None or arc_name is None:
-        assert line_name is None and arc_name is None
         res = {'lhcb1': {}, 'lhcb2': {}}
         for line_name in ['lhcb1', 'lhcb2']:
             res[line_name] = {}
-            for arc_name in ARC_NAMES:
+            for arc_name in arc_name:
                 res[line_name][arc_name] = get_arc_periodic_solution(
                     collider, line_name=line_name, arc_name=arc_name)
         return res
-
 
     assert arc_name in ARC_NAMES
     assert line_name in ['lhcb1', 'lhcb2']
