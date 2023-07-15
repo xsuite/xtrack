@@ -8,7 +8,9 @@ from .general import _print
 import xtrack as xt
 import xdeps as xd
 
-DEFAULT_WEIGHTS = {
+XTRACK_DEFAULT_TOL = 1e-10
+
+XTRACK_DEFAULT_WEIGHTS = {
     # For quantities not specified here the default weight is 1
     'x': 10,
     'px': 100,
@@ -128,9 +130,6 @@ class ActionTwiss(xd.Action):
 class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None):
-        if tol is None:
-            tol = 1e-10
-
         if at is not None:
             xdtar = (tar, at)
         else:
@@ -192,7 +191,7 @@ class TargetInequality(Target):
 def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
-                  n_steps_max=20,
+                  n_steps_max=20, default_tol=None,
                   solve=True, **kwargs):
 
     targets_flatten = []
@@ -210,12 +209,21 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 action_twiss = ActionTwiss(
                     line, allow_twiss_failure=allow_twiss_failure, **kwargs)
             tt.action = action_twiss
+
+        if isinstance(tt.tar, tuple):
+            tt_name = tt.tar[0] # `at` is  present
+        else:
+            tt_name = tt.tar
         if tt.weight is None:
-            if isinstance(tt.tar, tuple):
-                tt_name = tt.tar[0]
+            tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
+        if tt.tol is None:
+            if default_tol is None:
+                tt.tol = XTRACK_DEFAULT_TOL
+            elif isinstance(default_tol, dict):
+                tt.tol = default_tol.get(tt_name,
+                                    default_tol.get(None, XTRACK_DEFAULT_TOL))
             else:
-                tt_name = tt.tar
-            tt.weight = DEFAULT_WEIGHTS.get(tt_name, 1.)
+                tt.tol = default_tol
 
     if not isinstance(vary, (list, tuple)):
         vary = [vary]

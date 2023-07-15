@@ -6,6 +6,8 @@ collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
+default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6}
+
 arc_periodic_solution = lm.get_arc_periodic_solution(collider)
 tw_sq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
         line_name='lhcb1', ele_start='s.ds.r8.b1', ele_stop='e.ds.l2.b1',
@@ -13,6 +15,7 @@ tw_sq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
 
 opt = collider.lhcb1.match(
     solve=False,
+    default_tol=default_tol,
     ele_start='s.ds.l2.b1', ele_stop='e.ds.r2.b1',
     # Left boundary
     twiss_init='preserve_start', table_for_twiss_init=tw_sq_ip1_b1,
