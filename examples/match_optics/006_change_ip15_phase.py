@@ -33,19 +33,25 @@ muy_67_78_b2_target = phase_67_78_0['muy_67_78_b2'] - d_muy_15_b2
 
 opt = collider.match(
     solve=False,
-    solver_options={'n_bisections': 10},
+    solver_options={'n_bisections': 5},
     targets=[
-        # action_phase_23_34.target('mux_23_34_b1', mux_23_34_b1_target),
-        # action_phase_23_34.target('muy_23_34_b1', muy_23_34_b1_target),
-        # action_phase_23_34.target('mux_23_34_b2', mux_23_34_b2_target),
-        # action_phase_23_34.target('muy_23_34_b2', muy_23_34_b2_target),
+        action_phase_23_34.target('mux_23_34_b1', mux_23_34_b1_target),
+        action_phase_23_34.target('muy_23_34_b1', muy_23_34_b1_target),
+        action_phase_23_34.target('mux_23_34_b2', mux_23_34_b2_target),
+        action_phase_23_34.target('muy_23_34_b2', muy_23_34_b2_target),
         action_phase_67_78.target('mux_67_78_b1', mux_67_78_b1_target),
         action_phase_67_78.target('muy_67_78_b1', muy_67_78_b1_target),
         action_phase_67_78.target('mux_67_78_b2', mux_67_78_b2_target),
         action_phase_67_78.target('muy_67_78_b2', muy_67_78_b2_target),
     ],
-    vary=xt.VaryList([#'kqf.a23', 'kqd.a23', 'kqf.a34', 'kqd.a34',
-                      'kqf.a67', 'kqd.a67', 'kqf.a78', 'kqd.a78'])
+    vary=[
+        xt.VaryList(['kqf.a23', 'kqd.a23', 'kqf.a34', 'kqd.a34'], weight=5),
+        xt.VaryList(['kqf.a67', 'kqd.a67', 'kqf.a78', 'kqd.a78'], weight=5),
+        xt.VaryList(['kqtf.a23b1', 'kqtd.a23b1', 'kqtf.a34b1', 'kqtd.a34b1',
+                     'kqtf.a23b2', 'kqtd.a23b2', 'kqtf.a34b2', 'kqtd.a34b2']),
+        xt.VaryList(['kqtf.a67b1', 'kqtd.a67b1', 'kqtf.a78b1', 'kqtd.a78b1',
+                     'kqtf.a67b2', 'kqtd.a67b2', 'kqtf.a78b2', 'kqtd.a78b2']),
+    ]
 )
 
 opt.solve()
