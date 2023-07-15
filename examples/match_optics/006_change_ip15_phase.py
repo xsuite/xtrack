@@ -24,7 +24,16 @@ class ActionPhase_23_34(xt.Action):
         self.collider = collider
 
     def run(self):
-        tw_arc = lm.get_arc_periodic_solution(self.collider)
+        try:
+            tw_arc = lm.get_arc_periodic_solution(self.collider)
+        except ValueError:
+            # Twiss failed
+            return {
+                'mux_23_34_b1': 1e100,
+                'muy_23_34_b1': 1e100,
+                'mux_23_34_b2': 1e100,
+                'muy_23_34_b2': 1e100,
+            }
         tw_23_b1 = tw_arc['lhcb1']['23']
         tw_23_b2 = tw_arc['lhcb2']['23']
         mux_23_b1 = tw_23_b1['mux', 's.ds.l3.b1'] - tw_23_b1['mux', 'e.ds.r2.b1']
