@@ -129,13 +129,13 @@ class ActionTwiss(xd.Action):
 
 class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None):
+                 line=None, action=None, tag=''):
         if at is not None:
             xdtar = (tar, at)
         else:
             xdtar = tar
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
-                            weight=weight, scale=scale, action=action)
+                            weight=weight, scale=scale, action=action, tag=tag)
         self.line = line
 
         if isinstance(value, xt.multiline.MultiTwiss):
@@ -153,9 +153,10 @@ class Target(xd.Target):
             return res[self.tar]
 
 class Vary(xd.Vary):
-    def __init__(self, name, limits=None, step=None, weight=None, max_step=None):
+    def __init__(self, name, limits=None, step=None, weight=None, max_step=None,
+                 tag=''):
         xd.Vary.__init__(self, name=name, container=None, limits=limits,
-                         step=step, weight=weight, max_step=max_step)
+                         step=step, weight=weight, max_step=max_step, tag=tag)
 
 class VaryList(xd.VaryList):
     def __init__(self, vars, **kwargs):
@@ -168,9 +169,9 @@ class TargetList(xd.TargetList):
 class TargetInequality(Target):
 
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
-                 line=None, weight=None):
+                 line=None, weight=None, tag=''):
         super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line,
-                         weight=weight)
+                         weight=weight, tag=tag)
         assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
         self.ineq_sign = ineq_sign
         self.rhs = rhs
@@ -189,9 +190,9 @@ class TargetInequality(Target):
 
 class TargetRelPhaseAdvance(Target):
 
-    def __init__(self, tar, value, at_1=None, at_0=None,  **kwargs):
+    def __init__(self, tar, value, at_1=None, at_0=None, tag='',  **kwargs):
 
-        super().__init__(tar=self.compute, value=value, **kwargs)
+        super().__init__(tar=self.compute, value=value, tag=tag, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
