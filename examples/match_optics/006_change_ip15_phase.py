@@ -41,20 +41,24 @@ for bn in ['b1', 'b2']:
     muy_ir2_target = collider.varval[f'muyip2{bn}'] - muy_compensate
 
     arc_periodic_solution = lm.get_arc_periodic_solution(collider, arc_name=['23'])
+    bet_ip2_x = collider.varval[f'betxip2{bn}']
+    bet_ip2_y = collider.varval[f'betyip2{bn}']
+    boundary_conditions_left = tw_sq_ip1
+    boundary_conditions_right = arc_periodic_solution[f'lhc{bn}']['23']
 
     opt = collider[f'lhc{bn}'].match(
         solve=False,
         ele_start=f's.ds.l2.{bn}', ele_stop=f'e.ds.r2.{bn}',
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=tw_sq_ip1,
+        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
         targets=[
             # IP optics
             xt.TargetList(('alfx', 'alfy', 'dx', 'dpx'), value=0, at='ip2',    tag='stage2'),
-            xt.Target('betx', value=collider.varval[f'betxip2{bn}'], at='ip2', tag='stage2'),
-            xt.Target('bety', value=collider.varval[f'betyip2{bn}'], at='ip2', tag='stage2'),
+            xt.Target('betx', value=bet_ip2_x, at='ip2', tag='stage2'),
+            xt.Target('bety', value=bet_ip2_y, at='ip2', tag='stage2'),
             # Right boundary
             xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), tag='stage0',
-                    value=arc_periodic_solution[f'lhc{bn}']['23'], at=f'e.ds.r2.{bn}'),
+                    value=boundary_conditions_right, at=f'e.ds.r2.{bn}'),
             xt.TargetRelPhaseAdvance('mux', mux_ir2_target, tag='stage0'),
             xt.TargetRelPhaseAdvance('muy', muy_ir2_target, tag='stage0'),
         ],
