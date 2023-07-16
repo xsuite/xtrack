@@ -8,6 +8,8 @@ collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
+tw0 = collider.twiss()
+
 d_mux_15_b1 = None
 d_muy_15_b1 = None
 d_mux_15_b2 = None
@@ -85,3 +87,26 @@ for bn in ['b1', 'b2']:
                 betx_ip3=betx_ip3, bety_ip3=bety_ip3,
                 dx_ip3=dx_ip3, dpx_ip3=dpx_ip3,
                 solve=True, staged_match=staged_match, default_tol=default_tol)
+
+    print(f"Matching IR4 {bn}")
+
+    alfx_ip4 = collider.varval[f'alfxip4{bn}']
+    alfy_ip4 = collider.varval[f'alfyip4{bn}']
+    betx_ip4 = collider.varval[f'betxip4{bn}']
+    bety_ip4 = collider.varval[f'betyip4{bn}']
+    dx_ip4 = collider.varval[f'dxip4{bn}']
+    dpx_ip4 = collider.varval[f'dpxip4{bn}']
+
+    opt = lm.rematch_ir4(collider=collider, line_name=f'lhc{bn}',
+                boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['34'],
+                boundary_conditions_right=tw_sq_a45_ip5_a56,
+                mux_ir4=mux_ir4_target, muy_ir4=muy_ir4_target,
+                alfx_ip4=alfx_ip4, alfy_ip4=alfy_ip4,
+                betx_ip4=betx_ip4, bety_ip4=bety_ip4,
+                dx_ip4=dx_ip4, dpx_ip4=dpx_ip4,
+                solve=True, staged_match=staged_match, default_tol=default_tol)
+
+tw_b1_check = collider.lhcb1.twiss(
+    ele_start='ip1', ele_stop='ip5',
+    twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
+                            line=collider.lhcb1))
