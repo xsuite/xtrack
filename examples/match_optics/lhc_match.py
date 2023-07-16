@@ -407,3 +407,5 @@ def rematch_ir3(collider, line_name,
             opt.solve()
         else:
             opt.solve()
+
+    return opt
