@@ -1456,6 +1456,14 @@ class TwissInit:
             dy = dy or 0
             dpy = dpy or 0
 
+            if (line is not None and 'reverse' in line.twiss_default
+                and line.twiss_default['reverse']):
+                input_reversed = True
+                assert reference_frame is None, ("`reference_frame` must be None "
+                    "if `twiss_default['reverse']` is True")
+            else:
+                input_reversed = False
+
             aux_segment = xt.LineSegmentMap(
                 length=1., # dummy
                 qx=0.55, # dummy
@@ -1464,12 +1472,12 @@ class TwissInit:
                 bets=bets,
                 betx=betx,
                 bety=bety,
-                alfx=alfx,
-                alfy=alfy,
-                dx=dx,
+                alfx=alfx * (-1 if input_reversed else 1),
+                alfy=alfy * (-1 if input_reversed else 1),
+                dx=dx * (-1 if input_reversed else 1),
                 dy=dy,
                 dpx=dpx,
-                dpy=dpy,
+                dpy=dpy * (-1 if input_reversed else 1),
                 )
             aux_line = xt.Line(elements=[aux_segment])
             aux_line.particle_ref = particle_on_co.copy(
@@ -1479,14 +1487,14 @@ class TwissInit:
             aux_tw = aux_line.twiss()
             W_matrix = aux_tw.W_matrix[0]
 
-            # TODO: to be further investigated
-            # if reference_frame is None and line is not None:
-            #     reverse = line.twiss_default.get('reverse', False)
-            #     if reverse:
-            #         reference_frame = 'reverse'
-            # elif reference_frame is None:
-            #     reference_frame = 'proper'
-
+            if input_reversed:
+                W_matrix[0, :] = -W_matrix[0, :]
+                W_matrix[1, :] = W_matrix[1, :]
+                W_matrix[2, :] = W_matrix[2, :]
+                W_matrix[3, :] = -W_matrix[3, :]
+                W_matrix[4, :] = -W_matrix[4, :]
+                W_matrix[5, :] = W_matrix[5, :]
+                reference_frame = 'reverse'
         else:
             assert betx is None, "`betx` must be None if `W_matrix` is provided"
             assert alfx is None, "`alfx` must be None if `W_matrix` is provided"
