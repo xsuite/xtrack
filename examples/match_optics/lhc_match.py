@@ -556,3 +556,65 @@ def rematch_ir7(collider, line_name,
             opt.solve()
 
     return opt
+
+def rematch_ir8(collider, line_name,
+                boundary_conditions_left, boundary_conditions_right,
+                mux_ir8, muy_ir8,
+                alfx_ip8, alfy_ip8,
+                betx_ip8, bety_ip8,
+                dx_ip8, dpx_ip8,
+                solve=True, staged_match=False, default_tol=None):
+
+    assert line_name in ['lhcb1', 'lhcb2']
+    bn = line_name[-2:]
+
+    opt = collider[f'lhc{bn}'].match(
+        solve=False,
+        default_tol=default_tol,
+        ele_start=f's.ds.l8.{bn}', ele_stop=f'e.ds.r8.{bn}',
+        # Left boundary
+        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        targets=[
+            xt.Target('alfx', alfx_ip8, at='ip8'),
+            xt.Target('alfy', alfy_ip8, at='ip8'),
+            xt.Target('betx', betx_ip8, at='ip8'),
+            xt.Target('bety', bety_ip8, at='ip8'),
+            xt.Target('dx', dx_ip8, at='ip8'),
+            xt.Target('dpx', dpx_ip8, at='ip8'),
+            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                    value=boundary_conditions_right, at=f'e.ds.r8.{bn}',
+                    tag='stage2'),
+            xt.TargetRelPhaseAdvance('mux', mux_ir8),
+            xt.TargetRelPhaseAdvance('muy', muy_ir8),
+        ],
+        vary=[
+            xt.VaryList([
+                f'kq6.l8{bn}', f'kq7.l8{bn}',
+                f'kq8.l8{bn}', f'kq9.l8{bn}', f'kq10.l8{bn}', f'kqtl11.l8{bn}',
+                f'kqt12.l8{bn}', f'kqt13.l8{bn}']
+            ),
+            xt.VaryList([f'kq4.l8{bn}', f'kq5.l8{bn}'], tag='stage1'),
+            xt.VaryList([
+                f'kq4.r8{bn}', f'kq5.r8{bn}', f'kq6.r8{bn}', f'kq7.r8{bn}',
+                f'kq8.r8{bn}', f'kq9.r8{bn}', f'kq10.r8{bn}', f'kqtl11.r8{bn}',
+                f'kqt12.r8{bn}', f'kqt13.r8{bn}'],
+                tag='stage2')
+        ]
+    )
+
+    if solve:
+        if staged_match:
+            opt.disable_targets(tag=['stage1', 'stage2'])
+            opt.disable_vary(tag=['stage2'])
+            opt.solve()
+
+            opt.enable_vary(tag='stage1')
+            opt.solve()
+
+            opt.enable_targets(tag='stage2')
+            opt.enable_vary(tag='stage2')
+            opt.solve()
+        else:
+            opt.solve()
+
+    return opt

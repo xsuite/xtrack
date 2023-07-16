@@ -15,8 +15,8 @@ d_muy_15_b1 = None
 d_mux_15_b2 = None
 d_muy_15_b2 = None
 
-d_mux_15_b1 = 0.1
-d_muy_15_b1 = 0.12
+d_mux_15_b1 = 0#.1
+d_muy_15_b1 = 0#.12
 # d_mux_15_b2 = -0.09
 # d_muy_15_b2 = -0.15
 
@@ -63,6 +63,13 @@ for bn in ['b1', 'b2']:
     muy_compensate_ir6 = (tw_sq_a45_ip5_a56['muy', f's.ds.l6.{bn}'] - tw_sq_a45_ip5_a56['muy', 'ip5']
                     - collider.varval[f'muyip5{bn}_r'] - collider.varval[f'muy56{bn}'])
     muy_ir6_target = collider.varval[f'muyip6{bn}'] - muy_compensate_ir6
+
+    mux_compensate_ir8 = (tw_sq_a81_ip1_a12['mux', 'ip1.l1'] - tw_sq_a81_ip1_a12['mux', f'e.ds.r8.{bn}']
+                    - collider.varval[f'muxip1{bn}_l'] - collider.varval[f'mux81{bn}'])
+    mux_ir8_target = collider.varval[f'muxip8{bn}'] - mux_compensate_ir8
+    muy_compensate_ir8 = (tw_sq_a81_ip1_a12['muy', 'ip1.l1'] - tw_sq_a81_ip1_a12['muy', f'e.ds.r8.{bn}']
+                    - collider.varval[f'muyip1{bn}_l'] - collider.varval[f'muy81{bn}'])
+    muy_ir8_target = collider.varval[f'muyip8{bn}'] - muy_compensate_ir8
 
     print(f"Matching IR2 {bn}")
 
@@ -158,8 +165,24 @@ for bn in ['b1', 'b2']:
             solve=True, staged_match=staged_match, default_tol=default_tol)
     optimizers[bn]['ip7'] = opt
 
+    print(f"Matching IP8 {bn}")
 
+    alfx_ip8 = collider.varval[f'alfxip8{bn}']
+    alfy_ip8 = collider.varval[f'alfyip8{bn}']
+    betx_ip8 = collider.varval[f'betxip8{bn}']
+    bety_ip8 = collider.varval[f'betyip8{bn}']
+    dx_ip8 = collider.varval[f'dxip8{bn}']
+    dpx_ip8 = collider.varval[f'dpxip8{bn}']
 
+    opt = lm.rematch_ir8(collider=collider, line_name=f'lhc{bn}',
+            boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['78'],
+            boundary_conditions_right=tw_sq_a81_ip1_a12,
+            mux_ir8=mux_ir8_target, muy_ir8=muy_ir8_target,
+            alfx_ip8=alfx_ip8, alfy_ip8=alfy_ip8,
+            betx_ip8=betx_ip8, bety_ip8=bety_ip8,
+            dx_ip8=dx_ip8, dpx_ip8=dpx_ip8,
+            solve=True, staged_match=staged_match, default_tol=default_tol)
+    optimizers[bn]['ip8'] = opt
 
 tw_b1_check = collider.lhcb1.twiss(
     ele_start='ip1', ele_stop='ip5',
