@@ -459,3 +459,48 @@ def rematch_ir4(collider, line_name,
         else:
             opt.solve()
 
+
+def rematch_ir6(collider, line_name,
+                boundary_conditions_left, boundary_conditions_right,
+                mux_ir6, muy_ir6,
+                alfx_ip6, alfy_ip6,
+                betx_ip6, bety_ip6,
+                dx_ip6, dpx_ip6,
+                solve=True, staged_match=False, default_tol=None):
+
+    assert line_name in ['lhcb1', 'lhcb2']
+    bn = line_name[-2:]
+
+    opt = collider[f'lhc{bn}'].match(
+        solve=False,
+        default_tol=default_tol,
+        ele_start=f's.ds.l6.{bn}', ele_stop=f'e.ds.r6.{bn}',
+        # Left boundary
+        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        targets=[
+            xt.Target('alfx', alfx_ip6, at='ip6'),
+            xt.Target('alfy', alfy_ip6, at='ip6'),
+            xt.Target('betx', betx_ip6, at='ip6'),
+            xt.Target('bety', bety_ip6, at='ip6'),
+            xt.Target('dx', dx_ip6, at='ip6'),
+            xt.Target('dpx', dpx_ip6, at='ip6'),
+            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                    value=boundary_conditions_right, at=f'e.ds.r6.{bn}'),
+            xt.TargetRelPhaseAdvance('mux', mux_ir6),
+            xt.TargetRelPhaseAdvance('muy', muy_ir6),
+        ],
+        vary=(
+            [xt.VaryList([
+                f'kqt13.l6{bn}', f'kqt12.l6{bn}', f'kqtl11.l6{bn}', f'kq10.l6{bn}',
+                f'kq9.l6{bn}', f'kq8.l6{bn}', f'kq5.l6{bn}',
+                f'kq5.r6{bn}', f'kq8.r6{bn}', f'kq9.r6{bn}',
+                f'kq10.r6{bn}', f'kqtl11.r6{bn}', f'kqt12.r6{bn}', f'kqt13.r6{bn}'])]
+            + [xt.Vary((f'kq4.r6{bn}' if bn == 'b1' else f'kq4.l6{bn}'))]
+        )
+    )
+
+    # No staged match for IR6
+    if solve:
+        opt.solve()
+
+    return opt
