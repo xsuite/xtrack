@@ -25,3 +25,10 @@ dy0 = tw_full['dy', location]
 dpy0 = tw_full['dpy', location]
 mux0 = tw_full['mux', location]
 muy0 = tw_full['muy', location]
+
+tw_init_custom = xt.TwissInit(betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0,
+                                dx=dx0, dpx=dpx0, dy=dy0, dpy=dpy0,
+                                mux=mux0, muy=muy0, element_name=location,
+                                line=line)
+
+tw = line.twiss(ele_start=location, ele_stop='ip7', twiss_init=tw_init_custom)
