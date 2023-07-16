@@ -16,6 +16,8 @@ d_muy_15_b1 = 0.12
 # d_mux_15_b2 = -0.09
 # d_muy_15_b2 = -0.15
 
+staged_match = False
+
 opt = lm.change_phase_non_ats_arcs(collider,
     d_mux_15_b1=d_mux_15_b1, d_muy_15_b1=d_muy_15_b1,
     d_mux_15_b2=d_mux_15_b2, d_muy_15_b2=d_muy_15_b2,
@@ -69,19 +71,22 @@ for bn in ['b1', 'b2']:
         ]
     )
 
-    opt.disable_all_vary()
-    opt.disable_all_targets()
+    if staged_match:
+        opt.disable_all_vary()
+        opt.disable_all_targets()
 
-    opt.enable_vary(tag='stage0')
-    opt.enable_targets(tag='stage0')
-    opt.solve()
+        opt.enable_vary(tag='stage0')
+        opt.enable_targets(tag='stage0')
+        opt.solve()
 
-    opt.enable_vary(tag='stage1')
-    opt.solve()
+        opt.enable_vary(tag='stage1')
+        opt.solve()
 
-    opt.enable_vary(tag='stage2')
-    opt.enable_targets(tag='stage2')
-    opt.solve()
+        opt.enable_vary(tag='stage2')
+        opt.enable_targets(tag='stage2')
+        opt.solve()
+    else:
+        opt.solve()
 
 # Check
 tw_sq_check = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
