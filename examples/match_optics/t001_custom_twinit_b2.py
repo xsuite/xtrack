@@ -49,6 +49,10 @@ assert np.isclose(tw['dy', location], dy0, atol=1e-9, rtol=0)
 assert np.isclose(tw['dpy', location], dpy0, atol=1e-9, rtol=0)
 assert np.isclose(tw['mux', location], mux0, atol=1e-9, rtol=0)
 assert np.isclose(tw['muy', location], muy0, atol=1e-9, rtol=0)
+assert np.isclose(tw['x', location], x0, atol=1e-9, rtol=0)
+assert np.isclose(tw['px', location], px0, atol=1e-9, rtol=0)
+assert np.isclose(tw['y', location], y0, atol=1e-9, rtol=0)
+assert np.isclose(tw['py', location], py0, atol=1e-9, rtol=0)
 
 # Check at a point in a downstream arc
 loc_check = 'mb.a24l7.b2'
@@ -71,5 +75,13 @@ assert np.isclose(tw['dpy', loc_check], tw_full['dpy', loc_check],
 assert np.isclose(tw['mux', loc_check], tw_full['mux', loc_check],
                     atol=1e-9, rtol=0)
 assert np.isclose(tw['muy', loc_check], tw_full['muy', loc_check],
+                    atol=1e-9, rtol=0)
+assert np.isclose(tw['x', loc_check], tw_full['x', loc_check],
+                    atol=1e-9, rtol=0)
+assert np.isclose(tw['px', loc_check], tw_full['px', loc_check],
+                    atol=1e-9, rtol=0)
+assert np.isclose(tw['y', loc_check], tw_full['y', loc_check],
+                    atol=1e-9, rtol=0)
+assert np.isclose(tw['py', loc_check], tw_full['py', loc_check],
                     atol=1e-9, rtol=0)
 
