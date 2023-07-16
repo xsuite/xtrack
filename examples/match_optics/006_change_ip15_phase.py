@@ -58,9 +58,6 @@ for bn in ['b1', 'b2']:
 
     print(f"Matching IR3 {bn}")
 
-    boundary_conditions_left = arc_periodic_solution[f'lhc{bn}']['23']
-    boundary_conditions_right = arc_periodic_solution[f'lhc{bn}']['34']
-
     alfx_ip3 = collider.varval[f'alfxip3{bn}']
     alfy_ip3 = collider.varval[f'alfyip3{bn}']
     betx_ip3 = collider.varval[f'betxip3{bn}']
@@ -70,38 +67,11 @@ for bn in ['b1', 'b2']:
     mux_ir3 = collider.varval[f'muxip3{bn}']
     muy_ir3 = collider.varval[f'muyip3{bn}']
 
-    opt = collider[f'lhc{bn}'].match(
-        solve=False,
-        default_tol=default_tol,
-        ele_start=f's.ds.l3.{bn}', ele_stop=f'e.ds.r3.{bn}',
-        # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
-        targets=[
-            xt.Target('alfx', alfx_ip3, at='ip3', tag='stage1'),
-            xt.Target('alfy', alfy_ip3, at='ip3', tag='stage1'),
-            xt.Target('betx', betx_ip3, at='ip3', tag='stage1'),
-            xt.Target('bety', bety_ip3, at='ip3', tag='stage1'),
-            xt.Target('dx', dx_ip3, at='ip3', tag='stage1'),
-            xt.Target('dpx', dpx_ip3, at='ip3', tag='stage1'),
-            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
-                    value=boundary_conditions_right, at=f'e.ds.r3.{bn}'),
-            xt.TargetRelPhaseAdvance('mux', mux_ir3),
-            xt.TargetRelPhaseAdvance('muy', muy_ir3),
-        ],
-        vary=[
-            xt.VaryList([f'kqt13.l3{bn}', f'kqt12.l3{bn}', f'kqtl11.l3{bn}',
-                         f'kqtl10.l3{bn}', f'kqtl9.l3{bn}', f'kqtl8.l3{bn}',
-                         f'kqtl7.l3{bn}', f'kq6.l3{bn}',
-                         f'kq6.r3{bn}', f'kqtl7.r3{bn}',
-                         f'kqtl8.r3{bn}', f'kqtl9.r3{bn}', f'kqtl10.r3{bn}',
-                         f'kqtl11.r3{bn}', f'kqt12.r3{bn}', f'kqt13.r3{bn}'])
-        ]
-    )
-
-    if staged_match:
-        opt.disable_targets(tag='stage1')
-        opt.solve()
-        opt.enable_targets(tag='stage1')
-        opt.solve()
-    else:
-        opt.solve()
+    opt = lm.rematch_ir3(collider=collider, line_name=f'lhc{bn}',
+                boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['23'],
+                boundary_conditions_right=arc_periodic_solution[f'lhc{bn}']['34'],
+                mux_ir3=mux_ir3, muy_ir3=muy_ir3,
+                alfx_ip3=alfx_ip3, alfy_ip3=alfy_ip3,
+                betx_ip3=betx_ip3, bety_ip3=bety_ip3,
+                dx_ip3=dx_ip3, dpx_ip3=dpx_ip3,
+                solve=True, staged_match=staged_match, default_tol=default_tol)
