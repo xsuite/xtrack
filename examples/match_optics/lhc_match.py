@@ -82,7 +82,7 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
 def match_arc_phase_advance(collider, arc_name,
                             target_mux_b1, target_muy_b1,
                             target_mux_b2, target_muy_b2,
-                            solve=True):
+                            solve=True, default_tol=None):
 
     assert collider.lhcb1.twiss_default.get('reverse', False) is False
     assert collider.lhcb2.twiss_default['reverse'] is True
@@ -96,6 +96,7 @@ def match_arc_phase_advance(collider, arc_name,
 
     opt=collider.match(
         solve=False,
+        default_tol=default_tol,
         targets=[
             action_phase_b1.target('mux', target_mux_b1),
             action_phase_b1.target('muy', target_muy_b1),
@@ -224,7 +225,7 @@ class ActionPhase_67_78(xt.Action):
 
 def change_phase_non_ats_arcs(collider,
     d_mux_15_b1=None, d_muy_15_b1=None, d_mux_15_b2=None, d_muy_15_b2=None,
-    solve=True):
+    solve=True, default_tol=None):
 
     assert (d_mux_15_b1 is not None or d_muy_15_b1 is not None
             or d_mux_15_b2 is not None or d_muy_15_b2 is not None), (
@@ -290,6 +291,7 @@ def change_phase_non_ats_arcs(collider,
 
     opt = collider.match(
         solve=False,
+        default_tol=default_tol,
         solver_options={'n_bisections': 5},
         vary=vary,
         targets=targets,
@@ -303,13 +305,14 @@ def change_phase_non_ats_arcs(collider,
 def rematch_ir2(collider, line_name,
                 boundary_conditions_left, boundary_conditions_right,
                 mux_ir2, muy_ir2, betx_ip2, bety_ip2,
-                solve=True, staged_match=False):
+                solve=True, staged_match=False, default_tol=None):
 
     assert line_name in ['lhcb1', 'lhcb2']
     bn = line_name[-2:]
 
     opt = collider[f'lhc{bn}'].match(
         solve=False,
+        default_tol=default_tol,
         ele_start=f's.ds.l2.{bn}', ele_stop=f'e.ds.r2.{bn}',
         # Left boundary
         twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
