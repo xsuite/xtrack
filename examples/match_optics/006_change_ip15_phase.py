@@ -15,8 +15,8 @@ d_muy_15_b1 = None
 d_mux_15_b2 = None
 d_muy_15_b2 = None
 
-d_mux_15_b1 = 0.1
-d_muy_15_b1 = 0.12
+d_mux_15_b1 = 0#.1
+d_muy_15_b1 = 0#.12
 # d_mux_15_b2 = -0.09
 # d_muy_15_b2 = -0.15
 
@@ -136,6 +136,29 @@ for bn in ['b1', 'b2']:
                 dx_ip6=dx_ip6, dpx_ip6=dpx_ip6,
                 solve=True, staged_match=staged_match, default_tol=default_tol)
     optimizers[bn]['ir6'] = opt
+
+    print(f"Matching IP7 {bn}")
+
+    alfx_ip7 = collider.varval[f'alfxip7{bn}']
+    alfy_ip7 = collider.varval[f'alfyip7{bn}']
+    betx_ip7 = collider.varval[f'betxip7{bn}']
+    bety_ip7 = collider.varval[f'betyip7{bn}']
+    dx_ip7 = collider.varval[f'dxip7{bn}']
+    dpx_ip7 = collider.varval[f'dpxip7{bn}']
+    mux_ir7 = collider.varval[f'muxip7{bn}']
+    muy_ir7 = collider.varval[f'muyip7{bn}']
+
+    opt = lm.rematch_ir7(collider=collider, line_name=f'lhc{bn}',
+            boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['67'],
+            boundary_conditions_right=arc_periodic_solution[f'lhc{bn}']['78'],
+            mux_ir7=mux_ir7, muy_ir7=muy_ir7,
+            alfx_ip7=alfx_ip7, alfy_ip7=alfy_ip7,
+            betx_ip7=betx_ip7, bety_ip7=bety_ip7,
+            dx_ip7=dx_ip7, dpx_ip7=dpx_ip7,
+            solve=True, staged_match=staged_match, default_tol=default_tol)
+    optimizers[bn]['ip7'] = opt
+
+
 
 
 tw_b1_check = collider.lhcb1.twiss(

@@ -504,3 +504,55 @@ def rematch_ir6(collider, line_name,
         opt.solve()
 
     return opt
+
+def rematch_ir7(collider, line_name,
+              boundary_conditions_left, boundary_conditions_right,
+              mux_ir7, muy_ir7,
+              alfx_ip7, alfy_ip7,
+              betx_ip7, bety_ip7,
+              dx_ip7, dpx_ip7,
+              solve=True, staged_match=False, default_tol=None):
+
+    assert line_name in ['lhcb1', 'lhcb2']
+    bn = line_name[-2:]
+
+    opt = collider[f'lhc{bn}'].match(
+        solve=False,
+        default_tol=default_tol,
+        ele_start=f's.ds.l7.{bn}', ele_stop=f'e.ds.r7.{bn}',
+        # Left boundary
+        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        targets=[
+            xt.Target('alfx', alfx_ip7, at='ip7', tag='stage1'),
+            xt.Target('alfy', alfy_ip7, at='ip7', tag='stage1'),
+            xt.Target('betx', betx_ip7, at='ip7', tag='stage1'),
+            xt.Target('bety', bety_ip7, at='ip7', tag='stage1'),
+            xt.Target('dx', dx_ip7, at='ip7', tag='stage1'),
+            xt.Target('dpx', dpx_ip7, at='ip7', tag='stage1'),
+            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                    value=boundary_conditions_right, at=f'e.ds.r7.{bn}'),
+            xt.TargetRelPhaseAdvance('mux', mux_ir7),
+            xt.TargetRelPhaseAdvance('muy', muy_ir7),
+        ],
+        vary=[
+            xt.VaryList([
+                f'kqt13.l7{bn}', f'kqt12.l7{bn}', f'kqtl11.l7{bn}',
+                f'kqtl10.l7{bn}', f'kqtl9.l7{bn}', f'kqtl8.l7{bn}',
+                f'kqtl7.l7{bn}', f'kq6.l7{bn}',
+                f'kq6.r7{bn}', f'kqtl7.r7{bn}',
+                f'kqtl8.r7{bn}', f'kqtl9.r7{bn}', f'kqtl10.r7{bn}',
+                f'kqtl11.r7{bn}', f'kqt12.r7{bn}', f'kqt13.r7{bn}'
+            ])
+        ]
+    )
+
+    if solve:
+        if staged_match:
+            opt.disable_targets(tag='stage1')
+            opt.solve()
+            opt.enable_targets(tag='stage1')
+            opt.solve()
+        else:
+            opt.solve()
+
+    return opt
