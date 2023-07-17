@@ -25,3 +25,9 @@ All these numbers are assigned by the optics matcher
 
 Questions:
  - How do we handle energy dependence of limits?
+ - Logic for mcbx usage? What is the constant in there?
+
+Notes:
+ - Need way to provide multiple targets with values
+ - Need way to override individual fields in TwissInit
+ - Would prefer to give TwissInit without line and element_name
