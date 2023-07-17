@@ -352,14 +352,8 @@ exec,set_mcbx8; on_x8h=xang;exec,mkknob(ir8h,on_x8h);
 !exec,set_mcbx8; on_x8h=xang;exec,mkknob(ir8h,on_x8h);
 !nn=nn-2;
 !};
-exec,set_mcbx8; on_a8h=aoff;exec,mkknob(ir8h,on_a8h);
 exec,set_mcbx8; on_x8v=xang;exec,mkknob(ir8v,on_x8v);
 exec,set_mcbx8; on_a8v=aoff;exec,mkknob(ir8v,on_a8v);
-
-exec,set_mcbx8; on_sep8h=psep;exec,mkknob(ir8h,on_sep8h);
-exec,set_mcbx8; on_o8h=off   ;exec,mkknob(ir8h,on_o8h);
-exec,set_mcbx8; on_sep8v=psep;exec,mkknob(ir8v,on_sep8v);
-exec,set_mcbx8; on_o8v=off   ;exec,mkknob(ir8v,on_o8v);
 
 
 ! setting knobs
