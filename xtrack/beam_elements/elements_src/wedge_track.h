@@ -23,7 +23,7 @@ void Wedge_single_particle(
     }
 
     // Params
-    const double b1 = k0 * LocalParticle_get_q0(part) * LocalParticle_get_charge_ratio(part);
+    const double b1 = k0;
 
     const double rvv = LocalParticle_get_rvv(part);
     // Particle coordinates

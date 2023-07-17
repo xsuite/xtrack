@@ -25,12 +25,10 @@ void track_thick_cfd(
         return;
     }
 
-    const double beta0 = LocalParticle_get_beta0(part);
     const double x = LocalParticle_get_x(part);
     const double y = LocalParticle_get_y(part);
     const double px = LocalParticle_get_px(part);
     const double py = LocalParticle_get_py(part);
-    const double pt = LocalParticle_get_ptau(part);
     const double rvv = LocalParticle_get_rvv(part);
 
     // In MAD-X (delta + 1) is computed:
@@ -42,7 +40,7 @@ void track_thick_cfd(
     const double Kx = k0 * h + k1;
     const double Ky = -k1;
 
-    double x_, px_, y_, py_, z_, Sx, Sy, Cx, Cy;
+    double x_, px_, y_, py_, Sx, Sy, Cx, Cy;
 
     if (Kx > 0.0) {
         double sqrt_Kx = sqrt(Kx);
