@@ -162,6 +162,12 @@ class Multiline:
 
         return cls.from_dict(dct, **kwargs)
 
+    def copy(self):
+        '''
+        Returns a deep copy of the multiline.
+        '''
+        return self.__class__.from_dict(self.to_dict())
+
     def __getstate__(self):
         out = self.__dict__.copy()
         for nn, ll in self.lines.items():
