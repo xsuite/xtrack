@@ -266,28 +266,6 @@ create,table=knob_on_x8h,
               acbchs5.l8b1,acbchs5.l8b2,acbyhs5.r8b1,acbyhs5.r8b2,
               pxip8b1,pxip8b2;
 
-delete,table=knob_on_a8h;
-create,table=knob_on_a8h,
-       column=acbyhs4.l8b1,acbyhs4.l8b2,acbyhs4.r8b1,acbyhs4.r8b2,
-              acbchs5.l8b1,acbchs5.l8b2,acbyhs5.r8b1,acbyhs5.r8b2,
-              pxip8b1,pxip8b2;
-
-
-delete,table=knob_on_sep8h;
-create,table=knob_on_sep8h,
-       column=acbxh1.l8,acbxh1.r8,
-              acbxh2.l8,acbxh2.r8,
-              acbxh3.l8,acbxh3.r8,
-              acbyhs4.l8b1,acbyhs4.l8b2,acbyhs4.r8b1,acbyhs4.r8b2,
-              acbchs5.l8b1,acbchs5.l8b2,acbyhs5.r8b1,acbyhs5.r8b2,
-              xip8b1,xip8b2;
-
-delete,table=knob_on_o8h;
-create,table=knob_on_o8h,
-       column=acbyhs4.l8b1,acbyhs4.l8b2,acbyhs4.r8b1,acbyhs4.r8b2,
-              acbchs5.l8b1,acbchs5.l8b2,acbyhs5.r8b1,acbyhs5.r8b2,
-              xip8b1,xip8b2;
-
 delete,table=knob_on_x8v;
 create,table=knob_on_x8v,
        column=acbxv1.l8,acbxv1.r8,
@@ -296,27 +274,6 @@ create,table=knob_on_x8v,
               acbyvs4.l8b1,acbyvs4.l8b2,acbyvs4.r8b1,acbyvs4.r8b2,
               acbcvs5.l8b1,acbcvs5.l8b2,acbyvs5.r8b1,acbyvs5.r8b2,
               pyip8b1,pyip8b2;
-
-delete,table=knob_on_a8v;
-create,table=knob_on_a8v,
-       column=acbyvs4.l8b1,acbyvs4.l8b2,acbyvs4.r8b1,acbyvs4.r8b2,
-              acbcvs5.l8b1,acbcvs5.l8b2,acbyvs5.r8b1,acbyvs5.r8b2,
-              pyip8b1,pyip8b2;
-
-delete,table=knob_on_sep8v;
-create,table=knob_on_sep8v,
-       column=acbxv1.l8,acbxv1.r8,
-              acbxv2.l8,acbxv2.r8,
-              acbxv3.l8,acbxv3.r8,
-              acbyvs4.l8b1,acbyvs4.l8b2,acbyvs4.r8b1,acbyvs4.r8b2,
-              acbcvs5.l8b1,acbcvs5.l8b2,acbyvs5.r8b1,acbyvs5.r8b2,
-              yip8b1,yip8b2;
-
-delete,table=knob_on_o8v;
-create,table=knob_on_o8v,
-       column=acbyvs4.l8b1,acbyvs4.l8b2,acbyvs4.r8b1,acbyvs4.r8b2,
-              acbcvs5.l8b1,acbcvs5.l8b2,acbyvs5.r8b1,acbyvs5.r8b2,
-              yip8b1,yip8b2;
 
 ! reset values
 exec,mktable_orbit8h(orbit_ir8h);
