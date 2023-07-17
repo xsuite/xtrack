@@ -136,8 +136,8 @@ match, sequence=lhcb1,lhcb2, beta0= bir8b1,bir8b2,
   vary,name=acbyhs5.r8b1,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
   vary,name=acbyhs5.r8b2,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
   jacobian, calls = 10, tolerance=1.e-30,bisec=3;
-  endmatch;
-  if (tar>1e-10){
+endmatch;
+if (tar>1e-10){
     ACBXX.IR8=0.0e-6/170;exec,set_mcbx8;
     acbyhs4.l8b1=0; acbyhs4.r8b2=0; acbyhs4.l8b2=0; acbyhs4.r8b1=0;
     acbchs5.l8b2=0; acbchs5.l8b1=0; acbyhs5.r8b1=0; acbyhs5.r8b2=0;
@@ -162,40 +162,9 @@ match, sequence=lhcb1,lhcb2, beta0= bir8b1,bir8b2,
     ACBXH3.R8:=ACBXH1.R8;
     ACBXH2.R8:=ACBXH1.R8;
     ACBXH1.R8:=-ACBXH1.L8;
-    !vary,name=ACBXH1.R8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
-    !vary,name=ACBXH2.R8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
-    !vary,name=ACBXH3.R8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
     vary,name=ACBXH1.L8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
-    !vary,name=ACBXH2.L8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
-    !vary,name=ACBXH3.L8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
     jacobian, calls = 20, tolerance=1.e-30,bisec=3;
     endmatch;
-    !acbxavgl=(ACBXH1.L8+ACBXH2.L8+ACBXH3.L8);
-    !acbxavgr=(ACBXH1.R8+ACBXH2.R8+ACBXH3.R8);
-    !ACBXH1.R8=acbxavgr;
-    !ACBXH2.R8=acbxavgr;
-    !ACBXH3.R8=acbxavgr;
-    !ACBXH1.L8=acbxavgl;
-    !ACBXH2.L8=acbxavgl;
-    !ACBXH3.L8=acbxavgl;
-    !use, sequence= lhcb1,range=s.ds.l8.b1/e.ds.r8.b1;
-    !use, sequence= lhcb2,range=s.ds.l8.b2/e.ds.r8.b2;
-    !match, sequence=lhcb1,lhcb2, beta0= bir8b1,bir8b2,
-    !      x = 0.0, px = 0.0, y = 0.0, py = 0.0;
-    !constraint, sequence=lhcb1,range=IP8,  x = xip8b1, px = pxip8b1;
-    !constraint, sequence=lhcb1,range=E.DS.R8.B1,x = 0.0, px = 0.0;
-    !constraint, sequence=lhcb2,range=IP8,  x = xip8b2, px = pxip8b2;
-    !constraint, sequence=lhcb2,range=E.DS.R8.B2,x = 0.0, px = 0.0;
-    !vary,name=acbyhs4.l8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-    !vary,name=acbyhs4.r8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-    !vary,name=acbyhs4.l8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-    !vary,name=acbyhs4.r8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-    !vary,name=acbchs5.l8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-    !vary,name=acbchs5.l8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-    !vary,name=acbyhs5.r8b1,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
-    !vary,name=acbyhs5.r8b2,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
-    !jacobian, calls = 20, tolerance=1.e-30,bisec=3;
-    !endmatch;
   };
 };
 
