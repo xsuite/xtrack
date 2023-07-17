@@ -12,6 +12,7 @@ import xtrack as xt
 import xpart as xp
 
 from xtrack import Line, Node, Multipole
+from xtrack.compounds import Compound, SlicedCompound
 from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(
@@ -276,6 +277,34 @@ def test_remove_redundant_apertures():
     assert xt._lines_equal(line, original_line)
 
 
+def test_redundant_apertures_with_compounds():
+    sequence = [
+        ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('d0', xt.Drift(length=0.6)),
+        ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('d1', xt.Drift(length=0.4)),
+        ('a2', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('m2', xt.Marker()),
+        ('d2..1', xt.Drift(length=0.2)),
+        ('d2..2', xt.Drift(length=0.2)),
+        ('a3', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('d3', xt.Drift(length=0.4)),
+    ]
+    line = xt.Line(elements=dict(sequence), element_names=[n for n, _ in sequence])
+    compound = Compound(core=['d1'], aperture=['a1'])
+    compound_sliced = SlicedCompound(elements=['a2', 'm2', 'd2..1', 'd2..2'])
+    line.compound_container.define_compound('c1', compound)
+    line.compound_container.define_compound('c2', compound_sliced)
+
+    line.remove_redundant_apertures()
+
+    expected_names = ['d0', 'a1', 'd1', 'm2', 'd2..1', 'd2..2', 'a3', 'd3']
+    assert line.element_names == expected_names
+
+    assert 'a1' not in line.get_compound_by_name('c1').elements
+    assert 'a2' not in line.get_compound_by_name('c2').elements
+
+
 def test_remove_redundant_apertures_not_inplace():
 
     # Test removing all consecutive middle apertures
@@ -304,6 +333,40 @@ def test_remove_redundant_apertures_not_inplace():
     assert new_aper == [all_aper[0], all_aper[-1]]
     new_aper_pos = [newline.get_s_position(ap) for ap in new_aper]
     assert new_aper_pos == [all_aper_pos[0], all_aper_pos[-1]]
+
+
+def test_redundant_apertures_with_compounds_not_inplace():
+    sequence = [
+        ('a0', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('d0', xt.Drift(length=0.6)),
+        ('a1', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('d1', xt.Drift(length=0.4)),
+        ('a2', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('m2', xt.Marker()),
+        ('d2..1', xt.Drift(length=0.2)),
+        ('d2..2', xt.Drift(length=0.2)),
+        ('a3', xt.LimitRect(min_x=-0.3, max_x=0.3, min_y=-0.3, max_y=0.3)),
+        ('d3', xt.Drift(length=0.4)),
+    ]
+    line = xt.Line(elements=dict(sequence), element_names=[n for n, _ in sequence])
+    compound = Compound(core=['d1'], aperture=['a1'])
+    compound_sliced = SlicedCompound(elements=['a2', 'm2', 'd2..1', 'd2..2'])
+    line.compound_container.define_compound('c1', compound)
+    line.compound_container.define_compound('c2', compound_sliced)
+
+    new_line = line.remove_redundant_apertures(inplace=False)
+
+    expected_new_names = ['a0', 'd0', 'd1', 'm2', 'd2..1', 'd2..2', 'a3', 'd3']
+    assert new_line.element_names == expected_new_names
+
+    expected_names = ['a0', 'd0', 'a1', 'd1', 'a2', 'm2', 'd2..1', 'd2..2', 'a3', 'd3']
+    assert line.element_names == expected_names
+
+    assert 'a1' not in new_line.get_compound_by_name('c1').elements
+    assert 'a2' not in new_line.get_compound_by_name('c2').elements
+
+    assert 'a1' in line.get_compound_by_name('c1').elements
+    assert 'a2' in line.get_compound_by_name('c2').elements
 
 
 def test_insert():
