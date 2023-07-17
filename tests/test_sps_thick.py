@@ -34,11 +34,11 @@ def test_sps_thick(test_context, deferred_expressions):
     line.twiss_default['method'] = '4d'
 
     # Check a bend
-    assert line.element_names[52] == 'mbb.10150_entry'
-    assert line.element_names[53] == 'mbb.10150_den'
-    assert line.element_names[54] == 'mbb.10150'
-    assert line.element_names[55] == 'mbb.10150_dex'
-    assert line.element_names[56] == 'mbb.10150_exit'
+    assert line.element_names[60] == 'mbb.10150_entry'
+    assert line.element_names[61] == 'mbb.10150_den'
+    assert line.element_names[62] == 'mbb.10150'
+    assert line.element_names[63] == 'mbb.10150_dex'
+    assert line.element_names[64] == 'mbb.10150_exit'
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
     assert isinstance(line['mbb.10150_den'], xt.DipoleEdge)
@@ -139,9 +139,8 @@ def test_sps_thick(test_context, deferred_expressions):
     line.build_tracker(_context=test_context)
 
     # Check a bend
-    assert line.element_names[111] == 'mbb.10150_entry'
-    assert line.element_names[112] == 'mbb.10150_den'
-    assert line.element_names[113] == 'mbb.10150'
+    assert line.element_names[112] == 'mbb.10150_entry'
+    assert line.element_names[113] == 'mbb.10150_den'
     assert line.element_names[114] == 'drift_mbb.10150..0'
     assert line.element_names[115] == 'mbb.10150..0'
     assert line.element_names[116] == 'drift_mbb.10150..1'
@@ -152,7 +151,6 @@ def test_sps_thick(test_context, deferred_expressions):
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
     assert isinstance(line['mbb.10150_den'], xt.DipoleEdge)
-    assert isinstance(line['mbb.10150'], xt.Marker)
     assert isinstance(line['drift_mbb.10150..0'], xt.Drift)
     assert isinstance(line['mbb.10150..0'], xt.Multipole)
     assert isinstance(line['drift_mbb.10150..1'], xt.Drift)
@@ -162,7 +160,7 @@ def test_sps_thick(test_context, deferred_expressions):
     assert isinstance(line['mbb.10150_exit'], xt.Marker)
 
     # Check a quadrupole
-    assert line.element_names[158] == 'qf.10210'
+    assert line.element_names[158] == 'qf.10210_entry'
     assert line.element_names[159] == 'drift_qf.10210..0'
     assert line.element_names[160] == 'qf.10210..0'
     assert line.element_names[161] == 'drift_qf.10210..1'
@@ -180,6 +178,7 @@ def test_sps_thick(test_context, deferred_expressions):
     assert line.element_names[173] == 'drift_qf.10210..7'
     assert line.element_names[174] == 'qf.10210..7'
     assert line.element_names[175] == 'drift_qf.10210..8'
+    assert line.element_names[176] == 'qf.10210_exit'
 
     assert line['mbb.10150_den'].model == 'full'
     assert line['mbb.10150_den'].side == 'entry'
