@@ -55,6 +55,14 @@ qtlimit4 = 1.0*125.0/scale
 qtlimit5 = 1.0*120.0/scale
 qtlimit6 = 1.0*90.0/scale
 
+limitmcbxh =  63.5988e-6
+limitmcbxv =  67.0164e-6
+limitmcbx  =  67.0164e-6
+limitmcby  =  96.3000e-6
+limitmcb   =  80.8000e-6
+limitmcbc  =  89.8700e-6
+limitmcbw  =  80.1400e-6
+
 
 collider.vars.vary_default.update({
     'kqtf.a12b1': {'step': 1e-8, 'limits': None},
@@ -323,6 +331,23 @@ collider.vars.vary_default.update({
     'kqtl11.l8b2': {'step': 1.0E-6, 'limits': (-qtlimit4, qtlimit4)},
     'kqt12.l8b2':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
     'kqt13.l8b2':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
+
+    'acbyvs4.l8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
+    'acbcvs5.l8b1':{'step': 1.0e-15, 'limits':(-limitmcbc, limitmcbc)},
+    'acbyvs4.r8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
+    'acbyvs5.r8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
+
+    'acbyvs4.l8b2':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
+    'acbcvs5.l8b2':{'step': 1.0e-15, 'limits':(-limitmcbc, limitmcbc)},
+    'acbyvs4.r8b2':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
+    'acbyvs5.r8b2':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
+
+    'acbxv1.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxv2.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxv3.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxv1.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxv2.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxv3.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
 })
 
 collider.to_json('hllhc.json')
