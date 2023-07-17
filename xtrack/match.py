@@ -330,7 +330,8 @@ def match_knob_line(line, knob_name, vary, targets,
         line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
         vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
 
-    line.match(vary=vary_aux, targets = targets, **kwargs)
+    opt = line.match(vary=vary_aux, targets = targets, solve=False, **kwargs)
+    opt.solve()
 
     line.vars[knob_name] = knob_value_end
     for vv in vary_aux:

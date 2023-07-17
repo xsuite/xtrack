@@ -31,3 +31,5 @@ Notes:
  - Need way to provide multiple targets with values
  - Need way to override individual fields in TwissInit
  - Would prefer to give TwissInit without line and element_name
+ - Need to homogenize output of optimizer for solve=True and solve=False
+ - Need a quick way of getting the results

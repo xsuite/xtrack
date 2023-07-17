@@ -69,53 +69,6 @@ create,table=kkkk,
               yip8b1,yip8b2,pyip8b1,pyip8b2;
 };
 
-match_orbit_ir2h(xip2b1,xip2b2,pxip2b1,pxip2b2): macro={
-acbyhs4.l2b1=0; acbyhs4.r2b2=0; acbyhs4.l2b2=0; acbyhs4.r2b1=0;
-acbyhs5.l2b2=0; acbyhs5.l2b1=0; acbchs5.r2b1=0; acbchs5.r2b2=0;
-use, sequence= lhcb1,range=s.ds.l2.b1/e.ds.r2.b1;
-use, sequence= lhcb2,range=s.ds.l2.b2/e.ds.r2.b2;
-match, sequence=lhcb1,lhcb2, beta0= bir2b1,bir2b2,
-        x = 0.0, px = 0.0, y = 0.0, py = 0.0;
-  constraint, sequence=lhcb1,range=IP2,  x = xip2b1, px = pxip2b1;
-  constraint, sequence=lhcb1,range=E.DS.R2.B1,x = 0.0, px = 0.0;
-  constraint, sequence=lhcb2,range=IP2,  x = xip2b2, px = pxip2b2;
-  constraint, sequence=lhcb2,range=E.DS.R2.B2,x = 0.0, px = 0.0;
-  vary,name=acbyhs4.l2b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyhs4.r2b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyhs4.l2b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyhs4.r2b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyhs5.l2b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyhs5.l2b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbchs5.r2b1,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
-  vary,name=acbchs5.r2b2,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
-  jacobian, calls = 10, tolerance=1.e-30,bisec=3;
-  endmatch;
-};
-
-
-match_orbit_ir2v(yip2b1,yip2b2,pyip2b1,pyip2b2): macro={
-acbyvs4.l2b1=0; acbyvs4.r2b2=0; acbyvs4.l2b2=0; acbyvs4.r2b1=0;
-acbyvs5.l2b2=0; acbyvs5.l2b1=0; acbcvs5.r2b1=0; acbcvs5.r2b2=0;
-use, sequence= lhcb1,range=s.ds.l2.b1/e.ds.r2.b1;
-use, sequence= lhcb2,range=s.ds.l2.b2/e.ds.r2.b2;
-match, sequence=lhcb1,lhcb2, beta0= bir2b1,bir2b2,
-        x = 0.0, px = 0.0, y = 0.0, py = 0.0;
-  constraint, sequence=lhcb1,range=IP2,  y = yip2b1, py = pyip2b1;
-  constraint, sequence=lhcb1,range=E.DS.R2.B1,y = 0.0, py = 0.0;
-  constraint, sequence=lhcb2,range=IP2,  y = yip2b2, py = pyip2b2;
-  constraint, sequence=lhcb2,range=E.DS.R2.B2,y = 0.0, py = 0.0;
-  vary,name=acbyvs4.l2b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyvs4.r2b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyvs4.l2b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyvs4.r2b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyvs5.l2b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbyvs5.l2b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
-  vary,name=acbcvs5.r2b1,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
-  vary,name=acbcvs5.r2b2,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
-  jacobian, calls = 10, tolerance=1.e-30,bisec=3;
-  endmatch;
-};
-
 match_orbit_ir8h(xip8b1,xip8b2,pxip8b1,pxip8b2): macro={
 acbyhs4.l8b1=0; acbyhs4.r8b2=0; acbyhs4.l8b2=0; acbyhs4.r8b1=0;
 acbchs5.l8b2=0; acbchs5.l8b1=0; acbyhs5.r8b1=0; acbyhs5.r8b2=0;
