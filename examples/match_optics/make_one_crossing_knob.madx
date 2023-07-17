@@ -238,20 +238,7 @@ mkknob(ssss,kkkk): macro={
   kkkk=0;
 };
 
-set_mcbx2(ACBXX.IR2,ACBXS.IR2): macro={
-ACBXH1.L2:=ACBXS.IR2* on_sep2h+ACBXX.IR2* on_x2h  ;
-ACBXH2.L2:=ACBXS.IR2* on_sep2h+ACBXX.IR2* on_x2h  ;
-ACBXH3.L2:=ACBXS.IR2* on_sep2h+ACBXX.IR2* on_x2h  ;
-ACBXV1.L2:=ACBXX.IR2* on_x2v  +ACBXS.IR2* on_sep2v;
-ACBXV2.L2:=ACBXX.IR2* on_x2v  +ACBXS.IR2* on_sep2v;
-ACBXV3.L2:=ACBXX.IR2* on_x2v  +ACBXS.IR2* on_sep2v;
-ACBXH1.R2 := ACBXS.IR2* on_sep2h-ACBXX.IR2* on_x2h  ;
-ACBXH2.R2 := ACBXS.IR2* on_sep2h-ACBXX.IR2* on_x2h  ;
-ACBXH3.R2 := ACBXS.IR2* on_sep2h-ACBXX.IR2* on_x2h  ;
-ACBXV1.R2 :=-ACBXX.IR2* on_x2v  +ACBXS.IR2* on_sep2v;
-ACBXV2.R2 :=-ACBXX.IR2* on_x2v  +ACBXS.IR2* on_sep2v;
-ACBXV3.R2 :=-ACBXX.IR2* on_x2v  +ACBXS.IR2* on_sep2v;
-};
+
 
 set_mcbx8(ACBXX.IR8,ACBXS.IR8): macro={
 ACBXH1.L8:=ACBXX.IR8* on_x8h  +ACBXS.IR8* on_sep8h;
@@ -268,65 +255,6 @@ ACBXV2.R8 := ACBXS.IR8* on_sep8v-ACBXX.IR8* on_x8v  ;
 ACBXV3.R8 := ACBXS.IR8* on_sep8v-ACBXX.IR8* on_x8v  ;
 };
 
-delete,table=knob_on_x2h;
-create,table=knob_on_x2h,
-       column=acbxh1.l2,acbxh1.r2,
-              acbxh2.l2,acbxh2.r2,
-              acbxh3.l2,acbxh3.r2,
-              acbyhs4.l2b1,acbyhs4.l2b2,acbyhs4.r2b1,acbyhs4.r2b2,
-              acbyhs5.l2b1,acbyhs5.l2b2,acbchs5.r2b1,acbchs5.r2b2,
-              pxip2b1,pxip2b2;
-
-delete,table=knob_on_a2h;
-create,table=knob_on_a2h,
-       column=acbyhs4.l2b1,acbyhs4.l2b2,acbyhs4.r2b1,acbyhs4.r2b2,
-              acbyhs5.l2b1,acbyhs5.l2b2,acbchs5.r2b1,acbchs5.r2b2,
-              pxip2b1,pxip2b2;
-
-delete,table=knob_on_sep2h;
-create,table=knob_on_sep2h,
-       column=acbxh1.l2,acbxh1.r2,
-              acbxh2.l2,acbxh2.r2,
-              acbxh3.l2,acbxh3.r2,
-              acbyhs4.l2b1,acbyhs4.l2b2,acbyhs4.r2b1,acbyhs4.r2b2,
-              acbyhs5.l2b1,acbyhs5.l2b2,acbchs5.r2b1,acbchs5.r2b2,
-              xip2b1,xip2b2;
-
-delete,table=knob_on_o2h;
-create,table=knob_on_o2h,
-       column=acbyhs4.l2b1,acbyhs4.l2b2,acbyhs4.r2b1,acbyhs4.r2b2,
-              acbyhs5.l2b1,acbyhs5.l2b2,acbchs5.r2b1,acbchs5.r2b2,
-              xip2b1,xip2b2;
-
-delete,table=knob_on_x2v;
-create,table=knob_on_x2v,
-       column=acbxv1.l2,acbxv1.r2,
-              acbxv2.l2,acbxv2.r2,
-              acbxv3.l2,acbxv3.r2,
-              acbyvs4.l2b1,acbyvs4.l2b2,acbyvs4.r2b1,acbyvs4.r2b2,
-              acbyvs5.l2b1,acbyvs5.l2b2,acbcvs5.r2b1,acbcvs5.r2b2,
-              pyip2b1,pyip2b2;
-
-delete,table=knob_on_a2v;
-create,table=knob_on_a2v,
-       column=acbyvs4.l2b1,acbyvs4.l2b2,acbyvs4.r2b1,acbyvs4.r2b2,
-              acbyvs5.l2b1,acbyvs5.l2b2,acbcvs5.r2b1,acbcvs5.r2b2,
-              pyip2b1,pyip2b2;
-
-delete,table=knob_on_sep2v;
-create,table=knob_on_sep2v,
-       column=acbxv1.l2,acbxv1.r2,
-              acbxv2.l2,acbxv2.r2,
-              acbxv3.l2,acbxv3.r2,
-              acbyvs4.l2b1,acbyvs4.l2b2,acbyvs4.r2b1,acbyvs4.r2b2,
-              acbyvs5.l2b1,acbyvs5.l2b2,acbcvs5.r2b1,acbcvs5.r2b2,
-              yip2b1,yip2b2;
-
-delete,table=knob_on_o2v;
-create,table=knob_on_o2v,
-       column=acbyvs4.l2b1,acbyvs4.l2b2,acbyvs4.r2b1,acbyvs4.r2b2,
-              acbyvs5.l2b1,acbyvs5.l2b2,acbcvs5.r2b1,acbcvs5.r2b2,
-              yip2b1,yip2b2;
 
 
 delete,table=knob_on_x8h;
@@ -391,27 +319,13 @@ create,table=knob_on_o8v,
               yip8b1,yip8b2;
 
 ! reset values
-exec,mktable_orbit2h(orbit_ir2h);
-exec,mktable_orbit2v(orbit_ir2v);
 exec,mktable_orbit8h(orbit_ir8h);
 exec,mktable_orbit8v(orbit_ir8v);
 
-setvars_const,table=orbit_ir2h;
-setvars_const,table=orbit_ir2v;
 setvars_const,table=orbit_ir8h;
 setvars_const,table=orbit_ir8v;
 
-testkqx2=abs(kqx.l2)*7000./0.3;
 testkqx8=abs(kqx.l8)*7000./0.3;
-
-xip2b1 :=1e-3*(on_o2h   +on_sep2h);
-xip2b2 :=1e-3*(on_o2h   -on_sep2h);
-yip2b1 :=1e-3*(on_o2v   +on_sep2v);
-yip2b2 :=1e-3*(on_o2v   -on_sep2v);
-pxip2b1:=1e-6*(on_a2h   +on_x2h  );
-pxip2b2:=1e-6*(on_a2h   -on_x2h  );
-pyip2b1:=1e-6*(on_a2v   +on_x2v  );
-pyip2b2:=1e-6*(on_a2v   -on_x2v  );
 
 xip8b1 :=1e-3*(on_o8h   +on_sep8h);
 xip8b2 :=1e-3*(on_o8h   -on_sep8h);
@@ -423,26 +337,12 @@ pyip8b1:=1e-6*(on_a8v   +on_x8v  );
 pyip8b2:=1e-6*(on_a8v   -on_x8v  );
 
 
-if(testkqx2> 210.) {acbxx.ir2= 1.0e-6/170;acbxs.ir2= 18.0e-6/2;};
 if(testkqx8> 210.) {acbxx.ir8= 1.0e-6/170;acbxs.ir8= 18.0e-6/2;};
 
-if(testkqx2< 210.) {acbxx.ir2= 11.0e-6/170;acbxs.ir2= 16.0e-6/2;};
 if(testkqx8< 210.) {acbxx.ir8= 11.0e-6/170;acbxs.ir8= 16.0e-6/2;};
-
-exec,set_mcbx2;
 
 
 xang=170;psep=2;off=0.5;aoff=30;
-
-on_x2h=xang;exec,mkknob(ir2h,on_x2h);
-on_a2h=aoff;exec,mkknob(ir2h,on_a2h);
-on_x2v=xang;exec,mkknob(ir2v,on_x2v);
-on_a2v=aoff;exec,mkknob(ir2v,on_a2v);
-
-on_sep2h=psep;exec,mkknob(ir2h,on_sep2h);
-on_o2h=off   ;exec,mkknob(ir2h,on_o2h);
-on_sep2v=psep;exec,mkknob(ir2v,on_sep2v);
-on_o2v=off   ;exec,mkknob(ir2v,on_o2v);
 
 if (betxip8b1<5){xang=300;};
 
@@ -463,25 +363,15 @@ exec,set_mcbx8; on_o8v=off   ;exec,mkknob(ir8v,on_o8v);
 
 
 ! setting knobs
-setvars_const,table=orbit_ir2h;
-setvars_const,table=orbit_ir2v;
 setvars_const,table=orbit_ir8h;
 setvars_const,table=orbit_ir8v;
 
-setvars_knob,table=knob_on_x2h  ,knob=on_x2h;
-setvars_knob,table=knob_on_x2v  ,knob=on_x2v;
 setvars_knob,table=knob_on_x8h  ,knob=on_x8h;
 setvars_knob,table=knob_on_x8v  ,knob=on_x8v;
-setvars_knob,table=knob_on_sep2h,knob=on_sep2h;
-setvars_knob,table=knob_on_sep2v,knob=on_sep2v;
 setvars_knob,table=knob_on_sep8h,knob=on_sep8h;
 setvars_knob,table=knob_on_sep8v,knob=on_sep8v;
-setvars_knob,table=knob_on_o2h,knob=on_o2h;
-setvars_knob,table=knob_on_o2v,knob=on_o2v;
 setvars_knob,table=knob_on_o8h,knob=on_o8h;
 setvars_knob,table=knob_on_o8v,knob=on_o8v;
-setvars_knob,table=knob_on_a2h,knob=on_a2h;
-setvars_knob,table=knob_on_a2v,knob=on_a2v;
 setvars_knob,table=knob_on_a8h,knob=on_a8h;
 setvars_knob,table=knob_on_a8v,knob=on_a8v;
 
