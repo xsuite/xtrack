@@ -19,7 +19,7 @@ mad.call('make_one_crossing_knob.madx')
 mad.use('lhcb1')
 mad.use('lhcb2')
 
-mad.globals['on_x8'] = 100
+mad.globals['on_x8h'] = 100
 mad.input('twiss, sequence=lhcb1, table=twb1;')
 mad.input('twiss, sequence=lhcb2, table=twb2;')
 

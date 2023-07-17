@@ -370,6 +370,3 @@ setvars_knob,table=knob_on_a8h,knob=on_a8h;
 setvars_knob,table=knob_on_a8v,knob=on_a8v;
 
 
-exec,_save_optics_orbconf28(8);
-
-
