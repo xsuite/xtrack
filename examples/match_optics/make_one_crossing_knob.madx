@@ -353,7 +353,6 @@ exec,set_mcbx8; on_x8h=xang;exec,mkknob(ir8h,on_x8h);
 !nn=nn-2;
 !};
 exec,set_mcbx8; on_x8v=xang;exec,mkknob(ir8v,on_x8v);
-exec,set_mcbx8; on_a8v=aoff;exec,mkknob(ir8v,on_a8v);
 
 
 ! setting knobs
@@ -362,11 +361,5 @@ setvars_const,table=orbit_ir8v;
 
 setvars_knob,table=knob_on_x8h  ,knob=on_x8h;
 setvars_knob,table=knob_on_x8v  ,knob=on_x8v;
-setvars_knob,table=knob_on_sep8h,knob=on_sep8h;
-setvars_knob,table=knob_on_sep8v,knob=on_sep8v;
-setvars_knob,table=knob_on_o8h,knob=on_o8h;
-setvars_knob,table=knob_on_o8v,knob=on_o8v;
-setvars_knob,table=knob_on_a8h,knob=on_a8h;
-setvars_knob,table=knob_on_a8v,knob=on_a8v;
 
 
