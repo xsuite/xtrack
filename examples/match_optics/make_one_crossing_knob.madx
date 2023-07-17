@@ -369,25 +369,7 @@ setvars_knob,table=knob_on_o8v,knob=on_o8v;
 setvars_knob,table=knob_on_a8h,knob=on_a8h;
 setvars_knob,table=knob_on_a8v,knob=on_a8v;
 
-value,tar_on_x2h,tar_on_x2v,tar_on_x8h,tar_on_x8v;
-value,tar_on_sep2h,tar_on_sep2v,tar_on_sep8h,tar_on_sep8v;
-value,tar_on_a2h,tar_on_a2v,tar_on_a8h,tar_on_a8v;
-value,tar_on_o2h,tar_on_o2v,tar_on_o8h,tar_on_o8v;
 
-tar_xing_ir28=tar_on_sep2h+tar_on_sep2v+tar_on_sep8h+tar_on_sep8v+
-              tar_on_x2h+tar_on_x2v+tar_on_x8h+tar_on_x8v+
-              tar_on_a2h+tar_on_a2v+tar_on_a8h+tar_on_a8v+
-              tar_on_o2h+tar_on_o2v+tar_on_o8h+tar_on_o8v+
-              tar_on_ccp2h+tar_on_ccp2v+tar_on_ccp8h+tar_on_ccp8v;
-
-value,tar_xing_ir28;
-
-show,xip2b1, xip2b2, xip8b1, xip8b2;
-show,pxip2b1, pxip2b2, pxip8b1, pxip8b2;
-show,yip2b1, yip2b2, yip8b1, yip8b2;
-show,pyip2b1, pyip2b2, pyip8b1, pyip8b2;
-
-exec,_save_optics_orbconf28(2);
 exec,_save_optics_orbconf28(8);
 
 
