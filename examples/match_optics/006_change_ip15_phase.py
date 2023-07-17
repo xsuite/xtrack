@@ -15,10 +15,10 @@ d_muy_15_b1 = None
 d_mux_15_b2 = None
 d_muy_15_b2 = None
 
-d_mux_15_b1 = 0.1
-d_muy_15_b1 = 0.12
-# d_mux_15_b2 = -0.09
-# d_muy_15_b2 = -0.15
+# d_mux_15_b1 = 0.1
+# d_muy_15_b1 = 0.12
+d_mux_15_b2 = -0.1
+d_muy_15_b2 = -0.12
 
 staged_match = True
 
@@ -184,7 +184,27 @@ for bn in ['b1', 'b2']:
             solve=True, staged_match=staged_match, default_tol=default_tol)
     optimizers[bn]['ip8'] = opt
 
-tw_b1_check = collider.lhcb1.twiss(
-    ele_start='ip1', ele_stop='ip5',
-    twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
-                            line=collider.lhcb1))
+tw = collider.twiss()
+
+# Tunes
+print('Tunes:')
+print(f"  b1: qx={tw.lhcb1.qx:6f} qy={tw.lhcb1.qy:6f}")
+print(f"  b2: qx={tw.lhcb2.qx:6f} qy={tw.lhcb2.qy:6f}")
+
+print('IP15 phase shifts:')
+print(f"  b1: d_mux={tw.lhcb1['mux', 'ip5'] - tw0.lhcb1['mux', 'ip5']:6f} "
+            f"d_muy={tw.lhcb1['muy', 'ip5'] - tw0.lhcb1['muy', 'ip5']:6f} ")
+print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip5']:6f} "
+            f"d_muy={tw.lhcb2['muy', 'ip5'] - tw0.lhcb2['muy', 'ip5']:6f} ")
+
+
+# # Open twisses to debug
+# tw_b1_check = collider.lhcb1.twiss(
+#     ele_start='ip1', ele_stop='ip1.l1',
+#     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
+#                             line=collider.lhcb1))
+
+# tw_b2_check = collider.lhcb2.twiss(
+#     ele_start='ip1', ele_stop='ip1.l1',
+#     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
+#                             line=collider.lhcb2))
