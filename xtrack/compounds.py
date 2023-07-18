@@ -3,7 +3,7 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-from typing import Union, Optional, Iterable
+from typing import Union, Optional, Iterable, Literal
 
 CompoundType = Union['SlicedCompound', 'Compound']
 
@@ -11,13 +11,6 @@ CompoundType = Union['SlicedCompound', 'Compound']
 class SlicedCompound:
     def __init__(self, elements):
         self.elements = set(elements)
-
-        self.core = self.elements
-        self.aperture = set()
-        self.entry_transform = set()
-        self.exit_transform = set()
-        self.entry = set()
-        self.exit = set()
 
     def __repr__(self):
         return f'{type(self).__name__}({self.elements})'
@@ -36,6 +29,35 @@ class SlicedCompound:
 
     def copy(self):
         return SlicedCompound(self.elements.copy())
+
+    def add_transform(self, name, side: Literal['entry', 'exit']):
+        if side not in ('entry', 'exit'):
+            raise ValueError(f'Unknown side {side}')
+        self.elements.add(name)
+
+    @property
+    def core(self):
+        return self.elements
+
+    @property
+    def aperture(self):
+        return frozenset()
+
+    @property
+    def entry_transform(self):
+        return frozenset()
+
+    @property
+    def exit_transform(self):
+        return frozenset()
+
+    @property
+    def entry(self):
+        return frozenset()
+
+    @property
+    def exit(self):
+        return frozenset()
 
 
 class Compound:
@@ -133,6 +155,14 @@ class Compound:
             entry=self.entry.copy(),
             exit_=self.exit.copy(),
         )
+
+    def add_transform(self, name, side: Literal['entry', 'exit']):
+        if side == 'entry':
+            self.entry_transform.add(name)
+        elif side == 'exit':
+            self.exit_transform.add(name)
+        else:
+            raise ValueError(f'Unknown side {side}')
 
     @staticmethod
     def _make_singleton_set(var):
