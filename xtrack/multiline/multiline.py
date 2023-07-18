@@ -326,7 +326,6 @@ class Multiline:
             Value of the knob after the matching. Defaults to 1.
 
         '''
-        raise NotImplementedError # Untested
 
         match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,

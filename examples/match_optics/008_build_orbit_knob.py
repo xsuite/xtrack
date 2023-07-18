@@ -37,8 +37,10 @@ for kk in all_knobs_ip2ip8:
 # We start by matching a bump, no knob
 
 offset_match = 1e-3
-
-opt = collider.match(
+opt = collider.match_knob(
+    knob_name='on_o2v',
+    knob_value_start=0,
+    knob_value_end=(offset_match * 1e3),
     solve=False,
     ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
     ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
@@ -57,4 +59,3 @@ opt = collider.match(
         'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
 )
 
-opt.solve()

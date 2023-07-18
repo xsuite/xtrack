@@ -324,6 +324,9 @@ def match_knob_line(line, knob_name, vary, targets,
                     knob_value_start, knob_value_end,
                     **kwargs):
 
+    if not isinstance (vary, (list, tuple)):
+        vary = [vary]
+
     vary_aux = []
     for vv in vary:
         line.vars[vv.name + '_from_' + knob_name] = 0
