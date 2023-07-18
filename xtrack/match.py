@@ -347,7 +347,6 @@ class KnobOptimizer:
         if not isinstance (vary, (list, tuple)):
             vary = [vary]
 
-        import pdb; pdb.set_trace()
         vary_flatten = _flatten_vary(vary)
         _complete_vary_with_info_from_line(vary_flatten, line)
 

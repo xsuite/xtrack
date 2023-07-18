@@ -36,6 +36,7 @@ for kk in all_knobs_ip2ip8:
 
 # We start by matching a bump, no knob
 
+# Match IP offset knob
 offset_match = 0.5e-3
 knob_opt = collider.match_knob(
     run=False,
@@ -68,4 +69,50 @@ assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['py', 'ip2'], 0., atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['py', 'ip2'], 0., atol=1e-10, rtol=0)
+
+# Match crossing angle knob
+angle_match = 170e-6
+knob_opt = collider.match_knob(
+    run=False,
+    knob_name='on_x2v',
+    knob_value_start=0,
+    knob_value_end=(angle_match * 1e6),
+    ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
+    ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
+    twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b1', line=collider.lhcb1),
+                xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b2', line=collider.lhcb2)],
+    targets=[
+        xt.TargetList(['y', 'py'], at='e.ds.r2.b1', line='lhcb1', value=0),
+        xt.TargetList(['y', 'py'], at='e.ds.r2.b2', line='lhcb2', value=0),
+        xt.Target('y', 0, at='ip2', line='lhcb1'),
+        xt.Target('y', 0, at='ip2', line='lhcb2'),
+        xt.Target('py', angle_match, at='ip2', line='lhcb1'),
+        xt.Target('py', -angle_match, at='ip2', line='lhcb2'),
+    ],
+    vary=[xt.VaryList([
+        'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
+        'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
+          xt.VaryList([
+              'acbxv1.l2', 'acbxv2.l2', 'acbxv3.l2',
+              'acbxv1.r2', 'acbxv2.r2', 'acbxv3.r2'], tag='mcbx')]
+    )
+
+# Set mcmbx by hand
+testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+if testkqx2> 210.:
+    acbx_xing_ir2 = 1.0e-6   # Value for 170 urad crossing
+else:
+    acbx_xing_ir2 = 11.0e-6  # Value for 170 urad crossing
+
+collider.vars['acbxv1.l2_from_on_x2v'] = acbx_xing_ir2
+collider.vars['acbxv2.l2_from_on_x2v'] = acbx_xing_ir2
+collider.vars['acbxv3.l2_from_on_x2v'] = acbx_xing_ir2
+collider.vars['acbxv1.r2_from_on_x2v'] = -acbx_xing_ir2
+collider.vars['acbxv2.r2_from_on_x2v'] = -acbx_xing_ir2
+collider.vars['acbxv3.r2_from_on_x2v'] = -acbx_xing_ir2
+
+# match other knobs with fixed mcbx
+knob_opt.disable_vary(tag='mcbx')
+knob_opt.solve()
+knob_opt.generate_knob()
 
