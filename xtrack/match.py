@@ -260,17 +260,8 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     if not isinstance(vary, (list, tuple)):
         vary = [vary]
 
-    vary_flatten = []
-    for vv in vary:
-        if isinstance(vv, xd.VaryList):
-            for vv1 in vv.vary_objects:
-                vary_flatten.append(vv1)
-        else:
-            vary_flatten.append(vv)
-    for vv in vary_flatten:
-        if vv.container is None:
-            vv.container = line.vars
-            vv._complete_limits_and_step_from_defaults()
+    vary_flatten = _flatten_vary(vary)
+    _complete_vary_with_info_from_line(vary_flatten, line)
 
     opt = xd.Optimize(vary=vary, targets=targets, solver=solver,
                         verbose=verbose, assert_within_tol=assert_within_tol,
@@ -285,6 +276,21 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     else:
         return opt
 
+def _flatten_vary(vary):
+    vary_flatten = []
+    for vv in vary:
+        if isinstance(vv, xd.VaryList):
+            for vv1 in vv.vary_objects:
+                vary_flatten.append(vv1)
+        else:
+            vary_flatten.append(vv)
+    return vary_flatten
+
+def _complete_vary_with_info_from_line(vary, line):
+    for vv in vary:
+        if vv.container is None:
+            vv.container = line.vars
+            vv._complete_limits_and_step_from_defaults()
 
 def closed_orbit_correction(line, line_co_ref, correction_config,
                             solver=None, verbose=False, restore_if_fail=True):
@@ -327,8 +333,11 @@ def match_knob_line(line, knob_name, vary, targets,
     if not isinstance (vary, (list, tuple)):
         vary = [vary]
 
+    vary_flatten = _flatten_vary(vary)
+    _complete_vary_with_info_from_line(vary_flatten, line)
+
     vary_aux = []
-    for vv in vary:
+    for vv in vary_flatten:
         line.vars[vv.name + '_from_' + knob_name] = 0
         line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
         vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))

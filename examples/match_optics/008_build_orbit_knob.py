@@ -1,4 +1,3 @@
-
 import xtrack as xt
 import lhc_match as lm
 
@@ -14,7 +13,6 @@ tw0 = collider.twiss()
 collider0 = collider.copy()
 collider0.build_trackers()
 
-# Inspect knob expressions
 all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbyhs4.r8b2', 'pyip2b1', 'acbxv1.l8', 'acbyvs4.l2b1', 'acbxh1.l8',
     'acbxv2.r8', 'pxip8b2', 'yip8b1', 'pxip2b2', 'acbcvs5.r2b1', 'acbyhs4.l8b1',
@@ -41,7 +39,7 @@ opt = collider.match_knob(
     knob_name='on_o2v',
     knob_value_start=0,
     knob_value_end=(offset_match * 1e3),
-    solve=False,
+    # solve=False,
     ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
     ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
     twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b1', line=collider.lhcb1),
