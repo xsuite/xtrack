@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 import numpy as np
 
@@ -1658,6 +1658,99 @@ class Line:
             self.get_compound_for_element(name)
             for name in self.element_names
         ]
+
+    def transform_compound(
+            self,
+            compound_name,
+            x_shift=0,
+            y_shift=0,
+            x_rotation=0,
+            y_rotation=0,
+            s_rotation=0,
+    ):
+        """Transform a compound element.
+
+        Transformations are applied in the order: XYShift, XRotation, YRotation,
+        SRotation.
+
+        Parameters
+        ----------
+        compound_name : str
+            Name of the compound element to transform.
+        x_shift : float, optional
+            Shift in the x direction, in meters.
+        y_shift : float, optional
+            Shift in the y direction, in meters.
+        x_rotation : float, optional
+            Rotation around the x-axis, in degrees.
+        y_rotation : float, optional
+            Rotation around the y-axis, in degrees.
+        s_rotation : float, optional
+            Rotation around the s-axis, in degrees.
+        """
+        compound = self.get_compound_by_name(compound_name)
+        element_names = self.get_compound_subsequence(compound_name)
+        idx_begin = self.element_names.index(element_names[0])
+        idx_end = idx_begin + len(element_names)
+
+        # Elements and names to add in the order they will appear in the line
+        before, after = [], []
+        names_before, names_after = [], []
+
+        # Generate a unique name for the transformation
+        def _generate_name(transform_type):
+            base = f'{compound_name}_{transform_type}'
+            new_name = base
+            count = 1
+            while new_name in element_names:
+                new_name = f'{base}_{count}'
+                count += 1
+
+            return new_name
+
+        # Create the transformation elements
+        if x_shift or y_shift:
+            shift = xt.XYShift(dx=x_shift, dy=y_shift)
+            before += [shift]
+            names_before += [_generate_name('offset_entry')]
+            unshift = xt.XYShift(dx=-x_shift, dy=-y_shift)
+            after = [unshift] + after
+            names_after = [_generate_name('offset_exit')] + names_after
+
+        if x_rotation:
+            x_rot_elem = xt.XRotation(angle=x_rotation)
+            before += [x_rot_elem]
+            names_before += [_generate_name('xrot_entry')]
+            x_unrot_elem = xt.XRotation(angle=-x_rotation)
+            after = [x_unrot_elem] + after
+            names_after = [_generate_name('xrot_exit')] + names_after
+
+        if y_rotation:
+            y_rot_elem = xt.YRotation(angle=y_rotation)
+            before += [y_rot_elem]
+            names_before += [_generate_name('yrot_entry')]
+            y_unrot_elem = xt.YRotation(angle=-y_rotation)
+            after = [y_unrot_elem] + after
+            names_after = [_generate_name('yrot_exit')] + names_after
+
+        if s_rotation:
+            s_rot_elem = xt.SRotation(angle=s_rotation)
+            before += [s_rot_elem]
+            names_before += [_generate_name('tilt_entry')]
+            s_unrot_elem = xt.SRotation(angle=-s_rotation)
+            after = [s_unrot_elem] + after
+            names_after = [_generate_name('tilt_exit')] + names_after
+
+        # Commit the transformations to the line
+        for idx, element in enumerate(reversed(after)):
+            new_name = names_after[-idx - 1]
+            self.insert_element(index=idx_end, element=element, name=new_name)
+            compound.add_transform(new_name, side='exit')
+
+        for idx, element in enumerate(reversed(before)):
+            new_name = names_before[-idx - 1]
+            self.insert_element(index=idx_begin, element=element, name=new_name)
+            compound.add_transform(new_name, side='entry')
 
     def _enumerate_top_level(self):
         idx = 0

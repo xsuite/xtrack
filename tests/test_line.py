@@ -7,6 +7,7 @@ import pickle
 import pathlib
 
 import numpy as np
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -14,10 +15,10 @@ import xpart as xp
 from xtrack import Line, Node, Multipole
 from xtrack.compounds import Compound, SlicedCompound
 from xobjects.test_helpers import for_all_test_contexts
+from xtrack.compounds import SlicedCompound, Compound
 
 test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
-
 
 
 def test_simplification_methods():
@@ -853,3 +854,63 @@ def test_pickle():
         raise RuntimeError('Should have raised RuntimeError')
 
 
+@pytest.mark.parametrize('compound_type', [SlicedCompound, Compound])
+def test_compound_transformations(compound_type):
+    line = xt.Line(
+        elements=[xt.Marker() for i in range(4)],
+        element_names=['m1', 'm2', 'm3', 'm4'],
+    )
+
+    if compound_type is SlicedCompound:
+        compound = SlicedCompound(elements=['m2', 'm3'])
+    else:
+        compound = Compound(core=['m2', 'm3'])
+
+    line.compound_container.define_compound('c', compound)
+
+    # Add all the transforms
+    line.transform_compound(
+        compound_name='c',
+        x_shift=0.1,
+        y_shift=0.2,
+        x_rotation=0.3,
+        y_rotation=0.4,
+        s_rotation=0.5,
+    )
+    # And then some more to test duplicated names resolution
+    line.transform_compound(compound_name='c', x_shift=0.6)
+
+    result_names = line.element_names
+    expected_names = [
+        'm1',
+        'c_offset_entry_1',
+        'c_offset_entry', 'c_xrot_entry', 'c_yrot_entry', 'c_tilt_entry',
+        'm2', 'm3',
+        'c_tilt_exit', 'c_yrot_exit', 'c_xrot_exit', 'c_offset_exit',
+        'c_offset_exit_1',
+        'm4',
+    ]
+    assert result_names == expected_names
+
+    # Check that the transformations are correct
+    assert line['c_offset_entry_1'].dx == 0.6
+    assert line['c_offset_entry_1'].dy == 0
+    assert line['c_offset_entry'].dx == 0.1
+    assert line['c_offset_entry'].dy == 0.2
+    assert line['c_xrot_entry'].angle == 0.3
+    assert line['c_yrot_entry'].angle == 0.4
+    assert line['c_tilt_entry'].angle == 0.5
+    assert line['c_tilt_exit'].angle == -0.5
+    assert line['c_yrot_exit'].angle == -0.4
+    assert line['c_xrot_exit'].angle == -0.3
+    assert line['c_offset_exit'].dx == -0.1
+    assert line['c_offset_exit'].dy == -0.2
+    assert line['c_offset_exit_1'].dx == -0.6
+    assert line['c_offset_exit_1'].dy == 0
+
+    # Check that the compound is right
+    assert line.get_compound_subsequence('c') == expected_names[1:-1]
+    if compound_type is Compound:
+        assert len(line.get_compound_by_name('c').core) == 2
+        assert len(line.get_compound_by_name('c').entry_transform) == 5
+        assert len(line.get_compound_by_name('c').exit_transform) == 5
