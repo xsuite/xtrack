@@ -327,9 +327,11 @@ class Multiline:
 
         '''
 
-        match_knob_line(self, vary=vary, targets=targets,
+        opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
                         knob_value_end=knob_value_end, **kwargs)
+
+        return opt
 
     def __getitem__(self, key):
         return self.lines[key]

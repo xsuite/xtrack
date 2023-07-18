@@ -330,27 +330,55 @@ def match_knob_line(line, knob_name, vary, targets,
                     knob_value_start, knob_value_end,
                     **kwargs):
 
-    if not isinstance (vary, (list, tuple)):
-        vary = [vary]
+    knob_opt = KnobOptimizer(line, knob_name, vary, targets,
+                    knob_value_start, knob_value_end,
+                    **kwargs)
+    knob_opt.solve()
+    knob_opt.generate_knob()
+    return knob_opt
 
-    vary_flatten = _flatten_vary(vary)
-    _complete_vary_with_info_from_line(vary_flatten, line)
+class KnobOptimizer:
 
-    vary_aux = []
-    for vv in vary_flatten:
-        line.vars[vv.name + '_from_' + knob_name] = 0
-        line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
-        vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
+    def __init__(self, line, knob_name, vary, targets,
+                    knob_value_start, knob_value_end,
+                    **kwargs):
 
-    opt = line.match(vary=vary_aux, targets = targets, solve=False, **kwargs)
-    opt.solve()
+        if not isinstance (vary, (list, tuple)):
+            vary = [vary]
 
-    line.vars[knob_name] = knob_value_end
-    for vv in vary_aux:
-        line.vars[vv.name] = (line.vars[vv.name]._value
-                              * (line.vars[knob_name] - knob_value_start)
-                              / (knob_value_end - knob_value_start))
+        vary_flatten = _flatten_vary(vary)
+        _complete_vary_with_info_from_line(vary_flatten, line)
 
-    line.vars[knob_name] = knob_value_start
+        vary_aux = []
+        for vv in vary_flatten:
+            line.vars[vv.name + '_from_' + knob_name] = 0
+            line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
+            vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
 
-    _print('Matched knob: ', knob_name)
+        opt = line.match(vary=vary_aux, targets = targets, solve=False, **kwargs)
+
+        object.__setattr__(self, 'opt', opt)
+        self.line = line
+        self.knob_name = knob_name
+        self.knob_value_start = knob_value_start
+        self.knob_value_end = knob_value_end
+
+    def __getattr__(self, attr):
+        return getattr(self.opt, attr)
+
+    def __setattr__(self, attr, value):
+        if hasattr(self.opt, attr):
+            setattr(self.opt, attr, value)
+        else:
+            object.__setattr__(self, attr, value)
+
+    def generate_knob(self):
+        self.line.vars[self.knob_name] = self.knob_value_end
+        for vv in self.vary:
+            self.line.vars[vv.name] = (self.line.vars[vv.name]._value
+                                * (self.line.vars[self.knob_name] - self.knob_value_start)
+                                / (self.knob_value_end - self.knob_value_start))
+
+        self.line.vars[self.knob_name] = self.knob_value_start
+
+        _print('Generated knob: ', self.knob_name)

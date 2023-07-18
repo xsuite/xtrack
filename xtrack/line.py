@@ -1067,9 +1067,11 @@ class Line:
 
         '''
 
-        match_knob_line(self, vary=vary, targets=targets,
+        opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
                         knob_value_end=knob_value_end, **kwargs)
+
+        return opt
 
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
