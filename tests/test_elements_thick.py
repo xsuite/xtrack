@@ -590,6 +590,7 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     p2.move(_context=xo.context_default)
     assert np.all(p2.state == -32)
 
+
 def test_import_thick_with_apertures_and_slice():
     mad = Madx()
 
@@ -632,6 +633,25 @@ def test_import_thick_with_apertures_and_slice():
         'elm_exit',
     ]
 
+    rad_to_deg = 180 / np.pi
+
+    def _assert_eq(a, b):
+        assert np.isclose(a, b, atol=1e-16)
+
+    _assert_eq(line[f'elm_aper_tilt_entry'].angle, 0.1 * rad_to_deg)
+    _assert_eq(line[f'elm_aper_tilt_exit'].angle, -0.1 * rad_to_deg)
+    _assert_eq(line[f'elm_aper_offset_entry'].dx, 0.2)
+    _assert_eq(line[f'elm_aper_offset_entry'].dy, 0.3)
+    _assert_eq(line[f'elm_aper_offset_exit'].dx, -0.2)
+    _assert_eq(line[f'elm_aper_offset_exit'].dy, -0.3)
+    _assert_eq(line[f'elm_aper'].max_x, 0.1)
+    _assert_eq(line[f'elm_aper'].max_y, 0.2)
+    _assert_eq(line[f'elm_aper'].a_squ, 0.11 ** 2)
+    _assert_eq(line[f'elm_aper'].b_squ, 0.22 ** 2)
+
+    _assert_eq(line[f'elm_tilt_entry'].angle, 0.2 * rad_to_deg)
+    _assert_eq(line[f'elm_tilt_exit'].angle, -0.2 * rad_to_deg)
+
     line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
 
     assert line.get_compound_subsequence('elm') == [
@@ -673,3 +693,18 @@ def test_import_thick_with_apertures_and_slice():
         'elm_tilt_exit..3',             # ┘
         'elm_exit',                     # exit marker
     ]
+
+    for i in range(4):
+        _assert_eq(line[f'elm_aper_tilt_entry..{i}'].angle, 0.1 * rad_to_deg)
+        _assert_eq(line[f'elm_aper_tilt_exit..{i}'].angle, -0.1 * rad_to_deg)
+        _assert_eq(line[f'elm_aper_offset_entry..{i}'].dx, 0.2)
+        _assert_eq(line[f'elm_aper_offset_entry..{i}'].dy, 0.3)
+        _assert_eq(line[f'elm_aper_offset_exit..{i}'].dx, -0.2)
+        _assert_eq(line[f'elm_aper_offset_exit..{i}'].dy, -0.3)
+        _assert_eq(line[f'elm_aper..{i}'].max_x, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].max_y, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].a_squ, 0.11 ** 2)
+        _assert_eq(line[f'elm_aper..{i}'].b_squ, 0.22 ** 2)
+
+        _assert_eq(line[f'elm_tilt_entry..{i}'].angle, 0.2 * rad_to_deg)
+        _assert_eq(line[f'elm_tilt_exit..{i}'].angle, -0.2 * rad_to_deg)

@@ -624,6 +624,8 @@ class Line:
         if self._var_management is not None:
             out._init_var_management(dct=self._var_management_to_dict())
 
+        out.compound_container = self.compound_container.copy()
+
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
 
@@ -2402,6 +2404,10 @@ class Line:
 
         for name in aper_to_remove:
             newline.element_names.remove(name)
+            compound_name = self.compound_container.compound_name_for_element(name)
+            if compound_name is not None:
+                newline.get_compound_by_name(compound_name).remove_element(name)
+
 
         return newline
 
@@ -3137,23 +3143,23 @@ def _next_name(prefix, names, name_format='{}{}'):
 
 def _dicts_equal(dict1, dict2):
     if not isinstance(dict1, dict) or not isinstance(dict2, dict):
-        raise ValueError
+        return False
     if set(dict1.keys()) != set(dict2.keys()):
-        raise ValueError
+        return False
     for key in dict1.keys():
         if hasattr(dict1[key], '__iter__'):
             if not hasattr(dict2[key], '__iter__'):
-                raise ValueError
+                return False
             elif isinstance(dict1[key], dict):
                 if not isinstance(dict2[key], dict):
-                    raise ValueError
+                    return False
                 else:
                     if not _dicts_equal(dict1[key], dict2[key]):
-                        raise ValueError
+                        return False
             elif not np.array_equal(dict1[key], dict2[key]):
-                raise ValueError
+                return False
         elif dict1[key] != dict2[key]:
-            raise ValueError
+            return False
     return True
 
 

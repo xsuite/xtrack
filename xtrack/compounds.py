@@ -28,6 +28,15 @@ class SlicedCompound:
             'elements': list(self.elements),
         }
 
+    def remove_element(self, element):
+        if element in self.elements:
+            self.elements.remove(element)
+        else:
+            raise ValueError(f'{element} not in {self}')
+
+    def copy(self):
+        return SlicedCompound(self.elements.copy())
+
 
 class Compound:
     """A logical beam element that is composed of other elements.
@@ -67,8 +76,8 @@ class Compound:
         self.entry_transform = set(entry_transform)
         self.exit_transform = set(exit_transform)
 
-        self.entry = {entry} if entry is not None else []
-        self.exit = {exit_} if exit_ is not None else []
+        self.entry = self._make_singleton_set(entry)
+        self.exit = self._make_singleton_set(exit_)
 
     def __repr__(self):
         return (
@@ -98,6 +107,46 @@ class Compound:
             'entry': list(self.entry)[0],
             'exit_': list(self.exit)[0],
         }
+
+    def remove_element(self, element):
+        if element in self.core:
+            self.core.remove(element)
+        elif element in self.aperture:
+            self.aperture.remove(element)
+        elif element in self.entry_transform:
+            self.entry_transform.remove(element)
+        elif element in self.exit_transform:
+            self.exit_transform.remove(element)
+        elif element in self.entry:
+            self.entry.remove(element)
+        elif element in self.exit:
+            self.exit.remove(element)
+        else:
+            raise ValueError(f'Element {element} not found in compound')
+
+    def copy(self):
+        return Compound(
+            core=self.core.copy(),
+            aperture=self.aperture.copy(),
+            entry_transform=self.entry_transform.copy(),
+            exit_transform=self.exit_transform.copy(),
+            entry=self.entry.copy(),
+            exit_=self.exit.copy(),
+        )
+
+    @staticmethod
+    def _make_singleton_set(var):
+        if var is None or len(var) == 0:
+            return set()
+
+        if isinstance(var, str):
+            return {var}
+
+        try:
+            var, = var
+            return {var}
+        except ValueError:
+            raise ValueError(f'Expected singleton set, got {var}')
 
 
 class CompoundContainer:
@@ -162,3 +211,10 @@ class CompoundContainer:
             name: compound.to_dict()
             for name, compound in self._compounds.items()
         }
+
+    def copy(self):
+        copied_compounds = {
+            name: compound.copy()
+            for name, compound in self._compounds.items()
+        }
+        return self.__class__(compounds=copied_compounds)
