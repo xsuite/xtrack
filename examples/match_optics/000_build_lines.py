@@ -332,16 +332,33 @@ collider.vars.vary_default.update({
     'kqt12.l8b2':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
     'kqt13.l8b2':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
 
+    # Single beam correctors at IR2 (Q4 and Q5, H and V)
+    'acbyvs4.l2b1':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyvs4.r2b2':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyvs4.l2b2':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyvs4.r2b1':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyvs5.l2b2':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyvs5.l2b1':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbcvs5.r2b1':{'step': 1.0e-15, 'limits': (-limitmcbc, limitmcbc)},
+    'acbcvs5.r2b2':{'step': 1.0e-15, 'limits': (-limitmcbc, limitmcbc)},
+    'acbyhs4.l8b1':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyhs4.r8b2':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyhs4.l8b2':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyhs4.r8b1':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbchs5.l8b2':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbchs5.l8b1':{'step': 1.0e-15, 'limits': (-limitmcby, limitmcby)},
+    'acbyhs5.r8b1':{'step': 1.0e-15, 'limits': (-limitmcbc, limitmcbc)},
+    'acbyhs5.r8b2':{'step': 1.0e-15, 'limits': (-limitmcbc, limitmcbc)},
+
+    # Correctors in IR8 (Q4 and Q5, only V for now) 
     'acbyvs4.l8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
     'acbcvs5.l8b1':{'step': 1.0e-15, 'limits':(-limitmcbc, limitmcbc)},
     'acbyvs4.r8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
     'acbyvs5.r8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
-
     'acbyvs4.l8b2':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
     'acbcvs5.l8b2':{'step': 1.0e-15, 'limits':(-limitmcbc, limitmcbc)},
     'acbyvs4.r8b2':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
     'acbyvs5.r8b2':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
-
     'acbxv1.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
     'acbxv2.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
     'acbxv3.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},

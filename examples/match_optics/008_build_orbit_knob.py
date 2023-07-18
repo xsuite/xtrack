@@ -38,19 +38,23 @@ for kk in all_knobs_ip2ip8:
 
 offset_match = 1e-3
 
-collider.match(
-    ele_start=['s.ds.l2.b1', 's.ds.l2.b1'],
-    ele_stop=[] 
+opt = collider.match(
+    solve=False,
+    ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
+    ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
     twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b1', line=collider.lhcb1),
                 xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b2', line=collider.lhcb2)],
     targets=[
-        xt.TargetList(['y', 'py'], at='s.ds.l2.b1', line='lhcb1', value=0),
-        xt.TargetList(['y', 'py'], at='s.ds.r8.b2', line='lhcb2', value=0),
+        xt.TargetList(['y', 'py'], at='e.ds.r2.b1', line='lhcb1', value=0),
+        xt.TargetList(['y', 'py'], at='e.ds.r2.b2', line='lhcb2', value=0),
         xt.Target('y', offset_match, at='ip2', line='lhcb1'),
         xt.Target('y', offset_match, at='ip2', line='lhcb2'),
         xt.Target('py', 0., at='ip2', line='lhcb1'),
         xt.Target('py', 0., at='ip2', line='lhcb2'),
-    ]
+    ],
     vary=xt.VaryList([
-
+        'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
+        'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
 )
+
+opt.solve()

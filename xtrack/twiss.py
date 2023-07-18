@@ -2061,6 +2061,8 @@ def _extract_knl_ksl(line, names):
     return k_dict
 
 def _str_to_index(line, ele):
+    if ele not in line.element_names:
+        raise ValueError(f'Element {ele} not found in line')
     if isinstance(ele, str):
         return line.element_names.index(ele)
     else:
