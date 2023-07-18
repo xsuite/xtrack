@@ -1,3 +1,5 @@
+import numpy as np
+
 import xtrack as xt
 import lhc_match as lm
 
@@ -35,11 +37,11 @@ for kk in all_knobs_ip2ip8:
 # We start by matching a bump, no knob
 
 offset_match = 0.5e-3
-opt = collider.match_knob(
+knob_opt = collider.match_knob(
+    run=False,
     knob_name='on_o2v',
     knob_value_start=0,
     knob_value_end=(offset_match * 1e3),
-    # solve=False,
     ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
     ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
     twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b1', line=collider.lhcb1),
@@ -56,4 +58,14 @@ opt = collider.match_knob(
         'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
         'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
 )
+knob_opt.solve()
+knob_opt.generate_knob()
+
+collider.vars['on_o2v'] = 0.3
+tw = collider.twiss()
+
+assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip2'], 0., atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip2'], 0., atol=1e-10, rtol=0)
 
