@@ -64,6 +64,7 @@ knob_opt.generate_knob()
 
 collider.vars['on_o2v'] = 0.3
 tw = collider.twiss()
+collider.vars['on_o2v'] = 0
 
 assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
@@ -115,4 +116,12 @@ collider.vars['acbxv3.r2_from_on_x2v'] = -acbx_xing_ir2
 knob_opt.disable_vary(tag='mcbx')
 knob_opt.solve()
 knob_opt.generate_knob()
+
+collider.vars['on_x2v'] = 100
+tw = collider.twiss()
+
+assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip2'], 100e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
 
