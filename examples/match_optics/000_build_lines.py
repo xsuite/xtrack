@@ -350,7 +350,21 @@ collider.vars.vary_default.update({
     'acbyhs5.r8b1':{'step': 1.0e-15, 'limits': (-limitmcbc, limitmcbc)},
     'acbyhs5.r8b2':{'step': 1.0e-15, 'limits': (-limitmcbc, limitmcbc)},
 
-    # Correctors in IR8 (Q4 and Q5, only V for now) 
+    # Correctors in IR8 (Q4 and Q5, and triplet)
+    'acbyhs4.l8b1':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs4.r8b2':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs4.l8b2':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs4.r8b1':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbchs5.l8b2':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbchs5.l8b1':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs5.r8b1':{'step': 1.0e-15,'limits':(-limitmcbc, limitmcbc)},
+    'acbyhs5.r8b2':{'step': 1.0e-15,'limits':(-limitmcbc, limitmcbc)},
+    'acbxh1.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh2.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh3.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh1.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh2.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh3.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
     'acbyvs4.l8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
     'acbcvs5.l8b1':{'step': 1.0e-15, 'limits':(-limitmcbc, limitmcbc)},
     'acbyvs4.r8b1':{'step': 1.0e-15, 'limits':(-limitmcby, limitmcby)},
