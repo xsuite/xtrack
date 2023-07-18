@@ -34,7 +34,7 @@ for kk in all_knobs_ip2ip8:
 
 # We start by matching a bump, no knob
 
-offset_match = 1e-3
+offset_match = 0.5e-3
 opt = collider.match_knob(
     knob_name='on_o2v',
     knob_value_start=0,

@@ -153,10 +153,11 @@ class Target(xd.Target):
             return res[self.tar]
 
 class Vary(xd.Vary):
-    def __init__(self, name, limits=None, step=None, weight=None, max_step=None,
-                 tag=''):
-        xd.Vary.__init__(self, name=name, container=None, limits=limits,
-                         step=step, weight=weight, max_step=max_step, tag=tag)
+    def __init__(self, name, container=None, limits=None, step=None, weight=None,
+                 max_step=None, active=True, tag=''):
+        xd.Vary.__init__(self, name=name, container=container, limits=limits,
+                         step=step, weight=weight, max_step=max_step, tag=tag,
+                         active=active)
 
 class VaryList(xd.VaryList):
     def __init__(self, vars, **kwargs):
@@ -346,14 +347,19 @@ class KnobOptimizer:
         if not isinstance (vary, (list, tuple)):
             vary = [vary]
 
+        import pdb; pdb.set_trace()
         vary_flatten = _flatten_vary(vary)
         _complete_vary_with_info_from_line(vary_flatten, line)
 
         vary_aux = []
         for vv in vary_flatten:
-            line.vars[vv.name + '_from_' + knob_name] = 0
-            line.vars[vv.name] += line.vars[vv.name + '_from_' + knob_name]
-            vary_aux.append(xt.Vary(vv.name + '_from_' + knob_name, step=vv.step))
+            aux_name = vv.name + '_from_' + knob_name
+            line.vars[aux_name] = 0
+            line.vars[vv.name] += line.vars[aux_name]
+
+            vv_aux = vv.__dict__.copy()
+            vv_aux['name'] = aux_name
+            vary_aux.append(xt.Vary(**vv_aux))
 
         opt = line.match(vary=vary_aux, targets = targets, solve=False, **kwargs)
 
