@@ -35,3 +35,4 @@ Notes:
  - Need a quick way of getting the results
  - Need to add limits to knob optimizer
  - Can I change a target during optimization?
+ - Reload should also set the vary and targets active flags

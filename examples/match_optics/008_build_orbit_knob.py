@@ -12,8 +12,8 @@ collider.vars.load_madx_optics_file(
 
 tw0 = collider.twiss()
 
-collider0 = collider.copy()
-collider0.build_trackers()
+# collider0 = collider.copy()
+# collider0.build_trackers()
 
 all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbyhs4.r8b2', 'pyip2b1', 'acbxv1.l8', 'acbyvs4.l2b1', 'acbxh1.l8',
@@ -186,7 +186,12 @@ collider.vars['acbxh1.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 assert opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
 opt.vary[8].active = True
 
-opt.solve()
+opt.step(20)
+import pdb; pdb.set_trace()
+opt.reload(30)
+opt.step()
+
+
 opt.generate_knob()
 
 collider.vars['on_x8h'] = 100
