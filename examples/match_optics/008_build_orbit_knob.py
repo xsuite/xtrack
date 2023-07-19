@@ -12,8 +12,8 @@ collider.vars.load_madx_optics_file(
 
 tw0 = collider.twiss()
 
-# collider0 = collider.copy()
-# collider0.build_trackers()
+collider0 = collider.copy()
+collider0.build_trackers()
 
 all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbyhs4.r8b2', 'pyip2b1', 'acbxv1.l8', 'acbyvs4.l2b1', 'acbxh1.l8',
@@ -156,24 +156,33 @@ opt = collider.match_knob(
             'acbxh1.r8', 'acbxh2.r8', 'acbxh3.r8'], tag='mcbx')]
     )
 
-# Set mcmbx by hand
+# Set mcmbx by hand (as in mad-x script)
 testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
 if testkqx8> 210.:
     acbx_xing_ir8 = 1.0e-6   # Value for 170 urad crossing
 else:
     acbx_xing_ir8 = 11.0e-6  # Value for 170 urad crossing
 
-collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.8
-collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.8
-collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.8
-collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.8
-collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.8
-collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.8
+# As in mad-x script
+collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
+
+# Harder case to check mcbx matching
+# collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+# collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+# collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+# collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+# collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+# collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 
 # Firs round of optimization without changing mcbx
 opt.disable_vary(tag='mcbx')
 
-opt.step(10)
+opt.step(10) # perform 10 steps without checking for convergence
 
 # Link all mcbx stengths to the first one
 collider.vars['acbxh2.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
@@ -182,14 +191,11 @@ collider.vars['acbxh2.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 collider.vars['acbxh3.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 collider.vars['acbxh1.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 
-# Enable first mcbx knob
+# Enable first mcbx knob (which controls the others)
 assert opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
 opt.vary[8].active = True
 
-opt.step(20)
-import pdb; pdb.set_trace()
-opt.reload(30)
-opt.step()
+opt.solve()
 
 
 opt.generate_knob()
