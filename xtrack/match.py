@@ -329,7 +329,7 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             ele_start=corr['start'], ele_stop=corr['end'])
 
 def match_knob_line(line, knob_name, vary, targets, knob_value_start,
-                    knob_value_end, run=False, **kwargs):
+                    knob_value_end, run=True, **kwargs):
 
     knob_opt = KnobOptimizer(line, knob_name, vary, targets,
                     knob_value_start, knob_value_end,
