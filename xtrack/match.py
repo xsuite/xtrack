@@ -391,9 +391,10 @@ class KnobOptimizer:
     def generate_knob(self):
         self.line.vars[self.knob_name] = self.knob_value_end
         for vv in self.vary:
-            self.line.vars[vv.name] = (self.line.vars[vv.name]._value
-                                * (self.line.vars[self.knob_name] - self.knob_value_start)
-                                / (self.knob_value_end - self.knob_value_start))
+            self.line.vars[vv.name] = (
+                self.line.vars[vv.name]._value
+                / (self.knob_value_end - self.knob_value_start)
+                * (self.line.vars[self.knob_name] - self.knob_value_start))
 
         self.line.vars[self.knob_name] = self.knob_value_start
 
