@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
@@ -353,8 +354,15 @@ class KnobOptimizer:
         vary_aux = []
         for vv in vary_flatten:
             aux_name = vv.name + '_from_' + knob_name
-            line.vars[aux_name] = 0
-            line.vars[vv.name] += line.vars[aux_name]
+            if (aux_name in line.vars
+                and (line.vars[aux_name] in
+                         line.vars[vv.name]._expr._get_dependencies())):
+                # reset existing term in expression
+                line.vars[aux_name] = 0
+            else:
+                # create new term in expression
+                line.vars[aux_name] = 0
+                line.vars[vv.name] += line.vars[aux_name]
 
             vv_aux = vv.__dict__.copy()
             vv_aux['name'] = aux_name
@@ -376,6 +384,9 @@ class KnobOptimizer:
             setattr(self.opt, attr, value)
         else:
             object.__setattr__(self, attr, value)
+
+    def __dir__(self):
+        return object.__dir__(self) + dir(self.opt)
 
     def generate_knob(self):
         self.line.vars[self.knob_name] = self.knob_value_end

@@ -38,7 +38,7 @@ for kk in all_knobs_ip2ip8:
 
 # Match IP offset knob
 offset_match = 0.5e-3
-knob_opt = collider.match_knob(
+opt = collider.match_knob(
     run=False,
     knob_name='on_o2v',
     knob_value_start=0,
@@ -59,8 +59,8 @@ knob_opt = collider.match_knob(
         'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
         'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
 )
-knob_opt.solve()
-knob_opt.generate_knob()
+opt.solve()
+opt.generate_knob()
 
 collider.vars['on_o2v'] = 0.3
 tw = collider.twiss()
@@ -73,7 +73,7 @@ assert np.isclose(tw.lhcb2['py', 'ip2'], 0., atol=1e-10, rtol=0)
 
 # Match crossing angle knob
 angle_match = 170e-6
-knob_opt = collider.match_knob(
+opt = collider.match_knob(
     run=False,
     knob_name='on_x2v',
     knob_value_start=0,
@@ -114,9 +114,9 @@ collider.vars['acbxv2.r2_from_on_x2v'] = -acbx_xing_ir2
 collider.vars['acbxv3.r2_from_on_x2v'] = -acbx_xing_ir2
 
 # match other knobs with fixed mcbx
-knob_opt.disable_vary(tag='mcbx')
-knob_opt.solve()
-knob_opt.generate_knob()
+opt.disable_vary(tag='mcbx')
+opt.solve()
+opt.generate_knob()
 
 collider.vars['on_x2v'] = 100
 tw = collider.twiss()
@@ -129,8 +129,8 @@ assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
 
 # Match horizontal xing angle in ip8
 
-angle_match = 200e-6
-knob_opt = collider.match_knob(
+angle_match = 300e-6
+opt = collider.match_knob(
     run=False,
     knob_name='on_x8h',
     knob_value_start=0,
@@ -171,9 +171,9 @@ collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
 collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
 
 # Firs round of optimization without changing mcbx
-knob_opt.disable_vary(tag='mcbx')
+opt.disable_vary(tag='mcbx')
 
-knob_opt.step(10)
+opt.step(10)
 
 # Link all mcbx stengths to the first one
 collider.vars['acbxh2.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
@@ -183,8 +183,8 @@ collider.vars['acbxh3.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 collider.vars['acbxh1.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 
 # Enable first mcbx knob
-assert knob_opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
-knob_opt.vary[8].active = True
+assert opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
+opt.vary[8].active = True
 
 
-knob_opt.solve()
+opt.solve()
