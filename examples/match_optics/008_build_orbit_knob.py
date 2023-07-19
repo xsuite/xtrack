@@ -129,7 +129,7 @@ assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
 
 # Match horizontal xing angle in ip8
 
-angle_match = 300e-6
+angle_match = 200e-6
 knob_opt = collider.match_knob(
     run=False,
     knob_name='on_x8h',
@@ -163,12 +163,12 @@ if testkqx8> 210.:
 else:
     acbx_xing_ir8 = 11.0e-6  # Value for 170 urad crossing
 
-collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8
-collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8
-collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8
-collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8
-collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8
-collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8
+collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
+collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
 
 # Firs round of optimization without changing mcbx
 knob_opt.disable_vary(tag='mcbx')
@@ -180,12 +180,11 @@ collider.vars['acbxh2.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
 collider.vars['acbxh3.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
 collider.vars['acbxh2.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 collider.vars['acbxh3.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
-collider.vars['acbxh1.l8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
+collider.vars['acbxh1.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 
 # Enable first mcbx knob
 assert knob_opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
 knob_opt.vary[8].active = True
 
-knob_opt.solver.n_bisections = 5
 
 knob_opt.solve()

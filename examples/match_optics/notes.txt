@@ -34,3 +34,4 @@ Notes:
  - Need to homogenize output of optimizer for solve=True and solve=False
  - Need a quick way of getting the results
  - Need to add limits to knob optimizer
+ - Can I change a target during optimization?
