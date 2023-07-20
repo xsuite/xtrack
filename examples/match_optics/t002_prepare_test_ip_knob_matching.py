@@ -1,7 +1,6 @@
 import numpy as np
 
 import xtrack as xt
-import lhc_match as lm
 
 
 collider = xt.Multiline.from_json(
