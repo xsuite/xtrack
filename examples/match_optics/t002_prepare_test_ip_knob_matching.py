@@ -59,7 +59,7 @@ assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['step'], 1.0e-15, a
 assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][0], -limitmcbc, atol=1e-17, rtol=0)
 assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
 
-# kill all existing knobs
+# kill all existing knobs orbit knobs in ip2 and ip8
 all_knobs_ip2ip8 = [
     'acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbyhs4.r8b2', 'pyip2b1', 'acbxv1.l8', 'acbyvs4.l2b1', 'acbxh1.l8',
@@ -83,6 +83,7 @@ for kk in all_knobs_ip2ip8:
 angle_match = 300e-6
 opt = collider.match_knob(
     run=False,
+    default_tol={'x': 1.1e-10, 'px': 0.9e-10},
     knob_name='on_x8h',
     knob_value_start=0,
     knob_value_end=(angle_match * 1e6),
@@ -95,7 +96,7 @@ opt = collider.match_knob(
         xt.TargetList(['x', 'px'], at='e.ds.r8.b2', line='lhcb2', value=0),
         xt.Target('x', 0, at='ip8', line='lhcb1'),
         xt.Target('x', 0, at='ip8', line='lhcb2'),
-        xt.Target('px', angle_match, at='ip8', line='lhcb1'),
+        xt.Target('px', angle_match, at='ip8', line='lhcb1', tol=0.8e-10),
         xt.Target('px', -angle_match, at='ip8', line='lhcb2'),
     ],
     vary=[
@@ -119,8 +120,6 @@ assert ll['target_active', 0] == 'yyyyyyyy'
 assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
 
 vnames = [vv.name for vv in opt.vary]
-vtags = [vv.tag for vv in opt.vary]
-
 assert np.all(np.array(vnames) == np.array(
 ['acbyhs4.l8b1_from_on_x8h', 'acbyhs4.r8b2_from_on_x8h',
  'acbyhs4.l8b2_from_on_x8h', 'acbyhs4.r8b1_from_on_x8h',
@@ -129,12 +128,20 @@ assert np.all(np.array(vnames) == np.array(
  'acbxh1.l8_from_on_x8h', 'acbxh2.l8_from_on_x8h', 'acbxh3.l8_from_on_x8h',
  'acbxh1.r8_from_on_x8h', 'acbxh2.r8_from_on_x8h', 'acbxh3.r8_from_on_x8h']))
 
+vtags = [vv.tag for vv in opt.vary]
 assert np.all(np.array(vtags) == np.array(
     ['', '', '', '', '', '', '', '', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx']))
 
+assert np.isclose(opt.vary[0].step, 2e-15, atol=1e-17, rtol=0)
+assert np.isclose(opt.vary[0].limits[0], -9e-5, atol=1e-10, rtol=0)
+assert np.isclose(opt.vary[0].limits[1], 9e-5, atol=1e-10, rtol=0)
+assert np.isclose(opt.vary[2].step, 1e-15, atol=1e-17, rtol=0)
+assert np.isclose(opt.vary[2].limits[0], -limitmcby, atol=1e-10, rtol=0)
+assert np.isclose(opt.vary[2].limits[1], limitmcby, atol=1e-10, rtol=0)
 
-
-prrrr
+assert np.isclose(opt.targets[5].tol, 1.1e-10, atol=1e-14, rtol=0)
+assert np.isclose(opt.targets[6].tol, 0.8e-10, atol=1e-14, rtol=0)
+assert np.isclose(opt.targets[7].tol, 0.9e-10, atol=1e-14, rtol=0)
 
 # Set mcmbx by hand (as in mad-x script)
 testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
@@ -159,10 +166,36 @@ collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 *
 collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 
+init_mcbx_plus = collider.varval['acbxh1.l8_from_on_x8h']
+
 # First round of optimization without changing mcbx
 opt.disable_vary(tag='mcbx')
+vtags = [vv.tag for vv in opt.vary]
+assert np.all(np.array(vtags) == np.array(
+    ['', '', '', '', '', '', '', '', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx']))
+vactive = [vv.active for vv in opt.vary]
+assert np.all(np.array(vactive) == np.array(
+    [True, True, True, True, True, True, True, True, False, False, False, False, False, False]))
 
 opt.step(10) # perform 10 steps without checking for convergence
+
+ll = opt.log()
+assert len(ll) == 11
+assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
+assert ll['vary_active', 1] == 'yyyyyyyynnnnnn'
+assert ll['vary_active', 10] == 'yyyyyyyynnnnnn'
+
+# Check solution not found
+assert ll['tol_met', 10] != 'yyyyyyyy'
+
+# Check that mcbxs did not move
+assert np.allclose(ll['vary_8', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
+assert np.allclose(ll['vary_9', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
+assert np.allclose(ll['vary_10', 1:], init_mcbx_plus, atol=1e-12, rtol=0)
+assert np.allclose(ll['vary_11', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
+assert np.allclose(ll['vary_12', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
+assert np.allclose(ll['vary_13', 1:], -init_mcbx_plus, atol=1e-12, rtol=0)
+
 
 # Link all mcbx stengths to the first one
 collider.vars['acbxh2.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
@@ -176,6 +209,8 @@ assert opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
 opt.vary[8].active = True
 
 opt.solve()
+assert np.all(ll['vary_active', 11:] == 'yyyyyyyyynnnnn')
+
 opt.generate_knob()
 
 collider.vars['on_x8h'] = 100
