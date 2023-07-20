@@ -131,10 +131,6 @@ class Tracker:
 
         _buffer = tracker_data_base._buffer
 
-        if io_buffer is None:
-            io_buffer = new_io_buffer(_context=_buffer.context)
-        self.io_buffer = io_buffer
-
         # Make a "marker" element to increase at_element
         if self.iscollective:
             self._zerodrift = Drift(_context=_buffer.context, length=0)
@@ -143,11 +139,18 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
+        self._init_io_buffer(io_buffer)
+
         self.line = line
         self.line.tracker = self
 
         if compile:
             _ = self.get_track_kernel_and_data_for_present_config()  # This triggers compilation
+
+    def _init_io_buffer(self, io_buffer=None):
+        if io_buffer is None:
+            io_buffer = new_io_buffer(_context=self._context)
+        self.io_buffer = io_buffer
 
     def _split_parts_for_collective_mode(self, line, _buffer):
 
