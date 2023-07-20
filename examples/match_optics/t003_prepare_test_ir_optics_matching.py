@@ -1,8 +1,35 @@
+import numpy as np
 import xtrack as xt
 
 collider = xt.Multiline.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.build_trackers()
+
+tw = collider.twiss()
+assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+
+
+
+
+
 
 nrj = 7000.
 scale = 23348.89927*0.9
@@ -187,6 +214,27 @@ assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
 assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
 
+
+assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+
 # Beam 2
 
 collider.varval['kq6.l8b2'] *= 1.1
@@ -310,3 +358,23 @@ opt._add_point_to_log()
 assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
 assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
+
+assert np.isclose(tw.lhcb1['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip1'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip1'], 0.15, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip5'], 0.15, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip5'], 0.15, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip8'], 1.5, atol=1e-6, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip8'], 1.5, atol=1e-6, rtol=0)
+
+assert np.isclose(tw.lhcb1['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
+assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
