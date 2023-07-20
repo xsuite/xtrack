@@ -23,6 +23,14 @@ print('\nBend:')
 for nn in 's x px y py zeta delta'.split():
     print(f"{nn}: {getattr(p0, nn)[0]:.6e} {getattr(p1, nn)[0]:.6e} {getattr(p2, nn)[0]:.6e}")
 
+assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+
 p3 = p1.copy()
 line.configure_bend_model(core='full')
 line.track(p3, backtrack=True)
@@ -36,9 +44,15 @@ line.track(p4, backtrack=True)
 
 assert np.all(p4.state == -31)
 
-
 # Same for quadrupole
 q = xt.Quadrupole(k1=0.2, length=1.0)
+assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
 
 line = xt.Line(elements=[q])
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
