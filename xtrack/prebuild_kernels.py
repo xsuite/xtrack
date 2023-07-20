@@ -20,7 +20,6 @@ import xtrack as xt
 LOGGER = logging.getLogger(__name__)
 
 XT_PREBUILT_KERNELS_LOCATION = Path(xt.__file__).parent / 'prebuilt_kernels'
-XT_PREBUILT_KERNELS_METADATA = '_kernel_definitions.json'
 
 BEAM_ELEMENTS_INIT_DEFAULTS = {
     'Bend': {
