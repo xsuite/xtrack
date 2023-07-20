@@ -267,3 +267,25 @@ assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-10, rtol=0)
+
+# Check that on_x8h still works
+collider.vars['on_x8h'] = 100
+tw = collider.twiss()
+collider.vars['on_x8h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-10, rtol=0)
+
+# Both knobs together
+collider.vars['on_x8h'] = 120
+collider.vars['on_sep8h'] = 1.7
+tw = collider.twiss()
+collider.vars['on_x8h'] = 0
+collider.vars['on_sep8h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip8'], 1.7e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], -1.7e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip8'], 120e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], -120e-6, atol=1e-10, rtol=0)
