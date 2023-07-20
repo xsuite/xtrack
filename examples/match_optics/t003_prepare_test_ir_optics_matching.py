@@ -156,6 +156,7 @@ opt.enable_targets(tag='stage2')
 opt._add_point_to_log()
 assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
 assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
+assert opt.log()['tol_met', -1] != 'yyyyyyyyyyyyyy'
 
 opt.enable_vary(tag='stage2')
 opt._add_point_to_log()
