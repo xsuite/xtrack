@@ -345,8 +345,8 @@ def rematch_ir2(collider, line_name,
             opt.disable_all_vary()
             opt.disable_all_targets()
 
-            opt.disable_targets(tag=['stage1', 'stage2'])
-            opt.disable_vary(tag=['stage1', 'stage2'])
+            opt.enable_vary(tag='stage0')
+            opt.enable_targets(tag='stage0')
             opt.solve()
 
             opt.enable_vary(tag='stage1')
