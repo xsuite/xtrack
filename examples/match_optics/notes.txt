@@ -37,3 +37,4 @@ Notes:
  - Can I change a target during optimization?
  - Reload should also set the vary and targets active flags
  - It is a bit misleading that tol_met gives always yes for masked targets
+ - Check imported quad limits, especially signs

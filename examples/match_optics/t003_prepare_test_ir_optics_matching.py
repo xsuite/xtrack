@@ -17,39 +17,39 @@ qtlimit6 = 1.0*90.0/scale
 
 collider.vars.vary_default.update({
     'kq4.r8b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
-    'kq5.r8b1':    {'step': 1.0E-6, 'limits': (-qtlimit2, qtlimit2*scmin)},
+    'kq5.r8b1':    {'step': 1.0E-6, 'limits': (-qtlimit2, -qtlimit2*scmin)},
     'kq6.r8b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
-    'kq7.r8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq7.r8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kq8.r8b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
-    'kq9.r8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq9.r8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kq10.r8b1':   {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
     'kqtl11.r8b1': {'step': 1.0E-6, 'limits': (-qtlimit4, qtlimit4)},
     'kqt12.r8b1':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
     'kqt13.r8b1':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
-    'kq4.l8b1':    {'step': 1.0E-6, 'limits': (-qtlimit2, qtlimit2*scmin)},
+    'kq4.l8b1':    {'step': 1.0E-6, 'limits': (-qtlimit2, -qtlimit2*scmin)},
     'kq5.l8b1':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
-    'kq6.l8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq6.l8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kq7.l8b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
-    'kq8.l8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq8.l8b1':    {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kq9.l8b1':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
-    'kq10.l8b1':   {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq10.l8b1':   {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kqtl11.l8b1': {'step': 1.0E-6, 'limits': (-qtlimit4, qtlimit4)},
     'kqt12.l8b1':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
     'kqt13.l8b1':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
-    'kq4.r8b2':    {'step': 1.0E-6, 'limits': (-qtlimit2, qtlimit2*scmin)},
+    'kq4.r8b2':    {'step': 1.0E-6, 'limits': (-qtlimit2, -qtlimit2*scmin)},
     'kq5.r8b2':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
-    'kq6.r8b2':    {'step': 1.0E-6, 'limits': (-qtlimit2, qtlimit2*scmin)},
+    'kq6.r8b2':    {'step': 1.0E-6, 'limits': (-qtlimit2, -qtlimit2*scmin)},
     'kq7.r8b2':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
-    'kq8.r8b2':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq8.r8b2':    {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kq9.r8b2':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
-    'kq10.r8b2':   {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq10.r8b2':   {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kqtl11.r8b2': {'step': 1.0E-6, 'limits': (-qtlimit4, qtlimit4)},
     'kqt12.r8b2':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
     'kqt13.r8b2':  {'step': 1.0E-6, 'limits': (-qtlimit5, qtlimit5)},
     'kq5.l8b2':    {'step': 1.0E-6, 'limits': (-qtlimit2, qtlimit2*scmin)},
     'kq4.l8b2':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
     'kq6.l8b2':    {'step': 1.0E-6, 'limits': ( qtlimit2*scmin, qtlimit2)},
-    'kq7.l8b2':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
+    'kq7.l8b2':    {'step': 1.0E-6, 'limits': (-qtlimit3, -qtlimit3*scmin)},
     'kq8.l8b2':    {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
     'kq9.l8b2':    {'step': 1.0E-6, 'limits': (-qtlimit3, qtlimit3*scmin)},
     'kq10.l8b2':   {'step': 1.0E-6, 'limits': ( qtlimit3*scmin, qtlimit3)},
@@ -97,7 +97,8 @@ opt = collider[f'lhcb1'].match(
             f'kq8.l8b1', f'kq9.l8b1', f'kq10.l8b1', f'kqtl11.l8b1',
             f'kqt12.l8b1', f'kqt13.l8b1']
         ),
-        xt.VaryList([f'kq4.l8b1', f'kq5.l8b1'], tag='stage1'),
+        xt.Vary(f'kq4.l8b1', tag='stage1', step=1.1e-6, limits=(-0.007, -0.00022)),
+        xt.Vary(f'kq5.l8b1', tag='stage1'),
         xt.VaryList([
             f'kq4.r8b1', f'kq5.r8b1', f'kq6.r8b1', f'kq7.r8b1',
             f'kq8.r8b1', f'kq9.r8b1', f'kq10.r8b1', f'kqtl11.r8b1',
@@ -105,6 +106,18 @@ opt = collider[f'lhcb1'].match(
             tag='stage2')
     ]
 )
+
+assert opt.vary[8].name == 'kq4.l8b1'
+assert opt.vary[8].tag == 'stage1'
+assert opt.vary[8].step == 1.1e-6
+assert opt.vary[8].limits[0] == -0.007
+assert opt.vary[8].limits[1] == -0.00022
+
+assert opt.vary[9].name == 'kq5.l8b1'
+assert opt.vary[9].tag == 'stage1'
+assert opt.vary[9].step == 1.0e-6
+assert opt.vary[9].limits[0] == qtlimit2*scmin
+assert opt.vary[9].limits[1] == qtlimit2
 
 # Assert that the two quad break the optics
 assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
