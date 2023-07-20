@@ -128,7 +128,6 @@ assert np.isclose(tw.lhcb1['py', 'ip2'], 100e-6, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
 
 # Match horizontal xing angle in ip8
-
 angle_match = 300e-6
 opt = collider.match_knob(
     run=False,
@@ -179,7 +178,7 @@ collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 *
 collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 
-# Firs round of optimization without changing mcbx
+# First round of optimization without changing mcbx
 opt.disable_vary(tag='mcbx')
 
 opt.step(10) # perform 10 steps without checking for convergence
@@ -196,8 +195,6 @@ assert opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
 opt.vary[8].active = True
 
 opt.solve()
-
-
 opt.generate_knob()
 
 collider.vars['on_x8h'] = 100
@@ -208,3 +205,65 @@ assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-10, rtol=0)
+
+# Match horizontal separation in ip8
+sep_match = 2e-3
+opt = collider.match_knob(
+    run=False,
+    knob_name='on_sep8h',
+    knob_value_start=0,
+    knob_value_end=(sep_match * 1e3),
+    ele_start=['s.ds.l8.b1', 's.ds.l8.b2'],
+    ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
+    twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b1', line=collider.lhcb1),
+                xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b2', line=collider.lhcb2)],
+    targets=[
+        xt.TargetList(['x', 'px'], at='e.ds.r8.b1', line='lhcb1', value=0),
+        xt.TargetList(['x', 'px'], at='e.ds.r8.b2', line='lhcb2', value=0),
+        xt.Target('x', sep_match, at='ip8', line='lhcb1'),
+        xt.Target('x', -sep_match, at='ip8', line='lhcb2'),
+        xt.Target('px', 0, at='ip8', line='lhcb1'),
+        xt.Target('px', 0, at='ip8', line='lhcb2'),
+    ],
+    vary=[
+        xt.VaryList([
+            'acbyhs4.l8b1', 'acbyhs4.r8b2', 'acbyhs4.l8b2', 'acbyhs4.r8b1',
+            'acbchs5.l8b2', 'acbchs5.l8b1', 'acbyhs5.r8b1', 'acbyhs5.r8b2']),
+        xt.VaryList([
+            'acbxh1.l8', 'acbxh2.l8', 'acbxh3.l8',
+            'acbxh1.r8', 'acbxh2.r8', 'acbxh3.r8'], tag='mcbx')]
+    )
+
+# Set mcmbx by hand (as in mad-x script)
+testkqx8 = abs(collider.varval['kqx.l8'])*7000./0.3
+if testkqx8 > 210.:
+    acbx_sep_ir8 = 18e-6   # Value for 170 urad crossing
+else:
+    acbx_sep_ir8 = 16e-6  # Value for 170 urad crossing
+
+collider.vars['acbxh1.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+collider.vars['acbxh2.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+collider.vars['acbxh3.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+collider.vars['acbxh1.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+collider.vars['acbxh2.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+collider.vars['acbxh3.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+
+# First round of optimization without changing mcbx
+opt.disable_vary(tag='mcbx')
+opt.step(10) # perform 10 steps without checking for convergence
+
+# Enable first mcbx knob (which controls the others)
+assert opt.vary[8].name == 'acbxh1.l8_from_on_sep8h'
+opt.vary[8].active = True
+
+opt.solve()
+opt.generate_knob()
+
+collider.vars['on_sep8h'] = 1.5
+tw = collider.twiss()
+collider.vars['on_sep8h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-10, rtol=0)
