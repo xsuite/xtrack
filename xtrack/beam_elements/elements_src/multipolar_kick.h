@@ -45,11 +45,6 @@ void multipolar_kick(
         inv_factorial *= index;
         index -= 1;
 
-        #ifdef XTRACK_MULTIPOLE_TAPER
-        this_knl = knl[index] * (1 + delta_taper);
-        this_ksl = ksl[index] * (1 + delta_taper);
-        #endif
-
         dpx = knl[index] * inv_factorial + zre;
         dpy = ksl[index] * inv_factorial + zim;
     }
