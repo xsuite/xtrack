@@ -3,18 +3,63 @@ import numpy as np
 import xtrack as xt
 import lhc_match as lm
 
-default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
-collider = xt.Multiline.from_json('hllhc.json')
+collider = xt.Multiline.from_json(
+    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.build_trackers()
-collider.vars.load_madx_optics_file(
-    "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
-tw0 = collider.twiss()
+# Add default steps and limits
 
-collider0 = collider.copy()
-collider0.build_trackers()
+limitmcbxh =  63.5988e-6
+limitmcbxv =  67.0164e-6
+limitmcbx  =  67.0164e-6
+limitmcby  =  96.3000e-6
+limitmcb   =  80.8000e-6
+limitmcbc  =  89.8700e-6
+limitmcbw  =  80.1400e-6
+nrj = 7000.
+scale = 23348.89927*0.9
+scmin = 0.03*7000./nrj
 
+collider.vars.vary_default.update({
+    # Correctors in IR8 (Q4 and Q5, and triplet)
+    'acbyhs4.l8b1':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs4.r8b2':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs4.l8b2':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs4.r8b1':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbchs5.l8b2':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbchs5.l8b1':{'step': 1.0e-15,'limits':(-limitmcby, limitmcby)},
+    'acbyhs5.r8b1':{'step': 1.0e-15,'limits':(-limitmcbc, limitmcbc)},
+    'acbyhs5.r8b2':{'step': 1.0e-15,'limits':(-limitmcbc, limitmcbc)},
+    'acbxh1.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh2.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh3.l8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh1.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh2.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+    'acbxh3.r8':   {'step': 1.0e-15, 'limits':(-limitmcbx, limitmcbx)},
+})
+
+# Check a few steps and limits
+
+assert np.isclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][0], -limitmcbx, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][1], limitmcbx, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['step'], 1.0e-15, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][0], -limitmcbc, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
+
+# Check that they are preserved by to_dict/from_dict
+collider = xt.Multiline.from_dict(collider.to_dict())
+collider.build_trackers()
+
+assert np.isclose(collider.vars.vary_default['acbxh1.l8']['step'], 1.0e-15, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][0], -limitmcbx, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbxh1.l8']['limits'][1], limitmcbx, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['step'], 1.0e-15, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][0], -limitmcbc, atol=1e-17, rtol=0)
+assert np.isclose(collider.vars.vary_default['acbyhs5.r8b2']['limits'][1], limitmcbc, atol=1e-17, rtol=0)
+
+# kill all existing knobs
 all_knobs_ip2ip8 = [
     'acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbyhs4.r8b2', 'pyip2b1', 'acbxv1.l8', 'acbyvs4.l2b1', 'acbxh1.l8',
@@ -31,102 +76,8 @@ all_knobs_ip2ip8 = [
     'acbxv3.l8', 'xip2b1', 'acbyhs5.l2b2', 'acbchs5.l8b2', 'acbcvs5.l8b1',
     'pyip2b2', 'acbxv3.l2', 'acbchs5.l8b1', 'acbyhs4.l2b1', 'acbxh1.r2']
 
-# kill all existing knobs
 for kk in all_knobs_ip2ip8:
     collider.vars[kk] = 0
-
-# We start by matching a bump, no knob
-
-# Match IP offset knob
-offset_match = 0.5e-3
-opt = collider.match_knob(
-    run=False,
-    knob_name='on_o2v',
-    knob_value_start=0,
-    knob_value_end=(offset_match * 1e3),
-    ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
-    ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
-    twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b1', line=collider.lhcb1),
-                xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b2', line=collider.lhcb2)],
-    targets=[
-        xt.TargetList(['y', 'py'], at='e.ds.r2.b1', line='lhcb1', value=0),
-        xt.TargetList(['y', 'py'], at='e.ds.r2.b2', line='lhcb2', value=0),
-        xt.Target('y', offset_match, at='ip2', line='lhcb1'),
-        xt.Target('y', offset_match, at='ip2', line='lhcb2'),
-        xt.Target('py', 0., at='ip2', line='lhcb1'),
-        xt.Target('py', 0., at='ip2', line='lhcb2'),
-    ],
-    vary=xt.VaryList([
-        'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
-        'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
-)
-opt.solve()
-opt.generate_knob()
-
-collider.vars['on_o2v'] = 0.3
-tw = collider.twiss()
-collider.vars['on_o2v'] = 0
-
-assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['py', 'ip2'], 0., atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['py', 'ip2'], 0., atol=1e-10, rtol=0)
-
-# Match crossing angle knob
-angle_match = 170e-6
-opt = collider.match_knob(
-    run=False,
-    knob_name='on_x2v',
-    knob_value_start=0,
-    knob_value_end=(angle_match * 1e6),
-    ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
-    ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
-    twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b1', line=collider.lhcb1),
-                xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b2', line=collider.lhcb2)],
-    targets=[
-        xt.TargetList(['y', 'py'], at='e.ds.r2.b1', line='lhcb1', value=0),
-        xt.TargetList(['y', 'py'], at='e.ds.r2.b2', line='lhcb2', value=0),
-        xt.Target('y', 0, at='ip2', line='lhcb1'),
-        xt.Target('y', 0, at='ip2', line='lhcb2'),
-        xt.Target('py', angle_match, at='ip2', line='lhcb1'),
-        xt.Target('py', -angle_match, at='ip2', line='lhcb2'),
-    ],
-    vary=[
-        xt.VaryList([
-            'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
-            'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
-          xt.VaryList([
-            'acbxv1.l2', 'acbxv2.l2', 'acbxv3.l2',
-            'acbxv1.r2', 'acbxv2.r2', 'acbxv3.r2'], tag='mcbx')]
-)
-
-# Set mcmbx by hand
-testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
-if testkqx2> 210.:
-    acbx_xing_ir2 = 1.0e-6   # Value for 170 urad crossing
-else:
-    acbx_xing_ir2 = 11.0e-6  # Value for 170 urad crossing
-
-collider.vars['acbxv1.l2_from_on_x2v'] = acbx_xing_ir2
-collider.vars['acbxv2.l2_from_on_x2v'] = acbx_xing_ir2
-collider.vars['acbxv3.l2_from_on_x2v'] = acbx_xing_ir2
-collider.vars['acbxv1.r2_from_on_x2v'] = -acbx_xing_ir2
-collider.vars['acbxv2.r2_from_on_x2v'] = -acbx_xing_ir2
-collider.vars['acbxv3.r2_from_on_x2v'] = -acbx_xing_ir2
-
-# match other knobs with fixed mcbx
-opt.disable_vary(tag='mcbx')
-opt.solve()
-opt.generate_knob()
-
-collider.vars['on_x2v'] = 100
-tw = collider.twiss()
-collider.vars['on_x2v'] = 0
-
-assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['py', 'ip2'], 100e-6, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
 
 # Match horizontal xing angle in ip8
 angle_match = 300e-6
@@ -148,13 +99,42 @@ opt = collider.match_knob(
         xt.Target('px', -angle_match, at='ip8', line='lhcb2'),
     ],
     vary=[
+        # Vary with custom step and limits
+        xt.VaryList(['acbyhs4.l8b1'], step=2e-15, limits=(-9e-5, 9e-5)),
+        # Vary using default step and limits
         xt.VaryList([
-            'acbyhs4.l8b1', 'acbyhs4.r8b2', 'acbyhs4.l8b2', 'acbyhs4.r8b1',
+            'acbyhs4.r8b2', 'acbyhs4.l8b2', 'acbyhs4.r8b1',
             'acbchs5.l8b2', 'acbchs5.l8b1', 'acbyhs5.r8b1', 'acbyhs5.r8b2']),
         xt.VaryList([
             'acbxh1.l8', 'acbxh2.l8', 'acbxh3.l8',
             'acbxh1.r8', 'acbxh2.r8', 'acbxh3.r8'], tag='mcbx')]
     )
+
+ll = opt.log()
+assert len(ll) == 1
+assert ll.iteration[0] == 0
+assert np.isclose(ll['penalty', 0], 0.0424264, atol=1e-6, rtol=0)
+assert ll['tol_met', 0] == 'yyyyyynn'
+assert ll['target_active', 0] == 'yyyyyyyy'
+assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
+
+vnames = [vv.name for vv in opt.vary]
+vtags = [vv.tag for vv in opt.vary]
+
+assert np.all(np.array(vnames) == np.array(
+['acbyhs4.l8b1_from_on_x8h', 'acbyhs4.r8b2_from_on_x8h',
+ 'acbyhs4.l8b2_from_on_x8h', 'acbyhs4.r8b1_from_on_x8h',
+ 'acbchs5.l8b2_from_on_x8h', 'acbchs5.l8b1_from_on_x8h',
+ 'acbyhs5.r8b1_from_on_x8h', 'acbyhs5.r8b2_from_on_x8h',
+ 'acbxh1.l8_from_on_x8h', 'acbxh2.l8_from_on_x8h', 'acbxh3.l8_from_on_x8h',
+ 'acbxh1.r8_from_on_x8h', 'acbxh2.r8_from_on_x8h', 'acbxh3.r8_from_on_x8h']))
+
+assert np.all(np.array(vtags) == np.array(
+    ['', '', '', '', '', '', '', '', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx', 'mcbx']))
+
+
+
+prrrr
 
 # Set mcmbx by hand (as in mad-x script)
 testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
