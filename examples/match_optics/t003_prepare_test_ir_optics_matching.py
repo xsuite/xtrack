@@ -106,6 +106,23 @@ opt = collider[f'lhcb1'].match(
     ]
 )
 
+# Assert that the two quad break the optics
+assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
+
+# Check that the unperturbed machine is a solution
+collider.varval['kq6.l8b1'] /= 1.1
+collider.varval['kq6.r8b1'] /= 1.1
+
+opt.clear_log()
+assert opt.log()['tol_met', 0] == 'yyyyyyyyyyyyyy'
+
+# Break again and clear log
+collider.varval['kq6.l8b1'] *= 1.1
+collider.varval['kq6.r8b1'] *= 1.1
+opt.clear_log()
+assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
+
+
 opt.disable_targets(tag=['stage1', 'stage2'])
 opt.disable_vary(tag=['stage2'])
 opt.solve()
