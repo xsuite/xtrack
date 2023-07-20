@@ -544,6 +544,17 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     line.track(p1)
     p2 = p1.copy(_context=test_context)
     line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+
     p3 = p1.copy(_context=test_context)
     line.configure_bend_model(core='full')
     line.track(p3, backtrack=True)
@@ -568,6 +579,17 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     line.track(p1)
     p2 = p1.copy(_context=test_context)
     line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+
     p4 = p1.copy(_context=test_context)
     q.num_multipole_kicks = 4
     line.track(p4, backtrack=True)
