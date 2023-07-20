@@ -5,18 +5,18 @@
 
 import numpy as np
 import pytest
-
-import xtrack as xt
 import xobjects as xo
 import xpart as xp
+from cpymad.madx import Madx
+from scipy.stats import linregress
 from xobjects.test_helpers import for_all_test_contexts
-from xtrack.beam_elements.elements import _angle_from_trig
+from xpart.particles import Particles, ParticlesPurelyLongitudinal
 
 import ducktrack as dtk
+import xtrack as xt
+from xtrack import MadLoader
+from xtrack.beam_elements.elements import _angle_from_trig
 
-from scipy.stats import linregress
-
-from xpart.particles import Particles, ParticlesPurelyLongitudinal
 
 @for_all_test_contexts
 def test_constructor(test_context):
@@ -43,6 +43,9 @@ def test_constructor(test_context):
         xt.Wire(_context=test_context, current=3.),
         xt.Exciter(_context=test_context, knl=[1], samples=[1,2,3,4],
                    sampling_frequency=1e3),
+        xt.Bend(_context=test_context, length=1.),
+        xt.Quadrupole(_context=test_context, length=1.),
+        xt.CombinedFunctionMagnet(_context=test_context, length=1.),
     ]
 
     # test to_dict / from_dict

@@ -10,15 +10,17 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
+from typing import Any, List
 
 import numpy as np
 
-from . import linear_normal_form as lnf
+from . import linear_normal_form as lnf, slicing
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-
+import xdeps as xd
+from .slicing import Slicer
 
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
@@ -70,6 +72,7 @@ class Line:
         self.config = xt.tracker.TrackerConfig()
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
         self.config.XFIELDS_BB3D_NO_BEAMSTR = True
+        self.config.XFIELDS_BB3D_NO_BHABHA = True
         self.config.XTRACK_GLOBAL_XY_LIMIT = 1.0
 
         # Config parameters not exposed to C code
@@ -79,9 +82,14 @@ class Line:
         self._extra_config['reset_s_at_end_turn'] = True
         self._extra_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self._extra_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
+        self._extra_config['t0_time_dependent_vars'] = 0.
+        self._extra_config['dt_update_time_dependent_vars'] = 0.
+        self._extra_config['_t_last_update_time_dependent_vars'] = None
         self._extra_config['_radiation_model'] = None
         self._extra_config['_beamstrahlung_model'] = None
+        self._extra_config['_bhabha_model'] = None
         self._extra_config['_needs_rng'] = False
+        self._extra_config['enable_time_dependent_vars'] = False
         self._extra_config['twiss_default'] = {}
 
         if isinstance(elements, dict):
@@ -112,6 +120,8 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
+        self._compound_relation = {}
+        self._compound_for_element = {}
 
         self.particle_ref = particle_ref
 
@@ -183,6 +193,10 @@ class Line:
 
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
+
+        if 'compound_relation' in dct.keys():
+            for compound_name, components in dct['compound_relation'].items():
+                self.define_compound(compound_name, components)
 
         _print('Done loading line from dict.           ')
 
@@ -369,7 +383,9 @@ class Line:
         sequence,
         deferred_expressions=False,
         install_apertures=False,
-        apply_madx_errors=False,
+        apply_madx_errors=None,
+        enable_field_errors=None,
+        enable_align_errors=None,
         skip_markers=False,
         merge_drifts=False,
         merge_multipoles=False,
@@ -377,6 +393,8 @@ class Line:
         replace_in_expr=None,
         classes=(),
         ignored_madtypes=(),
+        allow_thick=False,
+        use_compound_elements=True,
     ):
 
         """
@@ -393,6 +411,10 @@ class Line:
             If true, aperture information is installed in the line.
         apply_madx_errors : bool, optional
             If true, errors are applied to the line.
+        enable_field_errors : bool, optional
+            If true, field errors are imported.
+        enable_align_errors : bool, optional
+            If true, alignment errors are imported.
         skip_markers : bool, optional
             If true, markers are skipped.
         merge_drifts : bool, optional
@@ -409,6 +431,14 @@ class Line:
             classes are used.
         ignored_madtypes : tuple, optional
             Tuple of MAD-X element types to be ignored.
+        allow_thick : bool, optional
+            If true, thick elements are allowed. Otherwise, an error is raised
+            if a thick element is encountered.
+        use_compound_elements : bool, optional
+            If true, elements that are one element in madx but multiple elements
+            in xtrack will be grouped together with a marker attached in front,
+            and will be accessible through __getattr__. Otherwise, the line will
+            be flattened.
 
         Returns
         -------
@@ -417,12 +447,15 @@ class Line:
 
         """
 
-        class_namespace=mk_class_namespace(classes)
+        class_namespace = mk_class_namespace(classes)
 
-        loader = MadLoader(sequence,
+        loader = MadLoader(
+            sequence,
             classes=class_namespace,
             ignore_madtypes=ignored_madtypes,
             enable_errors=apply_madx_errors,
+            enable_field_errors=enable_field_errors,
+            enable_align_errors=enable_align_errors,
             enable_apertures=install_apertures,
             enable_expressions=deferred_expressions,
             skip_markers=skip_markers,
@@ -430,9 +463,11 @@ class Line:
             merge_multipoles=merge_multipoles,
             expressions_for_element_types=expressions_for_element_types,
             error_table=None,  # not implemented yet
-            replace_in_expr=replace_in_expr
-            )
-        line=loader.make_line()
+            replace_in_expr=replace_in_expr,
+            allow_thick=allow_thick,
+            use_compound_elements=use_compound_elements,
+        )
+        line = loader.make_line()
         return line
 
     def to_dict(self, include_var_management=True):
@@ -457,6 +492,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
+        out['compound_relation'] = self.compounds.copy()
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -511,7 +547,7 @@ class Line:
         file: str or file-like object
             The file to save to. If a string is provided, a file is opened and
             closed. If a file-like object is provided, it is used directly.
-        **kwargs: dict
+        **kwargs:
             Additional keyword arguments are passed to the `Line.to_dict` method.
 
         '''
@@ -536,17 +572,27 @@ class Line:
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
         isthick = np.array(list(map(_is_thick, elements)))
+        compound_name = self._get_element_compound_names()
 
         import pandas as pd
 
         elements_df = pd.DataFrame({
-            'element_type': element_types,
             's': s_elements,
+            'element_type': element_types,
             'name': self.element_names,
             'isthick': isthick,
+            'compound_name': compound_name,
             'element': elements
         })
         return elements_df
+
+    def get_table(self):
+        df = self.to_pandas()
+
+        data = {kk: df[kk].values for kk in df.columns}
+        data.pop('element')
+
+        return xd.Table(data=data)
 
     def copy(self, _context=None, _buffer=None):
         '''
@@ -643,7 +689,7 @@ class Line:
 
         """
 
-        self.element_names = list(self.element_names)
+        self._element_names = list(self._element_names)
         if hasattr(self, 'tracker') and self.tracker is not None:
             self.tracker._invalidate()
             self.tracker = None
@@ -709,6 +755,21 @@ class Line:
             freeze_longitudinal=freeze_longitudinal,
             time=time,
             **kwargs)
+
+    def slice_thick_elements(self, slicing_strategies):
+        """
+        Slice thick elements in the line. Slicing is done in place.
+
+        Parameters
+        ----------
+        slicing_strategies : list
+            List of slicing Strategy objects.
+
+        """
+
+        self._frozen_check()
+        slicer = Slicer(self, slicing_strategies)
+        return slicer.slice_in_place()
 
     def build_particles(
         self,
@@ -873,6 +934,7 @@ class Line:
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
+        group_compound_elements=None,
         only_twiss_init=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -1313,7 +1375,6 @@ class Line:
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop)
 
-
     def get_length(self):
 
         '''Get total length of the line'''
@@ -1385,37 +1446,40 @@ class Line:
         else:
             return s
 
-    def insert_element(self, index=None, element=None, name=None, at_s=None,
+    def insert_element(self, name, element=None, index=None, at_s=None,
                        s_tol=1e-6):
 
-        '''Insert an element in the line.
+        """Insert an element in the line.
 
         Parameters
         ----------
+        name: str
+            Name of the element.
         index: int, optional
             Index of the element in the line. If `index` is provided, `at_s`
             must be None.
         element: xline.Element, optional
-            Element to be inserted. If `element` is provided, `name` must be
-            provided.
-        name: str
-            Name of the element. If `name` is provided, `element` must be
-            provided.
+            Element to be inserted. If not given, the element of the given name
+            already present in the line is used.
         at_s: float, optional
             Position of the element in the line. If `at_s` is provided, `index`
             must be None.
         s_tol: float, optional
             Tolerance for the position of the element in the line.
-        '''
+        """
 
         if isinstance(index, str):
             assert index in self.element_names
             index = self.element_names.index(index)
 
-        assert name is not None
         if element is None:
-            assert name in self.element_names
-            element  = self.element_dict[name]
+            if name not in self.element_names:
+                raise ValueError(
+                    f'Element {name} not found in the line. You must either '
+                    f'give an `element` or a name of an element already '
+                    f'present in the line.'
+                )
+            element = self.element_dict[name]
 
         self._frozen_check()
 
@@ -1424,92 +1488,92 @@ class Line:
                     "Either `index` or `at_s` must be provided"
                 )
 
-        if at_s is not None:
-            s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
-
-            if not _is_thick(element) or np.abs(element.length)==0:
-                i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
-                if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
-                    return self.insert_element(index=i_closest,
-                                            element=element, name=name)
-
-            s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
-
-            s_start_ele = at_s
-            i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
-
-            # Shortcut for thin element without drift splitting
-            if (not _is_thick(element)
-                and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s)<1e-10):
-                    return self.insert_element(index=i_first_drift_to_cut,
-                                              element=element, name=name)
-
-            if _is_thick(element) and np.abs(element.length)>0:
-                s_end_ele = at_s + element.length
-            else:
-                s_end_ele = s_start_ele
-
-            i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
-            if _is_thick(element) and element.length > 0:
-                assert i_first_drift_to_cut <= i_last_drift_to_cut
-            name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
-            name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
-            first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
-            last_drift_to_cut = self.element_dict[name_last_drift_to_cut]
-
-            assert _is_drift(first_drift_to_cut)
-            assert _is_drift(last_drift_to_cut)
-
-            for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
-                e_to_replace = self.element_dict[self.element_names[ii]]
-                if (not _is_drift(e_to_replace) and
-                    not isinstance(e_to_replace, Marker) and
-                    not _is_aperture(e_to_replace)):
-                    raise ValueError('Cannot replace active element '
-                                        f'{self.element_names[ii]}')
-
-            l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
-            l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
-            assert l_left_part >= 0
-            assert l_right_part >= 0
-            name_left = name_first_drift_to_cut + '_part0'
-            name_right = name_last_drift_to_cut + '_part1'
-
-            self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
-            i_insert = i_first_drift_to_cut
-
-            drift_base = self.element_dict[self.element_names[i_insert]]
-            drift_left = drift_base.copy()
-            drift_left.length = l_left_part
-            drift_right = drift_base.copy()
-            drift_right.length = l_right_part
-
-            # Insert
-            assert name_left not in self.element_names
-            assert name_right not in self.element_names
-
-            names_to_insert = []
-
-            if drift_left.length > 0:
-                names_to_insert.append(name_left)
-                self.element_dict[name_left] = drift_left
-            names_to_insert.append(name)
-            self.element_dict[name] = element
-            if drift_right.length > 0:
-                names_to_insert.append(name_right)
-                self.element_dict[name_right] = drift_right
-
-            self.element_names[i_insert] = names_to_insert[-1]
-            if len(names_to_insert) > 1:
-                for nn in names_to_insert[:-1][::-1]:
-                    self.element_names.insert(i_insert, nn)
-
-        else:
-            if _is_thick(element) and np.abs(element.length)>0:
-                raise NotImplementedError('use `at_s` to insert thick elements')
+        if at_s is None:
+            if _is_thick(element) and np.abs(element.length) > 0:
+                raise NotImplementedError('Use `at_s` to insert thick elements')
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
             self.element_names.insert(index, name)
+            return
+
+        s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
+
+        if not _is_thick(element) or np.abs(element.length) == 0:
+            i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
+            if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
+                return self.insert_element(index=i_closest,
+                                        element=element, name=name)
+
+        s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
+
+        s_start_ele = at_s
+        i_first_drift_to_cut = np.where(s_vect_downstream > s_start_ele)[0][0]
+
+        # Shortcut for thin element without drift splitting
+        if (not _is_thick(element)
+                and np.abs(s_vect_upstream[i_first_drift_to_cut]-at_s) < 1e-10):
+            return self.insert_element(index=i_first_drift_to_cut,
+                                       element=element, name=name)
+
+        if _is_thick(element) and np.abs(element.length) > 0:
+            s_end_ele = at_s + element.length
+        else:
+            s_end_ele = s_start_ele
+
+        i_last_drift_to_cut = np.where(s_vect_upstream < s_end_ele)[0][-1]
+        if _is_thick(element) and element.length > 0:
+            assert i_first_drift_to_cut <= i_last_drift_to_cut
+        name_first_drift_to_cut = self.element_names[i_first_drift_to_cut]
+        name_last_drift_to_cut = self.element_names[i_last_drift_to_cut]
+        first_drift_to_cut = self.element_dict[name_first_drift_to_cut]
+        last_drift_to_cut = self.element_dict[name_last_drift_to_cut]
+
+        assert _is_drift(first_drift_to_cut)
+        assert _is_drift(last_drift_to_cut)
+
+        for ii in range(i_first_drift_to_cut, i_last_drift_to_cut+1):
+            e_to_replace = self.element_dict[self.element_names[ii]]
+            if (not _is_drift(e_to_replace) and
+                not isinstance(e_to_replace, Marker) and
+                not _is_aperture(e_to_replace)):
+                raise ValueError('Cannot replace active element '
+                                    f'{self.element_names[ii]}')
+
+        l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
+        l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
+        assert l_left_part >= 0
+        assert l_right_part >= 0
+        name_left = name_first_drift_to_cut + '_part0'
+        name_right = name_last_drift_to_cut + '_part1'
+
+        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
+        i_insert = i_first_drift_to_cut
+
+        drift_base = self.element_dict[self.element_names[i_insert]]
+        drift_left = drift_base.copy()
+        drift_left.length = l_left_part
+        drift_right = drift_base.copy()
+        drift_right.length = l_right_part
+
+        # Insert
+        assert name_left not in self.element_names
+        assert name_right not in self.element_names
+
+        names_to_insert = []
+
+        if drift_left.length > 0:
+            names_to_insert.append(name_left)
+            self.element_dict[name_left] = drift_left
+        names_to_insert.append(name)
+        self.element_dict[name] = element
+        if drift_right.length > 0:
+            names_to_insert.append(name_right)
+            self.element_dict[name_right] = drift_right
+
+        self.element_names[i_insert] = names_to_insert[-1]
+        if len(names_to_insert) > 1:
+            for nn in names_to_insert[:-1][::-1]:
+                self.element_names.insert(i_insert, nn)
 
         return self
 
@@ -1526,10 +1590,41 @@ class Line:
         '''
 
         self._frozen_check()
-        assert name not in self.element_dict.keys()
+        if element in self.element_dict and element is not self.element_dict[name]:
+            raise ValueError('Element already present in the line')
         self.element_dict[name] = element
         self.element_names.append(name)
         return self
+
+    def define_compound(self, compound_name, component_names):
+        self._compound_relation[compound_name] = component_names
+        for name in component_names:
+            self._compound_for_element[name] = compound_name
+
+    @property
+    def compounds(self):
+        return self._compound_relation
+
+    def is_top_level_element(self, element_name):
+        """
+        Return True if the element is not part of a compound element, or if it
+        is the entry element of a compound element.
+        """
+        if element_name not in self._compound_for_element:
+            return True
+
+        compound_name = self._compound_for_element[element_name]
+        if self.compounds[compound_name][0] == element_name:
+            return True
+
+        return False
+
+    def get_compound_mask(self):
+        return [self.is_top_level_element(name) for name in self.element_names]
+
+    def _get_element_compound_names(self):
+        return [self._compound_for_element[name] if name in self._compound_for_element else name
+                for name in self.element_names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
@@ -1732,8 +1827,37 @@ class Line:
         for name in variable_names:
             self.config[f'FREEZE_VAR_{name}'] = False
 
+
+    def configure_bend_model(self, core=None, edge=None):
+
+        """
+        Configure the method used to track bends.
+
+        Parameters
+        ----------
+        core: str
+            Medel to be used for the thick bend cores. Can be 'expanded' or '
+            full'.
+        edge: str
+            Model to be used for the bend edges. Can be 'linear', 'full'
+            or 'suppressed'.
+        """
+
+        if core not in [None, 'expanded', 'full']:
+            raise ValueError(f'Unknown bend model {core}')
+
+        if edge not in [None, 'linear', 'full', 'suppressed']:
+            raise ValueError(f'Unknown bend edge model {edge}')
+
+        for ee in self.elements:
+            if core is not None and isinstance(ee, xt.Bend):
+                ee.model = core
+
+            if edge is not None and isinstance(ee, xt.DipoleEdge):
+                ee.model = edge
+
     def configure_radiation(self, model=None, model_beamstrahlung=None,
-                            mode='deprecated'):
+                            model_bhabha=None, mode='deprecated'):
 
         """
         Configure radiation within the line.
@@ -1744,7 +1868,8 @@ class Line:
             Radiation model to use. Can be 'mean', 'quantum' or None.
         model_beamstrahlung: str
             Beamstrahlung model to use. Can be 'mean', 'quantum' or None.
-
+        model_bhabha: str
+            Bhabha model to use. Can be 'quantum' or None.
         """
 
         if mode != 'deprecated':
@@ -1754,6 +1879,7 @@ class Line:
 
         assert model in [None, 'mean', 'quantum']
         assert model_beamstrahlung in [None, 'mean', 'quantum']
+        assert model_bhabha in [None, 'quantum']
 
         if model == 'mean':
             radiation_flag = 1
@@ -1775,6 +1901,13 @@ class Line:
             beamstrahlung_flag = 0
             self._beamstrahlung_model = None
 
+        if model_bhabha == 'quantum':
+            bhabha_flag = 1
+            self._bhabha_model = 'quantum'
+        else:
+            bhabha_flag = 0
+            self._bhabha_model = None
+
         for kk, ee in self.element_dict.items():
             if hasattr(ee, 'radiation_flag'):
                 ee.radiation_flag = radiation_flag
@@ -1782,12 +1915,15 @@ class Line:
         for kk, ee in self.element_dict.items():
             if hasattr(ee, 'flag_beamstrahlung'):
                 ee.flag_beamstrahlung = beamstrahlung_flag
+            if hasattr(ee, 'flag_bhabha'):
+                ee.flag_bhabha = bhabha_flag
 
-        if radiation_flag == 2 or beamstrahlung_flag == 2:
+        if radiation_flag == 2 or beamstrahlung_flag == 2 or bhabha_flag == 1:
             self._needs_rng = True
 
         self.config.XTRACK_MULTIPOLE_NO_SYNRAD = (radiation_flag == 0)
         self.config.XFIELDS_BB3D_NO_BEAMSTR = (beamstrahlung_flag == 0)
+        self.config.XFIELDS_BB3D_NO_BHABHA = (bhabha_flag == 0)
 
     def compensate_radiation_energy_loss(self, delta0=0, rtol_eneloss=1e-10,
                                     max_iter=100, **kwargs):
@@ -1843,8 +1979,11 @@ class Line:
         if verbose: _print("Disable xdeps expressions")
         self._var_management = None # Disable expressions
 
+        buffer = self._buffer
+        io_buffer = self.tracker.io_buffer
+
         # Unfreeze the line
-        self.element_names = list(self.element_names)
+        self.discard_tracker()
 
         if keep_markers is True:
             if verbose: _print('Markers are kept')
@@ -1877,19 +2016,7 @@ class Line:
         self.use_simple_quadrupoles()
 
         if verbose: _print("Rebuild tracker data")
-        td_init = xt.tracker_data.TrackerData(
-            element_dict=self.element_dict,
-            element_names=self.element_names,
-            element_s_locations=self.get_s_elements(),
-            line_length=self.get_length(),
-            allow_move=True,
-            extra_element_classes=(self.tracker.particles_monitor_class._XoStruct,),
-            _buffer=self._buffer)
-
-        self._freeze()
-
-        self.tracker._tracker_data_cache.clear()
-        self.tracker._tracker_data_cache[None] = td_init
+        self.build_tracker(_buffer=buffer, io_buffer=io_buffer)
 
         self.use_prebuilt_kernels = False
 
@@ -1934,7 +2061,7 @@ class Line:
         stop_internal_logging_for_elements_of_type(self.tracker, element_type)
 
     def remove_markers(self, inplace=True, keep=None):
-        '''
+        """
         Remove markers from the line
 
         Parameters
@@ -1943,13 +2070,7 @@ class Line:
             If True, remove markers from the line (default: True)
         keep : str or list of str
             Name of the markers to keep (default: None)
-        '''
-
-        if self._var_management is not None:
-            raise NotImplementedError('`remove_markers` not'
-                                      ' available when deferred expressions are'
-                                      ' used')
-
+        """
         self._frozen_check()
 
         if keep is None:
@@ -2088,11 +2209,6 @@ class Line:
 
         '''
 
-        if self._var_management is not None:
-            raise NotImplementedError('`merge_consecutive_drifts` not'
-                                      ' available when deferred expressions are'
-                                      ' used')
-
         self._frozen_check()
 
         if keep is None:
@@ -2218,7 +2334,7 @@ class Line:
         for name, element in self.element_dict.items():
             if _is_simple_quadrupole(element):
                 fast_quad = beam_elements.SimpleThinQuadrupole(
-                    knl=element.knl,
+                    knl=element.knl[:2],
                     _context=element._context,
                 )
                 self.element_dict[name] = fast_quad
@@ -2234,7 +2350,7 @@ class Line:
         for name, element in self.element_dict.items():
             if _is_simple_dipole(element):
                 fast_di = beam_elements.SimpleThinBend(
-                    knl=element.knl,
+                    knl=element.knl[:1],
                     hxl=element.hxl,
                     length=element.length,
                     _context=element._context,
@@ -2475,9 +2591,17 @@ class Line:
     def __len__(self):
         return len(self.element_names)
 
+    def items(self):
+        for name in self.element_names:
+            yield name, self.element_dict[name]
+
     def _var_management_to_dict(self):
         out = {}
         out['_var_management_data'] = deepcopy(self._var_management['data'])
+        for kk in out['_var_management_data'].keys():
+            if hasattr(out['_var_management_data'][kk], 'to_dict'):
+                out['_var_management_data'][kk] = (
+                    out['_var_management_data'][kk].to_dict())
         out['_var_manager'] = self._var_management['manager'].dump()
         return out
 
@@ -2494,8 +2618,8 @@ class Line:
     def _check_valid_tracker(self):
         if not self._has_valid_tracker():
             raise RuntimeError(
-                "This line does not have a valid tracker, most probably because the corresponding line has been unfrozen. "
-                "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
+                "This line does not have a valid tracker. "
+                "Please build the tracke using `line.build_tracker(...)`.")
 
     @property
     def iscollective(self):
@@ -2521,30 +2645,36 @@ class Line:
     def _init_var_management(self, dct=None):
 
         from collections import defaultdict
-        import xdeps as xd
 
         _var_values = defaultdict(lambda: 0)
         _var_values.default_factory = None
 
+        functions = Functions()
+
         manager = xd.Manager()
         _vref = manager.ref(_var_values, 'vars')
-        _fref = manager.ref(mathfunctions, 'f')
+        _fref = manager.ref(functions, 'f')
         _lref = manager.ref(self.element_dict, 'element_refs')
 
         self._var_management = {}
         self._var_management['data'] = {}
         self._var_management['data']['var_values'] = _var_values
+        self._var_management['data']['functions'] = functions
 
         self._var_management['manager'] = manager
         self._var_management['lref'] = _lref
         self._var_management['vref'] = _vref
         self._var_management['fref'] = _fref
 
+        _vref['t_turn_s'] = 0.0
+
         if dct is not None:
             manager = self._var_management['manager']
-            for kk in self._var_management['data'].keys():
-                self._var_management['data'][kk].update(
-                                            dct['_var_management_data'][kk])
+            for kk in dct['_var_management_data'].keys():
+                data_item = dct['_var_management_data'][kk]
+                if kk == 'functions':
+                    data_item = Functions.from_dict(data_item)
+                self._var_management['data'][kk].update(data_item)
             manager.load(dct['_var_manager'])
 
         self._line_vars = LineVars(self)
@@ -2560,6 +2690,13 @@ class Line:
             return self._in_multiline.vars
         else:
             return self._line_vars
+
+    @property
+    def functions(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            raise NotImplementedError('`functions` not available yet in multiline')
+        else:
+            return self._var_management['fref']
 
     @property
     def _xdeps_vref(self):
@@ -2594,6 +2731,17 @@ class Line:
             self._element_dict = {}
         self._element_dict.clear()
         self._element_dict.update(value)
+
+    @property
+    def element_names(self):
+        return self._element_names
+
+    @element_names.setter
+    def element_names(self, value):
+        if not hasattr(self, '_element_names'):
+            self._element_names = []
+        self._frozen_check()
+        self._element_names = value
 
     @property
     def elements(self):
@@ -2648,12 +2796,53 @@ class Line:
         self._extra_config['_beamstrahlung_model'] = value
 
     @property
+    def _bhabha_model(self):
+        return self._extra_config['_bhabha_model']
+
+    @_bhabha_model.setter
+    def _bhabha_model(self, value):
+        self._extra_config['_bhabha_model'] = value
+
+    @property
     def _needs_rng(self):
         return self._extra_config['_needs_rng']
 
     @_needs_rng.setter
     def _needs_rng(self, value):
         self._extra_config['_needs_rng'] = value
+
+    @property
+    def enable_time_dependent_vars(self):
+        return self._extra_config['enable_time_dependent_vars']
+
+    @enable_time_dependent_vars.setter
+    def enable_time_dependent_vars(self, value):
+        assert value in (True, False)
+        self._extra_config['enable_time_dependent_vars'] = value
+
+    @property
+    def t0_time_dependent_vars(self):
+        return self._extra_config['t0_time_dependent_vars']
+
+    @t0_time_dependent_vars.setter
+    def t0_time_dependent_vars(self, value):
+        self._extra_config['t0_time_dependent_vars'] = value
+
+    @property
+    def dt_update_time_dependent_vars(self):
+        return self._extra_config['dt_update_time_dependent_vars']
+
+    @dt_update_time_dependent_vars.setter
+    def dt_update_time_dependent_vars(self, value):
+        self._extra_config['dt_update_time_dependent_vars'] = value
+
+    @property
+    def _t_last_update_time_dependent_vars(self):
+        return self._extra_config['_t_last_update_time_dependent_vars']
+
+    @_t_last_update_time_dependent_vars.setter
+    def _t_last_update_time_dependent_vars(self, value):
+        self._extra_config['_t_last_update_time_dependent_vars'] = value
 
     @property
     def time_last_track(self):
@@ -2666,8 +2855,13 @@ class Line:
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
+            # if ii in self._compound_relation:
+            #     component_names = self._compound_relation[ii]
+            #     return [self.element_dict[name] for name in component_names]
+
             if ii not in self.element_names:
                 raise IndexError(f'No installed element with name {ii}')
+
             return self.element_dict.__getitem__(ii)
         else:
             names = self.element_names.__getitem__(ii)
@@ -2695,34 +2889,78 @@ class Line:
 
             return out
 
-class MathFunctions:
-    pass
-
 def frac(x):
     return x % 1
 
-mathfunctions = MathFunctions()
-mathfunctions.sqrt = math.sqrt
-mathfunctions.log = math.log
-mathfunctions.log10 = math.log10
-mathfunctions.exp = math.exp
-mathfunctions.sin = math.sin
-mathfunctions.cos = math.cos
-mathfunctions.tan = math.tan
-mathfunctions.asin = math.asin
-mathfunctions.acos = math.acos
-mathfunctions.atan = math.atan
-mathfunctions.sinh = math.sinh
-mathfunctions.cosh = math.cosh
-mathfunctions.tanh = math.tanh
-mathfunctions.sinc = np.sinc
-mathfunctions.abs = math.fabs
-mathfunctions.erf = math.erf
-mathfunctions.erfc = math.erfc
-mathfunctions.floor = math.floor
-mathfunctions.ceil = math.ceil
-mathfunctions.round = np.round
-mathfunctions.frac = frac
+class Functions:
+
+    _mathfunctions = dict(
+        sqrt = math.sqrt,
+        log = math.log,
+        log10 = math.log10,
+        exp = math.exp,
+        sin = math.sin,
+        cos = math.cos,
+        tan = math.tan,
+        asin = math.asin,
+        acos = math.acos,
+        atan = math.atan,
+        atan2 = math.atan2,
+        sinh = math.sinh,
+        cosh = math.cosh,
+        tanh = math.tanh,
+        sinc = np.sinc,
+        abs = math.fabs,
+        erf = math.erf,
+        erfc = math.erfc,
+        floor = math.floor,
+        ceil = math.ceil,
+        round = np.round,
+        frac = frac,
+    )
+
+    def __init__(self):
+        object.__setattr__(self, '_funcs', {})
+
+    def __setitem__(self, name, value):
+        self._funcs[name] = value
+
+    def __getitem__(self, name):
+        if name in self._funcs:
+            return self._funcs[name]
+        elif name in self._mathfunctions:
+            return self._mathfunctions[name]
+        else:
+            raise KeyError(f'Unknown function {name}')
+
+    def __getattr__(self, name):
+        if name == '_funcs':
+            return object.__getattribute__(self, '_funcs')
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(f'Unknown function {name}')
+
+    def update(self, other):
+        self._funcs.update(other._funcs)
+
+    def to_dict(self):
+        fdict = {}
+        for kk, ff in self._funcs.items():
+            fdict[kk] = ff.to_dict()
+            fdict[kk]['__class__'] = ff.__class__.__name__
+        out = {'_funcs': fdict}
+        return out
+
+    @classmethod
+    def from_dict(cls, dct):
+        _funcs = {}
+        for kk, ff in dct['_funcs'].items():
+            ffcls = getattr(xd, ff.pop('__class__'))
+            _funcs[kk] = ffcls.from_dict(ff)
+        out = cls()
+        out._funcs.update(_funcs)
+        return out
 
 
 def _deserialize_element(el, class_dict, _buffer):
@@ -2765,7 +3003,9 @@ def freeze_longitudinal(tracker):
         tracker.config.clear()
         tracker.config.update(config)
 
+
 _freeze_longitudinal = freeze_longitudinal  # to avoid name clash with function argument
+
 
 def mk_class_namespace(extra_classes):
     try:
@@ -2784,17 +3024,22 @@ def mk_class_namespace(extra_classes):
 def _is_drift(element): # can be removed if length is zero
     return isinstance(element, (beam_elements.Drift,) )
 
+
 def _behaves_like_drift(element):
     return hasattr(element, 'behaves_like_drift') and element.behaves_like_drift
+
 
 def _is_aperture(element):
     return element.__class__.__name__.startswith('Limit')
 
+
 def _is_thick(element):
-    return  hasattr(element, "isthick") and element.isthick
+    return hasattr(element, "isthick") and element.isthick
+
 
 def _allow_backtrack(element):
     return hasattr(element, 'allow_backtrack') and element.allow_backtrack
+
 
 def _next_name(prefix, names, name_format='{}{}'):
     """Return an available element name by appending a number"""
@@ -2825,6 +3070,7 @@ def _dicts_equal(dict1, dict2):
             return False
     return True
 
+
 def _apertures_equal(ap1, ap2):
     if not _is_aperture(ap1) or not _is_aperture(ap2):
         raise ValueError(f"Element {ap1} or {ap2} not an aperture!")
@@ -2834,11 +3080,13 @@ def _apertures_equal(ap1, ap2):
     ap2 = ap2.to_dict()
     return _dicts_equal(ap1, ap2)
 
+
 def _lines_equal(line1, line2):
     return _dicts_equal(line1.to_dict(), line2.to_dict())
 
 
 DEG2RAD = np.pi / 180.
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -2867,8 +3115,8 @@ class Node:
     def __repr__(self):
         return f"Node({self.s}, {self.what}, from_={self.from_}, name={self.name})"
 
-At = Node
 
+At = Node
 
 
 def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, naming_scheme='{}{}'):
@@ -2930,6 +3178,7 @@ def flatten_sequence(nodes, elements={}, sequences={}, copy_elements=False, nami
 
     return flat_nodes
 
+
 @contextmanager
 def _preserve_config(ln_or_trk):
     from xtrack.tracker import TrackerConfig
@@ -2940,6 +3189,7 @@ def _preserve_config(ln_or_trk):
     finally:
         ln_or_trk.config.clear()
         ln_or_trk.config.update(config)
+
 
 @contextmanager
 def freeze_longitudinal(ln_or_trk):
@@ -2954,6 +3204,7 @@ def freeze_longitudinal(ln_or_trk):
         ln_or_trk.config.clear()
         ln_or_trk.config.update(config)
 
+
 @contextmanager
 def _temp_knobs(line_or_trk, knobs: dict):
     old_values = {kk: line_or_trk.vars[kk]._value for kk in knobs.keys()}
@@ -2965,11 +3216,12 @@ def _temp_knobs(line_or_trk, knobs: dict):
         for kk, vv in old_values.items():
             line_or_trk.vars[kk] = vv
 
+
 class LineVars:
 
     def __init__(self, line):
         self.line = line
-        self.cache_active = False
+        self._cache_active = False
         self._cached_setters = {}
 
     def keys(self):
@@ -2978,8 +3230,30 @@ class LineVars:
                 f'Cannot access variables as the line has no xdeps manager')
         return self.line._xdeps_vref._owner.keys()
 
+    def __contains__(self, key):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return key in self.line._xdeps_vref._owner
+
+    def get_independent_vars(self):
+
+        """
+        Returns the list of independent variables in the line.
+        """
+
+        out = []
+        for kk in self.keys():
+            if self[kk]._expr is None:
+                out.append(kk)
+        return out
+
     def _setter_from_cache(self, varname):
         if varname not in self._cached_setters:
+            if self.line._xdeps_manager is None:
+                raise RuntimeError(
+                    f'Cannot access variable {varname} as the line has no '
+                    'xdeps manager')
             try:
                 self.cache_active = False
                 self._cached_setters[varname] = VarSetter(self.line, varname)
@@ -2990,15 +3264,31 @@ class LineVars:
         return self._cached_setters[varname]
 
     def __getitem__(self, key):
+        if key not in self: # uses __contains__ method
+            raise KeyError(f'Variable `{key}` not found')
         if self.cache_active:
             return self._setter_from_cache(key)
         return self.line._xdeps_vref[key]
 
     def __setitem__(self, key, value):
         if self.cache_active:
+            if xd.refs._isref(value) or isinstance(value, VarSetter):
+                raise ValueError('Cannot set a variable to a ref when the '
+                                 'cache is active')
             self._setter_from_cache(key)(value)
         else:
             self.line._xdeps_vref[key] = value
+
+    @property
+    def cache_active(self):
+        return self._cache_active
+
+    @cache_active.setter
+    def cache_active(self, value):
+        assert value in (True, False)
+        self._cache_active = value
+        self.line._xdeps_manager._tree_frozen = value
+
 
 class VarSetter:
     def __init__(self, line, varname):
@@ -3038,3 +3328,4 @@ class VarSetter:
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._build_fun()
+

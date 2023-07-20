@@ -10,6 +10,8 @@ import logging
 from functools import partial
 from collections import UserDict, defaultdict
 
+from scipy.constants import c as clight
+
 import numpy as np
 import xobjects as xo
 import xpart as xp
@@ -90,24 +92,26 @@ class Tracker:
         self._enable_pipeline_hold = enable_pipeline_hold
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
-        if self.iscollective:
-            (parts, part_names, _element_part, _element_index_in_part,
-                _part_element_index, noncollective_xelements) = (
-                self._split_parts_for_colletctive_mode(line, _buffer))
+        # Some data for collective mode prepared also for non-collective lines
+        # to allow collective actions by the tracker (e.g. time-functions on knobs)
+        (parts, part_names, _element_part, _element_index_in_part,
+            _part_element_index, noncollective_xelements) = (
+            self._split_parts_for_collective_mode(line, _buffer))
 
+        assert len(line.element_names) == len(_element_index_in_part)
+        assert len(line.element_names) == len(_element_part)
+        if len(line.element_names) > 0:
+            assert _element_part[-1] == len(parts) - 1
+        self._parts = parts
+        self._part_names = part_names
+        self._element_part = _element_part
+        self._element_index_in_part = _element_index_in_part
+
+        if self.iscollective:
             # Build tracker for all non-collective elements
             # (with collective elements replaced by Drifts)
             ele_dict_non_collective = {
                 nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
-
-            assert len(line.element_names) == len(_element_index_in_part)
-            assert len(line.element_names) == len(_element_part)
-            assert _element_part[-1] == len(parts) - 1
-            self._parts = parts
-            self._part_names = part_names
-            self._element_part = _element_part
-            self._element_index_in_part = _element_index_in_part
-
         else:
             ele_dict_non_collective = line.element_dict
 
@@ -117,6 +121,8 @@ class Tracker:
             element_names=line.element_names,
             element_s_locations=line.get_s_elements(),
             line_length=line.get_length(),
+            compound_mask=line.get_compound_mask(),
+            element_compound_names=line._get_element_compound_names(),
             kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,
@@ -124,10 +130,6 @@ class Tracker:
         line._freeze()
 
         _buffer = tracker_data_base._buffer
-
-        if io_buffer is None:
-            io_buffer = new_io_buffer(_context=_buffer.context)
-        self.io_buffer = io_buffer
 
         # Make a "marker" element to increase at_element
         if self.iscollective:
@@ -137,13 +139,20 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
+        self._init_io_buffer(io_buffer)
+
         self.line = line
         self.line.tracker = self
 
         if compile:
             _ = self.get_track_kernel_and_data_for_present_config()  # This triggers compilation
 
-    def _split_parts_for_colletctive_mode(self, line, _buffer):
+    def _init_io_buffer(self, io_buffer=None):
+        if io_buffer is None:
+            io_buffer = new_io_buffer(_context=self._context)
+        self.io_buffer = io_buffer
+
+    def _split_parts_for_collective_mode(self, line, _buffer):
 
         # Split the sequence
         parts = []
@@ -252,6 +261,10 @@ class Tracker:
     def _beamstrahlung_model(self):
         return self.line._beamstrahlung_model
 
+    @property
+    def _bhabha_model(self):
+        return self.line._bhabha_model
+
     def _invalidate(self):
         if self.iscollective:
             self._invalidated_parts = self._parts
@@ -268,7 +281,7 @@ class Tracker:
 
     def _track(self, *args, **kwargs):
         assert self.iscollective in (True, False)
-        if self.iscollective:
+        if self.iscollective or self.line.enable_time_dependent_vars:
             return self._track_with_collective(*args, **kwargs)
         else:
             return self._track_no_collective(*args, **kwargs)
@@ -805,6 +818,29 @@ class Tracker:
                 if not(tt_resume is not None and tt == tt_resume):
                     monitor.track(particles)
 
+            if self.line.enable_time_dependent_vars:
+                # Find first active particle
+                state = particles.state
+                if isinstance(particles._context, xo.ContextPyopencl):
+                    state = state.get()
+                ii_first_active = int((state > 0).argmax())
+                if ii_first_active == 0 and particles._xobject.state[0] <= 0:
+                    # No active particles
+                    break
+
+                # Needs to be generalized for acceleration
+                beta0 = particles._xobject.beta0[ii_first_active]
+                at_turn = particles._xobject.at_turn[ii_first_active]
+                t_turn = (at_turn * self._tracker_data_base.line_length
+                          / (beta0 * clight)) + self.line.t0_time_dependent_vars
+
+                if (self.line._t_last_update_time_dependent_vars is None
+                    or self.line.dt_update_time_dependent_vars is None
+                    or t_turn > self.line._t_last_update_time_dependent_vars
+                                + self.line.dt_update_time_dependent_vars):
+                    self.line._t_last_update_time_dependent_vars = t_turn
+                    self.vars['t_turn_s'] = t_turn
+
             moveback_to_buffer = None
             moveback_to_offset = None
             for ipp, pp in enumerate(self._parts):
@@ -1229,6 +1265,8 @@ class Tracker:
                 element_names=td_base._element_names,
                 element_s_locations=td_base.element_s_locations,
                 line_length=td_base.line_length,
+                compound_mask=td_base.compound_mask,
+                element_compound_names=td_base.element_compound_names,
                 kernel_element_classes=kernel_element_classes,
                 extra_element_classes=td_base.extra_element_classes,
                 _context=self._context,
@@ -1277,12 +1315,18 @@ class Tracker:
 
     def __getstate__(self):
         if not isinstance(self._context, xo.ContextCpu):
-            raise TypeError("Only non-CPU trackers can be pickled.")
+            raise TypeError("Only CPU trackers can be pickled.")
 
         # Remove the compiled kernels from the state
         state = self.__dict__.copy()
         state['_track_kernel'].clear()
         return state
+
+    def check_compatibility_with_prebuilt_kernels(self):
+        get_suitable_kernel(
+            config=self.line.config,
+            line_element_classes=self.line_element_classes,
+            verbose=True)
 
 
 class TrackerConfig(UserDict):

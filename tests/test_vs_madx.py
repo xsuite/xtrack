@@ -369,7 +369,8 @@ def test_line_import_from_madx(test_context):
         mad.sequence['lhcb1'],
         apply_madx_errors=True,
         install_apertures=True,
-        deferred_expressions=True)
+        deferred_expressions=True,
+    )
     line_with_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
 
@@ -378,7 +379,8 @@ def test_line_import_from_madx(test_context):
         mad.sequence['lhcb1'],
         apply_madx_errors=True,
         install_apertures=True,
-        deferred_expressions=False)
+        deferred_expressions=False,
+    )
     line_no_expressions.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                         q0=1, gamma0=mad.sequence.lhcb1.beam.gamma)
 
@@ -390,6 +392,9 @@ def test_line_import_from_madx(test_context):
 
     ltest = line_with_expressions
     lref = line_no_expressions
+
+    ltest.merge_consecutive_drifts()
+    lref.merge_consecutive_drifts()
 
     # Check that the two machines are identical
     assert len(ltest) == len(lref)
@@ -407,8 +412,8 @@ def test_line_import_from_madx(test_context):
 
         skip_order = False
         if isinstance(ee_test, xt.Multipole):
-            if ee_test.order != ee_six.order:
-                min_order = min(ee_test.order, ee_six.order)
+            if ee_test._order != ee_six._order:
+                min_order = min(ee_test._order, ee_six._order)
                 if len(dtest['knl']) > min_order+1:
                     assert np.all(dtest['knl'][min_order+1]  == 0)
                     dtest['knl'] = dtest['knl'][:min_order+1]
@@ -425,7 +430,7 @@ def test_line_import_from_madx(test_context):
 
         for kk in dtest.keys():
 
-            if skip_order and kk == 'order':
+            if skip_order and kk == '_order':
                 continue
 
             if skip_order and kk == 'inv_factorial_order':

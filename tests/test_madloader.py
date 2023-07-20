@@ -469,7 +469,7 @@ def test_mad_elements_import():
 
         assert isinstance(line['de0'], xt.DipoleEdge)
         assert line.get_s_position('de0') == 0.38
-        assert line['de0'].h == 0.1
+        assert line['de0'].k == 0.1
         assert line['de0'].e1 == 3
         assert line['de0'].fint == 4
         assert line['de0'].hgap == 0.02
@@ -540,7 +540,7 @@ def test_selective_expr_import_and_replace_in_expr():
         expressions_for_element_types=('kicker', 'hkicker', 'vkicker'))
 
     assert len(line.vars['bv_aux_lhcb1']._find_dependant_targets()) > 1
-    assert len(line.vars['bv_aux']._find_dependant_targets()) == 1 # depends on itself
+    assert 'bv_aux' not in line.vars
 
     assert line.element_refs['mqxfa.b3r5..1'].knl[1]._expr is None # multipole
     assert line.element_refs['mcbxfbv.b2r1'].ksl[0]._expr is not None # kicker

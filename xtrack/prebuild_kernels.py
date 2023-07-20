@@ -23,6 +23,15 @@ XT_PREBUILT_KERNELS_LOCATION = Path(xt.__file__).parent / 'prebuilt_kernels'
 XT_PREBUILT_KERNELS_METADATA = '_kernel_definitions.json'
 
 BEAM_ELEMENTS_INIT_DEFAULTS = {
+    'Bend': {
+        'length': 1.,
+    },
+    'Quadrupole': {
+        'length': 1.,
+    },
+    'CombinedFunctionMagnet': {
+        'length': 1.,
+    },
     'BeamBeamBiGaussian2D': {
         'other_beam_Sigma_11': 1.,
         'other_beam_Sigma_33': 1.,

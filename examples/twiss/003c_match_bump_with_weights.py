@@ -13,7 +13,7 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
-line.match(
+res = line.match(
     #verbose=True,
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions

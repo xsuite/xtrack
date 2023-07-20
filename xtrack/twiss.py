@@ -22,9 +22,9 @@ from .general import _print
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
-    'dx':1e-7, 'dpx':1e-10,
-    'dy':1e-7, 'dpy':1e-10,
-    'dzeta':1e-6, 'ddelta':1e-7
+    'dx':1e-6, 'dpx':1e-7,
+    'dy':1e-6, 'dpy':1e-7,
+    'dzeta':1e-6, 'ddelta':1e-6
 }
 
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-11]
@@ -55,6 +55,7 @@ def twiss_line(line, particle_ref=None, method=None,
         use_full_inverse=None,
         strengths=None,
         hide_thin_groups=None,
+        group_compound_elements=None,
         only_twiss_init=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
@@ -106,6 +107,8 @@ def twiss_line(line, particle_ref=None, method=None,
     hide_thin_groups : bool, optional
         If True, values associate to elements in thin groups are replacede with
         NaNs.
+    group_compound_elements : bool, optional
+        If True, elements in compounds are grouped together.
     values_at_element_exit : bool, optional (False)
         If True, the Twiss parameters are computed at the exit of the
         elements. If False (default), the Twiss parameters are computed at the
@@ -228,9 +231,9 @@ def twiss_line(line, particle_ref=None, method=None,
     # defaults
     r_sigma=(r_sigma or 0.01)
     nemitt_x=(nemitt_x or 1e-6)
-    nemitt_y=(nemitt_y or 1e-6,)
+    nemitt_y=(nemitt_y or 1e-6)
     delta_disp=(delta_disp or 1e-5)
-    delta_chrom=(delta_chrom or 1e-5)
+    delta_chrom=(delta_chrom or 5e-5)
     zeta_disp=(zeta_disp or 1e-3)
     values_at_element_exit=(values_at_element_exit or False)
     continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
@@ -241,6 +244,7 @@ def twiss_line(line, particle_ref=None, method=None,
     reverse=(reverse or False)
     strengths=(strengths or False)
     hide_thin_groups=(hide_thin_groups or False)
+    group_compound_elements=(group_compound_elements or False)
     only_twiss_init=(only_twiss_init or False)
 
     if freeze_longitudinal:
@@ -296,6 +300,9 @@ def twiss_line(line, particle_ref=None, method=None,
                         matrix_stability_tol=matrix_stability_tol,
                         **kwargs)
         return res
+
+    if line.enable_time_dependent_vars:
+        raise RuntimeError('Time dependent variables not supported in Twiss')
 
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
@@ -419,6 +426,7 @@ def twiss_line(line, particle_ref=None, method=None,
         zeta_disp=zeta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
+        group_compound_elements=group_compound_elements,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
@@ -454,7 +462,9 @@ def twiss_line(line, particle_ref=None, method=None,
             delta_disp=delta_disp,
             zeta_disp=zeta_disp,
             ele_start=ele_start,
-            ele_stop=ele_stop)
+            ele_stop=ele_stop,
+            hide_thin_groups=hide_thin_groups,
+            group_compound_elements=group_compound_elements)
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -509,6 +519,8 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
             twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
 
+
+
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
 
@@ -520,6 +532,7 @@ def _twiss_open(line, twiss_init,
                       delta_disp, zeta_disp,
                       use_full_inverse,
                       hide_thin_groups=False,
+                      group_compound_elements=False,
                       _continue_if_lost=False,
                       _keep_tracking_data=False,
                       _keep_initial_particles=False,
@@ -665,7 +678,9 @@ def _twiss_open(line, twiss_init,
 
     dzeta = dzeta - dzeta[0]
 
-    twiss_res_element_by_element, i_replace  = _compute_lattice_functions(Ws, use_full_inverse, s_co)
+    twiss_res_element_by_element = {}
+
+    lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
 
     twiss_res_element_by_element.update({
         'name': line.element_names[i_start:i_stop] + ('_end_point',),
@@ -677,8 +692,11 @@ def _twiss_open(line, twiss_init,
         'zeta': zeta_co,
         'delta': delta_co,
         'ptau': ptau_co,
-        'dzeta': dzeta,
     })
+
+    twiss_res_element_by_element.update(lattice_functions)
+
+    twiss_res_element_by_element['dzeta'] = dzeta
 
     extra_data = {}
     if _keep_tracking_data:
@@ -696,9 +714,24 @@ def _twiss_open(line, twiss_init,
         ]
 
         for key in _vars_hide_changes:
-                twiss_res_element_by_element[key][i_replace] = np.nan
+            twiss_res_element_by_element[key][i_replace] = np.nan
 
     twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
+
+    if group_compound_elements:
+        compound_mask = np.zeros_like(twiss_res_element_by_element['s'], dtype=bool)
+        n_mask = len(compound_mask)
+        compound_mask[-1] = True
+        compound_mask[:-1] = (
+            line.tracker._tracker_data_base.compound_mask[i_start:i_start+n_mask-1])
+        for kk in list(twiss_res_element_by_element.keys()):
+            twiss_res_element_by_element[kk] = (
+                twiss_res_element_by_element[kk][compound_mask])
+
+        ## To use the name of the compounds (not done for now)
+        # twiss_res_element_by_element['name'][:-1] = (
+        #     line.tracker._tracker_data_base.element_compound_names[
+        #         i_start:i_stop+1][compound_mask[:-1]])
 
     twiss_res = TwissTable(data=twiss_res_element_by_element)
     twiss_res._data.update(extra_data)
@@ -887,7 +920,9 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                     method='6d', use_full_inverse=False,
                     nemitt_x=None, nemitt_y=None,
                     r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
-                    ele_start=None, ele_stop=None):
+                    ele_start=None, ele_stop=None,
+                    hide_thin_groups=False,
+                    group_compound_elements=False):
 
     tw_chrom_res = []
     for dd in [-delta_chrom, delta_chrom]:
@@ -926,7 +961,8 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                 delta_disp=delta_disp,
                 zeta_disp=zeta_disp,
                 use_full_inverse=use_full_inverse,
-                hide_thin_groups=False,
+                hide_thin_groups=hide_thin_groups,
+                group_compound_elements=group_compound_elements,
                 _continue_if_lost=False,
                 _keep_tracking_data=False,
                 _keep_initial_particles=False,
@@ -1075,6 +1111,10 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       delta0=None, zeta0=None,
                       ele_start=None, ele_stop=None,
                       continue_on_closed_orbit_error=False):
+
+    if line.enable_time_dependent_vars:
+        raise RuntimeError(
+            'Time-dependent vars not supported in closed orbit search')
 
     if isinstance(ele_start, str):
         ele_start = line.element_names.index(ele_start)
@@ -1228,6 +1268,10 @@ def compute_one_turn_matrix_finite_differences(
         steps_r_matrix=None,
         ele_start=None, ele_stop=None):
 
+    if line.enable_time_dependent_vars:
+        raise RuntimeError(
+            'Time-dependent vars not supported in one-turn matrix computation')
+
     if isinstance(ele_start, str):
         ele_start = line.element_names.index(ele_start)
 
@@ -1363,6 +1407,7 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     auxtracker = xt.Tracker(
         _buffer=tracker._buffer,
+        io_buffer=tracker.io_buffer,
         line=auxline,
         track_kernel=tracker.track_kernel,
         particles_class=tracker.particles_class,

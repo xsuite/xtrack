@@ -415,7 +415,7 @@ def test_to_pandas():
     df = line.to_pandas()
 
     assert tuple(df.columns) == (
-                            'element_type', 's', 'name', 'isthick', 'element')
+        's', 'element_type', 'name', 'isthick', 'compound_name', 'element')
     assert len(df) == 3
 
 def test_check_aperture():

@@ -27,10 +27,14 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 
 if the want to control how the xobject is created
 """
-
-from typing import List
+import abc
+import functools
+import re
+from itertools import zip_longest
+from typing import List, Iterable, Iterator, Tuple, Union
 
 import numpy as np
+from math import tan
 
 import xtrack, xobjects
 
@@ -40,6 +44,8 @@ from .general import _print
 # Generic functions
 
 clight = 299792458
+
+DEFAULT_BEND_N_MULT_KICKS = 5
 
 
 def iterable(obj):
@@ -53,9 +59,6 @@ def set_if_not_none(dct, key, val):
 
 def rad2deg(rad):
     return rad * 180 / np.pi
-
-
-
 
 
 def get_value(x):
@@ -129,11 +132,19 @@ def trim_trailing_zeros(lst):
 def is_expr(x):
     return hasattr(x, "_get_value")
 
-def not_zero(x):
+
+def nonzero_or_expr(x):
     if is_expr(x):
         return True
     else:
         return x != 0
+
+
+def value_if_expr(x):
+    if is_expr(x):
+        return x._value
+    else:
+        return x
 
 
 def eval_list(par, madeval):
@@ -188,6 +199,16 @@ class MadElem:
     #    elem=self.elem
     #    if hasattr(elem, "field_errors") and elem.field_errors is not None:
     #        return FieldErrors(elem.field_errors)
+
+    def get_type_hierarchy(self, cpymad_elem=None):
+        if cpymad_elem is None:
+            cpymad_elem = self.elem
+
+        if cpymad_elem.name == cpymad_elem.parent.name:
+            return [cpymad_elem.name]
+
+        parent_types = self.get_type_hierarchy(cpymad_elem.parent)
+        return [cpymad_elem.name] + parent_types
 
     @property
     def phase_errors(self):
@@ -289,7 +310,7 @@ class ElementBuilder:
         return "Element(%s, %s, %s)" % (self.name, self.type, self.attrs)
 
     def __setattr__(self, k, v):
-        if hasattr(self, "attrs"):
+        if hasattr(self, "attrs") and k not in ('name', 'type', 'attrs'):
             self.attrs[k] = v
         else:
             super().__setattr__(k, v)
@@ -310,6 +331,39 @@ class ElementBuilderWithExpr(ElementBuilder):
         for k, p in self.attrs.items():
             set_expr(elref, k, p)
         return xtel
+
+
+class CompoundElement:
+    """A builder-like object for holding elements that should become a compound
+    element in the final lattice."""
+    def __init__(
+        self,
+        name: str,
+        subsequence: List[ElementBuilder],
+    ):
+        self.elements = subsequence
+        self.name = name
+
+    def add_to_line(self, line, buffer):
+        start_marker = ElementBuilder(
+            name=self.name+"_entry",
+            type=xtrack.Marker,
+        )
+
+        end_marker = ElementBuilder(
+            name=self.name+"_exit",
+            type=xtrack.Marker,
+        )
+
+        component_elements = [start_marker] + self.elements + [end_marker]
+
+        for el in component_elements:
+            el.add_to_line(line, buffer)
+
+        line.define_compound(
+            compound_name=self.name,
+            component_names=[el.name for el in component_elements],
+        )
 
 
 class Aperture:
@@ -363,7 +417,7 @@ class Aperture:
                     dy=-self.dy,
                 )
             )
-        if not_zero(self.aper_tilt):
+        if nonzero_or_expr(self.aper_tilt):
             out.append(
                 self.Builder(
                     self.name + "_aper_tilt_exit",
@@ -391,11 +445,13 @@ class Aperture:
 
 
 class Alignment:
-    def __init__(self, mad_el, enable_errors, classes, Builder):
+    def __init__(self, mad_el, enable_errors, classes, Builder, custom_tilt=None):
         self.mad_el = mad_el
         self.tilt = mad_el.get("tilt", 0)  # some elements do not have tilt
         if self.tilt:
             self.tilt = rad2deg(self.tilt)
+        if custom_tilt is not None:
+            self.tilt += rad2deg(custom_tilt)
         self.name = mad_el.name
         self.dx = 0
         self.dy = 0
@@ -501,7 +557,9 @@ class MadLoader:
         self,
         sequence,
         enable_expressions=False,
-        enable_errors=False,
+        enable_errors=None,
+        enable_field_errors=None,
+        enable_align_errors=None,
         enable_apertures=False,
         skip_markers=False,
         merge_drifts=False,
@@ -510,8 +568,31 @@ class MadLoader:
         ignore_madtypes=(),
         expressions_for_element_types=None,
         classes=xtrack,
-        replace_in_expr=None
+        replace_in_expr=None,
+        allow_thick=False,
+        use_compound_elements=True,
     ):
+
+        if enable_errors is not None:
+            if enable_field_errors is None:
+                enable_field_errors = enable_errors
+            if enable_align_errors is None:
+                enable_align_errors = enable_errors
+
+        if enable_field_errors is None:
+            enable_field_errors = False
+        if enable_align_errors is None:
+            enable_align_errors = False
+
+        if allow_thick and enable_apertures:
+            raise NotImplementedError(
+                "Apertures are not yet supported for thick elements"
+            )
+
+        if allow_thick and enable_field_errors:
+            raise NotImplementedError(
+                "Field errors are not yet supported for thick elements"
+            )
 
         if expressions_for_element_types is not None:
             assert enable_expressions, ("Expressions must be enabled if "
@@ -519,7 +600,8 @@ class MadLoader:
 
         self.sequence = sequence
         self.enable_expressions = enable_expressions
-        self.enable_errors = enable_errors
+        self.enable_field_errors = enable_field_errors
+        self.enable_align_errors = enable_align_errors
         self.error_table = error_table
         self.skip_markers = skip_markers
         self.merge_drifts = merge_drifts
@@ -531,8 +613,13 @@ class MadLoader:
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
 
+        self.allow_thick = allow_thick
+        self.use_compound_elements = use_compound_elements
+
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
+        if len(self.sequence.expanded_elements)==0:
+            raise ValueError(f"{self.sequence} has no elements, please do {self.sequence}.use()")
         last_element = Dummy
         for el in self.sequence.expanded_elements:
             madelem = MadElem(el.name, el, self.sequence, madeval)
@@ -563,12 +650,14 @@ class MadLoader:
 
     def make_line(self, buffer=None):
         """Create a new line in buffer"""
+
         mad = self.sequence._madx
 
         if buffer is None:
             buffer = xobjects.context_default.new_buffer()
 
         line = self.classes.Line()
+        self.line = line
 
         if self.enable_expressions:
             madeval = MadLoader.init_line_expressions(line, mad,
@@ -613,26 +702,74 @@ class MadLoader:
 
     def add_elements(
         self,
-        elements: List[ElementBuilder],
+        elements: List[Union[ElementBuilder, CompoundElement]],
         line,
         buffer,
     ):
         out = {}  # tbc
         for el in elements:
-            xtel = el.add_to_line(line, buffer)
-            out[el.name] = xtel  # tbc
+            xt_element = el.add_to_line(line, buffer)
+            out[el.name] = xt_element  # tbc
         return out  # tbc
 
-    def convert_thin_element(self, xtrack_el, mad_el):
-        """add aperture and transformations to a thin element
+    @property
+    def math(self):
+        if issubclass(self.Builder, ElementBuilderWithExpr):
+            return self.line._var_management['fref']
+
+        import math
+        return math
+
+    def _assert_element_is_thin(self, mad_el):
+        if value_if_expr(mad_el.l) != 0:
+            if self.allow_thick:
+                raise NotImplementedError(
+                    f'Cannot load element {mad_el.name}, as thick elements of '
+                    f'type {"/".join(mad_el.get_type_hierarchy())} are not '
+                    f'yet supported.'
+                )
+            else:
+                raise ValueError(
+                    f'Element {mad_el.name} is thick, but importing thick '
+                    f'elements is disabled. Did you forget to set '
+                    f'`allow_thick=True`?'
+                )
+
+    def _make_drift_slice(self, mad_el, weight, name_pattern):
+        return self.Builder(
+            name_pattern.format(mad_el.name),
+            self.classes.Drift,
+            length=mad_el.l * weight,
+        )
+
+    def make_compound_elem(
+            self,
+            xtrack_el,
+            mad_el,
+            custom_tilt=None,
+    ):
+        """Add aperture and transformations to a thin element:
         tilt, offset, aperture, offset, tilt, tilt, offset, kick, offset, tilt
+
+        Parameters
+        ----------
+        xtrack_el: list
+            List of xtrack elements to which the aperture and transformations
+            should be added.
+        mad_el: MadElement
+            The element for which the aperture and transformations should be
+            added.
+        custom_tilt: float, optional
+            If not None, the element will be additionally tilted by this
+            amount.
         """
-        align = Alignment(mad_el, self.enable_errors, self.classes, self.Builder)
-        # perm=self.permanent_alignement(mad_el) #to be implemented
+        align = Alignment(
+            mad_el, self.enable_align_errors, self.classes, self.Builder, custom_tilt)
+        # perm=self.permanent_alignment(cpymad_elem) #to be implemented
         elem_list = []
         # elem_list.extend(perm.entry())
         if self.enable_apertures and mad_el.has_aperture():
-            aper = Aperture(mad_el, self.enable_errors, self)
+            aper = Aperture(mad_el, self.enable_align_errors, self)
             elem_list.extend(aper.entry())
             elem_list.extend(aper.aperture())
             elem_list.extend(aper.exit())
@@ -641,7 +778,183 @@ class MadLoader:
         elem_list.extend(align.exit())
         # elem_list.extend(perm.exit())
 
-        return elem_list
+        if self.use_compound_elements and len(elem_list) > 1:
+            return [CompoundElement(name=mad_el.name, subsequence=elem_list)]
+        else:
+            return elem_list
+
+    def convert_quadrupole(self, mad_el):
+        if self.allow_thick:
+            if not mad_el.l:
+                raise ValueError(
+                    "Thick quadrupole with legth zero are not supported.")
+            return self._convert_quadrupole_thick(mad_el)
+        else:
+            raise NotImplementedError(
+                "Quadrupole are not supported in thin mode."
+            )
+
+    def _convert_quadrupole_thick(self, mad_el):
+        if mad_el.k1s:
+            tilt = -self.math.atan2(mad_el.k1s, mad_el.k1) / 2
+            k1 = 0.5 * self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
+        else:
+            tilt = None
+            k1 = mad_el.k1
+
+        return self.make_compound_elem(
+            [
+                self.Builder(
+                    mad_el.name,
+                    self.classes.Quadrupole,
+                    k1=k1,
+                    length=mad_el.l,
+                ),
+            ],
+            mad_el,
+            custom_tilt=tilt,
+        )
+
+    def convert_rbend(self, mad_el):
+        return self._convert_bend(mad_el)
+
+    def convert_sbend(self, mad_el):
+        return self._convert_bend(mad_el)
+
+    def _convert_bend(
+        self,
+        mad_el,
+    ):
+
+        assert self.allow_thick, "Bends are not supported in thin mode."
+
+        l_curv = mad_el.l
+        h = mad_el.angle / l_curv
+
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and mad_el.angle:
+            R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
+            l_curv = R * mad_el.angle
+            h = 1 / R
+
+        if not mad_el.k0:
+            k0 = h
+        else:
+            k0 = mad_el.k0
+
+        # Convert bend core
+        num_multipole_kicks = 0
+        if mad_el.k2:
+            num_multipole_kicks = DEFAULT_BEND_N_MULT_KICKS
+        if mad_el.k1:
+            cls = self.classes.CombinedFunctionMagnet
+            kwargs = dict(k1=mad_el.k1)
+        else:
+            cls = self.classes.Bend
+            kwargs = {}
+        bend_core = self.Builder(
+            mad_el.name,
+            cls,
+            k0=k0,
+            h=h,
+            length=l_curv,
+            knl=[0, 0, mad_el.k2 * l_curv],
+            num_multipole_kicks=num_multipole_kicks,
+            **kwargs,
+        )
+
+        sequence = [bend_core]
+
+        # Convert dipedge
+        if mad_el.type == 'sbend':
+            e1 = mad_el.e1
+            e2 = mad_el.e2
+        elif mad_el.type == 'rbend':
+            e1 = mad_el.e1 + mad_el.angle / 2
+            e2 = mad_el.e2 + mad_el.angle / 2
+        else:
+            raise NotImplementedError(
+                f'Unknown bend type {mad_el.type}.'
+            )
+
+        dipedge_entry = self.Builder(
+            mad_el.name + "_den",
+            self.classes.DipoleEdge,
+            e1=e1,
+            e1_fd = (k0 - h) * l_curv / 2,
+            fint=mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            side='entry'
+        )
+        sequence = [dipedge_entry] + sequence
+
+        # For the sbend edge import we assume k0l = angle
+        dipedge_exit = self.Builder(
+            mad_el.name + "_dex",
+            self.classes.DipoleEdge,
+            e1=e2,
+            e1_fd = (k0 - h) * l_curv / 2,
+            fint=mad_el.fintx if value_if_expr(mad_el.fintx) >= 0 else mad_el.fint,
+            hgap=mad_el.hgap,
+            k=k0,
+            side='exit'
+        )
+        sequence = sequence + [dipedge_exit]
+
+        return self.make_compound_elem(sequence, mad_el)
+
+    def _convert_bend_thick(self, mad_el):
+        if mad_el.angle:
+            h = mad_el.angle / mad_el.l
+        else:
+            h = 0.0
+
+
+    def convert_sextupole(self, mad_el):
+        thin_sext = self.Builder(
+            mad_el.name,
+            self.classes.Multipole,
+            knl=[0, 0, mad_el.k2 * mad_el.l],
+            ksl=[0, 0, mad_el.k2s * mad_el.l],
+            length=mad_el.l,
+        )
+
+        if value_if_expr(mad_el.l) != 0:
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_sext,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_sext]
+
+        return self.make_compound_elem(sequence, mad_el)
+
+    def convert_octupole(self, mad_el):
+        thin_oct = self.Builder(
+            mad_el.name,
+            self.classes.Multipole,
+            knl=[0, 0, 0, mad_el.k3 * mad_el.l],
+            ksl=[0, 0, 0, mad_el.k3s * mad_el.l],
+            length=mad_el.l,
+        )
+
+        if value_if_expr(mad_el.l) != 0:
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_oct,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_oct]
+
+        return self.make_compound_elem(sequence, mad_el)
 
     def convert_rectangle(self, mad_el):
         h, v = mad_el.aperture[:2]
@@ -727,28 +1040,28 @@ class MadLoader:
 
     def convert_marker(self, mad_elem):
         el = self.Builder(mad_elem.name, self.classes.Marker)
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
     def convert_drift_like(self, mad_elem):
         el = self.Builder(mad_elem.name, self._drift, length=mad_elem.l)
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
     convert_monitor = convert_drift_like
     convert_hmonitor = convert_drift_like
     convert_vmonitor = convert_drift_like
     convert_collimator = convert_drift_like
     convert_rcollimator = convert_drift_like
-    convert_collimator = convert_drift_like
     convert_elseparator = convert_drift_like
     convert_instrument = convert_drift_like
     convert_solenoid = convert_drift_like
 
     def convert_multipole(self, mad_elem):
+        self._assert_element_is_thin(mad_elem)
         # getting max length of knl and ksl
         knl = mad_elem.knl
         ksl = mad_elem.ksl
         lmax = max(non_zero_len(knl), non_zero_len(ksl), 1)
-        if mad_elem.field_errors is not None and self.enable_errors:
+        if mad_elem.field_errors is not None and self.enable_field_errors:
             dkn = mad_elem.field_errors.dkn
             dks = mad_elem.field_errors.dks
             lmax = max(lmax, non_zero_len(dkn), non_zero_len(dks))
@@ -765,57 +1078,98 @@ class MadLoader:
             el.hxl = mad_elem.knl[0]  # in madx angle=0 -> dipole
             el.hyl = mad_elem.ksl[0]  # in madx angle=0 -> dipole
         el.length = mad_elem.lrad
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
-    def convert_kicker(self, mad_elem):
-        hkick = [-mad_elem.hkick] if mad_elem.hkick else []
-        vkick = [mad_elem.vkick] if mad_elem.vkick else []
-        el = self.Builder(
-            mad_elem.name,
+    def convert_kicker(self, mad_el):
+        hkick = [-mad_el.hkick] if mad_el.hkick else []
+        vkick = [mad_el.vkick] if mad_el.vkick else []
+        thin_kicker = self.Builder(
+            mad_el.name,
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_elem.lrad,
+            length=mad_el.lrad,
             hxl=0,
             hyl=0,
         )
-        return self.convert_thin_element([el], mad_elem)
+
+        if value_if_expr(mad_el.l) != 0:
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_kicker,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_kicker]
+
+        return self.make_compound_elem(sequence, mad_el)
 
     convert_tkicker = convert_kicker
 
-    def convert_hkicker(self, mad_elem):
-        if mad_elem.hkick:
+    def convert_hkicker(self, mad_el):
+        if mad_el.hkick:
             raise ValueError(
                 "hkicker with hkick is not supported, please use kick instead")
-        hkick = [-mad_elem.kick] if mad_elem.kick else []
+
+        hkick = [-mad_el.kick] if mad_el.kick else []
         vkick = []
-        el = self.Builder(
-            mad_elem.name,
+        thin_hkicker = self.Builder(
+            mad_el.name,
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_elem.lrad,
+            length=mad_el.lrad,
             hxl=0,
             hyl=0,
         )
-        return self.convert_thin_element([el], mad_elem)
 
-    def convert_vkicker(self, mad_elem):
-        if mad_elem.vkick:
+        if value_if_expr(mad_el.l) != 0:
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_hkicker,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_hkicker]
+
+        return self.make_compound_elem(sequence, mad_el)
+
+    def convert_vkicker(self, mad_el):
+        if mad_el.vkick:
             raise ValueError(
                 "vkicker with vkick is not supported, please use kick instead")
+
         hkick = []
-        vkick = [mad_elem.kick] if mad_elem.kick else []
-        el = self.Builder(
-            mad_elem.name,
+        vkick = [mad_el.kick] if mad_el.kick else []
+        thin_vkicker = self.Builder(
+            mad_el.name,
             self.classes.Multipole,
             knl=hkick,
             ksl=vkick,
-            length=mad_elem.lrad,
+            length=mad_el.lrad,
             hxl=0,
             hyl=0,
         )
-        return self.convert_thin_element([el], mad_elem)
+
+        if value_if_expr(mad_el.l) != 0:
+            if not self.allow_thick:
+                self._assert_element_is_thin(mad_el)
+
+            sequence = [
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
+                thin_vkicker,
+                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
+            ]
+        else:
+            sequence = [thin_vkicker]
+
+        return self.make_compound_elem(sequence, mad_el)
 
     def convert_dipedge(self, mad_elem):
         # TODO LRAD
@@ -827,7 +1181,7 @@ class MadLoader:
             hgap=mad_elem.hgap,
             fint=mad_elem.fint,
         )
-        return self.convert_thin_element([el], mad_elem)
+        return self.make_compound_elem([el], mad_elem)
 
     def convert_rfcavity(self, ee):
         # TODO LRAD
@@ -838,7 +1192,7 @@ class MadLoader:
         else:
             frequency = ee.freq * 1e6
         if (hasattr(self.sequence, 'beam')
-            and self.sequence.beam.particle == 'ion'):
+                and self.sequence.beam.particle == 'ion'):
             scale_voltage = 1./self.sequence.beam.charge
         else:
             scale_voltage = 1.
@@ -849,9 +1203,20 @@ class MadLoader:
             frequency=frequency,
             lag=ee.lag * 360,
         )
-        return self.convert_thin_element([el], ee)
+
+        if value_if_expr(ee.l) != 0:
+            sequence = [
+                self._make_drift_slice(ee, 0.5, f"drift_{{}}..1"),
+                el,
+                self._make_drift_slice(ee, 0.5, f"drift_{{}}..2"),
+            ]
+        else:
+            sequence = [el]
+
+        return self.make_compound_elem(sequence, ee)
 
     def convert_rfmultipole(self, ee):
+        self._assert_element_is_thin(ee)
         # TODO LRAD
         if ee.harmon:
             raise NotImplementedError
@@ -868,9 +1233,10 @@ class MadLoader:
             pn=[v * 360 for v in ee.pnl],
             ps=[v * 360 for v in ee.psl],
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_wire(self, ee):
+        self._assert_element_is_thin(ee)
         if len(ee.L_phy) == 1:
             # the index [0] is present because in MAD-X multiple wires can
             # be defined within the same element
@@ -883,12 +1249,13 @@ class MadLoader:
                 xma=ee.xma[0],
                 yma=ee.yma[0],
             )
-            return self.convert_thin_element([el], ee)
+            return self.make_compound_elem([el], ee)
         else:
             # TODO: add multiple elements for multiwire configuration
             raise ValueError("Multiwire configuration not supported")
 
     def convert_crabcavity(self, ee):
+        self._assert_element_is_thin(ee)
         # This has to be disabled, as it raises an error when l is assigned to an
         # expression:
         # for nn in ["l", "harmon", "lagf", "rv1", "rv2", "rph1", "rph2"]:
@@ -914,9 +1281,10 @@ class MadLoader:
                 pn=[ee.lag * 360 + 90],  # TODO: Changed sign to match sixtrack
                 # To be checked!!!!
             )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_beambeam(self, ee):
+        self._assert_element_is_thin(ee)
         import xfields as xf
 
         if ee.slot_id == 6 or ee.slot_id == 60:
@@ -971,7 +1339,7 @@ class MadLoader:
                 d_px=0,
                 d_py=0,
             )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_placeholder(self, ee):
         # assert not is_expr(ee.slot_id) can be done only after release MADX 5.09
@@ -1000,7 +1368,7 @@ class MadLoader:
             el = self.Builder(ee.name, self.classes.SCInterpolatedProfile)
         else:
             el = self.Builder(ee.name, self._drift, length=ee.l)
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_matrix(self, ee):
         length = ee.l
@@ -1018,39 +1386,36 @@ class MadLoader:
         el = self.Builder(
             ee.name, self.classes.FirstOrderTaylorMap, length=length, m0=m0, m1=m1
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_srotation(self, ee):
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.SRotation, angle=angle
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_xrotation(self, ee):
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.XRotation, angle=angle
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_yrotation(self, ee):
         angle = ee.angle*180/np.pi
         el = self.Builder(
             ee.name, self.classes.YRotation, angle=angle
         )
-        return self.convert_thin_element([el], ee)
+        return self.make_compound_elem([el], ee)
 
     def convert_translation(self, ee):
         el_transverse = self.Builder(
             ee.name, self.classes.XYShift, dx=ee.dx, dy=ee.dy
         )
-        dzeta = ee.ds*self.sequence.beam.beta
-        el_longitudinal = self.Builder(
-            ee.name, self.classes.ZetaShift, dzeta=dzeta
-        )
+        if ee.ds:
+            raise NotImplementedError # Need to implement ShiftS element
         ee.dx = 0
         ee.dy = 0
         ee.ds = 0
-        return self.convert_thin_element([el_transverse,el_longitudinal], ee)
-
+        return self.make_compound_elem([el_transverse], ee)

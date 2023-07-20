@@ -140,9 +140,8 @@ def start_internal_logging(elements, record=None, io_buffer=None, capacity=None)
     if not isinstance (elements, (list, tuple)):
         elements = [elements]
 
-    for ee in elements:
-        assert isinstance(ee, elements[0].__class__), (
-            'All elements must be of the same class.')
+    assert len(set([ee._internal_record_class for ee in elements])) == 1, (
+        'All elements should have the same _interal_record_class.')
 
     if record is None:
         assert capacity is not None
