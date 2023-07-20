@@ -122,12 +122,27 @@ collider.varval['kq6.r8b1'] *= 1.1
 opt.clear_log()
 assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
-
 opt.disable_targets(tag=['stage1', 'stage2'])
+opt._add_point_to_log()
+assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
+assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
+
 opt.disable_vary(tag=['stage2'])
+opt._add_point_to_log()
+assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
+assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
+
+# First solve with the enabled targets and vary
 opt.solve()
+assert opt.log()['penalty', -1] < 1e-7
+assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
+assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
+
+prrrrr
 
 opt.enable_vary(tag='stage1')
+opt._add_point_to_log()
+
 opt.solve()
 
 opt.enable_targets(tag='stage2')
