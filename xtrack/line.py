@@ -20,7 +20,7 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xdeps as xd
-from .compounds import CompoundContainer, CompoundType, Compound
+from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -1506,18 +1506,22 @@ class Line:
             if left_cpd_name == right_cpd_name and left_cpd_name is not None:
                 compound = self.compound_container.compound_for_name(left_cpd_name)
                 if isinstance(compound, Compound):
-                    raise ValueError(
-                        'Inserting an element inside an unsliced compound is '
-                        'not supported.'
-                    )
+                    if not (left_name in compound.core or right_name in compound.core):
+                        raise ValueError(
+                            "Elements can only be inserted into a compound in "
+                            "the core region."
+                        )
 
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
             self.element_names.insert(index, name)
 
-            if compound:
+            if isinstance(compound, SlicedCompound):
                 compound.elements.add(name)
-                self.compound_container.define_compound(left_cpd_name, compound)
+                #self.compound_container.define_compound(left_cpd_name, compound)
+            elif isinstance(compound, Compound):
+                compound.core.add(name)
+                #self.compound_container.define_compound(left_cpd_name, compound)
 
             return
 
@@ -1585,8 +1589,11 @@ class Line:
         if left_compound is not None and left_compound == right_compound:
             compound = _compounds.compound_for_name(left_compound)
             if isinstance(compound, Compound):
-                raise ValueError('Inserting an element in the middle of an '
-                                 'unsliced compound is not supported.')
+                if not (name_first_drift_to_cut in compound.core and name_last_drift_to_cut in compound.core):
+                    raise ValueError(
+                        "Elements can only be inserted into a compound in "
+                        "the core region."
+                    )
 
         # Insert
         assert name_left not in self.element_names
@@ -1610,10 +1617,16 @@ class Line:
         # of a compound element.
         if compound:
             compound_name = left_compound
-            _compounds.remove_compound(compound_name)
-            compound.elements -= set(replaced_names)
-            compound.elements |= set(names_to_insert)
-            _compounds.define_compound(compound_name, compound)
+            if isinstance(compound, SlicedCompound):
+                # _compounds.remove_compound(compound_name)
+                compound.elements -= set(replaced_names)
+                compound.elements |= set(names_to_insert)
+                # _compounds.define_compound(compound_name, compound)
+            elif isinstance(compound, Compound):
+                # _compounds.remove_compound(compound_name)
+                compound.core -= set(replaced_names)
+                compound.core |= set(names_to_insert)
+                # _compounds.define_compound(compound_name, compound)
 
         return self
 
