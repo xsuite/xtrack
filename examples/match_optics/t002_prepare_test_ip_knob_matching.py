@@ -209,7 +209,20 @@ assert opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
 opt.vary[8].active = True
 
 opt.solve()
+ll = opt.log()
+
+# Check driving knob is enabled
 assert np.all(ll['vary_active', 11:] == 'yyyyyyyyynnnnn')
+
+# Check solution found
+assert np.all(ll['tol_met', -1] == 'yyyyyyyy')
+
+# Check imposed relationship among varys
+assert np.isclose(ll['vary_8', 11], ll['vary_9', 11], atol=1e-12, rtol=0)
+assert np.isclose(ll['vary_8', 11], ll['vary_10', 11], atol=1e-12, rtol=0)
+assert np.isclose(ll['vary_8', 11], -ll['vary_11', 11], atol=1e-12, rtol=0)
+assert np.isclose(ll['vary_8', 11], -ll['vary_12', 11], atol=1e-12, rtol=0)
+assert np.isclose(ll['vary_8', 11], -ll['vary_13', 11], atol=1e-12, rtol=0)
 
 opt.generate_knob()
 
