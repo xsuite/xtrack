@@ -402,7 +402,8 @@ def twiss_line(line, particle_ref=None, method=None,
             delta_disp=delta_disp, symplectify=symplectify,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
-            ele_start=ele_start, ele_stop=ele_stop)
+            ele_start=ele_start, ele_stop=ele_stop,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma)
     else:
         # force
         skip_global_quantities = True
@@ -1018,6 +1019,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
                             matrix_stability_tol,
+                            nemitt_x, nemitt_y, r_sigma,
                             ele_start=None, ele_stop=None):
 
     if ele_start is not None or ele_stop is not None:
@@ -1050,6 +1052,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         if R_matrix is not None:
             RR = R_matrix
         else:
+
+            steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
+
             RR = line.compute_one_turn_matrix_finite_differences(
                                         steps_r_matrix=steps_r_matrix,
                                         particle_on_co=part_on_co,
@@ -1061,6 +1066,22 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 symplectify=symplectify,
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol)
+
+    # Estimate beam size (betatron part)
+    gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+    gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+    betx_at_start = W[0, 0]**2 + W[0, 1]**2
+    bety_at_start = W[2, 2]**2 + W[2, 3]**2
+    sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
+    sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
+
+    if steps_r_matrix['dx'] > 0.3 * sigma_x_start:
+        raise ValueError(
+            'The step in x is too large for the estimated beam size')
+    if steps_r_matrix['dy'] > 0.3 * sigma_y_start:
+        raise ValueError(
+            'The step in y is too large for the estimated beam size')
+
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
 
@@ -1277,18 +1298,6 @@ def compute_one_turn_matrix_finite_differences(
 
     if isinstance(ele_stop, str):
         ele_stop = line.element_names.index(ele_stop)
-
-    if steps_r_matrix is not None:
-        steps_in = steps_r_matrix.copy()
-        for nn in steps_in.keys():
-            assert nn in DEFAULT_STEPS_R_MATRIX.keys(), (
-                '`steps_r_matrix` can contain only ' +
-                ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
-            )
-        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
-        steps_r_matrix.update(steps_in)
-    else:
-        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
 
     context = line._buffer.context
 
@@ -1932,6 +1941,21 @@ class TwissTable(Table):
         new_table._data['particle_on_co'] = tables_to_concat[0].particle_on_co
 
         return new_table
+
+def _complete_steps_r_matrix_with_default(steps_r_matrix):
+    if steps_r_matrix is not None:
+        steps_in = steps_r_matrix.copy()
+        for nn in steps_in.keys():
+            assert nn in DEFAULT_STEPS_R_MATRIX.keys(), (
+                '`steps_r_matrix` can contain only ' +
+                ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
+            )
+        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+        steps_r_matrix.update(steps_in)
+    else:
+        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+
+    return steps_r_matrix
 
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
