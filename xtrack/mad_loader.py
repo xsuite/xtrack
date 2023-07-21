@@ -1089,7 +1089,16 @@ class MadLoader:
     convert_rcollimator = convert_drift_like
     convert_elseparator = convert_drift_like
     convert_instrument = convert_drift_like
-    convert_solenoid = convert_drift_like
+
+    def convert_solenoid(self, mad_elem):
+        el = self.Builder(
+            mad_elem.name,
+            self.classes.Solenoid,
+            length=mad_elem.l,
+            ks=mad_elem.ks,
+            ksi=mad_elem.ksi,
+        )
+        return self.make_compound_elem([el], mad_elem)
 
     def convert_multipole(self, mad_elem):
         self._assert_element_is_thin(mad_elem)

@@ -133,6 +133,7 @@ def test_thick_bend_survey():
     errors = np.max(np.abs(rhos - 10 / (2 * np.math.pi)))
     assert errors < 2e-6
 
+
 @for_all_test_contexts
 @pytest.mark.parametrize('element_type', [xt.Bend, xt.CombinedFunctionMagnet])
 @pytest.mark.parametrize('h', [0.0, 0.1])
@@ -198,6 +199,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
             atol=1e-14,
             rtol=0,
         )
+
 
 @pytest.mark.parametrize(
     'with_knobs',
@@ -308,6 +310,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
         {'rbend': 1.6 + 0.2 / 2, 'sbend': 1.6}[bend_type],
         atol=1e-16)
     assert np.isclose(elem_dex.k, 0.4, atol=1e-16)
+
 
 @pytest.mark.parametrize('with_knobs', [False, True])
 def test_import_thick_quad_from_madx(with_knobs):
@@ -492,6 +495,7 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     for drift in drifts:
         assert np.isclose(drift.length, 1, atol=1e-16)
+
 
 @for_all_test_contexts
 def test_fringe_implementations(test_context):
@@ -730,3 +734,83 @@ def test_import_thick_with_apertures_and_slice():
 
         _assert_eq(line[f'elm_tilt_entry..{i}'].angle, 0.2 * rad_to_deg)
         _assert_eq(line[f'elm_tilt_exit..{i}'].angle, -0.2 * rad_to_deg)
+
+
+@pytest.mark.parametrize(
+    'ks, ksi, length',
+    [
+        (-0.1, 0, 0.9),  # thick
+        (0, 0, 0.9),
+        (0.13, 0, 1.7),
+        (-0.1, 0.12, 0),  # thin
+        (0, 0.12, 0),
+        (0.15, 0, 0),
+        (0, 0, 0),
+    ]
+)
+@for_all_test_contexts
+def test_solenoid_against_madx(test_context, ks, ksi, length):
+    """
+    Test the combined function dipole against madx. We import bends from madx
+    using use_true_thick_bend=False, and the true bend is not in madx.
+    """
+
+    p0 = xp.Particles(
+        mass0=xp.PROTON_MASS_EV,
+        beta0=0.5,
+        x=0.01,
+        # px=0.1,
+        y=-0.03,
+        py=0.001,
+        zeta=0.1,
+        # delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        _context=test_context,
+    )
+
+    if length == 0:
+        dr_length = 1e-6
+        insert_drift = f'dr0: drift, at={dr_length / 2}, l={dr_length};'
+    else:
+        dr_length = 0
+        insert_drift = ''
+
+    mad = Madx()
+    mad.input(f"""
+    ss: sequence, l={length + dr_length + 1};
+        {insert_drift}
+        sol: solenoid, at={dr_length + length / 2}, ks={ks}, ksi={ksi}, l={length};
+        dr1: drift, at={dr_length + length + 0.5}, l=1;
+    endsequence;
+    beam;
+    use, sequence=ss;
+    """)
+
+    ml = MadLoader(mad.sequence.ss, allow_thick=True)
+    line_thick = ml.make_line()
+    line_thick.build_tracker(_context=test_context)
+    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True  # to be consistent with madx
+
+    for ii in range(len(p0.x)):
+        mad.input(f"""
+        beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
+
+        track, onepass, onetable;
+        start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, \
+            t={p0.zeta[ii]/p0.beta0[ii]}, pt={p0.ptau[ii]};
+        run, turns=1;
+        endtrack;
+        """)
+
+        mad_results = mad.table.mytracksumm[-1]
+
+        part = p0.copy(_context=test_context)
+        line_thick.track(part, _force_no_end_turn_actions=True)
+        part.move(_context=xo.context_default)
+
+        xt_tau = part.zeta/part.beta0
+        assert np.allclose(part.x[ii], mad_results.x, atol=1e-8, rtol=0), 'x'
+        assert np.allclose(part.px[ii], mad_results.px, atol=1e-8, rtol=0), 'px'
+        assert np.allclose(part.y[ii], mad_results.y, atol=1e-8, rtol=0), 'y'
+        assert np.allclose(part.py[ii], mad_results.py, atol=1e-8, rtol=0), 'py'
+        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-8, rtol=0), 't'
+        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-8, rtol=0), 'pt'
