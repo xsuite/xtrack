@@ -22,7 +22,7 @@ from .general import _print
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
-    # Larger step in horizontal (thick bends introduce some numerical noise)
+    # Larger step in horizontal (thick bends can introduce some numerical noise)
     'dx':1e-6, 'dpx':1e-7,
     # Smaller step in vertical (for accuracy in lepton colliders with very small vertical beam size)
     'dy':1e-8, 'dpy':1e-7,
