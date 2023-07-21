@@ -22,8 +22,8 @@ from .general import _print
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
-    'dx':1e-6, 'dpx':1e-7,
-    'dy':1e-6, 'dpy':1e-7,
+    'dx':1e-7, 'dpx':1e-7,
+    'dy':1e-7, 'dpy':1e-7,
     'dzeta':1e-6, 'ddelta':1e-6
 }
 
