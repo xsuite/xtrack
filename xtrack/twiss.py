@@ -653,6 +653,7 @@ def _twiss_open(line, twiss_init,
         assert np.all(recorded_state == 1), (
             'Some test particles were lost during twiss!')
 
+
     x_co = line.record_last_track.x[0, i_start:i_stop+1].copy()
     y_co = line.record_last_track.y[0, i_start:i_stop+1].copy()
     px_co = line.record_last_track.px[0, i_start:i_stop+1].copy()
@@ -684,12 +685,28 @@ def _twiss_open(line, twiss_init,
 
     dzeta = dzeta - dzeta[0]
 
+    name_co = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
+
+    if hasattr(line.tracker, 'mask_twiss'):
+        mask_twiss = line.tracker.mask_twiss[i_start:i_stop+1]
+        name_co = name_co[mask_twiss]
+        s_co = s_co[mask_twiss]
+        x_co = x_co[mask_twiss]
+        px_co = px_co[mask_twiss]
+        y_co = y_co[mask_twiss]
+        py_co = py_co[mask_twiss]
+        zeta_co = zeta_co[mask_twiss]
+        delta_co = delta_co[mask_twiss]
+        ptau_co = ptau_co[mask_twiss]
+        dzeta = dzeta[mask_twiss]
+        Ws = Ws[mask_twiss, :, :]
+
     twiss_res_element_by_element = {}
 
     lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
 
     twiss_res_element_by_element.update({
-        'name': line.element_names[i_start:i_stop] + ('_end_point',),
+        'name': name_co,
         's': s_co,
         'x': x_co,
         'px': px_co,
