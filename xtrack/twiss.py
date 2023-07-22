@@ -1060,32 +1060,33 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                         stability_tol=matrix_stability_tol)
         else:
 
-            RR = line.compute_one_turn_matrix_finite_differences(
-                                        steps_r_matrix=steps_r_matrix,
-                                        particle_on_co=part_on_co,
-                                        ele_start=ele_start,
-                                        ele_stop=ele_stop)
+            for iter in range(2):
+                RR = line.compute_one_turn_matrix_finite_differences(
+                                            steps_r_matrix=steps_r_matrix,
+                                            particle_on_co=part_on_co,
+                                            ele_start=ele_start,
+                                            ele_stop=ele_stop)
 
-            W, _, _ = lnf.compute_linear_normal_form(
-                        RR, only_4d_block=(method == '4d'),
-                        symplectify=symplectify,
-                        responsiveness_tol=matrix_responsiveness_tol,
-                        stability_tol=matrix_stability_tol)
+                W, _, _ = lnf.compute_linear_normal_form(
+                            RR, only_4d_block=(method == '4d'),
+                            symplectify=symplectify,
+                            responsiveness_tol=matrix_responsiveness_tol,
+                            stability_tol=matrix_stability_tol)
 
-            # Estimate beam size (betatron part)
-            gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
-            gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
-            betx_at_start = W[0, 0]**2 + W[0, 1]**2
-            bety_at_start = W[2, 2]**2 + W[2, 3]**2
-            sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
-            sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
+                # Estimate beam size (betatron part)
+                gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+                gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+                betx_at_start = W[0, 0]**2 + W[0, 1]**2
+                bety_at_start = W[2, 2]**2 + W[2, 3]**2
+                sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
+                sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
 
-            if steps_r_matrix['dx'] > 0.3 * sigma_x_start:
-                raise ValueError(
-                    'The step in x is too large for the estimated beam size')
-            if steps_r_matrix['dy'] > 0.3 * sigma_y_start:
-                raise ValueError(
-                    'The step in y is too large for the estimated beam size')
+                if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
+                    and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)):
+                    break
+                else:
+                    steps_r_matrix['dx'] = 0.01 * sigma_x_start
+                    steps_r_matrix['dy'] = 0.01 * sigma_y_start
 
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
