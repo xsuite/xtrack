@@ -1056,7 +1056,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     else:
         if R_matrix is not None:
             RR = R_matrix
-            lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol)
+            lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
+                                                only_4d=(method == '4d'))
             W, _, _ = lnf.compute_linear_normal_form(
                         RR, only_4d_block=(method == '4d'),
                         symplectify=symplectify,
@@ -1070,7 +1071,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                             particle_on_co=part_on_co,
                                             ele_start=ele_start,
                                             ele_stop=ele_stop)
-                lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol)
+                lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
+                                                  only_4d=(method == '4d'))
 
                 W, _, _ = lnf.compute_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),

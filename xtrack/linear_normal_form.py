@@ -217,14 +217,16 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     return W, invW, R
 
 def _assert_matrix_responsiveness(M,
-                responsiveness_tol):
-    for ii in range(6):
+                responsiveness_tol, only_4d=False):
+    n_check = 4 if only_4d else 6
+    for ii in range(n_check):
         mask_non_zero = np.abs(M[:, ii]) > responsiveness_tol
         mask_non_zero[ii] = False
         if np.sum(mask_non_zero)<1:
             raise ValueError(
                 'Invalid one-turn map: No coordinates respond to variations of '
                 + 'x px y py zeta delta'.split()[ii])
+
 
 def _assert_matrix_determinant_within_tol(M, tol=1e-15):
     if np.abs(np.linalg.det(M)-1) > tol:
