@@ -25,7 +25,9 @@ from .slicing import Slicer
 
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
-                          find_closed_orbit_line, twiss_line)
+                          find_closed_orbit_line, twiss_line,
+                          DEFAULT_MATRIX_STABILITY_TOL,
+                          DEFAULT_MATRIX_RESPONSIVENESS_TOL)
 from .match import match_line, closed_orbit_correction, match_knob_line
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
@@ -81,8 +83,8 @@ class Line:
         self._extra_config = {}
         self._extra_config['skip_end_turn_actions'] = False
         self._extra_config['reset_s_at_end_turn'] = True
-        self._extra_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
-        self._extra_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
+        self._extra_config['matrix_responsiveness_tol'] = DEFAULT_MATRIX_RESPONSIVENESS_TOL
+        self._extra_config['matrix_stability_tol'] = DEFAULT_MATRIX_STABILITY_TOL
         self._extra_config['t0_time_dependent_vars'] = 0.
         self._extra_config['dt_update_time_dependent_vars'] = 0.
         self._extra_config['_t_last_update_time_dependent_vars'] = None

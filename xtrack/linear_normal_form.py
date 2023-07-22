@@ -7,8 +7,6 @@ import numpy as np
 
 from .general import _print
 
-DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
-DEFAULT_MATRIX_STABILITY_TOL = 1e-3
 
 def healy_symplectify(M):
     # https://accelconf.web.cern.ch/e06/PAPERS/WEPCH152.PDF
@@ -219,7 +217,7 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     return W, invW, R
 
 def _assert_matrix_responsiveness(M,
-                responsiveness_tol=DEFAULT_MATRIX_RESPONSIVENESS_TOL):
+                responsiveness_tol):
     for ii in range(6):
         mask_non_zero = np.abs(M[:, ii]) > responsiveness_tol
         mask_non_zero[ii] = False

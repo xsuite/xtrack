@@ -249,10 +249,6 @@ def twiss_line(line, particle_ref=None, method=None,
     hide_thin_groups=(hide_thin_groups or False)
     group_compound_elements=(group_compound_elements or False)
     only_twiss_init=(only_twiss_init or False)
-    matrix_responsiveness_tol=(matrix_responsiveness_tol or
-                                DEFAULT_MATRIX_RESPONSIVENESS_TOL)
-    matrix_stability_tol=(matrix_stability_tol or
-                                DEFAULT_MATRIX_STABILITY_TOL)
 
     if freeze_longitudinal:
         kwargs = locals().copy()
@@ -1100,7 +1096,11 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     # Check on R matrix
     if RR is not None:
         lnf._assert_matrix_determinant_within_tol(RR, matrix_stability_tol)
-        lnf._assert_matrix_stability(RR, matrix_stability_tol)
+        if method == '4d':
+            eigenvals = np.linalg.eigvals(RR[:4, :4])
+        else:
+            eigenvals = np.linalg.eigvals(RR)
+        lnf._assert_matrix_stability(eigenvals, matrix_stability_tol)
 
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
