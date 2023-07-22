@@ -7,7 +7,7 @@ line.build_tracker()
 line.twiss_default['method'] = '4d'
 
 tt = line.get_table()
-mask_twiss = np.zeros(len(tt) + 1, dtype=bool)
+mask_twiss = np.ones(len(tt) + 1, dtype=bool)
 mask_twiss[:-1] = tt.element_type == 'Marker'
 
 tw_init_ip5 = line.twiss().get_twiss_init('s.ds.l5.b1')

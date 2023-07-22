@@ -139,6 +139,8 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
+        self._get_twiss_mask_markers() # to cache it
+
         self._init_io_buffer(io_buffer)
 
         self.line = line
@@ -1240,6 +1242,15 @@ class Tracker:
             else:
                 headers.append(f'#undef {k}')
         return headers
+
+    def _get_twiss_mask_markers(self):
+        if hasattr(self._tracker_data_base, 'mask_markers_for_twiss'):
+            return self._tracker_data_base.mask_markers_for_twiss
+        tt = self.line.get_table()
+        mask_twiss = np.ones(len(tt) + 1, dtype=bool)
+        mask_twiss[:-1] = tt.element_type == 'Marker'
+        self._tracker_data_base.mask_markers_for_twiss = mask_twiss
+        return mask_twiss
 
     def get_track_kernel_and_data_for_present_config(self):
 

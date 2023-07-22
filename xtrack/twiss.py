@@ -60,6 +60,7 @@ def twiss_line(line, particle_ref=None, method=None,
         hide_thin_groups=None,
         group_compound_elements=None,
         only_twiss_init=None,
+        only_markers=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -249,6 +250,7 @@ def twiss_line(line, particle_ref=None, method=None,
     hide_thin_groups=(hide_thin_groups or False)
     group_compound_elements=(group_compound_elements or False)
     only_twiss_init=(only_twiss_init or False)
+    only_markers=(only_markers or False)
 
     if freeze_longitudinal:
         kwargs = locals().copy()
@@ -433,6 +435,7 @@ def twiss_line(line, particle_ref=None, method=None,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
         group_compound_elements=group_compound_elements,
+        only_markers=only_markers,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
@@ -470,7 +473,8 @@ def twiss_line(line, particle_ref=None, method=None,
             ele_start=ele_start,
             ele_stop=ele_stop,
             hide_thin_groups=hide_thin_groups,
-            group_compound_elements=group_compound_elements)
+            group_compound_elements=group_compound_elements,
+            only_markers=only_markers)
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -539,6 +543,7 @@ def _twiss_open(line, twiss_init,
                       use_full_inverse,
                       hide_thin_groups=False,
                       group_compound_elements=False,
+                      only_markers=False,
                       _continue_if_lost=False,
                       _keep_tracking_data=False,
                       _keep_initial_particles=False,
@@ -687,8 +692,8 @@ def _twiss_open(line, twiss_init,
 
     name_co = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
 
-    if hasattr(line.tracker, 'mask_twiss'):
-        mask_twiss = line.tracker.mask_twiss[i_start:i_stop+1]
+    if only_markers:
+        mask_twiss = line.tracker._get_twiss_mask_markers()[i_start:i_stop+1]
         name_co = name_co[mask_twiss]
         s_co = s_co[mask_twiss]
         x_co = x_co[mask_twiss]
@@ -742,6 +747,7 @@ def _twiss_open(line, twiss_init,
     twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
 
     if group_compound_elements:
+        assert not only_markers, 'group_compound_elements not implemented with only_markers'
         compound_mask = np.zeros_like(twiss_res_element_by_element['s'], dtype=bool)
         n_mask = len(compound_mask)
         compound_mask[-1] = True
@@ -945,7 +951,8 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                     r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
                     ele_start=None, ele_stop=None,
                     hide_thin_groups=False,
-                    group_compound_elements=False):
+                    group_compound_elements=False,
+                    only_markers=False):
 
     tw_chrom_res = []
     for dd in [-delta_chrom, delta_chrom]:
@@ -986,6 +993,7 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                 use_full_inverse=use_full_inverse,
                 hide_thin_groups=hide_thin_groups,
                 group_compound_elements=group_compound_elements,
+                only_markers=only_markers,
                 _continue_if_lost=False,
                 _keep_tracking_data=False,
                 _keep_initial_particles=False,

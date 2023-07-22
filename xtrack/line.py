@@ -940,6 +940,7 @@ class Line:
         hide_thin_groups=None,
         group_compound_elements=None,
         only_twiss_init=None,
+        only_markers=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
