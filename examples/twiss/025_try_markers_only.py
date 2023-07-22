@@ -10,9 +10,9 @@ tt = line.get_table()
 mask_twiss = np.zeros(len(tt) + 1, dtype=bool)
 mask_twiss[:-1] = tt.element_type == 'Marker'
 
-tw_init_ip5 = line.twiss().get_twiss_init('ip5')
+tw_init_ip5 = line.twiss().get_twiss_init('s.ds.l5.b1')
 
-tw = line.twiss(ele_start='ip5', ele_stop='s.ds.r5.b1', twiss_init=tw_init_ip5)
+tw = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_ip5)
 
 line.tracker.mask_twiss = mask_twiss
-tw2 = line.twiss(ele_start='ip5', ele_stop='s.ds.r5.b1', twiss_init=tw_init_ip5)
+tw2 = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_ip5)
