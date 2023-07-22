@@ -29,6 +29,9 @@ DEFAULT_STEPS_R_MATRIX = {
 
 DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-11]
 
+DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
+DEFAULT_MATRIX_STABILITY_TOL = 1e-3
+
 AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
 log = logging.getLogger(__name__)
@@ -246,6 +249,10 @@ def twiss_line(line, particle_ref=None, method=None,
     hide_thin_groups=(hide_thin_groups or False)
     group_compound_elements=(group_compound_elements or False)
     only_twiss_init=(only_twiss_init or False)
+    matrix_responsiveness_tol=(matrix_responsiveness_tol or
+                                DEFAULT_MATRIX_RESPONSIVENESS_TOL)
+    matrix_stability_tol=(matrix_stability_tol or
+                                DEFAULT_MATRIX_STABILITY_TOL)
 
     if freeze_longitudinal:
         kwargs = locals().copy()
@@ -1053,6 +1060,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
     else:
         if R_matrix is not None:
             RR = R_matrix
+            lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol)
             W, _, _ = lnf.compute_linear_normal_form(
                         RR, only_4d_block=(method == '4d'),
                         symplectify=symplectify,
@@ -1061,13 +1069,12 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
 
             for iter in range(2):
-                if iter == 1:
-                    print('Trying to increase accuracy of R matrix')
                 RR = line.compute_one_turn_matrix_finite_differences(
                                             steps_r_matrix=steps_r_matrix,
                                             particle_on_co=part_on_co,
                                             ele_start=ele_start,
                                             ele_stop=ele_stop)
+                lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol)
 
                 W, _, _ = lnf.compute_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),
@@ -1089,6 +1096,11 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 else:
                     steps_r_matrix['dx'] = 0.01 * sigma_x_start
                     steps_r_matrix['dy'] = 0.01 * sigma_y_start
+
+    # Check on R matrix
+    if RR is not None:
+        lnf._assert_matrix_determinant_within_tol(RR, matrix_stability_tol)
+        lnf._assert_matrix_stability(RR, matrix_stability_tol)
 
 
     if method == '4d' and W_matrix is None: # the matrix was not provided by the user
