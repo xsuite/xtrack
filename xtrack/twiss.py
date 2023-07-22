@@ -1061,6 +1061,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
 
             for iter in range(2):
+                if iter == 1:
+                    print('Trying to increase accuracy of R matrix')
                 RR = line.compute_one_turn_matrix_finite_differences(
                                             steps_r_matrix=steps_r_matrix,
                                             particle_on_co=part_on_co,
@@ -1083,7 +1085,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
                 if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
                     and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)):
-                    break
+                    break # sufficient accuracy
                 else:
                     steps_r_matrix['dx'] = 0.01 * sigma_x_start
                     steps_r_matrix['dy'] = 0.01 * sigma_y_start

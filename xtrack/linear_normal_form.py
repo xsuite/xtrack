@@ -122,7 +122,6 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     index_list = [0,5,1,2,3,4] # we mix them up to check the algorithm
 
     ##### Sort modes in pairs of conjugate modes #####
-
     conj_modes = np.zeros([3,2], dtype=np.int64)
     for j in [0,1]:
         conj_modes[j,0] = index_list[0]
