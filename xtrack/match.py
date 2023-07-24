@@ -29,6 +29,10 @@ XTRACK_DEFAULT_WEIGHTS = {
     'qy': 10.,
 }
 
+ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau'
+                        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
+                        'mux', 'muy']
+
 Action = xd.Action
 
 class ActionTwiss(xd.Action):
@@ -165,8 +169,19 @@ class VaryList(xd.VaryList):
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
 class TargetList(xd.TargetList):
-    def __init__(self, tars, action=None, **kwargs):
-        self.targets = [Target(tt, action=action, **kwargs) for tt in tars]
+    def __init__(self, tars=None, action=None, **kwargs):
+        vnames = []
+        vvalues = []
+        for kk in ALLOWED_TARGET_KWARGS:
+            if kk in kwargs:
+                vnames.append(kk)
+                vvalues.append(kwargs[kk])
+                kwargs.pop(kk)
+        self.targets = []
+        if tars is not None:
+            self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
+        self.targets += [
+            Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
 
 class TargetInequality(Target):
 

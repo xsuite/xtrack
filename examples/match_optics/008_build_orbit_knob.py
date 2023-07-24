@@ -50,9 +50,9 @@ opt = collider.match_knob(
     targets=[
         xt.TargetList(['y', 'py'], at='e.ds.r2.b1', line='lhcb1', value=0),
         xt.TargetList(['y', 'py'], at='e.ds.r2.b2', line='lhcb2', value=0),
-        xt.Target('y', offset_match, at='ip2', line='lhcb1'),
+        xt.TargetList(y=offset_match, py=0, at='ip2', line='lhcb1'),
         xt.Target('y', offset_match, at='ip2', line='lhcb2'),
-        xt.Target('py', 0., at='ip2', line='lhcb1'),
+        # xt.Target('py', 0., at='ip2', line='lhcb1'),
         xt.Target('py', 0., at='ip2', line='lhcb2'),
     ],
     vary=xt.VaryList([
