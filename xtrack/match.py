@@ -168,7 +168,7 @@ class VaryList(xd.VaryList):
     def __init__(self, vars, **kwargs):
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
-class TargetList(xd.TargetList):
+class TargetSet(xd.TargetList):
     def __init__(self, tars=None, action=None, **kwargs):
         vnames = []
         vvalues = []
@@ -182,6 +182,8 @@ class TargetList(xd.TargetList):
             self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
         self.targets += [
             Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
+
+TargetList = TargetSet # for backward compatibility
 
 class TargetInequality(Target):
 
