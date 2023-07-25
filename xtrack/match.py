@@ -263,8 +263,24 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
         if isinstance(tt.tar, tuple):
             tt_name = tt.tar[0] # `at` is  present
+            tt_at = tt.tar[1]
         else:
             tt_name = tt.tar
+            tt_at = None
+        if tt_at is not None and tt_at == 'ele_start' or tt_at == 'ele_stop':
+            if isinstance(line, xt.Multiline):
+                assert tt.line is not None, (
+                    'For a Multiline, the line must be specified if the target '
+                    'is `ele_start`')
+                assert tt.line in line.line_names
+                i_line = line.line_names.index(tt.line)
+            else:
+                i_line = 0
+            if tt_at == 'ele_start':
+                tt_at = kwargs['ele_start'][i_line]
+            else:
+                tt_at = kwargs['ele_stop'][i_line]
+            tt.tar = (tt_name, tt_at)
         if tt.weight is None:
             tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
         if tt.tol is None:

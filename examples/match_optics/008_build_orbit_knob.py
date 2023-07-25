@@ -48,10 +48,10 @@ opt = collider.match_knob(
     twiss_init=[xt.TwissInit(element_name='s.ds.l2.b1', line=collider.lhcb1),
                 xt.TwissInit(element_name='s.ds.l2.b2', line=collider.lhcb2)],
     targets=[
-        xt.TargetSet(line='lhcb1', at='e.ds.r2.b1', y=0,            py=0),
-        xt.TargetSet(line='lhcb2', at='e.ds.r2.b2', y=0,            py=0),
-        xt.TargetSet(line='lhcb1', at='ip2',        y=offset_match, py=0),
-        xt.TargetSet(line='lhcb2', at='ip2',        y=offset_match, py=0),
+        xt.TargetSet(line='lhcb1', at='ele_stop', y=0,            py=0),
+        xt.TargetSet(line='lhcb2', at='ele_stop', y=0,            py=0),
+        xt.TargetSet(line='lhcb1', at='ip2',      y=offset_match, py=0),
+        xt.TargetSet(line='lhcb2', at='ip2',      y=offset_match, py=0),
     ],
     vary=xt.VaryList([
         'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
