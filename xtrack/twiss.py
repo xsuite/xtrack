@@ -1485,12 +1485,17 @@ class TwissInit:
                 dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
                 mux=0, muy=0, muzeta=0, reference_frame=None):
 
+        # Custom setattr needs to be bypassed for creation of attributes
+        object.__setattr__(self, 'particle_on_co', None)
+        # object.__setattr__(self, '_temp_optics_data', None)
+        # object.__setattr__(self, 'element_name', None)
+
         if particle_on_co is None:
             assert particle_ref is not None or line is not None, (
                 "`particle_ref` or `line` must be provided if `particle_on_co` "
                 "is None")
-            particle_on_co=xp.build_particles(x=x, px=px, y=y, py=py, zeta=zeta,
-                    delta=delta, particle_ref=particle_ref, line=line)
+            self._temp_co_data = dict(
+                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta)
         else:
             assert x is None, "`x` must be None if `particle_on_co` is provided"
             assert px is None, "`px` must be None if `particle_on_co` is provided"
@@ -1500,6 +1505,7 @@ class TwissInit:
             assert delta is None, "`delta` must be None if `particle_on_co` is provided"
             assert particle_ref is None, (
                 "`particle_ref` must be None if `particle_on_co` is provided")
+            self.__dict__['particle_on_co'] = particle_on_co
 
         if W_matrix is None:
             alfx = alfx or 0
@@ -1512,10 +1518,47 @@ class TwissInit:
             dy = dy or 0
             dpy = dpy or 0
 
+            self._temp_optics_data = dict(
+                betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
+                dx=dx, dpx=dpx, dy=dy, dpy=dpy)
+        else:
+            assert betx is None, "`betx` must be None if `W_matrix` is provided"
+            assert alfx is None, "`alfx` must be None if `W_matrix` is provided"
+            assert bety is None, "`bety` must be None if `W_matrix` is provided"
+            assert alfy is None, "`alfy` must be None if `W_matrix` is provided"
+            assert bets is None, "`bets` must be None if `W_matrix` is provided"
+            self.W_matrix = W_matrix
+            self._temp_co_data = None
+        if element_name is not None:
+            self.element_name = element_name
+        self.mux = mux
+        self.muy = muy
+        self.muzeta = muzeta
+        self.dzeta = dzeta
+        self.reference_frame = reference_frame
+
+        if line is not None and element_name is not None:
+            self._complete(line, element_name)
+
+    def _complete(self, line, element_name):
+
+        if self._temp_co_data is not None:
+            assert line is not None, (
+                "`line` must be provided if `particle_on_co` is None")
+
+            particle_on_co=xp.build_particles(
+                x=self._temp_co_data['x'], px=self._temp_co_data['px'],
+                y=self._temp_co_data['y'], py=self._temp_co_data['py'],
+                delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
+                line=line)
+            self.__dict__['particle_on_co'] = particle_on_co
+
+        if self._temp_optics_data is not None:
+
             if (line is not None and 'reverse' in line.twiss_default
                 and line.twiss_default['reverse']):
                 input_reversed = True
-                assert reference_frame is None, ("`reference_frame` must be None "
+                assert self.reference_frame is None, ("`reference_frame` must be None "
                     "if `twiss_default['reverse']` is True")
             else:
                 input_reversed = False
@@ -1525,15 +1568,15 @@ class TwissInit:
                 qx=0.55, # dummy
                 qy=0.57, # dummy
                 qs=0.0000001, # dummy
-                bets=bets,
-                betx=betx,
-                bety=bety,
-                alfx=alfx * (-1 if input_reversed else 1),
-                alfy=alfy * (-1 if input_reversed else 1),
-                dx=dx * (-1 if input_reversed else 1),
-                dy=dy,
-                dpx=dpx,
-                dpy=dpy * (-1 if input_reversed else 1),
+                bets=self._temp_optics_data['bets'],
+                betx=self._temp_optics_data['betx'],
+                bety=self._temp_optics_data['bety'],
+                alfx=self._temp_optics_data['alfx'] * (-1 if input_reversed else 1),
+                alfy=self._temp_optics_data['alfy'] * (-1 if input_reversed else 1),
+                dx=self._temp_optics_data['dx'] * (-1 if input_reversed else 1),
+                dy=self._temp_optics_data['dy'],
+                dpx=self._temp_optics_data['dpx'],
+                dpy=self._temp_optics_data['dpy'] * (-1 if input_reversed else 1),
                 )
             aux_line = xt.Line(elements=[aux_segment])
             aux_line.particle_ref = particle_on_co.copy(
@@ -1550,22 +1593,11 @@ class TwissInit:
                 W_matrix[3, :] = -W_matrix[3, :]
                 W_matrix[4, :] = -W_matrix[4, :]
                 W_matrix[5, :] = W_matrix[5, :]
-                reference_frame = 'reverse'
-        else:
-            assert betx is None, "`betx` must be None if `W_matrix` is provided"
-            assert alfx is None, "`alfx` must be None if `W_matrix` is provided"
-            assert bety is None, "`bety` must be None if `W_matrix` is provided"
-            assert alfy is None, "`alfy` must be None if `W_matrix` is provided"
-            assert bets is None, "`bets` must be None if `W_matrix` is provided"
+                self.reference_frame = 'reverse'
 
-        self.__dict__['particle_on_co'] = particle_on_co
-        self.W_matrix = W_matrix
+            self.W_matrix = W_matrix
+
         self.element_name = element_name
-        self.mux = mux
-        self.muy = muy
-        self.muzeta = muzeta
-        self.dzeta = dzeta
-        self.reference_frame = reference_frame
 
     def copy(self):
         return TwissInit(
