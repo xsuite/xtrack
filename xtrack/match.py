@@ -35,6 +35,13 @@ ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau'
 
 Action = xd.Action
 
+class _LOC:
+    def __init__(self, name=None):
+        self.name = name
+
+START = _LOC('START')
+END = _LOC('END')
+
 class ActionTwiss(xd.Action):
 
     def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None, **kwargs):
@@ -267,7 +274,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             tt_name = tt.tar
             tt_at = None
-        if tt_at is not None and tt_at == 'ele_start' or tt_at == 'ele_stop':
+        if tt_at is not None and isinstance(tt_at, _LOC):
             if isinstance(line, xt.Multiline):
                 assert tt.line is not None, (
                     'For a Multiline, the line must be specified if the target '
@@ -276,10 +283,12 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 i_line = line.line_names.index(tt.line)
             else:
                 i_line = 0
-            if tt_at == 'ele_start':
+            if tt_at.name == 'START':
                 tt_at = kwargs['ele_start'][i_line]
-            else:
+            elif tt_at.name == 'END':
                 tt_at = kwargs['ele_stop'][i_line]
+            else:
+                raise ValueError(f'Unknown location {tt_at.name}')
             tt.tar = (tt_name, tt_at)
         if tt.weight is None:
             tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
