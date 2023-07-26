@@ -111,6 +111,11 @@ class ActionTwiss(xd.Action):
                         twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
                         _keep_ini_particles_list[ii] = True
 
+            for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
+                if isinstance(twini, xt.TwissInit) and twini._needs_complete():
+                    assert isinstance(eest, str)
+                    twini._complete(line=ln, element_name=eest)
+
             if ismultiline:
                 kwargs['twiss_init'] = twinit_list
                 kwargs['_keep_initial_particles'] = _keep_ini_particles_list

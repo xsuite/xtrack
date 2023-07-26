@@ -1565,8 +1565,6 @@ class TwissInit:
 
     def _complete(self, line, element_name):
 
-        import ipdb; ipdb.set_trace()
-
         if self._temp_co_data is not None:
             assert line is not None, (
                 "`line` must be provided if `particle_on_co` is None")
