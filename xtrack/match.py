@@ -29,9 +29,9 @@ XTRACK_DEFAULT_WEIGHTS = {
     'qy': 10.,
 }
 
-ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau'
+ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
-                        'mux', 'muy']
+                        'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy']
 
 Action = xd.Action
 
