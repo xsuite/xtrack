@@ -99,8 +99,8 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
         M[4:, 4:] = np.array([[np.cos(muz_dummy), np.sin(muz_dummy)],
                               [-np.sin(muz_dummy), np.cos(muz_dummy)]])
 
-
-    _assert_matrix_responsiveness(M, responsiveness_tol)
+    if responsiveness_tol is not None:
+        _assert_matrix_responsiveness(M, responsiveness_tol)
 
     if symplectify:
         M = healy_symplectify(M)

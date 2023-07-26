@@ -874,8 +874,7 @@ def test_custom_twiss_init(test_context):
         betx=betx, bety=bety, alfx=alfx, alfy=alfy,
         dx=dx, dy=dy, dpx=dpx, dpy=dpy,
         mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
-        bets=bets, reference_frame=reference_frame,
-        particle_ref=line.particle_ref)
+        bets=bets, reference_frame=reference_frame)
 
     tw_test = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
@@ -1126,8 +1125,7 @@ def test_custom_twiss_init(test_context):
         tw_init_custom = xt.TwissInit(
                                 betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0,
                                 dx=dx0, dpx=dpx0, dy=dy0, dpy=dpy0,
-                                mux=mux0, muy=muy0, x=x0, px=px0, y=y0, py=py0,
-                                element_name=location, line=line)
+                                mux=mux0, muy=muy0, x=x0, px=px0, y=y0, py=py0)
 
         tw = line.twiss(ele_start=location, ele_stop='ip7', twiss_init=tw_init_custom)
 

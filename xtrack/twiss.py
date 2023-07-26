@@ -1106,8 +1106,9 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                             particle_on_co=part_on_co,
                                             ele_start=ele_start,
                                             ele_stop=ele_stop)
-                lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
-                                                  only_4d=(method == '4d'))
+                if matrix_responsiveness_tol is not None:
+                    lnf._assert_matrix_responsiveness(RR,
+                        matrix_responsiveness_tol, only_4d=(method == '4d'))
 
                 W, _, _ = lnf.compute_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),
@@ -1131,7 +1132,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     steps_r_matrix['dy'] = 0.01 * sigma_y_start
 
     # Check on R matrix
-    if RR is not None:
+    if RR is not None and matrix_stability_tol is not None:
         lnf._assert_matrix_determinant_within_tol(RR, matrix_stability_tol)
         if method == '4d':
             eigenvals = np.linalg.eigvals(RR[:4, :4])
@@ -1563,6 +1564,8 @@ class TwissInit:
             self._complete(line, element_name)
 
     def _complete(self, line, element_name):
+
+        import ipdb; ipdb.set_trace()
 
         if self._temp_co_data is not None:
             assert line is not None, (

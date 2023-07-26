@@ -45,8 +45,7 @@ opt = collider.match_knob(
     knob_value_end=(offset_match * 1e3),
     ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
     ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
-    twiss_init=[xt.TwissInit(element_name='s.ds.l2.b1', line=collider.lhcb1),
-                xt.TwissInit(element_name='s.ds.l2.b2', line=collider.lhcb2)],
+    twiss_init=[xt.TwissInit(), xt.TwissInit()],
     targets=[
         xt.TargetSet(line='lhcb1', at=xt.END, y=0,            py=0),
         xt.TargetSet(line='lhcb2', at=xt.END, y=0,            py=0),
