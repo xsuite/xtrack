@@ -1346,6 +1346,11 @@ def compute_one_turn_matrix_finite_differences(
         steps_r_matrix=None,
         ele_start=None, ele_stop=None):
 
+    if steps_r_matrix is None:
+        steps_r_matrix = {}
+
+    steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
+
     if line.enable_time_dependent_vars:
         raise RuntimeError(
             'Time-dependent vars not supported in one-turn matrix computation')
