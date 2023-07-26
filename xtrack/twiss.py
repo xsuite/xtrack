@@ -252,7 +252,7 @@ def twiss_line(line, particle_ref=None, method=None,
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
 
-    ele_start_user = None
+    ele_start_user = ele_start
 
     if freeze_longitudinal:
         kwargs = locals().copy()
@@ -339,7 +339,7 @@ def twiss_line(line, particle_ref=None, method=None,
             assert isinstance(ele_start_user, str), (
                 'ele_start must be provided as name when an incomplete'
                 'twiss_init is provided')
-            twiss_init.complete(line=line, element_name=ele_start_user)
+            twiss_init._complete(line=line, element_name=ele_start_user)
 
         if twiss_init.reference_frame is None:
             twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
@@ -1495,13 +1495,10 @@ class TwissInit:
 
         # Custom setattr needs to be bypassed for creation of attributes
         object.__setattr__(self, 'particle_on_co', None)
-        # object.__setattr__(self, '_temp_optics_data', None)
-        # object.__setattr__(self, 'element_name', None)
+        self._temp_co_data = None
+        self._temp_optics_data = None
 
         if particle_on_co is None:
-            assert particle_ref is not None or line is not None, (
-                "`particle_ref` or `line` must be provided if `particle_on_co` "
-                "is None")
             self._temp_co_data = dict(
                 x=x, px=px, y=y, py=py, zeta=zeta, delta=delta)
         else:
@@ -1526,6 +1523,8 @@ class TwissInit:
             dy = dy or 0
             dpy = dpy or 0
 
+            import ipdb; ipdb.set_trace()
+
             self._temp_optics_data = dict(
                 betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
                 dx=dx, dpx=dpx, dy=dy, dpy=dpy)
@@ -1535,10 +1534,10 @@ class TwissInit:
             assert bety is None, "`bety` must be None if `W_matrix` is provided"
             assert alfy is None, "`alfy` must be None if `W_matrix` is provided"
             assert bets is None, "`bets` must be None if `W_matrix` is provided"
-            self.W_matrix = W_matrix
             self._temp_co_data = None
-        if element_name is not None:
-            self.element_name = element_name
+
+        self.element_name = element_name
+        self.W_matrix = W_matrix
         self.mux = mux
         self.muy = muy
         self.muzeta = muzeta
@@ -1614,7 +1613,7 @@ class TwissInit:
 
     def copy(self):
         if self.particle_on_co is not None:
-            pco = self.particle_on_co
+            pco = self.particle_on_co.copy()
         else:
             pco = None
 
@@ -1623,7 +1622,7 @@ class TwissInit:
         else:
             wmat = None
 
-        return TwissInit(
+        out =  TwissInit(
             particle_on_co=pco,
             W_matrix=wmat,
             element_name=self.element_name,
@@ -1632,6 +1631,14 @@ class TwissInit:
             muzeta=self.muzeta,
             dzeta=self.dzeta,
             reference_frame=self.reference_frame)
+
+        if self._temp_co_data is not None:
+            out._temp_co_data = self._temp_co_data.copy()
+
+        if self._temp_optics_data is not None:
+            out._temp_optics_data = self._temp_optics_data.copy()
+
+        return out
 
     def reverse(self):
         out = TwissInit(particle_on_co=self.particle_on_co.copy(),
