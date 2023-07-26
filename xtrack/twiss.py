@@ -252,6 +252,8 @@ def twiss_line(line, particle_ref=None, method=None,
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
 
+    ele_start_user = None
+
     if freeze_longitudinal:
         kwargs = locals().copy()
         kwargs.pop('freeze_longitudinal')
@@ -332,6 +334,12 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if twiss_init is not None and not isinstance(twiss_init, str):
         twiss_init = twiss_init.copy() # To avoid changing the one provided
+
+        if twiss_init._needs_complete():
+            assert isinstance(ele_start_user, str), (
+                'ele_start must be provided as name when an incomplete'
+                'twiss_init is provided')
+            twiss_init.complete(line=line, element_name=ele_start_user)
 
         if twiss_init.reference_frame is None:
             twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
@@ -1552,6 +1560,7 @@ class TwissInit:
                 delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
                 line=line)
             self.__dict__['particle_on_co'] = particle_on_co
+            self._temp_co_data = None
 
         if self._temp_optics_data is not None:
 
@@ -1596,13 +1605,27 @@ class TwissInit:
                 self.reference_frame = 'reverse'
 
             self.W_matrix = W_matrix
+            self._temp_optics_data = None
 
         self.element_name = element_name
 
+    def _needs_complete(self):
+        return self._temp_co_data is not None or self._temp_optics_data is not None
+
     def copy(self):
+        if self.particle_on_co is not None:
+            pco = self.particle_on_co
+        else:
+            pco = None
+
+        if self.W_matrix is not None:
+            wmat = self.W_matrix.copy()
+        else:
+            wmat = None
+
         return TwissInit(
-            particle_on_co=self.particle_on_co.copy(),
-            W_matrix=self.W_matrix.copy(),
+            particle_on_co=pco,
+            W_matrix=wmat,
             element_name=self.element_name,
             mux=self.mux,
             muy=self.muy,
