@@ -252,24 +252,26 @@ def twiss_line(line, particle_ref=None, method=None,
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
 
+    kwargs = locals().copy()
+
     ele_start_user = ele_start
 
     if freeze_longitudinal:
-        kwargs = locals().copy()
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         kwargs.pop('freeze_longitudinal')
 
         with xt.freeze_longitudinal(line):
             return twiss_line(**kwargs)
     elif freeze_energy or (freeze_energy is None and method=='4d'):
         if not line._energy_is_frozen():
-            kwargs = locals().copy()
+            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
             kwargs.pop('freeze_energy')
             with xt.line._preserve_config(line):
                 line.freeze_energy(force=True) # need to force for collective lines
                 return twiss_line(freeze_energy=False, **kwargs)
 
     if radiation_method != 'full':
-        kwargs = locals().copy()
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         kwargs.pop('radiation_method')
         assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
@@ -288,7 +290,7 @@ def twiss_line(line, particle_ref=None, method=None,
         if reverse:
             raise NotImplementedError('`at_s` not implemented for `reverse`=True')
         # Get all arguments
-        kwargs = locals().copy()
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         if np.isscalar(at_s):
             at_s = [at_s]
         assert at_elements is None
@@ -390,7 +392,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if twiss_init in ['preserve', 'preserve_start', 'preserve_end']:
         # Twiss full machine with periodic boundary conditions
-        kwargs = locals().copy()
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         kwargs.pop('twiss_init')
         kwargs.pop('ele_start')
         kwargs.pop('ele_stop')
@@ -1409,6 +1411,16 @@ def compute_one_turn_matrix_finite_differences(
 
     return RR
 
+def _updated_kwargs_from_locals(kwargs, loc):
+
+    out = kwargs.copy()
+
+    for kk in kwargs.keys():
+        if kk in loc:
+            out[kk] = loc[kk]
+
+    return out
+
 
 def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
                                                 algorithm='auto'):
@@ -1522,8 +1534,6 @@ class TwissInit:
             dpx = dpx or 0
             dy = dy or 0
             dpy = dpy or 0
-
-            import ipdb; ipdb.set_trace()
 
             self._temp_optics_data = dict(
                 betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
