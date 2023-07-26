@@ -433,7 +433,7 @@ def test_match_ir8_optics(test_context):
         # Left boundary
         twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
         targets=[
-            xt.TargetSet(at='ip8', alfx=0, alfy=0, betx=1.5, bety=1.5, dx=0, dpx=0),
+            xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
             xt.TargetSet(at=f'e.ds.r8.b1',
                          tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
                          value=tab_boundary_right, tag='stage2'),
@@ -573,15 +573,10 @@ def test_match_ir8_optics(test_context):
         # Left boundary
         twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
         targets=[
-            xt.Target('alfx', 0, at='ip8'),
-            xt.Target('alfy', 0, at='ip8'),
-            xt.Target('betx', 1.5, at='ip8'),
-            xt.Target('bety', 1.5, at='ip8'),
-            xt.Target('dx', 0, at='ip8'),
-            xt.Target('dpx', 0, at='ip8'),
-            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
-                    value=tab_boundary_right, at=f'e.ds.r8.b2',
-                    tag='stage2'),
+            xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
+            xt.TargetSet(at=xt.END,
+                         tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                         value=tab_boundary_right, tag='stage2'),
             xt.TargetRelPhaseAdvance('mux', mux_b2_target),
             xt.TargetRelPhaseAdvance('muy', muy_b2_target),
         ],

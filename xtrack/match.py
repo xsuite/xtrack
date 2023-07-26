@@ -149,6 +149,7 @@ class ActionTwiss(xd.Action):
 class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None, tag=''):
+
         if at is not None:
             xdtar = (tar, at)
         else:
@@ -161,6 +162,9 @@ class Target(xd.Target):
             self.value=value[line][xdtar]
         if isinstance(value, xt.TwissTable):
             self.value=value[xdtar]
+
+        if isinstance(self.value, np.ndarray):
+            raise ValueError('Target value must be a scalar')
 
     def eval(self, data):
         res = data[self.action]
@@ -289,11 +293,17 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 assert tt.line in line.line_names
                 i_line = line.line_names.index(tt.line)
             else:
-                i_line = 0
+                i_line = None
             if tt_at.name == 'START':
-                tt_at = kwargs['ele_start'][i_line]
+                if i_line is not None:
+                    tt_at = kwargs['ele_start'][i_line]
+                else:
+                    tt_at = kwargs['ele_start']
             elif tt_at.name == 'END':
-                tt_at = kwargs['ele_stop'][i_line]
+                if i_line is not None:
+                    tt_at = kwargs['ele_stop'][i_line]
+                else:
+                    tt_at = kwargs['ele_stop']
             else:
                 raise ValueError(f'Unknown location {tt_at.name}')
             tt.tar = (tt_name, tt_at)
