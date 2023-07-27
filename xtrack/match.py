@@ -158,14 +158,6 @@ class Target(xd.Target):
                             weight=weight, scale=scale, action=action, tag=tag)
         self.line = line
 
-        if isinstance(value, xt.multiline.MultiTwiss):
-            self.value=value[line][xdtar]
-        if isinstance(value, xt.TwissTable):
-            self.value=value[xdtar]
-
-        if isinstance(self.value, np.ndarray):
-            raise ValueError('Target value must be a scalar')
-
     def eval(self, data):
         res = data[self.action]
         if self.line is not None:
@@ -273,12 +265,15 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
 
     action_twiss = None
     for tt in targets_flatten:
+
+        # Handle action
         if tt.action is None:
             if action_twiss is None:
                 action_twiss = ActionTwiss(
                     line, allow_twiss_failure=allow_twiss_failure, **kwargs)
             tt.action = action_twiss
 
+        # Handle at
         if isinstance(tt.tar, tuple):
             tt_name = tt.tar[0] # `at` is  present
             tt_at = tt.tar[1]
@@ -286,27 +281,19 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             tt_name = tt.tar
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
-            if isinstance(line, xt.Multiline):
-                assert tt.line is not None, (
-                    'For a Multiline, the line must be specified if the target '
-                    'is `ele_start`')
-                assert tt.line in line.line_names
-                i_line = line.line_names.index(tt.line)
-            else:
-                i_line = None
-            if tt_at.name == 'START':
-                if i_line is not None:
-                    tt_at = kwargs['ele_start'][i_line]
-                else:
-                    tt_at = kwargs['ele_start']
-            elif tt_at.name == 'END':
-                if i_line is not None:
-                    tt_at = kwargs['ele_stop'][i_line]
-                else:
-                    tt_at = kwargs['ele_stop']
-            else:
-                raise ValueError(f'Unknown location {tt_at.name}')
+            tt_at = _at_from_placeholder(tt_at, line=line, line_name=tt.line,
+                    ele_start=kwargs['ele_start'], ele_stop=kwargs['ele_stop'])
             tt.tar = (tt_name, tt_at)
+
+        # Handle value
+        if isinstance(tt.value, xt.multiline.MultiTwiss):
+            tt.value=tt.value[line][tt.tar]
+        if isinstance(tt.value, xt.TwissTable):
+            tt.value=tt.value[tt.tar]
+        if isinstance(tt.value, np.ndarray):
+            raise ValueError('Target value must be a scalar')
+
+        # Handle weight
         if tt.weight is None:
             tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
         if tt.tol is None:
@@ -462,3 +449,28 @@ class KnobOptimizer:
         self.line.vars[self.knob_name] = self.knob_value_start
 
         _print('Generated knob: ', self.knob_name)
+
+def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
+    assert isinstance(tt_at, _LOC)
+    if isinstance(line, xt.Multiline):
+        assert line is not None, (
+            'For a Multiline, the line must be specified if the target '
+            'is `ele_start`')
+        assert line_name in line.line_names
+        i_line = line.line_names.index(line_name)
+    else:
+        i_line = None
+    if tt_at.name == 'START':
+        if i_line is not None:
+            tt_at = ele_start[i_line]
+        else:
+            tt_at = ele_start
+    elif tt_at.name == 'END':
+        if i_line is not None:
+            tt_at = ele_stop[i_line]
+        else:
+            tt_at = ele_stop
+    else:
+        raise ValueError(f'Unknown location {tt_at.name}')
+
+    return tt_at
