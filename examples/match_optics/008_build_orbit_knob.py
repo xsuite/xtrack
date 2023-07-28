@@ -41,16 +41,15 @@ offset_match = 0.5e-3
 opt = collider.match_knob(
     run=False,
     knob_name='on_o2v',
-    knob_value_start=0,
-    knob_value_end=(offset_match * 1e3),
+    knob_value_end=(offset_match * 1e3), knob_value_start=0.,
     ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
     ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
     twiss_init=[xt.TwissInit(), xt.TwissInit()],
     targets=[
-        xt.TargetSet(line='lhcb1', at=xt.END, y=0,            py=0),
-        xt.TargetSet(line='lhcb2', at=xt.END, y=0,            py=0),
         xt.TargetSet(line='lhcb1', at='ip2',  y=offset_match, py=0),
         xt.TargetSet(line='lhcb2', at='ip2',  y=offset_match, py=0),
+        xt.TargetSet(line='lhcb1', at=xt.END, y=0,            py=0),
+        xt.TargetSet(line='lhcb2', at=xt.END, y=0,            py=0),
     ],
     vary=xt.VaryList([
         'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
@@ -110,11 +109,14 @@ collider.vars['acbxv1.r2_from_on_x2v'] = -acbx_xing_ir2
 collider.vars['acbxv2.r2_from_on_x2v'] = -acbx_xing_ir2
 collider.vars['acbxv3.r2_from_on_x2v'] = -acbx_xing_ir2
 
-# match other knobs with fixed mcbx
+# match other correctors with fixed mcbx
 opt.disable_vary(tag='mcbx')
 opt.solve()
+
+# Generate knob
 opt.generate_knob()
 
+# Test on_x2v knob
 collider.vars['on_x2v'] = 100
 tw = collider.twiss()
 collider.vars['on_x2v'] = 0
