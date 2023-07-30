@@ -1,3 +1,5 @@
+import time
+
 import xtrack as xt
 import lhc_match as lm
 
@@ -22,16 +24,21 @@ d_muy_15_b2 = -0.12
 
 staged_match = True
 
+t1 = time.time()
 opt = lm.change_phase_non_ats_arcs(collider,
     d_mux_15_b1=d_mux_15_b1, d_muy_15_b1=d_muy_15_b1,
     d_mux_15_b2=d_mux_15_b2, d_muy_15_b2=d_muy_15_b2,
     solve=True, default_tol=default_tol)
+t2 = time.time()
 
 arc_periodic_solution = lm.get_arc_periodic_solution(collider)
 
 optimizers = {'b1': {}, 'b2': {}}
 
+t_match_irs = {}
 for bn in ['b1', 'b2']:
+
+    tt_1 = time.time()
 
     tw_sq_a81_ip1_a12 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
             line_name=f'lhc{bn}', ele_start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
@@ -184,6 +191,10 @@ for bn in ['b1', 'b2']:
             solve=True, staged_match=staged_match, default_tol=default_tol)
     optimizers[bn]['ip8'] = opt
 
+    tt_2 = time.time()
+    t_match_irs[bn] = tt_2 - tt_1
+
+
 tw = collider.twiss()
 
 # Tunes
@@ -191,12 +202,27 @@ print('Tunes:')
 print(f"  b1: qx={tw.lhcb1.qx:6f} qy={tw.lhcb1.qy:6f}")
 print(f"  b2: qx={tw.lhcb2.qx:6f} qy={tw.lhcb2.qy:6f}")
 
+print('IP15 phase before:')
+print(f"  b1: d_mux={tw0.lhcb1['mux', 'ip5'] - tw0.lhcb1['mux', 'ip1']:6f} "
+      f"      d_muy={tw0.lhcb1['muy', 'ip5'] - tw0.lhcb1['muy', 'ip1']:6f} ")
+print(f"  b2: d_mux={tw0.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip1']:6f} "
+      f"      d_muy={tw0.lhcb2['muy', 'ip5'] - tw0.lhcb2['muy', 'ip1']:6f} ")
+
+print('IP15 phase after:')
+print(f"  b1: d_mux={tw.lhcb1['mux', 'ip5'] - tw.lhcb1['mux', 'ip1']:6f} "
+      f"      d_muy={tw.lhcb1['muy', 'ip5'] - tw.lhcb1['muy', 'ip1']:6f} ")
+print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw.lhcb2['mux', 'ip1']:6f} "
+      f"      d_muy={tw.lhcb2['muy', 'ip5'] - tw.lhcb2['muy', 'ip1']:6f} ")
+
 print('IP15 phase shifts:')
 print(f"  b1: d_mux={tw.lhcb1['mux', 'ip5'] - tw0.lhcb1['mux', 'ip5']:6f} "
             f"d_muy={tw.lhcb1['muy', 'ip5'] - tw0.lhcb1['muy', 'ip5']:6f} ")
 print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip5']:6f} "
             f"d_muy={tw.lhcb2['muy', 'ip5'] - tw0.lhcb2['muy', 'ip5']:6f} ")
 
+print(f'Time match arcs: {t2-t1} s')
+print(f'Time match IRs b1: {t_match_irs["b1"]}')
+print(f'Time match IRs b2: {t_match_irs["b2"]}')
 
 # # Open twisses to debug
 # tw_b1_check = collider.lhcb1.twiss(
