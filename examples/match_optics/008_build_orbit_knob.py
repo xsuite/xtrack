@@ -58,14 +58,6 @@ opt = collider.match_knob(
 opt.solve()
 opt.generate_knob()
 
-collider.vars['on_o2v'] = 0.3
-tw = collider.twiss()
-collider.vars['on_o2v'] = 0
-
-assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['py', 'ip2'], 0., atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['py', 'ip2'], 0., atol=1e-10, rtol=0)
 
 # Match crossing angle knob
 angle_match = 170e-6
@@ -115,16 +107,6 @@ opt.solve()
 
 # Generate knob
 opt.generate_knob()
-
-# Test on_x2v knob
-collider.vars['on_x2v'] = 100
-tw = collider.twiss()
-collider.vars['on_x2v'] = 0
-
-assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['py', 'ip2'], 100e-6, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
 
 # Match horizontal xing angle in ip8
 angle_match = 300e-6
@@ -196,14 +178,6 @@ opt.vary[8].active = True
 opt.solve()
 opt.generate_knob()
 
-collider.vars['on_x8h'] = 100
-tw = collider.twiss()
-collider.vars['on_x8h'] = 0
-
-assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['px', 'ip8'], 100e-6, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['px', 'ip8'], -100e-6, atol=1e-10, rtol=0)
 
 # Match horizontal separation in ip8
 sep_match = 2e-3
@@ -257,6 +231,27 @@ opt.vary[8].active = True
 
 opt.solve()
 opt.generate_knob()
+
+# -----------------------------------------------------------------------------
+
+collider.vars['on_o2v'] = 0.3
+tw = collider.twiss()
+collider.vars['on_o2v'] = 0
+
+assert np.isclose(tw.lhcb1['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip2'], 0.3e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip2'], 0., atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip2'], 0., atol=1e-10, rtol=0)
+
+# Test on_x2v knob
+collider.vars['on_x2v'] = 100
+tw = collider.twiss()
+collider.vars['on_x2v'] = 0
+
+assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip2'], 100e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
 
 collider.vars['on_sep8h'] = 1.5
 tw = collider.twiss()
