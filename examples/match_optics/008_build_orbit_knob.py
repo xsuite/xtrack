@@ -114,15 +114,12 @@ opt = collider.match_knob(
     knob_value_end=(angle_match * 1e6),
     ele_start=['s.ds.l8.b1', 's.ds.l8.b2'],
     ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
-    twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b1', line=collider.lhcb1),
-                xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b2', line=collider.lhcb2)],
+    twiss_init=[xt.TwissInit(), xt.TwissInit()],
     targets=[
-        xt.TargetList(['x', 'px'], at='e.ds.r8.b1', line='lhcb1', value=0),
-        xt.TargetList(['x', 'px'], at='e.ds.r8.b2', line='lhcb2', value=0),
-        xt.Target('x', 0, at='ip8', line='lhcb1'),
-        xt.Target('x', 0, at='ip8', line='lhcb2'),
-        xt.Target('px', angle_match, at='ip8', line='lhcb1'),
-        xt.Target('px', -angle_match, at='ip8', line='lhcb2'),
+        xt.TargetSet(line='lhcb1', at='ip8',  x=0, px=angle_match),
+        xt.TargetSet(line='lhcb2', at='ip8',  x=0, px=-angle_match),
+        xt.TargetSet(line='lhcb1', at=xt.END, x=0, px=0),
+        xt.TargetSet(line='lhcb2', at=xt.END, x=0, px=0),
     ],
     vary=[
         xt.VaryList([
@@ -140,15 +137,7 @@ if testkqx8> 210.:
 else:
     acbx_xing_ir8 = 11.0e-6  # Value for 170 urad crossing
 
-# # As in mad-x script
-# collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
-# collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
-# collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6
-# collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
-# collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
-# collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6
-
-# Harder case to check mcbx matching
+# Set MCBX by hand (reduce value by 10, to test matching algorithm)
 collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
@@ -158,7 +147,6 @@ collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 *
 
 # First round of optimization without changing mcbx
 opt.disable_vary(tag='mcbx')
-
 opt.step(10) # perform 10 steps without checking for convergence
 
 # Link all mcbx stengths to the first one
