@@ -68,15 +68,12 @@ opt = collider.match_knob(
     knob_value_end=(angle_match * 1e6),
     ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
     ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
-    twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b1', line=collider.lhcb1),
-                xt.TwissInit(betx=1, bety=1, element_name='s.ds.l2.b2', line=collider.lhcb2)],
+    twiss_init=[xt.TwissInit(), xt.TwissInit()],
     targets=[
-        xt.TargetList(['y', 'py'], at='e.ds.r2.b1', line='lhcb1', value=0),
-        xt.TargetList(['y', 'py'], at='e.ds.r2.b2', line='lhcb2', value=0),
-        xt.Target('y', 0, at='ip2', line='lhcb1'),
-        xt.Target('y', 0, at='ip2', line='lhcb2'),
-        xt.Target('py', angle_match, at='ip2', line='lhcb1'),
-        xt.Target('py', -angle_match, at='ip2', line='lhcb2'),
+        xt.TargetSet(line='lhcb1', at='ip2',  y=0, py=angle_match),
+        xt.TargetSet(line='lhcb2', at='ip2',  y=0, py=-angle_match),
+        xt.TargetSet(line='lhcb1', at=xt.END, y=0, py=0),
+        xt.TargetSet(line='lhcb2', at=xt.END, y=0, py=0),
     ],
     vary=[
         xt.VaryList([
