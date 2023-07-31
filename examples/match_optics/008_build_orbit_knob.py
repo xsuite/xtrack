@@ -34,45 +34,87 @@ all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
 for kk in all_knobs_ip2ip8:
     collider.vars[kk] = 0
 
-correctors_ir2_single_beam_v = [
-    'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
-    'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']
+twinit_zero_orbit = [xt.TwissInit(), xt.TwissInit()]
+
+targets_close_bump = [
+    xt.TargetSet(line='lhcb1', at=xt.END, x=0, px=0, y=0, py=0),
+    xt.TargetSet(line='lhcb2', at=xt.END, x=0, px=0, y=0, py=0),
+]
+
+bump_range_ip2 = {
+    'ele_start': ['s.ds.l2.b1', 's.ds.l2.b2'],
+    'ele_stop': ['e.ds.r2.b1', 'e.ds.r2.b2']}
+bump_range_ip8 = {
+    'ele_start': ['s.ds.l8.b1', 's.ds.l8.b2'],
+    'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2']}
 
 correctors_ir2_single_beam_h = [
     'acbyhs4.l2b1', 'acbyhs4.r2b2', 'acbyhs4.l2b2', 'acbyhs4.r2b1',
     'acbyhs5.l2b2', 'acbyhs5.l2b1', 'acbchs5.r2b1', 'acbchs5.r2b2']
 
-# Match IP offset knob
+correctors_ir2_single_beam_v = [
+    'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
+    'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']
+
+correctors_ir8_single_beam_h = [
+    'acbyhs4.l8b1', 'acbyhs4.r8b2', 'acbyhs4.l8b2', 'acbyhs4.r8b1',
+    'acbchs5.l8b2', 'acbchs5.l8b1', 'acbyhs5.r8b1', 'acbyhs5.r8b2']
+
+correctors_ir8_single_beam_v = [
+    'acbyvs4.l8b1', 'acbyvs4.r8b2', 'acbyvs4.l8b2', 'acbyvs4.r8b1',
+    'acbcvs5.l8b2', 'acbcvs5.l8b1', 'acbyvs5.r8b1', 'acbyvs5.r8b2']
+
+# Match IP offset knobs
 offset_match = 0.5e-3
+
 opt_o2v = collider.match_knob(
-    run=False, twiss_init=[xt.TwissInit(), xt.TwissInit()],
     knob_name='on_o2v', knob_value_end=(offset_match * 1e3),
-    ele_start=['s.ds.l2.b1', 's.ds.l2.b2'], ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
-    targets=[
-        xt.TargetSet(line='lhcb1', at='ip2',  y=offset_match, py=0),
-        xt.TargetSet(line='lhcb2', at='ip2',  y=offset_match, py=0),
-        xt.TargetSet(line='lhcb1', at=xt.END, y=0,            py=0),
-        xt.TargetSet(line='lhcb2', at=xt.END, y=0,            py=0),
-    ],
-    vary=xt.VaryList(correctors_ir2_single_beam_v)
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip2', y=offset_match, py=0),
+        xt.TargetSet(line='lhcb2', at='ip2', y=offset_match, py=0),
+    ]),
+    vary=xt.VaryList(correctors_ir2_single_beam_v),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
 )
 opt_o2v.solve()
 opt_o2v.generate_knob()
 
 opt_o2h = collider.match_knob(
-    run=False, twiss_init=[xt.TwissInit(), xt.TwissInit()],
     knob_name='on_o2h', knob_value_end=(offset_match * 1e3),
-    ele_start=['s.ds.l2.b1', 's.ds.l2.b2'], ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
-    targets=[
-        xt.TargetSet(line='lhcb1', at='ip2',  x=offset_match, px=0),
-        xt.TargetSet(line='lhcb2', at='ip2',  x=offset_match, px=0),
-        xt.TargetSet(line='lhcb1', at=xt.END, x=0,            px=0),
-        xt.TargetSet(line='lhcb2', at=xt.END, x=0,            px=0),
-    ],
-    vary=xt.VaryList(correctors_ir2_single_beam_h)
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip2', x=offset_match, px=0),
+        xt.TargetSet(line='lhcb2', at='ip2', x=offset_match, px=0),
+    ]),
+    vary=xt.VaryList(correctors_ir2_single_beam_h),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
 )
 opt_o2h.solve()
 opt_o2h.generate_knob()
+
+opt_o8v = collider.match_knob(
+    knob_name='on_o8v', knob_value_end=(offset_match * 1e3),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip8', y=offset_match, py=0),
+        xt.TargetSet(line='lhcb2', at='ip8', y=offset_match, py=0),
+    ]),
+    vary=xt.VaryList(correctors_ir8_single_beam_v),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+)
+opt_o8v.solve()
+opt_o8v.generate_knob()
+
+opt_o8h = collider.match_knob(
+    knob_name='on_o8h', knob_value_end=(offset_match * 1e3),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip8', x=offset_match, px=0),
+        xt.TargetSet(line='lhcb2', at='ip8', x=offset_match, px=0),
+    ]),
+    vary=xt.VaryList(correctors_ir8_single_beam_h),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+)
+opt_o8h.solve()
+opt_o8h.generate_knob()
+
 
 
 # Match crossing angle knob
@@ -249,6 +291,24 @@ assert np.isclose(tw.lhcb1['x', 'ip2'], 0.4e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['x', 'ip2'], 0.4e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip2'], 0., atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip2'], 0., atol=1e-10, rtol=0)
+
+collider.vars['on_o8v'] = 0.5
+tw = collider.twiss()
+collider.vars['on_o8v'] = 0
+
+assert np.isclose(tw.lhcb1['y', 'ip8'], 0.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip8'], 0.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip8'], 0., atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip8'], 0., atol=1e-10, rtol=0)
+
+collider.vars['on_o8h'] = 0.6
+tw = collider.twiss()
+collider.vars['on_o8h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip8'], 0.6e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], 0.6e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip8'], 0., atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], 0., atol=1e-10, rtol=0)
 
 # Test on_x2v knob
 collider.vars['on_x2v'] = 100

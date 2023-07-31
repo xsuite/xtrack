@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from functools import partial
+import copy
 
 import numpy as np
 from scipy.optimize import fsolve, minimize
@@ -89,6 +90,7 @@ class ActionTwiss(xd.Action):
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
                     twinit_list, ele_start_list, ele_stop_list)):
                 if isinstance(twinit, xt.TwissInit):
+                    twinit_list[ii] = twinit.copy()
                     _keep_ini_particles_list[ii] = True
                 elif isinstance(twinit, str):
                     assert twinit in (
@@ -157,6 +159,9 @@ class Target(xd.Target):
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag)
         self.line = line
+
+    def copy(self):
+        return copy.copy(self)
 
     def eval(self, data):
         res = data[self.action]
@@ -259,9 +264,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     for tt in targets:
         if isinstance(tt, xd.TargetList):
             for tt1 in tt.targets:
-                targets_flatten.append(tt1)
+                targets_flatten.append(tt1.copy())
         else:
-            targets_flatten.append(tt)
+            targets_flatten.append(tt.copy())
 
     action_twiss = None
     for tt in targets_flatten:
@@ -311,7 +316,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     vary_flatten = _flatten_vary(vary)
     _complete_vary_with_info_from_line(vary_flatten, line)
 
-    opt = xd.Optimize(vary=vary, targets=targets, solver=solver,
+    opt = xd.Optimize(vary=vary_flatten, targets=targets_flatten, solver=solver,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
                         n_steps_max=n_steps_max,
