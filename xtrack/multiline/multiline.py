@@ -23,7 +23,7 @@ class Multiline:
 
     '''
 
-    def __init__(self, lines: dict, link_vars=True):
+    def __init__(self, lines: dict, link_vars=True, metadata: dict = {}):
         self.lines = {}
         self.lines.update(lines)
 
@@ -39,6 +39,8 @@ class Multiline:
         for nn, ll in zip(line_names, line_list):
             ll._in_multiline = self
             ll._name_in_multiline = nn
+            
+        self.metadata = metadata
 
     def to_dict(self, include_var_management=True):
 
@@ -76,6 +78,9 @@ class Multiline:
                             dct['_bb_config'][nn][kk] = None
                 else:
                     dct['_bb_config'][nn] = vv
+        
+        dct['metadata'] = self.metadata            
+        
         return dct
 
     @classmethod
@@ -98,7 +103,7 @@ class Multiline:
         lines = {}
         for nn, ll in dct['lines'].items():
             lines[nn] = xt.Line.from_dict(ll)
-
+            
         new_multiline = cls(lines=lines, link_vars=('_var_manager' in dct))
 
         if '_var_manager' in dct:
@@ -116,6 +121,9 @@ class Multiline:
                     df = None
                 new_multiline._bb_config[
                     'dataframes'][nn] = df
+                
+        if 'metadata' in dct:
+            new_multiline.metadata = dct['metadata']
 
         return new_multiline
 
