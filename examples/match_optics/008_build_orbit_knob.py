@@ -260,9 +260,9 @@ opt_x8v.solve()
 opt_x8v.generate_knob()
 
 
-###################################
-# Match crossing separation knobs #
-###################################
+##########################
+# Match separation knobs #
+##########################
 
 # ---------- on_sep2h ----------
 
@@ -426,6 +426,15 @@ assert np.isclose(tw.lhcb1['y', 'ip8'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['y', 'ip8'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['py', 'ip8'], 120e-6, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['py', 'ip8'], -120e-6, atol=1e-10, rtol=0)
+
+collider.vars['on_sep2h'] = 1.6
+tw = collider.twiss()
+collider.vars['on_sep2h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip2'], 1.6e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip2'], -1.6e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-10, rtol=0)
 
 # Both knobs together
 collider.vars['on_x8h'] = 120
