@@ -70,6 +70,12 @@ correctors_ir2_common_h = [
 correctors_ir2_common_v = [
     'acbxv1.l2', 'acbxv2.l2', 'acbxv3.l2', 'acbxv1.r2', 'acbxv2.r2', 'acbxv3.r2']
 
+correctors_ir8_common_h = [
+    'acbxh1.l8', 'acbxh2.l8', 'acbxh3.l8', 'acbxh1.r8', 'acbxh2.r8', 'acbxh3.r8']
+
+correctors_ir8_common_v = [
+    'acbxv1.l8', 'acbxv2.l8', 'acbxv3.l8', 'acbxv1.r8', 'acbxv2.r8', 'acbxv3.r8']
+
 #########################
 # Match IP offset knobs #
 #########################
@@ -144,7 +150,7 @@ opt_x2h = collider.match_knob(
 )
 # Set mcmbx by hand
 testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
-acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
+acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6 # Value for 170 urad crossing
 for icorr in [1, 2, 3]:
     collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
     collider.vars[f'acbxh{icorr}.r2_from_on_x2h'] = -acbx_xing_ir2
@@ -178,47 +184,28 @@ opt_x2v.disable_vary(tag='mcbx')
 opt_x2v.solve()
 opt_x2v.generate_knob()
 
+# ---------- on_x8h ----------
 
-
-# Match horizontal xing angle in ip8
 angle_match = 300e-6
 opt = collider.match_knob(
-    run=False,
-    knob_name='on_x8h',
-    knob_value_start=0,
-    knob_value_end=(angle_match * 1e6),
-    ele_start=['s.ds.l8.b1', 's.ds.l8.b2'],
-    ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
-    twiss_init=[xt.TwissInit(), xt.TwissInit()],
-    targets=[
+    knob_name='on_x8h', knob_value_end=(angle_match * 1e6),
+    targets=(targets_close_bump + [
         xt.TargetSet(line='lhcb1', at='ip8',  x=0, px=angle_match),
         xt.TargetSet(line='lhcb2', at='ip8',  x=0, px=-angle_match),
-        xt.TargetSet(line='lhcb1', at=xt.END, x=0, px=0),
-        xt.TargetSet(line='lhcb2', at=xt.END, x=0, px=0),
-    ],
+    ]),
     vary=[
-        xt.VaryList([
-            'acbyhs4.l8b1', 'acbyhs4.r8b2', 'acbyhs4.l8b2', 'acbyhs4.r8b1',
-            'acbchs5.l8b2', 'acbchs5.l8b1', 'acbyhs5.r8b1', 'acbyhs5.r8b2']),
-        xt.VaryList([
-            'acbxh1.l8', 'acbxh2.l8', 'acbxh3.l8',
-            'acbxh1.r8', 'acbxh2.r8', 'acbxh3.r8'], tag='mcbx')]
-    )
+        xt.VaryList(correctors_ir8_single_beam_h),
+        xt.VaryList(correctors_ir8_common_h, tag='mcbx')],
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+)
 
-# Set mcmbx by hand (as in mad-x script)
+# Set mcmbx by hand (reduce value by 10, to test matching algorithm)
 testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
-if testkqx8> 210.:
-    acbx_xing_ir8 = 1.0e-6   # Value for 170 urad crossing
-else:
-    acbx_xing_ir8 = 11.0e-6  # Value for 170 urad crossing
-
-# Set MCBX by hand (reduce value by 10, to test matching algorithm)
-collider.vars['acbxh1.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
-collider.vars['acbxh2.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
-collider.vars['acbxh3.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
-collider.vars['acbxh1.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
-collider.vars['acbxh2.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
-collider.vars['acbxh3.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
+# Set MCBX by hand
+for icorr in [1, 2, 3]:
+    collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+    collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
 
 # First round of optimization without changing mcbx
 opt.disable_vary(tag='mcbx')
@@ -235,6 +222,7 @@ collider.vars['acbxh1.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 assert opt.vary[8].name == 'acbxh1.l8_from_on_x8h'
 opt.vary[8].active = True
 
+# Solve and generate knob
 opt.solve()
 opt.generate_knob()
 
