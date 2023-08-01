@@ -66,7 +66,7 @@ def test_multiline_metadata(test_context, tmp_path):
     # Test the dump and load into/from json with metadata, to ensure no problem with encoding
     collider.to_json(tmp_path / "test_multiline.json")
     collider_copy = xt.Multiline.from_json(tmp_path / "test_multiline.json")
-    assert collider.metadata == collider_copy.metadata
+    assert collider.metadata == collider_copy.metadata == example_metadata
 
     # Ensuire trackers can still be built
     collider.build_trackers(_context=test_context)
