@@ -260,10 +260,41 @@ opt_x8v.solve()
 opt_x8v.generate_knob()
 
 
+###################################
+# Match crossing separation knobs #
+###################################
 
+# ---------- on_sep2h ----------
 
-# Match horizontal separation in ip8
 sep_match = 2e-3
+opt_sep2h = collider.match_knob(
+    knob_name='on_sep2h', knob_value_end=(sep_match * 1e3),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip2',  x=sep_match, px=0),
+        xt.TargetSet(line='lhcb2', at='ip2',  x=-sep_match, px=0),
+    ]),
+    vary=[
+        xt.VaryList(correctors_ir2_single_beam_h),
+        xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+)
+
+# Set mcbx by hand
+testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+acbx_sep_ir2 = 18e-6 if testkqx2 > 210. else 16e-6
+
+for icorr in [1, 2, 3]:
+    collider.vars[f'acbxh{icorr}.l2_from_on_sep2h'] = acbx_sep_ir2
+    collider.vars[f'acbxh{icorr}.r2_from_on_sep2h'] = acbx_sep_ir2
+
+# Match other correctors with fixed mcbx and generate knob
+opt_sep2h.disable_vary(tag='mcbx')
+opt_sep2h.solve()
+opt_sep2h.generate_knob()
+
+
+
+
 opt = collider.match_knob(
     run=False,
     knob_name='on_sep8h',
