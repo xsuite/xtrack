@@ -64,6 +64,12 @@ correctors_ir8_single_beam_v = [
     'acbyvs4.l8b1', 'acbyvs4.r8b2', 'acbyvs4.l8b2', 'acbyvs4.r8b1',
     'acbcvs5.l8b2', 'acbcvs5.l8b1', 'acbyvs5.r8b1', 'acbyvs5.r8b2']
 
+correctors_ir2_common_h = [
+    'acbxh1.l2', 'acbxh2.l2', 'acbxh3.l2', 'acbxh1.r2', 'acbxh2.r2', 'acbxh3.r2']
+
+correctors_ir2_common_v = [
+    'acbxv1.l2', 'acbxv2.l2', 'acbxv3.l2', 'acbxv1.r2', 'acbxv2.r2', 'acbxv3.r2']
+
 # Match IP offset knobs
 offset_match = 0.5e-3
 
@@ -115,53 +121,60 @@ opt_o8h = collider.match_knob(
 opt_o8h.solve()
 opt_o8h.generate_knob()
 
+# Match crossing angle knobs
 
-
-# Match crossing angle knob
+# Match vertical xing angle in ip2
 angle_match = 170e-6
-opt = collider.match_knob(
-    run=False,
-    knob_name='on_x2v',
-    knob_value_start=0,
-    knob_value_end=(angle_match * 1e6),
-    ele_start=['s.ds.l2.b1', 's.ds.l2.b2'],
-    ele_stop=['e.ds.r2.b1', 'e.ds.r2.b2'],
-    twiss_init=[xt.TwissInit(), xt.TwissInit()],
-    targets=[
+opt_x2v = collider.match_knob(
+    knob_name='on_x2v', knob_value_end=(angle_match * 1e6),
+    targets=(targets_close_bump + [
         xt.TargetSet(line='lhcb1', at='ip2',  y=0, py=angle_match),
         xt.TargetSet(line='lhcb2', at='ip2',  y=0, py=-angle_match),
-        xt.TargetSet(line='lhcb1', at=xt.END, y=0, py=0),
-        xt.TargetSet(line='lhcb2', at=xt.END, y=0, py=0),
-    ],
+    ]),
     vary=[
-        xt.VaryList([
-            'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
-            'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']),
-          xt.VaryList([
-            'acbxv1.l2', 'acbxv2.l2', 'acbxv3.l2',
-            'acbxv1.r2', 'acbxv2.r2', 'acbxv3.r2'], tag='mcbx')]
+        xt.VaryList(correctors_ir2_single_beam_v),
+        xt.VaryList(correctors_ir2_common_v, tag='mcbx')],
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
 )
 
 # Set mcmbx by hand
 testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
-if testkqx2> 210.:
-    acbx_xing_ir2 = 1.0e-6   # Value for 170 urad crossing
-else:
-    acbx_xing_ir2 = 11.0e-6  # Value for 170 urad crossing
+acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
+for icorr in [1, 2, 3]:
+    collider.vars[f'acbxv{icorr}.l2_from_on_x2v'] = acbx_xing_ir2
+    collider.vars[f'acbxv{icorr}.r2_from_on_x2v'] = -acbx_xing_ir2
 
-collider.vars['acbxv1.l2_from_on_x2v'] = acbx_xing_ir2
-collider.vars['acbxv2.l2_from_on_x2v'] = acbx_xing_ir2
-collider.vars['acbxv3.l2_from_on_x2v'] = acbx_xing_ir2
-collider.vars['acbxv1.r2_from_on_x2v'] = -acbx_xing_ir2
-collider.vars['acbxv2.r2_from_on_x2v'] = -acbx_xing_ir2
-collider.vars['acbxv3.r2_from_on_x2v'] = -acbx_xing_ir2
+# Match other correctors with fixed mcbx and generate knob
+opt_x2v.disable_vary(tag='mcbx')
+opt_x2v.solve()
+opt_x2v.generate_knob()
 
-# match other correctors with fixed mcbx
-opt.disable_vary(tag='mcbx')
-opt.solve()
+# Match horizontal xing angle in ip2
+angle_match = 170e-6
 
-# Generate knob
-opt.generate_knob()
+opt_x2h = collider.match_knob(
+    knob_name='on_x2h', knob_value_end=(angle_match * 1e6),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip2',  x=0, px=angle_match),
+        xt.TargetSet(line='lhcb2', at='ip2',  x=0, px=-angle_match),
+    ]),
+    vary=[
+        xt.VaryList(correctors_ir2_single_beam_h),
+        xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+)
+
+# Set mcmbx by hand
+testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
+for icorr in [1, 2, 3]:
+    collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
+    collider.vars[f'acbxh{icorr}.r2_from_on_x2h'] = -acbx_xing_ir2
+
+# Match other correctors with fixed mcbx and generate knob
+opt_x2h.disable_vary(tag='mcbx')
+opt_x2h.solve()
+opt_x2h.generate_knob()
 
 # Match horizontal xing angle in ip8
 angle_match = 300e-6
@@ -310,7 +323,6 @@ assert np.isclose(tw.lhcb2['x', 'ip8'], 0.6e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip8'], 0., atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip8'], 0., atol=1e-10, rtol=0)
 
-# Test on_x2v knob
 collider.vars['on_x2v'] = 100
 tw = collider.twiss()
 collider.vars['on_x2v'] = 0
@@ -319,6 +331,15 @@ assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['py', 'ip2'], 100e-6, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['py', 'ip2'], -100e-6, atol=1e-10, rtol=0)
+
+collider.vars['on_x2h'] = 120
+tw = collider.twiss()
+collider.vars['on_x2h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip2'], 120e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip2'], -120e-6, atol=1e-10, rtol=0)
 
 collider.vars['on_sep8h'] = 1.5
 tw = collider.twiss()
