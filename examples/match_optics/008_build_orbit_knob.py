@@ -70,7 +70,10 @@ correctors_ir2_common_h = [
 correctors_ir2_common_v = [
     'acbxv1.l2', 'acbxv2.l2', 'acbxv3.l2', 'acbxv1.r2', 'acbxv2.r2', 'acbxv3.r2']
 
-# Match IP offset knobs
+#########################
+# Match IP offset knobs #
+#########################
+
 offset_match = 0.5e-3
 
 opt_o2v = collider.match_knob(
@@ -121,9 +124,37 @@ opt_o8h = collider.match_knob(
 opt_o8h.solve()
 opt_o8h.generate_knob()
 
-# Match crossing angle knobs
+##############################
+# Match crossing angle knobs #
+##############################
 
-# Match vertical xing angle in ip2
+# ---------- on_x2h ----------
+
+angle_match = 170e-6
+opt_x2h = collider.match_knob(
+    knob_name='on_x2h', knob_value_end=(angle_match * 1e6),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip2',  x=0, px=angle_match),
+        xt.TargetSet(line='lhcb2', at='ip2',  x=0, px=-angle_match),
+    ]),
+    vary=[
+        xt.VaryList(correctors_ir2_single_beam_h),
+        xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+)
+# Set mcmbx by hand
+testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
+for icorr in [1, 2, 3]:
+    collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
+    collider.vars[f'acbxh{icorr}.r2_from_on_x2h'] = -acbx_xing_ir2
+# Match other correctors with fixed mcbx and generate knob
+opt_x2h.disable_vary(tag='mcbx')
+opt_x2h.solve()
+opt_x2h.generate_knob()
+
+# ---------- on_x2v ----------
+
 angle_match = 170e-6
 opt_x2v = collider.match_knob(
     knob_name='on_x2v', knob_value_end=(angle_match * 1e6),
@@ -136,45 +167,18 @@ opt_x2v = collider.match_knob(
         xt.VaryList(correctors_ir2_common_v, tag='mcbx')],
     run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
 )
-
 # Set mcmbx by hand
 testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
 acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
 for icorr in [1, 2, 3]:
     collider.vars[f'acbxv{icorr}.l2_from_on_x2v'] = acbx_xing_ir2
     collider.vars[f'acbxv{icorr}.r2_from_on_x2v'] = -acbx_xing_ir2
-
 # Match other correctors with fixed mcbx and generate knob
 opt_x2v.disable_vary(tag='mcbx')
 opt_x2v.solve()
 opt_x2v.generate_knob()
 
-# Match horizontal xing angle in ip2
-angle_match = 170e-6
 
-opt_x2h = collider.match_knob(
-    knob_name='on_x2h', knob_value_end=(angle_match * 1e6),
-    targets=(targets_close_bump + [
-        xt.TargetSet(line='lhcb1', at='ip2',  x=0, px=angle_match),
-        xt.TargetSet(line='lhcb2', at='ip2',  x=0, px=-angle_match),
-    ]),
-    vary=[
-        xt.VaryList(correctors_ir2_single_beam_h),
-        xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
-    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
-)
-
-# Set mcmbx by hand
-testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
-acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
-for icorr in [1, 2, 3]:
-    collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
-    collider.vars[f'acbxh{icorr}.r2_from_on_x2h'] = -acbx_xing_ir2
-
-# Match other correctors with fixed mcbx and generate knob
-opt_x2h.disable_vary(tag='mcbx')
-opt_x2h.solve()
-opt_x2h.generate_knob()
 
 # Match horizontal xing angle in ip8
 angle_match = 300e-6
