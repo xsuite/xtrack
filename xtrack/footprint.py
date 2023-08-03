@@ -172,6 +172,7 @@ class Footprint():
 
         self.qx = np.reshape(qx, self.x_norm_2d.shape)
         self.qy = np.reshape(qy, self.x_norm_2d.shape)
+        self.mon = mon
         print ('Done computing footprint.')
 
     def plot(self, ax=None, **kwargs):
