@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 from functools import partial
-import copy
 
 import numpy as np
 from scipy.optimize import fsolve, minimize
@@ -159,9 +158,6 @@ class Target(xd.Target):
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag)
         self.line = line
-
-    def copy(self):
-        return copy.copy(self)
 
     def eval(self, data):
         res = data[self.action]
