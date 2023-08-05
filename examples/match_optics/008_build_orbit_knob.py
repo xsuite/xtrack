@@ -82,6 +82,8 @@ correctors_ir8_common_v = [
 
 offset_match = 0.5e-3
 
+# ---------- on_o2v ----------
+
 opt_o2v = collider.match_knob(
     knob_name='on_o2v', knob_value_end=(offset_match * 1e3),
     targets=(targets_close_bump + [
@@ -93,6 +95,8 @@ opt_o2v = collider.match_knob(
 )
 opt_o2v.solve()
 opt_o2v.generate_knob()
+
+# ---------- on_o2h ----------
 
 opt_o2h = collider.match_knob(
     knob_name='on_o2h', knob_value_end=(offset_match * 1e3),
@@ -106,6 +110,8 @@ opt_o2h = collider.match_knob(
 opt_o2h.solve()
 opt_o2h.generate_knob()
 
+# ---------- on_o8v ----------
+
 opt_o8v = collider.match_knob(
     knob_name='on_o8v', knob_value_end=(offset_match * 1e3),
     targets=(targets_close_bump + [
@@ -118,6 +124,8 @@ opt_o8v = collider.match_knob(
 opt_o8v.solve()
 opt_o8v.generate_knob()
 
+# ---------- on_o8h ----------
+
 opt_o8h = collider.match_knob(
     knob_name='on_o8h', knob_value_end=(offset_match * 1e3),
     targets=(targets_close_bump + [
@@ -129,6 +137,72 @@ opt_o8h = collider.match_knob(
 )
 opt_o8h.solve()
 opt_o8h.generate_knob()
+
+##############################
+# Match angular offset knobs #
+##############################
+
+ang_offset_match = 30e-6
+
+# ---------- on_a2h ----------
+
+opt_a2h = collider.match_knob(
+    knob_name='on_a2h', knob_value_end=(ang_offset_match * 1e6),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip2', x=0, px=ang_offset_match),
+        xt.TargetSet(line='lhcb2', at='ip2', x=0, px=ang_offset_match),
+    ]),
+    vary=xt.VaryList(correctors_ir2_single_beam_h),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+)
+
+opt_a2h.solve()
+opt_a2h.generate_knob()
+
+# ---------- on_a2v ----------
+
+opt_a2v = collider.match_knob(
+    knob_name='on_a2v', knob_value_end=(ang_offset_match * 1e6),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip2', y=0, py=ang_offset_match),
+        xt.TargetSet(line='lhcb2', at='ip2', y=0, py=ang_offset_match),
+    ]),
+    vary=xt.VaryList(correctors_ir2_single_beam_v),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+)
+
+opt_a2v.solve()
+opt_a2v.generate_knob()
+
+# ---------- on_a8h ----------
+
+opt_a8h = collider.match_knob(
+    knob_name='on_a8h', knob_value_end=(ang_offset_match * 1e6),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip8', x=0, px=ang_offset_match),
+        xt.TargetSet(line='lhcb2', at='ip8', x=0, px=ang_offset_match),
+    ]),
+    vary=xt.VaryList(correctors_ir8_single_beam_h),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+)
+
+opt_a8h.solve()
+opt_a8h.generate_knob()
+
+# ---------- on_a8v ----------
+
+opt_a8v = collider.match_knob(
+    knob_name='on_a8v', knob_value_end=(ang_offset_match * 1e6),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip8', y=0, py=ang_offset_match),
+        xt.TargetSet(line='lhcb2', at='ip8', y=0, py=ang_offset_match),
+    ]),
+    vary=xt.VaryList(correctors_ir8_single_beam_v),
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+)
+
+opt_a8v.solve()
+opt_a8v.generate_knob()
 
 ##############################
 # Match crossing angle knobs #
@@ -413,6 +487,42 @@ assert np.isclose(tw.lhcb1['x', 'ip8'], 0.6e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['x', 'ip8'], 0.6e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip8'], 0., atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip8'], 0., atol=1e-10, rtol=0)
+
+collider.vars['on_a2h'] = 20
+tw = collider.twiss()
+collider.vars['on_a2h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip2'], 20e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip2'], 20e-6, atol=1e-10, rtol=0)
+
+collider.vars['on_a2v'] = 30
+tw = collider.twiss()
+collider.vars['on_a2v'] = 0
+
+assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip2'], 30e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip2'], 30e-6, atol=1e-10, rtol=0)
+
+collider.vars['on_a8h'] = 40
+tw = collider.twiss()
+collider.vars['on_a8h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip8'], 40e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], 40e-6, atol=1e-10, rtol=0)
+
+collider.vars['on_a8v'] = 50
+tw = collider.twiss()
+collider.vars['on_a8v'] = 0
+
+assert np.isclose(tw.lhcb1['y', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip8'], 50e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip8'], 50e-6, atol=1e-10, rtol=0)
 
 collider.vars['on_x2v'] = 100
 tw = collider.twiss()
