@@ -293,6 +293,7 @@ opt_sep2h.solve()
 opt_sep2h.generate_knob()
 
 # ---------- on_sep2v ----------
+
 sep_match = 2e-3
 opt_sep2v = collider.match_knob(
     knob_name='on_sep2v', knob_value_end=(sep_match * 1e3),
@@ -319,55 +320,35 @@ opt_sep2v.disable_vary(tag='mcbx')
 opt_sep2v.solve()
 opt_sep2v.generate_knob()
 
+# ---------- on_sep8h ----------
+sep_match = 2e-3
 
-
-opt = collider.match_knob(
-    run=False,
-    knob_name='on_sep8h',
-    knob_value_start=0,
-    knob_value_end=(sep_match * 1e3),
-    ele_start=['s.ds.l8.b1', 's.ds.l8.b2'],
-    ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
-    twiss_init=[xt.TwissInit(), xt.TwissInit()],
-    targets=[
+opt_sep8h = collider.match_knob(
+    knob_name='on_sep8h', knob_value_end=(sep_match * 1e3),
+    targets=(targets_close_bump + [
         xt.TargetSet(line='lhcb1', at='ip8',  x=sep_match, px=0),
         xt.TargetSet(line='lhcb2', at='ip8',  x=-sep_match, px=0),
-        xt.TargetSet(line='lhcb1', at=xt.END, x=0, px=0),
-        xt.TargetSet(line='lhcb2', at=xt.END, x=0, px=0),
-    ],
+    ]),
     vary=[
-        xt.VaryList([
-            'acbyhs4.l8b1', 'acbyhs4.r8b2', 'acbyhs4.l8b2', 'acbyhs4.r8b1',
-            'acbchs5.l8b2', 'acbchs5.l8b1', 'acbyhs5.r8b1', 'acbyhs5.r8b2']),
-        xt.VaryList([
-            'acbxh1.l8', 'acbxh2.l8', 'acbxh3.l8',
-            'acbxh1.r8', 'acbxh2.r8', 'acbxh3.r8'], tag='mcbx')]
-    )
+        xt.VaryList(correctors_ir8_single_beam_h),
+        xt.VaryList(correctors_ir8_common_h, tag='mcbx')],
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+)
 
-# Set mcbx by hand (as in mad-x script)
-testkqx8 = abs(collider.varval['kqx.l8'])*7000./0.3
-if testkqx8 > 210.:
-    acbx_sep_ir8 = 18e-6   # Value for 170 urad crossing
-else:
-    acbx_sep_ir8 = 16e-6  # Value for 170 urad crossing
+# Set mcbx by hand
+testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
 
-collider.vars['acbxh1.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
-collider.vars['acbxh2.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
-collider.vars['acbxh3.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
-collider.vars['acbxh1.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
-collider.vars['acbxh2.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
-collider.vars['acbxh3.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+for icorr in [1, 2, 3]:
+    collider.vars[f'acbxh{icorr}.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+    collider.vars[f'acbxh{icorr}.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
 
-# First round of optimization without changing mcbx
-opt.disable_vary(tag='mcbx')
-opt.step(10) # perform 10 steps without checking for convergence
+# Match other correctors with fixed mcbx and generate knob
+opt_sep8h.disable_vary(tag='mcbx')
+opt_sep8h.solve()
+opt_sep8h.generate_knob()
 
-# Enable first mcbx knob (which controls the others)
-assert opt.vary[8].name == 'acbxh1.l8_from_on_sep8h'
-opt.vary[8].active = True
 
-opt.solve()
-opt.generate_knob()
 
 # -----------------------------------------------------------------------------
 
@@ -425,16 +406,7 @@ assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip2'], 120e-6, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip2'], -120e-6, atol=1e-10, rtol=0)
 
-collider.vars['on_sep8h'] = 1.5
-tw = collider.twiss()
-collider.vars['on_sep8h'] = 0
 
-assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-10, rtol=0)
-
-# Check that on_x8h still works
 collider.vars['on_x8h'] = 100
 tw = collider.twiss()
 collider.vars['on_x8h'] = 0
@@ -470,6 +442,15 @@ assert np.isclose(tw.lhcb1['y', 'ip2'], 1.7e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['y', 'ip2'], -1.7e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['py', 'ip2'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['py', 'ip2'], 0, atol=1e-10, rtol=0)
+
+collider.vars['on_sep8h'] = 1.5
+tw = collider.twiss()
+collider.vars['on_sep8h'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-10, rtol=0)
 
 # Both knobs together
 collider.vars['on_x8h'] = 120
