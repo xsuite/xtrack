@@ -321,6 +321,7 @@ opt_sep2v.solve()
 opt_sep2v.generate_knob()
 
 # ---------- on_sep8h ----------
+
 sep_match = 2e-3
 
 opt_sep8h = collider.match_knob(
@@ -347,6 +348,37 @@ for icorr in [1, 2, 3]:
 opt_sep8h.disable_vary(tag='mcbx')
 opt_sep8h.solve()
 opt_sep8h.generate_knob()
+
+# ---------- on_sep8v ----------
+
+sep_match = 2e-3
+
+opt_sep8v = collider.match_knob(
+    knob_name='on_sep8v', knob_value_end=(sep_match * 1e3),
+    targets=(targets_close_bump + [
+        xt.TargetSet(line='lhcb1', at='ip8',  y=sep_match, py=0),
+        xt.TargetSet(line='lhcb2', at='ip8',  y=-sep_match, py=0),
+    ]),
+    vary=[
+        xt.VaryList(correctors_ir8_single_beam_v),
+        xt.VaryList(correctors_ir8_common_v, tag='mcbx')],
+    run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+)
+
+# Set mcbx by hand
+testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
+
+for icorr in [1, 2, 3]:
+    collider.vars[f'acbxv{icorr}.l8_from_on_sep8v'] = acbx_sep_ir8 * sep_match / 2e-3
+    collider.vars[f'acbxv{icorr}.r8_from_on_sep8v'] = acbx_sep_ir8 * sep_match / 2e-3
+
+# Match other correctors with fixed mcbx and generate knob
+opt_sep8v.disable_vary(tag='mcbx')
+opt_sep8v.solve()
+opt_sep8v.generate_knob()
+
+
 
 
 
@@ -451,6 +483,15 @@ assert np.isclose(tw.lhcb1['x', 'ip8'], 1.5e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['x', 'ip8'], -1.5e-3, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip8'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip8'], 0, atol=1e-10, rtol=0)
+
+collider.vars['on_sep8v'] = 1.7
+tw = collider.twiss()
+collider.vars['on_sep8v'] = 0
+
+assert np.isclose(tw.lhcb1['y', 'ip8'], 1.7e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip8'], -1.7e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-10, rtol=0)
 
 # Both knobs together
 collider.vars['on_x8h'] = 120
