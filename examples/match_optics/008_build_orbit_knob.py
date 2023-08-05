@@ -261,7 +261,7 @@ opt_x2v.generate_knob()
 
 # ---------- on_x8h ----------
 
-opt_x8v = collider.match_knob(
+opt_x8h = collider.match_knob(
     knob_name='on_x8h', knob_value_end=(angle_match_ip8 * 1e6),
     targets=(targets_close_bump + [
         xt.TargetSet(line='lhcb1', at='ip8',  x=0, px=angle_match_ip8),
@@ -282,8 +282,8 @@ for icorr in [1, 2, 3]:
     collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
 
 # First round of optimization without changing mcbx
-opt_x8v.disable_vary(tag='mcbx')
-opt_x8v.step(10) # perform 10 steps without checking for convergence
+opt_x8h.disable_vary(tag='mcbx')
+opt_x8h.step(10) # perform 10 steps without checking for convergence
 
 # Link all mcbx strengths to the first one
 collider.vars['acbxh2.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
@@ -293,12 +293,12 @@ collider.vars['acbxh3.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 collider.vars['acbxh1.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
 
 # Enable first mcbx knob (which controls the others)
-assert opt_x8v.vary[8].name == 'acbxh1.l8_from_on_x8h'
-opt_x8v.vary[8].active = True
+assert opt_x8h.vary[8].name == 'acbxh1.l8_from_on_x8h'
+opt_x8h.vary[8].active = True
 
 # Solve and generate knob
-opt_x8v.solve()
-opt_x8v.generate_knob()
+opt_x8h.solve()
+opt_x8h.generate_knob()
 
 # ---------- on_x8v ----------
 
