@@ -718,8 +718,6 @@ def _twiss_open(line, twiss_init,
 
     twiss_res_element_by_element = {}
 
-    lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
-
     twiss_res_element_by_element.update({
         'name': name_co,
         's': s_co,
@@ -732,6 +730,7 @@ def _twiss_open(line, twiss_init,
         'ptau': ptau_co,
     })
 
+    lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
     twiss_res_element_by_element.update(lattice_functions)
 
     twiss_res_element_by_element['dzeta'] = dzeta
