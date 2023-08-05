@@ -134,14 +134,16 @@ opt_o8h.generate_knob()
 # Match crossing angle knobs #
 ##############################
 
+angle_match_ip2 = 170e-6
+angle_match_ip8 = 300e-6
+
 # ---------- on_x2h ----------
 
-angle_match = 170e-6
 opt_x2h = collider.match_knob(
-    knob_name='on_x2h', knob_value_end=(angle_match * 1e6),
+    knob_name='on_x2h', knob_value_end=(angle_match_ip2 * 1e6),
     targets=(targets_close_bump + [
-        xt.TargetSet(line='lhcb1', at='ip2',  x=0, px=angle_match),
-        xt.TargetSet(line='lhcb2', at='ip2',  x=0, px=-angle_match),
+        xt.TargetSet(line='lhcb1', at='ip2',  x=0, px=angle_match_ip2),
+        xt.TargetSet(line='lhcb2', at='ip2',  x=0, px=-angle_match_ip2),
     ]),
     vary=[
         xt.VaryList(correctors_ir2_single_beam_h),
@@ -161,12 +163,11 @@ opt_x2h.generate_knob()
 
 # ---------- on_x2v ----------
 
-angle_match = 170e-6
 opt_x2v = collider.match_knob(
-    knob_name='on_x2v', knob_value_end=(angle_match * 1e6),
+    knob_name='on_x2v', knob_value_end=(angle_match_ip2 * 1e6),
     targets=(targets_close_bump + [
-        xt.TargetSet(line='lhcb1', at='ip2',  y=0, py=angle_match),
-        xt.TargetSet(line='lhcb2', at='ip2',  y=0, py=-angle_match),
+        xt.TargetSet(line='lhcb1', at='ip2',  y=0, py=angle_match_ip2),
+        xt.TargetSet(line='lhcb2', at='ip2',  y=0, py=-angle_match_ip2),
     ]),
     vary=[
         xt.VaryList(correctors_ir2_single_beam_v),
@@ -186,12 +187,11 @@ opt_x2v.generate_knob()
 
 # ---------- on_x8h ----------
 
-angle_match = 300e-6
 opt_x8v = collider.match_knob(
-    knob_name='on_x8h', knob_value_end=(angle_match * 1e6),
+    knob_name='on_x8h', knob_value_end=(angle_match_ip8 * 1e6),
     targets=(targets_close_bump + [
-        xt.TargetSet(line='lhcb1', at='ip8',  x=0, px=angle_match),
-        xt.TargetSet(line='lhcb2', at='ip8',  x=0, px=-angle_match),
+        xt.TargetSet(line='lhcb1', at='ip8',  x=0, px=angle_match_ip8),
+        xt.TargetSet(line='lhcb2', at='ip8',  x=0, px=-angle_match_ip8),
     ]),
     vary=[
         xt.VaryList(correctors_ir8_single_beam_h),
@@ -204,8 +204,8 @@ testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
 acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
 # Set MCBX by hand
 for icorr in [1, 2, 3]:
-    collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match / 170e-6 * 0.1
-    collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match / 170e-6 * 0.1
+    collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
+    collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
 
 # First round of optimization without changing mcbx
 opt_x8v.disable_vary(tag='mcbx')
@@ -228,13 +228,11 @@ opt_x8v.generate_knob()
 
 # ---------- on_x8v ----------
 
-angle_match = 300e-6
-
 opt_x8v = collider.match_knob(
-    knob_name='on_x8v', knob_value_end=(angle_match * 1e6),
+    knob_name='on_x8v', knob_value_end=(angle_match_ip8 * 1e6),
     targets=(targets_close_bump + [
-        xt.TargetSet(line='lhcb1', at='ip8',  y=0, py=angle_match),
-        xt.TargetSet(line='lhcb2', at='ip8',  y=0, py=-angle_match),
+        xt.TargetSet(line='lhcb1', at='ip8',  y=0, py=angle_match_ip8),
+        xt.TargetSet(line='lhcb2', at='ip8',  y=0, py=-angle_match_ip8),
     ]),
     vary=[
         xt.VaryList(correctors_ir8_single_beam_v),
@@ -247,8 +245,8 @@ testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
 acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
 # Set MCBX by hand
 for icorr in [1, 2, 3]:
-    collider.vars[f'acbxv{icorr}.l8_from_on_x8v'] = acbx_xing_ir8 * angle_match / 170e-6
-    collider.vars[f'acbxv{icorr}.r8_from_on_x8v'] = -acbx_xing_ir8 * angle_match / 170e-6
+    collider.vars[f'acbxv{icorr}.l8_from_on_x8v'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6
+    collider.vars[f'acbxv{icorr}.r8_from_on_x8v'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6
 
 # First round of optimization without changing mcbx
 opt_x8v.disable_vary(tag='mcbx')
@@ -264,9 +262,10 @@ opt_x8v.generate_knob()
 # Match separation knobs #
 ##########################
 
+sep_match = 2e-3
+
 # ---------- on_sep2h ----------
 
-sep_match = 2e-3
 opt_sep2h = collider.match_knob(
     knob_name='on_sep2h', knob_value_end=(sep_match * 1e3),
     targets=(targets_close_bump + [
@@ -294,7 +293,6 @@ opt_sep2h.generate_knob()
 
 # ---------- on_sep2v ----------
 
-sep_match = 2e-3
 opt_sep2v = collider.match_knob(
     knob_name='on_sep2v', knob_value_end=(sep_match * 1e3),
     targets=(targets_close_bump + [
@@ -322,8 +320,6 @@ opt_sep2v.generate_knob()
 
 # ---------- on_sep8h ----------
 
-sep_match = 2e-3
-
 opt_sep8h = collider.match_knob(
     knob_name='on_sep8h', knob_value_end=(sep_match * 1e3),
     targets=(targets_close_bump + [
@@ -350,8 +346,6 @@ opt_sep8h.solve()
 opt_sep8h.generate_knob()
 
 # ---------- on_sep8v ----------
-
-sep_match = 2e-3
 
 opt_sep8v = collider.match_knob(
     knob_name='on_sep8v', knob_value_end=(sep_match * 1e3),
