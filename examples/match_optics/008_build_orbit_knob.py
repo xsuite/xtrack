@@ -1,7 +1,8 @@
+import time
+
 import numpy as np
 
 import xtrack as xt
-import lhc_match as lm
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
@@ -14,6 +15,8 @@ tw0 = collider.twiss()
 
 collider0 = collider.copy()
 collider0.build_trackers()
+
+t1 = time.time()
 
 all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbyhs4.r8b2', 'pyip2b1', 'acbxv1.l8', 'acbyvs4.l2b1', 'acbxh1.l8',
@@ -29,6 +32,8 @@ all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbxh3.r8', 'acbyhs5.r8b2', 'acbxv2.l8', 'acbxh1.l2', 'pyip8b1', 'pyip8b2',
     'acbxv3.l8', 'xip2b1', 'acbyhs5.l2b2', 'acbchs5.l8b2', 'acbcvs5.l8b1',
     'pyip2b2', 'acbxv3.l2', 'acbchs5.l8b1', 'acbyhs4.l2b1', 'acbxh1.r2']
+
+
 
 # kill all existing knobs
 for kk in all_knobs_ip2ip8:
@@ -445,6 +450,10 @@ for icorr in [1, 2, 3]:
 opt_sep8v.disable_vary(tag='mcbx')
 opt_sep8v.solve()
 opt_sep8v.generate_knob()
+
+t2 = time.time()
+
+print(f'Knob generation took {t2-t1:.1f} seconds')
 
 
 # -----------------------------------------------------------------------------
