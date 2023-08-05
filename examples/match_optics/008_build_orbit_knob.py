@@ -48,10 +48,14 @@ targets_close_bump = [
 
 bump_range_ip2 = {
     'ele_start': ['s.ds.l2.b1', 's.ds.l2.b2'],
-    'ele_stop': ['e.ds.r2.b1', 'e.ds.r2.b2']}
+    'ele_stop': ['e.ds.r2.b1', 'e.ds.r2.b2'],
+    'only_markers': True
+}
 bump_range_ip8 = {
     'ele_start': ['s.ds.l8.b1', 's.ds.l8.b2'],
-    'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2']}
+    'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2'],
+    'only_markers': True
+}
 
 correctors_ir2_single_beam_h = [
     'acbyhs4.l2b1', 'acbyhs4.r2b2', 'acbyhs4.l2b2', 'acbyhs4.r2b1',
