@@ -1972,8 +1972,9 @@ class TwissTable(Table):
             out.dx_zeta = out.dx_zeta
             out.dy_zeta = -out.dy_zeta
 
-        out.W_matrix = np.array(out.W_matrix)
-        out.W_matrix = out.W_matrix[::-1, :, :].copy()
+        out.W_matrix = np.array(out.W_matrix).copy()
+        out.W_matrix[:-1, :, :] = out.W_matrix[:-1, :, :][::-1, :, :]
+
         out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
         out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
         out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]

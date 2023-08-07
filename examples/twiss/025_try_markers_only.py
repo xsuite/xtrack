@@ -20,6 +20,19 @@ tw_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_
 tw2_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_ip5,
                     only_markers=True)
 
+for tt in [tw, tw2, tw_mk, tw2_mk]:
+    assert tw.name[0] == 's.ds.l5.b1'
+    assert tw.name[-1] == '_end_point'
+    assert tw.name[-2] == 'e.ds.r5.b1'
+
+    assert tt['s', 'e.ds.r5.b1'] == line.get_s_position('e.ds.r5.b1')
+    assert tt['s', 'e.ds.r5.b1'] == tt['s', '_end_point']
+    assert tt['s', 's.ds.l5.b1'] == line.get_s_position('s.ds.l5.b1')
+
+
+
+
+
 line = collider.lhcb2
 
 tw_init_ip5 = line.twiss().get_twiss_init('s.ds.l5.b2')
