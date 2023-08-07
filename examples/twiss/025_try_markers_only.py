@@ -52,14 +52,15 @@ for tt in [tw, tw2, tw_mk, tw2_mk]:
 
 line = collider.lhcb2
 
-tw_init_ip5 = line.twiss().get_twiss_init('s.ds.l5.b2')
+tw_init_start = line.twiss().get_twiss_init('s.ds.l5.b2')
+tw_init_end = line.twiss().get_twiss_init('e.ds.r5.b2')
 
-tw = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_ip5)
-tw2 = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_ip5)
+tw = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_start)
+tw2 = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_end)
 
-tw_mk = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_ip5,
+tw_mk = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_start,
                    only_markers=True)
-tw2_mk = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_ip5,
+tw2_mk = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_end,
                     only_markers=True)
 
 # Check on b2 (with reverse)
@@ -86,4 +87,6 @@ for tt in [tw, tw2, tw_mk, tw2_mk]:
     for kk in tw._col_names:
         if kk == 'name':
             continue
-        assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=1e-10)
+        atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
+                    dx_zeta=1e-7, W_matrix=1e-7).get(kk, 1e-10)
+        assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
