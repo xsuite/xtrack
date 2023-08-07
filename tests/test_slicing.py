@@ -59,6 +59,28 @@ def test_slicing_teapot():
         Teapot(0)
 
 
+def test_slicing_teapot_mode_thick():
+    # Test for two slices
+    slicing_3 = Teapot(2, mode='thick')
+    assert slicing_3.drift_weights() == [0.5] * 2
+    assert [w for w in slicing_3] == [(0.5, True), (0.5, True)]
+
+    # Test for four slices
+    slicing_3 = Teapot(4, mode='thick')
+    assert slicing_3.drift_weights() == [0.125, 0.375, 0.375, 0.125]
+
+    assert [w for w in slicing_3] == [
+        (0.125, True),
+        (0.375, True),
+        (0.375, True),
+        (0.125, True),
+    ]
+
+    # Test error handling
+    with pytest.raises(ValueError):
+        Teapot(0)
+
+
 def test_slicing_strategy_matching():
     elements = [
         ('keep_this', xt.CombinedFunctionMagnet(length=1.0)),
@@ -270,3 +292,53 @@ def test_slicing_thick_bend_simple(element_type):
     # All else is zero:
     assert np.allclose(bend0.ksl, 0, atol=1e-16)
     assert np.allclose(bend0.hyl, 0, atol=1e-16)
+
+
+@pytest.mark.parametrize(
+    'element_type',
+    [xt.Bend, xt.CombinedFunctionMagnet, xt.Quadrupole],
+)
+def test_slicing_thick_bend_into_thick_bends_simple(element_type):
+    has_k1 = element_type in (xt.CombinedFunctionMagnet, xt.Quadrupole)
+    has_k0 = element_type in (xt.Bend, xt.CombinedFunctionMagnet)
+
+    additional_kwargs = {}
+    if has_k0:
+        additional_kwargs['k0'] = 0.1
+        additional_kwargs['h'] = 0.2
+
+    if has_k1:
+        additional_kwargs['k1'] = 0.2
+
+    bend = element_type(
+        length=3.0,
+        knl=[0.1, 0.2, 0.3, 0.4, 0.5],
+        ksl=[0.7, 0.6, 0.5, 0.4, 0.3],
+        **additional_kwargs
+    )
+    line = xt.Line(elements=[bend], element_names=['bend'])
+    line.slice_thick_elements([Strategy(slicing=Uniform(2, mode='thick'))])
+
+    assert len(line) == 4  # 2 markers + 2 thick slices
+
+    bend0, bend1 = line['bend..0'], line['bend..1']
+    assert bend0.length == bend1.length == 1.5
+
+    if has_k0:
+        assert bend0.k0 == bend1.k0 == 0.1
+        assert bend0.h == bend1.h == 0.2
+    if has_k1:
+        assert bend0.k1 == bend1.k1 == 0.2
+
+    expected_knl = np.array([0.1, 0.2, 0.3, 0.4, 0.5]) / 2
+    assert np.allclose(bend0.knl, expected_knl, atol=1e-16)
+    assert np.allclose(bend1.knl, expected_knl, atol=1e-16)
+
+    expected_ksl = np.array([0.7, 0.6, 0.5, 0.4, 0.3]) / 2
+    assert np.allclose(bend0.ksl, expected_ksl, atol=1e-16)
+    assert np.allclose(bend1.ksl, expected_ksl, atol=1e-16)
+
+    # Make sure the order and the inverse factorial make sense:
+    _fact = np.math.factorial
+    assert np.isclose(_fact(bend0.order) * bend0.inv_factorial_order, 1, atol=1e-16)
+    assert np.isclose(_fact(bend1.order) * bend0.inv_factorial_order, 1, atol=1e-16)

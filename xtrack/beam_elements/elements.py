@@ -78,9 +78,6 @@ class Drift(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
         ]
 
-    def make_slice(self, weight):
-        return Drift(length=self.length * weight)
-
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
         container[slice_name] = Drift(_buffer=_buffer)
@@ -841,6 +838,27 @@ class CombinedFunctionMagnet(BeamElement):
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
 
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(
+            length=self_or_ref.length * weight,
+            num_multipole_kicks=self_or_ref.num_multipole_kicks,
+            order=self_or_ref.order,
+            _buffer=_buffer,
+        )
+        ref = container[slice_name]
+
+        ref.k0 = _get_expr(self_or_ref.k0)
+        ref.k1 = _get_expr(self_or_ref.k1)
+        ref.h = _get_expr(self_or_ref.h)
+
+        for ii in range(len(self_or_ref.knl)):
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
+
+        for ii in range(len(self_or_ref.ksl)):
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
+
     @staticmethod
     def delete_element_ref(ref):
         # Remove the array fields
@@ -971,6 +989,25 @@ class Quadrupole(BeamElement):
         ref.hxl = 0
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
+
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(
+            length=self_or_ref.length * weight,
+            num_multipole_kicks=self_or_ref.num_multipole_kicks,
+            order=self_or_ref.order,
+            _buffer=_buffer,
+        )
+        ref = container[slice_name]
+
+        ref.k1 = _get_expr(self_or_ref.k1)
+
+        for ii in range(len(self_or_ref.knl)):
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
+
+        for ii in range(len(self_or_ref.ksl)):
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
     @staticmethod
     def delete_element_ref(ref):
@@ -1127,6 +1164,27 @@ class Bend(BeamElement):
         ref.hxl = _get_expr(self_or_ref.h) * _get_expr(self_or_ref.length) * weight
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
+
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(
+            length=self_or_ref.length * weight,
+            num_multipole_kicks=self_or_ref.num_multipole_kicks,
+            order=self_or_ref.order,
+            _buffer=_buffer,
+        )
+        ref = container[slice_name]
+
+        ref.k0 = _get_expr(self_or_ref.k0)
+        ref.h = _get_expr(self_or_ref.h)
+        ref.length = _get_expr(self_or_ref.length) * weight
+
+        for ii in range(len(self_or_ref.knl)):
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
+
+        for ii in range(len(self_or_ref.ksl)):
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
     @staticmethod
     def delete_element_ref(ref):
