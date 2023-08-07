@@ -20,6 +20,9 @@ tw_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_
 tw2_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_ip5,
                     only_markers=True)
 
+# Check names are the right ones
+# TODO!!!!!!!
+
 for tt in [tw, tw2, tw_mk, tw2_mk]:
     assert tw.name[0] == 's.ds.l5.b1'
     assert tw.name[-1] == '_end_point'
@@ -29,8 +32,12 @@ for tt in [tw, tw2, tw_mk, tw2_mk]:
     assert tt['s', 'e.ds.r5.b1'] == tt['s', '_end_point']
     assert tt['s', 's.ds.l5.b1'] == line.get_s_position('s.ds.l5.b1')
 
+    for kk in tw._col_names:
+        if kk == 'name':
+            continue
+        assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=0, atol=1e-15)
 
-
+# Remember to check the Ws
 
 
 line = collider.lhcb2
