@@ -1939,6 +1939,7 @@ class TwissTable(Table):
                 continue # Not yet implemented
             else:
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
+                new_data[kk][-1] = self[kk][0]
 
         out = self.__class__(data=new_data, col_names=self._col_names)
 
@@ -1974,6 +1975,7 @@ class TwissTable(Table):
 
         out.W_matrix = np.array(out.W_matrix).copy()
         out.W_matrix[:-1, :, :] = out.W_matrix[:-1, :, :][::-1, :, :]
+        out.W_matrix[-1, :, :] = self.W_matrix[0, :, :]
 
         out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
         out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
