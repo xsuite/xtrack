@@ -53,6 +53,7 @@ bump_range_ip2 = {
 bump_range_ip8 = {
     'ele_start': ['s.ds.l8.b1', 's.ds.l8.b2'],
     'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2'],
+    'only_markers': True,
 }
 
 correctors_ir2_single_beam_h = [
