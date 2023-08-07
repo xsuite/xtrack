@@ -49,11 +49,12 @@ targets_close_bump = [
 bump_range_ip2 = {
     'ele_start': ['s.ds.l2.b1', 's.ds.l2.b2'],
     'ele_stop': ['e.ds.r2.b1', 'e.ds.r2.b2'],
+    'only_markers': True, # quick and dirty way to pass a kwarg to all matches
 }
 bump_range_ip8 = {
     'ele_start': ['s.ds.l8.b1', 's.ds.l8.b2'],
     'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2'],
-    'only_markers': True,
+    'only_markers': True, # quick and dirty way to pass a kwarg to all matches
 }
 
 correctors_ir2_single_beam_h = [
@@ -291,7 +292,7 @@ for icorr in [1, 2, 3]:
 
 # First round of optimization without changing mcbx
 opt_x8h.disable_vary(tag='mcbx')
-opt_x8h.step(10) # perform 10 steps without checking for convergence
+opt_x8h.step(3) # perform 3 steps without checking for convergence
 
 # Link all mcbx strengths to the first one
 collider.vars['acbxh2.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
@@ -332,7 +333,7 @@ for icorr in [1, 2, 3]:
 
 # First round of optimization without changing mcbx
 opt_x8v.disable_vary(tag='mcbx')
-opt_x8v.step(10) # perform 10 steps without checking for convergence
+opt_x8v.step(3) # perform 3 steps without checking for convergence
 
 # Solve with all vary active and generate knob
 opt_x8v.enable_vary(tag='mcbx')
