@@ -24,6 +24,7 @@ line = collider.lhcb2
 
 tw_init_ip5 = line.twiss().get_twiss_init('s.ds.l5.b2')
 
+import pdb; pdb.set_trace()
 tw = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_ip5)
 tw2 = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_ip5)
 

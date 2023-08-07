@@ -704,6 +704,7 @@ def _twiss_open(line, twiss_init,
 
     if only_markers:
         mask_twiss = line.tracker._get_twiss_mask_markers()[i_start:i_stop+1]
+        mask_twiss[-1] = True # to include the "_end_point"
         name_co = name_co[mask_twiss]
         s_co = s_co[mask_twiss]
         x_co = x_co[mask_twiss]
@@ -1919,6 +1920,7 @@ class TwissTable(Table):
     def reverse(self):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
+        assert self.name[-1] == '_end_point' # Needed for the present implementation
 
         new_data = {}
         for kk, vv in self._data.items():
@@ -1936,13 +1938,12 @@ class TwissTable(Table):
             elif kk.startswith('k') and kk.endswith('nl', 'sl'):
                 continue # Not yet implemented
             else:
-                new_data[kk] = new_data[kk][::-1].copy()
+                new_data[kk][:-1] = new_data[kk][:-1][::-1]
 
         out = self.__class__(data=new_data, col_names=self._col_names)
 
         circumference = (
             out.circumference if hasattr(out, 'circumference') else np.max(out.s))
-
 
         out.s = circumference - out.s
 
