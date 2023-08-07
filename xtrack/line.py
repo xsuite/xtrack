@@ -3344,6 +3344,13 @@ class LineVars:
         out = list(self.line._xdeps_vref._owner.keys()).copy()
         return out
 
+    def update(self, other):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        for kk in other.keys():
+            self[kk] = other[kk]
+
     @property
     def vary_default(self):
         if self.line._xdeps_vref is None:
