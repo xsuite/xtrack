@@ -61,6 +61,7 @@ def twiss_line(line, particle_ref=None, method=None,
         group_compound_elements=None,
         only_twiss_init=None,
         only_markers=None,
+        only_orbit=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -251,6 +252,7 @@ def twiss_line(line, particle_ref=None, method=None,
     group_compound_elements=(group_compound_elements or False)
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
+    only_orbit=(only_orbit or False)
 
     kwargs = locals().copy()
 
@@ -446,13 +448,14 @@ def twiss_line(line, particle_ref=None, method=None,
         hide_thin_groups=hide_thin_groups,
         group_compound_elements=group_compound_elements,
         only_markers=only_markers,
+        only_orbit=only_orbit,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
 
-    if not skip_global_quantities:
+    if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
         _compute_global_quantities(
                             line=line, twiss_res=twiss_res,
@@ -490,7 +493,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._col_names += list(cols_chrom.keys())
 
 
-    if method == '4d':
+    if method == '4d' and 'muzeta' in twiss_res._data:
         twiss_res.muzeta[:] = 0
         if 'qs' in twiss_res._data:
             twiss_res._data['qs'] = 0
@@ -554,6 +557,7 @@ def _twiss_open(line, twiss_init,
                       hide_thin_groups=False,
                       group_compound_elements=False,
                       only_markers=False,
+                      only_orbit=False,
                       _continue_if_lost=False,
                       _keep_tracking_data=False,
                       _keep_initial_particles=False,
@@ -731,8 +735,9 @@ def _twiss_open(line, twiss_init,
         'ptau': ptau_co,
     })
 
-    lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
-    twiss_res_element_by_element.update(lattice_functions)
+    if not only_orbit:
+        lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
+        twiss_res_element_by_element.update(lattice_functions)
 
     twiss_res_element_by_element['dzeta'] = dzeta
 
@@ -752,7 +757,8 @@ def _twiss_open(line, twiss_init,
         ]
 
         for key in _vars_hide_changes:
-            twiss_res_element_by_element[key][i_replace] = np.nan
+            if key in twiss_res_element_by_element:
+                twiss_res_element_by_element[key][i_replace] = np.nan
 
     twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
 
@@ -1956,33 +1962,40 @@ class TwissTable(Table):
         out.delta = out.delta
         out.ptau = out.ptau
 
-        out.betx = out.betx
-        out.bety = out.bety
-        out.alfx = -out.alfx # Dpx/Dx
-        out.alfy = -out.alfy # Dpy/Dy
-        out.gamx = out.gamx
-        out.gamy = out.gamy
+        if 'betx' in out:
+            # if optics calculation is not skipped
+            out.betx = out.betx
+            out.bety = out.bety
+            out.alfx = -out.alfx # Dpx/Dx
+            out.alfy = -out.alfy # Dpy/Dy
+            out.gamx = out.gamx
+            out.gamy = out.gamy
 
-        out.dx = -out.dx
-        out.dpx = out.dpx
-        out.dy = out.dy
-        out.dpy = -out.dpy
-        out.dzeta = -out.dzeta
+            out.dx = -out.dx
+            out.dpx = out.dpx
+            out.dy = out.dy
+            out.dpy = -out.dpy
+            out.dzeta = -out.dzeta
 
-        if 'dx_zeta' in out._col_names:
-            out.dx_zeta = out.dx_zeta
-            out.dy_zeta = -out.dy_zeta
+            if 'dx_zeta' in out._col_names:
+                out.dx_zeta = out.dx_zeta
+                out.dy_zeta = -out.dy_zeta
 
-        out.W_matrix = np.array(out.W_matrix).copy()
-        out.W_matrix[:-1, :, :] = out.W_matrix[:-1, :, :][::-1, :, :]
-        out.W_matrix[-1, :, :] = self.W_matrix[0, :, :]
+            out.W_matrix = np.array(out.W_matrix).copy()
+            out.W_matrix[:-1, :, :] = out.W_matrix[:-1, :, :][::-1, :, :]
+            out.W_matrix[-1, :, :] = self.W_matrix[0, :, :]
 
-        out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
-        out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
-        out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
-        out.W_matrix[:, 3, :] = -out.W_matrix[:, 3, :]
-        out.W_matrix[:, 4, :] = -out.W_matrix[:, 4, :]
-        out.W_matrix[:, 5, :] = out.W_matrix[:, 5, :]
+            out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
+            out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
+            out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
+            out.W_matrix[:, 3, :] = -out.W_matrix[:, 3, :]
+            out.W_matrix[:, 4, :] = -out.W_matrix[:, 4, :]
+            out.W_matrix[:, 5, :] = out.W_matrix[:, 5, :]
+
+            out.mux = out.mux[0] - out.mux
+            out.muy = out.muy[0] - out.muy
+            out.muzeta = out.muzeta[0] - out.muzeta
+            out.dzeta = out.dzeta[0] - out.dzeta
 
         if hasattr(out, 'R_matrix'): out.R_matrix = None # To be implemented
         if hasattr(out, 'particle_on_co'):
@@ -1990,11 +2003,6 @@ class TwissTable(Table):
             out.particle_on_co.x = -out.particle_on_co.x
             out.particle_on_co.py = -out.particle_on_co.py
             out.particle_on_co.zeta = -out.particle_on_co.zeta
-
-        out.mux = out.mux[0] - out.mux
-        out.muy = out.muy[0] - out.muy
-        out.muzeta = out.muzeta[0] - out.muzeta
-        out.dzeta = out.dzeta[0] - out.dzeta
 
         if 'qs' in self.keys() and self.qs == 0:
             # 4d calculation

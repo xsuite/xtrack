@@ -314,8 +314,8 @@ opt_x8h.generate_knob()
 opt_x8v = collider.match_knob(
     knob_name='on_x8v', knob_value_end=(angle_match_ip8 * 1e6),
     targets=(targets_close_bump + [
-        xt.TargetSet(line='lhcb1', at='ip8',  y=0, py=angle_match_ip8),
-        xt.TargetSet(line='lhcb2', at='ip8',  y=0, py=-angle_match_ip8),
+        xt.TargetSet(line='lhcb1', at='ip8', y=0, py=angle_match_ip8),
+        xt.TargetSet(line='lhcb2', at='ip8', y=0, py=-angle_match_ip8),
     ]),
     vary=[
         xt.VaryList(correctors_ir8_single_beam_v),
@@ -340,7 +340,6 @@ opt_x8v.enable_vary(tag='mcbx')
 opt_x8v.solve()
 opt_x8v.generate_knob()
 
-
 ##########################
 # Match separation knobs #
 ##########################
@@ -352,8 +351,8 @@ sep_match = 2e-3
 opt_sep2h = collider.match_knob(
     knob_name='on_sep2h', knob_value_end=(sep_match * 1e3),
     targets=(targets_close_bump + [
-        xt.TargetSet(line='lhcb1', at='ip2',  x=sep_match, px=0),
-        xt.TargetSet(line='lhcb2', at='ip2',  x=-sep_match, px=0),
+        xt.TargetSet(line='lhcb1', at='ip2', x=sep_match, px=0),
+        xt.TargetSet(line='lhcb2', at='ip2', x=-sep_match, px=0),
     ]),
     vary=[
         xt.VaryList(correctors_ir2_single_beam_h),
