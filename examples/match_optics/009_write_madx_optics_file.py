@@ -9,9 +9,16 @@ collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
+fun_container = xt.line.Functions()
+_functions = {}
+for ff in fun_container._mathfunctions.keys():
+    _functions['f.' + ff] = ff
+
 def get_mad_str_expr(var_expr):
     str_expr = str(var_expr)
     mad_str_expr = str_expr.replace("vars['", '').replace("']", '')
+    for ff in _functions.keys():
+        mad_str_expr = mad_str_expr.replace(ff, _functions[ff])
     return mad_str_expr
 
 def extract_val_or_madexpr(var, dct_expr, dct_val):
