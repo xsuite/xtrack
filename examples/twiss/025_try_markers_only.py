@@ -20,9 +20,18 @@ tw_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_
 tw2_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_ip5,
                     only_markers=True)
 
-# Check names are the right ones
-# TODO!!!!!!!
 
+# Check names are the right ones
+ltable = line.get_table()
+expected_names = np.concatenate([
+    ltable.rows[ltable.element_type == 'Marker'].rows['s.ds.l5.b1':'e.ds.r5.b1'].name,
+    ['_end_point']])
+
+assert np.all(tw_mk.name == expected_names)
+assert np.all(tw2_mk.name == expected_names)
+assert np.all(tw2.name == tw.name)
+
+# Consistency checks on other columns
 for tt in [tw, tw2, tw_mk, tw2_mk]:
     assert tw.name[0] == 's.ds.l5.b1'
     assert tw.name[-1] == '_end_point'
