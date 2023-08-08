@@ -17,15 +17,15 @@ for ff in fun_container._mathfunctions.keys():
 def get_mad_str_expr(var_expr):
     str_expr = str(var_expr)
     mad_str_expr = str_expr.replace("vars['", '').replace("']", '')
-    for ff in _functions:
-        mad_str_expr = mad_str_expr.replace('f.' + ff, ff)
     return mad_str_expr
 
 def extract_val_or_madexpr(var, dct_expr, dct_val):
     var_name = var._key
+    if var_name in dct_expr or var_name in dct_val:
+        return
     if var_name in _functions:
         return
-    if var._expr is not None and var_name not in dct_expr:
+    if var._expr is not None:
         dct_expr[var_name] = get_mad_str_expr(var._expr)
         for vv in var._expr._get_dependencies():
             extract_val_or_madexpr(vv, dct_expr, dct_val)
@@ -48,7 +48,8 @@ for nn in vsave.name:
 out_lines = []
 
 for nn in sorted(dct_val.keys()):
-    out_lines.append(nn + ' = ' + str(dct_val[nn]) + ';')
+    if dct_val[nn] != 0:
+        out_lines.append(nn + ' = ' + str(dct_val[nn]) + ';')
 
 out_lines.append('')
 
