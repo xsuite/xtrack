@@ -160,6 +160,12 @@ class Target(xd.Target):
                             weight=weight, scale=scale, action=action, tag=tag)
         self.line = line
 
+    def __repr__(self):
+        out = xd.Target.__repr__(self)
+        if self.line is not None:
+            out.replace('Target(', f'Target(line={self.line}, ')
+        return out
+
     def eval(self, data):
         res = data[self.action]
         if self.line is not None:
