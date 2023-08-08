@@ -60,6 +60,21 @@ with open('opt_round_150_1500_xs.madx', 'w') as fid:
     fid.write('\n'.join(out_lines))
 
 
+# Try optics file in MAD-X
+from cpymad.madx import Madx
 
+mad=Madx()
+mad.call('../../test_data/hllhc15_thick/lhc.seq')
+mad.call('../../test_data/hllhc15_thick/hllhc_sequence.madx')
+mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
+mad.use('lhcb1')
+mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
+mad.use('lhcb2')
+mad.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
+# mad.call("opt_round_150_1500_xs.madx")
+mad.twiss()
+
+import xdeps as xd
+twmad = xd.Table(mad.table.twiss)
 
 
