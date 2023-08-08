@@ -356,9 +356,18 @@ class Multiline:
         return self.vars.val
 
     @property
+    def functions(self):
+        return self._xdeps_fref
+
+    @property
     def _xdeps_vref(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
+
+    @property
+    def _xdeps_fref(self):
+        if self._var_sharing is not None:
+            return self._var_sharing._fref
 
     @property
     def _xdeps_manager(self):

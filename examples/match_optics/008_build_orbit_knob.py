@@ -458,10 +458,74 @@ opt_sep8v.generate_knob()
 
 t2 = time.time()
 
+phi_ir2 = 90.
+phi_ir8 = 0.
+
+v = collider.vars
+f = collider.functions
+for irn in [2, 8]:
+    v[f'cphi_ir{irn}'] = f.cos(v[f'phi_ir{irn}'] * np.pi / 180.)
+    v[f'sphi_ir{irn}'] = f.sin(v[f'phi_ir{irn}'] * np.pi / 180.)
+    v[f'on_x{irn}h']   =  v[f'on_x{irn}'] * v[f'cphi_ir{irn}']
+    v[f'on_x{irn}v']   =  v[f'on_x{irn}'] * v[f'sphi_ir{irn}']
+    v[f'on_sep{irn}h'] = -v[f'on_sep{irn}'] * v[f'sphi_ir{irn}']
+    v[f'on_sep{irn}v'] =  v[f'on_sep{irn}'] * v[f'cphi_ir{irn}']
+    v[f'on_o{irn}h']   =  v[f'on_o{irn}'] * v[f'cphi_ir{irn}']
+    v[f'on_o{irn}v']   =  v[f'on_o{irn}'] * v[f'sphi_ir{irn}']
+    v[f'on_a{irn}h']   = -v[f'on_a{irn}'] * v[f'sphi_ir{irn}']
+    v[f'on_a{irn}v']   =  v[f'on_a{irn}'] * v[f'cphi_ir{irn}']
+
 print(f'Knob generation took {t2-t1:.1f} seconds')
 
-
 # -----------------------------------------------------------------------------
+
+# Check higher level knobs
+
+collider.vars['on_x2'] = 34
+tw = collider.twiss()
+collider.vars['on_x2'] = 0
+
+assert np.isclose(tw.lhcb1['py', 'ip2'], 34e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip2'], -34e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-10, rtol=0)
+
+collider.vars['on_x8'] = 35
+tw = collider.twiss()
+collider.vars['on_x8'] = 0
+
+assert np.isclose(tw.lhcb1['px', 'ip8'], 35e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], -35e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-10, rtol=0)
+
+collider.vars['on_sep2'] = 0.5
+tw = collider.twiss()
+collider.vars['on_sep2'] = 0
+
+assert np.isclose(tw.lhcb1['x', 'ip2'], -0.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip2'], 0.5e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
+
+collider.vars['on_sep8'] = 0.6
+tw = collider.twiss()
+collider.vars['on_sep8'] = 0
+
+assert np.isclose(tw.lhcb1['y', 'ip8'], 0.6e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['y', 'ip8'], -0.6e-3, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
+
+# Check lower level knobs (disconnects higher level knobs)
 
 collider.vars['on_o2v'] = 0.3
 tw = collider.twiss()

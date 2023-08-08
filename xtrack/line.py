@@ -2804,17 +2804,21 @@ class Line:
 
     @property
     def functions(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            raise NotImplementedError('`functions` not available yet in multiline')
-        else:
-            return self._var_management['fref']
+        return self._xdeps_fref
 
     @property
     def _xdeps_vref(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_vars
+            return self._in_multiline._xdeps_vref
         if self._var_management is not None:
             return self._var_management['vref']
+
+    @property
+    def _xdeps_fref(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            return self._in_multiline._xdeps_fref
+        if self._var_management is not None:
+            return self._var_management['fref']
 
     @property
     def _xdeps_manager(self):
