@@ -31,7 +31,8 @@ XTRACK_DEFAULT_WEIGHTS = {
 
 ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
                         'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
-                        'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy']
+                        'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
+                        'qx', 'qy', 'dqx', 'dqy']
 
 Action = xd.Action
 
@@ -193,6 +194,8 @@ class TargetSet(xd.TargetList):
             self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
         self.targets += [
             Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
+        if len(self.targets) == 0:
+            raise ValueError('No targets specified')
 
 TargetList = TargetSet # for backward compatibility
 
