@@ -740,6 +740,7 @@ def _twiss_open(line, twiss_init,
     twiss_res_element_by_element['dzeta'] = dzeta
 
     extra_data = {}
+    extra_data['only_markers'] = only_markers
     if _keep_tracking_data:
         extra_data['tracking_data'] = line.record_last_track.copy()
 
@@ -1933,16 +1934,23 @@ class TwissTable(Table):
             else:
                 new_data[kk] = vv
 
+        if self.only_markers:
+            itake = slice(None, -1, None)
+        else:
+            # To keep association name -> quantities at elemement entry
+            itake = slice(1, None, None)
+
         for kk in self._col_names:
             if kk == 'name':
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
                 new_data[kk][-1] = self.name[-1]
             elif kk == 'W_matrix':
-                continue
+                new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
+                new_data[kk][-1, :, :] = self[kk][0, :, :]
             elif kk.startswith('k') and kk.endswith('nl', 'sl'):
                 continue # Not yet implemented
             else:
-                new_data[kk][:-1] = new_data[kk][1:][::-1]
+                new_data[kk][:-1] = new_data[kk][itake][::-1]
                 new_data[kk][-1] = self[kk][0]
 
         out = self.__class__(data=new_data, col_names=self._col_names)
@@ -1978,10 +1986,6 @@ class TwissTable(Table):
             if 'dx_zeta' in out._col_names:
                 out.dx_zeta = out.dx_zeta
                 out.dy_zeta = -out.dy_zeta
-
-            out.W_matrix = np.array(out.W_matrix).copy()
-            out.W_matrix[:-1, :, :] = out.W_matrix[1:, :, :][::-1, :, :]
-            out.W_matrix[-1, :, :] = self.W_matrix[0, :, :]
 
             out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
             out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
