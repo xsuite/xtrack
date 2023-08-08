@@ -29,12 +29,22 @@ expected_names = np.concatenate([
     ltable.rows[ltable.element_type == 'Marker'].rows['s.ds.l5.b1':'e.ds.r5.b1'].name,
     ['_end_point']])
 
-assert tw.s[1] == tw.s[0] # First element is a marker
-assert tw2.s[1] == tw2.s[0] # First element is a marker
-
 assert np.all(tw_mk.name == expected_names)
 assert np.all(tw2_mk.name == expected_names)
 assert np.all(tw2.name == tw.name)
+
+assert tw.only_markers is False
+assert tw2.only_markers is False
+assert tw_mk.only_markers is True
+assert tw2_mk.only_markers is True
+
+assert tw.orientation == 'forward'
+assert tw2.orientation == 'backward'
+assert tw_mk.orientation == 'forward'
+assert tw2_mk.orientation == 'backward'
+
+assert tw.s[1] == tw.s[0] # First element is a marker
+assert tw2.s[1] == tw2.s[0] # First element is a marker
 
 # Consistency checks on other columns
 for tt in [tw, tw2, tw_mk, tw2_mk]:
@@ -76,6 +86,16 @@ expected_names = np.concatenate([
 assert np.all(tw_mk.name == expected_names)
 assert np.all(tw2_mk.name == expected_names)
 assert np.all(tw2.name == tw.name)
+
+assert tw.only_markers is False
+assert tw2.only_markers is False
+assert tw_mk.only_markers is True
+assert tw2_mk.only_markers is True
+
+assert tw.orientation == 'backward'
+assert tw2.orientation == 'forward'
+assert tw_mk.orientation == 'backward'
+assert tw2_mk.orientation == 'forward'
 
 assert tw.s[1] == tw.s[0] # First element is a marker
 assert tw2.s[1] == tw2.s[0] # First element is a marker

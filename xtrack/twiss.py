@@ -1937,7 +1937,7 @@ class TwissTable(Table):
         if self.only_markers:
             itake = slice(None, -1, None)
         else:
-            # To keep association name -> quantities at elemement entry
+            # To keep association name <-> quantities at elemement entry
             itake = slice(1, None, None)
 
         for kk in self._col_names:
