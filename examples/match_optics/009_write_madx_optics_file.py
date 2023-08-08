@@ -120,3 +120,12 @@ for kk, vv in opt.get_knob_values().items():
 
 mad.input('twiss, sequence=lhcb1, table=twb1')
 mad.input('twiss, sequence=lhcb2, table=twb2')
+
+assert np.isclose(mad.table.twb1.summary.q1, 62.315, rtol=0, atol=1e-6)
+assert np.isclose(mad.table.twb1.summary.q2, 60.325, rtol=0, atol=1e-6)
+assert np.isclose(mad.table.twb2.summary.q1, 62.316, rtol=0, atol=1e-6)
+assert np.isclose(mad.table.twb2.summary.q2, 60.324, rtol=0, atol=1e-6)
+assert np.isclose(mad.table.twb1.summary.dq1, 10.0, rtol=0, atol=0.3)
+assert np.isclose(mad.table.twb1.summary.dq2, 12.0, rtol=0, atol=0.3)
+assert np.isclose(mad.table.twb2.summary.dq1, 9.0, rtol=0, atol=0.3)
+assert np.isclose(mad.table.twb2.summary.dq2, 11.0, rtol=0, atol=0.3)
