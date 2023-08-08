@@ -474,6 +474,8 @@ for irn in [2, 8]:
 
 print(f'Knob generation took {t2-t1:.1f} seconds')
 
+collider.to_json('collider_03_with_orbit_knobs.json')
+
 # -----------------------------------------------------------------------------
 
 # Check higher level knobs

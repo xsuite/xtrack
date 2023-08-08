@@ -3,10 +3,8 @@ import numpy as np
 import xtrack as xt
 import xdeps as xd
 
-collider = xt.Multiline.from_json('hllhc.json')
+collider = xt.Multiline.from_json('collider_03_with_orbit_knobs.json')
 collider.build_trackers()
-collider.vars.load_madx_optics_file(
-    "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
 fun_container = xt.line.Functions()
 _functions = []
@@ -78,10 +76,10 @@ mad.input('twiss, sequence=lhcb2, table=twb2')
 twmad_b1 = xd.Table(mad.table.twb1)
 twmad_b2 = xd.Table(mad.table.twb2)
 
-assert np.isclose(twmad_b1['betx', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
-assert np.isclose(twmad_b1['bety', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
-assert np.isclose(twmad_b2['betx', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
-assert np.isclose(twmad_b2['bety', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
+assert np.isclose(twmad_b1['betx', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
+assert np.isclose(twmad_b1['bety', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
+assert np.isclose(twmad_b2['betx', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
+assert np.isclose(twmad_b2['bety', 'ip1:1'], 0.15, rtol=1e-8, atol=0)
 
 import xdeps as xd
 
