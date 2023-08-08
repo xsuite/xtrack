@@ -16,6 +16,8 @@ for ff in fun_container._mathfunctions.keys():
 def get_mad_str_expr(var_expr):
     str_expr = str(var_expr)
     mad_str_expr = str_expr.replace("vars['", '').replace("']", '')
+    for ff in _functions:
+        mad_str_expr = mad_str_expr.replace('f.' + ff, ff)
     return mad_str_expr
 
 def extract_val_or_madexpr(var, dct_expr, dct_val):
@@ -70,7 +72,6 @@ mad.use('lhcb1')
 mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
 mad.use('lhcb2')
 mad.call("opt_round_150_1500_xs.madx")
-# mad.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
 mad.input('twiss, sequence=lhcb1, table=twb1')
 mad.input('twiss, sequence=lhcb2, table=twb2')
@@ -89,6 +90,7 @@ twmad_b2.rows['ip.*'].cols['betx bety x y px py'].show()
 
 # Test orbit knobs
 mad.globals.on_x8 = 100
+mad.globals.on_x2 = 110
 
 mad.input('twiss, sequence=lhcb1, table=twb1')
 mad.input('twiss, sequence=lhcb2, table=twb2')
@@ -96,3 +98,6 @@ twmad_b1 = xd.Table(mad.table.twb1)
 twmad_b2 = xd.Table(mad.table.twb2)
 
 assert np.isclose(twmad_b1['px', 'ip8:1'], 100e-6, rtol=0, atol=1e-10)
+assert np.isclose(twmad_b2['px', 'ip8:1'], -100e-6, rtol=0, atol=1e-10)
+assert np.isclose(twmad_b1['py', 'ip2:1'], 110e-6, rtol=0, atol=1e-10)
+assert np.isclose(twmad_b2['py', 'ip2:1'], -110e-6, rtol=0, atol=1e-10)
