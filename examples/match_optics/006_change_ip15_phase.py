@@ -5,7 +5,7 @@ import lhc_match as lm
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
-collider = xt.Multiline.from_json('hllhc.json')
+collider = xt.Multiline.from_json('collider_01_with_knob_steps_and_limits.json')
 collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
@@ -234,3 +234,5 @@ print(f'Time match IRs b2: {t_match_irs["b2"]}')
 #     ele_start='ip1', ele_stop='ip1.l1',
 #     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
 #                             line=collider.lhcb2))
+
+collider.to_json('collider_02_changed_ip15_phase.json')
