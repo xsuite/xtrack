@@ -40,7 +40,8 @@ dct_val = {}
 
 vtable = collider.vars.get_table()
 vsave = vtable.rows[
-    vtable.mask[vtable.mask['acb.*'] | vtable.mask['kq.*'] | vtable.mask['ks.*']]]
+    vtable.mask[vtable.mask['acb.*'] | vtable.mask['kd.*']
+                | vtable.mask['kq.*'] | vtable.mask['ks.*']]]
 for nn in vsave.name:
     vv = collider.vars[nn]
     extract_val_or_madexpr(vv, dct_expr, dct_val)
@@ -48,8 +49,7 @@ for nn in vsave.name:
 out_lines = []
 
 for nn in sorted(dct_val.keys()):
-    if dct_val[nn] != 0:
-        out_lines.append(nn + ' = ' + str(dct_val[nn]) + ';')
+    out_lines.append(nn + ' = ' + str(dct_val[nn]) + ';')
 
 out_lines.append('')
 
@@ -70,11 +70,11 @@ mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
 mad.use('lhcb1')
 mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
 mad.use('lhcb2')
-mad.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-# mad.call("opt_round_150_1500_xs.madx")
+# mad.call("test_opt.madx")
+mad.call("opt_round_150_1500_xs.madx")
 mad.twiss()
 
 import xdeps as xd
 twmad = xd.Table(mad.table.twiss)
 
-
+twmad.rows['ip.*'].cols['betx bety x y px py'].show()
