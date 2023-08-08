@@ -6,15 +6,8 @@ import xtrack as xt
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
-collider = xt.Multiline.from_json('hllhc.json')
+collider = xt.Multiline.from_json('collider_02_changed_ip15_phase.json')
 collider.build_trackers()
-collider.vars.load_madx_optics_file(
-    "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
-
-tw0 = collider.twiss()
-
-collider0 = collider.copy()
-collider0.build_trackers()
 
 t1 = time.time()
 
@@ -32,7 +25,6 @@ all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
     'acbxh3.r8', 'acbyhs5.r8b2', 'acbxv2.l8', 'acbxh1.l2', 'pyip8b1', 'pyip8b2',
     'acbxv3.l8', 'xip2b1', 'acbyhs5.l2b2', 'acbchs5.l8b2', 'acbcvs5.l8b1',
     'pyip2b2', 'acbxv3.l2', 'acbchs5.l8b1', 'acbyhs4.l2b1', 'acbxh1.r2']
-
 
 
 # kill all existing knobs
@@ -287,10 +279,15 @@ opt_x8h = collider.match_knob(
 # Set mcbx by hand (reduce value by 10, to test matching algorithm)
 testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
 acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
-# Set MCBX by hand
+
+# Set mcbx by hand
 for icorr in [1, 2, 3]:
-    collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
-    collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
+    collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6
+    collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6
+
+#   (reduce value by 10, to test matching algorithm)
+#   collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
+#   collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
 
 # First round of optimization without changing mcbx
 opt_x8h.disable_vary(tag='mcbx')
@@ -572,23 +569,23 @@ assert np.isclose(tw.lhcb2['x', 'ip2'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb1['px', 'ip2'], 20e-6, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['px', 'ip2'], 20e-6, atol=1e-10, rtol=0)
 
-collider.vars['on_a2v'] = 30
+collider.vars['on_a2v'] = 15
 tw = collider.twiss()
 collider.vars['on_a2v'] = 0
 
 assert np.isclose(tw.lhcb1['y', 'ip2'], 0, atol=1e-10, rtol=0)
 assert np.isclose(tw.lhcb2['y', 'ip2'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['py', 'ip2'], 30e-6, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['py', 'ip2'], 30e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['py', 'ip2'], 15e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['py', 'ip2'], 15e-6, atol=1e-10, rtol=0)
 
-collider.vars['on_a8h'] = 40
+collider.vars['on_a8h'] = 20
 tw = collider.twiss()
 collider.vars['on_a8h'] = 0
 
-assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb1['px', 'ip8'], 40e-6, atol=1e-10, rtol=0)
-assert np.isclose(tw.lhcb2['px', 'ip8'], 40e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb1['x', 'ip8'], 0, atol=1e-9, rtol=0)
+assert np.isclose(tw.lhcb2['x', 'ip8'], 0, atol=1e-9, rtol=0)
+assert np.isclose(tw.lhcb1['px', 'ip8'], 20e-6, atol=1e-10, rtol=0)
+assert np.isclose(tw.lhcb2['px', 'ip8'], 20e-6, atol=1e-9, rtol=0)
 
 collider.vars['on_a8v'] = 50
 tw = collider.twiss()
