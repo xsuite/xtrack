@@ -74,11 +74,13 @@ def test_lumi_calculation():
     twiss_b1._data['particle_on_co'] = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12)
     twiss_b1._data['values_at'] = 'entry'
     twiss_b1._data['reference_frame'] = 'proper'
+    twiss_b1._data['only_markers'] = False
 
     twiss_b2._data['T_rev0'] = 8.892446333483924e-05
     twiss_b2._data['particle_on_co'] = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1, p0c=7e12)
     twiss_b2._data['values_at'] = 'entry'
     twiss_b2._data['reference_frame'] = 'proper'
+    twiss_b2._data['only_markers'] = False
 
     n_colliding_bunches = 2808
     num_particles_per_bunch = 1.15e11
