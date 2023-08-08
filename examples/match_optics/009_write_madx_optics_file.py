@@ -1,8 +1,7 @@
-import re
 import numpy as np
 
 import xtrack as xt
-import lhc_match as lm
+import xdeps as xd
 
 collider = xt.Multiline.from_json('hllhc.json')
 collider.build_trackers()
@@ -60,7 +59,7 @@ with open('opt_round_150_1500_xs.madx', 'w') as fid:
     fid.write('\n'.join(out_lines))
 
 
-# Try optics file in MAD-X
+# Try loading optics file in MAD-X
 from cpymad.madx import Madx
 
 mad=Madx()
@@ -70,11 +69,30 @@ mad.input('beam, sequence=lhcb1, particle=proton, energy=7000;')
 mad.use('lhcb1')
 mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
 mad.use('lhcb2')
-# mad.call("test_opt.madx")
 mad.call("opt_round_150_1500_xs.madx")
-mad.twiss()
+# mad.call("../../test_data/hllhc15_thick/opt_round_150_1500.madx")
+
+mad.input('twiss, sequence=lhcb1, table=twb1')
+mad.input('twiss, sequence=lhcb2, table=twb2')
+twmad_b1 = xd.Table(mad.table.twb1)
+twmad_b2 = xd.Table(mad.table.twb2)
+
+assert np.isclose(twmad_b1['betx', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
+assert np.isclose(twmad_b1['bety', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
+assert np.isclose(twmad_b2['betx', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
+assert np.isclose(twmad_b2['bety', 'ip1:1'], 0.15, rtol=1e-10, atol=0)
 
 import xdeps as xd
-twmad = xd.Table(mad.table.twiss)
 
-twmad.rows['ip.*'].cols['betx bety x y px py'].show()
+twmad_b1.rows['ip.*'].cols['betx bety x y px py'].show()
+twmad_b2.rows['ip.*'].cols['betx bety x y px py'].show()
+
+# Test orbit knobs
+mad.globals.on_x8 = 100
+
+mad.input('twiss, sequence=lhcb1, table=twb1')
+mad.input('twiss, sequence=lhcb2, table=twb2')
+twmad_b1 = xd.Table(mad.table.twb1)
+twmad_b2 = xd.Table(mad.table.twb2)
+
+assert np.isclose(twmad_b1['px', 'ip8:1'], 100e-6, rtol=0, atol=1e-10)
