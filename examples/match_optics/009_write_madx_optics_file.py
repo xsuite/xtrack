@@ -102,10 +102,21 @@ assert np.isclose(twmad_b2['px', 'ip8:1'], -100e-6, rtol=0, atol=1e-10)
 assert np.isclose(twmad_b1['py', 'ip2:1'], 110e-6, rtol=0, atol=1e-10)
 assert np.isclose(twmad_b2['py', 'ip2:1'], -110e-6, rtol=0, atol=1e-10)
 
-opt = collider.lhcb1.match(
-    vary=
+# Match tunes and chromaticity in the Xsuite model
+opt = collider.match(
+    vary=[
         xt.VaryList(['kqtf.b1', 'kqtd.b1', 'ksf.b1', 'ksd.b1'], step=1e-8),
+        xt.VaryList(['kqtf.b2', 'kqtd.b2', 'ksf.b2', 'ksd.b2'], step=1e-8)],
     targets = [
-        xt.TargetSet(qx=62.315, qy=60.325, tol=1e-6),
-        xt.TargetSet(dqx=10.0, dqy=12.0, tol=1e-5)]
-)
+        xt.TargetSet(line='lhcb1', qx=62.315, qy=60.325, tol=1e-10),
+        xt.TargetSet(line='lhcb1', dqx=10.0, dqy=12.0, tol=1e-5),
+        xt.TargetSet(line='lhcb2', qx=62.316, qy=60.324, tol=1e-10),
+        xt.TargetSet(line='lhcb2', dqx=9.0, dqy=11.0, tol=1e-5)])
+
+# Transfer knobs to madx model
+
+for kk, vv in opt.get_knob_values().items():
+    mad.globals[kk] = vv
+
+mad.input('twiss, sequence=lhcb1, table=twb1')
+mad.input('twiss, sequence=lhcb2, table=twb2')

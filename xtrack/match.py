@@ -163,7 +163,7 @@ class Target(xd.Target):
     def __repr__(self):
         out = xd.Target.__repr__(self)
         if self.line is not None:
-            out.replace('Target(', f'Target(line={self.line}, ')
+            out = out.replace('Target(', f'Target(line={self.line}, ')
         return out
 
     def eval(self, data):
