@@ -322,11 +322,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                         restore_if_fail=restore_if_fail)
 
     if solve:
-        res =  opt.solve()
-        res['optimizer'] = opt
-        return res
-    else:
-        return opt
+        opt.solve()
+
+    return opt
 
 def _flatten_vary(vary):
     vary_flatten = []
