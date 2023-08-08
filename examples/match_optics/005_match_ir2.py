@@ -30,9 +30,9 @@ opt = collider.lhcb1.match(
     twiss_init='preserve_start', table_for_twiss_init=tw_sq_ip1_b1,
     targets=[
         # IP optics
-        xt.TargetList(('alfx', 'alfy', 'dx', 'dpx'), value=0, at='ip2'),
-        xt.Target('betx', value=collider.varval['betxip2b1'], at='ip2'),
-        xt.Target('bety', value=collider.varval['betyip2b1'], at='ip2'),
+        xt.TargetSet(at='ip2',
+            betx=collider.varval['betxip2b1'], bety=collider.varval['betyip2b1'],
+            alfx=0, alfy=0, dx=0, dpx=0),
         # Right boundary
         xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
                 value=arc_periodic_solution['lhcb1']['23'], at='e.ds.r2.b1'),
