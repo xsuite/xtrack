@@ -113,7 +113,7 @@ opt = collider.match(
         xt.TargetSet(line='lhcb2', qx=62.316, qy=60.324, tol=1e-10),
         xt.TargetSet(line='lhcb2', dqx=9.0, dqy=11.0, tol=1e-5)])
 
-# Transfer knobs to madx model
+# Transfer knobs to madx model and check matched values
 
 for kk, vv in opt.get_knob_values().items():
     mad.globals[kk] = vv
