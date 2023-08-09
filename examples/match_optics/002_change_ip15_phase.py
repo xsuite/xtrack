@@ -74,6 +74,48 @@ for bn in ['b1', 'b2']:
     betx_ip5 = collider.varval[f'betxip5{bn}']
     bety_ip5 = collider.varval[f'betyip5{bn}']
 
+    betx_ip2 = collider.varval[f'betxip2{bn}']
+    bety_ip2 = collider.varval[f'betyip2{bn}']
+
+    alfx_ip3 = collider.varval[f'alfxip3{bn}']
+    alfy_ip3 = collider.varval[f'alfyip3{bn}']
+    betx_ip3 = collider.varval[f'betxip3{bn}']
+    bety_ip3 = collider.varval[f'betyip3{bn}']
+    dx_ip3 = collider.varval[f'dxip3{bn}']
+    dpx_ip3 = collider.varval[f'dpxip3{bn}']
+    mux_ir3 = collider.varval[f'muxip3{bn}']
+    muy_ir3 = collider.varval[f'muyip3{bn}']
+
+    alfx_ip4 = collider.varval[f'alfxip4{bn}']
+    alfy_ip4 = collider.varval[f'alfyip4{bn}']
+    betx_ip4 = collider.varval[f'betxip4{bn}']
+    bety_ip4 = collider.varval[f'betyip4{bn}']
+    dx_ip4 = collider.varval[f'dxip4{bn}']
+    dpx_ip4 = collider.varval[f'dpxip4{bn}']
+
+    alfx_ip6 = collider.varval[f'alfxip6{bn}']
+    alfy_ip6 = collider.varval[f'alfyip6{bn}']
+    betx_ip6 = collider.varval[f'betxip6{bn}']
+    bety_ip6 = collider.varval[f'betyip6{bn}']
+    dx_ip6 = collider.varval[f'dxip6{bn}']
+    dpx_ip6 = collider.varval[f'dpxip6{bn}']
+
+    alfx_ip7 = collider.varval[f'alfxip7{bn}']
+    alfy_ip7 = collider.varval[f'alfyip7{bn}']
+    betx_ip7 = collider.varval[f'betxip7{bn}']
+    bety_ip7 = collider.varval[f'betyip7{bn}']
+    dx_ip7 = collider.varval[f'dxip7{bn}']
+    dpx_ip7 = collider.varval[f'dpxip7{bn}']
+    mux_ir7 = collider.varval[f'muxip7{bn}']
+    muy_ir7 = collider.varval[f'muyip7{bn}']
+
+    alfx_ip8 = collider.varval[f'alfxip8{bn}']
+    alfy_ip8 = collider.varval[f'alfyip8{bn}']
+    betx_ip8 = collider.varval[f'betxip8{bn}']
+    bety_ip8 = collider.varval[f'betyip8{bn}']
+    dx_ip8 = collider.varval[f'dxip8{bn}']
+    dpx_ip8 = collider.varval[f'dpxip8{bn}']
+
     tw_sq_a81_ip1_a12 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
             line_name=f'lhc{bn}', ele_start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
             beta_star_x=betx_ip1, beta_star_y=bety_ip1)
@@ -92,10 +134,6 @@ for bn in ['b1', 'b2']:
             mux12, muy12, mux45, muy45, mux56, muy56, mux81, muy81)
 
     print(f"Matching IR2 {bn}")
-
-    betx_ip2 = collider.varval[f'betxip2{bn}']
-    bety_ip2 = collider.varval[f'betyip2{bn}']
-
     opt = lm.rematch_ir2(collider, line_name=f'lhc{bn}',
                 boundary_conditions_left=tw_sq_a81_ip1_a12,
                 boundary_conditions_right=arc_periodic_solution[f'lhc{bn}']['23'],
@@ -106,16 +144,6 @@ for bn in ['b1', 'b2']:
     optimizers[bn]['ir2'] = opt
 
     print(f"Matching IR3 {bn}")
-
-    alfx_ip3 = collider.varval[f'alfxip3{bn}']
-    alfy_ip3 = collider.varval[f'alfyip3{bn}']
-    betx_ip3 = collider.varval[f'betxip3{bn}']
-    bety_ip3 = collider.varval[f'betyip3{bn}']
-    dx_ip3 = collider.varval[f'dxip3{bn}']
-    dpx_ip3 = collider.varval[f'dpxip3{bn}']
-    mux_ir3 = collider.varval[f'muxip3{bn}']
-    muy_ir3 = collider.varval[f'muyip3{bn}']
-
     opt = lm.rematch_ir3(collider=collider, line_name=f'lhc{bn}',
                 boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['23'],
                 boundary_conditions_right=arc_periodic_solution[f'lhc{bn}']['34'],
@@ -127,14 +155,6 @@ for bn in ['b1', 'b2']:
     optimizers[bn]['ir3'] = opt
 
     print(f"Matching IR4 {bn}")
-
-    alfx_ip4 = collider.varval[f'alfxip4{bn}']
-    alfy_ip4 = collider.varval[f'alfyip4{bn}']
-    betx_ip4 = collider.varval[f'betxip4{bn}']
-    bety_ip4 = collider.varval[f'betyip4{bn}']
-    dx_ip4 = collider.varval[f'dxip4{bn}']
-    dpx_ip4 = collider.varval[f'dpxip4{bn}']
-
     opt = lm.rematch_ir4(collider=collider, line_name=f'lhc{bn}',
                 boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['34'],
                 boundary_conditions_right=tw_sq_a45_ip5_a56,
@@ -146,14 +166,6 @@ for bn in ['b1', 'b2']:
     optimizers[bn]['ir4'] = opt
 
     print(f"Matching IP6 {bn}")
-
-    alfx_ip6 = collider.varval[f'alfxip6{bn}']
-    alfy_ip6 = collider.varval[f'alfyip6{bn}']
-    betx_ip6 = collider.varval[f'betxip6{bn}']
-    bety_ip6 = collider.varval[f'betyip6{bn}']
-    dx_ip6 = collider.varval[f'dxip6{bn}']
-    dpx_ip6 = collider.varval[f'dpxip6{bn}']
-
     opt = lm.rematch_ir6(collider=collider, line_name=f'lhc{bn}',
                 boundary_conditions_left=tw_sq_a45_ip5_a56,
                 boundary_conditions_right=arc_periodic_solution[f'lhc{bn}']['67'],
@@ -165,16 +177,6 @@ for bn in ['b1', 'b2']:
     optimizers[bn]['ir6'] = opt
 
     print(f"Matching IP7 {bn}")
-
-    alfx_ip7 = collider.varval[f'alfxip7{bn}']
-    alfy_ip7 = collider.varval[f'alfyip7{bn}']
-    betx_ip7 = collider.varval[f'betxip7{bn}']
-    bety_ip7 = collider.varval[f'betyip7{bn}']
-    dx_ip7 = collider.varval[f'dxip7{bn}']
-    dpx_ip7 = collider.varval[f'dpxip7{bn}']
-    mux_ir7 = collider.varval[f'muxip7{bn}']
-    muy_ir7 = collider.varval[f'muyip7{bn}']
-
     opt = lm.rematch_ir7(collider=collider, line_name=f'lhc{bn}',
             boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['67'],
             boundary_conditions_right=arc_periodic_solution[f'lhc{bn}']['78'],
@@ -186,14 +188,6 @@ for bn in ['b1', 'b2']:
     optimizers[bn]['ir7'] = opt
 
     print(f"Matching IP8 {bn}")
-
-    alfx_ip8 = collider.varval[f'alfxip8{bn}']
-    alfy_ip8 = collider.varval[f'alfyip8{bn}']
-    betx_ip8 = collider.varval[f'betxip8{bn}']
-    bety_ip8 = collider.varval[f'betyip8{bn}']
-    dx_ip8 = collider.varval[f'dxip8{bn}']
-    dpx_ip8 = collider.varval[f'dpxip8{bn}']
-
     opt = lm.rematch_ir8(collider=collider, line_name=f'lhc{bn}',
             boundary_conditions_left=arc_periodic_solution[f'lhc{bn}']['78'],
             boundary_conditions_right=tw_sq_a81_ip1_a12,
