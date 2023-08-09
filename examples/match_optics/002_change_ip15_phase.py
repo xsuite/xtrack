@@ -39,16 +39,7 @@ t_match_irs = {}
 for bn in ['b1', 'b2']:
 
     tt_1 = time.time()
-
-    tw_sq_a81_ip1_a12 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
-            line_name=f'lhc{bn}', ele_start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
-            beta_star_x=collider.varval[f'betxip1{bn}'],
-            beta_star_y=collider.varval[f'betyip1{bn}'])
-
-    tw_sq_a45_ip5_a56 = lm.propagate_optics_from_beta_star(collider, ip_name='ip5',
-            line_name=f'lhc{bn}', ele_start=f's.ds.r4.{bn}', ele_stop=f'e.ds.l6.{bn}',
-            beta_star_x=collider.varval[f'betxip5{bn}'],
-            beta_star_y=collider.varval[f'betyip5{bn}'])
+    line_name = f'lhc{bn}'
 
     muxip1_l = collider.varval[f'muxip1{bn}_l']
     muyip1_l = collider.varval[f'muyip1{bn}_l']
@@ -78,33 +69,27 @@ for bn in ['b1', 'b2']:
     mux81 = collider.varval[f'mux81{bn}']
     muy81 = collider.varval[f'muy81{bn}']
 
-    mux_compensate_ir2 = (tw_sq_a81_ip1_a12['mux', f's.ds.l2.{bn}'] - tw_sq_a81_ip1_a12['mux', 'ip1']
-                          - muxip1_r - mux12)
-    mux_ir2_target = muxip2 - mux_compensate_ir2
-    muy_compensate_ir2 = (tw_sq_a81_ip1_a12['muy', f's.ds.l2.{bn}'] - tw_sq_a81_ip1_a12['muy', 'ip1']
-                          - muyip1_r - muy12)
-    muy_ir2_target = muyip2 - muy_compensate_ir2
+    betx_ip1 = collider.varval[f'betxip1{bn}']
+    bety_ip1 = collider.varval[f'betyip1{bn}']
+    betx_ip5 = collider.varval[f'betxip5{bn}']
+    bety_ip5 = collider.varval[f'betyip5{bn}']
 
-    mux_compensate_ir4 = (tw_sq_a45_ip5_a56['mux', 'ip5'] - tw_sq_a45_ip5_a56['mux', f'e.ds.r4.{bn}']
-                          - muxip5_l - mux45)
-    mux_ir4_target = muxip4 - mux_compensate_ir4
-    muy_compensate_ir4 = (tw_sq_a45_ip5_a56['muy', 'ip5'] - tw_sq_a45_ip5_a56['muy', f'e.ds.r4.{bn}']
-                          - muyip5_l - muy45)
-    muy_ir4_target = muyip4 - muy_compensate_ir4
+    tw_sq_a81_ip1_a12 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
+            line_name=f'lhc{bn}', ele_start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
+            beta_star_x=betx_ip1, beta_star_y=bety_ip1)
 
-    mux_compensate_ir6 = (tw_sq_a45_ip5_a56['mux', f's.ds.l6.{bn}'] - tw_sq_a45_ip5_a56['mux', 'ip5']
-                          - muxip5_r - mux56)
-    mux_ir6_target = muxip6 - mux_compensate_ir6
-    muy_compensate_ir6 = (tw_sq_a45_ip5_a56['muy', f's.ds.l6.{bn}'] - tw_sq_a45_ip5_a56['muy', 'ip5']
-                          - muyip5_r - muy56)
-    muy_ir6_target = muyip6 - muy_compensate_ir6
+    tw_sq_a45_ip5_a56 = lm.propagate_optics_from_beta_star(collider, ip_name='ip5',
+            line_name=f'lhc{bn}', ele_start=f's.ds.r4.{bn}', ele_stop=f'e.ds.l6.{bn}',
+            beta_star_x=betx_ip5, beta_star_y=bety_ip5)
 
-    mux_compensate_ir8 = (tw_sq_a81_ip1_a12['mux', 'ip1.l1'] - tw_sq_a81_ip1_a12['mux', f'e.ds.r8.{bn}']
-                          - muxip1_l - mux81)
-    mux_ir8_target = muxip8 - mux_compensate_ir8
-    muy_compensate_ir8 = (tw_sq_a81_ip1_a12['muy', 'ip1.l1'] - tw_sq_a81_ip1_a12['muy', f'e.ds.r8.{bn}']
-                          - muyip1_l - muy81)
-    muy_ir8_target = muyip8 - muy_compensate_ir8
+    (mux_ir2_target, muy_ir2_target, mux_ir4_target, muy_ir4_target,
+     mux_ir6_target, muy_ir6_target, mux_ir8_target, muy_ir8_target
+        ) = lm.compute_ats_phase_advances_for_auxiliary_irs(line_name,
+            tw_sq_a81_ip1_a12, tw_sq_a45_ip5_a56,
+            muxip1_l, muyip1_l, muxip1_r, muyip1_r,
+            muxip5_l, muyip5_l, muxip5_r, muyip5_r,
+            muxip2, muyip2, muxip4, muyip4, muxip6, muyip6, muxip8, muyip8,
+            mux12, muy12, mux45, muy45, mux56, muy56, mux81, muy81)
 
     print(f"Matching IR2 {bn}")
 
