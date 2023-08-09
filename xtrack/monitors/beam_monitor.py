@@ -133,7 +133,8 @@ class BeamMonitor(BeamElement):
             return getattr(self.data, attr).to_nparray()
         
         if attr in ('x_mean', 'y_mean', 'x_cen', 'y_cen', 'x_centroid', 'y_centroid'):
-            return getattr(self, attr[0]+"_sum") / self.count
+            with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
+                return getattr(self, attr[0]+"_sum") / self.count
         
         return getattr(super(), attr)
 
