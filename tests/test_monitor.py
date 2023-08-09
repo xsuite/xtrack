@@ -174,14 +174,13 @@ def test_beam_position_monitor(test_context):
 
     particles = xp.Particles(
         p0c=6.5e12,
-        x=0.1*np.arange(512),
-        zeta=-2.99792458e8*np.tile([0.0, 0.5], 256),
+        x=0.1*np.arange(514), # generate a few more than we record to test "num_particles"
+        zeta=-2.99792458e8*np.tile([0.0, 0.5], 257),
         _context=test_context,
     )
-    num_particles = len(particles.x)
 
     monitor = xt.BeamPositionMonitor(
-        num_particles=num_particles,
+        num_particles=512,
         start_at_turn=0,
         stop_at_turn=10,
         frev=1,
@@ -192,7 +191,7 @@ def test_beam_position_monitor(test_context):
     line = xt.Line([monitor])
     line.build_tracker(_context=test_context)
 
-    for turn in range(10):
+    for turn in range(11): # track a few more than we record to test "stop_at_turn"
         # Note that indicees are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):

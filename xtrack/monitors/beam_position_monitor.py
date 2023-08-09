@@ -82,8 +82,10 @@ class BeamPositionMonitor(BeamElement):
         
 
         Args:
-            particle_id_range (tuple): Range of particle ids to monitor (start, stop). Stop is exclusive.
+            particle_id_range (tuple, optional): Range of particle ids to monitor (start, stop). Stop is exclusive.
+                                                 Default is to monitor all particles.
             num_particles (int, optional): Number of particles. Equal to passing particle_id_range=(0, num_particles).
+                                           Negative values mean that all particles will be monitored.
             start_at_turn (int): First turn of reference particle (inclusive) at which to monitor.
             stop_at_turn (int): Last turn of reference particle (exclusiv) at which to monitor.
             frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
@@ -96,13 +98,15 @@ class BeamPositionMonitor(BeamElement):
         else:
 
             # dict parameters
-            if num_particles is not None and particle_id_range is None:
+            if particle_id_range is None:
                 particle_id_start = 0
-            elif particle_id_range is not None and num_particles is None:
+                if num_particles is None:
+                    num_particles = -1
+            elif num_particles is None:
                 particle_id_start = particle_id_range[0]
                 num_particles = particle_id_range[1] - particle_id_range[0]
             else:
-                raise ValueError("Exactly one of `num_particles` or `particle_id_range` parameters must be specified")
+                raise ValueError("Only one of `num_particles` or `particle_id_range` parameters may be specified")
             if start_at_turn is None:
                 start_at_turn = 0
             if stop_at_turn is None:

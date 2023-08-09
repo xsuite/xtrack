@@ -18,6 +18,8 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
 
     // get parameters
     int64_t const start_at_turn = BeamPositionMonitorData_get_start_at_turn(el);
+    int64_t particle_id_start = BeamPositionMonitorData_get_particle_id_start(el);
+    int64_t particle_id_stop = particle_id_start + BeamPositionMonitorData_get_num_particles(el);
     double const frev = BeamPositionMonitorData_get_frev(el);
     double const sampling_frequency = BeamPositionMonitorData_get_sampling_frequency(el);
     BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
@@ -25,29 +27,34 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
 
     //start_per_particle_block(part0->part)
 
-        // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
-        // but without limits, i.e. it can exceed the circumference (for coasting beams)
-        // as the particle falls behind or overtakes the reference particle
-        double const zeta = LocalParticle_get_zeta(part);
-        double const at_turn = LocalParticle_get_at_turn(part);
-        double const beta0 = LocalParticle_get_beta0(part);
+        int64_t particle_id = LocalParticle_get_particle_id(part);
+        if (particle_id_stop < 0 || (particle_id_start <= particle_id && particle_id < particle_id_stop)){
 
-        // compute sample index
-        int64_t slot = roundf(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
-        int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
+            // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
+            // but without limits, i.e. it can exceed the circumference (for coasting beams)
+            // as the particle falls behind or overtakes the reference particle
+            double const zeta = LocalParticle_get_zeta(part);
+            double const at_turn = LocalParticle_get_at_turn(part);
+            double const beta0 = LocalParticle_get_beta0(part);
 
-        if (slot >= 0 && slot < max_slot){
-	        BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
- 
-            // TODO: this shows errnous results with GPUs due to concurrent memory access
-            int64_t count = 1 + BeamPositionMonitorRecord_get_count(record, slot);
-            BeamPositionMonitorRecord_set_count(record, slot, count);
-	        double x_sum = LocalParticle_get_x(part) + BeamPositionMonitorRecord_get_x_sum(record, slot);
-	        BeamPositionMonitorRecord_set_x_sum(record, slot, x_sum);
-	        double y_sum = LocalParticle_get_y(part) + BeamPositionMonitorRecord_get_y_sum(record, slot);
-	        BeamPositionMonitorRecord_set_y_sum(record, slot, y_sum);
-	        
-	    }
+            // compute sample index
+            int64_t slot = roundf(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
+            int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
+
+            if (slot >= 0 && slot < max_slot){
+                BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
+    
+                // TODO: this shows errnous results with GPUs due to concurrent memory access
+                int64_t count = 1 + BeamPositionMonitorRecord_get_count(record, slot);
+                BeamPositionMonitorRecord_set_count(record, slot, count);
+                double x_sum = LocalParticle_get_x(part) + BeamPositionMonitorRecord_get_x_sum(record, slot);
+                BeamPositionMonitorRecord_set_x_sum(record, slot, x_sum);
+                double y_sum = LocalParticle_get_y(part) + BeamPositionMonitorRecord_get_y_sum(record, slot);
+                BeamPositionMonitorRecord_set_y_sum(record, slot, y_sum);
+                
+            }
+
+        }
 
 	//end_per_particle_block
 
