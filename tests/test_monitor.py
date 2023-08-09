@@ -35,6 +35,27 @@ particles0 = xp.generate_matched_gaussian_bunch(line=line0,
 
 
 @for_all_test_contexts
+def test_constructor(test_context):
+    elements = [
+        #xt.ParticlesMonitor(_context=test_context, start_at_turn=0, stop_at_turn=10, num_particles=42),
+        #xt.LastTurnsMonitor(_context=test_context, n_last_turns=5, num_particles=42),
+        xt.BeamPositionMonitor(_context=test_context, stop_at_turn=10),
+    ]
+
+    # test to_dict / from_dict
+    for ee in elements:
+        dd = ee.to_dict()
+        nee = ee.__class__.from_dict(dd, _context=test_context)
+        # Check that the two objects are bitwise identical
+        if not isinstance(test_context, xo.ContextCpu):
+            ee.move(_context=xo.ContextCpu())
+            nee.move(_context=xo.ContextCpu())
+        assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
+                - nee._xobject._buffer.buffer[
+                    nee._xobject._offset:nee._xobject._size]).sum() == 0
+
+
+@for_all_test_contexts
 def test_monitor(test_context):
     line = line0.copy()
     line.build_tracker(_context=test_context)
@@ -174,13 +195,13 @@ def test_beam_position_monitor(test_context):
 
     particles = xp.Particles(
         p0c=6.5e12,
-        x=0.1*np.arange(514), # generate a few more than we record to test "num_particles"
-        zeta=-2.99792458e8*np.tile([0.0, 0.5], 257),
+        x=0.1*np.arange(512), # generate a few more than we record to test "num_particles"
+        zeta=-2.99792458e8*np.tile([0.0, 0.5], 256),
         _context=test_context,
     )
 
     monitor = xt.BeamPositionMonitor(
-        num_particles=512,
+        #num_particles=512,
         start_at_turn=0,
         stop_at_turn=10,
         frev=1,

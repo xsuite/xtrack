@@ -50,7 +50,7 @@ class BeamPositionMonitor(BeamElement):
     ]
 
     
-    def __init__(self, *, particle_id_range=None, num_particles=None,
+    def __init__(self, *, particle_id_range=None, particle_id_start=None, num_particles=None,
                  start_at_turn=None, stop_at_turn=None, frev=None, 
                  sampling_frequency=None, _xobject=None, **kwargs):
         """
@@ -82,10 +82,10 @@ class BeamPositionMonitor(BeamElement):
         
 
         Args:
+            num_particles (int, optional): Number of particles to monitor. Defaults to -1 which means ALL.
+            particle_id_start (int, optional): First particle id to monitor. Defaults to 0.
             particle_id_range (tuple, optional): Range of particle ids to monitor (start, stop). Stop is exclusive.
-                                                 Default is to monitor all particles.
-            num_particles (int, optional): Number of particles. Equal to passing particle_id_range=(0, num_particles).
-                                           Negative values mean that all particles will be monitored.
+                                                 Defaults to (particle_id_start, particle_id_start+num_particles).
             start_at_turn (int): First turn of reference particle (inclusive) at which to monitor.
             stop_at_turn (int): Last turn of reference particle (exclusiv) at which to monitor.
             frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
@@ -99,14 +99,15 @@ class BeamPositionMonitor(BeamElement):
 
             # dict parameters
             if particle_id_range is None:
-                particle_id_start = 0
+                if particle_id_start is None:
+                    particle_id_start = 0
                 if num_particles is None:
                     num_particles = -1
-            elif num_particles is None:
+            elif particle_id_start is None and num_particles is None:
                 particle_id_start = particle_id_range[0]
                 num_particles = particle_id_range[1] - particle_id_range[0]
             else:
-                raise ValueError("Only one of `num_particles` or `particle_id_range` parameters may be specified")
+                raise ValueError("Parameter `particle_id_range` must not be used together with `num_particles` and/or `particle_id_start`")
             if start_at_turn is None:
                 start_at_turn = 0
             if stop_at_turn is None:
@@ -116,12 +117,14 @@ class BeamPositionMonitor(BeamElement):
             if sampling_frequency is None:
                 sampling_frequency = 1
             
-            # explicitely init with zeros (instead of size only) to have consistent initial values
-            size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
-            data = {prop: np.zeros(size) for prop in self.properties}
+            if "data" not in kwargs:
+                # explicitely init with zeros (instead of size only) to have consistent initial values
+                size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
+                kwargs["data"] = {prop: np.zeros(size) for prop in self.properties}
+
             super().__init__(particle_id_start=particle_id_start, num_particles=num_particles,
                              start_at_turn=start_at_turn, stop_at_turn=stop_at_turn, frev=frev,
-                             sampling_frequency=sampling_frequency, data=data, **kwargs)
+                             sampling_frequency=sampling_frequency, **kwargs)
 
 
     def __repr__(self):
