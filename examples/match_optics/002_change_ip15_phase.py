@@ -17,8 +17,8 @@ d_muy_15_b1 = None
 d_mux_15_b2 = None
 d_muy_15_b2 = None
 
-# d_mux_15_b1 = 0.1
-# d_muy_15_b1 = 0.12
+d_mux_15_b1 = -0.1
+d_muy_15_b1 = -0.12
 d_mux_15_b2 = -0.1
 d_muy_15_b2 = -0.12
 
