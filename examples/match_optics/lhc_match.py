@@ -666,6 +666,7 @@ def rematch_ir8(collider, line_name,
             opt.enable_vary(tag='stage1')
             opt.solve()
 
+            opt.enable_targets(tag='stage1')
             opt.enable_targets(tag='stage2')
             opt.enable_vary(tag='stage2')
             opt.solve()

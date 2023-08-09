@@ -10,6 +10,21 @@ default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w
 collider = xt.Multiline.from_json('collider_02_changed_ip15_phase.json')
 collider.build_trackers()
 
+collider_ref = xt.Multiline.from_json('collider_00_from_madx.json')
+collider_ref.build_trackers()
+collider_ref.vars.load_madx_optics_file(
+    "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
+
+tw = collider.twiss()
+tw_ref = collider_ref.twiss()
+
+ll = 'lhcb1'
+
+twip = tw[ll].rows['ip.*']
+twip_ref = tw_ref[ll].rows['ip.*']
+
+assert np.allclose(twip['betx'], twip_ref['betx'], rtol=1e-6, atol=0)
+
 # -----------------------------------------------------------------------------
 
 # Check higher level knobs
