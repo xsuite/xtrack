@@ -7,6 +7,7 @@ import json
 import pathlib
 
 import numpy as np
+from numpy.testing import assert_equal
 
 import xtrack as xt
 import xpart as xp
@@ -165,5 +166,53 @@ def test_last_turns_monitor(test_context):
     assert np.all(monitor.particle_id == np.array([[0,0,1,1,1],[2]*5,[3]*5,[4]*5]))
     assert np.all(monitor.at_turn == np.array([np.clip(n-np.arange(4,-1,-1),0,None) for n in (2,4,6,9)]))
     assert np.all(monitor.x == np.array([[0,0,2,1,0],[3,5,7,9,11],[0,-2,-4,-6,-8],[20,23,26,29,32]]))
+
+
+
+@for_all_test_contexts
+def test_beam_monitor(test_context):
+
+    particles = xp.Particles(
+        p0c=6.5e12,
+        x=np.arange(512),
+        zeta=-2.99792458e8*np.tile([0.0, 0.5], 256),
+        _context=test_context,
+    )
+    num_particles = len(particles.x)
+
+    monitor = xt.BeamMonitor(
+        num_particles=num_particles,
+        start_at_turn=0,
+        stop_at_turn=10,
+        rev_frequency=1,
+        sampling_frequency=2,
+        _context=test_context,
+    )
+
+    line = xt.Line([monitor])
+    line.build_tracker(_context=test_context)
+
+    for turn in range(10):
+
+        line.track(particles, num_turns=1)
+
+        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # so sort before manipulation
+        if isinstance(test_context, xo.ContextCpu):
+            particles.sort(interleave_lost_particles=True)
+
+        particles.x[0] += 1
+
+        if isinstance(test_context, xo.ContextCpu):
+            particles.reorganize()
+
+    print(monitor.at_turn)
+    print(monitor.x_cen)
+    print(monitor.summed_particles)
+    print(monitor.last_particle_id)
+
+    expected_x_centroid = np.tile([255.0, 256.0], 10)
+    expected_x_centroid[0::2] += np.arange(10)/256
+    assert_equal(monitor.x_cen, expected_x_centroid)
 
 
