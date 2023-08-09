@@ -184,7 +184,7 @@ def test_beam_monitor(test_context):
         num_particles=num_particles,
         start_at_turn=0,
         stop_at_turn=10,
-        rev_frequency=1,
+        frev=1,
         sampling_frequency=2,
         _context=test_context,
     )
