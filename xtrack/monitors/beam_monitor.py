@@ -78,7 +78,7 @@ class BeamMonitor(BeamElement):
             rev_frequency = 1
         if sampling_frequency is None:
             sampling_frequency = 1
-        data = {prop: [0]*int((stop_at_turn-start_at_turn)*(sampling_frequency/rev_frequency)*1.05) for prop in self.properties} # 5% safety for particles much ahead
+        data = {prop: [0]*int((stop_at_turn-start_at_turn)*(sampling_frequency/rev_frequency)) for prop in self.properties}
         super().__init__(particle_id_start=particle_id_start,num_particles=num_particles,start_at_turn=start_at_turn, stop_at_turn=stop_at_turn,rev_frequency=rev_frequency,sampling_frequency=sampling_frequency,data=data, **kwargs)
     
 
