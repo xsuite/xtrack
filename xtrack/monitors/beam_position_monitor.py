@@ -17,13 +17,13 @@ from ..general import _pkg_root
 
 
 
-class BeamMonitorRecord(xo.Struct):
+class BeamPositionMonitorRecord(xo.Struct):
     count = xo.Int64[:]
     x_sum = xo.Float64[:]
     y_sum = xo.Float64[:]
 
 
-class BeamMonitor(BeamElement):
+class BeamPositionMonitor(BeamElement):
 
     _xofields={
         'particle_id_start': xo.Int64,
@@ -33,7 +33,7 @@ class BeamMonitor(BeamElement):
         'frev': xo.Float64,
         'sampling_frequency': xo.Float64,
         '_index': RecordIndex,
-        'data': BeamMonitorRecord,
+        'data': BeamPositionMonitorRecord,
     }
     
     behaves_like_drift = True
@@ -43,10 +43,10 @@ class BeamMonitor(BeamElement):
     needs_cpu = True
     iscollective = True
     
-    properties = [field.name for field in BeamMonitorRecord._fields]
+    properties = [field.name for field in BeamPositionMonitorRecord._fields]
 
     _extra_c_sources = [
-        _pkg_root.joinpath('monitors/beam_monitor.h')
+        _pkg_root.joinpath('monitors/beam_position_monitor.h')
     ]
 
     

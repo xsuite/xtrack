@@ -170,7 +170,7 @@ def test_last_turns_monitor(test_context):
 
 
 @for_all_test_contexts
-def test_beam_monitor(test_context):
+def test_beam_position_monitor(test_context):
 
     particles = xp.Particles(
         p0c=6.5e12,
@@ -180,7 +180,7 @@ def test_beam_monitor(test_context):
     )
     num_particles = len(particles.x)
 
-    monitor = xt.BeamMonitor(
+    monitor = xt.BeamPositionMonitor(
         num_particles=num_particles,
         start_at_turn=0,
         stop_at_turn=10,
