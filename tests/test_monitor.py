@@ -7,7 +7,7 @@ import json
 import pathlib
 
 import numpy as np
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_allclose
 
 import xtrack as xt
 import xpart as xp
@@ -174,7 +174,7 @@ def test_beam_monitor(test_context):
 
     particles = xp.Particles(
         p0c=6.5e12,
-        x=np.arange(512),
+        x=0.1*np.arange(512),
         zeta=-2.99792458e8*np.tile([0.0, 0.5], 256),
         _context=test_context,
     )
@@ -193,26 +193,39 @@ def test_beam_monitor(test_context):
     line.build_tracker(_context=test_context)
 
     for turn in range(10):
-
-        line.track(particles, num_turns=1)
-
         # Note that indicees are re-ordered upon particle loss on CPU contexts,
         # so sort before manipulation
         if isinstance(test_context, xo.ContextCpu):
             particles.sort(interleave_lost_particles=True)
 
-        particles.x[0] += 1
+        # manipulate particles for testing
+        particles.x[0] += 0.5
+        if turn == 8:
+            particles.state[256:] = 0
+        if turn == 9:
+            particles.state[:] = 0
 
         if isinstance(test_context, xo.ContextCpu):
             particles.reorganize()
 
-    print(monitor.at_turn)
-    print(monitor.x_cen)
-    print(monitor.summed_particles)
-    print(monitor.last_particle_id)
+        # track and monitor
+        line.track(particles, num_turns=1)
 
-    expected_x_centroid = np.tile([255.0, 256.0], 10)
-    expected_x_centroid[0::2] += np.arange(10)/256
-    assert_equal(monitor.x_cen, expected_x_centroid)
+    # Check against expected values
+    expected_count = np.tile([256, 256], 10)
+    expected_count[16:18] = 128
+    expected_count[18:20] = 0
+    assert_equal(monitor.count, expected_count, err_msg="Monitor count does not match expected particle count")
 
+    expected_x_sum = np.tile([6528.0, 6553.6], 10)
+    expected_x_sum[0::2] += 0.5*np.arange(1, 11)
+    expected_x_sum[16:18] = [1625.6 + 4.5, 1638.4]
+    expected_x_sum[18:20] = 0
+    assert_allclose(monitor.x_sum, expected_x_sum, err_msg="Monitor x sum does not match expected values")
+
+    expected_x_centroid = np.zeros(20)
+    expected_x_centroid[:18] = expected_x_sum[:18]/expected_count[:18]
+    expected_x_centroid[18:20] = np.nan
+    assert_allclose(monitor.x_cen, expected_x_centroid, err_msg="Monitor x centroid does not match expected values")
+    
 
