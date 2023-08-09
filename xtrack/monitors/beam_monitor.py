@@ -1,15 +1,18 @@
 """
 Monitor to save the centroid of the many slices or time slots within a turn (like an actual BPM)
 
-Author: Rahul Singh
+Author: Rahul Singh, Cristopher Cortes, Philipp Niedermayer
 Date: 2023-06-10
 """
 
-import xtrack as xt
-import xpart as xp
-import xobjects as xo
 import numpy as np
-from pathlib import Path
+
+import xobjects as xo
+
+from ..base_element import BeamElement
+from ..beam_elements import Marker
+from ..internal_record import RecordIndex
+from ..general import _pkg_root
 
 
 ################################################################
@@ -23,7 +26,7 @@ from pathlib import Path
 # the index, the structure can contain an arbitrary number of other fields (which
 # need to be arrays) where the data will be stored.
 
-class BPMRecord(xo.Struct):
+class BeamMonitorRecord(xo.Struct):
 
     at_turn = xo.Int64[:]
     x_cen = xo.Float64[:]
@@ -31,7 +34,7 @@ class BPMRecord(xo.Struct):
     summed_particles = xo.Int64[:]
     last_particle_id = xo.Int64[:]
 
-class BPM(xt.BeamElement):
+class BeamMonitor(BeamElement):
     _xofields={
         'particle_id_start': xo.Int64,
         'num_particles': xo.Int64,
@@ -39,16 +42,18 @@ class BPM(xt.BeamElement):
         'stop_at_turn' :xo.Int64,
         'rev_frequency':xo.Float64,
         'sampling_frequency':xo.Float64,
-        '_index':xt.RecordIndex,
-        'data':BPMRecord,
+        '_index':RecordIndex,
+        'data':BeamMonitorRecord,
     }
     
     behaves_like_drift = True
     allow_backtrack = True
     
-    properties = [field.name for field in BPMRecord._fields]
+    properties = [field.name for field in BeamMonitorRecord._fields]
 
-    _extra_c_sources = [Path(__file__).parent.absolute().joinpath('BPM.h')]
+    _extra_c_sources = [
+        _pkg_root.joinpath('monitors/beam_monitor.h')
+    ]
 
     
     def __init__(self, *, particle_id_start=None,num_particles=None,start_at_turn=None, stop_at_turn=None,rev_frequency=None,sampling_frequency=None, _xobject=None, **kwargs):
@@ -101,4 +106,4 @@ class BPM(xt.BeamElement):
         )
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return xt.Marker(_context=_context, _buffer=_buffer, _offset=_offset)
+        return Marker(_context=_context, _buffer=_buffer, _offset=_offset)
