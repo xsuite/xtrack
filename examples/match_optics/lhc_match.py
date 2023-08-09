@@ -459,6 +459,8 @@ def rematch_ir4(collider, line_name,
         else:
             opt.solve()
 
+    return opt
+
 
 def rematch_ir6(collider, line_name,
                 boundary_conditions_left, boundary_conditions_right,

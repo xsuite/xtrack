@@ -170,7 +170,7 @@ for bn in ['b1', 'b2']:
             betx_ip7=betx_ip7, bety_ip7=bety_ip7,
             dx_ip7=dx_ip7, dpx_ip7=dpx_ip7,
             solve=True, staged_match=staged_match, default_tol=default_tol)
-    optimizers[bn]['ip7'] = opt
+    optimizers[bn]['ir7'] = opt
 
     print(f"Matching IP8 {bn}")
 
@@ -189,7 +189,7 @@ for bn in ['b1', 'b2']:
             betx_ip8=betx_ip8, bety_ip8=bety_ip8,
             dx_ip8=dx_ip8, dpx_ip8=dpx_ip8,
             solve=True, staged_match=staged_match, default_tol=default_tol)
-    optimizers[bn]['ip8'] = opt
+    optimizers[bn]['ir8'] = opt
 
     tt_2 = time.time()
     t_match_irs[bn] = tt_2 - tt_1
