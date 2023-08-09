@@ -24,16 +24,20 @@ d_muy_15_b2 = -0.12
 
 staged_match = True
 
+optimizers = {}
+
+print('Matching ip15 phase:')
 t1 = time.time()
 opt = lm.change_phase_non_ats_arcs(collider,
     d_mux_15_b1=d_mux_15_b1, d_muy_15_b1=d_muy_15_b1,
     d_mux_15_b2=d_mux_15_b2, d_muy_15_b2=d_muy_15_b2,
     solve=True, default_tol=default_tol)
 t2 = time.time()
+optimizers['phase_15'] = opt
 
 arc_periodic_solution = lm.get_arc_periodic_solution(collider)
 
-optimizers = {'b1': {}, 'b2': {}}
+optimizers.update({'b1':{}, 'b2':{}})
 
 t_match_irs = {}
 for bn in ['b1', 'b2']:
