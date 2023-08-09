@@ -359,13 +359,12 @@ def rematch_ir2(collider, line_name,
         # Left boundary
         twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
         targets=[
-            # IP optics
-            xt.TargetList(('alfx', 'alfy', 'dx', 'dpx'), value=0, at='ip2',    tag='stage2'),
-            xt.Target('betx', value=betx_ip2, at='ip2', tag='stage2'),
-            xt.Target('bety', value=bety_ip2, at='ip2', tag='stage2'),
-            # Right boundary
-            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), tag='stage0',
-                    value=boundary_conditions_right, at=f'e.ds.r2.{bn}'),
+            xt.TargetSet(at=f'e.ds.r2.{bn}',
+                    tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                    value=boundary_conditions_right, tag='stage0'),
+            xt.TargetSet(at='ip2',
+                betx=betx_ip2, bety=bety_ip2, alfx=0, alfy=0, dx=0, dpx=0,
+                tag='stage2'),
             xt.TargetRelPhaseAdvance('mux', mux_ir2, tag='stage0'),
             xt.TargetRelPhaseAdvance('muy', muy_ir2, tag='stage0'),
         ],
