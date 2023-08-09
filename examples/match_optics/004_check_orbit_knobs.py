@@ -5,6 +5,12 @@ import numpy as np
 import xtrack as xt
 import lhc_match as lm
 
+# Values to check
+d_mux_15_b1 = 0.07
+d_muy_15_b1 = 0.05
+d_mux_15_b2 = -0.1
+d_muy_15_b2 = -0.12
+
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
 collider = xt.Multiline.from_json('collider_02_changed_ip15_phase.json')
@@ -18,12 +24,35 @@ collider_ref.vars.load_madx_optics_file(
 tw = collider.twiss()
 tw_ref = collider_ref.twiss()
 
-ll = 'lhcb1'
+d_mux = {'lhcb1': d_mux_15_b1, 'lhcb2': d_mux_15_b2}
+d_muy = {'lhcb1': d_muy_15_b1, 'lhcb2': d_muy_15_b2}
 
-twip = tw[ll].rows['ip.*']
-twip_ref = tw_ref[ll].rows['ip.*']
+for ll in ['lhcb1', 'lhcb2']:
 
-assert np.allclose(twip['betx'], twip_ref['betx'], rtol=1e-6, atol=0)
+    assert np.isclose(tw[ll].qx, tw_ref[ll].qx, atol=1e-7, rtol=0)
+    assert np.isclose(tw[ll].qy, tw_ref[ll].qy, atol=1e-7, rtol=0)
+
+    mux_15 = tw[ll]['mux', 'ip5'] - tw[ll]['mux', 'ip1']
+    mux_ref_15 = tw_ref[ll]['mux', 'ip5'] - tw_ref[ll]['mux', 'ip1']
+
+    muy_15 = tw[ll]['muy', 'ip5'] - tw[ll]['muy', 'ip1']
+    muy_ref_15 = tw_ref[ll]['muy', 'ip5'] - tw_ref[ll]['muy', 'ip1']
+
+    assert np.isclose(mux_15, mux_ref_15 + d_mux[ll], atol=1e-7, rtol=0)
+    assert np.isclose(muy_15, muy_ref_15 + d_muy[ll], atol=1e-7, rtol=0)
+
+    twip = tw[ll].rows['ip.*']
+    twip_ref = tw_ref[ll].rows['ip.*']
+
+    assert np.allclose(twip['betx'], twip_ref['betx'], rtol=1e-6, atol=0)
+    assert np.allclose(twip['bety'], twip_ref['bety'], rtol=1e-6, atol=0)
+    assert np.allclose(twip['alfx'], twip_ref['alfx'], rtol=0, atol=1e-5)
+    assert np.allclose(twip['alfy'], twip_ref['alfy'], rtol=0, atol=1e-5)
+    assert np.allclose(twip['dx'], twip_ref['dx'], rtol=0, atol=1e-6)
+    assert np.allclose(twip['dy'], twip_ref['dy'], rtol=0, atol=1e-6)
+    assert np.allclose(twip['dpx'], twip_ref['dpx'], rtol=0, atol=1e-7)
+    assert np.allclose(twip['dpy'], twip_ref['dpy'], rtol=0, atol=1e-7)
+
 
 # -----------------------------------------------------------------------------
 
