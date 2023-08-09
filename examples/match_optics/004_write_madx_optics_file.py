@@ -129,3 +129,4 @@ assert np.isclose(mad.table.twb1.summary.dq1, 10.0, rtol=0, atol=0.3)
 assert np.isclose(mad.table.twb1.summary.dq2, 12.0, rtol=0, atol=0.3)
 assert np.isclose(mad.table.twb2.summary.dq1, 9.0, rtol=0, atol=0.3)
 assert np.isclose(mad.table.twb2.summary.dq2, 11.0, rtol=0, atol=0.3)
+
