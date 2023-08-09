@@ -200,6 +200,10 @@ for bn in ['b1', 'b2']:
     tt_2 = time.time()
     t_match_irs[bn] = tt_2 - tt_1
 
+t3 = time.time()
+opt = lm.match_orbit_knobs_ip2_ip8(collider)
+t4 = time.time()
+optimizers['orbit_knobs'] = opt
 
 tw = collider.twiss()
 
@@ -229,6 +233,7 @@ print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip5']:6f} "
 print(f'Time match arcs: {t2-t1} s')
 print(f'Time match IRs b1: {t_match_irs["b1"]}')
 print(f'Time match IRs b2: {t_match_irs["b2"]}')
+print(f'Time match orbit knobs: {t4-t3} s')
 
 # # Open twisses to debug
 # tw_b1_check = collider.lhcb1.twiss(

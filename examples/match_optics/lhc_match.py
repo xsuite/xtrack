@@ -1,3 +1,5 @@
+import numpy as np
+
 import xtrack as xt
 
 ARC_NAMES = ['12', '23', '34', '45', '56', '67', '78', '81']
@@ -669,5 +671,478 @@ def rematch_ir8(collider, line_name,
             opt.solve()
         else:
             opt.solve()
+
+    return opt
+
+def match_orbit_knobs_ip2_ip8(collider):
+
+    all_knobs_ip2ip8 = ['acbxh3.r2', 'acbchs5.r2b1', 'pxip2b1', 'acbxh2.l8',
+        'acbyhs4.r8b2', 'pyip2b1', 'acbxv1.l8', 'acbyvs4.l2b1', 'acbxh1.l8',
+        'acbxv2.r8', 'pxip8b2', 'yip8b1', 'pxip2b2', 'acbcvs5.r2b1', 'acbyhs4.l8b1',
+        'acbyvs4.l8b1', 'acbxh2.l2', 'acbxh3.l2', 'acbxv1.r8', 'acbxv1.r2',
+        'acbyvs4.r2b2', 'acbyvs4.l2b2', 'yip8b2', 'xip2b2', 'acbxh2.r2',
+        'acbyhs4.l2b2', 'acbxv2.r2', 'acbyhs5.r8b1', 'acbxh2.r8', 'acbxv3.r8',
+        'acbyvs5.r8b2', 'acbyvs5.l2b2', 'yip2b1', 'acbxv2.l2', 'acbyhs4.r2b2',
+        'acbyhs4.r2b1', 'xip8b2', 'acbyvs5.l2b1', 'acbyvs4.r8b1', 'acbyvs4.r8b2',
+        'acbyvs5.r8b1', 'acbxh1.r8', 'acbyvs4.l8b2', 'acbyhs5.l2b1', 'acbyvs4.r2b1',
+        'acbcvs5.r2b2', 'acbcvs5.l8b2', 'acbyhs4.r8b1', 'pxip8b1', 'acbxv1.l2',
+        'yip2b2', 'acbyhs4.l8b2', 'acbxv3.r2', 'xip8b1', 'acbchs5.r2b2', 'acbxh3.l8',
+        'acbxh3.r8', 'acbyhs5.r8b2', 'acbxv2.l8', 'acbxh1.l2', 'pyip8b1', 'pyip8b2',
+        'acbxv3.l8', 'xip2b1', 'acbyhs5.l2b2', 'acbchs5.l8b2', 'acbcvs5.l8b1',
+        'pyip2b2', 'acbxv3.l2', 'acbchs5.l8b1', 'acbyhs4.l2b1', 'acbxh1.r2']
+
+
+    # kill all existing knobs
+    for kk in all_knobs_ip2ip8:
+        collider.vars[kk] = 0
+
+    twinit_zero_orbit = [xt.TwissInit(), xt.TwissInit()]
+
+    targets_close_bump = [
+        xt.TargetSet(line='lhcb1', at=xt.END, x=0, px=0, y=0, py=0),
+        xt.TargetSet(line='lhcb2', at=xt.END, x=0, px=0, y=0, py=0),
+    ]
+
+    bump_range_ip2 = {
+        'ele_start': ['s.ds.l2.b1', 's.ds.l2.b2'],
+        'ele_stop': ['e.ds.r2.b1', 'e.ds.r2.b2'],
+        'only_markers': True, # quick and dirty way to pass a kwarg to all matches
+        'only_orbit': True,
+    }
+    bump_range_ip8 = {
+        'ele_start': ['s.ds.l8.b1', 's.ds.l8.b2'],
+        'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2'],
+        'only_markers': True, # quick and dirty way to pass a kwarg to all matches
+        'only_orbit': True,
+    }
+
+    correctors_ir2_single_beam_h = [
+        'acbyhs4.l2b1', 'acbyhs4.r2b2', 'acbyhs4.l2b2', 'acbyhs4.r2b1',
+        'acbyhs5.l2b2', 'acbyhs5.l2b1', 'acbchs5.r2b1', 'acbchs5.r2b2']
+
+    correctors_ir2_single_beam_v = [
+        'acbyvs4.l2b1', 'acbyvs4.r2b2', 'acbyvs4.l2b2', 'acbyvs4.r2b1',
+        'acbyvs5.l2b2', 'acbyvs5.l2b1', 'acbcvs5.r2b1', 'acbcvs5.r2b2']
+
+    correctors_ir8_single_beam_h = [
+        'acbyhs4.l8b1', 'acbyhs4.r8b2', 'acbyhs4.l8b2', 'acbyhs4.r8b1',
+        'acbchs5.l8b2', 'acbchs5.l8b1', 'acbyhs5.r8b1', 'acbyhs5.r8b2']
+
+    correctors_ir8_single_beam_v = [
+        'acbyvs4.l8b1', 'acbyvs4.r8b2', 'acbyvs4.l8b2', 'acbyvs4.r8b1',
+        'acbcvs5.l8b2', 'acbcvs5.l8b1', 'acbyvs5.r8b1', 'acbyvs5.r8b2']
+
+    correctors_ir2_common_h = [
+        'acbxh1.l2', 'acbxh2.l2', 'acbxh3.l2', 'acbxh1.r2', 'acbxh2.r2', 'acbxh3.r2']
+
+    correctors_ir2_common_v = [
+        'acbxv1.l2', 'acbxv2.l2', 'acbxv3.l2', 'acbxv1.r2', 'acbxv2.r2', 'acbxv3.r2']
+
+    correctors_ir8_common_h = [
+        'acbxh1.l8', 'acbxh2.l8', 'acbxh3.l8', 'acbxh1.r8', 'acbxh2.r8', 'acbxh3.r8']
+
+    correctors_ir8_common_v = [
+        'acbxv1.l8', 'acbxv2.l8', 'acbxv3.l8', 'acbxv1.r8', 'acbxv2.r8', 'acbxv3.r8']
+
+    #########################
+    # Match IP offset knobs #
+    #########################
+
+    offset_match = 0.5e-3
+
+    # ---------- on_o2v ----------
+
+    opt_o2v = collider.match_knob(
+        knob_name='on_o2v', knob_value_end=(offset_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2', y=offset_match, py=0),
+            xt.TargetSet(line='lhcb2', at='ip2', y=offset_match, py=0),
+        ]),
+        vary=xt.VaryList(correctors_ir2_single_beam_v),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+    opt_o2v.solve()
+    opt_o2v.generate_knob()
+
+    # ---------- on_o2h ----------
+
+    opt_o2h = collider.match_knob(
+        knob_name='on_o2h', knob_value_end=(offset_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2', x=offset_match, px=0),
+            xt.TargetSet(line='lhcb2', at='ip2', x=offset_match, px=0),
+        ]),
+        vary=xt.VaryList(correctors_ir2_single_beam_h),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+    opt_o2h.solve()
+    opt_o2h.generate_knob()
+
+    # ---------- on_o8v ----------
+
+    opt_o8v = collider.match_knob(
+        knob_name='on_o8v', knob_value_end=(offset_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8', y=offset_match, py=0),
+            xt.TargetSet(line='lhcb2', at='ip8', y=offset_match, py=0),
+        ]),
+        vary=xt.VaryList(correctors_ir8_single_beam_v),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+    opt_o8v.solve()
+    opt_o8v.generate_knob()
+
+    # ---------- on_o8h ----------
+
+    opt_o8h = collider.match_knob(
+        knob_name='on_o8h', knob_value_end=(offset_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8', x=offset_match, px=0),
+            xt.TargetSet(line='lhcb2', at='ip8', x=offset_match, px=0),
+        ]),
+        vary=xt.VaryList(correctors_ir8_single_beam_h),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+    opt_o8h.solve()
+    opt_o8h.generate_knob()
+
+    ##############################
+    # Match angular offset knobs #
+    ##############################
+
+    ang_offset_match = 30e-6
+
+    # ---------- on_a2h ----------
+
+    opt_a2h = collider.match_knob(
+        knob_name='on_a2h', knob_value_end=(ang_offset_match * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2', x=0, px=ang_offset_match),
+            xt.TargetSet(line='lhcb2', at='ip2', x=0, px=ang_offset_match),
+        ]),
+        vary=xt.VaryList(correctors_ir2_single_beam_h),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+
+    opt_a2h.solve()
+    opt_a2h.generate_knob()
+
+    # ---------- on_a2v ----------
+
+    opt_a2v = collider.match_knob(
+        knob_name='on_a2v', knob_value_end=(ang_offset_match * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2', y=0, py=ang_offset_match),
+            xt.TargetSet(line='lhcb2', at='ip2', y=0, py=ang_offset_match),
+        ]),
+        vary=xt.VaryList(correctors_ir2_single_beam_v),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+
+    opt_a2v.solve()
+    opt_a2v.generate_knob()
+
+    # ---------- on_a8h ----------
+
+    opt_a8h = collider.match_knob(
+        knob_name='on_a8h', knob_value_end=(ang_offset_match * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8', x=0, px=ang_offset_match),
+            xt.TargetSet(line='lhcb2', at='ip8', x=0, px=ang_offset_match),
+        ]),
+        vary=xt.VaryList(correctors_ir8_single_beam_h),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+
+    opt_a8h.solve()
+    opt_a8h.generate_knob()
+
+    # ---------- on_a8v ----------
+
+    opt_a8v = collider.match_knob(
+        knob_name='on_a8v', knob_value_end=(ang_offset_match * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8', y=0, py=ang_offset_match),
+            xt.TargetSet(line='lhcb2', at='ip8', y=0, py=ang_offset_match),
+        ]),
+        vary=xt.VaryList(correctors_ir8_single_beam_v),
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+
+    opt_a8v.solve()
+    opt_a8v.generate_knob()
+
+    ##############################
+    # Match crossing angle knobs #
+    ##############################
+
+    angle_match_ip2 = 170e-6
+    angle_match_ip8 = 300e-6
+
+    # ---------- on_x2h ----------
+
+    opt_x2h = collider.match_knob(
+        knob_name='on_x2h', knob_value_end=(angle_match_ip2 * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2',  x=0, px=angle_match_ip2),
+            xt.TargetSet(line='lhcb2', at='ip2',  x=0, px=-angle_match_ip2),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir2_single_beam_h),
+            xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+    # Set mcbx by hand
+    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6 # Value for 170 urad crossing
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxh{icorr}.l2_from_on_x2h'] = acbx_xing_ir2
+        collider.vars[f'acbxh{icorr}.r2_from_on_x2h'] = -acbx_xing_ir2
+    # Match other correctors with fixed mcbx and generate knob
+    opt_x2h.disable_vary(tag='mcbx')
+    opt_x2h.solve()
+    opt_x2h.generate_knob()
+
+    # ---------- on_x2v ----------
+
+    opt_x2v = collider.match_knob(
+        knob_name='on_x2v', knob_value_end=(angle_match_ip2 * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2',  y=0, py=angle_match_ip2),
+            xt.TargetSet(line='lhcb2', at='ip2',  y=0, py=-angle_match_ip2),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir2_single_beam_v),
+            xt.VaryList(correctors_ir2_common_v, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+    # Set mcbx by hand
+    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    acbx_xing_ir2 = 1.0e-6 if testkqx2 > 210. else 11.0e-6
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxv{icorr}.l2_from_on_x2v'] = acbx_xing_ir2
+        collider.vars[f'acbxv{icorr}.r2_from_on_x2v'] = -acbx_xing_ir2
+    # Match other correctors with fixed mcbx and generate knob
+    opt_x2v.disable_vary(tag='mcbx')
+    opt_x2v.solve()
+    opt_x2v.generate_knob()
+
+    # ---------- on_x8h ----------
+
+    opt_x8h = collider.match_knob(
+        knob_name='on_x8h', knob_value_end=(angle_match_ip8 * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8',  x=0, px=angle_match_ip8),
+            xt.TargetSet(line='lhcb2', at='ip8',  x=0, px=-angle_match_ip8),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir8_single_beam_h),
+            xt.VaryList(correctors_ir8_common_h, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+
+    # Set mcbx by hand (reduce value by 10, to test matching algorithm)
+    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
+
+    # Set mcbx by hand
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6
+        collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6
+
+    #   (reduce value by 10, to test matching algorithm)
+    #   collider.vars[f'acbxh{icorr}.l8_from_on_x8h'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
+    #   collider.vars[f'acbxh{icorr}.r8_from_on_x8h'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6 * 0.1
+
+    # First round of optimization without changing mcbx
+    opt_x8h.disable_vary(tag='mcbx')
+    opt_x8h.step(3) # perform 3 steps without checking for convergence
+
+    # Link all mcbx strengths to the first one
+    collider.vars['acbxh2.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
+    collider.vars['acbxh3.l8_from_on_x8h'] =  collider.vars['acbxh1.l8_from_on_x8h']
+    collider.vars['acbxh2.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
+    collider.vars['acbxh3.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
+    collider.vars['acbxh1.r8_from_on_x8h'] = -collider.vars['acbxh1.l8_from_on_x8h']
+
+    # Enable first mcbx knob (which controls the others)
+    assert opt_x8h.vary[8].name == 'acbxh1.l8_from_on_x8h'
+    opt_x8h.vary[8].active = True
+
+    # Solve and generate knob
+    opt_x8h.solve()
+    opt_x8h.generate_knob()
+
+    # ---------- on_x8v ----------
+
+    opt_x8v = collider.match_knob(
+        knob_name='on_x8v', knob_value_end=(angle_match_ip8 * 1e6),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8', y=0, py=angle_match_ip8),
+            xt.TargetSet(line='lhcb2', at='ip8', y=0, py=-angle_match_ip8),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir8_single_beam_v),
+            xt.VaryList(correctors_ir8_common_v, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+
+    # Set mcbx by hand
+    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    acbx_xing_ir8 = 1.0e-6 if testkqx8 > 210. else 11.0e-6 # Value for 170 urad crossing
+    # Set MCBX by hand
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxv{icorr}.l8_from_on_x8v'] = acbx_xing_ir8 * angle_match_ip8 / 170e-6
+        collider.vars[f'acbxv{icorr}.r8_from_on_x8v'] = -acbx_xing_ir8 * angle_match_ip8 / 170e-6
+
+    # First round of optimization without changing mcbx
+    opt_x8v.disable_vary(tag='mcbx')
+    opt_x8v.step(3) # perform 3 steps without checking for convergence
+
+    # Solve with all vary active and generate knob
+    opt_x8v.enable_vary(tag='mcbx')
+    opt_x8v.solve()
+    opt_x8v.generate_knob()
+
+    ##########################
+    # Match separation knobs #
+    ##########################
+
+    sep_match = 2e-3
+
+    # ---------- on_sep2h ----------
+
+    opt_sep2h = collider.match_knob(
+        knob_name='on_sep2h', knob_value_end=(sep_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2', x=sep_match, px=0),
+            xt.TargetSet(line='lhcb2', at='ip2', x=-sep_match, px=0),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir2_single_beam_h),
+            xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+
+    # Set mcbx by hand
+    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    acbx_sep_ir2 = 18e-6 if testkqx2 > 210. else 16e-6
+
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxh{icorr}.l2_from_on_sep2h'] = acbx_sep_ir2
+        collider.vars[f'acbxh{icorr}.r2_from_on_sep2h'] = acbx_sep_ir2
+
+    # Match other correctors with fixed mcbx and generate knob
+    opt_sep2h.disable_vary(tag='mcbx')
+    opt_sep2h.solve()
+    opt_sep2h.generate_knob()
+
+    # ---------- on_sep2v ----------
+
+    opt_sep2v = collider.match_knob(
+        knob_name='on_sep2v', knob_value_end=(sep_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip2',  y=sep_match, py=0),
+            xt.TargetSet(line='lhcb2', at='ip2',  y=-sep_match, py=0),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir2_single_beam_v),
+            xt.VaryList(correctors_ir2_common_v, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+    )
+
+    # Set mcbx by hand
+    testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
+    acbx_sep_ir2 = 18e-6 if testkqx2 > 210. else 16e-6
+
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxv{icorr}.l2_from_on_sep2v'] = acbx_sep_ir2
+        collider.vars[f'acbxv{icorr}.r2_from_on_sep2v'] = acbx_sep_ir2
+
+    # Match other correctors with fixed mcbx and generate knob
+    opt_sep2v.disable_vary(tag='mcbx')
+    opt_sep2v.solve()
+    opt_sep2v.generate_knob()
+
+    # ---------- on_sep8h ----------
+
+    opt_sep8h = collider.match_knob(
+        knob_name='on_sep8h', knob_value_end=(sep_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8',  x=sep_match, px=0),
+            xt.TargetSet(line='lhcb2', at='ip8',  x=-sep_match, px=0),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir8_single_beam_h),
+            xt.VaryList(correctors_ir8_common_h, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+
+    # Set mcbx by hand
+    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
+
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxh{icorr}.l8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+        collider.vars[f'acbxh{icorr}.r8_from_on_sep8h'] = acbx_sep_ir8 * sep_match / 2e-3
+
+    # Match other correctors with fixed mcbx and generate knob
+    opt_sep8h.disable_vary(tag='mcbx')
+    opt_sep8h.solve()
+    opt_sep8h.generate_knob()
+
+    # ---------- on_sep8v ----------
+
+    opt_sep8v = collider.match_knob(
+        knob_name='on_sep8v', knob_value_end=(sep_match * 1e3),
+        targets=(targets_close_bump + [
+            xt.TargetSet(line='lhcb1', at='ip8',  y=sep_match, py=0),
+            xt.TargetSet(line='lhcb2', at='ip8',  y=-sep_match, py=0),
+        ]),
+        vary=[
+            xt.VaryList(correctors_ir8_single_beam_v),
+            xt.VaryList(correctors_ir8_common_v, tag='mcbx')],
+        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+    )
+
+    # Set mcbx by hand
+    testkqx8=abs(collider.varval['kqx.l8'])*7000./0.3
+    acbx_sep_ir8 = 18e-6 if testkqx8 > 210. else 16e-6
+
+    for icorr in [1, 2, 3]:
+        collider.vars[f'acbxv{icorr}.l8_from_on_sep8v'] = acbx_sep_ir8 * sep_match / 2e-3
+        collider.vars[f'acbxv{icorr}.r8_from_on_sep8v'] = acbx_sep_ir8 * sep_match / 2e-3
+
+    # Match other correctors with fixed mcbx and generate knob
+    opt_sep8v.disable_vary(tag='mcbx')
+    opt_sep8v.solve()
+    opt_sep8v.generate_knob()
+
+    v = collider.vars
+    f = collider.functions
+    v['phi_ir2'] = 90.
+    v['phi_ir8'] = 0.
+    for irn in [2, 8]:
+        v[f'cphi_ir{irn}'] = f.cos(v[f'phi_ir{irn}'] * np.pi / 180.)
+        v[f'sphi_ir{irn}'] = f.sin(v[f'phi_ir{irn}'] * np.pi / 180.)
+        v[f'on_x{irn}h']   =  v[f'on_x{irn}'] * v[f'cphi_ir{irn}']
+        v[f'on_x{irn}v']   =  v[f'on_x{irn}'] * v[f'sphi_ir{irn}']
+        v[f'on_sep{irn}h'] = -v[f'on_sep{irn}'] * v[f'sphi_ir{irn}']
+        v[f'on_sep{irn}v'] =  v[f'on_sep{irn}'] * v[f'cphi_ir{irn}']
+        v[f'on_o{irn}h']   =  v[f'on_o{irn}'] * v[f'cphi_ir{irn}']
+        v[f'on_o{irn}v']   =  v[f'on_o{irn}'] * v[f'sphi_ir{irn}']
+        v[f'on_a{irn}h']   = -v[f'on_a{irn}'] * v[f'sphi_ir{irn}']
+        v[f'on_a{irn}v']   =  v[f'on_a{irn}'] * v[f'cphi_ir{irn}']
+
+    opt = {
+        'on_o2h': opt_o2h, 'on_o2v': opt_o2v,
+        'on_o8h': opt_o8h, 'on_o8v': opt_o8v,
+        'on_a2h': opt_a2h, 'on_a2v': opt_a2v,
+        'on_a8h': opt_a8h, 'on_a8v': opt_a8v,
+        'on_x2h': opt_x2h, 'on_x2v': opt_x2v,
+        'on_x8h': opt_x8h, 'on_x8v': opt_x8v,
+        'on_sep2h': opt_sep2h, 'on_sep2v': opt_sep2v,
+        'on_sep8h': opt_sep8h, 'on_sep8v': opt_sep8v,
+    }
 
     return opt

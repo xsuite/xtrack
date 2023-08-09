@@ -3,7 +3,7 @@ import numpy as np
 import xtrack as xt
 import xdeps as xd
 
-collider = xt.Multiline.from_json('collider_03_with_orbit_knobs.json')
+collider = xt.Multiline.from_json('collider_02_changed_ip15_phase.json')
 collider.build_trackers()
 
 fun_container = xt.line.Functions()
