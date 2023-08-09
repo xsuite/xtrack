@@ -50,14 +50,33 @@ for bn in ['b1', 'b2']:
             beta_star_x=collider.varval[f'betxip5{bn}'],
             beta_star_y=collider.varval[f'betyip5{bn}'])
 
+    muxip1_l = collider.varval[f'muxip1{bn}_l']
+    muyip1_l = collider.varval[f'muyip1{bn}_l']
     muxip1_r = collider.varval[f'muxip1{bn}_r']
     muyip1_r = collider.varval[f'muyip1{bn}_r']
 
+    muxip5_l = collider.varval[f'muxip5{bn}_l']
+    muyip5_l = collider.varval[f'muyip5{bn}_l']
+    muxip5_r = collider.varval[f'muxip5{bn}_r']
+    muyip5_r = collider.varval[f'muyip5{bn}_r']
+
     muxip2 = collider.varval[f'muxip2{bn}']
     muyip2 = collider.varval[f'muyip2{bn}']
+    muxip4 = collider.varval[f'muxip4{bn}']
+    muyip4 = collider.varval[f'muyip4{bn}']
+    muxip6 = collider.varval[f'muxip6{bn}']
+    muyip6 = collider.varval[f'muyip6{bn}']
+    muxip8 = collider.varval[f'muxip8{bn}']
+    muyip8 = collider.varval[f'muyip8{bn}']
 
     mux12 = collider.varval[f'mux12{bn}']
     muy12 = collider.varval[f'muy12{bn}']
+    mux45 = collider.varval[f'mux45{bn}']
+    muy45 = collider.varval[f'muy45{bn}']
+    mux56 = collider.varval[f'mux56{bn}']
+    muy56 = collider.varval[f'muy56{bn}']
+    mux81 = collider.varval[f'mux81{bn}']
+    muy81 = collider.varval[f'muy81{bn}']
 
     mux_compensate_ir2 = (tw_sq_a81_ip1_a12['mux', f's.ds.l2.{bn}'] - tw_sq_a81_ip1_a12['mux', 'ip1']
                           - muxip1_r - mux12)
@@ -67,25 +86,25 @@ for bn in ['b1', 'b2']:
     muy_ir2_target = muyip2 - muy_compensate_ir2
 
     mux_compensate_ir4 = (tw_sq_a45_ip5_a56['mux', 'ip5'] - tw_sq_a45_ip5_a56['mux', f'e.ds.r4.{bn}']
-                    - collider.varval[f'muxip5{bn}_l'] - collider.varval[f'mux45{bn}'])
-    mux_ir4_target = collider.varval[f'muxip4{bn}'] - mux_compensate_ir4
+                          - muxip5_l - mux45)
+    mux_ir4_target = muxip4 - mux_compensate_ir4
     muy_compensate_ir4 = (tw_sq_a45_ip5_a56['muy', 'ip5'] - tw_sq_a45_ip5_a56['muy', f'e.ds.r4.{bn}']
-                    - collider.varval[f'muyip5{bn}_l'] - collider.varval[f'muy45{bn}'])
-    muy_ir4_target = collider.varval[f'muyip4{bn}'] - muy_compensate_ir4
+                          - muyip5_l - muy45)
+    muy_ir4_target = muyip4 - muy_compensate_ir4
 
     mux_compensate_ir6 = (tw_sq_a45_ip5_a56['mux', f's.ds.l6.{bn}'] - tw_sq_a45_ip5_a56['mux', 'ip5']
-                    - collider.varval[f'muxip5{bn}_r'] - collider.varval[f'mux56{bn}'])
-    mux_ir6_target = collider.varval[f'muxip6{bn}'] - mux_compensate_ir6
+                          - muxip5_r - mux56)
+    mux_ir6_target = muxip6 - mux_compensate_ir6
     muy_compensate_ir6 = (tw_sq_a45_ip5_a56['muy', f's.ds.l6.{bn}'] - tw_sq_a45_ip5_a56['muy', 'ip5']
-                    - collider.varval[f'muyip5{bn}_r'] - collider.varval[f'muy56{bn}'])
-    muy_ir6_target = collider.varval[f'muyip6{bn}'] - muy_compensate_ir6
+                          - muyip5_r - muy56)
+    muy_ir6_target = muyip6 - muy_compensate_ir6
 
     mux_compensate_ir8 = (tw_sq_a81_ip1_a12['mux', 'ip1.l1'] - tw_sq_a81_ip1_a12['mux', f'e.ds.r8.{bn}']
-                    - collider.varval[f'muxip1{bn}_l'] - collider.varval[f'mux81{bn}'])
-    mux_ir8_target = collider.varval[f'muxip8{bn}'] - mux_compensate_ir8
+                          - muxip1_l - mux81)
+    mux_ir8_target = muxip8 - mux_compensate_ir8
     muy_compensate_ir8 = (tw_sq_a81_ip1_a12['muy', 'ip1.l1'] - tw_sq_a81_ip1_a12['muy', f'e.ds.r8.{bn}']
-                    - collider.varval[f'muyip1{bn}_l'] - collider.varval[f'muy81{bn}'])
-    muy_ir8_target = collider.varval[f'muyip8{bn}'] - muy_compensate_ir8
+                          - muyip1_l - muy81)
+    muy_ir8_target = muyip8 - muy_compensate_ir8
 
     print(f"Matching IR2 {bn}")
 
