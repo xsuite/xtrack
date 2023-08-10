@@ -6,13 +6,15 @@ import xtrack._temp.lhc_match as lm
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
-collider = xt.Multiline.from_json('collider_01_with_knob_steps_and_limits.json')
+collider = xt.Multiline.from_json('collider_00_from_madx.json')
 collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
 collider.lhcb1.twiss_default['only_markers'] = True
 collider.lhcb2.twiss_default['only_markers'] = True
+
+lm.set_var_limits_and_steps(collider)
 
 tw0 = collider.twiss()
 
