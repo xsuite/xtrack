@@ -1106,7 +1106,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                         responsiveness_tol=matrix_responsiveness_tol,
                         stability_tol=matrix_stability_tol)
         else:
-
+            steps_r_matrix['adapted'] = False
             for iter in range(2):
                 RR = line.compute_one_turn_matrix_finite_differences(
                                             steps_r_matrix=steps_r_matrix,
@@ -1133,7 +1133,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
                 if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
                     and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)):
-                    steps_r_matrix['adapted'] = False
                     break # sufficient accuracy
                 else:
                     steps_r_matrix['dx'] = 0.01 * sigma_x_start
