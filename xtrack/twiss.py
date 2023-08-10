@@ -410,7 +410,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
-        twiss_init, R_matrix = _find_periodic_solution(
+        twiss_init, R_matrix, steps_r_matrix = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
             co_search_settings=co_search_settings,
@@ -454,6 +454,8 @@ def twiss_line(line, particle_ref=None, method=None,
         _keep_initial_particles=_keep_initial_particles,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
+
+    twiss_res._data['steps_r_matrix'] = steps_r_matrix
 
     if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
@@ -1131,10 +1133,12 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
                 if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
                     and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)):
+                    steps_r_matrix['adapted'] = False
                     break # sufficient accuracy
                 else:
                     steps_r_matrix['dx'] = 0.01 * sigma_x_start
                     steps_r_matrix['dy'] = 0.01 * sigma_y_start
+                    steps_r_matrix['adapted'] = True
 
     # Check on R matrix
     if RR is not None and matrix_stability_tol is not None:
@@ -1188,7 +1192,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            element_name=tw_init_element_name,
                            reference_frame='proper')
 
-    return twiss_init, RR
+    return twiss_init, RR, steps_r_matrix
 
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
@@ -2084,7 +2088,7 @@ def _complete_steps_r_matrix_with_default(steps_r_matrix):
     if steps_r_matrix is not None:
         steps_in = steps_r_matrix.copy()
         for nn in steps_in.keys():
-            assert nn in DEFAULT_STEPS_R_MATRIX.keys(), (
+            assert nn in list(DEFAULT_STEPS_R_MATRIX.keys()) + ['adapted'], (
                 '`steps_r_matrix` can contain only ' +
                 ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
             )
