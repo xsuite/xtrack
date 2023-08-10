@@ -1,9 +1,6 @@
-import time
-
 import numpy as np
 
 import xtrack as xt
-import lhc_match as lm
 
 # Values to check
 d_mux_15_b1 = 0.07

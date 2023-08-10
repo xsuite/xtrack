@@ -1,7 +1,8 @@
 import time
 
 import xtrack as xt
-import lhc_match as lm
+
+import xtrack._temp.lhc_match as lm
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 

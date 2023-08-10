@@ -1,7 +1,7 @@
 import numpy as np
 import xtrack as xt
 
-import lhc_match as lm
+import xtrack._temp.lhc_match as lm
 
 collider = xt.Multiline.from_json('hllhc.json')
 collider.build_trackers()
@@ -67,7 +67,6 @@ assert np.isclose(muxip8b1_sq - vt['value', 'muxip8b1'], -(dmux_81 + dmux_ip1_l)
 
 
 # Beam 2
-import ipdb; ipdb.set_trace()
 tw_sq_ip1_b2 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
         line_name='lhcb2', ele_start='s.ds.r7.b2', ele_stop='e.ds.l3.b2',
         beta_star_x=0.15, beta_star_y = 0.15)

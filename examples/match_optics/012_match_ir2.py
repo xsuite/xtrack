@@ -1,5 +1,6 @@
 import xtrack as xt
-import lhc_match as lm
+
+import xtrack._temp.lhc_match as lm
 
 collider = xt.Multiline.from_json('hllhc.json')
 collider.build_trackers()
