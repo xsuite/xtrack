@@ -93,6 +93,8 @@ def twiss_line(line, particle_ref=None, method=None,
         Initial value for the zeta parameter.
     freeze_longitudinal : bool, optional
         If True, the longitudinal motion is frozen.
+    only_markers: bool, optional
+        If True, results are computed only at marker elements.
     at_elements : list, optional
         List of elements at which the Twiss parameters are computed.
         If not provided, the Twiss parameters are computed at all elements.
@@ -253,6 +255,9 @@ def twiss_line(line, particle_ref=None, method=None,
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
     only_orbit=(only_orbit or False)
+
+    if only_orbit:
+        raise NotImplementedError # Tested only experimentally
 
     kwargs = locals().copy()
 
