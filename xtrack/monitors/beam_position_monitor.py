@@ -38,10 +38,6 @@ class BeamPositionMonitor(BeamElement):
     
     behaves_like_drift = True
     allow_backtrack = True
-
-    # TODO: it currently only works on CPU!
-    needs_cpu = True
-    iscollective = True
     
     properties = [field.name for field in BeamPositionMonitorRecord._fields]
 

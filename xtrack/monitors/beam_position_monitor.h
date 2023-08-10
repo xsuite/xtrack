@@ -13,6 +13,22 @@
     #define   C_LIGHT ( 299792458.0 )
 #endif /* !defined( C_LIGHT ) */
 
+
+#pragma OPENCL EXTENSION cl_khr_fp64: enable                                                      //only_for_context opencl
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable                                        //only_for_context opencl
+/*gpufun*/                                                                                        //only_for_context opencl
+void atomic_add_d(__global double *val, double delta) {                                           //only_for_context opencl
+  union {                                                                                         //only_for_context opencl
+    double f;                                                                                     //only_for_context opencl
+    ulong  i;                                                                                     //only_for_context opencl
+  } read, write;                                                                                  //only_for_context opencl
+  do {                                                                                            //only_for_context opencl
+    read.f = *val;                                                                                //only_for_context opencl
+    write.f = read.f + delta;                                                                     //only_for_context opencl
+  } while (atom_cmpxchg ( (volatile __global ulong *)val, read.i, write.i) != read.i);            //only_for_context opencl
+}                                                                                                 //only_for_context opencl
+
+
 /*gpufun*/
 void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalParticle* part0){
 
@@ -22,7 +38,11 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
     int64_t particle_id_stop = particle_id_start + BeamPositionMonitorData_get_num_particles(el);
     double const frev = BeamPositionMonitorData_get_frev(el);
     double const sampling_frequency = BeamPositionMonitorData_get_sampling_frequency(el);
-    BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
+    
+    BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);                 //only_for_context cpu_serial cpu_openmp
+    /*gpuglmem*/ BeamPositionMonitorRecord * record = BeamPositionMonitorData_getp_data(el);  //only_for_context opencl cuda
+    
+    int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
 
 
     //start_per_particle_block(part0->part)
@@ -38,19 +58,29 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
             double const beta0 = LocalParticle_get_beta0(part);
 
             // compute sample index
-            int64_t slot = roundf(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
-            int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
+            int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
 
             if (slot >= 0 && slot < max_slot){
-                BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
+                double x = LocalParticle_get_x(part);
+                double y = LocalParticle_get_y(part);
     
-                // TODO: this shows errnous results with GPUs due to concurrent memory access
-                int64_t count = 1 + BeamPositionMonitorRecord_get_count(record, slot);
-                BeamPositionMonitorRecord_set_count(record, slot, count);
-                double x_sum = LocalParticle_get_x(part) + BeamPositionMonitorRecord_get_x_sum(record, slot);
-                BeamPositionMonitorRecord_set_x_sum(record, slot, x_sum);
-                double y_sum = LocalParticle_get_y(part) + BeamPositionMonitorRecord_get_y_sum(record, slot);
-                BeamPositionMonitorRecord_set_y_sum(record, slot, y_sum);
+                /*gpuglmem*/ int64_t * count = BeamPositionMonitorRecord_getp1_count(record, slot);
+                #pragma omp atomic capture    //only_for_context cpu_openmp
+                (*count) += 1;                //only_for_context cpu_serial cpu_openmp
+                atomic_add(count, 1);         //only_for_context opencl
+                atomicAdd(count, 1);          //only_for_context cuda
+                
+                /*gpuglmem*/ double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
+                #pragma omp atomic capture    //only_for_context cpu_openmp
+                (*x_sum) += x;                //only_for_context cpu_serial cpu_openmp
+                atomic_add_d(x_sum, x);       //only_for_context opencl
+                atomicAdd(x_sum, x);          //only_for_context cuda
+                
+                /*gpuglmem*/ double * y_sum = BeamPositionMonitorRecord_getp1_y_sum(record, slot);
+                #pragma omp atomic capture    //only_for_context cpu_openmp
+                (*y_sum) += y;                //only_for_context cpu_serial cpu_openmp
+                atomic_add_d(y_sum, y);       //only_for_context opencl
+                atomicAdd(y_sum, y);          //only_for_context cuda
                 
             }
 
