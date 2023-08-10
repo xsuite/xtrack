@@ -252,4 +252,4 @@ print(f'Time match orbit knobs: {t4-t3} s')
 #     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
 #                             line=collider.lhcb2))
 
-collider.to_json('collider_02_changed_ip15_phase.json')
+collider.to_json('collider_01_changed_ip15_phase.json')

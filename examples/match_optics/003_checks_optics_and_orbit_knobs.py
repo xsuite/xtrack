@@ -10,7 +10,7 @@ d_muy_15_b2 = -0.12
 
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
-collider = xt.Multiline.from_json('collider_02_changed_ip15_phase.json')
+collider = xt.Multiline.from_json('collider_01_changed_ip15_phase.json')
 collider.build_trackers()
 
 collider_ref = xt.Multiline.from_json('collider_00_from_madx.json')
