@@ -10,6 +10,9 @@ collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
 
+collider.lhcb1.twiss_default['only_markers'] = True
+collider.lhcb2.twiss_default['only_markers'] = True
+
 tw0 = collider.twiss()
 
 d_mux_15_b1 = 0.07

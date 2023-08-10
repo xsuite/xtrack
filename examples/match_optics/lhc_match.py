@@ -707,14 +707,10 @@ def match_orbit_knobs_ip2_ip8(collider):
     bump_range_ip2 = {
         'ele_start': ['s.ds.l2.b1', 's.ds.l2.b2'],
         'ele_stop': ['e.ds.r2.b1', 'e.ds.r2.b2'],
-        'only_markers': True, # quick and dirty way to pass a kwarg to all matches
-        'only_orbit': True,
     }
     bump_range_ip8 = {
         'ele_start': ['s.ds.l8.b1', 's.ds.l8.b2'],
         'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2'],
-        'only_markers': True, # quick and dirty way to pass a kwarg to all matches
-        'only_orbit': True,
     }
 
     correctors_ir2_single_beam_h = [
