@@ -7,17 +7,14 @@ import logging
 
 import numpy as np
 from scipy.optimize import fsolve
+from scipy.constants import c as clight
 
 import xobjects as xo
 import xpart as xp
-
-
-from scipy.constants import c as clight
+from xdeps import Table
 
 from . import linear_normal_form as lnf
-from xdeps import Table
 from .general import _print
-
 
 import xtrack as xt  # To avoid circular imports
 
