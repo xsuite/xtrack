@@ -57,7 +57,7 @@ class Footprint():
     def __init__(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
-            keep_fft=False):
+            keep_fft=False, keep_tracking_data = False):
 
         assert nemitt_x is not None and nemitt_y is not None, (
             'nemitt_x and nemitt_y must be provided')
@@ -66,6 +66,7 @@ class Footprint():
         self.n_turns = n_turns
         self.n_fft = n_fft
         self.keep_fft = keep_fft
+        self.keep_tracking_data = keep_tracking_data
 
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
@@ -172,7 +173,10 @@ class Footprint():
 
         self.qx = np.reshape(qx, self.x_norm_2d.shape)
         self.qy = np.reshape(qy, self.x_norm_2d.shape)
-        self.mon = mon
+        
+        if self.keep_tracking_data:
+            self.tracking_data = mon
+            
         print ('Done computing footprint.')
 
     def plot(self, ax=None, **kwargs):
