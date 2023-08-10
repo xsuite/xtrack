@@ -544,8 +544,9 @@ def test_twiss_range(test_context):
                 assert np.all(tw_test.name == tw_part.name)
 
                 for kk in tw_test._data.keys():
-                    if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at', 'method',
-                            'radiation_method', 'reference_frame', 'orientation']:
+                    if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at',
+                              'method', 'radiation_method', 'reference_frame',
+                              'orientation', 'steps_r_matrix']:
                         continue # tested separately
                     atol = atols.get(kk, atol_default)
                     rtol = rtols.get(kk, rtol_default)
