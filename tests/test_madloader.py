@@ -606,7 +606,7 @@ def test_load_madx_optics_file():
     assert np.isclose(tw.lhcb2['px', 'ip1'], -30e-6, atol=1e-9, rtol=0)
 
     collider.vars.load_madx_optics_file(
-        '../../test_data/hllhc15_thick/opt_round_150_1500.madx')
+        test_data_folder / 'hllhc15_thick/opt_round_150_1500.madx')
 
     tw = collider.twiss()
     assert np.isclose(tw.lhcb1.qx, 62.31000000, atol=1e-6, rtol=0)
@@ -624,3 +624,24 @@ def test_load_madx_optics_file():
     tw = collider.twiss()
     assert np.isclose(tw.lhcb1['px', 'ip1'], 10e-6, atol=1e-9, rtol=0)
     assert np.isclose(tw.lhcb2['px', 'ip1'], -10e-6, atol=1e-9, rtol=0)
+
+    # Try unregister/register
+
+    collider.vars['ox_x1h'] = 20
+    tw = collider.twiss()
+    assert np.isclose(tw.lhcb1['px', 'ip1'], 10e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['px', 'ip1'], -10e-6, atol=1e-9, rtol=0)
+
+    collider.vars['on_x8h'] = collider.vars['on_x2']
+    collider.vars['on_x2'] = 25
+    tw = collider.twiss()
+
+    assert np.isclose(tw.lhcb1['px', 'ip8'], 25e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['px', 'ip8'], -25e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['py', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['py', 'ip8'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['py', 'ip2'], 25e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['py', 'ip2'], -25e-6, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb1['px', 'ip2'], 0, atol=1e-9, rtol=0)
+    assert np.isclose(tw.lhcb2['px', 'ip2'], 0, atol=1e-9, rtol=0)
+
