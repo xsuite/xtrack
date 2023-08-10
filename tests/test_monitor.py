@@ -193,15 +193,16 @@ def test_last_turns_monitor(test_context):
 @for_all_test_contexts
 def test_beam_position_monitor(test_context):
 
+    npart = 512 # must be even and >= 512
     particles = xp.Particles(
         p0c=6.5e12,
-        x=0.1*np.arange(512), # generate a few more than we record to test "num_particles"
-        zeta=-2.99792458e8*np.tile([0.0, 0.5], 256),
+        x=0.1*np.arange(npart+4), # generate a few more than we record to test "num_particles"
+        zeta=-2.99792458e8*np.tile([0.0, 0.5], (npart+4)//2),
         _context=test_context,
     )
 
     monitor = xt.BeamPositionMonitor(
-        #num_particles=512,
+        num_particles=npart,
         start_at_turn=0,
         stop_at_turn=10,
         frev=1,
@@ -232,12 +233,12 @@ def test_beam_position_monitor(test_context):
         line.track(particles, num_turns=1)
 
     # Check against expected values
-    expected_count = np.tile([256, 256], 10)
+    expected_count = np.tile([npart//2, npart//2], 10)
     expected_count[16:18] = 128
     expected_count[18:20] = 0
     assert_equal(monitor.count, expected_count, err_msg="Monitor count does not match expected particle count")
 
-    expected_x_sum = np.tile([6528.0, 6553.6], 10)
+    expected_x_sum = np.tile([0.1*(npart-2)*npart/4, 0.1*npart*npart/4], 10)
     expected_x_sum[0::2] += 0.5*np.arange(1, 11)
     expected_x_sum[16:18] = [1625.6 + 4.5, 1638.4]
     expected_x_sum[18:20] = 0
