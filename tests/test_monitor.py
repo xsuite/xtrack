@@ -197,6 +197,7 @@ def test_beam_position_monitor(test_context):
     particles = xp.Particles(
         p0c=6.5e12,
         x=0.1*np.arange(npart+4), # generate a few more than we record to test "num_particles"
+        y=-0.1*np.arange(npart+4),
         zeta=-2.99792458e8*np.tile([0.0, 0.5], (npart+4)//2),
         _context=test_context,
     )
@@ -221,6 +222,7 @@ def test_beam_position_monitor(test_context):
 
         # manipulate particles for testing
         particles.x[0] += 0.5
+        particles.y[0] -= 0.5
         if turn == 8:
             particles.state[256:] = 0
         if turn == 9:
@@ -243,10 +245,12 @@ def test_beam_position_monitor(test_context):
     expected_x_sum[16:18] = [1625.6 + 4.5, 1638.4]
     expected_x_sum[18:20] = 0
     assert_allclose(monitor.x_sum, expected_x_sum, err_msg="Monitor x sum does not match expected values")
+    assert_allclose(monitor.y_sum, -expected_x_sum, err_msg="Monitor y sum does not match expected values")
 
     expected_x_centroid = np.zeros(20)
     expected_x_centroid[:18] = expected_x_sum[:18]/expected_count[:18]
     expected_x_centroid[18:20] = np.nan
     assert_allclose(monitor.x_cen, expected_x_centroid, err_msg="Monitor x centroid does not match expected values")
+    assert_allclose(monitor.y_cen, -expected_x_centroid, err_msg="Monitor y centroid does not match expected values")
     
 
