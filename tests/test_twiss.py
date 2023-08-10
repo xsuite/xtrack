@@ -360,7 +360,6 @@ def test_get_R_matrix():
             / norm(W_ref_4d[:, 2*i_mode], ord=2),
             0, rtol=0, atol=5e-5)
 
-
 def test_hide_thin_groups():
 
     line = xt.Line.from_json(test_data_folder /
@@ -654,8 +653,6 @@ def test_twiss_against_matrix(test_context):
         assert np.allclose(tw.px, [2e-6, -3e-6, 2e-6], atol=1e-12, rtol=0)
         assert np.allclose(tw.y, [3e-3, 4e-3, 3e-3], atol=1e-7, rtol=0)
         assert np.allclose(tw.py, [4e-6, -5e-6, 4e-6], atol=1e-12, rtol=0)
-
-
 
 @for_all_test_contexts
 @pytest.mark.parametrize('machine', ['sps', 'psb'])
@@ -973,7 +970,6 @@ def test_crab_dispersion(test_context):
     assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_on['dy_zeta'], rtol=0, atol=1e-7)
     assert np.allclose(tw6d_rf_on['dx_zeta'], tw4d_rf_off['dx_zeta'], rtol=0, atol=1e-7)
     assert np.allclose(tw6d_rf_on['dy_zeta'], tw4d_rf_off['dy_zeta'], rtol=0, atol=1e-7)
-
 
 @for_all_test_contexts
 def test_twiss_group_compounds(test_context):
@@ -1294,3 +1290,42 @@ def test_only_markers(test_context):
             atol = dict(alfx=1e-7, alfy=1e-7, dx=1e-7, dy=1e-7, dpx=1e8, dpy=1e-8,
                         dx_zeta=1e-7, W_matrix=1e-7).get(kk, 1e-10)
             assert np.allclose(tt[kk], tw.rows[tt.name][kk], rtol=1e-6, atol=atol)
+
+@for_all_test_contexts
+def test_adaptive_steps_for_rmatrix(test_context):
+
+    collider = xt.Multiline.from_json(
+        test_data_folder / 'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.build_trackers(_context=test_context)
+    collider.lhcb1.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['reverse'] = True
+
+    collider.lhcb1.twiss_default['nemitt_x'] = 1e-6
+    collider.lhcb1.twiss_default['nemitt_y'] = 1e-6
+    collider.lhcb2.twiss_default['nemitt_x'] = 1e-6
+    collider.lhcb2.twiss_default['nemitt_y'] = 1e-6
+
+    tw = collider.twiss()
+    assert tw.lhcb1.steps_r_matrix['adapted'] == False
+    assert tw.lhcb2.steps_r_matrix['adapted'] == False
+
+    collider.lhcb1.twiss_default['nemitt_x'] = 1e-8
+    tw = collider.twiss()
+    assert tw.lhcb1.steps_r_matrix['adapted'] == True
+    assert tw.lhcb2.steps_r_matrix['adapted'] == False
+
+    collider.lhcb2.twiss_default['nemitt_y'] = 2e-8
+    tw = collider.twiss()
+    assert tw.lhcb1.steps_r_matrix['adapted'] == True
+    assert tw.lhcb2.steps_r_matrix['adapted'] == True
+
+    expected_dx_b1 = 0.01 * np.sqrt(1e-8 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
+    expected_dy_b1 = 0.01 * np.sqrt(1e-6 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
+    expected_dx_b2 = 0.01 * np.sqrt(1e-6 * 0.15 / collider.lhcb1.particle_ref._xobject.gamma0[0])
+    expected_dy_b2 = 0.01 * np.sqrt(2e-8 * 0.15 / collider.lhcb2.particle_ref._xobject.gamma0[0])
+
+    assert np.isclose(tw.lhcb1.steps_r_matrix['dx'], expected_dx_b1, atol=0, rtol=1e-4)
+    assert np.isclose(tw.lhcb1.steps_r_matrix['dy'], expected_dy_b1, atol=0, rtol=1e-4)
+    assert np.isclose(tw.lhcb2.steps_r_matrix['dx'], expected_dx_b2, atol=0, rtol=1e-4)
+    assert np.isclose(tw.lhcb2.steps_r_matrix['dy'], expected_dy_b2, atol=0, rtol=1e-4)
