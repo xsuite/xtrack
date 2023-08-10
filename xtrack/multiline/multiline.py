@@ -2,7 +2,6 @@ import io
 import json
 import pandas as pd
 import numpy as np
-import typing
 
 from .shared_knobs import VarSharing
 from ..match import match_knob_line
@@ -24,7 +23,7 @@ class Multiline:
 
     '''
 
-    def __init__(self, lines: dict, link_vars=True, metadata: typing.Optional[dict] = None):
+    def __init__(self, lines: dict, link_vars=True):
         self.lines = {}
         self.lines.update(lines)
 
@@ -41,8 +40,7 @@ class Multiline:
             ll._in_multiline = self
             ll._name_in_multiline = nn
 
-        if metadata is not None:
-            self.metadata = metadata
+        self.metadata = {}
             
     def to_dict(self, include_var_management=True):
 
@@ -81,8 +79,7 @@ class Multiline:
                 else:
                     dct['_bb_config'][nn] = vv
 
-        if hasattr(self, "metadata"):
-            dct["metadata"] = self.metadata
+        dct["metadata"] = self.metadata
             
         return dct
 
@@ -208,9 +205,6 @@ class Multiline:
                 self._var_sharing.data[kk].update(_var_management_data[kk])
         for nn, ll in self.lines.items():
             ll._in_multiline = self
-
-    def set_metadata(self, metadata: dict):
-        self.metadata = metadata
         
     def build_trackers(self, _context=None, _buffer=None, **kwargs):
         '''

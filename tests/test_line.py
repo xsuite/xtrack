@@ -731,6 +731,12 @@ def test_from_json_to_json(tmp_path):
         element_names=['m', 'd', 'm', 'd']
     )
 
+    example_metadata = {
+        "qx": {"lhcb1": 62.31, "lhcb2": 62.31},
+        "delta_cmr": 0.0,
+    }
+    line.metadata = example_metadata
+
     line.to_json(tmp_path / 'test.json')
     result = xt.Line.from_json(tmp_path / 'test.json')
 
@@ -757,6 +763,10 @@ def test_from_json_to_json(tmp_path):
 
     assert isinstance(result['d'], xt.Drift)
     assert result['d'].length == 1
+
+    assert result.metadata == example_metadata
+    result.metadata['qx']['lhcb1'] = 62.35
+    assert result.metadata != example_metadata
 
 @for_all_test_contexts
 def test_config_propagation(test_context):
