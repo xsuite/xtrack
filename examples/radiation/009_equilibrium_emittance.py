@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.constants import c as clight
+
 
 from cpymad.madx import Madx
 import xtrack as xt
@@ -49,7 +49,7 @@ tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
 
 alpha_damp = tw_rad.damping_constants_turns[0]
 
-tt = line.get_table()
+
 
 rho_inv = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
 dl = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
