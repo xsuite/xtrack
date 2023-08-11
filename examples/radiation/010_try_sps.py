@@ -24,6 +24,9 @@ mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10   # To stay in the li
 mad.sequence.sps.elements['actcse.31632'].freq = 350 / 10  # having the same qs
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
+# Some vertical orbit
+mad.sequence.sps.elements['mdv.10107'].kick = 10e-6
+
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
 
@@ -97,6 +100,10 @@ plt.close('all')
 plt.figure(1)
 plt.plot(np.std(mon.x, axis=0))
 plt.axhline(np.sqrt(ex * tw.betx[0]))
-plt.axhline(np.mean(np.std(mon.x, axis=0)[:100]))
+plt.axhline(np.mean(np.std(mon.x, axis=0)[-100:]))
+
+plt.figure(2)
+plt.plot(np.std(mon.y, axis=0))
+plt.axhline(np.mean(np.std(mon.y, axis=0)[-100:]))
 
 plt.show()
