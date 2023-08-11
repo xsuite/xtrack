@@ -1248,6 +1248,7 @@ class Tracker:
             return self._tracker_data_base.mask_markers_for_twiss
         tt = self.line.get_table()
         mask_twiss = np.ones(len(tt) + 1, dtype=bool)
+        if len(tt) == 0: return mask_twiss
         mask_twiss[:-1] = tt.element_type == 'Marker'
         self._tracker_data_base.mask_markers_for_twiss = mask_twiss
         return mask_twiss
