@@ -126,14 +126,14 @@ void Solenoid_thick_track_single_particle(
     const double pk1 = px + sk * y;
     const double pk2 = py - sk * x;
     const double ptr2 = pk1 * pk1 + pk2 * pk2;
-    const double onedp = sqrt(1 + 2 * pt * (1 / beta0) + pt * pt - ptr2);
+    const double onedp = sqrt(1 + 2 * pt / beta0 + pt * pt - ptr2);
 
     // set up constants
     const double cosTh = cos(skl / onedp);
     const double sinTh = sin(skl / onedp);
     // const double omega = sk / onedp;  // unused
 
-    const double si = sin(skl / onedp) * length / skl;
+    const double si = sin(skl / onedp) / sk;
     const double rps[4] = {
         cosTh * x + sinTh * y,
         cosTh * px + sinTh * py,
