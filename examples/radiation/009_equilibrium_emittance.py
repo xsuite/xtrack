@@ -12,6 +12,8 @@ mad.call('../../test_data/clic_dr/sequence.madx')
 mad.use('ring')
 twm = mad.twiss()
 
+
+
 mad.sequence.ring.beam.radiate = True
 mad.emit()
 
