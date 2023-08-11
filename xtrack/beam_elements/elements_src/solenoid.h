@@ -6,10 +6,7 @@
 #ifndef XTRACK_SOLENOID_H
 #define XTRACK_SOLENOID_H
 
-
-#define SINC(X) (sin((X))/(X))
 #define IS_ZERO(X) (fabs(X) < 1e-9)
-
 
 /*gpufun*/
 void Solenoid_thin_track_single_particle(LocalParticle*, double, double, double);
@@ -45,8 +42,8 @@ void Solenoid_thin_track_single_particle(
     double ks,
     double ksi
 ) {
-    const double sk = ks / 2;  // *other_bv in mad, what is bv?
-    const double skl = ksi / 2;  // *other_bv in mad, what is bv?
+    const double sk = ks / 2;
+    const double skl = ksi / 2;
     const double beta0 = LocalParticle_get_beta0(part);
 
     // Particle coordinates
@@ -119,24 +116,24 @@ void Solenoid_thick_track_single_particle(
     const double py = LocalParticle_get_py(part);
     const double pt = LocalParticle_get_ptau(part);
     const double delta = LocalParticle_get_delta(part);
+    const double rvv = LocalParticle_get_rvv(part);
 
     // Useful quantities
-    const double onedp = 1 + delta;
     const double betas = beta0;
-    const double gammas = gamma0;
-
+    const double gammas = gamma0; //1 / sqrt(1 - beta0 * beta0);
 
     // set up constants
     const double pk1 = px + sk * y;
     const double pk2 = py - sk * x;
     const double ptr2 = pk1 * pk1 + pk2 * pk2;
+    const double onedp = sqrt(1 + 2 * pt * (1 / beta0) + pt * pt - ptr2);
 
     // set up constants
     const double cosTh = cos(skl / onedp);
     const double sinTh = sin(skl / onedp);
     // const double omega = sk / onedp;  // unused
 
-    const double si = SINC(skl / onedp) * length / onedp;
+    const double si = sin(skl / onedp) * length / skl;
     const double rps[4] = {
         cosTh * x + sinTh * y,
         cosTh * px + sinTh * py,
@@ -156,6 +153,7 @@ void Solenoid_thick_track_single_particle(
     LocalParticle_set_y(part, new_y);
     LocalParticle_set_py(part, new_py);
     LocalParticle_add_to_zeta(part, add_to_zeta);
+    LocalParticle_add_to_s(part, length);
 }
 
 #endif // XTRACK_SOLENOID_H

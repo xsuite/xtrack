@@ -741,7 +741,7 @@ def test_import_thick_with_apertures_and_slice():
     [
         (-0.1, 0, 0.9),  # thick
         (0, 0, 0.9),
-        (0.13, 0, 1.7),
+        (0.13, 0, 1.6),
         (-0.1, 0.12, 0),  # thin
         (0, 0.12, 0),
         (0.15, 0, 0),
@@ -750,40 +750,39 @@ def test_import_thick_with_apertures_and_slice():
 )
 @for_all_test_contexts
 def test_solenoid_against_madx(test_context, ks, ksi, length):
-    """
-    Test the combined function dipole against madx. We import bends from madx
-    using use_true_thick_bend=False, and the true bend is not in madx.
-    """
-
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
         beta0=0.5,
-        x=0.01,
-        # px=0.1,
-        y=-0.03,
-        py=0.001,
+        x=-0.03,
+        y=0.01,
+        px=-0.1,
+        py=0.1,
         zeta=0.1,
-        # delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
         _context=test_context,
     )
 
-    if length == 0:
-        dr_length = 1e-6
-        insert_drift = f'dr0: drift, at={dr_length / 2}, l={dr_length};'
-    else:
-        dr_length = 0
-        insert_drift = ''
-
     mad = Madx()
-    mad.input(f"""
-    ss: sequence, l={length + dr_length + 1};
-        {insert_drift}
-        sol: solenoid, at={dr_length + length / 2}, ks={ks}, ksi={ksi}, l={length};
-        dr1: drift, at={dr_length + length + 0.5}, l=1;
-    endsequence;
-    beam;
-    use, sequence=ss;
-    """)
+    if length == 0:
+        dr_len = 1e-11
+        mad.input(f"""
+        ss: sequence, l={dr_len};
+            sol: solenoid, at=0, ks={ks}, ksi={ksi}, l=0;
+            ! since in MAD-X we can't track a zero-length line, we put in
+            ! this tiny drift here at the end of the sequence:
+            dr: drift, at={dr_len / 2}, l={dr_len};
+        endsequence;
+        beam;
+        use, sequence=ss;
+        """)
+    else:
+        mad.input(f"""
+        ss: sequence, l={length};
+            sol: solenoid, at={length / 2}, ks={ks}, ksi={ksi}, l={length};
+        endsequence;
+        beam;
+        use, sequence=ss;
+        """)
 
     ml = MadLoader(mad.sequence.ss, allow_thick=True)
     line_thick = ml.make_line()
@@ -797,7 +796,11 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
         track, onepass, onetable;
         start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, \
             t={p0.zeta[ii]/p0.beta0[ii]}, pt={p0.ptau[ii]};
-        run, turns=1;
+        run,
+            turns=1,
+            track_harmon=1e-15;  ! since in this test we don't care about
+              ! losing particles due to t difference, we set track_harmon to
+              ! something very small, to make t_max large.
         endtrack;
         """)
 
@@ -808,9 +811,10 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
         part.move(_context=xo.context_default)
 
         xt_tau = part.zeta/part.beta0
-        assert np.allclose(part.x[ii], mad_results.x, atol=1e-8, rtol=0), 'x'
-        assert np.allclose(part.px[ii], mad_results.px, atol=1e-8, rtol=0), 'px'
-        assert np.allclose(part.y[ii], mad_results.y, atol=1e-8, rtol=0), 'y'
-        assert np.allclose(part.py[ii], mad_results.py, atol=1e-8, rtol=0), 'py'
-        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-8, rtol=0), 't'
-        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-8, rtol=0), 'pt'
+        assert np.allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
+        assert np.allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
+        assert np.allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
+        assert np.allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0), 'py'
+        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
+        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
+        assert np.allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
