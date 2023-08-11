@@ -2,6 +2,7 @@ import io
 import json
 import pandas as pd
 import numpy as np
+from copy import deepcopy
 
 from .shared_knobs import VarSharing
 from ..match import match_knob_line
@@ -79,7 +80,7 @@ class Multiline:
                 else:
                     dct['_bb_config'][nn] = vv
 
-        dct["metadata"] = self.metadata
+        dct["metadata"] = deepcopy(self.metadata)
             
         return dct
 

@@ -510,7 +510,7 @@ class Line:
 
             out.update(self._var_management_to_dict())
             
-        out["metadata"] = self.metadata
+        out["metadata"] = deepcopy(self.metadata)
 
             
         return out
