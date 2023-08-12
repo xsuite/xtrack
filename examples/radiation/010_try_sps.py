@@ -88,11 +88,11 @@ hy[mask] = (np.diff(tw.py)[mask] + hyl[mask]) / dl[mask]
 hh = np.sqrt(hx**2 + hy**2)
 
 integ_x = np.sum(dl
-    * np.abs(hh)**3 * np.squeeze(tw.W_matrix[:-1, 4, 0]**2 + tw.W_matrix[:-1, 4, 1]**2))
+    * np.abs(hh)**3 * np.squeeze(tw_rad.W_matrix[:-1, 4, 0]**2 + tw_rad.W_matrix[:-1, 4, 1]**2))
 integ_y = np.sum(dl
-    * np.abs(hh)**3 * np.squeeze(tw.W_matrix[:-1, 4, 2]**2 + tw.W_matrix[:-1, 4, 3]**2))
+    * np.abs(hh)**3 * np.squeeze(tw_rad.W_matrix[:-1, 4, 2]**2 + tw_rad.W_matrix[:-1, 4, 3]**2))
 integ_z = np.sum(dl
-    * np.abs(hh)**3 * np.squeeze(tw.W_matrix[:-1, 4, 4]**2 + tw.W_matrix[:-1, 4, 5]**2))
+    * np.abs(hh)**3 * np.squeeze(tw_rad.W_matrix[:-1, 4, 4]**2 + tw_rad.W_matrix[:-1, 4, 5]**2))
 
 mass0 = line.particle_ref.mass0
 q0 = line.particle_ref.q0
