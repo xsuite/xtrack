@@ -6,16 +6,20 @@ import xpart as xp
 
 mad = Madx()
 mad.call('../../test_data/sps_thick/sps.seq')
+
+mad.options.rbarc = True
+
 # mad.input('beam, particle=proton, pc=26;')
 # mad.input('beam, particle=electron, pc=20;')
 
-# mad.input('beam, particle=electron, pc=20;')
-# v_mv = 25
+mad.input('beam, particle=electron, pc=20;')
+v_mv = 25
 
-mad.input('beam, particle=electron, pc=50;')
-v_mv = 250
+# mad.input('beam, particle=electron, pc=50;')
+# v_mv = 250
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
+
 mad.use(sequence='sps')
 mad.input('twiss, table=tw4d;')
 twm4d = mad.table.tw4d
@@ -25,7 +29,7 @@ mad.sequence.sps.elements['actcse.31632'].freq = 350 / 10  # having the same qs
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 # Some vertical orbit
-mad.sequence.sps.elements['mdv.10107'].kick = 10e-6
+# mad.sequence.sps.elements['mdv.10107'].kick = 10e-6
 
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
@@ -90,8 +94,8 @@ clg = ((55.* hbar * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**5) / emass)
 ex = clg * integ / alpha_damp
 
 line.configure_radiation(model='quantum')
-p = line.build_particles(num_particles=100)
-line.track(p, num_turns=500, time=True, turn_by_turn_monitor=True)
+p = line.build_particles(num_particles=30)
+line.track(p, num_turns=2000, time=True, turn_by_turn_monitor=True)
 
 mon = line.record_last_track
 
@@ -99,7 +103,7 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(np.std(mon.x, axis=0))
-plt.axhline(np.sqrt(ex * tw.betx[0]))
+plt.axhline(np.sqrt(ex * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2))
 plt.axhline(np.mean(np.std(mon.x, axis=0)[-100:]))
 
 plt.figure(2)
