@@ -96,6 +96,7 @@ gamma0 = line.particle_ref.gamma0[0]
 gamma = gamma0 * (1 + tw_rad.ptau)[:-1]
 gamma3 = gamma * gamma * gamma
 
+# Need to use no rad W matrix!!!
 integ_x = np.sum(dl
     * np.abs(hh)**3 * gamma3 * np.squeeze(tw.W_matrix[:-1, 4, 0]**2 + tw.W_matrix[:-1, 4, 1]**2))
 integ_y = np.sum(dl
@@ -103,14 +104,15 @@ integ_y = np.sum(dl
 integ_z = np.sum(dl
     * np.abs(hh)**3 * gamma3 * np.squeeze(tw.W_matrix[:-1, 4, 4]**2 + tw.W_matrix[:-1, 4, 5]**2))
 
-
-
 from scipy.constants import c as clight
+from scipy.constants import hbar
+from scipy.constants import e as qe
+
 q_elect = 1.602176634e-19
 emass = 0.51099895000
 hbar = 6.582119569e-25; #/* GeV*s */
 
-arad = 1e-10 * q0 * q0 * q_elect * clight * clight / emass # 1e-10 is guessed
+arad = 1e-4 * q0 * q0 * q_elect * clight * clight / mass0 # 1e-10 is guessed
 clg = ((55. * hbar * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / emass)
 ex = clg * integ_x / alpha_damp_x
 ey = clg * integ_y / alpha_damp_y
