@@ -10,13 +10,15 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # mad.input('beam, particle=proton, pc=26;')
 # mad.input('beam, particle=electron, pc=20;')
 
+# # realistic
 # mad.input('beam, particle=electron, pc=20;')
 # v_mv = 25
 # num_turns = 8000
 
-mad.input('beam, particle=electron, pc=40;')
+# # higher energy
+mad.input('beam, particle=electron, pc=50;')
 v_mv = 250
-num_turns = 1000
+num_turns = 500
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
