@@ -108,12 +108,10 @@ from scipy.constants import c as clight
 from scipy.constants import hbar
 from scipy.constants import e as qe
 
-q_elect = 1.602176634e-19
-emass = 0.51099895000
 hbar = 6.582119569e-25; #/* GeV*s */
 
-arad = 1e-4 * q0 * q0 * q_elect * clight * clight / mass0 # 1e-10 is guessed
-clg = ((55. * hbar * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / emass)
+arad = 1e6*1e-4 * q0 * q0 * qe * clight * clight / mass0 # 1e-10 is guessed
+clg = ((55. * hbar * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / mass0)
 ex = clg * integ_x / alpha_damp_x
 ey = clg * integ_y / alpha_damp_y
 ez = clg * integ_z / alpha_damp_z
@@ -123,11 +121,11 @@ p = line.build_particles(num_particles=30)
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
 
-twe = tw.rows[:-1]
-cur_H_x = twe.gamx * twe.dx**2 + 2 * twe.alfx * twe.dx * twe.dpx + twe.betx * twe.dpx**2
-I5_x  = np.sum(cur_H_x * hh**3 * dl)
-I2_x = np.sum(hh**2 * dl)
-I4_x = np.sum(twe.dx * hh**3 * dl) # to be generalized for combined function magnets
+# twe = tw.rows[:-1]
+# cur_H_x = twe.gamx * twe.dx**2 + 2 * twe.alfx * twe.dx * twe.dpx + twe.betx * twe.dpx**2
+# I5_x  = np.sum(cur_H_x * hh**3 * dl)
+# I2_x = np.sum(hh**2 * dl)
+# I4_x = np.sum(twe.dx * hh**3 * dl) # to be generalized for combined function magnets
 
 # cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * twe.dpy + twe.bety * twe.dpy**2
 # I5_y  = np.sum(cur_H_y * hh**3 * dl)
