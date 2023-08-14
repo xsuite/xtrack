@@ -67,6 +67,8 @@ line.compensate_radiation_energy_loss()
 
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
+tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+                     radiation_method='kick_as_co')
 
 alpha_damp_x = tw_rad.damping_constants_turns[0]
 alpha_damp_y = tw_rad.damping_constants_turns[1]

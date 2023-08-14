@@ -282,13 +282,11 @@ def twiss_line(line, particle_ref=None, method=None,
         with xt.line._preserve_config(line):
             if radiation_method == 'kick_as_co':
                 assert isinstance(line._context, xo.ContextCpu) # needs to be serial
-                assert eneloss_and_damping is False
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
             elif radiation_method == 'scale_as_co':
                 assert isinstance(line._context, xo.ContextCpu) # needs to be serial
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
             res = twiss_line(**kwargs)
-        return res
 
     if at_s is not None:
         if reverse:
@@ -490,13 +488,30 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data
-        RR = twiss_res._data['R_matrix']
+        if radiation_method != 'full':
+            with xt.line._preserve_config(line):
+                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
+                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
+                _, RR, _ = _find_periodic_solution(
+                    line=line, particle_on_co=particle_on_co,
+                    particle_ref=particle_ref, method=method,
+                    co_search_settings=co_search_settings,
+                    continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                    delta0=delta0, zeta0=zeta0, steps_r_matrix=steps_r_matrix,
+                    W_matrix=W_matrix, R_matrix=R_matrix,
+                    particle_co_guess=particle_co_guess,
+                    delta_disp=delta_disp, symplectify=symplectify,
+                    matrix_responsiveness_tol=matrix_responsiveness_tol,
+                    matrix_stability_tol=None,
+                    ele_start=ele_start, ele_stop=ele_stop,
+                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma)
+        else:
+            RR = twiss_res._data['R_matrix']
         eneloss_damp_res = _compute_eneloss_and_damping_rates(
             particle_on_co=twiss_res.particle_on_co,
             R_matrix=RR, ptau_co=twiss_res.ptau,
             T_rev0=twiss_res.T_rev0)
         twiss_res._data.update(eneloss_damp_res)
-
 
     if method == '4d' and 'muzeta' in twiss_res._data:
         twiss_res.muzeta[:] = 0
