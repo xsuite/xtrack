@@ -463,13 +463,6 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['R_matrix'] = R_matrix
         _compute_global_quantities(
                             line=line, twiss_res=twiss_res,
-                            twiss_init=twiss_init, method=method,
-                            delta_chrom=delta_chrom,
-                            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                            matrix_responsiveness_tol=matrix_responsiveness_tol,
-                            matrix_stability_tol=matrix_stability_tol,
-                            symplectify=symplectify,
-                            steps_r_matrix=steps_r_matrix,
                             eneloss_and_damping=eneloss_and_damping)
 
         cols_chrom, scalars_chrom = _compute_chromatic_functions(
@@ -907,10 +900,7 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     return res, i_replace
 
 
-def _compute_global_quantities(line, twiss_res, twiss_init, method,
-                               delta_chrom, nemitt_x, nemitt_y,
-                               matrix_responsiveness_tol, matrix_stability_tol,
-                               symplectify, steps_r_matrix, eneloss_and_damping):
+def _compute_global_quantities(line, twiss_res, eneloss_and_damping):
 
         s_vect = twiss_res['s']
         mux = twiss_res['mux']
