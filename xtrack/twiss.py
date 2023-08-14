@@ -274,27 +274,6 @@ def twiss_line(line, particle_ref=None, method=None,
                 line.freeze_energy(force=True) # need to force for collective lines
                 return twiss_line(freeze_energy=False, **kwargs)
 
-    if radiation_method is None and line._radiation_model is not None:
-        radiation_method = 'kick_as_co'
-
-    if radiation_method is not None and radiation_method != 'full':
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('radiation_method')
-        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
-        assert freeze_longitudinal is False
-        if (radiation_method == 'kick_as_co' and (
-            not hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST') or
-            not line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST)):
-            with xt.line._preserve_config(line):
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-                return twiss_line(**kwargs)
-        elif (radiation_method == 'scale_as_co' and (
-            not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
-            not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
-            with xt.line._preserve_config(line):
-                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-                return twiss_line(**kwargs)
-
     if at_s is not None:
         if reverse:
             raise NotImplementedError('`at_s` not implemented for `reverse`=True')
@@ -318,6 +297,26 @@ def twiss_line(line, particle_ref=None, method=None,
                         matrix_stability_tol=matrix_stability_tol,
                         **kwargs)
         return res
+
+    if radiation_method is None and line._radiation_model is not None:
+        radiation_method = 'kick_as_co'
+
+    if radiation_method is not None and radiation_method != 'full':
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
+        assert freeze_longitudinal is False
+        if (radiation_method == 'kick_as_co' and (
+            not hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST') or
+            not line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST)):
+            with xt.line._preserve_config(line):
+                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
+                return twiss_line(**kwargs)
+        elif (radiation_method == 'scale_as_co' and (
+            not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
+            not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
+            with xt.line._preserve_config(line):
+                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
+                return twiss_line(**kwargs)
 
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
@@ -371,7 +370,8 @@ def twiss_line(line, particle_ref=None, method=None,
     if matrix_stability_tol is None:
         matrix_stability_tol = line.matrix_stability_tol
 
-    if line._radiation_model is not None:
+    if (line._radiation_model is not None
+            and radiation_method is not 'kick_as_co'):
         matrix_stability_tol = None
         if use_full_inverse is None:
             use_full_inverse = True
@@ -495,7 +495,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data
-        import pdb; pdb.set_trace()
         if radiation_method != 'full':
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
