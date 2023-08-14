@@ -10,6 +10,7 @@ def test_tapering_and_twiss_with_radiation():
 
     filename = test_data_folder / 'clic_dr/line_for_taper.json'
     configs = [
+        {'radiation_method': None, 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
         {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
         {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-3, 'q_atol': 5e-4},
         {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5, 'q_atol': 5e-4},
@@ -26,6 +27,8 @@ def test_tapering_and_twiss_with_radiation():
     # Initial twiss (no radiation)
     line.configure_radiation(model=None)
     tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True)
+
+    assert tw_no_rad.radiation_method == None
 
     # Enable radiation
     line.configure_radiation(model='mean')
@@ -48,6 +51,9 @@ def test_tapering_and_twiss_with_radiation():
         # Twiss(es) with radiation
         tw = line.twiss(radiation_method=conf['radiation_method'],
                         eneloss_and_damping=True, **extra_kwargs)
+
+        assert tw.radiation_method == (conf['radiation_method'] or 'kick_as_co')
+
         # Check twiss at_s
         i_ele = len(tw.s)//3
         tws = line.twiss(at_s=tw.s[i_ele],
