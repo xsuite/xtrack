@@ -242,7 +242,7 @@ def twiss_line(line, particle_ref=None, method=None,
     values_at_element_exit=(values_at_element_exit or False)
     continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
     freeze_longitudinal=(freeze_longitudinal or False)
-    radiation_method=(radiation_method or 'full')
+    radiation_method=(radiation_method or None)
     eneloss_and_damping=(eneloss_and_damping or False)
     symplectify=(symplectify or False)
     reverse=(reverse or False)
@@ -274,19 +274,26 @@ def twiss_line(line, particle_ref=None, method=None,
                 line.freeze_energy(force=True) # need to force for collective lines
                 return twiss_line(freeze_energy=False, **kwargs)
 
-    if radiation_method != 'full':
+    if radiation_method is None and line._radiation_model is not None:
+        radiation_method = 'kick_as_co'
+
+    if radiation_method is not None and radiation_method != 'full':
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         kwargs.pop('radiation_method')
         assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
-        with xt.line._preserve_config(line):
-            if radiation_method == 'kick_as_co':
-                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
+        if (radiation_method == 'kick_as_co' and (
+            not hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST') or
+            not line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST)):
+            with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-            elif radiation_method == 'scale_as_co':
-                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
+                return twiss_line(**kwargs)
+        elif (radiation_method == 'scale_as_co' and (
+            not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
+            not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
+            with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-            res = twiss_line(**kwargs)
+                return twiss_line(**kwargs)
 
     if at_s is not None:
         if reverse:
@@ -488,23 +495,25 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data
+        import pdb; pdb.set_trace()
         if radiation_method != 'full':
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
                 _, RR, _ = _find_periodic_solution(
                     line=line, particle_on_co=particle_on_co,
-                    particle_ref=particle_ref, method=method,
+                    particle_ref=particle_ref, method='6d',
                     co_search_settings=co_search_settings,
                     continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                    delta0=delta0, zeta0=zeta0, steps_r_matrix=steps_r_matrix,
-                    W_matrix=W_matrix, R_matrix=R_matrix,
+                    steps_r_matrix=steps_r_matrix,
                     particle_co_guess=particle_co_guess,
-                    delta_disp=delta_disp, symplectify=symplectify,
+                    symplectify=False,
                     matrix_responsiveness_tol=matrix_responsiveness_tol,
                     matrix_stability_tol=None,
                     ele_start=ele_start, ele_stop=ele_stop,
-                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma)
+                    nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
+                    delta0=None, zeta0=None, W_matrix=None, R_matrix=None,
+                    delta_disp=None)
         else:
             RR = twiss_res._data['R_matrix']
         eneloss_damp_res = _compute_eneloss_and_damping_rates(
