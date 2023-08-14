@@ -106,12 +106,11 @@ integ_z = np.sum(dl
 
 from scipy.constants import c as clight
 from scipy.constants import hbar
-from scipy.constants import e as qe
+from scipy.constants import epsilon_0
 
-# hbar = 6.582119569e-25; #/* GeV*s */
 
-arad = 1e6*1e-4 * q0 * q0 * qe * clight * clight / mass0 # 1e-10 is guessed
-clg = ((55. * (hbar * 1e-9 / qe) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / mass0)
+arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
+clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / mass0)
 ex = clg * integ_x / alpha_damp_x
 ey = clg * integ_y / alpha_damp_y
 ez = clg * integ_z / alpha_damp_z
