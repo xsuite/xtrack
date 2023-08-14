@@ -462,8 +462,7 @@ def twiss_line(line, particle_ref=None, method=None,
     if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
         _compute_global_quantities(
-                            line=line, twiss_res=twiss_res,
-                            eneloss_and_damping=eneloss_and_damping)
+                            line=line, twiss_res=twiss_res)
 
         cols_chrom, scalars_chrom = _compute_chromatic_functions(
             line=line,
@@ -488,6 +487,15 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
+
+    if eneloss_and_damping:
+        assert 'R_matrix' in twiss_res._data
+        RR = twiss_res._data['R_matrix']
+        eneloss_damp_res = _compute_eneloss_and_damping_rates(
+            particle_on_co=twiss_res.particle_on_co,
+            R_matrix=RR, ptau_co=twiss_res.ptau,
+            T_rev0=twiss_res.T_rev0)
+        twiss_res._data.update(eneloss_damp_res)
 
 
     if method == '4d' and 'muzeta' in twiss_res._data:
@@ -900,7 +908,7 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
     return res, i_replace
 
 
-def _compute_global_quantities(line, twiss_res, eneloss_and_damping):
+def _compute_global_quantities(line, twiss_res):
 
         s_vect = twiss_res['s']
         mux = twiss_res['mux']
@@ -946,12 +954,7 @@ def _compute_global_quantities(line, twiss_res, eneloss_and_damping):
         else:
             twiss_res.particle_on_co._fsolve_info = None
 
-        if eneloss_and_damping:
-            assert 'R_matrix' in twiss_res._data
-            RR = twiss_res._data['R_matrix']
-            eneloss_damp_res = _compute_eneloss_and_damping_rates(
-                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
-            twiss_res._data.update(eneloss_damp_res)
+
 
 def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,
