@@ -10,10 +10,10 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # mad.input('beam, particle=proton, pc=26;')
 # mad.input('beam, particle=electron, pc=20;')
 
-# # realistic
-# mad.input('beam, particle=electron, pc=20;')
-# v_mv = 25
-# num_turns = 8000
+# realistic
+mad.input('beam, particle=electron, pc=20;')
+v_mv = 25
+num_turns = 8000
 
 # # higher energy
 mad.input('beam, particle=electron, pc=50;')
@@ -108,10 +108,10 @@ from scipy.constants import c as clight
 from scipy.constants import hbar
 from scipy.constants import e as qe
 
-hbar = 6.582119569e-25; #/* GeV*s */
+# hbar = 6.582119569e-25; #/* GeV*s */
 
 arad = 1e6*1e-4 * q0 * q0 * qe * clight * clight / mass0 # 1e-10 is guessed
-clg = ((55. * hbar * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / mass0)
+clg = ((55. * (hbar * 1e-9 / qe) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / mass0)
 ex = clg * integ_x / alpha_damp_x
 ey = clg * integ_y / alpha_damp_y
 ez = clg * integ_z / alpha_damp_z
@@ -143,7 +143,7 @@ plt.close('all')
 fig = plt.figure(1)
 spx = fig. add_subplot(3, 1, 1)
 spx.plot(np.std(mon.x, axis=0))
-spx.axhline(np.sqrt(ex * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2), color='red')
+spx.axhline(np.sqrt(ex * tw.betx[0] + ey * tw.betx2[0] + (np.std(p.delta) * tw.dx[0])**2), color='red')
 # spx.axhline(np.sqrt(ex_hof * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2), color='green')
 
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
