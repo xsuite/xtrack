@@ -1,4 +1,7 @@
 import numpy as np
+from scipy.constants import c as clight
+from scipy.constants import hbar
+from scipy.constants import epsilon_0
 
 from cpymad.madx import Madx
 import xtrack as xt
@@ -75,7 +78,6 @@ alpha_damp_y = tw_rad.damping_constants_turns[1]
 alpha_damp_z = tw_rad.damping_constants_turns[2]
 
 tt = line.get_table()
-rho_inv = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
 hxl = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
 hyl = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
 dl = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
@@ -93,26 +95,23 @@ hh = np.sqrt(hx**2 + hy**2)
 
 mass0 = line.particle_ref.mass0
 q0 = line.particle_ref.q0
-gamma0 = line.particle_ref.gamma0[0]
+gamma0 = line.particle_ref._xobject.gamma0[0]
+beta0 = line.particle_ref._xobject.beta0[0]
 
-gamma = gamma0 * (1 + tw_rad.ptau)[:-1]
-gamma3 = gamma * gamma * gamma
+gamma = gamma0 * (1 + beta0 * tw_rad.ptau)[:-1]
+gamma2 = gamma * gamma
 
 # Need to use no rad W matrix!!!
 integ_x = np.sum(dl
-    * np.abs(hh)**3 * gamma3 * np.squeeze(tw.W_matrix[:-1, 4, 0]**2 + tw.W_matrix[:-1, 4, 1]**2))
+    * np.abs(hh)**3 * gamma2 * np.squeeze(tw.W_matrix[:-1, 4, 0]**2 + tw.W_matrix[:-1, 4, 1]**2))
 integ_y = np.sum(dl
-    * np.abs(hh)**3 * gamma3 * np.squeeze(tw.W_matrix[:-1, 4, 2]**2 + tw.W_matrix[:-1, 4, 3]**2))
+    * np.abs(hh)**3 * gamma2 * np.squeeze(tw.W_matrix[:-1, 4, 2]**2 + tw.W_matrix[:-1, 4, 3]**2))
 integ_z = np.sum(dl
-    * np.abs(hh)**3 * gamma3 * np.squeeze(tw.W_matrix[:-1, 4, 4]**2 + tw.W_matrix[:-1, 4, 5]**2))
-
-from scipy.constants import c as clight
-from scipy.constants import hbar
-from scipy.constants import epsilon_0
+    * np.abs(hh)**3 * gamma2 * np.squeeze(tw.W_matrix[:-1, 4, 4]**2 + tw.W_matrix[:-1, 4, 5]**2))
 
 
 arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
-clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**2) / mass0)
+clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**3) / mass0)
 ex = clg * integ_x / alpha_damp_x
 ey = clg * integ_y / alpha_damp_y
 ez = clg * integ_z / alpha_damp_z
