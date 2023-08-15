@@ -22,7 +22,10 @@ slicing_strategies = [
 ]
 
 line.discard_tracker()
+t1 = time.time()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
+t2 = time.time()
+print('\nTime slice thick: ', t2-t1)
 line.build_tracker()
 
 tw = line.twiss()

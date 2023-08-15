@@ -371,7 +371,7 @@ def twiss_line(line, particle_ref=None, method=None,
         matrix_stability_tol = line.matrix_stability_tol
 
     if (line._radiation_model is not None
-            and radiation_method is not 'kick_as_co'):
+            and radiation_method != 'kick_as_co'):
         matrix_stability_tol = None
         if use_full_inverse is None:
             use_full_inverse = True
