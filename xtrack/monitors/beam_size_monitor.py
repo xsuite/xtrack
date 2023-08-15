@@ -122,7 +122,7 @@ class BeamSizeMonitor(BeamElement):
             
             if "data" not in kwargs:
                 # explicitely init with zeros (instead of size only) to have consistent initial values
-                size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
+                size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
                 kwargs["data"] = {prop: np.zeros(size) for prop in self.properties}
 
             super().__init__(particle_id_start=particle_id_start, num_particles=num_particles,
