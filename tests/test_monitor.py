@@ -7,6 +7,7 @@ import json
 import pathlib
 
 import numpy as np
+from numpy.testing import assert_equal, assert_allclose
 
 import xtrack as xt
 import xpart as xp
@@ -167,3 +168,81 @@ def test_last_turns_monitor(test_context):
     assert np.all(monitor.x == np.array([[0,0,2,1,0],[3,5,7,9,11],[0,-2,-4,-6,-8],[20,23,26,29,32]]))
 
 
+
+@for_all_test_contexts
+def test_beam_profile_monitor(test_context):
+    gen = np.random.default_rng(seed=38715345)
+
+    npart = 512 # must be even and >= 512
+    x = gen.normal(size=npart+4) # generate a few more to test "num_particles"
+    y = gen.normal(size=npart+4)
+
+    particles = xp.Particles(
+        p0c=6.5e12,
+        x=x,
+        y=y,
+        zeta=-2.99792458e8*np.tile([0.0, 0.5], x.size//2),
+        _context=test_context,
+    )
+
+    raster_size = 100
+
+    monitor = xt.BeamProfileMonitor(
+        num_particles=npart,
+        start_at_turn=0,
+        stop_at_turn=10,
+        frev=1,
+        sampling_frequency=2,
+        raster_size=raster_size,
+        raster_range_x=5,
+        raster_range_y=(-4,2),
+        _context=test_context,
+    )
+
+    line = xt.Line([monitor])
+    line.build_tracker(_context=test_context)
+
+    for turn in range(11): # track a few more than we record to test "stop_at_turn"
+        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # so sort before manipulation
+        if isinstance(test_context, xo.ContextCpu):
+            particles.sort(interleave_lost_particles=True)
+
+        # manipulate particles for testing
+        particles.x[0] += 0.1
+        particles.y[0] -= 0.1
+        if turn == 8:
+            particles.state[256:] = 0
+        if turn == 9:
+            particles.state[:] = 0
+
+        if isinstance(test_context, xo.ContextCpu):
+            particles.reorganize()
+
+        # track and monitor
+        line.track(particles, num_turns=1)
+
+
+    # Check against expected values
+    expected_intensity_x = np.zeros((20, raster_size))
+    expected_intensity_y = np.zeros((20, raster_size))
+    for turn in range(10):
+        for sub in range(2):
+            lim = {8:256, 9:0}.get(turn, npart) # consider dead particles in last turns
+            x_sub = np.copy(x[:lim][sub::2])
+            y_sub = np.copy(y[:lim][sub::2])
+            if sub == 0 and lim > 0:
+                x_sub[0] += 0.1 * (turn+1)
+                y_sub[0] -= 0.1 * (turn+1)
+            # benchmark against numpy's histogram function
+            hist_x, edges_x = np.histogram(x_sub, bins=raster_size, range=(-2.5, 2.5))
+            hist_y, edges_y = np.histogram(y_sub, bins=raster_size, range=(-4, 2))
+            expected_intensity_x[2*turn+sub, :] = hist_x
+            expected_intensity_y[2*turn+sub, :] = hist_y
+
+    assert_allclose(monitor.raster_edges_x, edges_x, err_msg="Monitor raster_edges_x does not match expected values")
+    assert_allclose(monitor.raster_edges_y, edges_y, err_msg="Monitor raster_edges_y does not match expected values")    
+    assert_allclose(monitor.raster_midpoints_x, (edges_x[1:]+edges_x[:-1])/2, err_msg="Monitor raster_midpoints_x does not match expected values")
+    assert_allclose(monitor.raster_midpoints_y, (edges_y[1:]+edges_y[:-1])/2, err_msg="Monitor raster_midpoints_y does not match expected values")
+    assert_allclose(monitor.intensity_x, expected_intensity_x, err_msg="Monitor intensity_x does not match expected values")
+    assert_allclose(monitor.intensity_y, expected_intensity_y, err_msg="Monitor intensity_y does not match expected values")
