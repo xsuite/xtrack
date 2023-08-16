@@ -949,7 +949,8 @@ class Line:
         _ebe_monitor=None,
         ):
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         tw_kwargs = locals().copy()
 
