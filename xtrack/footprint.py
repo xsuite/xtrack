@@ -11,7 +11,8 @@ class LinearRescale():
 
 def _footprint_with_linear_rescale(linear_rescale_on_knobs, line,
                                    freeze_longitudinal=False,
-                                   delta0=None, zeta0=None, kwargs={}):
+                                   delta0=None, zeta0=None, 
+                                   keep_tracking_data = False, kwargs={}):
 
         if isinstance (linear_rescale_on_knobs, LinearRescale):
             linear_rescale_on_knobs = [linear_rescale_on_knobs]
@@ -28,7 +29,8 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line,
         with xt._temp_knobs(line, knobs_0):
             fp = line.get_footprint(
                 freeze_longitudinal=freeze_longitudinal,
-                delta0=delta0, zeta0=zeta0, **kwargs)
+                delta0=delta0, zeta0=zeta0, 
+                keep_tracking_data = keep_tracking_data, **kwargs)
 
         qx0 = fp.qx
         qy0 = fp.qy
@@ -43,7 +45,8 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line,
 
             with xt._temp_knobs(line, knobs_1):
                 fp1 = line.get_footprint(freeze_longitudinal=freeze_longitudinal,
-                                        delta0=delta0, zeta0=zeta0, **kwargs)
+                                        delta0=delta0, zeta0=zeta0, 
+                                        keep_tracking_data = keep_tracking_data, **kwargs)
             delta_qx = (fp1.qx - qx0) / dv * (line.vars[nn]._value - v0)
             delta_qy = (fp1.qy - qy0) / dv * (line.vars[nn]._value - v0)
 
@@ -57,7 +60,7 @@ class Footprint():
     def __init__(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
-            keep_fft=False, keep_tracking_data = False):
+            keep_fft=False):
 
         assert nemitt_x is not None and nemitt_y is not None, (
             'nemitt_x and nemitt_y must be provided')
@@ -66,7 +69,6 @@ class Footprint():
         self.n_turns = n_turns
         self.n_fft = n_fft
         self.keep_fft = keep_fft
-        self.keep_tracking_data = keep_tracking_data
 
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
@@ -132,7 +134,7 @@ class Footprint():
             self.y_norm_2d = np.sqrt(2 * self.Jy_2d / nemitt_y)
 
     def _compute_footprint(self, line, freeze_longitudinal=False,
-                           delta0=None, zeta0=None):
+                           delta0=None, zeta0=None, keep_tracking_data = False):
 
         if freeze_longitudinal is None:
             # In future we could detect if the line has frozen longitudinal plane
@@ -174,7 +176,7 @@ class Footprint():
         self.qx = np.reshape(qx, self.x_norm_2d.shape)
         self.qy = np.reshape(qy, self.x_norm_2d.shape)
         
-        if self.keep_tracking_data:
+        if keep_tracking_data:
             self.tracking_data = mon
             
         print ('Done computing footprint.')

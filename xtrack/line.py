@@ -1252,7 +1252,7 @@ class Line:
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             linear_rescale_on_knobs=None,
             freeze_longitudinal=None, delta0=None, zeta0=None,
-            keep_fft=True):
+            keep_fft=True, keep_tracking_data=False):
 
         '''
         Compute the tune footprint for a beam with given emittences using tracking.
@@ -1330,12 +1330,12 @@ class Line:
             fp = _footprint_with_linear_rescale(line=self, kwargs=kwargs,
                         linear_rescale_on_knobs=linear_rescale_on_knobs,
                         freeze_longitudinal=freeze_longitudinal,
-                        delta0=delta0, zeta0=zeta0)
+                        delta0=delta0, zeta0=zeta0, keep_tracking_data = keep_tracking_data)
         else:
             fp = Footprint(**kwargs)
             fp._compute_footprint(self,
                 freeze_longitudinal=freeze_longitudinal,
-                delta0=delta0, zeta0=zeta0)
+                delta0=delta0, zeta0=zeta0, keep_tracking_data = keep_tracking_data)
 
         return fp
 
