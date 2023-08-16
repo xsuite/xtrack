@@ -40,9 +40,7 @@ from .loss_location_refinement import _skip_in_loss_location_refinement
 
 from ._version import __version__
 
-def Particles(*args, **kwargs):
-    raise ValueError(
-    "`xtrack.Particles` not available anymore, please use `xpart.Particles`")
+from xpart import Particles, PROTON_MASS_EV, ELECTRON_MASS_EV
 
 def enable_pyheadtail_interface(*args, **kwargs):
     raise ValueError(

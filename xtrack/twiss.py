@@ -1198,8 +1198,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                 W, _, _ = lnf.compute_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),
                             symplectify=symplectify,
-                            responsiveness_tol=matrix_responsiveness_tol,
-                            stability_tol=matrix_stability_tol)
+                            responsiveness_tol=None,
+                            stability_tol=None)
 
                 # Estimate beam size (betatron part)
                 gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
