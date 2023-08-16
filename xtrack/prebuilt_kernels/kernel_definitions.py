@@ -41,6 +41,7 @@ ONLY_XTRACK_ELEMENTS = [
     DipoleEdge,
     SimpleThinBend,
     SimpleThinQuadrupole,
+    LineSegmentMap,
     LinearTransferMatrix,
 ]
 
@@ -80,20 +81,25 @@ kernel_definitions = {
             'XTRACK_MULTIPOLE_TAPER': True,
             'XTRACK_DIPOLEEDGE_TAPER': True,
         },
-        'classes': [*ONLY_XTRACK_ELEMENTS, LineSegmentMap],
+        'classes': ONLY_XTRACK_ELEMENTS,
     },
     'only_xtrack_with_synrad': {
         'config': {**BASE_CONFIG, 'XTRACK_MULTIPOLE_NO_SYNRAD': False},
-        'classes': [*ONLY_XTRACK_ELEMENTS, LineSegmentMap],
+        'classes': ONLY_XTRACK_ELEMENTS,
+    },
+    'only_xtrack_with_synrad_kick_as_co': {
+        'config': {**BASE_CONFIG, 'XTRACK_MULTIPOLE_NO_SYNRAD': False,
+                   'XTRACK_SYNRAD_KICK_SAME_AS_FIRST': True},
+        'classes': ONLY_XTRACK_ELEMENTS,
     }
 }
 
 try:
-    from xfields.beam_elements import *
+    import xfields as xf
     DEFAULT_BB3D_ELEMENTS = [
         *ONLY_XTRACK_ELEMENTS,
-        BeamBeamBiGaussian2D,
-        BeamBeamBiGaussian3D,
+        xf.BeamBeamBiGaussian2D,
+        xf.BeamBeamBiGaussian3D,
     ]
 
     kernel_definitions['default_bb3d'] = {
