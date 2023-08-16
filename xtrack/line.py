@@ -3463,8 +3463,6 @@ class LineVars:
                 ):
                 self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]
 
-
-
 class VarValues:
 
     def __init__(self, vars):

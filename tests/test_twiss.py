@@ -555,7 +555,7 @@ def test_twiss_range(test_context):
 
                 assert tw_test.values_at == tw_part.values_at == 'entry'
                 assert tw_test.method == tw_part.method == '4d'
-                assert tw_test.radiation_method == tw_part.radiation_method == 'full'
+                assert tw_test.radiation_method == tw_part.radiation_method == None
                 assert tw_test.reference_frame == tw_part.reference_frame == (
                     {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
 
