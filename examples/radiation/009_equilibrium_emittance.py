@@ -12,8 +12,6 @@ mad.call('../../test_data/clic_dr/sequence.madx')
 mad.use('ring')
 twm = mad.twiss()
 
-
-
 mad.sequence.ring.beam.radiate = True
 mad.emit()
 
@@ -41,42 +39,52 @@ line.slice_thick_elements(slicing_strategies=slicing_strategies)
 line.build_tracker()
 tw = line.twiss()
 
-prrrr
+# Tapering!!!
+line.compensate_radiation_energy_loss()
 
-line.configure_radiation(model='mean')
-tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
-                    use_full_inverse=False)
+tw_rad = line.twiss(eneloss_and_damping=True)
 
-alpha_damp = tw_rad.damping_constants_turns[0]
+ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
+ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
+ez = tw_rad.nemitt_zeta_rad / (tw_rad.gamma0 * tw_rad.beta0)
 
+line.configure_radiation(model='quantum')
+p = line.build_particles(num_particles=30)
+line.track(p, num_turns=2000, time=True, turn_by_turn_monitor=True)
+print(f'Tracking time: {line.time_last_track}')
 
+# twe = tw.rows[:-1]
+# cur_H_x = twe.gamx * twe.dx**2 + 2 * twe.alfx * twe.dx * twe.dpx + twe.betx * twe.dpx**2
+# I5_x  = np.sum(cur_H_x * hh**3 * dl)
+# I2_x = np.sum(hh**2 * dl)
+# I4_x = np.sum(twe.dx * hh**3 * dl) # to be generalized for combined function magnets
 
-rho_inv = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
-dl = np.zeros(shape=(len(tt['s']),), dtype=np.float64)
-for ii, ee in enumerate(line.elements):
-    if isinstance(ee, xt.Multipole):
-        assert ee.length > 0
-        rho_inv[ii] = ee.knl[0] / ee.length
-        dl[ii] = ee.length
+# cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * twe.dpy + twe.bety * twe.dpy**2
+# I5_y  = np.sum(cur_H_y * hh**3 * dl)
+# I2_y = np.sum(hh**2 * dl)
+# I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function magnets
 
-# Get plank constant hbar in eV*s
-hbar = 6.582119569e-16
+# lam_comp = 2.436e-12 # [m]
+# ex_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_x / (I2_x - I4_x)
+# ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
 
-r0 = line.particle_ref.get_classical_particle_radius0()
-mass0 = line.particle_ref.mass0
-q0 = line.particle_ref.q0
-gamma0 = line.particle_ref.gamma0[0]
-C_L = 55.0 / 48.0 * np.sqrt(3.0) * r0 * hbar / mass0
+mon = line.record_last_track
 
-integ = np.sum(dl
-    * np.abs(rho_inv)**3 * np.squeeze(tw.W_matrix[:-1, 4, 0]**2 + tw.W_matrix[:-1, 4, 1]**2))
+import matplotlib.pyplot as plt
+plt.close('all')
+fig = plt.figure(1)
+spx = fig. add_subplot(3, 1, 1)
+spx.plot(np.std(mon.x, axis=0))
+spx.axhline(np.sqrt(ex * tw.betx[0] + ey * tw.betx2[0] + (np.std(p.delta) * tw.dx[0])**2), color='red')
+# spx.axhline(np.sqrt(ex_hof * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2), color='green')
 
-eq_emitt = C_L / alpha_damp * gamma0**5 / clight * integ
+spy = fig. add_subplot(3, 1, 2, sharex=spx)
+spy.plot(np.std(mon.y, axis=0))
+spy.axhline(np.sqrt(ex * tw.bety1[0] + ey * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='red')
+# spy.axhline(np.sqrt(ey_hof * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='green')
 
-q_elect = 1.602176634e-19
-emass = 0.51099895000
-hbar = 6.582119569e-25; #/* GeV*s */
+spz = fig. add_subplot(3, 1, 3, sharex=spx)
+spz.plot(np.std(mon.zeta, axis=0))
+spz.axhline(np.sqrt(ez * tw.betz0), color='red')
 
-arad = 1e-16 * q0 * q0 * q_elect * clight * clight / emass
-clg = ((55.* hbar * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**5) / emass)
-ex = clg * integ / alpha_damp
+plt.show()

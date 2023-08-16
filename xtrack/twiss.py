@@ -977,6 +977,9 @@ def _compute_global_quantities(line, twiss_res):
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
+            'gamma0': part_on_co._xobject.gamma0[0],
+            'beta0': part_on_co._xobject.beta0[0],
+            'p0c': part_on_co._xobject.p0c[0],
             'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
         })
         if hasattr(part_on_co, '_fsolve_info'):

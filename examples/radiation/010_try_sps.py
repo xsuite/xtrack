@@ -81,10 +81,9 @@ assert tw_rad2.nemitt_x_rad is None
 assert tw_rad2.nemitt_y_rad is None
 assert tw_rad2.nemitt_zeta_rad is None
 
-
-ex = tw_rad.nemitt_x_rad / (line.particle_ref.gamma0[0] * line.particle_ref.beta0[0])
-ey = tw_rad.nemitt_y_rad / (line.particle_ref.gamma0[0] * line.particle_ref.beta0[0])
-ez = tw_rad.nemitt_zeta_rad / (line.particle_ref.gamma0[0] * line.particle_ref.beta0[0])
+ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
+ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
+ez = tw_rad.nemitt_zeta_rad / (tw_rad.gamma0 * tw_rad.beta0)
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
