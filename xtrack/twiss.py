@@ -8,6 +8,8 @@ import logging
 import numpy as np
 from scipy.optimize import fsolve
 from scipy.constants import c as clight
+from scipy.constants import hbar
+from scipy.constants import epsilon_0
 
 import xobjects as xo
 import xpart as xp
@@ -178,7 +180,7 @@ def twiss_line(line, particle_ref=None, method=None,
             - partice_on_co: particle on closed orbit
             - R_matrix: R matrix (if calculated or provided)
             - eneloss_turn, energy loss per turn in electron volts (if
-              eneloss_and_dampingis True)
+              eneloss_and_damping is True)
             - damping_constants_turns, radiation damping constants per turn
               (if `eneloss_and_damping` is True)
             - damping_constants_s:
@@ -516,9 +518,11 @@ def twiss_line(line, particle_ref=None, method=None,
         else:
             RR = twiss_res._data['R_matrix']
         eneloss_damp_res = _compute_eneloss_and_damping_rates(
-            particle_on_co=twiss_res.particle_on_co,
-            R_matrix=RR, ptau_co=twiss_res.ptau,
-            T_rev0=twiss_res.T_rev0)
+                particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
+                W_matrix=twiss_res.W_matrix,
+                px_co=twiss_res.px, py_co=twiss_res.py,
+                ptau_co=twiss_res.ptau, T_rev0=twiss_res.T_rev0,
+                line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
     if method == '4d' and 'muzeta' in twiss_res._data:
@@ -1046,7 +1050,9 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
     return cols_chrom, scalars_chrom
 
 
-def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0):
+def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
+                                       px_co, py_co, ptau_co, W_matrix,
+                                       T_rev0, line, radiation_method):
     diff_ptau = np.diff(ptau_co)
     eloss_turn = -sum(diff_ptau[diff_ptau<0]) * particle_on_co._xobject.p0c[0]
 
@@ -1065,11 +1071,59 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0
     partition_numbers = (
         damping_constants_turns* 2 * energy0/eloss_turn)
 
+    # Equilibrium emittances
+    if radiation_method == 'kick_as_co':
+
+        hxl = line.tracker._tracker_data_base.cache['hxl_radiation']
+        hyl = line.tracker._tracker_data_base.cache['hyl_radiation']
+        dl = line.tracker._tracker_data_base.cache['dl_radiation']
+        mask = (dl != 0)
+        hx = np.zeros(shape=(len(dl),), dtype=np.float64)
+        hy = np.zeros(shape=(len(dl),), dtype=np.float64)
+        hx[mask] = (np.diff(px_co)[mask] + hxl[mask]) / dl[mask]
+        hy[mask] = (np.diff(py_co)[mask] + hyl[mask]) / dl[mask]
+        hh = np.sqrt(hx**2 + hy**2)
+
+        mass0 = line.particle_ref.mass0
+        q0 = line.particle_ref.q0
+        gamma0 = line.particle_ref._xobject.gamma0[0]
+        beta0 = line.particle_ref._xobject.beta0[0]
+
+        gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
+        gamma2 = gamma * gamma
+
+        # Need to use no rad W matrix!!!
+        integ_ex = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 0]**2 + W_matrix[:-1, 4, 1]**2))
+        integ_ey = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 2]**2 + W_matrix[:-1, 4, 3]**2))
+        integ_ez = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 4]**2 + W_matrix[:-1, 4, 5]**2))
+
+        arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
+        clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**3) / mass0)
+        ex = clg * integ_ex / damping_constants_turns[0]
+        ey = clg * integ_ey / damping_constants_turns[1]
+        ez = clg * integ_ez / damping_constants_turns[2]
+
+        nemitt_x_rad = float(ex * (beta0 * gamma0))
+        nemitt_y_rad = float(ey * (beta0 * gamma0))
+        nemitt_zeta_rad = float(ez * (beta0 * gamma0))
+
+    else:
+
+        nemitt_x_rad = None
+        nemitt_y_rad = None
+        nemitt_zeta_rad = None
+
     eneloss_damp_res = {
         'eneloss_turn': eloss_turn,
         'damping_constants_turns': damping_constants_turns,
         'damping_constants_s':damping_constants_s,
-        'partition_numbers': partition_numbers
+        'partition_numbers': partition_numbers,
+        'nemitt_x_rad': nemitt_x_rad,
+        'nemitt_y_rad': nemitt_y_rad,
+        'nemitt_zeta_rad': nemitt_zeta_rad,
     }
 
     return eneloss_damp_res

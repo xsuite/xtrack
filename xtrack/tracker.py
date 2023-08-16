@@ -129,6 +129,9 @@ class Tracker:
             _buffer=_buffer)
         line._freeze()
 
+        tracker_data_base.cache.update(
+            line._cache_data_for_radiation_integrals())
+
         _buffer = tracker_data_base._buffer
 
         # Make a "marker" element to increase at_element
@@ -1271,6 +1274,7 @@ class Tracker:
                 element_names=td_base._element_names,
                 element_s_locations=td_base.element_s_locations,
                 line_length=td_base.line_length,
+                cache=td_base.cache.copy(),
                 compound_mask=td_base.compound_mask,
                 element_compound_names=td_base.element_compound_names,
                 kernel_element_classes=kernel_element_classes,
