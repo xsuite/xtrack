@@ -110,3 +110,6 @@ print('Number of elements: ', len(line))
 
 print('Change on arc quadrupoles:')
 print(opt.log().vary[-1]/opt.log().vary[0] - 1)
+
+line.to_json('fccee_p_ring_thin.json')
+line_thick.to_json('fccee_p_ring_thick.json')
