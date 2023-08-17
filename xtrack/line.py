@@ -442,6 +442,9 @@ class Line:
             in xtrack will be grouped together with a marker attached in front,
             and will be accessible through __getattr__. Otherwise, the line will
             be flattened.
+        make_end_markers : bool, optional
+            If true (default), entry and exit markers will be added for thick
+            elements.
 
         Returns
         -------

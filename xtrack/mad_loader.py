@@ -3,8 +3,8 @@
 Structure of the code:
 
 MadLoader takes a sequence and several options
-MadLooder.make_line(buffer=None) returns a line with elements installed in one buffer
-MadLooder.iter_elements() iterates over the elements of the sequence,
+MadLoader.make_line(buffer=None) returns a line with elements installed in one buffer
+MadLoader.iter_elements() iterates over the elements of the sequence,
                           yielding a MadElement and applies some simplifications
 
 Developers:
