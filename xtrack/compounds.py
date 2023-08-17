@@ -104,8 +104,8 @@ class Compound:
             'aperture': list(self.aperture),
             'entry_transform': list(self.entry_transform),
             'exit_transform': list(self.exit_transform),
-            'entry': list(self.entry)[0],
-            'exit_': list(self.exit)[0],
+            'entry': list(self.entry)[0] if len(self.entry) > 0 else None,
+            'exit_': list(self.exit)[0] if len(self.exit) > 0 else None,
         }
 
     def remove_element(self, element):

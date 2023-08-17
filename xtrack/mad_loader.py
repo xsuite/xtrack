@@ -344,29 +344,38 @@ class CompoundElementBuilder:
         entry_transform: List[ElementBuilder],
         exit_transform: List[ElementBuilder],
         aperture: List[ElementBuilder],
+        make_end_markers: bool = True,
     ):
         self.name = name
         self.core = core
         self.entry_transform = entry_transform
         self.exit_transform = exit_transform
         self.aperture = aperture
+        self.make_end_markers = make_end_markers
 
     def add_to_line(self, line, buffer):
-        start_marker = ElementBuilder(
-            name=self.name + "_entry",
-            type=xtrack.Marker,
-        )
-
-        end_marker = ElementBuilder(
-            name=self.name + "_exit",
-            type=xtrack.Marker,
-        )
+        if self.make_end_markers:
+            start_marker = [ElementBuilder(
+                name=self.name + "_entry",
+                type=xtrack.Marker,
+            )]
+            end_marker = [ElementBuilder(
+                name=self.name + "_exit",
+                type=xtrack.Marker,
+            )]
+            start_marker_name = start_marker[0].name
+            end_marker_name = end_marker[0].name
+        else:
+            start_marker = []
+            end_marker = []
+            start_marker_name = None
+            end_marker_name = None
 
         component_elements = (
-            [start_marker] +
+            start_marker +
             self.aperture +
             self.entry_transform + self.core + self.exit_transform +
-            [end_marker]
+            end_marker
         )
 
         for el in component_elements:
@@ -380,8 +389,8 @@ class CompoundElementBuilder:
             aperture=_get_names(self.aperture),
             entry_transform=_get_names(self.entry_transform),
             exit_transform=_get_names(self.exit_transform),
-            entry=start_marker.name,
-            exit_=end_marker.name,
+            entry=start_marker_name,
+            exit_=end_marker_name,
         )
         line.compound_container.define_compound(self.name, compound)
 
@@ -592,6 +601,7 @@ class MadLoader:
         replace_in_expr=None,
         allow_thick=False,
         use_compound_elements=True,
+        make_end_markers=True,
     ):
 
         if enable_errors is not None:
@@ -631,6 +641,7 @@ class MadLoader:
 
         self.allow_thick = allow_thick
         self.use_compound_elements = use_compound_elements
+        self.make_end_markers = make_end_markers
 
     def iter_elements(self, madeval=None):
         """Yield element data for each known element"""
@@ -816,6 +827,7 @@ class MadLoader:
                 entry_transform=align.entry(),
                 exit_transform=align.exit(),
                 aperture=aperture_seq,
+                make_end_markers=self.make_end_markers,
             ),
         ]
 

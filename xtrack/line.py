@@ -397,6 +397,7 @@ class Line:
         ignored_madtypes=(),
         allow_thick=False,
         use_compound_elements=True,
+        make_end_markers=True,
     ):
 
         """
@@ -468,6 +469,7 @@ class Line:
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
             use_compound_elements=use_compound_elements,
+            make_end_markers=make_end_markers,
         )
         line = loader.make_line()
         return line
@@ -2528,6 +2530,8 @@ class Line:
         for name in elements_df['name']:
             ee = self.element_dict[name]
             if _allow_backtrack(ee) and not name in needs_aperture:
+                dont_need_aperture[name] = True
+            if name.endswith('_entry') or name.endswith('_exit'):
                 dont_need_aperture[name] = True
 
             # Correct isthick for elements that need aperture but have zero length.
