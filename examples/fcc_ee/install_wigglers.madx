@@ -12,8 +12,10 @@ L_dis = 0.250;
 L_qa = 2.9;
 brhobeam=BEAM->BRHO;
 
-on_wiggler = 1;
-wiggler_angle:= on_wiggler * B_plus * L_plus / brhobeam;
+on_wiggler_h = 1;
+wiggler_angle_h:= on_wiggler_h * B_plus * L_plus / brhobeam;
+on_wiggler_v = 1;
+wiggler_angle_v:= on_wiggler_v * B_plus * L_plus / brhobeam;
 
 Print, Text="The critical energy of the wiggler is:";
 VALUE, 2.21*10^(-6)*(BEAM->ENERGY)^3/(BEAM->BRHO/B_plus/1000);
@@ -25,8 +27,8 @@ Print, Text="To see the impact on the closed orbit and aperture, use define_wigg
 
 define_wigglers_as_kickers() : macro {
 
-    MWIM: TKICKER, L=L_minus,  HKICK:=-0.5*wiggler_angle;
-    MWIP: TKICKER, L=L_plus,   HKICK:= wiggler_angle;
+    MWIM: TKICKER, LRAD=L_minus, L=L_minus, HKICK:=-0.5*wiggler_angle_h, VKICK:=-0.5*wiggler_angle_v;
+    MWIP: TKICKER, LRAD=L_plus,  L=L_plus,  HKICK:= wiggler_angle_h,     VKICK:=wiggler_angle_v;
 
     MWI.A4RA: MWIM;
     MWI.B4RA: MWIP;

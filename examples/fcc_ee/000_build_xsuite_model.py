@@ -14,10 +14,10 @@ mad.call('install_wigglers.madx')
 mad.input("exec, define_wigglers_as_kickers()")
 mad.input("exec, install_wigglers()")
 mad.use('fccee_p_ring')
-assert mad.globals.on_wiggler == 1
+assert mad.globals.on_wiggler_v == 1
 mad.input('twiss, table=tw_wig_on;')
 
-mad.globals.on_wiggler = 0
+mad.globals.on_wiggler_v = 0
 mad.input('twiss, table=tw_wig_off;')
 
 twm_no_wig = xd.Table(mad.table.tw_no_wig)
