@@ -1,0 +1,307 @@
+! --------------------------------------------------------------------------------------------------
+! Wiggler installation script
+! Creates MAD-X Wiggler elements follwing the parameters presented in https://arxiv.org/pdf/1909.12245.pdf ,
+! and install them in the MAD-X sequence.
+! --------------------------------------------------------------------------------------------------
+
+r_asymmetry = 6;
+B_plus = 0.7;
+L_plus = 0.430;
+L_minus = L_plus*r_asymmetry/2.;
+L_dis = 0.250;
+L_qa = 2.9;
+brhobeam=BEAM->BRHO;
+wiggler_angle:= B_plus*L_plus/brhobeam;
+
+Print, Text="The critical energy of the wiggler is:";
+VALUE, 2.21*10^(-6)*(BEAM->ENERGY)^3/(BEAM->BRHO/B_plus/1000);
+Print, Text="MeV.";
+
+Print, Text="Wigglers can be implemented as TKICKER or BENDS. The SR Integral in MAD-X are only takes BENDs into accounts.";
+Print, Text="To get the proper SR Integrals including wigglers, the MWI have to be installed using define_wigglers_as_kickers.";
+Print, Text="To see the impact on the closed orbit and aperture, use define_wigglers_as_kickers instead.";
+
+define_wigglers_as_kickers() : macro {
+
+    MWIM: TKICKER, L=L_minus,  HKICK:=-0.5*wiggler_angle;
+    MWIP: TKICKER, L=L_plus,   HKICK:= wiggler_angle;
+
+    MWI.A4RA: MWIM;
+    MWI.B4RA: MWIP;
+    MWI.C4RA: MWIM;
+    MWI.D4RA: MWIM;
+    MWI.E4RA: MWIP;
+    MWI.F4RA: MWIM;
+    MWI.G4RA: MWIM;
+    MWI.H4RA: MWIP;
+    MWI.I4RA: MWIM;
+
+    MWI.A5RA: MWIM;
+    MWI.B5RA: MWIP;
+    MWI.C5RA: MWIM;
+    MWI.D5RA: MWIM;
+    MWI.E5RA: MWIP;
+    MWI.F5RA: MWIM;
+    MWI.G5RA: MWIM;
+    MWI.H5RA: MWIP;
+    MWI.I5RA: MWIM;
+
+    MWI.A4RD: MWIM;
+    MWI.B4RD: MWIP;
+    MWI.C4RD: MWIM;
+    MWI.D4RD: MWIM;
+    MWI.E4RD: MWIP;
+    MWI.F4RD: MWIM;
+    MWI.G4RD: MWIM;
+    MWI.H4RD: MWIP;
+    MWI.I4RD: MWIM;
+
+    MWI.A5RD: MWIM;
+    MWI.B5RD: MWIP;
+    MWI.C5RD: MWIM;
+    MWI.D5RD: MWIM;
+    MWI.E5RD: MWIP;
+    MWI.F5RD: MWIM;
+    MWI.G5RD: MWIM;
+    MWI.H5RD: MWIP;
+    MWI.I5RD: MWIM;
+
+    MWI.A4RG: MWIM;
+    MWI.B4RG: MWIP;
+    MWI.C4RG: MWIM;
+    MWI.D4RG: MWIM;
+    MWI.E4RG: MWIP;
+    MWI.F4RG: MWIM;
+    MWI.G4RG: MWIM;
+    MWI.H4RG: MWIP;
+    MWI.I4RG: MWIM;
+
+    MWI.A5RG: MWIM;
+    MWI.B5RG: MWIP;
+    MWI.C5RG: MWIM;
+    MWI.D5RG: MWIM;
+    MWI.E5RG: MWIP;
+    MWI.F5RG: MWIM;
+    MWI.G5RG: MWIM;
+    MWI.H5RG: MWIP;
+    MWI.I5RG: MWIM;
+
+    MWI.A4RJ: MWIM;
+    MWI.B4RJ: MWIP;
+    MWI.C4RJ: MWIM;
+    MWI.D4RJ: MWIM;
+    MWI.E4RJ: MWIP;
+    MWI.F4RJ: MWIM;
+    MWI.G4RJ: MWIM;
+    MWI.H4RJ: MWIP;
+    MWI.I4RJ: MWIM;
+
+    MWI.A5RJ: MWIM;
+    MWI.B5RJ: MWIP;
+    MWI.C5RJ: MWIM;
+    MWI.D5RJ: MWIM;
+    MWI.E5RJ: MWIP;
+    MWI.F5RJ: MWIM;
+    MWI.G5RJ: MWIM;
+    MWI.H5RJ: MWIP;
+    MWI.I5RJ: MWIM;
+
+}
+
+define_wigglers_as_bends() : macro {
+
+    MWIM: SBEND, L=L_minus,  ANGLE:=-0.5*wiggler_angle;
+    MWIP: SBEND, L=L_plus,   ANGLE:= wiggler_angle;
+
+    MWI.A4RA: MWIM;
+    MWI.B4RA: MWIP;
+    MWI.C4RA: MWIM;
+    MWI.D4RA: MWIM;
+    MWI.E4RA: MWIP;
+    MWI.F4RA: MWIM;
+    MWI.G4RA: MWIM;
+    MWI.H4RA: MWIP;
+    MWI.I4RA: MWIM;
+
+    MWI.A5RA: MWIM;
+    MWI.B5RA: MWIP;
+    MWI.C5RA: MWIM;
+    MWI.D5RA: MWIM;
+    MWI.E5RA: MWIP;
+    MWI.F5RA: MWIM;
+    MWI.G5RA: MWIM;
+    MWI.H5RA: MWIP;
+    MWI.I5RA: MWIM;
+
+    MWI.A4RD: MWIM;
+    MWI.B4RD: MWIP;
+    MWI.C4RD: MWIM;
+    MWI.D4RD: MWIM;
+    MWI.E4RD: MWIP;
+    MWI.F4RD: MWIM;
+    MWI.G4RD: MWIM;
+    MWI.H4RD: MWIP;
+    MWI.I4RD: MWIM;
+
+    MWI.A5RD: MWIM;
+    MWI.B5RD: MWIP;
+    MWI.C5RD: MWIM;
+    MWI.D5RD: MWIM;
+    MWI.E5RD: MWIP;
+    MWI.F5RD: MWIM;
+    MWI.G5RD: MWIM;
+    MWI.H5RD: MWIP;
+    MWI.I5RD: MWIM;
+
+    MWI.A4RG: MWIM;
+    MWI.B4RG: MWIP;
+    MWI.C4RG: MWIM;
+    MWI.D4RG: MWIM;
+    MWI.E4RG: MWIP;
+    MWI.F4RG: MWIM;
+    MWI.G4RG: MWIM;
+    MWI.H4RG: MWIP;
+    MWI.I4RG: MWIM;
+
+    MWI.A5RG: MWIM;
+    MWI.B5RG: MWIP;
+    MWI.C5RG: MWIM;
+    MWI.D5RG: MWIM;
+    MWI.E5RG: MWIP;
+    MWI.F5RG: MWIM;
+    MWI.G5RG: MWIM;
+    MWI.H5RG: MWIP;
+    MWI.I5RG: MWIM;
+
+    MWI.A4RJ: MWIM;
+    MWI.B4RJ: MWIP;
+    MWI.C4RJ: MWIM;
+    MWI.D4RJ: MWIM;
+    MWI.E4RJ: MWIP;
+    MWI.F4RJ: MWIM;
+    MWI.G4RJ: MWIM;
+    MWI.H4RJ: MWIP;
+    MWI.I4RJ: MWIM;
+
+    MWI.A5RJ: MWIM;
+    MWI.B5RJ: MWIP;
+    MWI.C5RJ: MWIM;
+    MWI.D5RJ: MWIM;
+    MWI.E5RJ: MWIP;
+    MWI.F5RJ: MWIM;
+    MWI.G5RJ: MWIM;
+    MWI.H5RJ: MWIP;
+    MWI.I5RJ: MWIM;
+
+}
+
+install_wigglers() : macro {
+    SEQEDIT, SEQUENCE=FCCEE_P_RING;
+    FLATTEN;
+	
+		REMOVE, ELEMENT = fwig.1;
+        INSTALL, ELEMENT=MWI.A4RA, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.B4RA, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.C4RA, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.D4RA, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.E4RA, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.F4RA, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.G4RA, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.H4RA, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA4.1;
+        INSTALL, ELEMENT=MWI.I4RA, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA4.1;
+        
+		REMOVE, ELEMENT = fwig.2;
+        INSTALL, ELEMENT=MWI.A5RA, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.B5RA, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.C5RA, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.D5RA, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.E5RA, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.F5RA, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.G5RA, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.H5RA, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA5.1;
+        INSTALL, ELEMENT=MWI.I5RA, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA5.1;
+
+		REMOVE, ELEMENT = fwig.3;
+        INSTALL, ELEMENT=MWI.A4RD, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.B4RD, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.C4RD, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.D4RD, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.E4RD, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.F4RD, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.G4RD, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.H4RD, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA4.2;
+        INSTALL, ELEMENT=MWI.I4RD, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA4.2;
+        
+		REMOVE, ELEMENT = fwig.4;
+        INSTALL, ELEMENT=MWI.A5RD, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.B5RD, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.C5RD, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.D5RD, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.E5RD, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.F5RD, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.G5RD, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.H5RD, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA5.2;
+        INSTALL, ELEMENT=MWI.I5RD, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA5.2;
+
+		REMOVE, ELEMENT = fwig.5;
+        INSTALL, ELEMENT=MWI.A4RG, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.B4RG, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.C4RG, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.D4RG, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.E4RG, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.F4RG, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.G4RG, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.H4RG, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA4.3;
+        INSTALL, ELEMENT=MWI.I4RG, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA4.3;
+        
+		REMOVE, ELEMENT = fwig.6;
+        INSTALL, ELEMENT=MWI.A5RG, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.B5RG, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.C5RG, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.D5RG, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.E5RG, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.F5RG, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.G5RG, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.H5RG, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA5.3;
+        INSTALL, ELEMENT=MWI.I5RG, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA5.3;
+
+		REMOVE, ELEMENT = fwig.7;
+        INSTALL, ELEMENT=MWI.A4RJ, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.B4RJ, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.C4RJ, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.D4RJ, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.E4RJ, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.F4RJ, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.G4RJ, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.H4RJ, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA4.4;
+        INSTALL, ELEMENT=MWI.I4RJ, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA4.4;
+        
+		REMOVE, ELEMENT = fwig.8;
+        INSTALL, ELEMENT=MWI.A5RJ, AT= L_qa/2. + 1 * L_dis + 0.5 * L_minus + 0.0 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.B5RJ, AT= L_qa/2. + 2 * L_dis + 1.0 * L_minus + 0.5 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.C5RJ, AT= L_qa/2. + 3 * L_dis + 1.5 * L_minus + 1.0 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.D5RJ, AT= L_qa/2. + 4 * L_dis + 2.5 * L_minus + 1.0 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.E5RJ, AT= L_qa/2. + 5 * L_dis + 3.0 * L_minus + 1.5 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.F5RJ, AT= L_qa/2. + 6 * L_dis + 3.5 * L_minus + 2.0 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.G5RJ, AT= L_qa/2. + 7 * L_dis + 4.5 * L_minus + 2.0 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.H5RJ, AT= L_qa/2. + 8 * L_dis + 5.0 * L_minus + 2.5 * L_plus, FROM=QA5.4;
+        INSTALL, ELEMENT=MWI.I5RJ, AT= L_qa/2. + 9 * L_dis + 5.5 * L_minus + 3.0 * L_plus, FROM=QA5.4;
+    FLATTEN;
+    ENDEDIT;
+    USE, SEQUENCE=FCCEE_P_RING;
+
+}
+
+MATCH_VERTICAL_EMIT_WITH_WIGGLERS(EY_target): macro =
+{
+	MWIM, TILT= pi/2;
+	MWIP, TILT= pi/2;
+
+	MATCH,USE_MACRO;
+		VARY, NAME=B_plus, LOWER = 0, UPPER = 1;
+		macro1: MACRO={USE, SEQUENCE = FCCEE_P_RING; EMIT;};
+		CONSTRAINT, expr= TABLE(EMITSUMM, EY)*1E6 = EY_target*1E6;
+		JACOBIAN,TOLERANCE=1.0E-21, CALLS=3000;
+	  ENDMATCH;
+        VALUE, TABLE(SUMM, BETYMAX);
+}

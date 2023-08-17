@@ -9,6 +9,10 @@ mad.beam(particle='positron', pc=120)
 mad.use('fccee_p_ring')
 twm = mad.twiss()
 
+mad.call('install_wigglers.madx')
+mad.input("exec, define_wigglers_as_kickers()")
+mad.input("exec, install_wigglers()")
+
 line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
                                   deferred_expressions=True)
 line_thick.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
