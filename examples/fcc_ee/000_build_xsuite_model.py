@@ -26,7 +26,7 @@ twm_wig_off = xd.Table(mad.table.tw_wig_off)
 
 line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
                                   deferred_expressions=True)
-line_thick.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
+line_thick.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                  gamma0=mad.sequence.fccee_p_ring.beam.gamma)
 line_thick.build_tracker()
 tw_thick_no_rad = line_thick.twiss()
