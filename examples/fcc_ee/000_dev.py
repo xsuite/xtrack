@@ -23,11 +23,18 @@ slicing_strategies = [
     Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
     Strategy(slicing=Teapot(3), element_type=xt.Bend),
     Strategy(slicing=Teapot(3), element_type=xt.CombinedFunctionMagnet),
-    Strategy(slicing=Teapot(10), element_type=xt.Quadrupole),
-    Strategy(slicing=Teapot(20), name=r'^qc\..*'),
-    Strategy(slicing=Teapot(20), name=r'^sy\..*'),
-    Strategy(slicing=Teapot(1), name=r'^mw\..*'),
+    Strategy(slicing=Teapot(50), element_type=xt.Quadrupole),
+    # Strategy(slicing=Teapot(20), name=r'^qc\..*'),
+    # Strategy(slicing=Teapot(20), name=r'^sy\..*'), # Not taken into account for now!!!!
+    # Strategy(slicing=Teapot(1), name=r'^mw\..*'),
 ]
 
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 line.build_tracker()
+tw_thin_no_rad = line.twiss()
+
+# Compare tunes
+print('Tunes thick model:')
+print(tw_thick_no_rad.qx, tw_thick_no_rad.qy)
+print('Tunes thin model:')
+print(tw_thin_no_rad.qx, tw_thin_no_rad.qy)
