@@ -1,5 +1,6 @@
 import numpy as np
 import xtrack as xt
+import xdeps as xd
 
 from cpymad.madx import Madx
 
@@ -7,11 +8,21 @@ mad = Madx()
 mad.call('fccee_h.seq')
 mad.beam(particle='positron', pc=120)
 mad.use('fccee_p_ring')
-twm = mad.twiss()
+mad.input('twiss, table=tw_no_wig;')
 
 mad.call('install_wigglers.madx')
 mad.input("exec, define_wigglers_as_kickers()")
 mad.input("exec, install_wigglers()")
+mad.use('fccee_p_ring')
+assert mad.globals.on_wiggler == 1
+mad.input('twiss, table=tw_wig_on;')
+
+mad.globals.on_wiggler = 0
+mad.input('twiss, table=tw_wig_off;')
+
+twm_no_wig = xd.Table(mad.table.tw_no_wig)
+twm_wig_on = xd.Table(mad.table.tw_wig_on)
+twm_wig_off = xd.Table(mad.table.tw_wig_off)
 
 line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
                                   deferred_expressions=True)
@@ -44,7 +55,6 @@ slicing_strategies = [
     Strategy(slicing=Teapot(50), name=r'^qa.*'),
     Strategy(slicing=Teapot(50), name=r'^qc.*'),
     # Strategy(slicing=Teapot(20), name=r'^sy\..*'), # Not taken into account for now!!!!
-    # Strategy(slicing=Teapot(1), name=r'^mw\..*'),
 ]
 
 line.slice_thick_elements(slicing_strategies=slicing_strategies)

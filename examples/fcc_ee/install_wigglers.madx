@@ -11,7 +11,9 @@ L_minus = L_plus*r_asymmetry/2.;
 L_dis = 0.250;
 L_qa = 2.9;
 brhobeam=BEAM->BRHO;
-wiggler_angle:= B_plus*L_plus/brhobeam;
+
+on_wiggler = 1;
+wiggler_angle:= on_wiggler * B_plus * L_plus / brhobeam;
 
 Print, Text="The critical energy of the wiggler is:";
 VALUE, 2.21*10^(-6)*(BEAM->ENERGY)^3/(BEAM->BRHO/B_plus/1000);
