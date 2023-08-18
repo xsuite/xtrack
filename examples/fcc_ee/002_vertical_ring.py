@@ -5,13 +5,64 @@ line = xt.Line.from_json('fccee_p_ring_thin.json')
 
 line.build_tracker()
 
-for ee in line.elements:
-    if isinstance(ee, xt.Cavity):
-        ee.voltage *= 100
-        ee.frequency /= 100
-
-line.vars['on_wiggler_h'] = 3.
+line.vars['on_wiggler_h'] = 0
 line.vars['on_wiggler_v'] = 0.
+
+# Make sure there is no vertical bend nor skew element
+for ee in line.elements:
+    if isinstance(ee, xt.Multipole):
+        ee.hyl = 0
+        ee.ksl[:] = 0
+
+# periodic twiss and open twiss
+tw_before = line.twiss()
+tob = line.twiss(
+                method='4d',
+                ele_start='fccee_p_ring$start', ele_stop=len(line) - 1,
+                twiss_init=xt.TwissInit(betx=tw_before.betx[0],
+                                        bety=tw_before.bety[0],
+                                        alfx=tw_before.alfx[0],
+                                        alfy=tw_before.alfy[0],
+                                        dx=tw_before.dx[0],
+                                        dpx=tw_before.dpx[0],
+                                        dy=tw_before.dy[0],
+                                        dpy=tw_before.dpy[0]))
+
+# Bring the machine to the vertical plane
+for ee in line.elements:
+    if isinstance(ee, xt.Multipole):
+        knl = ee.knl.copy()
+        ksl = ee.ksl.copy()
+        hxl = ee.hxl
+        hyl = ee.hyl
+        ee.hxl = 0
+        ee.hyl = hxl
+
+        ee.knl[0] = 0
+        ee.ksl[0] = knl[0]
+        if len(knl) > 1:
+            ee.knl[1] = -knl[1]
+            ee.ksl[1] = 0
+        if len(knl) > 2:
+            ee.knl[2] = 0
+            ee.ksl[2] = -knl[2]
+
+    if isinstance(ee, xt.DipoleEdge):
+        ee._r21, ee._r43 = ee._r43, ee._r21
+
+# Twiss open and closed
+to = line.twiss(
+                method='4d',
+                ele_start='fccee_p_ring$start', ele_stop=len(line) - 1,
+                twiss_init=xt.TwissInit(betx=tw_before.bety[0],
+                                        bety=tw_before.betx[0],
+                                        alfx=tw_before.alfy[0],
+                                        alfy=tw_before.alfx[0],
+                                        dx=tw_before.dy[0],
+                                        dpx=tw_before.dpy[0],
+                                        dy=tw_before.dx[0],
+                                        dpy=tw_before.dpx[0]),
+                _continue_if_lost=True)
 
 tw_no_rad = line.twiss(method='4d')
 
@@ -19,16 +70,15 @@ line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
 
 tw_rad = line.twiss(eneloss_and_damping=True)
-ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
-ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
-ez = tw_rad.nemitt_zeta_rad / (tw_rad.gamma0 * tw_rad.beta0)
-
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
 line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
 print(f'Tracking time: {line.time_last_track}')
 
+ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
+ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
+ez = tw_rad.nemitt_zeta_rad / (tw_rad.gamma0 * tw_rad.beta0)
 
 dl = line.tracker._tracker_data_base.cache['dl_radiation']
 hxl = line.tracker._tracker_data_base.cache['hxl_radiation']
