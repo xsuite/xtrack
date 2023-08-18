@@ -12,7 +12,7 @@ L_dis = 0.250;
 L_qa = 2.9;
 brhobeam=BEAM->BRHO;
 
-on_wiggler_h = 1;
+on_wiggler_h = 0;
 wiggler_angle_h:= on_wiggler_h * B_plus * L_plus / brhobeam;
 on_wiggler_v = 1;
 wiggler_angle_v:= on_wiggler_v * B_plus * L_plus / brhobeam;

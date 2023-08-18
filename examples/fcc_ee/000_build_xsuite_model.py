@@ -17,7 +17,7 @@ mad.use('fccee_p_ring')
 assert mad.globals.on_wiggler_v == 1
 mad.input('twiss, table=tw_wig_on;')
 
-mad.globals.on_wiggler_v = 0
+mad.globals.on_wiggler_v = 1
 mad.input('twiss, table=tw_wig_off;')
 
 twm_no_wig = xd.Table(mad.table.tw_no_wig)

@@ -136,7 +136,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 #endif
 
                 dpx -= b1l * hxlx / length;
-                dpy += a1l * hyly / length;
+                dpy -= a1l * hyly / length;
             }
         }
 
