@@ -739,20 +739,22 @@ def test_import_thick_with_apertures_and_slice():
 @pytest.mark.parametrize(
     'ks, ksi, length',
     [
-        (-0.1, 0, 0.9),  # thick
+        # thick:
+        (-0.1, 0, 0.9),
         (0, 0, 0.9),
         (0.13, 0, 1.6),
-        (-0.1, 0.12, 0),  # thin
-        (0, 0.12, 0),
-        (0.15, 0, 0),
-        (0, 0, 0),
+        # thin:
+        pytest.param(-0.1, 0.12, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
+        pytest.param(0, 0.12, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
+        pytest.param(0.15, 0, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
+        pytest.param(0, 0, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
     ]
 )
 @for_all_test_contexts
 def test_solenoid_against_madx(test_context, ks, ksi, length):
     p0 = xp.Particles(
         mass0=xp.PROTON_MASS_EV,
-        beta0=0.5,
+        beta0=[0.15, 0.5, 0.85, 0.15, 0.5, 0.85, 0.5],
         x=-0.03,
         y=0.01,
         px=-0.1,
@@ -818,3 +820,62 @@ def test_solenoid_against_madx(test_context, ks, ksi, length):
         assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
         assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
         assert np.allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
+
+
+@for_all_test_contexts
+def test_solenoid_thick_drift_like(test_context):
+    solenoid = xt.Solenoid(ks=1.001e-9, length=1, _context=test_context)
+    drift = xt.Drift(length=1, _context=test_context)
+
+    p0 = xp.Particles(
+        x=0.1, px=0.2, y=0.3, py=0.4, zeta=0.5, delta=0.6,
+        _context=test_context,
+    )
+
+    p_sol = p0.copy()
+    solenoid.track(p_sol)
+
+    p_drift = p0.copy()
+    drift.track(p_drift)
+
+    assert np.allclose(p_sol.x, p_drift.x, atol=1e-9)
+    assert np.allclose(p_sol.px, p_drift.px, atol=1e-9)
+    assert np.allclose(p_sol.y, p_drift.y, atol=1e-9)
+    assert np.allclose(p_sol.py, p_drift.py, atol=1e-9)
+    assert np.allclose(p_sol.zeta, p_drift.zeta, atol=1e-9)
+    assert np.allclose(p_sol.delta, p_drift.delta, atol=1e-9)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'length, expected', [
+        (2 * np.pi / np.sqrt(2), [1, 0, -1, 0, 2*np.pi, 0]),
+        (np.pi / np.sqrt(2), [0, 0.5, 0, 0.5, np.pi, 0]),
+    ],
+)
+def test_solenoid_thick_analytic(test_context, length, expected):
+    solenoid = xt.Solenoid(
+        ks=1,
+        length=length,
+        _context=test_context,
+    )
+
+    p0 = xp.Particles(
+        x=1,
+        px=0,
+        y=-1,
+        py=0,
+        _context=test_context,
+    )
+
+    p_sol = p0.copy()
+    solenoid.track(p_sol)
+
+    assert np.allclose(p_sol.x, expected[0], atol=1e-9)
+    assert np.allclose(p_sol.px, expected[1], atol=1e-9)
+    assert np.allclose(p_sol.y, expected[2], atol=1e-9)
+    assert np.allclose(p_sol.py, expected[3], atol=1e-9)
+    delta_ell = (p_sol.s - p_sol.zeta) * p_sol.rvv
+    assert np.allclose(delta_ell, expected[4], atol=1e-9)
+    assert np.allclose(p_sol.delta, expected[5], atol=1e-9)
+    assert np.allclose(p_sol.s, length, atol=1e-9)
