@@ -131,7 +131,7 @@ spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
 spz.axhline(np.sqrt(ez * tw_rad.betz0), color='red')
 
-# plt.show()
+plt.show()
 
 
 # # Compare against madx emit
