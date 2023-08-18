@@ -8,13 +8,13 @@ line.build_tracker()
 line.vars['on_wiggler_h'] = 0
 line.vars['on_wiggler_v'] = 0.
 
+# Make sure there is no vertical bend nor skew element
 for ee in line.elements:
     if isinstance(ee, xt.Multipole):
         ee.hyl = 0
         ee.ksl[:] = 0
 
-# line.configure_bend_model(edge='suppressed')
-
+# periodic twiss and open twiss
 tw_before = line.twiss()
 tob = line.twiss(
                 method='4d',
@@ -28,14 +28,13 @@ tob = line.twiss(
                                         dy=tw_before.dy[0],
                                         dpy=tw_before.dpy[0]))
 
+# Bring the machine to the vertical plane
 for ee in line.elements:
     if isinstance(ee, xt.Multipole):
         knl = ee.knl.copy()
         ksl = ee.ksl.copy()
         hxl = ee.hxl
         hyl = ee.hyl
-        # knl[1:2:] *= -1
-        # ksl[0:2:] *= -1
         ee.hxl = 0
         ee.hyl = hxl
 
@@ -51,8 +50,7 @@ for ee in line.elements:
     if isinstance(ee, xt.DipoleEdge):
         ee._r21, ee._r43 = ee._r43, ee._r21
 
-# line['qrf.2..0'].ksl[0] = 1e-6
-
+# Twiss open and closed
 to = line.twiss(
                 method='4d',
                 ele_start='fccee_p_ring$start', ele_stop=len(line) - 1,
