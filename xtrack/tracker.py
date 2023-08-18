@@ -866,7 +866,7 @@ class Tracker:
                                             moveback_to_buffer, moveback_to_offset,
                                             _context_needs_clean_active_lost_state)
                 
-                if monitor.ebe_mode == 1:
+                if monitor is not None and monitor.ebe_mode == 1:
                     monitor_part = monitor
                 else:
                     monitor_part = None
