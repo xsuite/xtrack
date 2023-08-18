@@ -37,6 +37,7 @@ import numpy as np
 from math import tan
 
 import xtrack, xobjects
+from .compounds import Compound
 
 from .general import _print
 
@@ -333,37 +334,56 @@ class ElementBuilderWithExpr(ElementBuilder):
         return xtel
 
 
-class CompoundElement:
+class CompoundElementBuilder:
     """A builder-like object for holding elements that should become a compound
     element in the final lattice."""
     def __init__(
         self,
         name: str,
-        subsequence: List[ElementBuilder],
+        core: List[ElementBuilder],
+        entry_transform: List[ElementBuilder],
+        exit_transform: List[ElementBuilder],
+        aperture: List[ElementBuilder],
     ):
-        self.elements = subsequence
         self.name = name
+        self.core = core
+        self.entry_transform = entry_transform
+        self.exit_transform = exit_transform
+        self.aperture = aperture
 
     def add_to_line(self, line, buffer):
         start_marker = ElementBuilder(
-            name=self.name+"_entry",
+            name=self.name + "_entry",
             type=xtrack.Marker,
         )
 
         end_marker = ElementBuilder(
-            name=self.name+"_exit",
+            name=self.name + "_exit",
             type=xtrack.Marker,
         )
 
-        component_elements = [start_marker] + self.elements + [end_marker]
+        component_elements = (
+            [start_marker] +
+            self.aperture +
+            self.entry_transform + self.core + self.exit_transform +
+            [end_marker]
+        )
 
         for el in component_elements:
             el.add_to_line(line, buffer)
 
-        line.define_compound(
-            compound_name=self.name,
-            component_names=[el.name for el in component_elements],
+        def _get_names(builder_elements):
+            return [elem.name for elem in builder_elements]
+
+        compound = Compound(
+            core=_get_names(self.core),
+            aperture=_get_names(self.aperture),
+            entry_transform=_get_names(self.entry_transform),
+            exit_transform=_get_names(self.exit_transform),
+            entry=start_marker.name,
+            exit_=end_marker.name,
         )
+        line.compound_container.define_compound(self.name, compound)
 
 
 class Aperture:
@@ -417,7 +437,7 @@ class Aperture:
                     dy=-self.dy,
                 )
             )
-        if nonzero_or_expr(self.aper_tilt):
+        if self.aper_tilt:
             out.append(
                 self.Builder(
                     self.name + "_aper_tilt_exit",
@@ -518,12 +538,13 @@ class MadLoader:
     @staticmethod
     def init_line_expressions(line, mad, replace_in_expr):  # to be added to Line....
         """Enable expressions"""
-        line._init_var_management()
+        if line._var_management is None:
+            line._init_var_management()
 
         from xdeps.madxutils import MadxEval
 
         _var_values = line._var_management["data"]["var_values"]
-        _var_values.default_factory = lambda: 0
+        _var_values.default_factory = lambda: 0.
         for name, par in mad.globals.cmdpar.items():
             if replace_in_expr is not None:
                 for k, v in replace_in_expr.items():
@@ -583,11 +604,6 @@ class MadLoader:
             enable_field_errors = False
         if enable_align_errors is None:
             enable_align_errors = False
-
-        if allow_thick and enable_apertures:
-            raise NotImplementedError(
-                "Apertures are not yet supported for thick elements"
-            )
 
         if allow_thick and enable_field_errors:
             raise NotImplementedError(
@@ -702,7 +718,7 @@ class MadLoader:
 
     def add_elements(
         self,
-        elements: List[Union[ElementBuilder, CompoundElement]],
+        elements: List[Union[ElementBuilder, CompoundElementBuilder]],
         line,
         buffer,
     ):
@@ -763,25 +779,45 @@ class MadLoader:
             If not None, the element will be additionally tilted by this
             amount.
         """
+        # TODO: Implement permanent alignment
+
         align = Alignment(
             mad_el, self.enable_align_errors, self.classes, self.Builder, custom_tilt)
-        # perm=self.permanent_alignment(cpymad_elem) #to be implemented
-        elem_list = []
-        # elem_list.extend(perm.entry())
+
+        aperture_seq = []
         if self.enable_apertures and mad_el.has_aperture():
             aper = Aperture(mad_el, self.enable_align_errors, self)
-            elem_list.extend(aper.entry())
-            elem_list.extend(aper.aperture())
-            elem_list.extend(aper.exit())
-        elem_list.extend(align.entry())
-        elem_list.extend(xtrack_el)
-        elem_list.extend(align.exit())
-        # elem_list.extend(perm.exit())
+            aperture_seq = aper.entry() + aper.aperture() + aper.exit()
 
-        if self.use_compound_elements and len(elem_list) > 1:
-            return [CompoundElement(name=mad_el.name, subsequence=elem_list)]
-        else:
+        align_entry, align_exit = align.entry(), align.exit()
+        elem_list = aperture_seq + align_entry + xtrack_el + align_exit
+
+        if not self.use_compound_elements:
             return elem_list
+
+        is_singleton = len(elem_list) == 1
+        if is_singleton:
+            is_drift = isinstance(elem_list[0], self.classes.Drift)
+            if is_drift:
+                return elem_list
+
+            is_thick = getattr(elem_list[0].type, 'isthick', False)
+            if not is_thick:
+                return elem_list
+
+            thick_len = value_if_expr(elem_list[0].attrs.get('length', 0))
+            if thick_len == 0:
+                return elem_list
+
+        return [
+            CompoundElementBuilder(
+                name=mad_el.name,
+                core=xtrack_el,
+                entry_transform=align.entry(),
+                exit_transform=align.exit(),
+                aperture=aperture_seq,
+            ),
+        ]
 
     def convert_quadrupole(self, mad_el):
         if self.allow_thick:

@@ -526,3 +526,207 @@ def test_fringe_implementations(test_context):
 
     assert np.isclose(np.linalg.det(R_ng), 1, rtol=0, atol=1e-8) # Symplecticity check
     assert np.isclose(np.linalg.det(R_ptc), 1, rtol=0, atol=1e-8) # Symplecticity check
+
+
+@for_all_test_contexts
+def test_backtrack_with_bend_and_quadrupole(test_context):
+
+    # Check bend
+    b = xt.Bend(k0=0.2, h=0.1, length=1.0)
+    line = xt.Line(elements=[b])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                            zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+
+    p3 = p1.copy(_context=test_context)
+    line.configure_bend_model(core='full')
+    line.track(p3, backtrack=True)
+    p3.move(_context=xo.context_default)
+    assert np.all(p3.state == -30)
+    p4 = p1.copy(_context=test_context)
+    line.configure_bend_model(core='expanded')
+    b.num_multipole_kicks = 3
+    line.track(p4, backtrack=True)
+    p4.move(_context=xo.context_default)
+    assert np.all(p4.state == -31)
+
+    # Same for quadrupole
+    q = xt.Quadrupole(k1=0.2, length=1.0)
+    line = xt.Line(elements=[q])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                                zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+
+    p4 = p1.copy(_context=test_context)
+    q.num_multipole_kicks = 4
+    line.track(p4, backtrack=True)
+    p4.move(_context=xo.context_default)
+    assert np.all(p4.state == -31)
+    de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
+    line = xt.Line(elements=[de])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                                zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p1.move(_context=xo.context_default)
+    assert np.all(p1.state == 1)
+    line.configure_bend_model(edge='full')
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+    p2.move(_context=xo.context_default)
+    assert np.all(p2.state == -32)
+
+
+def test_import_thick_with_apertures_and_slice():
+    mad = Madx()
+
+    mad.input("""
+    k1=0.2;
+    tilt=0.1;
+
+    elm: sbend,
+        k1:=k1,
+        l=1,
+        angle=0.1,
+        tilt=0.2,
+        apertype="rectellipse",
+        aperture={0.1,0.2,0.11,0.22},
+        aper_tol={0.1,0.2,0.3},
+        aper_tilt:=tilt,
+        aper_offset={0.2, 0.3};
+
+    seq: sequence, l=1;
+    elm: elm, at=0.5;
+    endsequence;
+
+    beam;
+    use, sequence=seq;
+    """)
+
+    line = xt.Line.from_madx_sequence(
+        sequence=mad.sequence.seq,
+        allow_thick=True,
+        install_apertures=True,
+        deferred_expressions=True,
+        use_compound_elements=True,
+    )
+
+    assert line.get_compound_subsequence('elm') == [
+        'elm_entry', 'elm_aper_tilt_entry', 'elm_aper_offset_entry',
+        'elm_aper',
+        'elm_aper_offset_exit', 'elm_aper_tilt_exit',
+        'elm_tilt_entry', 'elm_den', 'elm', 'elm_dex', 'elm_tilt_exit',
+        'elm_exit',
+    ]
+
+    rad_to_deg = 180 / np.pi
+
+    def _assert_eq(a, b):
+        assert np.isclose(a, b, atol=1e-16)
+
+    _assert_eq(line[f'elm_aper_tilt_entry'].angle, 0.1 * rad_to_deg)
+    _assert_eq(line[f'elm_aper_tilt_exit'].angle, -0.1 * rad_to_deg)
+    _assert_eq(line[f'elm_aper_offset_entry'].dx, 0.2)
+    _assert_eq(line[f'elm_aper_offset_entry'].dy, 0.3)
+    _assert_eq(line[f'elm_aper_offset_exit'].dx, -0.2)
+    _assert_eq(line[f'elm_aper_offset_exit'].dy, -0.3)
+    _assert_eq(line[f'elm_aper'].max_x, 0.1)
+    _assert_eq(line[f'elm_aper'].max_y, 0.2)
+    _assert_eq(line[f'elm_aper'].a_squ, 0.11 ** 2)
+    _assert_eq(line[f'elm_aper'].b_squ, 0.22 ** 2)
+
+    _assert_eq(line[f'elm_tilt_entry'].angle, 0.2 * rad_to_deg)
+    _assert_eq(line[f'elm_tilt_exit'].angle, -0.2 * rad_to_deg)
+
+    line.slice_thick_elements(slicing_strategies=[Strategy(Uniform(2))])
+
+    assert line.get_compound_subsequence('elm') == [
+        'elm_entry',                    # entry marker
+        'elm_aper_tilt_entry..0',       # ┐
+        'elm_aper_offset_entry..0',     # │
+        'elm_aper..0',                  # ├ entry edge aperture
+        'elm_aper_offset_exit..0',      # │
+        'elm_aper_tilt_exit..0',        # ┘
+        'elm_tilt_entry..0',            # ┐
+        'elm_den',                      # ├ entry edge (+transform)
+        'elm_tilt_exit..0',             # ┘
+        'drift_elm..0',                 # drift 0
+        'elm_aper_tilt_entry..1',       # ┐
+        'elm_aper_offset_entry..1',     # │
+        'elm_aper..1',                  # ├ slice 1 aperture
+        'elm_aper_offset_exit..1',      # │
+        'elm_aper_tilt_exit..1',        # ┘
+        'elm_tilt_entry..1',            # ┐
+        'elm..0',                       # ├ slice 0 (+transform)
+        'elm_tilt_exit..1',             # ┘
+        'drift_elm..1',                 # drift 1
+        'elm_aper_tilt_entry..2',       # ┐
+        'elm_aper_offset_entry..2',     # │
+        'elm_aper..2',                  # ├ slice 2 aperture
+        'elm_aper_offset_exit..2',      # │
+        'elm_aper_tilt_exit..2',        # ┘
+        'elm_tilt_entry..2',            # ┐
+        'elm..1',                       # ├ slice 1 (+transform)
+        'elm_tilt_exit..2',             # ┘
+        'drift_elm..2',                 # drift 2
+        'elm_aper_tilt_entry..3',       # ┐
+        'elm_aper_offset_entry..3',     # │
+        'elm_aper..3',                  # ├ exit edge aperture
+        'elm_aper_offset_exit..3',      # │
+        'elm_aper_tilt_exit..3',        # ┘
+        'elm_tilt_entry..3',            # ┐
+        'elm_dex',                      # ├ exit edge (+transform)
+        'elm_tilt_exit..3',             # ┘
+        'elm_exit',                     # exit marker
+    ]
+
+    for i in range(4):
+        _assert_eq(line[f'elm_aper_tilt_entry..{i}'].angle, 0.1 * rad_to_deg)
+        _assert_eq(line[f'elm_aper_tilt_exit..{i}'].angle, -0.1 * rad_to_deg)
+        _assert_eq(line[f'elm_aper_offset_entry..{i}'].dx, 0.2)
+        _assert_eq(line[f'elm_aper_offset_entry..{i}'].dy, 0.3)
+        _assert_eq(line[f'elm_aper_offset_exit..{i}'].dx, -0.2)
+        _assert_eq(line[f'elm_aper_offset_exit..{i}'].dy, -0.3)
+        _assert_eq(line[f'elm_aper..{i}'].max_x, 0.1)
+        _assert_eq(line[f'elm_aper..{i}'].max_y, 0.2)
+        _assert_eq(line[f'elm_aper..{i}'].a_squ, 0.11 ** 2)
+        _assert_eq(line[f'elm_aper..{i}'].b_squ, 0.22 ** 2)
+
+        _assert_eq(line[f'elm_tilt_entry..{i}'].angle, 0.2 * rad_to_deg)
+        _assert_eq(line[f'elm_tilt_exit..{i}'].angle, -0.2 * rad_to_deg)

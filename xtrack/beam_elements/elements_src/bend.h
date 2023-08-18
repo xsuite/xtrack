@@ -11,7 +11,11 @@ void Bend_track_local_particle(
         BendData el,
         LocalParticle* part0
 ) {
-    const double length = BendData_get_length(el);
+    double length = BendData_get_length(el);
+    #ifdef XSUITE_BACKTRACK
+        length = -length;
+    #endif
+
     const double k0 = BendData_get_k0(el);
     const double h = BendData_get_h(el);
 
@@ -28,7 +32,7 @@ void Bend_track_local_particle(
     const int64_t model = BendData_get_model(el);
 
     if (model == 0){
-            //start_per_particle_block (part0->part)
+        //start_per_particle_block (part0->part)
             track_thick_cfd(part, slice_length, k0, 0, h);
 
             for (int ii = 0; ii < num_multipole_kicks; ii++) {
@@ -39,12 +43,17 @@ void Bend_track_local_particle(
     }
     else{
         //start_per_particle_block (part0->part)
+
+            #ifdef XSUITE_BACKTRACK
+                LocalParticle_kill_particle(part, -30);
+            #else
             track_thick_bend(part, slice_length, k0, h);
 
             for (int ii = 0; ii < num_multipole_kicks; ii++) {
                 multipolar_kick(part, order, inv_factorial_order, knl, ksl, kick_weight);
                 track_thick_bend(part, slice_length, k0, h);
             }
+            #endif
         //end_per_particle_block
     }
 }

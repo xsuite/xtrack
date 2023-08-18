@@ -9,9 +9,16 @@ class TargetLuminosity(xt.Target):
 
     def __init__(self, ip_name, luminosity, tol, num_colliding_bunches,
                  num_particles_per_bunch, nemitt_x, nemitt_y, sigma_z, f_rev,
-                 crab=None):
+                 crab=None, weight=None, log=True):
 
-        xt.Target.__init__(self, self.compute_luminosity, luminosity, tol=tol)
+        if log:
+            value = np.log10(luminosity)
+            tol = np.log10(tol/luminosity + 1) # equivalent (luminosity - target)/target < tol / target
+        else:
+            value = luminosity
+            tol = tol
+
+        xt.Target.__init__(self, self.compute_luminosity, value, tol=tol)
 
         self.ip_name = ip_name
         self.num_colliding_bunches = num_colliding_bunches
@@ -21,6 +28,11 @@ class TargetLuminosity(xt.Target):
         self.sigma_z = sigma_z
         self.f_rev = f_rev
         self.crab = crab
+        self.weight = weight
+        self.log = log
+
+    def __repr__(self):
+        return f'TargetLuminosity(ip_name={self.ip_name}, luminosity={self.value}, tol={self.tol})'
 
     @property
     def weight(self):
@@ -35,7 +47,7 @@ class TargetLuminosity(xt.Target):
 
     def compute_luminosity(self, tw):
         assert len(tw._line_names) == 2
-        return lumi.luminosity_from_twiss(
+        out = lumi.luminosity_from_twiss(
             n_colliding_bunches=self.num_colliding_bunches,
             num_particles_per_bunch=self.num_particles_per_bunch,
             ip_name=self.ip_name,
@@ -46,12 +58,18 @@ class TargetLuminosity(xt.Target):
             twiss_b2=tw[tw._line_names[1]],
             f_rev=self.f_rev,
             crab=self.crab)
+        if self.log:
+            out = np.log10(out)
+        return out
 
 class TargetSeparationOrthogonalToCrossing(xt.Target):
 
     def __init__(self, ip_name):
         xt.Target.__init__(self, tar=self.projection, value=0, tol=1e-6, scale=1)
         self.ip_name = ip_name
+
+    def __repr__(self):
+        return f'TargetSeparationOrthogonalToCrossing(ip_name={self.ip_name})'
 
     def projection(self, tw):
         assert len(tw._line_names) == 2
@@ -75,7 +93,8 @@ class TargetSeparationOrthogonalToCrossing(xt.Target):
 class TargetSeparation(xt.Target):
 
     def __init__(self, ip_name, separation=None, separation_norm=None,
-                 plane=None, nemitt_x=None, nemitt_y=None, tol=None, scale=None):
+                 plane=None, nemitt_x=None, nemitt_y=None, tol=None, scale=None,
+                 ineq_sign=None):
 
 
         # For now nemitt is a scalar, we can move to a tuple for different
@@ -98,6 +117,7 @@ class TargetSeparation(xt.Target):
                           # the two beams computed as sqrt(dx**2 + dy**2)
             raise ValueError('plane must be provided')
         assert plane in ['x', 'y']
+        assert ineq_sign in [None, '<', '>']
 
         xt.Target.__init__(self, tar=self.get_separation, value=value, tol=tol,
                             scale=scale)
@@ -108,6 +128,10 @@ class TargetSeparation(xt.Target):
         self.plane = plane
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
+        self.ineq_sign = ineq_sign
+
+    def __repr__(self):
+        return f'TargetSeparation(ip_name={self.ip_name}, value={self.value}, tol={self.tol}, ineq_sign={self.ineq_sign})'
 
     def get_separation(self, tw):
 
@@ -116,7 +140,7 @@ class TargetSeparation(xt.Target):
         tw2 = tw[tw._line_names[1]].reverse()
 
         if self.separation is not None:
-            return np.abs(tw1[self.plane, self.ip_name] - tw2[self.plane, self.ip_name])
+            out = np.abs(tw1[self.plane, self.ip_name] - tw2[self.plane, self.ip_name])
         elif self.separation_norm is not None:
             nemitt = self.nemitt_x if self.plane == 'x' else self.nemitt_y
             sigma1 = np.sqrt(
@@ -130,4 +154,15 @@ class TargetSeparation(xt.Target):
             sep_norm = np.abs((tw1[self.plane, self.ip_name] - tw2[self.plane, self.ip_name]
                         )) / sigma
 
-            return sep_norm
+            out = sep_norm
+
+        if self.ineq_sign is not None:
+            raise NotImplementedError # untested
+            if self.ineq_sign == '<':
+                if out < self.value:
+                    out = self.value
+            elif self.ineq_sign == '>':
+                if out > self.value:
+                    out = self.value
+
+        return out

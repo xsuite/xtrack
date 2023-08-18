@@ -122,7 +122,7 @@ class Tracker:
             element_s_locations=line.get_s_elements(),
             line_length=line.get_length(),
             compound_mask=line.get_compound_mask(),
-            element_compound_names=line._get_element_compound_names(),
+            element_compound_names=line.get_element_compound_names(),
             kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,
@@ -138,6 +138,8 @@ class Tracker:
         self._track_kernel = track_kernel or {}
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
+
+        self._get_twiss_mask_markers() # to cache it
 
         self._init_io_buffer(io_buffer)
 
@@ -1246,6 +1248,16 @@ class Tracker:
             else:
                 headers.append(f'#undef {k}')
         return headers
+
+    def _get_twiss_mask_markers(self):
+        if hasattr(self._tracker_data_base, 'mask_markers_for_twiss'):
+            return self._tracker_data_base.mask_markers_for_twiss
+        tt = self.line.get_table()
+        mask_twiss = np.ones(len(tt) + 1, dtype=bool)
+        if len(tt) == 0: return mask_twiss
+        mask_twiss[:-1] = tt.element_type == 'Marker'
+        self._tracker_data_base.mask_markers_for_twiss = mask_twiss
+        return mask_twiss
 
     def get_track_kernel_and_data_for_present_config(self):
 

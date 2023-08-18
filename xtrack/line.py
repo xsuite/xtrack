@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
+# Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
 import io
@@ -10,21 +10,24 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import Any, List
+from typing import List, Optional
 
 import numpy as np
 
-from . import linear_normal_form as lnf, slicing
+from . import linear_normal_form as lnf
 
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
 import xdeps as xd
+from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
-                          find_closed_orbit_line, twiss_line)
+                          find_closed_orbit_line, twiss_line,
+                          DEFAULT_MATRIX_STABILITY_TOL,
+                          DEFAULT_MATRIX_RESPONSIVENESS_TOL)
 from .match import match_line, closed_orbit_correction, match_knob_line
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
@@ -80,8 +83,8 @@ class Line:
         self._extra_config = {}
         self._extra_config['skip_end_turn_actions'] = False
         self._extra_config['reset_s_at_end_turn'] = True
-        self._extra_config['matrix_responsiveness_tol'] = lnf.DEFAULT_MATRIX_RESPONSIVENESS_TOL
-        self._extra_config['matrix_stability_tol'] = lnf.DEFAULT_MATRIX_STABILITY_TOL
+        self._extra_config['matrix_responsiveness_tol'] = DEFAULT_MATRIX_RESPONSIVENESS_TOL
+        self._extra_config['matrix_stability_tol'] = DEFAULT_MATRIX_STABILITY_TOL
         self._extra_config['t0_time_dependent_vars'] = 0.
         self._extra_config['dt_update_time_dependent_vars'] = 0.
         self._extra_config['_t_last_update_time_dependent_vars'] = None
@@ -120,8 +123,7 @@ class Line:
 
         self.element_dict = element_dict.copy()  # avoid modifications if user provided
         self.element_names = list(element_names).copy()
-        self._compound_relation = {}
-        self._compound_for_element = {}
+        self.compound_container = CompoundContainer()
 
         self.particle_ref = particle_ref
 
@@ -194,9 +196,9 @@ class Line:
         if '_extra_config' in dct.keys():
             self._extra_config.update(dct['_extra_config'])
 
-        if 'compound_relation' in dct.keys():
-            for compound_name, components in dct['compound_relation'].items():
-                self.define_compound(compound_name, components)
+        if 'compound_container' in dct.keys():
+            compounds = dct['compound_container']
+            self.compound_container = CompoundContainer.from_dict(compounds)
 
         _print('Done loading line from dict.           ')
 
@@ -492,7 +494,7 @@ class Line:
         out["element_names"] = self.element_names[:]
         out['config'] = self.config.data.copy()
         out['_extra_config'] = self._extra_config.copy()
-        out['compound_relation'] = self.compounds.copy()
+        out['compound_container'] = self.compound_container.to_dict()
         if self.particle_ref is not None:
             out['particle_ref'] = self.particle_ref.to_dict()
         if self._var_management is not None and include_var_management:
@@ -572,7 +574,7 @@ class Line:
         s_elements = np.array(self.get_s_elements())
         element_types = list(map(lambda e: e.__class__.__name__, elements))
         isthick = np.array(list(map(_is_thick, elements)))
-        compound_name = self._get_element_compound_names()
+        compound_name = self.get_element_compound_names()
 
         import pandas as pd
 
@@ -623,6 +625,8 @@ class Line:
 
         if self._var_management is not None:
             out._init_var_management(dct=self._var_management_to_dict())
+
+        out.compound_container = self.compound_container.copy()
 
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
@@ -936,6 +940,8 @@ class Line:
         hide_thin_groups=None,
         group_compound_elements=None,
         only_twiss_init=None,
+        only_markers=None,
+        only_orbit=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -956,8 +962,8 @@ class Line:
 
     twiss.__doc__ = twiss_line.__doc__
 
-    def match(self, vary, targets, restore_if_fail=True, solver=None,
-                  verbose=False, **kwargs):
+    def match(self, vary, targets, solve=True, restore_if_fail=True, solver=None,
+                  verbose=False, n_steps_max=20, **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -1034,9 +1040,11 @@ class Line:
             )
 
         '''
-        return match_line(self, vary, targets,
+        return match_line(self, vary, targets, solve=solve,
                           restore_if_fail=restore_if_fail,
-                          solver=solver, verbose=verbose, **kwargs)
+                          solver=solver, verbose=verbose,
+                          n_steps_max=n_steps_max,
+                          **kwargs)
 
     def match_knob(self, knob_name, vary, targets,
                    knob_value_start=0, knob_value_end=1,
@@ -1063,9 +1071,11 @@ class Line:
 
         '''
 
-        match_knob_line(self, vary=vary, targets=targets,
+        opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
                         knob_value_end=knob_value_end, **kwargs)
+
+        return opt
 
 
     def survey(self,X0=0,Y0=0,Z0=0,theta0=0, phi0=0, psi0=0,
@@ -1488,12 +1498,35 @@ class Line:
                     "Either `index` or `at_s` must be provided"
                 )
 
-        if at_s is None:
+        if index is not None:
             if _is_thick(element) and np.abs(element.length) > 0:
                 raise NotImplementedError('Use `at_s` to insert thick elements')
+
+            left_name = self.element_names[index - 1]
+            left_cpd_name = self.get_compound_for_element(left_name)
+            right_name = self.element_names[index]
+            right_cpd_name = self.get_compound_for_element(right_name)
+            compound = None
+            if left_cpd_name == right_cpd_name and left_cpd_name is not None:
+                compound = self.compound_container.compound_for_name(left_cpd_name)
+                if isinstance(compound, Compound):
+                    if not (left_name in compound.core or right_name in compound.core):
+                        raise ValueError(
+                            "Elements can only be inserted into a compound in "
+                            "the core region."
+                        )
+
             assert name not in self.element_dict.keys()
             self.element_dict[name] = element
             self.element_names.insert(index, name)
+
+            if isinstance(compound, SlicedCompound):
+                compound.elements.add(name)
+                #self.compound_container.define_compound(left_cpd_name, compound)
+            elif isinstance(compound, Compound):
+                compound.core.add(name)
+                #self.compound_container.define_compound(left_cpd_name, compound)
+
             return
 
         s_vect_upstream = np.array(self.get_s_position(mode='upstream'))
@@ -1501,8 +1534,8 @@ class Line:
         if not _is_thick(element) or np.abs(element.length) == 0:
             i_closest = np.argmin(np.abs(s_vect_upstream - at_s))
             if np.abs(s_vect_upstream[i_closest] - at_s) < s_tol:
-                return self.insert_element(index=i_closest,
-                                        element=element, name=name)
+                return self.insert_element(
+                    index=i_closest, element=element, name=name)
 
         s_vect_downstream = np.array(self.get_s_position(mode='downstream'))
 
@@ -1536,8 +1569,8 @@ class Line:
             if (not _is_drift(e_to_replace) and
                 not isinstance(e_to_replace, Marker) and
                 not _is_aperture(e_to_replace)):
-                raise ValueError('Cannot replace active element '
-                                    f'{self.element_names[ii]}')
+                raise ValueError(
+                    f'Cannot replace active element {self.element_names[ii]}')
 
         l_left_part = s_start_ele - s_vect_upstream[i_first_drift_to_cut]
         l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
@@ -1546,14 +1579,25 @@ class Line:
         name_left = name_first_drift_to_cut + '_part0'
         name_right = name_last_drift_to_cut + '_part1'
 
-        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut] = []
-        i_insert = i_first_drift_to_cut
-
-        drift_base = self.element_dict[self.element_names[i_insert]]
+        drift_base = self.element_dict[name_first_drift_to_cut]
         drift_left = drift_base.copy()
         drift_left.length = l_left_part
         drift_right = drift_base.copy()
         drift_right.length = l_right_part
+
+        # Check if not illegally inserting in a compound
+        _compounds = self.compound_container
+        left_compound = _compounds.compound_name_for_element(name_first_drift_to_cut)
+        right_compound = _compounds.compound_name_for_element(name_last_drift_to_cut)
+        compound = None
+        if left_compound is not None and left_compound == right_compound:
+            compound = _compounds.compound_for_name(left_compound)
+            if isinstance(compound, Compound):
+                if not (name_first_drift_to_cut in compound.core and name_last_drift_to_cut in compound.core):
+                    raise ValueError(
+                        "Elements can only be inserted into a compound in "
+                        "the core region."
+                    )
 
         # Insert
         assert name_left not in self.element_names
@@ -1570,16 +1614,105 @@ class Line:
             names_to_insert.append(name_right)
             self.element_dict[name_right] = drift_right
 
-        self.element_names[i_insert] = names_to_insert[-1]
-        if len(names_to_insert) > 1:
-            for nn in names_to_insert[:-1][::-1]:
-                self.element_names.insert(i_insert, nn)
+        replaced_names = self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1]
+        self.element_names[i_first_drift_to_cut:i_last_drift_to_cut + 1] = names_to_insert
+
+        # Update compound container if the inserted element falls in the middle
+        # of a compound element.
+        if compound:
+            compound_name = left_compound
+            if isinstance(compound, SlicedCompound):
+                # _compounds.remove_compound(compound_name)
+                compound.elements -= set(replaced_names)
+                compound.elements |= set(names_to_insert)
+                # _compounds.define_compound(compound_name, compound)
+            elif isinstance(compound, Compound):
+                # _compounds.remove_compound(compound_name)
+                compound.core -= set(replaced_names)
+                compound.core |= set(names_to_insert)
+                # _compounds.define_compound(compound_name, compound)
 
         return self
 
+    def get_compound_by_name(self, name) -> Optional[CompoundType]:
+        """Get a compound object by its name."""
+        if not self.compound_container:
+            return None
+        return self.compound_container.compound_for_name(name)
+
+    def get_compound_subsequence(self, name) -> List[str]:
+        """The sequence of element names corresponding to the compound name.
+
+        Equivalent to `sorted(compound.elements, key=self.element_names.index)`
+        but should be faster due to the assumption that compounds are contiguous.
+        """
+        element_set = self.get_compound_by_name(name).elements
+        compound_len = len(element_set)
+        subsequence = None
+
+        for idx, element_name in enumerate(self.element_names):
+            if element_name in element_set:
+                subsequence = self.element_names[idx:idx + compound_len]
+                break
+
+        if subsequence is None or set(subsequence) != element_set:
+            raise AssertionError(
+                f'Compound {name} is corrupted, as its elements {element_set} '
+                f'are not a contiguous subsequence of the line.'
+            )
+
+        return subsequence
+
+    def get_compound_for_element(self, name) -> Optional[str]:
+        """Get the compound name for an element name."""
+        if not self.compound_container:
+            return None
+        return self.compound_container.compound_name_for_element(name)
+
+    def get_element_compound_names(self) -> List[Optional[str]]:
+        """Get the compound names for all elements."""
+        return [
+            self.get_compound_for_element(name)
+            for name in self.element_names
+        ]
+
+    def _enumerate_top_level(self):
+        idx = 0
+        while idx < len(self):
+            element_name = self.element_names[idx]
+            compound_name = self.get_compound_for_element(element_name)
+
+            # Not a compound, set the mask field to True
+            if compound_name is None:
+                yield idx, compound_name
+                idx += 1
+                continue
+
+            # Is (the first element) in a compound
+            yield idx, compound_name
+            compound = self.get_compound_by_name(compound_name)
+            idx += len(compound.elements)  # skip the remaining elements
+
+    def get_compound_mask(self) -> List[bool]:
+        """The mask of elements that are entry to a compound, or not in one."""
+        if not self.compound_container:
+            return [True] * len(self)
+
+        mask = [False] * len(self)
+        for element_idx, compound_name in self._enumerate_top_level():
+            mask[element_idx] = True
+
+        return mask
+
+    def get_collapsed_names(self):
+        return [
+            compound_name or self.element_names[element_idx]
+            for element_idx, compound_name in self._enumerate_top_level()
+        ]
+
     def append_element(self, element, name):
 
-        '''Append element to the end of the lattice
+        """Append element to the end of the lattice
 
         Parameters
         ----------
@@ -1587,7 +1720,7 @@ class Line:
             Element to append
         name : str
             Name of the element to append
-        '''
+        """
 
         self._frozen_check()
         if element in self.element_dict and element is not self.element_dict[name]:
@@ -1595,36 +1728,6 @@ class Line:
         self.element_dict[name] = element
         self.element_names.append(name)
         return self
-
-    def define_compound(self, compound_name, component_names):
-        self._compound_relation[compound_name] = component_names
-        for name in component_names:
-            self._compound_for_element[name] = compound_name
-
-    @property
-    def compounds(self):
-        return self._compound_relation
-
-    def is_top_level_element(self, element_name):
-        """
-        Return True if the element is not part of a compound element, or if it
-        is the entry element of a compound element.
-        """
-        if element_name not in self._compound_for_element:
-            return True
-
-        compound_name = self._compound_for_element[element_name]
-        if self.compounds[compound_name][0] == element_name:
-            return True
-
-        return False
-
-    def get_compound_mask(self):
-        return [self.is_top_level_element(name) for name in self.element_names]
-
-    def _get_element_compound_names(self):
-        return [self._compound_for_element[name] if name in self._compound_for_element else name
-                for name in self.element_names]
 
     def filter_elements(self, mask=None, exclude_types_starting_with=None):
         """
@@ -2320,6 +2423,10 @@ class Line:
 
         for name in aper_to_remove:
             newline.element_names.remove(name)
+            compound_name = self.compound_container.compound_name_for_element(name)
+            if compound_name is not None:
+                newline.get_compound_by_name(compound_name).remove_element(name)
+
 
         return newline
 
@@ -2692,18 +2799,26 @@ class Line:
             return self._line_vars
 
     @property
+    def varval(self):
+        return self.vars.val
+
+    @property
     def functions(self):
-        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            raise NotImplementedError('`functions` not available yet in multiline')
-        else:
-            return self._var_management['fref']
+        return self._xdeps_fref
 
     @property
     def _xdeps_vref(self):
         if hasattr(self, '_in_multiline') and self._in_multiline is not None:
-            return self._in_multiline._xdeps_vars
+            return self._in_multiline._xdeps_vref
         if self._var_management is not None:
             return self._var_management['vref']
+
+    @property
+    def _xdeps_fref(self):
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            return self._in_multiline._xdeps_fref
+        if self._var_management is not None:
+            return self._var_management['fref']
 
     @property
     def _xdeps_manager(self):
@@ -3051,7 +3166,7 @@ def _next_name(prefix, names, name_format='{}{}'):
 
 def _dicts_equal(dict1, dict2):
     if not isinstance(dict1, dict) or not isinstance(dict2, dict):
-        raise ValueError
+        return False
     if set(dict1.keys()) != set(dict2.keys()):
         return False
     for key in dict1.keys():
@@ -3223,12 +3338,39 @@ class LineVars:
         self.line = line
         self._cache_active = False
         self._cached_setters = {}
+        if '__vary_default' not in self.line._xdeps_vref._owner.keys():
+            self.line._xdeps_vref._owner['__vary_default'] = {}
+        self.val = VarValues(self)
 
     def keys(self):
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        return self.line._xdeps_vref._owner.keys()
+        out = list(self.line._xdeps_vref._owner.keys()).copy()
+        return out
+
+    def update(self, other):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        for kk in other.keys():
+            self[kk] = other[kk]
+
+    @property
+    def vary_default(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        return self.line._xdeps_vref._owner['__vary_default']
+
+    def get_table(self):
+        if self.line._xdeps_vref is None:
+            raise RuntimeError(
+                f'Cannot access variables as the line has no xdeps manager')
+        name = np.array(list(self.keys()))
+        value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
+
+        return xd.Table({'name': name, 'value': value})
 
     def __contains__(self, key):
         if self.line._xdeps_vref is None:
@@ -3289,6 +3431,50 @@ class LineVars:
         self._cache_active = value
         self.line._xdeps_manager._tree_frozen = value
 
+    def load_madx_optics_file(self, filename):
+        from cpymad.madx import Madx
+        mad = Madx()
+        mad.options.echo = False
+        mad.options.info = False
+        mad.options.warn = False
+        mad.call(str(filename))
+
+        assert self.cache_active is False, (
+            'Cannot load optics file when cache is active')
+
+        mad.input('''
+        elm: marker; seq: sequence, l=1; e:elm, at=0.5; endsequence;
+        beam; use,sequence=seq;''')
+
+        defined_vars = set(mad.globals.keys())
+
+        xt.general._print.suppress = True
+        dummy_line = xt.Line.from_madx_sequence(mad.sequence.seq,
+                                                deferred_expressions=True)
+        xt.general._print.suppress = False
+
+        self.line._xdeps_vref._owner.update(
+            {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
+        self.line._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
+
+        for nn in self.line._xdeps_vref._owner.keys():
+            if (self.line._xdeps_vref[nn]._expr is None
+                and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
+                ):
+                self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]
+
+
+
+class VarValues:
+
+    def __init__(self, vars):
+        self.vars = vars
+
+    def __getitem__(self, key):
+        return self.vars[key]._value
+
+    def __setitem__(self, key, value):
+        self.vars[key] = value
 
 class VarSetter:
     def __init__(self, line, varname):

@@ -162,6 +162,12 @@ class Multiline:
 
         return cls.from_dict(dct, **kwargs)
 
+    def copy(self):
+        '''
+        Returns a deep copy of the multiline.
+        '''
+        return self.__class__.from_dict(self.to_dict())
+
     def __getstate__(self):
         out = self.__dict__.copy()
         for nn, ll in self.lines.items():
@@ -320,11 +326,12 @@ class Multiline:
             Value of the knob after the matching. Defaults to 1.
 
         '''
-        raise NotImplementedError # Untested
 
-        match_knob_line(self, vary=vary, targets=targets,
+        opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
                         knob_value_end=knob_value_end, **kwargs)
+
+        return opt
 
     def __getitem__(self, key):
         return self.lines[key]
@@ -345,9 +352,22 @@ class Multiline:
         return self._multiline_vars
 
     @property
+    def varval(self):
+        return self.vars.val
+
+    @property
+    def functions(self):
+        return self._xdeps_fref
+
+    @property
     def _xdeps_vref(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
+
+    @property
+    def _xdeps_fref(self):
+        if self._var_sharing is not None:
+            return self._var_sharing._fref
 
     @property
     def _xdeps_manager(self):
@@ -456,7 +476,7 @@ class Multiline:
         separation_bumps: dict
             Dictionary previding the plane of the separation bump in the IPs
             where separation is present. The keys are the IP names and the
-            values are the plane ("x" or "y"). This information needs to be 
+            values are the plane ("x" or "y"). This information needs to be
             provided only when use_antisymmetry is True.
 
         '''
