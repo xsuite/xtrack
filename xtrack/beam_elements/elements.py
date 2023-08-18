@@ -1023,7 +1023,10 @@ class Solenoid(BeamElement):
             return
 
         if length == 0:
-            self.isthick = False
+            # Fail when trying to create a thin solenoid, as these are not
+            # tested yet
+            raise NotImplementedError('Thin solenoids are not implemented yet.')
+            # self.isthick = False
 
         if ksi and length:
             raise ValueError(

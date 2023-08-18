@@ -743,11 +743,6 @@ def test_import_thick_with_apertures_and_slice():
         (-0.1, 0, 0.9),
         (0, 0, 0.9),
         (0.13, 0, 1.6),
-        # thin:
-        pytest.param(-0.1, 0.12, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
-        pytest.param(0, 0.12, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
-        pytest.param(0.15, 0, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
-        pytest.param(0, 0, 0, marks=pytest.mark.xfail(reason='MAD-X bug, see #1200')),
     ]
 )
 @for_all_test_contexts
