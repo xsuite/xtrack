@@ -10,8 +10,35 @@ for ee in line.elements:
         ee.voltage *= 100
         ee.frequency /= 100
 
-line.vars['on_wiggler_h'] = 3.
+line.vars['on_wiggler_h'] = 0
 line.vars['on_wiggler_v'] = 0.
+
+tt = line.get_table()
+
+s_start_wig = tt['s', 'mwi.a4ra_entry']
+s_end_wig = tt['s', 'mwi.i4ra_exit']
+
+s_wig_kicks = np.linspace(s_start_wig, s_end_wig, 100)
+s_wig_plus = s_wig_kicks[:-1:2]
+s_wig_minus = s_wig_kicks[1::2]
+
+line.discard_tracker()
+
+line.vars['k0l_wig'] = 0
+for ii, (ss_p, ss_m) in enumerate(zip(s_wig_plus, s_wig_minus)):
+    print(f'Wig period {ii}/{len(s_wig_plus)}', end='\r', flush=True)
+    wmg_plus = xt.Multipole(knl=[0])
+    wmg_minus = xt.Multipole(knl=[0])
+    wmg_plus.length = ss_m - ss_p
+    wmg_minus.length = ss_m - ss_p
+    line.insert_element(f'mwg.plus.{ii}', wmg_plus, at_s=ss_p)
+    line.insert_element(f'mwg.minus.{ii}', wmg_minus, at_s=ss_m)
+    line.element_refs[f'mwg.plus.{ii}'].ksl[0] = line.vars['k0l_wig']
+    line.element_refs[f'mwg.minus.{ii}'].ksl[0] = -line.vars['k0l_wig']
+
+line.vars['k0l_wig'] = 1e-3
+
+line.build_tracker()
 
 tw_no_rad = line.twiss(method='4d')
 
