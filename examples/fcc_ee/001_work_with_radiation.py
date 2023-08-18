@@ -49,8 +49,7 @@ for ee in line.elements:
             ee.ksl[2] = -knl[2]
 
     if isinstance(ee, xt.DipoleEdge):
-        ee._r21 = ee._r43
-        ee._r43 = -ee._r21
+        ee._r21, ee._r43 = ee._r43, ee._r21
 
 # line['qrf.2..0'].ksl[0] = 1e-6
 
@@ -76,7 +75,7 @@ tw_rad = line.twiss(eneloss_and_damping=True)
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
-line.track(p, num_turns=1000, turn_by_turn_monitor=True, time=True)
+line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
 print(f'Tracking time: {line.time_last_track}')
 
 ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
