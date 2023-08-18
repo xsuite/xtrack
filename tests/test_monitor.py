@@ -168,7 +168,7 @@ def test_last_turns_monitor(test_context):
 
 
 @for_all_test_contexts
-def test_collective_monitor(test_context):
+def test_collective_ebe_monitor(test_context):
     num_turns = 30
 
     # Turn-by-turn mode
