@@ -13,7 +13,7 @@ for ee in line.elements:
         ee.hyl = 0
         ee.ksl[:] = 0
 
-line.configure_bend_model(edge='suppressed')
+# line.configure_bend_model(edge='suppressed')
 
 tw_before = line.twiss()
 tob = line.twiss(
@@ -48,9 +48,9 @@ for ee in line.elements:
             ee.knl[2] = 0
             ee.ksl[2] = -knl[2]
 
-    # if isinstance(ee, xt.DipoleEdge):
-    #     ee._r21 = -ee._r43
-    #     ee._r43 = -ee._r21
+    if isinstance(ee, xt.DipoleEdge):
+        ee._r21 = ee._r43
+        ee._r43 = -ee._r21
 
 # line['qrf.2..0'].ksl[0] = 1e-6
 
