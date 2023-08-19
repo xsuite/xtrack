@@ -35,6 +35,11 @@ for ii, (ss_p, ss_m) in enumerate(zip(s_wig_plus, s_wig_minus)):
     line.insert_element(f'mwg.minus.{ii}', wmg_minus, at_s=ss_m)
     line.element_refs[f'mwg.plus.{ii}'].ksl[0] = line.vars['k0l_wig']
     line.element_refs[f'mwg.minus.{ii}'].ksl[0] = -line.vars['k0l_wig']
+    if ii == 0:
+        line.element_refs[f'mwg.plus.{ii}'].ksl[0] = line.vars['k0l_wig'] * 0.5
+    if ii == len(s_wig_plus) - 1:
+        line.element_refs[f'mwg.plus.{ii}'].ksl[0] = line.vars['k0l_wig'] * 0.5 
+        line.element_refs[f'mwg.minus.{ii}'].ksl[0] = 0
 
 line.vars['k0l_wig'] = 1e-3
 
