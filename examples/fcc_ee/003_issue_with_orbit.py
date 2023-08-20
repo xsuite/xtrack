@@ -6,7 +6,6 @@ line.build_tracker()
 varvals = line._xdeps_vref._owner.copy()
 
 # Add longer wigglers
-
 section_list = [
     ('qrfr1.1_entry', 'qrfl1.1_exit'),
     # ('qrfr1.2_entry', 'qrfl1.2_exit'), # taken by the RF
@@ -15,6 +14,7 @@ section_list = [
 ]
 
 line.vars['k0l_long_wig'] = 0
+line.vars['wig_drift_fraction'] = 0.4
 for iss, section in enumerate(section_list):
 
     tt = line.get_table()
@@ -40,8 +40,6 @@ for iss, section in enumerate(section_list):
             print(f'Wig {tag_wig} period {ii}/{len(s_wig_plus)}    ', end='\r', flush=True)
             wmg_plus = xt.Multipole(knl=[0])
             wmg_minus = xt.Multipole(knl=[0])
-            wmg_plus.length = ss_m - ss_p
-            wmg_minus.length = ss_m - ss_p
             if ii == 0:
                 ss_p += 0.5 * wmg_plus.length
             if ii == len(s_wig_plus) - 1:
@@ -52,6 +50,8 @@ for iss, section in enumerate(section_list):
             line.insert_element(nn_minus, wmg_minus, at_s=ss_m)
             line.element_refs[nn_plus].ksl[0] = line.vars[kk_wig]
             line.element_refs[nn_minus].ksl[0] = -line.vars[kk_wig]
+            line.element_refs[nn_plus].length = (ss_m - ss_p) * (1 - line.vars['wig_drift_fraction'])
+            line.element_refs[nn_minus].length = (ss_m - ss_p) * (1 - line.vars['wig_drift_fraction'])
             if ii == 0:
                 line.element_refs[nn_plus].ksl[0] = line.vars[kk_wig] * 0.5
             if ii == len(s_wig_plus) - 1:
