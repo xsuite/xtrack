@@ -15,37 +15,52 @@ line.vars['on_wiggler_v'] = 0.
 
 tt = line.get_table()
 
-s_start_wig = tt['s', 'mwi.a4ra_entry']
-s_end_wig = tt['s', 'mwi.i4ra_exit']
+for tag_wig in ['a', 'd', 'g', 'j']:
 
-s_wig_kicks = np.linspace(s_start_wig, s_end_wig, 100)
-s_wig_plus = s_wig_kicks[:-1:2]
-s_wig_minus = s_wig_kicks[1::2]
+    s_start_wig = tt['s', f'mwi.a4r{tag_wig}_entry']
+    s_end_wig = tt['s', f'mwi.i4r{tag_wig}_exit']
 
-line.discard_tracker()
+    s_wig_kicks = np.linspace(s_start_wig, s_end_wig, 100)
+    s_wig_plus = s_wig_kicks[:-1:2]
+    s_wig_minus = s_wig_kicks[1::2]
 
-line.vars['k0l_wig'] = 0
-for ii, (ss_p, ss_m) in enumerate(zip(s_wig_plus, s_wig_minus)):
-    print(f'Wig period {ii}/{len(s_wig_plus)}', end='\r', flush=True)
-    wmg_plus = xt.Multipole(knl=[0])
-    wmg_minus = xt.Multipole(knl=[0])
-    wmg_plus.length = ss_m - ss_p
-    wmg_minus.length = ss_m - ss_p
-    line.insert_element(f'mwg.plus.{ii}', wmg_plus, at_s=ss_p)
-    line.insert_element(f'mwg.minus.{ii}', wmg_minus, at_s=ss_m)
-    line.element_refs[f'mwg.plus.{ii}'].ksl[0] = line.vars['k0l_wig']
-    line.element_refs[f'mwg.minus.{ii}'].ksl[0] = -line.vars['k0l_wig']
-    if ii == 0:
-        line.element_refs[f'mwg.plus.{ii}'].ksl[0] = line.vars['k0l_wig'] * 0.5
-    if ii == len(s_wig_plus) - 1:
-        line.element_refs[f'mwg.plus.{ii}'].ksl[0] = line.vars['k0l_wig'] * 0.5 
-        line.element_refs[f'mwg.minus.{ii}'].ksl[0] = 0
+    line.discard_tracker()
 
-line.vars['k0l_wig'] = 1e-3
+    kk_wig = f'k0l_wig.r{tag_wig}'
+    line.vars[kk_wig] = 0
+    for ii, (ss_p, ss_m) in enumerate(zip(s_wig_plus, s_wig_minus)):
+        print(f'Wig {tag_wig} period {ii}/{len(s_wig_plus)}', end='\r', flush=True)
+        wmg_plus = xt.Multipole(knl=[0])
+        wmg_minus = xt.Multipole(knl=[0])
+        wmg_plus.length = ss_m - ss_p
+        wmg_minus.length = ss_m - ss_p
+        if ii == 0:
+            ss_p += 0.5 * wmg_plus.length
+        if ii == len(s_wig_plus) - 1:
+            ss_m -= 0.5 * wmg_plus.length
+        nn_plus = f'mwg.r{tag_wig}.plus.{ii}'
+        nn_minus = f'mwg.r{tag_wig}.minus.{ii}'
+        line.insert_element(nn_plus, wmg_plus, at_s=ss_p)
+        line.insert_element(nn_minus, wmg_minus, at_s=ss_m)
+        line.element_refs[nn_plus].ksl[0] = line.vars[kk_wig]
+        line.element_refs[nn_minus].ksl[0] = -line.vars[kk_wig]
+        if ii == 0:
+            line.element_refs[nn_plus].ksl[0] = line.vars[kk_wig] * 0.5
+        if ii == len(s_wig_plus) - 1:
+            line.element_refs[nn_minus].ksl[0] = -line.vars[kk_wig] * 0.5
+
+line.vars['k0wig'] = 0
+line.vars['k0l_wig.ra'] = line.vars['k0wig']
+line.vars['k0l_wig.rd'] = line.vars['k0wig']
+line.vars['k0l_wig.rg'] = line.vars['k0wig']
+line.vars['k0l_wig.rj'] = line.vars['k0wig']
 
 line.build_tracker()
 
 tw_no_rad = line.twiss(method='4d')
+
+line.to_json('fccee_p_ring_thin_wig.json')
+prrrr
 
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
