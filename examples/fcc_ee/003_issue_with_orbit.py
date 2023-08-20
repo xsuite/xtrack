@@ -28,7 +28,7 @@ for iss, section in enumerate(section_list):
 
         tag_wig = f'w{iss}_{ii}'
 
-        s_wig_kicks = np.linspace(s_start_wig, s_end_wig, 30)
+        s_wig_kicks = np.linspace(s_start_wig, s_end_wig, 60)
         s_wig_plus = s_wig_kicks[:-1:2]
         s_wig_minus = s_wig_kicks[1::2]
 
