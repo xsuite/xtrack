@@ -76,7 +76,7 @@ line.to_json('fccee_p_ring_thin_wig_long.json')
 line = line.from_json('fccee_p_ring_thin_wig_long.json')
 line.build_tracker()
 
-line.vars['k0l_long_wig'] = 12e-4
+line.vars['k0l_long_wig'] = 14e-4
 
 tw = line.twiss(method='4d')
 
