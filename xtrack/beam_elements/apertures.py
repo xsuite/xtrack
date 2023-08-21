@@ -16,6 +16,24 @@ UNLIMITED = 1e10  # could use np.inf but better safe than sorry
 
 
 class LimitRect(BeamElement):
+
+    '''
+    Beam element modeling a rectangular aperture limit.
+
+    Parameters
+    ----------
+    min_x : float
+        Lower x limit in meters.
+    max_x : float
+        Upper x limit in meters.
+    min_y : float
+        Lower y limit in meters.
+    max_y : float
+        Upper y limit in meters.
+
+    '''
+
+
     _xofields = {
         'min_x': xo.Float64,
         'max_x': xo.Float64,
@@ -23,25 +41,38 @@ class LimitRect(BeamElement):
         'max_y': xo.Float64,
         }
 
-    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, **kwargs):
-        """A rectangular aperture
-
-        Args:
-            min_x (float): Lower x limit in m
-            max_x (float): Upper x limit in m
-            min_y (float): Lower y limit in m
-            max_y (float): Upper y limit in m
-        """
-        super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, **kwargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitrect.h')]
 
+    def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED, max_y=UNLIMITED, **kwargs):
+
+        super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, **kwargs)
+
 
 class LimitRacetrack(BeamElement):
+
+    '''
+    Beam element modeling a racetrack aperture limit.
+
+    Parameters
+    ----------
+    min_x : float
+        Lower x limit in meters.
+    max_x : float
+        Upper x limit in meters.
+    min_y : float
+        Lower y limit in meters.
+    max_y : float
+        Upper y limit in meters.
+    a : float
+        Horizontal semi-axis in meters of ellipse used for the rounding of the corners.
+    b : float
+        Vertical semi-axis in meters of ellipse used for the rounding of the corners.
+
+    '''
+
     _xofields = {
         'min_x': xo.Float64,
         'max_x': xo.Float64,
@@ -51,23 +82,13 @@ class LimitRacetrack(BeamElement):
         'b': xo.Float64,
         }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitracetrack.h')]
 
     def __init__(self, min_x=-UNLIMITED, max_x=UNLIMITED, min_y=-UNLIMITED,
                  max_y=UNLIMITED, a=0, b=0, **kwargs):
-        """A racetrack shaped aperture
-
-        This is a rectangular aperture with rounded corners
-
-        Args:
-            min_x (float): Lower x limit in m
-            max_x (float): Upper x limit in m
-            min_y (float): Lower y limit in m
-            max_y (float): Upper y limit in m
-            a (float): Horizontal semi-axis of ellipse in m for the rounding of the corners
-            b (float): Vertical semi-axis of ellipse in m for the rounding of the corners
-        """
 
         if "_xobject" in kwargs:
             self.xoinitialize(_xobject=kwargs['_xobject'])
@@ -85,16 +106,31 @@ class LimitRacetrack(BeamElement):
 
         super().__init__(min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y, a=a, b=b, **kwargs)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
 
 class LimitEllipse(BeamElement):
+
+    '''
+    Beam element modeling an elliptical aperture limit.
+
+    Parameters
+    ----------
+    a : float
+        Horizontal semi-axis in meters.
+    b : float
+        Vertical semi-axis in meters.
+
+    '''
+
     _xofields = {
             'a_squ': xo.Float64,
             'b_squ': xo.Float64,
             'a_b_squ': xo.Float64,
             }
+
+    has_backtrack = True
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
 
     def to_dict(self):
         dct = super().to_dict()
@@ -103,12 +139,7 @@ class LimitEllipse(BeamElement):
         return dct
 
     def __init__(self, a=None, b=None, a_squ=None, b_squ=None, **kwargs):
-        """An elliptical aperture
 
-        Args:
-            a (float): Horizontal semi-axis of ellipse in m
-            b (float): Vertical semi-axis of ellipse in m
-        """
 
         if a is None and a_squ is None:
             a = UNLIMITED
@@ -131,9 +162,6 @@ class LimitEllipse(BeamElement):
         else:
             raise ValueError("a_squ and b_squ have to be positive definite")
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
     def set_half_axes(self, a, b):
         return self.set_half_axes_squ(a * a, b * b)
 
@@ -143,14 +171,25 @@ class LimitEllipse(BeamElement):
         self.a_b_squ = a_squ * b_squ
         return self
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
-    _extra_c_sources = [
-        _pkg_root.joinpath('beam_elements/apertures_src/limitellipse.h')]
-
 
 class LimitPolygon(BeamElement):
+
+    '''
+    Beam element modeling a polygonal aperture limit.
+
+    Parameters
+    ----------
+    x_vertices : array_like
+        x coordinates of the vertices of the polygon in meters.
+    y_vertices : array_like
+        y coordinates of the vertices of the polygon in meters.
+
+    Notes
+    -----
+    The polygon is closed automatically by connecting the last and first vertex.
+
+    '''
+
     _xofields = {
         'x_vertices': xo.Float64[:],
         'y_vertices': xo.Float64[:],
@@ -158,6 +197,8 @@ class LimitPolygon(BeamElement):
         'y_normal': xo.Float64[:],
         'resc_fac': xo.Float64
         }
+
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/limitpolygon.h')]
@@ -181,14 +222,7 @@ class LimitPolygon(BeamElement):
             n_threads='n_impacts')}
 
     def __init__(self, x_vertices=None, y_vertices=None, **kwargs):
-        """An aperture of arbitrary shape described by a polygon
 
-        Note: The polygon is closed automatically by connecting the last and first vertices.
-
-        Args:
-            x_vertices (list of float): Horizontal coordinates of the vertices in m
-            y_vertices (list of float): Vertical coordinates of the vertices in m
-        """
 
         if '_xobject' in kwargs.keys():
             super().__init__(**kwargs)
@@ -232,9 +266,6 @@ class LimitPolygon(BeamElement):
             ctx = self._buffer.context
             self.x_normal = ctx.nparray_to_context_array(Nx)
             self.y_normal = ctx.nparray_to_context_array(Ny)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
 
     @property
     def x_closed(self):
@@ -290,6 +321,25 @@ class LimitPolygon(BeamElement):
         return (cx,cy)
 
 class LimitRectEllipse(BeamElement):
+
+    '''
+    Element modeling an aperture limit given by the intersection of
+    a symmetric LimitRect and a LimitEllipse.
+
+    The particles are lost if they exceed either the rect or ellipse aperture.
+
+    Parameters
+    ----------
+    max_x : float
+        Horizontal semi-axis of rect in meters.
+    max_y : float
+        Vertical semi-axis of rect in meters.
+    a : float
+        Horizontal semi-axis of ellipse in meters.
+    b : float
+        Vertical semi-axis of ellipse in meters.
+    '''
+
     _xofields = {
             'max_x': xo.Float64,
             'max_y': xo.Float64,
@@ -298,20 +348,12 @@ class LimitRectEllipse(BeamElement):
             'a_b_squ': xo.Float64,
             }
 
+    has_backtrack = True
+
     def __init__(
         self, max_x=UNLIMITED, max_y=UNLIMITED, a_squ=None, b_squ=None,
         a=None, b=None, **kwargs
     ):
-        """An intersection of a symmetric LimitRect and a LimitEllipse
-
-        The particles are lost if they exceed either the rect or ellipse aperture
-
-        Args:
-            max_x (float): Horizontal semi-axis of rect in m
-            max_y (float): Vertical semi-axis of rect in m
-            a (float): Horizontal semi-axis of ellipse in m
-            b (float): Vertical semi-axis of ellipse in m
-        """
 
         if a is None and a_squ is None:
             a = UNLIMITED
@@ -345,9 +387,6 @@ class LimitRectEllipse(BeamElement):
             **kwargs
         )
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
-
     def set_half_axes(self, a, b):
         return self.set_half_axes_squ(a * a, b * b)
 
@@ -362,6 +401,21 @@ class LimitRectEllipse(BeamElement):
 
 
 class LongitudinalLimitRect(BeamElement):
+
+    '''Beam element introducing a limit on the longitudinal coordinates.
+
+    Parameters
+    ----------
+    min_zeta : float
+        Lower limit on zeta coordinate in meters.
+    max_zeta : float
+        Upper limit on zeta coordinate in meters.
+    min_pzeta : float
+        Lower limit on pzeta coordinate.
+    max_pzeta : float
+        Upper limit on pzeta coordinate.
+    '''
+
     _xofields = {
         'min_zeta': xo.Float64,
         'max_zeta': xo.Float64,
@@ -369,23 +423,14 @@ class LongitudinalLimitRect(BeamElement):
         'max_pzeta': xo.Float64,
         }
 
-    def __init__(self, min_zeta=-UNLIMITED, max_zeta=UNLIMITED, min_pzeta=-UNLIMITED, max_pzeta=UNLIMITED, **kwargs):
-        """A limit on longitudinal coordinates
-
-        Particles are lost if they exceed either of the limits placed on the longitudinal coordinates
-
-        Args:
-            min_zeta (float): lower limit on zeta coordinate in m
-            max_zeta (float): upper limit on zeta coordinate in m
-            min_pzeta (float): lower limit on pzeta coordinate
-            max_pzeta (float): upper limit on pzeta coordinate
-        """
-        super().__init__(min_zeta=min_zeta, max_zeta=max_zeta, min_pzeta=min_pzeta, max_pzeta=max_pzeta, **kwargs)
-
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        return self.copy(_context=_context, _buffer=_buffer, _offset=_offset)
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/apertures_src/longitudinallimitrect.h')]
+
+    def __init__(self, min_zeta=-UNLIMITED, max_zeta=UNLIMITED, min_pzeta=-UNLIMITED, max_pzeta=UNLIMITED, **kwargs):
+
+        super().__init__(min_zeta=min_zeta, max_zeta=max_zeta, min_pzeta=min_pzeta, max_pzeta=max_pzeta, **kwargs)
+
 
 

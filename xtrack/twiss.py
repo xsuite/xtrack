@@ -7,55 +7,63 @@ import logging
 
 import numpy as np
 from scipy.optimize import fsolve
+from scipy.constants import c as clight
 
 import xobjects as xo
 import xpart as xp
-
-
-from scipy.constants import c as clight
+from xdeps import Table
 
 from . import linear_normal_form as lnf
-from .table import Table
 from .general import _print
-
 
 import xtrack as xt  # To avoid circular imports
 
 DEFAULT_STEPS_R_MATRIX = {
-    'dx':1e-7, 'dpx':1e-10,
-    'dy':1e-7, 'dpy':1e-10,
-    'dzeta':1e-6, 'ddelta':1e-7
+    'dx':1e-6, 'dpx':1e-7,
+    'dy':1e-6, 'dpy':1e-7,
+    'dzeta':1e-6, 'ddelta':1e-6
 }
 
-DEFAULT_CO_SEARCH_TOL = [1e-12, 1e-12, 1e-12, 1e-12, 1e-5, 1e-12]
+DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-11]
+
+DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
+DEFAULT_MATRIX_STABILITY_TOL = 1e-3
 
 AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
 log = logging.getLogger(__name__)
 
-def twiss_line(line, particle_ref=None, method='6d',
+def twiss_line(line, particle_ref=None, method=None,
         particle_on_co=None, R_matrix=None, W_matrix=None,
         delta0=None, zeta0=None,
-        r_sigma=0.01, nemitt_x=1e-6, nemitt_y=2.5e-6,
-        delta_disp=1e-5, delta_chrom = 1e-4,
+        r_sigma=None, nemitt_x=None, nemitt_y=None,
+        delta_disp=None, delta_chrom=None, zeta_disp=None,
         particle_co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
-        continue_on_closed_orbit_error=False,
-        freeze_longitudinal=False,
-        values_at_element_exit=False,
-        radiation_method='full',
-        eneloss_and_damping=False,
+        continue_on_closed_orbit_error=None,
+        freeze_longitudinal=None,
+        freeze_energy=None,
+        values_at_element_exit=None,
+        radiation_method=None,
+        eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
-        skip_global_quantities=False,
+        skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
-        symplectify=False,
-        reverse=False,
+        symplectify=None,
+        reverse=None,
         use_full_inverse=None,
-        strengths=False,
-        hide_thin_groups=False,
-        _continue_if_lost=False,
-        _keep_tracking_data=False,
+        strengths=None,
+        hide_thin_groups=None,
+        group_compound_elements=None,
+        only_twiss_init=None,
+        only_markers=None,
+        only_orbit=None,
+        _continue_if_lost=None,
+        _keep_tracking_data=None,
+        _keep_initial_particles=None,
+        _initial_particles=None,
+        _ebe_monitor=None,
         ):
 
     """
@@ -67,20 +75,23 @@ def twiss_line(line, particle_ref=None, method='6d',
     method : {'6d', '4d'}, optional
         Method to be used for the computation. If '6d' the full 6D
         normal form is used. If '4d' the 4D normal form is used.
-    ele_start : int, optional
+    ele_start : int or str, optional
         Index of the element at which the computation starts. If not provided,
         the periodic sulution is computed. `twiss_init` must be provided if
         `ele_start` is provided.
-    ele_stop : int, optional
+    ele_stop : int or str, optional
         Index of the element at which the computation stops.
     twiss_init : TwissInit object, optional
-        Initial values for the Twiss parameters.
+        Initial values for the Twiss parameters. If `twiss_init="periodic"` is
+        passed, the periodic solution for the selected range is computed.
     delta0 : float, optional
         Initial value for the delta parameter.
     zeta0 : float, optional
         Initial value for the zeta parameter.
     freeze_longitudinal : bool, optional
         If True, the longitudinal motion is frozen.
+    only_markers: bool, optional
+        If True, results are computed only at marker elements.
     at_elements : list, optional
         List of elements at which the Twiss parameters are computed.
         If not provided, the Twiss parameters are computed at all elements.
@@ -100,6 +111,8 @@ def twiss_line(line, particle_ref=None, method='6d',
     hide_thin_groups : bool, optional
         If True, values associate to elements in thin groups are replacede with
         NaNs.
+    group_compound_elements : bool, optional
+        If True, elements in compounds are grouped together.
     values_at_element_exit : bool, optional (False)
         If True, the Twiss parameters are computed at the exit of the
         elements. If False (default), the Twiss parameters are computed at the
@@ -143,6 +156,10 @@ def twiss_line(line, particle_ref=None, method='6d',
             - dzeta: longitudinal dispersion (d zeta / d delta)
             - dpx: horizontal dispersion (d px / d delta)
             - dpy: vertical dispersion (d y / d delta)
+            - dx_zeta: horizontal crab dispersion (d x / d zeta)
+            - dy_zeta: vertical crab dispersion (d y / d zeta)
+            - dpx_zeta: horizontal crab dispersion (d px / d zeta)
+            - dpy_zeta: vertical crab dispersion (d py / d zeta)
             - W_matrix: W matrix of the linear normal form
             - betx1: computed horizontal beta function (Mais-Ripken)
             - bety1: computed vertical beta function (Mais-Ripken)
@@ -167,7 +184,7 @@ def twiss_line(line, particle_ref=None, method='6d',
             - damping_constants_s:
               radiation damping constants per second (if `eneloss_and_damping` is True)
             - partition_numbers:
-                radiation partition numbers (if `eneloss_and_damping` is True)
+              radiation partition numbers (if `eneloss_and_damping` is True)
 
     Notes
     -----
@@ -215,7 +232,134 @@ def twiss_line(line, particle_ref=None, method='6d',
 
     """
 
-    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
+    # defaults
+    r_sigma=(r_sigma or 0.01)
+    nemitt_x=(nemitt_x or 1e-6)
+    nemitt_y=(nemitt_y or 1e-6)
+    delta_disp=(delta_disp or 1e-5)
+    delta_chrom=(delta_chrom or 5e-5)
+    zeta_disp=(zeta_disp or 1e-3)
+    values_at_element_exit=(values_at_element_exit or False)
+    continue_on_closed_orbit_error=(continue_on_closed_orbit_error or False)
+    freeze_longitudinal=(freeze_longitudinal or False)
+    radiation_method=(radiation_method or 'full')
+    eneloss_and_damping=(eneloss_and_damping or False)
+    symplectify=(symplectify or False)
+    reverse=(reverse or False)
+    strengths=(strengths or False)
+    hide_thin_groups=(hide_thin_groups or False)
+    group_compound_elements=(group_compound_elements or False)
+    only_twiss_init=(only_twiss_init or False)
+    only_markers=(only_markers or False)
+    only_orbit=(only_orbit or False)
+
+    if only_orbit:
+        raise NotImplementedError # Tested only experimentally
+
+    kwargs = locals().copy()
+
+    ele_start_user = ele_start
+
+    if freeze_longitudinal:
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('freeze_longitudinal')
+
+        with xt.freeze_longitudinal(line):
+            return twiss_line(**kwargs)
+    elif freeze_energy or (freeze_energy is None and method=='4d'):
+        if not line._energy_is_frozen():
+            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            kwargs.pop('freeze_energy')
+            with xt.line._preserve_config(line):
+                line.freeze_energy(force=True) # need to force for collective lines
+                return twiss_line(freeze_energy=False, **kwargs)
+
+    if radiation_method != 'full':
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('radiation_method')
+        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
+        assert freeze_longitudinal is False
+        with xt.line._preserve_config(line):
+            if radiation_method == 'kick_as_co':
+                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
+                assert eneloss_and_damping is False
+                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
+            elif radiation_method == 'scale_as_co':
+                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
+                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
+            res = twiss_line(**kwargs)
+        return res
+
+    if at_s is not None:
+        if reverse:
+            raise NotImplementedError('`at_s` not implemented for `reverse`=True')
+        # Get all arguments
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        if np.isscalar(at_s):
+            at_s = [at_s]
+        assert at_elements is None
+        (auxtracker, names_inserted_markers
+            ) = _build_auxiliary_tracker_with_extra_markers(
+            tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
+            algorithm='insert')
+        kwargs.pop('line')
+        kwargs.pop('at_s')
+        kwargs.pop('at_elements')
+        kwargs.pop('matrix_responsiveness_tol')
+        kwargs.pop('matrix_stability_tol')
+        res = twiss_line(line=auxtracker.line,
+                        at_elements=names_inserted_markers,
+                        matrix_responsiveness_tol=matrix_responsiveness_tol,
+                        matrix_stability_tol=matrix_stability_tol,
+                        **kwargs)
+        return res
+
+    if line.enable_time_dependent_vars:
+        raise RuntimeError('Time dependent variables not supported in Twiss')
+
+    if ele_start is not None or ele_stop is not None:
+        assert ele_start is not None and ele_stop is not None, (
+            'ele_start and ele_stop must be provided together')
+
+    if reverse:
+        if ele_start is not None and ele_stop is not None:
+            assert _str_to_index(line, ele_start) >= _str_to_index(line, ele_stop), (
+                'ele_start must be smaller than ele_stop in reverse mode')
+        ele_start, ele_stop = ele_stop, ele_start
+        if twiss_init == 'preserve' or twiss_init == 'preserve_start':
+            twiss_init = 'preserve_end'
+        elif twiss_init == 'preserve_end':
+            twiss_init = 'preserve_start'
+    else:
+        if ele_start is not None and ele_stop is not None:
+            assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop), (
+                'ele_start must be larger than ele_stop in forward mode')
+
+    if ele_start is not None:
+        assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop)
+
+    if twiss_init is not None and not isinstance(twiss_init, str):
+        twiss_init = twiss_init.copy() # To avoid changing the one provided
+
+        if twiss_init._needs_complete():
+            assert isinstance(ele_start_user, str), (
+                'ele_start must be provided as name when an incomplete'
+                'twiss_init is provided')
+            twiss_init._complete(line=line, element_name=ele_start_user)
+
+        if twiss_init.reference_frame is None:
+            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
+
+        if twiss_init.reference_frame == 'proper':
+            assert not(reverse), ('`twiss_init` needs to be given in the '
+                'proper reference frame when `reverse` is False')
+        elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
+            assert reverse is True, ('`twiss_init` needs to be given in the '
+                'reverse reference frame when `reverse` is True')
+
+    if ele_start is not None and twiss_init is None:
+        assert twiss_init is not None, (
+            'twiss_init must be provided if ele_start and ele_stop are used')
 
     if matrix_responsiveness_tol is None:
         matrix_responsiveness_tol = line.matrix_responsiveness_tol
@@ -238,235 +382,125 @@ def twiss_line(line, particle_ref=None, method='6d',
             ' replaced by drifts')
         line = line._get_non_collective_line()
 
-
     if particle_ref is None and particle_co_guess is None:
         raise ValueError(
             "Either `particle_ref` or `particle_co_guess` must be provided")
 
-    if method == '4d' and delta0 is None:
-        delta0 = 0
+    if method is None:
+        method = '6d'
 
-    if freeze_longitudinal:
-        kwargs = locals().copy()
-        kwargs.pop('freeze_longitudinal')
+    assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
-        with xt.freeze_longitudinal(line):
-            return twiss_line(**kwargs)
+    if isinstance(twiss_init, str):
+        assert twiss_init in ['preserve', 'preserve_start', 'preserve_end', 'periodic']
 
-    if radiation_method != 'full':
-        kwargs = locals().copy()
-        kwargs.pop('radiation_method')
-        assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
-        assert freeze_longitudinal is False
-        with xt.line._preserve_config(line):
-            if radiation_method == 'kick_as_co':
-                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
-                assert eneloss_and_damping is False
-                line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-            elif radiation_method == 'scale_as_co':
-                assert isinstance(line._context, xo.ContextCpu) # needs to be serial
-                line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-            res = twiss_line(**kwargs)
-        return res
+    if twiss_init in ['preserve', 'preserve_start', 'preserve_end']:
+        # Twiss full machine with periodic boundary conditions
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('twiss_init')
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
+        tw0 = twiss_line(**kwargs)
+        if twiss_init == 'preserve' or twiss_init == 'preserve_start':
+            twiss_init = tw0.get_twiss_init(at_element=ele_start)
+        elif twiss_init == 'preserve_end':
+            twiss_init = tw0.get_twiss_init(at_element=ele_stop)
 
-    if at_s is not None:
-        # Get all arguments
-        kwargs = locals().copy()
-        if np.isscalar(at_s):
-            at_s = [at_s]
-        assert at_elements is None
-        (auxtracker, names_inserted_markers
-            ) = _build_auxiliary_tracker_with_extra_markers(
-            tracker=line.tracker, at_s=at_s, marker_prefix='inserted_twiss_marker',
-            algorithm='insert')
-        kwargs.pop('line')
-        kwargs.pop('at_s')
-        kwargs.pop('at_elements')
-        kwargs.pop('matrix_responsiveness_tol')
-        kwargs.pop('matrix_stability_tol')
-        res = twiss_line(line=auxtracker.line,
-                        at_elements=names_inserted_markers,
-                        matrix_responsiveness_tol=matrix_responsiveness_tol,
-                        matrix_stability_tol=matrix_stability_tol,
-                        **kwargs)
-        return res
+    if twiss_init is None or twiss_init=='periodic':
+        # Periodic mode
+        periodic = True
 
-    mux0 = 0
-    muy0 = 0
-    muzeta0 = 0
-    if ele_start is not None or ele_stop is not None:
-        if ele_start is not None and ele_stop is None:
-            raise ValueError(
-                'ele_stop must be specified if ele_start is not 0')
-        elif ele_start is None and ele_stop is not None:
-            raise ValueError(
-                'ele_start must be specified if ele_stop is not None')
-        assert twiss_init is not None, (
-            'twiss_init must be provided if ele_start and ele_stop are used')
+        steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
-        if isinstance(ele_start, str):
-            ele_start = line.element_names.index(ele_start)
-        if isinstance(ele_stop, str):
-            ele_stop = line.element_names.index(ele_stop)
-
-        assert twiss_init.element_name == line.element_names[ele_start]
-        particle_on_co = twiss_init.particle_on_co.copy()
-        W_matrix = twiss_init.W_matrix
+        twiss_init, R_matrix, steps_r_matrix = _find_periodic_solution(
+            line=line, particle_on_co=particle_on_co,
+            particle_ref=particle_ref, method=method,
+            co_search_settings=co_search_settings,
+            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+            delta0=delta0, zeta0=zeta0, steps_r_matrix=steps_r_matrix,
+            W_matrix=W_matrix, R_matrix=R_matrix,
+            particle_co_guess=particle_co_guess,
+            delta_disp=delta_disp, symplectify=symplectify,
+            matrix_responsiveness_tol=matrix_responsiveness_tol,
+            matrix_stability_tol=matrix_stability_tol,
+            ele_start=ele_start, ele_stop=ele_stop,
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma)
+    else:
+        # force
         skip_global_quantities = True
-        mux0 = twiss_init.mux
-        muy0 = twiss_init.muy
-        muzeta0 = twiss_init.muzeta
-    else:
-        ele_start = 0
+        periodic = False
 
-    if particle_on_co is not None:
-        part_on_co = particle_on_co
-    else:
-        part_on_co = line.find_closed_orbit(
-                                particle_co_guess=particle_co_guess,
-                                particle_ref=particle_ref,
-                                co_search_settings=co_search_settings,
-                                continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                delta0=delta0,
-                                zeta0=zeta0)
-
-    if W_matrix is not None:
-        W = W_matrix
-        RR = None
-    else:
-        if R_matrix is not None:
-            RR = R_matrix
+    if only_twiss_init:
+        assert periodic, '`only_twiss_init` can only be used in periodic mode'
+        if reverse:
+            return twiss_init.reverse()
         else:
-            RR = line.compute_one_turn_matrix_finite_differences(
-                                                steps_r_matrix=steps_r_matrix,
-                                                particle_on_co=part_on_co)
+            return twiss_init
 
-        W, _, _ = lnf.compute_linear_normal_form(
-                                RR, only_4d_block=(method == '4d'),
-                                symplectify=symplectify,
-                                responsiveness_tol=matrix_responsiveness_tol,
-                                stability_tol=matrix_stability_tol)
-
-    if method == '4d' and W_matrix is None: # the matrix was not provided by the user
-        p_disp_minus = line.find_closed_orbit(
-                            particle_co_guess=particle_co_guess,
-                            particle_ref=particle_ref,
-                            co_search_settings=co_search_settings,
-                            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                            delta0=delta0-delta_disp,
-                            zeta0=zeta0)
-        p_disp_plus = line.find_closed_orbit(particle_co_guess=particle_co_guess,
-                            particle_ref=particle_ref,
-                            co_search_settings=co_search_settings,
-                            continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                            delta0=delta0+delta_disp,
-                            zeta0=zeta0)
-        p_disp_minus.move(_context=xo.context_default)
-        p_disp_plus.move(_context=xo.context_default)
-        dx_dpzeta = ((p_disp_plus.x[0] - p_disp_minus.x[0])
-                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        dpx_dpzeta = ((p_disp_plus.px[0] - p_disp_minus.px[0])
-                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        dy_dpzeta = ((p_disp_plus.y[0] - p_disp_minus.y[0])
-                     /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-        dpy_dpzeta = ((p_disp_plus.py[0] - p_disp_minus.py[0])
-                      /(p_disp_plus.ptau[0] - p_disp_minus.ptau[0]))*part_on_co._xobject.beta0[0]
-
-        W[4:, :] = 0
-        W[:, 4:] = 0
-        W[4, 4] = 1
-        W[5, 5] = 1
-        W[0, 5] = dx_dpzeta
-        W[1, 5] = dpx_dpzeta
-        W[2, 5] = dy_dpzeta
-        W[3, 5] = dpy_dpzeta
-
-    propagate_res = _propagate_optics(
+    twiss_res = _twiss_open(
         line=line,
-        W_matrix=W,
-        particle_on_co=part_on_co,
-        mux0=mux0, muy0=muy0, muzeta0=muzeta0,
+        twiss_init=twiss_init,
         ele_start=ele_start, ele_stop=ele_stop,
         nemitt_x=nemitt_x,
         nemitt_y=nemitt_y,
         r_sigma=r_sigma,
         delta_disp=delta_disp,
+        zeta_disp=zeta_disp,
         use_full_inverse=use_full_inverse,
         hide_thin_groups=hide_thin_groups,
+        group_compound_elements=group_compound_elements,
+        only_markers=only_markers,
+        only_orbit=only_orbit,
         _continue_if_lost=_continue_if_lost,
-        _keep_tracking_data=_keep_tracking_data)
-    propagate_res['name'] = np.array(
-                                        propagate_res['name'])
-    twiss_res = TwissTable(data=propagate_res)
+        _keep_tracking_data=_keep_tracking_data,
+        _keep_initial_particles=_keep_initial_particles,
+        _initial_particles=_initial_particles,
+        _ebe_monitor=_ebe_monitor)
 
-    twiss_res._data['particle_on_co'] = part_on_co.copy(_context=xo.context_default)
+    twiss_res._data['steps_r_matrix'] = steps_r_matrix
 
-    circumference = line.tracker._tracker_data.line_length
-    twiss_res._data['circumference'] = circumference
+    if not skip_global_quantities and not only_orbit:
+        twiss_res._data['R_matrix'] = R_matrix
+        _compute_global_quantities(
+                            line=line, twiss_res=twiss_res,
+                            twiss_init=twiss_init, method=method,
+                            delta_chrom=delta_chrom,
+                            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+                            matrix_responsiveness_tol=matrix_responsiveness_tol,
+                            matrix_stability_tol=matrix_stability_tol,
+                            symplectify=symplectify,
+                            steps_r_matrix=steps_r_matrix,
+                            eneloss_and_damping=eneloss_and_damping)
 
-    if not skip_global_quantities:
-
-        s_vect = propagate_res['s']
-        mux = propagate_res['mux']
-        muy = propagate_res['muy']
-
-        dqx, dqy = _compute_chromaticity(
+        cols_chrom, scalars_chrom = _compute_chromatic_functions(
             line=line,
-            W_matrix=W, method=method,
-            particle_on_co=part_on_co,
+            twiss_init=twiss_init,
             delta_chrom=delta_chrom,
-            tune_x=mux[-1], tune_y=muy[-1],
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y,
+            steps_r_matrix=steps_r_matrix,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
-            symplectify=symplectify, steps_r_matrix=steps_r_matrix)
+            symplectify=symplectify,
+            method=method,
+            use_full_inverse=use_full_inverse,
+            nemitt_x=nemitt_x,
+            nemitt_y=nemitt_y,
+            r_sigma=r_sigma,
+            delta_disp=delta_disp,
+            zeta_disp=zeta_disp,
+            ele_start=ele_start,
+            ele_stop=ele_stop,
+            hide_thin_groups=hide_thin_groups,
+            group_compound_elements=group_compound_elements,
+            only_markers=only_markers)
+        twiss_res._data.update(cols_chrom)
+        twiss_res._data.update(scalars_chrom)
+        twiss_res._col_names += list(cols_chrom.keys())
 
-        dzeta = propagate_res['dzeta']
-        qs = np.abs(propagate_res['muzeta'][-1])
-        eta = -dzeta[-1]/circumference
-        alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
-        beta0 = part_on_co._xobject.beta0[0]
-        T_rev0 = circumference/clight/beta0
-        betz0 = W[4, 4]**2 + W[4, 5]**2
-        ptau_co = propagate_res['ptau']
-
-        # Coupling
-        r1 = (np.sqrt(propagate_res['bety1'])/
-              np.sqrt(propagate_res['betx1']))
-        r2 = (np.sqrt(propagate_res['betx2'])/
-              np.sqrt(propagate_res['bety2']))
-
-        # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
-        cmin_arr = (2 * np.sqrt(r1*r2) *
-                    np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
-                    /(1 + r1 * r2))
-        c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
-        c_r1_avg = np.trapz(r1, s_vect)/(circumference)
-        c_r2_avg = np.trapz(r2, s_vect)/(circumference)
-        twiss_res._data.update({
-            'qx': mux[-1], 'qy': muy[-1], 'qs': qs, 'dqx': dqx, 'dqy': dqy,
-            'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
-            'circumference': circumference, 'T_rev0': T_rev0,
-            'particle_on_co':part_on_co.copy(_context=xo.context_default),
-            'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
-        })
-        if hasattr(part_on_co, '_fsolve_info'):
-            twiss_res.particle_on_co._fsolve_info = part_on_co._fsolve_info
-        else:
-            twiss_res.particle_on_co._fsolve_info = None
-
-        twiss_res._data['R_matrix'] = RR
-
-        if method == '4d':
+    if method == '4d' and 'muzeta' in twiss_res._data:
+        twiss_res.muzeta[:] = 0
+        if 'qs' in twiss_res._data:
             twiss_res._data['qs'] = 0
-            twiss_res.muzeta[:] = 0
-
-        if eneloss_and_damping:
-            assert RR is not None
-            eneloss_damp_res = _compute_eneloss_and_damping_rates(
-                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
-            twiss_res._data.update(eneloss_damp_res)
 
     if values_at_element_exit:
         raise NotImplementedError
@@ -484,22 +518,82 @@ def twiss_line(line, particle_ref=None, method='6d',
         twiss_res._col_names = (list(twiss_res._col_names) +
                                     list(strengths.keys()))
 
+    twiss_res._data['method'] = method
+    twiss_res._data['radiation_method'] = radiation_method
+    twiss_res._data['reference_frame'] = 'proper'
+
+    if reverse:
+        twiss_res = twiss_res.reverse()
+
+    # twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
+    # twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
+    # twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
+    # twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
+
+
+    if not periodic and not only_orbit:
+        # Start phase advance with provided twiss_init
+        if ((twiss_res.orientation == 'forward' and not reverse)
+            or (twiss_res.orientation == 'backward' and reverse)):
+            twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
+            twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
+            twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
+            twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
+        elif ((twiss_res.orientation == 'forward' and reverse)
+            or (twiss_res.orientation == 'backward' and not reverse)):
+            twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
+            twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
+            twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
+            twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
+
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
 
-    if reverse:
-        raise ValueError('`twiss(..., reverse=True)` not supported anymore. '
-                         'Use `twiss(...).reverse()` instead.')
     return twiss_res
 
-def _propagate_optics(line, W_matrix, particle_on_co,
-                      mux0, muy0, muzeta0,
+def _twiss_open(line, twiss_init,
                       ele_start, ele_stop,
-                      nemitt_x, nemitt_y, r_sigma, delta_disp,
+                      nemitt_x, nemitt_y, r_sigma,
+                      delta_disp, zeta_disp,
                       use_full_inverse,
                       hide_thin_groups=False,
+                      group_compound_elements=False,
+                      only_markers=False,
+                      only_orbit=False,
                       _continue_if_lost=False,
-                      _keep_tracking_data=False):
+                      _keep_tracking_data=False,
+                      _keep_initial_particles=False,
+                      _initial_particles=None,
+                      _ebe_monitor=None):
+
+    if twiss_init.reference_frame == 'reverse':
+        twiss_init = twiss_init.reverse()
+
+    particle_on_co = twiss_init.particle_on_co
+    W_matrix = twiss_init.W_matrix
+
+    if ele_start is not None and ele_stop is None:
+        raise ValueError('ele_stop must be specified if ele_start is not None')
+
+    if ele_stop is not None and ele_start is None:
+        raise ValueError('ele_start must be specified if ele_stop is not None')
+
+    if ele_start is None:
+        ele_start = 0
+
+    if isinstance(ele_start, str):
+        ele_start = line.element_names.index(ele_start)
+    if isinstance(ele_stop, str):
+        ele_stop = line.element_names.index(ele_stop)
+
+    if twiss_init.element_name == line.element_names[ele_start]:
+        twiss_orientation = 'forward'
+    elif ele_stop is not None and twiss_init.element_name == line.element_names[ele_stop]:
+        twiss_orientation = 'backward'
+        assert isinstance(line.element_dict[line.element_names[ele_stop]], xt.Marker) # to start one downstream without having to track
+    else:
+        raise ValueError(
+            '`twiss_init` must be given at the start or end of the specified element range.')
 
     ctx2np = line._context.nparray_from_context_array
 
@@ -510,80 +604,196 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     scale_longitudinal = delta_disp
     scale_eigen = min(scale_transverse_x, scale_transverse_y, scale_longitudinal)
 
-
     context = line._context
-    part_for_twiss = xp.build_particles(_context=context,
-                        particle_ref=particle_on_co, mode='shift',
-                        x=  list(W_matrix[0, :] * scale_eigen) + [0],
-                        px= list(W_matrix[1, :] * scale_eigen) + [0],
-                        y=  list(W_matrix[2, :] * scale_eigen) + [0],
-                        py= list(W_matrix[3, :] * scale_eigen) + [0],
-                        zeta = list(W_matrix[4, :] * scale_eigen) + [0],
-                        pzeta = list(W_matrix[5, :] * scale_eigen) + [0],
-                        )
+    if _initial_particles is not None: # used in match
+        part_for_twiss = _initial_particles.copy()
+    else:
+        part_for_twiss = xp.build_particles(_context=context,
+            particle_ref=particle_on_co, mode='shift',
+            x     = [0] + list(W_matrix[0, :] * -scale_eigen) + list(W_matrix[0, :] * scale_eigen),
+            px    = [0] + list(W_matrix[1, :] * -scale_eigen) + list(W_matrix[1, :] * scale_eigen),
+            y     = [0] + list(W_matrix[2, :] * -scale_eigen) + list(W_matrix[2, :] * scale_eigen),
+            py    = [0] + list(W_matrix[3, :] * -scale_eigen) + list(W_matrix[3, :] * scale_eigen),
+            zeta  = [0] + list(W_matrix[4, :] * -scale_eigen) + list(W_matrix[4, :] * scale_eigen),
+            pzeta = [0] + list(W_matrix[5, :] * -scale_eigen) + list(W_matrix[5, :] * scale_eigen),
+            )
 
-    part_disp = xp.build_particles(
-        _context=context,
-        x_norm=0,
-        zeta=particle_on_co._xobject.zeta[0],
-        delta=np.array([-delta_disp, +delta_disp])+particle_on_co._xobject.delta[0],
-        particle_on_co=particle_on_co,
-        nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-        W_matrix=W_matrix)
-
-    part_for_twiss = xp.Particles.merge([part_for_twiss, part_disp])
-    part_for_twiss.s = particle_on_co._xobject.s[0]
-    part_for_twiss.at_element = particle_on_co._xobject.at_element[0]
-    i_start = part_for_twiss._xobject.at_element[0]
+        if twiss_orientation == 'forward':
+            part_for_twiss.at_element = ele_start
+            part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[ele_start]
+        elif twiss_orientation == 'backward':
+            part_for_twiss.at_element = ele_stop + 1 # to include the last element (assume it is a marker)
+            part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[ele_stop]
+        else:
+            raise ValueError('Invalid twiss_orientation')
 
     part_for_twiss.at_turn = AT_TURN_FOR_TWISS # To avoid writing in monitors
 
-    #assert np.all(ctx2np(part_for_twiss.at_turn) == 0)
-    line.track(part_for_twiss, turn_by_turn_monitor='ONE_TURN_EBE',
-                  ele_start=ele_start, ele_stop=ele_stop)
+    if _keep_initial_particles:
+        part_for_twiss0 = part_for_twiss.copy()
+
+    if _ebe_monitor is not None:
+        _monitor = _ebe_monitor
+    elif hasattr(line.tracker._tracker_data_base, '_reusable_ebe_monitor_for_twiss'):
+        _monitor = line.tracker._tracker_data_base._reusable_ebe_monitor_for_twiss
+    else:
+        _monitor = 'ONE_TURN_EBE'
+
+    if ele_stop is None:
+        ele_stop_track = None
+    else:
+        ele_stop_track = ele_stop + 1 # to include the last element
+
+    line.track(part_for_twiss, turn_by_turn_monitor=_monitor,
+                ele_start=ele_start,
+                ele_stop=ele_stop_track,
+                backtrack=(twiss_orientation == 'backward'))
+
+    # We keep the monitor to speed up future calls (attached to tracker data
+    # so that it is trashed if number of elements changes)
+    line.tracker._tracker_data_base._reusable_ebe_monitor_for_twiss = line.record_last_track
+
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
             'Some test particles were lost during twiss!')
-    i_stop = part_for_twiss._xobject.at_element[0] + (
-        (part_for_twiss._xobject.at_turn[0] - AT_TURN_FOR_TWISS)
-         * len(line.element_names))
 
-    x_co = line.record_last_track.x[6, i_start:i_stop+1].copy()
-    y_co = line.record_last_track.y[6, i_start:i_stop+1].copy()
-    px_co = line.record_last_track.px[6, i_start:i_stop+1].copy()
-    py_co = line.record_last_track.py[6, i_start:i_stop+1].copy()
-    zeta_co = line.record_last_track.zeta[6, i_start:i_stop+1].copy()
-    delta_co = line.record_last_track.delta[6, i_start:i_stop+1].copy()
-    ptau_co = line.record_last_track.ptau[6, i_start:i_stop+1].copy()
-    s_co = line.record_last_track.s[6, i_start:i_stop+1].copy()
+    if twiss_orientation == 'forward':
+        i_start = ele_start
+        i_stop = part_for_twiss._xobject.at_element[0] + (
+                (part_for_twiss._xobject.at_turn[0] - AT_TURN_FOR_TWISS)
+                * len(line.element_names))
+    elif twiss_orientation == 'backward':
+        i_start = ele_start
+        if ele_stop_track is not None:
+            i_stop = ele_stop_track
+        else:
+            i_stop = len(line.element_names) - 1
 
-    x_disp_minus = line.record_last_track.x[7, i_start:i_stop+1].copy()
-    y_disp_minus = line.record_last_track.y[7, i_start:i_stop+1].copy()
-    zeta_disp_minus = line.record_last_track.zeta[7, i_start:i_stop+1].copy()
-    px_disp_minus = line.record_last_track.px[7, i_start:i_stop+1].copy()
-    py_disp_minus = line.record_last_track.py[7, i_start:i_stop+1].copy()
-    delta_disp_minus = line.record_last_track.delta[7, i_start:i_stop+1].copy()
+    recorded_state = line.record_last_track.state[:, i_start:i_stop+1].copy()
+    if not _continue_if_lost:
+        assert np.all(recorded_state == 1), (
+            'Some test particles were lost during twiss!')
 
-    x_disp_plus = line.record_last_track.x[8, i_start:i_stop+1].copy()
-    y_disp_plus = line.record_last_track.y[8, i_start:i_stop+1].copy()
-    zeta_disp_plus = line.record_last_track.zeta[8, i_start:i_stop+1].copy()
-    px_disp_plus = line.record_last_track.px[8, i_start:i_stop+1].copy()
-    py_disp_plus = line.record_last_track.py[8, i_start:i_stop+1].copy()
-    delta_disp_plus = line.record_last_track.delta[8, i_start:i_stop+1].copy()
 
-    dx = (x_disp_plus-x_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dy = (y_disp_plus-y_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dzeta = (zeta_disp_plus-zeta_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dpx = (px_disp_plus-px_disp_minus)/(delta_disp_plus - delta_disp_minus)
-    dpy = (py_disp_plus-py_disp_minus)/(delta_disp_plus - delta_disp_minus)
+    x_co = line.record_last_track.x[0, i_start:i_stop+1].copy()
+    y_co = line.record_last_track.y[0, i_start:i_stop+1].copy()
+    px_co = line.record_last_track.px[0, i_start:i_stop+1].copy()
+    py_co = line.record_last_track.py[0, i_start:i_stop+1].copy()
+    zeta_co = line.record_last_track.zeta[0, i_start:i_stop+1].copy()
+    delta_co = line.record_last_track.delta[0, i_start:i_stop+1].copy()
+    ptau_co = line.record_last_track.ptau[0, i_start:i_stop+1].copy()
+    s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
-    Ws[:, 0, :] = (line.record_last_track.x[:6, i_start:i_stop+1] - x_co).T / scale_eigen
-    Ws[:, 1, :] = (line.record_last_track.px[:6, i_start:i_stop+1] - px_co).T / scale_eigen
-    Ws[:, 2, :] = (line.record_last_track.y[:6, i_start:i_stop+1] - y_co).T / scale_eigen
-    Ws[:, 3, :] = (line.record_last_track.py[:6, i_start:i_stop+1] - py_co).T / scale_eigen
-    Ws[:, 4, :] = (line.record_last_track.zeta[:6, i_start:i_stop+1] - zeta_co).T / scale_eigen
-    Ws[:, 5, :] = (line.record_last_track.ptau[:6, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
+    Ws[:, 0, :] = 0.5 * (line.record_last_track.x[1:7, i_start:i_stop+1] - x_co).T / scale_eigen
+    Ws[:, 1, :] = 0.5 * (line.record_last_track.px[1:7, i_start:i_stop+1] - px_co).T / scale_eigen
+    Ws[:, 2, :] = 0.5 * (line.record_last_track.y[1:7, i_start:i_stop+1] - y_co).T / scale_eigen
+    Ws[:, 3, :] = 0.5 * (line.record_last_track.py[1:7, i_start:i_stop+1] - py_co).T / scale_eigen
+    Ws[:, 4, :] = 0.5 * (line.record_last_track.zeta[1:7, i_start:i_stop+1] - zeta_co).T / scale_eigen
+    Ws[:, 5, :] = 0.5 * (line.record_last_track.ptau[1:7, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
+
+    Ws[:, 0, :] -= 0.5 * (line.record_last_track.x[7:13, i_start:i_stop+1] - x_co).T / scale_eigen
+    Ws[:, 1, :] -= 0.5 * (line.record_last_track.px[7:13, i_start:i_stop+1] - px_co).T / scale_eigen
+    Ws[:, 2, :] -= 0.5 * (line.record_last_track.y[7:13, i_start:i_stop+1] - y_co).T / scale_eigen
+    Ws[:, 3, :] -= 0.5 * (line.record_last_track.py[7:13, i_start:i_stop+1] - py_co).T / scale_eigen
+    Ws[:, 4, :] -= 0.5 * (line.record_last_track.zeta[7:13, i_start:i_stop+1] - zeta_co).T / scale_eigen
+    Ws[:, 5, :] -= 0.5 * (line.record_last_track.ptau[7:13, i_start:i_stop+1] - ptau_co).T / particle_on_co._xobject.beta0[0] / scale_eigen
+
+    dzeta = (((line.record_last_track.zeta[6, i_start:i_stop+1] - zeta_co).T
+            - (line.record_last_track.zeta[12, i_start:i_stop+1] - zeta_co).T )
+            / ((line.record_last_track.delta[6, i_start:i_stop+1] - delta_co).T
+            - (line.record_last_track.delta[12, i_start:i_stop+1] - delta_co).T))
+
+    dzeta = dzeta - dzeta[0]
+
+    name_co = np.array(line.element_names[i_start:i_stop] + ('_end_point',))
+
+    if only_markers:
+        mask_twiss = line.tracker._get_twiss_mask_markers()[i_start:i_stop+1]
+        mask_twiss[-1] = True # to include the "_end_point"
+        name_co = name_co[mask_twiss]
+        s_co = s_co[mask_twiss]
+        x_co = x_co[mask_twiss]
+        px_co = px_co[mask_twiss]
+        y_co = y_co[mask_twiss]
+        py_co = py_co[mask_twiss]
+        zeta_co = zeta_co[mask_twiss]
+        delta_co = delta_co[mask_twiss]
+        ptau_co = ptau_co[mask_twiss]
+        dzeta = dzeta[mask_twiss]
+        Ws = Ws[mask_twiss, :, :]
+
+    twiss_res_element_by_element = {}
+
+    twiss_res_element_by_element.update({
+        'name': name_co,
+        's': s_co,
+        'x': x_co,
+        'px': px_co,
+        'y': y_co,
+        'py': py_co,
+        'zeta': zeta_co,
+        'delta': delta_co,
+        'ptau': ptau_co,
+    })
+
+    if not only_orbit:
+        lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
+        twiss_res_element_by_element.update(lattice_functions)
+
+    twiss_res_element_by_element['dzeta'] = dzeta
+
+    extra_data = {}
+    extra_data['only_markers'] = only_markers
+    if _keep_tracking_data:
+        extra_data['tracking_data'] = line.record_last_track.copy()
+
+    if _keep_initial_particles:
+        extra_data['_initial_particles'] = part_for_twiss0.copy()
+
+    if hide_thin_groups:
+        _vars_hide_changes = [
+        'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
+        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
+        'betx1', 'bety1', 'betx2', 'bety2',
+        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
+        ]
+
+        for key in _vars_hide_changes:
+            if key in twiss_res_element_by_element:
+                twiss_res_element_by_element[key][i_replace] = np.nan
+
+    twiss_res_element_by_element['name'] = np.array(twiss_res_element_by_element['name'])
+
+    if group_compound_elements:
+        assert not only_markers, 'group_compound_elements not implemented with only_markers'
+        compound_mask = np.zeros_like(twiss_res_element_by_element['s'], dtype=bool)
+        n_mask = len(compound_mask)
+        compound_mask[-1] = True
+        compound_mask[:-1] = (
+            line.tracker._tracker_data_base.compound_mask[i_start:i_start+n_mask-1])
+        for kk in list(twiss_res_element_by_element.keys()):
+            twiss_res_element_by_element[kk] = (
+                twiss_res_element_by_element[kk][compound_mask])
+
+        ## To use the name of the compounds (not done for now)
+        # twiss_res_element_by_element['name'][:-1] = (
+        #     line.tracker._tracker_data_base.element_compound_names[
+        #         i_start:i_stop+1][compound_mask[:-1]])
+
+    twiss_res = TwissTable(data=twiss_res_element_by_element)
+    twiss_res._data.update(extra_data)
+
+    twiss_res._data['particle_on_co'] = particle_on_co.copy(_context=xo.context_default)
+
+    circumference = line.tracker._tracker_data_base.line_length
+    twiss_res._data['circumference'] = circumference
+    twiss_res._data['orientation'] = twiss_orientation
+
+    return twiss_res
+
+
+def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 
     # For removal ot thin groups of elements
     i_take = [0]
@@ -611,6 +821,7 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     v1 = Ws[:, :, 0] + 1j * Ws[:, :, 1]
     v2 = Ws[:, :, 2] + 1j * Ws[:, :, 3]
     v3 = Ws[:, :, 4] + 1j * Ws[:, :, 5]
+
     for ii in range(6):
         v1[:, ii] *= np.exp(-1j * phix)
         v2[:, ii] *= np.exp(-1j * phiy)
@@ -623,7 +834,6 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     Ws[:, :, 5] = np.imag(v3)
 
     # Computation of twiss parameters
-
     if use_full_inverse:
         betx, alfx, gamx, bety, alfy, gamy, bety1, betx2 = _extract_twiss_parameters_with_inverse(Ws)
     else:
@@ -647,39 +857,45 @@ def _propagate_optics(line, W_matrix, particle_on_co,
     temp_phix[i_replace] = temp_phix[i_replace_with]
     temp_phiy[i_replace] = temp_phiy[i_replace_with]
 
-    mux = np.unwrap(temp_phix)/2/np.pi
-    muy = np.unwrap(temp_phiy)/2/np.pi
+    mux = np.unwrap(temp_phix) / 2 / np.pi
+    muy = np.unwrap(temp_phiy) / 2  /np.pi
+    muzeta = np.unwrap(phizeta) / 2 / np.pi
 
-    muzeta = np.unwrap(phizeta)/2/np.pi
+    dx_zeta = (Ws[:, 0, 4] - Ws[:, 0, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
+               Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
+    dy_zeta = (Ws[:, 2, 4] - Ws[:, 2, 5] * Ws[:, 5, 4] / Ws[:, 5, 5]) / (
+                Ws[:, 4, 4] - Ws[:, 4, 5] * Ws[:, 5, 4] / Ws[:, 5, 5])
 
-    mux = mux - mux[0] + mux0
-    muy = muy - muy[0] + muy0
-    muzeta = muzeta - muzeta[0] + muzeta0
+    dx_pzeta = (Ws[:, 0, 5] - Ws[:, 0, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
+    dpx_pzeta = (Ws[:, 1, 5] - Ws[:, 1, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
+    dy_pzeta = (Ws[:, 2, 5] - Ws[:, 2, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
+    dpy_pzeta = (Ws[:, 3, 5] - Ws[:, 3, 4] * Ws[:, 4, 5] / Ws[:, 4, 4]) / (
+                Ws[:, 5, 5] - Ws[:, 5, 4] * Ws[:, 4, 5] / Ws[:, 4, 4])
 
-    mux = np.abs(mux)
-    muy = np.abs(muy)
+    mux = mux - mux[0]
+    muy = muy - muy[0]
+    muzeta = muzeta - muzeta[0]
 
-    twiss_res_element_by_element = {
-        'name': line.element_names[i_start:i_stop] + ('_end_point',),
-        's': s_co,
-        'x': x_co,
-        'px': px_co,
-        'y': y_co,
-        'py': py_co,
-        'zeta': zeta_co,
-        'delta': delta_co,
-        'ptau': ptau_co,
+    res = {
         'betx': betx,
         'bety': bety,
         'alfx': alfx,
         'alfy': alfy,
         'gamx': gamx,
         'gamy': gamy,
-        'dx': dx,
-        'dpx': dpx,
-        'dy': dy,
-        'dzeta': dzeta,
-        'dpy': dpy,
+        'dx': dx_pzeta,
+        'dpx': dpx_pzeta,
+        'dy': dy_pzeta,
+        'dpy': dpy_pzeta,
+        'dx_zeta': dx_zeta,
+        'dy_zeta': dy_zeta,
+        'betx1': betx1,
+        'bety1': bety1,
+        'betx2': betx2,
+        'bety2': bety2,
         'mux': mux,
         'muy': muy,
         'muzeta': muzeta,
@@ -687,95 +903,131 @@ def _propagate_optics(line, W_matrix, particle_on_co,
         'nuy': nuy,
         'nuzeta': nuzeta,
         'W_matrix': Ws,
-        'betx1': betx1,
-        'bety1': bety1,
-        'betx2': betx2,
-        'bety2': bety2,
     }
+    return res, i_replace
 
-    if _keep_tracking_data:
-        twiss_res_element_by_element['tracking_data'] = line.record_last_track
 
-    if hide_thin_groups:
-        _vars_hide_changes = [
-        'x', 'px', 'y', 'py', 'zeta', 'delta', 'ptau',
-        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
-        'betx1', 'bety1', 'betx2', 'bety2',
-        'dx', 'dpx', 'dy', 'dzeta', 'dpy',
-        ]
+def _compute_global_quantities(line, twiss_res, twiss_init, method,
+                               delta_chrom, nemitt_x, nemitt_y,
+                               matrix_responsiveness_tol, matrix_stability_tol,
+                               symplectify, steps_r_matrix, eneloss_and_damping):
 
-        for key in _vars_hide_changes:
-                twiss_res_element_by_element[key][i_replace] = np.nan
+        s_vect = twiss_res['s']
+        mux = twiss_res['mux']
+        muy = twiss_res['muy']
+        circumference = line.tracker._tracker_data_base.line_length
+        part_on_co = twiss_res['particle_on_co']
+        W_matrix = twiss_res['W_matrix']
 
-    return twiss_res_element_by_element
+        dzeta = twiss_res['dzeta']
+        qs = np.abs(twiss_res['muzeta'][-1])
+        eta = -dzeta[-1]/circumference
+        alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
-def _compute_chromaticity(line, W_matrix, particle_on_co, delta_chrom,
-                    tune_x, tune_y,
-                    nemitt_x, nemitt_y, matrix_responsiveness_tol,
-                    matrix_stability_tol, symplectify, steps_r_matrix,
-                    method='6d'
-                    ):
+        beta0 = part_on_co._xobject.beta0[0]
+        T_rev0 = circumference/clight/beta0
+        betz0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
+        if eta < 0: # below transition
+            betz0 = -betz0
+        ptau_co = twiss_res['ptau']
 
-    context = line._context
+        # Coupling
+        r1 = (np.sqrt(twiss_res['bety1'])/
+              np.sqrt(twiss_res['betx1']))
+        r2 = (np.sqrt(twiss_res['betx2'])/
+              np.sqrt(twiss_res['bety2']))
 
-    part_chrom_plus = xp.build_particles(
-                _context=context,
+        # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
+        cmin_arr = (2 * np.sqrt(r1*r2) *
+                    np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
+                    /(1 + r1 * r2))
+        c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
+        c_r1_avg = np.trapz(r1, s_vect)/(circumference)
+        c_r2_avg = np.trapz(r2, s_vect)/(circumference)
+        twiss_res._data.update({
+            'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
+            'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
+            'circumference': circumference, 'T_rev0': T_rev0,
+            'particle_on_co':part_on_co.copy(_context=xo.context_default),
+            'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
+        })
+        if hasattr(part_on_co, '_fsolve_info'):
+            twiss_res.particle_on_co._fsolve_info = part_on_co._fsolve_info
+        else:
+            twiss_res.particle_on_co._fsolve_info = None
+
+        if eneloss_and_damping:
+            assert 'R_matrix' in twiss_res._data
+            RR = twiss_res._data['R_matrix']
+            eneloss_damp_res = _compute_eneloss_and_damping_rates(
+                particle_on_co=part_on_co, R_matrix=RR, ptau_co=ptau_co, T_rev0=T_rev0)
+            twiss_res._data.update(eneloss_damp_res)
+
+def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
+                    matrix_responsiveness_tol, matrix_stability_tol, symplectify,
+                    method='6d', use_full_inverse=False,
+                    nemitt_x=None, nemitt_y=None,
+                    r_sigma=1e-3, delta_disp=1e-3, zeta_disp=1e-3,
+                    ele_start=None, ele_stop=None,
+                    hide_thin_groups=False,
+                    group_compound_elements=False,
+                    only_markers=False):
+
+    tw_chrom_res = []
+    for dd in [-delta_chrom, delta_chrom]:
+        tw_init_chrom  = twiss_init.copy()
+        part_co = tw_init_chrom.particle_on_co
+
+        part_chrom = xp.build_particles(
+                _context=line._context,
                 x_norm=0,
-                zeta=particle_on_co._xobject.zeta[0], delta=delta_chrom,
-                particle_on_co=particle_on_co,
+                zeta=tw_init_chrom._xobject.zeta[0],
+                delta=part_co._xobject.delta[0] + dd,
+                particle_on_co=part_co,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=W_matrix)
-    RR_chrom_plus = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_plus.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-    (WW_chrom_plus, WWinv_chrom_plus, Rot_chrom_plus
-        ) = lnf.compute_linear_normal_form(RR_chrom_plus,
-                            only_4d_block=method=='4d',
-                            responsiveness_tol=matrix_responsiveness_tol,
-                            stability_tol=matrix_stability_tol,
-                            symplectify=symplectify)
-    qx_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][0])/(2*np.pi)
-    qy_chrom_plus = np.angle(np.linalg.eig(Rot_chrom_plus)[0][2])/(2*np.pi)
+                W_matrix=tw_init_chrom.W_matrix)
+        tw_init_chrom.particle_on_co = part_chrom
 
-    part_chrom_minus = xp.build_particles(
-                _context=context,
-                x_norm=0,
-                zeta=particle_on_co._xobject.zeta[0], delta=-delta_chrom,
-                particle_on_co=particle_on_co,
-                nemitt_x=nemitt_x, nemitt_y=nemitt_y,
-                W_matrix=W_matrix)
-    RR_chrom_minus = line.compute_one_turn_matrix_finite_differences(
-                                        particle_on_co=part_chrom_minus.copy(),
-                                        steps_r_matrix=steps_r_matrix)
-    (WW_chrom_minus, WWinv_chrom_minus, Rot_chrom_minus
-        ) = lnf.compute_linear_normal_form(RR_chrom_minus,
-                            only_4d_block=(method=='4d'),
-                            symplectify=symplectify,
-                            stability_tol=matrix_stability_tol,
-                            responsiveness_tol=matrix_responsiveness_tol)
-    qx_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][0])/(2*np.pi)
-    qy_chrom_minus = np.angle(np.linalg.eig(Rot_chrom_minus)[0][2])/(2*np.pi)
+        RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                                    particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                    steps_r_matrix=steps_r_matrix)
+        (WW_chrom, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                                only_4d_block=method=='4d',
+                                responsiveness_tol=matrix_responsiveness_tol,
+                                stability_tol=matrix_stability_tol,
+                                symplectify=symplectify)
+        tw_init_chrom.W_matrix = WW_chrom
 
-    dist_from_half_integer_x = np.modf(tune_x)[0] - 0.5
-    dist_from_half_integer_y = np.modf(tune_y)[0] - 0.5
 
-    if np.abs(qx_chrom_plus - qx_chrom_minus) > np.abs(dist_from_half_integer_x):
-        raise NotImplementedError(
-                "Qx too close to half integer, impossible to evaluate Q'x")
-    if np.abs(qy_chrom_plus - qy_chrom_minus) > np.abs(dist_from_half_integer_y):
-        raise NotImplementedError(
-                "Qy too close to half integer, impossible to evaluate Q'y")
+        tw_chrom_res.append(
+            _twiss_open(
+                line=line,
+                twiss_init=tw_init_chrom,
+                ele_start=ele_start, ele_stop=ele_stop,
+                nemitt_x=nemitt_x,
+                nemitt_y=nemitt_y,
+                r_sigma=r_sigma,
+                delta_disp=delta_disp,
+                zeta_disp=zeta_disp,
+                use_full_inverse=use_full_inverse,
+                hide_thin_groups=hide_thin_groups,
+                group_compound_elements=group_compound_elements,
+                only_markers=only_markers,
+                _continue_if_lost=False,
+                _keep_tracking_data=False,
+                _keep_initial_particles=False,
+                _initial_particles=None,
+                _ebe_monitor=None))
 
-    dqx = (qx_chrom_plus - qx_chrom_minus)/delta_chrom/2
-    dqy = (qy_chrom_plus - qy_chrom_minus)/delta_chrom/2
+    dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
+    dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
+    dqx = dmux[-1]
+    dqy = dmuy[-1]
 
-    if dist_from_half_integer_x > 0:
-        dqx = -dqx
+    cols_chrom = {'dmux': dmux, 'dmuy': dmuy}
+    scalars_chrom = {'dqx': dqx, 'dqy': dqy}
 
-    if dist_from_half_integer_y > 0:
-        dqy = -dqy
-
-    return dqx, dqy
+    return cols_chrom, scalars_chrom
 
 
 def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0):
@@ -809,10 +1061,155 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix, ptau_co, T_rev0
 class ClosedOrbitSearchError(Exception):
     pass
 
+def _find_periodic_solution(line, particle_on_co, particle_ref, method,
+                            co_search_settings, continue_on_closed_orbit_error,
+                            delta0, zeta0, steps_r_matrix, W_matrix,
+                            R_matrix, particle_co_guess,
+                            delta_disp, symplectify,
+                            matrix_responsiveness_tol,
+                            matrix_stability_tol,
+                            nemitt_x, nemitt_y, r_sigma,
+                            ele_start=None, ele_stop=None):
+
+    if ele_start is not None or ele_stop is not None:
+        assert ele_start is not None and ele_stop is not None, (
+            'ele_start and ele_stop must be both None or both not None')
+
+    if ele_start is not None:
+        assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop)
+
+    if method == '4d' and delta0 is None:
+        delta0 = 0
+
+    if particle_on_co is not None:
+        part_on_co = particle_on_co
+    else:
+        part_on_co = line.find_closed_orbit(
+                                particle_co_guess=particle_co_guess,
+                                particle_ref=particle_ref,
+                                co_search_settings=co_search_settings,
+                                continue_on_closed_orbit_error=continue_on_closed_orbit_error,
+                                delta0=delta0,
+                                zeta0=zeta0,
+                                ele_start=ele_start,
+                                ele_stop=ele_stop)
+
+    if W_matrix is not None:
+        W = W_matrix
+        RR = None
+    else:
+        if R_matrix is not None:
+            RR = R_matrix
+            lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
+                                                only_4d=(method == '4d'))
+            W, _, _ = lnf.compute_linear_normal_form(
+                        RR, only_4d_block=(method == '4d'),
+                        symplectify=symplectify,
+                        responsiveness_tol=matrix_responsiveness_tol,
+                        stability_tol=matrix_stability_tol)
+        else:
+            steps_r_matrix['adapted'] = False
+            for iter in range(2):
+                RR = line.compute_one_turn_matrix_finite_differences(
+                                            steps_r_matrix=steps_r_matrix,
+                                            particle_on_co=part_on_co,
+                                            ele_start=ele_start,
+                                            ele_stop=ele_stop)
+                if matrix_responsiveness_tol is not None:
+                    lnf._assert_matrix_responsiveness(RR,
+                        matrix_responsiveness_tol, only_4d=(method == '4d'))
+
+                W, _, _ = lnf.compute_linear_normal_form(
+                            RR, only_4d_block=(method == '4d'),
+                            symplectify=symplectify,
+                            responsiveness_tol=matrix_responsiveness_tol,
+                            stability_tol=matrix_stability_tol)
+
+                # Estimate beam size (betatron part)
+                gemitt_x = nemitt_x/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+                gemitt_y = nemitt_y/part_on_co._xobject.beta0[0]/part_on_co._xobject.gamma0[0]
+                betx_at_start = W[0, 0]**2 + W[0, 1]**2
+                bety_at_start = W[2, 2]**2 + W[2, 3]**2
+                sigma_x_start = np.sqrt(betx_at_start * gemitt_x)
+                sigma_y_start = np.sqrt(bety_at_start * gemitt_y)
+
+                if ((steps_r_matrix['dx'] < 0.3 * sigma_x_start)
+                    and (steps_r_matrix['dy'] < 0.3 * sigma_y_start)):
+                    break # sufficient accuracy
+                else:
+                    steps_r_matrix['dx'] = 0.01 * sigma_x_start
+                    steps_r_matrix['dy'] = 0.01 * sigma_y_start
+                    steps_r_matrix['adapted'] = True
+
+    # Check on R matrix
+    if RR is not None and matrix_stability_tol is not None:
+        lnf._assert_matrix_determinant_within_tol(RR, matrix_stability_tol)
+        if method == '4d':
+            eigenvals = np.linalg.eigvals(RR[:4, :4])
+        else:
+            eigenvals = np.linalg.eigvals(RR)
+        lnf._assert_matrix_stability(eigenvals, matrix_stability_tol)
+
+
+    if method == '4d' and W_matrix is None: # the matrix was not provided by the user
+
+        # Compute dispersion (MAD-8 manual eq. 6.13, but I needed to flip the sign ?!)
+        A_disp = RR[:4, :4]
+        b_disp = RR[:4, 5]
+        delta_disp = np.linalg.solve(A_disp - np.eye(4), b_disp)
+        dx_dpzeta = -delta_disp[0]
+        dpx_dpzeta = -delta_disp[1]
+        dy_dpzeta = -delta_disp[2]
+        dpy_dpzeta = -delta_disp[3]
+
+        b_disp_crab = RR[:4, 4]
+        delta_disp_crab = np.linalg.solve(A_disp - np.eye(4), b_disp_crab)
+        dx_zeta = -delta_disp_crab[0]
+        dpx_zeta = -delta_disp_crab[1]
+        dy_zeta = -delta_disp_crab[2]
+        dpy_zeta = -delta_disp_crab[3]
+
+        W[4:, :] = 0
+        W[:, 4:] = 0
+        W[4, 4] = 1
+        W[5, 5] = 1
+        W[0, 5] = dx_dpzeta
+        W[1, 5] = dpx_dpzeta
+        W[2, 5] = dy_dpzeta
+        W[3, 5] = dpy_dpzeta
+        W[0, 4] = dx_zeta
+        W[1, 4] = dpx_zeta
+        W[2, 4] = dy_zeta
+        W[3, 4] = dpy_zeta
+
+    if isinstance(ele_start, str):
+        tw_init_element_name = ele_start
+    elif ele_start is None:
+        tw_init_element_name = line.element_names[0]
+    else:
+        tw_init_element_name = line.element_names[ele_start]
+
+    twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
+                           element_name=tw_init_element_name,
+                           reference_frame='proper')
+
+    return twiss_init, RR, steps_r_matrix
+
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
+                      ele_start=None, ele_stop=None,
                       continue_on_closed_orbit_error=False):
+
+    if line.enable_time_dependent_vars:
+        raise RuntimeError(
+            'Time-dependent vars not supported in closed orbit search')
+
+    if isinstance(ele_start, str):
+        ele_start = line.element_names.index(ele_start)
+
+    if isinstance(ele_stop, str):
+        ele_stop = line.element_names.index(ele_stop)
 
     if particle_co_guess is None:
         if particle_ref is None:
@@ -830,7 +1227,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
         particle_co_guess.zeta = 0
         particle_co_guess.delta = 0
         particle_co_guess.s = 0
-        particle_co_guess.at_element = 0
+        particle_co_guess.at_element = (ele_start or 0)
         particle_co_guess.at_turn = 0
     else:
         particle_ref = particle_co_guess
@@ -867,15 +1264,18 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
             _error_for_co = _error_for_co_search_6d
         if zeta0 is not None:
             x0[4] = zeta0
-        if np.all(np.abs(_error_for_co(x0, particle_co_guess, line, delta_zeta, delta0, zeta0))
-                    < DEFAULT_CO_SEARCH_TOL):
+        if np.all(np.abs(_error_for_co(
+                x0, particle_co_guess, line, delta_zeta, delta0, zeta0,
+                ele_start=ele_start, ele_stop=ele_stop)) < DEFAULT_CO_SEARCH_TOL):
             res = x0
             fsolve_info = 'taken_guess'
             ier = 1
             break
 
         (res, infodict, ier, mesg
-            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, line, delta_zeta, delta0, zeta0),
+            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, line,
+                    delta_zeta, delta0, zeta0, ele_start=ele_start,
+                    ele_stop=ele_stop),
                 x0=x0,
                 full_output=True,
                 **co_search_settings)
@@ -899,7 +1299,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-def _one_turn_map(p, particle_ref, line, delta_zeta):
+def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
@@ -909,7 +1309,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta):
     part.delta = p[5]
     part.at_turn = AT_TURN_FOR_TWISS
 
-    line.track(part)
+    line.track(part, ele_start=ele_start, ele_stop=ele_stop)
     p_res = np.array([
            part._xobject.x[0],
            part._xobject.px[0],
@@ -919,11 +1319,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta):
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
 
-def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -932,8 +1332,8 @@ def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta
         0,
         p[5] - delta0])
 
-def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -942,8 +1342,8 @@ def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0
         p[4] - zeta0,
         0])
 
-def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta)
+def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -954,19 +1354,23 @@ def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta,
 
 def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
-        steps_r_matrix=None):
+        steps_r_matrix=None,
+        ele_start=None, ele_stop=None):
 
-    if steps_r_matrix is not None:
-        steps_in = steps_r_matrix.copy()
-        for nn in steps_in.keys():
-            assert nn in DEFAULT_STEPS_R_MATRIX.keys(), (
-                '`steps_r_matrix` can contain only ' +
-                ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
-            )
-        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
-        steps_r_matrix.update(steps_in)
-    else:
-        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+    if steps_r_matrix is None:
+        steps_r_matrix = {}
+
+    steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
+
+    if line.enable_time_dependent_vars:
+        raise RuntimeError(
+            'Time-dependent vars not supported in one-turn matrix computation')
+
+    if isinstance(ele_start, str):
+        ele_start = line.element_names.index(ele_start)
+
+    if isinstance(ele_stop, str):
+        ele_stop = line.element_names.index(ele_stop)
 
     context = line._buffer.context
 
@@ -996,7 +1400,10 @@ def compute_one_turn_matrix_finite_differences(
 
     part_temp.at_turn = AT_TURN_FOR_TWISS
 
-    if particle_on_co._xobject.at_element[0]>0:
+    if ele_start is not None:
+        assert ele_stop is not None
+        line.track(part_temp, ele_start=ele_start, ele_stop=ele_stop)
+    elif particle_on_co._xobject.at_element[0]>0:
         i_start = particle_on_co._xobject.at_element[0]
         line.track(part_temp, ele_start=i_start)
         line.track(part_temp, num_elements=i_start)
@@ -1020,6 +1427,16 @@ def compute_one_turn_matrix_finite_differences(
 
     return RR
 
+def _updated_kwargs_from_locals(kwargs, loc):
+
+    out = kwargs.copy()
+
+    for kk in kwargs.keys():
+        if kk in loc:
+            out[kk] = loc[kk]
+
+    return out
+
 
 def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
                                                 algorithm='auto'):
@@ -1033,6 +1450,8 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     auxline = xt.Line(elements=list(tracker.line.elements).copy(),
                       element_names=list(tracker.line.element_names).copy())
+    if tracker.line.particle_ref is not None:
+        auxline.particle_ref = tracker.line.particle_ref.copy()
 
     names_inserted_markers = []
     markers = []
@@ -1080,9 +1499,9 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
 
     auxtracker = xt.Tracker(
         _buffer=tracker._buffer,
+        io_buffer=tracker.io_buffer,
         line=auxline,
         track_kernel=tracker.track_kernel,
-        element_classes=tracker.element_classes,
         particles_class=tracker.particles_class,
         particles_monitor_class=None,
         local_particle_src=tracker.local_particle_src
@@ -1093,21 +1512,189 @@ def _build_auxiliary_tracker_with_extra_markers(tracker, at_s, marker_prefix,
     return auxtracker, names_inserted_markers
 
 
-
 class TwissInit:
+
     def __init__(self, particle_on_co=None, W_matrix=None, element_name=None,
-                 mux=0, muy=0, muzeta=0.):
-        self.__dict__['particle_on_co'] = particle_on_co
-        self.W_matrix = W_matrix
+                line=None, particle_ref=None,
+                x=None, px=None, y=None, py=None, zeta=None, delta=None,
+                betx=None, alfx=None, bety=None, alfy=None, bets=None,
+                dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
+                mux=0, muy=0, muzeta=0, reference_frame=None):
+
+        # Custom setattr needs to be bypassed for creation of attributes
+        object.__setattr__(self, 'particle_on_co', None)
+        self._temp_co_data = None
+        self._temp_optics_data = None
+
+        if particle_on_co is None:
+            self._temp_co_data = dict(
+                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta)
+        else:
+            assert x is None, "`x` must be None if `particle_on_co` is provided"
+            assert px is None, "`px` must be None if `particle_on_co` is provided"
+            assert y is None, "`y` must be None if `particle_on_co` is provided"
+            assert py is None, "`py` must be None if `particle_on_co` is provided"
+            assert zeta is None, "`zeta` must be None if `particle_on_co` is provided"
+            assert delta is None, "`delta` must be None if `particle_on_co` is provided"
+            assert particle_ref is None, (
+                "`particle_ref` must be None if `particle_on_co` is provided")
+            self.__dict__['particle_on_co'] = particle_on_co
+
+        if W_matrix is None:
+            alfx = alfx or 0
+            alfy = alfy or 0
+            betx = betx or 1
+            bety = bety or 1
+            bets = bets or 1
+            dx = dx or 0
+            dpx = dpx or 0
+            dy = dy or 0
+            dpy = dpy or 0
+
+            self._temp_optics_data = dict(
+                betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
+                dx=dx, dpx=dpx, dy=dy, dpy=dpy)
+        else:
+            assert betx is None, "`betx` must be None if `W_matrix` is provided"
+            assert alfx is None, "`alfx` must be None if `W_matrix` is provided"
+            assert bety is None, "`bety` must be None if `W_matrix` is provided"
+            assert alfy is None, "`alfy` must be None if `W_matrix` is provided"
+            assert bets is None, "`bets` must be None if `W_matrix` is provided"
+            self._temp_co_data = None
+
         self.element_name = element_name
+        self.W_matrix = W_matrix
         self.mux = mux
         self.muy = muy
         self.muzeta = muzeta
+        self.dzeta = dzeta
+        self.reference_frame = reference_frame
+
+        if line is not None and element_name is not None:
+            self._complete(line, element_name)
+
+    def _complete(self, line, element_name):
+
+        if self._temp_co_data is not None:
+            assert line is not None, (
+                "`line` must be provided if `particle_on_co` is None")
+
+            particle_on_co=xp.build_particles(
+                x=self._temp_co_data['x'], px=self._temp_co_data['px'],
+                y=self._temp_co_data['y'], py=self._temp_co_data['py'],
+                delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
+                line=line)
+            self.__dict__['particle_on_co'] = particle_on_co
+            self._temp_co_data = None
+
+        if self._temp_optics_data is not None:
+
+            if (line is not None and 'reverse' in line.twiss_default
+                and line.twiss_default['reverse']):
+                input_reversed = True
+                assert self.reference_frame is None, ("`reference_frame` must be None "
+                    "if `twiss_default['reverse']` is True")
+            else:
+                input_reversed = False
+
+            aux_segment = xt.LineSegmentMap(
+                length=1., # dummy
+                qx=0.55, # dummy
+                qy=0.57, # dummy
+                qs=0.0000001, # dummy
+                bets=self._temp_optics_data['bets'],
+                betx=self._temp_optics_data['betx'],
+                bety=self._temp_optics_data['bety'],
+                alfx=self._temp_optics_data['alfx'] * (-1 if input_reversed else 1),
+                alfy=self._temp_optics_data['alfy'] * (-1 if input_reversed else 1),
+                dx=self._temp_optics_data['dx'] * (-1 if input_reversed else 1),
+                dy=self._temp_optics_data['dy'],
+                dpx=self._temp_optics_data['dpx'],
+                dpy=self._temp_optics_data['dpy'] * (-1 if input_reversed else 1),
+                )
+            aux_line = xt.Line(elements=[aux_segment])
+            aux_line.particle_ref = particle_on_co.copy(
+                                        _context=xo.context_default)
+            aux_line.particle_ref.reorganize()
+            aux_line.build_tracker()
+            aux_tw = aux_line.twiss()
+            W_matrix = aux_tw.W_matrix[0]
+
+            if input_reversed:
+                W_matrix[0, :] = -W_matrix[0, :]
+                W_matrix[1, :] = W_matrix[1, :]
+                W_matrix[2, :] = W_matrix[2, :]
+                W_matrix[3, :] = -W_matrix[3, :]
+                W_matrix[4, :] = -W_matrix[4, :]
+                W_matrix[5, :] = W_matrix[5, :]
+                self.reference_frame = 'reverse'
+
+            self.W_matrix = W_matrix
+            self._temp_optics_data = None
+
+        self.element_name = element_name
+
+    def _needs_complete(self):
+        return self._temp_co_data is not None or self._temp_optics_data is not None
+
+    def copy(self):
+        if self.particle_on_co is not None:
+            pco = self.particle_on_co.copy()
+        else:
+            pco = None
+
+        if self.W_matrix is not None:
+            wmat = self.W_matrix.copy()
+        else:
+            wmat = None
+
+        out =  TwissInit(
+            particle_on_co=pco,
+            W_matrix=wmat,
+            element_name=self.element_name,
+            mux=self.mux,
+            muy=self.muy,
+            muzeta=self.muzeta,
+            dzeta=self.dzeta,
+            reference_frame=self.reference_frame)
+
+        if self._temp_co_data is not None:
+            out._temp_co_data = self._temp_co_data.copy()
+
+        if self._temp_optics_data is not None:
+            out._temp_optics_data = self._temp_optics_data.copy()
+
+        return out
+
+    def reverse(self):
+        out = TwissInit(particle_on_co=self.particle_on_co.copy(),
+                        W_matrix=self.W_matrix.copy())
+        out.particle_on_co.x = -out.particle_on_co.x
+        out.particle_on_co.py = -out.particle_on_co.py
+        out.particle_on_co.zeta = -out.particle_on_co.zeta
+
+        out.W_matrix[0, :] = -out.W_matrix[0, :]
+        out.W_matrix[1, :] = out.W_matrix[1, :]
+        out.W_matrix[2, :] = out.W_matrix[2, :]
+        out.W_matrix[3, :] = -out.W_matrix[3, :]
+        out.W_matrix[4, :] = -out.W_matrix[4, :]
+        out.W_matrix[5, :] = out.W_matrix[5, :]
+
+        out.mux = 0
+        out.muy = 0
+        out.muzeta = 0
+        out.dzeta = 0
+
+        out.element_name = self.element_name
+        out.reference_frame = {'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
+
+        return out
 
     def __getattr__(self, name):
         if name in self.__dict__:
             return self.__dict__[name]
         elif hasattr(self.__dict__['particle_on_co'], name):
+            # e.g. tw_init['x'] returns tw_init.particle_on_co.x
             return getattr(self.__dict__['particle_on_co'], name)
         else:
             raise AttributeError(f'No attribute {name} found in TwissInit')
@@ -1121,6 +1708,8 @@ class TwissInit:
             self.__dict__[name] = value
 
 class TwissTable(Table):
+
+    _error_on_row_not_found = True
 
     def to_pandas(self, index=None, columns=None):
         if columns is None:
@@ -1151,15 +1740,17 @@ class TwissTable(Table):
         part.zeta[:] = self.zeta[at_element]
         part.ptau[:] = self.ptau[at_element]
         part.s[:] = self.s[at_element]
-        part.at_element[:] = at_element
+        part.at_element[:] = -1
 
         W = self.W_matrix[at_element]
 
         return TwissInit(particle_on_co=part, W_matrix=W,
-                        element_name=self.name[at_element],
+                        element_name=str(self.name[at_element]),
                         mux=self.mux[at_element],
                         muy=self.muy[at_element],
-                        muzeta=self.muzeta[at_element])
+                        muzeta=self.muzeta[at_element],
+                        dzeta=self.dzeta[at_element],
+                        reference_frame=self.reference_frame)
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y, gemitt_z=0):
 
@@ -1168,7 +1759,11 @@ class TwissTable(Table):
         gemitt_x = nemitt_x / (beta0 * gamma0)
         gemitt_y = nemitt_y / (beta0 * gamma0)
 
-        Ws = self.W_matrix
+        Ws = self.W_matrix.copy()
+
+        if self.method == '4d':
+            Ws[:, 4:, 4:] = 0
+
         v1 = Ws[:,:,0] + 1j * Ws[:,:,1]
         v2 = Ws[:,:,2] + 1j * Ws[:,:,3]
         v3 = Ws[:,:,4] + 1j * Ws[:,:,5]
@@ -1189,20 +1784,22 @@ class TwissTable(Table):
         res_data['s'] = self.s.copy()
         res_data['name'] = self.name
 
+        # Longitudinal plane is untested
+
         res_data['Sigma'] = Sigma
         res_data['Sigma11'] = Sigma[:, 0, 0]
         res_data['Sigma12'] = Sigma[:, 0, 1]
         res_data['Sigma13'] = Sigma[:, 0, 2]
         res_data['Sigma14'] = Sigma[:, 0, 3]
-        res_data['Sigma15'] = Sigma[:, 0, 4]
-        res_data['Sigma16'] = Sigma[:, 0, 5]
+        # res_data['Sigma15'] = Sigma[:, 0, 4]
+        # res_data['Sigma16'] = Sigma[:, 0, 5]
 
         res_data['Sigma21'] = Sigma[:, 1, 0]
         res_data['Sigma22'] = Sigma[:, 1, 1]
         res_data['Sigma23'] = Sigma[:, 1, 2]
         res_data['Sigma24'] = Sigma[:, 1, 3]
-        res_data['Sigma25'] = Sigma[:, 1, 4]
-        res_data['Sigma26'] = Sigma[:, 1, 5]
+        # res_data['Sigma25'] = Sigma[:, 1, 4]
+        # res_data['Sigma26'] = Sigma[:, 1, 5]
 
         res_data['Sigma31'] = Sigma[:, 2, 0]
         res_data['Sigma32'] = Sigma[:, 2, 1]
@@ -1212,12 +1809,12 @@ class TwissTable(Table):
         res_data['Sigma42'] = Sigma[:, 3, 1]
         res_data['Sigma43'] = Sigma[:, 3, 2]
         res_data['Sigma44'] = Sigma[:, 3, 3]
-        res_data['Sigma51'] = Sigma[:, 4, 0]
-        res_data['Sigma52'] = Sigma[:, 4, 1]
+        # res_data['Sigma51'] = Sigma[:, 4, 0]
+        # res_data['Sigma52'] = Sigma[:, 4, 1]
 
         res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
         res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
-        res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
+        # res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
         return Table(res_data)
 
@@ -1333,27 +1930,38 @@ class TwissTable(Table):
     def reverse(self):
 
         assert self.values_at == 'entry', 'Not yet implemented for exit'
+        assert self.name[-1] == '_end_point' # Needed for the present implementation
 
         new_data = {}
-        for kk, vv in self.items():
-            new_data[kk] = vv
+        for kk, vv in self._data.items():
+            if hasattr(vv, 'copy'):
+                new_data[kk] = vv.copy()
+            else:
+                new_data[kk] = vv
+
+        if self.only_markers:
+            itake = slice(None, -1, None)
+        else:
+            # To keep association name <-> quantities at elemement entry
+            itake = slice(1, None, None)
 
         for kk in self._col_names:
             if kk == 'name':
                 new_data[kk][:-1] = new_data[kk][:-1][::-1]
                 new_data[kk][-1] = self.name[-1]
             elif kk == 'W_matrix':
-                continue
+                new_data[kk][:-1, :, :] = new_data[kk][itake, :, :][::-1, :, :]
+                new_data[kk][-1, :, :] = self[kk][0, :, :]
             elif kk.startswith('k') and kk.endswith('nl', 'sl'):
                 continue # Not yet implemented
             else:
-                new_data[kk] = new_data[kk][::-1].copy()
+                new_data[kk][:-1] = new_data[kk][itake][::-1]
+                new_data[kk][-1] = self[kk][0]
 
         out = self.__class__(data=new_data, col_names=self._col_names)
 
         circumference = (
             out.circumference if hasattr(out, 'circumference') else np.max(out.s))
-
 
         out.s = circumference - out.s
 
@@ -1365,35 +1973,36 @@ class TwissTable(Table):
         out.delta = out.delta
         out.ptau = out.ptau
 
-        out.betx = out.betx
-        out.bety = out.bety
-        out.alfx = -out.alfx # Dpx/Dx
-        out.alfy = -out.alfy # Dpy/Dy
-        out.gamx = out.gamx
-        out.gamy = out.gamy
+        if 'betx' in out:
+            # if optics calculation is not skipped
+            out.betx = out.betx
+            out.bety = out.bety
+            out.alfx = -out.alfx # Dpx/Dx
+            out.alfy = -out.alfy # Dpy/Dy
+            out.gamx = out.gamx
+            out.gamy = out.gamy
 
-        qx = (out.qx if hasattr(out, 'qx') else np.max(out.mux))
-        qy = (out.qy if hasattr(out, 'qy') else np.max(out.muy))
-        qs = (out.qs if hasattr(out, 'qs') else np.max(out.muzeta))
+            out.dx = -out.dx
+            out.dpx = out.dpx
+            out.dy = out.dy
+            out.dpy = -out.dpy
+            out.dzeta = -out.dzeta
 
-        out.mux = qx - out.mux
-        out.muy = qy - out.muy
-        out.muzeta = qs - out.muzeta
+            if 'dx_zeta' in out._col_names:
+                out.dx_zeta = out.dx_zeta
+                out.dy_zeta = -out.dy_zeta
 
-        out.dx = -out.dx
-        out.dpx = out.dpx
-        out.dy = out.dy
-        out.dpy = -out.dpy
-        out.dzeta = -out.dzeta
+            out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
+            out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
+            out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
+            out.W_matrix[:, 3, :] = -out.W_matrix[:, 3, :]
+            out.W_matrix[:, 4, :] = -out.W_matrix[:, 4, :]
+            out.W_matrix[:, 5, :] = out.W_matrix[:, 5, :]
 
-        out.W_matrix = np.array(out.W_matrix)
-        out.W_matrix = out.W_matrix[::-1, :, :].copy()
-        out.W_matrix[:, 0, :] = -out.W_matrix[:, 0, :]
-        out.W_matrix[:, 1, :] = out.W_matrix[:, 1, :]
-        out.W_matrix[:, 2, :] = out.W_matrix[:, 2, :]
-        out.W_matrix[:, 3, :] = -out.W_matrix[:, 3, :]
-        out.W_matrix[:, 4, :] = -out.W_matrix[:, 4, :]
-        out.W_matrix[:, 5, :] = out.W_matrix[:, 5, :]
+            out.mux = out.mux[0] - out.mux
+            out.muy = out.muy[0] - out.muy
+            out.muzeta = out.muzeta[0] - out.muzeta
+            out.dzeta = out.dzeta[0] - out.dzeta
 
         if hasattr(out, 'R_matrix'): out.R_matrix = None # To be implemented
         if hasattr(out, 'particle_on_co'):
@@ -1407,8 +2016,89 @@ class TwissTable(Table):
             out.qs = 0
             out.muzeta[:] = 0
 
+        out._data['reference_frame'] = {
+            'proper': 'reverse', 'reverse': 'proper'}[self.reference_frame]
+
         return out
 
+    ind_per_table = []
+
+    @classmethod
+    def concatenate(cls, tables_to_concat):
+
+        # Check values_at compatibility
+        assert len(set([tt.values_at for tt in tables_to_concat])) == 1, (
+            'All tables must have the same values_at')
+
+        # Check reference_frame compatibility
+        assert len(set([tt.reference_frame for tt in tables_to_concat])) == 1, (
+            'All tables must have the same reference_frame')
+
+        # trim away common markers
+        ind_per_table = []
+        for ii, tt in enumerate(tables_to_concat):
+            this_ind = [0, len(tt)]
+            if ii > 0:
+                if tt.name[0] in tables_to_concat[ii-1].name:
+                    assert tt.name[0] == tables_to_concat[ii-1].name[ind_per_table[ii-1][1]-1]
+                    ind_per_table[ii-1][1] -= 1
+            if ii < len(tables_to_concat) - 1:
+                if tt.name[-1] == '_end_point':
+                    this_ind[1] -= 1
+
+            ind_per_table.append(this_ind)
+
+        n_elem = sum([ind[1] - ind[0] for ind in ind_per_table])
+
+        new_data = {}
+        for kk in tables_to_concat[0]._col_names:
+            if kk == 'W_matrix':
+                new_data[kk] = np.empty(
+                    (n_elem, 6, 6), dtype=tables_to_concat[0][kk].dtype)
+                continue
+            new_data[kk] = np.empty(n_elem, dtype=tables_to_concat[0][kk].dtype)
+
+        i_start = 0
+        for ii, tt in enumerate(tables_to_concat):
+            i_end = i_start + ind_per_table[ii][1] - ind_per_table[ii][0]
+            for kk in tt._col_names:
+                if kk == 'W_matrix':
+                    new_data[kk][i_start:i_end] = (
+                        tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1], :, :])
+                    continue
+                new_data[kk][i_start:i_end] = (
+                    tt[kk][ind_per_table[ii][0]:ind_per_table[ii][1]])
+                if kk in ['mux', 'muy', 'dzeta', 's']:
+                    new_data[kk][i_start:i_end] -= new_data[kk][i_start]
+                    if ii > 0:
+                        new_data[kk][i_start:i_end] += new_data[kk][i_start-1]
+                        new_data[kk][i_start:i_end] += (
+                            tables_to_concat[ii-1][kk][-1]
+                            - tables_to_concat[ii-1][kk][ind_per_table[ii-1][1]-1])
+
+            i_start = i_end
+
+        new_table = cls(new_data)
+        new_table._data['values_at'] = tables_to_concat[0].values_at
+        new_table._data['reference_frame'] = tables_to_concat[0].reference_frame
+        new_table._data['particle_on_co'] = tables_to_concat[0].particle_on_co
+
+        return new_table
+
+def _complete_steps_r_matrix_with_default(steps_r_matrix):
+    if steps_r_matrix is not None:
+        steps_in = steps_r_matrix.copy()
+        for nn in steps_in.keys():
+            assert nn in list(DEFAULT_STEPS_R_MATRIX.keys()) + ['adapted'], (
+                '`steps_r_matrix` can contain only ' +
+                ' '.join(DEFAULT_STEPS_R_MATRIX.keys())
+            )
+        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+        steps_r_matrix.update(steps_in)
+    else:
+        steps_r_matrix = DEFAULT_STEPS_R_MATRIX.copy()
+
+    return steps_r_matrix
 
 def _renormalize_eigenvectors(Ws):
     # Re normalize eigenvectors
@@ -1536,3 +2226,13 @@ def _extract_knl_ksl(line, names):
         k_dict[f'k{jj}sl'] = ksl_array[:, jj]
 
     return k_dict
+
+def _str_to_index(line, ele):
+    if isinstance(ele, str):
+        if ele not in line.element_names:
+            raise ValueError(f'Element {ele} not found in line')
+        return line.element_names.index(ele)
+    else:
+        return ele
+
+

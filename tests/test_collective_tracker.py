@@ -173,5 +173,5 @@ def test_get_non_collective_line(test_context):
                     rtol=0, atol=1e-15)
 
     assert nc_line.tracker is not line.tracker
-    assert nc_line.tracker._tracker_data is line.tracker._tracker_data
+    assert nc_line.tracker._tracker_data_cache is line.tracker._tracker_data_cache
     assert line.tracker._track_kernel is nc_line.tracker._track_kernel

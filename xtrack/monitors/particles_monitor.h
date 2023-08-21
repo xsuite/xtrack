@@ -27,7 +27,11 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
         at_turn = LocalParticle_get_at_element(part);
     }
     else{
+        #ifdef XSUITE_BACKTRACK
+        return; // do not log (only ebe monitor supported for now in backtrack)
+        #else
         at_turn = LocalParticle_get_at_turn(part);
+        #endif
     }
     if (n_repetitions == 1){
         if (at_turn>=start_at_turn && at_turn<stop_at_turn){
@@ -42,7 +46,8 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
     }
     else if (n_repetitions > 1){
         if (at_turn < start_at_turn){
-            return;
+            return; //only_for_context cuda opencl
+            break; //only_for_context cpu_serial cpu_openmp
         }
         int64_t const i_frame = (at_turn - start_at_turn) / repetition_period;
         if (i_frame < n_repetitions
@@ -60,7 +65,10 @@ void ParticlesMonitor_track_local_particle(ParticlesMonitorData el,
         }
     }
 
+
+
     //end_per_particle_block
+
 }
 
 #endif

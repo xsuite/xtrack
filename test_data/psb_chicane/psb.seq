@@ -1,0 +1,2338 @@
+
+
+  /************************************************************************************
+  *
+  * PS Booster version  (draft) LS2 in MAD X SEQUENCE format
+  * Generated the 28-AUG-2020 16:25:27 from Layout
+  *
+  ************************************************************************************/
+
+
+
+/************************************************************************************/
+/*                       TYPES DEFINITION                                           */
+/************************************************************************************/
+
+//---------------------- COLLIMATOR     ---------------------------------------------
+BR_SPSCRAP     : COLLIMATOR  , L := 0;         ! PSB Special scraper injection & extraction bump, 128mm X 59mm. Thickness 2mm or 3mm (not yet known). //cern.ch/dfs/Departments/TS/Services/Old%20Drawings/Complexe_PS/BOOSTER/49/PS-SI-3-49-1420.TIF
+BR_SPSCRAP014  : COLLIMATOR  , L := 0;         ! PSB Special scraper for extraction in P142. Thickness not known. Offset 9mm to the outside. //cern.ch/dfs/Departments/TS/Services/Old%20Drawings/Complexe_PS/BOOSTER/49/PS-SI-3-49-1421.TIF
+BR_STSCRAP     : COLLIMATOR  , L := 0;         ! PSB Standard scraper, 122mm X 59mm. Thickness 2mm. //cern.ch/dfs/Departments/TS/Services/Old%20Drawings/Complexe_PS/BOOSTER/49/PS-SI-3-49-1419.TIF
+BR_TDIMA       : COLLIMATOR  , L := .07;       ! Beam Dump, Internal, inside Magnet, type A (PSB)
+BR_TSAMA002    : COLLIMATOR  , L := 0;         ! Target, Scraper, Absorber, Mask, type A, mobile mask
+BR_TSAMA003    : COLLIMATOR  , L := 0;         ! Target, Scraper, Absorber, Mask, type A, fixed mask
+//---------------------- HKICKER        ---------------------------------------------
+BR_DBSH        : HKICKER     , L := 0;         ! Bumper magnet to shave beam in horizontal plane. Dipoles Type I
+BR_DES         : HKICKER     , L := .565;      ! Electrostatic horizontal/vertical stripline deflector
+BR_DHZ__001    : HKICKER     , L := 0;         ! DHZ Horizontal Dipole Corrector magnet type 1(nominal current:10A)
+BR_DHZ__002    : HKICKER     , L := 0;         ! DHZ Horizontal Dipole Corrector magnet type 2 (nominal current:10A)
+BR_DHZ__A      : HKICKER     , L := 0;         ! DHZ Horizontal Dipole Corrector Magnet type A (Multipole, nominal current:270 A)
+BR_MKMAG002    : HKICKER     , L := .37;       ! KSW Slow kicker for multiturn injection (magnetic length according to http://accelconf.web.cern.ch/AccelConf/IPAC2015/papers/thpf086.pdf)
+BR_MKMAG003    : HKICKER     , L := 2.005789;  ! KFA Fast Extraction kicker
+BR_SMH__006    : HKICKER     , L := .95;       ! Extraction Septum
+//---------------------- INSTRUMENT     ---------------------------------------------
+BR_BCSMA       : INSTRUMENT  , L := 0;         ! Beam Current Stripping foil Monitor, type A
+BR_BTVBP036    : INSTRUMENT  , L := 0;         ! Beam TV Booster Type, Pneumatic
+BR_BTVBP037    : INSTRUMENT  , L := 0;         ! Beam TV Booster Type, Pneumatic
+BR_BTVTS       : INSTRUMENT  , L := 0;         ! Beam observation TV for Stripping foil (Booster)
+BR_TKSTR002    : INSTRUMENT  , L := 0;         ! PSB Kickers - Targets:  Stripping Foil Assembly
+//---------------------- KICKER         ---------------------------------------------
+BR_KQM__002    : KICKER      , L := 1.23;      ! Q kicker tune measurement
+//---------------------- MARKER         ---------------------------------------------
+BR_VVS         : MARKER      , L := 0;         ! Vacuum Sector Valve (PS Complex)
+//---------------------- MONITOR        ---------------------------------------------
+BR_BPMTA       : MONITOR     , L := 0;         ! Beam Position Monitor for Tune, type A
+BR_BPPBA001    : MONITOR     , L := 0;         ! Beam Position Phase Pick-up, Booster type A
+BR_BPPBB001    : MONITOR     , L := 0;         ! Beam Position Phase Pick-up, Booster type B
+BR_BWSH        : MONITOR     , L := 0;         ! Wire Scanner Profile Monitor, Horizontal
+BR_BWSRA001    : MONITOR     , L := 0;         ! Beam Wire Scanner, Rotational, type A, variant 001
+BR_BWSRA002    : MONITOR     , L := 0;         ! Beam Wire Scanner, Rotational, type A, variant 002
+BR_BWSV        : MONITOR     , L := 0;         ! Wire Scanner Profile Monitor, Vertical
+BR_LBSGWC      : MONITOR     , L := 0;         ! Assembly of SEM Grid with Wire, type C
+BR_TDC         : MONITOR     , L := .32;       ! DC Transformer
+BR_TFA         : MONITOR     , L := .5293;     ! Beam transformer slow, transfo fast (+transfo slow + transfo intermediaire, but obsolete electronics)
+BR_UES         : MONITOR     , L := 0;         ! UES Pick-up Monitor
+BR_UQD         : MONITOR     , L := 0;         ! UQD Pick-up Monitor quadrupolar
+BR_UTFB        : MONITOR     , L := 0;         ! PU Transverse feedback, electrostatic PU; type F
+BR_UWBL        : MONITOR     , L := .3405;     ! Wide band PU, PU wide band (BSM, tomoscope)
+//---------------------- MULTIPOLE      ---------------------------------------------
+BR_ONO         : MULTIPOLE   , L := 0;         ! Normal Octupole
+BR_ONOH0       : MULTIPOLE   , L := 0;         ! Normal Octupole
+BR_OSK         : MULTIPOLE   , L := 0;         ! Skew Octupole
+BR_QNO__001    : MULTIPOLE   , L := 0;         ! Normal Quadrupole
+BR_QSK         : MULTIPOLE   , L := 0;         ! Skew Quadrupole
+BR_QSKH0       : MULTIPOLE   , L := 0;         ! QSKH0 Quadrupole Skew
+BR_XNOH0       : MULTIPOLE   , L := 0;         ! Normal Sextupole
+BR_XNO__001    : MULTIPOLE   , L := 0;         ! Normal Sextupole
+BR_XSK         : MULTIPOLE   , L := 0;         ! Skew sextupole
+//---------------------- QUADRUPOLE     ---------------------------------------------
+BR_MQNEC4WP    : QUADRUPOLE  , L := .50357;    ! Quadrupole magnet, 4 apertures, type QFO - Magnetic length according https://cds.cern.ch/record/1266553/files/CERN-PS-BR-Note-82-11.pdf (value adjusted to fit measured Q-values)
+BR_MQNED4WP    : QUADRUPOLE  , L := .50357;    ! Quadrupole magnet, 4 apertures, type QFO extraction - Magnetic length according https://cds.cern.ch/record/1266553/files/CERN-PS-BR-Note-82-11.pdf (value adjusted to fit measured Q-values)
+BR_MQNFA4WP    : QUADRUPOLE  , L := .87894;    ! Quadrupole magnet, 4 apertures, type QDE - Magnetic length according https://cds.cern.ch/record/1266553/files/CERN-PS-BR-Note-82-11.pdf (value adjusted to fit measured Q-values)
+BR_MQNFJ4WP    : QUADRUPOLE  , L := .87894;    ! Quadrupole magnet, 4 apertures, type QDE with right connections - Magnetic length according https://cds.cern.ch/record/1266553/files/CERN-PS-BR-Note-82-11.pdf (value adjusted to fit measured Q-values)
+//---------------------- RBEND          ---------------------------------------------
+BR_MDBAAWAP    : HKICKER     , L := .47;       ! Dipole Magnet, bumper, type 5 - Magnetic length according to EDMS: 1512808
+BR_MDBABWAP    : HKICKER     , L := .366;      ! Dipole Magnet, bumper, type 6 - Magnetic length according to EDMS: 1512808
+BR_MSBSW002    : RBEND       , L := .325;      ! Magnet, Bumper for chicane, Slow, Horizontal (PSB) - BIBSW2
+BR_MSBSW003    : RBEND       , L := .325;      ! Magnet, Bumper for chicane, Slow, Horizontal (PSB) - BIBSW3
+BR_MSBSW004    : RBEND       , L := .325;      ! Magnet, Bumper for chicane, Slow, Horizontal (PSB) - BIBSW4
+BR_MSMIF001    : RBEND       , L := .313;      ! Septum Magnet Injection - type F (PSB) - BIBSW1
+//---------------------- RFCAVITY       ---------------------------------------------
+BR_ACWFB       : RFCAVITY    , L := .943;      ! Acceleration Cavity Wideband Finemet type B
+//---------------------- SBEND          ---------------------------------------------
+BR_MBHGC4WP    : SBEND       , L := 1.617696;  ! Bending magnet , Booster, 4 apertures. Alsthom "Normaux" - Dipole magnetic length chosen to be in agreement with the LSA tune control. Information here: https://codimd.web.cern.ch/s/ByB63CBpL#
+BR_MBHGD4WP    : SBEND       , L := 1.617696;  ! Bending magnet , Booster ejection, 4 apertures. Alsthom "Speciaux" - Dipole magnetic length chosen to be in agreement with the LSA tune control. Information here: https://codimd.web.cern.ch/s/ByB63CBpL#
+BR_MBHGE4WP    : SBEND       , L := 1.617696;  ! Bending magnet , Booster injection, 4 apertures. Alsthom "Speciaux" - Dipole magnetic length chosen to be in agreement with the LSA tune control. Information here: https://codimd.web.cern.ch/s/ByB63CBpL#
+//---------------------- VKICKER        ---------------------------------------------
+BR_DBSV        : VKICKER     , L := 0;         ! Bumper magnet to shave beam in vertical plane. Dipoles Type I
+BR_DVT__001    : VKICKER     , L := 0;         ! DVT Vertical Dipole Corrector Magnet type 1 (nominal current:10A)
+BR_DVT__002    : VKICKER     , L := 0;         ! DVT Vertical Dipole Corrector Magnet type 2  (nominal current:10A)
+BR_DVT__A      : VKICKER     , L := 0;         ! DVT Vertical Dipole Corrector Magnet Type A  (Multipole, nominal current:270 A)
+
+
+
+/************************************************************************************/
+/* IDENTICAL EQUIPMENT IN ALL RINGS. AVOIDS WARNINGS OF RE-DEFINITION               */
+/************************************************************************************/
+
+//-----  Scrapers            ---------------------------------------------------------
+
+ BR.SPSCRAP11        : BR_SPSCRAP   , slot_id = 2458838, assembly_id= 2458836;
+ BR.SPSCRAP151       : BR_SPSCRAP   , slot_id = 2459542, assembly_id= 2459540;
+ BR.SPSCRAP142       : BR_SPSCRAP014, slot_id = 2459522, assembly_id= 2459493;
+ BR.STSCRAP12        : BR_STSCRAP   , slot_id = 2458866, assembly_id= 2458837;
+ BR.STSCRAP21        : BR_STSCRAP   , slot_id = 2458881, assembly_id= 2458879;
+ BR.STSCRAP22        : BR_STSCRAP   , slot_id = 2458882, assembly_id= 2458880;
+ BR.STSCRAP31        : BR_STSCRAP   , slot_id = 2458945, assembly_id= 2458943;
+ BR.STSCRAP32        : BR_STSCRAP   , slot_id = 2458946, assembly_id= 2458944;
+ BR.STSCRAP41        : BR_STSCRAP   , slot_id = 2459000, assembly_id= 2458998;
+ BR.STSCRAP42        : BR_STSCRAP   , slot_id = 2459001, assembly_id= 2458999;
+ BR.STSCRAP51        : BR_STSCRAP   , slot_id = 2459043, assembly_id= 2459041;
+ BR.STSCRAP52        : BR_STSCRAP   , slot_id = 2459044, assembly_id= 2459042;
+ BR.STSCRAP61        : BR_STSCRAP   , slot_id = 2459090, assembly_id= 2459088;
+ BR.STSCRAP62        : BR_STSCRAP   , slot_id = 2459091, assembly_id= 2459089;
+ BR.STSCRAP71        : BR_STSCRAP   , slot_id = 2459131, assembly_id= 2459129;
+ BR.STSCRAP72        : BR_STSCRAP   , slot_id = 2459132, assembly_id= 2459130;
+ BR.STSCRAP81        : BR_STSCRAP   , slot_id = 2459198, assembly_id= 2459196;
+ BR.STSCRAP82        : BR_STSCRAP   , slot_id = 2459199, assembly_id= 2459197;
+ BR.STSCRAP91        : BR_STSCRAP   , slot_id = 2459261, assembly_id= 2459259;
+ BR.STSCRAP92        : BR_STSCRAP   , slot_id = 2459262, assembly_id= 2459260;
+ BR.STSCRAP101       : BR_STSCRAP   , slot_id = 2459294, assembly_id= 2459292;
+ BR.STSCRAP102       : BR_STSCRAP   , slot_id = 2459295, assembly_id= 2459293;
+ BR.STSCRAP111       : BR_STSCRAP   , slot_id = 2459345, assembly_id= 2459343;
+ BR.STSCRAP112       : BR_STSCRAP   , slot_id = 2459346, assembly_id= 2459344;
+ BR.STSCRAP121       : BR_STSCRAP   , slot_id = 2459408, assembly_id= 2459406;
+ BR.STSCRAP122       : BR_STSCRAP   , slot_id = 2459409, assembly_id= 2459407;
+ BR.STSCRAP131       : BR_STSCRAP   , slot_id = 2459451, assembly_id= 2459449;
+ BR.STSCRAP132       : BR_STSCRAP   , slot_id = 2459452, assembly_id= 2459450;
+ BR.STSCRAP141       : BR_STSCRAP   , slot_id = 2459494, assembly_id= 2459492;
+ BR.STSCRAP152       : BR_STSCRAP   , slot_id = 2459566, assembly_id= 2459541;
+ BR.STSCRAP161       : BR_STSCRAP   , slot_id = 2459589, assembly_id= 2459587;
+ BR.STSCRAP162       : BR_STSCRAP   , slot_id = 2459590, assembly_id= 2459588;
+
+//-----  Quadrupole magnets  ---------------------------------------------------------
+
+ BR.QFO11            : BR_MQNEC4WP, slot_id = 2458839; 
+ BR.QFO21            : BR_MQNEC4WP, slot_id = 2458883; 
+ BR.QFO31            : BR_MQNEC4WP, slot_id = 2458947; 
+ BR.QFO41            : BR_MQNEC4WP, slot_id = 2459002; 
+ BR.QFO51            : BR_MQNEC4WP, slot_id = 2459045; 
+ BR.QFO61            : BR_MQNEC4WP, slot_id = 2459092; 
+ BR.QFO71            : BR_MQNEC4WP, slot_id = 2459137; 
+ BR.QFO81            : BR_MQNEC4WP, slot_id = 2459204; 
+ BR.QFO91            : BR_MQNEC4WP, slot_id = 2459263; 
+ BR.QFO101           : BR_MQNEC4WP, slot_id = 2459296; 
+ BR.QFO111           : BR_MQNEC4WP, slot_id = 2459351; 
+ BR.QFO121           : BR_MQNEC4WP, slot_id = 2459410; 
+ BR.QFO131           : BR_MQNEC4WP, slot_id = 2459453; 
+ BR.QFO141           : BR_MQNEC4WP, slot_id = 2459495; 
+ BR.QFO151           : BR_MQNEC4WP, slot_id = 2459543; 
+ BR.QFO161           : BR_MQNEC4WP, slot_id = 2459591; 
+ BR.QFO12            : BR_MQNED4WP, slot_id = 2458840;
+ BR.QFO22            : BR_MQNED4WP, slot_id = 2458884;
+ BR.QFO32            : BR_MQNED4WP, slot_id = 2458948;
+ BR.QFO42            : BR_MQNED4WP, slot_id = 2459003;
+ BR.QFO52            : BR_MQNED4WP, slot_id = 2459046;
+ BR.QFO62            : BR_MQNED4WP, slot_id = 2459093;
+ BR.QFO72            : BR_MQNED4WP, slot_id = 2459138;
+ BR.QFO82            : BR_MQNED4WP, slot_id = 2459205;
+ BR.QFO92            : BR_MQNED4WP, slot_id = 2459264;
+ BR.QFO102           : BR_MQNED4WP, slot_id = 2459297;
+ BR.QFO112           : BR_MQNED4WP, slot_id = 2459352;
+ BR.QFO122           : BR_MQNED4WP, slot_id = 2459411;
+ BR.QFO132           : BR_MQNED4WP, slot_id = 2459454;
+ BR.QFO142           : BR_MQNED4WP, slot_id = 2459496;
+ BR.QFO152           : BR_MQNED4WP, slot_id = 2459544;
+ BR.QFO162           : BR_MQNED4WP, slot_id = 2459592;
+ BR.QDE3             : BR_MQNFA4WP, slot_id = 2458965;
+ BR.QDE4             : BR_MQNFA4WP, slot_id = 2459020;
+ BR.QDE7             : BR_MQNFA4WP, slot_id = 2459155;
+ BR.QDE8             : BR_MQNFA4WP, slot_id = 2459222;
+ BR.QDE11            : BR_MQNFA4WP, slot_id = 2459369;
+ BR.QDE12            : BR_MQNFA4WP, slot_id = 2459428;
+ BR.QDE15            : BR_MQNFA4WP, slot_id = 2459561;
+ BR.QDE16            : BR_MQNFA4WP, slot_id = 2459609;
+ BR.QDE1             : BR_MQNFJ4WP, slot_id = 2458861;
+ BR.QDE2             : BR_MQNFJ4WP, slot_id = 2458901;
+ BR.QDE5             : BR_MQNFJ4WP, slot_id = 2459063;
+ BR.QDE6             : BR_MQNFJ4WP, slot_id = 2459110;
+ BR.QDE9             : BR_MQNFJ4WP, slot_id = 2459281;
+ BR.QDE10            : BR_MQNFJ4WP, slot_id = 2459314;
+ BR.QDE13            : BR_MQNFJ4WP, slot_id = 2459471;
+ BR.QDE14            : BR_MQNFJ4WP, slot_id = 2459513;
+
+//-----  Others              ---------------------------------------------------------
+
+ BR.BHZ11            : BR_MBHGC4WP, slot_id = 2458836;
+ BR.BHZ12            : BR_MBHGC4WP, slot_id = 2458837;
+ BR.BHZ21            : BR_MBHGC4WP, slot_id = 2458879;
+ BR.BHZ22            : BR_MBHGC4WP, slot_id = 2458880;
+ BR.BHZ31            : BR_MBHGC4WP, slot_id = 2458943;
+ BR.BHZ32            : BR_MBHGC4WP, slot_id = 2458944;
+ BR.BHZ41            : BR_MBHGC4WP, slot_id = 2458998;
+ BR.BHZ42            : BR_MBHGC4WP, slot_id = 2458999;
+ BR.BHZ51            : BR_MBHGC4WP, slot_id = 2459041;
+ BR.BHZ52            : BR_MBHGC4WP, slot_id = 2459042;
+ BR.BHZ61            : BR_MBHGC4WP, slot_id = 2459088;
+ BR.BHZ62            : BR_MBHGC4WP, slot_id = 2459089;
+ BR.BHZ71            : BR_MBHGC4WP, slot_id = 2459129;
+ BR.BHZ72            : BR_MBHGC4WP, slot_id = 2459130;
+ BR.BHZ81            : BR_MBHGC4WP, slot_id = 2459196;
+ BR.BHZ82            : BR_MBHGC4WP, slot_id = 2459197;
+ BR.BHZ91            : BR_MBHGC4WP, slot_id = 2459259;
+ BR.BHZ92            : BR_MBHGC4WP, slot_id = 2459260;
+ BR.BHZ101           : BR_MBHGC4WP, slot_id = 2459292;
+ BR.BHZ102           : BR_MBHGC4WP, slot_id = 2459293;
+ BR.BHZ111           : BR_MBHGC4WP, slot_id = 2459343;
+ BR.BHZ112           : BR_MBHGC4WP, slot_id = 2459344;
+ BR.BHZ121           : BR_MBHGC4WP, slot_id = 2459406;
+ BR.BHZ122           : BR_MBHGC4WP, slot_id = 2459407;
+ BR.BHZ131           : BR_MBHGC4WP, slot_id = 2459449;
+ BR.BHZ132           : BR_MBHGC4WP, slot_id = 2459450;
+ BR.BHZ141           : BR_MBHGC4WP, slot_id = 2459492;
+ BR.BHZ142           : BR_MBHGC4WP, slot_id = 2459493;
+ BR.BHZ152           : BR_MBHGC4WP, slot_id = 2459540;
+ BR.BHZ161           : BR_MBHGC4WP, slot_id = 2459541;
+ BR.BHZ151           : BR_MBHGD4WP, slot_id = 2459587;
+ BR.BHZ162           : BR_MBHGE4WP, slot_id = 2459588;
+
+
+/************************************************************************************/
+/*                       PSB SEQUENCES                                              */
+/************************************************************************************/
+
+
+  /*********************************************************
+  * Basic period (for reference)
+  **********************************************************
+  PERIOD: sequence, refer = centre , l  =   9.81750;
+  L1                               , at =   1.3269999985;
+  B1                               , at =   3.46284869;
+  L2                               , at =   4.4548473865;
+  QF                               , at =   4.88979739;
+  L3                               , at =   5.46847239;
+  QD                               , at =   6.23479739;
+  L4                               , at =   7.00162239;
+  QF                               , at =   7.58079739;
+  L5                               , at =   8.0162000035;
+  B1                               , at =   9.00865131;
+  endsequence;
+  *********************************************************/
+
+  //------------------------------------------------------------------------------------
+//                       RING 1                                                     
+//------------------------------------------------------------------------------------
+
+P01ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 01
+  BI1.BSW1L1.1        : BR_MSMIF001     , at = .336         , slot_id = 43192227;
+  BI1.BSW1L1.2        : BR_MSBSW002     , at = 1.032        , slot_id = 43198754;
+  BI1.BTV1L1          : BR_BTVTS        , at = 1.327628     , slot_id = 43201381;
+  BI1.BCSF1L1         : BR_BCSMA        , at = 1.334        , slot_id = 43201377;
+  BI1.TSTR1L1         : BR_TKSTR002     , at = 1.334        , slot_id = 43201373;
+  BI1.BSW1L1.3        : BR_MSBSW003     , at = 1.56         , slot_id = 43201385;
+  BI1.BSW1L1.4        : BR_MSBSW004     , at = 2.256        , slot_id = 43201395;
+  BI1.TDI1L1          : BR_TDIMA        , at = 2.491        , slot_id = 43201399;
+  BR.BHZ11                              , at = 3.462849;
+  BR.SPSCRAP11                          , at = 4.2717;
+  BR1.VVS1L2          : BR_VVS          , at = 4.514819     , slot_id = 54716799;
+  BR.QFO11                              , at = 4.889797;
+  BR1.BPM1L3          : BR_UES          , at = 5.467797     , slot_id = 2458847, assembly_id= 2452397;
+  BR1.ONOH0.1L3       : BR_ONOH0        , at = 5.467797     , slot_id = 2458845, assembly_id= 2452398;
+  BR1.QSKH0.1L3       : BR_QSKH0        , at = 5.467797     , slot_id = 2458846, assembly_id= 2452398;
+  BR1.XNOH0.1L3       : BR_XNOH0        , at = 5.467797     , slot_id = 2458848, assembly_id= 2452398;
+  BR.QDE1                               , at = 6.234797;
+  BI1.KSW1L4          : BR_MKMAG002     , at = 7.001797     , slot_id = 2458862, assembly_id= 5736975;
+  BR.QFO12                              , at = 7.580797;
+  BR1.BPP1L5          : BR_BPPBA001     , at = 7.997852     , slot_id = 2458841, assembly_id= 2452396;
+  BR.STSCRAP12                          , at = 8.199799;
+  BR.BHZ12                              , at = 9.008652;
+ENDSEQUENCE;
+
+P02ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 02
+  BR1.BWS.2L1.V_ROT   : BR_BWSV         , at = .918         , slot_id = 2458867, assembly_id= 2452403;
+  BR1.BWS.2L1.H_ROT   : BR_BWSH         , at = 1.016        , slot_id = 2458871, assembly_id= 2452403;
+  BI1.KSW2L1          : BR_MKMAG002     , at = 1.737        , slot_id = 2458875, assembly_id= 5736984;
+  BR.BHZ21                              , at = 3.462849;
+  BR.STSCRAP21                          , at = 4.2716995;
+  BR.QFO21                              , at = 4.889797;
+  BR1.BPM2L3          : BR_UES          , at = 5.467802     , slot_id = 2458887, assembly_id= 2452406;
+  BR1.ONOH0.2L3       : BR_ONOH0        , at = 5.467802     , slot_id = 2458885, assembly_id= 2452407;
+  BR1.QSK2L3          : BR_QSK          , at = 5.467802     , slot_id = 2458886, assembly_id= 2452407;
+  BR1.XNOH0.2L3       : BR_XNOH0        , at = 5.467802     , slot_id = 2458888, assembly_id= 2452407;
+  BR.QDE2                               , at = 6.234797;
+  BR1.DHZ2L4          : BR_DHZ__A       , at = 7.001802     , slot_id = 2458902, assembly_id= 2452411;
+  BR1.DVT2L4          : BR_DVT__A       , at = 7.001802     , slot_id = 2458903, assembly_id= 2452411;
+  BR1.OSK2L4          : BR_OSK          , at = 7.001802     , slot_id = 2458904, assembly_id= 2452411;
+  BR1.XSK2L4          : BR_XSK          , at = 7.001802     , slot_id = 2458905, assembly_id= 2452411;
+  BR.QFO22                              , at = 7.580797;
+  BR.STSCRAP22                          , at = 8.199799;
+  BR.BHZ22                              , at = 9.008652;
+ENDSEQUENCE;
+
+P03ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 03
+  BR1.DES3L1          : BR_DES          , at = .8065        , slot_id = 2458918, assembly_id= 2452415;
+  BR1.ONO3L1          : BR_ONO          , at = 1.463        , slot_id = 2458926, assembly_id= 2452417;
+  BR1.QNO3L1          : BR_QNO__001     , at = 1.463        , slot_id = 2458927, assembly_id= 2452417;
+  BR1.UQD3L1          : BR_UQD          , at = 1.463        , slot_id = 2458928, assembly_id= 2452417;
+  BR1.XNO3L1          : BR_XNO__001     , at = 1.463        , slot_id = 2458929, assembly_id= 2452417;
+  BR1.BPMT3L1         : BR_BPMTA        , at = 2.043        , slot_id = 2458939, assembly_id= 2452421;
+  BR.BHZ31                              , at = 3.462849;
+  BR.STSCRAP31                          , at = 4.2717;
+  BR.QFO31                              , at = 4.889797;
+  BR1.BPM3L3          : BR_UES          , at = 5.467807     , slot_id = 2458951, assembly_id= 2452422;
+  BR1.ONOH0.3L3       : BR_ONOH0        , at = 5.467807     , slot_id = 2458949, assembly_id= 2452423;
+  BR1.QSKH0.3L3       : BR_QSKH0        , at = 5.467807     , slot_id = 2458950, assembly_id= 2452423;
+  BR1.XNOH0.3L3       : BR_XNOH0        , at = 5.467807     , slot_id = 2458952, assembly_id= 2452423;
+  BR.QDE3                               , at = 6.234797;
+  BR1.DHZ3L4          : BR_DHZ__001     , at = 7.001807     , slot_id = 2458966, assembly_id= 2452427;
+  BR1.DVT3L4          : BR_DVT__001     , at = 7.001807     , slot_id = 2458967, assembly_id= 2452427;
+  BR.QFO32                              , at = 7.580797;
+  BR.STSCRAP32                          , at = 8.199799;
+  BR.BHZ32                              , at = 9.008652;
+ENDSEQUENCE;
+
+P04ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 04
+  BR1.ONO4L1          : BR_ONO          , at = .37          , slot_id = 2458974, assembly_id= 2452431;
+  BR1.OSK4L1          : BR_OSK          , at = .37          , slot_id = 2458975, assembly_id= 2452431;
+  BR1.XNO4L1          : BR_XNO__001     , at = .37          , slot_id = 2458976, assembly_id= 2452431;
+  BR1.XSK4L1          : BR_XSK          , at = .37          , slot_id = 2458977, assembly_id= 2452431;
+  BE1.DHZ4L1          : BR_DHZ__001     , at = .904         , slot_id = 2458990, assembly_id= 2452435;
+  BE1.DVT4L1          : BR_DVT__001     , at = .904         , slot_id = 2458991, assembly_id= 2452435;
+  BR1.BWSH4L1         : BR_BWSRA001     , at = 2.134        , slot_id = 43177294;
+  BR.BHZ41                              , at = 3.462849;
+  BR.STSCRAP41                          , at = 4.2716995;
+  BR.QFO41                              , at = 4.889797;
+  BR1.BPM4L3          : BR_UES          , at = 5.467812     , slot_id = 2459006, assembly_id= 2452439;
+  BR1.ONOH0.4L3       : BR_ONOH0        , at = 5.467812     , slot_id = 2459004, assembly_id= 2452440;
+  BR1.QNO4L3          : BR_QNO__001     , at = 5.467812     , slot_id = 2459005, assembly_id= 2452440;
+  BR1.XNOH0.4L3       : BR_XNOH0        , at = 5.467812     , slot_id = 2459007, assembly_id= 2452440;
+  BR.QDE4                               , at = 6.234797;
+  BR1.DHZ4L4          : BR_DHZ__001     , at = 7.001812     , slot_id = 2459021, assembly_id= 2452444;
+  BR1.DVT4L4          : BR_DVT__001     , at = 7.001812     , slot_id = 52943127, assembly_id= 2452444;
+  BR.QFO42                              , at = 7.580797;
+  BR1.BPTF4L5         : BR_UTFB         , at = 7.99794      , slot_id = 2459029, assembly_id= 2452448;
+  BR.STSCRAP42                          , at = 8.199799;
+  BR.BHZ42                              , at = 9.008652;
+ENDSEQUENCE;
+
+P05ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 05
+  BR1.ACWF5L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086683, assembly_id= 43086680;
+  BR1.ACWF5L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086689, assembly_id= 43086680;
+  BR.BHZ51                              , at = 3.462849;
+  BR.STSCRAP51                          , at = 4.2716995;
+  BR.QFO51                              , at = 4.889797;
+  BR1.BPM5L3          : BR_UES          , at = 5.467806     , slot_id = 2459049, assembly_id= 2452451;
+  BR1.ONOH0.5L3       : BR_ONOH0        , at = 5.467806     , slot_id = 2459047, assembly_id= 2452452;
+  BR1.QSKH0.5L3       : BR_QSKH0        , at = 5.467806     , slot_id = 2459048, assembly_id= 2452452;
+  BR1.XNOH0.5L3       : BR_XNOH0        , at = 5.467806     , slot_id = 2459050, assembly_id= 2452452;
+  BR.QDE5                               , at = 6.234797;
+  BR1.DHZ5L4          : BR_DHZ__001     , at = 6.840806     , slot_id = 2459064, assembly_id= 2452456;
+  BR1.DVT5L4          : BR_DVT__001     , at = 6.840806     , slot_id = 2459065, assembly_id= 2452456;
+  BR.QFO52                              , at = 7.580797;
+  BR.STSCRAP52                          , at = 8.199799;
+  BR.BHZ52                              , at = 9.008652;
+ENDSEQUENCE;
+
+P06ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 06
+  BR1.ONO6L1          : BR_ONO          , at = .37          , slot_id = 2459072, assembly_id= 2452460;
+  BR1.OSK6L1          : BR_OSK          , at = .37          , slot_id = 2459073, assembly_id= 2452460;
+  BR1.XNO6L1          : BR_XNO__001     , at = .37          , slot_id = 2459074, assembly_id= 2452460;
+  BR1.XSK6L1          : BR_XSK          , at = .37          , slot_id = 2459075, assembly_id= 2452460;
+  BR.BHZ61                              , at = 3.462849;
+  BR.STSCRAP61                          , at = 4.2717;
+  BR.QFO61                              , at = 4.889797;
+  BR1.BPM6L3          : BR_UES          , at = 5.467811     , slot_id = 2459096, assembly_id= 2452464;
+  BR1.ONOH0.6L3       : BR_ONOH0        , at = 5.467811     , slot_id = 2459094, assembly_id= 2452465;
+  BR1.QSK6L3          : BR_QSK          , at = 5.467811     , slot_id = 2459095, assembly_id= 2452465;
+  BR1.XNOH0.6L3       : BR_XNOH0        , at = 5.467811     , slot_id = 2459097, assembly_id= 2452465;
+  BR.QDE6                               , at = 6.234797;
+  BR1.DHZ6L4          : BR_DHZ__A       , at = 7.001811     , slot_id = 2459111, assembly_id= 2452469;
+  BR1.DVT6L4          : BR_DVT__A       , at = 7.001811     , slot_id = 2459112, assembly_id= 2452469;
+  BR1.OSK6L4          : BR_OSK          , at = 7.001811     , slot_id = 2459113, assembly_id= 2452469;
+  BR1.XSK6L4          : BR_XSK          , at = 7.001811     , slot_id = 2459114, assembly_id= 2452469;
+  BR.QFO62                              , at = 7.580797;
+  BR.STSCRAP62                          , at = 8.1998;
+  BR.BHZ62                              , at = 9.008652;
+ENDSEQUENCE;
+
+P07ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 07
+  BR1.ACWF7L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086773, assembly_id= 43086681;
+  BR1.ACWF7L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086777, assembly_id= 43086681;
+  BR.BHZ71                              , at = 3.462849;
+  BR.STSCRAP71                          , at = 4.2717;
+  BR.QFO71                              , at = 4.889797;
+  BR1.BPM7L3          : BR_UES          , at = 5.467816     , slot_id = 2459141, assembly_id= 2452475;
+  BR1.ONOH0.7L3       : BR_ONOH0        , at = 5.467816     , slot_id = 2459139, assembly_id= 2452476;
+  BR1.QSKH0.7L3       : BR_QSKH0        , at = 5.467816     , slot_id = 2459140, assembly_id= 2452476;
+  BR1.XNOH0.7L3       : BR_XNOH0        , at = 5.467816     , slot_id = 2459142, assembly_id= 2452476;
+  BR.QDE7                               , at = 6.234797;
+  BR1.DSHAH7L4        : BR_DBSH         , at = 7.001816     , slot_id = 2459156, assembly_id= 2452480;
+  BR1.DSHAV7L4        : BR_DBSV         , at = 7.001816     , slot_id = 2459157, assembly_id= 2452480;
+  BR.QFO72                              , at = 7.580797;
+  BR.STSCRAP72                          , at = 8.1998;
+  BR.BHZ72                              , at = 9.008652;
+ENDSEQUENCE;
+
+P08ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 08
+  BR1.ONO8L1          : BR_ONO          , at = .36375       , slot_id = 2459164, assembly_id= 2452484;
+  BR1.QNO8L1          : BR_QNO__001     , at = .36375       , slot_id = 2459165, assembly_id= 2452484;
+  BR1.XNO8L1          : BR_XNO__001     , at = .36375       , slot_id = 2459166, assembly_id= 2452484;
+  BR1.DHZ8L1          : BR_DHZ__001     , at = .86675       , slot_id = 2459176, assembly_id= 2452488;
+  BR1.DVT8L1          : BR_DVT__001     , at = .86675       , slot_id = 2459177, assembly_id= 2452488;
+  BR1.BCTF8L1         : BR_TFA          , at = 1.4824       , slot_id = 2459184, assembly_id= 2452492;
+  BR1.BCW8L1          : BR_UWBL         , at = 2.013023     , slot_id = 2459188, assembly_id= 2452493;
+  BR1.VVS8L1          : BR_VVS          , at = 2.318723     , slot_id = 3783284;
+  BR1.BPP8L1          : BR_BPPBA001     , at = 2.465723     , slot_id = 2459192, assembly_id= 2452494;
+  BR.BHZ81                              , at = 3.462849;
+  BR.STSCRAP81                          , at = 4.2716995;
+  BR.QFO81                              , at = 4.889797;
+  BR1.BPM8L3          : BR_UES          , at = 5.467821     , slot_id = 2459208, assembly_id= 2452496;
+  BR1.ONOH0.8L3       : BR_ONOH0        , at = 5.467821     , slot_id = 2459206, assembly_id= 2452497;
+  BR1.QNO8L3          : BR_QNO__001     , at = 5.467821     , slot_id = 2459207, assembly_id= 2452497;
+  BR1.XNOH0.8L3       : BR_XNOH0        , at = 5.467821     , slot_id = 2459209, assembly_id= 2452497;
+  BR.QDE8                               , at = 6.234797;
+  BR1.TSAA8L4         : BR_TSAMA002     , at = 6.971297     , slot_id = 43977854, assembly_id= 43073735;
+  BR1.TSAB8L4         : BR_TSAMA003     , at = 7.143297     , slot_id = 53666506, assembly_id= 43073735;
+  BR.QFO82                              , at = 7.580797;
+  BR.STSCRAP82                          , at = 8.1998;
+  BR.BHZ82                              , at = 9.008652;
+ENDSEQUENCE;
+
+P09ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 09
+  BR1.DHZ9L1          : BR_DHZ__001     , at = .384         , slot_id = 2459231, assembly_id= 2452505;
+  BR1.DVT9L1          : BR_DVT__001     , at = .384         , slot_id = 2459232, assembly_id= 2452505;
+  BR1.BCTDC9L1        : BR_TDC          , at = 1.0289       , slot_id = 2459239;
+  BR1.ONO9L1          : BR_ONO          , at = 2.094        , slot_id = 2459243, assembly_id= 2452511;
+  BR1.OSK9L1          : BR_OSK          , at = 2.094        , slot_id = 2459244, assembly_id= 2452511;
+  BR1.XNO9L1          : BR_XNO__001     , at = 2.094        , slot_id = 2459245, assembly_id= 2452511;
+  BR1.XSK9L1          : BR_XSK          , at = 2.094        , slot_id = 2459246, assembly_id= 2452511;
+  BR.BHZ91                              , at = 3.462849;
+  BR.STSCRAP91                          , at = 4.2716995;
+  BR.QFO91                              , at = 4.889797;
+  BR1.BPM9L3          : BR_UES          , at = 5.467826     , slot_id = 2459267, assembly_id= 2452515;
+  BR1.ONOH0.9L3       : BR_ONOH0        , at = 5.467826     , slot_id = 2459265, assembly_id= 2452516;
+  BR1.QSKH0.9L3       : BR_QSKH0        , at = 5.467826     , slot_id = 2459266, assembly_id= 2452516;
+  BR1.XNOH0.9L3       : BR_XNOH0        , at = 5.467826     , slot_id = 2459268, assembly_id= 2452516;
+  BR.QDE9                               , at = 6.234797;
+  BR1.DSHAH9L4        : BR_DBSH         , at = 7.001826     , slot_id = 2459282, assembly_id= 2452520;
+  BR1.DSHAV9L4        : BR_DBSV         , at = 7.001826     , slot_id = 2459283, assembly_id= 2452520;
+  BR.QFO92                              , at = 7.580797;
+  BR.STSCRAP92                          , at = 8.199799;
+  BR.BHZ92                              , at = 9.008652;
+ENDSEQUENCE;
+
+P10ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 10
+  BR.BHZ101                             , at = 3.462849;
+  BR.STSCRAP101                         , at = 4.2716995;
+  BR.QFO101                             , at = 4.889797;
+  BR1.BPM10L3         : BR_UES          , at = 5.46782      , slot_id = 2459300, assembly_id= 2452525;
+  BR1.ONOH0.10L3      : BR_ONOH0        , at = 5.46782      , slot_id = 2459298, assembly_id= 2452526;
+  BR1.QSK10L3         : BR_QSK          , at = 5.46782      , slot_id = 2459299, assembly_id= 2452526;
+  BR1.XNOH0.10L3      : BR_XNOH0        , at = 5.46782      , slot_id = 2459301, assembly_id= 2452526;
+  BR.QDE10                              , at = 6.234797;
+  BR1.DHZ10L4         : BR_DHZ__001     , at = 7.00182      , slot_id = 52943216, assembly_id= 2452530;
+  BR1.DVT10L4         : BR_DVT__001     , at = 7.00182      , slot_id = 2459316, assembly_id= 2452530;
+  BR.QFO102                             , at = 7.580797;
+  BR.STSCRAP102                         , at = 8.1998;
+  BR.BHZ102                             , at = 9.008652;
+ENDSEQUENCE;
+
+P11ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 11
+  BE1.DHZ11L1         : BR_DHZ__001     , at = .296         , slot_id = 2459323, assembly_id= 2452534;
+  BE1.DVT11L1         : BR_DVT__001     , at = .296         , slot_id = 2459324, assembly_id= 2452534;
+  BR1.ONO11L1         : BR_ONO          , at = 1.463        , slot_id = 2459331, assembly_id= 2452538;
+  BR1.QNO11L1         : BR_QNO__001     , at = 1.463        , slot_id = 2459332, assembly_id= 2452538;
+  BR1.XNO11L1         : BR_XNO__001     , at = 1.463        , slot_id = 2459333, assembly_id= 2452538;
+  BR1.BWSV11L1        : BR_BWSRA002     , at = 2.163677     , slot_id = 43177298;
+  BR.BHZ111                             , at = 3.462849;
+  BR.STSCRAP111                         , at = 4.2716995;
+  BR1.BPP11L2         : BR_BPPBA001     , at = 4.3037       , slot_id = 2459347, assembly_id= 2452542;
+  BR.QFO111                             , at = 4.889797;
+  BR1.BPM11L3         : BR_UES          , at = 5.467825     , slot_id = 2459355, assembly_id= 2452543;
+  BR1.ONOH0.11L3      : BR_ONOH0        , at = 5.467825     , slot_id = 2459353, assembly_id= 2452544;
+  BR1.QSKH0.11L3      : BR_QSKH0        , at = 5.467825     , slot_id = 2459354, assembly_id= 2452544;
+  BR1.XNOH0.11L3      : BR_XNOH0        , at = 5.467825     , slot_id = 2459356, assembly_id= 2452544;
+  BR.QDE11                              , at = 6.234797;
+  BR1.DHZ11L4         : BR_DHZ__A       , at = 7.001825     , slot_id = 2459370, assembly_id= 2452548;
+  BR1.DVT11L4         : BR_DVT__A       , at = 7.001825     , slot_id = 2459371, assembly_id= 2452548;
+  BR1.OSK11L4         : BR_OSK          , at = 7.001825     , slot_id = 2459372, assembly_id= 2452548;
+  BR1.XSK11L4         : BR_XSK          , at = 7.001825     , slot_id = 2459373, assembly_id= 2452548;
+  BR.QFO112                             , at = 7.580797;
+  BR.STSCRAP112                         , at = 8.1998;
+  BR.BHZ112                             , at = 9.008652;
+ENDSEQUENCE;
+
+P12ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 12
+  BR1.KQM12L1         : BR_KQM__002     , at = .914         , slot_id = 2459386, assembly_id= 2452552;
+  BR1.ONO12L1         : BR_ONO          , at = 2.094        , slot_id = 2459390, assembly_id= 2452553;
+  BR1.OSK12L1         : BR_OSK          , at = 2.094        , slot_id = 2459391, assembly_id= 2452553;
+  BR1.XNO12L1         : BR_XNO__001     , at = 2.094        , slot_id = 2459392, assembly_id= 2452553;
+  BR1.XSK12L1         : BR_XSK          , at = 2.094        , slot_id = 2459393, assembly_id= 2452553;
+  BR.BHZ121                             , at = 3.462849;
+  BR.STSCRAP121                         , at = 4.2716995;
+  BR.QFO121                             , at = 4.889797;
+  BR1.BPM12L3         : BR_UES          , at = 5.46783      , slot_id = 2459414, assembly_id= 2452557;
+  BR1.ONOH0.12L3      : BR_ONOH0        , at = 5.46783      , slot_id = 2459412, assembly_id= 2452558;
+  BR1.QNO12L3         : BR_QNO__001     , at = 5.46783      , slot_id = 2459413, assembly_id= 2452558;
+  BR1.XNOH0.12L3      : BR_XNOH0        , at = 5.46783      , slot_id = 2459415, assembly_id= 2452558;
+  BR.QDE12                              , at = 6.234797;
+  BR1.DHZ12L4         : BR_DHZ__A       , at = 7.00183      , slot_id = 2459429, assembly_id= 2452562;
+  BR1.DVT12L4         : BR_DVT__A       , at = 7.00183      , slot_id = 2459430, assembly_id= 2452562;
+  BR1.OSK12L4         : BR_OSK          , at = 7.00183      , slot_id = 2459431, assembly_id= 2452562;
+  BR1.XSK12L4         : BR_XSK          , at = 7.00183      , slot_id = 2459432, assembly_id= 2452562;
+  BR.QFO122                             , at = 7.580797;
+  BR.STSCRAP122                         , at = 8.199799;
+  BR.BHZ122                             , at = 9.008652;
+ENDSEQUENCE;
+
+P13ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 13
+  BR1.ACWF13L1.1      : BR_ACWFB        , at = .722761      , slot_id = 43086789, assembly_id= 43086682;
+  BR1.ACWF13L1.2      : BR_ACWFB        , at = 1.777261     , slot_id = 43086793, assembly_id= 43086682;
+  BR.BHZ131                             , at = 3.462849;
+  BR.STSCRAP131                         , at = 4.2716995;
+  BR.QFO131                             , at = 4.889797;
+  BR1.BPM13L3         : BR_UES          , at = 5.467835     , slot_id = 2459457, assembly_id= 2452567;
+  BR1.ONOH0.13L3      : BR_ONOH0        , at = 5.467835     , slot_id = 2459455, assembly_id= 2452568;
+  BR1.QSKH0.13L3      : BR_QSKH0        , at = 5.467835     , slot_id = 2459456, assembly_id= 2452568;
+  BR1.XNOH0.13L3      : BR_XNOH0        , at = 5.467835     , slot_id = 2459458, assembly_id= 2452568;
+  BR.QDE13                              , at = 6.234797;
+  BR1.DHZ13L4         : BR_DHZ__001     , at = 7.001835     , slot_id = 2459472, assembly_id= 2452572;
+  BR1.DVT13L4         : BR_DVT__001     , at = 7.001835     , slot_id = 2459473, assembly_id= 2452572;
+  BR.QFO132                             , at = 7.580797;
+  BR.STSCRAP132                         , at = 8.199799;
+  BR.BHZ132                             , at = 9.008652;
+ENDSEQUENCE;
+
+P14ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 14
+  BR1.DHZ14L1         : BR_DHZ__001     , at = .30659       , slot_id = 2459480, assembly_id= 2452576;
+  BR1.DVT14L1         : BR_DVT__001     , at = .30659       , slot_id = 2459481, assembly_id= 2452576;
+  BE1.KFA14L1         : BR_MKMAG003     , at = 1.52659      , slot_id = 2459488, assembly_id= 5736994;
+  BR.BHZ141                             , at = 3.462849;
+  BR.STSCRAP141                         , at = 4.2716995;
+  BR1.VVS14L2         : BR_VVS          , at = 4.3725       , slot_id = 3783356;
+  BR.QFO141                             , at = 4.889797;
+  BR1.BPM14L3         : BR_UES          , at = 5.467839     , slot_id = 2459499, assembly_id= 2452581;
+  BR1.ONOH0.14L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459497, assembly_id= 2452582;
+  BR1.QSK14L3         : BR_QSK          , at = 5.467839     , slot_id = 2459498, assembly_id= 2452582;
+  BR1.XNOH0.14L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459500, assembly_id= 2452582;
+  BR.QDE14                              , at = 6.234797;
+  BR1.BPP14L4         : BR_BPPBB001     , at = 6.79374      , slot_id = 2459514, assembly_id= 2452586;
+  BE1.BSW14L4         : BR_MDBAAWAP     , at = 7.06474      , slot_id = 2459518;
+  BR.QFO142                             , at = 7.580797;
+  BR.SPSCRAP142                         , at = 8.199799;
+  BR.BHZ142                             , at = 9.008652;
+ENDSEQUENCE;
+
+P15ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 15
+  BE1.BTV10           : BR_BTVBP036     , at = .225173      , slot_id = 52941789, assembly_id= 52941725;
+  BR1.BTV15L1         : BR_BTVBP037     , at = .270573      , slot_id = 52941747, assembly_id= 52941725;
+  BE1.SMH15L1         : BR_SMH__006     , at = 1.026102     , slot_id = 2459524, assembly_id= 2452588;
+  BR1.DHZ15L1         : BR_DHZ__002     , at = 1.842652     , slot_id = 2459528, assembly_id= 2452589;
+  BR1.DVT15L1         : BR_DVT__002     , at = 1.842652     , slot_id = 2459529, assembly_id= 2452589;
+  BE1.BSW15L1         : BR_MDBABWAP     , at = 2.36866      , slot_id = 2459536;
+  BR.BHZ151                             , at = 3.462849;
+  BR.SPSCRAP151                         , at = 4.2716995;
+  BR.QFO151                             , at = 4.889797;
+  BR1.BPM15L3         : BR_UES          , at = 5.467834     , slot_id = 2459547, assembly_id= 2452594;
+  BR1.ONOH0.15L3      : BR_ONOH0        , at = 5.467834     , slot_id = 2459545, assembly_id= 2452595;
+  BR1.QSKH0.15L3      : BR_QSKH0        , at = 5.467834     , slot_id = 2459546, assembly_id= 2452595;
+  BR1.XNOH0.15L3      : BR_XNOH0        , at = 5.467834     , slot_id = 2459548, assembly_id= 2452595;
+  BR.QDE15                              , at = 6.234797;
+  BE1.BSW15L4         : BR_MDBAAWAP     , at = 7.011834     , slot_id = 2459562;
+  BR.QFO152                             , at = 7.580797;
+  BR.STSCRAP152                         , at = 8.199799;
+  BR.BHZ152                             , at = 9.008652;
+ENDSEQUENCE;
+
+P16ring1: SEQUENCE, refer = centre, L  = 9.8175; !Ring 1, Period 16
+  BR1.ONO16L1         : BR_ONO          , at = .363         , slot_id = 2459567, assembly_id= 2452600;
+  BR1.QNO16L1         : BR_QNO__001     , at = .363         , slot_id = 2459568, assembly_id= 2452600;
+  BR1.XNO16L1         : BR_XNO__001     , at = .363         , slot_id = 2459569, assembly_id= 2452600;
+  BI1.KSW16L1         : BR_MKMAG002     , at = .9605        , slot_id = 40101120, assembly_id= 40101119;
+  BR1.DHZ16L1         : BR_DHZ__001     , at = 1.99601      , slot_id = 2459579, assembly_id= 2452604;
+  BR1.DVT16L1         : BR_DVT__001     , at = 1.99601      , slot_id = 2459580, assembly_id= 2452604;
+  BR.BHZ161                             , at = 3.462849;
+  BR.STSCRAP161                         , at = 4.2717;
+  BR.QFO161                             , at = 4.889797;
+  BR1.BPM16L3         : BR_UES          , at = 5.467839     , slot_id = 2459595, assembly_id= 2452608;
+  BR1.ONOH0.16L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459593, assembly_id= 2452609;
+  BR1.QNO16L3         : BR_QNO__001     , at = 5.467839     , slot_id = 2459594, assembly_id= 2452609;
+  BR1.XNOH0.16L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459596, assembly_id= 2452609;
+  BR.QDE16                              , at = 6.234797;
+  BI1.KSW16L4         : BR_MKMAG002     , at = 7.001839     , slot_id = 2459610, assembly_id= 5736989;
+  BR.QFO162                             , at = 7.580797;
+  BR1.VVS16L5         : BR_VVS          , at = 7.955897     , slot_id = 54717179;
+  BR.STSCRAP162                         , at = 8.199799;
+  BR.BHZ162                             , at = 9.008652;
+ENDSEQUENCE;
+
+//------------------------------------------------------------------------------------
+//                       RING 2                                                     
+//------------------------------------------------------------------------------------
+
+P01ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 01
+  BI2.BSW1L1.1        : BR_MSMIF001     , at = .336         , slot_id = 43201351;
+  BI2.BSW1L1.2        : BR_MSBSW002     , at = 1.032        , slot_id = 43201370;
+  BI2.BTV1L1          : BR_BTVTS        , at = 1.327628     , slot_id = 43201382;
+  BI2.BCSF1L1         : BR_BCSMA        , at = 1.334        , slot_id = 43201378;
+  BI2.TSTR1L1         : BR_TKSTR002     , at = 1.334        , slot_id = 43201374;
+  BI2.BSW1L1.3        : BR_MSBSW003     , at = 1.56         , slot_id = 43201386;
+  BI2.BSW1L1.4        : BR_MSBSW004     , at = 2.256        , slot_id = 43201396;
+  BI2.TDI1L1          : BR_TDIMA        , at = 2.491        , slot_id = 43201400;
+  BR.BHZ11                              , at = 3.462849;
+  BR.SPSCRAP11                          , at = 4.2717;
+  BR2.VVS1L2          : BR_VVS          , at = 4.514819     , slot_id = 54716836;
+  BR.QFO11                              , at = 4.889797;
+  BR2.BPM1L3          : BR_UES          , at = 5.467797     , slot_id = 2458851, assembly_id= 2452397;
+  BR2.ONOH0.1L3       : BR_ONOH0        , at = 5.467797     , slot_id = 2458849, assembly_id= 2452399;
+  BR2.QSKH0.1L3       : BR_QSKH0        , at = 5.467797     , slot_id = 2458850, assembly_id= 2452399;
+  BR2.XNOH0.1L3       : BR_XNOH0        , at = 5.467797     , slot_id = 2458852, assembly_id= 2452399;
+  BR.QDE1                               , at = 6.234797;
+  BI2.KSW1L4          : BR_MKMAG002     , at = 7.001797     , slot_id = 2458863, assembly_id= 5736975;
+  BR.QFO12                              , at = 7.580797;
+  BR2.BPP1L5          : BR_BPPBA001     , at = 7.997852     , slot_id = 2458842, assembly_id= 2452396;
+  BR.STSCRAP12                          , at = 8.199799;
+  BR.BHZ12                              , at = 9.008652;
+ENDSEQUENCE;
+
+P02ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 02
+  BR2.BWS.2L1.V_ROT   : BR_BWSV         , at = .918         , slot_id = 2458868, assembly_id= 2452403;
+  BR2.BWS.2L1.H_ROT   : BR_BWSH         , at = 1.016        , slot_id = 2458872, assembly_id= 2452403;
+  BI2.KSW2L1          : BR_MKMAG002     , at = 1.737        , slot_id = 2458876, assembly_id= 5736984;
+  BR.BHZ21                              , at = 3.462849;
+  BR.STSCRAP21                          , at = 4.2716995;
+  BR.QFO21                              , at = 4.889797;
+  BR2.BPM2L3          : BR_UES          , at = 5.467802     , slot_id = 2458891, assembly_id= 2452406;
+  BR2.ONOH0.2L3       : BR_ONOH0        , at = 5.467802     , slot_id = 2458889, assembly_id= 2452408;
+  BR2.QSK2L3          : BR_QSK          , at = 5.467802     , slot_id = 2458890, assembly_id= 2452408;
+  BR2.XNOH0.2L3       : BR_XNOH0        , at = 5.467802     , slot_id = 2458892, assembly_id= 2452408;
+  BR.QDE2                               , at = 6.234797;
+  BR2.DHZ2L4          : BR_DHZ__A       , at = 7.001802     , slot_id = 2458906, assembly_id= 2452412;
+  BR2.DVT2L4          : BR_DVT__A       , at = 7.001802     , slot_id = 2458907, assembly_id= 2452412;
+  BR2.OSK2L4          : BR_OSK          , at = 7.001802     , slot_id = 2458908, assembly_id= 2452412;
+  BR2.XSK2L4          : BR_XSK          , at = 7.001802     , slot_id = 2458909, assembly_id= 2452412;
+  BR.QFO22                              , at = 7.580797;
+  BR.STSCRAP22                          , at = 8.199799;
+  BR.BHZ22                              , at = 9.008652;
+ENDSEQUENCE;
+
+P03ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 03
+  BR2.DES3L1          : BR_DES          , at = .8065        , slot_id = 2458920, assembly_id= 2452415;
+  BR2.ONO3L1          : BR_ONO          , at = 1.463        , slot_id = 2458930, assembly_id= 2452418;
+  BR2.QNO3L1          : BR_QNO__001     , at = 1.463        , slot_id = 2458931, assembly_id= 2452418;
+  BR2.XNO3L1          : BR_XNO__001     , at = 1.463        , slot_id = 2458932, assembly_id= 2452418;
+  BR2.BPMT3L1         : BR_BPMTA        , at = 2.043        , slot_id = 2458940, assembly_id= 2452421;
+  BR.BHZ31                              , at = 3.462849;
+  BR.STSCRAP31                          , at = 4.2717;
+  BR.QFO31                              , at = 4.889797;
+  BR2.BPM3L3          : BR_UES          , at = 5.467807     , slot_id = 2458955, assembly_id= 2452422;
+  BR2.ONOH0.3L3       : BR_ONOH0        , at = 5.467807     , slot_id = 2458953, assembly_id= 2452424;
+  BR2.QSKH0.3L3       : BR_QSKH0        , at = 5.467807     , slot_id = 2458954, assembly_id= 2452424;
+  BR2.XNOH0.3L3       : BR_XNOH0        , at = 5.467807     , slot_id = 2458956, assembly_id= 2452424;
+  BR.QDE3                               , at = 6.234797;
+  BR2.DHZ3L4          : BR_DHZ__001     , at = 7.001807     , slot_id = 2458968, assembly_id= 2452428;
+  BR2.DVT3L4          : BR_DVT__001     , at = 7.001807     , slot_id = 2458969, assembly_id= 2452428;
+  BR.QFO32                              , at = 7.580797;
+  BR.STSCRAP32                          , at = 8.199799;
+  BR.BHZ32                              , at = 9.008652;
+ENDSEQUENCE;
+
+P04ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 04
+  BR2.ONO4L1          : BR_ONO          , at = .37          , slot_id = 2458978, assembly_id= 2452432;
+  BR2.OSK4L1          : BR_OSK          , at = .37          , slot_id = 2458979, assembly_id= 2452432;
+  BR2.XNO4L1          : BR_XNO__001     , at = .37          , slot_id = 2458980, assembly_id= 2452432;
+  BR2.XSK4L1          : BR_XSK          , at = .37          , slot_id = 2458981, assembly_id= 2452432;
+  BE2.DHZ4L1          : BR_DHZ__001     , at = .904         , slot_id = 2458992, assembly_id= 2452436;
+  BE2.DVT4L1          : BR_DVT__001     , at = .904         , slot_id = 2458993, assembly_id= 2452436;
+  BR2.BWSH4L1         : BR_BWSRA001     , at = 1.7165       , slot_id = 43177293;
+  BR.BHZ41                              , at = 3.462849;
+  BR.STSCRAP41                          , at = 4.2716995;
+  BR.QFO41                              , at = 4.889797;
+  BR2.BPM4L3          : BR_UES          , at = 5.467812     , slot_id = 2459010, assembly_id= 2452439;
+  BR2.ONOH0.4L3       : BR_ONOH0        , at = 5.467812     , slot_id = 2459008, assembly_id= 2452441;
+  BR2.QNO4L3          : BR_QNO__001     , at = 5.467812     , slot_id = 2459009, assembly_id= 2452441;
+  BR2.XNOH0.4L3       : BR_XNOH0        , at = 5.467812     , slot_id = 2459011, assembly_id= 2452441;
+  BR.QDE4                               , at = 6.234797;
+  BR2.DHZ4L4          : BR_DHZ__001     , at = 7.001812     , slot_id = 2459023, assembly_id= 2452445;
+  BR2.DVT4L4          : BR_DVT__001     , at = 7.001812     , slot_id = 52943143, assembly_id= 2452445;
+  BR.QFO42                              , at = 7.580797;
+  BR2.BPTF4L5         : BR_UTFB         , at = 7.99794      , slot_id = 2459030, assembly_id= 2452448;
+  BR.STSCRAP42                          , at = 8.199799;
+  BR.BHZ42                              , at = 9.008652;
+ENDSEQUENCE;
+
+P05ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 05
+  BR2.ACWF5L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086686, assembly_id= 43086680;
+  BR2.ACWF5L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086690, assembly_id= 43086680;
+  BR.BHZ51                              , at = 3.462849;
+  BR.STSCRAP51                          , at = 4.2716995;
+  BR.QFO51                              , at = 4.889797;
+  BR2.BPM5L3          : BR_UES          , at = 5.467806     , slot_id = 2459053, assembly_id= 2452451;
+  BR2.ONOH0.5L3       : BR_ONOH0        , at = 5.467806     , slot_id = 2459051, assembly_id= 2452453;
+  BR2.QSKH0.5L3       : BR_QSKH0        , at = 5.467806     , slot_id = 2459052, assembly_id= 2452453;
+  BR2.XNOH0.5L3       : BR_XNOH0        , at = 5.467806     , slot_id = 2459054, assembly_id= 2452453;
+  BR.QDE5                               , at = 6.234797;
+  BR2.DHZ5L4          : BR_DHZ__001     , at = 6.840806     , slot_id = 2459066, assembly_id= 2452457;
+  BR2.DVT5L4          : BR_DVT__001     , at = 6.840806     , slot_id = 2459067, assembly_id= 2452457;
+  BR.QFO52                              , at = 7.580797;
+  BR.STSCRAP52                          , at = 8.199799;
+  BR.BHZ52                              , at = 9.008652;
+ENDSEQUENCE;
+
+P06ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 06
+  BR2.ONO6L1          : BR_ONO          , at = .37          , slot_id = 2459076, assembly_id= 2452461;
+  BR2.OSK6L1          : BR_OSK          , at = .37          , slot_id = 2459077, assembly_id= 2452461;
+  BR2.XNO6L1          : BR_XNO__001     , at = .37          , slot_id = 2459078, assembly_id= 2452461;
+  BR2.XSK6L1          : BR_XSK          , at = .37          , slot_id = 2459079, assembly_id= 2452461;
+  BR.BHZ61                              , at = 3.462849;
+  BR.STSCRAP61                          , at = 4.2717;
+  BR.QFO61                              , at = 4.889797;
+  BR2.BPM6L3          : BR_UES          , at = 5.467811     , slot_id = 2459100, assembly_id= 2452464;
+  BR2.ONOH0.6L3       : BR_ONOH0        , at = 5.467811     , slot_id = 2459098, assembly_id= 2452466;
+  BR2.QSK6L3          : BR_QSK          , at = 5.467811     , slot_id = 2459099, assembly_id= 2452466;
+  BR2.XNOH0.6L3       : BR_XNOH0        , at = 5.467811     , slot_id = 2459101, assembly_id= 2452466;
+  BR.QDE6                               , at = 6.234797;
+  BR2.DHZ6L4          : BR_DHZ__A       , at = 7.001811     , slot_id = 2459115, assembly_id= 2452470;
+  BR2.DVT6L4          : BR_DVT__A       , at = 7.001811     , slot_id = 2459116, assembly_id= 2452470;
+  BR2.OSK6L4          : BR_OSK          , at = 7.001811     , slot_id = 2459117, assembly_id= 2452470;
+  BR2.XSK6L4          : BR_XSK          , at = 7.001811     , slot_id = 2459118, assembly_id= 2452470;
+  BR.QFO62                              , at = 7.580797;
+  BR.STSCRAP62                          , at = 8.1998;
+  BR.BHZ62                              , at = 9.008652;
+ENDSEQUENCE;
+
+P07ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 07
+  BR2.ACWF7L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086774, assembly_id= 43086681;
+  BR2.ACWF7L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086778, assembly_id= 43086681;
+  BR.BHZ71                              , at = 3.462849;
+  BR.STSCRAP71                          , at = 4.2717;
+  BR.QFO71                              , at = 4.889797;
+  BR2.BPM7L3          : BR_UES          , at = 5.467816     , slot_id = 2459145, assembly_id= 2452475;
+  BR2.ONOH0.7L3       : BR_ONOH0        , at = 5.467816     , slot_id = 2459143, assembly_id= 2452477;
+  BR2.QSKH0.7L3       : BR_QSKH0        , at = 5.467816     , slot_id = 2459144, assembly_id= 2452477;
+  BR2.XNOH0.7L3       : BR_XNOH0        , at = 5.467816     , slot_id = 2459146, assembly_id= 2452477;
+  BR.QDE7                               , at = 6.234797;
+  BR2.DSHAH7L4        : BR_DBSH         , at = 7.001816     , slot_id = 2459158, assembly_id= 2452481;
+  BR2.DSHAV7L4        : BR_DBSV         , at = 7.001816     , slot_id = 2459159, assembly_id= 2452481;
+  BR.QFO72                              , at = 7.580797;
+  BR.STSCRAP72                          , at = 8.1998;
+  BR.BHZ72                              , at = 9.008652;
+ENDSEQUENCE;
+
+P08ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 08
+  BR2.ONO8L1          : BR_ONO          , at = .36375       , slot_id = 2459167, assembly_id= 2452485;
+  BR2.QNO8L1          : BR_QNO__001     , at = .36375       , slot_id = 2459168, assembly_id= 2452485;
+  BR2.XNO8L1          : BR_XNO__001     , at = .36375       , slot_id = 2459169, assembly_id= 2452485;
+  BR2.DHZ8L1          : BR_DHZ__001     , at = .86675       , slot_id = 2459178, assembly_id= 2452489;
+  BR2.DVT8L1          : BR_DVT__001     , at = .86675       , slot_id = 2459179, assembly_id= 2452489;
+  BR2.BCTF8L1         : BR_TFA          , at = 1.4824       , slot_id = 2459185, assembly_id= 2452492;
+  BR2.BCW8L1          : BR_UWBL         , at = 2.013023     , slot_id = 2459189, assembly_id= 2452493;
+  BR2.VVS8L1          : BR_VVS          , at = 2.318723     , slot_id = 3783285;
+  BR2.BPP8L1          : BR_BPPBA001     , at = 2.465723     , slot_id = 2459193, assembly_id= 2452494;
+  BR.BHZ81                              , at = 3.462849;
+  BR.STSCRAP81                          , at = 4.2716995;
+  BR.QFO81                              , at = 4.889797;
+  BR2.BPM8L3          : BR_UES          , at = 5.467821     , slot_id = 2459212, assembly_id= 2452496;
+  BR2.ONOH0.8L3       : BR_ONOH0        , at = 5.467821     , slot_id = 2459210, assembly_id= 2452498;
+  BR2.QNO8L3          : BR_QNO__001     , at = 5.467821     , slot_id = 2459211, assembly_id= 2452498;
+  BR2.XNOH0.8L3       : BR_XNOH0        , at = 5.467821     , slot_id = 2459213, assembly_id= 2452498;
+  BR.QDE8                               , at = 6.234797;
+  BR2.TSAA8L4         : BR_TSAMA002     , at = 6.971297     , slot_id = 43977871, assembly_id= 43073735;
+  BR2.TSAB8L4         : BR_TSAMA003     , at = 7.143297     , slot_id = 53666529, assembly_id= 43073735;
+  BR.QFO82                              , at = 7.580797;
+  BR.STSCRAP82                          , at = 8.1998;
+  BR.BHZ82                              , at = 9.008652;
+ENDSEQUENCE;
+
+P09ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 09
+  BR2.DHZ9L1          : BR_DHZ__001     , at = .384         , slot_id = 2459233, assembly_id= 2452506;
+  BR2.DVT9L1          : BR_DVT__001     , at = .384         , slot_id = 2459234, assembly_id= 2452506;
+  BR2.BCTDC9L1        : BR_TDC          , at = 1.3889       , slot_id = 2459241;
+  BR2.ONO9L1          : BR_ONO          , at = 2.094        , slot_id = 2459247, assembly_id= 2452512;
+  BR2.OSK9L1          : BR_OSK          , at = 2.094        , slot_id = 2459248, assembly_id= 2452512;
+  BR2.XNO9L1          : BR_XNO__001     , at = 2.094        , slot_id = 2459249, assembly_id= 2452512;
+  BR2.XSK9L1          : BR_XSK          , at = 2.094        , slot_id = 2459250, assembly_id= 2452512;
+  BR.BHZ91                              , at = 3.462849;
+  BR.STSCRAP91                          , at = 4.2716995;
+  BR.QFO91                              , at = 4.889797;
+  BR2.BPM9L3          : BR_UES          , at = 5.467826     , slot_id = 2459271, assembly_id= 2452515;
+  BR2.ONOH0.9L3       : BR_ONOH0        , at = 5.467826     , slot_id = 2459269, assembly_id= 2452517;
+  BR2.QSKH0.9L3       : BR_QSKH0        , at = 5.467826     , slot_id = 2459270, assembly_id= 2452517;
+  BR2.XNOH0.9L3       : BR_XNOH0        , at = 5.467826     , slot_id = 2459272, assembly_id= 2452517;
+  BR.QDE9                               , at = 6.234797;
+  BR2.DSHAH9L4        : BR_DBSH         , at = 7.001826     , slot_id = 2459284, assembly_id= 2452521;
+  BR2.DSHAV9L4        : BR_DBSV         , at = 7.001826     , slot_id = 2459285, assembly_id= 2452521;
+  BR.QFO92                              , at = 7.580797;
+  BR.STSCRAP92                          , at = 8.199799;
+  BR.BHZ92                              , at = 9.008652;
+ENDSEQUENCE;
+
+P10ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 10
+  BR.BHZ101                             , at = 3.462849;
+  BR.STSCRAP101                         , at = 4.2716995;
+  BR.QFO101                             , at = 4.889797;
+  BR2.BPM10L3         : BR_UES          , at = 5.46782      , slot_id = 2459304, assembly_id= 2452525;
+  BR2.ONOH0.10L3      : BR_ONOH0        , at = 5.46782      , slot_id = 2459302, assembly_id= 2452527;
+  BR2.QSK10L3         : BR_QSK          , at = 5.46782      , slot_id = 2459303, assembly_id= 2452527;
+  BR2.XNOH0.10L3      : BR_XNOH0        , at = 5.46782      , slot_id = 2459305, assembly_id= 2452527;
+  BR.QDE10                              , at = 6.234797;
+  BR2.DHZ10L4         : BR_DHZ__001     , at = 7.00182      , slot_id = 52943184, assembly_id= 2452531;
+  BR2.DVT10L4         : BR_DVT__001     , at = 7.00182      , slot_id = 2459318, assembly_id= 2452531;
+  BR.QFO102                             , at = 7.580797;
+  BR.STSCRAP102                         , at = 8.1998;
+  BR.BHZ102                             , at = 9.008652;
+ENDSEQUENCE;
+
+P11ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 11
+  BE2.DHZ11L1         : BR_DHZ__001     , at = .296         , slot_id = 2459325, assembly_id= 2452535;
+  BE2.DVT11L1         : BR_DVT__001     , at = .296         , slot_id = 2459326, assembly_id= 2452535;
+  BR2.BWSV11L1        : BR_BWSRA002     , at = 1.012678     , slot_id = 43177297;
+  BR2.ONO11L1         : BR_ONO          , at = 1.463        , slot_id = 2459334, assembly_id= 2452539;
+  BR2.QNO11L1         : BR_QNO__001     , at = 1.463        , slot_id = 2459335, assembly_id= 2452539;
+  BR2.XNO11L1         : BR_XNO__001     , at = 1.463        , slot_id = 2459336, assembly_id= 2452539;
+  BR.BHZ111                             , at = 3.462849;
+  BR.STSCRAP111                         , at = 4.2716995;
+  BR2.BPP11L2         : BR_BPPBA001     , at = 4.3037       , slot_id = 2459348, assembly_id= 2452542;
+  BR.QFO111                             , at = 4.889797;
+  BR2.BPM11L3         : BR_UES          , at = 5.467825     , slot_id = 2459359, assembly_id= 2452543;
+  BR2.ONOH0.11L3      : BR_ONOH0        , at = 5.467825     , slot_id = 2459357, assembly_id= 2452545;
+  BR2.QSKH0.11L3      : BR_QSKH0        , at = 5.467825     , slot_id = 2459358, assembly_id= 2452545;
+  BR2.XNOH0.11L3      : BR_XNOH0        , at = 5.467825     , slot_id = 2459360, assembly_id= 2452545;
+  BR.QDE11                              , at = 6.234797;
+  BR2.DHZ11L4         : BR_DHZ__A       , at = 7.001825     , slot_id = 2459374, assembly_id= 2452549;
+  BR2.DVT11L4         : BR_DVT__A       , at = 7.001825     , slot_id = 2459375, assembly_id= 2452549;
+  BR2.OSK11L4         : BR_OSK          , at = 7.001825     , slot_id = 2459376, assembly_id= 2452549;
+  BR2.XSK11L4         : BR_XSK          , at = 7.001825     , slot_id = 2459377, assembly_id= 2452549;
+  BR.QFO112                             , at = 7.580797;
+  BR.STSCRAP112                         , at = 8.1998;
+  BR.BHZ112                             , at = 9.008652;
+ENDSEQUENCE;
+
+P12ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 12
+  BR2.KQM12L1         : BR_KQM__002     , at = .914         , slot_id = 2459387, assembly_id= 2452552;
+  BR2.ONO12L1         : BR_ONO          , at = 2.094        , slot_id = 2459394, assembly_id= 2452554;
+  BR2.OSK12L1         : BR_OSK          , at = 2.094        , slot_id = 2459395, assembly_id= 2452554;
+  BR2.XNO12L1         : BR_XNO__001     , at = 2.094        , slot_id = 2459396, assembly_id= 2452554;
+  BR2.XSK12L1         : BR_XSK          , at = 2.094        , slot_id = 2459397, assembly_id= 2452554;
+  BR.BHZ121                             , at = 3.462849;
+  BR.STSCRAP121                         , at = 4.2716995;
+  BR.QFO121                             , at = 4.889797;
+  BR2.BPM12L3         : BR_UES          , at = 5.46783      , slot_id = 2459418, assembly_id= 2452557;
+  BR2.ONOH0.12L3      : BR_ONOH0        , at = 5.46783      , slot_id = 2459416, assembly_id= 2452559;
+  BR2.QNO12L3         : BR_QNO__001     , at = 5.46783      , slot_id = 2459417, assembly_id= 2452559;
+  BR2.XNOH0.12L3      : BR_XNOH0        , at = 5.46783      , slot_id = 2459419, assembly_id= 2452559;
+  BR.QDE12                              , at = 6.234797;
+  BR2.DHZ12L4         : BR_DHZ__A       , at = 7.00183      , slot_id = 2459433, assembly_id= 2452563;
+  BR2.DVT12L4         : BR_DVT__A       , at = 7.00183      , slot_id = 2459434, assembly_id= 2452563;
+  BR2.OSK12L4         : BR_OSK          , at = 7.00183      , slot_id = 2459435, assembly_id= 2452563;
+  BR2.XSK12L4         : BR_XSK          , at = 7.00183      , slot_id = 2459436, assembly_id= 2452563;
+  BR.QFO122                             , at = 7.580797;
+  BR.STSCRAP122                         , at = 8.199799;
+  BR.BHZ122                             , at = 9.008652;
+ENDSEQUENCE;
+
+P13ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 13
+  BR2.ACWF13L1.1      : BR_ACWFB        , at = .722761      , slot_id = 43086790, assembly_id= 43086682;
+  BR2.ACWF13L1.2      : BR_ACWFB        , at = 1.777261     , slot_id = 43086794, assembly_id= 43086682;
+  BR.BHZ131                             , at = 3.462849;
+  BR.STSCRAP131                         , at = 4.2716995;
+  BR.QFO131                             , at = 4.889797;
+  BR2.BPM13L3         : BR_UES          , at = 5.467835     , slot_id = 2459461, assembly_id= 2452567;
+  BR2.ONOH0.13L3      : BR_ONOH0        , at = 5.467835     , slot_id = 2459459, assembly_id= 2452569;
+  BR2.QSKH0.13L3      : BR_QSKH0        , at = 5.467835     , slot_id = 2459460, assembly_id= 2452569;
+  BR2.XNOH0.13L3      : BR_XNOH0        , at = 5.467835     , slot_id = 2459462, assembly_id= 2452569;
+  BR.QDE13                              , at = 6.234797;
+  BR2.DHZ13L4         : BR_DHZ__001     , at = 7.001835     , slot_id = 2459474, assembly_id= 2452573;
+  BR2.DVT13L4         : BR_DVT__001     , at = 7.001835     , slot_id = 2459475, assembly_id= 2452573;
+  BR.QFO132                             , at = 7.580797;
+  BR.STSCRAP132                         , at = 8.199799;
+  BR.BHZ132                             , at = 9.008652;
+ENDSEQUENCE;
+
+P14ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 14
+  BR2.DHZ14L1         : BR_DHZ__001     , at = .30659       , slot_id = 2459482, assembly_id= 2452577;
+  BR2.DVT14L1         : BR_DVT__001     , at = .30659       , slot_id = 2459483, assembly_id= 2452577;
+  BE2.KFA14L1         : BR_MKMAG003     , at = 1.52659      , slot_id = 2459489, assembly_id= 5736994;
+  BR.BHZ141                             , at = 3.462849;
+  BR.STSCRAP141                         , at = 4.2716995;
+  BR2.VVS14L2         : BR_VVS          , at = 4.3725       , slot_id = 3783357;
+  BR.QFO141                             , at = 4.889797;
+  BR2.BPM14L3         : BR_UES          , at = 5.467839     , slot_id = 2459503, assembly_id= 2452581;
+  BR2.ONOH0.14L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459501, assembly_id= 2452583;
+  BR2.QSK14L3         : BR_QSK          , at = 5.467839     , slot_id = 2459502, assembly_id= 2452583;
+  BR2.XNOH0.14L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459504, assembly_id= 2452583;
+  BR.QDE14                              , at = 6.234797;
+  BR2.BPP14L4         : BR_BPPBB001     , at = 6.79374      , slot_id = 2459515, assembly_id= 2452586;
+  BE2.BSW14L4         : BR_MDBAAWAP     , at = 7.05474      , slot_id = 2459519;
+  BR.QFO142                             , at = 7.580797;
+  BR.SPSCRAP142                         , at = 8.199799;
+  BR.BHZ142                             , at = 9.008652;
+ENDSEQUENCE;
+
+P15ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 15
+  BE2.BTV10           : BR_BTVBP036     , at = .225173      , slot_id = 52941798, assembly_id= 52941725;
+  BR2.BTV15L1         : BR_BTVBP037     , at = .270573      , slot_id = 52941760, assembly_id= 52941725;
+  BE2.SMH15L1         : BR_SMH__006     , at = 1.026102     , slot_id = 2459525, assembly_id= 2452588;
+  BR2.DHZ15L1         : BR_DHZ__002     , at = 1.842652     , slot_id = 2459530, assembly_id= 2452590;
+  BR2.DVT15L1         : BR_DVT__002     , at = 1.842652     , slot_id = 2459531, assembly_id= 2452590;
+  BE2.BSW15L1         : BR_MDBABWAP     , at = 2.36866      , slot_id = 2459537;
+  BR.BHZ151                             , at = 3.462849;
+  BR.SPSCRAP151                         , at = 4.2716995;
+  BR.QFO151                             , at = 4.889797;
+  BR2.BPM15L3         : BR_UES          , at = 5.467834     , slot_id = 2459551, assembly_id= 2452594;
+  BR2.ONOH0.15L3      : BR_ONOH0        , at = 5.467834     , slot_id = 2459549, assembly_id= 2452596;
+  BR2.QSKH0.15L3      : BR_QSKH0        , at = 5.467834     , slot_id = 2459550, assembly_id= 2452596;
+  BR2.XNOH0.15L3      : BR_XNOH0        , at = 5.467834     , slot_id = 2459552, assembly_id= 2452596;
+  BR.QDE15                              , at = 6.234797;
+  BE2.BSW15L4         : BR_MDBAAWAP     , at = 7.001834     , slot_id = 2459563;
+  BR.QFO152                             , at = 7.580797;
+  BR.STSCRAP152                         , at = 8.199799;
+  BR.BHZ152                             , at = 9.008652;
+ENDSEQUENCE;
+
+P16ring2: SEQUENCE, refer = centre, L  = 9.8175; !Ring 2, Period 16
+  BR2.ONO16L1         : BR_ONO          , at = .363         , slot_id = 2459570, assembly_id= 2452601;
+  BR2.QNO16L1         : BR_QNO__001     , at = .363         , slot_id = 2459571, assembly_id= 2452601;
+  BR2.XNO16L1         : BR_XNO__001     , at = .363         , slot_id = 2459572, assembly_id= 2452601;
+  BI2.KSW16L1         : BR_MKMAG002     , at = .9605        , slot_id = 40101123, assembly_id= 40101119;
+  BR2.DHZ16L1         : BR_DHZ__001     , at = 1.99601      , slot_id = 2459581, assembly_id= 2452605;
+  BR2.DVT16L1         : BR_DVT__001     , at = 1.99601      , slot_id = 2459582, assembly_id= 2452605;
+  BR.BHZ161                             , at = 3.462849;
+  BR.STSCRAP161                         , at = 4.2717;
+  BR.QFO161                             , at = 4.889797;
+  BR2.BPM16L3         : BR_UES          , at = 5.467839     , slot_id = 2459599, assembly_id= 2452608;
+  BR2.ONOH0.16L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459597, assembly_id= 2452610;
+  BR2.QNO16L3         : BR_QNO__001     , at = 5.467839     , slot_id = 2459598, assembly_id= 2452610;
+  BR2.XNOH0.16L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459600, assembly_id= 2452610;
+  BR.QDE16                              , at = 6.234797;
+  BI2.KSW16L4         : BR_MKMAG002     , at = 7.001839     , slot_id = 2459611, assembly_id= 5736989;
+  BR.QFO162                             , at = 7.580797;
+  BR2.VVS16L5         : BR_VVS          , at = 7.955897     , slot_id = 54717203;
+  BR.STSCRAP162                         , at = 8.199799;
+  BR.BHZ162                             , at = 9.008652;
+ENDSEQUENCE;
+
+//------------------------------------------------------------------------------------
+//                       RING 3                                                     
+//------------------------------------------------------------------------------------
+
+P01ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 01
+  BI3.BSW1L1.1        : BR_MSMIF001     , at = .336         , slot_id = 43201358;
+  BI3.BSW1L1.2        : BR_MSBSW002     , at = 1.032        , slot_id = 43201371;
+  BI3.BTV1L1          : BR_BTVTS        , at = 1.327628     , slot_id = 43201383;
+  BI3.BCSF1L1         : BR_BCSMA        , at = 1.334        , slot_id = 43201379;
+  BI3.TSTR1L1         : BR_TKSTR002     , at = 1.334        , slot_id = 43201375;
+  BI3.BSW1L1.3        : BR_MSBSW003     , at = 1.56         , slot_id = 43201387;
+  BI3.BSW1L1.4        : BR_MSBSW004     , at = 2.256        , slot_id = 43201397;
+  BI3.TDI1L1          : BR_TDIMA        , at = 2.491        , slot_id = 43201401;
+  BR.BHZ11                              , at = 3.462849;
+  BR.SPSCRAP11                          , at = 4.2717;
+  BR3.VVS1L2          : BR_VVS          , at = 4.514819     , slot_id = 54716868;
+  BR.QFO11                              , at = 4.889797;
+  BR3.BPM1L3          : BR_UES          , at = 5.467797     , slot_id = 2458855, assembly_id= 2452397;
+  BR3.ONOH0.1L3       : BR_ONOH0        , at = 5.467797     , slot_id = 2458853, assembly_id= 2452400;
+  BR3.QSKH0.1L3       : BR_QSKH0        , at = 5.467797     , slot_id = 2458854, assembly_id= 2452400;
+  BR3.XNOH0.1L3       : BR_XNOH0        , at = 5.467797     , slot_id = 2458856, assembly_id= 2452400;
+  BR.QDE1                               , at = 6.234797;
+  BI3.KSW1L4          : BR_MKMAG002     , at = 7.001797     , slot_id = 2458864, assembly_id= 5736975;
+  BR.QFO12                              , at = 7.580797;
+  BR3.BPP1L5          : BR_BPPBA001     , at = 7.997852     , slot_id = 2458843, assembly_id= 2452396;
+  BR.STSCRAP12                          , at = 8.199799;
+  BR.BHZ12                              , at = 9.008652;
+ENDSEQUENCE;
+
+P02ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 02
+  BR3.BWS.2L1.V_ROT   : BR_BWSV         , at = .918         , slot_id = 2458869, assembly_id= 2452403;
+  BR3.BWS.2L1.H_ROT   : BR_BWSH         , at = 1.016        , slot_id = 2458873, assembly_id= 2452403;
+  BI3.KSW2L1          : BR_MKMAG002     , at = 1.737        , slot_id = 2458877, assembly_id= 5736984;
+  BR.BHZ21                              , at = 3.462849;
+  BR.STSCRAP21                          , at = 4.2716995;
+  BR.QFO21                              , at = 4.889797;
+  BR3.BPM2L3          : BR_UES          , at = 5.467802     , slot_id = 2458895, assembly_id= 2452406;
+  BR3.ONOH0.2L3       : BR_ONOH0        , at = 5.467802     , slot_id = 2458893, assembly_id= 2452409;
+  BR3.QSK2L3          : BR_QSK          , at = 5.467802     , slot_id = 2458894, assembly_id= 2452409;
+  BR3.XNOH0.2L3       : BR_XNOH0        , at = 5.467802     , slot_id = 2458896, assembly_id= 2452409;
+  BR.QDE2                               , at = 6.234797;
+  BR3.DHZ2L4          : BR_DHZ__A       , at = 7.001802     , slot_id = 2458910, assembly_id= 2452413;
+  BR3.DVT2L4          : BR_DVT__A       , at = 7.001802     , slot_id = 2458911, assembly_id= 2452413;
+  BR3.OSK2L4          : BR_OSK          , at = 7.001802     , slot_id = 2458912, assembly_id= 2452413;
+  BR3.XSK2L4          : BR_XSK          , at = 7.001802     , slot_id = 2458913, assembly_id= 2452413;
+  BR.QFO22                              , at = 7.580797;
+  BR.STSCRAP22                          , at = 8.199799;
+  BR.BHZ22                              , at = 9.008652;
+ENDSEQUENCE;
+
+P03ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 03
+  BR3.DES3L1          : BR_DES          , at = .8065        , slot_id = 2458922, assembly_id= 2452415;
+  BR3.ONO3L1          : BR_ONO          , at = 1.463        , slot_id = 2458933, assembly_id= 2452419;
+  BR3.QNO3L1          : BR_QNO__001     , at = 1.463        , slot_id = 2458934, assembly_id= 2452419;
+  BR3.XNO3L1          : BR_XNO__001     , at = 1.463        , slot_id = 2458935, assembly_id= 2452419;
+  BR3.BPMT3L1         : BR_BPMTA        , at = 2.043        , slot_id = 2458941, assembly_id= 2452421;
+  BR.BHZ31                              , at = 3.462849;
+  BR.STSCRAP31                          , at = 4.2717;
+  BR.QFO31                              , at = 4.889797;
+  BR3.BPM3L3          : BR_UES          , at = 5.467807     , slot_id = 2458959, assembly_id= 2452422;
+  BR3.ONOH0.3L3       : BR_ONOH0        , at = 5.467807     , slot_id = 2458957, assembly_id= 2452425;
+  BR3.QSKH0.3L3       : BR_QSKH0        , at = 5.467807     , slot_id = 2458958, assembly_id= 2452425;
+  BR3.XNOH0.3L3       : BR_XNOH0        , at = 5.467807     , slot_id = 2458960, assembly_id= 2452425;
+  BR.QDE3                               , at = 6.234797;
+  BR3.DHZ3L4          : BR_DHZ__001     , at = 7.001807     , slot_id = 2458970, assembly_id= 2452429;
+  BR3.DVT3L4          : BR_DVT__001     , at = 7.001807     , slot_id = 2458971, assembly_id= 2452429;
+  BR.QFO32                              , at = 7.580797;
+  BR.STSCRAP32                          , at = 8.199799;
+  BR.BHZ32                              , at = 9.008652;
+ENDSEQUENCE;
+
+P04ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 04
+  BR3.ONO4L1          : BR_ONO          , at = .37          , slot_id = 2458982, assembly_id= 2452433;
+  BR3.OSK4L1          : BR_OSK          , at = .37          , slot_id = 2458983, assembly_id= 2452433;
+  BR3.XNO4L1          : BR_XNO__001     , at = .37          , slot_id = 2458984, assembly_id= 2452433;
+  BR3.XSK4L1          : BR_XSK          , at = .37          , slot_id = 2458985, assembly_id= 2452433;
+  BE3.DHZ4L1          : BR_DHZ__001     , at = .904         , slot_id = 2458994, assembly_id= 2452437;
+  BE3.DVT4L1          : BR_DVT__001     , at = .904         , slot_id = 2458995, assembly_id= 2452437;
+  BR3.BSGHV4L1        : BR_LBSGWC       , at = 1.336        , slot_id = 43170414;
+  BR3.BWSH4L1         : BR_BWSRA001     , at = 2.134        , slot_id = 40095061;
+  BR.BHZ41                              , at = 3.462849;
+  BR.STSCRAP41                          , at = 4.2716995;
+  BR.QFO41                              , at = 4.889797;
+  BR3.BPM4L3          : BR_UES          , at = 5.467812     , slot_id = 2459014, assembly_id= 2452439;
+  BR3.ONOH0.4L3       : BR_ONOH0        , at = 5.467812     , slot_id = 2459012, assembly_id= 2452442;
+  BR3.QNO4L3          : BR_QNO__001     , at = 5.467812     , slot_id = 2459013, assembly_id= 2452442;
+  BR3.XNOH0.4L3       : BR_XNOH0        , at = 5.467812     , slot_id = 2459015, assembly_id= 2452442;
+  BR.QDE4                               , at = 6.234797;
+  BR3.DHZ4L4          : BR_DHZ__001     , at = 7.001812     , slot_id = 2459025, assembly_id= 2452446;
+  BR3.DVT4L4          : BR_DVT__001     , at = 7.001812     , slot_id = 52943109, assembly_id= 2452446;
+  BR.QFO42                              , at = 7.580797;
+  BR3.BPTF4L5         : BR_UTFB         , at = 7.99794      , slot_id = 2459031, assembly_id= 2452448;
+  BR.STSCRAP42                          , at = 8.199799;
+  BR.BHZ42                              , at = 9.008652;
+ENDSEQUENCE;
+
+P05ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 05
+  BR3.ACWF5L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086687, assembly_id= 43086680;
+  BR3.ACWF5L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086691, assembly_id= 43086680;
+  BR.BHZ51                              , at = 3.462849;
+  BR.STSCRAP51                          , at = 4.2716995;
+  BR.QFO51                              , at = 4.889797;
+  BR3.BPM5L3          : BR_UES          , at = 5.467806     , slot_id = 2459057, assembly_id= 2452451;
+  BR3.ONOH0.5L3       : BR_ONOH0        , at = 5.467806     , slot_id = 2459055, assembly_id= 2452454;
+  BR3.QSKH0.5L3       : BR_QSKH0        , at = 5.467806     , slot_id = 2459056, assembly_id= 2452454;
+  BR3.XNOH0.5L3       : BR_XNOH0        , at = 5.467806     , slot_id = 2459058, assembly_id= 2452454;
+  BR.QDE5                               , at = 6.234797;
+  BR3.DHZ5L4          : BR_DHZ__001     , at = 6.840806     , slot_id = 2459068, assembly_id= 2452458;
+  BR3.DVT5L4          : BR_DVT__001     , at = 6.840806     , slot_id = 2459069, assembly_id= 2452458;
+  BR.QFO52                              , at = 7.580797;
+  BR.STSCRAP52                          , at = 8.199799;
+  BR.BHZ52                              , at = 9.008652;
+ENDSEQUENCE;
+
+P06ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 06
+  BR3.ONO6L1          : BR_ONO          , at = .37          , slot_id = 2459080, assembly_id= 2452462;
+  BR3.OSK6L1          : BR_OSK          , at = .37          , slot_id = 2459081, assembly_id= 2452462;
+  BR3.XNO6L1          : BR_XNO__001     , at = .37          , slot_id = 2459082, assembly_id= 2452462;
+  BR3.XSK6L1          : BR_XSK          , at = .37          , slot_id = 2459083, assembly_id= 2452462;
+  BR.BHZ61                              , at = 3.462849;
+  BR.STSCRAP61                          , at = 4.2717;
+  BR.QFO61                              , at = 4.889797;
+  BR3.BPM6L3          : BR_UES          , at = 5.467811     , slot_id = 2459104, assembly_id= 2452464;
+  BR3.ONOH0.6L3       : BR_ONOH0        , at = 5.467811     , slot_id = 2459102, assembly_id= 2452467;
+  BR3.QSK6L3          : BR_QSK          , at = 5.467811     , slot_id = 2459103, assembly_id= 2452467;
+  BR3.XNOH0.6L3       : BR_XNOH0        , at = 5.467811     , slot_id = 2459105, assembly_id= 2452467;
+  BR.QDE6                               , at = 6.234797;
+  BR3.DHZ6L4          : BR_DHZ__A       , at = 7.001811     , slot_id = 2459119, assembly_id= 2452471;
+  BR3.DVT6L4          : BR_DVT__A       , at = 7.001811     , slot_id = 2459120, assembly_id= 2452471;
+  BR3.OSK6L4          : BR_OSK          , at = 7.001811     , slot_id = 2459121, assembly_id= 2452471;
+  BR3.XSK6L4          : BR_XSK          , at = 7.001811     , slot_id = 2459122, assembly_id= 2452471;
+  BR.QFO62                              , at = 7.580797;
+  BR.STSCRAP62                          , at = 8.1998;
+  BR.BHZ62                              , at = 9.008652;
+ENDSEQUENCE;
+
+P07ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 07
+  BR3.ACWF7L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086775, assembly_id= 43086681;
+  BR3.ACWF7L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086779, assembly_id= 43086681;
+  BR.BHZ71                              , at = 3.462849;
+  BR.STSCRAP71                          , at = 4.2717;
+  BR.QFO71                              , at = 4.889797;
+  BR3.BPM7L3          : BR_UES          , at = 5.467816     , slot_id = 2459149, assembly_id= 2452475;
+  BR3.ONOH0.7L3       : BR_ONOH0        , at = 5.467816     , slot_id = 2459147, assembly_id= 2452478;
+  BR3.QSKH0.7L3       : BR_QSKH0        , at = 5.467816     , slot_id = 2459148, assembly_id= 2452478;
+  BR3.XNOH0.7L3       : BR_XNOH0        , at = 5.467816     , slot_id = 2459150, assembly_id= 2452478;
+  BR.QDE7                               , at = 6.234797;
+  BR3.DSHAH7L4        : BR_DBSH         , at = 7.001816     , slot_id = 2459160, assembly_id= 2452482;
+  BR3.DSHAV7L4        : BR_DBSV         , at = 7.001816     , slot_id = 2459161, assembly_id= 2452482;
+  BR.QFO72                              , at = 7.580797;
+  BR.STSCRAP72                          , at = 8.1998;
+  BR.BHZ72                              , at = 9.008652;
+ENDSEQUENCE;
+
+P08ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 08
+  BR3.ONO8L1          : BR_ONO          , at = .36375       , slot_id = 2459170, assembly_id= 2452486;
+  BR3.QNO8L1          : BR_QNO__001     , at = .36375       , slot_id = 2459171, assembly_id= 2452486;
+  BR3.XNO8L1          : BR_XNO__001     , at = .36375       , slot_id = 2459172, assembly_id= 2452486;
+  BR3.DHZ8L1          : BR_DHZ__001     , at = .87375       , slot_id = 2459180, assembly_id= 2452490;
+  BR3.DVT8L1          : BR_DVT__001     , at = .87375       , slot_id = 2459181, assembly_id= 2452490;
+  BR3.BCTF8L1         : BR_TFA          , at = 1.4824       , slot_id = 2459186, assembly_id= 2452492;
+  BR3.BCW8L1          : BR_UWBL         , at = 2.013023     , slot_id = 2459190, assembly_id= 2452493;
+  BR3.VVS8L1          : BR_VVS          , at = 2.318723     , slot_id = 3783286;
+  BR3.BPP8L1          : BR_BPPBA001     , at = 2.465723     , slot_id = 2459194, assembly_id= 2452494;
+  BR.BHZ81                              , at = 3.462849;
+  BR.STSCRAP81                          , at = 4.2716995;
+  BR.QFO81                              , at = 4.889797;
+  BR3.BPM8L3          : BR_UES          , at = 5.467821     , slot_id = 2459216, assembly_id= 2452496;
+  BR3.ONOH0.8L3       : BR_ONOH0        , at = 5.467821     , slot_id = 2459214, assembly_id= 2452499;
+  BR3.QNO8L3          : BR_QNO__001     , at = 5.467821     , slot_id = 2459215, assembly_id= 2452499;
+  BR3.XNOH0.8L3       : BR_XNOH0        , at = 5.467821     , slot_id = 2459217, assembly_id= 2452499;
+  BR.QDE8                               , at = 6.234797;
+  BR3.TSAA8L4         : BR_TSAMA002     , at = 6.971297     , slot_id = 43977872, assembly_id= 43073735;
+  BR3.TSAB8L4         : BR_TSAMA003     , at = 7.143297     , slot_id = 53666552, assembly_id= 43073735;
+  BR.QFO82                              , at = 7.580797;
+  BR.STSCRAP82                          , at = 8.1998;
+  BR.BHZ82                              , at = 9.008652;
+ENDSEQUENCE;
+
+P09ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 09
+  BR3.DHZ9L1          : BR_DHZ__001     , at = .384         , slot_id = 2459235, assembly_id= 2452507;
+  BR3.DVT9L1          : BR_DVT__001     , at = .384         , slot_id = 2459236, assembly_id= 2452507;
+  BR3.BCTDC9L1        : BR_TDC          , at = 1.0289       , slot_id = 2459240;
+  BR3.ONO9L1          : BR_ONO          , at = 2.094        , slot_id = 2459251, assembly_id= 2452513;
+  BR3.OSK9L1          : BR_OSK          , at = 2.094        , slot_id = 2459252, assembly_id= 2452513;
+  BR3.XNO9L1          : BR_XNO__001     , at = 2.094        , slot_id = 2459253, assembly_id= 2452513;
+  BR3.XSK9L1          : BR_XSK          , at = 2.094        , slot_id = 2459254, assembly_id= 2452513;
+  BR.BHZ91                              , at = 3.462849;
+  BR.STSCRAP91                          , at = 4.2716995;
+  BR.QFO91                              , at = 4.889797;
+  BR3.BPM9L3          : BR_UES          , at = 5.467826     , slot_id = 2459275, assembly_id= 2452515;
+  BR3.ONOH0.9L3       : BR_ONOH0        , at = 5.467826     , slot_id = 2459273, assembly_id= 2452518;
+  BR3.QSKH0.9L3       : BR_QSKH0        , at = 5.467826     , slot_id = 2459274, assembly_id= 2452518;
+  BR3.XNOH0.9L3       : BR_XNOH0        , at = 5.467826     , slot_id = 2459276, assembly_id= 2452518;
+  BR.QDE9                               , at = 6.234797;
+  BR3.DSHAH9L4        : BR_DBSH         , at = 7.001826     , slot_id = 2459286, assembly_id= 2452522;
+  BR3.DSHAV9L4        : BR_DBSV         , at = 7.001826     , slot_id = 2459287, assembly_id= 2452522;
+  BR.QFO92                              , at = 7.580797;
+  BR.STSCRAP92                          , at = 8.199799;
+  BR.BHZ92                              , at = 9.008652;
+ENDSEQUENCE;
+
+P10ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 10
+  BR.BHZ101                             , at = 3.462849;
+  BR.STSCRAP101                         , at = 4.2716995;
+  BR.QFO101                             , at = 4.889797;
+  BR3.BPM10L3         : BR_UES          , at = 5.46782      , slot_id = 2459308, assembly_id= 2452525;
+  BR3.ONOH0.10L3      : BR_ONOH0        , at = 5.46782      , slot_id = 2459306, assembly_id= 2452528;
+  BR3.QSK10L3         : BR_QSK          , at = 5.46782      , slot_id = 2459307, assembly_id= 2452528;
+  BR3.XNOH0.10L3      : BR_XNOH0        , at = 5.46782      , slot_id = 2459309, assembly_id= 2452528;
+  BR.QDE10                              , at = 6.234797;
+  BR3.DHZ10L4         : BR_DHZ__001     , at = 7.00182      , slot_id = 52943168, assembly_id= 2452532;
+  BR3.DVT10L4         : BR_DVT__001     , at = 7.00182      , slot_id = 2459320, assembly_id= 2452532;
+  BR.QFO102                             , at = 7.580797;
+  BR.STSCRAP102                         , at = 8.1998;
+  BR.BHZ102                             , at = 9.008652;
+ENDSEQUENCE;
+
+P11ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 11
+  BE3.DHZ11L1         : BR_DHZ__001     , at = .296         , slot_id = 2459327, assembly_id= 2452536;
+  BE3.DVT11L1         : BR_DVT__001     , at = .296         , slot_id = 2459328, assembly_id= 2452536;
+  BR3.ONO11L1         : BR_ONO          , at = 1.463        , slot_id = 2459337, assembly_id= 2452540;
+  BR3.QNO11L1         : BR_QNO__001     , at = 1.463        , slot_id = 2459338, assembly_id= 2452540;
+  BR3.XNO11L1         : BR_XNO__001     , at = 1.463        , slot_id = 2459339, assembly_id= 2452540;
+  BR3.BWSV11L1        : BR_BWSRA002     , at = 2.163677     , slot_id = 43177296;
+  BR.BHZ111                             , at = 3.462849;
+  BR.STSCRAP111                         , at = 4.2716995;
+  BR3.BPP11L2         : BR_BPPBA001     , at = 4.3037       , slot_id = 2459349, assembly_id= 2452542;
+  BR.QFO111                             , at = 4.889797;
+  BR3.BPM11L3         : BR_UES          , at = 5.467825     , slot_id = 2459363, assembly_id= 2452543;
+  BR3.ONOH0.11L3      : BR_ONOH0        , at = 5.467825     , slot_id = 2459361, assembly_id= 2452546;
+  BR3.QSKH0.11L3      : BR_QSKH0        , at = 5.467825     , slot_id = 2459362, assembly_id= 2452546;
+  BR3.XNOH0.11L3      : BR_XNOH0        , at = 5.467825     , slot_id = 2459364, assembly_id= 2452546;
+  BR.QDE11                              , at = 6.234797;
+  BR3.DHZ11L4         : BR_DHZ__A       , at = 7.001825     , slot_id = 2459378, assembly_id= 2452550;
+  BR3.DVT11L4         : BR_DVT__A       , at = 7.001825     , slot_id = 2459379, assembly_id= 2452550;
+  BR3.OSK11L4         : BR_OSK          , at = 7.001825     , slot_id = 2459380, assembly_id= 2452550;
+  BR3.XSK11L4         : BR_XSK          , at = 7.001825     , slot_id = 2459381, assembly_id= 2452550;
+  BR.QFO112                             , at = 7.580797;
+  BR.STSCRAP112                         , at = 8.1998;
+  BR.BHZ112                             , at = 9.008652;
+ENDSEQUENCE;
+
+P12ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 12
+  BR3.KQM12L1         : BR_KQM__002     , at = .914         , slot_id = 2459388, assembly_id= 2452552;
+  BR3.ONO12L1         : BR_ONO          , at = 2.094        , slot_id = 2459398, assembly_id= 2452555;
+  BR3.OSK12L1         : BR_OSK          , at = 2.094        , slot_id = 2459399, assembly_id= 2452555;
+  BR3.XNO12L1         : BR_XNO__001     , at = 2.094        , slot_id = 2459400, assembly_id= 2452555;
+  BR3.XSK12L1         : BR_XSK          , at = 2.094        , slot_id = 2459401, assembly_id= 2452555;
+  BR.BHZ121                             , at = 3.462849;
+  BR.STSCRAP121                         , at = 4.2716995;
+  BR.QFO121                             , at = 4.889797;
+  BR3.BPM12L3         : BR_UES          , at = 5.46783      , slot_id = 2459422, assembly_id= 2452557;
+  BR3.ONOH0.12L3      : BR_ONOH0        , at = 5.46783      , slot_id = 2459420, assembly_id= 2452560;
+  BR3.QNO12L3         : BR_QNO__001     , at = 5.46783      , slot_id = 2459421, assembly_id= 2452560;
+  BR3.XNOH0.12L3      : BR_XNOH0        , at = 5.46783      , slot_id = 2459423, assembly_id= 2452560;
+  BR.QDE12                              , at = 6.234797;
+  BR3.DHZ12L4         : BR_DHZ__A       , at = 7.00183      , slot_id = 2459437, assembly_id= 2452564;
+  BR3.DVT12L4         : BR_DVT__A       , at = 7.00183      , slot_id = 2459438, assembly_id= 2452564;
+  BR3.OSK12L4         : BR_OSK          , at = 7.00183      , slot_id = 2459439, assembly_id= 2452564;
+  BR3.XSK12L4         : BR_XSK          , at = 7.00183      , slot_id = 2459440, assembly_id= 2452564;
+  BR.QFO122                             , at = 7.580797;
+  BR.STSCRAP122                         , at = 8.199799;
+  BR.BHZ122                             , at = 9.008652;
+ENDSEQUENCE;
+
+P13ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 13
+  BR3.ACWF13L1.1      : BR_ACWFB        , at = .722761      , slot_id = 43086791, assembly_id= 43086682;
+  BR3.ACWF13L1.2      : BR_ACWFB        , at = 1.777261     , slot_id = 43086795, assembly_id= 43086682;
+  BR.BHZ131                             , at = 3.462849;
+  BR.STSCRAP131                         , at = 4.2716995;
+  BR.QFO131                             , at = 4.889797;
+  BR3.BPM13L3         : BR_UES          , at = 5.467835     , slot_id = 2459465, assembly_id= 2452567;
+  BR3.ONOH0.13L3      : BR_ONOH0        , at = 5.467835     , slot_id = 2459463, assembly_id= 2452570;
+  BR3.QSKH0.13L3      : BR_QSKH0        , at = 5.467835     , slot_id = 2459464, assembly_id= 2452570;
+  BR3.XNOH0.13L3      : BR_XNOH0        , at = 5.467835     , slot_id = 2459466, assembly_id= 2452570;
+  BR.QDE13                              , at = 6.234797;
+  BR3.DHZ13L4         : BR_DHZ__001     , at = 7.001835     , slot_id = 2459476, assembly_id= 2452574;
+  BR3.DVT13L4         : BR_DVT__001     , at = 7.001835     , slot_id = 2459477, assembly_id= 2452574;
+  BR.QFO132                             , at = 7.580797;
+  BR.STSCRAP132                         , at = 8.199799;
+  BR.BHZ132                             , at = 9.008652;
+ENDSEQUENCE;
+
+P14ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 14
+  BR3.DHZ14L1         : BR_DHZ__001     , at = .30659       , slot_id = 2459484, assembly_id= 2452578;
+  BR3.DVT14L1         : BR_DVT__001     , at = .30659       , slot_id = 2459485, assembly_id= 2452578;
+  BE3.KFA14L1         : BR_MKMAG003     , at = 1.52659      , slot_id = 2459490, assembly_id= 5736994;
+  BR.BHZ141                             , at = 3.462849;
+  BR.STSCRAP141                         , at = 4.2716995;
+  BR3.VVS14L2         : BR_VVS          , at = 4.3725       , slot_id = 3783358;
+  BR.QFO141                             , at = 4.889797;
+  BR3.BPM14L3         : BR_UES          , at = 5.467839     , slot_id = 2459507, assembly_id= 2452581;
+  BR3.ONOH0.14L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459505, assembly_id= 2452584;
+  BR3.QSK14L3         : BR_QSK          , at = 5.467839     , slot_id = 2459506, assembly_id= 2452584;
+  BR3.XNOH0.14L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459508, assembly_id= 2452584;
+  BR.QDE14                              , at = 6.234797;
+  BR3.BPP14L4         : BR_BPPBB001     , at = 6.79374      , slot_id = 2459516, assembly_id= 2452586;
+  BE3.BSW14L4         : BR_MDBAAWAP     , at = 7.06474      , slot_id = 2459520;
+  BR.QFO142                             , at = 7.580797;
+  BR.SPSCRAP142                         , at = 8.199799;
+  BR.BHZ142                             , at = 9.008652;
+ENDSEQUENCE;
+
+P15ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 15
+  BE3.BTV10           : BR_BTVBP036     , at = .225173      , slot_id = 52941809, assembly_id= 52941725;
+  BR3.BTV15L1         : BR_BTVBP037     , at = .270573      , slot_id = 52941769, assembly_id= 52941725;
+  BE3.SMH15L1         : BR_SMH__006     , at = 1.026102     , slot_id = 2459526, assembly_id= 2452588;
+  BR3.DHZ15L1         : BR_DHZ__002     , at = 1.842652     , slot_id = 2459532, assembly_id= 2452591;
+  BR3.DVT15L1         : BR_DVT__002     , at = 1.842652     , slot_id = 2459533, assembly_id= 2452591;
+  BE3.BSW15L1         : BR_MDBABWAP     , at = 2.36866      , slot_id = 2459538;
+  BR.BHZ151                             , at = 3.462849;
+  BR.SPSCRAP151                         , at = 4.2716995;
+  BR.QFO151                             , at = 4.889797;
+  BR3.BPM15L3         : BR_UES          , at = 5.467834     , slot_id = 2459555, assembly_id= 2452594;
+  BR3.ONOH0.15L3      : BR_ONOH0        , at = 5.467834     , slot_id = 2459553, assembly_id= 2452597;
+  BR3.QSKH0.15L3      : BR_QSKH0        , at = 5.467834     , slot_id = 2459554, assembly_id= 2452597;
+  BR3.XNOH0.15L3      : BR_XNOH0        , at = 5.467834     , slot_id = 2459556, assembly_id= 2452597;
+  BR.QDE15                              , at = 6.234797;
+  BE3.BSW15L4         : BR_MDBAAWAP     , at = 7.011834     , slot_id = 2459564;
+  BR.QFO152                             , at = 7.580797;
+  BR.STSCRAP152                         , at = 8.199799;
+  BR.BHZ152                             , at = 9.008652;
+ENDSEQUENCE;
+
+P16ring3: SEQUENCE, refer = centre, L  = 9.8175; !Ring 3, Period 16
+  BR3.ONO16L1         : BR_ONO          , at = .363         , slot_id = 2459573, assembly_id= 2452602;
+  BR3.QNO16L1         : BR_QNO__001     , at = .363         , slot_id = 2459574, assembly_id= 2452602;
+  BR3.XNO16L1         : BR_XNO__001     , at = .363         , slot_id = 2459575, assembly_id= 2452602;
+  BI3.KSW16L1         : BR_MKMAG002     , at = .9605        , slot_id = 40101124, assembly_id= 40101119;
+  BR3.DHZ16L1         : BR_DHZ__001     , at = 1.99601      , slot_id = 2459583, assembly_id= 2452606;
+  BR3.DVT16L1         : BR_DVT__001     , at = 1.99601      , slot_id = 2459584, assembly_id= 2452606;
+  BR.BHZ161                             , at = 3.462849;
+  BR.STSCRAP161                         , at = 4.2717;
+  BR.QFO161                             , at = 4.889797;
+  BR3.BPM16L3         : BR_UES          , at = 5.467839     , slot_id = 2459603, assembly_id= 2452608;
+  BR3.ONOH0.16L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459601, assembly_id= 2452611;
+  BR3.QNO16L3         : BR_QNO__001     , at = 5.467839     , slot_id = 2459602, assembly_id= 2452611;
+  BR3.XNOH0.16L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459604, assembly_id= 2452611;
+  BR.QDE16                              , at = 6.234797;
+  BI3.KSW16L4         : BR_MKMAG002     , at = 7.001839     , slot_id = 2459612, assembly_id= 5736989;
+  BR.QFO162                             , at = 7.580797;
+  BR3.VVS16L5         : BR_VVS          , at = 7.955897     , slot_id = 54717227;
+  BR.STSCRAP162                         , at = 8.199799;
+  BR.BHZ162                             , at = 9.008652;
+ENDSEQUENCE;
+
+//------------------------------------------------------------------------------------
+//                       RING 4                                                     
+//------------------------------------------------------------------------------------
+
+P01ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 01
+  BI4.BSW1L1.1        : BR_MSMIF001     , at = .336         , slot_id = 43201359;
+  BI4.BSW1L1.2        : BR_MSBSW002     , at = 1.032        , slot_id = 43201372;
+  BI4.BTV1L1          : BR_BTVTS        , at = 1.327628     , slot_id = 43201384;
+  BI4.BCSF1L1         : BR_BCSMA        , at = 1.334        , slot_id = 43201380;
+  BI4.TSTR1L1         : BR_TKSTR002     , at = 1.334        , slot_id = 43201376;
+  BI4.BSW1L1.3        : BR_MSBSW003     , at = 1.56         , slot_id = 43201388;
+  BI4.BSW1L1.4        : BR_MSBSW004     , at = 2.256        , slot_id = 43201398;
+  BI4.TDI1L1          : BR_TDIMA        , at = 2.491        , slot_id = 43201402;
+  BR.BHZ11                              , at = 3.462849;
+  BR.SPSCRAP11                          , at = 4.2717;
+  BR4.VVS1L2          : BR_VVS          , at = 4.514819     , slot_id = 54716902;
+  BR.QFO11                              , at = 4.889797;
+  BR4.BPM1L3          : BR_UES          , at = 5.467797     , slot_id = 2458859, assembly_id= 2452397;
+  BR4.ONOH0.1L3       : BR_ONOH0        , at = 5.467797     , slot_id = 2458857, assembly_id= 2452401;
+  BR4.QSKH0.1L3       : BR_QSKH0        , at = 5.467797     , slot_id = 2458858, assembly_id= 2452401;
+  BR4.XNOH0.1L3       : BR_XNOH0        , at = 5.467797     , slot_id = 2458860, assembly_id= 2452401;
+  BR.QDE1                               , at = 6.234797;
+  BI4.KSW1L4          : BR_MKMAG002     , at = 7.001797     , slot_id = 2458865, assembly_id= 5736975;
+  BR.QFO12                              , at = 7.580797;
+  BR4.BPP1L5          : BR_BPPBA001     , at = 7.997852     , slot_id = 2458844, assembly_id= 2452396;
+  BR.STSCRAP12                          , at = 8.199799;
+  BR.BHZ12                              , at = 9.008652;
+ENDSEQUENCE;
+
+P02ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 02
+  BR4.BWS.2L1.V_ROT   : BR_BWSV         , at = .918         , slot_id = 2458870, assembly_id= 2452403;
+  BR4.BWS.2L1.H_ROT   : BR_BWSH         , at = 1.016        , slot_id = 2458874, assembly_id= 2452403;
+  BI4.KSW2L1          : BR_MKMAG002     , at = 1.737        , slot_id = 2458878, assembly_id= 5736984;
+  BR.BHZ21                              , at = 3.462849;
+  BR.STSCRAP21                          , at = 4.2716995;
+  BR.QFO21                              , at = 4.889797;
+  BR4.BPM2L3          : BR_UES          , at = 5.467802     , slot_id = 2458899, assembly_id= 2452406;
+  BR4.ONOH0.2L3       : BR_ONOH0        , at = 5.467802     , slot_id = 2458897, assembly_id= 2452410;
+  BR4.QSK2L3          : BR_QSK          , at = 5.467802     , slot_id = 2458898, assembly_id= 2452410;
+  BR4.XNOH0.2L3       : BR_XNOH0        , at = 5.467802     , slot_id = 2458900, assembly_id= 2452410;
+  BR.QDE2                               , at = 6.234797;
+  BR4.DHZ2L4          : BR_DHZ__A       , at = 7.001802     , slot_id = 2458914, assembly_id= 2452414;
+  BR4.DVT2L4          : BR_DVT__A       , at = 7.001802     , slot_id = 2458915, assembly_id= 2452414;
+  BR4.OSK2L4          : BR_OSK          , at = 7.001802     , slot_id = 2458916, assembly_id= 2452414;
+  BR4.XSK2L4          : BR_XSK          , at = 7.001802     , slot_id = 2458917, assembly_id= 2452414;
+  BR.QFO22                              , at = 7.580797;
+  BR.STSCRAP22                          , at = 8.199799;
+  BR.BHZ22                              , at = 9.008652;
+ENDSEQUENCE;
+
+P03ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 03
+  BR4.DES3L1          : BR_DES          , at = .8065        , slot_id = 2458924, assembly_id= 2452415;
+  BR4.ONO3L1          : BR_ONO          , at = 1.463        , slot_id = 2458936, assembly_id= 2452420;
+  BR4.QNO3L1          : BR_QNO__001     , at = 1.463        , slot_id = 2458937, assembly_id= 2452420;
+  BR4.XNO3L1          : BR_XNO__001     , at = 1.463        , slot_id = 2458938, assembly_id= 2452420;
+  BR4.BPMT3L1         : BR_BPMTA        , at = 2.043        , slot_id = 2458942, assembly_id= 2452421;
+  BR.BHZ31                              , at = 3.462849;
+  BR.STSCRAP31                          , at = 4.2717;
+  BR.QFO31                              , at = 4.889797;
+  BR4.BPM3L3          : BR_UES          , at = 5.467807     , slot_id = 2458963, assembly_id= 2452422;
+  BR4.ONOH0.3L3       : BR_ONOH0        , at = 5.467807     , slot_id = 2458961, assembly_id= 2452426;
+  BR4.QSKH0.3L3       : BR_QSKH0        , at = 5.467807     , slot_id = 2458962, assembly_id= 2452426;
+  BR4.XNOH0.3L3       : BR_XNOH0        , at = 5.467807     , slot_id = 2458964, assembly_id= 2452426;
+  BR.QDE3                               , at = 6.234797;
+  BR4.DHZ3L4          : BR_DHZ__001     , at = 7.001807     , slot_id = 2458972, assembly_id= 2452430;
+  BR4.DVT3L4          : BR_DVT__001     , at = 7.001807     , slot_id = 2458973, assembly_id= 2452430;
+  BR.QFO32                              , at = 7.580797;
+  BR.STSCRAP32                          , at = 8.199799;
+  BR.BHZ32                              , at = 9.008652;
+ENDSEQUENCE;
+
+P04ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 04
+  BR4.ONO4L1          : BR_ONO          , at = .37          , slot_id = 2458986, assembly_id= 2452434;
+  BR4.OSK4L1          : BR_OSK          , at = .37          , slot_id = 2458987, assembly_id= 2452434;
+  BR4.XNO4L1          : BR_XNO__001     , at = .37          , slot_id = 2458988, assembly_id= 2452434;
+  BR4.XSK4L1          : BR_XSK          , at = .37          , slot_id = 2458989, assembly_id= 2452434;
+  BE4.DHZ4L1          : BR_DHZ__001     , at = .904         , slot_id = 2458996, assembly_id= 2452438;
+  BE4.DVT4L1          : BR_DVT__001     , at = .904         , slot_id = 2458997, assembly_id= 2452438;
+  BR4.BWSH4L1         : BR_BWSRA001     , at = 1.7165       , slot_id = 43177292;
+  BR.BHZ41                              , at = 3.462849;
+  BR.STSCRAP41                          , at = 4.2716995;
+  BR.QFO41                              , at = 4.889797;
+  BR4.BPM4L3          : BR_UES          , at = 5.467812     , slot_id = 2459018, assembly_id= 2452439;
+  BR4.ONOH0.4L3       : BR_ONOH0        , at = 5.467812     , slot_id = 2459016, assembly_id= 2452443;
+  BR4.QNO4L3          : BR_QNO__001     , at = 5.467812     , slot_id = 2459017, assembly_id= 2452443;
+  BR4.XNOH0.4L3       : BR_XNOH0        , at = 5.467812     , slot_id = 2459019, assembly_id= 2452443;
+  BR.QDE4                               , at = 6.234797;
+  BR4.DHZ4L4          : BR_DHZ__001     , at = 7.001812     , slot_id = 2459027, assembly_id= 2452447;
+  BR4.DVT4L4          : BR_DVT__001     , at = 7.001812     , slot_id = 52943093, assembly_id= 2452447;
+  BR.QFO42                              , at = 7.580797;
+  BR4.BPTF4L5         : BR_UTFB         , at = 7.99794      , slot_id = 2459032, assembly_id= 2452448;
+  BR.STSCRAP42                          , at = 8.199799;
+  BR.BHZ42                              , at = 9.008652;
+ENDSEQUENCE;
+
+P05ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 05
+  BR4.ACWF5L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086688, assembly_id= 43086680;
+  BR4.ACWF5L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086692, assembly_id= 43086680;
+  BR.BHZ51                              , at = 3.462849;
+  BR.STSCRAP51                          , at = 4.2716995;
+  BR.QFO51                              , at = 4.889797;
+  BR4.BPM5L3          : BR_UES          , at = 5.467806     , slot_id = 2459061, assembly_id= 2452451;
+  BR4.ONOH0.5L3       : BR_ONOH0        , at = 5.467806     , slot_id = 2459059, assembly_id= 2452455;
+  BR4.QSKH0.5L3       : BR_QSKH0        , at = 5.467806     , slot_id = 2459060, assembly_id= 2452455;
+  BR4.XNOH0.5L3       : BR_XNOH0        , at = 5.467806     , slot_id = 2459062, assembly_id= 2452455;
+  BR.QDE5                               , at = 6.234797;
+  BR4.DHZ5L4          : BR_DHZ__001     , at = 6.840806     , slot_id = 2459070, assembly_id= 2452459;
+  BR4.DVT5L4          : BR_DVT__001     , at = 6.840806     , slot_id = 2459071, assembly_id= 2452459;
+  BR.QFO52                              , at = 7.580797;
+  BR.STSCRAP52                          , at = 8.199799;
+  BR.BHZ52                              , at = 9.008652;
+ENDSEQUENCE;
+
+P06ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 06
+  BR4.ONO6L1          : BR_ONO          , at = .37          , slot_id = 2459084, assembly_id= 2452463;
+  BR4.OSK6L1          : BR_OSK          , at = .37          , slot_id = 2459085, assembly_id= 2452463;
+  BR4.XNO6L1          : BR_XNO__001     , at = .37          , slot_id = 2459086, assembly_id= 2452463;
+  BR4.XSK6L1          : BR_XSK          , at = .37          , slot_id = 2459087, assembly_id= 2452463;
+  BR.BHZ61                              , at = 3.462849;
+  BR.STSCRAP61                          , at = 4.2717;
+  BR.QFO61                              , at = 4.889797;
+  BR4.BPM6L3          : BR_UES          , at = 5.467811     , slot_id = 2459108, assembly_id= 2452464;
+  BR4.ONOH0.6L3       : BR_ONOH0        , at = 5.467811     , slot_id = 2459106, assembly_id= 2452468;
+  BR4.QSK6L3          : BR_QSK          , at = 5.467811     , slot_id = 2459107, assembly_id= 2452468;
+  BR4.XNOH0.6L3       : BR_XNOH0        , at = 5.467811     , slot_id = 2459109, assembly_id= 2452468;
+  BR.QDE6                               , at = 6.234797;
+  BR4.DHZ6L4          : BR_DHZ__A       , at = 7.001811     , slot_id = 2459123, assembly_id= 2452472;
+  BR4.DVT6L4          : BR_DVT__A       , at = 7.001811     , slot_id = 2459124, assembly_id= 2452472;
+  BR4.OSK6L4          : BR_OSK          , at = 7.001811     , slot_id = 2459125, assembly_id= 2452472;
+  BR4.XSK6L4          : BR_XSK          , at = 7.001811     , slot_id = 2459126, assembly_id= 2452472;
+  BR.QFO62                              , at = 7.580797;
+  BR.STSCRAP62                          , at = 8.1998;
+  BR.BHZ62                              , at = 9.008652;
+ENDSEQUENCE;
+
+P07ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 07
+  BR4.ACWF7L1.1       : BR_ACWFB        , at = .722761      , slot_id = 43086776, assembly_id= 43086681;
+  BR4.ACWF7L1.2       : BR_ACWFB        , at = 1.777261     , slot_id = 43086780, assembly_id= 43086681;
+  BR.BHZ71                              , at = 3.462849;
+  BR.STSCRAP71                          , at = 4.2717;
+  BR.QFO71                              , at = 4.889797;
+  BR4.BPM7L3          : BR_UES          , at = 5.467816     , slot_id = 2459153, assembly_id= 2452475;
+  BR4.ONOH0.7L3       : BR_ONOH0        , at = 5.467816     , slot_id = 2459151, assembly_id= 2452479;
+  BR4.QSKH0.7L3       : BR_QSKH0        , at = 5.467816     , slot_id = 2459152, assembly_id= 2452479;
+  BR4.XNOH0.7L3       : BR_XNOH0        , at = 5.467816     , slot_id = 2459154, assembly_id= 2452479;
+  BR.QDE7                               , at = 6.234797;
+  BR4.DSHAH7L4        : BR_DBSH         , at = 7.001816     , slot_id = 2459162, assembly_id= 2452483;
+  BR4.DSHAV7L4        : BR_DBSV         , at = 7.001816     , slot_id = 2459163, assembly_id= 2452483;
+  BR.QFO72                              , at = 7.580797;
+  BR.STSCRAP72                          , at = 8.1998;
+  BR.BHZ72                              , at = 9.008652;
+ENDSEQUENCE;
+
+P08ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 08
+  BR4.ONO8L1          : BR_ONO          , at = .36375       , slot_id = 2459173, assembly_id= 2452487;
+  BR4.QNO8L1          : BR_QNO__001     , at = .36375       , slot_id = 2459174, assembly_id= 2452487;
+  BR4.XNO8L1          : BR_XNO__001     , at = .36375       , slot_id = 2459175, assembly_id= 2452487;
+  BR4.DHZ8L1          : BR_DHZ__001     , at = .87375       , slot_id = 2459182, assembly_id= 2452491;
+  BR4.DVT8L1          : BR_DVT__001     , at = .87375       , slot_id = 2459183, assembly_id= 2452491;
+  BR4.BCTF8L1         : BR_TFA          , at = 1.4824       , slot_id = 2459187, assembly_id= 2452492;
+  BR4.BCW8L1          : BR_UWBL         , at = 2.013023     , slot_id = 2459191, assembly_id= 2452493;
+  BR4.VVS8L1          : BR_VVS          , at = 2.318723     , slot_id = 3783287;
+  BR4.BPP8L1          : BR_BPPBA001     , at = 2.465723     , slot_id = 2459195, assembly_id= 2452494;
+  BR.BHZ81                              , at = 3.462849;
+  BR.STSCRAP81                          , at = 4.2716995;
+  BR.QFO81                              , at = 4.889797;
+  BR4.BPM8L3          : BR_UES          , at = 5.467821     , slot_id = 2459220, assembly_id= 2452496;
+  BR4.ONOH0.8L3       : BR_ONOH0        , at = 5.467821     , slot_id = 2459218, assembly_id= 2452500;
+  BR4.QNO8L3          : BR_QNO__001     , at = 5.467821     , slot_id = 2459219, assembly_id= 2452500;
+  BR4.XNOH0.8L3       : BR_XNOH0        , at = 5.467821     , slot_id = 2459221, assembly_id= 2452500;
+  BR.QDE8                               , at = 6.234797;
+  BR4.TSAA8L4         : BR_TSAMA002     , at = 6.971297     , slot_id = 43977873, assembly_id= 43073735;
+  BR4.TSAB8L4         : BR_TSAMA003     , at = 7.143297     , slot_id = 53666575, assembly_id= 43073735;
+  BR.QFO82                              , at = 7.580797;
+  BR.STSCRAP82                          , at = 8.1998;
+  BR.BHZ82                              , at = 9.008652;
+ENDSEQUENCE;
+
+P09ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 09
+  BR4.DHZ9L1          : BR_DHZ__001     , at = .384         , slot_id = 2459237, assembly_id= 2452508;
+  BR4.DVT9L1          : BR_DVT__001     , at = .384         , slot_id = 2459238, assembly_id= 2452508;
+  BR4.BCTDC9L1        : BR_TDC          , at = 1.3889       , slot_id = 2459242;
+  BR4.ONO9L1          : BR_ONO          , at = 2.094        , slot_id = 2459255, assembly_id= 2452514;
+  BR4.OSK9L1          : BR_OSK          , at = 2.094        , slot_id = 2459256, assembly_id= 2452514;
+  BR4.XNO9L1          : BR_XNO__001     , at = 2.094        , slot_id = 2459257, assembly_id= 2452514;
+  BR4.XSK9L1          : BR_XSK          , at = 2.094        , slot_id = 2459258, assembly_id= 2452514;
+  BR.BHZ91                              , at = 3.462849;
+  BR.STSCRAP91                          , at = 4.2716995;
+  BR.QFO91                              , at = 4.889797;
+  BR4.BPM9L3          : BR_UES          , at = 5.467826     , slot_id = 2459279, assembly_id= 2452515;
+  BR4.ONOH0.9L3       : BR_ONOH0        , at = 5.467826     , slot_id = 2459277, assembly_id= 2452519;
+  BR4.QSKH0.9L3       : BR_QSKH0        , at = 5.467826     , slot_id = 2459278, assembly_id= 2452519;
+  BR4.XNOH0.9L3       : BR_XNOH0        , at = 5.467826     , slot_id = 2459280, assembly_id= 2452519;
+  BR.QDE9                               , at = 6.234797;
+  BR4.DSHAH9L4        : BR_DBSH         , at = 7.001826     , slot_id = 2459288, assembly_id= 2452523;
+  BR4.DSHAV9L4        : BR_DBSV         , at = 7.001826     , slot_id = 2459289, assembly_id= 2452523;
+  BR.QFO92                              , at = 7.580797;
+  BR.STSCRAP92                          , at = 8.199799;
+  BR.BHZ92                              , at = 9.008652;
+ENDSEQUENCE;
+
+P10ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 10
+  BR.BHZ101                             , at = 3.462849;
+  BR.STSCRAP101                         , at = 4.2716995;
+  BR.QFO101                             , at = 4.889797;
+  BR4.BPM10L3         : BR_UES          , at = 5.46782      , slot_id = 2459312, assembly_id= 2452525;
+  BR4.ONOH0.10L3      : BR_ONOH0        , at = 5.46782      , slot_id = 2459310, assembly_id= 2452529;
+  BR4.QSK10L3         : BR_QSK          , at = 5.46782      , slot_id = 2459311, assembly_id= 2452529;
+  BR4.XNOH0.10L3      : BR_XNOH0        , at = 5.46782      , slot_id = 2459313, assembly_id= 2452529;
+  BR.QDE10                              , at = 6.234797;
+  BR4.DHZ10L4         : BR_DHZ__001     , at = 7.00182      , slot_id = 52943200, assembly_id= 2452533;
+  BR4.DVT10L4         : BR_DVT__001     , at = 7.00182      , slot_id = 2459322, assembly_id= 2452533;
+  BR.QFO102                             , at = 7.580797;
+  BR.STSCRAP102                         , at = 8.1998;
+  BR.BHZ102                             , at = 9.008652;
+ENDSEQUENCE;
+
+P11ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 11
+  BE4.DHZ11L1         : BR_DHZ__001     , at = .296         , slot_id = 2459329, assembly_id= 2452537;
+  BE4.DVT11L1         : BR_DVT__001     , at = .296         , slot_id = 2459330, assembly_id= 2452537;
+  BR4.BWSV11L1        : BR_BWSRA002     , at = 1.012678     , slot_id = 43177295;
+  BR4.ONO11L1         : BR_ONO          , at = 1.463        , slot_id = 2459340, assembly_id= 2452541;
+  BR4.QNO11L1         : BR_QNO__001     , at = 1.463        , slot_id = 2459341, assembly_id= 2452541;
+  BR4.XNO11L1         : BR_XNO__001     , at = 1.463        , slot_id = 2459342, assembly_id= 2452541;
+  BR.BHZ111                             , at = 3.462849;
+  BR.STSCRAP111                         , at = 4.2716995;
+  BR4.BPP11L2         : BR_BPPBA001     , at = 4.3037       , slot_id = 2459350, assembly_id= 2452542;
+  BR.QFO111                             , at = 4.889797;
+  BR4.BPM11L3         : BR_UES          , at = 5.467825     , slot_id = 2459367, assembly_id= 2452543;
+  BR4.ONOH0.11L3      : BR_ONOH0        , at = 5.467825     , slot_id = 2459365, assembly_id= 2452547;
+  BR4.QSKH0.11L3      : BR_QSKH0        , at = 5.467825     , slot_id = 2459366, assembly_id= 2452547;
+  BR4.XNOH0.11L3      : BR_XNOH0        , at = 5.467825     , slot_id = 2459368, assembly_id= 2452547;
+  BR.QDE11                              , at = 6.234797;
+  BR4.DHZ11L4         : BR_DHZ__A       , at = 7.001825     , slot_id = 2459382, assembly_id= 2452551;
+  BR4.DVT11L4         : BR_DVT__A       , at = 7.001825     , slot_id = 2459383, assembly_id= 2452551;
+  BR4.OSK11L4         : BR_OSK          , at = 7.001825     , slot_id = 2459384, assembly_id= 2452551;
+  BR4.XSK11L4         : BR_XSK          , at = 7.001825     , slot_id = 2459385, assembly_id= 2452551;
+  BR.QFO112                             , at = 7.580797;
+  BR.STSCRAP112                         , at = 8.1998;
+  BR.BHZ112                             , at = 9.008652;
+ENDSEQUENCE;
+
+P12ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 12
+  BR4.KQM12L1         : BR_KQM__002     , at = .914         , slot_id = 2459389, assembly_id= 2452552;
+  BR4.ONO12L1         : BR_ONO          , at = 2.094        , slot_id = 2459402, assembly_id= 2452556;
+  BR4.OSK12L1         : BR_OSK          , at = 2.094        , slot_id = 2459403, assembly_id= 2452556;
+  BR4.XNO12L1         : BR_XNO__001     , at = 2.094        , slot_id = 2459404, assembly_id= 2452556;
+  BR4.XSK12L1         : BR_XSK          , at = 2.094        , slot_id = 2459405, assembly_id= 2452556;
+  BR.BHZ121                             , at = 3.462849;
+  BR.STSCRAP121                         , at = 4.2716995;
+  BR.QFO121                             , at = 4.889797;
+  BR4.BPM12L3         : BR_UES          , at = 5.46783      , slot_id = 2459426, assembly_id= 2452557;
+  BR4.ONOH0.12L3      : BR_ONOH0        , at = 5.46783      , slot_id = 2459424, assembly_id= 2452561;
+  BR4.QNO12L3         : BR_QNO__001     , at = 5.46783      , slot_id = 2459425, assembly_id= 2452561;
+  BR4.XNOH0.12L3      : BR_XNOH0        , at = 5.46783      , slot_id = 2459427, assembly_id= 2452561;
+  BR.QDE12                              , at = 6.234797;
+  BR4.DHZ12L4         : BR_DHZ__A       , at = 7.00183      , slot_id = 2459441, assembly_id= 2452565;
+  BR4.DVT12L4         : BR_DVT__A       , at = 7.00183      , slot_id = 2459442, assembly_id= 2452565;
+  BR4.OSK12L4         : BR_OSK          , at = 7.00183      , slot_id = 2459443, assembly_id= 2452565;
+  BR4.XSK12L4         : BR_XSK          , at = 7.00183      , slot_id = 2459444, assembly_id= 2452565;
+  BR.QFO122                             , at = 7.580797;
+  BR.STSCRAP122                         , at = 8.199799;
+  BR.BHZ122                             , at = 9.008652;
+ENDSEQUENCE;
+
+P13ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 13
+  BR4.ACWF13L1.1      : BR_ACWFB        , at = .722761      , slot_id = 43086792, assembly_id= 43086682;
+  BR4.ACWF13L1.2      : BR_ACWFB        , at = 1.777261     , slot_id = 43086796, assembly_id= 43086682;
+  BR.BHZ131                             , at = 3.462849;
+  BR.STSCRAP131                         , at = 4.2716995;
+  BR.QFO131                             , at = 4.889797;
+  BR4.BPM13L3         : BR_UES          , at = 5.467835     , slot_id = 2459469, assembly_id= 2452567;
+  BR4.ONOH0.13L3      : BR_ONOH0        , at = 5.467835     , slot_id = 2459467, assembly_id= 2452571;
+  BR4.QSKH0.13L3      : BR_QSKH0        , at = 5.467835     , slot_id = 2459468, assembly_id= 2452571;
+  BR4.XNOH0.13L3      : BR_XNOH0        , at = 5.467835     , slot_id = 2459470, assembly_id= 2452571;
+  BR.QDE13                              , at = 6.234797;
+  BR4.DHZ13L4         : BR_DHZ__001     , at = 7.001835     , slot_id = 2459478, assembly_id= 2452575;
+  BR4.DVT13L4         : BR_DVT__001     , at = 7.001835     , slot_id = 2459479, assembly_id= 2452575;
+  BR.QFO132                             , at = 7.580797;
+  BR.STSCRAP132                         , at = 8.199799;
+  BR.BHZ132                             , at = 9.008652;
+ENDSEQUENCE;
+
+P14ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 14
+  BR4.DHZ14L1         : BR_DHZ__001     , at = .30659       , slot_id = 2459486, assembly_id= 2452579;
+  BR4.DVT14L1         : BR_DVT__001     , at = .30659       , slot_id = 2459487, assembly_id= 2452579;
+  BE4.KFA14L1         : BR_MKMAG003     , at = 1.52659      , slot_id = 2459491, assembly_id= 5736994;
+  BR.BHZ141                             , at = 3.462849;
+  BR.STSCRAP141                         , at = 4.2716995;
+  BR4.VVS14L2         : BR_VVS          , at = 4.3725       , slot_id = 3783359;
+  BR.QFO141                             , at = 4.889797;
+  BR4.BPM14L3         : BR_UES          , at = 5.467839     , slot_id = 2459511, assembly_id= 2452581;
+  BR4.ONOH0.14L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459509, assembly_id= 2452585;
+  BR4.QSK14L3         : BR_QSK          , at = 5.467839     , slot_id = 2459510, assembly_id= 2452585;
+  BR4.XNOH0.14L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459512, assembly_id= 2452585;
+  BR.QDE14                              , at = 6.234797;
+  BR4.BPP14L4         : BR_BPPBB001     , at = 6.79374      , slot_id = 2459517, assembly_id= 2452586;
+  BE4.BSW14L4         : BR_MDBAAWAP     , at = 7.05474      , slot_id = 2459521;
+  BR.QFO142                             , at = 7.580797;
+  BR.SPSCRAP142                         , at = 8.199799;
+  BR.BHZ142                             , at = 9.008652;
+ENDSEQUENCE;
+
+P15ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 15
+  BE4.BTV10           : BR_BTVBP036     , at = .225173      , slot_id = 52941818, assembly_id= 52941725;
+  BR4.BTV15L1         : BR_BTVBP037     , at = .270573      , slot_id = 52941780, assembly_id= 52941725;
+  BE4.SMH15L1         : BR_SMH__006     , at = 1.026102     , slot_id = 2459527, assembly_id= 2452588;
+  BR4.DHZ15L1         : BR_DHZ__002     , at = 1.842652     , slot_id = 2459534, assembly_id= 2452592;
+  BR4.DVT15L1         : BR_DVT__002     , at = 1.842652     , slot_id = 2459535, assembly_id= 2452592;
+  BE4.BSW15L1         : BR_MDBABWAP     , at = 2.36866      , slot_id = 2459539;
+  BR.BHZ151                             , at = 3.462849;
+  BR.SPSCRAP151                         , at = 4.2716995;
+  BR.QFO151                             , at = 4.889797;
+  BR4.BPM15L3         : BR_UES          , at = 5.467834     , slot_id = 2459559, assembly_id= 2452594;
+  BR4.ONOH0.15L3      : BR_ONOH0        , at = 5.467834     , slot_id = 2459557, assembly_id= 2452598;
+  BR4.QSKH0.15L3      : BR_QSKH0        , at = 5.467834     , slot_id = 2459558, assembly_id= 2452598;
+  BR4.XNOH0.15L3      : BR_XNOH0        , at = 5.467834     , slot_id = 2459560, assembly_id= 2452598;
+  BR.QDE15                              , at = 6.234797;
+  BE4.BSW15L4         : BR_MDBAAWAP     , at = 7.001834     , slot_id = 2459565;
+  BR.QFO152                             , at = 7.580797;
+  BR.STSCRAP152                         , at = 8.199799;
+  BR.BHZ152                             , at = 9.008652;
+ENDSEQUENCE;
+
+P16ring4: SEQUENCE, refer = centre, L  = 9.8175; !Ring 4, Period 16
+  BR4.ONO16L1         : BR_ONO          , at = .363         , slot_id = 2459576, assembly_id= 2452603;
+  BR4.QNO16L1         : BR_QNO__001     , at = .363         , slot_id = 2459577, assembly_id= 2452603;
+  BR4.XNO16L1         : BR_XNO__001     , at = .363         , slot_id = 2459578, assembly_id= 2452603;
+  BI4.KSW16L1         : BR_MKMAG002     , at = .9605        , slot_id = 40101125, assembly_id= 40101119;
+  BR4.DHZ16L1         : BR_DHZ__001     , at = 1.99601      , slot_id = 2459585, assembly_id= 2452607;
+  BR4.DVT16L1         : BR_DVT__001     , at = 1.99601      , slot_id = 2459586, assembly_id= 2452607;
+  BR.BHZ161                             , at = 3.462849;
+  BR.STSCRAP161                         , at = 4.2717;
+  BR.QFO161                             , at = 4.889797;
+  BR4.BPM16L3         : BR_UES          , at = 5.467839     , slot_id = 2459607, assembly_id= 2452608;
+  BR4.ONOH0.16L3      : BR_ONOH0        , at = 5.467839     , slot_id = 2459605, assembly_id= 2452612;
+  BR4.QNO16L3         : BR_QNO__001     , at = 5.467839     , slot_id = 2459606, assembly_id= 2452612;
+  BR4.XNOH0.16L3      : BR_XNOH0        , at = 5.467839     , slot_id = 2459608, assembly_id= 2452612;
+  BR.QDE16                              , at = 6.234797;
+  BI4.KSW16L4         : BR_MKMAG002     , at = 7.001839     , slot_id = 2459613, assembly_id= 5736989;
+  BR.QFO162                             , at = 7.580797;
+  BR4.VVS16L5         : BR_VVS          , at = 7.955897     , slot_id = 54717251;
+  BR.STSCRAP162                         , at = 8.199799;
+  BR.BHZ162                             , at = 9.008652;
+ENDSEQUENCE;
+
+
+/************************************************************************************/
+/*                       PSB RINGS                                                  */
+/************************************************************************************/
+
+
+
+PSB1: SEQUENCE, refer = entry, L  = 157.08; !Ring 1 BOTRING
+ P01ring1                   , at = 0;
+ P02ring1                   , at = 9.8175;
+ P03ring1                   , at = 19.635;
+ P04ring1                   , at = 29.4525;
+ P05ring1                   , at = 39.27;
+ P06ring1                   , at = 49.0875;
+ P07ring1                   , at = 58.905;
+ P08ring1                   , at = 68.7225;
+ P09ring1                   , at = 78.54;
+ P10ring1                   , at = 88.3575;
+ P11ring1                   , at = 98.175;
+ P12ring1                   , at = 107.9925;
+ P13ring1                   , at = 117.81;
+ P14ring1                   , at = 127.6275;
+ P15ring1                   , at = 137.445;
+ P16ring1                   , at = 147.2625;
+ENDSEQUENCE;
+
+PSB2: SEQUENCE, refer = entry, L  = 157.08; !Ring 2 BOTMIDRING
+ P01ring2                   , at = 0;
+ P02ring2                   , at = 9.8175;
+ P03ring2                   , at = 19.635;
+ P04ring2                   , at = 29.4525;
+ P05ring2                   , at = 39.27;
+ P06ring2                   , at = 49.0875;
+ P07ring2                   , at = 58.905;
+ P08ring2                   , at = 68.7225;
+ P09ring2                   , at = 78.54;
+ P10ring2                   , at = 88.3575;
+ P11ring2                   , at = 98.175;
+ P12ring2                   , at = 107.9925;
+ P13ring2                   , at = 117.81;
+ P14ring2                   , at = 127.6275;
+ P15ring2                   , at = 137.445;
+ P16ring2                   , at = 147.2625;
+ENDSEQUENCE;
+
+PSB3: SEQUENCE, refer = entry, L  = 157.08; !Ring 3 TOPMIDRING
+ P01ring3                   , at = 0;
+ P02ring3                   , at = 9.8175;
+ P03ring3                   , at = 19.635;
+ P04ring3                   , at = 29.4525;
+ P05ring3                   , at = 39.27;
+ P06ring3                   , at = 49.0875;
+ P07ring3                   , at = 58.905;
+ P08ring3                   , at = 68.7225;
+ P09ring3                   , at = 78.54;
+ P10ring3                   , at = 88.3575;
+ P11ring3                   , at = 98.175;
+ P12ring3                   , at = 107.9925;
+ P13ring3                   , at = 117.81;
+ P14ring3                   , at = 127.6275;
+ P15ring3                   , at = 137.445;
+ P16ring3                   , at = 147.2625;
+ENDSEQUENCE;
+
+PSB4: SEQUENCE, refer = entry, L  = 157.08; !Ring 4 TOPRING
+ P01ring4                   , at = 0;
+ P02ring4                   , at = 9.8175;
+ P03ring4                   , at = 19.635;
+ P04ring4                   , at = 29.4525;
+ P05ring4                   , at = 39.27;
+ P06ring4                   , at = 49.0875;
+ P07ring4                   , at = 58.905;
+ P08ring4                   , at = 68.7225;
+ P09ring4                   , at = 78.54;
+ P10ring4                   , at = 88.3575;
+ P11ring4                   , at = 98.175;
+ P12ring4                   , at = 107.9925;
+ P13ring4                   , at = 117.81;
+ P14ring4                   , at = 127.6275;
+ P15ring4                   , at = 137.445;
+ P16ring4                   , at = 147.2625;
+ENDSEQUENCE;
+
+
+
+
+
+
+/************************************************************************************/
+/*                       STRENGTH DEFINITIONS                                       */
+/************************************************************************************/
+
+  kBRBHZ      = -TWOPI/32.;
+  E1BRBHZ     = -TWOPI/64.;
+  E2BRBHZ     = -TWOPI/64.;
+  FINTBRBHZ   := 0.5;
+  HGAPBRBHZ   := 0.035;  
+
+
+  BE1.BSW14L4,               KICK  := kBEBSW14L4;
+  BE1.BSW15L1,               KICK  := kBEBSW15L1;
+  BE1.BSW15L4,               KICK  := kBEBSW15L4;
+  BE1.DHZ11L1,               KICK := kBE1DHZ11L1;
+  BE1.DHZ4L1,                KICK := kBE1DHZ4L1;
+  BE1.DVT11L1,               KICK := kBE1DVT11L1;
+  BE1.DVT4L1,                KICK := kBE1DVT4L1;
+  BE1.KFA14L1,               KICK := kBE1KFA14L1;
+  BE1.SMH15L1,               KICK := kBESMH15L1;
+  BE2.BSW14L4,               KICK  := kBEBSW14L4;
+  BE2.BSW15L1,               KICK  := kBEBSW15L1;
+  BE2.BSW15L4,               KICK  := kBEBSW15L4;
+  BE2.DHZ11L1,               KICK := kBE2DHZ11L1;
+  BE2.DHZ4L1,                KICK := kBE2DHZ4L1;
+  BE2.DVT11L1,               KICK := kBE2DVT11L1;
+  BE2.DVT4L1,                KICK := kBE2DVT4L1;
+  BE2.KFA14L1,               KICK := kBE2KFA14L1;
+  BE2.SMH15L1,               KICK := kBESMH15L1;
+  BE3.BSW14L4,               KICK  := kBEBSW14L4;
+  BE3.BSW15L1,               KICK  := kBEBSW15L1;
+  BE3.BSW15L4,               KICK  := kBEBSW15L4;
+  BE3.DHZ11L1,               KICK := kBE3DHZ11L1;
+  BE3.DHZ4L1,                KICK := kBE3DHZ4L1;
+  BE3.DVT11L1,               KICK := kBE3DVT11L1;
+  BE3.DVT4L1,                KICK := kBE3DVT4L1;
+  BE3.KFA14L1,               KICK := kBE3KFA14L1;
+  BE3.SMH15L1,               KICK := kBESMH15L1;
+  BE4.BSW14L4,               KICK  := kBEBSW14L4;
+  BE4.BSW15L1,               KICK  := kBEBSW15L1;
+  BE4.BSW15L4,               KICK  := kBEBSW15L4;
+  BE4.DHZ11L1,               KICK := kBE4DHZ11L1;
+  BE4.DHZ4L1,                KICK := kBE4DHZ4L1;
+  BE4.DVT11L1,               KICK := kBE4DVT11L1;
+  BE4.DVT4L1,                KICK := kBE4DVT4L1;
+  BE4.KFA14L1,               KICK := kBE4KFA14L1;
+  BE4.SMH15L1,               KICK := kBESMH15L1;
+
+  !Chicane elements
+  BI1.BSW1L1.1,              K0 := k0BI1BSW1L11, k2 := k2BI1BSW1L11;
+  BI1.BSW1L1.2,              K0 := k0BI1BSW1L12, k2 := k2BI1BSW1L12;
+  BI1.BSW1L1.3,              K0 := k0BI1BSW1L13, k2 := k2BI1BSW1L13;
+  BI1.BSW1L1.4,              K0 := k0BI1BSW1L14, k2 := k2BI1BSW1L14;
+
+  BI1.KSW16L1,               KICK := kBI1KSW16L1;
+  BI1.KSW16L4,               KICK := kBI1KSW16L4;
+  BI1.KSW1L4,                KICK := kBI1KSW1L4;
+  BI1.KSW2L1,                KICK := kBI1KSW2L1;
+  BI2.BSW1L1.1,              k0 := k0BI2BSW1L11, k2 := k2BI2BSW1L11;
+  BI2.BSW1L1.2,              k0 := k0BI2BSW1L12, k2 := k2BI2BSW1L12;
+  BI2.BSW1L1.3,              k0 := k0BI2BSW1L13, k2 := k2BI2BSW1L13;
+  BI2.BSW1L1.4,              k0 := k0BI2BSW1L14, k2 := k2BI2BSW1L14;
+  BI2.KSW16L1,               KICK := kBI2KSW16L1;
+  BI2.KSW16L4,               KICK := kBI2KSW16L4;
+  BI2.KSW1L4,                KICK := kBI2KSW1L4;
+  BI2.KSW2L1,                KICK := kBI2KSW2L1;
+  BI3.BSW1L1.1,              k0 := k0BI3BSW1L11, k2 := k2BI3BSW1L11;
+  BI3.BSW1L1.2,              k0 := k0BI3BSW1L12, k2 := k2BI3BSW1L12;
+  BI3.BSW1L1.3,              k0 := k0BI3BSW1L13, k2 := k2BI3BSW1L13;
+  BI3.BSW1L1.4,              k0 := k0BI3BSW1L14, k2 := k2BI3BSW1L14;
+  BI3.KSW16L1,               KICK := kBI3KSW16L1;
+  BI3.KSW16L4,               KICK := kBI3KSW16L4;
+  BI3.KSW1L4,                KICK := kBI3KSW1L4;
+  BI3.KSW2L1,                KICK := kBI3KSW2L1;
+  BI4.BSW1L1.1,              k0 := k0BI4BSW1L11, k2 := k2BI4BSW1L11;
+  BI4.BSW1L1.2,              k0 := k0BI4BSW1L12, k2 := k2BI4BSW1L12;
+  BI4.BSW1L1.3,              k0 := k0BI4BSW1L13, k2 := k2BI4BSW1L13;
+  BI4.BSW1L1.4,              k0 := k0BI4BSW1L14, k2 := k2BI4BSW1L14;
+  BI4.KSW16L1,               KICK := kBI4KSW16L1;
+  BI4.KSW16L4,               KICK := kBI4KSW16L4;      
+  BI4.KSW1L4,                KICK := kBI4KSW1L4;
+  BI4.KSW2L1,                KICK := kBI4KSW2L1;
+  BR.BHZ101,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ102,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ11,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ111,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ112,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ12,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ121,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ122,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ131,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ132,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ141,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ142,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ151,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ152,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ161,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ162,                 ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ21,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ22,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ31,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ32,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ41,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ42,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ51,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ52,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ61,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ62,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ71,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ72,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ81,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ82,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ91,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.BHZ92,                  ANGLE := kBRBHZ  , E1 := E1BRBHZ  , E2 := E2BRBHZ, FINT := FINTBRBHZ, HGAP := HGAPBRBHZ;
+  BR.QDE1,                   K1 := kBRQD + kBRQDCORR;
+  BR.QDE10,                  K1 := kBRQD + kBRQDCORR;
+  BR.QDE11,                  K1 := kBRQD + kBRQDCORR;
+  BR.QDE12,                  K1 := kBRQD + kBRQDCORR;
+  BR.QDE13,                  K1 := kBRQD + kBRQDCORR;
+  BR.QDE14,                  K1 := kBRQD + kBRQDCORR + kBRQD14CORR;
+  BR.QDE15,                  K1 := kBRQD + kBRQDCORR;
+  BR.QDE16,                  K1 := kBRQD + kBRQDCORR;
+  BR.QDE2,                   K1 := kBRQD + kBRQDCORR;
+  BR.QDE3,                   K1 := kBRQD + kBRQDCORR + kBRQD3CORR;
+  BR.QDE4,                   K1 := kBRQD + kBRQDCORR;
+  BR.QDE5,                   K1 := kBRQD + kBRQDCORR;
+  BR.QDE6,                   K1 := kBRQD + kBRQDCORR;
+  BR.QDE7,                   K1 := kBRQD + kBRQDCORR;
+  BR.QDE8,                   K1 := kBRQD + kBRQDCORR;
+  BR.QDE9,                   K1 := kBRQD + kBRQDCORR;
+  BR.QFO101,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO102,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO11,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO111,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO112,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO12,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO121,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO122,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO131,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO132,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO141,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO142,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO151,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO152,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO161,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO162,                 K1 := kBRQF + kBRQFCORR;
+  BR.QFO21,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO22,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO31,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO32,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO41,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO42,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO51,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO52,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO61,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO62,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO71,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO72,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO81,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO82,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO91,                  K1 := kBRQF + kBRQFCORR;
+  BR.QFO92,                  K1 := kBRQF + kBRQFCORR;
+  BR1.DES3L1,                KICK := kBRDES3L1;
+  BR1.DHZ11L4,               KICK := kBR1DHZ11L4;
+  BR1.DHZ12L4,               KICK := kBR1DHZ12L4;
+  BR1.DHZ13L4,               KICK := kBR1DHZ13L4;
+  BR1.DHZ14L1,               KICK := kBR1DHZ14L1;
+  BR1.DHZ15L1,               KICK := kBR1DHZ15L1;
+  BR1.DHZ16L1,               KICK := kBR1DHZ16L1;
+  BR1.DHZ2L4,                KICK := kBR1DHZ2L4;
+  BR1.DHZ3L4,                KICK := kBR1DHZ3L4;
+  BR1.DHZ4L4,                KICK := kBR1DHZ4L4;
+  BR1.DHZ5L4,                KICK := kBR1DHZ5L4;
+  BR1.DHZ6L4,                KICK := kBR1DHZ6L4;
+  BR1.DHZ8L1,                KICK := kBR1DHZ8L1;
+  BR1.DHZ9L1,                KICK := kBR1DHZ9L1;
+  BR1.DSHAH7L4,              KICK := kBR1DSHAHL4;
+  BR1.DSHAH9L4,              KICK := kBR1DSHAHL4;
+  BR1.DSHAV7L4,              KICK := kBR1DSHAVL4;
+  BR1.DSHAV9L4,              KICK := kBR1DSHAVL4;
+  BR1.DVT10L4,               KICK := kBR1DVT10L4;
+  BR1.DVT11L4,               KICK := kBR1DVT11L4;
+  BR1.DVT12L4,               KICK := kBR1DVT12L4;
+  BR1.DVT13L4,               KICK := kBR1DVT13L4;
+  BR1.DVT14L1,               KICK := kBR1DVT14L1;
+  BR1.DVT15L1,               KICK := kBR1DVT15L1;
+  BR1.DVT16L1,               KICK := kBR1DVT16L1;
+  BR1.DVT2L4,                KICK := kBR1DVT2L4;
+  BR1.DVT3L4,                KICK := kBR1DVT3L4;
+  BR1.DVT5L4,                KICK := kBR1DVT5L4;
+  BR1.DVT6L4,                KICK := kBR1DVT6L4;
+  BR1.DVT8L1,                KICK := kBR1DVT8L1;
+  BR1.DVT9L1,                KICK := kBR1DVT9L1;
+  BR1.ONO11L1,               KNL := {0,0,0,-kBR1ONO311L1};
+  BR1.ONO12L1,               KNL := {0,0,0,kBR1ONO12L1};
+  BR1.ONO16L1,               KNL := {0,0,0,-kBR1ONO816L1};
+  BR1.ONO3L1,                KNL := {0,0,0,+kBR1ONO311L1};
+  BR1.ONO4L1,                KNL := {0,0,0,kBR1ONO4L1};
+  BR1.ONO6L1,                KNL := {0,0,0,kBR1ONO6L1};
+  BR1.ONO8L1,                KNL := {0,0,0,+kBR1ONO816L1};
+  BR1.ONO9L1,                KNL := {0,0,0,kBR1ONO9L1};
+  BR1.ONOH0.10L3,            KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.11L3,            KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.12L3,            KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.13L3,            KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.14L3,            KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.15L3,            KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.16L3,            KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.1L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.2L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.3L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.4L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.5L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.6L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.7L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.8L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.ONOH0.9L3,             KNL := {0,0,0,kBR1ONOH0};
+  BR1.OSK11L4,               KSL := {0,0,0,kBR1OSK11L4};
+  BR1.OSK12L1,               KSL := {0,0,0,kBR1OSK12L1};
+  BR1.OSK12L4,               KSL := {0,0,0,kBR1OSK12L4};
+  BR1.OSK2L4,                KSL := {0,0,0,kBR1OSK2L4};
+  BR1.OSK4L1,                KSL := {0,0,0,kBR1OSK4L1};
+  BR1.OSK6L1,                KSL := {0,0,0,kBR1OSK6L1};
+  BR1.OSK6L4,                KSL := {0,0,0,kBR1OSK6L4};
+  BR1.OSK9L1,                KSL := {0,0,0,kBR1OSK9L1};
+  BR1.QNO11L1,               KNL := {0,-kBR1QNO311L1};
+  BR1.QNO12L3,               KNL := {0,-kBR1QNO412L3};
+  BR1.QNO16L1,               KNL := {0,-kBR1QNO816L1};
+  BR1.QNO16L3,               KNL := {0,-kBR1QNO816L3};
+  BR1.QNO3L1,                KNL := {0,+kBR1QNO311L1};
+  BR1.QNO4L3,                KNL := {0,+kBR1QNO412L3};
+  BR1.QNO8L1,                KNL := {0,+kBR1QNO816L1};
+  BR1.QNO8L3,                KNL := {0,+kBR1QNO816L3};
+  BR1.QSK10L3,               KSL := {0,-kBR1QSK210L3};
+  BR1.QSK14L3,               KSL := {0,-kBR1QSK614L3};
+  BR1.QSK2L3,                KSL := {0,+kBR1QSK210L3};
+  BR1.QSK6L3,                KSL := {0,+kBR1QSK614L3};
+  BR1.QSKH0.11L3,            KSL := {0,kBR1QSKH0};
+  BR1.QSKH0.13L3,            KSL := {0,kBR1QSKH0};
+  BR1.QSKH0.15L3,            KSL := {0,kBR1QSKH0};
+  BR1.QSKH0.1L3,             KSL := {0,kBR1QSKH0};
+  BR1.QSKH0.3L3,             KSL := {0,kBR1QSKH0};
+  BR1.QSKH0.5L3,             KSL := {0,kBR1QSKH0};
+  BR1.QSKH0.7L3,             KSL := {0,kBR1QSKH0};
+  BR1.QSKH0.9L3,             KSL := {0,kBR1QSKH0};
+  BR1.XNO11L1,               KNL := {0,0,-kBR1XNO311L1};
+  BR1.XNO12L1,               KNL := {0,0,kBR1XNO12L1};
+  BR1.XNO16L1,               KNL := {0,0,-kBR1XNO816L1};
+  BR1.XNO3L1,                KNL := {0,0,+kBR1XNO311L1};
+  BR1.XNO4L1,                KNL := {0,0,kBR1XNO4L1};
+  BR1.XNO6L1,                KNL := {0,0,kBR1XNO6L1};
+  BR1.XNO8L1,                KNL := {0,0,+kBR1XNO816L1};
+  BR1.XNO9L1,                KNL := {0,0,kBR1XNO9L1};
+  BR1.XNOH0.10L3,            KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.11L3,            KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.12L3,            KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.13L3,            KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.14L3,            KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.15L3,            KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.16L3,            KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.1L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.2L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.3L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.4L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.5L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.6L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.7L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.8L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XNOH0.9L3,             KNL := {0,0,kBR1XNOH0};
+  BR1.XSK11L4,               KSL := {0,0,kBR1XSK11L4};
+  BR1.XSK12L1,               KSL := {0,0,kBR1XSK12L1};
+  BR1.XSK12L4,               KSL := {0,0,kBR1XSK12L4} ;
+  BR1.XSK2L4,                KSL := {0,0,kBR1XSK2L4};
+  BR1.XSK4L1,                KSL := {0,0,kBR1XSK4L1};
+  BR1.XSK6L1,                KSL := {0,0,kBR1XSK6L1};
+  BR1.XSK6L4,                KSL := {0,0,kBR1XSK6L4};
+  BR1.XSK9L1,                KSL := {0,0,kBR1XSK9L1};
+  BR2.DES3L1,                KICK := kBRDES3L1;
+  BR2.DHZ11L4,               KICK := kBR2DHZ11L4;
+  BR2.DHZ12L4,               KICK := kBR2DHZ12L4;
+  BR2.DHZ13L4,               KICK := kBR2DHZ13L4;
+  BR2.DHZ14L1,               KICK := kBR2DHZ14L1;
+  BR2.DHZ15L1,               KICK := kBR2DHZ15L1;
+  BR2.DHZ16L1,               KICK := kBR2DHZ16L1;
+  BR2.DHZ2L4,                KICK := kBR2DHZ2L4;
+  BR2.DHZ3L4,                KICK := kBR2DHZ3L4;
+  BR2.DHZ4L4,                KICK := kBR2DHZ4L4;
+  BR2.DHZ5L4,                KICK := kBR2DHZ5L4;
+  BR2.DHZ6L4,                KICK := kBR2DHZ6L4;
+  BR2.DHZ8L1,                KICK := kBR2DHZ8L1;
+  BR2.DHZ9L1,                KICK := kBR2DHZ9L1;
+  BR2.DSHAH7L4,              KICK := kBR2DSHAHL4;
+  BR2.DSHAH9L4,              KICK := kBR2DSHAHL4;
+  BR2.DSHAV7L4,              KICK := kBR2DSHAVL4;
+  BR2.DSHAV9L4,              KICK := kBR2DSHAVL4;
+  BR2.DVT10L4,               KICK := kBR2DVT10L4;
+  BR2.DVT11L4,               KICK := kBR2DVT11L4;
+  BR2.DVT12L4,               KICK := kBR2DVT12L4;
+  BR2.DVT13L4,               KICK := kBR2DVT13L4;
+  BR2.DVT14L1,               KICK := kBR2DVT14L1;
+  BR2.DVT15L1,               KICK := kBR2DVT15L1;
+  BR2.DVT16L1,               KICK := kBR2DVT16L1;
+  BR2.DVT2L4,                KICK := kBR2DVT2L4;
+  BR2.DVT3L4,                KICK := kBR2DVT3L4;
+  BR2.DVT5L4,                KICK := kBR2DVT5L4;
+  BR2.DVT6L4,                KICK := kBR2DVT6L4;
+  BR2.DVT8L1,                KICK := kBR2DVT8L1;
+  BR2.DVT9L1,                KICK := kBR2DVT9L1;
+  BR2.ONO11L1,               KNL := {0,0,0,-kBR2ONO311L1};
+  BR2.ONO12L1,               KNL := {0,0,0,kBR2ONO12L1};
+  BR2.ONO16L1,               KNL := {0,0,0,-kBR2ONO816L1};
+  BR2.ONO3L1,                KNL := {0,0,0,+kBR2ONO311L1};
+  BR2.ONO4L1,                KNL := {0,0,0,kBR2ONO4L1};
+  BR2.ONO6L1,                KNL := {0,0,0,kBR2ONO6L1};
+  BR2.ONO8L1,                KNL := {0,0,0,+kBR2ONO816L1};
+  BR2.ONO9L1,                KNL := {0,0,0,kBR2ONO9L1};
+  BR2.ONOH0.10L3,            KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.11L3,            KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.12L3,            KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.13L3,            KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.14L3,            KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.15L3,            KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.16L3,            KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.1L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.2L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.3L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.4L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.5L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.6L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.7L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.8L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.ONOH0.9L3,             KNL := {0,0,0,kBR2ONOH0};
+  BR2.OSK11L4,               KSL := {0,0,0,kBR2OSK11L4};
+  BR2.OSK12L1,               KSL := {0,0,0,kBR2OSK12L1};
+  BR2.OSK12L4,               KSL := {0,0,0,kBR2OSK12L4};
+  BR2.OSK2L4,                KSL := {0,0,0,kBR2OSK2L4};
+  BR2.OSK4L1,                KSL := {0,0,0,kBR2OSK4L1};
+  BR2.OSK6L1,                KSL := {0,0,0,kBR2OSK6L1};
+  BR2.OSK6L4,                KSL := {0,0,0,kBR2OSK6L4};
+  BR2.OSK9L1,                KSL := {0,0,0,kBR2OSK9L1};
+  BR2.QNO11L1,               KNL := {0,-kBR2QNO311L1};
+  BR2.QNO12L3,               KNL := {0,-kBR2QNO412L3};
+  BR2.QNO16L1,               KNL := {0,-kBR2QNO816L1};
+  BR2.QNO16L3,               KNL := {0,-kBR2QNO816L3};
+  BR2.QNO3L1,                KNL := {0,+kBR2QNO311L1};
+  BR2.QNO4L3,                KNL := {0,+kBR2QNO412L3};
+  BR2.QNO8L1,                KNL := {0,+kBR2QNO816L1};
+  BR2.QNO8L3,                KNL := {0,+kBR2QNO816L3};
+  BR2.QSK10L3,               KSL := {0,-kBR2QSK210L3};
+  BR2.QSK14L3,               KSL := {0,-kBR2QSK614L3};
+  BR2.QSK2L3,                KSL := {0,+kBR2QSK210L3};
+  BR2.QSK6L3,                KSL := {0,+kBR2QSK614L3};
+  BR2.QSKH0.11L3,            KSL := {0,kBR2QSKH0};
+  BR2.QSKH0.13L3,            KSL := {0,kBR2QSKH0};
+  BR2.QSKH0.15L3,            KSL := {0,kBR2QSKH0};
+  BR2.QSKH0.1L3,             KSL := {0,kBR2QSKH0};
+  BR2.QSKH0.3L3,             KSL := {0,kBR2QSKH0};
+  BR2.QSKH0.5L3,             KSL := {0,kBR2QSKH0};
+  BR2.QSKH0.7L3,             KSL := {0,kBR2QSKH0};
+  BR2.QSKH0.9L3,             KSL := {0,kBR2QSKH0};
+  BR2.XNO11L1,               KNL := {0,0,-kBR2XNO311L1};
+  BR2.XNO12L1,               KNL := {0,0,kBR2XNO12L1};
+  BR2.XNO16L1,               KNL := {0,0,-kBR2XNO816L1};
+  BR2.XNO3L1,                KNL := {0,0,+kBR2XNO311L1};
+  BR2.XNO4L1,                KNL := {0,0,kBR2XNO4L1};
+  BR2.XNO6L1,                KNL := {0,0,kBR2XNO6L1};
+  BR2.XNO8L1,                KNL := {0,0,+kBR2XNO816L1};
+  BR2.XNO9L1,                KNL := {0,0,kBR2XNO9L1};
+  BR2.XNOH0.10L3,            KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.11L3,            KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.12L3,            KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.13L3,            KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.14L3,            KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.15L3,            KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.16L3,            KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.1L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.2L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.3L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.4L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.5L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.6L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.7L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.8L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XNOH0.9L3,             KNL := {0,0,kBR2XNOH0};
+  BR2.XSK11L4,               KSL := {0,0,kBR2XSK11L4};
+  BR2.XSK12L1,               KSL := {0,0,kBR2XSK12L1};
+  BR2.XSK12L4,               KSL := {0,0,kBR2XSK12L4};
+  BR2.XSK2L4,                KSL := {0,0,kBR2XSK2L4};
+  BR2.XSK4L1,                KSL := {0,0,kBR2XSK4L1};
+  BR2.XSK6L1,                KSL := {0,0,kBR2XSK6L1};
+  BR2.XSK6L4,                KSL := {0,0,kBR2XSK6L4};
+  BR2.XSK9L1,                KSL := {0,0,kBR2XSK9L1};
+  BR3.DES3L1,                KICK := kBRDES3L1;
+  BR3.DHZ11L4,               KICK := kBR3DHZ11L4;
+  BR3.DHZ12L4,               KICK := kBR3DHZ12L4;
+  BR3.DHZ13L4,               KICK := kBR3DHZ13L4;
+  BR3.DHZ14L1,               KICK := kBR3DHZ14L1;
+  BR3.DHZ15L1,               KICK := kBR3DHZ15L1;
+  BR3.DHZ16L1,               KICK := kBR3DHZ16L1;
+  BR3.DHZ2L4,                KICK := kBR3DHZ2L4;
+  BR3.DHZ3L4,                KICK := kBR3DHZ3L4;
+  BR3.DHZ4L4,                KICK := kBR3DHZ4L4;
+  BR3.DHZ5L4,                KICK := kBR3DHZ5L4;
+  BR3.DHZ6L4,                KICK := kBR3DHZ6L4;
+  BR3.DHZ8L1,                KICK := kBR3DHZ8L1;
+  BR3.DHZ9L1,                KICK := kBR3DHZ9L1;
+  BR3.DSHAH7L4,              KICK := kBR3DSHAHL4;
+  BR3.DSHAH9L4,              KICK := kBR3DSHAHL4;
+  BR3.DSHAV7L4,              KICK := kBR3DSHAVL4;
+  BR3.DSHAV9L4,              KICK := kBR3DSHAVL4;
+  BR3.DVT10L4,               KICK := kBR3DVT10L4;
+  BR3.DVT11L4,               KICK := kBR3DVT11L4;
+  BR3.DVT12L4,               KICK := kBR3DVT12L4;
+  BR3.DVT13L4,               KICK := kBR3DVT13L4;
+  BR3.DVT14L1,               KICK := kBR3DVT14L1;
+  BR3.DVT15L1,               KICK := kBR3DVT15L1;
+  BR3.DVT16L1,               KICK := kBR3DVT16L1;
+  BR3.DVT2L4,                KICK := kBR3DVT2L4;
+  BR3.DVT3L4,                KICK := kBR3DVT3L4;
+  BR3.DVT5L4,                KICK := kBR3DVT5L4;
+  BR3.DVT6L4,                KICK := kBR3DVT6L4;
+  BR3.DVT8L1,                KICK := kBR3DVT8L1;
+  BR3.DVT9L1,                KICK := kBR3DVT9L1;
+  BR3.ONO11L1,               KNL := {0,0,0,-kBR3ONO311L1};
+  BR3.ONO12L1,               KNL := {0,0,0,kBR3ONO12L1};
+  BR3.ONO16L1,               KNL := {0,0,0,-kBR3ONO816L1};
+  BR3.ONO3L1,                KNL := {0,0,0,+kBR3ONO311L1};
+  BR3.ONO4L1,                KNL := {0,0,0,kBR3ONO4L1};
+  BR3.ONO6L1,                KNL := {0,0,0,kBR3ONO6L1};
+  BR3.ONO8L1,                KNL := {0,0,0,+kBR3ONO816L1};
+  BR3.ONO9L1,                KNL := {0,0,0,kBR3ONO9L1};
+  BR3.ONOH0.10L3,            KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.11L3,            KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.12L3,            KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.13L3,            KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.14L3,            KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.15L3,            KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.16L3,            KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.1L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.2L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.3L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.4L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.5L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.6L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.7L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.8L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.ONOH0.9L3,             KNL := {0,0,0,kBR3ONOH0};
+  BR3.OSK11L4,               KSL := {0,0,0,kBR3OSK11L4};
+  BR3.OSK12L1,               KSL := {0,0,0,kBR3OSK12L1};
+  BR3.OSK12L4,               KSL := {0,0,0,kBR3OSK12L4};
+  BR3.OSK2L4,                KSL := {0,0,0,kBR3OSK2L4};
+  BR3.OSK4L1,                KSL := {0,0,0,kBR3OSK4L1};
+  BR3.OSK6L1,                KSL := {0,0,0,kBR3OSK6L1};
+  BR3.OSK6L4,                KSL := {0,0,0,kBR3OSK6L4};
+  BR3.OSK9L1,                KSL := {0,0,0,kBR3OSK9L1};
+  BR3.QNO11L1,               KNL := {0,-kBR3QNO311L1};
+  BR3.QNO12L3,               KNL := {0,-kBR3QNO412L3};
+  BR3.QNO16L1,               KNL := {0,-kBR3QNO816L1};
+  BR3.QNO16L3,               KNL := {0,-kBR3QNO816L3};
+  BR3.QNO3L1,                KNL := {0,+kBR3QNO311L1};
+  BR3.QNO4L3,                KNL := {0,+kBR3QNO412L3};
+  BR3.QNO8L1,                KNL := {0,+kBR3QNO816L1};
+  BR3.QNO8L3,                KNL := {0,+kBR3QNO816L3};
+  BR3.QSK10L3,               KSL := {0,-kBR3QSK210L3};
+  BR3.QSK14L3,               KSL := {0,-kBR3QSK614L3};
+  BR3.QSK2L3,                KSL := {0,+kBR3QSK210L3};
+  BR3.QSK6L3,                KSL := {0,+kBR3QSK614L3};
+  BR3.QSKH0.11L3,            KSL := {0,kBR3QSKH0};
+  BR3.QSKH0.13L3,            KSL := {0,kBR3QSKH0};
+  BR3.QSKH0.15L3,            KSL := {0,kBR3QSKH0};
+  BR3.QSKH0.1L3,             KSL := {0,kBR3QSKH0};
+  BR3.QSKH0.3L3,             KSL := {0,kBR3QSKH0};
+  BR3.QSKH0.5L3,             KSL := {0,kBR3QSKH0};
+  BR3.QSKH0.7L3,             KSL := {0,kBR3QSKH0};
+  BR3.QSKH0.9L3,             KSL := {0,kBR3QSKH0};
+  BR3.XNO11L1,               KNL := {0,0,-kBR3XNO311L1};
+  BR3.XNO12L1,               KNL := {0,0,kBR3XNO12L1};
+  BR3.XNO16L1,               KNL := {0,0,-kBR3XNO816L1};
+  BR3.XNO3L1,                KNL := {0,0,+kBR3XNO311L1};
+  BR3.XNO4L1,                KNL := {0,0,kBR3XNO4L1};
+  BR3.XNO6L1,                KNL := {0,0,kBR3XNO6L1};
+  BR3.XNO8L1,                KNL := {0,0,+kBR3XNO816L1};
+  BR3.XNO9L1,                KNL := {0,0,kBR3XNO9L1};
+  BR3.XNOH0.10L3,            KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.11L3,            KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.12L3,            KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.13L3,            KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.14L3,            KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.15L3,            KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.16L3,            KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.1L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.2L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.3L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.4L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.5L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.6L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.7L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.8L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XNOH0.9L3,             KNL := {0,0,kBR3XNOH0};
+  BR3.XSK11L4,               KSL := {0,0,kBR3XSK11L4};
+  BR3.XSK12L1,               KSL := {0,0,kBR3XSK12L1};
+  BR3.XSK12L4,               KSL := {0,0,kBR3XSK12L4};
+  BR3.XSK2L4,                KSL := {0,0,kBR3XSK2L4};
+  BR3.XSK4L1,                KSL := {0,0,kBR3XSK4L1};
+  BR3.XSK6L1,                KSL := {0,0,kBR3XSK6L1};
+  BR3.XSK6L4,                KSL := {0,0,kBR3XSK6L4};
+  BR3.XSK9L1,                KSL := {0,0,kBR3XSK9L1};
+  BR4.DES3L1,                KICK := kBRDES3L1;
+  BR4.DHZ11L4,               KICK := kBR4DHZ11L4;
+  BR4.DHZ12L4,               KICK := kBR4DHZ12L4;
+  BR4.DHZ13L4,               KICK := kBR4DHZ13L4;
+  BR4.DHZ14L1,               KICK := kBR4DHZ14L1;
+  BR4.DHZ15L1,               KICK := kBR4DHZ15L1;
+  BR4.DHZ16L1,               KICK := kBR4DHZ16L1;
+  BR4.DHZ2L4,                KICK := kBR4DHZ2L4;
+  BR4.DHZ3L4,                KICK := kBR4DHZ3L4;
+  BR4.DHZ4L4,                KICK := kBR4DHZ4L4;
+  BR4.DHZ5L4,                KICK := kBR4DHZ5L4;
+  BR4.DHZ6L4,                KICK := kBR4DHZ6L4;
+  BR4.DHZ8L1,                KICK := kBR4DHZ8L1;
+  BR4.DHZ9L1,                KICK := kBR4DHZ9L1;
+  BR4.DSHAH7L4,              KICK := kBR4DSHAHL4;
+  BR4.DSHAH9L4,              KICK := kBR4DSHAHL4;
+  BR4.DSHAV7L4,              KICK := kBR4DSHAVL4;
+  BR4.DSHAV9L4,              KICK := kBR4DSHAVL4;
+  BR4.DVT10L4,               KICK := kBR4DVT10L4;
+  BR4.DVT11L4,               KICK := kBR4DVT11L4;
+  BR4.DVT12L4,               KICK := kBR4DVT12L4;
+  BR4.DVT13L4,               KICK := kBR4DVT13L4;
+  BR4.DVT14L1,               KICK := kBR4DVT14L1;
+  BR4.DVT15L1,               KICK := kBR4DVT15L1;
+  BR4.DVT16L1,               KICK := kBR4DVT16L1;
+  BR4.DVT2L4,                KICK := kBR4DVT2L4;
+  BR4.DVT3L4,                KICK := kBR4DVT3L4;
+  BR4.DVT5L4,                KICK := kBR4DVT5L4;
+  BR4.DVT6L4,                KICK := kBR4DVT6L4;
+  BR4.DVT8L1,                KICK := kBR4DVT8L1;
+  BR4.DVT9L1,                KICK := kBR4DVT9L1;
+  BR4.ONO11L1,               KNL := {0,0,0,-kBR4ONO311L1};
+  BR4.ONO12L1,               KNL := {0,0,0,kBR4ONO12L1};
+  BR4.ONO16L1,               KNL := {0,0,0,-kBR4ONO816L1};
+  BR4.ONO3L1,                KNL := {0,0,0,+kBR4ONO311L1};
+  BR4.ONO4L1,                KNL := {0,0,0,kBR4ONO4L1};
+  BR4.ONO6L1,                KNL := {0,0,0,kBR4ONO6L1};
+  BR4.ONO8L1,                KNL := {0,0,0,+kBR4ONO816L1};
+  BR4.ONO9L1,                KNL := {0,0,0,kBR4ONO9L1};
+  BR4.ONOH0.10L3,            KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.11L3,            KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.12L3,            KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.13L3,            KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.14L3,            KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.15L3,            KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.16L3,            KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.1L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.2L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.3L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.4L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.5L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.6L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.7L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.8L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.ONOH0.9L3,             KNL := {0,0,0,kBR4ONOH0};
+  BR4.OSK11L4,               KSL := {0,0,0,kBR4OSK11L4};
+  BR4.OSK12L1,               KSL := {0,0,0,kBR4OSK12L1};
+  BR4.OSK12L4,               KSL := {0,0,0,kBR4OSK12L4};
+  BR4.OSK2L4,                KSL := {0,0,0,kBR4OSK2L4};
+  BR4.OSK4L1,                KSL := {0,0,0,kBR4OSK4L1};
+  BR4.OSK6L1,                KSL := {0,0,0,kBR4OSK6L1};
+  BR4.OSK6L4,                KSL := {0,0,0,kBR4OSK6L4};
+  BR4.OSK9L1,                KSL := {0,0,0,kBR4OSK9L1};
+  BR4.QNO11L1,               KNL := {0,-kBR4QNO311L1};
+  BR4.QNO12L3,               KNL := {0,-kBR4QNO412L3};
+  BR4.QNO16L1,               KNL := {0,-kBR4QNO816L1};
+  BR4.QNO16L3,               KNL := {0,-kBR4QNO816L3} ;
+  BR4.QNO3L1,                KNL := {0,+kBR4QNO311L1};
+  BR4.QNO4L3,                KNL := {0,+kBR4QNO412L3};
+  BR4.QNO8L1,                KNL := {0,+kBR4QNO816L1};
+  BR4.QNO8L3,                KNL := {0,+kBR4QNO816L3};
+  BR4.QSK10L3,               KSL := {0,-kBR4QSK210L3};
+  BR4.QSK14L3,               KSL := {0,-kBR4QSK614L3};
+  BR4.QSK2L3,                KSL := {0,+kBR4QSK210L3};
+  BR4.QSK6L3,                KSL := {0,+kBR4QSK614L3};
+  BR4.QSKH0.11L3,            KSL := {0,kBR4QSKH0};
+  BR4.QSKH0.13L3,            KSL := {0,kBR4QSKH0};
+  BR4.QSKH0.15L3,            KSL := {0,kBR4QSKH0};
+  BR4.QSKH0.1L3,             KSL := {0,kBR4QSKH0};
+  BR4.QSKH0.3L3,             KSL := {0,kBR4QSKH0};
+  BR4.QSKH0.5L3,             KSL := {0,kBR4QSKH0};
+  BR4.QSKH0.7L3,             KSL := {0,kBR4QSKH0};
+  BR4.QSKH0.9L3,             KSL := {0,kBR4QSKH0};
+  BR4.XNO11L1,               KNL := {0,0,-kBR4XNO311L1};
+  BR4.XNO12L1,               KNL := {0,0,kBR4XNO12L1};
+  BR4.XNO16L1,               KNL := {0,0,-kBR4XNO816L1};
+  BR4.XNO3L1,                KNL := {0,0,+kBR4XNO311L1};
+  BR4.XNO4L1,                KNL := {0,0,kBR4XNO4L1};
+  BR4.XNO6L1,                KNL := {0,0,kBR4XNO6L1};
+  BR4.XNO8L1,                KNL := {0,0,+kBR4XNO816L1};
+  BR4.XNO9L1,                KNL := {0,0,kBR4XNO9L1};
+  BR4.XNOH0.10L3,            KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.11L3,            KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.12L3,            KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.13L3,            KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.14L3,            KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.15L3,            KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.16L3,            KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.1L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.2L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.3L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.4L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.5L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.6L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.7L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.8L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XNOH0.9L3,             KNL := {0,0,kBR4XNOH0};
+  BR4.XSK11L4,               KSL := {0,0,kBR4XSK11L4};
+  BR4.XSK12L1,               KSL := {0,0,kBR4XSK12L1};
+  BR4.XSK12L4,               KSL := {0,0,kBR4XSK12L4};
+  BR4.XSK2L4,                KSL := {0,0,kBR4XSK2L4};
+  BR4.XSK4L1,                KSL := {0,0,kBR4XSK4L1};
+  BR4.XSK6L1,                KSL := {0,0,kBR4XSK6L1};
+  BR4.XSK6L4,                KSL := {0,0,kBR4XSK6L4};
+  BR4.XSK9L1,                KSL := {0,0,kBR4XSK9L1};
+
+return;

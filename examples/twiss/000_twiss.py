@@ -48,7 +48,6 @@ tw_part = line.twiss(ele_start='mb.b19l5.b1', ele_stop='mb.b19r5.b1',
                         twiss_init=twmb19r5)
 
 
-
 import matplotlib.pyplot as plt
 
 plt.close('all')

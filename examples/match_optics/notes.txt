@@ -1,0 +1,41 @@
+Flow in rematch_hllhc.madx
+
+The tune is split in contributions from the different machine sections:
+qx=muxip1_b1_r + mux12b1 + muxip2_b1_l + muxip2_b1_r + mux23b1 + ... + mux81b1 + muxip1_b1_l
+All these numbers are assigned by the optics matcher
+
+ - Match arcs to assigned phase advances:
+    - inputs are mux12b1, muy12b1, mux12b2, muy12b2, mux23b1, muy23b1, etc.
+    - output are the strengths for the MQs and MQt
+ - call selectIR15 on sectors 45, 56, 81 and 12
+    - inputs are the matched arcs
+    - output are beta blocks are bir5b1, eir5b1, etc. at the edges of the selected
+      IR
+ - call rematch_ir15b12.madx
+    - inputs are the beta blocks and muxip1_b1_r, muxip1_b1_l, etc.
+    - output are the strengths for the IR quads
+ - call select on arcs around IR3 and IR7
+    - inputs are the matched arcs
+    - output are beta blocks are bir3b1, eir3b1, etc. at the edges of the selected
+      IR
+- call rematch_ir3b1, rematch_ir7b1, rematch_ir3b2, rematch_ir7b2
+    - inputs are the beta blocks
+    - output are the strengths for the IR quads
+- calls selectIRAUX of the two ATS IRs
+
+Questions:
+ - How do we handle energy dependence of limits?
+ - Logic for mcbx usage? What is the constant in there? it seems tha on_sep8h use
+   the mcbx in crossing polarity
+
+Notes:
+ - Need way to provide multiple targets with values
+ - Need way to override individual fields in TwissInit
+ - Would prefer to give TwissInit without line and element_name
+ - Need to homogenize output of optimizer for solve=True and solve=False
+ - Need a quick way of getting the results
+ - Need to add limits to knob optimizer
+ - Can I change a target during optimization?
+ - Reload should also set the vary and targets active flags
+ - It is a bit misleading that tol_met gives always yes for masked targets
+ - Check imported quad limits, especially signs

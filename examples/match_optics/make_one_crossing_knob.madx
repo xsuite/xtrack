@@ -1,0 +1,244 @@
+scale = 23348.89927;
+
+
+limitMCBXH:=  63.5988e-6;
+limitMCBXV:=  67.0164e-6;
+limitMCBX :=  67.0164e-6;
+limitMCBY :=  96.3000e-6;
+limitMCB  :=  80.8000e-6;
+limitMCBC :=  89.8700e-6;
+limitMCBW :=  80.1400e-6;
+
+
+if (on_holdselect==0){
+ exec,select(2,12,23,b1);
+ exec,select(2,12,23,b2);
+ exec,select(8,78,81,b1);
+ exec,select(8,78,81,b2);
+};
+
+mktable_orbit2h(kkkk): macro={
+delete,table=kkkk;
+create,table=kkkk,
+       column=acbxh1.l2,acbxh1.r2,
+              acbxh2.l2,acbxh2.r2,
+              acbxh3.l2,acbxh3.r2,
+              acbyhs4.l2b1,acbyhs4.l2b2,acbyhs4.r2b1,acbyhs4.r2b2,
+              acbyh4.l2b2,acbyh4.r2b1,
+              acbyhs5.l2b1,acbyhs5.l2b2,acbchs5.r2b1,acbchs5.r2b2,
+              acbyh5.l2b1,acbch5.r2b2,
+              xip2b1,xip2b2,pxip2b1,pxip2b2;
+};
+
+mktable_orbit2v(kkkk): macro={
+delete,table=kkkk;
+create,table=kkkk,
+       column=acbxv1.l2,acbxv1.r2,
+              acbxv2.l2,acbxv2.r2,
+              acbxv3.l2,acbxv3.r2,
+              acbyvs4.l2b1,acbyvs4.l2b2,acbyvs4.r2b1,acbyvs4.r2b2,
+              acbyv4.l2b1,acbyv4.r2b2,
+              acbyvs5.l2b1,acbyvs5.l2b2,acbcvs5.r2b1,acbcvs5.r2b2,
+              acbcv5.r2b1,acbyv5.l2b2,
+              yip2b1,yip2b2,pyip2b1,pyip2b2;
+};
+
+mktable_orbit8h(kkkk): macro={
+delete,table=kkkk;
+create,table=kkkk,
+       column=acbxh1.l8,acbxh1.r8,
+              acbxh2.l8,acbxh2.r8,
+              acbxh3.l8,acbxh3.r8,
+              acbyhs4.l8b1,acbyhs4.l8b2,acbyhs4.r8b1,acbyhs4.r8b2,
+              acbyh4.l8b2,acbyh4.r8b1,
+              acbchs5.l8b1,acbchs5.l8b2,acbyhs5.r8b1,acbyhs5.r8b2,
+              acbch5.l8b1,acbyh5.r8b2,
+              xip8b1,xip8b2,pxip8b1,pxip8b2;
+};
+
+mktable_orbit8v(kkkk): macro={
+delete,table=kkkk;
+create,table=kkkk,
+       column=acbxv1.l8,acbxv1.r8,
+              acbxv2.l8,acbxv2.r8,
+              acbxv3.l8,acbxv3.r8,
+              acbyvs4.l8b1,acbyvs4.l8b2,acbyvs4.r8b1,acbyvs4.r8b2,
+              acbyv4.l8b1,acbyv4.r8b2,
+              acbcvs5.l8b1,acbcvs5.l8b2,acbyvs5.r8b1,acbyvs5.r8b2,
+              acbyv5.r8b1,acbcv5.l8b2,
+              yip8b1,yip8b2,pyip8b1,pyip8b2;
+};
+
+match_orbit_ir8h(xip8b1,xip8b2,pxip8b1,pxip8b2): macro={
+acbyhs4.l8b1=0; acbyhs4.r8b2=0; acbyhs4.l8b2=0; acbyhs4.r8b1=0;
+acbchs5.l8b2=0; acbchs5.l8b1=0; acbyhs5.r8b1=0; acbyhs5.r8b2=0;
+use, sequence= lhcb1,range=s.ds.l8.b1/e.ds.r8.b1;
+use, sequence= lhcb2,range=s.ds.l8.b2/e.ds.r8.b2;
+match, sequence=lhcb1,lhcb2, beta0= bir8b1,bir8b2,
+        x = 0.0, px = 0.0, y = 0.0, py = 0.0;
+  constraint, sequence=lhcb1,range=IP8,  x = xip8b1, px = pxip8b1;
+  constraint, sequence=lhcb1,range=E.DS.R8.B1,x = 0.0, px = 0.0;
+  constraint, sequence=lhcb2,range=IP8,  x = xip8b2, px = pxip8b2;
+  constraint, sequence=lhcb2,range=E.DS.R8.B2,x = 0.0, px = 0.0;
+  vary,name=acbyhs4.l8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyhs4.r8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyhs4.l8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyhs4.r8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbchs5.l8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbchs5.l8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyhs5.r8b1,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
+  vary,name=acbyhs5.r8b2,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
+  jacobian, calls = 10, tolerance=1.e-30,bisec=3;
+endmatch;
+if (tar>1e-10){
+    ACBXX.IR8=0.0e-6/170;exec,set_mcbx8;
+    acbyhs4.l8b1=0; acbyhs4.r8b2=0; acbyhs4.l8b2=0; acbyhs4.r8b1=0;
+    acbchs5.l8b2=0; acbchs5.l8b1=0; acbyhs5.r8b1=0; acbyhs5.r8b2=0;
+    use, sequence= lhcb1,range=s.ds.l8.b1/e.ds.r8.b1;
+    use, sequence= lhcb2,range=s.ds.l8.b2/e.ds.r8.b2;
+    match, sequence=lhcb1,lhcb2, beta0= bir8b1,bir8b2,
+          x = 0.0, px = 0.0, y = 0.0, py = 0.0;
+    constraint, sequence=lhcb1,range=IP8,  x = xip8b1, px = pxip8b1;
+    constraint, sequence=lhcb1,range=E.DS.R8.B1,x = 0.0, px = 0.0;
+    constraint, sequence=lhcb2,range=IP8,  x = xip8b2, px = pxip8b2;
+    constraint, sequence=lhcb2,range=E.DS.R8.B2,x = 0.0, px = 0.0;
+    vary,name=acbyhs4.l8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+    vary,name=acbyhs4.r8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+    vary,name=acbyhs4.l8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+    vary,name=acbyhs4.r8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+    vary,name=acbchs5.l8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+    vary,name=acbchs5.l8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+    vary,name=acbyhs5.r8b1,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
+    vary,name=acbyhs5.r8b2,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
+    ACBXH3.L8:=ACBXH1.L8;
+    ACBXH2.L8:=ACBXH1.L8;
+    ACBXH3.R8:=ACBXH1.R8;
+    ACBXH2.R8:=ACBXH1.R8;
+    ACBXH1.R8:=-ACBXH1.L8;
+    vary,name=ACBXH1.L8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
+    jacobian, calls = 20, tolerance=1.e-30,bisec=3;
+    endmatch;
+  };
+};
+
+
+match_orbit_ir8v(yip8b1,yip8b2,pyip8b1,pyip8b2): macro={
+acbyvs4.l8b1=0; acbyvs4.r8b2=0; acbyvs4.l8b2=0; acbyvs4.r8b1=0;
+acbcvs5.l8b2=0; acbcvs5.l8b1=0; acbyvs5.r8b1=0; acbyvs5.r8b2=0;
+use, sequence= lhcb1,range=s.ds.l8.b1/e.ds.r8.b1;
+use, sequence= lhcb2,range=s.ds.l8.b2/e.ds.r8.b2;
+match, sequence=lhcb1,lhcb2, beta0= bir8b1,bir8b2,
+        x = 0.0, px = 0.0, y = 0.0, py = 0.0;
+  constraint, sequence=lhcb1,range=IP8,  y = yip8b1, py = pyip8b1;
+  constraint, sequence=lhcb1,range=E.DS.R8.B1,y = 0.0, py = 0.0;
+  constraint, sequence=lhcb2,range=IP8,  y = yip8b2, py = pyip8b2;
+  constraint, sequence=lhcb2,range=E.DS.R8.B2,y = 0.0, py = 0.0;
+  vary,name=acbyvs4.l8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyvs4.r8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyvs4.l8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyvs4.r8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbcvs5.l8b2,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
+  vary,name=acbcvs5.l8b1,step=1.0e-15,lower=-limitmcbc,upper=limitmcbc;
+  vary,name=acbyvs5.r8b1,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  vary,name=acbyvs5.r8b2,step=1.0e-15,lower=-limitmcby,upper=limitmcby;
+  jacobian, calls = 10, tolerance=1.e-30,bisec=3;
+  vary,name=ACBXV1.R8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
+  vary,name=ACBXV2.R8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
+  vary,name=ACBXV3.R8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
+  vary,name=ACBXV1.L8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
+  vary,name=ACBXV2.L8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
+  vary,name=ACBXV3.L8,step=1.0e-15,lower=-limitmcbx,upper=limitmcbx;
+  jacobian, calls = 20, tolerance=1.e-30,bisec=3;
+  endmatch;
+};
+
+
+mkknob(ssss,kkkk): macro={
+  exec,match_orbit_ssss;
+  tar_kkkk=tar;
+  fill,table=knob_kkkk,scale=1/kkkk;
+  kkkk=0;
+};
+
+
+
+set_mcbx8(ACBXX.IR8,ACBXS.IR8): macro={
+ACBXH1.L8:=ACBXX.IR8* on_x8h  +ACBXS.IR8* on_sep8h;
+ACBXH2.L8:=ACBXX.IR8* on_x8h  +ACBXS.IR8* on_sep8h;
+ACBXH3.L8:=ACBXX.IR8* on_x8h  +ACBXS.IR8* on_sep8h;
+ACBXV1.L8:=ACBXS.IR8* on_sep8v+ACBXX.IR8* on_x8v  ;
+ACBXV2.L8:=ACBXS.IR8* on_sep8v+ACBXX.IR8* on_x8v  ;
+ACBXV3.L8:=ACBXS.IR8* on_sep8v+ACBXX.IR8* on_x8v  ;
+ACBXH1.R8 :=-ACBXX.IR8* on_x8h  +ACBXS.IR8* on_sep8h;
+ACBXH2.R8 :=-ACBXX.IR8* on_x8h  +ACBXS.IR8* on_sep8h;
+ACBXH3.R8 :=-ACBXX.IR8* on_x8h  +ACBXS.IR8* on_sep8h;
+ACBXV1.R8 := ACBXS.IR8* on_sep8v-ACBXX.IR8* on_x8v  ;
+ACBXV2.R8 := ACBXS.IR8* on_sep8v-ACBXX.IR8* on_x8v  ;
+ACBXV3.R8 := ACBXS.IR8* on_sep8v-ACBXX.IR8* on_x8v  ;
+};
+
+
+
+delete,table=knob_on_x8h;
+create,table=knob_on_x8h,
+       column=acbxh1.l8,acbxh1.r8,
+              acbxh2.l8,acbxh2.r8,
+              acbxh3.l8,acbxh3.r8,
+              acbyhs4.l8b1,acbyhs4.l8b2,acbyhs4.r8b1,acbyhs4.r8b2,
+              acbchs5.l8b1,acbchs5.l8b2,acbyhs5.r8b1,acbyhs5.r8b2,
+              pxip8b1,pxip8b2;
+
+delete,table=knob_on_x8v;
+create,table=knob_on_x8v,
+       column=acbxv1.l8,acbxv1.r8,
+              acbxv2.l8,acbxv2.r8,
+              acbxv3.l8,acbxv3.r8,
+              acbyvs4.l8b1,acbyvs4.l8b2,acbyvs4.r8b1,acbyvs4.r8b2,
+              acbcvs5.l8b1,acbcvs5.l8b2,acbyvs5.r8b1,acbyvs5.r8b2,
+              pyip8b1,pyip8b2;
+
+! ! reset values
+! exec,mktable_orbit8h(orbit_ir8h);
+! exec,mktable_orbit8v(orbit_ir8v);
+
+! setvars_const,table=orbit_ir8h;
+! setvars_const,table=orbit_ir8v;
+
+! testkqx8=abs(kqx.l8)*7000./0.3;
+
+! xip8b1 :=1e-3*(on_o8h   +on_sep8h);
+! xip8b2 :=1e-3*(on_o8h   -on_sep8h);
+! yip8b1 :=1e-3*(on_o8v   +on_sep8v);
+! yip8b2 :=1e-3*(on_o8v   -on_sep8v);
+! pxip8b1:=1e-6*(on_a8h   +on_x8h  );
+! pxip8b2:=1e-6*(on_a8h   -on_x8h  );
+! pyip8b1:=1e-6*(on_a8v   +on_x8v  );
+! pyip8b2:=1e-6*(on_a8v   -on_x8v  );
+
+
+! if(testkqx8> 210.) {acbxx.ir8= 1.0e-6/170;acbxs.ir8= 18.0e-6/2;};
+
+! if(testkqx8< 210.) {acbxx.ir8= 11.0e-6/170;acbxs.ir8= 16.0e-6/2;};
+
+
+! xang=170;psep=2;off=0.5;aoff=30;
+
+! if (betxip8b1<5){xang=300;};
+
+! exec,set_mcbx8; on_x8h=xang;exec,mkknob(ir8h,on_x8h);
+! !nn=18;while(tar_on_x8h>1e-10 && nn>2){
+! !acbxx.ir8= nn*1e-6/170;
+! !exec,set_mcbx8; on_x8h=xang;exec,mkknob(ir8h,on_x8h);
+! !nn=nn-2;
+! !};
+! exec,set_mcbx8; on_x8v=xang;exec,mkknob(ir8v,on_x8v);
+
+
+! ! setting knobs
+! setvars_const,table=orbit_ir8h;
+! setvars_const,table=orbit_ir8v;
+
+! setvars_knob,table=knob_on_x8h  ,knob=on_x8h;
+! setvars_knob,table=knob_on_x8v  ,knob=on_x8v;
+
+

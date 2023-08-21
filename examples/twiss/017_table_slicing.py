@@ -18,7 +18,7 @@ line.build_tracker()
 # Twiss
 tw = line.twiss()
 
-# Examples access modes to the twiss table
+# Examples of access modes to the twiss table
 
 tw['qx']
 # gives : 62.3100009

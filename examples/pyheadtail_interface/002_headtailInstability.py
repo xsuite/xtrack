@@ -25,7 +25,7 @@ from PyHEADTAIL.trackers.transverse_tracking import TransverseSegmentMap
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningSegment
 
-context = xo.ContextCpu(omp_num_threads=1)
+context = xo.ContextCpu(omp_num_threads=0)
 
 nTurn = 5000  # int(1E4)
 bunch_intensity = 1.8e11
@@ -250,7 +250,7 @@ arc = xt.LinearTransferMatrix(
     Q_x=Q_x,
     Q_y=Q_y,
     beta_s=beta_s,
-    Q_s=-Q_s,
+    Q_s=Q_s,
     chroma_x=chroma,
     chroma_y=0.0,
     detx_x=detx_x,

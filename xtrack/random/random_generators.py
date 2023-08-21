@@ -44,16 +44,20 @@ class RandomUniform(BeamElement):
     def track(self, *args, **kwargs):
         raise RuntimeError("Random generators have no valid track method.")
 
-    def generate(self, n_samples=1000, n_seeds=1000, particles=None):
+    def generate(self, n_samples=1000, n_seeds=None, particles=None):
         context = self._context
-        n_seeds = int(n_seeds)
         if particles is None:
             particles = xp.Particles(state=np.ones(n_seeds),
                                      x=np.ones(n_seeds), _context=context)
-        elif n_seeds != len(particles._rng_s1):
-            _print("Warning: both 'particles' and 'n_seeds' are given, but "
-                  + "are not compatible. Ignoring 'n_seeds'...")
+        else:
+            if n_seeds is not None:
+                _print("Warning: both 'particles' and 'n_seeds' are given, but "
+                      + "are not compatible. Ignoring 'n_seeds'...")
+            particles.move(_context=context)
             n_seeds = len(particles._rng_s1)
+        if n_seeds is None:
+            n_seeds = 1000
+        n_seeds = int(n_seeds)
         if not particles._has_valid_rng_state():
             particles._init_random_number_generator()
 
@@ -68,7 +72,7 @@ class RandomUniform(BeamElement):
 
         return np.reshape(samples[:n_samples_per_seed*n_seeds],
                     (-1, n_samples_per_seed)
-                ), particles
+                )
 
 
 class RandomExponential(RandomUniform):
