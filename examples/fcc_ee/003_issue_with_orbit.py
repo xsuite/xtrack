@@ -24,18 +24,15 @@ for iss, section in enumerate(section_list):
     mask_drift_q = tt_insertion.mask['drift_q.*']
     tt_wig_drifts = tt_insertion.rows[~mask_drift_q].rows['drift_.*']
 
-    for ii, nn in enumerate(tt_wig_drifts.name):
+    for jj, nn in enumerate(tt_wig_drifts.name):
+        if jj > 1: break
         s_start_wig = tt['s', nn]
         s_end_wig = tt['s', nn] + line[nn].length
 
-        tag_wig = f'w{iss}_{ii}'
+        tag_wig = f'w{iss}_{jj}'
 
-        # n_kicks = 4
-        # l_wig = s_end_wig - s_start_wig
-        # l_kick = l_wig / (n_kicks - 1)
-        # s_wig_kicks = np.linspace(
-        #     s_start_wig - l_kick / 2, s_end_wig + l_kick/2, n_kicks)
-        s_wig_kicks = np.linspace(s_start_wig, s_end_wig, 4) #60)
+        n_kicks = 4
+        s_wig_kicks = np.linspace(s_start_wig, s_end_wig, n_kicks)
         s_wig_plus = s_wig_kicks[:-1:2]
         s_wig_minus = s_wig_kicks[1::2]
 
@@ -44,7 +41,6 @@ for iss, section in enumerate(section_list):
         kk_wig = f'k0l_wig.{tag_wig}'
         line.vars[kk_wig] = line.vars['k0l_long_wig']
         for ii, (ss_p, ss_m) in enumerate(zip(s_wig_plus, s_wig_minus)):
-            if ii > 1: break
             half_period = ss_m - ss_p
             if ii == 0:
                 ss_p += 0.5 * half_period
