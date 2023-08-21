@@ -9,12 +9,13 @@ varvals = line._xdeps_vref._owner.copy()
 section_list = [
     ('qrfr1.1_entry', 'qrfl1.1_exit'),
     # ('qrfr1.2_entry', 'qrfl1.2_exit'), # taken by the RF
-    # ('qrfr1.3_entry', 'qrfl1.3_exit'),
-    # ('qrfr1.4_entry', 'qrfl1.4_exit'),
+    ('qrfr1.3_entry', 'qrfl1.3_exit'),
+    ('qrfr1.4_entry', 'qrfl1.4_exit'),
 ]
 
 
 n_slices = 10
+l_add = 0
 line.vars['k0l_long_wig'] = 0
 line.vars['wig_drift_fraction'] = 0.7
 for iss, section in enumerate(section_list):
@@ -25,14 +26,13 @@ for iss, section in enumerate(section_list):
     tt_wig_drifts = tt_insertion.rows[~mask_drift_q].rows['drift_.*']
 
     for jj, nn in enumerate(tt_wig_drifts.name):
-        if jj > 1: break
         s_start_wig = tt['s', nn]
         s_end_wig = tt['s', nn] + line[nn].length
 
         tag_wig = f'w{iss}_{jj}'
 
         n_kicks = 4
-        s_wig_kicks = np.linspace(s_start_wig, s_end_wig, n_kicks)
+        s_wig_kicks = np.linspace(s_start_wig - l_add, s_end_wig + l_add, n_kicks)
         s_wig_plus = s_wig_kicks[:-1:2]
         s_wig_minus = s_wig_kicks[1::2]
 
@@ -66,15 +66,17 @@ for iss, section in enumerate(section_list):
                 line.element_refs[nn_minus].length = half_period * (1 - line.vars['wig_drift_fraction']) / n_slices
                 if ii == 0:
                     line.element_refs[nn_plus].ksl[0] = line.vars[kk_wig] / n_slices * 0.5
+                    line.element_refs[nn_plus].length = half_period / n_slices # To make them weaker (as thy have low dispersion)
                 if ii == len(s_wig_plus) - 1:
                     line.element_refs[nn_minus].ksl[0] = -line.vars[kk_wig] / n_slices * 0.5
+                    line.element_refs[nn_minus].length = half_period / n_slices # To make them weaker (as thy have low dispersion)
 
 line.to_json('fccee_p_ring_thin_wig_long.json')
 
 line = line.from_json('fccee_p_ring_thin_wig_long.json')
 line.build_tracker()
 
-line.vars['k0l_long_wig'] = 8e-4
+line.vars['k0l_long_wig'] = 12e-4
 
 tw = line.twiss(method='4d')
 
