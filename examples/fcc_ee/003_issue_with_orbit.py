@@ -83,6 +83,7 @@ line.vars['k0l_long_wig'] = 12e-4
 line.vars['wig_core_len_factor'] = 1
 line.vars['wig_edge_len_factor'] = 1
 
+tt = line.get_table()
 for nn in tt.rows['mwg.*'].name:
     line.element_refs[nn].hyl = line.element_refs[nn].ksl[0]._expr
 
