@@ -14,7 +14,7 @@ section_list = [
 ]
 
 
-n_slices = 10
+n_slices = 3
 l_add = 0
 line.vars['k0l_long_wig'] = 0
 line.vars['wig_drift_fraction'] = 0.7
