@@ -79,12 +79,12 @@ prrrr
 
 line = line.from_json('fccee_p_ring_thin_wig_long.json')
 
-line.vars['k0l_long_wig'] = 20e-4
+line.vars['k0l_long_wig'] = 12e-4
 line.vars['wig_core_len_factor'] = 1
 line.vars['wig_edge_len_factor'] = 1
 
 for nn in tt.rows['mwg.*'].name:
-    line[nn].radiation_flag=0
+    line.element_refs[nn].hyl = line.element_refs[nn].ksl[0]._expr
 
 line.build_tracker() # Important to do it after setting l_rad to update cached values
 
@@ -120,6 +120,18 @@ sp3.plot(tw.s, tw_rad.dy, label='dy')
 sp4 = plt.subplot(4,1,4, sharex=sp1)
 sp4.plot(tw.s, tw_rad.delta, label='delta')
 plt.subplots_adjust(hspace=0.33, bottom=0.07)
+
+plt.figure(2)
+plt.subplot(3,1,1, sharex=sp1)
+plt.plot(tw.s, tw_rad.betx, label='betx')
+plt.plot(tw.s, tw_rad.bety, label='bety')
+
+plt.subplot(3,1,2, sharex=sp1)
+plt.plot(tw.s, tw_rad.betx/tw.betx - 1, label='betx')
+
+plt.subplot(3,1,3, sharex=sp1)
+plt.plot(tw.s, tw_rad.bety/tw.bety - 1, label='bety')
+
 plt.show()
 
 
