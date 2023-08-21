@@ -18,6 +18,8 @@ n_slices = 10
 l_add = 0
 line.vars['k0l_long_wig'] = 0
 line.vars['wig_drift_fraction'] = 0.7
+line.vars['wig_core_len_factor'] = 1
+line.vars['wig_edge_len_factor'] = 1
 for iss, section in enumerate(section_list):
 
     tt = line.get_table()
@@ -62,21 +64,29 @@ for iss, section in enumerate(section_list):
                     at_s=ss_m + i_slice * (1 - line.varval['wig_drift_fraction']) * half_period / n_slices)
                 line.element_refs[nn_plus].ksl[0] = line.vars[kk_wig] / n_slices
                 line.element_refs[nn_minus].ksl[0] = -line.vars[kk_wig] / n_slices
-                line.element_refs[nn_plus].length = half_period * (1 - line.vars['wig_drift_fraction']) / n_slices
-                line.element_refs[nn_minus].length = half_period * (1 - line.vars['wig_drift_fraction']) / n_slices
+                line.element_refs[nn_plus].length = half_period * (1 - line.vars['wig_drift_fraction']) / n_slices * line.vars['wig_core_len_factor']
+                line.element_refs[nn_minus].length = half_period * (1 - line.vars['wig_drift_fraction']) / n_slices * line.vars['wig_core_len_factor']
                 if ii == 0:
                     line.element_refs[nn_plus].ksl[0] = line.vars[kk_wig] / n_slices * 0.5
-                    line.element_refs[nn_plus].length = half_period / n_slices # To make them weaker (as thy have low dispersion)
+                    line.element_refs[nn_plus].length = half_period / n_slices * line.vars['wig_edge_len_factor'] # To make them weaker (as thy have low dispersion)
                 if ii == len(s_wig_plus) - 1:
                     line.element_refs[nn_minus].ksl[0] = -line.vars[kk_wig] / n_slices * 0.5
-                    line.element_refs[nn_minus].length = half_period / n_slices # To make them weaker (as thy have low dispersion)
+                    line.element_refs[nn_minus].length = half_period / n_slices * line.vars['wig_edge_len_factor']# To make them weaker (as thy have low dispersion)
 
 line.to_json('fccee_p_ring_thin_wig_long.json')
 
+prrrr
+
 line = line.from_json('fccee_p_ring_thin_wig_long.json')
-line.build_tracker()
 
 line.vars['k0l_long_wig'] = 20e-4
+line.vars['wig_core_len_factor'] = 1
+line.vars['wig_edge_len_factor'] = 1
+
+for nn in tt.rows['mwg.*'].name:
+    line[nn].radiation_flag=0
+
+line.build_tracker() # Important to do it after setting l_rad to update cached values
 
 tw = line.twiss(method='4d')
 
@@ -112,6 +122,8 @@ sp4.plot(tw.s, tw_rad.delta, label='delta')
 plt.subplots_adjust(hspace=0.33, bottom=0.07)
 plt.show()
 
+
+pppppp
 # Tracking
 
 line.configure_radiation(model='quantum')
