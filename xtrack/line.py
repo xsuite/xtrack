@@ -1597,8 +1597,8 @@ class Line:
         l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
         assert l_left_part >= 0
         assert l_right_part >= 0
-        name_left = name_first_drift_to_cut + '_part0'
-        name_right = name_last_drift_to_cut + '_part1'
+        name_left = name_first_drift_to_cut + '_u' # u for upstream
+        name_right = name_last_drift_to_cut + '_d' # d for downstream
 
         drift_base = self.element_dict[name_first_drift_to_cut]
         drift_left = drift_base.copy()

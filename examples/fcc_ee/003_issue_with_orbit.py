@@ -14,7 +14,7 @@ section_list = [
 ]
 
 
-n_slices = 5
+n_slices = 10
 line.vars['k0l_long_wig'] = 0
 line.vars['wig_drift_fraction'] = 0.7
 for iss, section in enumerate(section_list):
@@ -25,12 +25,16 @@ for iss, section in enumerate(section_list):
     tt_wig_drifts = tt_insertion.rows[~mask_drift_q].rows['drift_.*']
 
     for ii, nn in enumerate(tt_wig_drifts.name):
-        if ii > 0: break # debug
         s_start_wig = tt['s', nn]
         s_end_wig = tt['s', nn] + line[nn].length
 
         tag_wig = f'w{iss}_{ii}'
 
+        # n_kicks = 4
+        # l_wig = s_end_wig - s_start_wig
+        # l_kick = l_wig / (n_kicks - 1)
+        # s_wig_kicks = np.linspace(
+        #     s_start_wig - l_kick / 2, s_end_wig + l_kick/2, n_kicks)
         s_wig_kicks = np.linspace(s_start_wig, s_end_wig, 4) #60)
         s_wig_plus = s_wig_kicks[:-1:2]
         s_wig_minus = s_wig_kicks[1::2]
@@ -40,6 +44,7 @@ for iss, section in enumerate(section_list):
         kk_wig = f'k0l_wig.{tag_wig}'
         line.vars[kk_wig] = line.vars['k0l_long_wig']
         for ii, (ss_p, ss_m) in enumerate(zip(s_wig_plus, s_wig_minus)):
+            if ii > 1: break
             half_period = ss_m - ss_p
             if ii == 0:
                 ss_p += 0.5 * half_period
@@ -48,7 +53,7 @@ for iss, section in enumerate(section_list):
 
             for i_slice in range(n_slices):
                 print(
-                    f'Wig {tag_wig} period {ii}/{len(s_wig_plus)} slice {i_slice}{n_slices}   ',
+                    f'Wig {tag_wig} period {ii}/{len(s_wig_plus)} slice {i_slice}/{n_slices}      ',
                     end='\r', flush=True)
                 wmg_plus = xt.Multipole(knl=[0])
                 wmg_minus = xt.Multipole(knl=[0])
@@ -73,7 +78,7 @@ line.to_json('fccee_p_ring_thin_wig_long.json')
 line = line.from_json('fccee_p_ring_thin_wig_long.json')
 line.build_tracker()
 
-line.vars['k0l_long_wig'] = 3e-4
+line.vars['k0l_long_wig'] = 8e-4
 
 tw = line.twiss(method='4d')
 
