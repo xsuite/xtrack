@@ -1098,11 +1098,39 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
         gamma2 = gamma * gamma
 
+        py_left = py_co[:-1]
+        py_right = py_co[1:]
+        W_left = W_matrix[:-1, :, :]
+        W_right = W_matrix[1:, :, :]
+
+        # a23_cent = np.squeeze(W_cent[:, 2, 2])
+        # a25_cent = np.squeeze(W_cent[:, 4, 2])
+        # b23_cent = np.squeeze(W_cent[:, 2, 3])
+        # b25_cent = np.squeeze(W_cent[:, 4, 3])
+
+        a23_left = np.squeeze(W_left[:, 2, 2])
+        a25_left = np.squeeze(W_left[:, 4, 2])
+        b23_left = np.squeeze(W_left[:, 2, 3])
+        b25_left = np.squeeze(W_left[:, 4, 3])
+
+        a23_right = np.squeeze(W_right[:, 2, 2])
+        a25_right = np.squeeze(W_right[:, 4, 2])
+        b23_right = np.squeeze(W_right[:, 2, 3])
+        b25_right = np.squeeze(W_right[:, 4, 3])
+
         # Need to use no rad W matrix!!!
         integ_ex = np.sum(dl
             * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 0]**2 + W_matrix[:-1, 4, 1]**2))
+        # integ_ey = np.sum(dl
+        #     * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 2]**2 + W_matrix[:-1, 4, 3]**2))
         integ_ey = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 2]**2 + W_matrix[:-1, 4, 3]**2))
+            * np.abs(hh)**3 * gamma2 * 0.5 * (
+                np.squeeze(a25_left**2 + a25_right**2 +
+                           b25_left**2 + b25_right**2)))
+        # integ_ey_new = np.sum(dl
+        #     * np.abs(hh)**3 * gamma2 * (
+        #         (b23_cent * py_cent + b25_cent)**2
+        #       + (a23_cent * py_cent + a25_cent)**2))
         integ_ez = np.sum(dl
             * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 4]**2 + W_matrix[:-1, 4, 5]**2))
 
