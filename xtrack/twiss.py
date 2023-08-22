@@ -1125,8 +1125,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         #     * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 2]**2 + W_matrix[:-1, 4, 3]**2))
         integ_ey = np.sum(dl
             * np.abs(hh)**3 * gamma2 * 0.5 * (
-                np.squeeze(a25_left**2 + a25_right**2 +
-                           b25_left**2 + b25_right**2)))
+                (a23_left * py_left + a25_left)**2 + (a23_right * py_right + a25_right)**2
+              + (b23_left * py_left + b25_left)**2 + (b23_right * py_right + b25_right)**2))
         # integ_ey_new = np.sum(dl
         #     * np.abs(hh)**3 * gamma2 * (
         #         (b23_cent * py_cent + b25_cent)**2
