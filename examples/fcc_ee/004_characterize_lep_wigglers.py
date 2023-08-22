@@ -5,10 +5,10 @@ line = xt.Line.from_json('fccee_p_ring_thin.json')
 
 tt = line.get_table()
 
-for nn in tt.rows['mw.*'].name:
-    if isinstance(line[nn], xt.Multipole):
-        line.element_refs[nn].hyl = line.element_refs[nn].ksl[0]._expr
-        line.element_refs[nn].hxl = line.element_refs[nn].knl[0]._expr
+# for nn in tt.rows['mw.*'].name:
+#     if isinstance(line[nn], xt.Multipole):
+#         line.element_refs[nn].hyl = line.element_refs[nn].ksl[0]._expr
+#         line.element_refs[nn].hxl = line.element_refs[nn].knl[0]._expr
 
 line.vars['on_wiggler_v'] = 0.7
 line.build_tracker()

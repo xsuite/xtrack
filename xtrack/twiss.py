@@ -1123,10 +1123,14 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
             * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 0]**2 + W_matrix[:-1, 4, 1]**2))
         # integ_ey = np.sum(dl
         #     * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 2]**2 + W_matrix[:-1, 4, 3]**2))
-        integ_ey = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * 0.5 * (
-                (a23_left * py_left + a25_left)**2 + (a23_right * py_right + a25_right)**2
-              + (b23_left * py_left + b25_left)**2 + (b23_right * py_right + b25_right)**2))
+        integ_ey_left = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * (
+                (a23_left * py_left + a25_left)**2
+              + (b23_left * py_left + b25_left)**2))
+        integ_ey_right = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * (
+                (a23_right * py_right + a25_right)**2
+              + (b23_right * py_right + b25_right)**2))
         # integ_ey_new = np.sum(dl
         #     * np.abs(hh)**3 * gamma2 * (
         #         (b23_cent * py_cent + b25_cent)**2
@@ -1137,7 +1141,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
         clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**3) / mass0)
         ex = clg * integ_ex / damping_constants_turns[0]
-        ey = clg * integ_ey / damping_constants_turns[1]
+        ey = clg * 0.5 * (integ_ey_left + integ_ey_right) / damping_constants_turns[1]
         ez = clg * integ_ez / damping_constants_turns[2]
 
         nemitt_x_rad = float(ex * (beta0 * gamma0))
