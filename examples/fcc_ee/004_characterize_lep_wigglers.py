@@ -23,13 +23,9 @@ ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
 ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
 ez = tw_rad.nemitt_zeta_rad / (tw_rad.gamma0 * tw_rad.beta0)
 
-pppppp
-
 p = line.build_particles(x_norm=0, y_norm=0, delta=3e-3)
 line.track(p, turn_by_turn_monitor='ONE_TURN_EBE')
 mon = line.record_last_track
-
-
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)

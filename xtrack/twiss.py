@@ -1098,6 +1098,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
         gamma2 = gamma * gamma
 
+        px_left = px_co[:-1]
+        px_right = px_co[1:]
         py_left = py_co[:-1]
         py_right = py_co[1:]
         W_left = W_matrix[:-1, :, :]
@@ -1108,41 +1110,79 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         # b23_cent = np.squeeze(W_cent[:, 2, 3])
         # b25_cent = np.squeeze(W_cent[:, 4, 3])
 
+        a11_left = np.squeeze(W_left[:, 0, 0])
+        a13_left = np.squeeze(W_left[:, 2, 0])
+        a15_left = np.squeeze(W_left[:, 4, 0])
+        b11_left = np.squeeze(W_left[:, 0, 1])
+        b13_left = np.squeeze(W_left[:, 2, 1])
+        b15_left = np.squeeze(W_left[:, 4, 1])
+
+        a11_right = np.squeeze(W_right[:, 0, 0])
+        a13_right = np.squeeze(W_right[:, 2, 0])
+        a15_right = np.squeeze(W_right[:, 4, 0])
+        b11_right = np.squeeze(W_right[:, 0, 1])
+        b13_right = np.squeeze(W_right[:, 2, 1])
+        b15_right = np.squeeze(W_right[:, 4, 1])
+
+        a21_left = np.squeeze(W_left[:, 0, 2])
         a23_left = np.squeeze(W_left[:, 2, 2])
         a25_left = np.squeeze(W_left[:, 4, 2])
+        b21_left = np.squeeze(W_left[:, 0, 3])
         b23_left = np.squeeze(W_left[:, 2, 3])
         b25_left = np.squeeze(W_left[:, 4, 3])
 
+        a21_right = np.squeeze(W_right[:, 0, 2])
         a23_right = np.squeeze(W_right[:, 2, 2])
         a25_right = np.squeeze(W_right[:, 4, 2])
+        b21_right = np.squeeze(W_right[:, 0, 3])
         b23_right = np.squeeze(W_right[:, 2, 3])
         b25_right = np.squeeze(W_right[:, 4, 3])
 
+        a31_left = np.squeeze(W_left[:, 0, 4])
+        a33_left = np.squeeze(W_left[:, 2, 4])
+        a35_left = np.squeeze(W_left[:, 4, 4])
+        b31_left = np.squeeze(W_left[:, 0, 5])
+        b33_left = np.squeeze(W_left[:, 2, 5])
+        b35_left = np.squeeze(W_left[:, 4, 5])
+
+        a31_right = np.squeeze(W_right[:, 0, 4])
+        a33_right = np.squeeze(W_right[:, 2, 4])
+        a35_right = np.squeeze(W_right[:, 4, 4])
+        b31_right = np.squeeze(W_right[:, 0, 5])
+        b33_right = np.squeeze(W_right[:, 2, 5])
+        b35_right = np.squeeze(W_right[:, 4, 5])
+
         # Need to use no rad W matrix!!!
-        integ_ex = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 0]**2 + W_matrix[:-1, 4, 1]**2))
-        # integ_ey = np.sum(dl
-        #     * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 2]**2 + W_matrix[:-1, 4, 3]**2))
+        integ_ex_left = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * (
+                (a11_left * px_left + a13_left * py_left + a15_left)**2
+              + (b11_left * px_left + b13_left * py_left + b15_left)**2))
+        integ_ex_right = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * (
+                (a11_right * px_right + a13_right * py_right + a15_right)**2
+              + (b11_right * px_right + b13_right * py_right + b15_right)**2))
         integ_ey_left = np.sum(dl
             * np.abs(hh)**3 * gamma2 * (
-                (a23_left * py_left + a25_left)**2
-              + (b23_left * py_left + b25_left)**2))
+                (a21_left * px_left + a23_left * py_left + a25_left)**2
+              + (b21_left * px_left + b23_left * py_left + b25_left)**2))
         integ_ey_right = np.sum(dl
             * np.abs(hh)**3 * gamma2 * (
-                (a23_right * py_right + a25_right)**2
-              + (b23_right * py_right + b25_right)**2))
-        # integ_ey_new = np.sum(dl
-        #     * np.abs(hh)**3 * gamma2 * (
-        #         (b23_cent * py_cent + b25_cent)**2
-        #       + (a23_cent * py_cent + a25_cent)**2))
-        integ_ez = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * np.squeeze(W_matrix[:-1, 4, 4]**2 + W_matrix[:-1, 4, 5]**2))
+                (a21_right * px_right + a23_right * py_right + a25_right)**2
+              + (b21_right * px_right + b23_right * py_right + b25_right)**2))
+        integ_ez_left = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * (
+                (a31_left * px_left + a33_left * py_left + a35_left)**2
+              + (b31_left * px_left + b33_left * py_left + b35_left)**2))
+        integ_ez_right = np.sum(dl
+            * np.abs(hh)**3 * gamma2 * (
+                (a31_right * px_right + a33_right * py_right + a35_right)**2
+              + (b31_right * px_right + b33_right * py_right + b35_right)**2))
 
         arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
         clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**3) / mass0)
-        ex = clg * integ_ex / damping_constants_turns[0]
+        ex = clg * 0.5 * (integ_ex_left + integ_ex_right) / damping_constants_turns[0]
         ey = clg * 0.5 * (integ_ey_left + integ_ey_right) / damping_constants_turns[1]
-        ez = clg * integ_ez / damping_constants_turns[2]
+        ez = clg * 0.5 * (integ_ez_left + integ_ez_right) / damping_constants_turns[2]
 
         nemitt_x_rad = float(ex * (beta0 * gamma0))
         nemitt_y_rad = float(ey * (beta0 * gamma0))
