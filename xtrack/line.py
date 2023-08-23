@@ -2816,6 +2816,10 @@ class Line:
         return self.vars.val
 
     @property
+    def vv(self): # Shorter alias
+        return self.vars.val
+
+    @property
     def functions(self):
         return self._xdeps_fref
 
