@@ -5,17 +5,16 @@ line = xt.Line.from_json('fccee_p_ring_thin.json')
 
 tt = line.get_table()
 
-# for nn in tt.rows['mw.*'].name:
-#     if isinstance(line[nn], xt.Multipole):
-#         line.element_refs[nn].hyl = line.element_refs[nn].ksl[0]._expr
-#         line.element_refs[nn].hxl = line.element_refs[nn].knl[0]._expr
-
-line.vars['on_wiggler_v'] = 0.7
 line.build_tracker()
 
-tw = line.twiss(method='4d')
+tw_no_rad = line.twiss(method='4d')
 
 line.configure_radiation(model='mean')
+line.compensate_radiation_energy_loss()
+
+tw_rad_wig_off = line.twiss(eneloss_and_damping=True)
+
+line.vars['on_wiggler_v'] = 0.7
 line.compensate_radiation_energy_loss()
 
 tw_rad = line.twiss(eneloss_and_damping=True)
@@ -31,7 +30,6 @@ line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
 line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
 print(f'Tracking time: {line.time_last_track}')
-
 
 mon = line.record_last_track
 

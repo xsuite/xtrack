@@ -8,7 +8,6 @@ mad = Madx()
 mad.call('fccee_h.seq')
 mad.beam(particle='positron', pc=120)
 mad.use('fccee_p_ring')
-mad.input('twiss, table=tw_no_wig;')
 
 mad.call('install_wigglers.madx')
 mad.input("exec, define_wigglers_as_multipoles()")

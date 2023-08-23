@@ -14,16 +14,12 @@ brhobeam=BEAM->BRHO;
 
 on_wiggler_h = 0;
 wiggler_angle_h:= on_wiggler_h * B_plus * L_plus / brhobeam;
-on_wiggler_v = 1;
+on_wiggler_v = 0;
 wiggler_angle_v:= on_wiggler_v * B_plus * L_plus / brhobeam;
 
 Print, Text="The critical energy of the wiggler is:";
 VALUE, 2.21*10^(-6)*(BEAM->ENERGY)^3/(BEAM->BRHO/B_plus/1000);
 Print, Text="MeV.";
-
-Print, Text="Wigglers can be implemented as TKICKER or BENDS. The SR Integral in MAD-X are only takes BENDs into accounts.";
-Print, Text="To get the proper SR Integrals including wigglers, the MWI have to be installed using define_wigglers_as_kickers.";
-Print, Text="To see the impact on the closed orbit and aperture, use define_wigglers_as_kickers instead.";
 
 define_wigglers_as_multipoles() : macro {
 
