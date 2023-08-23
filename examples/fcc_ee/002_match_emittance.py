@@ -39,6 +39,8 @@ action_equilibrium_emittance = ActionEquilibriumEmittance(line)
 opt = line.match(
     solve=False,
     targets=[action_equilibrium_emittance.target('log10_ey', np.log10(ey_target),
-                                                 tol=1e-5)],
+                                                 tol=1e-3)],
     vary=xt.Vary('on_wiggler_v', step=0.01, limits=(0.1, 2))
 )
+
+opt.solve()
