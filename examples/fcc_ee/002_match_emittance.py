@@ -23,7 +23,9 @@ class ActionEquilibriumEmittance(xt.Action):
         self.line = line
 
     def run(self):
+        xt.general._print.suppress = True
         self.line.compensate_radiation_energy_loss()
+        xt.general._print.suppress = False
         tw_rad = self.line.twiss(eneloss_and_damping=True)
 
         ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
