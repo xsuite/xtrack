@@ -2382,5 +2382,3 @@ def _str_to_index(line, ele):
         return line.element_names.index(ele)
     else:
         return ele
-
-
