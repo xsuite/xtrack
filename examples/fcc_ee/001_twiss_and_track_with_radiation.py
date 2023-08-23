@@ -16,7 +16,6 @@ tw_rad_wig_off = line.twiss(eneloss_and_damping=True)
 
 line.vars['on_wiggler_v'] = 0.7
 line.compensate_radiation_energy_loss()
-
 tw_rad = line.twiss(eneloss_and_damping=True)
 ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
 ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
