@@ -1427,26 +1427,6 @@ class Line:
 
         return self.get_s_position(mode=mode)
 
-    def _cache_data_for_radiation_integrals(self):
-
-        '''
-        Get length to be used in radiation integrals for each element.
-        '''
-        n_elem = len(self.element_names)
-        dl_radiation = np.zeros(n_elem)
-        hxl_radiation = np.zeros(n_elem)
-        hyl_radiation = np.zeros(n_elem)
-
-        for ii, ee in enumerate(self.elements):
-            if isinstance(ee, xt.Multipole):
-                hxl_radiation[ii] = ee.hxl
-                hyl_radiation[ii] = ee.hyl
-                dl_radiation[ii] = ee.length
-
-        return {'dl_radiation': dl_radiation,
-                'hxl_radiation': hxl_radiation,
-                'hyl_radiation': hyl_radiation}
-
     def get_s_position(self, at_elements=None, mode="upstream"):
 
         '''Get s position for given elements
@@ -3007,10 +2987,10 @@ class Line:
             #     component_names = self._compound_relation[ii]
             #     return [self.element_dict[name] for name in component_names]
 
-            if ii not in self.element_names:
-                raise IndexError(f'No installed element with name {ii}')
-
-            return self.element_dict.__getitem__(ii)
+            try:
+                return self.element_dict.__getitem__(ii)
+            except KeyError:
+                raise KeyError(f'No installed element with name {ii}')
         else:
             names = self.element_names.__getitem__(ii)
             if isinstance(names, str):

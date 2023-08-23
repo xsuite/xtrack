@@ -33,35 +33,6 @@ line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
 print(f'Tracking time: {line.time_last_track}')
 
 
-dl = line.tracker._tracker_data_base.cache['dl_radiation']
-hxl = line.tracker._tracker_data_base.cache['hxl_radiation']
-hyl = line.tracker._tracker_data_base.cache['hyl_radiation']
-px_co = tw_rad.px
-py_co = tw_rad.py
-
-mask = (dl != 0)
-hx = np.zeros(shape=(len(dl),), dtype=np.float64)
-hy = np.zeros(shape=(len(dl),), dtype=np.float64)
-hx[mask] = (np.diff(px_co)[mask] + hxl[mask]) / dl[mask]
-hy[mask] = (np.diff(py_co)[mask] + hyl[mask]) / dl[mask]
-hh = np.sqrt(hx**2 + hy**2)
-
-twe = tw_rad.rows[:-1]
-cur_H_x = twe.gamx * twe.dx**2 + 2 * twe.alfx * twe.dx * twe.dpx + twe.betx * twe.dpx**2
-I5_x  = np.sum(cur_H_x * hh**3 * dl)
-I2_x = np.sum(hh**2 * dl)
-I4_x = np.sum(twe.dx * hh**3 * dl) # to be generalized for combined function magnets
-
-cur_H_y = twe.gamy * twe.dy**2 + 2 * twe.alfy * twe.dy * twe.dpy + twe.bety * twe.dpy**2
-I5_y  = np.sum(cur_H_y * hh**3 * dl)
-I2_y = np.sum(hh**2 * dl)
-I4_y = np.sum(twe.dy * hh**3 * dl) # to be generalized for combined function magnets
-
-lam_comp = 2.436e-12 # [m]
-gamma0 = tw_rad.gamma0
-ex_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_x / (I2_x - I4_x)
-ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
-
 mon = line.record_last_track
 
 import matplotlib.pyplot as plt

@@ -129,9 +129,6 @@ class Tracker:
             _buffer=_buffer)
         line._freeze()
 
-        tracker_data_base.cache.update(
-            line._cache_data_for_radiation_integrals())
-
         _buffer = tracker_data_base._buffer
 
         # Make a "marker" element to increase at_element

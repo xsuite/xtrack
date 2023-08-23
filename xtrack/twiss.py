@@ -1080,9 +1080,13 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
     # Equilibrium emittances
     if radiation_method == 'kick_as_co':
 
-        hxl = line.tracker._tracker_data_base.cache['hxl_radiation']
-        hyl = line.tracker._tracker_data_base.cache['hyl_radiation']
-        dl = line.tracker._tracker_data_base.cache['dl_radiation']
+        radiation_flag = line.attr['radiation_flag']
+        if np.any(radiation_flag > 1):
+            raise ValueError('Incompatible radiation flag')
+        hxl = line.attr['hxl']
+        hyl = line.attr['hyl']
+        dl = line.attr['length'] * (radiation_flag == 1)
+
         mask = (dl != 0)
         hx = np.zeros(shape=(len(dl),), dtype=np.float64)
         hy = np.zeros(shape=(len(dl),), dtype=np.float64)
