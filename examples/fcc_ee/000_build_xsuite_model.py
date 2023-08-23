@@ -69,13 +69,8 @@ print('Number of elements: ', len(line))
 print('\n')
 
 opt = line.match(
-    solve=False,
     only_markers=True,
-    vary=xt.VaryList(
-        ['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',
-         #'k1qfg2', 'k1qdg1'
-         ],
-        step=1e-8,
+    vary=xt.VaryList(['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',], step=1e-8,
     ),
     targets=[
         xt.TargetSet(qx=tw_thick_no_rad.qx, qy=tw_thick_no_rad.qy, tol=1e-5),
