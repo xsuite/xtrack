@@ -51,6 +51,10 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
         'slices_other_beam_Sigma_34': np.array([0]),
         'slices_other_beam_Sigma_44': np.array([0]),
     },
+    'LimitPolygon': {
+        'x_vertices': np.array([0, 1, 1, 0]),
+        'y_vertices': np.array([0, 0, 1, 1]),
+    },
 }
 
 # SpaceChargeBiGaussian is not included for now (different issues -
