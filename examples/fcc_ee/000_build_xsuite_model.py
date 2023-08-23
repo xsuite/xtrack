@@ -11,18 +11,9 @@ mad.use('fccee_p_ring')
 mad.input('twiss, table=tw_no_wig;')
 
 mad.call('install_wigglers.madx')
-mad.input("exec, define_wigglers_as_kickers()")
+mad.input("exec, define_wigglers_as_multipoles()")
 mad.input("exec, install_wigglers()")
 mad.use('fccee_p_ring')
-assert mad.globals.on_wiggler_v == 1
-mad.input('twiss, table=tw_wig_on;')
-
-mad.globals.on_wiggler_v = 1
-mad.input('twiss, table=tw_wig_off;')
-
-twm_no_wig = xd.Table(mad.table.tw_no_wig)
-twm_wig_on = xd.Table(mad.table.tw_wig_on)
-twm_wig_off = xd.Table(mad.table.tw_wig_off)
 
 line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=True,
                                   deferred_expressions=True)
@@ -110,6 +101,9 @@ print('Number of elements: ', len(line))
 
 print('Change on arc quadrupoles:')
 print(opt.log().vary[-1]/opt.log().vary[0] - 1)
+
+print('\n Beta at the IPs:')
+tw_thin_no_rad.rows['ip.*'].cols['betx bety'].show()
 
 line.to_json('fccee_p_ring_thin.json')
 line_thick.to_json('fccee_p_ring_thick.json')
