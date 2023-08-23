@@ -25,6 +25,17 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-10, max_ite
     line.configure_radiation(model=None)
     tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True, **kwargs)
 
+    # Check if tapering is needed
+    p_test = tw_no_rad.particle_on_co.copy()
+    p_test.delta = delta0
+    line.configure_radiation(model='mean')
+    line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon = line.record_last_track
+    eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
+    if mon.state[0, -1] >= 1 and eloss < p_test.energy0[0]*rtol_eneloss:
+        _print("Compensation not needed")
+        return
+
     _print("  - Identify multipoles and cavities")
     line_df = line.to_pandas()
     multipoles = line_df[line_df['element_type'] == 'Multipole']
