@@ -3024,6 +3024,7 @@ class Line:
     def _get_attr_cache(self):
         cache = LineAttr(line=self,
                          fields=['hxl', 'hyl', 'length', 'radiation_flag',
+                                 'delta_taper', 'voltage', 'frequency', 'lag',
                                 ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1)])
         return cache
 
