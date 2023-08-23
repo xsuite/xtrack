@@ -19,10 +19,13 @@ class CacheItem:
         for ii, nn in enumerate(all_names):
             ee = line.element_dict[nn]
             if hasattr(ee, '_xobject') and hasattr(ee._xobject, name):
+                if index is not None and index >= len(getattr(ee, name)):
+                    continue
                 mask[ii] = True
                 setter_names.append(nn)
 
-        multisetter = xt.MultiSetter(line=line, elements=setter_names, field=name)
+        multisetter = xt.MultiSetter(line=line, elements=setter_names,
+                                     field=name, index=index)
         self.names = setter_names
         self.multisetter = multisetter
         self.mask = mask
@@ -47,9 +50,10 @@ class CacheForLine:
                 index = None
             else:
                 name, index = ff
-            self._cache[name] = CacheItem(name=name, index=index, line=line)
+            self._cache[ff] = CacheItem(name=name, index=index, line=line)
 
     def __getitem__(self, key):
         return self._cache[key].get_full_array()
 
-cache = CacheForLine(line=line, fields=['hxl', 'hyl', 'length', 'radiation_flag'])
+cache = CacheForLine(line=line, fields=['hxl', 'hyl', 'length', 'radiation_flag',
+                                        ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1)])
