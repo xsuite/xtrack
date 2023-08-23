@@ -52,4 +52,4 @@ class CacheForLine:
     def __getitem__(self, key):
         return self._cache[key].get_full_array()
 
-cache = CacheForLine(line=line, fields=['hxl', 'hyl', 'length'])
+cache = CacheForLine(line=line, fields=['hxl', 'hyl', 'length', 'radiation_flag'])
