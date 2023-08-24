@@ -105,6 +105,7 @@ class Cavity(BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'lag_taper': xo.Float64,
         }
 
     _extra_c_sources = [
@@ -589,6 +590,7 @@ class Multipole(BeamElement):
         'hxl': xo.Float64,
         'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         }
@@ -637,6 +639,9 @@ class Multipole(BeamElement):
 
         if ksl is not None:
             nksl[: len(ksl)] = np.array(ksl)
+
+        if 'delta_teper' not in kwargs.keys():
+            kwargs['delta_taper'] = 0.0
 
         order = n - 1
 
@@ -1404,6 +1409,7 @@ class DipoleEdge(BeamElement):
             'fint': xo.Float64,
             'model': xo.Int64,
             'side': xo.Int64,
+            'delta_taper': xo.Float64,
             }
 
     _extra_c_sources = [

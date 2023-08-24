@@ -1082,9 +1082,13 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
     # Equilibrium emittances
     if radiation_method == 'kick_as_co':
 
-        hxl = line.tracker._tracker_data_base.cache['hxl_radiation']
-        hyl = line.tracker._tracker_data_base.cache['hyl_radiation']
-        dl = line.tracker._tracker_data_base.cache['dl_radiation']
+        radiation_flag = line.attr['radiation_flag']
+        if np.any(radiation_flag > 1):
+            raise ValueError('Incompatible radiation flag')
+        hxl = line.attr['hxl']
+        hyl = line.attr['hyl']
+        dl = line.attr['length'] * (radiation_flag == 1)
+
         mask = (dl != 0)
         hx = np.zeros(shape=(len(dl),), dtype=np.float64)
         hy = np.zeros(shape=(len(dl),), dtype=np.float64)
@@ -1182,28 +1186,35 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
         arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
         clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**3) / mass0)
-        ex = clg * 0.5 * (integ_ex_left + integ_ex_right) / damping_constants_turns[0]
-        ey = clg * 0.5 * (integ_ey_left + integ_ey_right) / damping_constants_turns[1]
-        ez = clg * 0.5 * (integ_ez_left + integ_ez_right) / damping_constants_turns[2]
+        ex = float(clg * 0.5 * (integ_ex_left + integ_ex_right) / damping_constants_turns[0])
+        ey = float(clg * 0.5 * (integ_ey_left + integ_ey_right) / damping_constants_turns[1])
+        ez = float(clg * 0.5 * (integ_ez_left + integ_ez_right) / damping_constants_turns[2])
 
-        nemitt_x_rad = float(ex * (beta0 * gamma0))
-        nemitt_y_rad = float(ey * (beta0 * gamma0))
-        nemitt_zeta_rad = float(ez * (beta0 * gamma0))
+        eq_nemitt_x = float(ex * (beta0 * gamma0))
+        eq_nemitt_y = float(ey * (beta0 * gamma0))
+        eq_nemitt_zeta = float(ez * (beta0 * gamma0))
 
     else:
 
-        nemitt_x_rad = None
-        nemitt_y_rad = None
-        nemitt_zeta_rad = None
+        ex = None
+        ey = None
+        ez = None
+
+        eq_nemitt_x = None
+        eq_nemitt_y = None
+        eq_nemitt_zeta = None
 
     eneloss_damp_res = {
         'eneloss_turn': eloss_turn,
         'damping_constants_turns': damping_constants_turns,
         'damping_constants_s':damping_constants_s,
         'partition_numbers': partition_numbers,
-        'nemitt_x_rad': nemitt_x_rad,
-        'nemitt_y_rad': nemitt_y_rad,
-        'nemitt_zeta_rad': nemitt_zeta_rad,
+        'eq_gemitt_x': ex,
+        'eq_gemitt_y': ey,
+        'eq_gemitt_zeta': ez,
+        'eq_nemitt_x': eq_nemitt_x,
+        'eq_nemitt_y': eq_nemitt_y,
+        'eq_nemitt_zeta': eq_nemitt_zeta,
     }
 
     return eneloss_damp_res
@@ -2468,5 +2479,3 @@ def _str_to_index(line, ele):
         return line.element_names.index(ele)
     else:
         return ele
-
-

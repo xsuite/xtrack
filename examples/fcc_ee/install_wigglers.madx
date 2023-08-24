@@ -14,108 +14,17 @@ brhobeam=BEAM->BRHO;
 
 on_wiggler_h = 0;
 wiggler_angle_h:= on_wiggler_h * B_plus * L_plus / brhobeam;
-on_wiggler_v = 1;
+on_wiggler_v = 0;
 wiggler_angle_v:= on_wiggler_v * B_plus * L_plus / brhobeam;
 
 Print, Text="The critical energy of the wiggler is:";
 VALUE, 2.21*10^(-6)*(BEAM->ENERGY)^3/(BEAM->BRHO/B_plus/1000);
 Print, Text="MeV.";
 
-Print, Text="Wigglers can be implemented as TKICKER or BENDS. The SR Integral in MAD-X are only takes BENDs into accounts.";
-Print, Text="To get the proper SR Integrals including wigglers, the MWI have to be installed using define_wigglers_as_kickers.";
-Print, Text="To see the impact on the closed orbit and aperture, use define_wigglers_as_kickers instead.";
+define_wigglers_as_multipoles() : macro {
 
-define_wigglers_as_kickers() : macro {
-
-    MWIM: TKICKER, LRAD=L_minus, L=L_minus, HKICK:=-0.5*wiggler_angle_h, VKICK:=-0.5*wiggler_angle_v;
-    MWIP: TKICKER, LRAD=L_plus,  L=L_plus,  HKICK:= wiggler_angle_h,     VKICK:=wiggler_angle_v;
-
-    MWI.A4RA: MWIM;
-    MWI.B4RA: MWIP;
-    MWI.C4RA: MWIM;
-    MWI.D4RA: MWIM;
-    MWI.E4RA: MWIP;
-    MWI.F4RA: MWIM;
-    MWI.G4RA: MWIM;
-    MWI.H4RA: MWIP;
-    MWI.I4RA: MWIM;
-
-    MWI.A5RA: MWIM;
-    MWI.B5RA: MWIP;
-    MWI.C5RA: MWIM;
-    MWI.D5RA: MWIM;
-    MWI.E5RA: MWIP;
-    MWI.F5RA: MWIM;
-    MWI.G5RA: MWIM;
-    MWI.H5RA: MWIP;
-    MWI.I5RA: MWIM;
-
-    MWI.A4RD: MWIM;
-    MWI.B4RD: MWIP;
-    MWI.C4RD: MWIM;
-    MWI.D4RD: MWIM;
-    MWI.E4RD: MWIP;
-    MWI.F4RD: MWIM;
-    MWI.G4RD: MWIM;
-    MWI.H4RD: MWIP;
-    MWI.I4RD: MWIM;
-
-    MWI.A5RD: MWIM;
-    MWI.B5RD: MWIP;
-    MWI.C5RD: MWIM;
-    MWI.D5RD: MWIM;
-    MWI.E5RD: MWIP;
-    MWI.F5RD: MWIM;
-    MWI.G5RD: MWIM;
-    MWI.H5RD: MWIP;
-    MWI.I5RD: MWIM;
-
-    MWI.A4RG: MWIM;
-    MWI.B4RG: MWIP;
-    MWI.C4RG: MWIM;
-    MWI.D4RG: MWIM;
-    MWI.E4RG: MWIP;
-    MWI.F4RG: MWIM;
-    MWI.G4RG: MWIM;
-    MWI.H4RG: MWIP;
-    MWI.I4RG: MWIM;
-
-    MWI.A5RG: MWIM;
-    MWI.B5RG: MWIP;
-    MWI.C5RG: MWIM;
-    MWI.D5RG: MWIM;
-    MWI.E5RG: MWIP;
-    MWI.F5RG: MWIM;
-    MWI.G5RG: MWIM;
-    MWI.H5RG: MWIP;
-    MWI.I5RG: MWIM;
-
-    MWI.A4RJ: MWIM;
-    MWI.B4RJ: MWIP;
-    MWI.C4RJ: MWIM;
-    MWI.D4RJ: MWIM;
-    MWI.E4RJ: MWIP;
-    MWI.F4RJ: MWIM;
-    MWI.G4RJ: MWIM;
-    MWI.H4RJ: MWIP;
-    MWI.I4RJ: MWIM;
-
-    MWI.A5RJ: MWIM;
-    MWI.B5RJ: MWIP;
-    MWI.C5RJ: MWIM;
-    MWI.D5RJ: MWIM;
-    MWI.E5RJ: MWIP;
-    MWI.F5RJ: MWIM;
-    MWI.G5RJ: MWIM;
-    MWI.H5RJ: MWIP;
-    MWI.I5RJ: MWIM;
-
-}
-
-define_wigglers_as_bends() : macro {
-
-    MWIM: SBEND, L=L_minus,  ANGLE:=-0.5*wiggler_angle;
-    MWIP: SBEND, L=L_plus,   ANGLE:= wiggler_angle;
+    MWIM: MULTIPOLE, LRAD=L_minus, knl:={-0.5*wiggler_angle_h}, ksl:={-0.5*wiggler_angle_v};
+    MWIP: MULTIPOLE, LRAD=L_plus,  knl:={ wiggler_angle_h},     ksl:={wiggler_angle_v};
 
     MWI.A4RA: MWIM;
     MWI.B4RA: MWIP;
@@ -294,18 +203,4 @@ install_wigglers() : macro {
     ENDEDIT;
     USE, SEQUENCE=FCCEE_P_RING;
 
-}
-
-MATCH_VERTICAL_EMIT_WITH_WIGGLERS(EY_target): macro =
-{
-	MWIM, TILT= pi/2;
-	MWIP, TILT= pi/2;
-
-	MATCH,USE_MACRO;
-		VARY, NAME=B_plus, LOWER = 0, UPPER = 1;
-		macro1: MACRO={USE, SEQUENCE = FCCEE_P_RING; EMIT;};
-		CONSTRAINT, expr= TABLE(EMITSUMM, EY)*1E6 = EY_target*1E6;
-		JACOBIAN,TOLERANCE=1.0E-21, CALLS=3000;
-	  ENDMATCH;
-        VALUE, TABLE(SUMM, BETYMAX);
 }

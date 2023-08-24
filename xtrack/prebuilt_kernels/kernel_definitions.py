@@ -43,6 +43,11 @@ ONLY_XTRACK_ELEMENTS = [
     SimpleThinQuadrupole,
     LineSegmentMap,
     LinearTransferMatrix,
+    LimitEllipse,
+    LimitRectEllipse,
+    LimitRect,
+    LimitRacetrack,
+    LimitPolygon
 ]
 
 NO_SYNRAD_ELEMENTS = [

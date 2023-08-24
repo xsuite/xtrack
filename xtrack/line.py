@@ -692,7 +692,19 @@ class Line:
                                 enable_pipeline_hold=enable_pipeline_hold,
                                 **kwargs)
 
+        self.tracker._tracker_data_base.cache['attr'] = None
+
         return self.tracker
+
+    @property
+    def attr(self):
+
+        self._check_valid_tracker()
+
+        if self.tracker._tracker_data_base.cache['attr'] is None:
+            self.tracker._tracker_data_base.cache['attr'] = self._get_attr_cache()
+
+        return self.tracker._tracker_data_base.cache['attr']
 
     def discard_tracker(self):
 
@@ -973,7 +985,9 @@ class Line:
     twiss.__doc__ = twiss_line.__doc__
 
     def match(self, vary, targets, solve=True, restore_if_fail=True, solver=None,
-                  verbose=False, n_steps_max=20, **kwargs):
+                  verbose=False, n_steps_max=20,
+                  compensate_radiation_energy_loss=False,
+                  **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -988,6 +1002,9 @@ class Line:
         restore_if_fail : bool
             If True, the beamline is restored to its initial state if the matching
             fails.
+        compensate_radiation_energy_loss : bool
+            If True, the radiation energy loss is compensated at each step of the
+            matching.
         solver : str
             Solver to be used for the matching. Available solvers are "fsolve"
             and "bfgs".
@@ -1054,6 +1071,7 @@ class Line:
                           restore_if_fail=restore_if_fail,
                           solver=solver, verbose=verbose,
                           n_steps_max=n_steps_max,
+                          compensate_radiation_energy_loss=compensate_radiation_energy_loss,
                           **kwargs)
 
     def match_knob(self, knob_name, vary, targets,
@@ -1423,26 +1441,6 @@ class Line:
         '''
 
         return self.get_s_position(mode=mode)
-
-    def _cache_data_for_radiation_integrals(self):
-
-        '''
-        Get length to be used in radiation integrals for each element.
-        '''
-        n_elem = len(self.element_names)
-        dl_radiation = np.zeros(n_elem)
-        hxl_radiation = np.zeros(n_elem)
-        hyl_radiation = np.zeros(n_elem)
-
-        for ii, ee in enumerate(self.elements):
-            if isinstance(ee, xt.Multipole):
-                hxl_radiation[ii] = ee.hxl
-                hyl_radiation[ii] = ee.hyl
-                dl_radiation[ii] = ee.length
-
-        return {'dl_radiation': dl_radiation,
-                'hxl_radiation': hxl_radiation,
-                'hyl_radiation': hyl_radiation}
 
     def get_s_position(self, at_elements=None, mode="upstream"):
 
@@ -2833,6 +2831,10 @@ class Line:
         return self.vars.val
 
     @property
+    def vv(self): # Shorter alias
+        return self.vars.val
+
+    @property
     def functions(self):
         return self._xdeps_fref
 
@@ -3004,10 +3006,10 @@ class Line:
             #     component_names = self._compound_relation[ii]
             #     return [self.element_dict[name] for name in component_names]
 
-            if ii not in self.element_names:
-                raise IndexError(f'No installed element with name {ii}')
-
-            return self.element_dict.__getitem__(ii)
+            try:
+                return self.element_dict.__getitem__(ii)
+            except KeyError:
+                raise KeyError(f'No installed element with name {ii}')
         else:
             names = self.element_names.__getitem__(ii)
             if isinstance(names, str):
@@ -3033,6 +3035,14 @@ class Line:
             out.tracker.line = out
 
             return out
+
+    def _get_attr_cache(self):
+        cache = LineAttr(line=self,
+                         fields=['hxl', 'hyl', 'length', 'radiation_flag',
+                                 'delta_taper', 'voltage', 'frequency',
+                                 'lag', 'lag_taper',
+                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1)])
+        return cache
 
 def frac(x):
     return x % 1
@@ -3543,3 +3553,50 @@ class VarSetter:
         self.__dict__.update(state)
         self._build_fun()
 
+class LineAttrItem:
+    def __init__(self, name, index=None, line=None):
+        self.name = name
+        self.index = index
+
+        assert line is not None
+
+        all_names = line.element_names
+        mask = np.zeros(len(all_names), dtype=bool)
+        setter_names = []
+        for ii, nn in enumerate(all_names):
+            ee = line.element_dict[nn]
+            if hasattr(ee, '_xobject') and hasattr(ee._xobject, name):
+                if index is not None and index >= len(getattr(ee, name)):
+                    continue
+                mask[ii] = True
+                setter_names.append(nn)
+
+        multisetter = xt.MultiSetter(line=line, elements=setter_names,
+                                     field=name, index=index)
+        self.names = setter_names
+        self.multisetter = multisetter
+        self.mask = mask
+
+    def get_full_array(self):
+        full_array = np.zeros(len(self.mask), dtype=np.float64)
+        full_array[self.mask] = self.multisetter.get_values()
+        return full_array
+
+
+class LineAttr:
+
+    def __init__(self, line, fields):
+        self.line = line
+        self.fields = fields
+        self._cache = {}
+
+        for ff in fields:
+            if isinstance(ff, str):
+                name = ff
+                index = None
+            else:
+                name, index = ff
+            self._cache[ff] = LineAttrItem(name=name, index=index, line=line)
+
+    def __getitem__(self, key):
+        return self._cache[key].get_full_array()

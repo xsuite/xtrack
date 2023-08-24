@@ -801,8 +801,8 @@ class MadLoader:
             if is_drift:
                 return elem_list
 
-            is_thick = getattr(elem_list[0].type, 'isthick', False)
-            if not is_thick:
+            is_marker = isinstance(elem_list[0], self.classes.Marker)
+            if is_marker:
                 return elem_list
 
             thick_len = value_if_expr(elem_list[0].attrs.get('length', 0))
