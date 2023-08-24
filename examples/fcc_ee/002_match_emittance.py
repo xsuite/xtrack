@@ -16,10 +16,13 @@ line.vars['on_wiggler_v'] = 0.1
 line.compensate_radiation_energy_loss()
 opt = line.match(
     solve=False,
-    compensate_radiation_energy_loss=True,
     eneloss_and_damping=True,
-    targets=[xt.Target(eq_gemitt_y=1e-12, tol=1e-15, optimize_log=True)],
+    compensate_radiation_energy_loss=True,
+    targets=[
+        xt.Target(eq_gemitt_y=1e-12, tol=1e-15, optimize_log=True)],
     vary=xt.Vary('on_wiggler_v', step=0.01, limits=(0.1, 2))
 )
 
 opt.solve()
+
+tw_rad = line.twiss(eneloss_and_damping=True)
