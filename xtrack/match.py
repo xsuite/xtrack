@@ -150,14 +150,15 @@ class ActionTwiss(xd.Action):
 
 class Target(xd.Target):
     def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag=''):
+                 line=None, action=None, tag='', optimize_log=False):
 
         if at is not None:
             xdtar = (tar, at)
         else:
             xdtar = tar
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
-                            weight=weight, scale=scale, action=action, tag=tag)
+                            weight=weight, scale=scale, action=action, tag=tag,
+                            optimize_log=optimize_log)
         self.line = line
 
     def __repr__(self):
