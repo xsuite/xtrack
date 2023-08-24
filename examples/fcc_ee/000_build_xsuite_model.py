@@ -4,8 +4,10 @@ import xdeps as xd
 
 from cpymad.madx import Madx
 
-fname = 'fccee_w'; pc_gev = 80.
-#fname = 'fccee_h'; pc_gev = 120.
+fname = 'fccee_z'; pc_gev = 45.6
+# fname = 'fccee_w'; pc_gev = 80.
+# fname = 'fccee_h'; pc_gev = 120.
+fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
 mad.call(fname + '.seq')
@@ -22,7 +24,7 @@ line_thick = xt.Line.from_madx_sequence(mad.sequence.fccee_p_ring, allow_thick=T
 line_thick.particle_ref = xt.Particles(mass0=xt.ELECTRON_MASS_EV,
                                  gamma0=mad.sequence.fccee_p_ring.beam.gamma)
 line_thick.build_tracker()
-tw_thick_no_rad = line_thick.twiss()
+tw_thick_no_rad = line_thick.twiss(method='4d')
 
 line = line_thick.copy()
 Strategy = xt.slicing.Strategy
@@ -52,7 +54,8 @@ slicing_strategies = [
 
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
 line.build_tracker()
-tw_thin_no_rad = line.twiss()
+tw_thin_before = line.twiss(ele_start=0, ele_stop=len(line)-1, method='4d',
+                          twiss_init=tw_thick_no_rad.get_twiss_init(0))
 
 # Compare tunes
 print('Before rematching:')
@@ -60,27 +63,32 @@ print('Before rematching:')
 print('Tunes thick model:')
 print(tw_thick_no_rad.qx, tw_thick_no_rad.qy)
 print('Tunes thin model:')
-print(tw_thin_no_rad.qx, tw_thin_no_rad.qy)
+print(tw_thin_before.mux[-1], tw_thin_before.muy[-1])
 
 print('Beta beating at ips:')
 print('H:', np.max(np.abs(
-    tw_thin_no_rad.rows['ip.*'].betx / tw_thick_no_rad.rows['ip.*'].betx -1)))
+    tw_thin_before.rows['ip.*'].betx / tw_thick_no_rad.rows['ip.*'].betx -1)))
 print('V:', np.max(np.abs(
-    tw_thin_no_rad.rows['ip.*'].bety / tw_thick_no_rad.rows['ip.*'].bety -1)))
+    tw_thin_before.rows['ip.*'].bety / tw_thick_no_rad.rows['ip.*'].bety -1)))
 
 print('Number of elements: ', len(line))
 print('\n')
 
 opt = line.match(
     only_markers=True,
+    method='4d',
+    ele_start=0, ele_stop=len(line)-1,
+    twiss_init=tw_thick_no_rad.get_twiss_init(0),
     vary=xt.VaryList(['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',], step=1e-8,
     ),
     targets=[
-        xt.TargetSet(qx=tw_thick_no_rad.qx, qy=tw_thick_no_rad.qy, tol=1e-5),
+        xt.TargetRelPhaseAdvance('mux', tw_thick_no_rad.qx),
+        xt.TargetRelPhaseAdvance('muy', tw_thick_no_rad.qy),
+        # xt.TargetSet(qx=tw_thick_no_rad.qx, qy=tw_thick_no_rad.qy, tol=1e-5),
     ]
 )
 opt.solve()
-tw_thin_no_rad = line.twiss()
+tw_thin_no_rad = line.twiss(method='4d')
 
 print('After rematching:')
 print('Tunes thick model:')
@@ -104,3 +112,4 @@ tw_thin_no_rad.rows['ip.*'].cols['betx bety'].show()
 
 line.to_json(fname + '_thin.json')
 line_thick.to_json(fname + '_thick.json')
+
