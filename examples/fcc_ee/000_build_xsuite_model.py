@@ -4,11 +4,12 @@ import xdeps as xd
 
 from cpymad.madx import Madx
 
-fname = 'fccee_h'
+fname = 'fccee_w'; pc_gev = 80.
+#fname = 'fccee_h'; pc_gev = 120.
 
 mad = Madx()
 mad.call(fname + '.seq')
-mad.beam(particle='positron', pc=120)
+mad.beam(particle='positron', pc=pc_gev)
 mad.use('fccee_p_ring')
 
 mad.call('install_wigglers.madx')

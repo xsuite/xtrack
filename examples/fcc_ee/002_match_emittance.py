@@ -1,7 +1,8 @@
 import numpy as np
 import xtrack as xt
 
-fname = 'fccee_h'
+fname = 'fccee_w'; gemitt_y_target = 2.2e-12
+# fname = 'fccee_h'; gemitt_y_target = 1.4e-12
 
 line = xt.Line.from_json(fname + '_thin.json')
 
@@ -21,7 +22,7 @@ opt = line.match(
     eneloss_and_damping=True,
     compensate_radiation_energy_loss=True,
     targets=[
-        xt.Target(eq_gemitt_y=1e-12, tol=1e-15, optimize_log=True)],
+        xt.Target(eq_gemitt_y=gemitt_y_target, tol=1e-15, optimize_log=True)],
     vary=xt.Vary('on_wiggler_v', step=0.01, limits=(0.1, 2))
 )
 
@@ -35,7 +36,7 @@ ez = tw_rad.eq_gemitt_zeta
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
-line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
+line.track(p, num_turns=1000, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 
