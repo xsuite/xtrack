@@ -23,12 +23,14 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
 
     _print("  - Twiss with no radiation")
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
-    tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True,
-                           only_markers=True, **kwargs)
+    with xt.freeze_longitudinal(line):
+        particle_on_co = line.find_closed_orbit(delta0=delta0)
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
+    beta0 = float(particle_on_co._xobject.beta0[0])
+
     # Check whether compensation is needed
-    p_test = tw_no_rad.particle_on_co.copy()
+    p_test = particle_on_co.copy()
     p_test.delta = delta0
     line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
     mon = line.record_last_track
@@ -61,7 +63,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
 
         i_iter = 0
         while True:
-            p_test = tw_no_rad.particle_on_co.copy()
+            p_test = particle_on_co.copy()
             p_test.delta = delta0
             line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
             mon = line.record_last_track
@@ -99,7 +101,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
     v_ratio[mask_active_cav] = v_synchronous[mask_active_cav] / v0[mask_active_cav]
     inst_phase = np.arcsin(v_ratio)
 
-    lag = 360.*(inst_phase / (2 * np.pi) - f0 * zeta_at_cav / tw_no_rad.beta0 / clight)
+    lag = 360.*(inst_phase / (2 * np.pi) - f0 * zeta_at_cav / beta0 / clight)
     lag = 180. - lag # we are above transition
 
     v_setter.set_values(v0)
