@@ -47,11 +47,13 @@ END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None, **kwargs):
+    def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None, 
+                 compensate_radiation_energy_loss=True, **kwargs):
         self.line = line
         self.kwargs = kwargs
         self.table_for_twiss_init = table_for_twiss_init
         self.allow_twiss_failure = allow_twiss_failure
+        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
 
     def prepare(self):
         line = self.line
@@ -137,6 +139,12 @@ class ActionTwiss(xd.Action):
         self.kwargs = kwargs
 
     def run(self, allow_failure=True):
+        if self.compensate_radiation_energy_loss:
+            if isinstance(self.line, xt.Multiline):
+                raise NotImplementedError(
+                    'Radiation energy loss compensation is not yet supported'
+                    ' for Multiline')
+            self.line.compensate_radiation_energy_loss()
         if not self.allow_twiss_failure or not allow_failure:
             return self.line.twiss(**self.kwargs)
         else:
@@ -264,7 +272,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
                   n_steps_max=20, default_tol=None,
-                  solve=True, **kwargs):
+                  solve=True, compensate_radiation_energy_loss=False,**kwargs):
 
     targets_flatten = []
     for tt in targets:
@@ -281,7 +289,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         if tt.action is None:
             if action_twiss is None:
                 action_twiss = ActionTwiss(
-                    line, allow_twiss_failure=allow_twiss_failure, **kwargs)
+                    line, allow_twiss_failure=allow_twiss_failure,
+                    compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                    **kwargs)
             tt.action = action_twiss
 
         # Handle at

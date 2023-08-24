@@ -976,7 +976,9 @@ class Line:
     twiss.__doc__ = twiss_line.__doc__
 
     def match(self, vary, targets, solve=True, restore_if_fail=True, solver=None,
-                  verbose=False, n_steps_max=20, **kwargs):
+                  verbose=False, n_steps_max=20,
+                  compensate_radiation_energy_loss=False,
+                  **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -991,6 +993,9 @@ class Line:
         restore_if_fail : bool
             If True, the beamline is restored to its initial state if the matching
             fails.
+        compensate_radiation_energy_loss : bool
+            If True, the radiation energy loss is compensated at each step of the
+            matching.
         solver : str
             Solver to be used for the matching. Available solvers are "fsolve"
             and "bfgs".
@@ -1057,6 +1062,7 @@ class Line:
                           restore_if_fail=restore_if_fail,
                           solver=solver, verbose=verbose,
                           n_steps_max=n_steps_max,
+                          compensate_radiation_energy_loss=compensate_radiation_energy_loss,
                           **kwargs)
 
     def match_knob(self, knob_name, vary, targets,

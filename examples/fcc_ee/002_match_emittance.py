@@ -32,11 +32,11 @@ class ActionEquilibriumEmittance(xt.Action):
 line.vars['on_wiggler_v'] = 0.1
 line.compensate_radiation_energy_loss()
 ey_target = 1e-12
-action_equilibrium_emittance = ActionEquilibriumEmittance(line)
 opt = line.match(
     solve=False,
-    targets=[action_equilibrium_emittance.target('eq_gemitt_y', ey_target,
-                tol=1e-15, optimize_log=True)],
+    compensate_radiation_energy_loss=True,
+    eneloss_and_damping=True,
+    targets=[xt.Target('eq_gemitt_y', ey_target, tol=1e-15, optimize_log=True)],
     vary=xt.Vary('on_wiggler_v', step=0.01, limits=(0.1, 2))
 )
 
