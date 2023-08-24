@@ -6,7 +6,8 @@ from .general import _print
 import xtrack as xt
 import xobjects as xo
 
-def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_iter=100, **kwargs):
+def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
+                                     max_iter=100, verbose=True, **kwargs):
 
     assert isinstance(line._context, xo.ContextCpu), "Only CPU context is supported"
     assert line.particle_ref is not None, "Particle reference is not set"
@@ -19,9 +20,9 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
     else:
         record_iterations = False
 
-    _print("Compensating energy loss:")
+    if verbose: _print("Compensating energy loss.")
 
-    _print("  - Twiss with no radiation")
+    if verbose: _print("  - Twiss with no radiation")
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
     with xt.freeze_longitudinal(line):
         particle_on_co = line.find_closed_orbit(delta0=delta0)
@@ -36,7 +37,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
     mon = line.record_last_track
     eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
     if abs(eloss) < p_test.energy0[0] * rtol_eneloss:
-        _print("  - No compensation needed")
+        if verbose: _print("  - No compensation needed")
         return
 
     # save voltages
@@ -51,12 +52,12 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
     eneloss_partitioning = v0 / v0.sum()
 
     # Put all cavities on crest and at zero frequency
-    _print("  - Put all cavities on crest and set zero voltage and frequency")
+    if verbose: _print("  - Put all cavities on crest and set zero voltage and frequency")
     lag_setter.set_values(90 + np.zeros_like(lag_setter.get_values()))
     v_setter.set_values(np.zeros_like(v_setter.get_values()))
     f_setter.set_values(np.zeros_like(f_setter.get_values()))
 
-    _print("Share energy loss among cavities (repeat until energy loss is zero)")
+    if verbose: _print("Share energy loss among cavities (repeat until energy loss is zero)")
     with xt.line._preserve_config(line):
         line.config.XTRACK_MULTIPOLE_TAPER = True
         line.config.XTRACK_DIPOLEEDGE_TAPER = True
@@ -72,7 +73,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
                 line._tapering_iterations.append(mon)
 
             eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
-            _print(f"Energy loss: {eloss:.3f} eV             ")#, end='\r', flush=True)
+            if verbose: _print(f"Energy loss: {eloss:.3f} eV             ")#, end='\r', flush=True)
 
             if eloss < p_test.energy0[0] * rtol_eneloss:
                 break
@@ -83,15 +84,15 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_ite
             i_iter += 1
             if i_iter > max_iter:
                 raise RuntimeError("Maximum number of iterations reached")
-    _print()
+    if verbose: _print()
     delta_taper_full = mon.delta[0, :-1] # last point is added by the monitor
 
-    _print("  - Set delta_taper")
+    if verbose: _print("  - Set delta_taper")
     delta_taper_mask = line.attr._cache['delta_taper'].mask
     delta_taper_setter = line.attr._cache['delta_taper'].multisetter
     delta_taper_setter.set_values(delta_taper_full[delta_taper_mask])
 
-    _print("  - Restore cavity voltage and frequency. Set cavity lag")
+    if verbose: _print("  - Restore cavity voltage and frequency. Set cavity lag")
     v_synchronous = v_setter.get_values()
 
     mask_cav = line.attr._cache['voltage'].mask
