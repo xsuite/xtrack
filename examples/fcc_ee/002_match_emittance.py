@@ -14,8 +14,7 @@ line.compensate_radiation_energy_loss()
 
 tw_rad_wig_off = line.twiss(eneloss_and_damping=True)
 
-line.vars['on_wiggler_v'] = 0.7
-line.compensate_radiation_energy_loss()
+
 
 class ActionEquilibriumEmittance(xt.Action):
 
@@ -28,20 +27,16 @@ class ActionEquilibriumEmittance(xt.Action):
         xt.general._print.suppress = False
         tw_rad = self.line.twiss(eneloss_and_damping=True)
 
-        ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
-        ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
-        ez = tw_rad.nemitt_zeta_rad / (tw_rad.gamma0 * tw_rad.beta0)
+        return tw_rad
 
-        return {'ex': ex, 'ey': ey, 'ez': ez,
-                'log10_ex': np.log10(ex), 'log10_ey': np.log10(ey),
-                'log10_ez': np.log10(ez)}
-
+line.vars['on_wiggler_v'] = 0.1
+line.compensate_radiation_energy_loss()
 ey_target = 1e-12
 action_equilibrium_emittance = ActionEquilibriumEmittance(line)
 opt = line.match(
     solve=False,
-    targets=[action_equilibrium_emittance.target('log10_ey', np.log10(ey_target),
-                                                 tol=1e-3)],
+    targets=[action_equilibrium_emittance.target('eq_gemitt_y', ey_target,
+                tol=1e-15, optimize_log=True)],
     vary=xt.Vary('on_wiggler_v', step=0.01, limits=(0.1, 2))
 )
 
