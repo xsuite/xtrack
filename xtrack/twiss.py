@@ -5,6 +5,8 @@
 
 import logging
 
+import io
+import json
 import numpy as np
 from scipy.optimize import fsolve
 from scipy.constants import c as clight
@@ -1721,6 +1723,90 @@ class TwissInit:
         if line is not None and element_name is not None:
             self._complete(line, element_name)
 
+    def to_dict(self):
+        '''
+        Convert to dictionary representation.
+        '''
+        out = self.__dict__.copy()
+        out['particle_on_co'] = out['particle_on_co'].to_dict()
+        return out
+
+    def to_json(self, file, **kwargs):
+
+        '''
+        Convert to JSON representation.
+
+        Parameters
+        ----------
+        file : str or file-like
+
+        '''
+
+        # Can reuse the one from the Line (it is general enough)
+        return xt.Line.to_json(self, file, **kwargs)
+
+    @classmethod
+    def from_dict(cls, dct):
+        '''
+        Convert from dictionary representation.
+
+        Parameters
+        ----------
+        dct : dict
+            Dictionary representation.
+
+        Returns
+        -------
+        out : TwissInit
+            TwissInit instance.
+        '''
+
+        # Need the values as numpy types, in particular arrays
+        numpy_dct = {}
+        for key, value in dct.items():
+            if isinstance(value, int):
+                numpy_dct[key] = np.int64(value)
+            elif isinstance(value, float):
+                numpy_dct[key] = np.float64(value)
+            elif isinstance(value, str):
+                numpy_dct[key] = np.str_(value)
+            elif isinstance(value, list):
+                numpy_dct[key] = np.array(value)
+            else:
+                numpy_dct[key] = value
+
+        numpy_dct['particle_on_co'] = xp.Particles.from_dict(dct['particle_on_co'])
+
+        out = cls()
+        out.__dict__.update(numpy_dct)
+        return out
+
+    @classmethod
+    def from_json(cls, file):
+
+        '''
+        Convert from JSON representation.
+
+        Parameters
+        ----------
+        file : str or file-like
+            File name or file-like object.
+
+        Returns
+        -------
+        out : TwissInit
+            TwissInit instance.
+
+        '''
+
+        if isinstance(file, io.IOBase):
+            dct = json.load(file)
+        else:
+            with open(file, 'r') as fid:
+                dct = json.load(fid)
+
+        return cls.from_dict(dct)
+    
     def _complete(self, line, element_name):
 
         if self._temp_co_data is not None:
