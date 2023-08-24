@@ -82,9 +82,7 @@ opt = line.match(
     vary=xt.VaryList(['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',], step=1e-8,
     ),
     targets=[
-        xt.TargetRelPhaseAdvance('mux', tw_thick_no_rad.qx),
-        xt.TargetRelPhaseAdvance('muy', tw_thick_no_rad.qy),
-        # xt.TargetSet(qx=tw_thick_no_rad.qx, qy=tw_thick_no_rad.qy, tol=1e-5),
+        xt.TargetSet(at=xt.END, mux=tw_thick_no_rad.qx, muy=tw_thick_no_rad.qy, tol=1e-5),
     ]
 )
 opt.solve()

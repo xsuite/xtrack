@@ -493,8 +493,10 @@ def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
             'is `ele_start`')
         assert line_name in line.line_names
         i_line = line.line_names.index(line_name)
+        this_line = line[line_name]
     else:
         i_line = None
+        this_line = line
     if tt_at.name == 'START':
         if i_line is not None:
             tt_at = ele_start[i_line]
@@ -507,5 +509,7 @@ def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
             tt_at = ele_stop
     else:
         raise ValueError(f'Unknown location {tt_at.name}')
+    if not isinstance(tt_at, str):
+        tt_at = this_line.element_names[tt_at]
 
     return tt_at
