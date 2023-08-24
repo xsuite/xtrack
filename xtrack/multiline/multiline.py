@@ -2,6 +2,7 @@ import io
 import json
 import pandas as pd
 import numpy as np
+from copy import deepcopy
 
 from .shared_knobs import VarSharing
 from ..match import match_knob_line
@@ -40,6 +41,8 @@ class Multiline:
             ll._in_multiline = self
             ll._name_in_multiline = nn
 
+        self.metadata = {}
+            
     def to_dict(self, include_var_management=True):
 
         '''
@@ -76,6 +79,9 @@ class Multiline:
                             dct['_bb_config'][nn][kk] = None
                 else:
                     dct['_bb_config'][nn] = vv
+
+        dct["metadata"] = deepcopy(self.metadata)
+            
         return dct
 
     @classmethod
@@ -116,6 +122,9 @@ class Multiline:
                     df = None
                 new_multiline._bb_config[
                     'dataframes'][nn] = df
+                
+        if "metadata" in dct:
+            new_multiline.metadata = dct["metadata"]
 
         return new_multiline
 
@@ -197,8 +206,7 @@ class Multiline:
                 self._var_sharing.data[kk].update(_var_management_data[kk])
         for nn, ll in self.lines.items():
             ll._in_multiline = self
-
-
+        
     def build_trackers(self, _context=None, _buffer=None, **kwargs):
         '''
         Build the trackers for the lines.

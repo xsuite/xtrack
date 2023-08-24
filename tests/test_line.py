@@ -541,6 +541,8 @@ def test_to_dict():
 
     assert result['elements']['d']['__class__'] == 'Drift'
     assert result['elements']['d']['length'] == 1
+    
+    assert result['metadata'] == line.metadata
 
 
 def test_from_dict_legacy():
@@ -580,7 +582,14 @@ def test_from_dict_current():
                 'length': 4,
             },
         },
-        'element_names': ['mn', 'd', 'ms', 'd']
+        'element_names': ['mn', 'd', 'ms', 'd'],
+        'metadata' : {
+            'config_knobs_and_tuning': {
+                'knob_settings': {
+                    'on_x1': 135.0,
+                },
+            },
+        },
     }
     line = xt.Line.from_dict(test_dict)
 
@@ -597,6 +606,8 @@ def test_from_dict_current():
     assert d1.length == 4
 
     assert d2 is d1
+    
+    assert line.metadata == test_dict['metadata']
 
 
 def test_from_sequence():
@@ -731,6 +742,12 @@ def test_from_json_to_json(tmp_path):
         element_names=['m', 'd', 'm', 'd']
     )
 
+    example_metadata = {
+        'qx': {'lhcb1': 62.31, 'lhcb2': 62.31},
+        'delta_cmr': 0.0,
+    }
+    line.metadata = example_metadata
+
     line.to_json(tmp_path / 'test.json')
     result = xt.Line.from_json(tmp_path / 'test.json')
 
@@ -757,6 +774,10 @@ def test_from_json_to_json(tmp_path):
 
     assert isinstance(result['d'], xt.Drift)
     assert result['d'].length == 1
+
+    assert result.metadata == example_metadata
+    result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
+    assert result.metadata != example_metadata
 
 @for_all_test_contexts
 def test_config_propagation(test_context):

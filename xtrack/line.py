@@ -130,6 +130,8 @@ class Line:
         self._var_management = None
         self._line_vars = None
         self.tracker = None
+        
+        self.metadata = {}
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -199,6 +201,9 @@ class Line:
         if 'compound_container' in dct.keys():
             compounds = dct['compound_container']
             self.compound_container = CompoundContainer.from_dict(compounds)
+
+        if 'metadata' in dct.keys():
+            self.metadata = dct['metadata']
 
         _print('Done loading line from dict.           ')
 
@@ -506,6 +511,10 @@ class Line:
                     'entire multiline.\n ')
 
             out.update(self._var_management_to_dict())
+            
+        out["metadata"] = deepcopy(self.metadata)
+
+            
         return out
 
     def __getstate__(self):
