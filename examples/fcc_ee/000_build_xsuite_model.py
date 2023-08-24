@@ -4,8 +4,10 @@ import xdeps as xd
 
 from cpymad.madx import Madx
 
+fname = 'fccee_h'
+
 mad = Madx()
-mad.call('fccee_h.seq')
+mad.call(fname + '.seq')
 mad.beam(particle='positron', pc=120)
 mad.use('fccee_p_ring')
 
@@ -99,5 +101,5 @@ print(opt.log().vary[-1]/opt.log().vary[0] - 1)
 print('\n Beta at the IPs:')
 tw_thin_no_rad.rows['ip.*'].cols['betx bety'].show()
 
-line.to_json('fccee_p_ring_thin.json')
-line_thick.to_json('fccee_p_ring_thick.json')
+line.to_json(fname + '_thin.json')
+line_thick.to_json(fname + '_thick.json')
