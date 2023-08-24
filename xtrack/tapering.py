@@ -6,7 +6,7 @@ from .general import _print
 import xtrack as xt
 import xobjects as xo
 
-def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-10, max_iter=100, **kwargs):
+def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12, max_iter=100, **kwargs):
 
     assert isinstance(line._context, xo.ContextCpu), "Only CPU context is supported"
     assert line.particle_ref is not None, "Particle reference is not set"
@@ -26,6 +26,16 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-10, max_ite
     tw_no_rad = line.twiss(method='4d', freeze_longitudinal=True,
                            only_markers=True, **kwargs)
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
+
+    # Check whether compensation is needed
+    p_test = tw_no_rad.particle_on_co.copy()
+    p_test.delta = delta0
+    line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
+    mon = line.record_last_track
+    eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
+    if abs(eloss) < p_test.energy0[0] * rtol_eneloss:
+        _print("  - No compensation needed")
+        return
 
     # save voltages
     v_setter = line.attr._cache['voltage'].multisetter
