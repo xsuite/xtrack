@@ -44,6 +44,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
     v_setter = line.attr._cache['voltage'].multisetter
     f_setter = line.attr._cache['frequency'].multisetter
     lag_setter = line.attr._cache['lag'].multisetter
+    lag_taper_setter = line.attr._cache['lag_taper'].multisetter
 
     v0 = v_setter.get_values()
     f0 = f_setter.get_values()
@@ -53,7 +54,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
 
     # Put all cavities on crest and at zero frequency
     if verbose: _print("  - Put all cavities on crest and set zero voltage and frequency")
-    lag_setter.set_values(90 + np.zeros_like(lag_setter.get_values()))
+    lag_taper_setter.set_values(90. - lag_zero)
     v_setter.set_values(np.zeros_like(v_setter.get_values()))
     f_setter.set_values(np.zeros_like(f_setter.get_values()))
 
@@ -102,10 +103,12 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
     v_ratio[mask_active_cav] = v_synchronous[mask_active_cav] / v0[mask_active_cav]
     inst_phase = np.arcsin(v_ratio)
 
-    lag = 360.*(inst_phase / (2 * np.pi) - f0 * zeta_at_cav / beta0 / clight)
-    lag = 180. - lag # we are above transition
+    total_lag = 360.*(inst_phase / (2 * np.pi) - f0 * zeta_at_cav / beta0 / clight)
+    total_lag = 180. - total_lag # we are above transition
+    lag_taper = total_lag - lag_zero
+    lag_taper[~mask_active_cav] = 0
 
     v_setter.set_values(v0)
     f_setter.set_values(f0)
-    lag_setter.set_values(lag)
+    lag_taper_setter.set_values(lag_taper)
 
