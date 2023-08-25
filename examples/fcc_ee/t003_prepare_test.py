@@ -1,7 +1,7 @@
 import numpy as np
 import xtrack as xt
 
-tilt_machine_by_90_degrees = False
+tilt_machine_by_90_degrees = True
 wiggler_on = False
 vertical_orbit_distortion = True
 
@@ -76,6 +76,10 @@ elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggle
     assert np.isclose(ex, 6.98798e-10, atol=0,     rtol=1e-4)
     assert np.isclose(ey, 1.12360e-12, atol=0,     rtol=1e-4)
     assert np.isclose(ez, 3.57778e-6,  atol=0,     rtol=1e-4)
+elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
+    assert np.isclose(ex, 1.20001e-12, atol=0,     rtol=1e-4) #????
+    assert np.isclose(ey, 6.98852e-10, atol=0,     rtol=1e-4)
+    assert np.isclose(ez, 3.57779e-6,  atol=0,     rtol=1e-4)
 else:
     raise ValueError('Unknown configuration')
 
