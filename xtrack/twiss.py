@@ -325,6 +325,10 @@ def twiss_line(line, particle_ref=None, method=None,
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
                 return twiss_line(**kwargs)
 
+    if radiation_method == 'kick_as_co':
+        assert hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST')
+        assert line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST
+
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
 
