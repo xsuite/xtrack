@@ -1037,7 +1037,7 @@ def test_twiss_group_compounds(test_context):
     assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
     assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
 
-    assert np.isclose(tw_comp['px', 'br1.dhz16l1'],
+    assert np.isclose(tw_comp['px', 'br1.dhz16l1_entry'],
                     tw['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
 
     assert np.allclose(tw_comp['W_matrix', 'bi1.bsw1l1.2_entry'],
@@ -1054,10 +1054,10 @@ def test_twiss_group_compounds(test_context):
     tw_comp_local = line.twiss(group_compound_elements=True,
                             twiss_init=tw_init_comp,
                             ele_start='bi1.ksw16l1_entry',
-                            ele_stop='br.stscrap161')
+                            ele_stop='br.stscrap162_entry')
     tw_local = line.twiss(twiss_init=tw_init,
                             ele_start='bi1.ksw16l1_entry',
-                            ele_stop='br.stscrap161')
+                            ele_stop='br.stscrap162_entry')
 
     for nn in tw_local._col_names:
         assert len(tw_local[nn]) == len(tw_local['name'])
@@ -1075,10 +1075,10 @@ def test_twiss_group_compounds(test_context):
     assert 'br.bhz161_dex' not in tw_comp_local.name
     assert 'br.bhz161_exit' not in tw_comp_local.name
 
-    assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap161'
+    assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap162_entry'
     assert tw_comp_local['name', -1] == tw_local['name', -1] == '_end_point'
 
-    assert np.isclose(tw_comp_local['px', 'br1.dhz16l1'],
+    assert np.isclose(tw_comp_local['px', 'br1.dhz16l1_entry'],
                     tw_local['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
 
 @for_all_test_contexts
@@ -1113,17 +1113,17 @@ def test_twiss_init_file(test_context):
         elif key == 'particle_on_co':
             loaded_pco = getattr(tw_init_loaded, key)
             for field in particle_check_fields:
-                assert np.isclose(getattr(val, field), getattr(loaded_pco, field),  
+                assert np.isclose(getattr(val, field), getattr(loaded_pco, field),
                                   atol=1e-9, rtol=0).all()
         else:
             assert np.isclose(tw_init_loaded.__dict__[key], val,  atol=1e-9, rtol=0).all()
 
     tw = line.twiss(ele_start=location, ele_stop='ip7', twiss_init=tw_init_loaded)
-    
+
     check_vars = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy',
                     'mux', 'muy', 'x', 'y', 'px', 'py']
 
-    # check at a location downsteam    
+    # check at a location downsteam
     loc_check = line.element_names[line.element_names.index(location) + 300]
     for var in check_vars:
         # Check at starting point
@@ -1133,7 +1133,7 @@ def test_twiss_init_file(test_context):
         assert np.isclose(tw[var, loc_check], tw_full[var, loc_check], atol=2e-7, rtol=0)
 
     twinit_file.unlink()
-    
+
 
 @for_all_test_contexts
 def test_custom_twiss_init(test_context):

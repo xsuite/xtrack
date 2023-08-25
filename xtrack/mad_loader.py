@@ -797,8 +797,9 @@ class MadLoader:
 
         is_singleton = len(elem_list) == 1
         if is_singleton:
+
             is_drift = issubclass(elem_list[0].type, self.classes.Drift)
-            if is_drift:
+            if is_drift and mad_el.name.startswith('drift_'):
                 return elem_list
 
             is_marker = issubclass(elem_list[0].type, self.classes.Marker)
