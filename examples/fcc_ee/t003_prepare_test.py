@@ -45,6 +45,8 @@ if tilt_machine_by_90_degrees:
         if isinstance(ee, xt.DipoleEdge):
             ee._r21, ee._r43 = ee._r43, ee._r21
 
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Add checks on tilted optics!
+
 tw_no_rad = line.twiss(method='4d')
 
 line.configure_radiation(model='mean')
