@@ -692,8 +692,6 @@ class Line:
                                 enable_pipeline_hold=enable_pipeline_hold,
                                 **kwargs)
 
-        self.tracker._tracker_data_base.cache['attr'] = None
-
         return self.tracker
 
     @property
@@ -701,7 +699,8 @@ class Line:
 
         self._check_valid_tracker()
 
-        if self.tracker._tracker_data_base.cache['attr'] is None:
+        if ('attr' not in self.tracker._tracker_data_base.cache.keys()
+                or self.tracker._tracker_data_base.cache['attr'] is None):
             self.tracker._tracker_data_base.cache['attr'] = self._get_attr_cache()
 
         return self.tracker._tracker_data_base.cache['attr']

@@ -86,7 +86,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
             if i_iter > max_iter:
                 raise RuntimeError("Maximum number of iterations reached")
     if verbose: _print()
-    delta_taper_full = mon.delta[0, :-1] # last point is added by the monitor
+    delta_taper_full = 0.5*(mon.delta[0, :-1] + mon.delta[0, 1:]) # last point is added by the monitor
 
     if verbose: _print("  - Set delta_taper")
     delta_taper_mask = line.attr._cache['delta_taper'].mask

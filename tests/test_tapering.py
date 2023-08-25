@@ -37,6 +37,7 @@ def test_tapering_and_twiss_with_radiation():
     line.compensate_radiation_energy_loss()
 
     for conf in configs:
+        print(f'Running test with conf: {conf}')
 
         line.config.XTRACK_CAVITY_PRESERVE_ANGLE = conf['cavity_preserve_angle']
 
@@ -48,29 +49,40 @@ def test_tapering_and_twiss_with_radiation():
             extra_kwargs['matrix_stability_tol'] = 0.1
             extra_kwargs['use_full_inverse'] = True
 
+        print('Twiss with radiation')
         # Twiss(es) with radiation
         tw = line.twiss(radiation_method=conf['radiation_method'],
                         eneloss_and_damping=True, **extra_kwargs)
+        print('Done')
 
         assert tw.radiation_method == (conf['radiation_method'] or 'kick_as_co')
 
         # Check twiss at_s
+        print('Twiss at_s')
         i_ele = len(tw.s)//3
         tws = line.twiss(at_s=tw.s[i_ele],
                         radiation_method=conf['radiation_method'],
                         eneloss_and_damping=True, **extra_kwargs)
+        print('Done')
 
         line.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
 
         if conf['p0_correction']:
-            p0corr = 1 + line.delta_taper
+            p0corr = 1 + tw.delta
         else:
             p0corr = 1
 
-        assert np.isclose(line.delta_taper[0], 0, rtol=0, atol=1e-10)
-        assert np.isclose(line.delta_taper[-1], 0, rtol=0, atol=1e-10)
+        # mask for taperable elemements
+        tt = line.get_table()
+        mask_taperable = (tt.element_type == 'Multipole') | (tt.element_type == 'DipoleEdge')
+        assert np.sum(mask_taperable) == 17420
 
-        assert np.allclose(tw.delta, line.delta_taper, rtol=0, atol=1e-6)
+        delta_taper = line.attr['delta_taper']
+        assert np.allclose(delta_taper[mask_taperable],
+            0.5*(tw.delta[:-1] + tw.delta[1:])[mask_taperable], rtol=0, atol=1e-6)
+
+        assert np.isclose(tw.delta[0], 0, rtol=0, atol=1e-6)
+        assert np.isclose(tw.delta[-1], 0, rtol=0, atol=1e-6)
 
         assert np.isclose(tw.qx, tw_no_rad.qx, rtol=0, atol=conf['q_atol'])
         assert np.isclose(tw.qy, tw_no_rad.qy, rtol=0, atol=conf['q_atol'])
@@ -96,8 +108,18 @@ def test_tapering_and_twiss_with_radiation():
 
         eneloss = tw.eneloss_turn
         assert eneloss/line.particle_ref.energy0 > 0.01
-        assert np.isclose(line['rf'].voltage*np.sin(line['rf'].lag/180*np.pi), eneloss/4, rtol=1e-5)
-        assert np.isclose(line['rf1'].voltage*np.sin(line['rf1'].lag/180*np.pi), eneloss/4, rtol=1e-5)
-        assert np.isclose(line['rf2a'].voltage*np.sin(line['rf2a'].lag/180*np.pi), eneloss/4*0.6, rtol=1e-5)
-        assert np.isclose(line['rf2b'].voltage*np.sin(line['rf2b'].lag/180*np.pi), eneloss/4*0.4, rtol=1e-5)
-        assert np.isclose(line['rf3'].voltage*np.sin(line['rf3'].lag/180*np.pi), eneloss/4, rtol=1e-5)
+        assert np.isclose(
+            line['rf'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+            eneloss/4, rtol=1e-5)
+        assert np.isclose(
+            line['rf1'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+            eneloss/4, rtol=1e-5)
+        assert np.isclose(
+            line['rf2a'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+            eneloss/4*0.6, rtol=1e-5)
+        assert np.isclose(
+            line['rf2b'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+            eneloss/4*0.4, rtol=1e-5)
+        assert np.isclose(
+            line['rf3'].voltage*np.sin((line['rf'].lag + line['rf'].lag_taper)/180*np.pi),
+            eneloss/4, rtol=1e-5)
