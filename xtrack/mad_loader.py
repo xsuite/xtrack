@@ -797,11 +797,11 @@ class MadLoader:
 
         is_singleton = len(elem_list) == 1
         if is_singleton:
-            is_drift = isinstance(elem_list[0], self.classes.Drift)
+            is_drift = issubclass(elem_list[0].type, self.classes.Drift)
             if is_drift:
                 return elem_list
 
-            is_marker = isinstance(elem_list[0], self.classes.Marker)
+            is_marker = issubclass(elem_list[0].type, self.classes.Marker)
             if is_marker:
                 return elem_list
 
