@@ -18,7 +18,7 @@ line.compensate_radiation_energy_loss()
 
 tw_rad_wig_off = line.twiss(eneloss_and_damping=True)
 
-line.vars['on_wiggler_v'] = 0.5
+line.vars['on_wiggler_v'] = 0.1
 line.compensate_radiation_energy_loss()
 opt = line.match(
     solve=False,

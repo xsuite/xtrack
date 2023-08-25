@@ -1,7 +1,7 @@
 import numpy as np
 import xtrack as xt
 
-line = xt.Line.from_json('fccee_p_ring_thin.json')
+line = xt.Line.from_json('fccee_h_thin.json')
 
 line.build_tracker()
 
@@ -11,8 +11,8 @@ line.vars['on_wiggler_v'] = 0.
 # Make sure there is no vertical bend nor skew element
 for ee in line.elements:
     if isinstance(ee, xt.Multipole):
-        ee.hyl = 0
-        ee.ksl[:] = 0
+        assert ee.hyl == 0
+        assert np.all(ee.ksl == 0)
 
 # periodic twiss and open twiss
 tw_before = line.twiss()
