@@ -237,10 +237,10 @@ def test_line_insert_thin_by_s_into_compound_middle(line_with_compounds):
 
     line.insert_element(element=xt.Marker(), at_s=0.5, name='in_c')
 
-    expected_subsequence = ['a', 'b', 'c_part0', 'in_c', 'c_part1', 'd']
+    expected_subsequence = ['a', 'b', 'c_u', 'in_c', 'c_d', 'd']
     assert line.get_compound_subsequence('test_1') == expected_subsequence
-    assert 'c_part0' in line.get_compound_by_name('test_1').core
-    assert 'c_part1' in line.get_compound_by_name('test_1').core
+    assert 'c_u' in line.get_compound_by_name('test_1').core
+    assert 'c_d' in line.get_compound_by_name('test_1').core
     assert 'in_c' in line.get_compound_by_name('test_1').core
     assert line.element_names == expected_subsequence + ['e', 'f', 'g']
 
@@ -269,10 +269,10 @@ def test_line_insert_thick_by_s_into_compound(line_with_compounds):
 
     line.insert_element(element=xt.Drift(length=0.5), at_s=0.25, name='in_c')
 
-    expected_subsequence = ['a', 'b', 'c_part0', 'in_c', 'c_part1', 'd']
+    expected_subsequence = ['a', 'b', 'c_u', 'in_c', 'c_d', 'd']
     assert line.get_compound_subsequence('test_1') == expected_subsequence
-    assert 'c_part0' in line.get_compound_by_name('test_1').core
-    assert 'c_part1' in line.get_compound_by_name('test_1').core
+    assert 'c_u' in line.get_compound_by_name('test_1').core
+    assert 'c_d' in line.get_compound_by_name('test_1').core
     assert 'in_c' in line.get_compound_by_name('test_1').core
     assert line.element_names == expected_subsequence + ['e', 'f', 'g']
 
@@ -282,7 +282,7 @@ def test_line_insert_thick_by_s_into_sliced_compound(line_with_compounds):
 
     line.insert_element(element=xt.Drift(length=1), at_s=1.5, name='ef')
 
-    expected_names = ['e_part0', 'ef', 'f_part1']
+    expected_names = ['e_u', 'ef', 'f_d']
     result_names = line.get_compound_subsequence('test_2')
     assert result_names == expected_names
 
