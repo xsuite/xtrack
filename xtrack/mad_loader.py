@@ -805,10 +805,6 @@ class MadLoader:
             if is_marker:
                 return elem_list
 
-            thick_len = value_if_expr(elem_list[0].attrs.get('length', 0))
-            if thick_len == 0:
-                return elem_list
-
         return [
             CompoundElementBuilder(
                 name=mad_el.name,
