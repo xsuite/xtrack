@@ -21,10 +21,12 @@ for ee in line.elements:
         assert np.all(ee.ksl[1:] == 0)
 
 if tilt_machine_by_90_degrees:
+
     tw_before_tilt = line.twiss()
 
     # Bring the machine to the vertical plane
     for ee in line.elements:
+        print(type(ee))
         if isinstance(ee, xt.Multipole):
             knl = ee.knl.copy()
             ksl = ee.ksl.copy()
@@ -44,6 +46,13 @@ if tilt_machine_by_90_degrees:
 
         if isinstance(ee, xt.DipoleEdge):
             ee._r21, ee._r43 = ee._r43, ee._r21
+
+    tw_after_tilt = line.twiss()
+
+    assert np.isclose(tw_before_tilt.qx, tw_after_tilt.qy, rtol=0, atol=3e-6)
+    assert np.isclose(tw_before_tilt.qy, tw_after_tilt.qx, rtol=0, atol=3e-6)
+
+    prrrr
 
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Add checks on tilted optics!
 
