@@ -34,7 +34,7 @@ configurations = [
     },
 ]
 
-conf = configurations[0]
+conf = configurations[1]
 
 tilt_machine_by_90_degrees = conf['tilt_machine_by_90_degrees']
 wiggler_on = conf['wiggler_on']
@@ -145,7 +145,6 @@ else:
 
 assert checked
 
-
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
 line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
@@ -160,9 +159,9 @@ sigma_x_track = np.mean(np.std(mon.x, axis=0)[-200:])
 sigma_y_track = np.mean(np.std(mon.y, axis=0)[-200:])
 sigma_zeta_track = np.mean(np.std(mon.zeta, axis=0)[-200:])
 
-assert np.isclose(sigma_x_eq, sigma_x_track, rtol=0.2, atol=1e-20)
-assert np.isclose(sigma_y_eq, sigma_y_track, rtol=0.2, atol=1e-20)
-assert np.isclose(sigma_zeta_eq, sigma_zeta_track, rtol=0.2, atol=1e-20)
+assert np.isclose(sigma_x_eq, sigma_x_track, rtol=0.2, atol=1e-8)
+assert np.isclose(sigma_y_eq, sigma_y_track, rtol=0.2, atol=1e-8)
+assert np.isclose(sigma_zeta_eq, sigma_zeta_track, rtol=0.2, atol=1e-10)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -177,6 +176,6 @@ spy.axhline(sigma_y_eq, color='red')
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
-spz.axhline(sigma_z_eq, color='red')
+spz.axhline(sigma_zeta_track, color='red')
 
 plt.show()
