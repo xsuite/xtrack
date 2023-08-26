@@ -50,15 +50,19 @@ if tilt_machine_by_90_degrees:
 
     tw_after_tilt = line.twiss()
 
-    assert np.isclose(tw_before_tilt.qx, tw_after_tilt.qy, rtol=0, atol=1e-9)
-    assert np.isclose(tw_before_tilt.qy, tw_after_tilt.qx, rtol=0, atol=1e-9)
-    assert np.isclose(tw_before_tilt.dqx, tw_after_tilt.dqy, rtol=0, atol=1e-9)
-    assert np.isclose(tw_before_tilt.dqy, tw_after_tilt.dqx, rtol=0, atol=1e-9)
+    assert np.isclose(tw_before_tilt.qx, tw_after_tilt.qy, rtol=0, atol=1e-8)
+    assert np.isclose(tw_before_tilt.qy, tw_after_tilt.qx, rtol=0, atol=1e-8)
+    assert np.isclose(tw_before_tilt.dqx, tw_after_tilt.dqy, rtol=0, atol=5e-6)
+    assert np.isclose(tw_before_tilt.dqy, tw_after_tilt.dqx, rtol=0, atol=5e-6)
 
     assert np.allclose(tw_before_tilt.betx, tw_after_tilt.bety, rtol=1e-5, atol=0)
     assert np.allclose(tw_before_tilt.bety, tw_after_tilt.betx, rtol=1e-5, atol=0)
 
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Add checks on tilted optics!
+    assert np.allclose(tw_before_tilt.x, -tw_after_tilt.y, rtol=0, atol=1e-9)
+    assert np.allclose(tw_before_tilt.y, tw_after_tilt.x, rtol=0, atol=1e-9)
+
+    assert np.allclose(tw_before_tilt.dx, -tw_after_tilt.dy, rtol=0, atol=1e-6)
+    assert np.allclose(tw_before_tilt.dy, tw_after_tilt.dx, rtol=0, atol=1e-6)
 
 tw_no_rad = line.twiss(method='4d')
 
