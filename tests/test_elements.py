@@ -1392,6 +1392,7 @@ def test_nonlinearlens(test_context):
     """)
 
     line = xt.Line.from_madx_sequence(mad.sequence.ss)
+    line.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx
     line.build_tracker(_context=test_context)
 
     num_p_test = 10
