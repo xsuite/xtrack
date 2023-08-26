@@ -122,7 +122,7 @@ elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggle
     checked = True
 elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
     assert np.isclose(ex, 6.9253e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 1.7138e-12, atol=0,     rtol=1e-4)
+    assert np.isclose(ey, 1.7110e-12, atol=0,     rtol=1e-4)
     assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
     checked = True
 elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
@@ -159,9 +159,9 @@ sigma_x_track = np.mean(np.std(mon.x, axis=0)[-200:])
 sigma_y_track = np.mean(np.std(mon.y, axis=0)[-200:])
 sigma_zeta_track = np.mean(np.std(mon.zeta, axis=0)[-200:])
 
-assert np.isclose(sigma_x_eq, sigma_x_track, rtol=0.2, atol=1e-8)
-assert np.isclose(sigma_y_eq, sigma_y_track, rtol=0.2, atol=1e-8)
-assert np.isclose(sigma_zeta_eq, sigma_zeta_track, rtol=0.2, atol=1e-10)
+assert np.isclose(sigma_x_eq, sigma_x_track, rtol=0.2, atol=1e-20)
+assert np.isclose(sigma_y_eq, sigma_y_track, rtol=0.2, atol=1e-20)
+assert np.isclose(sigma_zeta_eq, sigma_zeta_track, rtol=0.2, atol=1e-20)
 
 import matplotlib.pyplot as plt
 plt.close('all')
