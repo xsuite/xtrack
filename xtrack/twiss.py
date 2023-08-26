@@ -558,6 +558,7 @@ def twiss_line(line, particle_ref=None, method=None,
     twiss_res._data['method'] = method
     twiss_res._data['radiation_method'] = radiation_method
     twiss_res._data['reference_frame'] = 'proper'
+    twiss_res._data['line_config'] = dict(line.config.copy())
 
     if reverse:
         twiss_res = twiss_res.reverse()
