@@ -21,6 +21,7 @@ use, sequence=ss;
 """)
 
 line = xt.Line.from_madx_sequence(mad.sequence.ss)
+line.config.XTRACK_USE_EXACT_DRIFTS = True # to be consistent with madx
 line.build_tracker(_context=test_context)
 
 num_p_test = 10
@@ -60,13 +61,13 @@ for ii in range(len(p0.x)):
     py.append(mad_results.py)
 
 
-    assert np.allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
-    assert np.allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
-    assert np.allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
-    assert np.allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0), 'py'
-    assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
-    assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
-    assert np.allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
+    assert np.allclose(part.x[ii], mad_results.x, atol=1e-14, rtol=0), 'x'
+    assert np.allclose(part.px[ii], mad_results.px, atol=1e-14, rtol=0), 'px'
+    assert np.allclose(part.y[ii], mad_results.y, atol=1e-14, rtol=0), 'y'
+    assert np.allclose(part.py[ii], mad_results.py, atol=1e-14, rtol=0), 'py'
+    assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-14, rtol=0), 't'
+    assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-14, rtol=0), 'pt'
+    assert np.allclose(part.s[ii], mad_results.s, atol=1e-14, rtol=0), 's'
 
 import matplotlib.pyplot as plt
 plt.close('all')
