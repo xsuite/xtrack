@@ -62,6 +62,14 @@ def test_monitor(test_context):
     assert np.all(monitor.at_element[:, :] == 0)
     assert np.all(monitor.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
+    # Test to_dict/from_dict round trip
+    dct = monitor.to_dict()
+    monitor2 = xt.ParticlesMonitor.from_dict(dct, _context=test_context)
+    assert np.all(monitor2.x.shape == np.array([50, 10]))
+    assert np.all(monitor2.at_turn[3, :] == np.arange(5, 15))
+    assert np.all(monitor2.particle_id[:, 3] == np.arange(0, num_particles))
+    assert np.all(monitor2.at_element[:, :] == 0)
+    assert np.all(monitor2.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
     # Test explicit monitor used in in stand-alone mode
     mon2 = xt.ParticlesMonitor(_context=test_context,
