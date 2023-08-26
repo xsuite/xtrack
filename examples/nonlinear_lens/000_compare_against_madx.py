@@ -11,7 +11,7 @@ mad = Madx()
 dr_len = 1e-11
 mad.input(f"""
 ss: sequence, l={dr_len};
-    lens: nllens, at=0, cnll=2, knll=0.3;
+    lens: nllens, at=0, cnll=0.15, knll=0.3;
     ! since in MAD-X we can't track a zero-length line, we put in
     ! this tiny drift here at the end of the sequence:
     dr: drift, at={dr_len / 2}, l={dr_len};
@@ -23,8 +23,22 @@ use, sequence=ss;
 line = xt.Line.from_madx_sequence(mad.sequence.ss)
 line.build_tracker(_context=test_context)
 
-p0 = xp.Particles(p0c=2e9, x=1e-3, px=2e-6, y=3e-3, py=4e-6, zeta=5e-3, ptau=6e-4)
+num_p_test = 10
+x_test = np.linspace(-1e-2, 2e-2, num_p_test)
+y_test = np.linspace(-3e-2, 1e-2, num_p_test)
+px_test = np.linspace(-2e-5, 4e-5, num_p_test)
+py_test = np.linspace(-4e-5, 2e-5, num_p_test)
 
+p0 = xp.Particles(p0c=2e9, x=x_test, px=px_test, y=y_test, py=py_test,
+                  zeta=.1, ptau=1e-3)
+
+part = p0.copy(_context=test_context)
+line.track(part, _force_no_end_turn_actions=True)
+part.move(_context=xo.context_default)
+
+xt_tau = part.zeta/part.beta0
+px = []
+py = []
 for ii in range(len(p0.x)):
     mad.input(f"""
     beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
@@ -42,11 +56,10 @@ for ii in range(len(p0.x)):
 
     mad_results = mad.table.mytracksumm[-1]
 
-    part = p0.copy(_context=test_context)
-    line.track(part, _force_no_end_turn_actions=True)
-    part.move(_context=xo.context_default)
+    px.append(mad_results.px)
+    py.append(mad_results.py)
 
-    xt_tau = part.zeta/part.beta0
+
     assert np.allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
     assert np.allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
     assert np.allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
@@ -55,3 +68,12 @@ for ii in range(len(p0.x)):
     assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
     assert np.allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
 
+import matplotlib.pyplot as plt
+plt.close('all')
+
+plt.figure(1)
+plt.plot(x_test, px, '.')
+plt.plot(x_test, part.px, 'x')
+plt.plot(x_test, py, '.')
+plt.plot(x_test, part.py, 'x')
+plt.show()
