@@ -1430,10 +1430,10 @@ def test_nonlinearlens(test_context):
         px.append(mad_results.px)
         py.append(mad_results.py)
 
-        assert np.allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
-        assert np.allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
-        assert np.allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
-        assert np.allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0), 'py'
-        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
-        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
-        assert np.allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
+        assert np.allclose(part.x[ii], mad_results.x, atol=1e-14, rtol=0), 'x'
+        assert np.allclose(part.px[ii], mad_results.px, atol=1e-14, rtol=0), 'px'
+        assert np.allclose(part.y[ii], mad_results.y, atol=1e-14, rtol=0), 'y'
+        assert np.allclose(part.py[ii], mad_results.py, atol=1e-14, rtol=0), 'py'
+        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-14, rtol=0), 't'
+        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-14, rtol=0), 'pt'
+        assert np.allclose(part.s[ii], mad_results.s, atol=1e-14, rtol=0), 's'

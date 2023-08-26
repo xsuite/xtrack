@@ -23,7 +23,8 @@
             "SimpleThinQuadrupole",
             "Bend",
             "Quadrupole",
-            "CombinedFunctionMagnet"
+            "CombinedFunctionMagnet",
+            "NonLinearLens"
         ]
     },
     "default_only_xtrack_backtrack": {
@@ -78,7 +79,8 @@
             "SimpleThinQuadrupole",
             "LineSegmentMap",
             "BeamBeamBiGaussian2D",
-            "BeamBeamBiGaussian3D"
+            "BeamBeamBiGaussian3D",
+            "NonLinearLens"
         ]
     },
     "only_xtrack_frozen_longitudinal": {
@@ -111,7 +113,8 @@
             "SimpleThinQuadrupole",
             "Bend",
             "Quadrupole",
-            "CombinedFunctionMagnet"
+            "CombinedFunctionMagnet",
+            "NonLinearLens"
         ]
     },
     "only_xtrack_frozen_energy": {
@@ -143,7 +146,8 @@
             "SimpleThinQuadrupole",
             "Bend",
             "Quadrupole",
-            "CombinedFunctionMagnet"
+            "CombinedFunctionMagnet",
+            "NonLinearLens"
         ]
     },
     "only_xtrack_backtrack_frozen_energy": {
@@ -174,7 +178,8 @@
             "SimpleThinQuadrupole",
             "Bend",
             "Quadrupole",
-            "CombinedFunctionMagnet"
+            "CombinedFunctionMagnet",
+            "NonLinearLens"
         ]
     },
     "only_xtrack_taper": {
@@ -201,7 +206,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "LineSegmentMap"
+            "LineSegmentMap",
+            "NonLinearLens"
         ]
     },
     "only_xtrack_with_synrad": {
@@ -226,7 +232,8 @@
             "LinearTransferMatrix",
             "SimpleThinBend",
             "SimpleThinQuadrupole",
-            "LineSegmentMap"
+            "LineSegmentMap",
+            "NonLinearLens"
         ]
 
     }
