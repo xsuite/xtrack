@@ -10,6 +10,10 @@
 #define POW2(X) ((X)*(X))
 #endif
 
+// Implementation of a non-linear lens with elliptic potential
+// (see corresponding element in MAD-X, based on Danilov and Nagaitsev,
+// https://journals.aps.org/prab/abstract/10.1103/PhysRevSTAB.13.084002)
+
 /*gpufun*/
 void NonLinearLens_track_local_particle(
         NonLinearLensData el,
