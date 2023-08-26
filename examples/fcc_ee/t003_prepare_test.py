@@ -34,7 +34,7 @@ configurations = [
     },
 ]
 
-conf = configurations[5]
+conf = configurations[0]
 
 tilt_machine_by_90_degrees = conf['tilt_machine_by_90_degrees']
 wiggler_on = conf['wiggler_on']
@@ -109,34 +109,42 @@ ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
 # for regression testing
+checked = False
 if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
     assert np.isclose(ex, 6.9884e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 0,           atol=1e-14, rtol=0)
+    assert np.isclose(ey, 0,          atol=1e-14, rtol=0)
     assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+    checked = True
 elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 0,           atol=1e-14, rtol=0)
+    assert np.isclose(ex, 0,          atol=1e-14, rtol=0)
     assert np.isclose(ey, 6.9884e-10, atol=0,     rtol=1e-4)
     assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+    checked = True
 elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
     assert np.isclose(ex, 6.9253e-10, atol=0,     rtol=1e-4)
     assert np.isclose(ey, 1.7138e-12, atol=0,     rtol=1e-4)
     assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
+    checked = True
 elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
     assert np.isclose(ex, 1.7112e-12, atol=0,     rtol=1e-4)
     assert np.isclose(ey, 6.9253e-10, atol=0,     rtol=1e-4)
     assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
+    checked = True
 elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
     assert np.isclose(ex, 6.9880e-10, atol=0,     rtol=1e-4)
     assert np.isclose(ey, 1.1236e-12, atol=0,     rtol=1e-4)
     assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
+    checked = True
 elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
     assert np.isclose(ex, 1.1293e-12, atol=0,     rtol=1e-4)
     assert np.isclose(ey, 6.9880e-10, atol=0,     rtol=1e-4)
     assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
+    checked = True
 else:
     raise ValueError('Unknown configuration')
 
-prrr
+assert checked
+
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
@@ -144,21 +152,31 @@ line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 
+sigma_x_eq = float(np.sqrt(ex * tw_rad.betx[0] + ey * tw_rad.betx2[0] + (np.std(p.delta) * tw_rad.dx[0])**2))
+sigma_y_eq = float(np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2))
+sigma_zeta_eq = float(np.sqrt(ez * tw_rad.betz0))
+
+sigma_x_track = np.mean(np.std(mon.x, axis=0)[-200:])
+sigma_y_track = np.mean(np.std(mon.y, axis=0)[-200:])
+sigma_zeta_track = np.mean(np.std(mon.zeta, axis=0)[-200:])
+
+assert np.isclose(sigma_x_eq, sigma_x_track, rtol=0.2, atol=1e-20)
+assert np.isclose(sigma_y_eq, sigma_y_track, rtol=0.2, atol=1e-20)
+assert np.isclose(sigma_zeta_eq, sigma_zeta_track, rtol=0.2, atol=1e-20)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 fig = plt.figure(1)
 spx = fig. add_subplot(3, 1, 1)
 spx.plot(np.std(mon.x, axis=0))
-spx.axhline(np.sqrt(ex * tw_rad.betx[0] + ey * tw_rad.betx2[0] + (np.std(p.delta) * tw_rad.dx[0])**2), color='red')
-# spx.axhline(np.sqrt(ex_hof * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2), color='green')
+spx.axhline(sigma_x_eq, color='red')
 
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
 spy.plot(np.std(mon.y, axis=0))
-spy.axhline(np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2), color='red')
-# spy.axhline(np.sqrt(ey_hof * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='green')
+spy.axhline(sigma_y_eq, color='red')
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
-spz.axhline(np.sqrt(ez * tw_rad.betz0), color='red')
+spz.axhline(sigma_z_eq, color='red')
 
 plt.show()

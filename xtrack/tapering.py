@@ -22,7 +22,6 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
 
     if verbose: _print("Compensating energy loss.")
 
-    if verbose: _print("  - Twiss with no radiation")
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
     with xt.freeze_longitudinal(line):
         particle_on_co = line.find_closed_orbit(delta0=delta0)
@@ -53,7 +52,6 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
     eneloss_partitioning = v0 / v0.sum()
 
     # Put all cavities on crest and at zero frequency
-    if verbose: _print("  - Put all cavities on crest and set zero voltage and frequency")
     lag_taper_setter.set_values(90. - lag_zero)
     v_setter.set_values(np.zeros_like(v_setter.get_values()))
     f_setter.set_values(np.zeros_like(f_setter.get_values()))
