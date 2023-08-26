@@ -1,9 +1,44 @@
 import numpy as np
 import xtrack as xt
 
-tilt_machine_by_90_degrees = True
-wiggler_on = False
-vertical_orbit_distortion = True
+configurations = [
+    {
+        'wiggler_on': False,
+        'vertical_orbit_distortion': False,
+        'tilt_machine_by_90_degrees': False,
+    },
+    {
+        'wiggler_on': False,
+        'vertical_orbit_distortion': False,
+        'tilt_machine_by_90_degrees': True,
+    },
+    {
+        'wiggler_on': False,
+        'vertical_orbit_distortion': True,
+        'tilt_machine_by_90_degrees': False,
+    },
+    {
+        'wiggler_on': False,
+        'vertical_orbit_distortion': True,
+        'tilt_machine_by_90_degrees': True,
+    },
+    {
+        'wiggler_on': True,
+        'vertical_orbit_distortion': False,
+        'tilt_machine_by_90_degrees': False,
+    },
+    {
+        'wiggler_on': True,
+        'vertical_orbit_distortion': False,
+        'tilt_machine_by_90_degrees': True,
+    },
+]
+
+conf = configurations[5]
+
+tilt_machine_by_90_degrees = conf['tilt_machine_by_90_degrees']
+wiggler_on = conf['wiggler_on']
+vertical_orbit_distortion = conf['vertical_orbit_distortion']
 
 line = xt.Line.from_json('fccee_h_thin.json')
 
@@ -26,43 +61,42 @@ if tilt_machine_by_90_degrees:
 
     # Bring the machine to the vertical plane
     for ee in line.elements:
-        print(type(ee))
         if isinstance(ee, xt.Multipole):
             knl = ee.knl.copy()
             ksl = ee.ksl.copy()
             hxl = ee.hxl
             hyl = ee.hyl
 
-            ee.hxl = hyl
-            ee.hyl = hxl
+            ee.hxl = -hyl
+            ee.hyl = -hxl
 
-            ee.knl[0] = ksl[0]
-            ee.ksl[0] = knl[0]
+            ee.knl[0] = -ksl[0]
+            ee.ksl[0] = -knl[0]
             if len(knl) > 1:
                 ee.knl[1] = -knl[1]
                 ee.ksl[1] = 0
             if len(knl) > 2:
                 ee.knl[2] = 0
-                ee.ksl[2] = -knl[2]
+                ee.ksl[2] = knl[2]
 
         if isinstance(ee, xt.DipoleEdge):
             ee._r21, ee._r43 = ee._r43, ee._r21
 
     tw_after_tilt = line.twiss()
 
-    assert np.isclose(tw_before_tilt.qx, tw_after_tilt.qy, rtol=0, atol=1e-8)
-    assert np.isclose(tw_before_tilt.qy, tw_after_tilt.qx, rtol=0, atol=1e-8)
-    assert np.isclose(tw_before_tilt.dqx, tw_after_tilt.dqy, rtol=0, atol=5e-6)
-    assert np.isclose(tw_before_tilt.dqy, tw_after_tilt.dqx, rtol=0, atol=5e-6)
+    assert np.isclose(tw_after_tilt.qy, tw_before_tilt.qx, rtol=0, atol=1e-8)
+    assert np.isclose(tw_after_tilt.qx, tw_before_tilt.qy, rtol=0, atol=1e-8)
+    assert np.isclose(tw_after_tilt.dqy, tw_before_tilt.dqx, rtol=0, atol=1e-4)
+    assert np.isclose(tw_after_tilt.dqx, tw_before_tilt.dqy, rtol=0, atol=1e-4)
 
-    assert np.allclose(tw_before_tilt.betx, tw_after_tilt.bety, rtol=1e-5, atol=0)
-    assert np.allclose(tw_before_tilt.bety, tw_after_tilt.betx, rtol=1e-5, atol=0)
+    assert np.allclose(tw_after_tilt.bety, tw_before_tilt.betx, rtol=1e-5, atol=0)
+    assert np.allclose(tw_after_tilt.betx, tw_before_tilt.bety, rtol=1e-5, atol=0)
 
-    assert np.allclose(tw_before_tilt.x, -tw_after_tilt.y, rtol=0, atol=1e-9)
-    assert np.allclose(tw_before_tilt.y, tw_after_tilt.x, rtol=0, atol=1e-9)
+    assert np.allclose(tw_after_tilt.y, tw_before_tilt.x, rtol=0, atol=1e-9)
+    assert np.allclose(tw_after_tilt.x, tw_before_tilt.y, rtol=0, atol=1e-9)
 
-    assert np.allclose(tw_before_tilt.dx, -tw_after_tilt.dy, rtol=0, atol=1e-6)
-    assert np.allclose(tw_before_tilt.dy, tw_after_tilt.dx, rtol=0, atol=1e-6)
+    assert np.allclose(tw_after_tilt.dy, tw_before_tilt.dx, rtol=0, atol=1e-6)
+    assert np.allclose(tw_after_tilt.dx, tw_before_tilt.dy, rtol=0, atol=1e-6)
 
 tw_no_rad = line.twiss(method='4d')
 
@@ -76,29 +110,29 @@ ez = tw_rad.eq_gemitt_zeta
 
 # for regression testing
 if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 6.98840e-10, atol=0,     rtol=1e-4)
+    assert np.isclose(ex, 6.9884e-10, atol=0,     rtol=1e-4)
     assert np.isclose(ey, 0,           atol=1e-14, rtol=0)
-    assert np.isclose(ez, 3.56339e-6,  atol=0,     rtol=1e-4)
+    assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
 elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
     assert np.isclose(ex, 0,           atol=1e-14, rtol=0)
-    assert np.isclose(ey, 6.98840e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.56339e-6,  atol=0,     rtol=1e-4)
+    assert np.isclose(ey, 6.9884e-10, atol=0,     rtol=1e-4)
+    assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
 elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-    assert np.isclose(ex, 6.92528e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 1.71377e-12, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.82023e-6,  atol=0,     rtol=1e-4)
+    assert np.isclose(ex, 6.9253e-10, atol=0,     rtol=1e-4)
+    assert np.isclose(ey, 1.7138e-12, atol=0,     rtol=1e-4)
+    assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
 elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-    assert np.isclose(ex, 1.71163e-12, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 6.92580e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.82025e-6,  atol=0,     rtol=1e-4)
+    assert np.isclose(ex, 1.7112e-12, atol=0,     rtol=1e-4)
+    assert np.isclose(ey, 6.9253e-10, atol=0,     rtol=1e-4)
+    assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
 elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 6.98798e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 1.12360e-12, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.57778e-6,  atol=0,     rtol=1e-4)
+    assert np.isclose(ex, 6.9880e-10, atol=0,     rtol=1e-4)
+    assert np.isclose(ey, 1.1236e-12, atol=0,     rtol=1e-4)
+    assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
 elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 1.20001e-12, atol=0,     rtol=1e-4) #????
-    assert np.isclose(ey, 6.98852e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.57779e-6,  atol=0,     rtol=1e-4)
+    assert np.isclose(ex, 1.1293e-12, atol=0,     rtol=1e-4)
+    assert np.isclose(ey, 6.9880e-10, atol=0,     rtol=1e-4)
+    assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
 else:
     raise ValueError('Unknown configuration')
 
