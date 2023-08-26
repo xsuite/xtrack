@@ -11,7 +11,7 @@
 #endif
 
 // Implementation of a non-linear lens with elliptic potential
-// (see corresponding element in MAD-X, based on Danilov and Nagaitsev,
+// (based on the corresponding element in MAD-X, reference: Danilov and Nagaitsev,
 // https://journals.aps.org/prab/abstract/10.1103/PhysRevSTAB.13.084002)
 
 /*gpufun*/
