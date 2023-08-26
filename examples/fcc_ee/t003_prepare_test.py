@@ -32,6 +32,7 @@ if tilt_machine_by_90_degrees:
             ksl = ee.ksl.copy()
             hxl = ee.hxl
             hyl = ee.hyl
+
             ee.hxl = hyl
             ee.hyl = hxl
 
@@ -49,10 +50,13 @@ if tilt_machine_by_90_degrees:
 
     tw_after_tilt = line.twiss()
 
-    assert np.isclose(tw_before_tilt.qx, tw_after_tilt.qy, rtol=0, atol=3e-6)
-    assert np.isclose(tw_before_tilt.qy, tw_after_tilt.qx, rtol=0, atol=3e-6)
+    assert np.isclose(tw_before_tilt.qx, tw_after_tilt.qy, rtol=0, atol=1e-9)
+    assert np.isclose(tw_before_tilt.qy, tw_after_tilt.qx, rtol=0, atol=1e-9)
+    assert np.isclose(tw_before_tilt.dqx, tw_after_tilt.dqy, rtol=0, atol=1e-9)
+    assert np.isclose(tw_before_tilt.dqy, tw_after_tilt.dqx, rtol=0, atol=1e-9)
 
-    prrrr
+    assert np.allclose(tw_before_tilt.betx, tw_after_tilt.bety, rtol=1e-5, atol=0)
+    assert np.allclose(tw_before_tilt.bety, tw_after_tilt.betx, rtol=1e-5, atol=0)
 
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Add checks on tilted optics!
 

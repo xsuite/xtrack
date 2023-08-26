@@ -14,11 +14,6 @@ for ee in line.elements:
         assert ee.hyl == 0
         assert np.all(ee.ksl == 0)
 
-for ee in line.elements:
-    if isinstance(ee, xt.DipoleEdge):
-        ee._r21 = 0
-        ee._r43 = 0
-
 # periodic twiss and open twiss
 tw_before = line.twiss()
 tob = line.twiss(
@@ -70,8 +65,6 @@ to = line.twiss(
                 _continue_if_lost=True)
 
 tw_no_rad = line.twiss(method='4d')
-
-prrrr
 
 line.configure_radiation(model='mean')
 line.compensate_radiation_energy_loss()
