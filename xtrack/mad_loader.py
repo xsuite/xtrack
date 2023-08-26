@@ -1455,3 +1455,12 @@ class MadLoader:
         ee.dy = 0
         ee.ds = 0
         return self.make_compound_elem([el_transverse], ee)
+
+    def convert_nllens(self, mad_elem):
+        el = self.Builder(
+            mad_elem.name,
+            self.classes.NonLinearLens,
+            knll=mad_elem.knll,
+            cnll=mad_elem.cnll,
+        )
+        return self.make_compound_elem([el], mad_elem)
