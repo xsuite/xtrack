@@ -43,6 +43,7 @@ ONLY_XTRACK_ELEMENTS = [
     SimpleThinQuadrupole,
     LineSegmentMap,
     LinearTransferMatrix,
+    NonLinearLens,
     LimitEllipse,
     LimitRectEllipse,
     LimitRect,
