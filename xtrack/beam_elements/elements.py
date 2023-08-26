@@ -212,6 +212,18 @@ class Elens(BeamElement):
             self.polynomial_order = polynomial_order
 
 
+class NonLinearLens(BeamElement):
+
+    _xofields={
+            'knll': xo.Float64,
+            'cnll': xo.Float64,
+            }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/nonlinearlens.h'),
+    ]
+
 
 class Wire(BeamElement):
 
