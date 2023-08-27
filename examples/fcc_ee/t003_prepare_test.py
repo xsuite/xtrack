@@ -41,14 +41,13 @@ wiggler_on = conf['wiggler_on']
 vertical_orbit_distortion = conf['vertical_orbit_distortion']
 
 line = xt.Line.from_json('fccee_h_thin.json')
-
 line.build_tracker()
 
 if wiggler_on:
     line.vars['on_wiggler_v'] = 0.4
 
 if vertical_orbit_distortion:
-    line['qf4.232..4'].ksl[0] = 1.8e-6
+    line['mwi.e5rg'].ksl[0] = 1e-6
 
 # Make sure there is no vertical bend nor skew element
 for ee in line.elements:
