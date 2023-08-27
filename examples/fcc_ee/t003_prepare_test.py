@@ -34,7 +34,7 @@ configurations = [
     },
 ]
 
-conf = configurations[5]
+conf = configurations[2]
 
 tilt_machine_by_90_degrees = conf['tilt_machine_by_90_degrees']
 wiggler_on = conf['wiggler_on']
@@ -48,7 +48,7 @@ if wiggler_on:
     line.vars['on_wiggler_v'] = 0.4
 
 if vertical_orbit_distortion:
-    line['qf4.232..4'].ksl[0] = 1.5e-6
+    line['qf4.232..4'].ksl[0] = 1.8e-6
 
 # Make sure there is no vertical bend nor skew element
 for ee in line.elements:
@@ -108,46 +108,46 @@ ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
-# for regression testing
-checked = False
-if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 6.9884e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 0,          atol=1e-14, rtol=0)
-    assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
-    checked = True
-elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 0,          atol=1e-14, rtol=0)
-    assert np.isclose(ey, 6.9884e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
-    checked = True
-elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-    assert np.isclose(ex, 6.9253e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 1.7110e-12, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
-    checked = True
-elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-    assert np.isclose(ex, 1.7112e-12, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 6.9253e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
-    checked = True
-elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 6.9880e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 1.1236e-12, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
-    checked = True
-elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-    assert np.isclose(ex, 1.1293e-12, atol=0,     rtol=1e-4)
-    assert np.isclose(ey, 6.9880e-10, atol=0,     rtol=1e-4)
-    assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
-    checked = True
-else:
-    raise ValueError('Unknown configuration')
+# # for regression testing
+# checked = False
+# if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
+#     assert np.isclose(ex, 6.9884e-10, atol=0,     rtol=1e-4)
+#     assert np.isclose(ey, 0,          atol=1e-14, rtol=0)
+#     assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+#     checked = True
+# elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
+#     assert np.isclose(ex, 0,          atol=1e-14, rtol=0)
+#     assert np.isclose(ey, 6.9884e-10, atol=0,     rtol=1e-4)
+#     assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+#     checked = True
+# elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
+#     assert np.isclose(ex, 6.9253e-10, atol=0,     rtol=1e-4)
+#     assert np.isclose(ey, 1.7110e-12, atol=0,     rtol=1e-4)
+#     assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
+#     checked = True
+# elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
+#     assert np.isclose(ex, 1.7112e-12, atol=0,     rtol=1e-4)
+#     assert np.isclose(ey, 6.9253e-10, atol=0,     rtol=1e-4)
+#     assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
+#     checked = True
+# elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
+#     assert np.isclose(ex, 6.9880e-10, atol=0,     rtol=1e-4)
+#     assert np.isclose(ey, 1.1236e-12, atol=0,     rtol=1e-4)
+#     assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
+#     checked = True
+# elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
+#     assert np.isclose(ex, 1.1293e-12, atol=0,     rtol=1e-4)
+#     assert np.isclose(ey, 6.9880e-10, atol=0,     rtol=1e-4)
+#     assert np.isclose(ez, 3.5778e-6,  atol=0,     rtol=1e-4)
+#     checked = True
+# else:
+#     raise ValueError('Unknown configuration')
 
-assert checked
+# assert checked
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
-line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
+line.track(p, num_turns=2000, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 

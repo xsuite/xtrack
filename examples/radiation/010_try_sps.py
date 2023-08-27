@@ -73,17 +73,17 @@ tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full')
 
-assert tw_rad.nemitt_x_rad is not None
-assert tw_rad.nemitt_y_rad is not None
-assert tw_rad.nemitt_zeta_rad is not None
+assert tw_rad.eq_gemitt_x is not None
+assert tw_rad.eq_gemitt_y is not None
+assert tw_rad.eq_gemitt_zeta is not None
 
-assert tw_rad2.nemitt_x_rad is None
-assert tw_rad2.nemitt_y_rad is None
-assert tw_rad2.nemitt_zeta_rad is None
+assert tw_rad2.eq_gemitt_x is None
+assert tw_rad2.eq_gemitt_y is None
+assert tw_rad2.eq_gemitt_zeta is None
 
-ex = tw_rad.nemitt_x_rad / (tw_rad.gamma0 * tw_rad.beta0)
-ey = tw_rad.nemitt_y_rad / (tw_rad.gamma0 * tw_rad.beta0)
-ez = tw_rad.nemitt_zeta_rad / (tw_rad.gamma0 * tw_rad.beta0)
+ex = tw_rad.eq_nemitt_x / (tw_rad.gamma0 * tw_rad.beta0)
+ey = tw_rad.eq_nemitt_y / (tw_rad.gamma0 * tw_rad.beta0)
+ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=30)
