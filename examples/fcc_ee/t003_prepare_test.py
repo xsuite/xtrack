@@ -179,6 +179,6 @@ spy.axhline(sigma_y_eq, color='red')
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
-spz.axhline(sigma_zeta_track, color='red')
+spz.axhline(sigma_zeta_eq, color='red')
 
 plt.show()
