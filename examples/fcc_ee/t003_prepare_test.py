@@ -34,7 +34,7 @@ configurations = [
     },
 ]
 
-conf = configurations[4]
+conf = configurations[5]
 
 tilt_machine_by_90_degrees = conf['tilt_machine_by_90_degrees']
 wiggler_on = conf['wiggler_on']
