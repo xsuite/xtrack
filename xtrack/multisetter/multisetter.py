@@ -142,7 +142,7 @@ class MultiSetter(xo.HybridClass):
 
         # Get dtype from first element
         el = line[elements[0]]
-        dd = getattr(el, field)
+        dd = getattr(el.copy(_context=xo.context_default), field)
         if index is not None:
             dd = dd[index]
         self.dtype = type(dd)
