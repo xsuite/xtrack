@@ -1457,6 +1457,7 @@ def test_multipole_tilt_90_deg(test_context):
     my.track(py)
 
     p.move(_context=xo.context_default)
+    py.move(_context=xo.context_default)
 
     assert np.allclose(p.x, py.x, rtol=0, atol=1e-14)
     assert np.allclose(p.y, py.y, rtol=0, atol=1e-14)
