@@ -750,6 +750,7 @@ class SimpleThinQuadrupole(BeamElement):
 
 class CombinedFunctionMagnet(BeamElement):
     isthick = True
+    has_backtrack = True
 
     _xofields={
         'k0': xo.Float64,
