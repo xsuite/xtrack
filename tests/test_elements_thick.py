@@ -529,7 +529,7 @@ def test_fringe_implementations(test_context):
 
 
 @for_all_test_contexts
-def test_backtrack_with_bend_and_quadrupole(test_context):
+def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     # Check bend
     b = xt.Bend(k0=0.2, h=0.1, length=1.0)
@@ -595,6 +595,8 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     line.track(p4, backtrack=True)
     p4.move(_context=xo.context_default)
     assert np.all(p4.state == -31)
+
+    # Same for dipole edge
     de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
     line = xt.Line(elements=[de])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
@@ -611,6 +613,37 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     line.track(p2, backtrack=True)
     p2.move(_context=xo.context_default)
     assert np.all(p2.state == -32)
+
+    # Same for combined function magnet
+    cfm = xt.CombinedFunctionMagnet(length=1.0, k1=0.2, h=0.1)
+    line = xt.Line(elements=[cfm])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                            zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+
+    line.configure_bend_model(core='expanded')
+    cfm.num_multipole_kicks = 3
+    line.track(p4, backtrack=True)
+    p4.move(_context=xo.context_default)
+    assert np.all(p4.state == -31)
+
 
 
 def test_import_thick_with_apertures_and_slice():
