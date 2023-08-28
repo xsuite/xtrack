@@ -701,10 +701,10 @@ class MadLoader:
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
             if self.expressions_for_element_types is not None:
-               if el.type in self.expressions_for_element_types:
-                   self.Builder = ElementBuilderWithExpr
-                   el.madeval = madeval
-               else:
+                if el.type in self.expressions_for_element_types:
+                    self.Builder = ElementBuilderWithExpr
+                    el.madeval = madeval
+                else:
                     self.Builder = ElementBuilder
                     el.madeval = None
             if adder:

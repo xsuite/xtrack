@@ -19,7 +19,7 @@ void YRotation_single_particle(LocalParticle* part, double sin_angle, double cos
     double const pt = LocalParticle_get_pzeta(part)*beta0;
 
     double pz = sqrt(1.0 + 2.0*pt/beta + pt*pt - px*px - py*py);
-    double ptt = 1.0 - tan_angle*px/pz;
+    double ptt = 1.0 - tan_angle*px/pz;   // TYPO?   I believe it should be 1 + tan * px / pz
     double x_hat = x/(cos_angle*ptt);
     double px_hat = cos_angle*px + sin_angle*pz;
     double y_hat = y + tan_angle*x*py/(pz*ptt);
