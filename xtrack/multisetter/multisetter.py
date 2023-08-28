@@ -21,6 +21,7 @@ void get_values_at_offsets_float64(
     } //end_vectorize
 }
 
+/*gpukern*/
 void get_values_at_offsets_int64(
     MultiSetterData data,
     /*gpuglmem*/ int8_t* buffer,
@@ -52,6 +53,7 @@ void set_values_at_offsets_float64(
     } //end_vectorize
 }
 
+/*gpukern*/
 void set_values_at_offsets_int64(
     MultiSetterData data,
     /*gpuglmem*/ int8_t* buffer,
