@@ -309,6 +309,11 @@ def twiss_line(line, particle_ref=None, method=None,
         radiation_method = 'kick_as_co'
 
     if radiation_method is not None and radiation_method != 'full':
+        assert isinstance(line._contextx, xo.ContextCpu), (
+            'Twiss with radiation computation is only supported on CPU')
+        assert not line._context.openmp_enabled, (
+            'Twiss with radiation computation is not supported with OpenMP'
+            ' parallelization')
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         assert radiation_method in ['full', 'kick_as_co', 'scale_as_co']
         assert freeze_longitudinal is False
