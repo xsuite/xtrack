@@ -640,11 +640,10 @@ def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     line.configure_bend_model(core='expanded')
     cfm.num_multipole_kicks = 3
+    p4 = p1.copy(_context=test_context)
     line.track(p4, backtrack=True)
     p4.move(_context=xo.context_default)
     assert np.all(p4.state == -31)
-
-
 
 def test_import_thick_with_apertures_and_slice():
     mad = Madx()
