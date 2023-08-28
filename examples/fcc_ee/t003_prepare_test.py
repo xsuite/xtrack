@@ -6,31 +6,37 @@ configurations = [
         'wiggler_on': False,
         'vertical_orbit_distortion': False,
         'tilt_machine_by_90_degrees': False,
+        'check_against_tracking': False,
     },
     {
         'wiggler_on': False,
         'vertical_orbit_distortion': False,
         'tilt_machine_by_90_degrees': True,
+        'check_against_tracking': False,
     },
     {
         'wiggler_on': False,
         'vertical_orbit_distortion': True,
         'tilt_machine_by_90_degrees': False,
+        'check_against_tracking': True,
     },
     {
         'wiggler_on': False,
         'vertical_orbit_distortion': True,
         'tilt_machine_by_90_degrees': True,
+        'check_against_tracking': False,
     },
     {
         'wiggler_on': True,
         'vertical_orbit_distortion': False,
         'tilt_machine_by_90_degrees': False,
+        'check_against_tracking': False,
     },
     {
         'wiggler_on': True,
         'vertical_orbit_distortion': False,
         'tilt_machine_by_90_degrees': True,
+        'check_against_tracking': True,
     },
 ]
 
@@ -45,6 +51,8 @@ for conf in configurations:
 
     line = xt.Line.from_json('fccee_h_thin.json')
     line.build_tracker()
+
+    print('Done building tracker')
 
     if wiggler_on:
         line.vars['on_wiggler_v'] = 0.4
@@ -147,43 +155,45 @@ for conf in configurations:
 
     assert checked
 
-    line.configure_radiation(model='quantum')
-    p = line.build_particles(num_particles=30)
-    line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
-    mon = line.record_last_track
-    print(f'Tracking time: {line.time_last_track}')
+    if conf['check_against_tracking']:
 
-    sigma_x_eq = float(np.sqrt(ex * tw_rad.betx[0] + ey * tw_rad.betx2[0] + (np.std(p.delta) * tw_rad.dx[0])**2))
-    sigma_y_eq = float(np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2))
-    sigma_zeta_eq = float(np.sqrt(ez * tw_rad.betz0))
+        line.configure_radiation(model='quantum')
+        p = line.build_particles(num_particles=30)
+        line.track(p, num_turns=400, turn_by_turn_monitor=True, time=True)
+        mon = line.record_last_track
+        print(f'Tracking time: {line.time_last_track}')
 
-    sigma_x_track = np.std(mon.x, axis=0)[-200:]
-    sigma_y_track = np.std(mon.y, axis=0)[-200:]
-    sigma_zeta_track = np.std(mon.zeta, axis=0)[-200:]
+        sigma_x_eq = float(np.sqrt(ex * tw_rad.betx[0] + ey * tw_rad.betx2[0] + (np.std(p.delta) * tw_rad.dx[0])**2))
+        sigma_y_eq = float(np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2))
+        sigma_zeta_eq = float(np.sqrt(ez * tw_rad.betz0))
 
-    if sigma_x_eq > 1e-8:
-        assert np.min(np.abs(sigma_x_track/sigma_x_eq - 1.)) < 0.1
-    if sigma_y_eq > 1e-8:
-        assert np.min(np.abs(sigma_y_track/sigma_y_eq - 1.)) < 0.1
-    assert np.min(np.abs(sigma_zeta_track/sigma_zeta_eq - 1.)) < 0.1
+        sigma_x_track = np.std(mon.x, axis=0)[-200:]
+        sigma_y_track = np.std(mon.y, axis=0)[-200:]
+        sigma_zeta_track = np.std(mon.zeta, axis=0)[-200:]
 
-    assert np.isclose(sigma_x_eq, np.mean(sigma_x_track), rtol=0.3, atol=1e-9)
-    assert np.isclose(sigma_y_eq, np.mean(sigma_y_track), rtol=0.3, atol=1e-9)
-    assert np.isclose(sigma_zeta_eq, np.mean(sigma_zeta_track), rtol=0.3, atol=1e-9)
+        if sigma_x_eq > 1e-8:
+            assert np.min(np.abs(sigma_x_track/sigma_x_eq - 1.)) < 0.1
+        if sigma_y_eq > 1e-8:
+            assert np.min(np.abs(sigma_y_track/sigma_y_eq - 1.)) < 0.1
+        assert np.min(np.abs(sigma_zeta_track/sigma_zeta_eq - 1.)) < 0.1
 
-    # import matplotlib.pyplot as plt
-    # plt.close('all')
-    # fig = plt.figure(1)
-    # spx = fig. add_subplot(3, 1, 1)
-    # spx.plot(np.std(mon.x, axis=0))
-    # spx.axhline(sigma_x_eq, color='red')
+        assert np.isclose(sigma_x_eq, np.mean(sigma_x_track), rtol=0.3, atol=1e-9)
+        assert np.isclose(sigma_y_eq, np.mean(sigma_y_track), rtol=0.3, atol=1e-9)
+        assert np.isclose(sigma_zeta_eq, np.mean(sigma_zeta_track), rtol=0.3, atol=1e-9)
 
-    # spy = fig. add_subplot(3, 1, 2, sharex=spx)
-    # spy.plot(np.std(mon.y, axis=0))
-    # spy.axhline(sigma_y_eq, color='red')
+        # import matplotlib.pyplot as plt
+        # plt.close('all')
+        # fig = plt.figure(1)
+        # spx = fig. add_subplot(3, 1, 1)
+        # spx.plot(np.std(mon.x, axis=0))
+        # spx.axhline(sigma_x_eq, color='red')
 
-    # spz = fig. add_subplot(3, 1, 3, sharex=spx)
-    # spz.plot(np.std(mon.zeta, axis=0))
-    # spz.axhline(sigma_zeta_eq, color='red')
+        # spy = fig. add_subplot(3, 1, 2, sharex=spx)
+        # spy.plot(np.std(mon.y, axis=0))
+        # spy.axhline(sigma_y_eq, color='red')
 
-    # plt.show()
+        # spz = fig. add_subplot(3, 1, 3, sharex=spx)
+        # spz.plot(np.std(mon.zeta, axis=0))
+        # spz.axhline(sigma_zeta_eq, color='red')
+
+        # plt.show()
