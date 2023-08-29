@@ -167,14 +167,14 @@ def test_ring_with_radiation(test_context):
     line.configure_radiation(model='mean')
     part_co = line.find_closed_orbit()
 
-    line.discard_tracker()
-    line.build_tracker(_context=test_context)
     par_for_emit = line.build_particles(
                                 x_norm=50*[0],
                                 zeta=part_co.zeta[0], delta=part_co.delta[0],
+                                _context=test_context
                                 )
+    line.discard_tracker()
+    line.build_tracker(test_context)
     line.configure_radiation(model='quantum')
-
     num_turns=1500
     line.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
     mon = line.record_last_track
