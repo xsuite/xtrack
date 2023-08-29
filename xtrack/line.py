@@ -511,24 +511,13 @@ class Line:
                     'entire multiline.\n ')
 
             out.update(self._var_management_to_dict())
+
         out["metadata"] = deepcopy(self.metadata)
 
         return out
 
     def __getstate__(self):
         out = self.__dict__.copy()
-
-        if '_pickled_by_multiline' in out and out['_pickled_by_multiline']:
-            # Clean flags an bypass var management (handled by multiline)
-            del(self._pickled_by_multiline)
-            del(out['_pickled_by_multiline'])
-            return out
-
-        _in_multiline = out.pop('_in_multiline', None)
-        if _in_multiline is not None and _in_multiline.vars is not None:
-            raise RuntimeError('The line is part ot a MultiLine object. '
-                'To pickle the deferred expressions you need to pickle the '
-                'entire multiline.\n ')
         return out
 
     def __setstate__(self, state):
