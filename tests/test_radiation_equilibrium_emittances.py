@@ -3,8 +3,7 @@ import pytest
 
 import numpy as np
 import xtrack as xt
-
-from xobjects.test_helpers import for_all_test_contexts
+import xobjects as xo
 
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
@@ -52,7 +51,7 @@ configurations = [
 @pytest.mark.parametrize('conf', configurations)
 def test_eq_emitt(conf):
 
-    test_context = xt.context_default # On GPU this is too slow to run routinely
+    test_context = xo.context_default # On GPU this is too slow to run routinely
 
     print('===============================')
     print(conf)
