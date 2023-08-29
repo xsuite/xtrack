@@ -533,6 +533,8 @@ class Alignment:
 class Dummy:
     type = "None"
 
+def _default_factory():
+    return 0.
 
 class MadLoader:
     @staticmethod
@@ -544,7 +546,7 @@ class MadLoader:
         from xdeps.madxutils import MadxEval
 
         _var_values = line._var_management["data"]["var_values"]
-        _var_values.default_factory = lambda: 0.
+        _var_values.default_factory = _default_factory
         for name, par in mad.globals.cmdpar.items():
             if replace_in_expr is not None:
                 for k, v in replace_in_expr.items():

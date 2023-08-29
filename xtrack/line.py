@@ -511,10 +511,8 @@ class Line:
                     'entire multiline.\n ')
 
             out.update(self._var_management_to_dict())
-            
         out["metadata"] = deepcopy(self.metadata)
 
-            
         return out
 
     def __getstate__(self):
@@ -531,23 +529,10 @@ class Line:
             raise RuntimeError('The line is part ot a MultiLine object. '
                 'To pickle the deferred expressions you need to pickle the '
                 'entire multiline.\n ')
-        if self.vars is not None: # expressions are enabled and owned by the line
-            out['_var_management'] = 'to_be_rebuilt'
-            out['_var_management_dict'] = self._var_management_to_dict()
         return out
 
     def __setstate__(self, state):
-        if state['_var_management'] == 'to_be_rebuilt':
-            rebuild_var_management = True
-            _var_management_dict = state.pop('_var_management_dict')
-            del state['_var_management']
-        else:
-            rebuild_var_management = False
-            state['_var_management'] = None
-
         self.__dict__.update(state)
-        if rebuild_var_management:
-            self._init_var_management(dct=_var_management_dict)
 
 
     def to_json(self, file, **kwargs):

@@ -10,7 +10,7 @@ fname = 'fccee_h'; pc_gev = 120.
 # fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
-mad.call(fname + '.seq')
+mad.call('../../test_data/fcc_ee/' + fname + '.seq')
 mad.beam(particle='positron', pc=pc_gev)
 mad.use('fccee_p_ring')
 
