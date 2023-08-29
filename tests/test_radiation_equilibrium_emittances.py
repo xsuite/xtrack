@@ -50,8 +50,9 @@ configurations = [
 
 
 @pytest.mark.parametrize('conf', configurations)
-@for_all_test_contexts
-def test_eq_emitt(test_context, conf):
+def test_eq_emitt(conf):
+
+    test_context = xt.context_default # On GPU this is too slow to run routinely
 
     print('===============================')
     print(conf)
