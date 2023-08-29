@@ -21,8 +21,12 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             record_index = SynchrotronRadiationRecordData_getp__index(record);
         }
     }
-    double dp_record_entry, dpx_record_entry, dpy_record_entry;
-    double dp_record_exit, dpx_record_exit, dpy_record_exit;
+    double dp_record_entry = 0.;
+    double dpx_record_entry = 0.;
+    double dpy_record_entry = 0.;
+    double dp_record_exit = 0.;
+    double dpx_record_exit = 0.;
+    double dpy_record_exit = 0.;
     #endif
 
     #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
