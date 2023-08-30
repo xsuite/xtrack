@@ -42,3 +42,5 @@ assert np.allclose(p_thin.py, p_thick.py, rtol=0, atol=1e-14)
 assert np.allclose(p_thin.delta, p_thick.delta, rtol=0, atol=1e-14)
 assert np.allclose(p_thin.zeta, p_thick.zeta, rtol=0, atol=1e-14)
 
+line_thin.track(p_thin, backtrack=True)
+line_thick.track(p_thick, backtrack=True)
