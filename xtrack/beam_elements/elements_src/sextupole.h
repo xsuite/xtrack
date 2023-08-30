@@ -12,6 +12,11 @@ void Sextupole_track_local_particle(
         LocalParticle* part0
 ) {
     double length = SextupoleData_get_length(el);
+
+    #ifdef XSUITE_BACKTRACK
+        length = -length;
+    #endif
+
     double const k2 = SextupoleData_get_k2(el);
     double const k2s = SextupoleData_get_k2s(el);
 

@@ -892,7 +892,7 @@ class CombinedFunctionMagnet(BeamElement):
 
 class Sextupole(BeamElement):
     isthick = True
-    has_backtrack = False
+    has_backtrack = True
 
     _xofields={
         'k2': xo.Float64,

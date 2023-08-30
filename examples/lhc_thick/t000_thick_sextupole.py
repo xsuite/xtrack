@@ -44,3 +44,15 @@ assert np.allclose(p_thin.zeta, p_thick.zeta, rtol=0, atol=1e-14)
 
 line_thin.track(p_thin, backtrack=True)
 line_thick.track(p_thick, backtrack=True)
+
+assert np.allclose(p_thin.x, p.x, rtol=0, atol=1e-14)
+assert np.allclose(p_thin.px, p.px, rtol=0, atol=1e-14)
+assert np.allclose(p_thin.y, p.y, rtol=0, atol=1e-14)
+assert np.allclose(p_thin.py, p.py, rtol=0, atol=1e-14)
+assert np.allclose(p_thin.delta, p.delta, rtol=0, atol=1e-14)
+
+assert np.allclose(p_thick.x, p.x, rtol=0, atol=1e-14)
+assert np.allclose(p_thick.px, p.px, rtol=0, atol=1e-14)
+assert np.allclose(p_thick.y, p.y, rtol=0, atol=1e-14)
+assert np.allclose(p_thick.py, p.py, rtol=0, atol=1e-14)
+assert np.allclose(p_thick.delta, p.delta, rtol=0, atol=1e-14)
