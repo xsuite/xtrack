@@ -49,7 +49,7 @@ slicing_strategies = [
     Strategy(slicing=Teapot(10), name=r'^qy.*'),
     Strategy(slicing=Teapot(50), name=r'^qa.*'),
     Strategy(slicing=Teapot(50), name=r'^qc.*'),
-    # Strategy(slicing=Teapot(20), name=r'^sy\..*'), # Not taken into account for now!!!!
+    Strategy(slicing=Teapot(20), name=r'^sy\..*'),
 ]
 
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
