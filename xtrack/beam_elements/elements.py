@@ -666,7 +666,7 @@ class Multipole(BeamElement):
         if ksl is not None:
             nksl[: len(ksl)] = np.array(ksl)
 
-        if 'delta_teper' not in kwargs.keys():
+        if 'delta_taper' not in kwargs.keys():
             kwargs['delta_taper'] = 0.0
 
         order = n - 1
