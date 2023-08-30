@@ -361,7 +361,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if twiss_init is not None and not isinstance(twiss_init, str):
         twiss_init = twiss_init.copy() # To avoid changing the one provided
 
-        import pdb; pdb.set_trace()
         if twiss_init._needs_complete():
             assert isinstance(ele_start_user, str), (
                 'ele_start must be provided as name when an incomplete '

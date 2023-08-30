@@ -1228,6 +1228,61 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['py', loc_check], tw_full['py', loc_check],
                             atol=1e-9, rtol=0)
 
+        # twiss with boundary confitions at the end of the range
+        tw_init_custom = xt.TwissInit(element_name=location,
+                                betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0,
+                                dx=dx0, dpx=dpx0, dy=dy0, dpy=dpy0,
+                                mux=mux0, muy=muy0, x=x0, px=px0, y=y0, py=py0
+                                )
+
+        tw = line.twiss(ele_start='ip4', ele_stop=location, twiss_init=tw_init_custom)
+
+        # Check at end point
+        assert np.isclose(tw['betx', location], betx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['bety', location], bety0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['alfx', location], alfx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['alfy', location], alfy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dx', location], dx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dpx', location], dpx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dy', location], dy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dpy', location], dpy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['mux', location], mux0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['muy', location], muy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['x', location], x0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['px', location], px0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['y', location], y0, atol=1e-9, rtol=0)
+
+        # Check at a point in an upstream arc
+        loc_check = f'mb.a24r4.{bn}'
+        assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
+                            atol=2e-7, rtol=0)
+        assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
+                            atol=2e-7, rtol=0)
+        assert np.isclose(tw['alfx', loc_check], tw_full['alfx', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['alfy', loc_check], tw_full['alfy', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dx', loc_check], tw_full['dx', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dpx', loc_check], tw_full['dpx', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dy', loc_check], tw_full['dy', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dpy', loc_check], tw_full['dpy', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['mux', loc_check], tw_full['mux', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['muy', loc_check], tw_full['muy', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['x', loc_check], tw_full['x', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['px', loc_check], tw_full['px', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['y', loc_check], tw_full['y', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['py', loc_check], tw_full['py', loc_check],
+                            atol=1e-9, rtol=0)
+
 @for_all_test_contexts
 def test_only_markers(test_context):
 
