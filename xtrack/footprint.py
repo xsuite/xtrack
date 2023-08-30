@@ -204,6 +204,48 @@ class Footprint():
         return tune_shift
 
     def get_stability_diagram(self,_context=None,n_points_stabiliy_diagram=100,epsilon0=1E-5,epsilon_factor=0.1,epsilon_rel_tol=0.1,max_iter = 10,min_epsilon = 1E-6,n_points_interpolate = 1000):
+        """
+        Compute the stability diagram by evaluating the dispersion integral from [1]
+        numerically for a set of complex tune shifts with vanishing imaginary part.
+        By convention the imaginary part is positive.
+
+        Parameters
+        ----------
+        _context: 
+        n_points_stabiliy_diagram: scalar(int)
+            Number of times that the dispersion integral will be solved,
+            each yielding a point on the output stability diagram
+        epsilon0: scalar(float)
+            vanishing imaginary part of the tune shift
+        epsilon_factor: scalar(float)
+            if larger than 0, an adaptive algorithm will be used to adjust
+            epsilon between epsilon0 and epsilon_min using relative varitions
+            in the order of the epsilon_factor
+        epsilon_rel_tol: scalar(float)
+            Stop the iterative algorithm if the relative change of
+            epilson is smaller than epsilon_rel_tol
+        max_iter: scalar(int)
+            Stop the iterative algorithm if the the number of iterations
+            reached max_iter
+        min_epsilon: scalar(float)
+            Stop the iterative algorithm if the epsilon is smaller than
+            min_epsilon
+        n_points_interpolate: scalar(int)
+            Perform the numerical integration on a grid finer than the footprint
+            using linear interpolation
+
+        Returns
+        -------
+        tune_shifts_x: array_like(complex)
+            Horizontal stability diagram
+        tune_shifts_y: array_like(complex)
+            Vertical stability diagram
+
+        References
+        ----------
+        [1] https://cds.cern.ch/record/318826
+        [2] https://doi.org/10.1103/PhysRevSTAB.17.111002
+       """
         if _context == None:
             _context = xo.ContextCpu()
         nplike_lib = _context.nplike_lib
