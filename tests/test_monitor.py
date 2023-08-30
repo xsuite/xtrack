@@ -185,7 +185,7 @@ def test_beam_profile_monitor(test_context):
         _context=test_context,
     )
 
-    raster_size = 100
+    nbins = 100
 
     monitor = xt.BeamProfileMonitor(
         num_particles=npart,
@@ -193,9 +193,9 @@ def test_beam_profile_monitor(test_context):
         stop_at_turn=10,
         frev=1,
         sampling_frequency=2,
-        raster_size=raster_size,
-        raster_range_x=5,
-        raster_range_y=(-4,2),
+        n=nbins,
+        x_range=5,
+        y_range=(-4,2),
         _context=test_context,
     )
 
@@ -224,8 +224,8 @@ def test_beam_profile_monitor(test_context):
 
 
     # Check against expected values
-    expected_intensity_x = np.zeros((20, raster_size))
-    expected_intensity_y = np.zeros((20, raster_size))
+    expected_x_intensity = np.zeros((20, nbins))
+    expected_y_intensity = np.zeros((20, nbins))
     for turn in range(10):
         for sub in range(2):
             lim = {8:256, 9:0}.get(turn, npart) # consider dead particles in last turns
@@ -235,14 +235,14 @@ def test_beam_profile_monitor(test_context):
                 x_sub[0] += 0.1 * (turn+1)
                 y_sub[0] -= 0.1 * (turn+1)
             # benchmark against numpy's histogram function
-            hist_x, edges_x = np.histogram(x_sub, bins=raster_size, range=(-2.5, 2.5))
-            hist_y, edges_y = np.histogram(y_sub, bins=raster_size, range=(-4, 2))
-            expected_intensity_x[2*turn+sub, :] = hist_x
-            expected_intensity_y[2*turn+sub, :] = hist_y
+            hist_x, edges_x = np.histogram(x_sub, bins=nbins, range=(-2.5, 2.5))
+            hist_y, edges_y = np.histogram(y_sub, bins=nbins, range=(-4, 2))
+            expected_x_intensity[2*turn+sub, :] = hist_x
+            expected_y_intensity[2*turn+sub, :] = hist_y
 
-    assert_allclose(monitor.raster_edges_x, edges_x, err_msg="Monitor raster_edges_x does not match expected values")
-    assert_allclose(monitor.raster_edges_y, edges_y, err_msg="Monitor raster_edges_y does not match expected values")    
-    assert_allclose(monitor.raster_midpoints_x, (edges_x[1:]+edges_x[:-1])/2, err_msg="Monitor raster_midpoints_x does not match expected values")
-    assert_allclose(monitor.raster_midpoints_y, (edges_y[1:]+edges_y[:-1])/2, err_msg="Monitor raster_midpoints_y does not match expected values")
-    assert_allclose(monitor.intensity_x, expected_intensity_x, err_msg="Monitor intensity_x does not match expected values")
-    assert_allclose(monitor.intensity_y, expected_intensity_y, err_msg="Monitor intensity_y does not match expected values")
+    assert_allclose(monitor.x_edges, edges_x, err_msg="Monitor x_edges does not match expected values")
+    assert_allclose(monitor.y_edges, edges_y, err_msg="Monitor y_edges does not match expected values")    
+    assert_allclose(monitor.x_grid, (edges_x[1:]+edges_x[:-1])/2, err_msg="Monitor x_grid does not match expected values")
+    assert_allclose(monitor.y_grid, (edges_y[1:]+edges_y[:-1])/2, err_msg="Monitor y_grid does not match expected values")
+    assert_allclose(monitor.x_intensity, expected_x_intensity, err_msg="Monitor x_intensity does not match expected values")
+    assert_allclose(monitor.y_intensity, expected_y_intensity, err_msg="Monitor y_intensity does not match expected values")

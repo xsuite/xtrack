@@ -30,12 +30,12 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
     int64_t max_sample = BeamProfileMonitorData_get_sample_size(el);
     int64_t max_slot_x = BeamProfileMonitorRecord_len_counts_x(record);
     int64_t max_slot_y = BeamProfileMonitorRecord_len_counts_y(record);
-    int64_t raster_size_x = BeamProfileMonitorData_get_raster_size_x(el);
-    int64_t raster_size_y = BeamProfileMonitorData_get_raster_size_y(el);
-    double raster_range_x0 = BeamProfileMonitorData_get_raster_range_x0(el);
-    double raster_range_dx = BeamProfileMonitorData_get_raster_range_dx(el);
-    double raster_range_y0 = BeamProfileMonitorData_get_raster_range_y0(el);
-    double raster_range_dy = BeamProfileMonitorData_get_raster_range_dy(el);
+    int64_t nx = BeamProfileMonitorData_get_nx(el);
+    int64_t ny = BeamProfileMonitorData_get_ny(el);
+    double x_min = BeamProfileMonitorData_get_x_min(el);
+    double dx = BeamProfileMonitorData_get_dx(el);
+    double y_min = BeamProfileMonitorData_get_y_min(el);
+    double dy = BeamProfileMonitorData_get_dy(el);
 
 
     //start_per_particle_block(part0->part)
@@ -58,11 +58,11 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
                 double y = LocalParticle_get_y(part);
 
                 // compute bin index in raster
-                int64_t bin_x = floor((x - raster_range_x0) / raster_range_dx);
-                int64_t bin_y = floor((y - raster_range_y0) / raster_range_dy);
+                int64_t bin_x = floor((x - x_min) / dx);
+                int64_t bin_y = floor((y - y_min) / dy);
 
-                if (bin_x >= 0 && bin_x < raster_size_x){
-                    int64_t slot_x = sample * raster_size_x + bin_x;
+                if (bin_x >= 0 && bin_x < nx){
+                    int64_t slot_x = sample * nx + bin_x;
 
                     if (slot_x >= 0 && slot_x < max_slot_x){
                         /*gpuglmem*/ int64_t * counts_x = BeamProfileMonitorRecord_getp1_counts_x(record, slot_x);
@@ -73,8 +73,8 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
                     }
                 }
 
-                if (bin_y >= 0 && bin_y < raster_size_y){
-                    int64_t slot_y = sample * raster_size_y + bin_y;
+                if (bin_y >= 0 && bin_y < ny){
+                    int64_t slot_y = sample * ny + bin_y;
 
                     if (slot_y >= 0 && slot_y < max_slot_y){
                         /*gpuglmem*/ int64_t * counts_y = BeamProfileMonitorRecord_getp1_counts_y(record, slot_y);
