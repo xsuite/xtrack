@@ -890,6 +890,21 @@ class CombinedFunctionMagnet(BeamElement):
         # Remove the ref to the element itself
         _unregister_if_preset(ref)
 
+class Sextupole(BeamElement):
+    isthick = True
+    has_backtrack = False
+
+    _xofields={
+        'k2': xo.Float64,
+        'k2s': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
+    ]
+
 
 class Quadrupole(BeamElement):
     isthick = True
