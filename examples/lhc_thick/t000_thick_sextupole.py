@@ -83,3 +83,35 @@ assert np.allclose(p_sliced.y, p.y, rtol=0, atol=1e-14)
 assert np.allclose(p_sliced.py, p.py, rtol=0, atol=1e-14)
 assert np.allclose(p_sliced.delta, p.delta, rtol=0, atol=1e-14)
 assert np.allclose(p_sliced.zeta, p.zeta, rtol=0, atol=1e-14)
+
+from cpymad.madx import Madx
+mad = Madx()
+mad.input(f"""
+    knob_a := 1.0;
+    knob_b := 2.0;
+    knob_l := 0.4;
+    ss: sequence, l:=2 * knob_b, refer=entry;
+        elem: sextupole, at=0, l:=knob_l, k2:=3*knob_a, k2s:=5*knob_b;
+    endsequence;
+    """)
+mad.beam()
+mad.use(sequence='ss')
+
+line_mad = xt.Line.from_madx_sequence(mad.sequence.ss, allow_thick=True,
+                                      deferred_expressions=True)
+line_mad.build_tracker()
+
+elem = line_mad['elem']
+assert isinstance(elem, xt.Sextupole)
+assert np.isclose(elem.length, 0.4, rtol=0, atol=1e-14)
+assert np.isclose(elem.k2, 3, rtol=0, atol=1e-14)
+assert np.isclose(elem.k2s, 10, rtol=0, atol=1e-14)
+
+line_mad.vv['knob_a'] = 0.5
+line_mad.vv['knob_b'] = 0.6
+line_mad.vv['knob_l'] = 0.7
+
+assert np.isclose(elem.length, 0.7, rtol=0, atol=1e-14)
+assert np.isclose(elem.k2, 1.5, rtol=0, atol=1e-14)
+assert np.isclose(elem.k2s, 3.0, rtol=0, atol=1e-14)
+
