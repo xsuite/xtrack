@@ -581,8 +581,20 @@ class BeamMonitor(Element):
 
 
 class DipoleEdge(Element):
+
+    @classmethod
+    def from_dict(cls, dct):
+        dct = dct.copy()
+        for kk in list(dct.keys()):
+            if kk == "h" or kk == "_h":
+                dct["k"] = dct[kk]
+                continue
+            if kk.startswith("_"):
+                dct[kk[1:]] = dct[kk]
+        return super(DipoleEdge, cls).from_dict(dct)
+
     _description = [
-        ("h", "1/m", "Curvature", 0),
+        ("k", "1/m", "Curvature", 0),
         ("e1", "rad", "Face angle", 0),
         ("hgap", "m", "Equivalent gap", 0),
         ("fint", "", "Fringe integral", 0),
@@ -592,9 +604,9 @@ class DipoleEdge(Element):
         tan = p._m.tan
         sin = p._m.sin
         cos = p._m.cos
-        corr = 2 * self.h * self.hgap * self.fint
-        r21 = self.h * tan(self.e1)
-        r43 = -self.h * tan(
+        corr = 2 * self.k * self.hgap * self.fint
+        r21 = self.k * tan(self.e1)
+        r43 = -self.k * tan(
             self.e1 - corr / cos(self.e1) * (1 + sin(self.e1) ** 2)
         )
         p.px += r21 * p.x
@@ -605,15 +617,19 @@ class LinearTransferMatrix(Element):
         ("alpha_x_0","","",0.0),
         ("beta_x_0","","",0.0),
         ("disp_x_0","","",0.0),
+        ("disp_px_0","","",0.0),
         ("alpha_x_1","","",0.0),
         ("beta_x_1","","",0.0),
         ("disp_x_1","","",0.0),
+        ("disp_px_1","","",0.0),
         ("alpha_y_0","","",0.0),
         ("beta_y_0","","",0.0),
         ("disp_y_0","","",0.0),
+        ("disp_py_0","","",0.0),
         ("alpha_y_1","","",0.0),
         ("beta_y_1","","",0.0),
         ("disp_y_1","","",0.0),
+        ("disp_py_1","","",0.0),
         ("Q_x","","",0.0),
         ("Q_y","","",0.0),
         ("beta_s","","",0.0),
@@ -659,10 +675,16 @@ class LinearTransferMatrix(Element):
         #Transverse linear uncoupled matrix
 
         # removing dispersion and close orbit
+        old_x=p.x
+        old_px=p.px
+        old_y=p.y
+        old_py=p.py
+
         p.x -= self.disp_x_0 * p.delta + self.x_ref_0
-        p.px -= self.px_ref_0
+        p.px -= self.disp_px_0 * p.delta + self.px_ref_0
         p.y -= self.disp_y_0 * p.delta + self.y_ref_0
-        p.py -= self.py_ref_0
+        p.py -= self.disp_py_0 * p.delta + self.py_ref_0
+        # p.zeta += (self.disp_px_0*old_x - self.disp_x_0*old_px + self.disp_py_0*old_y - self.disp_y_0*old_py)/p.rvv
 
         J_x = 0.5 * (
                 (1.0 + self.alpha_x_0*self.alpha_x_0)/self.beta_x_0 * p.x*p.x
@@ -695,8 +717,8 @@ class LinearTransferMatrix(Element):
         p.x,p.px = M00_x*p.x + M01_x*p.px, M10_x*p.x + M11_x*p.px
         p.y,p.py = M00_y*p.y + M01_y*p.py, M10_y*p.y + M11_y*p.py
 
-        pzeta_new = -sin_s*p.zeta/self.beta_s+cos_s*p.pzeta
-        zeta_new = cos_s*p.zeta+self.beta_s*sin_s*p.pzeta
+        pzeta_new = sin_s*p.zeta/self.beta_s+cos_s*p.pzeta
+        zeta_new = cos_s*p.zeta-self.beta_s*sin_s*p.pzeta
 
         p.zeta = zeta_new
         p.pzeta = pzeta_new
@@ -755,10 +777,17 @@ class LinearTransferMatrix(Element):
             p.delta += self.gauss_noise_ampl_s*np.random.randn(len(p.delta))
 
         # re-adding dispersion and closed orbit
+        old_x=p.x
+        old_px=p.px
+        old_y=p.y
+        old_py=p.py
+
         p.x += self.disp_x_1 * p.delta + self.x_ref_1
-        p.px += self.px_ref_1
+        p.px += self.disp_px_1 * p.delta + self.px_ref_1 
         p.y += self.disp_y_1 * p.delta + self.y_ref_1
-        p.py += self.py_ref_1
+        p.py += self.disp_py_1 * p.delta + self.py_ref_1
+        # p.zeta-= (self.disp_px_1*old_x - self.disp_x_1*old_px + self.disp_py_1*old_y - self.disp_y_1*old_py)/p.rvv
+
 
 class FirstOrderTaylorMap(Element):
     _description = [

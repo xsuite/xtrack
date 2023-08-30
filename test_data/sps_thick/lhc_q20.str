@@ -1,0 +1,24 @@
+! Q20 Optics for LHC beams
+
+! Tunes
+qx0                 =                        20.13 ;
+qy0                 =                        20.18 ;
+! Main Dipoles
+kmba                =               0.008445141542 ;
+kmbb                =               0.008445141542 ;
+! Main Quadrupoles
+kqd                 =         -0.01158101412515668 ;
+kqda               := kqd*9./11.         ;
+kqf                 =          0.01157926643000354 ;
+kqfa               := kqf*9./11.         ;
+! Main Sextupoles
+klsda               =                    -0.040896 ;
+klsdb               =                 -0.063333733 ;
+klsfa               =                   0.04516855 ;
+klsfb               =                  0.026760516 ;
+klsfc              := klsfa              ;
+! Extraction Sextupoles
+klse10602           =                            0 ;
+klse22402           =                            0 ;
+klse40602           =                            0 ;
+klse52402           =                            0 ;

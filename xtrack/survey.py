@@ -9,7 +9,7 @@
 
 import numpy as np
 
-from .table import Table
+from xdeps import Table
 import xtrack as xt
 
 # Required functions
@@ -105,6 +105,8 @@ def advance_element(v, w, length=0, angle=0, tilt=0):
 
 
 class SurveyTable(Table):
+
+    _error_on_row_not_found = True
 
     def reverse(self, X0=None, Y0=None, Z0=None, theta0=None,
                 phi0=None, psi0=None, element0=None):

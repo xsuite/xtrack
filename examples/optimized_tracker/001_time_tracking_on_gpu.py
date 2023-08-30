@@ -14,7 +14,8 @@ import xobjects as xo
 num_turns = 100
 num_particles = 100000 # Enough to saturate a high-end GPU
 
-context = xo.ContextCupy()
+context = xo.ContextCpu(omp_num_threads='auto')
+# context = xo.ContextCupy()
 
 #################################
 # Load a line and build tracker #
@@ -27,7 +28,9 @@ with open(fname_line_particles, 'r') as fid:
 line = xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
-line.build_tracker(_context=context)
+line.build_tracker(_context=context, compile=False)
+#line.config.SKIP_SWAPS = True
+#line.config.DANGER_SKIP_ACTIVE_CHECK_AND_SWAPS = True
 
 ###########################
 # Generate some particles #

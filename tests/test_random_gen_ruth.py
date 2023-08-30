@@ -6,6 +6,7 @@
 from pathlib import Path
 
 import numpy as np
+import copy
 
 import xobjects as xo
 from xobjects.test_helpers import for_all_test_contexts
@@ -19,7 +20,7 @@ t0 = 0.001
 t1 = 0.02
 rA = 0.0012306225579197868
 rB = 53.50625
-iterations = 20
+iterations = 7
 
 @for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
 def test_random_generation(test_context):
@@ -61,7 +62,7 @@ def test_random_generation(test_context):
 
     telem.track(part)
 
-    # Use turn-by turin monitor to acquire some statistics
+    # Use turn-by-turn monitor to acquire some statistics
     line = xt.Line(elements=[telem])
     line.build_tracker(_buffer=telem._buffer)
 
@@ -87,7 +88,7 @@ def test_direct_sampling(test_context):
     ran.lower_val = t0
     ran.upper_val = t1
     ran.Newton_iterations = iterations
-    samples, _ = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
+    samples = ran.generate(n_samples=n_samples, n_seeds=n_seeds)
     samples = test_context.nparray_from_context_array(samples)
 
     for i_part in range(n_seeds):
@@ -97,4 +98,31 @@ def test_direct_sampling(test_context):
         bin_centers = (bin_edges[:-1]+bin_edges[1:])/2
         ruth = np.array([ruth_PDF(t, rA, rB) for t in bin_centers ])
         np.allclose(hstgm[:-10], ruth[:-10], rtol=5e-2, atol=1)
+
+
+@for_all_test_contexts(excluding=('ContextCupy', 'ContextPyopencl'))
+def test_reproducibility(test_context):
+    # 1e8 samples in total
+    n_seeds = int(1e5)
+    n_samples_per_seed = int(1e3)
+    x_init = np.random.uniform(0.001, 0.003, n_seeds)
+    part_init = xp.Particles(x=x_init, p0c=4e11, _context=test_context)
+    part_init._init_random_number_generator(seeds=np.arange(n_seeds, dtype=int))
+    ran = xt.RandomRutherford(_context=test_context)
+    ran.A = rA
+    ran.B = rB
+    ran.lower_val = t0
+    ran.upper_val = t1
+    ran.Newton_iterations = iterations
+    part1 = part_init.copy(_context=test_context)
+    part2 = part_init.copy(_context=test_context)
+    # Instead of having more particles - which would lead to memory issues -
+    # we repeatedly sample and compare
+    for i in range(2):  # 2 is enough; this is slow
+        results1 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part1)
+        results1 = test_context.nparray_from_context_array(results1)
+        results1 = copy.deepcopy(results1)
+        results2 = ran.generate(n_samples=n_samples_per_seed*n_seeds, particles=part2)
+        results2 = test_context.nparray_from_context_array(results2)
+        assert np.all(results1 == results2)
 

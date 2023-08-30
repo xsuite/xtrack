@@ -26,6 +26,12 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
     double const frev = ExciterData_get_frev(el);
     int64_t const start_turn = ExciterData_get_start_turn(el);
 
+    #ifdef XSUITE_BACKTRACK
+        #define XTRACK_EXCITER_SIGN (-1)
+    #else
+        #define XTRACK_EXCITER_SIGN (+1)
+    #endif
+
     //start_per_particle_block (part0->part)
 
         // zeta is the absolute path length deviation from the reference particle: zeta = (s - beta0*c*t)
@@ -56,8 +62,8 @@ void Exciter_track_local_particle(ExciterData el, LocalParticle* part0){
                     factorial *= kk;
                 }
 
-                dpx += (knl[kk] * zre - ksl[kk] * zim) / factorial;
-                dpy += (knl[kk] * zim + ksl[kk] * zre) / factorial;
+                dpx += XTRACK_EXCITER_SIGN * (knl[kk] * zre - ksl[kk] * zim) / factorial;
+                dpy += XTRACK_EXCITER_SIGN * (knl[kk] * zim + ksl[kk] * zre) / factorial;
 
                 double const zret = zre * x - zim * y;
                 zim = zim * x + zre * y;

@@ -9,7 +9,9 @@ class LinearRescale():
             self.v0 = v0
             self.dv = dv
 
-def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
+def _footprint_with_linear_rescale(linear_rescale_on_knobs, line,
+                                   freeze_longitudinal=False,
+                                   delta0=None, zeta0=None, kwargs={}):
 
         if isinstance (linear_rescale_on_knobs, LinearRescale):
             linear_rescale_on_knobs = [linear_rescale_on_knobs]
@@ -24,9 +26,10 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
             knobs_0[nn] = v0
 
         with xt._temp_knobs(line, knobs_0):
-            fp = line.get_footprint(**kwargs)
+            fp = line.get_footprint(
+                freeze_longitudinal=freeze_longitudinal,
+                delta0=delta0, zeta0=zeta0, **kwargs)
 
-        _fp0_ref = fp.__dict__.copy() # for debugging
         qx0 = fp.qx
         qy0 = fp.qy
 
@@ -39,8 +42,8 @@ def _footprint_with_linear_rescale(linear_rescale_on_knobs, line, kwargs):
             knobs_1[nn] = v0 + dv
 
             with xt._temp_knobs(line, knobs_1):
-                fp1 = line.get_footprint(**kwargs)
-
+                fp1 = line.get_footprint(freeze_longitudinal=freeze_longitudinal,
+                                        delta0=delta0, zeta0=zeta0, **kwargs)
             delta_qx = (fp1.qx - qx0) / dv * (line.vars[nn]._value - v0)
             delta_qy = (fp1.qy - qy0) / dv * (line.vars[nn]._value - v0)
 
@@ -128,17 +131,30 @@ class Footprint():
             self.x_norm_2d = np.sqrt(2 * self.Jx_2d / nemitt_x)
             self.y_norm_2d = np.sqrt(2 * self.Jy_2d / nemitt_y)
 
-    def _compute_footprint(self, line):
+    def _compute_footprint(self, line, freeze_longitudinal=False,
+                           delta0=None, zeta0=None):
+
+        if freeze_longitudinal is None:
+            # In future we could detect if the line has frozen longitudinal plane
+            freeze_longitudinal = False
 
         nplike_lib = line._context.nplike_lib
 
         particles = line.build_particles(
             x_norm=self.x_norm_2d.flatten(), y_norm=self.y_norm_2d.flatten(),
-            nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y)
+            nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y,
+            zeta=zeta0, delta=delta0,
+            freeze_longitudinal=freeze_longitudinal,
+            method={True: '4d', False: '6d'}[freeze_longitudinal]
+            )
 
-        line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True)
-        
-        assert nplike_lib.all(particles.state == 1), (
+        print('Tracking particles for footprint...')
+        line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True,
+                   freeze_longitudinal=freeze_longitudinal)
+        print('Done tracking.')
+
+        ctx2np = line._context.nparray_from_context_array
+        assert np.all(ctx2np(particles.state == 1)), (
             'Some particles were lost during tracking')
         mon = line.record_last_track
         mon.auto_to_numpy = False

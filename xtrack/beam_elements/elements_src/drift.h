@@ -42,17 +42,4 @@ void Drift_single_particle(LocalParticle* part, double length){
     #endif
 }
 
-
-/*gpufun*/
-void Drift_track_local_particle(DriftData el, LocalParticle* part0){
-
-    double const length = DriftData_get_length(el);
-
-    //start_per_particle_block (part0->part)
-        Drift_single_particle(part, length);
-    //end_per_particle_block
-
-}
-
-
 #endif /* XTRACK_DRIFT_H */

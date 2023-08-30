@@ -42,20 +42,23 @@ int64_t RecordIndex_get_slot(RecordIndex record_index){
     /*gpuglmem*/ uint32_t* num_recorded = RecordIndex_getp_num_recorded(record_index);
 
     if(*num_recorded >= capacity){
-        return -1;}
+        return -1;
+    }
 
-    uint32_t slot = atomic_add(num_recorded, 1);   //only_for_context opencl
-    uint32_t slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
-    uint32_t slot = *num_recorded;                 //only_for_context cpu_serial
-    *num_recorded = slot + 1;                      //only_for_context cpu_serial
+    uint32_t slot;
+
+    slot = atomic_add(num_recorded, 1);   //only_for_context opencl
+    slot = atomicAdd(num_recorded, 1);    //only_for_context cuda
+
+    #pragma omp atomic capture            //only_for_context cpu_openmp
+    slot = (*num_recorded)++;             //only_for_context cpu_serial cpu_openmp
 
     if (slot >= capacity){
         *num_recorded = capacity;
         return -1;
-        }
-
-    return (int64_t) slot;
     }
+    return (int64_t)slot;
+}
 '''
 
 
@@ -137,9 +140,8 @@ def start_internal_logging(elements, record=None, io_buffer=None, capacity=None)
     if not isinstance (elements, (list, tuple)):
         elements = [elements]
 
-    for ee in elements:
-        assert isinstance(ee, elements[0].__class__), (
-            'All elements must be of the same class.')
+    assert len(set([ee._internal_record_class for ee in elements])) == 1, (
+        'All elements should have the same _interal_record_class.')
 
     if record is None:
         assert capacity is not None

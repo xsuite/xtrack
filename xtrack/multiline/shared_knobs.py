@@ -1,4 +1,4 @@
-from ..line import mathfunctions
+from ..line import Functions
 import xdeps
 
 class VarSharing:
@@ -8,7 +8,9 @@ class VarSharing:
 
         mgr = xdeps.Manager()
         newvref = mgr.ref({}, "vars")
-        newfref = mgr.ref(mathfunctions, "f")
+
+        functions = Functions()
+        newfref = mgr.ref(functions, "f")
 
         newe = {} # new root container
         neweref = mgr.ref(newe, "eref") # new root ref
@@ -30,9 +32,13 @@ class VarSharing:
         # bind data with line.element_dict
         self._eref._owner[name] = line.element_dict
 
-        if (line._var_management is not None
-            and line._var_management["manager"] is not None):
+        if (hasattr(line, "_var_management")
+                and line._var_management is not None
+                and line._var_management["manager"] is not None):
+
             mgr1 = line._var_management["manager"]
+            if len(mgr1.containers["f"]._owner._funcs.keys()) > 0:
+                raise NotImplementedError("Functions not supported yet in multiline")
 
             if update_existing:
                 self._vref._owner.update(mgr1.containers["vars"]._owner) # copy data
@@ -50,14 +56,7 @@ class VarSharing:
             self.manager.copy_expr_from(mgr1, "element_refs",
                                     {"element_refs": self._eref[name]})
 
-        if line._var_management is None:
-            line._var_management = {'data': {}}
-
-        line._var_management["manager"] = None # remove old manager
-        line._var_management["lref"] = self._eref[name]
-        line._var_management["vref"] = self._vref
-        line._var_management["fref"] = self._fref
-        line._var_management["data"]["var_values"] = self._vref._owner
+        line._var_management = None
 
     def sync(self):
         for nn in self._vref._owner.keys():

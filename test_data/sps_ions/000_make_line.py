@@ -35,7 +35,7 @@ line.particle_ref = xp.Particles(mass0=mad.sequence.sps.beam.mass*1e9,
                                  gamma0=mad.sequence.sps.beam.gamma)
 tracker = line.build_tracker()
 
-tw = tracker.twiss()
+tw = line.twiss()
 
 assert np.isclose(tw.qs, qs_mad, atol=1e-6)
 assert np.isclose(tw.qx, summad_4d.q1, atol=1e-5)

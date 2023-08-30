@@ -10,7 +10,8 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-Delta_p0c = 450e9/10*23e-6 # ramp rate 450GeV/10s
+T_rev = 23e-6 # 23 us
+Delta_p0c = 450e9 / 10 * T_rev
 
 fname_line = ('../../test_data/sps_w_spacecharge/'
                   'line_no_spacecharge_and_particle.json')
