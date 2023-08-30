@@ -23,7 +23,7 @@ p = xt.Particles(
     p0c=6500e9,
     x=[-3e-2, -2e-3, 0, 1e-3, 2e-3, 3e-2],
     px=[1e-6, 2e-6,  0, 2e-6, 1e-6, 1e-6],
-    y=[-4e-2, -5e-3, 0, 5e-3, -4e-3, 4e-2],
+    y=[-2e-2, -5e-3, 0, 5e-3, -4e-3, 2e-2],
     py=[2e-6, 4e-6,  0, 2e-6, 1e-6, 1e-6],
     delta=[1e-3, 2e-3, 0, -2e-3, -1e-3, -1e-3],
     zeta=[-5e-2, -6e-3, 0, 6e-3, 5e-3, 5e-2],
@@ -42,8 +42,28 @@ assert np.allclose(p_thin.py, p_thick.py, rtol=0, atol=1e-14)
 assert np.allclose(p_thin.delta, p_thick.delta, rtol=0, atol=1e-14)
 assert np.allclose(p_thin.zeta, p_thick.zeta, rtol=0, atol=1e-14)
 
+# slicing
+Teapot = xt.slicing.Teapot
+Strategy = xt.slicing.Strategy
+
+line_sliced = line_thick.copy()
+line_sliced.slice_thick_elements(
+    slicing_strategies=[Strategy(slicing=Teapot(5))])
+line_sliced.build_tracker()
+
+p_sliced = p.copy()
+line_sliced.track(p_sliced)
+
+assert np.allclose(p_sliced.x, p_thick.x, rtol=0, atol=5e-6)
+assert np.allclose(p_sliced.px, p_thick.px, rtol=0.01, atol=1e-10)
+assert np.allclose(p_sliced.y, p_thick.y, rtol=0, atol=5e-6)
+assert np.allclose(p_sliced.py, p_thick.py, rtol=0.01, atol=1e-10)
+assert np.allclose(p_sliced.delta, p_thick.delta, rtol=0, atol=1e-14)
+assert np.allclose(p_sliced.zeta, p_thick.zeta, rtol=0, atol=2e-7)
+
 line_thin.track(p_thin, backtrack=True)
 line_thick.track(p_thick, backtrack=True)
+line_sliced.track(p_sliced, backtrack=True)
 
 assert np.allclose(p_thin.x, p.x, rtol=0, atol=1e-14)
 assert np.allclose(p_thin.px, p.px, rtol=0, atol=1e-14)
@@ -56,3 +76,10 @@ assert np.allclose(p_thick.px, p.px, rtol=0, atol=1e-14)
 assert np.allclose(p_thick.y, p.y, rtol=0, atol=1e-14)
 assert np.allclose(p_thick.py, p.py, rtol=0, atol=1e-14)
 assert np.allclose(p_thick.delta, p.delta, rtol=0, atol=1e-14)
+
+assert np.allclose(p_sliced.x, p.x, rtol=0, atol=1e-14)
+assert np.allclose(p_sliced.px, p.px, rtol=0, atol=1e-14)
+assert np.allclose(p_sliced.y, p.y, rtol=0, atol=1e-14)
+assert np.allclose(p_sliced.py, p.py, rtol=0, atol=1e-14)
+assert np.allclose(p_sliced.delta, p.delta, rtol=0, atol=1e-14)
+assert np.allclose(p_sliced.zeta, p.zeta, rtol=0, atol=1e-14)

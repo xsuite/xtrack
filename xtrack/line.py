@@ -2694,7 +2694,8 @@ class Line:
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
             raise ValueError(
-                'This action is not allowed as the line is frozen!')
+                'This action is not allowed as the line is frozen! '
+                'You can unfreeze the line by calling the `discard_tracker()` method.')
 
     def __len__(self):
         return len(self.element_names)

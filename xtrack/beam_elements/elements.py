@@ -905,6 +905,35 @@ class Sextupole(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
     ]
 
+    @staticmethod
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self_or_ref = container[thick_name]
+
+        container[slice_name] = Multipole(knl=np.zeros(3), ksl=np.zeros(3),
+                                          _buffer=_buffer)
+        ref = container[slice_name]
+
+        ref.knl[0] = 0.
+        ref.knl[1] = 0.
+        ref.knl[2] = weight * (
+            _get_expr(self_or_ref.k2) * _get_expr(self_or_ref.length))
+
+        ref.ksl[0] = 0.
+        ref.ksl[1] = 0.
+        ref.ksl[2] = weight * (
+            _get_expr(self_or_ref.k2s) * _get_expr(self_or_ref.length))
+
+        ref.order = 2
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the scalar fields
+        for field in ['k2', 'k2s', 'length']:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref)
+
 
 class Quadrupole(BeamElement):
     isthick = True
