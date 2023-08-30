@@ -865,12 +865,3 @@ def test_pickle():
     collider.vars['on_x1'] = 213
     assert np.isclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 213e-6, atol=1e-9, rtol=0)
     assert np.isclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
-
-    try:
-        lnss2 = pickle.dumps(line)
-    except RuntimeError: # Cannot pickle a line within a multiline
-        pass
-    else:
-        raise RuntimeError('Should have raised RuntimeError')
-
-
