@@ -10,7 +10,7 @@ import xobjects as xo
 import xtrack as xt
 import xpart as xp
 
-context = xo.ContextCupy()
+context = xo.ContextCpu()
 
 # ######################################### #
 # Create a line with detuning               #
@@ -23,10 +23,10 @@ detx_x = 1E6
 detx_y = -7E5
 dety_y = -5E5
 dety_x = 1E5
-element = xt.LinearTransferMatrix(_context=context,
-        Q_x=Q_x, detx_x = detx_x, detx_y = detx_y,
-        Q_y=Q_y, dety_y = dety_y, dety_x = dety_x,
-        Q_s = Q_s)
+element = xt.LineSegmentMap(_context=context,
+        qx=Q_x, detx_x = detx_x, detx_y = detx_y,
+        qy=Q_y, dety_y = dety_y, dety_x = dety_x,
+        qs = Q_s,bets=1.0)
 line = xt.Line(elements = [element])
 line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
 line.build_tracker()
@@ -53,7 +53,10 @@ tune_shifts_x,tune_shifts_y = footprint.get_stability_diagram(context)
 # Plot                                      #
 # ######################################### #
 plt.figure(0)
-plt.plot(np.real(tune_shifts_x),np.imag(tune_shifts_x),'-b')
-plt.plot(np.real(tune_shifts_y),np.imag(tune_shifts_y),'-g')
+plt.plot(np.real(tune_shifts_x),np.imag(tune_shifts_x),'-b',label='Horizontal')
+plt.plot(np.real(tune_shifts_y),np.imag(tune_shifts_y),'-g',label='Vertical')
+plt.xlabel(r'$\Re\Delta Q$')
+plt.ylabel(r'$\Im\Delta Q$')
+plt.legend()
 plt.show()
 
