@@ -27,12 +27,6 @@ void multipolar_kick(
     double dpx = knl[index] * inv_factorial;
     double dpy = ksl[index] * inv_factorial;
 
-    #ifdef XTRACK_MULTIPOLE_TAPER
-    double const delta_taper = LocalParticle_get_delta(part);
-    dpx = dpx * (1 + delta_taper);
-    dpy = dpy * (1 + delta_taper);
-    #endif
-
     double const x   = LocalParticle_get_x(part);
     double const y   = LocalParticle_get_y(part);
     double const chi = LocalParticle_get_chi(part);

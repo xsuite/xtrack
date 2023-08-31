@@ -10,7 +10,7 @@ fname = 'fccee_h'; pc_gev = 120.
 # fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
-mad.call(fname + '.seq')
+mad.call('../../test_data/fcc_ee/' + fname + '.seq')
 mad.beam(particle='positron', pc=pc_gev)
 mad.use('fccee_p_ring')
 
@@ -49,7 +49,7 @@ slicing_strategies = [
     Strategy(slicing=Teapot(10), name=r'^qy.*'),
     Strategy(slicing=Teapot(50), name=r'^qa.*'),
     Strategy(slicing=Teapot(50), name=r'^qc.*'),
-    # Strategy(slicing=Teapot(20), name=r'^sy\..*'), # Not taken into account for now!!!!
+    Strategy(slicing=Teapot(20), name=r'^sy\..*'),
 ]
 
 line.slice_thick_elements(slicing_strategies=slicing_strategies)

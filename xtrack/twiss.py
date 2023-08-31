@@ -365,7 +365,8 @@ def twiss_line(line, particle_ref=None, method=None,
             assert isinstance(ele_start_user, str), (
                 'ele_start must be provided as name when an incomplete '
                 'twiss_init is provided')
-            twiss_init._complete(line=line, element_name=ele_start_user)
+            twiss_init._complete(line=line,
+                    element_name=(twiss_init.element_name or ele_start_user))
 
         if twiss_init.reference_frame is None:
             twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
