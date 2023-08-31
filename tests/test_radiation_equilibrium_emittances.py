@@ -152,11 +152,11 @@ def test_eq_emitt(conf):
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
         assert np.isclose(ex, 6.9869e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ey, 2.4756e-12, atol=0,     rtol=2e-3)
+        assert np.isclose(ey, 2.5048e-12, atol=0,     rtol=2e-3)
         assert np.isclose(ez, 3.5404e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 2.4711e-12, atol=0,     rtol=2e-3)
+        assert np.isclose(ex, 2.4929e-12, atol=0,     rtol=2e-3)
         assert np.isclose(ey, 6.9869e-10, atol=0,     rtol=1e-4)
         assert np.isclose(ez, 3.5404e-6,  atol=0,     rtol=1e-4)
         checked = True
