@@ -1337,9 +1337,9 @@ def test_only_markers(test_context):
         assert tw.name[-1] == '_end_point'
         assert tw.name[-2] == 'e.ds.r5.b1'
 
-        assert tt['s', 'e.ds.r5.b1'] == line.get_s_position('e.ds.r5.b1')
-        assert tt['s', 'e.ds.r5.b1'] == tt['s', '_end_point']
-        assert tt['s', 's.ds.l5.b1'] == line.get_s_position('s.ds.l5.b1')
+        assert np.isclose(tt['s', 'e.ds.r5.b1'], line.get_s_position('e.ds.r5.b1'), atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 'e.ds.r5.b1'], tt['s', '_end_point'], atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 's.ds.l5.b1'], line.get_s_position('s.ds.l5.b1'), atol=1e-8, rtol=0)
 
         for kk in tw._col_names:
             if kk == 'name':
@@ -1391,9 +1391,9 @@ def test_only_markers(test_context):
         assert tw.name[-1] == '_end_point'
         assert tw.name[-2] == 'e.ds.r5.b2'
 
-        assert tt['s', 'e.ds.r5.b2'] == line.get_length() - line.get_s_position('e.ds.r5.b2')
-        assert tt['s', 'e.ds.r5.b2'] == tt['s', '_end_point']
-        assert tt['s', 's.ds.l5.b2'] == line.get_length() - line.get_s_position('s.ds.l5.b2')
+        assert np.isclose(tt['s', 'e.ds.r5.b2'], line.get_length() - line.get_s_position('e.ds.r5.b2'), atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 'e.ds.r5.b2'], tt['s', '_end_point'], atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 's.ds.l5.b2'], line.get_length() - line.get_s_position('s.ds.l5.b2'), atol=1e-8, rtol=0)
 
         for kk in tw._col_names:
             if kk == 'name':
