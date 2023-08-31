@@ -800,6 +800,7 @@ def test_sextupole(test_context):
     line_thick.track(p_thick)
 
     p_thin.move(_context=xo.context_default)
+    p_thick.move(_context=xo.context_default)
     assert np.allclose(p_thin.x, p_thick.x, rtol=0, atol=1e-14)
     assert np.allclose(p_thin.px, p_thick.px, rtol=0, atol=1e-14)
     assert np.allclose(p_thin.y, p_thick.y, rtol=0, atol=1e-14)
