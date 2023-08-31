@@ -54,6 +54,7 @@ ONLY_XTRACK_ELEMENTS = [
 NO_SYNRAD_ELEMENTS = [
     Bend,
     Quadrupole,
+    Sextupole,
     CombinedFunctionMagnet,
 ]
 
