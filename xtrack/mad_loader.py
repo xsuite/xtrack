@@ -1091,6 +1091,11 @@ class MadLoader:
     convert_instrument = convert_drift_like
 
     def convert_solenoid(self, mad_elem):
+        if get_value(mad_elem.l) == 0:
+            _print(f'Warning: Thin solenoids are not yet implemented, '
+                   f'reverting to importing `{mad_elem.name}` as a drift.')
+            return self.convert_drift_like(mad_elem)
+
         el = self.Builder(
             mad_elem.name,
             self.classes.Solenoid,
