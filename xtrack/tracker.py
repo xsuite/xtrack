@@ -139,6 +139,8 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
+        self._get_twiss_mask_markers() # to cache it
+
         self._init_io_buffer(io_buffer)
 
         self.line = line
@@ -640,9 +642,6 @@ class Tracker:
 
         assert num_turns >= 1
 
-        assert turn_by_turn_monitor != 'ONE_TURN_EBE', (
-            "Element-by-element monitor not available in collective mode")
-
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
@@ -694,10 +693,11 @@ class Tracker:
 
         return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
 
-    def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns):
+    def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns, monitor):
         ret = None
         skip = False
         stop_tracking = False
+        
         if tt == 0 and ipp < self._element_part[ele_start]:
             # Do not track before ele_start in the first turn
             skip = True
@@ -714,11 +714,11 @@ class Tracker:
                     and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
                     # The stop element is also in this part, so track until ele_stop
                     i_stop_in_part = self._element_index_in_part[ele_stop]
-                    ret = pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
+                    ret = pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part, turn_by_turn_monitor=monitor)
                     stop_tracking = True
                 else:
                     # Track until end of part
-                    ret = pp.track(particles, ele_start=i_start_in_part)
+                    ret = pp.track(particles, ele_start=i_start_in_part, turn_by_turn_monitor=monitor)
 
         elif (ele_stop is not None
                 and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
@@ -726,13 +726,16 @@ class Tracker:
             i_stop_in_part = self._element_index_in_part[ele_stop]
             if i_stop_in_part is not None:
                 # If not collective, track until ele_stop
-                ret = pp.track(particles, num_elements=i_stop_in_part)
+                ret = pp.track(particles, num_elements=i_stop_in_part, turn_by_turn_monitor=monitor)
             stop_tracking = True
 
         else:
             # We are in between the part that contains the start element,
             # and the one that contains the stop element, so track normally
-            ret = pp.track(particles)
+            if isinstance(pp, TrackerPartNonCollective):
+                ret = pp.track(particles, turn_by_turn_monitor=monitor)
+            else:
+                ret = pp.track(particles)
 
         return stop_tracking, skip, ret
 
@@ -864,10 +867,15 @@ class Tracker:
                                             particles, pp,
                                             moveback_to_buffer, moveback_to_offset,
                                             _context_needs_clean_active_lost_state)
+                
+                if monitor is not None and monitor.ebe_mode == 1:
+                    monitor_part = monitor
+                else:
+                    monitor_part = None
 
                 # Track!
                 stop_tracking, skip, returned_by_track = self._track_part(
-                        particles, pp, tt, ipp, ele_start, ele_stop, num_turns)
+                        particles, pp, tt, ipp, ele_start, ele_stop, num_turns, monitor_part)
 
                 if returned_by_track is not None:
                     if returned_by_track.on_hold:
@@ -1241,6 +1249,16 @@ class Tracker:
                 headers.append(f'#undef {k}')
         return headers
 
+    def _get_twiss_mask_markers(self):
+        if hasattr(self._tracker_data_base, 'mask_markers_for_twiss'):
+            return self._tracker_data_base.mask_markers_for_twiss
+        tt = self.line.get_table()
+        mask_twiss = np.ones(len(tt) + 1, dtype=bool)
+        if len(tt) == 0: return mask_twiss
+        mask_twiss[:-1] = tt.element_type == 'Marker'
+        self._tracker_data_base.mask_markers_for_twiss = mask_twiss
+        return mask_twiss
+
     def get_track_kernel_and_data_for_present_config(self):
 
         hash_config = self._hashable_config()
@@ -1259,6 +1277,7 @@ class Tracker:
                 element_names=td_base._element_names,
                 element_s_locations=td_base.element_s_locations,
                 line_length=td_base.line_length,
+                cache=td_base.cache.copy(),
                 compound_mask=td_base.compound_mask,
                 element_compound_names=td_base.element_compound_names,
                 kernel_element_classes=kernel_element_classes,
@@ -1360,7 +1379,7 @@ class TrackerPartNonCollective:
         self.ele_start_in_tracker = ele_start_in_tracker
         self.ele_stop_in_tracker = ele_stop_in_tracker
 
-    def track(self, particles, ele_start=None, ele_stop=None, num_elements=None):
+    def track(self, particles, ele_start=None, ele_stop=None, num_elements=None, turn_by_turn_monitor=None):
         if ele_start is None:
             temp_ele_start = self.ele_start_in_tracker
         else:
@@ -1377,7 +1396,7 @@ class TrackerPartNonCollective:
             temp_num_elements = num_elements
 
         self.tracker._track_no_collective(particles, ele_start=temp_ele_start,
-                           num_elements=temp_num_elements,
+                           num_elements=temp_num_elements, turn_by_turn_monitor=turn_by_turn_monitor,
                            _force_no_end_turn_actions=True)
 
     def __repr__(self):

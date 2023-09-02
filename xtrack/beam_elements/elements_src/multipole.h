@@ -21,8 +21,20 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             record_index = SynchrotronRadiationRecordData_getp__index(record);
         }
     }
-    double dp_record_entry, dpx_record_entry, dpy_record_entry;
-    double dp_record_exit, dpx_record_exit, dpy_record_exit;
+    double dp_record_entry = 0.;
+    double dpx_record_entry = 0.;
+    double dpy_record_entry = 0.;
+    double dp_record_exit = 0.;
+    double dpx_record_exit = 0.;
+    double dpy_record_exit = 0.;
+    #endif
+
+    #ifdef XTRACK_MULTIPOLE_NO_SYNRAD
+    #define delta_taper (0)
+    #else
+        #ifndef XTRACK_MULTIPOLE_TAPER
+        double const delta_taper = MultipoleData_get_delta_taper(el);
+        #endif
     #endif
 
     //start_per_particle_block (part0->part)
@@ -41,9 +53,9 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
 
         #ifdef XTRACK_MULTIPOLE_TAPER
         double const delta_taper = LocalParticle_get_delta(part);
+        #endif
         dpx = dpx * (1 + delta_taper);
         dpy = dpy * (1 + delta_taper);
-        #endif
 
         double const x   = LocalParticle_get_x(part);
         double const y   = LocalParticle_get_y(part);
@@ -73,10 +85,8 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
             this_ksl = -this_ksl;
             #endif
 
-            #ifdef XTRACK_MULTIPOLE_TAPER
             this_knl = this_knl * (1 + delta_taper);
             this_ksl = this_ksl * (1 + delta_taper);
-            #endif
 
             dpx = this_knl*inv_factorial + zre;
             dpy = this_ksl*inv_factorial + zim;
@@ -130,13 +140,11 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                 a1l = -a1l;
                 #endif
 
-                #ifdef XTRACK_MULTIPOLE_TAPER
                 b1l = b1l * (1 + delta_taper);
-                a1l = b1l * (1 + delta_taper);
-                #endif
+                a1l = a1l * (1 + delta_taper);
 
                 dpx -= b1l * hxlx / length;
-                dpy += a1l * hyly / length;
+                dpy -= a1l * hyly / length;
             }
         }
 

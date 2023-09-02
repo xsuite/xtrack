@@ -34,11 +34,11 @@ def test_sps_thick(test_context, deferred_expressions):
     line.twiss_default['method'] = '4d'
 
     # Check a bend
-    assert line.element_names[60] == 'mbb.10150_entry'
-    assert line.element_names[61] == 'mbb.10150_den'
-    assert line.element_names[62] == 'mbb.10150'
-    assert line.element_names[63] == 'mbb.10150_dex'
-    assert line.element_names[64] == 'mbb.10150_exit'
+    assert line.element_names[58] == 'mbb.10150_entry'
+    assert line.element_names[59] == 'mbb.10150_den'
+    assert line.element_names[60] == 'mbb.10150'
+    assert line.element_names[61] == 'mbb.10150_dex'
+    assert line.element_names[62] == 'mbb.10150_exit'
 
     assert isinstance(line['mbb.10150_entry'], xt.Marker)
     assert isinstance(line['mbb.10150_den'], xt.DipoleEdge)

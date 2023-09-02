@@ -29,15 +29,33 @@ XTRACK_DEFAULT_WEIGHTS = {
     'qy': 10.,
 }
 
+ALLOWED_TARGET_KWARGS= ['x', 'px', 'y', 'py', 'zeta', 'delta', 'pzata', 'ptau',
+                        'betx', 'bety', 'alfx', 'alfy', 'gamx', 'gamy',
+                        'mux', 'muy', 'dx', 'dpx', 'dy', 'dpy',
+                        'qx', 'qy', 'dqx', 'dqy',
+                        'eq_gemitt_x', 'eq_gemitt_y', 'eq_gemitt_zeta',
+                        'eq_nemitt_x', 'eq_nemitt_y', 'eq_nemitt_zeta']
+
 Action = xd.Action
+
+class _LOC:
+    def __init__(self, name=None):
+        self.name = name
+    def __repr__(self):
+        return self.name
+
+START = _LOC('START')
+END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None, **kwargs):
+    def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None,
+                 compensate_radiation_energy_loss=True, **kwargs):
         self.line = line
         self.kwargs = kwargs
         self.table_for_twiss_init = table_for_twiss_init
         self.allow_twiss_failure = allow_twiss_failure
+        self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
 
     def prepare(self):
         line = self.line
@@ -76,6 +94,7 @@ class ActionTwiss(xd.Action):
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
                     twinit_list, ele_start_list, ele_stop_list)):
                 if isinstance(twinit, xt.TwissInit):
+                    twinit_list[ii] = twinit.copy()
                     _keep_ini_particles_list[ii] = True
                 elif isinstance(twinit, str):
                     assert twinit in (
@@ -98,6 +117,11 @@ class ActionTwiss(xd.Action):
                         twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
                         _keep_ini_particles_list[ii] = True
 
+            for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
+                if isinstance(twini, xt.TwissInit) and twini._needs_complete():
+                    assert isinstance(eest, str)
+                    twini._complete(line=ln, element_name=eest)
+
             if ismultiline:
                 kwargs['twiss_init'] = twinit_list
                 kwargs['_keep_initial_particles'] = _keep_ini_particles_list
@@ -117,6 +141,12 @@ class ActionTwiss(xd.Action):
         self.kwargs = kwargs
 
     def run(self, allow_failure=True):
+        if self.compensate_radiation_energy_loss:
+            if isinstance(self.line, xt.Multiline):
+                raise NotImplementedError(
+                    'Radiation energy loss compensation is not yet supported'
+                    ' for Multiline')
+            self.line.compensate_radiation_energy_loss(verbose=False)
         if not self.allow_twiss_failure or not allow_failure:
             return self.line.twiss(**self.kwargs)
         else:
@@ -129,20 +159,37 @@ class ActionTwiss(xd.Action):
                     raise ee
 
 class Target(xd.Target):
-    def __init__(self, tar, value, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag=''):
+    def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
+                 line=None, action=None, tag='', optimize_log=False, **kwargs):
+
+        for kk in kwargs:
+            assert kk in ALLOWED_TARGET_KWARGS, (
+                f'Unknown keyword argument {kk}. '
+                f'Allowed keywords are {ALLOWED_TARGET_KWARGS}')
+
+        if len(kwargs) > 1:
+            raise ValueError(f'{list(kwargs.keys())} cannot be specified '
+                                'together in a single Target. Please use '
+                                'multiple Targets or a TargetSet.')
+
+        if len(kwargs) == 1:
+            tar = list(kwargs.keys())[0]
+            value = list(kwargs.values())[0]
+
         if at is not None:
             xdtar = (tar, at)
         else:
             xdtar = tar
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
-                            weight=weight, scale=scale, action=action, tag=tag)
+                            weight=weight, scale=scale, action=action, tag=tag,
+                            optimize_log=optimize_log)
         self.line = line
 
-        if isinstance(value, xt.multiline.MultiTwiss):
-            self.value=value[line][xdtar]
-        if isinstance(value, xt.TwissTable):
-            self.value=value[xdtar]
+    def __repr__(self):
+        out = xd.Target.__repr__(self)
+        if self.line is not None:
+            out = out.replace('Target(', f'Target(line={self.line}, ')
+        return out
 
     def eval(self, data):
         res = data[self.action]
@@ -164,15 +211,30 @@ class VaryList(xd.VaryList):
     def __init__(self, vars, **kwargs):
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
-class TargetList(xd.TargetList):
-    def __init__(self, tars, action=None, **kwargs):
-        self.targets = [Target(tt, action=action, **kwargs) for tt in tars]
+class TargetSet(xd.TargetList):
+    def __init__(self, tars=None, action=None, **kwargs):
+        vnames = []
+        vvalues = []
+        for kk in ALLOWED_TARGET_KWARGS:
+            if kk in kwargs:
+                vnames.append(kk)
+                vvalues.append(kwargs[kk])
+                kwargs.pop(kk)
+        self.targets = []
+        if tars is not None:
+            self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
+        self.targets += [
+            Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
+        if len(self.targets) == 0:
+            raise ValueError('No targets specified')
+
+TargetList = TargetSet # for backward compatibility
 
 class TargetInequality(Target):
 
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
                  line=None, weight=None, tag=''):
-        super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line,
+        Target.__init__(self, tar, value=0, at=at, tol=tol, scale=scale, line=line,
                          weight=weight, tag=tag)
         assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
         self.ineq_sign = ineq_sign
@@ -194,7 +256,7 @@ class TargetRelPhaseAdvance(Target):
 
     def __init__(self, tar, value, at_1=None, at_0=None, tag='',  **kwargs):
 
-        super().__init__(tar=self.compute, value=value, tag=tag, **kwargs)
+        Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
@@ -226,28 +288,49 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                   verbose=False, assert_within_tol=True,
                   solver_options={}, allow_twiss_failure=True,
                   n_steps_max=20, default_tol=None,
-                  solve=True, **kwargs):
+                  solve=True, compensate_radiation_energy_loss=False,**kwargs):
 
     targets_flatten = []
     for tt in targets:
         if isinstance(tt, xd.TargetList):
             for tt1 in tt.targets:
-                targets_flatten.append(tt1)
+                targets_flatten.append(tt1.copy())
         else:
-            targets_flatten.append(tt)
+            targets_flatten.append(tt.copy())
 
     action_twiss = None
     for tt in targets_flatten:
+
+        # Handle action
         if tt.action is None:
             if action_twiss is None:
                 action_twiss = ActionTwiss(
-                    line, allow_twiss_failure=allow_twiss_failure, **kwargs)
+                    line, allow_twiss_failure=allow_twiss_failure,
+                    compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                    **kwargs)
             tt.action = action_twiss
 
+        # Handle at
         if isinstance(tt.tar, tuple):
             tt_name = tt.tar[0] # `at` is  present
+            tt_at = tt.tar[1]
         else:
             tt_name = tt.tar
+            tt_at = None
+        if tt_at is not None and isinstance(tt_at, _LOC):
+            tt_at = _at_from_placeholder(tt_at, line=line, line_name=tt.line,
+                    ele_start=kwargs['ele_start'], ele_stop=kwargs['ele_stop'])
+            tt.tar = (tt_name, tt_at)
+
+        # Handle value
+        if isinstance(tt.value, xt.multiline.MultiTwiss):
+            tt.value=tt.value[line][tt.tar]
+        if isinstance(tt.value, xt.TwissTable):
+            tt.value=tt.value[tt.tar]
+        if isinstance(tt.value, np.ndarray):
+            raise ValueError('Target value must be a scalar')
+
+        # Handle weight
         if tt.weight is None:
             tt.weight = XTRACK_DEFAULT_WEIGHTS.get(tt_name, 1.)
         if tt.tol is None:
@@ -265,18 +348,16 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
     vary_flatten = _flatten_vary(vary)
     _complete_vary_with_info_from_line(vary_flatten, line)
 
-    opt = xd.Optimize(vary=vary, targets=targets, solver=solver,
+    opt = xd.Optimize(vary=vary_flatten, targets=targets_flatten, solver=solver,
                         verbose=verbose, assert_within_tol=assert_within_tol,
                         solver_options=solver_options,
                         n_steps_max=n_steps_max,
                         restore_if_fail=restore_if_fail)
 
     if solve:
-        res =  opt.solve()
-        res['optimizer'] = opt
-        return res
-    else:
-        return opt
+        opt.solve()
+
+    return opt
 
 def _flatten_vary(vary):
     vary_flatten = []
@@ -403,3 +484,32 @@ class KnobOptimizer:
         self.line.vars[self.knob_name] = self.knob_value_start
 
         _print('Generated knob: ', self.knob_name)
+
+def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
+    assert isinstance(tt_at, _LOC)
+    if isinstance(line, xt.Multiline):
+        assert line is not None, (
+            'For a Multiline, the line must be specified if the target '
+            'is `ele_start`')
+        assert line_name in line.line_names
+        i_line = line.line_names.index(line_name)
+        this_line = line[line_name]
+    else:
+        i_line = None
+        this_line = line
+    if tt_at.name == 'START':
+        if i_line is not None:
+            tt_at = ele_start[i_line]
+        else:
+            tt_at = ele_start
+    elif tt_at.name == 'END':
+        if i_line is not None:
+            tt_at = ele_stop[i_line]
+        else:
+            tt_at = ele_stop
+    else:
+        raise ValueError(f'Unknown location {tt_at.name}')
+    if not isinstance(tt_at, str):
+        tt_at = this_line.element_names[tt_at]
+
+    return tt_at

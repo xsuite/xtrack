@@ -46,9 +46,7 @@ tw_init = xt.TwissInit(element_name=ele_init,
     betx=betx, bety=bety, alfx=alfx, alfy=alfy,
     dx=dx, dy=dy, dpx=dpx, dpy=dpy,
     mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
-    bets=bets, reference_frame=reference_frame,
-    particle_ref=line.particle_ref)
-
+    bets=bets, reference_frame=reference_frame)
 tw_test = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
 

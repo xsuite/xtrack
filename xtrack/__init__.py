@@ -12,7 +12,7 @@ from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs
 from .tracker import Tracker
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
-                    TargetRelPhaseAdvance)
+                    TargetRelPhaseAdvance, TargetSet, START, END)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
 from .twiss import TwissInit, TwissTable
@@ -40,9 +40,7 @@ from .loss_location_refinement import _skip_in_loss_location_refinement
 
 from ._version import __version__
 
-def Particles(*args, **kwargs):
-    raise ValueError(
-    "`xtrack.Particles` not available anymore, please use `xpart.Particles`")
+from xpart import Particles, PROTON_MASS_EV, ELECTRON_MASS_EV
 
 def enable_pyheadtail_interface(*args, **kwargs):
     raise ValueError(

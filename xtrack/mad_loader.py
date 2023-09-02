@@ -533,6 +533,8 @@ class Alignment:
 class Dummy:
     type = "None"
 
+def _default_factory():
+    return 0.
 
 class MadLoader:
     @staticmethod
@@ -544,7 +546,7 @@ class MadLoader:
         from xdeps.madxutils import MadxEval
 
         _var_values = line._var_management["data"]["var_values"]
-        _var_values.default_factory = lambda: 0.
+        _var_values.default_factory = _default_factory
         for name, par in mad.globals.cmdpar.items():
             if replace_in_expr is not None:
                 for k, v in replace_in_expr.items():
@@ -797,16 +799,13 @@ class MadLoader:
 
         is_singleton = len(elem_list) == 1
         if is_singleton:
-            is_drift = isinstance(elem_list[0], self.classes.Drift)
-            if is_drift:
+
+            is_drift = issubclass(elem_list[0].type, self.classes.Drift)
+            if is_drift and mad_el.name.startswith('drift_'):
                 return elem_list
 
-            is_thick = getattr(elem_list[0].type, 'isthick', False)
-            if not is_thick:
-                return elem_list
-
-            thick_len = value_if_expr(elem_list[0].attrs.get('length', 0))
-            if thick_len == 0:
+            is_marker = issubclass(elem_list[0].type, self.classes.Marker)
+            if is_marker:
                 return elem_list
 
         return [
@@ -939,35 +938,19 @@ class MadLoader:
 
         return self.make_compound_elem(sequence, mad_el)
 
-    def _convert_bend_thick(self, mad_el):
-        if mad_el.angle:
-            h = mad_el.angle / mad_el.l
-        else:
-            h = 0.0
-
-
     def convert_sextupole(self, mad_el):
-        thin_sext = self.Builder(
-            mad_el.name,
-            self.classes.Multipole,
-            knl=[0, 0, mad_el.k2 * mad_el.l],
-            ksl=[0, 0, mad_el.k2s * mad_el.l],
-            length=mad_el.l,
+        return self.make_compound_elem(
+            [
+                self.Builder(
+                    mad_el.name,
+                    self.classes.Sextupole,
+                    k2=mad_el.k2,
+                    k2s=mad_el.k2s,
+                    length=mad_el.l,
+                ),
+            ],
+            mad_el,
         )
-
-        if value_if_expr(mad_el.l) != 0:
-            if not self.allow_thick:
-                self._assert_element_is_thin(mad_el)
-
-            sequence = [
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..1"),
-                thin_sext,
-                self._make_drift_slice(mad_el, 0.5, "drift_{}..2"),
-            ]
-        else:
-            sequence = [thin_sext]
-
-        return self.make_compound_elem(sequence, mad_el)
 
     def convert_octupole(self, mad_el):
         thin_oct = self.Builder(
@@ -1089,7 +1072,21 @@ class MadLoader:
     convert_rcollimator = convert_drift_like
     convert_elseparator = convert_drift_like
     convert_instrument = convert_drift_like
-    convert_solenoid = convert_drift_like
+
+    def convert_solenoid(self, mad_elem):
+        if get_value(mad_elem.l) == 0:
+            _print(f'Warning: Thin solenoids are not yet implemented, '
+                   f'reverting to importing `{mad_elem.name}` as a drift.')
+            return self.convert_drift_like(mad_elem)
+
+        el = self.Builder(
+            mad_elem.name,
+            self.classes.Solenoid,
+            length=mad_elem.l,
+            ks=mad_elem.ks,
+            ksi=mad_elem.ksi,
+        )
+        return self.make_compound_elem([el], mad_elem)
 
     def convert_multipole(self, mad_elem):
         self._assert_element_is_thin(mad_elem)
@@ -1455,3 +1452,12 @@ class MadLoader:
         ee.dy = 0
         ee.ds = 0
         return self.make_compound_elem([el_transverse], ee)
+
+    def convert_nllens(self, mad_elem):
+        el = self.Builder(
+            mad_elem.name,
+            self.classes.NonLinearLens,
+            knll=mad_elem.knll,
+            cnll=mad_elem.cnll,
+        )
+        return self.make_compound_elem([el], mad_elem)

@@ -23,7 +23,8 @@
             "SimpleThinQuadrupole",
             "Bend",
             "Quadrupole",
-            "CombinedFunctionMagnet"
+            "CombinedFunctionMagnet",
+            "Solenoid"
         ]
     },
     "default_only_xtrack_backtrack": {

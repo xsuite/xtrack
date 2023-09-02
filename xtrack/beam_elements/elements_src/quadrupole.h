@@ -39,4 +39,4 @@ void Quadrupole_track_local_particle(
     //end_per_particle_block
 }
 
-#endif // XTRACK_THICKCOMBINEDFUNCTIONDIPOLE_H
+#endif // XTRACK_QUADRUPOLE_H

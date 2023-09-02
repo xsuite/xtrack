@@ -1,6 +1,6 @@
 # copyright ################################# #
 # This file is part of the Xobjects Package.  #
-# Copyright (c) CERN, 2022.                   #
+# Copyright (c) CERN, 2023.                   #
 # ########################################### #
 import os
 import json
@@ -20,7 +20,6 @@ import xtrack as xt
 LOGGER = logging.getLogger(__name__)
 
 XT_PREBUILT_KERNELS_LOCATION = Path(xt.__file__).parent / 'prebuilt_kernels'
-XT_PREBUILT_KERNELS_METADATA = '_kernel_definitions.json'
 
 BEAM_ELEMENTS_INIT_DEFAULTS = {
     'Bend': {
@@ -52,10 +51,14 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
         'slices_other_beam_Sigma_34': np.array([0]),
         'slices_other_beam_Sigma_44': np.array([0]),
     },
+    'LimitPolygon': {
+        'x_vertices': np.array([0, 1, 1, 0]),
+        'y_vertices': np.array([0, 0, 1, 1]),
+    },
 }
 
 # SpaceChargeBiGaussian is not included for now (different issues -
-# circular import, incompatible compiletion flags)
+# circular import, incompatible compilation flags)
 # try:
 #     from xfields import LongitudinalProfileQGaussian
 
@@ -211,25 +214,17 @@ def get_suitable_kernel(
 
 def regenerate_kernels():
     """
-    Use the kernel definitions in the `_kernel_definitions.json` file to
+    Use the kernel definitions in the `kernel_definitions.py` file to
     regenerate kernel shared objects using the current version of xsuite.
     """
-    metadata_file = XT_PREBUILT_KERNELS_LOCATION / XT_PREBUILT_KERNELS_METADATA
+    from xtrack.prebuilt_kernels.kernel_definitions import kernel_definitions
 
-    with metadata_file.open('r') as fd:
-        kernels_metadata = json.load(fd)
-
-    for module_name, metadata in kernels_metadata.items():
+    for module_name, metadata in kernel_definitions.items():
         config = metadata['config']
-        element_class_names = metadata['classes']
-
-        kernel_element_classes = [
-            get_element_class_by_name(class_name)
-            for class_name in element_class_names
-        ]
+        element_classes = metadata['classes']
 
         elements = []
-        for cls in kernel_element_classes:
+        for cls in element_classes:
             if cls.__name__ in BEAM_ELEMENTS_INIT_DEFAULTS:
                 element = cls(**BEAM_ELEMENTS_INIT_DEFAULTS[cls.__name__])
             else:
@@ -240,22 +235,30 @@ def regenerate_kernels():
         tracker = xt.Tracker(line=line, compile=False)
         tracker.config.clear()
         tracker.config.update(config)
-        tracker._build_kernel(module_name=module_name,
-                              containing_dir=XT_PREBUILT_KERNELS_LOCATION,
-                              compile='force')
+        tracker._build_kernel(
+            module_name=module_name,
+            containing_dir=XT_PREBUILT_KERNELS_LOCATION,
+            compile='force',
+        )
 
-        save_kernel_metadata(module_name=module_name,
+        kernel_classes = tracker._tracker_data_base.kernel_element_classes
+        save_kernel_metadata(
+            module_name=module_name,
             config=tracker.config,
-            kernel_element_classes=tracker._tracker_data_base.kernel_element_classes)
+            kernel_element_classes=kernel_classes,
+        )
 
 
-def clear_kernels():
+def clear_kernels(verbose=False):
     for file in XT_PREBUILT_KERNELS_LOCATION.iterdir():
         if file.name.startswith('_'):
             continue
         if file.suffix not in ('.c', '.so', '.json'):
             continue
         file.unlink()
+
+        if verbose:
+            print(f'Removed `{file}`.')
 
 
 if __name__ == '__main__':

@@ -12,7 +12,12 @@ void CombinedFunctionMagnet_track_local_particle(
         LocalParticle* part0
 ) {
     // Adapted from MAD-X `ttcfd' in `trrun.f90'
-    const double length = CombinedFunctionMagnetData_get_length(el);
+    double length = CombinedFunctionMagnetData_get_length(el);
+
+    #ifdef XSUITE_BACKTRACK
+        length = -length;
+    #endif
+
     const double k0 = CombinedFunctionMagnetData_get_k0(el);
     const double k1 = CombinedFunctionMagnetData_get_k1(el);
     const double h = CombinedFunctionMagnetData_get_h(el);

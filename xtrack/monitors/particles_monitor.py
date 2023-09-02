@@ -104,6 +104,10 @@ def _monitor_init(
             for tt, nn in self._ParticlesClass.per_particle_vars:
                 getattr(self.data, nn)[:] = 0
 
+def monitor_from_dict(cls, dct, **kwargs):
+    xobj = cls._XoStruct(**dct, **kwargs)
+    return cls(_xobject=xobj)
+
 def auto_to_numpy(self):
     return self.flag_auto_to_numpy != 0
 
@@ -165,6 +169,7 @@ class ParticlesMonitor(BeamElement):
 
 ParticlesMonitor.__init__ = _monitor_init
 ParticlesMonitor.get_backtrack_element = _monitor_get_backtrack_element
+ParticlesMonitor.from_dict = classmethod(monitor_from_dict)
 
 ParticlesMonitor.auto_to_numpy = property(auto_to_numpy, set_auto_to_numpy)
 

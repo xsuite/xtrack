@@ -13,8 +13,8 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
-res = line.match(
-    #verbose=True,
+opt = line.match(
+    solve=False,
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions
     ele_start='mq.33l8.b1',
@@ -40,6 +40,8 @@ res = line.match(
         xt.TargetInequality('y', '>', -1e-3, at='mq.30l8.b1', tol=1e-6),
     ]
 )
+
+opt.solve()
 
 #!end-doc-part
 
