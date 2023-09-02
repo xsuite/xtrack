@@ -91,8 +91,9 @@ class LastTurnsMonitor(BeamElement):
 
             # explicitely init with zeros (instead of size only) to have consistent default values for untouched arrays
             # see also https://github.com/xsuite/xsuite/issues/294
-            data = {prop: [0]*(num_particles*n_last_turns) for prop in self.properties} # particle data
-            data['lost_at_offset'] = [0]*(num_particles)  # meta data (rolling buffer offset per particle)
+            size = num_particles*n_last_turns
+            data = {prop: np.zeros(size) if size > 0 else [] for prop in self.properties} # particle data
+            data['lost_at_offset'] = np.zeros(num_particles) if num_particles > 0 else [] # meta data (rolling buffer offset per particle)
 
             super().__init__(n_last_turns=n_last_turns, particle_id_start=particle_id_start,
                              num_particles=num_particles, every_n_turns=every_n_turns, data=data, **kwargs)

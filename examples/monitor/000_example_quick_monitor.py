@@ -33,3 +33,8 @@ line.track(particles, num_turns=num_turns,
 # line.record_last_track.x contains the x coordinate for all particles
 # and all turns, e.g. line.record_last_track.x[3, 5] for the particle
 # having particle_id = 3 and for the turn number 5.
+
+# Monitor objects can be dumped to a dictionary and loaded back
+mon = line.record_last_track
+dct = mon.to_dict()
+mon2 = xt.ParticlesMonitor.from_dict(dct)

@@ -95,15 +95,13 @@ def test_ip_knob_matching(test_context):
         knob_value_end=(angle_match * 1e6),
         ele_start=['s.ds.l8.b1', 's.ds.l8.b2'],
         ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
-        twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b1', line=collider.lhcb1),
-                    xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b2', line=collider.lhcb2)],
+        twiss_init=[xt.TwissInit(), xt.TwissInit()],
         targets=[
-            xt.TargetList(['x', 'px'], at='e.ds.r8.b1', line='lhcb1', value=0),
-            xt.TargetList(['x', 'px'], at='e.ds.r8.b2', line='lhcb2', value=0),
+            xt.TargetSet(x=0, px=0, at=xt.END, line='lhcb1'),
+            xt.TargetSet(x=0, px=0, at=xt.END, line='lhcb2'),
             xt.Target('x', 0, at='ip8', line='lhcb1'),
-            xt.Target('x', 0, at='ip8', line='lhcb2'),
             xt.Target('px', angle_match, at='ip8', line='lhcb1', tol=0.8e-10),
-            xt.Target('px', -angle_match, at='ip8', line='lhcb2'),
+            xt.TargetSet(x=0, px=-angle_match, at='ip8', line='lhcb2'),
         ],
         vary=[
             # Vary with custom step and limits
@@ -121,7 +119,7 @@ def test_ip_knob_matching(test_context):
     assert len(ll) == 1
     assert ll.iteration[0] == 0
     assert np.isclose(ll['penalty', 0], 0.0424264, atol=1e-6, rtol=0)
-    assert ll['tol_met', 0] == 'yyyyyynn'
+    assert ll['tol_met', 0] == 'yyyyynyn'
     assert ll['target_active', 0] == 'yyyyyyyy'
     assert ll['vary_active', 0] == 'yyyyyyyyyyyyyy'
 
@@ -145,8 +143,9 @@ def test_ip_knob_matching(test_context):
     assert np.isclose(opt.vary[2].limits[0], -limitmcby, atol=1e-10, rtol=0)
     assert np.isclose(opt.vary[2].limits[1], limitmcby, atol=1e-10, rtol=0)
 
-    assert np.isclose(opt.targets[5].tol, 1.1e-10, atol=1e-14, rtol=0)
-    assert np.isclose(opt.targets[6].tol, 0.8e-10, atol=1e-14, rtol=0)
+    assert np.isclose(opt.targets[4].tol, 1.1e-10, atol=1e-14, rtol=0)
+    assert np.isclose(opt.targets[5].tol, 0.8e-10, atol=1e-14, rtol=0)
+    assert np.isclose(opt.targets[6].tol, 1.1e-10, atol=1e-14, rtol=0)
     assert np.isclose(opt.targets[7].tol, 0.9e-10, atol=1e-14, rtol=0)
 
     # Set mcmbx by hand (as in mad-x script)
@@ -434,15 +433,10 @@ def test_match_ir8_optics(test_context):
         # Left boundary
         twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
         targets=[
-            xt.Target('alfx', 0, at='ip8'),
-            xt.Target('alfy', 0, at='ip8'),
-            xt.Target('betx', 1.5, at='ip8'),
-            xt.Target('bety', 1.5, at='ip8'),
-            xt.Target('dx', 0, at='ip8'),
-            xt.Target('dpx', 0, at='ip8'),
-            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
-                    value=tab_boundary_right, at=f'e.ds.r8.b1',
-                    tag='stage2'),
+            xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
+            xt.TargetSet(at=f'e.ds.r8.b1',
+                         tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                         value=tab_boundary_right, tag='stage2'),
             xt.TargetRelPhaseAdvance('mux', mux_b1_target),
             xt.TargetRelPhaseAdvance('muy', muy_b1_target),
         ],
@@ -579,15 +573,10 @@ def test_match_ir8_optics(test_context):
         # Left boundary
         twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
         targets=[
-            xt.Target('alfx', 0, at='ip8'),
-            xt.Target('alfy', 0, at='ip8'),
-            xt.Target('betx', 1.5, at='ip8'),
-            xt.Target('bety', 1.5, at='ip8'),
-            xt.Target('dx', 0, at='ip8'),
-            xt.Target('dpx', 0, at='ip8'),
-            xt.TargetList(('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
-                    value=tab_boundary_right, at=f'e.ds.r8.b2',
-                    tag='stage2'),
+            xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
+            xt.TargetSet(at=xt.END,
+                         tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                         value=tab_boundary_right, tag='stage2'),
             xt.TargetRelPhaseAdvance('mux', mux_b2_target),
             xt.TargetRelPhaseAdvance('muy', muy_b2_target),
         ],

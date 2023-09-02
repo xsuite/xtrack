@@ -63,6 +63,14 @@ def test_monitor(test_context):
     assert np.all(monitor.at_element[:, :] == 0)
     assert np.all(monitor.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
+    # Test to_dict/from_dict round trip
+    dct = monitor.to_dict()
+    monitor2 = xt.ParticlesMonitor.from_dict(dct, _context=test_context)
+    assert np.all(monitor2.x.shape == np.array([50, 10]))
+    assert np.all(monitor2.at_turn[3, :] == np.arange(5, 15))
+    assert np.all(monitor2.particle_id[:, 3] == np.arange(0, num_particles))
+    assert np.all(monitor2.at_element[:, :] == 0)
+    assert np.all(monitor2.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
     # Test explicit monitor used in in stand-alone mode
     mon2 = xt.ParticlesMonitor(_context=test_context,
@@ -167,7 +175,138 @@ def test_last_turns_monitor(test_context):
     assert np.all(monitor.at_turn == np.array([np.clip(n-np.arange(4,-1,-1),0,None) for n in (2,4,6,9)]))
     assert np.all(monitor.x == np.array([[0,0,2,1,0],[3,5,7,9,11],[0,-2,-4,-6,-8],[20,23,26,29,32]]))
 
+@for_all_test_contexts
+def test_beam_profile_monitor(test_context):
+    gen = np.random.default_rng(seed=38715345)
 
+    npart = 512 # must be even and >= 512
+    x = gen.normal(size=npart+4) # generate a few more to test "num_particles"
+    y = gen.normal(size=npart+4)
+
+    particles = xp.Particles(
+        p0c=6.5e12,
+        x=x,
+        y=y,
+        zeta=-2.99792458e8*np.tile([0.0, 0.5], x.size//2),
+        _context=test_context,
+    )
+
+    nbins = 100
+
+    monitor = xt.BeamProfileMonitor(
+        num_particles=npart,
+        start_at_turn=0,
+        stop_at_turn=10,
+        frev=1,
+        sampling_frequency=2,
+        n=nbins,
+        x_range=5,
+        y_range=(-4,2),
+        _context=test_context,
+    )
+
+    line = xt.Line([monitor])
+    line.build_tracker(_context=test_context)
+
+    for turn in range(11): # track a few more than we record to test "stop_at_turn"
+        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # so sort before manipulation
+        if isinstance(test_context, xo.ContextCpu):
+            particles.sort(interleave_lost_particles=True)
+
+        # manipulate particles for testing
+        particles.x[0] += 0.1
+        particles.y[0] -= 0.1
+        if turn == 8:
+            particles.state[256:] = 0
+        if turn == 9:
+            particles.state[:] = 0
+
+        if isinstance(test_context, xo.ContextCpu):
+            particles.reorganize()
+
+        # track and monitor
+        line.track(particles, num_turns=1)
+
+
+    # Check against expected values
+    expected_x_intensity = np.zeros((20, nbins))
+    expected_y_intensity = np.zeros((20, nbins))
+    for turn in range(10):
+        for sub in range(2):
+            lim = {8:256, 9:0}.get(turn, npart) # consider dead particles in last turns
+            x_sub = np.copy(x[:lim][sub::2])
+            y_sub = np.copy(y[:lim][sub::2])
+            if sub == 0 and lim > 0:
+                x_sub[0] += 0.1 * (turn+1)
+                y_sub[0] -= 0.1 * (turn+1)
+            # benchmark against numpy's histogram function
+            hist_x, edges_x = np.histogram(x_sub, bins=nbins, range=(-2.5, 2.5))
+            hist_y, edges_y = np.histogram(y_sub, bins=nbins, range=(-4, 2))
+            expected_x_intensity[2*turn+sub, :] = hist_x
+            expected_y_intensity[2*turn+sub, :] = hist_y
+
+    assert_allclose(monitor.x_edges, edges_x, err_msg="Monitor x_edges does not match expected values")
+    assert_allclose(monitor.y_edges, edges_y, err_msg="Monitor y_edges does not match expected values")    
+    assert_allclose(monitor.x_grid, (edges_x[1:]+edges_x[:-1])/2, err_msg="Monitor x_grid does not match expected values")
+    assert_allclose(monitor.y_grid, (edges_y[1:]+edges_y[:-1])/2, err_msg="Monitor y_grid does not match expected values")
+    assert_allclose(monitor.x_intensity, expected_x_intensity, err_msg="Monitor x_intensity does not match expected values")
+    assert_allclose(monitor.y_intensity, expected_y_intensity, err_msg="Monitor y_intensity does not match expected values")
+
+@for_all_test_contexts
+def test_collective_ebe_monitor(test_context):
+    num_turns = 30
+
+    # Turn-by-turn mode
+    monitor_mode = True
+    # Line without collective elements
+    line = line0.copy()
+    line.build_tracker(_context=test_context)
+    particles = particles0.copy(_context=test_context)
+
+    line.track(particles, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x = line.record_last_track.x
+
+    # Line with collective elements
+    line_collective = line0.copy()
+    line_collective.elements[2].iscollective = True # Thick element (Drift)
+    line_collective.elements[12000].iscollective = True
+    line_collective.build_tracker(_context=test_context)
+    particles_collective = particles0.copy(_context=test_context)
+
+    line_collective.track(particles_collective, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x_collective = line_collective.record_last_track.x
+
+    assert np.allclose(recoded_track_x, recoded_track_x_collective)
+
+    # Element by element mode
+    monitor_mode = 'ONE_TURN_EBE'
+    # Line without collective elements
+    line = line0.copy()
+    line.build_tracker(_context=test_context)
+    particles = particles0.copy(_context=test_context)
+
+    line.track(particles, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x = line.record_last_track.x
+
+    # Line with collective elements
+    line_collective = line0.copy()
+    line_collective.elements[2].iscollective = True # Thick element (Drift)
+    line_collective.elements[12000].iscollective = True
+    line_collective.build_tracker(_context=test_context)
+    particles_collective = particles0.copy(_context=test_context)
+
+    line_collective.track(particles_collective, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x_collective = line_collective.record_last_track.x
+    assert np.allclose(recoded_track_x, recoded_track_x_collective)
 
 @for_all_test_contexts
 def test_beam_size_monitor(test_context):
@@ -253,4 +392,3 @@ def test_beam_size_monitor(test_context):
     assert_allclose(monitor.x_std, expected_x_std, err_msg="Monitor x standard deviation does not match expected values")
     assert_allclose(monitor.y_std, 10*expected_x_std, err_msg="Monitor y standard deviation does not match expected values")
     
-

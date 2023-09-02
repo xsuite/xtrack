@@ -217,6 +217,8 @@ def test_twiss_and_survey(test_context):
                     mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
                     mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
 
+                    assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
+                                    atol=1e-6, rtol=0)
                     assert np.isclose(twtst['betx'][ixt], twmad['betx'][imad],
                                     atol=0, rtol=7e-4)
                     assert np.isclose(twtst['bety'][ixt], twmad['bety'][imad],

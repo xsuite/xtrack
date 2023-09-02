@@ -39,7 +39,10 @@ def test_footprint(test_context, freeze_longitudinal):
     fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             n_r=11, n_theta=7, r_range=[0.05, 7],
                             theta_range=[0.01, np.pi/2-0.01],
+                            keep_tracking_data=True,
                             **kwargs)
+    
+    assert hasattr(fp1, 'tracking_data')
 
     assert hasattr(fp1, 'theta_grid')
     assert hasattr(fp1, 'r_grid')

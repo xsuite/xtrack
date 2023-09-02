@@ -11,6 +11,23 @@ line.build_tracker()
 line_thick = line.copy()
 line_thick.build_tracker()
 
+# # Refresh
+# print('\nRefresh...')
+# t1 = time.time()
+# mgr = line._xdeps_manager
+# mgr.rdeps.clear()
+# mgr.rtasks.clear()
+# mgr.deptasks.clear()
+# mgr.tartasks.clear()
+
+# for ii, tt in enumerate(mgr.tasks.values()):
+#     print(f'...{ii}/{len(mgr.tasks)}    ', end='\r', flush=True)
+#     mgr.register(tt)
+# t2 = time.time()
+# print('...done')
+# print('Time refresh: ', t2-t1)
+
+
 slicing_strategies = [
     Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
     Strategy(slicing=Teapot(4), element_type=xt.Bend),
@@ -22,7 +39,10 @@ slicing_strategies = [
 ]
 
 line.discard_tracker()
+t1 = time.time()
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
+t2 = time.time()
+print('\nTime slice thick: ', t2-t1)
 line.build_tracker()
 
 tw = line.twiss()
@@ -64,7 +84,7 @@ assert np.isclose(tw['px', 'ip5'], 0, rtol=0, atol=5e-7)
 assert np.isclose(tw['py', 'ip5'], 60e-6, rtol=0, atol=5e-7)
 
 t1 = time.time()
-line_thick.match(
+opt_thick = line_thick.match(
     vary=[
         xt.Vary('kqtf.b1', step=1e-8),
         xt.Vary('kqtd.b1', step=1e-8),
@@ -79,7 +99,7 @@ line_thick.match(
 t2 = time.time()
 print('\nTime match thick: ', t2-t1)
 
-line.match(
+opt_thin = line.match(
     vary=[
         xt.Vary('kqtf.b1', step=1e-8),
         xt.Vary('kqtd.b1', step=1e-8),

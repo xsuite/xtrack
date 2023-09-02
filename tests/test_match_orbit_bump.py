@@ -122,7 +122,7 @@ def test_match_orbit_bump_with_weights():
     line.build_tracker()
 
     for twiss_init in ['preserve', 'preserve_start', 'preserve_end']:
-        res = line.match(
+        opt = line.match(
             #verbose=True,
             solver='jacobian',
             # Portion of the beam line to be modified and initial conditions
@@ -166,7 +166,7 @@ def test_match_orbit_bump_with_weights():
         assert np.isclose(line.vars['acbv22.l8b1']._value, 38e-6, atol=0, rtol=0.02)
 
         # Extract last twiss done by optimizer
-        last_data = res['optimizer']._err._last_data
+        last_data = opt._err._last_data
         action = list(last_data.keys())[0]
         last_twiss  = last_data[action]
         assert last_twiss.orientation == (
@@ -174,7 +174,7 @@ def test_match_orbit_bump_with_weights():
         assert last_twiss.method == '6d'
         assert last_twiss.reference_frame == 'proper'
 
-        targets = res['optimizer'].targets
+        targets = opt.targets
         assert targets[0].tar == ('y', 'mb.b26l8.b1')
         assert targets[0].weight == 10
         assert targets[1].tar == ('py', 'mb.b26l8.b1')

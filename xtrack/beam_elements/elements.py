@@ -78,9 +78,6 @@ class Drift(BeamElement):
         _pkg_root.joinpath('beam_elements/elements_src/drift_elem.h'),
         ]
 
-    def make_slice(self, weight):
-        return Drift(length=self.length * weight)
-
     @staticmethod
     def add_slice(weight, container, thick_name, slice_name, _buffer=None):
         container[slice_name] = Drift(_buffer=_buffer)
@@ -105,6 +102,7 @@ class Cavity(BeamElement):
         'voltage': xo.Float64,
         'frequency': xo.Float64,
         'lag': xo.Float64,
+        'lag_taper': xo.Float64,
         }
 
     _extra_c_sources = [
@@ -211,6 +209,32 @@ class Elens(BeamElement):
             polynomial_order = len(coefficients_polynomial)-1
             self.polynomial_order = polynomial_order
 
+
+class NonLinearLens(BeamElement):
+    '''
+    Beam element modeling a non-linear lens with elliptic potential.
+    See the corresponding element in MAD-X documentation.
+
+    Parameters
+    ----------
+    knll : float
+        Integrated strength of lens (m). The strength is parametrized so that
+        the quadrupole term of the multipole expansion is k1=2*knll/cnll^2.
+    cnll : float
+        Focusing strength (m).
+        The dimensional parameter of lens (m).
+        The singularities of the potential are located at x=-cnll, +cnll and y=0.
+    '''
+
+    _xofields={
+            'knll': xo.Float64,
+            'cnll': xo.Float64,
+            }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('headers/constants.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/nonlinearlens.h'),
+    ]
 
 
 class Wire(BeamElement):
@@ -589,6 +613,7 @@ class Multipole(BeamElement):
         'hxl': xo.Float64,
         'hyl': xo.Float64,
         'radiation_flag': xo.Int64,
+        'delta_taper': xo.Float64,
         'knl': xo.Float64[:],
         'ksl': xo.Float64[:],
         }
@@ -637,6 +662,9 @@ class Multipole(BeamElement):
 
         if ksl is not None:
             nksl[: len(ksl)] = np.array(ksl)
+
+        if 'delta_taper' not in kwargs.keys():
+            kwargs['delta_taper'] = 0.0
 
         order = n - 1
 
@@ -719,6 +747,7 @@ class SimpleThinQuadrupole(BeamElement):
 
 class CombinedFunctionMagnet(BeamElement):
     isthick = True
+    has_backtrack = True
 
     _xofields={
         'k0': xo.Float64,
@@ -841,6 +870,27 @@ class CombinedFunctionMagnet(BeamElement):
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
 
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(
+            length=self_or_ref.length * weight,
+            num_multipole_kicks=self_or_ref.num_multipole_kicks,
+            order=self_or_ref.order,
+            _buffer=_buffer,
+        )
+        ref = container[slice_name]
+
+        ref.k0 = _get_expr(self_or_ref.k0)
+        ref.k1 = _get_expr(self_or_ref.k1)
+        ref.h = _get_expr(self_or_ref.h)
+
+        for ii in range(len(self_or_ref.knl)):
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
+
+        for ii in range(len(self_or_ref.ksl)):
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
+
     @staticmethod
     def delete_element_ref(ref):
         # Remove the array fields
@@ -853,6 +903,50 @@ class CombinedFunctionMagnet(BeamElement):
             'k0', 'k1', 'h', 'length', 'num_multipole_kicks', 'order',
             'inv_factorial_order',
         ]:
+            _unregister_if_preset(getattr(ref, field))
+
+        # Remove the ref to the element itself
+        _unregister_if_preset(ref)
+
+class Sextupole(BeamElement):
+    isthick = True
+    has_backtrack = True
+
+    _xofields={
+        'k2': xo.Float64,
+        'k2s': xo.Float64,
+        'length': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/sextupole.h'),
+    ]
+
+    @staticmethod
+    def add_slice(weight, container, thick_name, slice_name, _buffer=None):
+        self_or_ref = container[thick_name]
+
+        container[slice_name] = Multipole(knl=np.zeros(3), ksl=np.zeros(3),
+                                          _buffer=_buffer)
+        ref = container[slice_name]
+
+        ref.knl[0] = 0.
+        ref.knl[1] = 0.
+        ref.knl[2] = weight * (
+            _get_expr(self_or_ref.k2) * _get_expr(self_or_ref.length))
+
+        ref.ksl[0] = 0.
+        ref.ksl[1] = 0.
+        ref.ksl[2] = weight * (
+            _get_expr(self_or_ref.k2s) * _get_expr(self_or_ref.length))
+
+        ref.order = 2
+
+    @staticmethod
+    def delete_element_ref(ref):
+        # Remove the scalar fields
+        for field in ['k2', 'k2s', 'length']:
             _unregister_if_preset(getattr(ref, field))
 
         # Remove the ref to the element itself
@@ -972,6 +1066,25 @@ class Quadrupole(BeamElement):
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
 
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(
+            length=self_or_ref.length * weight,
+            num_multipole_kicks=self_or_ref.num_multipole_kicks,
+            order=self_or_ref.order,
+            _buffer=_buffer,
+        )
+        ref = container[slice_name]
+
+        ref.k1 = _get_expr(self_or_ref.k1)
+
+        for ii in range(len(self_or_ref.knl)):
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
+
+        for ii in range(len(self_or_ref.ksl)):
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
+
     @staticmethod
     def delete_element_ref(ref):
         # Remove the array fields
@@ -987,6 +1100,53 @@ class Quadrupole(BeamElement):
 
         # Remove the ref to the element itself
         _unregister_if_preset(ref)
+
+
+class Solenoid(BeamElement):
+    isthick = True
+
+    _xofields = {
+        'length': xo.Float64,
+        'ks': xo.Float64,
+        'ksi': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
+    ]
+
+    def __init__(self, length=0, ks=0, ksi=0, **kwargs):
+        """
+        Solenoid element.
+
+        Parameters
+        ----------
+        length : float
+            Length of the element in meters.
+        ks : float
+            Strength of the solenoid component in rad / m. Only to be specified
+            when the element is thin, i.e. when `length` == 0.
+        ksi : float
+            Integrated strength of the solenoid component in rad.
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        if length == 0:
+            # Fail when trying to create a thin solenoid, as these are not
+            # tested yet
+            raise NotImplementedError('Thin solenoids are not implemented yet.')
+            # self.isthick = False
+
+        if ksi and length:
+            raise ValueError(
+                "The parameter `ksi` can only be specified when `length` == 0."
+            )
+
+        self.xoinitialize(length=length, ks=ks, ksi=ksi, **kwargs)
 
 
 class Bend(BeamElement):
@@ -1127,6 +1287,27 @@ class Bend(BeamElement):
         ref.hxl = _get_expr(self_or_ref.h) * _get_expr(self_or_ref.length) * weight
         ref.length = _get_expr(self_or_ref.length) * weight
         ref.order = order
+
+    @classmethod
+    def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
+        self_or_ref = container[name]
+        container[slice_name] = cls(
+            length=self_or_ref.length * weight,
+            num_multipole_kicks=self_or_ref.num_multipole_kicks,
+            order=self_or_ref.order,
+            _buffer=_buffer,
+        )
+        ref = container[slice_name]
+
+        ref.k0 = _get_expr(self_or_ref.k0)
+        ref.h = _get_expr(self_or_ref.h)
+        ref.length = _get_expr(self_or_ref.length) * weight
+
+        for ii in range(len(self_or_ref.knl)):
+            ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
+
+        for ii in range(len(self_or_ref.ksl)):
+            ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
     @staticmethod
     def delete_element_ref(ref):
@@ -1404,6 +1585,7 @@ class DipoleEdge(BeamElement):
             'fint': xo.Float64,
             'model': xo.Int64,
             'side': xo.Int64,
+            'delta_taper': xo.Float64,
             }
 
     _extra_c_sources = [
