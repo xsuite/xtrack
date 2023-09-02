@@ -234,7 +234,7 @@ class TargetInequality(Target):
 
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
                  line=None, weight=None, tag=''):
-        super().__init__(tar, value=0, at=at, tol=tol, scale=scale, line=line,
+        Target.__init__(self, tar, value=0, at=at, tol=tol, scale=scale, line=line,
                          weight=weight, tag=tag)
         assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
         self.ineq_sign = ineq_sign
@@ -256,7 +256,7 @@ class TargetRelPhaseAdvance(Target):
 
     def __init__(self, tar, value, at_1=None, at_0=None, tag='',  **kwargs):
 
-        super().__init__(tar=self.compute, value=value, tag=tag, **kwargs)
+        Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
