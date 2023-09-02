@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import numpy as np
 
@@ -244,7 +244,9 @@ class Line:
     @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None,
                       sequences=None, copy_elements=False,
-                      naming_scheme='{}{}', auto_reorder=False, **kwargs):
+                      naming_scheme='{}{}', auto_reorder=False,
+                      refer: Literal['entry', 'centre', 'exit'] = 'entry',
+                      **kwargs):
 
         """
 
@@ -273,8 +275,14 @@ class Line:
         auto_reorder : bool, optional
             If false (default), nodes must be defined in order of increasing `s`
             coordinate, otherwise an exception is thrown. If true, nodes can be
-            defined in any order and are re-ordered as neseccary. Useful to
+            defined in any order and are re-ordered as necessary. Useful to
             place additional elements inside of sub-sequences.
+        refer : str, optional
+            Specifies where in the node the s coordinate refers to. Can be
+            'entry', 'centre' or 'exit'. By default given s specifies the
+            entry point of the element. If 'centre' is given, the s coordinate
+            marks the centre of the element. If 'exit' is given, the s coordinate
+            marks the exit point of the element.
         **kwargs : dict
             Arguments passed to constructor of the line
 
@@ -327,16 +335,28 @@ class Line:
         drifts = {}
         last_s = 0
         for node in nodes:
-            if node.s < last_s:
-                raise ValueError(f'Negative drift space from {last_s} to {node.s}'
-                    f' ({node.name}). Fix or set auto_reorder=True')
             if _is_thick(node.what):
-                raise NotImplementedError(
-                    f'Thick elements currently not implemented: {node.name}')
+                node_length = node.what.length
+                if refer == 'entry':
+                    offset = 0
+                elif refer == 'centre':
+                    offset = -node_length / 2
+                elif refer == 'exit':
+                    offset = -node_length
+            else:
+                node_length = 0
+                offset = 0
+
+            node_s = node.s + offset
+
+            if node_s < last_s:
+                raise ValueError(
+                    f'Negative drift space from {last_s} to {node_s} '
+                    f'({node.name} {refer}). Fix or set auto_reorder=True')
 
             # insert drift as needed (re-use if possible)
-            if node.s > last_s:
-                ds = node.s - last_s
+            if node_s > last_s:
+                ds = node_s - last_s
                 if ds not in drifts:
                     drifts[ds] = Drift(length=ds)
                 element_objects.append(drifts[ds])
@@ -345,7 +365,7 @@ class Line:
             # insert element
             element_objects.append(node.what)
             element_names.append(node.name)
-            last_s = node.s
+            last_s = node_s + node_length
 
         # add last drift
         if length < last_s:

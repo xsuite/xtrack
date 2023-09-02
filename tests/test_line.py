@@ -7,6 +7,7 @@ import pickle
 import pathlib
 
 import numpy as np
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -611,7 +612,6 @@ def test_from_dict_current():
 
 
 def test_from_sequence():
-
     # direct element definition
     # -------------------------
     line = Line.from_sequence([
@@ -690,18 +690,55 @@ def test_from_sequence():
     # test negative drift
     # -------------------
     Line.from_sequence([Node(3, Multipole()), Node(2, Multipole())], 10, auto_reorder=True)
-    try:
+
+    with pytest.raises(ValueError):
         Line.from_sequence([Node(3, Multipole()), Node(2, Multipole())], 10)
-    except ValueError:
-        pass  # expected due to negative drift
-    else:
-        raise AssertionError('Expected exception not raised')
-    try:
+
+    with pytest.raises(ValueError):
         Line.from_sequence([Node(1, Multipole()), Node(4, Multipole())], 2)
-    except ValueError:
-        pass  # expected due to insufficient length
-    else:
-        raise AssertionError('Expected exception not raised')
+
+
+@pytest.mark.parametrize('refer', ['entry', 'centre', 'exit'])
+def test_from_sequence_with_thick(refer):
+    sequence = [
+        xt.Node(1.2, xt.Drift(length=1), name='my_drift'),
+        xt.Node(3, xt.Bend(length=1, k0=0.2), name='my_bend'),
+    ]
+    line = xt.Line.from_sequence(sequence, 5, refer=refer)  # noqa
+
+    assert len(line) == 5
+    assert line.get_length() == 5.0
+
+    assert line.element_names[1] == 'my_drift'
+    assert line.element_names[3] == 'my_bend'
+
+    offset = 0
+    if refer == 'centre':
+        offset = -0.5
+    elif refer == 'exit':
+        offset = -1
+
+    assert np.allclose(
+        line.get_s_position(line.element_names),
+        [
+            0,             # drift
+            1.2 + offset,  # my_drift
+            2.2 + offset,  # drift
+            3 + offset,    # my_bend
+            4 + offset,    # drift
+        ],
+        atol=1e-15,
+    )
+
+
+def test_from_sequence_with_thick_fails():
+    sequence = [
+        xt.Node(1.2, xt.Drift(length=3), name='my_drift'),
+        xt.Node(3, xt.Bend(length=3, k0=0.2), name='my_bend'),
+    ]
+    with pytest.raises(ValueError):
+        _ = xt.Line.from_sequence(sequence, 5)
+
 
 @for_all_test_contexts
 def test_optimize_multipoles(test_context):
