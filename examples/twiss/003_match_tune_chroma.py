@@ -92,7 +92,7 @@ line.match(method='4d', # <-- 4d matching
 t2 = time.time()                                                                #!skip-doc
 print('\nTime 4d match: ', t2-t1)                                               #!skip-doc
 
-tw_final = line.twiss(method='4d')                                           #!skip-doc
+tw_final = line.twiss(method='4d')                                              #!skip-doc
 print('\nFinal twiss parameters')                                               #!skip-doc
 print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "                   #!skip-doc
       f"Q'x = {tw_final['dqx']:.5f} Q'y = {tw_final['dqy']:.5f}")               #!skip-doc

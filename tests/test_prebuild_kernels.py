@@ -14,7 +14,7 @@ from xtrack.prebuild_kernels import regenerate_kernels
 
 def test_prebuild_kernels(mocker, tmp_path):
     # Set up the temporary kernels directory
-    metadata = {
+    kernel_definitions = {
         "test_module": {
             "config": {
                 "XTRACK_MULTIPOLE_NO_SYNRAD": True,
@@ -23,16 +23,15 @@ def test_prebuild_kernels(mocker, tmp_path):
                 "XFIELDS_BB3D_NO_BHABHA": True,
             },
             "classes": [
-                "Drift",
-                "Cavity",
-                "XYShift",
+                xt.Drift,
+                xt.Cavity,
+                xt.XYShift,
             ]
         },
     }
 
-    with (tmp_path /
-          xt.prebuild_kernels.XT_PREBUILT_KERNELS_METADATA).open('w+') as fp:
-        json.dump(metadata, fp)
+    patch_defs = 'xtrack.prebuilt_kernels.kernel_definitions.kernel_definitions'
+    mocker.patch(patch_defs, kernel_definitions)
 
     mocker.patch('xtrack.prebuild_kernels.XT_PREBUILT_KERNELS_LOCATION',
                  tmp_path)

@@ -125,7 +125,7 @@ def test_ring_with_radiation(test_context):
 
     # Build tracker
     line.matrix_stability_tol = 1e-2
-    line.build_tracker(_context=test_context)
+    line.build_tracker()
 
     line.configure_radiation(model='mean')
 
@@ -166,12 +166,15 @@ def test_ring_with_radiation(test_context):
 
     line.configure_radiation(model='mean')
     part_co = line.find_closed_orbit()
+
     par_for_emit = line.build_particles(
                                 x_norm=50*[0],
                                 zeta=part_co.zeta[0], delta=part_co.delta[0],
+                                _context=test_context
                                 )
+    line.discard_tracker()
+    line.build_tracker(test_context)
     line.configure_radiation(model='quantum')
-
     num_turns=1500
     line.track(par_for_emit, num_turns=num_turns, turn_by_turn_monitor=True)
     mon = line.record_last_track
@@ -196,10 +199,13 @@ def test_ring_with_radiation(test_context):
     nemitt_x = 0.5e-6
     nemitt_y = 0.5e-6
 
+    line.discard_tracker()
+    line.build_tracker(_context=xo.context_default)
     line.configure_radiation(model='mean')
     pgen = xp.generate_matched_gaussian_bunch(line=line,
             num_particles=n_part, total_intensity_particles=bunch_intensity,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z)
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
+            _context=test_context)
 
     assert pgen._buffer.context is test_context
     pgen.move(_context=xo.ContextCpu())

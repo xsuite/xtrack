@@ -62,6 +62,14 @@ def test_monitor(test_context):
     assert np.all(monitor.at_element[:, :] == 0)
     assert np.all(monitor.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
+    # Test to_dict/from_dict round trip
+    dct = monitor.to_dict()
+    monitor2 = xt.ParticlesMonitor.from_dict(dct, _context=test_context)
+    assert np.all(monitor2.x.shape == np.array([50, 10]))
+    assert np.all(monitor2.at_turn[3, :] == np.arange(5, 15))
+    assert np.all(monitor2.particle_id[:, 3] == np.arange(0, num_particles))
+    assert np.all(monitor2.at_element[:, :] == 0)
+    assert np.all(monitor2.pzeta[:, 0] == mon.pzeta[:, 5]) #5 in mon because the 0th entry of monitor is the 5th turn (5th entry in mon)
 
     # Test explicit monitor used in in stand-alone mode
     mon2 = xt.ParticlesMonitor(_context=test_context,
@@ -167,3 +175,58 @@ def test_last_turns_monitor(test_context):
     assert np.all(monitor.x == np.array([[0,0,2,1,0],[3,5,7,9,11],[0,-2,-4,-6,-8],[20,23,26,29,32]]))
 
 
+@for_all_test_contexts
+def test_collective_ebe_monitor(test_context):
+    num_turns = 30
+
+    # Turn-by-turn mode
+    monitor_mode = True
+    # Line without collective elements
+    line = line0.copy()
+    line.build_tracker(_context=test_context)
+    particles = particles0.copy(_context=test_context)
+
+    line.track(particles, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x = line.record_last_track.x
+
+    # Line with collective elements
+    line_collective = line0.copy()
+    line_collective.elements[2].iscollective = True # Thick element (Drift)
+    line_collective.elements[12000].iscollective = True
+    line_collective.build_tracker(_context=test_context)
+    particles_collective = particles0.copy(_context=test_context)
+
+    line_collective.track(particles_collective, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x_collective = line_collective.record_last_track.x
+
+    assert np.allclose(recoded_track_x, recoded_track_x_collective)
+
+    # Element by element mode
+    monitor_mode = 'ONE_TURN_EBE'
+    # Line without collective elements
+    line = line0.copy()
+    line.build_tracker(_context=test_context)
+    particles = particles0.copy(_context=test_context)
+
+    line.track(particles, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x = line.record_last_track.x
+
+    # Line with collective elements
+    line_collective = line0.copy()
+    line_collective.elements[2].iscollective = True # Thick element (Drift)
+    line_collective.elements[12000].iscollective = True
+    line_collective.build_tracker(_context=test_context)
+    particles_collective = particles0.copy(_context=test_context)
+
+    line_collective.track(particles_collective, num_turns=num_turns,
+                turn_by_turn_monitor=monitor_mode,
+                )
+    recoded_track_x_collective = line_collective.record_last_track.x
+
+    assert np.allclose(recoded_track_x, recoded_track_x_collective)

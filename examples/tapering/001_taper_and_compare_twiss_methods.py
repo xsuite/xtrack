@@ -2,26 +2,26 @@ import json
 import numpy as np
 import xtrack as xt
 
-# case_name = 'clic_dr'
-# filename = '../../test_data/clic_dr/line_for_taper.json'
-# configs = [
-#     {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
-#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
-#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5, 'q_atol': 5e-4},
-#     {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-3, 'q_atol': 5e-4},
-#     {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5, 'q_atol': 5e-4},
-# ]
-
-case_name = 'fcc-ee'
-filename = 'line_no_radiation.json'
+case_name = 'clic_dr'
+filename = '../../test_data/clic_dr/line_for_taper.json'
 configs = [
-    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4},
-    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4, 'delta_in_beta':True},
-    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 5e-3, 'q_atol': 5e-4},
-    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-4, 'q_atol': 5e-4},
-    {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-3, 'q_atol': 7e-4},
-    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-4, 'q_atol': 1e-4},
+    {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
+    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 2e-2, 'q_atol': 5e-4},
+    {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 2e-5, 'q_atol': 5e-4},
+    {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-3, 'q_atol': 5e-4},
+    {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-5, 'q_atol': 5e-4},
 ]
+
+# case_name = 'fcc-ee'
+# filename = 'line_no_radiation.json'
+# configs = [
+#     {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4},
+#     {'radiation_method': 'full', 'p0_correction': False, 'cavity_preserve_angle': False, 'beta_rtol': 1e-2, 'q_atol': 5e-4, 'delta_in_beta':True},
+#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': False, 'beta_rtol': 5e-3, 'q_atol': 5e-4},
+#     {'radiation_method': 'full', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-4, 'q_atol': 5e-4},
+#     {'radiation_method': 'kick_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 3e-3, 'q_atol': 7e-4},
+#     {'radiation_method': 'scale_as_co', 'p0_correction': True, 'cavity_preserve_angle': True, 'beta_rtol': 1e-4, 'q_atol': 1e-4},
+# ]
 
 
 with open(filename, 'r') as f:
@@ -47,10 +47,15 @@ for conf in configs:
 
     ifig += 1
 
+    extra_kwargs = {}
+    if conf['cavity_preserve_angle']:
+        extra_kwargs['matrix_stability_tol'] = 0.1
+
     # Twiss(es) with radiation
     line.config.XTRACK_CAVITY_PRESERVE_ANGLE = conf['cavity_preserve_angle']
     tw = line.twiss(radiation_method=conf['radiation_method'],
-                       eneloss_and_damping=(conf['radiation_method'] != 'kick_as_co'))
+            eneloss_and_damping=(conf['radiation_method'] != 'kick_as_co'),
+            **extra_kwargs)
     line.config.XTRACK_CAVITY_PRESERVE_ANGLE = False
 
     if conf['p0_correction']:

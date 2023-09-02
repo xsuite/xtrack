@@ -529,7 +529,7 @@ def test_fringe_implementations(test_context):
 
 
 @for_all_test_contexts
-def test_backtrack_with_bend_and_quadrupole(test_context):
+def test_backtrack_with_bend_quadrupole_and_cfm(test_context):
 
     # Check bend
     b = xt.Bend(k0=0.2, h=0.1, length=1.0)
@@ -595,6 +595,8 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     line.track(p4, backtrack=True)
     p4.move(_context=xo.context_default)
     assert np.all(p4.state == -31)
+
+    # Same for dipole edge
     de = xt.DipoleEdge(e1=0.1, k=3, fint=0.3)
     line = xt.Line(elements=[de])
     line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
@@ -612,6 +614,36 @@ def test_backtrack_with_bend_and_quadrupole(test_context):
     p2.move(_context=xo.context_default)
     assert np.all(p2.state == -32)
 
+    # Same for combined function magnet
+    cfm = xt.CombinedFunctionMagnet(length=1.0, k1=0.2, h=0.1)
+    line = xt.Line(elements=[cfm])
+    line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+    line.reset_s_at_end_turn = False
+    line.build_tracker(_context=test_context)
+
+    p0 = line.build_particles(x=0.01, px=0.02, y=0.03, py=0.04,
+                            zeta=0.05, delta=0.01)
+    p1 = p0.copy(_context=test_context)
+    line.track(p1)
+    p2 = p1.copy(_context=test_context)
+    line.track(p2, backtrack=True)
+
+    p0.move(_context=xo.context_default)
+    p2.move(_context=xo.context_default)
+    assert np.allclose(p2.s, p0.s, atol=1e-15, rtol=0)
+    assert np.allclose(p2.x, p0.x, atol=1e-15, rtol=0)
+    assert np.allclose(p2.px, p0.px, atol=1e-15, rtol=0)
+    assert np.allclose(p2.y, p0.y, atol=1e-15, rtol=0)
+    assert np.allclose(p2.py, p0.py, atol=1e-15, rtol=0)
+    assert np.allclose(p2.zeta, p0.zeta, atol=1e-15, rtol=0)
+    assert np.allclose(p2.delta, p0.delta, atol=1e-15, rtol=0)
+
+    line.configure_bend_model(core='expanded')
+    cfm.num_multipole_kicks = 3
+    p4 = p1.copy(_context=test_context)
+    line.track(p4, backtrack=True)
+    p4.move(_context=xo.context_default)
+    assert np.all(p4.state == -31)
 
 def test_import_thick_with_apertures_and_slice():
     mad = Madx()
@@ -730,3 +762,130 @@ def test_import_thick_with_apertures_and_slice():
 
         _assert_eq(line[f'elm_tilt_entry..{i}'].angle, 0.2 * rad_to_deg)
         _assert_eq(line[f'elm_tilt_exit..{i}'].angle, -0.2 * rad_to_deg)
+
+@for_all_test_contexts
+def test_sextupole(test_context):
+    k2 = 3.
+    k2s = 5.
+    length = 0.4
+
+    line_thin = xt.Line(elements=[
+        xt.Drift(length=length/2),
+        xt.Multipole(knl=[0., 0., k2 * length],
+                    ksl=[0., 0., k2s * length],
+                    length=length),
+        xt.Drift(length=length/2),
+    ])
+    line_thin.build_tracker(_context=test_context)
+
+    line_thick = xt.Line(elements=[
+        xt.Sextupole(k2=k2, k2s=k2s, length=length),
+    ])
+    line_thick.build_tracker(_context=test_context)
+
+    p = xt.Particles(
+        p0c=6500e9,
+        x=[-3e-2, -2e-3, 0, 1e-3, 2e-3, 3e-2],
+        px=[1e-6, 2e-6,  0, 2e-6, 1e-6, 1e-6],
+        y=[-2e-2, -5e-3, 0, 5e-3, -4e-3, 2e-2],
+        py=[2e-6, 4e-6,  0, 2e-6, 1e-6, 1e-6],
+        delta=[1e-3, 2e-3, 0, -2e-3, -1e-3, -1e-3],
+        zeta=[-5e-2, -6e-3, 0, 6e-3, 5e-3, 5e-2],
+    )
+
+    p_thin = p.copy(_context=test_context)
+    p_thick = p.copy(_context=test_context)
+
+    line_thin.track(p_thin)
+    line_thick.track(p_thick)
+
+    p_thin.move(_context=xo.context_default)
+    p_thick.move(_context=xo.context_default)
+    assert np.allclose(p_thin.x, p_thick.x, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.px, p_thick.px, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.y, p_thick.y, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.py, p_thick.py, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.delta, p_thick.delta, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.zeta, p_thick.zeta, rtol=0, atol=1e-14)
+
+    # slicing
+    Teapot = xt.slicing.Teapot
+    Strategy = xt.slicing.Strategy
+
+    line_sliced = line_thick.copy()
+    line_sliced.slice_thick_elements(
+        slicing_strategies=[Strategy(slicing=Teapot(5))])
+    line_sliced.build_tracker(_context=test_context)
+
+    p_sliced = p.copy(_context=test_context)
+    line_sliced.track(p_sliced)
+
+    p_sliced.move(_context=xo.context_default)
+    assert np.allclose(p_sliced.x, p_thick.x, rtol=0, atol=5e-6)
+    assert np.allclose(p_sliced.px, p_thick.px, rtol=0.01, atol=1e-10)
+    assert np.allclose(p_sliced.y, p_thick.y, rtol=0, atol=5e-6)
+    assert np.allclose(p_sliced.py, p_thick.py, rtol=0.01, atol=1e-10)
+    assert np.allclose(p_sliced.delta, p_thick.delta, rtol=0, atol=1e-14)
+    assert np.allclose(p_sliced.zeta, p_thick.zeta, rtol=0, atol=2e-7)
+
+    p_thick.move(_context=test_context)
+    p_thin.move(_context=test_context)
+    p_sliced.move(_context=test_context)
+
+    line_thin.track(p_thin, backtrack=True)
+    line_thick.track(p_thick, backtrack=True)
+    line_sliced.track(p_sliced, backtrack=True)
+
+    p_thick.move(_context=xo.context_default)
+    p_thin.move(_context=xo.context_default)
+    p_sliced.move(_context=xo.context_default)
+
+    assert np.allclose(p_thin.x, p.x, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.px, p.px, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.y, p.y, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.py, p.py, rtol=0, atol=1e-14)
+    assert np.allclose(p_thin.delta, p.delta, rtol=0, atol=1e-14)
+
+    assert np.allclose(p_thick.x, p.x, rtol=0, atol=1e-14)
+    assert np.allclose(p_thick.px, p.px, rtol=0, atol=1e-14)
+    assert np.allclose(p_thick.y, p.y, rtol=0, atol=1e-14)
+    assert np.allclose(p_thick.py, p.py, rtol=0, atol=1e-14)
+    assert np.allclose(p_thick.delta, p.delta, rtol=0, atol=1e-14)
+
+    assert np.allclose(p_sliced.x, p.x, rtol=0, atol=1e-14)
+    assert np.allclose(p_sliced.px, p.px, rtol=0, atol=1e-14)
+    assert np.allclose(p_sliced.y, p.y, rtol=0, atol=1e-14)
+    assert np.allclose(p_sliced.py, p.py, rtol=0, atol=1e-14)
+    assert np.allclose(p_sliced.delta, p.delta, rtol=0, atol=1e-14)
+    assert np.allclose(p_sliced.zeta, p.zeta, rtol=0, atol=1e-14)
+
+    from cpymad.madx import Madx
+    mad = Madx()
+    mad.input(f"""
+        knob_a := 1.0;
+        knob_b := 2.0;
+        knob_l := 0.4;
+        ss: sequence, l:=2 * knob_b, refer=entry;
+            elem: sextupole, at=0, l:=knob_l, k2:=3*knob_a, k2s:=5*knob_b;
+        endsequence;
+        """)
+    mad.beam()
+    mad.use(sequence='ss')
+
+    line_mad = xt.Line.from_madx_sequence(mad.sequence.ss, allow_thick=True,
+                                        deferred_expressions=True)
+    line_mad.build_tracker()
+
+    elem = line_mad['elem']
+    assert isinstance(elem, xt.Sextupole)
+    assert np.isclose(elem.length, 0.4, rtol=0, atol=1e-14)
+    assert np.isclose(elem.k2, 3, rtol=0, atol=1e-14)
+    assert np.isclose(elem.k2s, 10, rtol=0, atol=1e-14)
+
+    line_mad.vv['knob_a'] = 0.5
+    line_mad.vv['knob_b'] = 0.6
+    line_mad.vv['knob_l'] = 0.7
+
+    assert np.isclose(elem.length, 0.7, rtol=0, atol=1e-14)
+    assert np.isclose(elem.k2, 1.5, rtol=0, atol=1e-14)
+    assert np.isclose(elem.k2s, 3.0, rtol=0, atol=1e-14)

@@ -35,6 +35,7 @@ class TrackerData:
             element_names,
             element_s_locations,
             line_length,
+            cache=None,
             compound_mask=None,
             element_compound_names=None,
             kernel_element_classes=None,
@@ -91,6 +92,9 @@ class TrackerData:
         self.line_element_classes = line_element_classes
         self.element_s_locations = tuple(element_s_locations)
         self.line_length = line_length
+        if cache is None:
+            cache = {}
+        self.cache = cache
 
         if compound_mask is None:
             compound_mask = np.zeros(len(element_names), dtype=np.bool)

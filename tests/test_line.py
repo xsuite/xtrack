@@ -7,6 +7,7 @@ import pickle
 import pathlib
 
 import numpy as np
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -395,7 +396,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.11
     assert len(line.elements) == 7
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_part0', 'inserted_drift', 'e0_part1', 'e1', 'e2', 'e3', 'e4']))])
+                ['e0_u', 'inserted_drift', 'e0_d', 'e1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -403,7 +404,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.95
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_part0', 'inserted_drift', 'e1_part1', 'e2', 'e3', 'e4']))])
+                ['e0_u', 'inserted_drift', 'e1_d', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -411,7 +412,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 1.
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'inserted_drift', 'e1_part1', 'e2', 'e3', 'e4']))])
+                ['e0', 'inserted_drift', 'e1_d', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -419,7 +420,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.8
     assert len(line.elements) == 6
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0_part0', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
+                ['e0_u', 'inserted_drift', 'e1', 'e2', 'e3', 'e4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
     line = line0.copy()
@@ -427,11 +428,11 @@ def test_insert():
     assert line.get_s_position('aper') == 2.1
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'e1', 'e2_part0', 'aper', 'e2_part1', 'e3', 'e4']))])
+                ['e0', 'e1', 'e2_u', 'aper', 'e2_d', 'e3', 'e4']))])
     line.insert_element(element=xt.Drift(length=0.8), at_s=1.9, name="newdrift")
     assert line.get_s_position('newdrift') == 1.9
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['e0', 'e1_part0', 'newdrift', 'e2_part1_part1', 'e3', 'e4']))])
+                ['e0', 'e1_u', 'newdrift', 'e2_d_d', 'e3', 'e4']))])
 
     # Check preservation of markers
     elements = []
@@ -466,7 +467,7 @@ def test_insert():
     assert line.get_s_position('inserted_drift') == 0.95
     assert len(line.elements) == 10
     assert np.all([nn==nnref for nn, nnref in list(zip(line.element_names,
-                ['d0_part0', 'inserted_drift', 'd1_part1', 'm1', 'd2', 'm2', 'd3',
+                ['d0_u', 'inserted_drift', 'd1_d', 'm1', 'd2', 'm2', 'd3',
                 'm3', 'd4', 'm4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
@@ -541,6 +542,8 @@ def test_to_dict():
 
     assert result['elements']['d']['__class__'] == 'Drift'
     assert result['elements']['d']['length'] == 1
+    
+    assert result['metadata'] == line.metadata
 
 
 def test_from_dict_legacy():
@@ -580,7 +583,14 @@ def test_from_dict_current():
                 'length': 4,
             },
         },
-        'element_names': ['mn', 'd', 'ms', 'd']
+        'element_names': ['mn', 'd', 'ms', 'd'],
+        'metadata' : {
+            'config_knobs_and_tuning': {
+                'knob_settings': {
+                    'on_x1': 135.0,
+                },
+            },
+        },
     }
     line = xt.Line.from_dict(test_dict)
 
@@ -597,10 +607,11 @@ def test_from_dict_current():
     assert d1.length == 4
 
     assert d2 is d1
+    
+    assert line.metadata == test_dict['metadata']
 
 
 def test_from_sequence():
-
     # direct element definition
     # -------------------------
     line = Line.from_sequence([
@@ -679,18 +690,55 @@ def test_from_sequence():
     # test negative drift
     # -------------------
     Line.from_sequence([Node(3, Multipole()), Node(2, Multipole())], 10, auto_reorder=True)
-    try:
+
+    with pytest.raises(ValueError):
         Line.from_sequence([Node(3, Multipole()), Node(2, Multipole())], 10)
-    except ValueError:
-        pass  # expected due to negative drift
-    else:
-        raise AssertionError('Expected exception not raised')
-    try:
+
+    with pytest.raises(ValueError):
         Line.from_sequence([Node(1, Multipole()), Node(4, Multipole())], 2)
-    except ValueError:
-        pass  # expected due to insufficient length
-    else:
-        raise AssertionError('Expected exception not raised')
+
+
+@pytest.mark.parametrize('refer', ['entry', 'centre', 'exit'])
+def test_from_sequence_with_thick(refer):
+    sequence = [
+        xt.Node(1.2, xt.Drift(length=1), name='my_drift'),
+        xt.Node(3, xt.Bend(length=1, k0=0.2), name='my_bend'),
+    ]
+    line = xt.Line.from_sequence(sequence, 5, refer=refer)  # noqa
+
+    assert len(line) == 5
+    assert line.get_length() == 5.0
+
+    assert line.element_names[1] == 'my_drift'
+    assert line.element_names[3] == 'my_bend'
+
+    offset = 0
+    if refer == 'centre':
+        offset = -0.5
+    elif refer == 'exit':
+        offset = -1
+
+    assert np.allclose(
+        line.get_s_position(line.element_names),
+        [
+            0,             # drift
+            1.2 + offset,  # my_drift
+            2.2 + offset,  # drift
+            3 + offset,    # my_bend
+            4 + offset,    # drift
+        ],
+        atol=1e-15,
+    )
+
+
+def test_from_sequence_with_thick_fails():
+    sequence = [
+        xt.Node(1.2, xt.Drift(length=3), name='my_drift'),
+        xt.Node(3, xt.Bend(length=3, k0=0.2), name='my_bend'),
+    ]
+    with pytest.raises(ValueError):
+        _ = xt.Line.from_sequence(sequence, 5)
+
 
 @for_all_test_contexts
 def test_optimize_multipoles(test_context):
@@ -731,6 +779,12 @@ def test_from_json_to_json(tmp_path):
         element_names=['m', 'd', 'm', 'd']
     )
 
+    example_metadata = {
+        'qx': {'lhcb1': 62.31, 'lhcb2': 62.31},
+        'delta_cmr': 0.0,
+    }
+    line.metadata = example_metadata
+
     line.to_json(tmp_path / 'test.json')
     result = xt.Line.from_json(tmp_path / 'test.json')
 
@@ -757,6 +811,10 @@ def test_from_json_to_json(tmp_path):
 
     assert isinstance(result['d'], xt.Drift)
     assert result['d'].length == 1
+
+    assert result.metadata == example_metadata
+    result.metadata['qx']['lhcb1'] = result.metadata['qx']['lhcb1'] + 1
+    assert result.metadata != example_metadata
 
 @for_all_test_contexts
 def test_config_propagation(test_context):
@@ -844,12 +902,3 @@ def test_pickle():
     collider.vars['on_x1'] = 213
     assert np.isclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 213e-6, atol=1e-9, rtol=0)
     assert np.isclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
-
-    try:
-        lnss2 = pickle.dumps(line)
-    except RuntimeError: # Cannot pickle a line within a multiline
-        pass
-    else:
-        raise RuntimeError('Should have raised RuntimeError')
-
-
