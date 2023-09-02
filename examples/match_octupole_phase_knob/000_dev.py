@@ -122,7 +122,7 @@ print(f'Optimization time: {t2-t1:.2f} s')
 
 knob_values_xs = opt.get_knob_values()
 target_values_xs = opt.target_status(ret=True).current_val
-
+tw_xs = line.twiss()
 
 # for ii in range(len(opt.vary)):
 #     opt.vary[ii].limits = [opt.vary[ii].limits[0] - offset, opt.vary[ii].limits[1] + offset]
@@ -147,10 +147,25 @@ knob_values_ng  = {
 }
 
 line.vars.update(knob_values_ng)
-
 target_values_ng = opt.target_status(ret=True).current_val
+tw_ng = line.twiss()
 
 print(f'xs: |f2002| = \t{np.sqrt(target_values_xs[0]**2 + target_values_xs[1]**2):.2e} '
         f'\t|f4000| = {np.sqrt(target_values_xs[2]**2 + target_values_xs[3]**2):.2e}')
 print(f'ng: |f2002| = \t{np.sqrt(target_values_ng[0]**2 + target_values_ng[1]**2):.2e} '
         f'\t|f4000| = {np.sqrt(target_values_ng[2]**2 + target_values_ng[3]**2):.2e}')
+
+import matplotlib.pyplot as plt
+plt.figure(1)
+sp1 = plt.subplot(211)
+plt.plot(tw.s, tw_ng.betx/tw.betx-1, label='ng')
+plt.plot(tw.s, tw_xs.betx/tw.betx-1, label='xs')
+plt.ylabel(r'$\Delta \beta_x / \beta_x$')
+plt.legend()
+plt.subplot(212, sharex=sp1)
+plt.plot(tw.s, tw_ng.bety/tw.bety-1, label='ng')
+plt.plot(tw.s, tw_xs.bety/tw.bety-1, label='xs')
+plt.ylabel(r'$\Delta \beta_y / \beta_y$')
+plt.xlabel('s [m]')
+plt.legend()
+plt.show()
