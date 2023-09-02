@@ -1102,6 +1102,53 @@ class Quadrupole(BeamElement):
         _unregister_if_preset(ref)
 
 
+class Solenoid(BeamElement):
+    isthick = True
+
+    _xofields = {
+        'length': xo.Float64,
+        'ks': xo.Float64,
+        'ksi': xo.Float64,
+    }
+
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/drift.h'),
+        _pkg_root.joinpath('beam_elements/elements_src/solenoid.h'),
+    ]
+
+    def __init__(self, length=0, ks=0, ksi=0, **kwargs):
+        """
+        Solenoid element.
+
+        Parameters
+        ----------
+        length : float
+            Length of the element in meters.
+        ks : float
+            Strength of the solenoid component in rad / m. Only to be specified
+            when the element is thin, i.e. when `length` == 0.
+        ksi : float
+            Integrated strength of the solenoid component in rad.
+        """
+
+        if '_xobject' in kwargs.keys() and kwargs['_xobject'] is not None:
+            self.xoinitialize(**kwargs)
+            return
+
+        if length == 0:
+            # Fail when trying to create a thin solenoid, as these are not
+            # tested yet
+            raise NotImplementedError('Thin solenoids are not implemented yet.')
+            # self.isthick = False
+
+        if ksi and length:
+            raise ValueError(
+                "The parameter `ksi` can only be specified when `length` == 0."
+            )
+
+        self.xoinitialize(length=length, ks=ks, ksi=ksi, **kwargs)
+
+
 class Bend(BeamElement):
     isthick = True
     has_backtrack = True

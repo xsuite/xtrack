@@ -133,6 +133,7 @@ def test_thick_bend_survey():
     errors = np.max(np.abs(rhos - 10 / (2 * np.math.pi)))
     assert errors < 2e-6
 
+
 @for_all_test_contexts
 @pytest.mark.parametrize('element_type', [xt.Bend, xt.CombinedFunctionMagnet])
 @pytest.mark.parametrize('h', [0.0, 0.1])
@@ -198,6 +199,7 @@ def test_thick_multipolar_component(test_context, element_type, h):
             atol=1e-14,
             rtol=0,
         )
+
 
 @pytest.mark.parametrize(
     'with_knobs',
@@ -308,6 +310,7 @@ def test_import_thick_bend_from_madx(use_true_thick_bends, with_knobs, bend_type
         {'rbend': 1.6 + 0.2 / 2, 'sbend': 1.6}[bend_type],
         atol=1e-16)
     assert np.isclose(elem_dex.k, 0.4, atol=1e-16)
+
 
 @pytest.mark.parametrize('with_knobs', [False, True])
 def test_import_thick_quad_from_madx(with_knobs):
@@ -492,6 +495,7 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
 
     for drift in drifts:
         assert np.isclose(drift.length, 1, atol=1e-16)
+
 
 @for_all_test_contexts
 def test_fringe_implementations(test_context):
@@ -889,3 +893,142 @@ def test_sextupole(test_context):
     assert np.isclose(elem.length, 0.7, rtol=0, atol=1e-14)
     assert np.isclose(elem.k2, 1.5, rtol=0, atol=1e-14)
     assert np.isclose(elem.k2s, 3.0, rtol=0, atol=1e-14)
+
+@pytest.mark.parametrize(
+    'ks, ksi, length',
+    [
+        # thick:
+        (-0.1, 0, 0.9),
+        (0, 0, 0.9),
+        (0.13, 0, 1.6),
+    ]
+)
+@for_all_test_contexts
+def test_solenoid_against_madx(test_context, ks, ksi, length):
+    p0 = xp.Particles(
+        mass0=xp.PROTON_MASS_EV,
+        beta0=[0.15, 0.5, 0.85, 0.15, 0.5, 0.85, 0.5],
+        x=-0.03,
+        y=0.01,
+        px=-0.1,
+        py=0.1,
+        zeta=0.1,
+        delta=[-0.8, -0.5, -0.1, 0, 0.1, 0.5, 0.8],
+        _context=test_context,
+    )
+
+    mad = Madx()
+    if length == 0:
+        dr_len = 1e-11
+        mad.input(f"""
+        ss: sequence, l={dr_len};
+            sol: solenoid, at=0, ks={ks}, ksi={ksi}, l=0;
+            ! since in MAD-X we can't track a zero-length line, we put in
+            ! this tiny drift here at the end of the sequence:
+            dr: drift, at={dr_len / 2}, l={dr_len};
+        endsequence;
+        beam;
+        use, sequence=ss;
+        """)
+    else:
+        mad.input(f"""
+        ss: sequence, l={length};
+            sol: solenoid, at={length / 2}, ks={ks}, ksi={ksi}, l={length};
+        endsequence;
+        beam;
+        use, sequence=ss;
+        """)
+
+    ml = MadLoader(mad.sequence.ss, allow_thick=True)
+    line_thick = ml.make_line()
+    line_thick.build_tracker(_context=test_context)
+    line_thick.config.XTRACK_USE_EXACT_DRIFTS = True  # to be consistent with madx
+
+    for ii in range(len(p0.x)):
+        mad.input(f"""
+        beam, particle=proton, pc={p0.p0c[ii] / 1e9}, sequence=ss, radiate=FALSE;
+
+        track, onepass, onetable;
+        start, x={p0.x[ii]}, px={p0.px[ii]}, y={p0.y[ii]}, py={p0.py[ii]}, \
+            t={p0.zeta[ii]/p0.beta0[ii]}, pt={p0.ptau[ii]};
+        run,
+            turns=1,
+            track_harmon=1e-15;  ! since in this test we don't care about
+              ! losing particles due to t difference, we set track_harmon to
+              ! something very small, to make t_max large.
+        endtrack;
+        """)
+
+        mad_results = mad.table.mytracksumm[-1]
+
+        part = p0.copy(_context=test_context)
+        line_thick.track(part, _force_no_end_turn_actions=True)
+        part.move(_context=xo.context_default)
+
+        xt_tau = part.zeta/part.beta0
+        assert np.allclose(part.x[ii], mad_results.x, atol=1e-10, rtol=0), 'x'
+        assert np.allclose(part.px[ii], mad_results.px, atol=1e-11, rtol=0), 'px'
+        assert np.allclose(part.y[ii], mad_results.y, atol=1e-10, rtol=0), 'y'
+        assert np.allclose(part.py[ii], mad_results.py, atol=1e-11, rtol=0), 'py'
+        assert np.allclose(xt_tau[ii], mad_results.t, atol=1e-9, rtol=0), 't'
+        assert np.allclose(part.ptau[ii], mad_results.pt, atol=1e-11, rtol=0), 'pt'
+        assert np.allclose(part.s[ii], mad_results.s, atol=1e-11, rtol=0), 's'
+
+
+@for_all_test_contexts
+def test_solenoid_thick_drift_like(test_context):
+    solenoid = xt.Solenoid(ks=1.001e-9, length=1, _context=test_context)
+    drift = xt.Drift(length=1, _context=test_context)
+
+    p0 = xp.Particles(
+        x=0.1, px=0.2, y=0.3, py=0.4, zeta=0.5, delta=0.6,
+        _context=test_context,
+    )
+
+    p_sol = p0.copy()
+    solenoid.track(p_sol)
+
+    p_drift = p0.copy()
+    drift.track(p_drift)
+
+    assert np.allclose(p_sol.x, p_drift.x, atol=1e-9)
+    assert np.allclose(p_sol.px, p_drift.px, atol=1e-9)
+    assert np.allclose(p_sol.y, p_drift.y, atol=1e-9)
+    assert np.allclose(p_sol.py, p_drift.py, atol=1e-9)
+    assert np.allclose(p_sol.zeta, p_drift.zeta, atol=1e-9)
+    assert np.allclose(p_sol.delta, p_drift.delta, atol=1e-9)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'length, expected', [
+        (2 * np.pi / np.sqrt(2), [1, 0, -1, 0, 2*np.pi, 0]),
+        (np.pi / np.sqrt(2), [0, 0.5, 0, 0.5, np.pi, 0]),
+    ],
+)
+def test_solenoid_thick_analytic(test_context, length, expected):
+    solenoid = xt.Solenoid(
+        ks=1,
+        length=length,
+        _context=test_context,
+    )
+
+    p0 = xp.Particles(
+        x=1,
+        px=0,
+        y=-1,
+        py=0,
+        _context=test_context,
+    )
+
+    p_sol = p0.copy()
+    solenoid.track(p_sol)
+
+    assert np.allclose(p_sol.x, expected[0], atol=1e-9)
+    assert np.allclose(p_sol.px, expected[1], atol=1e-9)
+    assert np.allclose(p_sol.y, expected[2], atol=1e-9)
+    assert np.allclose(p_sol.py, expected[3], atol=1e-9)
+    delta_ell = (p_sol.s - p_sol.zeta) * p_sol.rvv
+    assert np.allclose(delta_ell, expected[4], atol=1e-9)
+    assert np.allclose(p_sol.delta, expected[5], atol=1e-9)
+    assert np.allclose(p_sol.s, length, atol=1e-9)

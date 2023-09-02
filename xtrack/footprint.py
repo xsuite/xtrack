@@ -165,14 +165,15 @@ class Footprint():
         x_noCO = mon.x - nplike_lib.atleast_2d(nplike_lib.mean(mon.x, axis=1)).T
         y_noCO = mon.y - nplike_lib.atleast_2d(nplike_lib.mean(mon.y, axis=1)).T
         freq_axis = nplike_lib.fft.rfftfreq(self.n_fft)
-        if self.keep_fft:
-            self.fft_x = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
-            self.fft_y = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
 
         npart = nplike_lib.shape(x_noCO)[0]
         self.qx = nplike_lib.zeros(npart,dtype=float)
         self.qy = nplike_lib.zeros(npart,dtype=float)
-        
+
+        if self.keep_fft:
+            self.fft_x = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
+            self.fft_y = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
+
         # Compute in chunks
         iStart = 0
         while iStart < npart:
@@ -200,10 +201,10 @@ class Footprint():
             if self.keep_fft:
                 self.fft_x = ctx2np(self.fft_x)
                 self.fft_y = ctx2np(self.fft_y)
-                
+
         if self.keep_tracking_data:
             self.tracking_data = mon
-            
+
         print ('Done computing footprint.')
 
     def _compute_tune_shift(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon):
