@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 
 from itertools import zip_longest
-from typing import List, Tuple, Iterator, Optional
+from typing import List, Tuple, Iterator, Optional, Literal
 
 from .compounds import SlicedCompound
 from .general import _print
@@ -19,9 +19,20 @@ APER_ELEMS_REGEX = re.compile(r'(.*)_aper(_(tilt|offset)_(entry|exit))?')
 
 
 class ElementSlicingScheme(abc.ABC):
-    def __init__(self, slicing_order: int):
+    def __init__(
+            self,
+            slicing_order: int,
+            mode: Literal['thin', 'thick'] = 'thin',
+    ):
         if slicing_order < 1:
             raise ValueError("A slicing scheme must have at least one slice.")
+
+        self.mode = mode
+
+        if mode == 'thick':
+            # In thick mode we count the number of thick slices, 'drifts',
+            # not thin ones, so we need to decrement the slicing order.
+            slicing_order -= 1
 
         self.slicing_order = slicing_order
 
@@ -58,7 +69,8 @@ class ElementSlicingScheme(abc.ABC):
             if elem_weight is None:
                 break
 
-            yield elem_weight, False
+            if self.mode == 'thin':
+                yield elem_weight, False
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.slicing_order})"
@@ -286,7 +298,7 @@ class Slicer:
         slices_to_append = []
 
         for weight, is_drift in chosen_slicing:
-            if is_drift:
+            if is_drift and chosen_slicing.mode == 'thin':
                 slice_name = f'drift_{name}..{drift_idx}'
                 obj_to_slice = drift_to_slice
                 drift_idx += 1
@@ -300,13 +312,22 @@ class Slicer:
             else:
                 container = self.line.element_dict
 
-            type(obj_to_slice).add_slice(
-                weight=weight,
-                container=container,
-                thick_name=name,
-                slice_name=slice_name,
-                _buffer=self.line.element_dict[name]._buffer,
-            )
+            if chosen_slicing.mode == 'thin':
+                type(obj_to_slice).add_slice(
+                    weight=weight,
+                    container=container,
+                    thick_name=name,
+                    slice_name=slice_name,
+                    _buffer=self.line.element_dict[name]._buffer,
+                )
+            else:
+                type(obj_to_slice).add_thick_slice(
+                    weight=weight,
+                    container=container,
+                    name=name,
+                    slice_name=slice_name,
+                    _buffer=self.line.element_dict[name]._buffer,
+                )
             slices_to_append.append(slice_name)
 
         return slices_to_append
@@ -321,7 +342,7 @@ class Slicer:
 
         return new_names
 
-    def _order_set_by_line(self, set_to_order):
+    def _order_set_by_line(self, set_to_order: set):
         """Order a set of element names by their order in the line."""
         assert isinstance(set_to_order, set)
         return sorted(set_to_order, key=self.line.element_names.index)

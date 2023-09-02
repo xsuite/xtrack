@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import numpy as np
 
@@ -130,6 +130,8 @@ class Line:
         self._var_management = None
         self._line_vars = None
         self.tracker = None
+        
+        self.metadata = {}
 
     @classmethod
     def from_dict(cls, dct, _context=None, _buffer=None, classes=()):
@@ -200,6 +202,9 @@ class Line:
             compounds = dct['compound_container']
             self.compound_container = CompoundContainer.from_dict(compounds)
 
+        if 'metadata' in dct.keys():
+            self.metadata = dct['metadata']
+
         _print('Done loading line from dict.           ')
 
         return self
@@ -239,7 +244,9 @@ class Line:
     @classmethod
     def from_sequence(cls, nodes=None, length=None, elements=None,
                       sequences=None, copy_elements=False,
-                      naming_scheme='{}{}', auto_reorder=False, **kwargs):
+                      naming_scheme='{}{}', auto_reorder=False,
+                      refer: Literal['entry', 'centre', 'exit'] = 'entry',
+                      **kwargs):
 
         """
 
@@ -268,8 +275,14 @@ class Line:
         auto_reorder : bool, optional
             If false (default), nodes must be defined in order of increasing `s`
             coordinate, otherwise an exception is thrown. If true, nodes can be
-            defined in any order and are re-ordered as neseccary. Useful to
+            defined in any order and are re-ordered as necessary. Useful to
             place additional elements inside of sub-sequences.
+        refer : str, optional
+            Specifies where in the node the s coordinate refers to. Can be
+            'entry', 'centre' or 'exit'. By default given s specifies the
+            entry point of the element. If 'centre' is given, the s coordinate
+            marks the centre of the element. If 'exit' is given, the s coordinate
+            marks the exit point of the element.
         **kwargs : dict
             Arguments passed to constructor of the line
 
@@ -322,16 +335,28 @@ class Line:
         drifts = {}
         last_s = 0
         for node in nodes:
-            if node.s < last_s:
-                raise ValueError(f'Negative drift space from {last_s} to {node.s}'
-                    f' ({node.name}). Fix or set auto_reorder=True')
             if _is_thick(node.what):
-                raise NotImplementedError(
-                    f'Thick elements currently not implemented: {node.name}')
+                node_length = node.what.length
+                if refer == 'entry':
+                    offset = 0
+                elif refer == 'centre':
+                    offset = -node_length / 2
+                elif refer == 'exit':
+                    offset = -node_length
+            else:
+                node_length = 0
+                offset = 0
+
+            node_s = node.s + offset
+
+            if node_s < last_s:
+                raise ValueError(
+                    f'Negative drift space from {last_s} to {node_s} '
+                    f'({node.name} {refer}). Fix or set auto_reorder=True')
 
             # insert drift as needed (re-use if possible)
-            if node.s > last_s:
-                ds = node.s - last_s
+            if node_s > last_s:
+                ds = node_s - last_s
                 if ds not in drifts:
                     drifts[ds] = Drift(length=ds)
                 element_objects.append(drifts[ds])
@@ -340,7 +365,7 @@ class Line:
             # insert element
             element_objects.append(node.what)
             element_names.append(node.name)
-            last_s = node.s
+            last_s = node_s + node_length
 
         # add last drift
         if length < last_s:
@@ -506,39 +531,17 @@ class Line:
                     'entire multiline.\n ')
 
             out.update(self._var_management_to_dict())
+
+        out["metadata"] = deepcopy(self.metadata)
+
         return out
 
     def __getstate__(self):
         out = self.__dict__.copy()
-
-        if '_pickled_by_multiline' in out and out['_pickled_by_multiline']:
-            # Clean flags an bypass var management (handled by multiline)
-            del(self._pickled_by_multiline)
-            del(out['_pickled_by_multiline'])
-            return out
-
-        _in_multiline = out.pop('_in_multiline', None)
-        if _in_multiline is not None and _in_multiline.vars is not None:
-            raise RuntimeError('The line is part ot a MultiLine object. '
-                'To pickle the deferred expressions you need to pickle the '
-                'entire multiline.\n ')
-        if self.vars is not None: # expressions are enabled and owned by the line
-            out['_var_management'] = 'to_be_rebuilt'
-            out['_var_management_dict'] = self._var_management_to_dict()
         return out
 
     def __setstate__(self, state):
-        if state['_var_management'] == 'to_be_rebuilt':
-            rebuild_var_management = True
-            _var_management_dict = state.pop('_var_management_dict')
-            del state['_var_management']
-        else:
-            rebuild_var_management = False
-            state['_var_management'] = None
-
         self.__dict__.update(state)
-        if rebuild_var_management:
-            self._init_var_management(dct=_var_management_dict)
 
 
     def to_json(self, file, **kwargs):
@@ -684,6 +687,17 @@ class Line:
                                 **kwargs)
 
         return self.tracker
+
+    @property
+    def attr(self):
+
+        self._check_valid_tracker()
+
+        if ('attr' not in self.tracker._tracker_data_base.cache.keys()
+                or self.tracker._tracker_data_base.cache['attr'] is None):
+            self.tracker._tracker_data_base.cache['attr'] = self._get_attr_cache()
+
+        return self.tracker._tracker_data_base.cache['attr']
 
     def discard_tracker(self):
 
@@ -949,7 +963,8 @@ class Line:
         _ebe_monitor=None,
         ):
 
-        self._check_valid_tracker()
+        if not self._has_valid_tracker():
+            self.build_tracker()
 
         tw_kwargs = locals().copy()
 
@@ -963,7 +978,9 @@ class Line:
     twiss.__doc__ = twiss_line.__doc__
 
     def match(self, vary, targets, solve=True, restore_if_fail=True, solver=None,
-                  verbose=False, n_steps_max=20, **kwargs):
+                  verbose=False, n_steps_max=20,
+                  compensate_radiation_energy_loss=False,
+                  **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -978,6 +995,9 @@ class Line:
         restore_if_fail : bool
             If True, the beamline is restored to its initial state if the matching
             fails.
+        compensate_radiation_energy_loss : bool
+            If True, the radiation energy loss is compensated at each step of the
+            matching.
         solver : str
             Solver to be used for the matching. Available solvers are "fsolve"
             and "bfgs".
@@ -1044,6 +1064,7 @@ class Line:
                           restore_if_fail=restore_if_fail,
                           solver=solver, verbose=verbose,
                           n_steps_max=n_steps_max,
+                          compensate_radiation_energy_loss=compensate_radiation_energy_loss,
                           **kwargs)
 
     def match_knob(self, knob_name, vary, targets,
@@ -1256,7 +1277,7 @@ class Line:
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             linear_rescale_on_knobs=None,
             freeze_longitudinal=None, delta0=None, zeta0=None,
-            keep_fft=True):
+            keep_fft=True, keep_tracking_data=False):
 
         '''
         Compute the tune footprint for a beam with given emittences using tracking.
@@ -1576,8 +1597,8 @@ class Line:
         l_right_part = s_vect_downstream[i_last_drift_to_cut] - s_end_ele
         assert l_left_part >= 0
         assert l_right_part >= 0
-        name_left = name_first_drift_to_cut + '_part0'
-        name_right = name_last_drift_to_cut + '_part1'
+        name_left = name_first_drift_to_cut + '_u' # u for upstream
+        name_right = name_last_drift_to_cut + '_d' # d for downstream
 
         drift_base = self.element_dict[name_first_drift_to_cut]
         drift_left = drift_base.copy()
@@ -2693,7 +2714,8 @@ class Line:
     def _frozen_check(self):
         if isinstance(self.element_names, tuple):
             raise ValueError(
-                'This action is not allowed as the line is frozen!')
+                'This action is not allowed as the line is frozen! '
+                'You can unfreeze the line by calling the `discard_tracker()` method.')
 
     def __len__(self):
         return len(self.element_names)
@@ -2800,6 +2822,10 @@ class Line:
 
     @property
     def varval(self):
+        return self.vars.val
+
+    @property
+    def vv(self): # Shorter alias
         return self.vars.val
 
     @property
@@ -2974,10 +3000,10 @@ class Line:
             #     component_names = self._compound_relation[ii]
             #     return [self.element_dict[name] for name in component_names]
 
-            if ii not in self.element_names:
-                raise IndexError(f'No installed element with name {ii}')
-
-            return self.element_dict.__getitem__(ii)
+            try:
+                return self.element_dict.__getitem__(ii)
+            except KeyError:
+                raise KeyError(f'No installed element with name {ii}')
         else:
             names = self.element_names.__getitem__(ii)
             if isinstance(names, str):
@@ -3003,6 +3029,14 @@ class Line:
             out.tracker.line = out
 
             return out
+
+    def _get_attr_cache(self):
+        cache = LineAttr(line=self,
+                         fields=['hxl', 'hyl', 'length', 'radiation_flag',
+                                 'delta_taper', 'voltage', 'frequency',
+                                 'lag', 'lag_taper',
+                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1)])
+        return cache
 
 def frac(x):
     return x % 1
@@ -3463,8 +3497,6 @@ class LineVars:
                 ):
                 self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]
 
-
-
 class VarValues:
 
     def __init__(self, vars):
@@ -3515,3 +3547,50 @@ class VarSetter:
         self.__dict__.update(state)
         self._build_fun()
 
+class LineAttrItem:
+    def __init__(self, name, index=None, line=None):
+        self.name = name
+        self.index = index
+
+        assert line is not None
+
+        all_names = line.element_names
+        mask = np.zeros(len(all_names), dtype=bool)
+        setter_names = []
+        for ii, nn in enumerate(all_names):
+            ee = line.element_dict[nn]
+            if hasattr(ee, '_xobject') and hasattr(ee._xobject, name):
+                if index is not None and index >= len(getattr(ee, name)):
+                    continue
+                mask[ii] = True
+                setter_names.append(nn)
+
+        multisetter = xt.MultiSetter(line=line, elements=setter_names,
+                                     field=name, index=index)
+        self.names = setter_names
+        self.multisetter = multisetter
+        self.mask = mask
+
+    def get_full_array(self):
+        full_array = np.zeros(len(self.mask), dtype=np.float64)
+        full_array[self.mask] = self.multisetter.get_values()
+        return full_array
+
+
+class LineAttr:
+
+    def __init__(self, line, fields):
+        self.line = line
+        self.fields = fields
+        self._cache = {}
+
+        for ff in fields:
+            if isinstance(ff, str):
+                name = ff
+                index = None
+            else:
+                name, index = ff
+            self._cache[ff] = LineAttrItem(name=name, index=index, line=line)
+
+    def __getitem__(self, key):
+        return self._cache[key].get_full_array()

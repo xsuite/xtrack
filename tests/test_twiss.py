@@ -546,8 +546,9 @@ def test_twiss_range(test_context):
                 for kk in tw_test._data.keys():
                     if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at',
                               'method', 'radiation_method', 'reference_frame',
-                              'orientation', 'steps_r_matrix']:
-                        continue # tested separately
+                              'orientation', 'steps_r_matrix', 'line_config',
+                              ]:
+                        continue # some tested separately
                     atol = atols.get(kk, atol_default)
                     rtol = rtols.get(kk, rtol_default)
                     assert np.allclose(
@@ -555,7 +556,7 @@ def test_twiss_range(test_context):
 
                 assert tw_test.values_at == tw_part.values_at == 'entry'
                 assert tw_test.method == tw_part.method == '4d'
-                assert tw_test.radiation_method == tw_part.radiation_method == 'full'
+                assert tw_test.radiation_method == tw_part.radiation_method == None
                 assert tw_test.reference_frame == tw_part.reference_frame == (
                     {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
 
@@ -1037,7 +1038,7 @@ def test_twiss_group_compounds(test_context):
     assert tw_comp['name', -2] == tw['name', -2] == 'psb1$end'
     assert tw_comp['name', -1] == tw['name', -1] == '_end_point'
 
-    assert np.isclose(tw_comp['px', 'br1.dhz16l1'],
+    assert np.isclose(tw_comp['px', 'br1.dhz16l1_entry'],
                     tw['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
 
     assert np.allclose(tw_comp['W_matrix', 'bi1.bsw1l1.2_entry'],
@@ -1054,10 +1055,10 @@ def test_twiss_group_compounds(test_context):
     tw_comp_local = line.twiss(group_compound_elements=True,
                             twiss_init=tw_init_comp,
                             ele_start='bi1.ksw16l1_entry',
-                            ele_stop='br.stscrap161')
+                            ele_stop='br.stscrap162_entry')
     tw_local = line.twiss(twiss_init=tw_init,
                             ele_start='bi1.ksw16l1_entry',
-                            ele_stop='br.stscrap161')
+                            ele_stop='br.stscrap162_entry')
 
     for nn in tw_local._col_names:
         assert len(tw_local[nn]) == len(tw_local['name'])
@@ -1075,11 +1076,65 @@ def test_twiss_group_compounds(test_context):
     assert 'br.bhz161_dex' not in tw_comp_local.name
     assert 'br.bhz161_exit' not in tw_comp_local.name
 
-    assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap161'
+    assert tw_comp_local['name', -2] == tw_local['name', -2] == 'br.stscrap162_entry'
     assert tw_comp_local['name', -1] == tw_local['name', -1] == '_end_point'
 
-    assert np.isclose(tw_comp_local['px', 'br1.dhz16l1'],
+    assert np.isclose(tw_comp_local['px', 'br1.dhz16l1_entry'],
                     tw_local['px', 'br1.dhz16l1'], rtol=0, atol=1e-15)
+
+@for_all_test_contexts
+def test_twiss_init_file(test_context):
+
+    path_line_particles = test_data_folder / 'hllhc15_noerrors_nobb/line_and_particle.json'
+
+    with open(path_line_particles, 'r') as fid:
+        input_data = json.load(fid)
+    line = xt.Line.from_dict(input_data['line'])
+    line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+
+    line.build_tracker(_context=test_context)
+
+    location = 'ip5'
+
+    tw_full = line.twiss()
+
+    twinit_file = pathlib.Path('twiss_init_save_test.json')
+    tw_init_base = tw_full.get_twiss_init(location)
+    tw_init_base.to_json(twinit_file)
+    tw_init_loaded = xt.TwissInit.from_json(twinit_file)
+
+    # Check that the saving and loading produce the same results
+    particle_check_fields = [kk for kk in tw_init_base.particle_on_co._xofields
+                              if not kk.startswith('_')]
+    for key, val in tw_init_base.__dict__.items():
+        if val is None:
+            assert tw_init_loaded.__dict__[key] is None
+        elif isinstance(val, str):
+            assert tw_init_loaded.__dict__[key] == val
+        elif key == 'particle_on_co':
+            loaded_pco = getattr(tw_init_loaded, key)
+            for field in particle_check_fields:
+                assert np.isclose(getattr(val, field), getattr(loaded_pco, field),
+                                  atol=1e-9, rtol=0).all()
+        else:
+            assert np.isclose(tw_init_loaded.__dict__[key], val,  atol=1e-9, rtol=0).all()
+
+    tw = line.twiss(ele_start=location, ele_stop='ip7', twiss_init=tw_init_loaded)
+
+    check_vars = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy',
+                    'mux', 'muy', 'x', 'y', 'px', 'py']
+
+    # check at a location downsteam
+    loc_check = line.element_names[line.element_names.index(location) + 300]
+    for var in check_vars:
+        # Check at starting point
+        assert np.isclose(tw[var, location], tw_full[var, location], atol=1e-9, rtol=0)
+
+        # Check at a point in a downstream arc
+        assert np.isclose(tw[var, loc_check], tw_full[var, loc_check], atol=2e-7, rtol=0)
+
+    twinit_file.unlink()
+
 
 @for_all_test_contexts
 def test_custom_twiss_init(test_context):
@@ -1173,6 +1228,61 @@ def test_custom_twiss_init(test_context):
         assert np.isclose(tw['py', loc_check], tw_full['py', loc_check],
                             atol=1e-9, rtol=0)
 
+        # twiss with boundary confitions at the end of the range
+        tw_init_custom = xt.TwissInit(element_name=location,
+                                betx=betx0, bety=bety0, alfx=alfx0, alfy=alfy0,
+                                dx=dx0, dpx=dpx0, dy=dy0, dpy=dpy0,
+                                mux=mux0, muy=muy0, x=x0, px=px0, y=y0, py=py0
+                                )
+
+        tw = line.twiss(ele_start='ip4', ele_stop=location, twiss_init=tw_init_custom)
+
+        # Check at end point
+        assert np.isclose(tw['betx', location], betx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['bety', location], bety0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['alfx', location], alfx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['alfy', location], alfy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dx', location], dx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dpx', location], dpx0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dy', location], dy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['dpy', location], dpy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['mux', location], mux0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['muy', location], muy0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['x', location], x0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['px', location], px0, atol=1e-9, rtol=0)
+        assert np.isclose(tw['y', location], y0, atol=1e-9, rtol=0)
+
+        # Check at a point in an upstream arc
+        loc_check = f'mb.a24r4.{bn}'
+        assert np.isclose(tw['betx', loc_check], tw_full['betx', loc_check],
+                            atol=2e-7, rtol=0)
+        assert np.isclose(tw['bety', loc_check], tw_full['bety', loc_check],
+                            atol=2e-7, rtol=0)
+        assert np.isclose(tw['alfx', loc_check], tw_full['alfx', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['alfy', loc_check], tw_full['alfy', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dx', loc_check], tw_full['dx', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dpx', loc_check], tw_full['dpx', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dy', loc_check], tw_full['dy', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['dpy', loc_check], tw_full['dpy', loc_check],
+                            atol=1e-8, rtol=0)
+        assert np.isclose(tw['mux', loc_check], tw_full['mux', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['muy', loc_check], tw_full['muy', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['x', loc_check], tw_full['x', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['px', loc_check], tw_full['px', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['y', loc_check], tw_full['y', loc_check],
+                            atol=1e-9, rtol=0)
+        assert np.isclose(tw['py', loc_check], tw_full['py', loc_check],
+                            atol=1e-9, rtol=0)
+
 @for_all_test_contexts
 def test_only_markers(test_context):
 
@@ -1227,9 +1337,9 @@ def test_only_markers(test_context):
         assert tw.name[-1] == '_end_point'
         assert tw.name[-2] == 'e.ds.r5.b1'
 
-        assert tt['s', 'e.ds.r5.b1'] == line.get_s_position('e.ds.r5.b1')
-        assert tt['s', 'e.ds.r5.b1'] == tt['s', '_end_point']
-        assert tt['s', 's.ds.l5.b1'] == line.get_s_position('s.ds.l5.b1')
+        assert np.isclose(tt['s', 'e.ds.r5.b1'], line.get_s_position('e.ds.r5.b1'), atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 'e.ds.r5.b1'], tt['s', '_end_point'], atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 's.ds.l5.b1'], line.get_s_position('s.ds.l5.b1'), atol=1e-8, rtol=0)
 
         for kk in tw._col_names:
             if kk == 'name':
@@ -1281,9 +1391,9 @@ def test_only_markers(test_context):
         assert tw.name[-1] == '_end_point'
         assert tw.name[-2] == 'e.ds.r5.b2'
 
-        assert tt['s', 'e.ds.r5.b2'] == line.get_length() - line.get_s_position('e.ds.r5.b2')
-        assert tt['s', 'e.ds.r5.b2'] == tt['s', '_end_point']
-        assert tt['s', 's.ds.l5.b2'] == line.get_length() - line.get_s_position('s.ds.l5.b2')
+        assert np.isclose(tt['s', 'e.ds.r5.b2'], line.get_length() - line.get_s_position('e.ds.r5.b2'), atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 'e.ds.r5.b2'], tt['s', '_end_point'], atol=1e-8, rtol=0)
+        assert np.isclose(tt['s', 's.ds.l5.b2'], line.get_length() - line.get_s_position('s.ds.l5.b2'), atol=1e-8, rtol=0)
 
         for kk in tw._col_names:
             if kk == 'name':

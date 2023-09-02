@@ -249,7 +249,7 @@ def test_matrix():
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
     line.vars['a11']=2.0
-    assert line[1].m1[0,0]==line.vars['a11']._value
+    assert line[2].m1[0,0]==line.vars['a11']._value
 
 def test_srotation():
     mad = Madx()
@@ -265,9 +265,9 @@ def test_srotation():
 
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[1],xt.SRotation)
+    assert isinstance(line[2],xt.SRotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value*180/np.pi
+    assert line[2].angle == line.vars['angle']._value*180/np.pi
 
 def test_xrotation():
     mad = Madx()
@@ -283,9 +283,9 @@ def test_xrotation():
 
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[1],xt.XRotation)
+    assert isinstance(line[2],xt.XRotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value*180/np.pi
+    assert line[2].angle == line.vars['angle']._value*180/np.pi
 
 def test_yrotation():
     mad = Madx()
@@ -301,9 +301,9 @@ def test_yrotation():
 
     line=MadLoader(mad.sequence.ss).make_line()
     line=MadLoader(mad.sequence.ss,enable_expressions=True).make_line()
-    assert isinstance(line[1],xt.YRotation)
+    assert isinstance(line[2],xt.YRotation)
     line.vars['angle'] = 2.0
-    assert line[1].angle == line.vars['angle']._value*180/np.pi
+    assert line[2].angle == line.vars['angle']._value*180/np.pi
 
 def test_mad_elements_import():
 
