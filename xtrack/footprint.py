@@ -11,7 +11,8 @@ class LinearRescale():
 
 def _footprint_with_linear_rescale(linear_rescale_on_knobs, line,
                                    freeze_longitudinal=False,
-                                   delta0=None, zeta0=None, kwargs={}):
+                                   delta0=None, zeta0=None, 
+                                   kwargs={}):
 
         if isinstance (linear_rescale_on_knobs, LinearRescale):
             linear_rescale_on_knobs = [linear_rescale_on_knobs]
@@ -57,7 +58,9 @@ class Footprint():
     def __init__(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
-            keep_fft=False,auto_to_numpy=True,fft_chunk_size=200):
+            keep_fft=False, keep_tracking_data=False,
+            auto_to_numpy=True,fft_chunk_size=200
+            ):
 
         assert nemitt_x is not None and nemitt_y is not None, (
             'nemitt_x and nemitt_y must be provided')
@@ -67,6 +70,7 @@ class Footprint():
         self.n_fft = n_fft
         self.fft_chunk_size = fft_chunk_size
         self.keep_fft = keep_fft
+        self.keep_tracking_data = keep_tracking_data
 
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
@@ -164,9 +168,12 @@ class Footprint():
         if self.keep_fft:
             self.fft_x = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
             self.fft_y = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
+
         npart = nplike_lib.shape(x_noCO)[0]
         self.qx = nplike_lib.zeros(npart,dtype=float)
         self.qy = nplike_lib.zeros(npart,dtype=float)
+        
+        # Compute in chunks
         iStart = 0
         while iStart < npart:
             iEnd = iStart + self.fft_chunk_size
@@ -193,6 +200,11 @@ class Footprint():
             if self.keep_fft:
                 self.fft_x = ctx2np(self.fft_x)
                 self.fft_y = ctx2np(self.fft_y)
+                
+        if self.keep_tracking_data:
+            self.tracking_data = mon
+            
+        print ('Done computing footprint.')
 
     def _compute_tune_shift(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon):
         nplike_lib = _context.nplike_lib

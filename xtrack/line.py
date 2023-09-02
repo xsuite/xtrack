@@ -1277,7 +1277,7 @@ class Line:
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             linear_rescale_on_knobs=None,
             freeze_longitudinal=None, delta0=None, zeta0=None,
-            keep_fft=True):
+            keep_fft=True, keep_tracking_data=False):
 
         '''
         Compute the tune footprint for a beam with given emittences using tracking.
