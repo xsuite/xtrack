@@ -35,6 +35,27 @@ particles0 = xp.generate_matched_gaussian_bunch(line=line0,
 
 
 @for_all_test_contexts
+def test_constructor(test_context):
+    elements = [
+        #xt.ParticlesMonitor(_context=test_context, start_at_turn=0, stop_at_turn=10, num_particles=42),
+        #xt.LastTurnsMonitor(_context=test_context, n_last_turns=5, num_particles=42),
+        xt.BeamPositionMonitor(_context=test_context, stop_at_turn=10),
+    ]
+
+    # test to_dict / from_dict
+    for ee in elements:
+        dd = ee.to_dict()
+        nee = ee.__class__.from_dict(dd, _context=test_context)
+        # Check that the two objects are bitwise identical
+        if not isinstance(test_context, xo.ContextCpu):
+            ee.move(_context=xo.ContextCpu())
+            nee.move(_context=xo.ContextCpu())
+        assert (ee._xobject._buffer.buffer[ee._xobject._offset:ee._xobject._size]
+                - nee._xobject._buffer.buffer[
+                    nee._xobject._offset:nee._xobject._size]).sum() == 0
+
+
+@for_all_test_contexts
 def test_monitor(test_context):
     line = line0.copy()
     line.build_tracker(_context=test_context)
@@ -359,7 +380,7 @@ def test_beam_size_monitor(test_context):
     expected_count[16:18] = 128
     expected_count[18:20] = 0
     assert_equal(monitor.count, expected_count, err_msg="Monitor count does not match expected particle count")
-
+    
     x = x[:npart].reshape((-1, 2))
     expected_x_sum = np.tile(np.sum(x, axis=0), 10)
     expected_x_sum[0::2] += 0.005*np.arange(1, 11)
@@ -391,4 +412,60 @@ def test_beam_size_monitor(test_context):
     expected_x_std = expected_x_var**0.5
     assert_allclose(monitor.x_std, expected_x_std, err_msg="Monitor x standard deviation does not match expected values")
     assert_allclose(monitor.y_std, 10*expected_x_std, err_msg="Monitor y standard deviation does not match expected values")
-    
+
+@for_all_test_contexts
+def test_beam_position_monitor(test_context):
+
+    npart = 512 # must be even and >= 512
+    particles = xp.Particles(
+        p0c=6.5e12,
+        x=0.1*np.arange(npart+4), # generate a few more than we record to test "num_particles"
+        y=-0.1*np.arange(npart+4),
+        zeta=-2.99792458e8*np.tile([0.0, 0.5], (npart+4)//2),
+        _context=test_context,
+    )
+
+    monitor = xt.BeamPositionMonitor(
+        num_particles=npart,
+        start_at_turn=0,
+        stop_at_turn=10,
+        frev=1,
+        sampling_frequency=2,
+        _context=test_context,
+    )
+
+    line = xt.Line([monitor])
+    line.build_tracker(_context=test_context)
+
+    for turn in range(11): # track a few more than we record to test "stop_at_turn"
+        # Note that indicees are re-ordered upon particle loss on CPU contexts,
+        # so sort before manipulation
+        if isinstance(test_context, xo.ContextCpu):
+            particles.sort(interleave_lost_particles=True)
+
+        # manipulate particles for testing
+        particles.x[0] += 0.5
+        particles.y[0] -= 0.5
+        if turn == 8:
+            particles.state[256:] = 0
+        if turn == 9:
+            particles.state[:] = 0
+
+        if isinstance(test_context, xo.ContextCpu):
+            particles.reorganize()
+
+        # track and monitor
+        line.track(particles, num_turns=1)
+
+    expected_x_sum = np.tile([0.1*(npart-2)*npart/4, 0.1*npart*npart/4], 10)
+    expected_x_sum[0::2] += 0.5*np.arange(1, 11)
+    expected_x_sum[16:18] = [1625.6 + 4.5, 1638.4]
+    expected_x_sum[18:20] = 0
+    assert_allclose(monitor.x_sum, expected_x_sum, err_msg="Monitor x sum does not match expected values")
+    assert_allclose(monitor.y_sum, -expected_x_sum, err_msg="Monitor y sum does not match expected values")
+
+    expected_x_centroid = np.zeros(20)
+    expected_x_centroid[:18] = expected_x_sum[:18]/expected_count[:18]
+    expected_x_centroid[18:20] = np.nan
+    assert_allclose(monitor.x_cen, expected_x_centroid, err_msg="Monitor x centroid does not match expected values")
+    assert_allclose(monitor.y_cen, -expected_x_centroid, err_msg="Monitor y centroid does not match expected values")
