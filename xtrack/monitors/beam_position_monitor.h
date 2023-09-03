@@ -39,7 +39,7 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
     double const frev = BeamPositionMonitorData_get_frev(el);
     double const sampling_frequency = BeamPositionMonitorData_get_sampling_frequency(el);
 
-    /*gpuglmem*/ BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
+    BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
 
     int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
 
