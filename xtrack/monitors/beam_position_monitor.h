@@ -56,6 +56,7 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
             double const zeta = LocalParticle_get_zeta(part);
             double const at_turn = LocalParticle_get_at_turn(part);
             double const beta0 = LocalParticle_get_beta0(part);
+            double const weight = LocalParticle_get_weight(part);
 
             // compute sample index
             int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
@@ -65,22 +66,22 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
                 double y = LocalParticle_get_y(part);
 
                 /*gpuglmem*/ double * count = BeamPositionMonitorRecord_getp1_count(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*count) += 1.;                //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(count, 1.);         //only_for_context opencl
-                atomicAdd(count, 1.);          //only_for_context cuda
+                #pragma omp atomic capture         //only_for_context cpu_openmp
+                (*count) += weight;                //only_for_context cpu_serial cpu_openmp
+                atomic_add_d(count, weight);       //only_for_context opencl
+                atomicAdd(count, weight);          //only_for_context cuda
 
                 /*gpuglmem*/ double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*x_sum) += x;                //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(x_sum, x);       //only_for_context opencl
-                atomicAdd(x_sum, x);          //only_for_context cuda
+                #pragma omp atomic capture         //only_for_context cpu_openmp
+                (*x_sum) += x * weight;            //only_for_context cpu_serial cpu_openmp
+                atomic_add_d(x_sum, x * weight);   //only_for_context opencl
+                atomicAdd(x_sum, x * weight);      //only_for_context cuda
 
                 /*gpuglmem*/ double * y_sum = BeamPositionMonitorRecord_getp1_y_sum(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*y_sum) += y;                //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(y_sum, y);       //only_for_context opencl
-                atomicAdd(y_sum, y);          //only_for_context cuda
+                #pragma omp atomic capture          //only_for_context cpu_openmp
+                (*y_sum) += y * weight;             //only_for_context cpu_serial cpu_openmp
+                atomic_add_d(y_sum, y * weight);    //only_for_context opencl
+                atomicAdd(y_sum, y * weight);       //only_for_context cuda
 
             }
 
