@@ -40,6 +40,7 @@ class BeamPositionMonitor(BeamElement):
     properties = [field.name for field in BeamPositionMonitorRecord._fields]
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers/atomicadd.h'),
         _pkg_root.joinpath('monitors/beam_position_monitor.h')
     ]
 

@@ -39,11 +39,9 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
     double const frev = BeamPositionMonitorData_get_frev(el);
     double const sampling_frequency = BeamPositionMonitorData_get_sampling_frequency(el);
 
-    BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);                 //only_for_context cpu_serial cpu_openmp
-    /*gpuglmem*/ BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);  //only_for_context opencl cuda
+    /*gpuglmem*/ BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);
 
     int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
-
 
     //start_per_particle_block(part0->part)
 
@@ -66,22 +64,13 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
                 double y = LocalParticle_get_y(part);
 
                 /*gpuglmem*/ double * count = BeamPositionMonitorRecord_getp1_count(record, slot);
-                #pragma omp atomic capture         //only_for_context cpu_openmp
-                (*count) += weight;                //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(count, weight);       //only_for_context opencl
-                atomicAdd(count, weight);          //only_for_context cuda
+                atomicAdd(count, weight);
 
                 /*gpuglmem*/ double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
-                #pragma omp atomic capture         //only_for_context cpu_openmp
-                (*x_sum) += x * weight;            //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(x_sum, x * weight);   //only_for_context opencl
-                atomicAdd(x_sum, x * weight);      //only_for_context cuda
+                atomicAdd(x_sum, x * weight);
 
                 /*gpuglmem*/ double * y_sum = BeamPositionMonitorRecord_getp1_y_sum(record, slot);
-                #pragma omp atomic capture          //only_for_context cpu_openmp
-                (*y_sum) += y * weight;             //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(y_sum, y * weight);    //only_for_context opencl
-                atomicAdd(y_sum, y * weight);       //only_for_context cuda
+                atomicAdd(y_sum, y * weight);
 
             }
 
