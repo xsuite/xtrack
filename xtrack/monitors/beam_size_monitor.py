@@ -14,16 +14,12 @@ from ..beam_elements import Marker
 from ..internal_record import RecordIndex
 from ..general import _pkg_root
 
-
-
-
 class BeamSizeMonitorRecord(xo.Struct):
-    count = xo.Int64[:]
+    count = xo.Float64[:]
     x_sum = xo.Float64[:]
     x2_sum = xo.Float64[:]
     y_sum = xo.Float64[:]
     y2_sum = xo.Float64[:]
-
 
 class BeamSizeMonitor(BeamElement):
 
@@ -37,24 +33,24 @@ class BeamSizeMonitor(BeamElement):
         '_index': RecordIndex,
         'data': BeamSizeMonitorRecord,
     }
-    
+
     behaves_like_drift = True
     allow_backtrack = True
-    
+
     properties = [field.name for field in BeamSizeMonitorRecord._fields]
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers/atomicadd.h'),
         _pkg_root.joinpath('monitors/beam_size_monitor.h')
     ]
 
-    
     def __init__(self, *, particle_id_range=None, particle_id_start=None, num_particles=None,
-                 start_at_turn=None, stop_at_turn=None, frev=None, 
+                 start_at_turn=None, stop_at_turn=None, frev=None,
                  sampling_frequency=None, _xobject=None, **kwargs):
         """
         Monitor to save the transverse beam size (standard deviation of the tracked particle positions)
 
-        
+
         The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
         bunch emittance, but also to record coasting beams. Internally, the particle arrival time
         is used when determining the record index:
@@ -72,7 +68,6 @@ class BeamSizeMonitor(BeamElement):
         range zeta/circumference = -0.25 .. 0.25, the second item in the range 0.25 .. 0.75 and
         so on.
 
-
         The monitor provides the following data:
         - `count` Number of particles
         - `x_mean`, `y_mean` Beam position (centroid, i.e. mean of particle x, y)
@@ -82,7 +77,6 @@ class BeamSizeMonitor(BeamElement):
         - `x2_sum`, `y2_sum` Sum of particle x, y squared (= (std**2 + mean**2) * count)
         each as an array of size:
             size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
-        
 
         Args:
             num_particles (int, optional): Number of particles to monitor. Defaults to -1 which means ALL.
@@ -97,9 +91,7 @@ class BeamSizeMonitor(BeamElement):
         """
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
-        
         else:
-
             # dict parameters
             if particle_id_range is None:
                 if particle_id_start is None:
@@ -119,7 +111,7 @@ class BeamSizeMonitor(BeamElement):
                 frev = 1
             if sampling_frequency is None:
                 sampling_frequency = 1
-            
+
             if "data" not in kwargs:
                 # explicitely init with zeros (instead of size only) to have consistent initial values
                 size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
@@ -129,31 +121,29 @@ class BeamSizeMonitor(BeamElement):
                              start_at_turn=start_at_turn, stop_at_turn=stop_at_turn, frev=frev,
                              sampling_frequency=sampling_frequency, **kwargs)
 
-
     def __repr__(self):
         return (
             f"{type(self).__qualname__}(start_at_turn={self.start_at_turn}, stop_at_turn={self.stop_at_turn}, "
             f"particle_id_start={self.particle_id_start}, num_particles={self.num_particles}, frev={self.frev}, "
             f"sampling_frequency={self.sampling_frequency}) at {hex(id(self))}"
         )
-    
 
     def __getattr__(self, attr):
         if attr in self.properties:
             return getattr(self.data, attr).to_nparray()
-        
+
         if attr in ('x_mean', 'y_mean', 'x_cen', 'y_cen', 'x_centroid', 'y_centroid'):
             with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
                 return getattr(self, attr[0]+"_sum") / self.count
-        
+
         if attr in ('x_var', 'y_var'):
             with np.errstate(invalid='ignore'):  # NaN for zero particles is expected behaviour
                 # var = mean(x^2) - mean(x)^2
                 return getattr(self, attr[0]+"2_sum") / self.count - getattr(self, attr[0]+"_mean")**2
-        
+
         if attr in ('x_std', 'y_std'):
             return getattr(self, attr[0]+"_var")**0.5
-        
+
         return getattr(super(), attr)
 
 

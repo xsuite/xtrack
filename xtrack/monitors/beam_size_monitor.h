@@ -38,12 +38,10 @@ void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle*
     int64_t particle_id_stop = particle_id_start + BeamSizeMonitorData_get_num_particles(el);
     double const frev = BeamSizeMonitorData_get_frev(el);
     double const sampling_frequency = BeamSizeMonitorData_get_sampling_frequency(el);
-    
-    BeamSizeMonitorRecord record = BeamSizeMonitorData_getp_data(el);                 //only_for_context cpu_serial cpu_openmp
-    /*gpuglmem*/ BeamSizeMonitorRecord * record = BeamSizeMonitorData_getp_data(el);  //only_for_context opencl cuda
-    
-    int64_t max_slot = BeamSizeMonitorRecord_len_count(record);
 
+    BeamSizeMonitorRecord record = BeamSizeMonitorData_getp_data(el);
+
+    int64_t max_slot = BeamSizeMonitorRecord_len_count(record);
 
     //start_per_particle_block(part0->part)
 
@@ -63,43 +61,24 @@ void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle*
             if (slot >= 0 && slot < max_slot){
                 double x = LocalParticle_get_x(part);
                 double y = LocalParticle_get_y(part);
-                
-                /*gpuglmem*/ int64_t * count = BeamSizeMonitorRecord_getp1_count(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*count) += 1;                //only_for_context cpu_serial cpu_openmp
-                atomic_add(count, 1);         //only_for_context opencl
-                atomicAdd(count, 1);          //only_for_context cuda
-                
+
+                /*gpuglmem*/ double* count = BeamSizeMonitorRecord_getp1_count(record, slot);
+                atomicAdd(count, 1);
+
                 /*gpuglmem*/ double * x_sum = BeamSizeMonitorRecord_getp1_x_sum(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*x_sum) += x;                //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(x_sum, x);       //only_for_context opencl
-                atomicAdd(x_sum, x);          //only_for_context cuda
-                
+                atomicAdd(x_sum, x);
+
                 /*gpuglmem*/ double * y_sum = BeamSizeMonitorRecord_getp1_y_sum(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*y_sum) += y;                //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(y_sum, y);       //only_for_context opencl
-                atomicAdd(y_sum, y);          //only_for_context cuda
-                
+                atomicAdd(y_sum, y);
+
                 /*gpuglmem*/ double * x2_sum = BeamSizeMonitorRecord_getp1_x2_sum(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*x2_sum) += x*x;             //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(x2_sum, x*x);    //only_for_context opencl
-                atomicAdd(x2_sum, x*x);       //only_for_context cuda
-                
+                atomicAdd(x2_sum, x*x);
+
                 /*gpuglmem*/ double * y2_sum = BeamSizeMonitorRecord_getp1_y2_sum(record, slot);
-                #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*y2_sum) += y*y;             //only_for_context cpu_serial cpu_openmp
-                atomic_add_d(y2_sum, y*y);    //only_for_context opencl
-                atomicAdd(y2_sum, y*y);       //only_for_context cuda
-                
+                atomicAdd(y2_sum, y*y);
             }
-
         }
-
 	//end_per_particle_block
-
 }
 
 #endif
