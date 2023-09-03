@@ -38,10 +38,10 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
     int64_t particle_id_stop = particle_id_start + BeamPositionMonitorData_get_num_particles(el);
     double const frev = BeamPositionMonitorData_get_frev(el);
     double const sampling_frequency = BeamPositionMonitorData_get_sampling_frequency(el);
-    
+
     BeamPositionMonitorRecord record = BeamPositionMonitorData_getp_data(el);                 //only_for_context cpu_serial cpu_openmp
     /*gpuglmem*/ BeamPositionMonitorRecord * record = BeamPositionMonitorData_getp_data(el);  //only_for_context opencl cuda
-    
+
     int64_t max_slot = BeamPositionMonitorRecord_len_count(record);
 
 
@@ -63,25 +63,25 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
             if (slot >= 0 && slot < max_slot){
                 double x = LocalParticle_get_x(part);
                 double y = LocalParticle_get_y(part);
-    
+
                 /*gpuglmem*/ int64_t * count = BeamPositionMonitorRecord_getp1_count(record, slot);
                 #pragma omp atomic capture    //only_for_context cpu_openmp
                 (*count) += 1;                //only_for_context cpu_serial cpu_openmp
                 atomic_add(count, 1);         //only_for_context opencl
-                atomicAdd(count, 1);          //only_for_context cuda
-                
+                atomicAdd(count, ((int64_t) 1) );          //only_for_context cuda
+
                 /*gpuglmem*/ double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
                 #pragma omp atomic capture    //only_for_context cpu_openmp
                 (*x_sum) += x;                //only_for_context cpu_serial cpu_openmp
                 atomic_add_d(x_sum, x);       //only_for_context opencl
                 atomicAdd(x_sum, x);          //only_for_context cuda
-                
+
                 /*gpuglmem*/ double * y_sum = BeamPositionMonitorRecord_getp1_y_sum(record, slot);
                 #pragma omp atomic capture    //only_for_context cpu_openmp
                 (*y_sum) += y;                //only_for_context cpu_serial cpu_openmp
                 atomic_add_d(y_sum, y);       //only_for_context opencl
                 atomicAdd(y_sum, y);          //only_for_context cuda
-                
+
             }
 
         }
