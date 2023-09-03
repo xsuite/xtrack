@@ -1,6 +1,6 @@
 // ##################################
 // Beam Profile Monitor
-// 
+//
 // Author: Philipp Niedermayer
 // Date: 2023-08-15
 // ##################################
@@ -23,10 +23,10 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
     int64_t particle_id_stop = particle_id_start + BeamProfileMonitorData_get_num_particles(el);
     double const frev = BeamProfileMonitorData_get_frev(el);
     double const sampling_frequency = BeamProfileMonitorData_get_sampling_frequency(el);
-    
+
     BeamProfileMonitorRecord record = BeamProfileMonitorData_getp_data(el);                 //only_for_context cpu_serial cpu_openmp
-    /*gpuglmem*/ BeamProfileMonitorRecord * record = BeamProfileMonitorData_getp_data(el);  //only_for_context opencl cuda
-    
+    /*gpuglmem*/ BeamProfileMonitorRecord record = BeamProfileMonitorData_getp_data(el);  //only_for_context opencl cuda
+
     int64_t max_sample = BeamProfileMonitorData_get_sample_size(el);
     int64_t max_slot_x = BeamProfileMonitorRecord_len_counts_x(record);
     int64_t max_slot_y = BeamProfileMonitorRecord_len_counts_y(record);
@@ -49,6 +49,7 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
             double const zeta = LocalParticle_get_zeta(part);
             double const at_turn = LocalParticle_get_at_turn(part);
             double const beta0 = LocalParticle_get_beta0(part);
+            double const weight = LocalParticle_get_weight(part);
 
             // compute sample index
             int64_t sample = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));

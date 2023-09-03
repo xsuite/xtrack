@@ -14,12 +14,9 @@ from ..beam_elements import Marker
 from ..internal_record import RecordIndex
 from ..general import _pkg_root
 
-
-
-
 class BeamProfileMonitorRecord(xo.Struct):
-    counts_x = xo.Int64[:]
-    counts_y = xo.Int64[:]
+    counts_x = xo.Float64[:]
+    counts_y = xo.Float64[:]
 
 
 class BeamProfileMonitor(BeamElement):
@@ -41,17 +38,17 @@ class BeamProfileMonitor(BeamElement):
         '_index': RecordIndex,
         'data': BeamProfileMonitorRecord,
     }
-    
+
     behaves_like_drift = True
     allow_backtrack = True
-    
+
     properties = [field.name for field in BeamProfileMonitorRecord._fields]
 
     _extra_c_sources = [
         _pkg_root.joinpath('monitors/beam_profile_monitor.h')
     ]
 
-    
+
     def __init__(self, *, particle_id_range=None, particle_id_start=None, num_particles=None,
                  start_at_turn=None, stop_at_turn=None, frev=None, sampling_frequency=None,
                  nx=None, x_range=None, ny=None, y_range=None,
@@ -59,7 +56,7 @@ class BeamProfileMonitor(BeamElement):
         """
         Monitor to save the transverse profile of the tracked particles
 
-        
+
         The monitor allows for arbitrary sampling rate and can thus not only be used to monitor
         bunch profiles, but also for coasting beams. Internally, the particle arrival time
         is used when determining the record index:
@@ -83,8 +80,6 @@ class BeamProfileMonitor(BeamElement):
                                         where size = round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
         - `x_edges`, `y_edges`: the profile edges (position) as 1D array of shape (n+1)
         - `x_grid`, `y_grid`: the profile position (midpoints) as 1D array of shape (n)
-        
-        
 
         Args:
             num_particles (int, optional): Number of particles to monitor. Defaults to -1 which means ALL.
@@ -107,9 +102,8 @@ class BeamProfileMonitor(BeamElement):
         """
         if _xobject is not None:
             super().__init__(_xobject=_xobject)
-        
-        else:
 
+        else:
             # dict parameters
             if particle_id_range is None:
                 if particle_id_start is None:
@@ -151,7 +145,7 @@ class BeamProfileMonitor(BeamElement):
                 y_range = (-y_range/2, y_range/2)
             y_min = y_range[0]
             dy = (y_range[1]-y_range[0])/ny
-                        
+
             sample_size = int(round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev))
 
             if "data" not in kwargs:
@@ -165,7 +159,7 @@ class BeamProfileMonitor(BeamElement):
                              start_at_turn=start_at_turn, stop_at_turn=stop_at_turn, frev=frev,
                              sampling_frequency=sampling_frequency, nx=nx,
                              x_min=x_min, dx=dx,
-                             ny=ny, y_min=y_min, 
+                             ny=ny, y_min=y_min,
                              dy=dy, sample_size=sample_size, **kwargs)
 
 
@@ -180,7 +174,7 @@ class BeamProfileMonitor(BeamElement):
     def x_edges(self):
         """Edge positions of horizontal profile as array of shape (n+1)"""
         return self.x_min + self.dx * np.arange(self.nx + 1)
-    
+
     @property
     def x_grid(self):
         """Profile positions (midpoints) of horizontal profile as array of shape (n)"""
@@ -197,7 +191,7 @@ class BeamProfileMonitor(BeamElement):
     def y_edges(self):
         """Edge positions of vertical profile as array of shape (n+1)"""
         return self.y_min + self.dy * np.arange(self.ny + 1)
-    
+
     @property
     def y_grid(self):
         """Profile positions (midpoints) of vertical profile as array of shape (n)"""
@@ -209,7 +203,6 @@ class BeamProfileMonitor(BeamElement):
            where size = round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)"""
         y = self.data.counts_y.to_nparray()
         return y.reshape((-1, self.ny))
-
 
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         return Marker(_context=_context, _buffer=_buffer, _offset=_offset)
