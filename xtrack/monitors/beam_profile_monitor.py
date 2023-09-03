@@ -45,6 +45,7 @@ class BeamProfileMonitor(BeamElement):
     properties = [field.name for field in BeamProfileMonitorRecord._fields]
 
     _extra_c_sources = [
+        _pkg_root.joinpath('headers/atomicadd.h'),
         _pkg_root.joinpath('monitors/beam_profile_monitor.h')
     ]
 

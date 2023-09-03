@@ -49,7 +49,6 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
             double const zeta = LocalParticle_get_zeta(part);
             double const at_turn = LocalParticle_get_at_turn(part);
             double const beta0 = LocalParticle_get_beta0(part);
-            double const weight = LocalParticle_get_weight(part);
 
             // compute sample index
             int64_t sample = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
@@ -66,11 +65,8 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
                     int64_t slot_x = sample * nx + bin_x;
 
                     if (slot_x >= 0 && slot_x < max_slot_x){
-                        /*gpuglmem*/ int64_t * counts_x = BeamProfileMonitorRecord_getp1_counts_x(record, slot_x);
-                        #pragma omp atomic capture    //only_for_context cpu_openmp
-                        (*counts_x) += 1;             //only_for_context cpu_serial cpu_openmp
-                        atomic_add(counts_x, 1);      //only_for_context opencl
-                        atomicAdd(counts_x, 1);       //only_for_context cuda
+                        /*gpuglmem*/ double* counts_x = BeamProfileMonitorRecord_getp1_counts_x(record, slot_x);
+                        atomicAdd(counts_x, 1.);
                     }
                 }
 
@@ -78,14 +74,10 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
                     int64_t slot_y = sample * ny + bin_y;
 
                     if (slot_y >= 0 && slot_y < max_slot_y){
-                        /*gpuglmem*/ int64_t * counts_y = BeamProfileMonitorRecord_getp1_counts_y(record, slot_y);
-                        #pragma omp atomic capture    //only_for_context cpu_openmp
-                        (*counts_y) += 1;             //only_for_context cpu_serial cpu_openmp
-                        atomic_add(counts_y, 1);      //only_for_context opencl
-                        atomicAdd(counts_y, 1);       //only_for_context cuda
+                        /*gpuglmem*/ double* counts_y = BeamProfileMonitorRecord_getp1_counts_y(record, slot_y);
+                        atomicAdd(counts_y, 1);
                     }
                 }
-
             }
         }
 
