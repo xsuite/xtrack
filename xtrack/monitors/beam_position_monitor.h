@@ -64,11 +64,11 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
                 double x = LocalParticle_get_x(part);
                 double y = LocalParticle_get_y(part);
 
-                /*gpuglmem*/ int64_t * count = BeamPositionMonitorRecord_getp1_count(record, slot);
+                /*gpuglmem*/ double * count = BeamPositionMonitorRecord_getp1_count(record, slot);
                 #pragma omp atomic capture    //only_for_context cpu_openmp
-                (*count) += 1;                //only_for_context cpu_serial cpu_openmp
-                atomic_add(count, 1);         //only_for_context opencl
-                atomicAdd(count, ((int64_t) 1) );          //only_for_context cuda
+                (*count) += 1.;                //only_for_context cpu_serial cpu_openmp
+                atomic_add_d(count, 1.);         //only_for_context opencl
+                atomicAdd(count, 1.);          //only_for_context cuda
 
                 /*gpuglmem*/ double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
                 #pragma omp atomic capture    //only_for_context cpu_openmp
