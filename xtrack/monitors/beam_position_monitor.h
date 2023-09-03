@@ -54,7 +54,6 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
             double const zeta = LocalParticle_get_zeta(part);
             double const at_turn = LocalParticle_get_at_turn(part);
             double const beta0 = LocalParticle_get_beta0(part);
-            double const weight = LocalParticle_get_weight(part);
 
             // compute sample index
             int64_t slot = round(sampling_frequency * ( (at_turn-start_at_turn)/frev - zeta/beta0/C_LIGHT ));
@@ -64,13 +63,13 @@ void BeamPositionMonitor_track_local_particle(BeamPositionMonitorData el, LocalP
                 double y = LocalParticle_get_y(part);
 
                 /*gpuglmem*/ double * count = BeamPositionMonitorRecord_getp1_count(record, slot);
-                atomicAdd(count, weight);
+                atomicAdd(count, 1.0);
 
                 /*gpuglmem*/ double * x_sum = BeamPositionMonitorRecord_getp1_x_sum(record, slot);
-                atomicAdd(x_sum, x * weight);
+                atomicAdd(x_sum, x);
 
                 /*gpuglmem*/ double * y_sum = BeamPositionMonitorRecord_getp1_y_sum(record, slot);
-                atomicAdd(y_sum, y * weight);
+                atomicAdd(y_sum, y);
 
             }
 

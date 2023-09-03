@@ -24,8 +24,7 @@ void BeamProfileMonitor_track_local_particle(BeamProfileMonitorData el, LocalPar
     double const frev = BeamProfileMonitorData_get_frev(el);
     double const sampling_frequency = BeamProfileMonitorData_get_sampling_frequency(el);
 
-    BeamProfileMonitorRecord record = BeamProfileMonitorData_getp_data(el);                 //only_for_context cpu_serial cpu_openmp
-    /*gpuglmem*/ BeamProfileMonitorRecord record = BeamProfileMonitorData_getp_data(el);  //only_for_context opencl cuda
+    BeamProfileMonitorRecord record = BeamProfileMonitorData_getp_data(el);
 
     int64_t max_sample = BeamProfileMonitorData_get_sample_size(el);
     int64_t max_slot_x = BeamProfileMonitorRecord_len_counts_x(record);
