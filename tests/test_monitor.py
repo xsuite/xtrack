@@ -293,7 +293,7 @@ def test_collective_ebe_monitor(test_context):
     # Line with collective elements
     line_collective = line0.copy()
     line_collective.elements[2].iscollective = True # Thick element (Drift)
-    line_collective.elements[2].move(_context=test_context )
+    line_collective.elements[2].move(_context=test_context)
     line_collective.elements[12000].iscollective = True
     line_collective.elements[12000].move(_context=test_context)
     line_collective.build_tracker(_context=test_context)
@@ -321,7 +321,9 @@ def test_collective_ebe_monitor(test_context):
     # Line with collective elements
     line_collective = line0.copy()
     line_collective.elements[2].iscollective = True # Thick element (Drift)
+    line_collective.elements[2].move(_context=test_context)
     line_collective.elements[12000].iscollective = True
+    line_collective.elements[12000].move(_context=test_context)
     line_collective.build_tracker(_context=test_context)
     particles_collective = particles0.copy(_context=test_context)
 
