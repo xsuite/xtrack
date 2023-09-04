@@ -232,7 +232,17 @@ class Footprint():
                 count += 1
         return tune_shift
 
-    def get_stability_diagram(self,_context=None,n_points_stabiliy_diagram=100,epsilon0=1E-5,epsilon_factor=0.1,epsilon_rel_tol=0.1,max_iter = 10,min_epsilon = 1E-6,n_points_interpolate = 1000):
+    def get_stability_diagram(
+        self,
+        _context=None,
+        n_points_stabiliy_diagram=100,
+        epsilon0=1e-5,
+        epsilon_factor=0.1,
+        epsilon_rel_tol=0.1,
+        max_iter=10,
+        min_epsilon=1e-6,
+        n_points_interpolate=1000,
+    ):
         """
         Compute the stability diagram by evaluating the dispersion integral from [1]
         numerically for a set of complex tune shifts with vanishing imaginary part.
@@ -240,7 +250,7 @@ class Footprint():
 
         Parameters
         ----------
-        _context: 
+        _context:
         n_points_stabiliy_diagram: scalar(int)
             Number of times that the dispersion integral will be solved,
             each yielding a point on the output stability diagram
@@ -274,7 +284,7 @@ class Footprint():
         ----------
         [1] https://cds.cern.ch/record/318826
         [2] https://doi.org/10.1103/PhysRevSTAB.17.111002
-       """
+        """
         if _context == None:
             _context = xo.ContextCpu()
         nplike_lib = _context.nplike_lib
@@ -282,38 +292,64 @@ class Footprint():
         ctx2np = _context.nparray_from_context_array
         np2ctx = _context.nparray_to_context_array
 
-        Jx_2d = np2ctx(self.Jx_2d/self.nemitt_x)
-        Jx_grid = np2ctx(self.Jx_grid/self.nemitt_x)
-        Jy_2d = np2ctx(self.Jy_2d/self.nemitt_y)
-        Jy_grid = np2ctx(self.Jy_grid/self.nemitt_y)
+        Jx_2d = np2ctx(self.Jx_2d / self.nemitt_x)
+        Jx_grid = np2ctx(self.Jx_grid / self.nemitt_x)
+        Jy_2d = np2ctx(self.Jy_2d / self.nemitt_y)
+        Jy_grid = np2ctx(self.Jy_grid / self.nemitt_y)
         qx = np2ctx(self.qx)
         qy = np2ctx(self.qy)
 
         if n_points_interpolate > len(Jx_grid) or n_points_interpolate > len(Jy_grid):
-            interpolator_x = splike_lib.interpolate.RegularGridInterpolator(points=[Jy_grid,Jx_grid],values=qx,bounds_error=True, fill_value=None)
-            interpolator_y = splike_lib.interpolate.RegularGridInterpolator(points=[Jy_grid,Jx_grid],values=qy,bounds_error=True, fill_value=None)
-            Jx_grid = nplike_lib.linspace(Jx_grid[0],Jx_grid[-1],n_points_interpolate)
-            Jy_grid = nplike_lib.linspace(Jy_grid[0],Jy_grid[-1],n_points_interpolate)
-            Jx_2d,Jy_2d = nplike_lib.meshgrid(Jx_grid,Jy_grid)
-            qx = interpolator_x((Jy_2d,Jx_2d))
-            qy = interpolator_y((Jy_2d,Jx_2d))
+            interpolator_x = splike_lib.interpolate.RegularGridInterpolator(
+                points=[Jy_grid, Jx_grid], values=qx, bounds_error=True, fill_value=None
+            )
+            interpolator_y = splike_lib.interpolate.RegularGridInterpolator(
+                points=[Jy_grid, Jx_grid], values=qy, bounds_error=True, fill_value=None
+            )
+            Jx_grid = nplike_lib.linspace(Jx_grid[0], Jx_grid[-1], n_points_interpolate)
+            Jy_grid = nplike_lib.linspace(Jy_grid[0], Jy_grid[-1], n_points_interpolate)
+            Jx_2d, Jy_2d = nplike_lib.meshgrid(Jx_grid, Jy_grid)
+            qx = interpolator_x((Jy_2d, Jx_2d))
+            qy = interpolator_y((Jy_2d, Jx_2d))
 
-        coherent_tunes_x = np.linspace(np.min(self.qx),np.max(self.qx),n_points_stabiliy_diagram)
-        coherent_tunes_y = np.linspace(np.min(self.qy),np.max(self.qy),n_points_stabiliy_diagram)
-        tune_shifts_x = np.zeros_like(coherent_tunes_x,dtype=complex)
-        tune_shifts_y = np.zeros_like(coherent_tunes_y,dtype=complex)
+        coherent_tunes_x = np.linspace(
+            np.min(self.qx), np.max(self.qx), n_points_stabiliy_diagram
+        )
+        coherent_tunes_y = np.linspace(
+            np.min(self.qy), np.max(self.qy), n_points_stabiliy_diagram
+        )
+        tune_shifts_x = np.zeros_like(coherent_tunes_x, dtype=complex)
+        tune_shifts_y = np.zeros_like(coherent_tunes_y, dtype=complex)
         for i in range(n_points_stabiliy_diagram):
-            tune_shifts_x[i] = self._compute_tune_shift_adaptive_epsilon(_context=_context,
-                                          J1_2d=Jx_2d,J1_grid=Jx_grid,J2_2d=Jy_2d,J2_grid=Jy_grid,
-                                          q = qx,coherent_tune = coherent_tunes_x[i],
-                                          epsilon0 = epsilon0,epsilon_factor = epsilon_factor,epsilon_rel_tol=epsilon_rel_tol,
-                                          max_iter=max_iter,min_epsilon=min_epsilon)
-            tune_shifts_y[i] = self._compute_tune_shift_adaptive_epsilon(_context=_context,
-                                          J1_2d=Jy_2d,J1_grid=Jy_grid,J2_2d=Jx_2d,J2_grid=Jx_grid,
-                                          q = qy,coherent_tune = coherent_tunes_y[i],
-                                          epsilon0 = epsilon0,epsilon_factor = epsilon_factor,epsilon_rel_tol=epsilon_rel_tol,
-                                          max_iter=max_iter,min_epsilon=min_epsilon)
-        return tune_shifts_x,tune_shifts_y
+            tune_shifts_x[i] = self._compute_tune_shift_adaptive_epsilon(
+                _context=_context,
+                J1_2d=Jx_2d,
+                J1_grid=Jx_grid,
+                J2_2d=Jy_2d,
+                J2_grid=Jy_grid,
+                q=qx,
+                coherent_tune=coherent_tunes_x[i],
+                epsilon0=epsilon0,
+                epsilon_factor=epsilon_factor,
+                epsilon_rel_tol=epsilon_rel_tol,
+                max_iter=max_iter,
+                min_epsilon=min_epsilon,
+            )
+            tune_shifts_y[i] = self._compute_tune_shift_adaptive_epsilon(
+                _context=_context,
+                J1_2d=Jy_2d,
+                J1_grid=Jy_grid,
+                J2_2d=Jx_2d,
+                J2_grid=Jx_grid,
+                q=qy,
+                coherent_tune=coherent_tunes_y[i],
+                epsilon0=epsilon0,
+                epsilon_factor=epsilon_factor,
+                epsilon_rel_tol=epsilon_rel_tol,
+                max_iter=max_iter,
+                min_epsilon=min_epsilon,
+            )
+        return tune_shifts_x, tune_shifts_y
 
     def plot(self, ax=None, **kwargs):
         import matplotlib.pyplot as plt
