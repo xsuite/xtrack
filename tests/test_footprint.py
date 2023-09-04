@@ -196,6 +196,10 @@ def test_footprint(test_context, freeze_longitudinal):
 @for_all_test_contexts
 def test_footprint_delta0(test_context):
 
+    if isinstance(test_context, xo.ContextPyopencl):
+        pytest.skip('Pyopencl not yet supported for footprint')
+        return
+
     nemitt_x = 1e-6
     nemitt_y = 1e-6
 
