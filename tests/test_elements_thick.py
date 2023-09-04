@@ -1027,6 +1027,8 @@ def test_solenoid_thick_analytic(test_context, length, expected):
     p_sol = p0.copy()
     solenoid.track(p_sol)
 
+    p_sol.move(_context=xo.context_default)
+
     assert np.allclose(p_sol.x, expected[0], atol=1e-9)
     assert np.allclose(p_sol.px, expected[1], atol=1e-9)
     assert np.allclose(p_sol.y, expected[2], atol=1e-9)
