@@ -172,8 +172,8 @@ class Footprint():
             yy = mon.y
             atleast_2d = nplike_lib.atleast_2d
 
-        x_noCO = mon.x - atleast_2d(xx.mean(axis=1)).T
-        y_noCO = mon.y - atleast_2d(yy.mean(axis=1)).T
+        x_noCO = xx - atleast_2d(xx.mean(axis=1)).T
+        y_noCO = yy - atleast_2d(yy.mean(axis=1)).T
 
         if isinstance(line._context, xo.ContextPyopencl):
             x_noCO = line._context.nparray_to_context_array(x_noCO)
