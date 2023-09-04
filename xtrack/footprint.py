@@ -164,7 +164,9 @@ class Footprint():
         mon.auto_to_numpy = False
 
         if isinstance(line._context, xo.ContextPyopencl):
-            raise NotImplementedError('Pyopencl not supported yet')
+            raise NotImplementedError(
+                'Footprint calculation with Pyopencl not supported yet. '
+                'Let us know if you need this feature.')
             # Could be implemented using xobject fft
 
         x_noCO = mon.x - nplike_lib.atleast_2d(mon.x.mean(axis=1)).T
