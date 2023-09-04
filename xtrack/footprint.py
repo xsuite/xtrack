@@ -164,20 +164,11 @@ class Footprint():
         mon.auto_to_numpy = False
 
         if isinstance(line._context, xo.ContextPyopencl):
-            xx = line._context.nparray_from_context_array(mon.x)
-            yy = line._context.nparray_from_context_array(mon.y)
-            atleast_2d = np.atleast_2d
-        else:
-            xx = mon.x
-            yy = mon.y
-            atleast_2d = nplike_lib.atleast_2d
+            raise NotImplementedError('Pyopencl not supported yet')
+            # Could be implemented using xobject fft
 
-        x_noCO = xx - atleast_2d(xx.mean(axis=1)).T
-        y_noCO = yy - atleast_2d(yy.mean(axis=1)).T
-
-        if isinstance(line._context, xo.ContextPyopencl):
-            x_noCO = line._context.nparray_to_context_array(x_noCO)
-            y_noCO = line._context.nparray_to_context_array(y_noCO)
+        x_noCO = mon.x - nplike_lib.atleast_2d(mon.x.mean(axis=1)).T
+        y_noCO = mon.y - nplike_lib.atleast_2d(mon.y.mean(axis=1)).T
 
         freq_axis = nplike_lib.fft.rfftfreq(self.n_fft)
 
