@@ -162,8 +162,19 @@ class Footprint():
             'Some particles were lost during tracking')
         mon = line.record_last_track
         mon.auto_to_numpy = False
-        x_noCO = mon.x - nplike_lib.atleast_2d(nplike_lib.mean(mon.x, axis=1)).T
-        y_noCO = mon.y - nplike_lib.atleast_2d(nplike_lib.mean(mon.y, axis=1)).T
+
+        mean_x = nplike_lib.mean(mon.x, axis=1)
+        mean_y = nplike_lib.mean(mon.y, axis=1)
+
+        if len(mean_x.shape) < 2:
+            if isinstance(line._context, xo.ContextPyopencl):
+                raise NotImplementedError('Pyopencl does not support atleast_2d')
+            mean_x = nplike_lib.atleast_2d(mean_x).T
+            mean_y = nplike_lib.atleast_2d(mean_y).T
+
+        x_noCO = mon.x - mean_x
+        y_noCO = mon.y - mean_y
+
         freq_axis = nplike_lib.fft.rfftfreq(self.n_fft)
 
         npart = nplike_lib.shape(x_noCO)[0]
