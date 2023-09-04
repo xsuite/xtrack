@@ -991,6 +991,9 @@ def test_solenoid_thick_drift_like(test_context):
     p_drift = p0.copy()
     drift.track(p_drift)
 
+    p_sol.move(_context=xo.context_default)
+    p_drift.move(_context=xo.context_default)
+
     assert np.allclose(p_sol.x, p_drift.x, atol=1e-9)
     assert np.allclose(p_sol.px, p_drift.px, atol=1e-9)
     assert np.allclose(p_sol.y, p_drift.y, atol=1e-9)
