@@ -163,8 +163,8 @@ class Footprint():
         mon = line.record_last_track
         mon.auto_to_numpy = False
 
-        mean_x = nplike_lib.mean(mon.x, axis=1)
-        mean_y = nplike_lib.mean(mon.y, axis=1)
+        mean_x = mon.x.mean(axis=1)
+        mean_y = mon.y.mean(axis=1)
 
         if len(mean_x.shape) < 2:
             if isinstance(line._context, xo.ContextPyopencl):
