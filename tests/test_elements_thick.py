@@ -85,7 +85,7 @@ def test_combined_function_dipole_against_madx(test_context, k0, k1, length):
 
 def test_thick_bend_survey():
     circumference = 10
-    rho = circumference / (2 * np.math.pi)
+    rho = circumference / (2 * np.pi)
     h = 1 / rho
     k = 1 / rho
 
@@ -130,7 +130,7 @@ def test_thick_bend_survey():
     Xc = X_array - Xmid
     Zc = Z_array - Zmid
     rhos = np.sqrt(Xc ** 2 + Zc ** 2)
-    errors = np.max(np.abs(rhos - 10 / (2 * np.math.pi)))
+    errors = np.max(np.abs(rhos - 10 / (2 * np.pi)))
     assert errors < 2e-6
 
 
@@ -341,9 +341,9 @@ def test_import_thick_quad_from_madx(with_knobs):
     assert np.isclose(elem.k1, 0.5 * np.sqrt(0.01 + 0.04), atol=1e-16)
 
     expected_tilt_before = -np.arctan2(0.2, 0.1) / 2
-    tilt_entry = elem_tilt_entry.angle / 180 * np.math.pi  # rotation takes degrees
+    tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
     assert np.isclose(tilt_entry, expected_tilt_before, atol=1e-16)
-    tilt_exit = elem_tilt_exit.angle / 180 * np.math.pi  # ditto
+    tilt_exit = elem_tilt_exit.angle / 180 * np.pi  # ditto
     assert np.isclose(-expected_tilt_before, tilt_exit, atol=1e-16)
 
     # Finish the test here if we are not using knobs
@@ -360,9 +360,9 @@ def test_import_thick_quad_from_madx(with_knobs):
     assert np.isclose(elem.k1, 0.5 * np.sqrt(1.21 + 1.44), atol=1e-16)
 
     expected_tilt_after = -np.arctan2(1.2, 1.1) / 2
-    changed_tilt_entry = elem_tilt_entry.angle / 180 * np.math.pi  # rotation takes degrees
+    changed_tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
     assert np.isclose(changed_tilt_entry, expected_tilt_after, atol=1e-16)
-    changed_tilt_exit = elem_tilt_exit.angle / 180 * np.math.pi  # ditto
+    changed_tilt_exit = elem_tilt_exit.angle / 180 * np.pi  # ditto
     assert np.isclose(-expected_tilt_after, changed_tilt_exit, atol=1e-16)
 
 
