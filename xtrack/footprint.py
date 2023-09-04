@@ -163,17 +163,21 @@ class Footprint():
         mon = line.record_last_track
         mon.auto_to_numpy = False
 
-        mean_x = mon.x.mean(axis=1)
-        mean_y = mon.y.mean(axis=1)
+        if isinstance(line._context, xo.ContextPyopencl):
+            xx = line._context.nparray_from_context_array(mon.x)
+            yy = line._context.nparray_from_context_array(mon.y)
+            atleast_2d = np.atleast_2d
+        else:
+            xx = mon.x
+            yy = mon.y
+            atleast_2d = nplike_lib.atleast_2d
 
-        if len(mean_x.shape) < 2:
-            if isinstance(line._context, xo.ContextPyopencl):
-                raise NotImplementedError('Pyopencl does not support atleast_2d')
-            mean_x = nplike_lib.atleast_2d(mean_x).T
-            mean_y = nplike_lib.atleast_2d(mean_y).T
+        x_noCO = mon.x - atleast_2d(xx.mean(axis=1)).T
+        y_noCO = mon.y - atleast_2d(yy.mean(axis=1)).T
 
-        x_noCO = mon.x - mean_x
-        y_noCO = mon.y - mean_y
+        if isinstance(line._context, xo.ContextPyopencl):
+            x_noCO = line._context.nparray_to_context_array(x_noCO)
+            y_noCO = line._context.nparray_to_context_array(y_noCO)
 
         freq_axis = nplike_lib.fft.rfftfreq(self.n_fft)
 
