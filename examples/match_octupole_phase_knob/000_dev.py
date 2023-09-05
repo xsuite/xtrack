@@ -45,8 +45,8 @@ class RDTarget(xt.Target):
             j=self.j, k=self.k, l=self.l, m=self.m)
         return rdt
 
-    def __repr__(self):
-        return f'RDTarget(j={self.j}, k={self.k}, l={self.l}, m={self.m})'
+    # def __repr__(self):
+    #     return f'RDTarget(j={self.j}, k={self.k}, l={self.l}, m={self.m})'
 
 class RDTargetReal(RDTarget):
     def compute_abs_target(self, tw):
