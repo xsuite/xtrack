@@ -13,22 +13,6 @@
     #define   C_LIGHT ( 299792458.0 )
 #endif /* !defined( C_LIGHT ) */
 
-
-#pragma OPENCL EXTENSION cl_khr_fp64: enable                                                      //only_for_context opencl
-#pragma OPENCL EXTENSION cl_khr_int64_base_atomics: enable                                        //only_for_context opencl
-/*gpufun*/                                                                                        //only_for_context opencl
-void atomic_add_d(__global double *val, double delta) {                                           //only_for_context opencl
-  union {                                                                                         //only_for_context opencl
-    double f;                                                                                     //only_for_context opencl
-    ulong  i;                                                                                     //only_for_context opencl
-  } read, write;                                                                                  //only_for_context opencl
-  do {                                                                                            //only_for_context opencl
-    read.f = *val;                                                                                //only_for_context opencl
-    write.f = read.f + delta;                                                                     //only_for_context opencl
-  } while (atom_cmpxchg ( (volatile __global ulong *)val, read.i, write.i) != read.i);            //only_for_context opencl
-}                                                                                                 //only_for_context opencl
-
-
 /*gpufun*/
 void BeamSizeMonitor_track_local_particle(BeamSizeMonitorData el, LocalParticle* part0){
 
