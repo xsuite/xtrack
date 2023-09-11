@@ -1597,7 +1597,7 @@ def test_ecooler(test_context):
         q0=q0)
 
     dtk_cooler = dtk.elements.ElectronCooler(
-        current=current, length=cooler_length, r_radius_e_beambeam=radius_e_beam,
+        current=current, length=cooler_length, radius_e_beam=radius_e_beam,
         temp_perp=temp_perp, temp_long=temp_long, magnetic_field=magnetic_field, magnetic_field_ratio=0,
         neutralisation_space_charge=0)
 
