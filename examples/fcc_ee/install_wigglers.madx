@@ -23,8 +23,10 @@ Print, Text="MeV.";
 
 define_wigglers_as_multipoles() : macro {
 
-    MWIM: MULTIPOLE, LRAD=L_minus, knl:={-0.5*wiggler_angle_h}, ksl:={-0.5*wiggler_angle_v};
-    MWIP: MULTIPOLE, LRAD=L_plus,  knl:={ wiggler_angle_h},     ksl:={wiggler_angle_v};
+    ! MWIM: MULTIPOLE, LRAD=L_minus, knl:={-0.5*wiggler_angle_h}, ksl:={-0.5*wiggler_angle_v};
+    ! MWIP: MULTIPOLE, LRAD=L_plus,  knl:={ wiggler_angle_h},     ksl:={wiggler_angle_v};
+    MWIM: SBEND, L=L_minus, angle:=-0.5*wiggler_angle_v, tilt=pi/2;
+    MWIP: SBEND, L=L_plus,  angle:=wiggler_angle_v, tilt=pi/2;
 
     MWI.A4RA: MWIM;
     MWI.B4RA: MWIP;
