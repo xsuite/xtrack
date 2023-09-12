@@ -9,18 +9,18 @@ line.cycle('qrdr2.3_entry', inplace=True)
 line.build_tracker()
 line.vars['on_wiggler_v'] = 0.5
 
-tt = line.get_table()
-wigs = tt.rows['mwi.*', tt.element_type=='Multipole'].name
+# tt = line.get_table()
+# wigs = tt.rows['mwi.*', tt.element_type=='Multipole'].name
 
 
-for nn in tt.rows['mwi.*.tilt.*'].name:
-    line.element_refs[nn].angle = 0
+# for nn in tt.rows['mwi.*.tilt.*'].name:
+#     line.element_refs[nn].angle = 0
 
-for nn in wigs:
-    line.element_refs[nn].hyl = line.element_refs[nn].hxl._expr
-    line.element_refs[nn].hxl = 0
-    line.element_refs[nn].ksl[0] = line.element_refs[nn].knl[0]._expr
-    line.element_refs[nn].knl[0] = 0
+# for nn in wigs:
+#     line.element_refs[nn].hyl = line.element_refs[nn].hxl._expr
+#     line.element_refs[nn].hxl = 0
+#     line.element_refs[nn].ksl[0] = line.element_refs[nn].knl[0]._expr
+#     line.element_refs[nn].knl[0] = 0
 
 tw_no_rad = line.twiss(method='4d')
 

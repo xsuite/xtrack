@@ -4,7 +4,7 @@ import xtrack as xt
 # fname = 'fccee_z'; gemitt_y_target = 1.4e-12; n_turns_track_test = 3000
 # fname = 'fccee_w'; gemitt_y_target = 2.2e-12; n_turns_track_test = 1000
 fname = 'fccee_h'; gemitt_y_target = 1.4e-12; n_turns_track_test = 400
-# fname = 'fccee_t'; gemitt_y_target = 1.6e-12; n_turns_track_test = 200
+fname = 'fccee_t'; gemitt_y_target = 1.6e-12; n_turns_track_test = 400
 
 
 line = xt.Line.from_json(fname + '_thin.json')
