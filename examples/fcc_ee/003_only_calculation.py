@@ -4,6 +4,7 @@ import xtrack as xt
 fname = 'fccee_t'
 
 line = xt.Line.from_json(fname + '_thin.json')
+line.cycle('qrdr2.3_entry', inplace=True)
 
 line.build_tracker()
 line.vars['on_wiggler_v'] = 0.5
@@ -32,7 +33,7 @@ ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
-num_particles_test = 100
+num_particles_test = 300
 n_turns_track_test = 400
 
 line.configure_radiation(model='quantum')
