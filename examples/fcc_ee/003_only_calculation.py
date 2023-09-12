@@ -6,7 +6,9 @@ fname = 'fccee_t'
 num_particles_test = 300
 n_turns_track_test = 400
 
+
 line = xt.Line.from_json(fname + '_thin.json')
+# line.cycle('qrdr2.3_entry', inplace=True)
 
 # Add monitor in a dispersion-free place out of crab waist
 monitor = xt.ParticlesMonitor(num_particles=num_particles_test,

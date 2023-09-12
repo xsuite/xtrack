@@ -46,7 +46,6 @@ ez = tw_rad.eq_gemitt_zeta
 line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=num_particles_test)
 line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True)
-mon = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
 
 import matplotlib.pyplot as plt
@@ -70,6 +69,7 @@ for ii, (mon, element_mon, label) in enumerate(
         color='red', label='twiss')
     spx.legend(loc='lower right')
     spx.set_ylabel(r'$\sigma_{x}$ [m]')
+    spx.set_ylim(bottom=0)
 
     spy = fig. add_subplot(3, 1, 2, sharex=spx)
     spy.plot(np.std(mon.y, axis=0), label='track')
@@ -77,11 +77,13 @@ for ii, (mon, element_mon, label) in enumerate(
         np.sqrt(ex * bety1 + ey * bety + (np.std(p.delta) * dy)**2),
         color='red', label='twiss')
     spy.set_ylabel(r'$\sigma_{y}$ [m]')
+    spy.set_ylim(bottom=0)
 
     spz = fig. add_subplot(3, 1, 3, sharex=spx)
     spz.plot(np.std(mon.zeta, axis=0))
     spz.axhline(np.sqrt(ez * tw_rad.betz0), color='red')
     spz.set_ylabel(r'$\sigma_{z}$ [m]')
+    spz.set_ylim(bottom=0)
 
     plt.suptitle(f'{fname} - ' r'$\varepsilon_y$ = ' f'{ey*1e12:.6f} pm - {label}')
 
