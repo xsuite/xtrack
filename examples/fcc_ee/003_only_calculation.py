@@ -58,7 +58,7 @@ spy.plot(np.std(mon.y, axis=0), label='track')
 spy.axhline(
     np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2),
     color='red', label='twiss')
-spx.set_ylabel(r'$\sigma_{y}$ [m]')
+spy.set_ylabel(r'$\sigma_{y}$ [m]')
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))

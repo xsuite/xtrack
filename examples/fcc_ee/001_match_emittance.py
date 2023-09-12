@@ -4,10 +4,11 @@ import xtrack as xt
 # fname = 'fccee_z'; gemitt_y_target = 1.4e-12; n_turns_track_test = 3000
 # fname = 'fccee_w'; gemitt_y_target = 2.2e-12; n_turns_track_test = 1000
 fname = 'fccee_h'; gemitt_y_target = 1.4e-12; n_turns_track_test = 400
-fname = 'fccee_t'; gemitt_y_target = 1.6e-12; n_turns_track_test = 400
+fname = 'fccee_t'; gemitt_y_target = 2e-12; n_turns_track_test = 400
 
 
 line = xt.Line.from_json(fname + '_thin.json')
+line.cycle('qrdr2.3_entry', inplace=True)
 
 line.build_tracker()
 
@@ -38,7 +39,7 @@ ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
 line.configure_radiation(model='quantum')
-p = line.build_particles(num_particles=30)
+p = line.build_particles(num_particles=300)
 line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')
@@ -59,7 +60,7 @@ spy.plot(np.std(mon.y, axis=0), label='track')
 spy.axhline(
     np.sqrt(ex * tw_rad.bety1[0] + ey * tw_rad.bety[0] + (np.std(p.delta) * tw_rad.dy[0])**2),
     color='red', label='twiss')
-spx.set_ylabel(r'$\sigma_{y}$ [m]')
+spy.set_ylabel(r'$\sigma_{y}$ [m]')
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
