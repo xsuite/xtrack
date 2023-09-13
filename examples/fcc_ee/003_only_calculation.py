@@ -8,7 +8,7 @@ n_turns_track_test = 400
 
 
 line = xt.Line.from_json(fname + '_thin.json')
-# line.cycle('qrdr2.3_entry', inplace=True)
+line.cycle('qrdr2.3_entry', inplace=True)
 
 # Add monitor in a dispersion-free place out of crab waist
 monitor = xt.ParticlesMonitor(num_particles=num_particles_test,
@@ -16,7 +16,7 @@ monitor = xt.ParticlesMonitor(num_particles=num_particles_test,
 line.insert_element(element=monitor, name='monitor', index='qrdr2.3_entry')
 
 line.build_tracker()
-line.vars['on_wiggler_v'] = 0.5
+line.vars['on_wiggler_v'] = 0.66
 
 tw_no_rad = line.twiss(method='4d')
 
