@@ -3,12 +3,17 @@ import xtrack as xt
 
 fname = 'fccee_t'
 
+delta0 = 0.1
+
 num_particles_test = 300
 n_turns_track_test = 400
 
-
 line = xt.Line.from_json(fname + '_thin.json')
-line.cycle('qrdr2.3_entry', inplace=True)
+line.cycle('mwi.a4rj_entry', inplace=True)
+
+# More voltage to stand more energy loss
+line.vv['voltca1'] *= 2
+line.vv['voltca2'] *= 2
 
 # Add monitor in a dispersion-free place out of crab waist
 monitor = xt.ParticlesMonitor(num_particles=num_particles_test,
@@ -16,21 +21,31 @@ monitor = xt.ParticlesMonitor(num_particles=num_particles_test,
 line.insert_element(element=monitor, name='monitor', index='qrdr2.3_entry')
 
 line.build_tracker()
-line.vars['on_wiggler_v'] = 0.66
+line.vars['on_wiggler_v'] = 0.87 / (1 + delta0)
+
+# keep only wiggler in the first straight section
+tt = line.get_table()
+wigs_off = tt.rows['mwi.*', tt.element_type=='Multipole', 20000:85000:'s'].name
+for nn in wigs_off:
+    line.element_refs[nn].hyl = 0
+    line.element_refs[nn].hxl = 0
+    line.element_refs[nn].ksl[0] = 0
+    line.element_refs[nn].knl[0] = 0
 
 tw_no_rad = line.twiss(method='4d')
 
 line.configure_radiation(model='mean')
-line.compensate_radiation_energy_loss()
+line.compensate_radiation_energy_loss(delta0=delta0)
 
-tw_rad = line.twiss(eneloss_and_damping=True)
+tw_rad = line.twiss(eneloss_and_damping=True,
+                    particle_co_guess=line.build_particles(delta=delta0))
 
 ex = tw_rad.eq_gemitt_x
 ey = tw_rad.eq_gemitt_y
 ez = tw_rad.eq_gemitt_zeta
 
 line.configure_radiation(model='quantum')
-p = line.build_particles(num_particles=num_particles_test)
+p = line.build_particles(delta=delta0, num_particles=num_particles_test)
 line.track(p, num_turns=n_turns_track_test, turn_by_turn_monitor=True, time=True)
 mon = line.record_last_track
 print(f'Tracking time: {line.time_last_track}')

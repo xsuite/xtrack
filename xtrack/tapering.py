@@ -99,6 +99,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
     mask_active_cav = np.abs(v0) > 0
     v_ratio = v0 * 0
     v_ratio[mask_active_cav] = v_synchronous[mask_active_cav] / v0[mask_active_cav]
+    assert np.all(np.abs(v_ratio[mask_active_cav]) < 1)
     inst_phase = np.arcsin(v_ratio)
 
     total_lag = 360.*(inst_phase / (2 * np.pi) - f0 * zeta_at_cav / beta0 / clight)

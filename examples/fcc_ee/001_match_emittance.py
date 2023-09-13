@@ -18,7 +18,7 @@ line.cycle('mwi.a4rj_entry', inplace=True)
 #                               start_at_turn=0, stop_at_turn=n_turns_track_test)
 # line.insert_element(element=monitor, name='monitor', index='qrdr2.3_entry')
 
-# keep only wiggler in the first stright section
+# keep only wiggler in the first straight section
 tt = line.get_table()
 wigs_off = tt.rows['mwi.*', tt.element_type=='Multipole', 20000:85000:'s'].name
 for nn in wigs_off:
