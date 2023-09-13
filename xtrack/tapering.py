@@ -24,7 +24,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
 
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = True
     with xt.freeze_longitudinal(line):
-        particle_on_co = line.find_closed_orbit(delta0=delta0)
+        particle_on_co = line.find_closed_orbit()
     line.config.XTRACK_MULTIPOLE_NO_SYNRAD = False
 
     beta0 = float(particle_on_co._xobject.beta0[0])
