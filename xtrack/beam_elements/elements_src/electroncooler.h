@@ -25,7 +25,7 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double offset_energy  = ElectronCoolerData_get_offset_energy(el);
     
     double magnetic_field_ratio        = ElectronCoolerData_get_magnetic_field_ratio(el);
-    double neutralisation_space_charge = ElectronCoolerData_get_neutralisation_space_charge(el);
+    double space_charge = ElectronCoolerData_get_space_charge(el);
         
     double mass_electron_ev = MASS_ELECTRON * POW2(C_LIGHT) / QELEM; //eV
 
@@ -85,12 +85,12 @@ void ElectronCooler_track_local_particle(ElectronCoolerData el, LocalParticle* p
     double beta2 = sqrt(1 - 1/(gamma*gamma));
     double beta_diff = beta2 - beta0;
     
-    double Vi = delta*machine_v  - neutralisation_space_charge*C_LIGHT*beta_diff;
+    double Vi = delta*machine_v  - space_charge*C_LIGHT*beta_diff;
     double dVx = px*machine_v;
     double dVy = py*machine_v;
     
-    dVx += neutralisation_space_charge*omega *radius* -sin(theta);
-    dVy += neutralisation_space_charge*omega *radius* +cos(theta);
+    dVx += space_charge*omega *radius* -sin(theta);
+    dVy += space_charge*omega *radius* +cos(theta);
     
     double Vi_abs = sqrt(dVx*dVx+dVy*dVy+Vi*Vi);
     double rhomin = Z*RADIUS_ELECTRON*C_LIGHT*C_LIGHT/(Vi_abs*Vi_abs + Vs*Vs);

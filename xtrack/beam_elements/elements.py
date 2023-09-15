@@ -2505,13 +2505,13 @@ class ElectronCooler(BeamElement):
             The current in the electron beam, in amperes.
         length  : float, optional
             The length of the electron cooler, in meters.
-        r_beam : float, optional
+        radius_e_beam : float, optional
             The radius of the electron beam, in meters.
-        T_perp : float, optional
+        temp_perp : float, optional
             The transverse temperature of the electron beam, in electron volts.
         T_l : float, optional
             The longitudinal temperature of the electron beam, in electron volts.
-        B : float, optional
+        magnetic_field : float, optional
             The magnetic field strength, in tesla.
         offset_x : float, optional
             The horizontal offset of the electron cooler, in meters.
@@ -2523,15 +2523,14 @@ class ElectronCooler(BeamElement):
             The vertical angle of the electron cooler, in rad.
         offset_energy : float, optional
             The energy offset of the electrons, in eV.
-        B_ratio : float, optional
+        magnetic_field_ratio : float, optional
             The ratio of perpendicular component of magnetic field with the 
             longitudinal component of the magnetic field. This is a measure
             of the magnetic field quality. With the ideal magnetic field quality 
             being 0.
-        Neutralisation_space_charge : float, optional
+        space_charge : float, optional
             Whether space charge of electron beam is enabled. 0 is off and 1 is on.
-        Neutralisation_rotation : float, optional
-            Whether rotation of electron beam is enabled. 0 is off and 1 is on.
+        
     """
 
     _xofields = {
@@ -2548,9 +2547,8 @@ class ElectronCooler(BeamElement):
         'offset_py'     :  xo.Float64,
         'offset_energy' :  xo.Float64,
 
-        'magnetic_field_ratio'       :  xo.Float64,
-        'neutralisation_space_charge': xo.Float64,
-        'neutralisation_rotation'    : xo.Float64               
+        'magnetic_field_ratio' :  xo.Float64,
+        'space_charge'         : xo.Float64
         }
 
     _extra_c_sources = [
@@ -2571,7 +2569,7 @@ class ElectronCooler(BeamElement):
                         offset_energy  = 0,
                                                 
                         magnetic_field_ratio        = 0,
-                        neutralisation_space_charge = 0,                      
+                        space_charge = 0,                      
                         **kwargs):
         
         if "_xobject" in kwargs:
@@ -2593,7 +2591,7 @@ class ElectronCooler(BeamElement):
         self.offset_energy  = offset_energy
         
         self.magnetic_field_ratio        = magnetic_field_ratio
-        self.neutralisation_space_charge = neutralisation_space_charge
+        self.space_charge = space_charge
         
     def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
         raise NotImplementedError
