@@ -3,7 +3,7 @@ import xtrack as xt
 
 fname = 'fccee_t'
 
-delta0 = 0.1
+delta0 = 0.
 
 num_particles_test = 300
 n_turns_track_test = 400
