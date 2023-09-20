@@ -1113,7 +1113,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         beta0 = line.particle_ref._xobject.beta0[0]
 
         gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
-        gamma2 = gamma * gamma
+        gamma4 = gamma * gamma * gamma * gamma
 
         px_left = px_co[:-1]
         px_right = px_co[1:]
@@ -1171,32 +1171,32 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
         # Need to use no rad W matrix!!!
         integ_ex_left = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * (
+            * np.abs(hh)**3 * gamma4 * (
                 (a11_left * px_left + a13_left * py_left + a15_left)**2
               + (b11_left * px_left + b13_left * py_left + b15_left)**2))
         integ_ex_right = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * (
+            * np.abs(hh)**3 * gamma4 * (
                 (a11_right * px_right + a13_right * py_right + a15_right)**2
               + (b11_right * px_right + b13_right * py_right + b15_right)**2))
         integ_ey_left = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * (
+            * np.abs(hh)**3 * gamma4 * (
                 (a21_left * px_left + a23_left * py_left + a25_left)**2
               + (b21_left * px_left + b23_left * py_left + b25_left)**2))
         integ_ey_right = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * (
+            * np.abs(hh)**3 * gamma4 * (
                 (a21_right * px_right + a23_right * py_right + a25_right)**2
               + (b21_right * px_right + b23_right * py_right + b25_right)**2))
         integ_ez_left = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * (
+            * np.abs(hh)**3 * gamma4 * (
                 (a31_left * px_left + a33_left * py_left + a35_left)**2
               + (b31_left * px_left + b33_left * py_left + b35_left)**2))
         integ_ez_right = np.sum(dl
-            * np.abs(hh)**3 * gamma2 * (
+            * np.abs(hh)**3 * gamma4 * (
                 (a31_right * px_right + a33_right * py_right + a35_right)**2
               + (b31_right * px_right + b33_right * py_right + b35_right)**2))
 
         arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
-        clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0**3) / mass0)
+        clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0) / mass0)
         ex = float(clg * 0.5 * (integ_ex_left + integ_ex_right) / damping_constants_turns[0])
         ey = float(clg * 0.5 * (integ_ey_left + integ_ey_right) / damping_constants_turns[1])
         ez = float(clg * 0.5 * (integ_ez_left + integ_ez_right) / damping_constants_turns[2])
