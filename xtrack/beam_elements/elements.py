@@ -1070,19 +1070,19 @@ class Quadrupole(BeamElement):
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
         self_or_ref = container[name]
         container[slice_name] = cls(
-            length=self_or_ref.length * weight,
-            num_multipole_kicks=self_or_ref.num_multipole_kicks,
-            order=self_or_ref.order,
+            length=_get_expr(self_or_ref.length) * weight,
+            num_multipole_kicks=_get_expr(self_or_ref.num_multipole_kicks),
+            order=_get_expr(self_or_ref.order),
             _buffer=_buffer,
         )
         ref = container[slice_name]
 
         ref.k1 = _get_expr(self_or_ref.k1)
 
-        for ii in range(len(self_or_ref.knl)):
+        for ii in range(len(_get_expr(self_or_ref.knl))):
             ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
 
-        for ii in range(len(self_or_ref.ksl)):
+        for ii in range(len(_get_expr(self_or_ref.ksl))):
             ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
     @staticmethod
