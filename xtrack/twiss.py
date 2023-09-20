@@ -1119,6 +1119,8 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         px_right = px_co[1:]
         py_left = py_co[:-1]
         py_right = py_co[1:]
+        one_pl_del_left = (1 + ptau_co[:-1]) # Assuming ultrarelativistic
+        one_pl_del_right = (1 + ptau_co[1:]) # Assuming ultrarelativistic
         W_left = W_matrix[:-1, :, :]
         W_right = W_matrix[1:, :, :]
 
@@ -1172,28 +1174,28 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         # Need to use no rad W matrix!!!
         integ_ex_left = np.sum(dl
             * np.abs(hh)**3 * gamma4 * (
-                (a11_left * px_left + a13_left * py_left + a15_left)**2
-              + (b11_left * px_left + b13_left * py_left + b15_left)**2))
+                ((a11_left * px_left + a13_left * py_left) / one_pl_del_left + a15_left)**2
+              + ((b11_left * px_left + b13_left * py_left) / one_pl_del_left + b15_left)**2))
         integ_ex_right = np.sum(dl
             * np.abs(hh)**3 * gamma4 * (
-                (a11_right * px_right + a13_right * py_right + a15_right)**2
-              + (b11_right * px_right + b13_right * py_right + b15_right)**2))
+                ((a11_right * px_right + a13_right * py_right) / one_pl_del_right + a15_right)**2
+              + ((b11_right * px_right + b13_right * py_right) / one_pl_del_right + b15_right)**2))
         integ_ey_left = np.sum(dl
             * np.abs(hh)**3 * gamma4 * (
-                (a21_left * px_left + a23_left * py_left + a25_left)**2
-              + (b21_left * px_left + b23_left * py_left + b25_left)**2))
+                ((a21_left * px_left + a23_left * py_left) / one_pl_del_left + a25_left)**2
+              + ((b21_left * px_left + b23_left * py_left) / one_pl_del_left + b25_left)**2))
         integ_ey_right = np.sum(dl
             * np.abs(hh)**3 * gamma4 * (
-                (a21_right * px_right + a23_right * py_right + a25_right)**2
-              + (b21_right * px_right + b23_right * py_right + b25_right)**2))
+                ((a21_right * px_right + a23_right * py_right) / one_pl_del_right + a25_right)**2
+              + ((b21_right * px_right + b23_right * py_right) / one_pl_del_right + b25_right)**2))
         integ_ez_left = np.sum(dl
             * np.abs(hh)**3 * gamma4 * (
-                (a31_left * px_left + a33_left * py_left + a35_left)**2
-              + (b31_left * px_left + b33_left * py_left + b35_left)**2))
+                ((a31_left * px_left + a33_left * py_left) / one_pl_del_left + a35_left)**2
+              + ((b31_left * px_left + b33_left * py_left) / one_pl_del_left + b35_left)**2))
         integ_ez_right = np.sum(dl
             * np.abs(hh)**3 * gamma4 * (
-                (a31_right * px_right + a33_right * py_right + a35_right)**2
-              + (b31_right * px_right + b33_right * py_right + b35_right)**2))
+                ((a31_right * px_right + a33_right * py_right) / one_pl_del_right + a35_right)**2
+              + ((b31_right * px_right + b33_right * py_right) / one_pl_del_right + b35_right)**2))
 
         arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
         clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0) / mass0)
