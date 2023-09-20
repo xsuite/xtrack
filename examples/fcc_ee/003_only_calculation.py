@@ -11,10 +11,6 @@ n_turns_track_test = 400
 line = xt.Line.from_json(fname + '_thin.json')
 line.cycle('mwi.a4rj_entry', inplace=True)
 
-# More voltage to stand more energy loss
-line.vv['voltca1'] *= 2
-line.vv['voltca2'] *= 2
-
 # Add monitor in a dispersion-free place out of crab waist
 monitor = xt.ParticlesMonitor(num_particles=num_particles_test,
                               start_at_turn=0, stop_at_turn=n_turns_track_test)
@@ -23,14 +19,14 @@ line.insert_element(element=monitor, name='monitor', index='qrdr2.3_entry')
 line.build_tracker()
 line.vars['on_wiggler_v'] = 0.87 / (1 + delta0)
 
-# keep only wiggler in the first straight section
-tt = line.get_table()
-wigs_off = tt.rows['mwi.*', tt.element_type=='Multipole', 20000:85000:'s'].name
-for nn in wigs_off:
-    line.element_refs[nn].hyl = 0
-    line.element_refs[nn].hxl = 0
-    line.element_refs[nn].ksl[0] = 0
-    line.element_refs[nn].knl[0] = 0
+# # keep only wiggler in the first straight section
+# tt = line.get_table()
+# wigs_off = tt.rows['mwi.*', tt.element_type=='Multipole', 20000:85000:'s'].name
+# for nn in wigs_off:
+#     line.element_refs[nn].hyl = 0
+#     line.element_refs[nn].hxl = 0
+#     line.element_refs[nn].ksl[0] = 0
+#     line.element_refs[nn].knl[0] = 0
 
 tw_no_rad = line.twiss(method='4d')
 
