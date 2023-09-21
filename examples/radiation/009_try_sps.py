@@ -19,10 +19,10 @@ mad.input('beam, particle=electron, pc=20;')
 v_mv = 25
 num_turns = 8000
 
-# # higher energy
-mad.input('beam, particle=electron, pc=50;')
-v_mv = 250
-num_turns = 1000
+# # # higher energy
+# mad.input('beam, particle=electron, pc=50;')
+# v_mv = 250
+# num_turns = 1000
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
@@ -35,7 +35,7 @@ mad.sequence.sps.elements['actcse.31632'].freq = 350 / 10  # having the same qs
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 # # Some vertical orbit
-mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
+# mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
 
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
