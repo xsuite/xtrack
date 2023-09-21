@@ -28,6 +28,7 @@ particles_ave = xp.Particles(
         x=np.zeros(1000000),
         px=1e-4,
         py=-1e-4,
+        delta=0.3,
         mass0=xp.ELECTRON_MASS_EV)
 gamma = (particles_ave.energy/particles_ave.mass0)[0]
 particles_rnd = particles_ave.copy()
@@ -50,8 +51,7 @@ assert np.allclose(dct_ave['delta'], np.mean(dct_rng['delta']),
 rho_0 = L_bend/theta_bend
 mass0_kg = (dct_ave['mass0']*qe/clight**2)
 r0 = qe**2/(4*np.pi*epsilon_0*mass0_kg*clight**2)
-Ps = (2*r0*clight*mass0_kg*clight**2*
-      dct_ave['beta0'][0]**4*dct_ave['gamma0'][0]**4)/(3*rho_0**2) # W
+Ps = (2*r0*clight*mass0_kg*clight**2*gamma**4)/(3*rho_0**2) # W
 
 Delta_E_eV = -Ps*(L_bend/clight) / qe
 Delta_E_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']

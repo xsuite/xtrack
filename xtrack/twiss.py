@@ -1485,6 +1485,9 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
     part.at_turn = AT_TURN_FOR_TWISS
 
     line.track(part, ele_start=ele_start, ele_stop=ele_stop)
+    if p.state[0] < 0:
+        raise ClosedOrbitSearchError(
+            f'Particle lost in one-turn map, p.state = {p.state[0]}')
     p_res = np.array([
            part._xobject.x[0],
            part._xobject.px[0],

@@ -18,12 +18,23 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     double const mass0 = LocalParticle_get_mass0(part);
     double const q0 = LocalParticle_get_q0(part);
 
+    double const Q0_coulomb = q0 * QELEM;
+
     double const delta  = LocalParticle_get_delta(part);
+    double const gamma = gamma0 * (1 + delta); // Ultrarelativistic approximation
+
+
+    double const P0_J = LocalParticle_get_p0c(part) * CLIGHT * QELEM;
+    double const B_T = curv * P0_J / (Q0_coulomb);
+    double const r0_m = Q0_coulomb * Q0_coulomb/  (4 * PI * EPSILON_0 * mass0 * CLIGHT * CLIGHT);
+
+    Ps_W = 2 * r0_m * CLIGHT * CLIGHT * CLIGHT * Q0_coulomb * Q0_coulomb 
+
 
     double const r = QELEM/(6*PI*EPSILON_0)
                         * q0*q0 / mass0
                         * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
-	                * curv*curv
+	                      * curv * curv
                         * lpath * (1 + delta);
 
     double const beta = beta0 * LocalParticle_get_rvv(part);
