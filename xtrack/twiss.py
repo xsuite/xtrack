@@ -1105,6 +1105,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         hy = np.zeros(shape=(len(dl),), dtype=np.float64)
         hx[mask] = (np.diff(px_co)[mask] + hxl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
         hy[mask] = (np.diff(py_co)[mask] + hyl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
+        # TODO: remove also term due to weak focusing
         hh = np.sqrt(hx**2 + hy**2)
 
         mass0 = line.particle_ref.mass0

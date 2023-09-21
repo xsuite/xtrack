@@ -6,7 +6,7 @@
 import numpy as np
 from scipy.constants import e as qe
 from scipy.constants import c as clight
-from scipy.constants import epsilon_0
+from scipy.constants import epsilon_0, hbar
 
 import xpart as xp
 import xtrack as xt
@@ -29,6 +29,7 @@ particles_ave = xp.Particles(
         px=1e-4,
         py=-1e-4,
         mass0=xp.ELECTRON_MASS_EV)
+gamma = particles_ave.energy/(particles_ave.mass0)[0]
 particles_rnd = particles_ave.copy()
 
 dct_ave_before = particles_ave.to_dict()
@@ -83,3 +84,7 @@ Delta_E_test = (particles_test.ptau - particles_test_before.ptau
 n_recorded = record._index.num_recorded
 assert np.allclose(-np.sum(Delta_E_test), np.sum(record.photon_energy[:n_recorded]),
                   atol=0, rtol=1e-6)
+
+B = rho 
+
+E_crit = 3 * qe * hbar * clight / (4 * np.pi * gamma**2
