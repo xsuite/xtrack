@@ -14,15 +14,15 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # mad.input('beam, particle=proton, pc=26;')
 # mad.input('beam, particle=electron, pc=20;')
 
-# realistic
-mad.input('beam, particle=electron, pc=20;')
-v_mv = 25
-num_turns = 8000
+# # realistic
+# mad.input('beam, particle=electron, pc=20;')
+# v_mv = 25
+# num_turns = 8000
 
-# # # higher energy
-# mad.input('beam, particle=electron, pc=50;')
-# v_mv = 250
-# num_turns = 1000
+# # higher energy
+mad.input('beam, particle=electron, pc=50;')
+v_mv = 250
+num_turns = 500
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
@@ -67,7 +67,7 @@ tw = line.twiss()
 line.configure_radiation(model='mean')
 
 # Tapering!!!
-line.compensate_radiation_energy_loss()
+# line.compensate_radiation_energy_loss()
 
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
@@ -87,7 +87,7 @@ ey = tw_rad.eq_nemitt_y / (tw_rad.gamma0 * tw_rad.beta0)
 ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
 line.configure_radiation(model='quantum')
-p = line.build_particles(num_particles=200)
+p = line.build_particles(num_particles=1000)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
@@ -107,6 +107,17 @@ print(f'Tracking time: {line.time_last_track}')
 # lam_comp = 2.436e-12 # [m]
 # ex_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_x / (I2_x - I4_x)
 # ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
+line.configure_radiation(model='mean')
+(eq_gemitt_x, eq_gemitt_y, eq_gemitt_zeta, eq_nemitt_x, eq_nemitt_y,
+     eq_nemitt_zeta) = xt.twiss._compute_equlibrium_emittance(
+    px_co=tw.px,
+    py_co=tw.py,
+    ptau_co=tw.ptau,
+    W_matrix=tw.W_matrix,
+    line=line,
+    radiation_method='kick_as_co',
+    damping_constants_turns=tw_rad2.damping_constants_turns,
+)
 
 mon = line.record_last_track
 
