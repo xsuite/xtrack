@@ -64,7 +64,7 @@ Ps = (2 * r0 * clight * mass0_kg * clight**2 * gamma0**2 * gamma**2)/(3*rho_0**2
 Delta_E_eV = -Ps*(L_bend/clight) / qe
 Delta_E_trk = (dct_ave['ptau']-dct_ave_before['ptau'])*dct_ave['p0c']
 
-assert np.allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=1e-3)
+assert np.allclose(Delta_E_eV, Delta_E_trk, atol=0, rtol=4e-5)
 
 # Check photons
 line=xt.Line(elements=[
@@ -102,4 +102,4 @@ E_sq_ave_J = 11 / 27 * E_crit_J**2
 E_sq_ave_eV = E_sq_ave_J / qe**2
 
 assert np.isclose(np.mean(record.photon_energy[:n_recorded]), E_ave_eV, rtol=1e-2, atol=0)
-assert np.isclose(np.std(record.photon_energy[:n_recorded]), np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=1e-2, atol=0)
+assert np.isclose(np.std(record.photon_energy[:n_recorded]), np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=1e-3, atol=0)

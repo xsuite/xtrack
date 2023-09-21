@@ -35,7 +35,7 @@ mad.sequence.sps.elements['actcse.31632'].freq = 350 / 10  # having the same qs
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 # # Some vertical orbit
-# mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
+mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
 
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
@@ -67,7 +67,7 @@ tw = line.twiss()
 line.configure_radiation(model='mean')
 
 # Tapering!!!
-# line.compensate_radiation_energy_loss()
+line.compensate_radiation_energy_loss()
 
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
@@ -107,17 +107,6 @@ print(f'Tracking time: {line.time_last_track}')
 # lam_comp = 2.436e-12 # [m]
 # ex_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_x / (I2_x - I4_x)
 # ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
-line.configure_radiation(model='mean')
-(eq_gemitt_x, eq_gemitt_y, eq_gemitt_zeta, eq_nemitt_x, eq_nemitt_y,
-     eq_nemitt_zeta) = xt.twiss._compute_equlibrium_emittance(
-    px_co=tw.px,
-    py_co=tw.py,
-    ptau_co=tw.ptau,
-    W_matrix=tw.W_matrix,
-    line=line,
-    radiation_method='kick_as_co',
-    damping_constants_turns=tw_rad2.damping_constants_turns,
-)
 
 mon = line.record_last_track
 

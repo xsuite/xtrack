@@ -14,7 +14,6 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
                          double* dp_record, double* dpx_record, double* dpy_record
                         ){
     double const gamma0  = LocalParticle_get_gamma0(part);
-    double const beta0  = LocalParticle_get_beta0(part);
     double const mass0 = LocalParticle_get_mass0(part);
     double const q0 = LocalParticle_get_q0(part);
 
@@ -31,16 +30,6 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
     double const Ps_W = 2 * r0_m * C_LIGHT * Q0_coulomb * Q0_coulomb * gamma * gamma * B_T * B_T / (3 * mass0_kg);
     double const Delta_E_eV = Ps_W * lpath / C_LIGHT / QELEM;
     double f_t = 1 - Delta_E_eV / (gamma0 * mass0 * (1 + delta));
-
-
-    // double const r = QELEM/(6*PI*EPSILON_0)
-    //                     * q0*q0 / mass0
-    //                     * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
-	  //                     * curv * curv
-    //                     * lpath * (1 + delta);
-
-    // double const beta = beta0 * LocalParticle_get_rvv(part);
-    // double f_t = sqrt(1 + r*(r-2)/(beta*beta));
 
     #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
