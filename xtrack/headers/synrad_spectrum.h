@@ -236,6 +236,8 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
     double gamma = energy / m0; //
     //double beta_gamma = sqrt(gamma*gamma-1); //
     double n = RandomExponential_generate(part); // path_length / mean_free_path;
+    // printf("curv = %e\n gamma0 = %e\n lpath = %e\n", curv, gamma0, lpath);
+    // printf("Average_number_of_photons = %e\n", synrad_average_number_of_photons(beta0 * gamma0, curv, lpath));
     while (n < synrad_average_number_of_photons(beta0 * gamma0, curv, lpath)) {
         nphot++;
         double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m

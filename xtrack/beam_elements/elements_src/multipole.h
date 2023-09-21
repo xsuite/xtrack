@@ -160,6 +160,7 @@ void Multipole_track_local_particle(MultipoleData el, LocalParticle* part0){
                         &dp_record_exit, &dpx_record_exit, &dpy_record_exit);
             }
             else if (radiation_flag == 2){
+                // printf("L_path = %e curv = %e\n", L_path, curv);
                 synrad_emit_photons(part, curv, L_path, record_index, record);
             }
         }

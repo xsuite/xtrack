@@ -14,10 +14,10 @@ import xobjects as xo
 
 context = xo.ContextCpu()
 
-L_bend = 5.
+L_bend = 1.
 B_T = 2
 
-delta = 0.3
+delta = 0
 particles_ave = xp.Particles(
         _context=context,
         p0c=5e9 / (1 + delta), # 5 GeV
@@ -26,6 +26,7 @@ particles_ave = xp.Particles(
         py=-1e-4,
         delta=delta,
         mass0=xp.ELECTRON_MASS_EV)
+particles_ave_0 = particles_ave.copy()
 gamma = (particles_ave.energy/particles_ave.mass0)[0]
 gamma0 = (particles_ave.gamma0[0])
 particles_rnd = particles_ave.copy()
@@ -74,21 +75,18 @@ line=xt.Line(elements=[
             ])
 line.build_tracker(_context=context)
 line.configure_radiation(model='quantum')
+
+record_capacity = int(100e6)
 record = line.start_internal_logging_for_elements_of_type(xt.Multipole,
-                                                            capacity=int(100e6))
-particles_test = xp.Particles(
-        _context=context,
-        p0c=5e9, # 5 GeV
-        x=np.zeros(100000),
-        px=1e-4,
-        py=-1e-4,
-        mass0=xp.ELECTRON_MASS_EV)
+                                                            capacity=record_capacity)
+particles_test = particles_ave_0.copy()
 particles_test_before = particles_test.copy()
 line.track(particles_test)
 
 Delta_E_test = (particles_test.ptau - particles_test_before.ptau
                                                       )*particles_test.p0c
 n_recorded = record._index.num_recorded
+assert n_recorded < record_capacity
 assert np.allclose(-np.sum(Delta_E_test), np.sum(record.photon_energy[:n_recorded]),
                   atol=0, rtol=1e-6)
 
