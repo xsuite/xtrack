@@ -1151,7 +1151,7 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         gamma4 = gamma * gamma * gamma * gamma
 
         n_dot_delta_kick_sq_ave = (1 / (2 * np.pi * epsilon_0) * 55 * np.sqrt(3) / 48
-                        * q0**2 / mass0**2 * gamma0**3 * hh**3 * gamma**2)
+                        * q0**2 * hbar * clight / mass0**2 * gamma0 * hh**3 * gamma**4)
 
         px_left = px_co[:-1]
         px_right = px_co[1:]
@@ -1223,20 +1223,37 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         Kz_right = (a31_right * px_right + a33_right * py_right) / one_pl_del_right + a35_right
         Kpz_right = (b31_right * px_right + b33_right * py_right) / one_pl_del_right + b35_right
 
-        # Need to use no rad W matrix!!!
-        integ_ex_left = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kx_left**2 +  Kpx_left**2))
-        integ_ey_left = np.sum(dl * np.abs(hh)**3 * gamma4 * (Ky_left**2 +  Kpy_left**2))
-        integ_ez_left = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kz_left**2 +  Kpz_left**2))
+        Kx_sq = 0.5 * (Kx_left**2 + Kx_right**2)
+        Kpx_sq = 0.5 * (Kpx_left**2 + Kpx_right**2)
+        Ky_sq = 0.5 * (Ky_left**2 + Ky_right**2)
+        Kpy_sq = 0.5 * (Kpy_left**2 + Kpy_right**2)
+        Kz_sq = 0.5 * (Kz_left**2 + Kz_right**2)
+        Kpz_sq = 0.5 * (Kpz_left**2 + Kpz_right**2)
 
-        integ_ex_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kx_right**2 +  Kpx_right**2))
-        integ_ey_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Ky_right**2 +  Kpy_right**2))
-        integ_ez_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kz_right**2 +  Kpz_right**2))
+        # eq_gemitt_x = 1 / (4 * clight * damping_constants_turns[0]) * np.sum(
+        #                     (Kx_sq + Kpx_sq) * n_dot_delta_kick_sq_ave * dl)
+        # eq_gemitt_y = 1 / (4 * clight * damping_constants_turns[1]) * np.sum(
+        #                     (Ky_sq + Kpy_sq) * hh**3 * n_dot_delta_kick_sq_ave * dl)
+        # eq_gemitt_zeta = 1 / (4 * clight * damping_constants_turns[2]) * np.sum(
+        #                     (Kz_sq + Kpz_sq) * n_dot_delta_kick_sq_ave * dl)
+
+        # Need to use no rad W matrix!!!
+        integ_ex = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kx_sq +  Kpx_sq))
+        integ_ey = np.sum(dl * np.abs(hh)**3 * gamma4 * (Ky_sq +  Kpy_sq))
+        integ_ez = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kz_sq +  Kpz_sq))
+
+        # integ_ex_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kx_right**2 +  Kpx_right**2))
+        # integ_ey_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Ky_right**2 +  Kpy_right**2))
+        # integ_ez_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kz_right**2 +  Kpz_right**2))
+
+        # n_dot_delta_kick_sq_ave = (1 / (2 * np.pi * epsilon_0) * 55 * np.sqrt(3) / 48
+        #                 * q0**2 * hbar * clight / mass0**2 * gamma0 * hh**3 * gamma**4)
 
         arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
         clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0) / mass0)
-        eq_gemitt_x = float(clg * 0.5 * (integ_ex_left + integ_ex_right) / damping_constants_turns[0])
-        eq_gemitt_y = float(clg * 0.5 * (integ_ey_left + integ_ey_right) / damping_constants_turns[1])
-        eq_gemitt_zeta = float(clg * 0.5 * (integ_ez_left + integ_ez_right) / damping_constants_turns[2])
+        eq_gemitt_x = float(clg * integ_ex / damping_constants_turns[0])
+        eq_gemitt_y = float(clg * integ_ey / damping_constants_turns[1])
+        eq_gemitt_zeta = float(clg * integ_ez / damping_constants_turns[2])
 
         eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
         eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
