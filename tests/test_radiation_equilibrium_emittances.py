@@ -70,7 +70,7 @@ def test_eq_emitt(conf):
         line.vars['on_wiggler_v'] = 0.4
 
     if vertical_orbit_distortion:
-        line['mwi.e5rg'].ksl[0] = 2e-7
+        line['mwi.e5rg..0'].ksl[0] = 2e-7
 
     # Make sure there is no vertical bend nor skew element
     for ee in line.elements:
@@ -131,14 +131,14 @@ def test_eq_emitt(conf):
     # for regression testing
     checked = False
     if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 6.9884e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 7.0592e-10, atol=0,     rtol=1e-4)
         assert np.isclose(ey, 0,          atol=1e-14, rtol=0)
-        assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
         assert np.isclose(ex, 0,          atol=1e-14, rtol=0)
-        assert np.isclose(ey, 6.9884e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ey, 7.0592e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
         assert np.isclose(ex, 6.9253e-10, atol=0,     rtol=1e-4)
@@ -151,14 +151,14 @@ def test_eq_emitt(conf):
         assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 6.9869e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ey, 2.5048e-12, atol=0,     rtol=2e-3)
-        assert np.isclose(ez, 3.5404e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 7.0576e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ey, 2.5281e-12, atol=0,     rtol=2e-3)
+        assert np.isclose(ez, 3.5762e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 2.4929e-12, atol=0,     rtol=2e-3)
-        assert np.isclose(ey, 6.9869e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ez, 3.5404e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 2.5531e-12, atol=0,     rtol=2e-3)
+        assert np.isclose(ey, 7.0576e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ez, 3.5763e-6,  atol=0,     rtol=1e-4)
         checked = True
     else:
         raise ValueError('Unknown configuration')
