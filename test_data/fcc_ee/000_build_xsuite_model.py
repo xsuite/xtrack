@@ -49,10 +49,21 @@ slicing_strategies = [
     Strategy(slicing=Teapot(10), name=r'^qy.*'),
     Strategy(slicing=Teapot(50), name=r'^qa.*'),
     Strategy(slicing=Teapot(50), name=r'^qc.*'),
-    Strategy(slicing=Teapot(20), name=r'^sy.*'),
+    Strategy(slicing=Teapot(20), name=r'^sy\..*'),
+    Strategy(slicing=Teapot(30), name=r'^mwi\..*'),
 ]
 
 line.slice_thick_elements(slicing_strategies=slicing_strategies)
+
+# Tilt wiggler by 90 degrees
+tt = line.get_table()
+wigs = tt.rows['mwi.*', tt.element_type=='Multipole'].name
+for nn in wigs:
+    line.element_refs[nn].hyl = line.element_refs[nn].hxl._expr
+    line.element_refs[nn].hxl = 0
+    line.element_refs[nn].ksl[0] = line.element_refs[nn].knl[0]._expr
+    line.element_refs[nn].knl[0] = 0
+
 line.build_tracker()
 tw_thin_before = line.twiss(ele_start=0, ele_stop=len(line)-1, method='4d',
                           twiss_init=tw_thick_no_rad.get_twiss_init(0))
