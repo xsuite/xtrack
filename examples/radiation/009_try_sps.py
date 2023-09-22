@@ -119,21 +119,25 @@ print(f'Tracking time: {line.time_last_track}')
 
 mon = line.record_last_track
 
+sigma_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
+                                       gemitt_y=tw_rad.eq_gemitt_y,
+                                        gemitt_zeta=tw_rad.eq_gemitt_zeta)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 fig = plt.figure(1)
 spx = fig. add_subplot(3, 1, 1)
 spx.plot(np.std(mon.x, axis=0))
-spx.axhline(np.sqrt(ex * tw.betx[0] + ey * tw.betx2[0] + (np.std(p.delta) * tw.dx[0])**2), color='red')
+spx.axhline(sigma_tab.sigma_x[0], color='red')
 # spx.axhline(np.sqrt(ex_hof * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2), color='green')
 
 spy = fig. add_subplot(3, 1, 2, sharex=spx)
 spy.plot(np.std(mon.y, axis=0))
-spy.axhline(np.sqrt(ex * tw.bety1[0] + ey * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='red')
+spy.axhline(sigma_tab.sigma_y[0], color='red')
 # spy.axhline(np.sqrt(ey_hof * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='green')
 
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
-spz.axhline(np.sqrt(ez * tw.betz0), color='red')
+spz.axhline(sigma_tab.sigma_zeta[0], color='red')
 
 plt.show()

@@ -2099,6 +2099,8 @@ class TwissTable(Table):
             nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
             gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
 
+        # See MAD8 physics manual (Eq. 8.59)
+
         beta0 = self.particle_on_co.beta0
         gamma0 = self.particle_on_co.gamma0
 
@@ -2137,7 +2139,7 @@ class TwissTable(Table):
                 Sigma2[:, ii, jj] = np.real(v2[:,ii] * v2[:,jj].conj())
                 Sigma3[:, ii, jj] = np.real(v3[:,ii] * v3[:,jj].conj())
 
-        Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2 + gemitt_z * Sigma3
+        Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2 + gemitt_zeta * Sigma3
 
         res_data = {}
         res_data['s'] = self.s.copy()
@@ -2173,7 +2175,7 @@ class TwissTable(Table):
 
         res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
         res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
-        res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
+        res_data['sigma_zeta'] = np.sqrt(Sigma[:, 4, 4])
 
         return Table(res_data)
 
