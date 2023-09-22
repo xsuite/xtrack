@@ -71,6 +71,8 @@ line.compensate_radiation_energy_loss()
 
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
+
+import pdb; pdb.set_trace()
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full',
                      compute_R_element_by_element=True)
@@ -111,6 +113,7 @@ for ii in range(n_calc):
 
 WW = tw_rad2.W_matrix[0, :, :]
 lam_eig = tw_rad2.eigenvalues
+Rot = tw_rad2.rotation_matrix
 BB = np.zeros_like(WW, dtype=complex)
 BB[:, 0] = WW[:, 0] + 1j * WW[:, 1]
 BB[:, 1] = BB[:, 0].conj()

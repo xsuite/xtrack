@@ -99,12 +99,12 @@ for turn in range(n_turns):
     emit_s[turn] = 0.5 * (part.zeta[0] ** 2 / beta_s + beta_s * part.delta[0] ** 2)
     el.track(part)
 
-# plt.figure(0)
-# plt.plot(x, px, "x")
-# plt.figure(1)
-# plt.plot(y, py, "x")
-# plt.figure(2)
-# plt.plot(z, delta, "x")
+plt.figure(0)
+plt.plot(x, px, "x")
+plt.figure(1)
+plt.plot(y, py, "x")
+plt.figure(2)
+plt.plot(z, delta, "x")
 
 turns = np.arange(n_turns)
 fit_range = 1000

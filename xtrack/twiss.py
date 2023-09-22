@@ -437,7 +437,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
-        twiss_init, R_matrix, steps_r_matrix, eigenvalues = _find_periodic_solution(
+        twiss_init, R_matrix, steps_r_matrix, eigenvalues, Rot = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
             co_search_settings=co_search_settings,
@@ -518,6 +518,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._col_names += list(cols_chrom.keys())
 
         twiss_res._data['eigenvalues'] = eigenvalues
+        twiss_res._data['rotation_matrix'] = Rot
 
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data
@@ -525,7 +526,7 @@ def twiss_line(line, particle_ref=None, method=None,
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
-                _, RR, _, _ = _find_periodic_solution(
+                _, RR, _, _, _ = _find_periodic_solution(
                     line=line, particle_on_co=particle_on_co,
                     particle_ref=particle_ref, method='6d',
                     co_search_settings=co_search_settings,
@@ -1298,6 +1299,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             compute_R_element_by_element=False):
 
     eigenvalues = None
+    Rot = None
 
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
@@ -1330,7 +1332,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             RR = R_matrix
             lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
                                                 only_4d=(method == '4d'))
-            W, _, _, eigenvalues = lnf.compute_linear_normal_form(
+            W, _, Rot, eigenvalues = lnf.compute_linear_normal_form(
                         RR, only_4d_block=(method == '4d'),
                         symplectify=symplectify,
                         responsiveness_tol=matrix_responsiveness_tol,
@@ -1348,7 +1350,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
 
-                W, _, _, eigenvalues = lnf.compute_linear_normal_form(
+                W, _, Rot, eigenvalues = lnf.compute_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),
                             symplectify=symplectify,
                             responsiveness_tol=None,
@@ -1422,7 +1424,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            element_name=tw_init_element_name,
                            reference_frame='proper')
 
-    return twiss_init, RR, steps_r_matrix, eigenvalues
+    return twiss_init, RR, steps_r_matrix, eigenvalues, Rot
 
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
