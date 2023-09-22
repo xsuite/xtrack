@@ -517,8 +517,8 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
 
-        twiss_res._data['eigenvalues'] = eigenvalues
-        twiss_res._data['rotation_matrix'] = Rot
+        twiss_res._data['eigenvalues'] = eigenvalues.copy()
+        twiss_res._data['rotation_matrix'] = Rot.copy()
 
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data

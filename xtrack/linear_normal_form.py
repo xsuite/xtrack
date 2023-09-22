@@ -212,6 +212,7 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     R[0:2,0:2] = Rot2D(mu1)
     R[2:4,2:4] = Rot2D(mu2)
     R[4:6,4:6] = Rot2D(mu3)
+    import pdb; pdb.set_trace()
     ##################################################
 
     eigenvalues = w0[modes]
