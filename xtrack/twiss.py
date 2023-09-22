@@ -2090,12 +2090,33 @@ class TwissTable(Table):
                         dzeta=self.dzeta[at_element],
                         reference_frame=self.reference_frame)
 
-    def get_betatron_sigmas(self, nemitt_x, nemitt_y, gemitt_z=0):
+    def get_betatron_sigmas(self, nemitt_x, nemitt_y):
+        # For backward compatibility
+        return self.get_beam_covariance(
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+
+    def get_beam_covariance(self,
+            nemitt_x=None, nemitt_y=None, nemitt_zeta=None,
+            gemitt_x=None, gemitt_y=None, gemitt_zeta=None):
 
         beta0 = self.particle_on_co.beta0
         gamma0 = self.particle_on_co.gamma0
-        gemitt_x = nemitt_x / (beta0 * gamma0)
-        gemitt_y = nemitt_y / (beta0 * gamma0)
+
+        if nemitt_x is not None:
+            assert gemitt_x is None, 'Cannot provide both nemitt_x and gemitt_x'
+            gemitt_x = nemitt_x / (beta0 * gamma0)
+
+        if nemitt_y is not None:
+            assert gemitt_y is None, 'Cannot provide both nemitt_y and gemitt_y'
+            gemitt_y = nemitt_y / (beta0 * gamma0)
+
+        if nemitt_zeta is not None:
+            assert gemitt_zeta is None, 'Cannot provide both nemitt_zeta and gemitt_zeta'
+            gemitt_zeta = nemitt_zeta / (beta0 * gamma0)
+
+        gemitt_x = gemitt_x or 0
+        gemitt_y = gemitt_y or 0
+        gemitt_zeta = gemitt_zeta or 0
 
         Ws = self.W_matrix.copy()
 
@@ -2116,7 +2137,7 @@ class TwissTable(Table):
                 Sigma2[:, ii, jj] = np.real(v2[:,ii] * v2[:,jj].conj())
                 Sigma3[:, ii, jj] = np.real(v3[:,ii] * v3[:,jj].conj())
 
-        Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2
+        Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2 + gemitt_z * Sigma3
 
         res_data = {}
         res_data['s'] = self.s.copy()
@@ -2129,15 +2150,15 @@ class TwissTable(Table):
         res_data['Sigma12'] = Sigma[:, 0, 1]
         res_data['Sigma13'] = Sigma[:, 0, 2]
         res_data['Sigma14'] = Sigma[:, 0, 3]
-        # res_data['Sigma15'] = Sigma[:, 0, 4]
-        # res_data['Sigma16'] = Sigma[:, 0, 5]
+        res_data['Sigma15'] = Sigma[:, 0, 4]
+        res_data['Sigma16'] = Sigma[:, 0, 5]
 
         res_data['Sigma21'] = Sigma[:, 1, 0]
         res_data['Sigma22'] = Sigma[:, 1, 1]
         res_data['Sigma23'] = Sigma[:, 1, 2]
         res_data['Sigma24'] = Sigma[:, 1, 3]
-        # res_data['Sigma25'] = Sigma[:, 1, 4]
-        # res_data['Sigma26'] = Sigma[:, 1, 5]
+        res_data['Sigma25'] = Sigma[:, 1, 4]
+        res_data['Sigma26'] = Sigma[:, 1, 5]
 
         res_data['Sigma31'] = Sigma[:, 2, 0]
         res_data['Sigma32'] = Sigma[:, 2, 1]
@@ -2147,12 +2168,12 @@ class TwissTable(Table):
         res_data['Sigma42'] = Sigma[:, 3, 1]
         res_data['Sigma43'] = Sigma[:, 3, 2]
         res_data['Sigma44'] = Sigma[:, 3, 3]
-        # res_data['Sigma51'] = Sigma[:, 4, 0]
-        # res_data['Sigma52'] = Sigma[:, 4, 1]
+        res_data['Sigma51'] = Sigma[:, 4, 0]
+        res_data['Sigma52'] = Sigma[:, 4, 1]
 
         res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
         res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
-        # res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
+        res_data['sigma_z'] = np.sqrt(Sigma[:, 4, 4])
 
         return Table(res_data)
 

@@ -78,8 +78,7 @@ line.compensate_radiation_energy_loss()
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
-                     radiation_method='full',
-                     compute_R_element_by_element=True)
+                     radiation_method='full')
 
 assert tw_rad.eq_gemitt_x is not None
 assert tw_rad.eq_gemitt_y is not None
@@ -117,80 +116,6 @@ print(f'Tracking time: {line.time_last_track}')
 # lam_comp = 2.436e-12 # [m]
 # ex_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_x / (I2_x - I4_x)
 # ey_hof = 55 * np.sqrt(3) / 96 * lam_comp / 2 / np.pi * gamma0**2 * I5_y / (I2_y - I4_y)
-
-
-EE = tw_rad2.EE
-SS = xt.linear_normal_form.S
-KK = SS @ EE @ SS.T
-
-d_delta_sq_ave = tw_rad.n_dot_delta_kick_sq_ave * tw_rad.dl_radiation /clight
-
-RR_ebe = tw_rad2.R_matrix_ebe
-RR = RR_ebe[0, :, :]
-DSigma = np.zeros_like(RR_ebe)
-DSigma[:-1, 5, 5] = d_delta_sq_ave
-
-RR_ebe_inv = np.linalg.inv(RR_ebe)
-
-DSigma0 = np.zeros((6, 6))
-
-n_calc = d_delta_sq_ave.shape[0]
-for ii in range(n_calc):
-    print(f'{ii}/{n_calc}    ', end='\r', flush=True)
-    if d_delta_sq_ave[ii] > 0:
-        DSigma0 += RR_ebe_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_inv[ii, :, :].T
-
-
-WW = tw_rad2.W_matrix[0, :, :]
-lam_eig = tw_rad2.eigenvalues
-Rot = tw_rad2.rotation_matrix
-
-lnf = xt.linear_normal_form
-CC_split, _, RRR, reig = lnf.compute_linear_normal_form(Rot)
-reig_full = np.zeros_like(Rot, dtype=complex)
-reig_full[0, 0] = reig[0]
-reig_full[1, 1] = reig[0].conjugate()
-reig_full[2, 2] = reig[1]
-reig_full[3, 3] = reig[1].conjugate()
-reig_full[4, 4] = reig[2]
-reig_full[5, 5] = reig[2].conjugate()
-
-lam_eig_full = np.zeros_like(reig_full, dtype=complex)
-lam_eig_full[0] = lam_eig[0]
-lam_eig_full[1] = lam_eig[0].conjugate()
-lam_eig_full[2] = lam_eig[1]
-lam_eig_full[3] = lam_eig[1].conjugate()
-lam_eig_full[4] = lam_eig[2]
-lam_eig_full[5] = lam_eig[2].conjugate()
-
-CC = np.zeros_like(CC_split, dtype=complex)
-CC[:, 0] = 0.5*np.sqrt(2)*(CC_split[:, 0] + 1j*CC_split[:, 1])
-CC[:, 1] = 0.5*np.sqrt(2)*(CC_split[:, 0] - 1j*CC_split[:, 1])
-CC[:, 2] = 0.5*np.sqrt(2)*(CC_split[:, 2] + 1j*CC_split[:, 3])
-CC[:, 3] = 0.5*np.sqrt(2)*(CC_split[:, 2] - 1j*CC_split[:, 3])
-CC[:, 4] = 0.5*np.sqrt(2)*(CC_split[:, 4] + 1j*CC_split[:, 5])
-CC[:, 5] = 0.5*np.sqrt(2)*(CC_split[:, 4] - 1j*CC_split[:, 5])
-
-BB = WW @ CC
-
-BB_inv = np.linalg.inv(BB)
-
-EE_norm = BB_inv @ DSigma0 @ BB_inv.T
-
-ex_forest = EE_norm[0, 1]/(1 - np.abs(lam_eig[0])**2)
-ey_forest = EE_norm[2, 3]/(1 - np.abs(lam_eig[1])**2)
-ez_forest = EE_norm[4, 5]/(1 - np.abs(lam_eig[2])**2)
-
-Sigma_norm = np.zeros_like(EE_norm, dtype=complex)
-for ii in range(6):
-    for jj in range(6):
-        Sigma_norm[ii, jj] = EE_norm[ii, jj]/(1 - lam_eig_full[ii, ii]*lam_eig_full[jj, jj])
-
-Sigma = BB @ Sigma_norm @ BB.T
-
-
-
-
 
 mon = line.record_last_track
 
