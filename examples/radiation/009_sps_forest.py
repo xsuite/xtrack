@@ -114,18 +114,33 @@ for ii in range(n_calc):
 WW = tw_rad2.W_matrix[0, :, :]
 lam_eig = tw_rad2.eigenvalues
 Rot = tw_rad2.rotation_matrix
-BB = np.zeros_like(WW, dtype=complex)
-BB[:, 0] = WW[:, 0] + 1j * WW[:, 1]
-BB[:, 1] = BB[:, 0].conj()
-BB[:, 2] = WW[:, 2] + 1j * WW[:, 3]
-BB[:, 3] = BB[:, 2].conj()
-BB[:, 4] = WW[:, 4] + 1j * WW[:, 5]
-BB[:, 5] = BB[:, 4].conj()
+
+lnf = xt.linear_normal_form
+CC_split, _, RRR, reig = lnf.compute_linear_normal_form(Rot)
+reig_full = np.zeros_like(Rot, dtype=complex)
+reig_full[0, 0] = reig[0]
+reig_full[1, 1] = reig[0].conjugate()
+reig_full[2, 2] = reig[1]
+reig_full[3, 3] = reig[1].conjugate()
+reig_full[4, 4] = reig[2]
+reig_full[5, 5] = reig[2].conjugate()
+
+CC = np.zeros_like(CC_split, dtype=complex)
+CC[:, 0] = 0.5*np.sqrt(2)*(CC_split[:, 0] + 1j*CC_split[:, 1])
+CC[:, 1] = 0.5*np.sqrt(2)*(CC_split[:, 0] - 1j*CC_split[:, 1])
+CC[:, 2] = 0.5*np.sqrt(2)*(CC_split[:, 2] + 1j*CC_split[:, 3])
+CC[:, 3] = 0.5*np.sqrt(2)*(CC_split[:, 2] - 1j*CC_split[:, 3])
+CC[:, 4] = 0.5*np.sqrt(2)*(CC_split[:, 4] + 1j*CC_split[:, 5])
+CC[:, 5] = 0.5*np.sqrt(2)*(CC_split[:, 4] - 1j*CC_split[:, 5])
+
+BB = WW @ CC
 
 BB_inv = np.linalg.inv(BB)
 
 EE_norm = BB_inv @ DSigma0 @ BB_inv.T
 
-eex = EE_norm[0, 0] / (1 - np.abs(lam_eig[0])**2)
+ex_forest = EE_norm[0, 1]/(1 - np.abs(lam_eig[0])**2)
+ey_forest = EE_norm[2, 3]/(1 - np.abs(lam_eig[1])**2)
+ez_forest = EE_norm[4, 5]/(1 - np.abs(lam_eig[2])**2)
 
 
