@@ -12,6 +12,7 @@ from scipy.optimize import fsolve
 from scipy.constants import c as clight
 from scipy.constants import hbar
 from scipy.constants import epsilon_0
+from scipy.constants import e as qe
 
 import xobjects as xo
 import xpart as xp
@@ -1148,10 +1149,6 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         beta0 = line.particle_ref._xobject.beta0[0]
 
         gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
-        gamma4 = gamma * gamma * gamma * gamma
-
-        n_dot_delta_kick_sq_ave = (1 / (2 * np.pi * epsilon_0) * 55 * np.sqrt(3) / 48
-                        * q0**2 * hbar * clight / mass0**2 * gamma0 * hh**3 * gamma**4)
 
         px_left = px_co[:-1]
         px_right = px_co[1:]
@@ -1230,30 +1227,23 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         Kz_sq = 0.5 * (Kz_left**2 + Kz_right**2)
         Kpz_sq = 0.5 * (Kpz_left**2 + Kpz_right**2)
 
-        # eq_gemitt_x = 1 / (4 * clight * damping_constants_turns[0]) * np.sum(
-        #                     (Kx_sq + Kpx_sq) * n_dot_delta_kick_sq_ave * dl)
-        # eq_gemitt_y = 1 / (4 * clight * damping_constants_turns[1]) * np.sum(
-        #                     (Ky_sq + Kpy_sq) * hh**3 * n_dot_delta_kick_sq_ave * dl)
-        # eq_gemitt_zeta = 1 / (4 * clight * damping_constants_turns[2]) * np.sum(
-        #                     (Kz_sq + Kpz_sq) * n_dot_delta_kick_sq_ave * dl)
+        mass0_kg = mass0 / clight**2 * qe
+        q_coul = q0 * qe
+        B_T = hh * mass0_kg * clight * gamma0 / np.abs(q_coul)
+        r0_m = q_coul**2/(4*np.pi*epsilon_0*mass0_kg*clight**2)
+        E_crit_J = 3 * np.abs(q_coul) * hbar * gamma**2 * B_T / (2 * mass0_kg)
+        n_dot = 60 / 72 * np.sqrt(3) * r0_m * clight * np.abs(q_coul) * B_T / hbar
+        E_sq_ave_J = 11 / 27 * E_crit_J**2
+        E0_J = mass0_kg * clight**2 * gamma0
 
-        # Need to use no rad W matrix!!!
-        integ_ex = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kx_sq +  Kpx_sq))
-        integ_ey = np.sum(dl * np.abs(hh)**3 * gamma4 * (Ky_sq +  Kpy_sq))
-        integ_ez = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kz_sq +  Kpz_sq))
+        n_dot_delta_kick_sq_ave = n_dot * E_sq_ave_J / E0_J**2
 
-        # integ_ex_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kx_right**2 +  Kpx_right**2))
-        # integ_ey_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Ky_right**2 +  Kpy_right**2))
-        # integ_ez_right = np.sum(dl * np.abs(hh)**3 * gamma4 * (Kz_right**2 +  Kpz_right**2))
-
-        # n_dot_delta_kick_sq_ave = (1 / (2 * np.pi * epsilon_0) * 55 * np.sqrt(3) / 48
-        #                 * q0**2 * hbar * clight / mass0**2 * gamma0 * hh**3 * gamma**4)
-
-        arad = 1 / (4 * np.pi * epsilon_0) * q0 * q0 / mass0
-        clg = ((55. * (hbar ) * clight) / (96 * np.sqrt(3))) * ((arad * gamma0) / mass0)
-        eq_gemitt_x = float(clg * integ_ex / damping_constants_turns[0])
-        eq_gemitt_y = float(clg * integ_ey / damping_constants_turns[1])
-        eq_gemitt_zeta = float(clg * integ_ez / damping_constants_turns[2])
+        eq_gemitt_x = 1 / (4 * clight * damping_constants_turns[0]) * np.sum(
+                            (Kx_sq + Kpx_sq) * n_dot_delta_kick_sq_ave * dl)
+        eq_gemitt_y = 1 / (4 * clight * damping_constants_turns[1]) * np.sum(
+                            (Ky_sq + Kpy_sq) * n_dot_delta_kick_sq_ave * dl)
+        eq_gemitt_zeta = 1 / (4 * clight * damping_constants_turns[2]) * np.sum(
+                            (Kz_sq + Kpz_sq) * n_dot_delta_kick_sq_ave * dl)
 
         eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
         eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
