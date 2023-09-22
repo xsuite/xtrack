@@ -956,6 +956,7 @@ class Line:
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
+        compute_R_element_by_element=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1367,7 +1368,8 @@ class Line:
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None,
-            ele_start=None, ele_stop=None):
+            ele_start=None, ele_stop=None,
+            element_by_element=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1404,7 +1406,8 @@ class Line:
             line = self
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                        steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop)
+                        steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
+                        element_by_element=element_by_element)
 
     def get_length(self):
 

@@ -64,6 +64,7 @@ def twiss_line(line, particle_ref=None, method=None,
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
+        compute_R_element_by_element=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -257,6 +258,7 @@ def twiss_line(line, particle_ref=None, method=None,
     only_twiss_init=(only_twiss_init or False)
     only_markers=(only_markers or False)
     only_orbit=(only_orbit or False)
+    compute_R_element_by_element=(compute_R_element_by_element or False)
 
     if only_orbit:
         raise NotImplementedError # Tested only experimentally
@@ -447,7 +449,9 @@ def twiss_line(line, particle_ref=None, method=None,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             ele_start=ele_start, ele_stop=ele_stop,
-            nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma)
+            nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
+            compute_R_element_by_element=compute_R_element_by_element,
+            )
     else:
         # force
         skip_global_quantities = True
@@ -481,6 +485,8 @@ def twiss_line(line, particle_ref=None, method=None,
         _ebe_monitor=_ebe_monitor)
 
     twiss_res._data['steps_r_matrix'] = steps_r_matrix
+    if compute_R_element_by_element:
+        twiss_res._data['R_matrix_ebe'] = line._RR_ebe.copy()
 
     if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
@@ -530,7 +536,8 @@ def twiss_line(line, particle_ref=None, method=None,
                     ele_start=ele_start, ele_stop=ele_stop,
                     nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
                     delta0=None, zeta0=None, W_matrix=None, R_matrix=None,
-                    delta_disp=None)
+                    delta_disp=None,
+                    )
         else:
             RR = twiss_res._data['R_matrix']
         eneloss_damp_res = _compute_eneloss_and_damping_rates(
@@ -1280,7 +1287,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             matrix_responsiveness_tol,
                             matrix_stability_tol,
                             nemitt_x, nemitt_y, r_sigma,
-                            ele_start=None, ele_stop=None):
+                            ele_start=None, ele_stop=None,
+                            compute_R_element_by_element=False):
 
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
@@ -1325,7 +1333,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                             steps_r_matrix=steps_r_matrix,
                                             particle_on_co=part_on_co,
                                             ele_start=ele_start,
-                                            ele_stop=ele_stop)
+                                            ele_stop=ele_stop,
+                                            element_by_element=compute_R_element_by_element)
                 if matrix_responsiveness_tol is not None:
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
@@ -1569,7 +1578,8 @@ def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta,
 def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
         steps_r_matrix=None,
-        ele_start=None, ele_stop=None):
+        ele_start=None, ele_stop=None,
+        element_by_element=False):
 
     if steps_r_matrix is None:
         steps_r_matrix = {}
@@ -1615,15 +1625,18 @@ def compute_one_turn_matrix_finite_differences(
     part_temp.at_turn = AT_TURN_FOR_TWISS
 
     if ele_start is not None:
+        assert element_by_element is False, 'Not yet implemented'
         assert ele_stop is not None
         line.track(part_temp, ele_start=ele_start, ele_stop=ele_stop)
     elif particle_on_co._xobject.at_element[0]>0:
+        assert element_by_element is False, 'Not yet implemented'
         i_start = particle_on_co._xobject.at_element[0]
         line.track(part_temp, ele_start=i_start)
         line.track(part_temp, num_elements=i_start)
     else:
         assert particle_on_co._xobject.at_element[0] == 0
-        line.track(part_temp)
+        monitor_setting = 'ONE_TURN_EBE' if element_by_element else None
+        line.track(part_temp, turn_by_turn_monitor=monitor_setting)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
@@ -1638,6 +1651,22 @@ def compute_one_turn_matrix_finite_differences(
 
     for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
         RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
+
+    if element_by_element:
+        mon = line.record_last_track
+        temp_mad_ebe = np.zeros(shape=(len(line.element_names) + 1, 6, 12), dtype=np.float64)
+        temp_mad_ebe[:, 0, :] = mon.x.T
+        temp_mad_ebe[:, 1, :] = mon.px.T
+        temp_mad_ebe[:, 2, :] = mon.y.T
+        temp_mad_ebe[:, 3, :] = mon.py.T
+        temp_mad_ebe[:, 4, :] = mon.zeta.T
+        temp_mad_ebe[:, 5, :] = mon.ptau.T/mon.beta0.T
+
+        RR_ebe = np.zeros(shape=(len(line.element_names) + 1, 6, 6), dtype=np.float64)
+        for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
+            RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj] - temp_mad_ebe[:, :, jj+6])/(2*dd)
+
+        line._RR_ebe = RR_ebe # TODO: remove this
 
     return RR
 

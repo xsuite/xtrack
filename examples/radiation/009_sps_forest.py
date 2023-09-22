@@ -72,7 +72,8 @@ line.compensate_radiation_energy_loss()
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
-                     radiation_method='full')
+                     radiation_method='full',
+                     compute_R_element_by_element=True)
 
 assert tw_rad.eq_gemitt_x is not None
 assert tw_rad.eq_gemitt_y is not None
