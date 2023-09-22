@@ -100,7 +100,11 @@ DSigma = np.zeros_like(RR_ebe)
 DSigma[:-1, 1, 1] = (d_delta_sq_ave * 0.5 * (tw_rad2.px[:-1]**2 + tw_rad2.px[1:]**2)
                                             / (tw_rad2.delta[:-1] + 1)**2)
 DSigma[:-1, 3, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1]**2 + tw_rad2.py[1:]**2)
-                                             / (tw_rad2.delta[:-1] + 1)**2)
+                                            / (tw_rad2.delta[:-1] + 1)**2)
+# DSigma[:-1, 3, 5] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1] + tw_rad2.py[1:])
+#                                              / (tw_rad2.delta[:-1] + 1))
+# DSigma[:-1, 5, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1] + tw_rad2.py[1:])
+#                                              / (tw_rad2.delta[:-1] + 1))
 DSigma[:-1, 5, 5] = d_delta_sq_ave
 
 RR_ebe_inv = np.linalg.inv(RR_ebe)
