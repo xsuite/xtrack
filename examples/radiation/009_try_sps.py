@@ -66,6 +66,12 @@ tw = line.twiss()
 
 line.configure_radiation(model='mean')
 
+# Switch off radiation in quadrupoles
+tt = line.get_table()
+tt_mult = tt.rows[tt.element_type=='Multipole']
+for nn in tt_mult.name:
+    if line[nn].order > 0:
+        line[nn].radiation_flag = False
 # Tapering!!!
 line.compensate_radiation_energy_loss()
 
@@ -87,6 +93,9 @@ ey = tw_rad.eq_nemitt_y / (tw_rad.gamma0 * tw_rad.beta0)
 ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
 line.configure_radiation(model='quantum')
+for nn in tt_mult.name:
+    if line[nn].order > 0:
+        line[nn].radiation_flag = False
 p = line.build_particles(num_particles=1000)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))

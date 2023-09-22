@@ -437,7 +437,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
-        twiss_init, R_matrix, steps_r_matrix = _find_periodic_solution(
+        twiss_init, R_matrix, steps_r_matrix, eigenvalues = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
             co_search_settings=co_search_settings,
@@ -517,13 +517,15 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
 
+        twiss_res._data['eigenvalues'] = eigenvalues
+
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data
         if radiation_method != 'full':
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
-                _, RR, _ = _find_periodic_solution(
+                _, RR, _, _ = _find_periodic_solution(
                     line=line, particle_on_co=particle_on_co,
                     particle_ref=particle_ref, method='6d',
                     co_search_settings=co_search_settings,
@@ -1050,7 +1052,7 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
         RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                     particle_on_co=tw_init_chrom.particle_on_co.copy(),
                                     steps_r_matrix=steps_r_matrix)
-        (WW_chrom, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+        (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
                                 only_4d_block=method=='4d',
                                 responsiveness_tol=matrix_responsiveness_tol,
                                 stability_tol=matrix_stability_tol,
@@ -1241,6 +1243,7 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         E_crit_J = 3 * np.abs(q_coul) * hbar * gamma**2 * B_T / (2 * mass0_kg)
         n_dot = 60 / 72 * np.sqrt(3) * r0_m * clight * np.abs(q_coul) * B_T / hbar
         E_sq_ave_J = 11 / 27 * E_crit_J**2
+        E_ave_J = 8 * np.sqrt(3) / 45 * E_crit_J
         E0_J = mass0_kg * clight**2 * gamma0
 
         n_dot_delta_kick_sq_ave = n_dot * E_sq_ave_J / E0_J**2
@@ -1256,24 +1259,28 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
         eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
 
+        res = {
+            'eq_gemitt_x': eq_gemitt_x,
+            'eq_gemitt_y': eq_gemitt_y,
+            'eq_gemitt_zeta': eq_gemitt_zeta,
+            'eq_nemitt_x': eq_nemitt_x,
+            'eq_nemitt_y': eq_nemitt_y,
+            'eq_nemitt_zeta': eq_nemitt_zeta,
+            'dl_radiation': dl,
+            'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
+        }
+
     else:
+        res = {
+            'eq_gemitt_x': None,
+            'eq_gemitt_y': None,
+            'eq_gemitt_zeta': None,
+            'eq_nemitt_x': None,
+            'eq_nemitt_y': None,
+            'eq_nemitt_zeta': None,
+        }
 
-        eq_gemitt_x = None
-        eq_gemitt_y = None
-        eq_gemitt_zeta = None
-
-        eq_nemitt_x = None
-        eq_nemitt_y = None
-        eq_nemitt_zeta = None
-
-    return {
-        'eq_gemitt_x': eq_gemitt_x,
-        'eq_gemitt_y': eq_gemitt_y,
-        'eq_gemitt_zeta': eq_gemitt_zeta,
-        'eq_nemitt_x': eq_nemitt_x,
-        'eq_nemitt_y': eq_nemitt_y,
-        'eq_nemitt_zeta': eq_nemitt_zeta,
-    }
+    return res
 
 
 class ClosedOrbitSearchError(Exception):
@@ -1289,6 +1296,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             nemitt_x, nemitt_y, r_sigma,
                             ele_start=None, ele_stop=None,
                             compute_R_element_by_element=False):
+
+    eigenvalues = None
 
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
@@ -1321,7 +1330,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
             RR = R_matrix
             lnf._assert_matrix_responsiveness(RR, matrix_responsiveness_tol,
                                                 only_4d=(method == '4d'))
-            W, _, _ = lnf.compute_linear_normal_form(
+            W, _, _, eigenvalues = lnf.compute_linear_normal_form(
                         RR, only_4d_block=(method == '4d'),
                         symplectify=symplectify,
                         responsiveness_tol=matrix_responsiveness_tol,
@@ -1339,7 +1348,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
 
-                W, _, _ = lnf.compute_linear_normal_form(
+                W, _, _, eigenvalues = lnf.compute_linear_normal_form(
                             RR, only_4d_block=(method == '4d'),
                             symplectify=symplectify,
                             responsiveness_tol=None,
@@ -1413,7 +1422,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            element_name=tw_init_element_name,
                            reference_frame='proper')
 
-    return twiss_init, RR, steps_r_matrix
+    return twiss_init, RR, steps_r_matrix, eigenvalues
 
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
