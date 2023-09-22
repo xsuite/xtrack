@@ -125,6 +125,14 @@ reig_full[3, 3] = reig[1].conjugate()
 reig_full[4, 4] = reig[2]
 reig_full[5, 5] = reig[2].conjugate()
 
+lam_eig_full = np.zeros_like(reig_full, dtype=complex)
+lam_eig_full[0] = lam_eig[0]
+lam_eig_full[1] = lam_eig[0].conjugate()
+lam_eig_full[2] = lam_eig[1]
+lam_eig_full[3] = lam_eig[1].conjugate()
+lam_eig_full[4] = lam_eig[2]
+lam_eig_full[5] = lam_eig[2].conjugate()
+
 CC = np.zeros_like(CC_split, dtype=complex)
 CC[:, 0] = 0.5*np.sqrt(2)*(CC_split[:, 0] + 1j*CC_split[:, 1])
 CC[:, 1] = 0.5*np.sqrt(2)*(CC_split[:, 0] - 1j*CC_split[:, 1])
@@ -143,4 +151,9 @@ ex_forest = EE_norm[0, 1]/(1 - np.abs(lam_eig[0])**2)
 ey_forest = EE_norm[2, 3]/(1 - np.abs(lam_eig[1])**2)
 ez_forest = EE_norm[4, 5]/(1 - np.abs(lam_eig[2])**2)
 
+Sigma_norm = np.zeros_like(EE_norm, dtype=complex)
+for ii in range(6):
+    for jj in range(6):
+        Sigma_norm[ii, jj] = EE_norm[ii, jj]/(1 - lam_eig_full[ii, ii]*lam_eig_full[jj, jj])
 
+Sigma = BB @ Sigma_norm @ BB.T
