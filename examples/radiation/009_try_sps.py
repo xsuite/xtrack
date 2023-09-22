@@ -70,10 +70,13 @@ line.configure_radiation(model='mean')
 tt = line.get_table()
 tt_mult = tt.rows[tt.element_type=='Multipole']
 for nn in tt_mult.name:
-    if line[nn].order > 0:
-        line[nn].radiation_flag = False
+    if not nn.startswith('mb'):
+        line[nn].radiation_flag = 0
 # Tapering!!!
 line.compensate_radiation_energy_loss()
+for nn in tt_mult.name:
+    if not nn.startswith('mb'):
+        line[nn].radiation_flag = 0
 
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
@@ -98,7 +101,7 @@ p = line.build_particles(num_particles=1000)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 for nn in tt_mult.name:
-    if line[nn].order > 0:
+    if not nn.startswith('mb'):
         line[nn].radiation_flag = 0
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
