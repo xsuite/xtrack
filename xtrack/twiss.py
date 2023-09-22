@@ -1099,8 +1099,7 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         damping_constants_turns* 2 * energy0/eloss_turn)
 
     # Equilibrium emittances
-    (eq_gemitt_x, eq_gemitt_y, eq_gemitt_zeta, eq_nemitt_x, eq_nemitt_y,
-     eq_nemitt_zeta) = _compute_equlibrium_emittance(
+    eq_emitts = _compute_equlibrium_emittance(
                                 px_co, py_co, ptau_co, W_matrix,
                                 line, radiation_method,
                                 damping_constants_turns)
@@ -1110,13 +1109,9 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         'damping_constants_turns': damping_constants_turns,
         'damping_constants_s':damping_constants_s,
         'partition_numbers': partition_numbers,
-        'eq_gemitt_x': eq_gemitt_x,
-        'eq_gemitt_y': eq_gemitt_y,
-        'eq_gemitt_zeta': eq_gemitt_zeta,
-        'eq_nemitt_x': eq_nemitt_x,
-        'eq_nemitt_y': eq_nemitt_y,
-        'eq_nemitt_zeta': eq_nemitt_zeta,
     }
+
+    eneloss_damp_res.update(eq_emitts)
 
     return eneloss_damp_res
 
@@ -1259,8 +1254,14 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         eq_nemitt_y = None
         eq_nemitt_zeta = None
 
-    return (eq_gemitt_x, eq_gemitt_y, eq_gemitt_zeta,
-            eq_nemitt_x, eq_nemitt_y, eq_nemitt_zeta)
+    return {
+        'eq_gemitt_x': eq_gemitt_x,
+        'eq_gemitt_y': eq_gemitt_y,
+        'eq_gemitt_zeta': eq_gemitt_zeta,
+        'eq_nemitt_x': eq_nemitt_x,
+        'eq_nemitt_y': eq_nemitt_y,
+        'eq_nemitt_zeta': eq_nemitt_zeta,
+    }
 
 
 class ClosedOrbitSearchError(Exception):
