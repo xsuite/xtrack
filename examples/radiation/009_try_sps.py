@@ -22,7 +22,7 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # # higher energy
 mad.input('beam, particle=electron, pc=50;')
 v_mv = 250
-num_turns = 500
+num_turns = 1000
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
@@ -35,7 +35,7 @@ mad.sequence.sps.elements['actcse.31632'].freq = 350 / 10  # having the same qs
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 # # Some vertical orbit
-# mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
+mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
 
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
@@ -93,12 +93,13 @@ ey = tw_rad.eq_nemitt_y / (tw_rad.gamma0 * tw_rad.beta0)
 ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
 line.configure_radiation(model='quantum')
-for nn in tt_mult.name:
-    if line[nn].order > 0:
-        line[nn].radiation_flag = False
+
 p = line.build_particles(num_particles=1000)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
+for nn in tt_mult.name:
+    if line[nn].order > 0:
+        line[nn].radiation_flag = 0
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
 

@@ -35,7 +35,7 @@ mad.sequence.sps.elements['actcse.31632'].freq = 350 / 10  # having the same qs
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 # # Some vertical orbit
-# mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
+mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
 
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
@@ -72,7 +72,6 @@ line.compensate_radiation_energy_loss()
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
 
-import pdb; pdb.set_trace()
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full',
                      compute_R_element_by_element=True)
@@ -98,6 +97,10 @@ d_delta_sq_ave = tw_rad.n_dot_delta_kick_sq_ave * tw_rad.dl_radiation /clight
 RR_ebe = tw_rad2.R_matrix_ebe
 RR = RR_ebe[0, :, :]
 DSigma = np.zeros_like(RR_ebe)
+DSigma[:-1, 1, 1] = (d_delta_sq_ave * 0.5 * (tw_rad2.px[:-1]**2 + tw_rad2.px[1:]**2)
+                                            / (tw_rad2.delta[:-1] + 1)**2)
+DSigma[:-1, 3, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1]**2 + tw_rad2.py[1:]**2)
+                                             / (tw_rad2.delta[:-1] + 1)**2)
 DSigma[:-1, 5, 5] = d_delta_sq_ave
 
 RR_ebe_inv = np.linalg.inv(RR_ebe)
@@ -109,7 +112,6 @@ for ii in range(n_calc):
     print(f'{ii}/{n_calc}    ', end='\r', flush=True)
     if d_delta_sq_ave[ii] > 0:
         DSigma0 += RR_ebe_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_inv[ii, :, :].T
-
 
 WW = tw_rad2.W_matrix[0, :, :]
 lam_eig = tw_rad2.eigenvalues
