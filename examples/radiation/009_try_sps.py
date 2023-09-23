@@ -27,15 +27,19 @@ num_turns = 1000
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
 mad.use(sequence='sps')
-mad.input('twiss, table=tw4d;')
-twm4d = mad.table.tw4d
-
-mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10   # To stay in the linear region
-mad.sequence.sps.elements['actcse.31632'].freq = 350 / 10  # having the same qs
-mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 # # Some vertical orbit
 mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
+
+mad.input('twiss, table=tw4d;')
+twm4d = mad.table.tw4d
+
+n_cav = 6
+
+mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
+mad.sequence.sps.elements['actcse.31632'].freq = 1
+mad.sequence.sps.elements['actcse.31632'].lag = 0.5
+
 
 mad.input('twiss, table=tw6d;')
 twm6d = mad.table.tw6d
@@ -46,6 +50,18 @@ mad.emit()
 line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True)
 line.particle_ref = xp.Particles(mass0=xp.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
+
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706_entry',
+                    name='cav1')
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.21508_entry',
+                    name='cav2')
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.41508_entry',
+                    name='cav4')
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508_entry',
+                    name='cav5')
+line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508_entry',
+                    name='cav6')
+
 line.build_tracker()
 tw_thick = line.twiss()
 
@@ -63,20 +79,12 @@ line.slice_thick_elements(slicing_strategies)
 line.build_tracker()
 
 tw = line.twiss()
+tw4d = line.twiss(method='4d')
 
 line.configure_radiation(model='mean')
 
-# Switch off radiation in quadrupoles
-tt = line.get_table()
-tt_mult = tt.rows[tt.element_type=='Multipole']
-for nn in tt_mult.name:
-    if not nn.startswith('mb'):
-        line[nn].radiation_flag = 0
 # Tapering!!!
 line.compensate_radiation_energy_loss()
-for nn in tt_mult.name:
-    if not nn.startswith('mb'):
-        line[nn].radiation_flag = 0
 
 tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
@@ -100,9 +108,6 @@ line.configure_radiation(model='quantum')
 p = line.build_particles(num_particles=1000)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
-for nn in tt_mult.name:
-    if not nn.startswith('mb'):
-        line[nn].radiation_flag = 0
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
 
