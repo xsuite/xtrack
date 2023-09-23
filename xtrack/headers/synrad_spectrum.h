@@ -259,10 +259,14 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
         }
     }
 
-    if (energy == 0.0)
+    if (energy <= 0.0)
       LocalParticle_set_state(part, XT_LOST_ALL_E_IN_SYNRAD); // used to flag this kind of loss
     else{
-      LocalParticle_add_to_energy(part, energy-initial_energy, 0);
+      //LocalParticle_add_to_energy(part, energy-initial_energy, 0);
+      double f_t = energy/initial_energy;
+      LocalParticle_update_delta(part, (LocalParticle_get_delta(part)+1) * f_t - 1);
+      LocalParticle_scale_px(part, f_t);
+      LocalParticle_scale_py(part, f_t);
     }
 
     return nphot;
