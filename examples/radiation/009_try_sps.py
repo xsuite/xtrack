@@ -22,7 +22,7 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # # higher energy
 mad.input('beam, particle=electron, pc=50;')
 v_mv = 250
-num_turns = 1000
+num_turns = 600
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
@@ -37,7 +37,7 @@ twm4d = mad.table.tw4d
 n_cav = 6
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
-mad.sequence.sps.elements['actcse.31632'].freq = 1
+mad.sequence.sps.elements['actcse.31632'].freq = 0.3
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 
@@ -47,7 +47,8 @@ twm6d = mad.table.tw6d
 mad.sequence.sps.beam.radiate = True
 mad.emit()
 
-line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True)
+line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
+                                  deferred_expressions=True)
 line.particle_ref = xp.Particles(mass0=xp.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
 
@@ -62,7 +63,10 @@ line.insert_element(element=line['actcse.31632'].copy(), index='bpv.51508_entry'
 line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508_entry',
                     name='cav6')
 
-line.build_tracker()
+tt = line.get_table()
+for nn in tt.rows[tt.element_type=='DipoleEdge'].name:
+    line[nn].k = 0
+
 tw_thick = line.twiss()
 
 Strategy = xt.slicing.Strategy
@@ -77,6 +81,12 @@ slicing_strategies = [
 
 line.slice_thick_elements(slicing_strategies)
 line.build_tracker()
+
+opt = line.match(
+    vary=[xt.VaryList(['kqf', 'kqd'], step=1e-5)],
+    #targets=[xt.TargetSet(qx=20.13, qy=20.18)],
+    targets=[xt.TargetSet(qx=21.22, qy=20.05)],
+)
 
 tw = line.twiss()
 tw4d = line.twiss(method='4d')
@@ -135,6 +145,7 @@ sigma_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
 import matplotlib.pyplot as plt
 plt.close('all')
 fig = plt.figure(1)
+
 spx = fig. add_subplot(3, 1, 1)
 spx.plot(np.std(mon.x, axis=0))
 spx.axhline(sigma_tab.sigma_x[0], color='red')
@@ -148,5 +159,7 @@ spy.axhline(sigma_tab.sigma_y[0], color='red')
 spz = fig. add_subplot(3, 1, 3, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
 spz.axhline(sigma_tab.sigma_zeta[0], color='red')
+
+plt.suptitle(f'Qx = {tw.qx:.2f} - Qy = {tw.qy:.2f}')
 
 plt.show()
