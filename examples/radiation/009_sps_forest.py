@@ -94,8 +94,8 @@ ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
 d_delta_sq_ave = tw_rad.n_dot_delta_kick_sq_ave * tw_rad.dl_radiation /clight
 
+# Going to x', y'
 RR_ebe = tw_rad2.R_matrix_ebe.copy()
-
 for jj in range(6):
     RR_ebe[:, 1, jj] /= (1 + tw_rad2.delta)
     RR_ebe[:, 3, jj] /= (1 + tw_rad2.delta)
@@ -104,11 +104,14 @@ for ii in range(6):
     RR_ebe[:, ii, 1] *= (1 + tw_rad2.delta)
     RR_ebe[:, ii, 3] *= (1 + tw_rad2.delta)
 
+RR_ebe[:, 1, 5] += tw_rad2.px
+RR_ebe[:, 3, 5] += tw_rad2.py
+
 lnf = xt.linear_normal_form
 RR = RR_ebe[-1, :, :]
 WW, _, Rot, lam_eig = lnf.compute_linear_normal_form(RR)
-
 DSigma = np.zeros_like(RR_ebe)
+
 # DSigma[:-1, 1, 1] = (d_delta_sq_ave * 0.5 * (tw_rad2.px[:-1]**2 + tw_rad2.px[1:]**2)
 #                                             / (tw_rad2.delta[:-1] + 1)**2)
 # DSigma[:-1, 3, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1]**2 + tw_rad2.py[1:]**2)
