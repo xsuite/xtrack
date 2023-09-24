@@ -22,7 +22,7 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # higher energy
 mad.input('beam, particle=electron, pc=50;')
 v_mv = 250
-num_turns = 600
+num_turns = 1000
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
@@ -115,7 +115,7 @@ opt_bump = line.match(
     ],
     targets=[
         xt.Target(lambda tw: np.max(tw.y), value=8e-3),
-        xt.TargetSet(y =0, py=0, at=xt.END)
+        xt.TargetSet(y=0, py=0, at=xt.END)
     ],
 )
 opt_bump.solve()
@@ -179,7 +179,7 @@ ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
 line.configure_radiation(model='quantum')
 
-p = line.build_particles(num_particles=1000)
+p = line.build_particles(num_particles=4000)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'), use_prebuilt_kernels=False)
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
