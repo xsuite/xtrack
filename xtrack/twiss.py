@@ -65,6 +65,8 @@ def twiss_line(line, particle_ref=None, method=None,
         only_markers=None,
         only_orbit=None,
         compute_R_element_by_element=None,
+        compute_lattice_functions=None,
+        compute_chromatic_properties=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -259,6 +261,10 @@ def twiss_line(line, particle_ref=None, method=None,
     only_markers=(only_markers or False)
     only_orbit=(only_orbit or False)
     compute_R_element_by_element=(compute_R_element_by_element or False)
+    compute_lattice_functions=(compute_lattice_functions
+                        if compute_lattice_functions is not None else True)
+    compute_chromatic_properties=(compute_chromatic_properties
+                        if compute_chromatic_properties is not None else True)
 
     if only_orbit:
         raise NotImplementedError # Tested only experimentally
@@ -478,6 +484,7 @@ def twiss_line(line, particle_ref=None, method=None,
         group_compound_elements=group_compound_elements,
         only_markers=only_markers,
         only_orbit=only_orbit,
+        compute_lattice_functions=compute_lattice_functions,
         _continue_if_lost=_continue_if_lost,
         _keep_tracking_data=_keep_tracking_data,
         _keep_initial_particles=_keep_initial_particles,
@@ -492,6 +499,12 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['R_matrix'] = R_matrix
         _compute_global_quantities(
                             line=line, twiss_res=twiss_res)
+
+        twiss_res._data['eigenvalues'] = eigenvalues.copy()
+        twiss_res._data['rotation_matrix'] = Rot.copy()
+
+    if (compute_chromatic_properties and not skip_global_quantities
+            and not only_orbit):
 
         cols_chrom, scalars_chrom = _compute_chromatic_functions(
             line=line,
@@ -517,8 +530,6 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
 
-        twiss_res._data['eigenvalues'] = eigenvalues.copy()
-        twiss_res._data['rotation_matrix'] = Rot.copy()
 
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data
@@ -585,21 +596,22 @@ def twiss_line(line, particle_ref=None, method=None,
     # twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
     # twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
 
-
     if not periodic and not only_orbit:
         # Start phase advance with provided twiss_init
         if ((twiss_res.orientation == 'forward' and not reverse)
-            or (twiss_res.orientation == 'backward' and reverse)):
-            twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
-            twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
+                or (twiss_res.orientation == 'backward' and reverse)):
             twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[0]
             twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[0]
+            if 'mux' in twiss_res._data:
+                twiss_res.mux += twiss_init.mux - twiss_res.mux[0]
+                twiss_res.muy += twiss_init.muy - twiss_res.muy[0]
         elif ((twiss_res.orientation == 'forward' and reverse)
             or (twiss_res.orientation == 'backward' and not reverse)):
-            twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
-            twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
             twiss_res.muzeta += twiss_init.muzeta - twiss_res.muzeta[-1]
             twiss_res.dzeta += twiss_init.dzeta - twiss_res.dzeta[-1]
+            if 'mux' in twiss_res._data:
+                twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
+                twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
 
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
@@ -615,6 +627,7 @@ def _twiss_open(line, twiss_init,
                       group_compound_elements=False,
                       only_markers=False,
                       only_orbit=False,
+                      compute_lattice_functions=True,
                       _continue_if_lost=False,
                       _keep_tracking_data=False,
                       _keep_initial_particles=False,
@@ -790,9 +803,10 @@ def _twiss_open(line, twiss_init,
         'zeta': zeta_co,
         'delta': delta_co,
         'ptau': ptau_co,
+        'W_matrix': Ws,
     })
 
-    if not only_orbit:
+    if not only_orbit and compute_lattice_functions:
         lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
         EE = lattice_functions.pop('EE')
         HH = lattice_functions.pop('HH')
@@ -977,14 +991,11 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 def _compute_global_quantities(line, twiss_res):
 
         s_vect = twiss_res['s']
-        mux = twiss_res['mux']
-        muy = twiss_res['muy']
         circumference = line.tracker._tracker_data_base.line_length
         part_on_co = twiss_res['particle_on_co']
         W_matrix = twiss_res['W_matrix']
 
         dzeta = twiss_res['dzeta']
-        qs = np.abs(twiss_res['muzeta'][-1])
         eta = -dzeta[-1]/circumference
         alpha = eta + 1/part_on_co._xobject.gamma0[0]**2
 
@@ -995,35 +1006,43 @@ def _compute_global_quantities(line, twiss_res):
             betz0 = -betz0
         ptau_co = twiss_res['ptau']
 
-        # Coupling
-        r1 = (np.sqrt(twiss_res['bety1'])/
-              np.sqrt(twiss_res['betx1']))
-        r2 = (np.sqrt(twiss_res['betx2'])/
-              np.sqrt(twiss_res['bety2']))
 
-        # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
-        cmin_arr = (2 * np.sqrt(r1*r2) *
-                    np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
-                    /(1 + r1 * r2))
-        c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
-        c_r1_avg = np.trapz(r1, s_vect)/(circumference)
-        c_r2_avg = np.trapz(r2, s_vect)/(circumference)
         twiss_res._data.update({
-            'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
             'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
             'gamma0': part_on_co._xobject.gamma0[0],
             'beta0': part_on_co._xobject.beta0[0],
             'p0c': part_on_co._xobject.p0c[0],
-            'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
         })
         if hasattr(part_on_co, '_fsolve_info'):
             twiss_res.particle_on_co._fsolve_info = part_on_co._fsolve_info
         else:
             twiss_res.particle_on_co._fsolve_info = None
 
+        if 'mux' in twiss_res._data: # Lattice functions are available
+            mux = twiss_res['mux']
+            muy = twiss_res['muy']
+            # Coupling
+            r1 = (np.sqrt(twiss_res['bety1'])/
+                np.sqrt(twiss_res['betx1']))
+            r2 = (np.sqrt(twiss_res['betx2'])/
+                np.sqrt(twiss_res['bety2']))
 
+            # Coupling (https://arxiv.org/pdf/2005.02753.pdf)
+            cmin_arr = (2 * np.sqrt(r1*r2) *
+                        np.abs(np.mod(mux[-1], 1) - np.mod(muy[-1], 1))
+                        /(1 + r1 * r2))
+            c_minus = np.trapz(cmin_arr, s_vect)/(circumference)
+            c_r1_avg = np.trapz(r1, s_vect)/(circumference)
+            c_r2_avg = np.trapz(r2, s_vect)/(circumference)
+
+            qs = np.abs(twiss_res['muzeta'][-1])
+
+            twiss_res._data.update({
+                'qx': mux[-1], 'qy': muy[-1], 'qs': qs,
+                'c_minus': c_minus, 'c_r1_avg': c_r1_avg, 'c_r2_avg': c_r2_avg
+            })
 
 def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                     matrix_responsiveness_tol, matrix_stability_tol, symplectify,

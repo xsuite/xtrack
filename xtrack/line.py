@@ -957,6 +957,8 @@ class Line:
         only_markers=None,
         only_orbit=None,
         compute_R_element_by_element=None,
+        compute_lattice_functions=None,
+        compute_chromatic_properties=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
