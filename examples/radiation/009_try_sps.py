@@ -93,12 +93,12 @@ line.element_refs['mdv.10107'].ksl[0] = line.vars['vkick']
 
 match_chrom = True
 
-line.vars['klsda'] = 0.0
-line.vars['klsdb'] = 0.0
-line.vars['klsfa'] = 0.0
-line.vars['klsfb'] = 0.0
-line.vars['klsfc'] = 0.0
-match_chrom = False
+# line.vars['klsda'] = 0.0
+# line.vars['klsdb'] = 0.0
+# line.vars['klsfa'] = 0.0
+# line.vars['klsfb'] = 0.0
+# line.vars['klsfc'] = 0.0
+# match_chrom = False
 
 opt = line.match(
     solve=False,
@@ -110,7 +110,7 @@ opt = line.match(
     targets=[
         xt.TargetSet(qx=20.13, qy=20.10, tag='tune'),
         xt.Target(lambda tw: np.std(tw.y), 5e-3, tag='orbit'),
-        xt.TargetSet(dqx=2., dqy=2., tol=1e-4, tag='chrom'),
+        xt.TargetSet(dqx=0.1, dqy=0.1, tol=1e-4, tag='chrom'),
         ],
 )
 
