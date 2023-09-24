@@ -51,6 +51,7 @@ line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
                                   deferred_expressions=True)
 line.particle_ref = xp.Particles(mass0=xp.ELECTRON_MASS_EV,
                                     q0=-1, gamma0=mad.sequence.sps.beam.gamma)
+line.cycle('bpv.11706_entry', inplace=True)
 
 line.insert_element(element=line['actcse.31632'].copy(), index='bpv.11706_entry',
                     name='cav1')
@@ -108,7 +109,7 @@ opt = line.match(
         xt.VaryList(['klsda', 'klsdb', 'klsfa', 'klsfb', 'klsfc'], step=1e-4, tag='chrom'),
     ],
     targets=[
-        xt.TargetSet(qx=20.13, qy=20.10, tag='tune'),
+        xt.TargetSet(qx=20.13, qy=20.20, tag='tune'),
         xt.Target(lambda tw: np.std(tw.y), 5e-3, tag='orbit'),
         xt.TargetSet(dqx=0.1, dqy=0.1, tol=1e-4, tag='chrom'),
         ],
@@ -187,6 +188,9 @@ mon = line.record_last_track
 sigma_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
                                        gemitt_y=tw_rad.eq_gemitt_y,
                                         gemitt_zeta=tw_rad.eq_gemitt_zeta)
+sigma_betatron_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
+                                                gemitt_y=tw_rad.eq_gemitt_y,
+                                                gemitt_zeta=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
