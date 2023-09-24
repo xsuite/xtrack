@@ -114,7 +114,7 @@ opt_bump = line.match(
                      'mdv.53307.ksl0', 'mdv.53507.ksl0'], step=1e-5),
     ],
     targets=[
-        xt.Target(lambda tw: np.max(tw.y), value=8e-3),
+        xt.Target(lambda tw: np.max(tw.y), value=20e-3),
         xt.TargetSet(y=0, py=0, at=xt.END)
     ],
 )
@@ -179,7 +179,7 @@ ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
 line.configure_radiation(model='quantum')
 
-p = line.build_particles(num_particles=4000)
+p = line.build_particles(num_particles=1000)
 line.discard_tracker()
 line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'), use_prebuilt_kernels=False)
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
