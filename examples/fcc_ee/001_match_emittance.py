@@ -62,11 +62,15 @@ for ii, (mon, element_mon, label) in enumerate(
     dx = tw_rad['dx', element_mon]
     dy = tw_rad['dy', element_mon]
 
+    sigma_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
+                                       gemitt_y=tw_rad.eq_gemitt_y,
+                                       gemitt_zeta=tw_rad.eq_gemitt_zeta)
+
     fig = plt.figure(ii + 1, figsize=(6.4, 4.8*1.3))
     spx = fig. add_subplot(3, 1, 1)
     spx.plot(np.std(mon.x, axis=0), label='track')
     spx.axhline(
-        np.sqrt(ex * betx + ey * betx2 + (np.std(p.delta) * dx)**2),
+        sigma_tab['sigma_x', element_mon],
         color='red', label='twiss')
     spx.legend(loc='lower right')
     spx.set_ylabel(r'$\sigma_{x}$ [m]')
@@ -75,14 +79,14 @@ for ii, (mon, element_mon, label) in enumerate(
     spy = fig. add_subplot(3, 1, 2, sharex=spx)
     spy.plot(np.std(mon.y, axis=0), label='track')
     spy.axhline(
-        np.sqrt(ex * bety1 + ey * bety + (np.std(p.delta) * dy)**2),
+        sigma_tab['sigma_y', element_mon],
         color='red', label='twiss')
     spy.set_ylabel(r'$\sigma_{y}$ [m]')
     spy.set_ylim(bottom=0)
 
     spz = fig. add_subplot(3, 1, 3, sharex=spx)
     spz.plot(np.std(mon.zeta, axis=0))
-    spz.axhline(np.sqrt(ez * tw_rad.betz0), color='red')
+    spz.axhline(sigma_tab['sigma_zeta', element_mon], color='red')
     spz.set_ylabel(r'$\sigma_{z}$ [m]')
     spz.set_ylim(bottom=0)
 
