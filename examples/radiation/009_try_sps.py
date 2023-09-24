@@ -19,7 +19,7 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # v_mv = 25
 # num_turns = 8000
 
-# # higher energy
+# higher energy
 mad.input('beam, particle=electron, pc=50;')
 v_mv = 250
 num_turns = 600
@@ -29,7 +29,7 @@ mad.call('../../test_data/sps_thick/lhc_q20.str')
 mad.use(sequence='sps')
 
 # # Some vertical orbit
-mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
+# mad.sequence.sps.elements['mdv.10107'].kick = 100e-6
 
 mad.input('twiss, table=tw4d;')
 twm4d = mad.table.tw4d
@@ -64,8 +64,10 @@ line.insert_element(element=line['actcse.31632'].copy(), index='bpv.61508_entry'
                     name='cav6')
 
 tt = line.get_table()
-for nn in tt.rows[tt.element_type=='DipoleEdge'].name:
-    line[nn].k = 0
+
+# Remove edge effects
+# for nn in tt.rows[tt.element_type=='DipoleEdge'].name:
+#     line[nn].k = 0
 
 tw_thick = line.twiss()
 
@@ -82,11 +84,54 @@ slicing_strategies = [
 line.slice_thick_elements(slicing_strategies)
 line.build_tracker()
 
+line.discard_tracker()
+line.build_tracker(_context=xo.ContextCpu())
+line.configure_radiation(model=None)
+
+line.vv['vkick'] = 1e-6
+line.element_refs['mdv.10107'].ksl[0] = line.vars['vkick']
+
+match_chrom = True
+
+line.vars['klsda'] = 0.0
+line.vars['klsdb'] = 0.0
+line.vars['klsfa'] = 0.0
+line.vars['klsfb'] = 0.0
+line.vars['klsfc'] = 0.0
+match_chrom = False
+
 opt = line.match(
-    vary=[xt.VaryList(['kqf', 'kqd'], step=1e-5)],
-    #targets=[xt.TargetSet(qx=20.13, qy=20.18)],
-    targets=[xt.TargetSet(qx=21.22, qy=20.05)],
+    solve=False,
+    vary=[
+        xt.VaryList(['kqf', 'kqd'], step=1e-5, tag='tune'),
+        xt.Vary('vkick', step=1e-7, tag='orbit'),
+        xt.VaryList(['klsda', 'klsdb', 'klsfa', 'klsfb', 'klsfc'], step=1e-4, tag='chrom'),
+    ],
+    targets=[
+        xt.TargetSet(qx=20.13, qy=20.10, tag='tune'),
+        xt.Target(lambda tw: np.std(tw.y), 5e-3, tag='orbit'),
+        xt.TargetSet(dqx=2., dqy=2., tol=1e-4, tag='chrom'),
+        ],
 )
+
+opt.enable_all_targets()
+opt.enable_all_vary()
+opt.disable_targets(tag='chrom')
+opt.disable_vary(tag='chrom')
+opt.solve()
+
+if match_chrom:
+
+    opt.disable_all_targets()
+    opt.disable_all_vary()
+    opt.enable_targets(tag='chrom')
+    opt.enable_vary(tag='chrom')
+    opt.solve()
+
+    opt.enable_all_targets()
+    opt.enable_all_vary()
+    opt.solve()
+
 
 tw = line.twiss()
 tw4d = line.twiss(method='4d')
@@ -113,11 +158,12 @@ ex = tw_rad.eq_nemitt_x / (tw_rad.gamma0 * tw_rad.beta0)
 ey = tw_rad.eq_nemitt_y / (tw_rad.gamma0 * tw_rad.beta0)
 ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
 
+
 line.configure_radiation(model='quantum')
 
 p = line.build_particles(num_particles=1000)
 line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
+line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'), use_prebuilt_kernels=False)
 line.track(p, num_turns=num_turns, time=True, turn_by_turn_monitor=True)
 print(f'Tracking time: {line.time_last_track}')
 
@@ -144,22 +190,34 @@ sigma_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
 
 import matplotlib.pyplot as plt
 plt.close('all')
-fig = plt.figure(1)
+fig = plt.figure(1, figsize=(4.8*1.3, 6.4))
 
-spx = fig. add_subplot(3, 1, 1)
+spo = fig. add_subplot(4, 1, 1)
+spo.plot(tw.s, tw.y)
+spo.plot(tw_rad.s, tw_rad.y, '--')
+
+plt.xlabel('s [m]')
+plt.ylabel('y [m]')
+
+spx = fig. add_subplot(4, 1, 2)
 spx.plot(np.std(mon.x, axis=0))
 spx.axhline(sigma_tab.sigma_x[0], color='red')
+plt.ylabel(r'$\sigma_x$ [m]')
 # spx.axhline(np.sqrt(ex_hof * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2), color='green')
 
-spy = fig. add_subplot(3, 1, 2, sharex=spx)
+spy = fig. add_subplot(4, 1, 3, sharex=spx)
 spy.plot(np.std(mon.y, axis=0))
 spy.axhline(sigma_tab.sigma_y[0], color='red')
+plt.ylabel(r'$\sigma_y$ [m]')
 # spy.axhline(np.sqrt(ey_hof * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='green')
 
-spz = fig. add_subplot(3, 1, 3, sharex=spx)
+spz = fig. add_subplot(4, 1, 4, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
 spz.axhline(sigma_tab.sigma_zeta[0], color='red')
+plt.ylabel(r'$\sigma_z$ [m]')
+plt.xlabel('Turns')
 
-plt.suptitle(f'Qx = {tw.qx:.2f} - Qy = {tw.qy:.2f}')
+plt.suptitle(f"Qx = {tw.qx:.2f} - Qy = {tw.qy:.2f} - Q'x = {tw.dqx:.2f} - Q'y = {tw.dqy:.2f}")
+plt.subplots_adjust(left=.16)
 
 plt.show()
