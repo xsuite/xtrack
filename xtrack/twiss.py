@@ -1149,6 +1149,50 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
 
     return eneloss_damp_res
 
+def _extract_sr_distribution_properties(line, radiation_flag, px_co, py_co,
+                                        ptau_co):
+
+    hxl = line.attr['hxl']
+    hyl = line.attr['hyl']
+    dl = line.attr['length'] * (radiation_flag == 1)
+
+    mask = (dl != 0)
+    hx = np.zeros(shape=(len(dl),), dtype=np.float64)
+    hy = np.zeros(shape=(len(dl),), dtype=np.float64)
+    hx[mask] = (np.diff(px_co)[mask] + hxl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
+    hy[mask] = (np.diff(py_co)[mask] + hyl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
+    # TODO: remove also term due to weak focusing
+    hh = np.sqrt(hx**2 + hy**2)
+
+    mass0 = line.particle_ref.mass0
+    q0 = line.particle_ref.q0
+    gamma0 = line.particle_ref._xobject.gamma0[0]
+    beta0 = line.particle_ref._xobject.beta0[0]
+
+    gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
+
+
+    mass0_kg = mass0 / clight**2 * qe
+    q_coul = q0 * qe
+    B_T = hh * mass0_kg * clight * gamma0 / np.abs(q_coul)
+    r0_m = q_coul**2/(4*np.pi*epsilon_0*mass0_kg*clight**2)
+    E_crit_J = 3 * np.abs(q_coul) * hbar * gamma**2 * B_T / (2 * mass0_kg)
+    n_dot = 60 / 72 * np.sqrt(3) * r0_m * clight * np.abs(q_coul) * B_T / hbar
+    E_sq_ave_J = 11 / 27 * E_crit_J**2
+    E_ave_J = 8 * np.sqrt(3) / 45 * E_crit_J
+    E0_J = mass0_kg * clight**2 * gamma0
+
+    n_dot_delta_kick_sq_ave = n_dot * E_sq_ave_J / E0_J**2
+
+    res = {
+        'B_T': B_T,
+        'E_crit_J': E_crit_J, 'n_dot': n_dot,
+        'E_sq_ave_J': E_sq_ave_J, 'E_ave_J': E_ave_J,
+        'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
+        'dl_radiation': dl,
+    }
+
+    return res
 
 def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
                                   line, radiation_method,
@@ -1160,24 +1204,15 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         radiation_flag = line.attr['radiation_flag']
         if np.any(radiation_flag > 1):
             raise ValueError('Incompatible radiation flag')
-        hxl = line.attr['hxl']
-        hyl = line.attr['hyl']
-        dl = line.attr['length'] * (radiation_flag == 1)
 
-        mask = (dl != 0)
-        hx = np.zeros(shape=(len(dl),), dtype=np.float64)
-        hy = np.zeros(shape=(len(dl),), dtype=np.float64)
-        hx[mask] = (np.diff(px_co)[mask] + hxl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-        hy[mask] = (np.diff(py_co)[mask] + hyl[mask] * (1 + ptau_co[:-1][mask])) / dl[mask]
-        # TODO: remove also term due to weak focusing
-        hh = np.sqrt(hx**2 + hy**2)
-
-        mass0 = line.particle_ref.mass0
-        q0 = line.particle_ref.q0
-        gamma0 = line.particle_ref._xobject.gamma0[0]
+        sr_distrib_properties = _extract_sr_distribution_properties(
+                                    line, radiation_flag, px_co, py_co,
+                                    ptau_co)
         beta0 = line.particle_ref._xobject.beta0[0]
+        gamma0 = line.particle_ref._xobject.gamma0[0]
 
-        gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
+        n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
+        dl = sr_distrib_properties['dl_radiation']
 
         px_left = px_co[:-1]
         px_right = px_co[1:]
@@ -1255,18 +1290,6 @@ def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
         Kpy_sq = 0.5 * (Kpy_left**2 + Kpy_right**2)
         Kz_sq = 0.5 * (Kz_left**2 + Kz_right**2)
         Kpz_sq = 0.5 * (Kpz_left**2 + Kpz_right**2)
-
-        mass0_kg = mass0 / clight**2 * qe
-        q_coul = q0 * qe
-        B_T = hh * mass0_kg * clight * gamma0 / np.abs(q_coul)
-        r0_m = q_coul**2/(4*np.pi*epsilon_0*mass0_kg*clight**2)
-        E_crit_J = 3 * np.abs(q_coul) * hbar * gamma**2 * B_T / (2 * mass0_kg)
-        n_dot = 60 / 72 * np.sqrt(3) * r0_m * clight * np.abs(q_coul) * B_T / hbar
-        E_sq_ave_J = 11 / 27 * E_crit_J**2
-        E_ave_J = 8 * np.sqrt(3) / 45 * E_crit_J
-        E0_J = mass0_kg * clight**2 * gamma0
-
-        n_dot_delta_kick_sq_ave = n_dot * E_sq_ave_J / E0_J**2
 
         eq_gemitt_x = 1 / (4 * clight * damping_constants_turns[0]) * np.sum(
                             (Kx_sq + Kpx_sq) * n_dot_delta_kick_sq_ave * dl)
