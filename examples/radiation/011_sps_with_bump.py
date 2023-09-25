@@ -199,7 +199,7 @@ mon = line.record_last_track
 
 sigma_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
                                        gemitt_y=tw_rad.eq_gemitt_y,
-                                        gemitt_zeta=tw_rad.eq_gemitt_zeta)
+                                       gemitt_zeta=tw_rad.eq_gemitt_zeta)
 sigma_betatron_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
                                                 gemitt_y=tw_rad.eq_gemitt_y,
                                                 gemitt_zeta=0)
@@ -218,18 +218,21 @@ plt.ylabel('y [m]')
 spx = fig. add_subplot(4, 1, 2)
 spx.plot(np.std(mon.x, axis=0))
 spx.axhline(sigma_tab.sigma_x[0], color='red')
+spx.axhline(tw_rad2.eq_beam_covariance_matrix.sigma_x[0], color='green')
 plt.ylabel(r'$\sigma_x$ [m]')
 # spx.axhline(np.sqrt(ex_hof * tw.betx[0] + (np.std(p.delta) * tw.dx[0])**2), color='green')
 
 spy = fig. add_subplot(4, 1, 3, sharex=spx)
 spy.plot(np.std(mon.y, axis=0))
 spy.axhline(sigma_tab.sigma_y[0], color='red')
+spy.axhline(tw_rad2.eq_beam_covariance_matrix.sigma_y[0], color='green')
 plt.ylabel(r'$\sigma_y$ [m]')
 # spy.axhline(np.sqrt(ey_hof * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='green')
 
 spz = fig. add_subplot(4, 1, 4, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
 spz.axhline(sigma_tab.sigma_zeta[0], color='red')
+spz.axhline(tw_rad2.eq_beam_covariance_matrix.sigma_zeta[0], color='green')
 plt.ylabel(r'$\sigma_z$ [m]')
 plt.xlabel('Turns')
 

@@ -457,6 +457,7 @@ def twiss_line(line, particle_ref=None, method=None,
             ele_start=ele_start, ele_stop=ele_stop,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
+            only_markers=only_markers,
             )
     else:
         # force
@@ -549,7 +550,8 @@ def twiss_line(line, particle_ref=None, method=None,
                     nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
                     delta0=None, zeta0=None, W_matrix=None, R_matrix=None,
                     delta_disp=None,
-                    compute_R_element_by_element=True
+                    compute_R_element_by_element=True,
+                    only_markers=only_markers,
                     )
         else:
             RR = twiss_res._data['R_matrix']
@@ -1449,7 +1451,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             matrix_stability_tol,
                             nemitt_x, nemitt_y, r_sigma,
                             ele_start=None, ele_stop=None,
-                            compute_R_element_by_element=False):
+                            compute_R_element_by_element=False,
+                            only_markers=False):
 
     eigenvalues = None
     Rot = None
@@ -1498,7 +1501,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     particle_on_co=part_on_co,
                     ele_start=ele_start,
                     ele_stop=ele_stop,
-                    element_by_element=compute_R_element_by_element
+                    element_by_element=compute_R_element_by_element,
+                    only_markers=only_markers,
                     )
                 RR = RR_out['R_matrix']
                 RR_ebe = RR_out['R_matrix_ebe']
@@ -1746,7 +1750,8 @@ def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
         steps_r_matrix=None,
         ele_start=None, ele_stop=None,
-        element_by_element=False):
+        element_by_element=False,
+        only_markers=False):
 
     if steps_r_matrix is None:
         steps_r_matrix = {}
@@ -1834,6 +1839,10 @@ def compute_one_turn_matrix_finite_differences(
         RR_ebe = np.zeros(shape=(len(line.element_names) + 1, 6, 6), dtype=np.float64)
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
             RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj] - temp_mad_ebe[:, :, jj+6])/(2*dd)
+
+        if only_markers:
+            mask_twiss = line.tracker._get_twiss_mask_markers()
+            mask_twiss[-1] = True # to include the "_end_point"
 
         out['R_matrix_ebe'] = RR_ebe
     else:

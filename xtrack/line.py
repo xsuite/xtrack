@@ -1371,7 +1371,7 @@ class Line:
             self, particle_on_co,
             steps_r_matrix=None,
             ele_start=None, ele_stop=None,
-            element_by_element=False):
+            element_by_element=False, only_markers=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1409,7 +1409,8 @@ class Line:
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
-                        element_by_element=element_by_element)
+                        element_by_element=element_by_element,
+                        only_markers=only_markers)
 
     def get_length(self):
 
