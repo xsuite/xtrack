@@ -1419,9 +1419,8 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
 
     Sigma = RR_ebe @ Sigma_at_start @ np.transpose(RR_ebe, axes=(0,2,1))
 
-    eq_sigma_tab = _build_sigma_table(Sigma=Sigma[:-1, :, :],
-        s=np.array(line.tracker._tracker_data_base.element_s_locations),
-        name=np.array(line.element_names))
+    eq_sigma_tab = _build_sigma_table(Sigma=Sigma, s=None,
+        name=np.array(tuple(line.element_names) + ('_end_point',)))
 
     res = {
         'eq_gemitt_x': eq_gemitt_x,
@@ -2725,11 +2724,13 @@ def _str_to_index(line, ele):
     else:
         return ele
 
-def _build_sigma_table(Sigma, s, name):
+def _build_sigma_table(Sigma, s=None, name=None):
 
     res_data = {}
-    res_data['s'] = s.copy()
-    res_data['name'] = name.copy()
+    if s is not None:
+        res_data['s'] = s.copy()
+    if name is not None:
+        res_data['name'] = name.copy()
 
     # Longitudinal plane is untested
 
