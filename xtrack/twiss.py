@@ -443,7 +443,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
-        twiss_init, R_matrix, steps_r_matrix, eigenvalues, Rot = _find_periodic_solution(
+        twiss_init, R_matrix, steps_r_matrix, eigenvalues, Rot, RR_ebe = _find_periodic_solution(
             line=line, particle_on_co=particle_on_co,
             particle_ref=particle_ref, method=method,
             co_search_settings=co_search_settings,
@@ -491,12 +491,11 @@ def twiss_line(line, particle_ref=None, method=None,
         _initial_particles=_initial_particles,
         _ebe_monitor=_ebe_monitor)
 
-    twiss_res._data['steps_r_matrix'] = steps_r_matrix
-    if compute_R_element_by_element:
-        twiss_res._data['R_matrix_ebe'] = line._RR_ebe.copy()
-
     if not skip_global_quantities and not only_orbit:
         twiss_res._data['R_matrix'] = R_matrix
+        twiss_res._data['steps_r_matrix'] = steps_r_matrix
+        twiss_res._data['R_matrix_ebe'] = RR_ebe
+
         _compute_global_quantities(
                             line=line, twiss_res=twiss_res)
 
@@ -530,14 +529,13 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
 
-
     if eneloss_and_damping:
         assert 'R_matrix' in twiss_res._data
-        if radiation_method != 'full':
+        if radiation_method != 'full' or twiss_res._data['R_matrix_ebe'] is None:
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = False
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = False
-                _, RR, _, _, _ = _find_periodic_solution(
+                _, RR, _, _, _, RR_ebe = _find_periodic_solution(
                     line=line, particle_on_co=particle_on_co,
                     particle_ref=particle_ref, method='6d',
                     co_search_settings=co_search_settings,
@@ -551,9 +549,12 @@ def twiss_line(line, particle_ref=None, method=None,
                     nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
                     delta0=None, zeta0=None, W_matrix=None, R_matrix=None,
                     delta_disp=None,
+                    compute_R_element_by_element=True
                     )
         else:
             RR = twiss_res._data['R_matrix']
+            RR_ebe = twiss_res._data['R_matrix_ebe']
+
         eneloss_damp_res = _compute_eneloss_and_damping_rates(
                 particle_on_co=twiss_res.particle_on_co, R_matrix=RR,
                 W_matrix=twiss_res.W_matrix,
@@ -561,6 +562,15 @@ def twiss_line(line, particle_ref=None, method=None,
                 ptau_co=twiss_res.ptau, T_rev0=twiss_res.T_rev0,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
+
+            # Equilibrium emittances
+        if radiation_method == 'kick_as_co':
+            eq_emitts = _compute_equlibrium_emittance_kick_as_co(
+                        twiss_res.px, twiss_res.py, twiss_res.ptau,
+                        twiss_res.W_matrix,
+                        line, radiation_method,
+                        eneloss_damp_res['damping_constants_turns'])
+            twiss_res._data.update(eq_emitts)
 
     if method == '4d' and 'muzeta' in twiss_res._data:
         twiss_res.muzeta[:] = 0
@@ -1071,7 +1081,7 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
 
         RR_chrom = line.compute_one_turn_matrix_finite_differences(
                                     particle_on_co=tw_init_chrom.particle_on_co.copy(),
-                                    steps_r_matrix=steps_r_matrix)
+                                    steps_r_matrix=steps_r_matrix)['R_matrix']
         (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
                                 only_4d_block=method=='4d',
                                 responsiveness_tol=matrix_responsiveness_tol,
@@ -1138,14 +1148,6 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         'damping_constants_s':damping_constants_s,
         'partition_numbers': partition_numbers,
     }
-
-    # Equilibrium emittances
-    if radiation_method == 'kick_as_co':
-        eq_emitts = _compute_equlibrium_emittance_kick_as_co(
-                                    px_co, py_co, ptau_co, W_matrix,
-                                    line, radiation_method,
-                                    damping_constants_turns)
-        eneloss_damp_res.update(eq_emitts)
 
     return eneloss_damp_res
 
@@ -1365,12 +1367,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         else:
             steps_r_matrix['adapted'] = False
             for iter in range(2):
-                RR = line.compute_one_turn_matrix_finite_differences(
-                                            steps_r_matrix=steps_r_matrix,
-                                            particle_on_co=part_on_co,
-                                            ele_start=ele_start,
-                                            ele_stop=ele_stop,
-                                            element_by_element=compute_R_element_by_element)
+                RR_out = line.compute_one_turn_matrix_finite_differences(
+                    steps_r_matrix=steps_r_matrix,
+                    particle_on_co=part_on_co,
+                    ele_start=ele_start,
+                    ele_stop=ele_stop,
+                    element_by_element=compute_R_element_by_element
+                    )
+                RR = RR_out['R_matrix']
+                RR_ebe = RR_out['R_matrix_ebe']
                 if matrix_responsiveness_tol is not None:
                     lnf._assert_matrix_responsiveness(RR,
                         matrix_responsiveness_tol, only_4d=(method == '4d'))
@@ -1449,7 +1454,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            element_name=tw_init_element_name,
                            reference_frame='proper')
 
-    return twiss_init, RR, steps_r_matrix, eigenvalues, Rot
+    return twiss_init, RR, steps_r_matrix, eigenvalues, Rot, RR_ebe
 
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
@@ -1688,6 +1693,8 @@ def compute_one_turn_matrix_finite_differences(
     for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
         RR[:, jj] = (temp_mat[:, jj] - temp_mat[:, jj+6])/(2*dd)
 
+    out = {'R_matrix': RR}
+
     if element_by_element:
         mon = line.record_last_track
         temp_mad_ebe = np.zeros(shape=(len(line.element_names) + 1, 6, 12), dtype=np.float64)
@@ -1702,9 +1709,12 @@ def compute_one_turn_matrix_finite_differences(
         for jj, dd in enumerate([dx, dpx, dy, dpy, dzeta, dpzeta]):
             RR_ebe[:, :, jj] = (temp_mad_ebe[:, :, jj] - temp_mad_ebe[:, :, jj+6])/(2*dd)
 
-        line._RR_ebe = RR_ebe # TODO: remove this
+        out['R_matrix_ebe'] = RR_ebe
+    else:
+        out['R_matrix_ebe'] = None
 
-    return RR
+    return out
+
 
 def _updated_kwargs_from_locals(kwargs, loc):
 
