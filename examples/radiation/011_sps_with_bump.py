@@ -168,14 +168,9 @@ assert tw_rad.eq_gemitt_x is not None
 assert tw_rad.eq_gemitt_y is not None
 assert tw_rad.eq_gemitt_zeta is not None
 
-assert tw_rad2.eq_gemitt_x is None
-assert tw_rad2.eq_gemitt_y is None
-assert tw_rad2.eq_gemitt_zeta is None
-
 ex = tw_rad.eq_nemitt_x / (tw_rad.gamma0 * tw_rad.beta0)
 ey = tw_rad.eq_nemitt_y / (tw_rad.gamma0 * tw_rad.beta0)
 ez = tw_rad.eq_nemitt_zeta / (tw_rad.gamma0 * tw_rad.beta0)
-
 
 line.configure_radiation(model='quantum')
 

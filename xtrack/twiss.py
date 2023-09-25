@@ -1132,12 +1132,6 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
     partition_numbers = (
         damping_constants_turns* 2 * energy0/eloss_turn)
 
-    # Equilibrium emittances
-    eq_emitts = _compute_equlibrium_emittance(
-                                px_co, py_co, ptau_co, W_matrix,
-                                line, radiation_method,
-                                damping_constants_turns)
-
     eneloss_damp_res = {
         'eneloss_turn': eloss_turn,
         'damping_constants_turns': damping_constants_turns,
@@ -1145,12 +1139,22 @@ def _compute_eneloss_and_damping_rates(particle_on_co, R_matrix,
         'partition_numbers': partition_numbers,
     }
 
-    eneloss_damp_res.update(eq_emitts)
+    # Equilibrium emittances
+    if radiation_method == 'kick_as_co':
+        eq_emitts = _compute_equlibrium_emittance_kick_as_co(
+                                    px_co, py_co, ptau_co, W_matrix,
+                                    line, radiation_method,
+                                    damping_constants_turns)
+        eneloss_damp_res.update(eq_emitts)
 
     return eneloss_damp_res
 
-def _extract_sr_distribution_properties(line, radiation_flag, px_co, py_co,
-                                        ptau_co):
+def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
+
+
+    radiation_flag = line.attr['radiation_flag']
+    if np.any(radiation_flag > 1):
+        raise ValueError('Incompatible radiation flag')
 
     hxl = line.attr['hxl']
     hyl = line.attr['hyl']
@@ -1194,134 +1198,113 @@ def _extract_sr_distribution_properties(line, radiation_flag, px_co, py_co,
 
     return res
 
-def _compute_equlibrium_emittance(px_co, py_co, ptau_co, W_matrix,
+def _compute_equlibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
                                   line, radiation_method,
                                   damping_constants_turns):
 
-    # Equilibrium emittances
-    if radiation_method == 'kick_as_co':
+    assert radiation_method == 'kick_as_co'
 
-        radiation_flag = line.attr['radiation_flag']
-        if np.any(radiation_flag > 1):
-            raise ValueError('Incompatible radiation flag')
+    sr_distrib_properties = _extract_sr_distribution_properties(
+                                line, px_co, py_co, ptau_co)
+    beta0 = line.particle_ref._xobject.beta0[0]
+    gamma0 = line.particle_ref._xobject.gamma0[0]
 
-        sr_distrib_properties = _extract_sr_distribution_properties(
-                                    line, radiation_flag, px_co, py_co,
-                                    ptau_co)
-        beta0 = line.particle_ref._xobject.beta0[0]
-        gamma0 = line.particle_ref._xobject.gamma0[0]
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
+    dl = sr_distrib_properties['dl_radiation']
 
-        n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
-        dl = sr_distrib_properties['dl_radiation']
+    px_left = px_co[:-1]
+    px_right = px_co[1:]
+    py_left = py_co[:-1]
+    py_right = py_co[1:]
+    one_pl_del_left = (1 + ptau_co[:-1]) # Assuming ultrarelativistic
+    one_pl_del_right = (1 + ptau_co[1:]) # Assuming ultrarelativistic
+    W_left = W_matrix[:-1, :, :]
+    W_right = W_matrix[1:, :, :]
 
-        px_left = px_co[:-1]
-        px_right = px_co[1:]
-        py_left = py_co[:-1]
-        py_right = py_co[1:]
-        one_pl_del_left = (1 + ptau_co[:-1]) # Assuming ultrarelativistic
-        one_pl_del_right = (1 + ptau_co[1:]) # Assuming ultrarelativistic
-        W_left = W_matrix[:-1, :, :]
-        W_right = W_matrix[1:, :, :]
+    a11_left = np.squeeze(W_left[:, 0, 0])
+    a13_left = np.squeeze(W_left[:, 2, 0])
+    a15_left = np.squeeze(W_left[:, 4, 0])
+    b11_left = np.squeeze(W_left[:, 0, 1])
+    b13_left = np.squeeze(W_left[:, 2, 1])
+    b15_left = np.squeeze(W_left[:, 4, 1])
 
-        # a23_cent = np.squeeze(W_cent[:, 2, 2])
-        # a25_cent = np.squeeze(W_cent[:, 4, 2])
-        # b23_cent = np.squeeze(W_cent[:, 2, 3])
-        # b25_cent = np.squeeze(W_cent[:, 4, 3])
+    a11_right = np.squeeze(W_right[:, 0, 0])
+    a13_right = np.squeeze(W_right[:, 2, 0])
+    a15_right = np.squeeze(W_right[:, 4, 0])
+    b11_right = np.squeeze(W_right[:, 0, 1])
+    b13_right = np.squeeze(W_right[:, 2, 1])
+    b15_right = np.squeeze(W_right[:, 4, 1])
 
-        a11_left = np.squeeze(W_left[:, 0, 0])
-        a13_left = np.squeeze(W_left[:, 2, 0])
-        a15_left = np.squeeze(W_left[:, 4, 0])
-        b11_left = np.squeeze(W_left[:, 0, 1])
-        b13_left = np.squeeze(W_left[:, 2, 1])
-        b15_left = np.squeeze(W_left[:, 4, 1])
+    a21_left = np.squeeze(W_left[:, 0, 2])
+    a23_left = np.squeeze(W_left[:, 2, 2])
+    a25_left = np.squeeze(W_left[:, 4, 2])
+    b21_left = np.squeeze(W_left[:, 0, 3])
+    b23_left = np.squeeze(W_left[:, 2, 3])
+    b25_left = np.squeeze(W_left[:, 4, 3])
 
-        a11_right = np.squeeze(W_right[:, 0, 0])
-        a13_right = np.squeeze(W_right[:, 2, 0])
-        a15_right = np.squeeze(W_right[:, 4, 0])
-        b11_right = np.squeeze(W_right[:, 0, 1])
-        b13_right = np.squeeze(W_right[:, 2, 1])
-        b15_right = np.squeeze(W_right[:, 4, 1])
+    a21_right = np.squeeze(W_right[:, 0, 2])
+    a23_right = np.squeeze(W_right[:, 2, 2])
+    a25_right = np.squeeze(W_right[:, 4, 2])
+    b21_right = np.squeeze(W_right[:, 0, 3])
+    b23_right = np.squeeze(W_right[:, 2, 3])
+    b25_right = np.squeeze(W_right[:, 4, 3])
 
-        a21_left = np.squeeze(W_left[:, 0, 2])
-        a23_left = np.squeeze(W_left[:, 2, 2])
-        a25_left = np.squeeze(W_left[:, 4, 2])
-        b21_left = np.squeeze(W_left[:, 0, 3])
-        b23_left = np.squeeze(W_left[:, 2, 3])
-        b25_left = np.squeeze(W_left[:, 4, 3])
+    a31_left = np.squeeze(W_left[:, 0, 4])
+    a33_left = np.squeeze(W_left[:, 2, 4])
+    a35_left = np.squeeze(W_left[:, 4, 4])
+    b31_left = np.squeeze(W_left[:, 0, 5])
+    b33_left = np.squeeze(W_left[:, 2, 5])
+    b35_left = np.squeeze(W_left[:, 4, 5])
 
-        a21_right = np.squeeze(W_right[:, 0, 2])
-        a23_right = np.squeeze(W_right[:, 2, 2])
-        a25_right = np.squeeze(W_right[:, 4, 2])
-        b21_right = np.squeeze(W_right[:, 0, 3])
-        b23_right = np.squeeze(W_right[:, 2, 3])
-        b25_right = np.squeeze(W_right[:, 4, 3])
+    a31_right = np.squeeze(W_right[:, 0, 4])
+    a33_right = np.squeeze(W_right[:, 2, 4])
+    a35_right = np.squeeze(W_right[:, 4, 4])
+    b31_right = np.squeeze(W_right[:, 0, 5])
+    b33_right = np.squeeze(W_right[:, 2, 5])
+    b35_right = np.squeeze(W_right[:, 4, 5])
 
-        a31_left = np.squeeze(W_left[:, 0, 4])
-        a33_left = np.squeeze(W_left[:, 2, 4])
-        a35_left = np.squeeze(W_left[:, 4, 4])
-        b31_left = np.squeeze(W_left[:, 0, 5])
-        b33_left = np.squeeze(W_left[:, 2, 5])
-        b35_left = np.squeeze(W_left[:, 4, 5])
+    Kx_left = (a11_left * px_left + a13_left * py_left) / one_pl_del_left + a15_left
+    Kpx_left = (b11_left * px_left + b13_left * py_left) / one_pl_del_left + b15_left
+    Ky_left = (a21_left * px_left + a23_left * py_left) / one_pl_del_left + a25_left
+    Kpy_left = (b21_left * px_left + b23_left * py_left) / one_pl_del_left + b25_left
+    Kz_left = (a31_left * px_left + a33_left * py_left) / one_pl_del_left + a35_left
+    Kpz_left = (b31_left * px_left + b33_left * py_left) / one_pl_del_left + b35_left
 
-        a31_right = np.squeeze(W_right[:, 0, 4])
-        a33_right = np.squeeze(W_right[:, 2, 4])
-        a35_right = np.squeeze(W_right[:, 4, 4])
-        b31_right = np.squeeze(W_right[:, 0, 5])
-        b33_right = np.squeeze(W_right[:, 2, 5])
-        b35_right = np.squeeze(W_right[:, 4, 5])
+    Kx_right = (a11_right * px_right + a13_right * py_right) / one_pl_del_right + a15_right
+    Kpx_right = (b11_right * px_right + b13_right * py_right) / one_pl_del_right + b15_right
+    Ky_right = (a21_right * px_right + a23_right * py_right) / one_pl_del_right + a25_right
+    Kpy_right = (b21_right * px_right + b23_right * py_right) / one_pl_del_right + b25_right
+    Kz_right = (a31_right * px_right + a33_right * py_right) / one_pl_del_right + a35_right
+    Kpz_right = (b31_right * px_right + b33_right * py_right) / one_pl_del_right + b35_right
 
-        Kx_left = (a11_left * px_left + a13_left * py_left) / one_pl_del_left + a15_left
-        Kpx_left = (b11_left * px_left + b13_left * py_left) / one_pl_del_left + b15_left
-        Ky_left = (a21_left * px_left + a23_left * py_left) / one_pl_del_left + a25_left
-        Kpy_left = (b21_left * px_left + b23_left * py_left) / one_pl_del_left + b25_left
-        Kz_left = (a31_left * px_left + a33_left * py_left) / one_pl_del_left + a35_left
-        Kpz_left = (b31_left * px_left + b33_left * py_left) / one_pl_del_left + b35_left
+    Kx_sq = 0.5 * (Kx_left**2 + Kx_right**2)
+    Kpx_sq = 0.5 * (Kpx_left**2 + Kpx_right**2)
+    Ky_sq = 0.5 * (Ky_left**2 + Ky_right**2)
+    Kpy_sq = 0.5 * (Kpy_left**2 + Kpy_right**2)
+    Kz_sq = 0.5 * (Kz_left**2 + Kz_right**2)
+    Kpz_sq = 0.5 * (Kpz_left**2 + Kpz_right**2)
 
-        Kx_right = (a11_right * px_right + a13_right * py_right) / one_pl_del_right + a15_right
-        Kpx_right = (b11_right * px_right + b13_right * py_right) / one_pl_del_right + b15_right
-        Ky_right = (a21_right * px_right + a23_right * py_right) / one_pl_del_right + a25_right
-        Kpy_right = (b21_right * px_right + b23_right * py_right) / one_pl_del_right + b25_right
-        Kz_right = (a31_right * px_right + a33_right * py_right) / one_pl_del_right + a35_right
-        Kpz_right = (b31_right * px_right + b33_right * py_right) / one_pl_del_right + b35_right
+    eq_gemitt_x = 1 / (4 * clight * damping_constants_turns[0]) * np.sum(
+                        (Kx_sq + Kpx_sq) * n_dot_delta_kick_sq_ave * dl)
+    eq_gemitt_y = 1 / (4 * clight * damping_constants_turns[1]) * np.sum(
+                        (Ky_sq + Kpy_sq) * n_dot_delta_kick_sq_ave * dl)
+    eq_gemitt_zeta = 1 / (4 * clight * damping_constants_turns[2]) * np.sum(
+                        (Kz_sq + Kpz_sq) * n_dot_delta_kick_sq_ave * dl)
 
-        Kx_sq = 0.5 * (Kx_left**2 + Kx_right**2)
-        Kpx_sq = 0.5 * (Kpx_left**2 + Kpx_right**2)
-        Ky_sq = 0.5 * (Ky_left**2 + Ky_right**2)
-        Kpy_sq = 0.5 * (Kpy_left**2 + Kpy_right**2)
-        Kz_sq = 0.5 * (Kz_left**2 + Kz_right**2)
-        Kpz_sq = 0.5 * (Kpz_left**2 + Kpz_right**2)
+    eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
+    eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
+    eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
 
-        eq_gemitt_x = 1 / (4 * clight * damping_constants_turns[0]) * np.sum(
-                            (Kx_sq + Kpx_sq) * n_dot_delta_kick_sq_ave * dl)
-        eq_gemitt_y = 1 / (4 * clight * damping_constants_turns[1]) * np.sum(
-                            (Ky_sq + Kpy_sq) * n_dot_delta_kick_sq_ave * dl)
-        eq_gemitt_zeta = 1 / (4 * clight * damping_constants_turns[2]) * np.sum(
-                            (Kz_sq + Kpz_sq) * n_dot_delta_kick_sq_ave * dl)
-
-        eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
-        eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
-        eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
-
-        res = {
-            'eq_gemitt_x': eq_gemitt_x,
-            'eq_gemitt_y': eq_gemitt_y,
-            'eq_gemitt_zeta': eq_gemitt_zeta,
-            'eq_nemitt_x': eq_nemitt_x,
-            'eq_nemitt_y': eq_nemitt_y,
-            'eq_nemitt_zeta': eq_nemitt_zeta,
-            'dl_radiation': dl,
-            'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
-        }
-
-    else:
-        res = {
-            'eq_gemitt_x': None,
-            'eq_gemitt_y': None,
-            'eq_gemitt_zeta': None,
-            'eq_nemitt_x': None,
-            'eq_nemitt_y': None,
-            'eq_nemitt_zeta': None,
-        }
+    res = {
+        'eq_gemitt_x': eq_gemitt_x,
+        'eq_gemitt_y': eq_gemitt_y,
+        'eq_gemitt_zeta': eq_gemitt_zeta,
+        'eq_nemitt_x': eq_nemitt_x,
+        'eq_nemitt_y': eq_nemitt_y,
+        'eq_nemitt_zeta': eq_nemitt_zeta,
+        'dl_radiation': dl,
+        'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
+    }
 
     return res
 
