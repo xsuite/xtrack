@@ -563,13 +563,19 @@ def twiss_line(line, particle_ref=None, method=None,
                 line=line, radiation_method=radiation_method)
         twiss_res._data.update(eneloss_damp_res)
 
-            # Equilibrium emittances
+        # Equilibrium emittances
         if radiation_method == 'kick_as_co':
-            eq_emitts = _compute_equlibrium_emittance_kick_as_co(
+            eq_emitts = _compute_equilibrium_emittance_kick_as_co(
                         twiss_res.px, twiss_res.py, twiss_res.ptau,
                         twiss_res.W_matrix,
                         line, radiation_method,
                         eneloss_damp_res['damping_constants_turns'])
+            twiss_res._data.update(eq_emitts)
+        elif radiation_method == 'full':
+            eq_emitts = _compute_equilibrium_emittance_full(
+                        px_co=twiss_res.px, py_co=twiss_res.py,
+                        ptau_co=twiss_res.ptau, R_matrix_ebe=RR_ebe,
+                        line=line, radiation_method=radiation_method)
             twiss_res._data.update(eq_emitts)
 
     if method == '4d' and 'muzeta' in twiss_res._data:
@@ -1177,7 +1183,6 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     gamma = gamma0 * (1 + beta0 * ptau_co)[:-1]
 
-
     mass0_kg = mass0 / clight**2 * qe
     q_coul = q0 * qe
     B_T = hh * mass0_kg * clight * gamma0 / np.abs(q_coul)
@@ -1200,7 +1205,7 @@ def _extract_sr_distribution_properties(line, px_co, py_co, ptau_co):
 
     return res
 
-def _compute_equlibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
+def _compute_equilibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
                                   line, radiation_method,
                                   damping_constants_turns):
 
@@ -1304,6 +1309,128 @@ def _compute_equlibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
         'eq_nemitt_x': eq_nemitt_x,
         'eq_nemitt_y': eq_nemitt_y,
         'eq_nemitt_zeta': eq_nemitt_zeta,
+        'dl_radiation': dl,
+        'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
+    }
+
+    return res
+
+def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
+                                  line, radiation_method):
+
+    sr_distrib_properties = _extract_sr_distribution_properties(
+                                line, px_co, py_co, ptau_co)
+
+    n_dot_delta_kick_sq_ave = sr_distrib_properties['n_dot_delta_kick_sq_ave']
+    dl = sr_distrib_properties['dl_radiation']
+
+    assert radiation_method == 'full'
+
+    d_delta_sq_ave = n_dot_delta_kick_sq_ave * dl / clight
+
+    # Going to x', y'
+    RR_ebe = R_matrix_ebe
+    delta = ptau_co # ultrarelativistic approximation
+    for jj in range(6):
+        RR_ebe[:, 1, jj] /= (1 + delta)
+        RR_ebe[:, 3, jj] /= (1 + delta)
+    for ii in range(6):
+        RR_ebe[:, ii, 1] *= (1 + delta)
+        RR_ebe[:, ii, 3] *= (1 + delta)
+    RR_ebe[:, 1, 5] += px_co
+    RR_ebe[:, 3, 5] += py_co
+
+    lnf = xt.linear_normal_form
+    RR = RR_ebe[-1, :, :]
+    WW, _, Rot, lam_eig = lnf.compute_linear_normal_form(RR)
+    DSigma = np.zeros_like(RR_ebe)
+
+    # # The following is needed if RR is in px, py instead of x', y'
+    # DSigma[:-1, 1, 1] = (d_delta_sq_ave * 0.5 * (tw_rad2.px[:-1]**2 + tw_rad2.px[1:]**2)
+    #                                             / (tw_rad2.delta[:-1] + 1)**2)
+    # DSigma[:-1, 3, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1]**2 + tw_rad2.py[1:]**2)
+    #                                             / (tw_rad2.delta[:-1] + 1)**2)
+    # DSigma[:-1, 3, 5] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1] + tw_rad2.py[1:])
+    #                                              / (tw_rad2.delta[:-1] + 1))
+    # DSigma[:-1, 5, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1] + tw_rad2.py[1:])
+    #                                              / (tw_rad2.delta[:-1] + 1))
+
+    DSigma[:-1, 5, 5] = d_delta_sq_ave
+
+    RR_ebe_inv = np.linalg.inv(RR_ebe)
+
+    DSigma0 = np.zeros((6, 6))
+
+    n_calc = d_delta_sq_ave.shape[0]
+    for ii in range(n_calc):
+        print(f'{ii}/{n_calc}    ', end='\r', flush=True)
+        if d_delta_sq_ave[ii] > 0:
+            DSigma0 += RR_ebe_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_inv[ii, :, :].T
+
+
+    CC_split, _, RRR, reig = lnf.compute_linear_normal_form(Rot)
+    reig_full = np.zeros_like(Rot, dtype=complex)
+    reig_full[0, 0] = reig[0]
+    reig_full[1, 1] = reig[0].conjugate()
+    reig_full[2, 2] = reig[1]
+    reig_full[3, 3] = reig[1].conjugate()
+    reig_full[4, 4] = reig[2]
+    reig_full[5, 5] = reig[2].conjugate()
+
+    lam_eig_full = np.zeros_like(reig_full, dtype=complex)
+    lam_eig_full[0] = lam_eig[0]
+    lam_eig_full[1] = lam_eig[0].conjugate()
+    lam_eig_full[2] = lam_eig[1]
+    lam_eig_full[3] = lam_eig[1].conjugate()
+    lam_eig_full[4] = lam_eig[2]
+    lam_eig_full[5] = lam_eig[2].conjugate()
+
+    CC = np.zeros_like(CC_split, dtype=complex)
+    CC[:, 0] = 0.5*np.sqrt(2)*(CC_split[:, 0] + 1j*CC_split[:, 1])
+    CC[:, 1] = 0.5*np.sqrt(2)*(CC_split[:, 0] - 1j*CC_split[:, 1])
+    CC[:, 2] = 0.5*np.sqrt(2)*(CC_split[:, 2] + 1j*CC_split[:, 3])
+    CC[:, 3] = 0.5*np.sqrt(2)*(CC_split[:, 2] - 1j*CC_split[:, 3])
+    CC[:, 4] = 0.5*np.sqrt(2)*(CC_split[:, 4] + 1j*CC_split[:, 5])
+    CC[:, 5] = 0.5*np.sqrt(2)*(CC_split[:, 4] - 1j*CC_split[:, 5])
+
+    BB = WW @ CC
+
+    BB_inv = np.linalg.inv(BB)
+
+    EE_norm = (BB_inv @ DSigma0 @ BB_inv.T).real
+
+    eq_gemitt_x = EE_norm[0, 1]/(1 - np.abs(lam_eig[0])**2)
+    eq_gemitt_y = EE_norm[2, 3]/(1 - np.abs(lam_eig[1])**2)
+    eq_gemitt_zeta = EE_norm[4, 5]/(1 - np.abs(lam_eig[2])**2)
+
+    beta0 = line.particle_ref._xobject.beta0[0]
+    gamma0 = line.particle_ref._xobject.gamma0[0]
+
+    eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
+    eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
+    eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
+
+    Sigma_norm = np.zeros_like(EE_norm, dtype=complex)
+    for ii in range(6):
+        for jj in range(6):
+            Sigma_norm[ii, jj] = EE_norm[ii, jj]/(1 - lam_eig_full[ii, ii]*lam_eig_full[jj, jj])
+
+    Sigma_at_start = (BB @ Sigma_norm @ BB.T).real
+
+    Sigma = RR_ebe @ Sigma_at_start @ np.transpose(RR_ebe, axes=(0,2,1))
+
+    eq_sigma_tab = _build_sigma_table(Sigma=Sigma[:-1, :, :],
+        s=np.array(line.tracker._tracker_data_base.element_s_locations),
+        name=np.array(line.element_names))
+
+    res = {
+        'eq_gemitt_x': eq_gemitt_x,
+        'eq_gemitt_y': eq_gemitt_y,
+        'eq_gemitt_zeta': eq_gemitt_zeta,
+        'eq_nemitt_x': eq_nemitt_x,
+        'eq_nemitt_y': eq_nemitt_y,
+        'eq_nemitt_zeta': eq_nemitt_zeta,
+        'eq_beam_covariance_matrix': eq_sigma_tab,
         'dl_radiation': dl,
         'n_dot_delta_kick_sq_ave': n_dot_delta_kick_sq_ave,
     }
@@ -2175,44 +2302,9 @@ class TwissTable(Table):
                 Sigma3[:, ii, jj] = np.real(v3[:,ii] * v3[:,jj].conj())
 
         Sigma = gemitt_x * Sigma1 + gemitt_y * Sigma2 + gemitt_zeta * Sigma3
+        res = _build_sigma_table(Sigma=Sigma, s=self.s, name=self.name)
 
-        res_data = {}
-        res_data['s'] = self.s.copy()
-        res_data['name'] = self.name
-
-        # Longitudinal plane is untested
-
-        res_data['Sigma'] = Sigma
-        res_data['Sigma11'] = Sigma[:, 0, 0]
-        res_data['Sigma12'] = Sigma[:, 0, 1]
-        res_data['Sigma13'] = Sigma[:, 0, 2]
-        res_data['Sigma14'] = Sigma[:, 0, 3]
-        res_data['Sigma15'] = Sigma[:, 0, 4]
-        res_data['Sigma16'] = Sigma[:, 0, 5]
-
-        res_data['Sigma21'] = Sigma[:, 1, 0]
-        res_data['Sigma22'] = Sigma[:, 1, 1]
-        res_data['Sigma23'] = Sigma[:, 1, 2]
-        res_data['Sigma24'] = Sigma[:, 1, 3]
-        res_data['Sigma25'] = Sigma[:, 1, 4]
-        res_data['Sigma26'] = Sigma[:, 1, 5]
-
-        res_data['Sigma31'] = Sigma[:, 2, 0]
-        res_data['Sigma32'] = Sigma[:, 2, 1]
-        res_data['Sigma33'] = Sigma[:, 2, 2]
-        res_data['Sigma34'] = Sigma[:, 2, 3]
-        res_data['Sigma41'] = Sigma[:, 3, 0]
-        res_data['Sigma42'] = Sigma[:, 3, 1]
-        res_data['Sigma43'] = Sigma[:, 3, 2]
-        res_data['Sigma44'] = Sigma[:, 3, 3]
-        res_data['Sigma51'] = Sigma[:, 4, 0]
-        res_data['Sigma52'] = Sigma[:, 4, 1]
-
-        res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
-        res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
-        res_data['sigma_zeta'] = np.sqrt(Sigma[:, 4, 4])
-
-        return Table(res_data)
+        return Table(res)
 
     def get_R_matrix(self, ele_start, ele_stop):
 
@@ -2632,3 +2724,43 @@ def _str_to_index(line, ele):
         return line.element_names.index(ele)
     else:
         return ele
+
+def _build_sigma_table(Sigma, s, name):
+
+    res_data = {}
+    res_data['s'] = s.copy()
+    res_data['name'] = name.copy()
+
+    # Longitudinal plane is untested
+
+    res_data['Sigma'] = Sigma
+    res_data['Sigma11'] = Sigma[:, 0, 0]
+    res_data['Sigma12'] = Sigma[:, 0, 1]
+    res_data['Sigma13'] = Sigma[:, 0, 2]
+    res_data['Sigma14'] = Sigma[:, 0, 3]
+    res_data['Sigma15'] = Sigma[:, 0, 4]
+    res_data['Sigma16'] = Sigma[:, 0, 5]
+
+    res_data['Sigma21'] = Sigma[:, 1, 0]
+    res_data['Sigma22'] = Sigma[:, 1, 1]
+    res_data['Sigma23'] = Sigma[:, 1, 2]
+    res_data['Sigma24'] = Sigma[:, 1, 3]
+    res_data['Sigma25'] = Sigma[:, 1, 4]
+    res_data['Sigma26'] = Sigma[:, 1, 5]
+
+    res_data['Sigma31'] = Sigma[:, 2, 0]
+    res_data['Sigma32'] = Sigma[:, 2, 1]
+    res_data['Sigma33'] = Sigma[:, 2, 2]
+    res_data['Sigma34'] = Sigma[:, 2, 3]
+    res_data['Sigma41'] = Sigma[:, 3, 0]
+    res_data['Sigma42'] = Sigma[:, 3, 1]
+    res_data['Sigma43'] = Sigma[:, 3, 2]
+    res_data['Sigma44'] = Sigma[:, 3, 3]
+    res_data['Sigma51'] = Sigma[:, 4, 0]
+    res_data['Sigma52'] = Sigma[:, 4, 1]
+
+    res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
+    res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
+    res_data['sigma_zeta'] = np.sqrt(Sigma[:, 4, 4])
+
+    return Table(res_data)
