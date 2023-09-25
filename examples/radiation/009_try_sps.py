@@ -22,7 +22,7 @@ mad.call('../../test_data/sps_thick/sps.seq')
 # higher energy
 mad.input('beam, particle=electron, pc=50;')
 v_mv = 250
-num_turns = 600
+num_turns = 1000
 
 mad.call('../../test_data/sps_thick/lhc_q20.str')
 
