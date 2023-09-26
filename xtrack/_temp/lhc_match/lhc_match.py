@@ -208,6 +208,8 @@ class ActionPhase_23_34(xt.Action):
                 'muy_23_34_b1': 1e100,
                 'mux_23_34_b2': 1e100,
                 'muy_23_34_b2': 1e100,
+                'mux_23_34_avg': 1e100,
+                'muy_23_34_avg': 1e100,
             }
         tw_23_b1 = tw_arc['lhcb1']['23']
         tw_23_b2 = tw_arc['lhcb2']['23']
@@ -247,6 +249,8 @@ class ActionPhase_67_78(xt.Action):
                 'muy_67_78_b1': 1e100,
                 'mux_67_78_b2': 1e100,
                 'muy_67_78_b2': 1e100,
+                'mux_67_78_avg': 1e100,
+                'muy_67_78_avg': 1e100,
             }
         tw_67_b1 = tw_arc['lhcb1']['67']
         tw_67_b2 = tw_arc['lhcb2']['67']
