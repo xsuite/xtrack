@@ -34,7 +34,7 @@ twm4d = mad.table.tw4d
 n_cav = 6
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
-mad.sequence.sps.elements['actcse.31632'].freq = 0.3
+mad.sequence.sps.elements['actcse.31632'].freq = 35
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 
@@ -105,6 +105,12 @@ line.element_refs['mdv.53107'].ksl[0] = line.vars['mdv.53107.ksl0']
 line.element_refs['mdv.53307'].ksl[0] = line.vars['mdv.53307.ksl0']
 line.element_refs['mdv.53507'].ksl[0] = line.vars['mdv.53507.ksl0']
 
+# Kill sextupoles in the bump
+line.element_refs['lsf.53205..0'].knl[2] = 0
+line.element_refs['lsd.53505..0'].knl[2] = 0
+line.element_refs['lsf.53605..0'].knl[2] = 0
+line.element_refs['lsd.60105..0'].knl[2] = 0
+
 opt_bump = line.match(
     solve=False,
     method='4d',
@@ -127,8 +133,8 @@ opt = line.match(
         xt.VaryList(['klsda', 'klsdb', 'klsfa', 'klsfb', 'klsfc'], step=1e-4, tag='chrom'),
     ],
     targets=[
-        xt.TargetSet(qx=20.13, qy=20.20, tag='tune'),
-        xt.TargetSet(dqx=0.1, dqy=0.1, tol=1e-4, tag='chrom'),
+        xt.TargetSet(qx=20.13, qy=20.18, tol=1e-7, tag='tune'),
+        xt.TargetSet(dqx=-20, dqy=-20, tol=1e-2, tag='chrom'),
         ],
 )
 
@@ -163,6 +169,7 @@ tw_rad = line.twiss(eneloss_and_damping=True, method='6d',
                     use_full_inverse=False)
 tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
                      radiation_method='full')
+
 
 assert tw_rad.eq_gemitt_x is not None
 assert tw_rad.eq_gemitt_y is not None
@@ -226,6 +233,7 @@ spy = fig. add_subplot(4, 1, 3, sharex=spx)
 spy.plot(np.std(mon.y, axis=0))
 spy.axhline(sigma_tab.sigma_y[0], color='red')
 spy.axhline(tw_rad2.eq_beam_covariance_matrix.sigma_y[0], color='green')
+plt.ylim(0, 3e-4)
 plt.ylabel(r'$\sigma_y$ [m]')
 # spy.axhline(np.sqrt(ey_hof * tw.bety[0] + (np.std(p.delta) * tw.dy[0])**2), color='green')
 
@@ -233,10 +241,12 @@ spz = fig. add_subplot(4, 1, 4, sharex=spx)
 spz.plot(np.std(mon.zeta, axis=0))
 spz.axhline(sigma_tab.sigma_zeta[0], color='red')
 spz.axhline(tw_rad2.eq_beam_covariance_matrix.sigma_zeta[0], color='green')
+
 plt.ylabel(r'$\sigma_z$ [m]')
 plt.xlabel('Turns')
-
 plt.suptitle(f"Qx = {tw.qx:.2f} - Qy = {tw.qy:.2f} - Q'x = {tw.dqx:.2f} - Q'y = {tw.dqy:.2f}")
 plt.subplots_adjust(left=.16)
+
+plt.savefig(f'sps_eq_emitt_dqx_{tw.dqx:.2f}_dqy_{tw.dqy:.2f}_freq.png', dpi=300)
 
 plt.show()

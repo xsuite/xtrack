@@ -3041,7 +3041,9 @@ class Line:
                          fields=['hxl', 'hyl', 'length', 'radiation_flag',
                                  'delta_taper', 'voltage', 'frequency',
                                  'lag', 'lag_taper',
-                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1)])
+                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
+                                ('knl', 2), ('ksl', 2),
+                                ])
         return cache
 
 def frac(x):
