@@ -1365,7 +1365,6 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
 
     n_calc = d_delta_sq_ave.shape[0]
     for ii in range(n_calc):
-        print(f'{ii}/{n_calc}    ', end='\r', flush=True)
         if d_delta_sq_ave[ii] > 0:
             DSigma0 += RR_ebe_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_inv[ii, :, :].T
 
