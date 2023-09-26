@@ -511,10 +511,10 @@ def test_fringe_implementations(test_context):
     p_ng = p0.copy()
     p_ptc = p0.copy()
 
-    R_ng = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())
+    R_ng = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ng)
     line.config.XTRACK_FRINGE_FROM_PTC = True
-    R_ptc = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())
+    R_ptc = line.compute_one_turn_matrix_finite_differences(particle_on_co=p0.copy())['R_matrix']
     line.track(p_ptc)
 
     p_ng.move(_context=xo.context_default)
