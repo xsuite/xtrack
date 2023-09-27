@@ -103,7 +103,7 @@ def test_radiation(test_context):
                                                         )*particles_test.p0c
     n_recorded = record._index.num_recorded
     assert n_recorded < record_capacity
-    assert np.allclose(-np.sum(ctx2np(Delta_E_test)),
+    assert np.allclose(-np.sum(Delta_E_test),
                     np.sum(record.photon_energy[:n_recorded]),
                     atol=0, rtol=1e-6)
 
