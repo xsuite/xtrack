@@ -303,8 +303,8 @@ def test_get_R_matrix():
 
     R_matrix = tw.R_matrix
 
-    W_ref, invW_ref, Rot_ref = compute_linear_normal_form(R_matrix)
-    W_prod, invW_prod, Rot_prod = compute_linear_normal_form(R_prod)
+    W_ref, invW_ref, Rot_ref, _ = compute_linear_normal_form(R_matrix)
+    W_prod, invW_prod, Rot_prod, _ = compute_linear_normal_form(R_prod)
 
 
     for i_mode in range(3):
@@ -340,9 +340,9 @@ def test_get_R_matrix():
 
     R_matrix_4d = tw4d.R_matrix
 
-    W_ref_4d, invW_ref_4d, Rot_ref_4d = compute_linear_normal_form(
+    W_ref_4d, invW_ref_4d, Rot_ref_4d, _ = compute_linear_normal_form(
         R_matrix_4d, only_4d_block=True)
-    W_prod_4d, invW_prod_4d, Rot_prod_4d = compute_linear_normal_form(
+    W_prod_4d, invW_prod_4d, Rot_prod_4d, _ = compute_linear_normal_form(
         R_prod_4d, only_4d_block=True)
 
     for i_mode in range(3):

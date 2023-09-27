@@ -826,12 +826,7 @@ def _twiss_open(line, twiss_init,
 
     if not only_orbit and compute_lattice_functions:
         lattice_functions, i_replace = _compute_lattice_functions(Ws, use_full_inverse, s_co)
-        EE = lattice_functions.pop('EE')
-        HH = lattice_functions.pop('HH')
         twiss_res_element_by_element.update(lattice_functions)
-    else:
-        EE = None
-        HH = None
 
     twiss_res_element_by_element['dzeta'] = dzeta
 
@@ -881,8 +876,6 @@ def _twiss_open(line, twiss_init,
     circumference = line.tracker._tracker_data_base.line_length
     twiss_res._data['circumference'] = circumference
     twiss_res._data['orientation'] = twiss_orientation
-    twiss_res._data['EE'] = EE
-    twiss_res._data['HH'] = HH
 
     return twiss_res
 
@@ -929,7 +922,8 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 
     # Computation of twiss parameters
     if use_full_inverse:
-        betx, alfx, gamx, bety, alfy, gamy, bety1, betx2, EE, HH= _extract_twiss_parameters_with_inverse(Ws)
+        (betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
+                    )= _extract_twiss_parameters_with_inverse(Ws)
     else:
         betx = Ws[:, 0, 0]**2 + Ws[:, 0, 1]**2
         bety = Ws[:, 2, 2]**2 + Ws[:, 2, 3]**2
@@ -942,9 +936,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
 
         bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
         betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
-
-        EE = None
-        HH = None
 
     betx1 = betx
     bety2 = bety
@@ -1000,8 +991,6 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         'nuy': nuy,
         'nuzeta': nuzeta,
         'W_matrix': Ws,
-        'EE': EE,
-        'HH': HH,
     }
     return res, i_replace
 
@@ -2646,7 +2635,6 @@ def _extract_twiss_parameters_with_inverse(Ws):
     # https://iopscience.iop.org/article/10.1088/1748-0221/7/07/P07012
 
     EE = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
-    HH = np.zeros(shape=(3, Ws.shape[0], 6, 6), dtype=np.float64)
 
     for ii in range(3):
         Iii = np.zeros(shape=(6, 6))
@@ -2657,7 +2645,6 @@ def _extract_twiss_parameters_with_inverse(Ws):
         Ws_inv = np.linalg.inv(Ws)
 
         EE[ii, :, :, :] = - Ws @ Sii @ Ws_inv @ lnf.S
-        HH[ii, :, :, :] = Ws @ Sii @ Ws_inv
 
     betx = EE[0, :, 0, 0]
     bety = EE[1, :, 2, 2]
@@ -2678,7 +2665,7 @@ def _extract_twiss_parameters_with_inverse(Ws):
     alfy *= sign_y
     gamy *= sign_y
 
-    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2, EE, HH
+    return betx, alfx, gamx, bety, alfy, gamy, bety1, betx2
 
 def _extract_knl_ksl(line, names):
 
