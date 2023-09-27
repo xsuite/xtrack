@@ -764,14 +764,13 @@ def _twiss_open(line, twiss_init,
         assert np.all(recorded_state == 1), (
             'Some test particles were lost during twiss!')
 
-
     x_co = line.record_last_track.x[0, i_start:i_stop+1].copy()
     y_co = line.record_last_track.y[0, i_start:i_stop+1].copy()
     px_co = line.record_last_track.px[0, i_start:i_stop+1].copy()
     py_co = line.record_last_track.py[0, i_start:i_stop+1].copy()
     zeta_co = line.record_last_track.zeta[0, i_start:i_stop+1].copy()
-    delta_co = line.record_last_track.delta[0, i_start:i_stop+1].copy()
-    ptau_co = line.record_last_track.ptau[0, i_start:i_stop+1].copy()
+    delta_co = np.array(line.record_last_track.delta[0, i_start:i_stop+1].copy())
+    ptau_co = np.array(line.record_last_track.ptau[0, i_start:i_stop+1].copy())
     s_co = line.record_last_track.s[0, i_start:i_stop+1].copy()
 
     Ws = np.zeros(shape=(len(s_co), 6, 6), dtype=np.float64)
@@ -1293,9 +1292,9 @@ def _compute_equilibrium_emittance_kick_as_co(px_co, py_co, ptau_co, W_matrix,
     eq_gemitt_zeta = 1 / (4 * clight * damping_constants_turns[2]) * np.sum(
                         (Kz_sq + Kpz_sq) * n_dot_delta_kick_sq_ave * dl)
 
-    eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
-    eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
-    eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
+    eq_nemitt_x = float(eq_gemitt_x / (beta0 * gamma0))
+    eq_nemitt_y = float(eq_gemitt_y / (beta0 * gamma0))
+    eq_nemitt_zeta = float(eq_gemitt_zeta / (beta0 * gamma0))
 
     res = {
         'eq_gemitt_x': eq_gemitt_x,
@@ -1400,9 +1399,9 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
     beta0 = line.particle_ref._xobject.beta0[0]
     gamma0 = line.particle_ref._xobject.gamma0[0]
 
-    eq_nemitt_x = float(eq_gemitt_x * (beta0 * gamma0))
-    eq_nemitt_y = float(eq_gemitt_y * (beta0 * gamma0))
-    eq_nemitt_zeta = float(eq_gemitt_zeta * (beta0 * gamma0))
+    eq_nemitt_x = float(eq_gemitt_x / (beta0 * gamma0))
+    eq_nemitt_y = float(eq_gemitt_y / (beta0 * gamma0))
+    eq_nemitt_zeta = float(eq_gemitt_zeta / (beta0 * gamma0))
 
     Sigma_norm = np.zeros_like(EE_norm, dtype=complex)
     for ii in range(6):
