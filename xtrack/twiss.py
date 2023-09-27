@@ -471,6 +471,10 @@ def twiss_line(line, particle_ref=None, method=None,
         else:
             return twiss_init
 
+    if only_markers and eneloss_and_damping:
+        raise NotImplementedError(
+            '`only_markers` not implemented for `eneloss_and_damping`')
+
     twiss_res = _twiss_open(
         line=line,
         twiss_init=twiss_init,

@@ -24,6 +24,8 @@ def test_radiation(test_context):
 
     print(f"Test {test_context.__class__}")
 
+    ctx2np = test_context.nparray_from_context_array
+
     L_bend = 1.
     B_T = 2
 
@@ -37,11 +39,11 @@ def test_radiation(test_context):
             delta=delta,
             mass0=xp.ELECTRON_MASS_EV)
     particles_ave_0 = particles_ave.copy()
-    gamma = float((particles_ave.energy/particles_ave.mass0)[0])
-    gamma0 = float((particles_ave.gamma0[0]))
+    gamma = ctx2np((particles_ave.energy/particles_ave.mass0))[0]
+    gamma0 = ctx2np(particles_ave.gamma0)[0]
     particles_rnd = particles_ave.copy()
 
-    P0_J = float(particles_ave.p0c[0]) / clight * qe
+    P0_J = ctx2np(particles_ave.p0c[0]) / clight * qe
     h_bend = B_T * qe / P0_J
     theta_bend = h_bend * L_bend
 

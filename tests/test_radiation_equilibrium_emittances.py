@@ -165,6 +165,24 @@ def test_eq_emitt(conf):
 
     assert checked
 
+    tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+                     radiation_method='full',
+                     compute_lattice_functions=False,
+                     compute_chromatic_properties=False)
+
+    assert 'x' in tw_rad2
+    assert 'betx' not in tw_rad2
+    assert 'circumference' in tw_rad2
+    assert 'qx' not in tw_rad2
+    assert 'dqx' not in tw_rad2
+
+    assert np.isclose(tw_rad2.eq_gemitt_x, tw_rad.eq_gemitt_x, atol=0, rtol=1.5e-2)
+    assert np.isclose(tw_rad2.eq_gemitt_y, tw_rad.eq_gemitt_y, atol=0, rtol=1.5e-2)
+    assert np.isclose(tw_rad2.eq_gemitt_zeta, tw_rad.eq_gemitt_zeta, atol=0, rtol=1.5e-2)
+    assert np.isclose(tw_rad2.eq_nemitt_x, tw_rad.eq_nemitt_x, atol=0, rtol=1.5e-2)
+    assert np.isclose(tw_rad2.eq_nemitt_y, tw_rad.eq_nemitt_y, atol=0, rtol=1.5e-2)
+    assert np.isclose(tw_rad2.eq_nemitt_zeta, tw_rad.eq_nemitt_zeta, atol=0, rtol=1.5e-2)
+
     if conf['check_against_tracking']:
 
         line.discard_tracker()
