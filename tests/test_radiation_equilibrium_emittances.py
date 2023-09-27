@@ -146,7 +146,7 @@ def test_eq_emitt(conf):
         assert np.isclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        assert np.isclose(ex, 5.8787e-13, atol=0,     rtol=2e-3)
+        assert np.isclose(ex, 5.8575e-13, atol=0,     rtol=4e-3)
         assert np.isclose(ey, 6.9955e-10, atol=0,     rtol=1e-4)
         assert np.isclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True

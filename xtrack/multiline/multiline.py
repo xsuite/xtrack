@@ -8,7 +8,6 @@ from .shared_knobs import VarSharing
 from ..match import match_knob_line
 import xobjects as xo
 import xtrack as xt
-import xfields as xf
 
 class Multiline:
 
@@ -414,6 +413,7 @@ class Multiline:
             assert np.isclose(circumference_cw, circumference_acw,
                               atol=1e-4, rtol=0)
 
+        import xfields as xf
         bb_df_cw, bb_df_acw = xf.install_beambeam_elements_in_lines(
             line_b1=self.lines.get(clockwise_line, None),
             line_b4=self.lines.get(anticlockwise_line, None),
@@ -476,6 +476,7 @@ class Multiline:
         else:
             bb_df_acw = None
 
+        import xfields as xf
         xf.configure_beam_beam_elements(
             bb_df_cw=bb_df_cw,
             bb_df_acw=bb_df_acw,
@@ -520,6 +521,7 @@ class Multiline:
             The index of the bunch to be simulated for the anticlockwise beam.
         '''
 
+        import xfields as xf
         apply_filling_pattern = (
             xf.config_tools.beambeam_config_tools.config_tools.apply_filling_pattern)
 
