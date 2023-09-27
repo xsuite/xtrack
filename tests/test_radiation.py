@@ -95,12 +95,16 @@ def test_radiation(test_context):
     particles_test_before = particles_test.copy()
     line.track(particles_test)
 
+    particles_test.move(xo.context_default)
+    particles_test_before.move(xo.context_default)
+    record.move(xo.context_default)
+
     Delta_E_test = (particles_test.ptau - particles_test_before.ptau
                                                         )*particles_test.p0c
     n_recorded = record._index.num_recorded
     assert n_recorded < record_capacity
     assert np.allclose(-np.sum(ctx2np(Delta_E_test)),
-                    np.sum(ctx2np(record.photon_energy[:n_recorded])),
+                    np.sum(record.photon_energy[:n_recorded]),
                     atol=0, rtol=1e-6)
 
     p0_J = particles_ave.p0c[0] / clight * qe
