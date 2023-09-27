@@ -37,8 +37,8 @@ def test_radiation(test_context):
             delta=delta,
             mass0=xp.ELECTRON_MASS_EV)
     particles_ave_0 = particles_ave.copy()
-    gamma = (particles_ave.energy/particles_ave.mass0)[0]
-    gamma0 = (particles_ave.gamma0[0])
+    gamma = float((particles_ave.energy/particles_ave.mass0)[0])
+    gamma0 = float((particles_ave.gamma0[0]))
     particles_rnd = particles_ave.copy()
 
     P0_J = particles_ave.p0c[0] / clight * qe
