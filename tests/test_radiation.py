@@ -97,6 +97,7 @@ def test_radiation(test_context):
 
     particles_test.move(xo.context_default)
     particles_test_before.move(xo.context_default)
+    particles_ave.move(xo.context_default)
     record.move(xo.context_default)
 
     Delta_E_test = (particles_test.ptau - particles_test_before.ptau
