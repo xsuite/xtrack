@@ -2476,6 +2476,8 @@ def _get_expr(knob):
         return knob._expr
     if isinstance(knob, Number):
         return knob
+    if hasattr(knob, 'dtype'): # it's an array
+        return knob
     raise ValueError(f'Cannot get expression for {knob}.')
 
 
