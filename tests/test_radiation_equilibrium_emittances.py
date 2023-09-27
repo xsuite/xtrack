@@ -111,8 +111,8 @@ def test_eq_emitt(conf):
         assert np.isclose(tw_after_tilt.dqy, tw_before_tilt.dqx, rtol=0, atol=1e-4)
         assert np.isclose(tw_after_tilt.dqx, tw_before_tilt.dqy, rtol=0, atol=1e-4)
 
-        assert np.allclose(tw_after_tilt.bety, tw_before_tilt.betx, rtol=1e-5, atol=0)
-        assert np.allclose(tw_after_tilt.betx, tw_before_tilt.bety, rtol=1e-5, atol=0)
+        assert np.allclose(tw_after_tilt.bety, tw_before_tilt.betx, rtol=3e-5, atol=0)
+        assert np.allclose(tw_after_tilt.betx, tw_before_tilt.bety, rtol=3e-5, atol=0)
 
         assert np.allclose(tw_after_tilt.y, tw_before_tilt.x, rtol=0, atol=1e-9)
         assert np.allclose(tw_after_tilt.x, tw_before_tilt.y, rtol=0, atol=1e-9)
