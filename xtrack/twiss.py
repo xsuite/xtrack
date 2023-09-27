@@ -1325,41 +1325,56 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
     # Going to x', y'
     RR_ebe = R_matrix_ebe
     delta = ptau_co # ultrarelativistic approximation
-    for jj in range(6):
-        RR_ebe[:, 1, jj] /= (1 + delta)
-        RR_ebe[:, 3, jj] /= (1 + delta)
+
+    TT = RR_ebe * 0.
+    TT[:, 0, 0] = 1
+    TT[:, 1, 1] = (1 - delta)
+    TT[:, 1, 5] = -px_co
+    TT[:, 2, 2] = 1
+    TT[:, 3, 3] = (1 - delta)
+    TT[:, 3, 5] = -py_co
+    TT[:, 4, 4] = 1
+    TT[:, 5, 5] = 1
+
+    TTinv = np.linalg.inv(TT)
+    TTinv0 = TTinv.copy()
     for ii in range(6):
-        RR_ebe[:, ii, 1] *= (1 + delta)
-        RR_ebe[:, ii, 3] *= (1 + delta)
-    RR_ebe[:, 1, 5] -= px_co / (1 + delta)**2
-    RR_ebe[:, 3, 5] -= py_co / (1 + delta)**2
+        for jj in range(6):
+            TTinv0[:, ii, jj] = TTinv[0, ii, jj]
+
+    RR_ebe_hat = TT @ RR_ebe @ TTinv0
+    RR = RR_ebe_hat[-1, :, :]
 
     lnf = xt.linear_normal_form
-    RR = RR_ebe[-1, :, :]
     WW, _, Rot, lam_eig = lnf.compute_linear_normal_form(RR)
-    DSigma = np.zeros_like(RR_ebe)
+    DSigma = np.zeros_like(RR_ebe_hat)
 
-    # # The following is needed if RR is in px, py instead of x', y'
-    # DSigma[:-1, 1, 1] = (d_delta_sq_ave * 0.5 * (tw_rad2.px[:-1]**2 + tw_rad2.px[1:]**2)
-    #                                             / (tw_rad2.delta[:-1] + 1)**2)
-    # DSigma[:-1, 3, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1]**2 + tw_rad2.py[1:]**2)
-    #                                             / (tw_rad2.delta[:-1] + 1)**2)
-    # DSigma[:-1, 3, 5] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1] + tw_rad2.py[1:])
-    #                                              / (tw_rad2.delta[:-1] + 1))
-    # DSigma[:-1, 5, 3] = (d_delta_sq_ave * 0.5 * (tw_rad2.py[:-1] + tw_rad2.py[1:])
-    #                                              / (tw_rad2.delta[:-1] + 1))
+    # The following is needed if RR is in px, py instead of x', y'
+    # DSigma[:-1, 1, 1] = (d_delta_sq_ave * 0.5 * (px_co[:-1]**2 + px_co[1:]**2)
+    #                                             / (ptau_co[:-1] + 1)**2)
+    # DSigma[:-1, 3, 3] = (d_delta_sq_ave * 0.5 * (py_co[:-1]**2 + py_co[1:]**2)
+    #                                             / (ptau_co[:-1] + 1)**2)
+
+    # DSigma[:-1, 1, 5] = (d_delta_sq_ave * 0.5 * (px_co[:-1] + px_co[1:])
+    #                                             / (ptau_co[:-1] + 1))
+    # DSigma[:-1, 5, 1] = (d_delta_sq_ave * 0.5 * (px_co[:-1] + px_co[1:])
+    #                                             / (ptau_co[:-1] + 1))
+
+    # DSigma[:-1, 3, 5] = (d_delta_sq_ave * 0.5 * (py_co[:-1] + py_co[1:])
+    #                                              / (ptau_co[:-1] + 1))
+    # DSigma[:-1, 5, 3] = (d_delta_sq_ave * 0.5 * (py_co[:-1] + py_co[1:])
+    #                                              / (ptau_co[:-1] + 1))
 
     DSigma[:-1, 5, 5] = d_delta_sq_ave
 
-    RR_ebe_inv = np.linalg.inv(RR_ebe)
+    RR_ebe_hat_inv = np.linalg.inv(RR_ebe_hat)
 
     DSigma0 = np.zeros((6, 6))
 
     n_calc = d_delta_sq_ave.shape[0]
     for ii in range(n_calc):
         if d_delta_sq_ave[ii] > 0:
-            DSigma0 += RR_ebe_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_inv[ii, :, :].T
-
+            DSigma0 += RR_ebe_hat_inv[ii, :, :] @ DSigma[ii, :, :] @ RR_ebe_hat_inv[ii, :, :].T
 
     CC_split, _, RRR, reig = lnf.compute_linear_normal_form(Rot)
     reig_full = np.zeros_like(Rot, dtype=complex)
@@ -1694,7 +1709,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
     line.track(part, ele_start=ele_start, ele_stop=ele_stop)
     if part.state[0] < 0:
         raise ClosedOrbitSearchError(
-            f'Particle lost in one-turn map, p.state = {p.state[0]}')
+            f'Particle lost in one-turn map, p.state = {part.state[0]}')
     p_res = np.array([
            part._xobject.x[0],
            part._xobject.px[0],
