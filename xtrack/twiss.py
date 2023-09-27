@@ -1328,8 +1328,8 @@ def _compute_equilibrium_emittance_full(px_co, py_co, ptau_co, R_matrix_ebe,
     for ii in range(6):
         RR_ebe[:, ii, 1] *= (1 + delta)
         RR_ebe[:, ii, 3] *= (1 + delta)
-    RR_ebe[:, 1, 5] += px_co
-    RR_ebe[:, 3, 5] += py_co
+    RR_ebe[:, 1, 5] -= px_co / (1 + delta)**2
+    RR_ebe[:, 3, 5] -= py_co / (1 + delta)**2
 
     lnf = xt.linear_normal_form
     RR = RR_ebe[-1, :, :]
