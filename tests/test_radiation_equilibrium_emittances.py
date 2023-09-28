@@ -176,7 +176,7 @@ def test_eq_emitt(conf):
     assert 'qx' not in tw_rad2
     assert 'dqx' not in tw_rad2
 
-    if not vertical_orbit_distortion:
+    if not vertical_orbit_distortion: # Known inconsistency to be investigated
         assert np.isclose(tw_rad2.eq_gemitt_x, tw_rad.eq_gemitt_x, atol=1e-14, rtol=1.5e-2)
         assert np.isclose(tw_rad2.eq_gemitt_y, tw_rad.eq_gemitt_y, atol=1e-14, rtol=1.5e-2)
         assert np.isclose(tw_rad2.eq_gemitt_zeta, tw_rad.eq_gemitt_zeta, atol=1e-14, rtol=4e-2)
