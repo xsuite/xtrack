@@ -34,7 +34,7 @@ twm4d = mad.table.tw4d
 n_cav = 6
 
 mad.sequence.sps.elements['actcse.31632'].volt = v_mv * 10 / n_cav   # To stay in the linear region
-mad.sequence.sps.elements['actcse.31632'].freq = 35
+mad.sequence.sps.elements['actcse.31632'].freq = 3
 mad.sequence.sps.elements['actcse.31632'].lag = 0.5
 
 
@@ -134,7 +134,7 @@ opt = line.match(
     ],
     targets=[
         xt.TargetSet(qx=20.13, qy=20.18, tol=1e-7, tag='tune'),
-        xt.TargetSet(dqx=-20, dqy=-20, tol=1e-2, tag='chrom'),
+        xt.TargetSet(dqx=2.0, dqy=2.0, tol=1, tag='chrom'),
         ],
 )
 
@@ -213,7 +213,7 @@ sigma_betatron_tab = tw_rad.get_beam_covariance(gemitt_x=tw_rad.eq_gemitt_x,
 
 import matplotlib.pyplot as plt
 plt.close('all')
-fig = plt.figure(1, figsize=(4.8*1.3, 6.4))
+fig = plt.figure(1, figsize=(6.4, 4.8 * 1.8))
 
 spo = fig. add_subplot(4, 1, 1)
 spo.plot(tw.s, tw.y)
@@ -245,8 +245,26 @@ spz.axhline(tw_rad2.eq_beam_covariance_matrix.sigma_zeta[0], color='green')
 plt.ylabel(r'$\sigma_z$ [m]')
 plt.xlabel('Turns')
 plt.suptitle(f"Qx = {tw.qx:.2f} - Qy = {tw.qy:.2f} - Q'x = {tw.dqx:.2f} - Q'y = {tw.dqy:.2f}")
-plt.subplots_adjust(left=.16)
+plt.subplots_adjust(left=.16, hspace=.37)
 
-plt.savefig(f'sps_eq_emitt_dqx_{tw.dqx:.2f}_dqy_{tw.dqy:.2f}_freq.png', dpi=300)
+# plt.savefig(f'sps_eq_emitt_dqx_{tw.dqx:.2f}_dqy_{tw.dqy:.2f}_freq.png', dpi=300)
 
-plt.show()
+# Plot horizontal and vertical dispersions
+
+fig = plt.figure(2, figsize=(6.4, 4.8 * 1.2))
+spdx = fig.add_subplot(2, 1, 1)
+spdx.plot(tw.s, tw.dx)
+plt.ylabel(r'$D_x$ [m]')
+
+spdy = fig.add_subplot(2, 1, 2, sharex=spdx)
+spdy.plot(tw.s, tw.dy)
+
+plt.xlabel('s [m]')
+plt.ylabel(r'$D_y$ [m]')
+
+mad.input('''
+mdv.52907, kick := mdv.52907.ksl0;
+mdv.53107, kick := mdv.53107.ksl0;
+mdv.53307, kick := mdv.53307.ksl0;
+mdv.53507, kick := mdv.53507.ksl0;
+''')
