@@ -21,3 +21,4 @@ External contributors:
    `Line.from_sequence`, implement `LastTurnsMonitor`, implement `Exciter`,
    implement `BeamSizeMonitor`, implement `BeamProfileMonitor`,
    implement `BeamPositionMonitor`,
+ - L. Van Riesen-Haupt (EPFL, Switzwerland) checks on synchrotron radiation spectrum. 
