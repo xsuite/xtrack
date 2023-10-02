@@ -26,6 +26,7 @@ from .slicing import Slicer
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
+                          compute_T_matrix_line,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
 from .match import match_line, closed_orbit_correction, match_knob_line
@@ -1274,6 +1275,36 @@ class Line:
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  ele_start=ele_start, ele_stop=ele_stop)
+
+    def compute_T_matrix(self, ele_start=None, ele_stop=None,
+                         particle_on_co=None, steps_t_matrix=None):
+
+        """
+        Compute the second order tensor of the beamline.
+
+        Parameters
+        ----------
+        ele_start : int or str
+            Element at which the computation starts.
+        ele_stop : int or str
+            Element at which the computation stops.
+        particle_on_co : Particle
+            Particle at the closed orbit (optional).
+        steps_r_matrix : int
+            Finite difference step for computing the second order tensor.
+
+        Returns
+        -------
+        T_matrix : ndarray
+            Second order tensor of the beamline.
+
+        """
+
+        self._check_valid_tracker()
+
+        return compute_T_matrix_line(self, ele_start=ele_start, ele_stop=ele_stop,
+                                particle_on_co=particle_on_co,
+                                steps_t_matrix=steps_t_matrix)
 
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,

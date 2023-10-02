@@ -2778,3 +2778,48 @@ def _build_sigma_table(Sigma, s=None, name=None):
     res_data['sigma_zeta'] = np.sqrt(Sigma[:, 4, 4])
 
     return Table(res_data)
+
+def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
+                            steps_t_matrix=None):
+
+    steps_t_matrix = _complete_steps_r_matrix_with_default(steps_t_matrix)
+
+    if particle_on_co is None:
+        tw = line.twiss()
+        particle_on_co = tw.get_twiss_init(ele_start).particle_on_co
+
+    R_plus = {}
+    R_minus = {}
+    p_plus = {}
+    p_minus = {}
+
+    for kk in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+
+        p_plus[kk] = particle_on_co.copy()
+        setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps_t_matrix['d' + kk])
+        R_plus[kk] = line.compute_one_turn_matrix_finite_differences(
+                            ele_start=ele_start, ele_stop=ele_stop,
+                            particle_on_co=p_plus[kk])['R_matrix']
+
+        p_minus[kk] = particle_on_co.copy()
+        setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps_t_matrix['d' + kk])
+        R_minus[kk] = line.compute_one_turn_matrix_finite_differences(
+                            ele_start=ele_start, ele_stop=ele_stop,
+                            particle_on_co=p_minus[kk])['R_matrix']
+
+    TT = np.zeros((6, 6, 6))
+    TT[:, :, 0] = 0.5 * (R_plus['x'] - R_minus['x']) / (
+        p_plus['x']._xobject.x[0] - p_minus['x']._xobject.x[0])
+    TT[:, :, 1] = 0.5 * (R_plus['px'] - R_minus['px']) / (
+        p_plus['px']._xobject.px[0] - p_minus['px']._xobject.px[0])
+    TT[:, :, 2] = 0.5 * (R_plus['y'] - R_minus['y']) / (
+        p_plus['y']._xobject.y[0] - p_minus['y']._xobject.y[0])
+    TT[:, :, 3] = 0.5 * (R_plus['py'] - R_minus['py']) / (
+        p_plus['py']._xobject.py[0] - p_minus['py']._xobject.py[0])
+    TT[:, :, 4] = 0.5 * (R_plus['zeta'] - R_minus['zeta']) / (
+        p_plus['zeta']._xobject.zeta[0] - p_minus['zeta']._xobject.zeta[0])
+    TT[:, :, 5] = 0.5 * (R_plus['delta'] - R_minus['delta']) / (
+        (p_plus['delta']._xobject.ptau[0] - p_minus['delta']._xobject.ptau[0])
+        / p_plus['delta']._xobject.beta0[0])
+
+    return TT
