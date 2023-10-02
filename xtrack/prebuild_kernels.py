@@ -31,6 +31,9 @@ BEAM_ELEMENTS_INIT_DEFAULTS = {
     'CombinedFunctionMagnet': {
         'length': 1.,
     },
+    'Solenoid': {
+        'length': 1.,
+    },
     'BeamBeamBiGaussian2D': {
         'other_beam_Sigma_11': 1.,
         'other_beam_Sigma_33': 1.,
