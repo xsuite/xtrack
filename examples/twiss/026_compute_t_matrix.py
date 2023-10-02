@@ -45,7 +45,7 @@ R_plus = {}
 R_minus = {}
 
 steps0 = {'x': 1e-6, 'px': 1e-7, 'y': 1e-6, 'py': 1e-7, 'zeta': 1e-7, 'ptau': 1e-7}
-factor_step = 10
+factor_step = 1
 
 steps = {kk: factor_step * vv for kk, vv in steps0.items()}
 
@@ -55,17 +55,17 @@ for kk in ['x', 'px', 'y', 'py', 'zeta', 'ptau']:
     setattr(ti_plus.particle_on_co, kk,
         getattr(twinit.particle_on_co, kk) + steps[kk])
 
-    tw_plus = line.twiss(ele_start=ele_start, ele_stop=ele_stop,
-                         twiss_init=ti_plus)
-    R_plus[kk] = tw_plus.get_R_matrix(ele_start=ele_start, ele_stop=ele_stop)
+    R_plus[kk] = line.compute_one_turn_matrix_finite_differences(
+                        ele_start=ele_start, ele_stop=ele_stop,
+                        particle_on_co=ti_plus.particle_on_co)['R_matrix']
 
     ti_minus = twinit.copy()
     setattr(ti_minus.particle_on_co, kk,
         getattr(twinit.particle_on_co, kk) - steps[kk])
 
-    tw_minus = line.twiss(ele_start=ele_start, ele_stop=ele_stop,
-                            twiss_init=ti_minus)
-    R_minus[kk] = tw_minus.get_R_matrix(ele_start=ele_start, ele_stop=ele_stop)
+    R_minus[kk] = line.compute_one_turn_matrix_finite_differences(
+                        ele_start=ele_start, ele_stop=ele_stop,
+                        particle_on_co=ti_minus.particle_on_co)['R_matrix']
 
 TT = np.zeros((6, 6, 6))
 
@@ -98,10 +98,8 @@ scale_out = [
 
 for ii in range(6):
     for jj in range(6):
-        if jj == 4: continue
         for kk in range(6):
-            if kk == 4: continue
             scaled_tt = TT[ii, jj, kk] / scale_out[ii] * scale_in[jj] * scale_in[kk]
             scaled_tt_mad = sectmad[f't{ii+1}{jj+1}{kk+1}', ele_stop] / scale_out[ii] * scale_in[jj] * scale_in[kk]
 
-            assert np.isclose(scaled_tt, scaled_tt_mad, atol=0.03, rtol=0)
+            assert np.isclose(scaled_tt, scaled_tt_mad, atol=0.0005, rtol=0)
