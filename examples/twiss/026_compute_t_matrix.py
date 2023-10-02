@@ -33,50 +33,16 @@ line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
             allow_thick=True, deferred_expressions=True)
 line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 line.twiss_default['method'] = '4d'
+line.build_tracker()
 
-tw = line.twiss()
+ele_start='ip3'
+ele_stop='ip4'
 
-ele_start = 'ip3'
-ele_stop = 'ip4'
-
-twinit = tw.get_twiss_init(ele_start)
-
-R_plus = {}
-R_minus = {}
-
-steps0 = {'x': 1e-6, 'px': 1e-7, 'y': 1e-6, 'py': 1e-7, 'zeta': 1e-7, 'ptau': 1e-7}
-factor_step = 1
-
-steps = {kk: factor_step * vv for kk, vv in steps0.items()}
-
-for kk in ['x', 'px', 'y', 'py', 'zeta', 'ptau']:
-
-    ti_plus = twinit.copy()
-    setattr(ti_plus.particle_on_co, kk,
-        getattr(twinit.particle_on_co, kk) + steps[kk])
-
-    R_plus[kk] = line.compute_one_turn_matrix_finite_differences(
-                        ele_start=ele_start, ele_stop=ele_stop,
-                        particle_on_co=ti_plus.particle_on_co)['R_matrix']
-
-    ti_minus = twinit.copy()
-    setattr(ti_minus.particle_on_co, kk,
-        getattr(twinit.particle_on_co, kk) - steps[kk])
-
-    R_minus[kk] = line.compute_one_turn_matrix_finite_differences(
-                        ele_start=ele_start, ele_stop=ele_stop,
-                        particle_on_co=ti_minus.particle_on_co)['R_matrix']
-
-TT = np.zeros((6, 6, 6))
-
-TT[:, :, 0] = 0.5 * (R_plus['x'] - R_minus['x']) / (2 * steps['x'])
-TT[:, :, 1] = 0.5 * (R_plus['px'] - R_minus['px']) / (2 * steps['px'])
-TT[:, :, 2] = 0.5 * (R_plus['y'] - R_minus['y']) / (2 * steps['y'])
-TT[:, :, 3] = 0.5 * (R_plus['py'] - R_minus['py']) / (2 * steps['py'])
-TT[:, :, 4] = 0.5 * (R_plus['zeta'] - R_minus['zeta']) / (2 * steps['zeta'])
-TT[:, :, 5] = 0.5 * (R_plus['ptau'] - R_minus['ptau']) / (2 * steps['ptau'])
+TT = line.compute_T_matrix(ele_start=ele_start, ele_stop=ele_stop)
 
 sectmad  = xd.Table(mad.table.secttab)
+
+tw = line.twiss()
 
 nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6
