@@ -56,6 +56,7 @@ NO_SYNRAD_ELEMENTS = [
     Quadrupole,
     Sextupole,
     CombinedFunctionMagnet,
+    Solenoid,
 ]
 
 # These will be enumerated in order of appearance in the dict, so in this case
