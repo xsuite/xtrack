@@ -1842,9 +1842,13 @@ class Line:
             index_first_element = None
 
         if name_first_element is not None:
-            assert self.element_names.count(name_first_element) == 1, (
-                f"name_first_element={name_first_element} occurs more than once!"
-            )
+            n_occurrences = self.element_names.count(name_first_element)
+            if n_occurrences == 0:
+                raise ValueError(
+                    f"{name_first_element} not found in the line.")
+            if n_occurrences > 1:
+                raise ValueError(
+                    f"{name_first_element} occurs more than once in the line.")
             index_first_element = self.element_names.index(name_first_element)
 
         new_element_names = (list(self.element_names[index_first_element:])
