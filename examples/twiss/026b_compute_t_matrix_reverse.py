@@ -17,11 +17,12 @@ call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
 seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
+beam, sequence=lhcb2, particle=proton, pc=7000, bv=-1;
 call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
 """)
 
-mad.use(sequence="lhcb1")
-seq = mad.sequence.lhcb1
+mad.use(sequence="lhcb2")
+seq = mad.sequence.lhcb2
 mad.twiss()
 
 mad.input('''
@@ -31,7 +32,7 @@ twiss, sectormap, sectorpure, sectortable=secttab;
 
 collider = xt.Multiline.from_json('../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 
-line = collider.lhcb1
+line = collider.lhcb2
 line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
 line.twiss_default['method'] = '4d'
 line.build_tracker()

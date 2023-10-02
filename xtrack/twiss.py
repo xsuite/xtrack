@@ -1774,6 +1774,9 @@ def compute_one_turn_matrix_finite_differences(
     if isinstance(ele_stop, str):
         ele_stop = line.element_names.index(ele_stop)
 
+    if ele_start is not None and ele_stop is not None and ele_start > ele_stop:
+        raise ValueError('ele_start > ele_stop')
+
     context = line._buffer.context
 
     particle_on_co = particle_on_co.copy(
@@ -2780,12 +2783,21 @@ def _build_sigma_table(Sigma, s=None, name=None):
     return Table(res_data)
 
 def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
-                            steps_t_matrix=None):
+                            steps_t_matrix=None, reverse=None):
+
+    if reverse is None:
+        if 'reverse' in line.twiss_default:
+            reverse = line.twiss_default['reverse']
+        else:
+            reverse = False
+
+    if reverse:
+        ele_start, ele_stop = ele_stop, ele_start
 
     steps_t_matrix = _complete_steps_r_matrix_with_default(steps_t_matrix)
 
     if particle_on_co is None:
-        tw = line.twiss()
+        tw = line.twiss(reverse=False)
         particle_on_co = tw.get_twiss_init(ele_start).particle_on_co
 
     R_plus = {}
@@ -2821,5 +2833,14 @@ def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
     TT[:, :, 5] = 0.5 * (R_plus['delta'] - R_minus['delta']) / (
         (p_plus['delta']._xobject.ptau[0] - p_minus['delta']._xobject.ptau[0])
         / p_plus['delta']._xobject.beta0[0])
+
+    # if reverse:
+    #     reverse_sign = [-1, 1, 1, -1, -1, 1]
+    #     for ii in range(6):
+    #         TT[:, :, ii] *= reverse_sign[ii]
+    #     for jj in range(6):
+    #         TT[:, jj, :] *= reverse_sign[jj]
+    #     for kk in range(6):
+    #         TT[kk, :, :] *= reverse_sign[kk]
 
     return TT
