@@ -2783,16 +2783,7 @@ def _build_sigma_table(Sigma, s=None, name=None):
     return Table(res_data)
 
 def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
-                            steps_t_matrix=None, reverse=None):
-
-    if reverse is None:
-        if 'reverse' in line.twiss_default:
-            reverse = line.twiss_default['reverse']
-        else:
-            reverse = False
-
-    if reverse:
-        ele_start, ele_stop = ele_stop, ele_start
+                            steps_t_matrix=None):
 
     steps_t_matrix = _complete_steps_r_matrix_with_default(steps_t_matrix)
 
@@ -2833,14 +2824,5 @@ def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
     TT[:, :, 5] = 0.5 * (R_plus['delta'] - R_minus['delta']) / (
         (p_plus['delta']._xobject.ptau[0] - p_minus['delta']._xobject.ptau[0])
         / p_plus['delta']._xobject.beta0[0])
-
-    # if reverse:
-    #     reverse_sign = [-1, 1, 1, -1, -1, 1]
-    #     for ii in range(6):
-    #         TT[:, :, ii] *= reverse_sign[ii]
-    #     for jj in range(6):
-    #         TT[:, jj, :] *= reverse_sign[jj]
-    #     for kk in range(6):
-    #         TT[kk, :, :] *= reverse_sign[kk]
 
     return TT
