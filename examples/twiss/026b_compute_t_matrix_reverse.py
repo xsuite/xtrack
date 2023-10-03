@@ -73,12 +73,12 @@ TT_reflect[:, 1, :] *= -1
 TT_reflect[:, :, 0] *= -1
 TT_reflect[:, :, 1] *= -1
 
-RR_mad = np.zeros((6,6))
+RR_mad = np.zeros((6, 6))
 for ii in range(6):
     for jj in range(6):
         RR_mad[ii, jj] = sectmad[f'r{ii+1}{jj+1}', 'ip3']
 
-TT_mad = np.zeros((6,6,6))
+TT_mad = np.zeros((6, 6, 6))
 for ii in range(6):
     for jj in range(6):
         for kk in range(6):
