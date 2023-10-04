@@ -2493,3 +2493,14 @@ def _get_order(array):
     if not np.any(nonzero_indices):
         return 0
     return np.max(nonzero_indices)
+
+class SecondOrderTaylorMap(BeamElement):
+
+    isthick = True
+
+    _xofields={
+        'k': xo.Float64[6],
+        'R': xo.Float64[6,6],
+        'T': xo.Float64[6,6,6],
+        'length': xo.Float64
+    }
