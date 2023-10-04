@@ -33,6 +33,7 @@ void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
 
         for (int ii = 0; ii < 6; ii++){
             for (int jj = 0; jj < 6; jj++){
+                // printf("ii = %d, jj = %d, R = %e\n", ii, jj, SecondOrderTaylorMapData_get_R(el, ii, jj));
                 z_out[ii] += SecondOrderTaylorMapData_get_R(el, ii, jj) * z_in[jj];
             }
         }
