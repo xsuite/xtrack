@@ -28,10 +28,7 @@ void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
         }
 
         for (int ii = 0; ii < 6; ii++){
-            for (int jj = 0; jj < 6; jj++){
-                z_out[ii] += SecondOrderTaylorMapData_get_k(el, ii);
-            }
-
+            z_out[ii] += SecondOrderTaylorMapData_get_k(el, ii);
         }
 
         for (int ii = 0; ii < 6; ii++){
@@ -47,6 +44,14 @@ void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
                 }
             }
         }
+
+        LocalParticle_set_x(part, z_out[0]);
+        LocalParticle_set_px(part, z_out[1]);
+        LocalParticle_set_y(part, z_out[2]);
+        LocalParticle_set_py(part, z_out[3]);
+        LocalParticle_set_zeta(part, z_out[4]);
+        LocalParticle_update_ptau(part, z_out[5] * LocalParticle_get_beta0(part));
+
 
     //end_per_particle_block
 

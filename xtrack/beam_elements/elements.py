@@ -2498,6 +2498,9 @@ class SecondOrderTaylorMap(BeamElement):
 
     isthick = True
 
+    _extra_c_sources = [
+        _pkg_root.joinpath('beam_elements/elements_src/second_order_taylor_map.h')]
+
     _xofields={
         'k': xo.Float64[6],
         'R': xo.Float64[6,6],
