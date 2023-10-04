@@ -24,11 +24,7 @@ void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
         z_in[5] = LocalParticle_get_ptau(part) / LocalParticle_get_beta0(part);
 
         for (int ii = 0; ii < 6; ii++){
-            z_out[ii] = z_in[ii];
-        }
-
-        for (int ii = 0; ii < 6; ii++){
-            z_out[ii] += SecondOrderTaylorMapData_get_k(el, ii);
+            z_out[ii] = SecondOrderTaylorMapData_get_k(el, ii);
         }
 
         for (int ii = 0; ii < 6; ii++){
