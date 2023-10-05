@@ -9,16 +9,16 @@ line.vars['lagrf400.b1'] = 0.5
 line.vars['acbv21.l7b1'] = 10e-6
 
 def build_tailor_map(line, ele_start, ele_stop):
-    tw = line.twiss()
+    tw = line.twiss(reverse=False)
 
     twinit = tw.get_twiss_init(ele_start)
     twinit_out = tw.get_twiss_init(ele_stop)
+
     RR = line.compute_one_turn_matrix_finite_differences(
         ele_start=ele_start, ele_stop=ele_stop, particle_on_co=twinit.particle_on_co
         )['R_matrix']
     TT = line.compute_T_matrix(ele_start=ele_start, ele_stop=ele_stop,
                                 particle_on_co=twinit.particle_on_co)
-
 
     x_co_in = np.array([
         twinit.particle_on_co.x[0],
@@ -44,7 +44,8 @@ def build_tailor_map(line, ele_start, ele_stop):
     K_hat = x_co_out - RR @ x_co_in + K_T_fd
     RR_hat = RR - 2 * R_T_fd
 
-    smap = xt.SecondOrderTaylorMap(R=RR_hat, T=TT, k=K_hat)
+    smap = xt.SecondOrderTaylorMap(R=RR_hat, T=TT, k=K_hat,
+                        length=tw['s', ele_stop] - tw['s', ele_start])
 
     return smap
 
