@@ -8,8 +8,12 @@ line.vars['lagrf400.b1'] = 0.5
 # line.vars['acbh22.l7b1'] = 10e-6
 line.vars['acbv21.l7b1'] = 10e-6
 
-def build_tailor_map(line, ele_start, ele_stop):
-    tw = line.twiss(reverse=False)
+def build_tailor_map(line, ele_start, ele_stop, twiss_table):
+
+    if twiss_table is None:
+        tw = line.twiss()
+    else:
+        tw = line.twiss(reverse=False)
 
     twinit = tw.get_twiss_init(ele_start)
     twinit_out = tw.get_twiss_init(ele_stop)
@@ -49,13 +53,40 @@ def build_tailor_map(line, ele_start, ele_stop):
 
     return smap
 
-smap1 = build_tailor_map(line, ele_start='ip7', ele_stop='ip1')
-smap2 = build_tailor_map(line, ele_start='ip1', ele_stop='ip2')
-smap3 = build_tailor_map(line, ele_start='ip2', ele_stop='lhcb1ip7_p_')
+ele_cut = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']
 
-line_maps = xt.Line(elements=[smap1, smap2, smap3])
+ele_cut_ext = ele_cut.copy()
+if line.element_names[0] not in ele_cut_ext:
+    ele_cut_ext.insert(0, line.element_names[0])
+if line.element_names[-1] not in ele_cut_ext:
+    ele_cut_ext.append(line.element_names[-1])
+
+ele_cut_sorted = []
+for ee in line.element_names:
+    if ee in ele_cut_ext:
+        ele_cut_sorted.append(ee)
+
+elements_map_line = []
+names_map_line = []
+tw = line.twiss()
+
+for ii in range(len(ele_cut_sorted)-1):
+    names_map_line.append(ele_cut_sorted[ii])
+    elements_map_line.append(line[ele_cut_sorted[ii]])
+
+    smap = build_tailor_map(line, ele_start=ele_cut_sorted[ii],
+                            ele_stop=ele_cut_sorted[ii+1],
+                            twiss_table=tw)
+    names_map_line.append(f'map_{ii}')
+    elements_map_line.append(smap)
+
+names_map_line.append(ele_cut_sorted[-1])
+elements_map_line.append(line[ele_cut_sorted[-1]])
+
+line_maps = xt.Line(elements=elements_map_line, element_names=names_map_line)
 line_maps.particle_ref = line.particle_ref.copy()
 
-tw_map = line_maps.twiss()
 tw = line.twiss()
+tw_map = line_maps.twiss()
+
 

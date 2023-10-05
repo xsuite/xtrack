@@ -10,6 +10,7 @@
 void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
                                                LocalParticle* part0){
 
+    double const length = SecondOrderTaylorMapData_get_length(el);
 
     //start_per_particle_block (part0->part)
 
@@ -48,6 +49,8 @@ void SecondOrderTaylorMap_track_local_particle(SecondOrderTaylorMapData el,
         LocalParticle_set_py(part, z_out[3]);
         LocalParticle_set_zeta(part, z_out[4]);
         LocalParticle_update_ptau(part, z_out[5] * LocalParticle_get_beta0(part));
+
+        LocalParticle_add_to_s(part, length);
 
 
     //end_per_particle_block
