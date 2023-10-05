@@ -839,7 +839,7 @@ class ElectronCooler(Element):
         ("offset_py","","",0.0),
         ("offset_energy","","",0.0),
         ("magnetic_field_ratio","","",0.0),
-        ("neutralisation_space_charge","","",0.0),
+        ("space_charge","","",0.0),
         
         ("re","","",physical_constants['classical electron radius'][0]),
         ("me","","",me_kg),
@@ -920,10 +920,10 @@ class ElectronCooler(Element):
         Fl = np.zeros_like(delta)
          
         #compute angular frequency space charge
-        self.omega = self.neutralisation_space_charge*1/(2*np.pi*epsilon_0*clight) * self.current/(self.radius_e_beam**2*beta0*gamma0*self.magnetic_field)
+        self.omega = self.space_charge*1/(2*np.pi*epsilon_0*clight) * self.current/(self.radius_e_beam**2*beta0*gamma0*self.magnetic_field)
 
         # warning: p.delta*machine_v is not fully correct for relativistic beams. to be checked.
-        Vi = delta*machine_v - self.neutralisation_space_charge*clight*self.radial_velocity_dependence(gamma=gamma0, r=radius, current=self.current, beta0=beta0, radius_e_beam=self.radius_e_beam)
+        Vi = delta*machine_v - self.space_charge*clight*self.radial_velocity_dependence(gamma=gamma0, r=radius, current=self.current, beta0=beta0, radius_e_beam=self.radius_e_beam)
 
         # Warning: should gamma_0/gamma to be correct
         dVx = px*machine_v
