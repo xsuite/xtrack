@@ -74,7 +74,7 @@ for magnetic_field_ratio in magnetic_field_ratio_list:
     electron_cooler = xt.ElectronCooler(current=current,length=length,radius_e_beam=radius_e_beam,
                                             temp_perp=temp_perp,temp_long=temp_long,
                                             magnetic_field=magnetic_field,magnetic_field_ratio=magnetic_field_ratio,
-                                            neutralisation_space_charge=0,neutralisation_rotation=0)
+                                            space_charge=0)
     num_turns = int(1*1e7)
     save_interval = 1000
 
