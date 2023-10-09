@@ -5,6 +5,9 @@ from scipy.constants import c as clight
 
 import xtrack as xt
 
+# REMEMBER:
+# - Handle zero ramp rate
+
 fname = 'RF_DoubleHarm.dat'
 
 df = pd.read_csv(fname, sep='\t', skiprows=2,
@@ -15,7 +18,7 @@ t_s = df.t_s.values
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 mass0_eV = line.particle_ref.mass0
 
-e_tot_ev = df.E_kin_GeV.values*1e9 + mass0_eV
+e_tot_ev = E_kin_GeV*1e9 + mass0_eV
 gamma = e_tot_ev/mass0_eV
 beta = np.sqrt(1 - 1/gamma**2)
 
@@ -45,6 +48,5 @@ sp_beta = plt.subplot(3,1,3, sharex=sp_ekin)
 plt.plot(t_s, beta)
 plt.ylabel(r'$\beta$')
 plt.xlabel('t [s]')
-
 
 plt.show()
