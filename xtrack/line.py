@@ -13,6 +13,7 @@ from pprint import pformat
 from typing import List, Literal, Optional
 
 import numpy as np
+from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
 
@@ -55,7 +56,8 @@ class Line:
     _element_dict = None
     config = None
 
-    def __init__(self, elements=(), element_names=None, particle_ref=None):
+    def __init__(self, elements=(), element_names=None, particle_ref=None,
+                 energy_program=None):
 
         """
         Parameters
@@ -71,6 +73,8 @@ class Line:
             Reference particle providing rest mass, charge and reference enegy
             used for building particles distributions, computing twiss parameters
             and matching.
+        energy_program: EnergyProgram
+            (optional) Energy program used to update the reference energy during the tracking.
         """
 
         self.config = xt.tracker.TrackerConfig()
@@ -86,7 +90,6 @@ class Line:
         self._extra_config['reset_s_at_end_turn'] = True
         self._extra_config['matrix_responsiveness_tol'] = DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self._extra_config['matrix_stability_tol'] = DEFAULT_MATRIX_STABILITY_TOL
-        self._extra_config['t0_time_dependent_vars'] = 0.
         self._extra_config['dt_update_time_dependent_vars'] = 0.
         self._extra_config['_t_last_update_time_dependent_vars'] = None
         self._extra_config['_radiation_model'] = None
@@ -3003,14 +3006,6 @@ class Line:
         self._extra_config['enable_time_dependent_vars'] = value
 
     @property
-    def t0_time_dependent_vars(self):
-        return self._extra_config['t0_time_dependent_vars']
-
-    @t0_time_dependent_vars.setter
-    def t0_time_dependent_vars(self, value):
-        self._extra_config['t0_time_dependent_vars'] = value
-
-    @property
     def dt_update_time_dependent_vars(self):
         return self._extra_config['dt_update_time_dependent_vars']
 
@@ -3637,3 +3632,65 @@ class LineAttr:
 
     def __getitem__(self, key):
         return self._cache[key].get_full_array()
+
+
+
+class EnergyProgram:
+
+    def __init__(self, t_s, circumference, mass0, kinetic_energy0=None, p0c=None):
+
+        assert hasattr (t_s, '__len__'), 't_s must be a list or an array'
+
+        assert p0c is not None or kinetic_energy0 is not None, (
+            'Either p0c or kinetic_energy0 needs to be provided')
+
+        enevars = {}
+
+        if p0c is not None:
+            assert hasattr (p0c, '__len__'), 'p0c must be a list or an array'
+            assert len(t_s) == len(p0c), 't_s and p0c must have same length'
+            enevars['p0c'] = p0c
+
+        if kinetic_energy0 is not None:
+            assert hasattr (kinetic_energy0, '__len__'), (
+                'kinetic_energy0 must be a list or an array')
+            assert len(t_s) == len(kinetic_energy0), (
+                't_s and kinetic_energy0 must have same length')
+
+            energy0 = kinetic_energy0 + mass0
+            enevars['energy0'] = energy0
+
+        # I use a particle to make the conversions
+        p = xt.Particles(**enevars, mass0=mass0)
+        beta0_program = p.beta0
+        bet0_mid = 0.5*(beta0_program[1:] + beta0_program[:-1])
+
+        dt_s = np.diff(t_s)
+
+        i_turn_at_t_samples = np.zeros_like(t_s)
+        i_turn_at_t_samples[1:] = np.cumsum(
+                                    bet0_mid * clight / circumference * dt_s)
+        # In this way i_turn = 0 corresponds to t_s[0]
+
+        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear(
+                                x=i_turn_at_t_samples, y=t_s)
+        self.p0c_interpolator = xd.FunctionPieceWiseLinear(
+                                x=t_s, y=np.array(p.p0c))
+    def get_t_s_at_turn(self, i_turn):
+        return self.t_at_turn_interpolator(i_turn)
+
+    def get_p0c_at_t_s(self, t_s):
+        return self.p0c_interpolator(t_s)
+
+    def to_dict(self):
+        return {'t_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
+                'p0c_interpolator': self.p0c_interpolator.to_dict()}
+
+    @classmethod
+    def from_dict(cls, dct):
+        self = cls.__new__(cls)
+        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear.from_dict(
+                                        dct['t_at_turn_interpolator'])
+        self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
+                                        dct['p0c_interpolator'])
+        return self

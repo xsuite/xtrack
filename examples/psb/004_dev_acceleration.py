@@ -19,8 +19,8 @@ E_kin_GeV = df.E_kin_GeV.values
 E_min = np.min(E_kin_GeV)
 E_max = np.max(E_kin_GeV)
 E_kin_GeV = E_min/100 + (E_kin_GeV - E_min)
-
-t_s = df.t_s.values
+# Shift the time scale for testing purposes
+t_s = df.t_s.values + 5e-3
 
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
@@ -39,71 +39,12 @@ dt_s = np.diff(t_s)
 i_turn = np.zeros_like(e_tot_ev)
 i_turn[1:] = np.cumsum(beta_mid * clight / L * dt_s)
 
-class EnergyProgram:
 
-    def __init__(self, t_s, circumference, mass0, kinetic_energy0=None, p0c=None):
-
-        assert hasattr (t_s, '__len__'), 't_s must be a list or an array'
-
-        assert p0c is not None or kinetic_energy0 is not None, (
-            'Either p0c or kinetic_energy0 needs to be provided')
-
-        enevars = {}
-
-        if p0c is not None:
-            assert hasattr (p0c, '__len__'), 'p0c must be a list or an array'
-            assert len(t_s) == len(p0c), 't_s and p0c must have same length'
-            enevars['p0c'] = p0c
-
-        if kinetic_energy0 is not None:
-            assert hasattr (kinetic_energy0, '__len__'), (
-                'kinetic_energy0 must be a list or an array')
-            assert len(t_s) == len(kinetic_energy0), (
-                't_s and kinetic_energy0 must have same length')
-
-            energy0 = kinetic_energy0 + mass0
-            enevars['energy0'] = energy0
-
-        # I use a particle to make the conversions
-        p = xt.Particles(**enevars, mass0=mass0)
-        beta0_program = p.beta0
-        bet0_mid = 0.5*(beta0_program[1:] + beta0_program[:-1])
-
-        dt_s = np.diff(t_s)
-
-        i_turn_at_t_samples = np.zeros_like(t_s)
-        i_turn_at_t_samples[1:] = np.cumsum(
-                                    bet0_mid * clight / circumference * dt_s)
-
-        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear(
-                                x=i_turn_at_t_samples, y=t_s)
-        self.p0c_interpolator = xd.FunctionPieceWiseLinear(
-                                x=t_s, y=np.array(p.p0c))
-    def get_t_s_at_turn(self, i_turn):
-        return self.t_at_turn_interpolator(i_turn)
-
-    def get_p0c_at_t_s(self, t_s):
-        return self.p0c_interpolator(t_s)
-
-    def to_dict(self):
-        return {'t_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
-                'p0c_interpolator': self.p0c_interpolator.to_dict()}
-
-    @classmethod
-    def from_dict(cls, dct):
-        self = cls.__new__(cls)
-        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear.from_dict(
-                                        dct['t_at_turn_interpolator'])
-        self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
-                                        dct['p0c_interpolator'])
-        return self
-
-
-ep = EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9, mass0=mass0_eV,
+ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9, mass0=mass0_eV,
                    circumference=line.get_length())
 
 # Check to_dict and from_dict
-ep = EnergyProgram.from_dict(ep.to_dict())
+ep = xt.EnergyProgram.from_dict(ep.to_dict())
 
 
 p_test = line.build_particles(x=0)

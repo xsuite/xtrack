@@ -834,7 +834,7 @@ class Tracker:
                 beta0 = particles._xobject.beta0[ii_first_active]
                 at_turn = particles._xobject.at_turn[ii_first_active]
                 t_turn = (at_turn * self._tracker_data_base.line_length
-                          / (beta0 * clight)) + self.line.t0_time_dependent_vars
+                          / (beta0 * clight))
 
                 if (self.line._t_last_update_time_dependent_vars is None
                     or self.line.dt_update_time_dependent_vars is None

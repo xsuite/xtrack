@@ -9,7 +9,7 @@ from .base_element import BeamElement
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
-from .line import Line, Node, freeze_longitudinal, _temp_knobs
+from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
 from .tracker import Tracker
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
                     TargetRelPhaseAdvance, TargetSet, START, END)
