@@ -56,9 +56,7 @@ class Line:
     _element_dict = None
     config = None
 
-    def __init__(self, elements=(), element_names=None, particle_ref=None,
-                 energy_program=None):
-
+    def __init__(self, elements=(), element_names=None, particle_ref=None):
         """
         Parameters
         ----------
