@@ -3200,6 +3200,8 @@ def mk_class_namespace(extra_classes):
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
 
+    all_classes = all_classes + (EnergyProgram,)
+
     out = AttrDict()
     for cl in all_classes:
         out[cl.__name__] = cl
@@ -3674,6 +3676,7 @@ class EnergyProgram:
                                 x=i_turn_at_t_samples, y=t_s)
         self.p0c_interpolator = xd.FunctionPieceWiseLinear(
                                 x=t_s, y=np.array(p.p0c))
+
     def get_t_s_at_turn(self, i_turn):
         return self.t_at_turn_interpolator(i_turn)
 
@@ -3681,8 +3684,10 @@ class EnergyProgram:
         return self.p0c_interpolator(t_s)
 
     def to_dict(self):
-        return {'t_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
-                'p0c_interpolator': self.p0c_interpolator.to_dict()}
+        return {
+            '__class__': self.__class__.__name__,
+            't_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
+            'p0c_interpolator': self.p0c_interpolator.to_dict()}
 
     @classmethod
     def from_dict(cls, dct):
