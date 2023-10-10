@@ -19,10 +19,10 @@ start_per_part_block = """
     {
     const int64_t start_idx = part0->ipart; //only_for_context cpu_openmp
     const int64_t end_idx = part0->endpart; //only_for_context cpu_openmp
-    
+
     const int64_t start_idx = 0;                                            //only_for_context cpu_serial
     const int64_t end_idx = LocalParticle_get__num_active_particles(part0); //only_for_context cpu_serial
-    
+
     //#pragma omp simd // TODO: currently does not work, needs investigating
     for (int64_t ii=start_idx; ii<end_idx; ii++) { //only_for_context cpu_openmp cpu_serial
 
@@ -31,7 +31,7 @@ start_per_part_block = """
         part->ipart = ii;              //only_for_context cpu_serial cpu_openmp
 
         LocalParticle* part = part0;   //only_for_context opencl cuda
-        
+
         if (LocalParticle_get_state(part) > 0) {  //only_for_context cpu_openmp
 """
 
@@ -113,12 +113,12 @@ def _generate_per_particle_kernel_from_local_particle_function(
                 int64_t part_id = batch_id * chunk_size;                                       //only_for_context cpu_openmp
                 int64_t end_id = (batch_id + 1) * chunk_size;                                  //only_for_context cpu_openmp
                 if (end_id > capacity) end_id = capacity;                                      //only_for_context cpu_openmp
-    
+
                 int64_t part_id = 0;                    //only_for_context cpu_serial
                 int64_t part_id = blockDim.x * blockIdx.x + threadIdx.x; //only_for_context cuda
                 int64_t part_id = get_global_id(0);                    //only_for_context opencl
                 int64_t end_id = 0; // unused outside of openmp  //only_for_context cpu_serial cuda opencl
-    
+
                 int64_t part_capacity = ParticlesData_get__capacity(particles);
                 if (part_id<part_capacity){
                     Particles_to_LocalParticle(particles, &lpart, part_id, end_id);
@@ -132,7 +132,7 @@ def _generate_per_particle_kernel_from_local_particle_function(
                     }
                 }
             } //only_for_context cpu_openmp
-            
+
             // On OpenMP we want to additionally by default reorganize all
             // the particles.
             #ifndef XT_OMP_SKIP_REORGANIZE                             //only_for_context cpu_openmp
