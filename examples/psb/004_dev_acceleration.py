@@ -40,11 +40,12 @@ i_turn = np.zeros_like(e_tot_ev)
 i_turn[1:] = np.cumsum(beta_mid * clight / L * dt_s)
 
 
-ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9, mass0=mass0_eV,
-                   circumference=line.get_length())
+ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 
 # Check to_dict and from_dict
-ep = xt.EnergyProgram.from_dict(ep.to_dict())
+# ep = xt.EnergyProgram.from_dict(ep.to_dict())
+
+line.energy_program = ep
 
 
 p_test = line.build_particles(x=0)

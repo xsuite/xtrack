@@ -56,7 +56,8 @@ class Line:
     _element_dict = None
     config = None
 
-    def __init__(self, elements=(), element_names=None, particle_ref=None):
+    def __init__(self, elements=(), element_names=None, particle_ref=None,
+                 energy_program=None):
         """
         Parameters
         ----------
@@ -128,6 +129,8 @@ class Line:
         self.compound_container = CompoundContainer()
 
         self.particle_ref = particle_ref
+
+        self.energy_program = energy_program # setter will take care of completing
 
         self._var_management = None
         self._line_vars = None
@@ -206,6 +209,10 @@ class Line:
 
         if 'metadata' in dct.keys():
             self.metadata = dct['metadata']
+
+        if ('energy_program' in self.element_dict
+             and self['energy_program'] is not None):
+            self.energy_program.line = self
 
         _print('Done loading line from dict.           ')
 
@@ -3028,6 +3035,24 @@ class Line:
     def twiss_default(self):
         return self._extra_config['twiss_default']
 
+    @property
+    def energy_program(self):
+        try:
+            out = self.element_dict['energy_program']
+        except KeyError:
+            out = None
+        return out
+
+    @energy_program.setter
+    def energy_program(self, value):
+        self.element_dict['energy_program'] = value
+        if self.energy_program is None:
+            return
+        if self.energy_program.needs_complete:
+            self.energy_program.complete_init(self)
+        if self.energy_program.needs_line:
+            self.energy_program.line = self
+
     def __getitem__(self, ii):
         if isinstance(ii, str):
             # if ii in self._compound_relation:
@@ -3634,17 +3659,36 @@ class LineAttr:
         return self._cache[key].get_full_array()
 
 
-
 class EnergyProgram:
 
-    def __init__(self, t_s, circumference, mass0, kinetic_energy0=None, p0c=None):
+    def __init__(self, t_s, kinetic_energy0=None, p0c=None):
 
         assert hasattr (t_s, '__len__'), 't_s must be a list or an array'
 
         assert p0c is not None or kinetic_energy0 is not None, (
             'Either p0c or kinetic_energy0 needs to be provided')
 
+        self.p0c = p0c
+        self.kinetic_energy0 = kinetic_energy0
+        self.t_s = t_s
+        self.needs_complete = True
+        self.needs_line = True
+
+    def complete_init(self, line):
+
+        assert self.needs_complete, 'EnergyProgram already completed'
+
+        p0c = self.p0c
+        kinetic_energy0 = self.kinetic_energy0
+        t_s = self.t_s
+
         enevars = {}
+        assert line is not None, 'line must be provided'
+        assert line.particle_ref is not None, (
+            'line must have a valid particle_ref')
+
+        mass0 = line.particle_ref.mass0
+        circumference = line.get_length()
 
         if p0c is not None:
             assert hasattr (p0c, '__len__'), 'p0c must be a list or an array'
@@ -3676,14 +3720,25 @@ class EnergyProgram:
                                 x=i_turn_at_t_samples, y=t_s)
         self.p0c_interpolator = xd.FunctionPieceWiseLinear(
                                 x=t_s, y=np.array(p.p0c))
+        self.line = line
+
+        self.needs_complete = False
+        self.needs_line = False
+        del self.p0c
+        del self.kinetic_energy0
 
     def get_t_s_at_turn(self, i_turn):
+        assert not self.needs_complete, 'EnergyProgram not complete'
+        assert not self.needs_line, 'EnergyProgram not associated to a line'
         return self.t_at_turn_interpolator(i_turn)
 
     def get_p0c_at_t_s(self, t_s):
+        assert not self.needs_complete, 'EnergyProgram not complete'
+        assert not self.needs_line, 'EnergyProgram not associated to a line'
         return self.p0c_interpolator(t_s)
 
     def to_dict(self):
+        assert not self.needs_complete, 'EnergyProgram not completed'
         return {
             '__class__': self.__class__.__name__,
             't_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
@@ -3696,4 +3751,6 @@ class EnergyProgram:
                                         dct['t_at_turn_interpolator'])
         self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
                                         dct['p0c_interpolator'])
+        self.needs_complete = False
+        self.needs_line = True
         return self
