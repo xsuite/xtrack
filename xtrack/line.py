@@ -131,7 +131,7 @@ class Line:
         self._var_management = None
         self._line_vars = None
         self.tracker = None
-        
+
         self.metadata = {}
 
     @classmethod

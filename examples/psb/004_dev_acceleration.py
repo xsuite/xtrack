@@ -76,14 +76,15 @@ class EnergyProgram:
                                     bet0_mid * clight / circumference * dt_s)
 
         self.t_s = t_s
-        self.i_turn_at_samples = i_turn_at_t_samples
-        self.p0c_at_samples = p.p0c
-
+        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear(
+                                x=i_turn_at_t_samples, y=t_s)
+        self.p0c_interpolator = xd.FunctionPieceWiseLinear(
+                                x=t_s, y=np.array(p.p0c))
     def get_t_s_at_turn(self, i_turn):
-        return np.interp(i_turn, self.i_turn_at_samples, self.t_s)
+        return self.t_at_turn_interpolator(i_turn)
 
     def get_p0c_at_t_s(self, t_s):
-        return np.interp(t_s, self.t_s, self.p0c_at_samples)
+        return self.p0c_interpolator(t_s)
 
 ep = EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9, mass0=mass0_eV,
                    circumference=line.get_length())
