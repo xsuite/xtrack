@@ -75,7 +75,6 @@ class EnergyProgram:
         i_turn_at_t_samples[1:] = np.cumsum(
                                     bet0_mid * clight / circumference * dt_s)
 
-        self.t_s = t_s
         self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear(
                                 x=i_turn_at_t_samples, y=t_s)
         self.p0c_interpolator = xd.FunctionPieceWiseLinear(
@@ -86,8 +85,25 @@ class EnergyProgram:
     def get_p0c_at_t_s(self, t_s):
         return self.p0c_interpolator(t_s)
 
+    def to_dict(self):
+        return {'t_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
+                'p0c_interpolator': self.p0c_interpolator.to_dict()}
+
+    @classmethod
+    def from_dict(cls, dct):
+        self = cls.__new__(cls)
+        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear.from_dict(
+                                        dct['t_at_turn_interpolator'])
+        self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
+                                        dct['p0c_interpolator'])
+        return self
+
+
 ep = EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9, mass0=mass0_eV,
                    circumference=line.get_length())
+
+# Check to_dict and from_dict
+ep = EnergyProgram.from_dict(ep.to_dict())
 
 
 p_test = line.build_particles(x=0)
