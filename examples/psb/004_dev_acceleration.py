@@ -4,6 +4,7 @@ import numpy as np
 from scipy.constants import c as clight
 
 import xtrack as xt
+import xdeps as xd
 
 # REMEMBER:
 # - Handle zero ramp rate
@@ -36,6 +37,52 @@ dt_s = np.diff(t_s)
 i_turn = np.zeros_like(e_tot_ev)
 i_turn[1:] = np.cumsum(beta_mid * clight / L * dt_s)
 
+class EnergyProgram:
+
+    def __init__(self, t_s, circumference, mass0, kinetic_energy0=None, p0c=None):
+
+        assert hasattr (t_s, '__len__'), 't_s must be a list or an array'
+
+        assert p0c is not None or kinetic_energy0 is not None, (
+            'Either p0c or kinetic_energy0 needs to be provided')
+
+        enevars = {}
+
+        if p0c is not None:
+            assert hasattr (p0c, '__len__'), 'p0c must be a list or an array'
+            assert len(t_s) == len(p0c), 't_s and p0c must have same length'
+            enevars['p0c'] = p0c
+
+        if kinetic_energy0 is not None:
+            assert hasattr (kinetic_energy0, '__len__'), (
+                'kinetic_energy0 must be a list or an array')
+            assert len(t_s) == len(kinetic_energy0), (
+                't_s and kinetic_energy0 must have same length')
+
+            energy0 = kinetic_energy0 + mass0
+            enevars['energy0'] = energy0
+
+        # I use a particle to make the conversions
+        p = xt.Particles(**enevars, mass0=mass0)
+        beta0_program = p.beta0
+        bet0_mid = 0.5*(beta0_program[1:] + beta0_program[:-1])
+
+        dt_s = np.diff(t_s)
+
+        i_turn_at_t_samples = np.zeros_like(t_s)
+        i_turn_at_t_samples[1:] = np.cumsum(
+                                    bet0_mid * clight / circumference * dt_s)
+
+        self.t_s = t_s
+        self.i_turn_at_samples = i_turn_at_t_samples
+
+    def get_t_s_at_turn(self, i_turn):
+        return np.interp(i_turn, self.i_turn_at_samples, self.t_s)
+
+ep = EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9, mass0=mass0_eV,
+                   circumference=line.get_length())
+
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
@@ -57,5 +104,9 @@ plt.xlabel('t [s]')
 
 plt.figure(2)
 plt.plot(t_s, i_turn)
+
+i_turn_test = 1000
+t_test = ep.get_t_s_at_turn(i_turn_test)
+plt.plot(t_test, i_turn_test, 'o')
 
 plt.show()
