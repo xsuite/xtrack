@@ -23,6 +23,8 @@ E_kin_GeV = E_min/100 + (E_kin_GeV - E_min)
 t_s = df.t_s.values
 
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
+line.build_tracker()
+
 mass0_eV = line.particle_ref.mass0
 
 e_tot_ev = E_kin_GeV*1e9 + mass0_eV
@@ -75,13 +77,24 @@ class EnergyProgram:
 
         self.t_s = t_s
         self.i_turn_at_samples = i_turn_at_t_samples
+        self.p0c_at_samples = p.p0c
 
     def get_t_s_at_turn(self, i_turn):
         return np.interp(i_turn, self.i_turn_at_samples, self.t_s)
 
+    def get_p0c_at_t_s(self, t_s):
+        return np.interp(t_s, self.t_s, self.p0c_at_samples)
+
 ep = EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9, mass0=mass0_eV,
                    circumference=line.get_length())
 
+
+p_test = line.build_particles(x=0)
+
+t_test = 40e-3
+p0c_test = ep.get_p0c_at_t_s(t_test)
+p_test.update_p0c_and_energy_deviations(p0c_test)
+ekin_test = p_test.energy0[0] - p_test.mass0
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -89,6 +102,7 @@ plt.close('all')
 plt.figure(1)
 sp_ekin = plt.subplot(3,1,1)
 plt.plot(t_s, E_kin_GeV)
+plt.plot(t_test, ekin_test*1e-9, 'o')
 plt.ylabel(r'$E_{kin}$ [GeV]')
 
 sp_dekin = plt.subplot(3,1,2, sharex=sp_ekin)
