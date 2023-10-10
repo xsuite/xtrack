@@ -13,6 +13,12 @@ fname = 'RF_DoubleHarm.dat'
 df = pd.read_csv(fname, sep='\t', skiprows=2,
     names=['t_s', 'E_kin_GeV', 'V1_MV', 'phi1_rad', 'V2_MV', 'phi2_rad'])
 E_kin_GeV = df.E_kin_GeV.values
+
+# Stretch it to enhance change in revolution frequency
+E_min = np.min(E_kin_GeV)
+E_max = np.max(E_kin_GeV)
+E_kin_GeV = E_min/100 + (E_kin_GeV - E_min)
+
 t_s = df.t_s.values
 
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
@@ -48,5 +54,8 @@ sp_beta = plt.subplot(3,1,3, sharex=sp_ekin)
 plt.plot(t_s, beta)
 plt.ylabel(r'$\beta$')
 plt.xlabel('t [s]')
+
+plt.figure(2)
+plt.plot(t_s, i_turn)
 
 plt.show()
