@@ -25,25 +25,22 @@ t_s = df.t_s.values + 5e-3
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
 
-mass0_eV = line.particle_ref.mass0
-
-e_tot_ev = E_kin_GeV*1e9 + mass0_eV
-gamma = e_tot_ev/mass0_eV
-beta = np.sqrt(1 - 1/gamma**2)
-
-beta_mid = 0.5*(beta[1:] + beta[:-1])
-L = line.get_length()
-
-dt_s = np.diff(t_s)
-
-i_turn = np.zeros_like(e_tot_ev)
-i_turn[1:] = np.cumsum(beta_mid * clight / L * dt_s)
-
-
+# Attach energy program
 ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 line.energy_program = ep
 
+# Test tracking
+line.enable_time_dependent_vars = True
 p_test = line.build_particles(x=0)
+assert np.isclose(p_test.energy0[0] - p_test.mass0,  E_kin_GeV[0] * 1e9,
+                  atol=0, rtol=1e-10)
+
+n_turn_test = 5000
+for ii in range(n_turn_test):
+    if ii % 10 == 0:
+        print(f'Tracking turn {ii}/{n_turn_test}     ', end='\r', flush=True)
+    line.track(p_test)
+
 
 t_test = 40e-3
 p0c_test = ep.get_p0c_at_t_s(t_test)
