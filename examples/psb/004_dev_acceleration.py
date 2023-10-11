@@ -25,7 +25,7 @@ t_s = df.t_s.values
 
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
-line['br1.acwf7l1.1'].voltage = 3e3
+line['br1.acwf7l1.1'].voltage = 5e3
 line['br1.acwf7l1.1'].frequency = 1e6
 
 tw6d = line.twiss(method='6d')
@@ -37,13 +37,13 @@ line.energy_program = ep
 tw = line.twiss()
 
 # Test tracking
-line.enable_time_dependent_vars = True
-p_test = line.build_particles(x=0)
+p_test = line.build_particles(x_norm=0, zeta=np.linspace(0, 100., 20))
 assert np.isclose(p_test.energy0[0] - p_test.mass0,  E_kin_GeV[0] * 1e9,
                   atol=0, rtol=1e-10)
 
+line.enable_time_dependent_vars = True
 n_turn_test = 10000
-monitor = xt.ParticlesMonitor(num_particles=1, start_at_turn=0,
+monitor = xt.ParticlesMonitor(num_particles=len(p_test.zeta), start_at_turn=0,
                               stop_at_turn=n_turn_test)
 for ii in range(n_turn_test):
     if ii % 10 == 0:
@@ -84,5 +84,12 @@ plt.plot(t_turn, np.arange(n_turn_test))
 i_turn_test = 1000
 t_test_set = ep.get_t_s_at_turn(i_turn_test)
 plt.plot(t_test_set, i_turn_test, 'o')
+
+plt.figure(3)
+colors = plt.cm.jet(np.linspace(0,1, len(p_test.zeta)))
+for ii in range(len(colors)):
+    plt.plot(monitor.zeta[ii, :], monitor.delta[ii, :], color=colors[ii])
+plt.xlim(-300, 300)
+plt.ylim(-5e-3, 5e-3)
 
 plt.show()
