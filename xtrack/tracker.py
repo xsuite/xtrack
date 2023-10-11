@@ -820,6 +820,7 @@ class Tracker:
                 if not(tt_resume is not None and tt == tt_resume):
                     monitor.track(particles)
 
+            # Time dependent vars and energy ramping
             if self.line.enable_time_dependent_vars:
                 # Find first active particle
                 state = particles.state
@@ -830,11 +831,13 @@ class Tracker:
                     # No active particles
                     break
 
-                # Needs to be generalized for acceleration
-                beta0 = particles._xobject.beta0[ii_first_active]
                 at_turn = particles._xobject.at_turn[ii_first_active]
-                t_turn = (at_turn * self._tracker_data_base.line_length
-                          / (beta0 * clight))
+                if self.line.energy_program is not None:
+                    t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
+                else:
+                    beta0 = particles._xobject.beta0[ii_first_active]
+                    t_turn = (at_turn * self._tracker_data_base.line_length
+                            / (beta0 * clight))
 
                 if (self.line._t_last_update_time_dependent_vars is None
                     or self.line.dt_update_time_dependent_vars is None
@@ -842,6 +845,9 @@ class Tracker:
                                 + self.line.dt_update_time_dependent_vars):
                     self.line._t_last_update_time_dependent_vars = t_turn
                     self.vars['t_turn_s'] = t_turn
+                    if self.line.energy_program is not None:
+                        p0c = self.line.particle_ref._xobject.p0c[0]
+                        particles.update_p0c_and_energy_deviations(p0c)
 
             moveback_to_buffer = None
             moveback_to_offset = None
