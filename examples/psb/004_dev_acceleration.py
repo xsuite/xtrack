@@ -47,6 +47,8 @@ ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 
 line.energy_program = ep
 
+# Connect energy program to main time variable
+line.element_refs['energy_program'].t_turn_s_line = line.vars['t_turn_s']
 
 p_test = line.build_particles(x=0)
 
@@ -79,7 +81,7 @@ plt.figure(2)
 plt.plot(t_s, i_turn)
 
 i_turn_test = 1000
-t_test = ep.get_t_s_at_turn(i_turn_test)
-plt.plot(t_test, i_turn_test, 'o')
+t_test_set = ep.get_t_s_at_turn(i_turn_test)
+plt.plot(t_test_set, i_turn_test, 'o')
 
 plt.show()
