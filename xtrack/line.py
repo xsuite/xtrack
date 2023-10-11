@@ -3045,9 +3045,9 @@ class Line:
 
     @energy_program.setter
     def energy_program(self, value):
-        self.element_dict['energy_program'] = value
         if self.energy_program is None:
             return
+        self.element_dict['energy_program'] = value
         assert self.vars is not None, (
             'Xdeps expression need to be enabled to use `energy_program`')
         if self.energy_program.needs_complete:
