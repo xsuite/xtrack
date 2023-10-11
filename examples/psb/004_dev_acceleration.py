@@ -25,7 +25,7 @@ t_s = df.t_s.values
 
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
-line['br1.acwf7l1.1'].voltage = 5e3
+line['br1.acwf7l1.1'].voltage = 2e3
 
 # Attach energy program
 ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
@@ -43,6 +43,7 @@ tw6d = line.twiss(method='6d')
 t_rev = []
 qs = []
 zeta_co = []
+beta0 = []
 for ii in range(len(t_s)):
     print(f'Computing twiss at t_s = {t_s[ii]:.4} s    ', end='\r', flush=True)
     line.vars['t_turn_s'] = t_s[ii]
@@ -50,6 +51,22 @@ for ii in range(len(t_s)):
     t_rev.append(tt.T_rev0)
     qs.append(tt.qs)
     zeta_co.append(tt.zeta[0])
+    beta0 = tt.beta0
+
+line.vars['t_turn_s'] = 0
+
+t_rev = np.array(t_rev)
+qs = np.array(qs)
+zeta_co = np.array(zeta_co)
+beta0 = np.array(beta0)
+
+f1 = 1/t_rev
+phis_1_deg = 2 * np.pi * f1 * zeta_co / beta0 / clight * 360 / 2 / np.pi
+
+line.functions['fun_phi1'] = xd.FunctionPieceWiseLinear(x=t_s, y=-phis_1_deg)
+line.vars['phi1_deg'] = line.functions['fun_phi1'](line.vars['t_turn_s'])
+
+line.element_refs['br1.acwf7l1.1'].lag = line.vars['phi1_deg']
 
 
 
@@ -88,7 +105,7 @@ plt.ylabel(r'$E_{kin}$ [GeV]')
 
 sp_dekin = plt.subplot(3,1,2, sharex=sp_ekin)
 # GeV/sec
-dekin = (E_kin_GeV[1:] - E_kin_GeV[:-1])/(t_s[1:] - t_s[:-1])*1e3
+dekin = (E_kin_GeV[1:] - E_kin_GeV[:-1])/(t_s[1:] - t_s[:-1])
 plt.plot(t_s[:-1], dekin)
 plt.ylabel(r'd$E_{kin}$/dt [GeV/s]')
 
