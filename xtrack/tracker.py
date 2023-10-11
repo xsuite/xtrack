@@ -697,7 +697,7 @@ class Tracker:
         ret = None
         skip = False
         stop_tracking = False
-        
+
         if tt == 0 and ipp < self._element_part[ele_start]:
             # Do not track before ele_start in the first turn
             skip = True
@@ -873,7 +873,7 @@ class Tracker:
                                             particles, pp,
                                             moveback_to_buffer, moveback_to_offset,
                                             _context_needs_clean_active_lost_state)
-                
+
                 if monitor is not None and monitor.ebe_mode == 1:
                     monitor_part = monitor
                 else:
