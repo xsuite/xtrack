@@ -41,14 +41,7 @@ i_turn[1:] = np.cumsum(beta_mid * clight / L * dt_s)
 
 
 ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
-
-# Check to_dict and from_dict
-# ep = xt.EnergyProgram.from_dict(ep.to_dict())
-
 line.energy_program = ep
-
-# Connect energy program to main time variable
-line.element_refs['energy_program'].t_turn_s_line = line.vars['t_turn_s']
 
 p_test = line.build_particles(x=0)
 

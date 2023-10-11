@@ -3048,10 +3048,13 @@ class Line:
         self.element_dict['energy_program'] = value
         if self.energy_program is None:
             return
+        assert self.vars is not None, (
+            'Xdeps expression need to be enabled to use `energy_program`')
         if self.energy_program.needs_complete:
             self.energy_program.complete_init(self)
         if self.energy_program.needs_line:
             self.energy_program.line = self
+        self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
