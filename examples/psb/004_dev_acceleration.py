@@ -40,6 +40,19 @@ line.element_refs['br1.acwf7l1.1'].frequency = line.vars['f_rev'] # cavity on h=
 
 tw6d = line.twiss(method='6d')
 
+t_rev = []
+qs = []
+zeta_co = []
+for ii in range(len(t_s)):
+    print(f'Computing twiss at t_s = {t_s[ii]:.4} s    ', end='\r', flush=True)
+    line.vars['t_turn_s'] = t_s[ii]
+    tt = line.twiss(method='6d')
+    t_rev.append(tt.T_rev0)
+    qs.append(tt.qs)
+    zeta_co.append(tt.zeta[0])
+
+
+
 tw = line.twiss()
 
 # Test tracking
