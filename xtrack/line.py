@@ -3045,7 +3045,7 @@ class Line:
 
     @energy_program.setter
     def energy_program(self, value):
-        if self.energy_program is None:
+        if value is None:
             if 'energy_program' in self.element_dict:
                 del self.element_dict['energy_program']
             return
@@ -3747,6 +3747,13 @@ class EnergyProgram:
         # I use a particle to make the conversions
         p = xt.Particles(p0c=p0c, mass0=self.line.particle_ref.mass0)
         return p.beta0
+
+    def get_p0c_increse_per_turn_at_t_s(self, t_s):
+        beta0 = self.get_beta0_at_t_s(t_s)
+        circumference = self.line.get_length()
+        T_rev = circumference / (beta0 * clight)
+        return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
+                      - self.get_p0c_at_t_s(t_s - T_rev))
 
     @property
     def t_turn_s_line(self):
