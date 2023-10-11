@@ -355,7 +355,6 @@ class PerParticlePyMethod:
                io_buffer=io_buffer_arr,
                **kwargs)
 
-
 class PerParticlePyMethodDescriptor:
     def __init__(self, kernel_name, additional_arg_names):
         self.kernel_name = kernel_name
