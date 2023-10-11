@@ -3740,6 +3740,12 @@ class EnergyProgram:
         assert not self.needs_line, 'EnergyProgram not associated to a line'
         return self.p0c_interpolator(t_s)
 
+    def get_beta0_at_t_s(self, t_s):
+        p0c = self.get_p0c_at_t_s(t_s)
+        # I use a particle to make the conversions
+        p = xt.Particles(p0c=p0c, mass0=self.line.particle_ref.mass0)
+        return p.beta0
+
     @property
     def t_turn_s_line(self):
         raise ValueError('only setter allowed')
