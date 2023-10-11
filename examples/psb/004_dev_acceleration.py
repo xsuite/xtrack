@@ -26,13 +26,19 @@ t_s = df.t_s.values
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()
 line['br1.acwf7l1.1'].voltage = 5e3
-line['br1.acwf7l1.1'].frequency = 1e6
-
-tw6d = line.twiss(method='6d')
 
 # Attach energy program
 ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 line.energy_program = ep
+
+beta0_at_t_s = line.energy_program.get_beta0_at_t_s(t_s)
+f_rev = beta0_at_t_s * clight / line.get_length()
+
+line.functions['fun_f_rev'] = xd.FunctionPieceWiseLinear(x=t_s, y=f_rev)
+line.vars['f_rev'] = line.functions['fun_f_rev'](line.vars['t_turn_s'])
+line.element_refs['br1.acwf7l1.1'].frequency = line.vars['f_rev'] # cavity on h=1
+
+tw6d = line.twiss(method='6d')
 
 tw = line.twiss()
 
