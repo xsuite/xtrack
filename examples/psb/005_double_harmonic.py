@@ -32,12 +32,12 @@ line.vars['freq_h2'] = 2 * line.vars['freq_rev']
 
 # voltage programs
 
-# Shift phase by 180 deg (to have the beam centered around zero)
+# Shift phases to have the beam centered around zero
 
 V1_MV = df.V1_MV.values
 V2_MV = df.V2_MV.values
-phi1_rad = df.phi1_rad.values - np.pi
-phi2_rad = df.phi2_rad.values - np.pi
+phi1_rad = df.phi1_rad.values # - np.pi
+phi2_rad = df.phi2_rad.values # - np.pi
 
 line.functions['fun_volt_mv_h1'] = xd.FunctionPieceWiseLinear(x=t_s, y=V1_MV)
 line.functions['fun_volt_mv_h2'] = xd.FunctionPieceWiseLinear(x=t_s, y=V2_MV)
@@ -114,6 +114,7 @@ ekin_test = p_test.energy0[0] - p_test.mass0
 
 t_turn = line.energy_program.get_t_s_at_turn(np.arange(n_turn_test))
 
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
@@ -134,12 +135,25 @@ plt.plot(t_turn, monitor.beta0.T)
 plt.ylabel(r'$\beta$')
 plt.xlabel('t [s]')
 
+# plot rf parameters
 plt.figure(2)
-plt.plot(t_turn, np.arange(n_turn_test))
+plt.subplot(3,1,1)
+plt.plot(t_s, f_h1, label='h1')
+plt.plot(t_s, f_h2, label='h2')
+plt.ylabel('frequency [Hz]')
+plt.legend()
+plt.subplot(3,1,2)
+plt.plot(t_s, lag_h1, label='h1')
+plt.plot(t_s, lag_h2, label='h2')
+plt.ylabel('lag [deg]')
+plt.legend()
 
-i_turn_test = 1000
-t_test_set = ep.get_t_s_at_turn(i_turn_test)
-plt.plot(t_test_set, i_turn_test, 'o')
+plt.subplot(3,1,3)
+plt.plot(t_s, volt_h1, label='h1')
+plt.plot(t_s, volt_h2, label='h2')
+plt.ylabel('voltage [V]')
+plt.legend()
+plt.xlabel('t [s]')
 
 plt.figure(3)
 colors = plt.cm.jet(np.linspace(0,1, len(p_test.zeta)))
