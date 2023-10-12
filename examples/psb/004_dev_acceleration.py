@@ -31,8 +31,7 @@ line['br1.acwf7l1.1'].voltage = 2e3
 ep = xt.EnergyProgram(t_s=t_s, kinetic_energy0=E_kin_GeV*1e9)
 line.energy_program = ep
 
-beta0_at_t_s = line.energy_program.get_beta0_at_t_s(t_s)
-f_rev = beta0_at_t_s * clight / line.get_length()
+f_rev = line.energy_program.get_frev_at_t_s(t_s)
 
 line.functions['fun_f_rev'] = xd.FunctionPieceWiseLinear(x=t_s, y=f_rev)
 line.vars['f_rev'] = line.functions['fun_f_rev'](line.vars['t_turn_s'])
