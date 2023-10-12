@@ -68,8 +68,6 @@ line.vars['phi1_deg'] = line.functions['fun_phi1'](line.vars['t_turn_s'])
 
 line.element_refs['br1.acwf7l1.1'].lag = line.vars['phi1_deg']
 
-
-
 tw = line.twiss()
 
 # Test tracking
