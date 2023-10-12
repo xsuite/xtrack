@@ -3751,6 +3751,11 @@ class EnergyProgram:
         else:
             return p.beta0
 
+    def get_frev_at_t_s(self, t_s):
+        beta0 = self.get_beta0_at_t_s(t_s)
+        circumference = self.line.get_length()
+        return beta0 * clight / circumference
+
     def get_p0c_increse_per_turn_at_t_s(self, t_s):
         beta0 = self.get_beta0_at_t_s(t_s)
         circumference = self.line.get_length()
