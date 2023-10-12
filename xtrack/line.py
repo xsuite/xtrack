@@ -431,6 +431,7 @@ class Line:
         ignored_madtypes=(),
         allow_thick=False,
         use_compound_elements=True,
+        name_prefix=None,
     ):
 
         """
@@ -502,6 +503,7 @@ class Line:
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
             use_compound_elements=use_compound_elements,
+            name_prefix=name_prefix
         )
         line = loader.make_line()
         return line
