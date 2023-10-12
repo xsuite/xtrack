@@ -688,6 +688,7 @@ class MadLoader:
         nelem = len(self.sequence.expanded_elements)
 
         for ii, el in enumerate(self.iter_elements(madeval=madeval)):
+
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
@@ -866,7 +867,7 @@ class MadLoader:
         l_curv = mad_el.l
         h = mad_el.angle / l_curv
 
-        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and mad_el.angle:
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and value_if_expr(mad_el.angle):
             R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
             l_curv = R * mad_el.angle
             h = 1 / R
