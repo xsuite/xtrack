@@ -3719,8 +3719,9 @@ class EnergyProgram:
         dt_s = np.diff(t_s)
 
         i_turn_at_t_samples = np.zeros_like(t_s)
-        i_turn_at_t_samples[1:] = np.cumsum(
-                                    bet0_mid * clight / circumference * dt_s)
+        i_turn_at_t_samples[1:] = (
+            beta0_program[0] * clight / circumference * t_s[0] +
+            np.cumsum(bet0_mid * clight / circumference * dt_s))
         # In this way i_turn = 0 corresponds to t_s[0]
 
         self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear(
