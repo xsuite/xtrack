@@ -73,6 +73,10 @@ frev_check = line.energy_program.get_frev_at_t_s(t_check)
 frev_ref = np.interp(t_check, t_turn_check[:-1], 1/np.diff(t_turn_ref))
 assert np.allclose(frev_check, frev_ref, atol=0, rtol=4e-5)
 
+p0c_increse_per_turn_check = line.energy_program.get_p0c_increse_per_turn_at_t_s(t_check)
+p0c_increse_per_turn_ref = np.interp(t_check, t_turn_check[:-1], np.diff(monitor.p0c[0, :]))
+assert np.allclose(p0c_increse_per_turn_check, p0c_increse_per_turn_ref, atol=0, rtol=1e-3)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.plot(beta_at_turn, '.')
