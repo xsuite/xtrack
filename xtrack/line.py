@@ -3675,6 +3675,8 @@ class EnergyProgram:
         assert p0c is not None or kinetic_energy0 is not None, (
             'Either p0c or kinetic_energy0 needs to be provided')
 
+        assert np.isclose(t_s[0], 0, rtol=0, atol=1e-12), 't_s must start from 0'
+
         self.p0c = p0c
         self.kinetic_energy0 = kinetic_energy0
         self.t_s = t_s
