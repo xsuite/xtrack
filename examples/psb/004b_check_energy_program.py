@@ -21,7 +21,7 @@ E_min = np.min(E_kin_GeV)
 E_max = np.max(E_kin_GeV)
 E_kin_GeV = E_min/100 + (E_kin_GeV - E_min)
 # Shift the time scale for testing purposes
-t_s = t_s + 5e-3
+t_s = t_s
 
 line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
 line.build_tracker()

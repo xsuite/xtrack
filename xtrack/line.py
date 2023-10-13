@@ -3740,7 +3740,9 @@ class EnergyProgram:
     def get_t_s_at_turn(self, i_turn):
         assert not self.needs_complete, 'EnergyProgram not complete'
         assert not self.needs_line, 'EnergyProgram not associated to a line'
-        return self.t_at_turn_interpolator(i_turn)
+        out = self.t_at_turn_interpolator(i_turn)
+
+        return out
 
     def get_p0c_at_t_s(self, t_s):
         assert not self.needs_complete, 'EnergyProgram not complete'
