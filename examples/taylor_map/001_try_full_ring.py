@@ -10,37 +10,7 @@ line.vars['acbv21.l7b1'] = 10e-6
 
 ele_cut = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']
 
-ele_cut_ext = ele_cut.copy()
-if line.element_names[0] not in ele_cut_ext:
-    ele_cut_ext.insert(0, line.element_names[0])
-if line.element_names[-1] not in ele_cut_ext:
-    ele_cut_ext.append(line.element_names[-1])
-
-ele_cut_sorted = []
-for ee in line.element_names:
-    if ee in ele_cut_ext:
-        ele_cut_sorted.append(ee)
-
-elements_map_line = []
-names_map_line = []
-tw = line.twiss()
-
-for ii in range(len(ele_cut_sorted)-1):
-    names_map_line.append(ele_cut_sorted[ii])
-    elements_map_line.append(line[ele_cut_sorted[ii]])
-
-    smap = xt.SecondOrderTaylorMap.from_line(
-                            line, ele_start=ele_cut_sorted[ii],
-                            ele_stop=ele_cut_sorted[ii+1],
-                            twiss_table=tw)
-    names_map_line.append(f'map_{ii}')
-    elements_map_line.append(smap)
-
-names_map_line.append(ele_cut_sorted[-1])
-elements_map_line.append(line[ele_cut_sorted[-1]])
-
-line_maps = xt.Line(elements=elements_map_line, element_names=names_map_line)
-line_maps.particle_ref = line.particle_ref.copy()
+line_maps = line.get_line_with_second_order_maps(split_at=ele_cut)
 
 tw = line.twiss()
 tw_map = line_maps.twiss()

@@ -2752,6 +2752,57 @@ class Line:
         else:
             return newline
 
+    def get_line_with_second_order_maps(self, split_at):
+
+        '''
+        Return a new lines with segments definded by the elements in `split_at`
+        replaced by second order maps.
+
+        Parameters
+        ----------
+        split_at : list of str
+            Names of elements at which to split the line.
+
+        Returns
+        -------
+        line_maps : Line
+            Line with segments replaced by second order maps.
+        '''
+
+        ele_cut_ext = split_at.copy()
+        if self.element_names[0] not in ele_cut_ext:
+            ele_cut_ext.insert(0, self.element_names[0])
+        if self.element_names[-1] not in ele_cut_ext:
+            ele_cut_ext.append(self.element_names[-1])
+
+        ele_cut_sorted = []
+        for ee in self.element_names:
+            if ee in ele_cut_ext:
+                ele_cut_sorted.append(ee)
+
+        elements_map_line = []
+        names_map_line = []
+        tw = self.twiss()
+
+        for ii in range(len(ele_cut_sorted)-1):
+            names_map_line.append(ele_cut_sorted[ii])
+            elements_map_line.append(self[ele_cut_sorted[ii]])
+
+            smap = xt.SecondOrderTaylorMap.from_line(
+                                    self, ele_start=ele_cut_sorted[ii],
+                                    ele_stop=ele_cut_sorted[ii+1],
+                                    twiss_table=tw)
+            names_map_line.append(f'map_{ii}')
+            elements_map_line.append(smap)
+
+        names_map_line.append(ele_cut_sorted[-1])
+        elements_map_line.append(self[ele_cut_sorted[-1]])
+
+        line_maps = xt.Line(elements=elements_map_line, element_names=names_map_line)
+        line_maps.particle_ref = self.particle_ref.copy()
+
+        return line_maps
+
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
