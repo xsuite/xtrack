@@ -8,51 +8,6 @@ line.vars['lagrf400.b1'] = 0.5
 # line.vars['acbh22.l7b1'] = 10e-6
 line.vars['acbv21.l7b1'] = 10e-6
 
-def build_tailor_map(line, ele_start, ele_stop, twiss_table):
-
-    if twiss_table is None:
-        tw = line.twiss()
-    else:
-        tw = line.twiss(reverse=False)
-
-    twinit = tw.get_twiss_init(ele_start)
-    twinit_out = tw.get_twiss_init(ele_stop)
-
-    RR = line.compute_one_turn_matrix_finite_differences(
-        ele_start=ele_start, ele_stop=ele_stop, particle_on_co=twinit.particle_on_co
-        )['R_matrix']
-    TT = line.compute_T_matrix(ele_start=ele_start, ele_stop=ele_stop,
-                                particle_on_co=twinit.particle_on_co)
-
-    x_co_in = np.array([
-        twinit.particle_on_co.x[0],
-        twinit.particle_on_co.px[0],
-        twinit.particle_on_co.y[0],
-        twinit.particle_on_co.py[0],
-        twinit.particle_on_co.zeta[0],
-        twinit.particle_on_co.pzeta[0],
-    ])
-
-    x_co_out = np.array([
-        twinit_out.particle_on_co.x[0],
-        twinit_out.particle_on_co.px[0],
-        twinit_out.particle_on_co.y[0],
-        twinit_out.particle_on_co.py[0],
-        twinit_out.particle_on_co.zeta[0],
-        twinit_out.particle_on_co.pzeta[0],
-    ])
-
-    R_T_fd = np.einsum('ijk,k->ij', TT, x_co_in)
-    K_T_fd = R_T_fd @ x_co_in
-
-    K_hat = x_co_out - RR @ x_co_in + K_T_fd
-    RR_hat = RR - 2 * R_T_fd
-
-    smap = xt.SecondOrderTaylorMap(R=RR_hat, T=TT, k=K_hat,
-                        length=tw['s', ele_stop] - tw['s', ele_start])
-
-    return smap
-
 ele_cut = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']
 
 ele_cut_ext = ele_cut.copy()
@@ -74,7 +29,8 @@ for ii in range(len(ele_cut_sorted)-1):
     names_map_line.append(ele_cut_sorted[ii])
     elements_map_line.append(line[ele_cut_sorted[ii]])
 
-    smap = build_tailor_map(line, ele_start=ele_cut_sorted[ii],
+    smap = xt.SecondOrderTaylorMap.from_line(
+                            line, ele_start=ele_cut_sorted[ii],
                             ele_stop=ele_cut_sorted[ii+1],
                             twiss_table=tw)
     names_map_line.append(f'map_{ii}')
