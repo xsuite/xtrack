@@ -47,11 +47,17 @@ for ii in range(n_turn_test):
 beta_at_turn = monitor.beta0[0, :]
 
 t_turn_ref = np.cumsum(line.get_length()/clight/beta_at_turn)
+t_turn_ref = t_turn_ref - t_turn_ref[0]
 E_kin_turn = line.particle_ref.mass0 * (monitor.gamma0[0, :] - 1)
 
 t_check = np.linspace(0, 20e-3, 1000)
 E_check = np.interp(t_check, t_turn_ref, E_kin_turn)
 E_check_ref = np.interp(t_check, t_s, E_kin_GeV*1e9)
+
+t_turn_check = line.energy_program.get_t_s_at_turn(np.arange(n_turn_test))
+assert np.allclose(t_turn_check, t_turn_ref, atol=0, rtol=5e-3)
+
+assert np.allclose(E_check, E_check_ref, atol=0, rtol=5e-3)
 
 import matplotlib.pyplot as plt
 plt.close('all')
