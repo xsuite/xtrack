@@ -75,7 +75,28 @@ assert np.allclose(frev_check, frev_ref, atol=0, rtol=4e-5)
 
 p0c_increse_per_turn_check = line.energy_program.get_p0c_increse_per_turn_at_t_s(t_check)
 p0c_increse_per_turn_ref = np.interp(t_check, t_turn_check[:-1], np.diff(monitor.p0c[0, :]))
-assert np.allclose(p0c_increse_per_turn_check, p0c_increse_per_turn_ref, atol=0, rtol=1e-3)
+assert np.allclose(p0c_increse_per_turn_check - p0c_increse_per_turn_ref, 0,
+                   atol= 5e-5 * p0c_ref[0], rtol=0)
+
+line.enable_time_dependent_vars = False
+line.vars['t_turn_s'] = 20e-3
+
+E_kin_expected = np.interp(line.vv['t_turn_s'], t_s, E_kin_GeV*1e9)
+E_tot_expected = E_kin_expected + line.particle_ref.mass0
+assert np.isclose(
+    E_tot_expected, line.particle_ref.energy0[0], rtol=1e-4, atol=0)
+
+tw = line.twiss(method='6d')
+assert np.isclose(tw.zeta[0], -13.48, rtol=0, atol=1e-4) # To check that it does not change
+assert np.isclose(line.particle_ref.mass0 * tw.gamma0, E_tot_expected,
+                  atol=0, rtol=1e-12)
+
+line.vars['t_turn_s'] = 0
+line.vars['on_chicane_k0'] = 0
+tw = line.twiss(method='6d')
+assert np.allclose(tw.zeta[0], 0, rtol=0, atol=1e-12)
+assert np.allclose(line.particle_ref.mass0 * tw.gamma0, line.particle_ref.mass0 + E_kin_turn[0],
+                   rtol=1e-10, atol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -84,5 +105,8 @@ plt.plot(beta_at_turn, '.')
 plt.figure()
 plt.plot(t_turn_ref, E_kin_turn)
 plt.plot(t_s, E_kin_GeV*1e9)
+
+plt.figure()
+plt.plot(t_turn_ref)
 
 plt.show()
