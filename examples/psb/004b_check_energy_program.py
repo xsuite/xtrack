@@ -45,6 +45,7 @@ for ii in range(n_turn_test):
     line.track(p_test, turn_by_turn_monitor=monitor)
 
 beta_at_turn = monitor.beta0[0, :]
+gamma_at_turn = 1 / np.sqrt(1 - beta_at_turn**2)
 
 t_turn_ref = np.cumsum(line.get_length()/clight/beta_at_turn)
 t_turn_ref = t_turn_ref - t_turn_ref[0]
@@ -53,11 +54,24 @@ E_kin_turn = line.particle_ref.mass0 * (monitor.gamma0[0, :] - 1)
 t_check = np.linspace(0, 20e-3, 1000)
 E_check = np.interp(t_check, t_turn_ref, E_kin_turn)
 E_check_ref = np.interp(t_check, t_s, E_kin_GeV*1e9)
+assert np.allclose(E_check, E_check_ref, atol=0, rtol=2e-3)
 
 t_turn_check = line.energy_program.get_t_s_at_turn(np.arange(n_turn_test))
-assert np.allclose(t_turn_check, t_turn_ref, atol=0, rtol=5e-3)
+assert np.allclose(t_turn_check, t_turn_ref, atol=0, rtol=6e-4)
 
-assert np.allclose(E_check, E_check_ref, atol=0, rtol=5e-3)
+p0c_check = line.energy_program.get_p0c_at_t_s(t_check)
+p0c_ref = np.interp(t_check,
+    t_turn_check,
+    line.particle_ref.mass0 * gamma_at_turn * beta_at_turn)
+assert np.allclose(p0c_check, p0c_ref, atol=0, rtol=1e-3)
+
+beta0_check = line.energy_program.get_beta0_at_t_s(t_check)
+beta0_ref = np.interp(t_check, t_turn_check, beta_at_turn)
+assert np.allclose(beta0_check, beta0_ref, atol=0, rtol=1e-3)
+
+frev_check = line.energy_program.get_frev_at_t_s(t_check)
+frev_ref = np.interp(t_check, t_turn_check[:-1], 1/np.diff(t_turn_ref))
+assert np.allclose(frev_check, frev_ref, atol=0, rtol=4e-5)
 
 import matplotlib.pyplot as plt
 plt.close('all')
