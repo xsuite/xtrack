@@ -2556,6 +2556,8 @@ class Line:
             ee = self.element_dict[name]
             if _allow_backtrack(ee) and not name in needs_aperture:
                 dont_need_aperture[name] = True
+            if name.endswith('_entry') or name.endswith('_exit'):
+                dont_need_aperture[name] = True
 
             # Correct isthick for elements that need aperture but have zero length.
             # Use-case example: Before collimators are installed as EverestCollimator
