@@ -89,7 +89,7 @@ def test_energy_program(test_context):
     line.enable_time_dependent_vars = True
     n_turn_test = 5000
     monitor = xt.ParticlesMonitor(num_particles=len(p_test.zeta), start_at_turn=0,
-                            stop_at_turn=n_turn_test
+                            stop_at_turn=n_turn_test,
                             _context=test_context)
     for ii in range(n_turn_test):
         line.track(p_test, turn_by_turn_monitor=monitor)
