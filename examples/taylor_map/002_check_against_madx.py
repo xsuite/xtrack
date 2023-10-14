@@ -12,6 +12,8 @@ orbit_settings = {
     'acbh20.r3b2': 10e-6,
 }
 
+# Generate Xsuite maps
+
 collider = xt.Multiline.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.vars.update(orbit_settings)
@@ -25,12 +27,12 @@ map_b4 = xt.SecondOrderTaylorMap.from_line(
     line=collider.lhcb2, ele_start='ip4', ele_stop='ip3')
 map_b2_reflected = map_b4.scale_coordinates(scale_x=-1, scale_px=-1)
 
+# Generate MAD-X maps
+
 mad = Madx()
 mad.input(f"""
 call,file="../../test_data/hllhc15_thick/lhc.seq";
 call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
-!seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
-!seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
 beam, sequence=lhcb2, particle=proton, pc=7000, bv=-1;
 call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
@@ -57,6 +59,8 @@ select, flag=sectormap, pattern='ip';
 twiss, sectormap, sectorpure, sectortable=secttab_b2;
 ''')
 sectmad_b2  = xd.Table(mad.table.secttab_b2)
+
+# Compare
 
 for line_name in ['lhcb1', 'lhcb2']:
 
