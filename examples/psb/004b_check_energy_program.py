@@ -8,12 +8,9 @@ from cpymad.madx import Madx
 import xtrack as xt
 import xdeps as xd
 
-# REMEMBER:
-# - Handle zero ramp rate
 
-fname = 'RF_DoubleHarm.dat'
-
-df = pd.read_csv(fname, sep='\t', skiprows=2,
+df = pd.read_csv('../../test_data/psb_chicane/Ramp_and_RF_functions.dat',
+    sep='\t', skiprows=2,
     names=['t_s', 'E_kin_GeV', 'V1_MV', 'phi1_rad', 'V2_MV', 'phi2_rad'])
 E_kin_GeV = df.E_kin_GeV.values
 t_s = df.t_s.values

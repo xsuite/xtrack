@@ -9,7 +9,7 @@ import xdeps as xd
 # REMEMBER:
 # - Handle zero ramp rate
 
-fname = 'RF_DoubleHarm.dat'
+fname = '../../test_data/psb_chicane/Ramp_and_RF_functions.dat'
 
 df = pd.read_csv(fname, sep='\t', skiprows=2,
     names=['t_s', 'E_kin_GeV', 'V1_MV', 'phi1_rad', 'V2_MV', 'phi2_rad'])
@@ -35,9 +35,9 @@ line.vars['freq_h2'] = 2 * line.vars['freq_rev']
 # Shift phases to have the beam centered around zero
 
 V1_MV = df.V1_MV.values
-V2_MV = df.V2_MV.values
-phi1_rad = df.phi1_rad.values # - np.pi
-phi2_rad = df.phi2_rad.values # - np.pi
+V2_MV = df.V2_MV.values # to have opposite slopes at z=0
+phi1_rad = df.phi1_rad.values - np.pi
+phi2_rad = df.phi2_rad.values - np.pi
 
 line.functions['fun_volt_mv_h1'] = xd.FunctionPieceWiseLinear(x=t_s, y=V1_MV)
 line.functions['fun_volt_mv_h2'] = xd.FunctionPieceWiseLinear(x=t_s, y=V2_MV)
