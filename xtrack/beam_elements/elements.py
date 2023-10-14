@@ -2529,7 +2529,8 @@ class SecondOrderTaylorMap(BeamElement):
     }
 
     @classmethod
-    def from_line(cls, line, ele_start, ele_stop, twiss_table=None):
+    def from_line(cls, line, ele_start, ele_stop, twiss_table=None,
+                  **kwargs):
 
         '''
         Generate a `SecondOrderTaylorMap` from a `Line` object.
@@ -2594,7 +2595,8 @@ class SecondOrderTaylorMap(BeamElement):
         RR_hat = RR - 2 * R_T_fd
 
         smap = cls(R=RR_hat, T=TT, k=K_hat,
-                   length=tw['s', ele_stop] - tw['s', ele_start])
+                   length=tw['s', ele_stop] - tw['s', ele_start],
+                   **kwargs)
 
         return smap
 
