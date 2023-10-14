@@ -5,52 +5,18 @@ import xdeps as xd
 
 import numpy as np
 
-# hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
-
-mad = Madx()
-
 orbit_settings = {
     'acbh19.r3b1': 15e-6,
     'acbv20.r3b1': 10e-6,
 }
+# hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
 
-mad.input(f"""
-call,file="../../test_data/hllhc15_thick/lhc.seq";
-call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
-seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
-seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
-beam, sequence=lhcb1, particle=proton, pc=7000;
-beam, sequence=lhcb2, particle=proton, pc=7000, bv=-1;
-call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
-""")
-mad.globals.update(orbit_settings)
-
-mad.use(sequence="lhcb1")
-seq = mad.sequence.lhcb1
-mad.twiss()
 
 collider = xt.Multiline.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.vars.update(orbit_settings)
 collider['lhcb1'].twiss_default['method'] = '4d'
 collider['lhcb2'].twiss_default['method'] = '4d'
-
-mad.input('''
-select, flag=sectormap, pattern='ip';
-twiss, sectormap, sectorpure, sectortable=secttab_b1;
-''')
-sectmad_b1  = xd.Table(mad.table.secttab_b1)
-
-mad.input('''
-    seqedit,sequence=lhcb2;flatten;reflect;flatten;endedit;
-    use, sequence=lhcb2;
-''')
-
-mad.input('''
-select, flag=sectormap, pattern='ip';
-twiss, sectormap, sectorpure, sectortable=secttab_b2;
-''')
-sectmad_b2  = xd.Table(mad.table.secttab_b2)
 
 xs_map_b1 = xt.SecondOrderTaylorMap.from_line(
     line=collider.lhcb1, ele_start='ip3', ele_stop='ip4')
@@ -71,6 +37,40 @@ for jj in range(6):
 for kk in range(6):
     xs_map_b2.T[:, :, kk] *= scale_factors[kk]
 
+mad = Madx()
+
+mad.input(f"""
+call,file="../../test_data/hllhc15_thick/lhc.seq";
+call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
+seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
+seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
+beam, sequence=lhcb1, particle=proton, pc=7000;
+beam, sequence=lhcb2, particle=proton, pc=7000, bv=-1;
+call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
+""")
+mad.globals.update(orbit_settings)
+
+mad.use(sequence="lhcb1")
+seq = mad.sequence.lhcb1
+mad.twiss()
+
+mad.input('''
+select, flag=sectormap, pattern='ip';
+twiss, sectormap, sectorpure, sectortable=secttab_b1;
+''')
+sectmad_b1  = xd.Table(mad.table.secttab_b1)
+
+mad.input('''
+    seqedit,sequence=lhcb2;flatten;reflect;flatten;endedit;
+    use, sequence=lhcb2;
+''')
+
+mad.input('''
+select, flag=sectormap, pattern='ip';
+twiss, sectormap, sectorpure, sectortable=secttab_b2;
+''')
+sectmad_b2  = xd.Table(mad.table.secttab_b2)
+
 for line_name in ['lhcb1', 'lhcb2']:
 
     if line_name == 'lhcb1':
@@ -78,11 +78,13 @@ for line_name in ['lhcb1', 'lhcb2']:
         sectmad = sectmad_b1
         ele_start = 'ip3'
         ele_stop = 'ip4'
+        tw = collider.lhcb1.twiss()
     elif line_name == 'lhcb2':
         xs_map = xs_map_b2
         sectmad = sectmad_b2
         ele_start = 'ip4'
         ele_stop = 'ip3'
+        tw = collider.lhcb2.twiss()
     else:
         raise ValueError(f'Unknown line_name: {line_name}')
 
@@ -90,7 +92,6 @@ for line_name in ['lhcb1', 'lhcb2']:
     RR = xs_map.R
     k = xs_map.k
 
-    tw = collider.lhcb1.twiss()
 
     nemitt_x = 2.5e-6
     nemitt_y = 2.5e-6
