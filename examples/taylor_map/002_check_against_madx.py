@@ -9,6 +9,11 @@ import numpy as np
 
 mad = Madx()
 
+orbit_settings = {
+    'acbh19.r3b1': 15e-6,
+    'acbv20.r3b1': 10e-6,
+}
+
 mad.input(f"""
 call,file="../../test_data/hllhc15_thick/lhc.seq";
 call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
@@ -16,18 +21,17 @@ seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
 call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
-
-acbh19.r3b1 = 15e-6;
-acbv20.r3b1 = 10e-6;
 """)
+mad.globals.update(orbit_settings)
 
 mad.use(sequence="lhcb1")
 seq = mad.sequence.lhcb1
 mad.twiss()
 
-line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
-            allow_thick=True, deferred_expressions=True)
-line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
+collider = xt.Multiline.from_json(
+    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
+collider.vars.update(orbit_settings)
+line = collider.lhcb1
 line.twiss_default['method'] = '4d'
 line.build_tracker()
 
