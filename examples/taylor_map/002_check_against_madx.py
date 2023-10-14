@@ -18,6 +18,9 @@ seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
 call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
+
+acbh19.r3b1 = 15e-6;
+acbv20.r3b1 = 10e-6;
 """)
 
 mad.use(sequence="lhcb1")
