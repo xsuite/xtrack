@@ -38,7 +38,11 @@ line.build_tracker()
 ele_start='ip3'
 ele_stop='ip4'
 
-TT = line.compute_T_matrix(ele_start=ele_start, ele_stop=ele_stop)
+xs_map = xt.SecondOrderTaylorMap.from_line(
+    line, ele_start=ele_start, ele_stop=ele_stop)
+TT = xs_map.T
+RR = xs_map.R
+k = xs_map.k
 
 sectmad  = xd.Table(mad.table.secttab)
 
@@ -62,10 +66,26 @@ scale_out = [
     0.05,
     1e-3]
 
+# Check T
 for ii in range(6):
     for jj in range(6):
         for kk in range(6):
-            scaled_tt = TT[ii, jj, kk] / scale_out[ii] * scale_in[jj] * scale_in[kk]
-            scaled_tt_mad = sectmad[f't{ii+1}{jj+1}{kk+1}', ele_stop] / scale_out[ii] * scale_in[jj] * scale_in[kk]
+            scaled_tt = (TT[ii, jj, kk]
+                         / scale_out[ii] * scale_in[jj] * scale_in[kk])
+            scaled_tt_mad = (sectmad[f't{ii+1}{jj+1}{kk+1}', ele_stop]
+                             / scale_out[ii] * scale_in[jj] * scale_in[kk])
+            assert np.isclose(scaled_tt, scaled_tt_mad, atol=1e-7, rtol=2e-2)
 
-            assert np.isclose(scaled_tt, scaled_tt_mad, atol=0.0005, rtol=0)
+# Check R
+for ii in range(6):
+    for jj in range(6):
+        scaled_rr = RR[ii, jj] * scale_out[ii] / scale_in[jj]
+        scaled_rr_mad = sectmad[f'r{ii+1}{jj+1}', ele_stop] * (
+                            scale_out[ii] / scale_in[jj])
+        assert np.isclose(scaled_rr, scaled_rr_mad, atol=1e-10, rtol=1e-6)
+
+# Check k
+for ii in range(6):
+    scaled_k = k[ii] * scale_out[ii]
+    scaled_k_mad = sectmad[f'k{ii+1}', ele_stop] * scale_out[ii]
+    assert np.isclose(scaled_k, scaled_k_mad, atol=0.0005, rtol=0)

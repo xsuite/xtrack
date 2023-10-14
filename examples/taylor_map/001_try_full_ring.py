@@ -12,6 +12,8 @@ ele_cut = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']
 
 line_maps = line.get_line_with_second_order_maps(split_at=ele_cut)
 
+line_maps.get_table().show()
+
 tw = line.twiss()
 tw_map = line_maps.twiss()
 
