@@ -2496,6 +2496,26 @@ def _get_order(array):
 
 class SecondOrderTaylorMap(BeamElement):
 
+    '''
+    Implements the second order Taylor map:
+
+       z_out[i] = k[i] + sum_j (R[i,j]*z_in[j]) + sum_jk (T[i,j,k]*z_in[j]*z_in[k])
+
+       where z = (x, px, y, py, zeta, pzeta)
+
+    Parameters
+    ----------
+    length : float
+        length of the element in meters.
+    k : array_like
+        6x1 array of the zero order Taylor map coefficients.
+    R : array_like
+        6x6 array of the first order Taylor map coefficients.
+    T : array_like
+        6x6x6 array of the second order Taylor map coefficients.
+
+    '''
+
     isthick = True
 
     _extra_c_sources = [
@@ -2510,6 +2530,29 @@ class SecondOrderTaylorMap(BeamElement):
 
     @classmethod
     def from_line(cls, line, ele_start, ele_stop, twiss_table=None):
+
+        '''
+        Generate a `SecondOrderTaylorMap` from a `Line` object.
+        The coefficients are computed with finite differences around the closed
+        orbit.
+
+        Parameters
+        ----------
+        line : Line
+            A `Line` object.
+        ele_start : str
+            Name of the element where the map starts.
+        ele_stop : str
+            Name of the element where the map stops.
+        twiss_table : TwissTable, optional
+            A `TwissTable` object. If not given, it will be computed.
+
+        Returns
+        -------
+        SecondOrderTaylorMap
+            A `SecondOrderTaylorMap` object.
+
+        '''
 
         if twiss_table is None:
             tw = line.twiss(reverse=False)
@@ -2543,6 +2586,7 @@ class SecondOrderTaylorMap(BeamElement):
             twinit_out.particle_on_co.pzeta[0],
         ])
 
+        # Handle feeddown (express the expansion in z instead of z - z_co)
         R_T_fd = np.einsum('ijk,k->ij', TT, x_co_in)
         K_T_fd = R_T_fd @ x_co_in
 
@@ -2556,6 +2600,31 @@ class SecondOrderTaylorMap(BeamElement):
 
     def scale_coordinates(self, scale_x=1, scale_px=1, scale_y=1, scale_py=1,
                           scale_zeta=1, scale_pzeta=1):
+
+        '''
+        Generate a new `SecondOrderTaylorMap` with scaled coordinates.
+
+        Parameters
+        ----------
+        scale_x : float
+            Scaling factor for x.
+        scale_px : float
+            Scaling factor for px.
+        scale_y : float
+            Scaling factor for y.
+        scale_py : float
+            Scaling factor for py.
+        scale_zeta : float
+            Scaling factor for zeta.
+        scale_pzeta : float
+            Scaling factor for pzeta.
+
+        Returns
+        -------
+        SecondOrderTaylorMap
+            A new `SecondOrderTaylorMap` with scaled coordinates.
+
+        '''
 
         out = self.copy()
 
