@@ -27,11 +27,6 @@ mad.use(sequence="lhcb1")
 seq = mad.sequence.lhcb1
 mad.twiss()
 
-mad.input('''
-select, flag=sectormap, pattern='ip';
-twiss, sectormap, sectorpure, sectortable=secttab;
-''')
-
 line = xt.Line.from_madx_sequence(mad.sequence.lhcb1,
             allow_thick=True, deferred_expressions=True)
 line.particle_ref = xp.Particles(mass0=seq.beam.mass*1e9, gamma0=seq.beam.gamma)
@@ -46,6 +41,11 @@ xs_map = xt.SecondOrderTaylorMap.from_line(
 TT = xs_map.T
 RR = xs_map.R
 k = xs_map.k
+
+mad.input('''
+select, flag=sectormap, pattern='ip';
+twiss, sectormap, sectorpure, sectortable=secttab;
+''')
 
 sectmad  = xd.Table(mad.table.secttab)
 
