@@ -7,8 +7,6 @@ import numpy as np
 
 # hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
 
-kill_fringes_and_edges = True
-
 mad = Madx()
 
 mad.input(f"""
