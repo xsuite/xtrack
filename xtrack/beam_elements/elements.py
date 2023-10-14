@@ -2512,9 +2512,9 @@ class SecondOrderTaylorMap(BeamElement):
     def from_line(cls, line, ele_start, ele_stop, twiss_table=None):
 
         if twiss_table is None:
-            tw = line.twiss()
-        else:
             tw = line.twiss(reverse=False)
+        else:
+            tw = twiss_table
 
         twinit = tw.get_twiss_init(ele_start)
         twinit_out = tw.get_twiss_init(ele_stop)

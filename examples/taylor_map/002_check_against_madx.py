@@ -8,9 +8,9 @@ import numpy as np
 orbit_settings = {
     'acbh19.r3b1': 15e-6,
     'acbv20.r3b1': 10e-6,
+    'acbv19.r3b2': 15e-6,
+    'acbh20.r3b2': 10e-6,
 }
-# hllhc15 can be found at git@github.com:lhcopt/hllhc15.git
-
 
 collider = xt.Multiline.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
@@ -29,8 +29,8 @@ mad = Madx()
 mad.input(f"""
 call,file="../../test_data/hllhc15_thick/lhc.seq";
 call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
-seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
-seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
+!seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
+!seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
 beam, sequence=lhcb2, particle=proton, pc=7000, bv=-1;
 call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
@@ -98,6 +98,23 @@ for line_name in ['lhcb1', 'lhcb2']:
         0.05,
         1e-3]
 
+    # Check k
+    for ii in range(6):
+        scaled_k = k[ii] / scale_out[ii]
+        scaled_k_mad = sectmad[f'k{ii+1}', ele_stop] / scale_out[ii]
+        # The following means that a the orbit kick is the same within 5e-5 sigmas
+        assert np.isclose(scaled_k, scaled_k_mad, atol=5e-5, rtol=0)
+
+    # Check R
+    for ii in range(6):
+        for jj in range(6):
+            scaled_rr = RR[ii, jj] / scale_out[ii] * scale_in[jj]
+            scaled_rr_mad = sectmad[f'r{ii+1}{jj+1}', ele_stop] * (
+                                scale_in[jj] / scale_out[ii])
+            # The following means that a change of one sigma in jj results
+            # in an error of less than 5e-4 sigmas on ii
+            assert np.isclose(scaled_rr, scaled_rr_mad, atol=5e-4, rtol=0)
+
     # Check T
     for ii in range(6):
         for jj in range(6):
@@ -110,19 +127,5 @@ for line_name in ['lhcb1', 'lhcb2']:
                 # in an error of less than 5e-4 sigmas on ii
                 assert np.isclose(scaled_tt, scaled_tt_mad, atol=5e-4, rtol=0)
 
-    # Check R
-    for ii in range(6):
-        for jj in range(6):
-            scaled_rr = RR[ii, jj] / scale_out[ii] * scale_in[jj]
-            scaled_rr_mad = sectmad[f'r{ii+1}{jj+1}', ele_stop] * (
-                                scale_in[jj] / scale_out[ii])
-            # The following means that a change of one sigma in jj results
-            # in an error of less than 5e-4 sigmas on ii
-            assert np.isclose(scaled_rr, scaled_rr_mad, atol=5e-4, rtol=0)
 
-    # Check k
-    for ii in range(6):
-        scaled_k = k[ii] / scale_out[ii]
-        scaled_k_mad = sectmad[f'k{ii+1}', ele_stop] / scale_out[ii]
-        # The following means that a the orbit kick is the same within 5e-5 sigmas
-        assert np.isclose(scaled_k, scaled_k_mad, atol=5e-5, rtol=0)
+
