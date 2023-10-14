@@ -3,6 +3,8 @@ import numpy as np
 
 from scipy.constants import c as clight
 
+from cpymad.madx import Madx
+
 import xtrack as xt
 import xdeps as xd
 
@@ -23,7 +25,23 @@ E_kin_GeV = E_min/100 + (E_kin_GeV - E_min)
 # Shift the time scale for testing purposes
 t_s = t_s
 
-line = xt.Line.from_json('psb_04_with_chicane_corrected_thin.json')
+# Load mad model and apply element shifts
+mad = Madx()
+mad.input('''
+call, file = '../../test_data/psb_chicane/psb.seq';
+call, file = '../../test_data/psb_chicane/psb_fb_lhc.str';
+
+beam, particle=PROTON, pc=0.5708301551893517;
+use, sequence=psb1;
+
+twiss;
+''')
+
+line = xt.Line.from_madx_sequence(mad.sequence.psb1, allow_thick=True,
+                                  deferred_expressions=True)
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
+                            gamma0=mad.sequence.psb1.beam.gamma)
+
 line.build_tracker()
 
 # Attach energy program
