@@ -2553,3 +2553,25 @@ class SecondOrderTaylorMap(BeamElement):
                    length=tw['s', ele_stop] - tw['s', ele_start])
 
         return smap
+
+    def scale_coordinates(self, scale_x=1, scale_px=1, scale_y=1, scale_py=1,
+                          scale_zeta=1, scale_pzeta=1):
+
+        out = self.copy()
+
+        scale_factors = np.array(
+            [scale_x, scale_px, scale_y, scale_py, scale_zeta, scale_pzeta])
+
+        for ii in range(6):
+            out.T[ii, :, :] *= scale_factors[ii]
+            out.R[ii, :] *= scale_factors[ii]
+            out.k[ii] *= scale_factors[ii]
+
+        for jj in range(6):
+            out.T[:, jj, :] *= scale_factors[jj]
+            out.R[:, jj] *= scale_factors[jj]
+
+        for kk in range(6):
+            out.T[:, :, kk] *= scale_factors[kk]
+
+        return out

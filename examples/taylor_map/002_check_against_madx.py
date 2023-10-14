@@ -18,27 +18,14 @@ collider.vars.update(orbit_settings)
 collider['lhcb1'].twiss_default['method'] = '4d'
 collider['lhcb2'].twiss_default['method'] = '4d'
 
-xs_map_b1 = xt.SecondOrderTaylorMap.from_line(
+map_b1 = xt.SecondOrderTaylorMap.from_line(
     line=collider.lhcb1, ele_start='ip3', ele_stop='ip4')
 
-xs_map_b2 = xt.SecondOrderTaylorMap.from_line(
+map_b4 = xt.SecondOrderTaylorMap.from_line(
     line=collider.lhcb2, ele_start='ip4', ele_stop='ip3')
-
-scale_factors = np.array([-1, -1, 1, 1, 1, 1])
-for ii in range(6):
-    xs_map_b2.T[ii, :, :] *= scale_factors[ii]
-    xs_map_b2.R[ii, :] *= scale_factors[ii]
-    xs_map_b2.k[ii] *= scale_factors[ii]
-
-for jj in range(6):
-    xs_map_b2.T[:, jj, :] *= scale_factors[jj]
-    xs_map_b2.R[:, jj] *= scale_factors[jj]
-
-for kk in range(6):
-    xs_map_b2.T[:, :, kk] *= scale_factors[kk]
+map_b2_reflected = map_b4.scale_coordinates(scale_x=-1, scale_px=-1)
 
 mad = Madx()
-
 mad.input(f"""
 call,file="../../test_data/hllhc15_thick/lhc.seq";
 call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
@@ -74,13 +61,13 @@ sectmad_b2  = xd.Table(mad.table.secttab_b2)
 for line_name in ['lhcb1', 'lhcb2']:
 
     if line_name == 'lhcb1':
-        xs_map = xs_map_b1
+        xs_map = map_b1
         sectmad = sectmad_b1
         ele_start = 'ip3'
         ele_stop = 'ip4'
         tw = collider.lhcb1.twiss()
     elif line_name == 'lhcb2':
-        xs_map = xs_map_b2
+        xs_map = map_b2_reflected
         sectmad = sectmad_b2
         ele_start = 'ip4'
         ele_stop = 'ip3'
