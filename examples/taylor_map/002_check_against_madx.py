@@ -20,6 +20,7 @@ call,file="../../test_data/hllhc15_thick/hllhc_sequence.madx";
 seqedit,sequence=lhcb1;flatten;cycle,start=IP7;flatten;endedit;
 seqedit,sequence=lhcb2;flatten;cycle,start=IP7;flatten;endedit;
 beam, sequence=lhcb1, particle=proton, pc=7000;
+beam, sequence=lhcb2, particle=proton, pc=7000;
 call,file="../../test_data/hllhc15_thick/opt_round_150_1500.madx";
 """)
 mad.globals.update(orbit_settings)
@@ -31,27 +32,37 @@ mad.twiss()
 collider = xt.Multiline.from_json(
     '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.vars.update(orbit_settings)
-line = collider.lhcb1
-line.twiss_default['method'] = '4d'
-line.build_tracker()
+collider['lhcb1'].twiss_default['method'] = '4d'
+collider['lhcb2'].twiss_default['method'] = '4d'
 
 ele_start='ip3'
 ele_stop='ip4'
 
+mad.input('''
+select, flag=sectormap, pattern='ip';
+twiss, sectormap, sectorpure, sectortable=secttab_b1;
+''')
+sectmad_b1  = xd.Table(mad.table.secttab_b1)
+
+mad.input('''
+    seqedit,sequence=lhcb2;flatten;reflect;flatten;endedit;
+    use, sequence=lhcb2;
+''')
+
+mad.input('''
+select, flag=sectormap, pattern='ip';
+twiss, sectormap, sectorpure, sectortable=secttab_b2;
+''')
+sectmad_b2  = xd.Table(mad.table.secttab_b2)
+
 xs_map = xt.SecondOrderTaylorMap.from_line(
-    line, ele_start=ele_start, ele_stop=ele_stop)
+    line=collider.lhcb1, ele_start='ip3', ele_stop='ip4')
+
 TT = xs_map.T
 RR = xs_map.R
 k = xs_map.k
 
-mad.input('''
-select, flag=sectormap, pattern='ip';
-twiss, sectormap, sectorpure, sectortable=secttab;
-''')
-
-sectmad  = xd.Table(mad.table.secttab)
-
-tw = line.twiss()
+tw = collider.lhcb1.twiss()
 
 nemitt_x = 2.5e-6
 nemitt_y = 2.5e-6
@@ -77,7 +88,7 @@ for ii in range(6):
         for kk in range(6):
             scaled_tt = (TT[ii, jj, kk]
                          / scale_out[ii] * scale_in[jj] * scale_in[kk])
-            scaled_tt_mad = (sectmad[f't{ii+1}{jj+1}{kk+1}', ele_stop]
+            scaled_tt_mad = (sectmad_b1[f't{ii+1}{jj+1}{kk+1}', ele_stop]
                              / scale_out[ii] * scale_in[jj] * scale_in[kk])
             # The following means that a change of one sigma in jj, kk results
             # in an error of less than 5e-4 sigmas on ii
@@ -87,7 +98,7 @@ for ii in range(6):
 for ii in range(6):
     for jj in range(6):
         scaled_rr = RR[ii, jj] / scale_out[ii] * scale_in[jj]
-        scaled_rr_mad = sectmad[f'r{ii+1}{jj+1}', ele_stop] * (
+        scaled_rr_mad = sectmad_b1[f'r{ii+1}{jj+1}', ele_stop] * (
                             scale_in[jj] / scale_out[ii])
         # The following means that a change of one sigma in jj results
         # in an error of less than 5e-4 sigmas on ii
@@ -96,6 +107,6 @@ for ii in range(6):
 # Check k
 for ii in range(6):
     scaled_k = k[ii] / scale_out[ii]
-    scaled_k_mad = sectmad[f'k{ii+1}', ele_stop] / scale_out[ii]
+    scaled_k_mad = sectmad_b1[f'k{ii+1}', ele_stop] / scale_out[ii]
     # The following means that a the orbit kick is the same within 5e-5 sigmas
     assert np.isclose(scaled_k, scaled_k_mad, atol=5e-5, rtol=0)
