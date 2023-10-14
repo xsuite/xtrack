@@ -2,6 +2,7 @@ import numpy as np
 import xtrack as xt
 
 line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
+line.build_tracker()
 line.vars['vrf400'] = 16
 line.vars['lagrf400.b1'] = 0.5
 
@@ -11,6 +12,7 @@ line.vars['acbv21.l7b1'] = 10e-6
 ele_cut = ['ip1', 'ip2', 'ip3', 'ip4', 'ip5', 'ip6', 'ip7']
 
 line_maps = line.get_line_with_second_order_maps(split_at=ele_cut)
+line_maps.build_tracker()
 
 line_maps.get_table().show()
 
