@@ -329,8 +329,17 @@ class Tracker:
             module_name=None,
             containing_dir='.',
     ):
-        if (self.use_prebuilt_kernels and compile != 'force'
-                and isinstance(self._context, xo.ContextCpu)):
+        if compile == 'force':
+            use_prebuilt_kernels = False
+        elif not isinstance(self._context, xo.ContextCpu):
+            use_prebuilt_kernels = False
+        elif (self._context.omp_num_threads == 'auto'  # CPU context, but OpenMP
+              or self._context.omp_num_threads > 1):
+            use_prebuilt_kernels = False
+        else:
+            use_prebuilt_kernels = self.use_prebuilt_kernels
+
+        if use_prebuilt_kernels:
             kernel_info = get_suitable_kernel(
                 self.config, self.line_element_classes
             )
