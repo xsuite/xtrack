@@ -11,6 +11,7 @@ import pytest
 
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 
 from xtrack import Line, Node, Multipole
 from xtrack.compounds import Compound, SlicedCompound
@@ -471,8 +472,25 @@ def test_insert():
                 'm3', 'd4', 'm4']))])
     assert line.get_length() == line.get_s_elements(mode='downstream')[-1] == 5
 
-def test_to_pandas():
 
+def test_insert_omp():
+    ctx = xo.ContextCpu(omp_num_threads='auto')
+    buffer = ctx.new_buffer()
+
+    drift = xt.Drift(length=2, _buffer=buffer)
+    multipole = xt.Multipole(knl=[1], _buffer=buffer)
+
+    line = xt.Line(elements=[drift], element_names=['dr'])
+    line.insert_element(element=multipole, at_s=1, name='mp')
+    line.build_tracker()
+
+    assert line._buffer is line['dr_u']._buffer
+    assert line['dr_u']._buffer is line['mp']._buffer
+    assert line['mp']._buffer is line['dr_d']._buffer
+    assert line._context.omp_num_threads == 'auto'
+
+
+def test_to_pandas():
     line = xt.Line(elements=[
         xt.Drift(length=1), xt.Cavity(), xt.Drift(length=1)])
 
