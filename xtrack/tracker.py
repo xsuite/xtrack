@@ -845,10 +845,6 @@ class Tracker:
                                 + self.line.dt_update_time_dependent_vars):
                     self.line._t_last_update_time_dependent_vars = t_turn
                     self.vars['t_turn_s'] = t_turn
-                    
-                    if t_turn > 2e-3:
-                        import pdb; pdb.set_trace()
-                    
 
                     if self.line.energy_program is not None:
                         p0c = self.line.particle_ref._xobject.p0c[0]
