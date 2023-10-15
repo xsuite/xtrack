@@ -41,7 +41,7 @@ class Multiline:
             ll._name_in_multiline = nn
 
         self.metadata = {}
-            
+
     def to_dict(self, include_var_management=True):
 
         '''
@@ -337,6 +337,10 @@ class Multiline:
 
     @property
     def varval(self):
+        return self.vars.val
+
+    @property
+    def vv(self): # alias for varval
         return self.vars.val
 
     @property

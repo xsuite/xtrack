@@ -29,10 +29,10 @@ DEFAULT_STEPS_R_MATRIX = {
     'dzeta':1e-6, 'ddelta':1e-6
 }
 
-DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-11]
+DEFAULT_CO_SEARCH_TOL = [1e-11, 1e-11, 1e-11, 1e-11, 1e-5, 1e-9]
 
 DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
-DEFAULT_MATRIX_STABILITY_TOL = 1e-3
+DEFAULT_MATRIX_STABILITY_TOL = 2e-3
 
 AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
@@ -1706,6 +1706,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
     part.delta = p[5]
     part.at_turn = AT_TURN_FOR_TWISS
 
+    if line.energy_program is not None:
+        dp0c = line.energy_program.get_p0c_increse_per_turn_at_t_s(
+                                                        line.vv['t_turn_s'])
+        part.update_p0c_and_energy_deviations(p0c = part._xobject.p0c[0] + dp0c)
+
     line.track(part, ele_start=ele_start, ele_stop=ele_stop)
     if part.state[0] < 0:
         raise ClosedOrbitSearchError(
@@ -1773,6 +1778,9 @@ def compute_one_turn_matrix_finite_differences(
 
     if isinstance(ele_stop, str):
         ele_stop = line.element_names.index(ele_stop)
+
+    if ele_start is not None and ele_stop is not None and ele_start > ele_stop:
+        raise ValueError('ele_start > ele_stop')
 
     context = line._buffer.context
 
@@ -2778,3 +2786,48 @@ def _build_sigma_table(Sigma, s=None, name=None):
     res_data['sigma_zeta'] = np.sqrt(Sigma[:, 4, 4])
 
     return Table(res_data)
+
+def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
+                            steps_t_matrix=None):
+
+    steps_t_matrix = _complete_steps_r_matrix_with_default(steps_t_matrix)
+
+    if particle_on_co is None:
+        tw = line.twiss(reverse=False)
+        particle_on_co = tw.get_twiss_init(ele_start).particle_on_co
+
+    R_plus = {}
+    R_minus = {}
+    p_plus = {}
+    p_minus = {}
+
+    for kk in ['x', 'px', 'y', 'py', 'zeta', 'delta']:
+
+        p_plus[kk] = particle_on_co.copy()
+        setattr(p_plus[kk], kk, getattr(particle_on_co, kk) + steps_t_matrix['d' + kk])
+        R_plus[kk] = line.compute_one_turn_matrix_finite_differences(
+                            ele_start=ele_start, ele_stop=ele_stop,
+                            particle_on_co=p_plus[kk])['R_matrix']
+
+        p_minus[kk] = particle_on_co.copy()
+        setattr(p_minus[kk], kk, getattr(particle_on_co, kk) - steps_t_matrix['d' + kk])
+        R_minus[kk] = line.compute_one_turn_matrix_finite_differences(
+                            ele_start=ele_start, ele_stop=ele_stop,
+                            particle_on_co=p_minus[kk])['R_matrix']
+
+    TT = np.zeros((6, 6, 6))
+    TT[:, :, 0] = 0.5 * (R_plus['x'] - R_minus['x']) / (
+        p_plus['x']._xobject.x[0] - p_minus['x']._xobject.x[0])
+    TT[:, :, 1] = 0.5 * (R_plus['px'] - R_minus['px']) / (
+        p_plus['px']._xobject.px[0] - p_minus['px']._xobject.px[0])
+    TT[:, :, 2] = 0.5 * (R_plus['y'] - R_minus['y']) / (
+        p_plus['y']._xobject.y[0] - p_minus['y']._xobject.y[0])
+    TT[:, :, 3] = 0.5 * (R_plus['py'] - R_minus['py']) / (
+        p_plus['py']._xobject.py[0] - p_minus['py']._xobject.py[0])
+    TT[:, :, 4] = 0.5 * (R_plus['zeta'] - R_minus['zeta']) / (
+        p_plus['zeta']._xobject.zeta[0] - p_minus['zeta']._xobject.zeta[0])
+    TT[:, :, 5] = 0.5 * (R_plus['delta'] - R_minus['delta']) / (
+        (p_plus['delta']._xobject.ptau[0] - p_minus['delta']._xobject.ptau[0])
+        / p_plus['delta']._xobject.beta0[0])
+
+    return TT

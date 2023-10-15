@@ -6,8 +6,8 @@ from cpymad.madx import Madx
 
 fname = 'fccee_z'; pc_gev = 45.6
 # fname = 'fccee_w'; pc_gev = 80.
-fname = 'fccee_h'; pc_gev = 120.
-fname = 'fccee_t'; pc_gev = 182.5
+# fname = 'fccee_h'; pc_gev = 120.
+# fname = 'fccee_t'; pc_gev = 182.5
 
 mad = Madx()
 mad.call('../../test_data/fcc_ee/' + fname + '.seq')
