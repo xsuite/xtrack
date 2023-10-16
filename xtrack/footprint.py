@@ -528,6 +528,6 @@ class Footprint():
 
         ax.set_xlabel(r'$q_x$')
         ax.set_ylabel(r'$q_y$')
-        cbar = plt.colorbar(scatter, ax=ax)
-        cbar.set_label(r'$\rm \log_{10}\left({\sqrt{\Delta Q_x^2 + \Delta Q_y^2}}\right)$')
+        #cbar = plt.colorbar(scatter, ax=ax)
+        #cbar.set_label(r'$\rm \log_{10}\left({\sqrt{\Delta Q_x^2 + \Delta Q_y^2}}\right)$')
 
