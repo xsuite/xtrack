@@ -113,6 +113,18 @@ class Henonmap(BeamElement):
     twiss_params: array of floats
         An array of the form [alpha_x, beta_x, alpha_y, beta_y] used for coordinate 
         normalisation and denormalisation. Default is ``[0, 1, 0, 1]``.
+		domegax: float
+				A floating point number representing the value of the horizontal chromaticity 
+				in the ring multiplied by 2pi. Default is ``0``.
+		domegay: float
+				A floating point number representing the value of the vertical chromaticity 
+				in the ring multiplied by 2pi. Default is ``0``.
+		dx: float
+				A floating point number representing the value of horizontal dispersion at 
+				the location the multipole. Default is ``0``.
+		ddx: float
+				A floating point value representing the value of the derivative of horizontal 
+				dispersion at the location of the multipole. Default is ``0``.
     fx_coeffs: array of floats
         An array that contains the coefficients of monomials of the form x^n*y*m that 
         represent the nonlinearities of the map in the horizontal plane. It is 
@@ -143,6 +155,8 @@ class Henonmap(BeamElement):
         Length of the arrays fy_coeffs, fy_x_exps, and fy_y_exps.
     n_turns: int
         Number of turns to track. Default is ``1``.
+    norm: int
+        1 if input coordinates are already normalised, 0 if not. Default is ``0``.
 
     Comments
     --------
@@ -161,6 +175,10 @@ class Henonmap(BeamElement):
         'cos_omega_y': xo.Float64,
         'n_turns': xo.Int64,
         'twiss_params': xo.Float64[:],
+        'domegax': xo.Float64,
+        'domegay': xo.Float64,
+        'dx': xo.Float64,
+        'ddx': xo.Float64,
         'fx_coeffs': xo.Float64[:],
         'fx_x_exps': xo.Int64[:],
         'fx_y_exps': xo.Int64[:],
@@ -181,6 +199,10 @@ class Henonmap(BeamElement):
                        omega_y = 0.,
                        n_turns = 1, 
                        twiss_params = [0., 1., 0., 1.],
+                       dqx = 0, 
+                       dqy = 0, 
+                       dx = 0, 
+                       ddx = 0, 
                        multipole_coeffs = [0.],
                        norm = False, 
                        **kwargs):
@@ -191,6 +213,10 @@ class Henonmap(BeamElement):
             kwargs.setdefault('cos_omega_y', np.cos(omega_y))
             kwargs.setdefault('n_turns', n_turns)
             kwargs.setdefault('twiss_params', twiss_params)
+            kwargs.setdefault('domegax', 2*np.pi*dqx)
+            kwargs.setdefault('domegay', 2*np.pi*dqy)
+            kwargs.setdefault('dx', dx)
+            kwargs.setdefault('ddx', ddx)
 
             fx_coeffs = []
             fx_x_exps = []
