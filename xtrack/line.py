@@ -1367,6 +1367,92 @@ class Line:
 
         return fp
 
+
+    def get_fma(self, nemitt_x=None, nemitt_y=None, n_turns_1=(0,1000), n_turns_2=(1000, 2000), hann=3, n_fft=2**18,
+            mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
+            x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
+            freeze_longitudinal=None, delta0=None, zeta0=None,
+            keep_fft=True, keep_tracking_data=False):
+
+        '''
+        Compute the FMA for a beam with given emittences using tracking.
+
+        Parameters
+        ----------
+
+        nemitt_x : float
+            Normalized emittance in the x-plane.
+        nemitt_y : float
+            Normalized emittance in the y-plane.
+        n_turns_1 : tuple of ints
+            First turn and last turn for first fft interval.
+        n_turns_2 : tuple of ints
+            First turn and last turn for second fft interval.
+        hann: int 
+            Order of the hann window. Default is 3, reduce for noisy signals.
+        n_fft : int
+            Number of points for FFT (tracking data is zero-padded to this length).
+        mode : str
+            Mode for computing footprint. Options are 'polar' and 'uniform_action_grid'.
+            In 'polar' mode, the footprint is computed on a polar grid with
+            r_range and theta_range specifying the range of r and theta values (
+            polar coordinates in the x_norm, y_norm plane).
+            In 'uniform_action_grid' mode, the footprint is computed on a uniform
+            grid in the action space (Jx, Jy).
+        r_range : tuple of floats
+            Range of r values for footprint in polar mode. Default is (0.1, 6) sigmas.
+        theta_range : tuple of floats
+            Range of theta values for footprint in polar mode. Default is
+            (0.05, pi / 2 - 0.05) radians.
+        n_r : int
+            Number of r values for footprint in polar mode. Default is 10.
+        n_theta : int
+            Number of theta values for footprint in polar mode. Default is 10.
+        x_norm_range : tuple of floats
+            Range of x_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        y_norm_range : tuple of floats
+            Range of y_norm values for footprint in `uniform action grid` mode.
+            Default is (0.1, 6) sigmas.
+        n_x_norm : int
+            Number of x_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        n_y_norm : int
+            Number of y_norm values for footprint in `uniform action grid` mode.
+            Default is 10.
+        freeze_longitudinal : bool
+            If True, the longitudinal coordinates are frozen during the particles
+            matching and the tracking.
+        delta0: float
+            Initial value of the delta coordinate.
+        zeta0: float
+            Initial value of the zeta coordinate.
+
+        Returns
+        -------
+        fp : Footprint
+            Footprint object containing footprint data (fp.qx1, fp.qy1, fp.qx2, fp.qy2, fp.diffusion).
+
+        '''
+
+        kwargs = locals()
+        kwargs.pop('self')
+
+        freeze_longitudinal = kwargs.pop('freeze_longitudinal')
+        delta0 = kwargs.pop('delta0')
+        zeta0 = kwargs.pop('zeta0')
+
+        fp = Footprint(**kwargs)
+        fp.n_turns = n_turns_2[-1] 
+        fp.n_turns_1 = n_turns_1
+        fp.n_turns_2 = n_turns_2
+        fp.hann = hann
+        fp._compute_fma(self,
+            freeze_longitudinal=freeze_longitudinal,
+            delta0=delta0, zeta0=zeta0)
+
+        return fp
+
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None,

@@ -59,7 +59,8 @@ class Footprint():
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
             keep_fft=False, keep_tracking_data=False,
-            auto_to_numpy=True,fft_chunk_size=200
+            auto_to_numpy=True,fft_chunk_size=200,
+            n_turns_1 = None, n_turns_2 = None, hann = 3
             ):
 
         assert nemitt_x is not None and nemitt_y is not None, (
@@ -74,6 +75,10 @@ class Footprint():
 
         self.nemitt_x = nemitt_x
         self.nemitt_y = nemitt_y
+        
+        self.n_turns_1 = n_turns_1
+        self.n_turns_2 = n_turns_2
+        self.hann = hann
 
         assert mode in ['polar', 'uniform_action_grid'], (
             'mode must be either polar or uniform_action_grid')
@@ -214,6 +219,131 @@ class Footprint():
             self.tracking_data = mon
 
         print ('Done computing footprint.')
+
+
+    def _compute_fma(self, line, freeze_longitudinal=False,
+                           delta0=None, zeta0=None):
+        
+        if freeze_longitudinal is None:
+            # In future we could detect if the line has frozen longitudinal plane
+            freeze_longitudinal = False
+
+        nplike_lib = line._context.nplike_lib
+
+        particles = line.build_particles(
+            x_norm=self.x_norm_2d.flatten(), y_norm=self.y_norm_2d.flatten(),
+            nemitt_x=self.nemitt_x, nemitt_y=self.nemitt_y,
+            zeta=zeta0, delta=delta0,
+            freeze_longitudinal=freeze_longitudinal,
+            method={True: '4d', False: '6d'}[freeze_longitudinal]
+            )
+
+        print('Tracking particles for fma...')
+        line.track(particles, num_turns=self.n_turns, turn_by_turn_monitor=True,
+                   freeze_longitudinal=freeze_longitudinal)
+        print('Done tracking.')
+
+        ctx2np = line._context.nparray_from_context_array
+        assert np.all(ctx2np(particles.state == 1)), (
+            'Some particles were lost during tracking')
+        mon = line.record_last_track
+        mon.auto_to_numpy = False
+
+        if isinstance(line._context, xo.ContextPyopencl):
+            raise NotImplementedError(
+                'Footprint calculation with Pyopencl not supported yet. '
+                'Let us know if you need this feature.')
+            # Could be implemented using xobject fft
+
+        x_noCO = mon.x - nplike_lib.atleast_2d(mon.x.mean(axis=1)).T
+        y_noCO = mon.y - nplike_lib.atleast_2d(mon.y.mean(axis=1)).T
+
+        freq_axis = nplike_lib.fft.rfftfreq(self.n_fft)
+
+        npart = nplike_lib.shape(x_noCO)[0]
+        self.qx1 = nplike_lib.zeros(npart,dtype=float)
+        self.qy1 = nplike_lib.zeros(npart,dtype=float)
+        self.qx2 = nplike_lib.zeros(npart,dtype=float)
+        self.qy2 = nplike_lib.zeros(npart,dtype=float)
+        self.qy2 = nplike_lib.zeros(npart,dtype=float)
+        self.diffusion = nplike_lib.zeros(npart,dtype=float)
+
+        if self.keep_fft:
+            self.fft_x_1 = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
+            self.fft_y_1 = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
+            self.fft_x_2 = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
+            self.fft_y_2 = nplike_lib.zeros((npart,len(freq_axis)),dtype=complex)
+
+        # Hann window
+        from scipy.special import factorial
+        def hann_window(turns, hann):
+            T = np.linspace(0, turns, num=turns, endpoint=True)*2.0*np.pi - np.pi*turns
+            return ((2.0**hann*factorial(hann)**2)/float(factorial(2*hann))) * (1.0 + np.cos(T/turns))**hann
+
+        # Compute in chunks
+        iStart = 0
+        print('Computing FFT..')
+        while iStart < npart:
+            iEnd = iStart + self.fft_chunk_size
+            if iEnd > npart:
+                iEnd = npart
+            # Apply window to each interval
+            hann_1 = hann_window(self.n_turns_1[1]-self.n_turns_1[0], self.hann)
+            hann_1 = np.tile(hann_1, (iEnd-iStart,1) )
+            hann_2 = hann_window(self.n_turns_2[1]-self.n_turns_2[0], self.hann)
+            hann_2 = np.tile(hann_2, (iEnd-iStart,1) )
+            signal_x_1 = x_noCO[iStart:iEnd,self.n_turns_1[0]:self.n_turns_1[1]] * hann_1
+            signal_y_1 = y_noCO[iStart:iEnd,self.n_turns_1[0]:self.n_turns_1[1]] * hann_1
+            signal_x_2 = x_noCO[iStart:iEnd,self.n_turns_2[0]:self.n_turns_2[1]] * hann_2
+            signal_y_2 = y_noCO[iStart:iEnd,self.n_turns_2[0]:self.n_turns_2[1]] * hann_2
+            
+            fft_x_1 = nplike_lib.fft.rfft(signal_x_1, n=self.n_fft)
+            fft_y_1 = nplike_lib.fft.rfft(signal_y_1, n=self.n_fft)
+            fft_x_2 = nplike_lib.fft.rfft(signal_x_2, n=self.n_fft)
+            fft_y_2 = nplike_lib.fft.rfft(signal_y_2, n=self.n_fft)
+            if self.keep_fft:
+                self.fft_x_1[iStart:iEnd,:] = fft_x_1
+                self.fft_y_1[iStart:iEnd,:] = fft_y_1
+                self.fft_x_2[iStart:iEnd,:] = fft_x_2
+                self.fft_y_2[iStart:iEnd,:] = fft_y_2
+            qx1 = freq_axis[nplike_lib.argmax(nplike_lib.abs(fft_x_1), axis=1)]
+            qy1 = freq_axis[nplike_lib.argmax(nplike_lib.abs(fft_y_1), axis=1)]
+            qx2 = freq_axis[nplike_lib.argmax(nplike_lib.abs(fft_x_2), axis=1)]
+            qy2 = freq_axis[nplike_lib.argmax(nplike_lib.abs(fft_y_2), axis=1)]
+            diffusion = np.sqrt((qx1-qx2)**2 + (qy1-qy2)**2)
+            diffusion = np.log10([1e-60 if x == 0 else x for x in diffusion])
+
+            self.qx1[iStart:iEnd] = qx1
+            self.qy1[iStart:iEnd] = qy1
+            self.qx2[iStart:iEnd] = qx2
+            self.qy2[iStart:iEnd] = qy2
+            self.diffusion[iStart:iEnd] = diffusion
+            iStart += self.fft_chunk_size
+
+        self.qx1 = nplike_lib.reshape(self.qx1, self.x_norm_2d.shape)
+        self.qy1 = nplike_lib.reshape(self.qy1, self.y_norm_2d.shape)
+        self.qx2 = nplike_lib.reshape(self.qx2, self.x_norm_2d.shape)
+        self.qy2 = nplike_lib.reshape(self.qy2, self.y_norm_2d.shape)
+        self.diffusion = nplike_lib.reshape(self.diffusion, self.x_norm_2d.shape)
+
+        if self.auto_to_numpy:
+            ctx2np = line._context.nparray_from_context_array
+            self.qx1 = ctx2np(self.qx1)
+            self.qy1 = ctx2np(self.qy1)
+            self.qx2 = ctx2np(self.qx2)
+            self.qy2 = ctx2np(self.qy2)
+            self.diffusion = ctx2np(self.diffusion)
+            if self.keep_fft:
+                self.fft_x_1 = ctx2np(self.fft_x_1)
+                self.fft_y_1 = ctx2np(self.fft_y_1)
+                self.fft_x_2 = ctx2np(self.fft_x_2)
+                self.fft_y_2 = ctx2np(self.fft_y_2)
+
+        if self.keep_tracking_data:
+            self.tracking_data = mon
+
+        print ('Done computing fma.')
+
 
     def _compute_tune_shift(self,_context,J1_2d,J1_grid,J2_2d,J2_grid,q,coherent_tune,epsilon):
         nplike_lib = _context.nplike_lib
@@ -380,3 +510,24 @@ class Footprint():
 
         ax.set_xlabel(r'$q_x$')
         ax.set_ylabel(r'$q_y$')
+
+    def plot_fma(self, ax=None, s=1, vmin=-9, vmax=-4, cmap='jet', **kwargs):
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            ax = plt.gca()
+
+        labels = [None] * self.qx2.shape[1]
+
+        if 'label' in kwargs:
+            label_str = kwargs['label']
+            kwargs.pop('label')
+            labels[0] = label_str
+
+        scatter = ax.scatter(self.qx2, self.qy2, c=self.diffusion, label=labels, s=s, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
+
+        ax.set_xlabel(r'$q_x$')
+        ax.set_ylabel(r'$q_y$')
+        #cbar = plt.colorbar(scatter, ax=ax)
+        #cbar.set_label(r'$\rm \log_{10}\left({\sqrt{\Delta Q_x^2 + \Delta Q_y^2}}\right)$')
+

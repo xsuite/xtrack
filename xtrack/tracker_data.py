@@ -68,7 +68,6 @@ class TrackerData:
             If `kernel_element_classes` is `None`, this list will be used to augment
             the inferred list of element classes.
         """
-
         if _offset is not None:
             raise ValueError('`_offset` is not supported yet')
 
@@ -78,11 +77,18 @@ class TrackerData:
         self._is_backtrackable = np.all([ee.has_backtrack for ee in self._elements])
         self.extra_element_classes = extra_element_classes
 
+        # If no buffer given, try to guess it from elements, if there is no
+        # common buffer, try to guess the context from elements, if there is
+        # no common context, a default will be taken.
         if _buffer is None:
             common_buffer = self.common_buffer_for_elements()
             if common_buffer is not None and _context in [common_buffer.context, None]:
                 _buffer = common_buffer
+            if _buffer is None and _context is None:
+                _context = self.common_context_for_elements()
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
+        elif _context is not None and _buffer.context is not _context:
+            raise ValueError('The given context and buffer are not compatible.')
 
         check_passed = self.check_elements_in_common_buffer(_buffer, allow_move=allow_move)
         if not check_passed:
@@ -128,6 +134,20 @@ class TrackerData:
                     return None
 
         return common_buffer
+
+    def common_context_for_elements(self):
+        """If all `self.elements` elements are on the same context,
+        returns said context, otherwise returns `None`."""
+        common_context = None
+        for ee in self._elements:
+            if hasattr(ee, '_context'):
+                if common_context is None:
+                    common_context = ee._context
+
+                if ee._context is not common_context:
+                    return None
+
+        return common_context
 
     def to_binary(self, buffer=None) -> Tuple[xo.context.XBuffer, int]:
         """
