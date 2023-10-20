@@ -1,22 +1,17 @@
 import gc
-
 import pytest
+
 import xobjects as xo
 
 
 @pytest.fixture(scope="function", autouse=True)
-def cleanup(capsys):
+def cleanup():
     yield
 
     gc.collect()
 
-    with capsys.disabled():
-        no_buffers = sum(b.alive for b in xo.context_default.buffers)
-        capacity = sum(b.peek()[0].capacity - b.peek()[0].get_free() for b in xo.context_default.buffers if b.alive)
-
-        print(f"""
-*********************************
-* Buffers on default ctx: {no_buffers:5} *
-* Total capacity: {capacity:13} *
-*********************************
-""")
+    alive_buffer_count = sum(b.alive for b in xo.context_default.buffers)
+    if alive_buffer_count > 0:
+        pytest.fail(f"There were {alive_buffer_count} active buffers after a "
+                    f"test run, which points to a memory leak during the test "
+                    f"session.")
