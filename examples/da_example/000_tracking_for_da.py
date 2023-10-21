@@ -31,16 +31,16 @@ particles = line.build_particles(
     nemitt_x=3e-6, nemitt_y=3e-6, # normalized emittances
     delta=delta_init)
 
-# Activate multi-core CPU parallelization
-line.discard_tracker()
-line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
+# # Optional: activate multi-core CPU parallelization
+# line.discard_tracker()
+# line.build_tracker(_context=xo.ContextCpu(omp_num_threads='auto'))
 
 # Track
 line.track(particles, num_turns=200, time=True)
 
 print(f'Tracked in {line.time_last_track} seconds')
 
-# Sort particles to initial order
+# Sort particles to get the initial order (as lost particles are moved to the end)
 particles.sort(interleave_lost_particles=True)
 
 # Plot using scatter or pcolormesh
@@ -52,8 +52,6 @@ plt.xlabel(r'$A_x [\sigma]$')
 plt.ylabel(r'$A_y [\sigma]$')
 cb = plt.colorbar()
 cb.set_label('Lost at turn')
-
-
 
 plt.figure(2)
 plt.pcolormesh(
