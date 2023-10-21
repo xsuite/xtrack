@@ -101,30 +101,67 @@ class Henonmap(BeamElement):
 
     Parameters
     ----------
+    omega_x : float
+        Linear angular frequency in the horizontal plane. Default is ``0``.
+    omega_y : float
+        Linear angular frequency in the horizontal plane. Default is ``0``.
+    n_turns : int
+        Number of turns to track for. Default is ``1``. In general, tracking for 
+        multiple turns should be done in Python by wrapping the element in a line 
+        and providing ``num_turns`` for the ``track`` method, but the option to 
+        do it on the single element is included here via ``n_turns``, because the 
+        Henon map does represent an entire ring.
+    twiss_params : array of floats
+        An array of the form [alpha_x, beta_x, alpha_y, beta_y] used for coordinate 
+        normalisation and denormalisation. Default is ``None``, so ValueError is 
+        raised if the user does not provide it.
+    dqx : float
+        A floating point number representing the value of the horizontal chromaticity 
+		in the ring. Default is ``0``.
+    dqy : float
+        A floating point number representing the value of the vertical chromaticity 
+		in the ring. Default is ``0``.
+    dx : float
+        A floating point number representing the value of horizontal dispersion at 
+		the location the multipole. Default is ``0``.
+    ddx : float
+        A floating point value representing the value of the derivative of horizontal 
+		dispersion at the location of the multipole. Default is ``0``.
+    multipole_coeffs : array of floats
+        An array of integrated normal multipole strengths in increasing multipole order. 
+        Integrated normal multipole strength of order n means the value of the nth 
+        derivative of the vertical magnetic field w.r.t x multiplied by the element length 
+        over the beam rigidity. The map only handles normal multipoles, not skew ones.
+    norm : bool
+        ``True`` if input coordinates are already normalised, ``False`` if not. Default 
+        is ``False``.
 
+    Comments
+    --------
+    The properties of the object accessible after initialization are the following:
     sin_omega_x : float
-        Sine of linear angular frequency in the horizontal plane. Default is ``0``.
+        Sine of linear angular frequency in the horizontal plane.
     cos_omega_x : float
-        Cosine of linear angular frequency in the horizontal plane. Default is ``1``.
+        Cosine of linear angular frequency in the horizontal plane.
     sin_omega_y: float
-        Sine of linear angular frequency in the vertical plane. Default is ``0``.
+        Sine of linear angular frequency in the vertical plane.
     cos_omega_y: float
-        Cosine of linear angular frequency in the vertical plane. Default is ``1``.
+        Cosine of linear angular frequency in the vertical plane.
     twiss_params: array of floats
         An array of the form [alpha_x, beta_x, alpha_y, beta_y] used for coordinate 
-        normalisation and denormalisation. Default is ``[0, 1, 0, 1]``.
-		domegax: float
-				A floating point number representing the value of the horizontal chromaticity 
-				in the ring multiplied by 2pi. Default is ``0``.
-		domegay: float
-				A floating point number representing the value of the vertical chromaticity 
-				in the ring multiplied by 2pi. Default is ``0``.
-		dx: float
-				A floating point number representing the value of horizontal dispersion at 
-				the location the multipole. Default is ``0``.
-		ddx: float
-				A floating point value representing the value of the derivative of horizontal 
-				dispersion at the location of the multipole. Default is ``0``.
+        normalisation and denormalisation.
+    domegax: float
+        A floating point number representing the value of the horizontal chromaticity 
+        in the ring multiplied by 2pi.
+    domegay: float
+        A floating point number representing the value of the vertical chromaticity 
+        in the ring multiplied by 2pi.
+    dx: float
+        A floating point number representing the value of horizontal dispersion at 
+        the location the multipole.
+    ddx: float
+        A floating point value representing the value of the derivative of horizontal 
+        dispersion at the location of the multipole.
     fx_coeffs: array of floats
         An array that contains the coefficients of monomials of the form x^n*y*m that 
         represent the nonlinearities of the map in the horizontal plane. It is 
@@ -154,18 +191,19 @@ class Henonmap(BeamElement):
     n_fy_coeffs: int
         Length of the arrays fy_coeffs, fy_x_exps, and fy_y_exps.
     n_turns: int
-        Number of turns to track. Default is ``1``.
+        Number of turns to track.
     norm: int
-        1 if input coordinates are already normalised, 0 if not. Default is ``0``.
+        1 if input coordinates are already normalised, 0 if not.
 
-    Comments
-    --------
-
-    - The user provides omega_x and omega_y, their sin and cos is calculated at 
-      initialisation.
-    - The user provides "multipole_coeffs", an array of floats, that contains the 
-      strength of the multipoles present in the map. Default is ``[0]``.
-
+    Note
+    ----
+    - If the user wants to change the tune on a turn-by-turn basis in their 
+        simulation, they must do so by providing directly the sine and cosine of the 
+        new tune. This is done to speed up the code by avoiding unnecessary trig 
+        function evaluations when they are not absolutely needed and allow for fast
+        long-term tracking.
+    - The same applies for the multipole coefficients.
+    
     '''
 
     _xofields = {
@@ -198,14 +236,20 @@ class Henonmap(BeamElement):
     def __init__(self, omega_x = 0.,
                        omega_y = 0.,
                        n_turns = 1, 
-                       twiss_params = [0., 1., 0., 1.],
+                       twiss_params = None,
                        dqx = 0, 
                        dqy = 0, 
                        dx = 0, 
                        ddx = 0, 
-                       multipole_coeffs = [0.],
+                       multipole_coeffs = None,
                        norm = False, 
                        **kwargs):
+        if twiss_params is None:
+            raise ValueError("Twiss parameters must be provided.")
+        
+        if multipole_coeffs is None:
+            raise ValueError("Multipole coefficients must be provided.")
+
         if '_xobject' not in kwargs:
             kwargs.setdefault('sin_omega_x', np.sin(omega_x))
             kwargs.setdefault('cos_omega_x', np.cos(omega_x))
