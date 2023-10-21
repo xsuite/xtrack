@@ -8,12 +8,12 @@ line = xt.Line.from_json(
     '../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json')
 line.build_tracker()
 
-# Switch on LHC octupole circuits to have a "low" dynamic aperture
+# Switch on LHC octupole circuits to have a smaller dynamic aperture
 for arc in ['12', '23', '34', '45', '56', '67', '78', '81']:
     line.vars[f'kod.a{arc}b1'] = 2.0
     line.vars[f'kof.a{arc}b1'] = 2.0
 
-# Generate normalized particle cooridnates on a polar grid
+# Generate normalized particle coordinates on a polar grid
 n_r = 50
 n_theta = 60
 x_normalized, y_normalized, r_xy, theta_xy = xp.generate_2D_polar_grid(
@@ -40,10 +40,11 @@ line.track(particles, num_turns=200, time=True)
 
 print(f'Tracked in {line.time_last_track} seconds')
 
-# Sort particles to get the initial order (as lost particles are moved to the end)
+# Sort particles to get the initial order
+# (during tracking lost particles are moved to the end)
 particles.sort(interleave_lost_particles=True)
 
-# Plot using scatter or pcolormesh
+# Plot result using scatter or pcolormesh
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
