@@ -144,11 +144,10 @@ void Henonmap_track_local_particle(HenonmapData el, LocalParticle* part0){
                 curr_sin_omega_y = sin_omega_y * cos_domega_y + cos_omega_y * sin_domega_y;
             }
 
-            double x_hat_new, px_hat_new, y_hat_new, py_hat_new;
-            x_hat_new = curr_cos_omega_x * (x_hat - x_hat_f) + curr_sin_omega_x * (px_hat - px_hat_f + fx) + x_hat_f;
-            px_hat_new = -curr_sin_omega_x * (x_hat - x_hat_f) + curr_cos_omega_x * (px_hat - px_hat_f + fx) + px_hat_f;
-            y_hat_new = curr_cos_omega_y * y_hat + curr_sin_omega_y * (py_hat + fy);
-            py_hat_new = -curr_sin_omega_y * y_hat + curr_cos_omega_y * (py_hat + fy);
+            double const x_hat_new = curr_cos_omega_x * (x_hat - x_hat_f) + curr_sin_omega_x * (px_hat - px_hat_f + fx) + x_hat_f;
+            double const px_hat_new = -curr_sin_omega_x * (x_hat - x_hat_f) + curr_cos_omega_x * (px_hat - px_hat_f + fx) + px_hat_f;
+            double const y_hat_new = curr_cos_omega_y * y_hat + curr_sin_omega_y * (py_hat + fy);
+            double const py_hat_new = -curr_sin_omega_y * y_hat + curr_cos_omega_y * (py_hat + fy);
             x_hat = x_hat_new;
             px_hat = px_hat_new;
             y_hat = y_hat_new;
