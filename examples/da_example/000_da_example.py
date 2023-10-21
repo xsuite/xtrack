@@ -25,10 +25,11 @@ x_normalized, y_normalized, r_xy, theta_xy = xp.generate_2D_polar_grid(
 delta_init = 0 # In case off-momentum DA is needed
 
 # Match particles to the machine optics and orbit
-particles = line.build_particles(x_norm=x_normalized, px_norm=0,
-                                 y_norm=y_normalized, py_norm=0,
-                                 nemitt_x=3e-6, nemitt_y=3e-6,
-                                 delta=delta_init)
+particles = line.build_particles(
+    x_norm=x_normalized, px_norm=0,
+    y_norm=y_normalized, py_norm=0,
+    nemitt_x=3e-6, nemitt_y=3e-6, # normalized emittances
+    delta=delta_init)
 
 # Activate multi-core CPU parallelization
 line.discard_tracker()
@@ -42,16 +43,25 @@ print(f'Tracked in {line.time_last_track} seconds')
 # Sort particles to initial order
 particles.sort(interleave_lost_particles=True)
 
-# Plot
+# Plot using scatter or pcolormesh
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.scatter(x_normalized, y_normalized, c=particles.at_turn)
+plt.xlabel(r'$A_x [\sigma]$')
+plt.ylabel(r'$A_y [\sigma]$')
+cb = plt.colorbar()
+cb.set_label('Lost at turn')
+
+
 
 plt.figure(2)
 plt.pcolormesh(
     x_normalized.reshape(n_r, n_theta), y_normalized.reshape(n_r, n_theta),
     particles.at_turn.reshape(n_r, n_theta), shading='gouraud')
-plt.colorbar()
+plt.xlabel(r'$A_x [\sigma]$')
+plt.ylabel(r'$A_y [\sigma]$')
+ax = plt.colorbar()
+ax.set_label('Lost at turn')
 
 plt.show()
