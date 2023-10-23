@@ -82,6 +82,44 @@ void Henonmap_track_local_particle(HenonmapData el, LocalParticle* part0){
         double const multipole_scale = 1.0 / (1.0 + delta);
         for (int n = 0; n < n_turns; n++)
         {
+            double curr_cos_omega_x, curr_sin_omega_x, curr_cos_omega_y, curr_sin_omega_y;
+            if (domegax == 0)
+            {
+                curr_cos_omega_x = cos_omega_x;
+                curr_sin_omega_x = sin_omega_x;
+            }
+            else
+            {
+                double cos_domega_x = cos(domegax * delta);
+                double sin_domega_x = sin(domegax * delta);
+                curr_cos_omega_x = cos_omega_x * cos_domega_x - sin_omega_x * sin_domega_x;
+                curr_sin_omega_x = sin_omega_x * cos_domega_x + cos_omega_x * sin_domega_x;
+            }
+            if (domegay == 0)
+            {
+                curr_cos_omega_y = cos_omega_y;
+                curr_sin_omega_y = sin_omega_y;
+            }
+            else
+            {
+                double cos_domega_y = cos(domegay * delta);
+                double sin_domega_y = sin(domegay * delta);
+                curr_cos_omega_y = cos_omega_y * cos_domega_y - sin_omega_y * sin_domega_y;
+                curr_sin_omega_y = sin_omega_y * cos_domega_y + cos_omega_y * sin_domega_y;
+            }
+
+            #ifdef XSUITE_BACKTRACK
+            x_hat -= x_hat_f;
+            px_hat -= px_hat_f;
+            double const x_hat_new = curr_cos_omega_x * x_hat - curr_sin_omega_x * px_hat;
+            double const px_hat_new = curr_sin_omega_x * x_hat + curr_cos_omega_x * px_hat;
+            double const y_hat_new = curr_cos_omega_y * y_hat - curr_sin_omega_y * py_hat;
+            double const py_hat_new = curr_sin_omega_y * y_hat + curr_cos_omega_y * py_hat;
+            x_hat = x_hat_new + x_hat_f;
+            px_hat = px_hat_new + px_hat_f;
+            y_hat = y_hat_new;
+            py_hat = py_hat_new;
+            #endif
 
             double fx = 0;
             for (int i = 0; i < n_fx_coeffs; i++)
@@ -118,41 +156,29 @@ void Henonmap_track_local_particle(HenonmapData el, LocalParticle* part0){
             fx *= sqrt_beta_x;
             fy *= sqrt_beta_y;
 
-            double curr_cos_omega_x, curr_sin_omega_x, curr_cos_omega_y, curr_sin_omega_y;
-            if (domegax == 0)
-            {
-                curr_cos_omega_x = cos_omega_x;
-                curr_sin_omega_x = sin_omega_x;
-            }
-            else
-            {
-                double cos_domega_x = cos(domegax * delta);
-                double sin_domega_x = sin(domegax * delta);
-                curr_cos_omega_x = cos_omega_x * cos_domega_x - sin_omega_x * sin_domega_x;
-                curr_sin_omega_x = sin_omega_x * cos_domega_x + cos_omega_x * sin_domega_x;
-            }
-            if (domegay == 0)
-            {
-                curr_cos_omega_y = cos_omega_y;
-                curr_sin_omega_y = sin_omega_y;
-            }
-            else
-            {
-                double cos_domega_y = cos(domegay * delta);
-                double sin_domega_y = sin(domegay * delta);
-                curr_cos_omega_y = cos_omega_y * cos_domega_y - sin_omega_y * sin_domega_y;
-                curr_sin_omega_y = sin_omega_y * cos_domega_y + cos_omega_y * sin_domega_y;
-            }
-
-            double const x_hat_new = curr_cos_omega_x * (x_hat - x_hat_f) + curr_sin_omega_x * (px_hat - px_hat_f + fx) + x_hat_f;
-            double const px_hat_new = -curr_sin_omega_x * (x_hat - x_hat_f) + curr_cos_omega_x * (px_hat - px_hat_f + fx) + px_hat_f;
-            double const y_hat_new = curr_cos_omega_y * y_hat + curr_sin_omega_y * (py_hat + fy);
-            double const py_hat_new = -curr_sin_omega_y * y_hat + curr_cos_omega_y * (py_hat + fy);
+            #ifdef XSUITE_BACKTRACK
+            px_hat -= fx;
+            py_hat -= fy;
+            #else
+            double const x_hat_new = (
+                curr_cos_omega_x * (x_hat - x_hat_f) + 
+                curr_sin_omega_x * (px_hat - px_hat_f + fx)
+                ) + x_hat_f;
+            double const px_hat_new = (
+                -curr_sin_omega_x * (x_hat - x_hat_f) + 
+                curr_cos_omega_x * (px_hat - px_hat_f + fx)
+                ) + px_hat_f;
+            double const y_hat_new = (
+                curr_cos_omega_y * y_hat + 
+                curr_sin_omega_y * (py_hat + fy));
+            double const py_hat_new = (
+                -curr_sin_omega_y * y_hat + 
+                curr_cos_omega_y * (py_hat + fy));
             x_hat = x_hat_new;
             px_hat = px_hat_new;
             y_hat = y_hat_new;
             py_hat = py_hat_new;
-
+            #endif
         }
 
         if (norm)
@@ -178,6 +204,5 @@ void Henonmap_track_local_particle(HenonmapData el, LocalParticle* part0){
     //end_per_particle_block
 
 }
-
 
 #endif /* XTRACK_HENONMAP_H */

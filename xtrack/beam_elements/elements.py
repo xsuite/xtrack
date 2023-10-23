@@ -245,10 +245,10 @@ class Henonmap(BeamElement):
                        norm = False, 
                        **kwargs):
         if twiss_params is None:
-            raise ValueError("Twiss parameters must be provided.")
+            twiss_params = [0.0, 1.0, 0.0, 1.0]
         
         if multipole_coeffs is None:
-            raise ValueError("Multipole coefficients must be provided.")
+            multipole_coeffs = [0.0]
 
         if '_xobject' not in kwargs:
             kwargs.setdefault('sin_omega_x', np.sin(omega_x))
@@ -279,11 +279,11 @@ class Henonmap(BeamElement):
                         fx_x_exps.append(n - k)
                         fx_y_exps.append(k)
                     elif (k % 4) == 1:
-                        fy_coeffs.append(multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
+                        fy_coeffs.append(-1 * multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
                         fy_x_exps.append(n - k)
                         fy_y_exps.append(k)
                     else:
-                        fy_coeffs.append(-1 * multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
+                        fy_coeffs.append(multipole_coeffs[n - 2] / factorial(k) / factorial(n - k))
                         fy_x_exps.append(n - k)
                         fy_y_exps.append(k)
             kwargs.setdefault('fx_coeffs', fx_coeffs)
@@ -302,8 +302,8 @@ class Henonmap(BeamElement):
 
         super().__init__(**kwargs)
 
-    def get_backtrack_element(self, _context=None, _buffer=None, _offset=None):
-        raise NotImplementedError
+    has_backtrack = True
+
 
 class Cavity(BeamElement):
     '''Beam element modeling an RF cavity.
