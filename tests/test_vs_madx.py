@@ -5,6 +5,7 @@
 
 import pathlib
 import numpy as np
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -18,41 +19,58 @@ test_data_folder = pathlib.Path(
 
 path = test_data_folder.joinpath('hllhc14_input_mad/')
 
-mad_with_errors = Madx()
-mad_with_errors.call(str(path.joinpath("final_seq.madx")))
-mad_with_errors.use(sequence='lhcb1')
-mad_with_errors.twiss()
-mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
-                          table="errtab")
-mad_with_errors.seterr(table="errtab")
-mad_with_errors.set(format=".15g")
 
-mad_b12_no_errors = Madx()
-mad_b12_no_errors.call(str(test_data_folder.joinpath(
-                               'hllhc15_noerrors_nobb/sequence.madx')))
-mad_b12_no_errors.globals['vrf400'] = 16
-mad_b12_no_errors.globals['lagrf400.b1'] = 0.5
-mad_b12_no_errors.globals['lagrf400.b2'] = 0
-mad_b12_no_errors.use(sequence='lhcb1')
-mad_b12_no_errors.twiss()
-mad_b12_no_errors.use(sequence='lhcb2')
-mad_b12_no_errors.twiss()
+@pytest.fixture(scope='module')
+def mad_with_errors():
+    mad_with_errors = Madx()
+    mad_with_errors.call(str(path.joinpath("final_seq.madx")))
+    mad_with_errors.use(sequence='lhcb1')
+    mad_with_errors.twiss()
+    mad_with_errors.readtable(file=str(path.joinpath("final_errors.tfs")),
+                              table="errtab")
+    mad_with_errors.seterr(table="errtab")
+    mad_with_errors.set(format=".15g")
 
-mad_b4_no_errors = Madx()
-mad_b4_no_errors.call(str(test_data_folder.joinpath(
-                               'hllhc15_noerrors_nobb/sequence_b4.madx')))
-mad_b4_no_errors.globals['vrf400'] = 16
-mad_b4_no_errors.globals['lagrf400.b2'] = 0
-mad_b4_no_errors.use(sequence='lhcb2')
-mad_b4_no_errors.twiss()
+    mad_with_errors.sequence.lhcb1.beam.sigt = 1e-10
+    mad_with_errors.sequence.lhcb1.beam.sige = 1e-10
+    mad_with_errors.sequence.lhcb1.beam.et = 1e-10
 
-mad_with_errors.sequence.lhcb1.beam.sigt = 1e-10
-mad_with_errors.sequence.lhcb1.beam.sige = 1e-10
-mad_with_errors.sequence.lhcb1.beam.et = 1e-10
+    return mad_with_errors
+
+
+@pytest.fixture(scope='module')
+def mad_b12_no_errors():
+    mad_b12_no_errors = Madx()
+    mad_b12_no_errors.call(str(test_data_folder.joinpath(
+                                   'hllhc15_noerrors_nobb/sequence.madx')))
+    mad_b12_no_errors.globals['vrf400'] = 16
+    mad_b12_no_errors.globals['lagrf400.b1'] = 0.5
+    mad_b12_no_errors.globals['lagrf400.b2'] = 0
+    mad_b12_no_errors.use(sequence='lhcb1')
+    mad_b12_no_errors.twiss()
+    mad_b12_no_errors.use(sequence='lhcb2')
+    mad_b12_no_errors.twiss()
+
+    return mad_b12_no_errors
+
+
+@pytest.fixture(scope='module')
+def mad_b4_no_errors():
+    mad_b4_no_errors = Madx()
+    mad_b4_no_errors.call(str(test_data_folder.joinpath(
+                                   'hllhc15_noerrors_nobb/sequence_b4.madx')))
+    mad_b4_no_errors.globals['vrf400'] = 16
+    mad_b4_no_errors.globals['lagrf400.b2'] = 0
+    mad_b4_no_errors.use(sequence='lhcb2')
+    mad_b4_no_errors.twiss()
+
+    return mad_b4_no_errors
+
 
 surv_starting_point = {
     "theta0": -np.pi / 9, "psi0": np.pi / 7, "phi0": np.pi / 11,
     "X0": -300, "Y0": 150, "Z0": -100}
+
 
 b4_b2_mapping = {
     'mbxf.4l1..1': 'mbxf.4l1..4',
@@ -61,297 +79,300 @@ b4_b2_mapping = {
     'mb.b19r1.b2..1': 'mb.b19r1.b2..2',
     }
 
+
+@pytest.mark.parametrize('configuration', ['b1_with_errors', 'b2_no_errors'])
 @for_all_test_contexts
-def test_twiss_and_survey(test_context):
+def test_twiss_and_survey(
+        test_context,
+        mad_with_errors,
+        mad_b4_no_errors,
+        mad_b12_no_errors,
+        configuration,
+):
+    if configuration == 'b1_with_errors':
+        mad_load = mad_with_errors
+        mad_ref = mad_with_errors
+        ref_element_for_mu = 'acsca.d5l4.b1'
+        seq_name = 'lhcb1'
+        reverse = False
+        use = False
+        range_for_partial_twiss = ('mb.b19r3.b1..1', 'mb.b19l3.b1..1')
+    elif configuration == 'b2_no_errors':
+        mad_load = mad_b4_no_errors
+        mad_ref = mad_b12_no_errors
+        ref_element_for_mu = 'acsca.d5r4.b2'
+        seq_name = 'lhcb2'
+        reverse = True
+        use = True
+        range_for_partial_twiss = ('mb.b19l3.b2..1', 'mb.b19r3.b2..1')
 
-    for configuration in ['b1_with_errors', 'b2_no_errors']:
+    if use:
+        mad_ref.use(sequence=seq_name)
+        mad_load.use(sequence=seq_name)
 
-        print(f"Test configuration: {configuration}")
+    # I want only the betatron part in the sigma matrix
+    mad_ref.sequence[seq_name].beam.sigt = 1e-10
+    mad_ref.sequence[seq_name].beam.sige = 1e-10
+    mad_ref.sequence[seq_name].beam.et = 1e-10
 
-        if configuration == 'b1_with_errors':
-            mad_load = mad_with_errors
-            mad_ref = mad_with_errors
-            ref_element_for_mu = 'acsca.d5l4.b1'
-            seq_name = 'lhcb1'
-            reverse = False
-            use = False
-            range_for_partial_twiss = ('mb.b19r3.b1..1', 'mb.b19l3.b1..1')
-        elif configuration == 'b2_no_errors':
-            mad_load = mad_b4_no_errors
-            mad_ref = mad_b12_no_errors
-            ref_element_for_mu = 'acsca.d5r4.b2'
-            seq_name = 'lhcb2'
-            reverse = True
-            use = True
-            range_for_partial_twiss = ('mb.b19l3.b2..1', 'mb.b19r3.b2..1')
+    # I set asymmetric emittances
+    mad_ref.sequence[seq_name].beam.exn = 2.5e-6
+    mad_ref.sequence[seq_name].beam.eyn = 3.5e-6
 
-        if use:
-            mad_ref.use(sequence=seq_name)
-            mad_load.use(sequence=seq_name)
+    twmad = mad_ref.twiss(chrom=True)
+    survmad = mad_ref.survey(**surv_starting_point)
 
-        # I want only the betatron part in the sigma matrix
-        mad_ref.sequence[seq_name].beam.sigt = 1e-10
-        mad_ref.sequence[seq_name].beam.sige = 1e-10
-        mad_ref.sequence[seq_name].beam.et = 1e-10
+    line_full = xt.Line.from_madx_sequence(
+            mad_load.sequence[seq_name], apply_madx_errors=True)
+    line_full.elements[10].iscollective = True # we make it artificially collective to test this option
+    line_full.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
+                            gamma0=mad_load.sequence[seq_name].beam.gamma)
 
-        # I set asymmetric emittances
-        mad_ref.sequence[seq_name].beam.exn = 2.5e-6
-        mad_ref.sequence[seq_name].beam.eyn = 3.5e-6
+    # Test twiss also on simplified line
+    line_simplified = line_full.copy()
 
-        twmad = mad_ref.twiss(chrom=True)
-        survmad = mad_ref.survey(**surv_starting_point)
+    print('Simplifying line...')
+    line_simplified.remove_inactive_multipoles()
+    line_simplified.merge_consecutive_multipoles()
+    line_simplified.remove_zero_length_drifts()
+    line_simplified.merge_consecutive_drifts()
+    line_simplified.use_simple_bends()
+    line_simplified.use_simple_quadrupoles()
+    print('Done simplifying line')
 
-        line_full = xt.Line.from_madx_sequence(
-                mad_load.sequence[seq_name], apply_madx_errors=True)
-        line_full.elements[10].iscollective = True # we make it artificially collective to test this option
-        line_full.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, q0=1,
-                                gamma0=mad_load.sequence[seq_name].beam.gamma)
+    line_full.line = None
+    line_simplified.tracker = None
 
-        # Test twiss also on simplified line
-        line_simplified = line_full.copy()
+    line_full.build_tracker(_context=test_context)
+    assert line_full.iscollective
 
-        print('Simplifying line...')
-        line_simplified.remove_inactive_multipoles()
-        line_simplified.merge_consecutive_multipoles()
-        line_simplified.remove_zero_length_drifts()
-        line_simplified.merge_consecutive_drifts()
-        line_simplified.use_simple_bends()
-        line_simplified.use_simple_quadrupoles()
-        print('Done simplifying line')
+    line_simplified.build_tracker(_context=test_context)
 
-        line_full.line = None
-        line_simplified.tracker = None
+    for simplified, line in zip((False, True), [line_full, line_simplified]):
 
-        line_full.build_tracker(_context=test_context)
-        assert line_full.iscollective
+        print(f"Simplified: {simplified}")
 
-        line_simplified.build_tracker(_context=test_context)
+        twxt = line.twiss()
+        twxt4d = line.twiss(method='4d')
+        survxt = line.survey(**surv_starting_point)
 
-        for simplified, line in zip((False, True), [line_full, line_simplified]):
+        if reverse:
+            twxt = twxt.reverse()
+            twxt4d = twxt4d.reverse()
+            survxt = survxt.reverse()
 
-            print(f"Simplified: {simplified}")
+        assert len(twxt.name) == len(line.element_names) + 1
 
-            twxt = line.twiss()
-            twxt4d = line.twiss(method='4d')
-            survxt = line.survey(**surv_starting_point)
+        # Check value_at_element_exit (not implemented for now, to be reintroduced)
+        # if not reverse: # TODO: to be generalized...
+        #     twxt_exit = line.twiss(values_at_element_exit=True)
+        #     for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
+        #             'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
+        #             'dpy','mux','muy', 'name']:
+        #         assert np.all(twxt[nn][1:] == twxt_exit[nn])
 
-            if reverse:
-                twxt = twxt.reverse()
-                twxt4d = twxt4d.reverse()
-                survxt = survxt.reverse()
+        # Twiss a part of the machine
+        tw_init = line.twiss().get_twiss_init(
+                                    at_element=range_for_partial_twiss[0])
+        tw4d_init = line.twiss(method='4d').get_twiss_init(
+                                    at_element=range_for_partial_twiss[0])
+        tw_part = line.twiss(ele_start=range_for_partial_twiss[0],
+                ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
+        tw4d_part = line.twiss(method='4d',
+                ele_start=range_for_partial_twiss[0],
+                ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
+        if reverse:
+            tw_part = tw_part.reverse()
+            tw4d_part = tw4d_part.reverse()
 
-            assert len(twxt.name) == len(line.element_names) + 1
+        ipart_start = line.element_names.index(range_for_partial_twiss[0])
+        ipart_stop = line.element_names.index(range_for_partial_twiss[1])
+        assert len(tw_part.name) == ipart_stop - ipart_start + 2
+        assert len(tw4d_part.name) == ipart_stop - ipart_start + 2
 
-            # Check value_at_element_exit (not implemented for now, to be reintroduced)
-            # if not reverse: # TODO: to be generalized...
-            #     twxt_exit = line.twiss(values_at_element_exit=True)
-            #     for nn in['s', 'x','px','y','py', 'zeta','delta','ptau',
-            #             'betx','bety','alfx','alfy','gamx','gamy','dx','dpx','dy',
-            #             'dpy','mux','muy', 'name']:
-            #         assert np.all(twxt[nn][1:] == twxt_exit[nn])
-
-            # Twiss a part of the machine
-            tw_init = line.twiss().get_twiss_init(
-                                        at_element=range_for_partial_twiss[0])
-            tw4d_init = line.twiss(method='4d').get_twiss_init(
-                                        at_element=range_for_partial_twiss[0])
-            tw_part = line.twiss(ele_start=range_for_partial_twiss[0],
-                    ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
-            tw4d_part = line.twiss(method='4d',
-                    ele_start=range_for_partial_twiss[0],
-                    ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
-            if reverse:
-                tw_part = tw_part.reverse()
-                tw4d_part = tw4d_part.reverse()
-
-            ipart_start = line.element_names.index(range_for_partial_twiss[0])
-            ipart_stop = line.element_names.index(range_for_partial_twiss[1])
-            assert len(tw_part.name) == ipart_stop - ipart_start + 2
-            assert len(tw4d_part.name) == ipart_stop - ipart_start + 2
-
-            # Check against mad
-            for twtst in [twxt, twxt4d]:
-                assert np.isclose(mad_ref.table.summ.q1[0], twtst['qx'], rtol=1e-4, atol=0)
-                assert np.isclose(mad_ref.table.summ.q2[0], twtst['qy'], rtol=1e-4, atol=0)
-                assert np.isclose(mad_ref.table.summ.dq1, twtst['dqx'], atol=0.1, rtol=0)
-                assert np.isclose(mad_ref.table.summ.dq2, twtst['dqy'], atol=0.1, rtol=0)
-                assert np.isclose(mad_ref.table.summ.alfa[0],
-                    twtst['momentum_compaction_factor'], atol=7e-8, rtol=0)
-                if twtst is not tw4d_part:
-                    assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
+        # Check against mad
+        for twtst in [twxt, twxt4d]:
+            assert np.isclose(mad_ref.table.summ.q1[0], twtst['qx'], rtol=1e-4, atol=0)
+            assert np.isclose(mad_ref.table.summ.q2[0], twtst['qy'], rtol=1e-4, atol=0)
+            assert np.isclose(mad_ref.table.summ.dq1, twtst['dqx'], atol=0.1, rtol=0)
+            assert np.isclose(mad_ref.table.summ.dq2, twtst['dqy'], atol=0.1, rtol=0)
+            assert np.isclose(mad_ref.table.summ.alfa[0],
+                twtst['momentum_compaction_factor'], atol=7e-8, rtol=0)
+            if twtst is not tw4d_part:
+                assert np.isclose(twxt['qs'], 0.0021, atol=1e-4, rtol=0)
 
 
-            for is_part, twtst in zip([False, False, True, True],
-                                       [twxt, twxt4d, tw_part, tw4d_part]):
+        for is_part, twtst in zip([False, False, True, True],
+                                   [twxt, twxt4d, tw_part, tw4d_part]):
 
-                nemitt_x = mad_ref.sequence[seq_name].beam.exn
-                nemitt_y = mad_ref.sequence[seq_name].beam.eyn
-                Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
+            nemitt_x = mad_ref.sequence[seq_name].beam.exn
+            nemitt_y = mad_ref.sequence[seq_name].beam.eyn
+            Sigmas = twtst.get_betatron_sigmas(nemitt_x, nemitt_y)
 
-                for nn in twtst._col_names:
-                    assert len(twtst[nn]) == len(twtst['name'])
+            for nn in twtst._col_names:
+                assert len(twtst[nn]) == len(twtst['name'])
 
-                test_at_elements = []
-                test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
+            test_at_elements = []
+            test_at_elements.extend(['mbxf.4l1..1', 'mbxf.4l5..1'])
 
-                if seq_name.endswith('b1'):
-                    test_at_elements.extend(['mb.b19r5.b1..1', 'mb.b19r1.b1..1'])
-                elif seq_name.endswith('b2'):
-                    test_at_elements.extend(['mb.b19r5.b2..1', 'mb.b19r1.b2..1'])
+            if seq_name.endswith('b1'):
+                test_at_elements.extend(['mb.b19r5.b1..1', 'mb.b19r1.b1..1'])
+            elif seq_name.endswith('b2'):
+                test_at_elements.extend(['mb.b19r5.b2..1', 'mb.b19r1.b2..1'])
 
-                if line is line_full:
-                    test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
+            if line is line_full:
+                test_at_elements += ['ip1', 'ip2', 'ip5', 'ip8']
 
-                for name in test_at_elements:
+            for name in test_at_elements:
 
-                    if reverse:
-                        name_mad = b4_b2_mapping.get(name, name)
-                    else:
-                        name_mad = name
+                if reverse:
+                    name_mad = b4_b2_mapping.get(name, name)
+                else:
+                    name_mad = name
 
-                    imad = list(twmad['name']).index(name_mad+':1')
-                    ixt = list(twtst['name']).index(name) + 1 # MAD measures at exit
+                imad = list(twmad['name']).index(name_mad+':1')
+                ixt = list(twtst['name']).index(name) + 1 # MAD measures at exit
 
-                    eemad = mad_ref.sequence[seq_name].expanded_elements[name]
+                eemad = mad_ref.sequence[seq_name].expanded_elements[name]
 
-                    mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
-                    mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
+                mad_shift_x = eemad.align_errors.dx if eemad.align_errors else 0
+                mad_shift_y = eemad.align_errors.dy if eemad.align_errors else 0
 
-                    assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
-                                    atol=1e-6, rtol=0)
-                    assert np.isclose(twtst['betx'][ixt], twmad['betx'][imad],
-                                    atol=0, rtol=7e-4)
-                    assert np.isclose(twtst['bety'][ixt], twmad['bety'][imad],
-                                    atol=0, rtol=7e-4)
-                    assert np.isclose(twtst['alfx'][ixt], twmad['alfx'][imad],
-                                    atol=1e-1, rtol=0)
-                    assert np.isclose(twtst['alfy'][ixt], twmad['alfy'][imad],
-                                    atol=1e-1, rtol=0)
-                    assert np.isclose(twtst['dx'][ixt], twmad['dx'][imad],
-                                    atol=1e-2, rtol=0)
-                    assert np.isclose(twtst['dy'][ixt], twmad['dy'][imad],
-                                    atol=1e-2, rtol=0)
-                    assert np.isclose(twtst['dpx'][ixt], twmad['dpx'][imad],
-                                    atol=3e-4, rtol=0)
-                    assert np.isclose(twtst['dpy'][ixt], twmad['dpy'][imad],
-                                    atol=3e-4, rtol=0)
+                assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
+                                atol=1e-6, rtol=0)
+                assert np.isclose(twtst['betx'][ixt], twmad['betx'][imad],
+                                atol=0, rtol=7e-4)
+                assert np.isclose(twtst['bety'][ixt], twmad['bety'][imad],
+                                atol=0, rtol=7e-4)
+                assert np.isclose(twtst['alfx'][ixt], twmad['alfx'][imad],
+                                atol=1e-1, rtol=0)
+                assert np.isclose(twtst['alfy'][ixt], twmad['alfy'][imad],
+                                atol=1e-1, rtol=0)
+                assert np.isclose(twtst['dx'][ixt], twmad['dx'][imad],
+                                atol=1e-2, rtol=0)
+                assert np.isclose(twtst['dy'][ixt], twmad['dy'][imad],
+                                atol=1e-2, rtol=0)
+                assert np.isclose(twtst['dpx'][ixt], twmad['dpx'][imad],
+                                atol=3e-4, rtol=0)
+                assert np.isclose(twtst['dpy'][ixt], twmad['dpy'][imad],
+                                atol=3e-4, rtol=0)
 
-                    if is_part:
-                        # I chck the phase advance w.r.t. ip1
-                        mux0_mad = twmad['mux'][list(twmad.name).index(ref_element_for_mu + ':1')]
-                        muy0_mad = twmad['muy'][list(twmad.name).index(ref_element_for_mu + ':1')]
-                        mux0_tst = twtst['mux'][list(twtst.name).index(ref_element_for_mu)]
-                        muy0_tst = twtst['muy'][list(twtst.name).index(ref_element_for_mu)]
-                    else:
-                        # I check the absolute phase advance
-                        mux0_mad = 0
-                        muy0_mad = 0
-                        mux0_tst = 0
-                        muy0_tst = 0
-                    assert np.isclose(twtst['mux'][ixt] - mux0_tst,
-                                      twmad['mux'][imad] - mux0_mad,
-                                      atol=1e-4, rtol=0)
-                    assert np.isclose(twtst['muy'][ixt] - muy0_tst,
-                                      twmad['muy'][imad] - muy0_mad,
-                                      atol=1e-4, rtol=0)
+                if is_part:
+                    # I chck the phase advance w.r.t. ip1
+                    mux0_mad = twmad['mux'][list(twmad.name).index(ref_element_for_mu + ':1')]
+                    muy0_mad = twmad['muy'][list(twmad.name).index(ref_element_for_mu + ':1')]
+                    mux0_tst = twtst['mux'][list(twtst.name).index(ref_element_for_mu)]
+                    muy0_tst = twtst['muy'][list(twtst.name).index(ref_element_for_mu)]
+                else:
+                    # I check the absolute phase advance
+                    mux0_mad = 0
+                    muy0_mad = 0
+                    mux0_tst = 0
+                    muy0_tst = 0
+                assert np.isclose(twtst['mux'][ixt] - mux0_tst,
+                                  twmad['mux'][imad] - mux0_mad,
+                                  atol=1e-4, rtol=0)
+                assert np.isclose(twtst['muy'][ixt] - muy0_tst,
+                                  twmad['muy'][imad] - muy0_mad,
+                                  atol=1e-4, rtol=0)
 
-                    assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
-                                    atol=5e-6, rtol=0)
+                assert np.isclose(twtst['s'][ixt], twmad['s'][imad],
+                                atol=5e-6, rtol=0)
 
-                    # I check the orbit relative to sigma to be more accurate at the IP
-                    sigx = np.sqrt(twmad['sig11'][imad])
-                    sigy = np.sqrt(twmad['sig33'][imad])
+                # I check the orbit relative to sigma to be more accurate at the IP
+                sigx = np.sqrt(twmad['sig11'][imad])
+                sigy = np.sqrt(twmad['sig33'][imad])
 
-                    assert np.isclose(twtst['x'][ixt], (twmad['x'][imad] - mad_shift_x),
-                                    atol=0.03*sigx, rtol=0)
-                    assert np.isclose(twtst['y'][ixt],
-                                    (twmad['y'][imad] - mad_shift_y),
-                                    atol=0.03*sigy, rtol=0)
+                assert np.isclose(twtst['x'][ixt], (twmad['x'][imad] - mad_shift_x),
+                                atol=0.03*sigx, rtol=0)
+                assert np.isclose(twtst['y'][ixt],
+                                (twmad['y'][imad] - mad_shift_y),
+                                atol=0.03*sigy, rtol=0)
 
-                    assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
-                                    atol=2e-7, rtol=0)
-                    assert np.isclose(twtst['py'][ixt], twmad['py'][imad],
-                                    atol=2e-7, rtol=0)
+                assert np.isclose(twtst['px'][ixt], twmad['px'][imad],
+                                atol=2e-7, rtol=0)
+                assert np.isclose(twtst['py'][ixt], twmad['py'][imad],
+                                atol=2e-7, rtol=0)
 
-                    assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
-                    assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
-                    assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
-                    assert np.isclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
-                    assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
-                    assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
+                assert np.isclose(Sigmas.Sigma11[ixt], twmad['sig11'][imad], atol=5e-10)
+                assert np.isclose(Sigmas.Sigma12[ixt], twmad['sig12'][imad], atol=3e-12)
+                assert np.isclose(Sigmas.Sigma22[ixt], twmad['sig22'][imad], atol=1e-12)
+                assert np.isclose(Sigmas.Sigma33[ixt], twmad['sig33'][imad], atol=5e-10)
+                assert np.isclose(Sigmas.Sigma34[ixt], twmad['sig34'][imad], atol=3e-12)
+                assert np.isclose(Sigmas.Sigma44[ixt], twmad['sig44'][imad], atol=1e-12)
 
-                    if twtst not in [twxt4d, tw4d_part]: # 4d less precise due to different momentum (coupling comes from feeddown)
-                        assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=5e-10)
-                        assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=2e-12)
-                        assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
-                        assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
+                if twtst not in [twxt4d, tw4d_part]: # 4d less precise due to different momentum (coupling comes from feeddown)
+                    assert np.isclose(Sigmas.Sigma13[ixt], twmad['sig13'][imad], atol=5e-10)
+                    assert np.isclose(Sigmas.Sigma14[ixt], twmad['sig14'][imad], atol=2e-12)
+                    assert np.isclose(Sigmas.Sigma23[ixt], twmad['sig23'][imad], atol=1e-12)
+                    assert np.isclose(Sigmas.Sigma24[ixt], twmad['sig24'][imad], atol=1e-12)
 
-                    # check matrix is symmetric
-                    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
+                # check matrix is symmetric
+                assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma21[ixt], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma31[ixt], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma41[ixt], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma32[ixt], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma42[ixt], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma43[ixt], atol=1e-16)
 
-                    # check matrix consistency with Sigma.Sigma
-                    assert np.isclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
-                    assert np.isclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
+                # check matrix consistency with Sigma.Sigma
+                assert np.isclose(Sigmas.Sigma11[ixt], Sigmas.Sigma[ixt][0, 0], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma12[ixt], Sigmas.Sigma[ixt][0, 1], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma13[ixt], Sigmas.Sigma[ixt][0, 2], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma14[ixt], Sigmas.Sigma[ixt][0, 3], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma21[ixt], Sigmas.Sigma[ixt][1, 0], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma22[ixt], Sigmas.Sigma[ixt][1, 1], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma23[ixt], Sigmas.Sigma[ixt][1, 2], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma24[ixt], Sigmas.Sigma[ixt][1, 3], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma31[ixt], Sigmas.Sigma[ixt][2, 0], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma32[ixt], Sigmas.Sigma[ixt][2, 1], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma33[ixt], Sigmas.Sigma[ixt][2, 2], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma34[ixt], Sigmas.Sigma[ixt][2, 3], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma41[ixt], Sigmas.Sigma[ixt][3, 0], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma42[ixt], Sigmas.Sigma[ixt][3, 1], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma43[ixt], Sigmas.Sigma[ixt][3, 2], atol=1e-16)
+                assert np.isclose(Sigmas.Sigma44[ixt], Sigmas.Sigma[ixt][3, 3], atol=1e-16)
 
-                    # Check sigma_x, sigma_y
-                    assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
-                    assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
+                # Check sigma_x, sigma_y
+                assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
+                assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
 
-                    if not(is_part): # We don't have survey on a part of the machine
-                        # Check survey
-                        assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
-                        assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
-                        assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
-                        assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
-                        assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
-                        assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
-                        assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
+                if not(is_part): # We don't have survey on a part of the machine
+                    # Check survey
+                    assert np.isclose(survxt.X[ixt], survmad['X'][imad], atol=1e-6)
+                    assert np.isclose(survxt.Y[ixt], survmad['Y'][imad], atol=1e-6)
+                    assert np.isclose(survxt.Z[ixt], survmad['Z'][imad], atol=1e-6)
+                    assert np.isclose(survxt.s[ixt], survmad['s'][imad], atol=5e-6)
+                    assert np.isclose(survxt.phi[ixt], survmad['phi'][imad], atol=1e-10)
+                    assert np.isclose(survxt.theta[ixt], survmad['theta'][imad], atol=1e-10)
+                    assert np.isclose(survxt.psi[ixt], survmad['psi'][imad], atol=1e-10)
 
-                        # angle and tilt are associated to the element itself (ixt - 1)
-                        # For now not checking the sign of the angles, convetion in mad-X to be calrified
-                        assert np.isclose(np.abs(survxt.angle[ixt-1]),
-                                np.abs(survmad['angle'][imad]), atol=1e-10)
-                        assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
+                    # angle and tilt are associated to the element itself (ixt - 1)
+                    # For now not checking the sign of the angles, convetion in mad-X to be calrified
+                    assert np.isclose(np.abs(survxt.angle[ixt-1]),
+                            np.abs(survmad['angle'][imad]), atol=1e-10)
+                    assert np.isclose(survxt.tilt[ixt-1], survmad['tilt'][imad], atol=1e-10)
 
-            # Check to_pandas (not extensively for now)
-            dftw = twtst.to_pandas()
-            dfsurv = survxt.to_pandas()
-            assert np.all(dftw['s'] == twtst['s'])
-            assert np.all(dfsurv['s'] == survxt['s'])
+        # Check to_pandas (not extensively for now)
+        dftw = twtst.to_pandas()
+        dfsurv = survxt.to_pandas()
+        assert np.all(dftw['s'] == twtst['s'])
+        assert np.all(dfsurv['s'] == survxt['s'])
 
-            # Test custom s locations
-            if not reverse:
-                s_test = [2e3, 1e3, 3e3, 10e3]
-                twats = line.twiss(at_s = s_test)
-                for ii, ss in enumerate(s_test):
-                    assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
-                    assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
-                                    rtol=1e-5, atol=0)
-                    assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
-                                    rtol=1e-5, atol=0)
-                    assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
-                                    rtol=1e-5, atol=0)
-                    assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
-                                    rtol=1e-5, atol=0)
+        # Test custom s locations
+        if not reverse:
+            s_test = [2e3, 1e3, 3e3, 10e3]
+            twats = line.twiss(at_s = s_test)
+            for ii, ss in enumerate(s_test):
+                assert np.isclose(twats['s'][ii], ss, rtol=0, atol=1e-14)
+                assert np.isclose(twats['alfx'][ii], np.interp(ss, twxt['s'], twxt['alfx']),
+                                rtol=1e-5, atol=0)
+                assert np.isclose(twats['alfy'][ii], np.interp(ss, twxt['s'], twxt['alfy']),
+                                rtol=1e-5, atol=0)
+                assert np.isclose(twats['dpx'][ii], np.interp(ss, twxt['s'], twxt['dpx']),
+                                rtol=1e-5, atol=0)
+                assert np.isclose(twats['dpy'][ii], np.interp(ss, twxt['s'], twxt['dpy']),
+                                rtol=1e-5, atol=0)
 
 
 def norm(x):
@@ -359,7 +380,7 @@ def norm(x):
 
 
 @for_all_test_contexts
-def test_line_import_from_madx(test_context):
+def test_line_import_from_madx(test_context, mad_with_errors):
 
     mad = mad_with_errors
 
@@ -537,7 +558,7 @@ def test_line_import_from_madx(test_context):
 
 
 @for_all_test_contexts
-def test_orbit_knobs(test_context):
+def test_orbit_knobs(test_context, mad_b12_no_errors):
 
     mad = mad_b12_no_errors
 
@@ -598,6 +619,3 @@ def test_low_beta_twiss(test_context):
     assert np.isclose(mad.table.summ['dq2'][0]*beta0, tw['dqy'], rtol=0,
                         atol=1e-6)
     assert np.isclose(tw.qs, emitdf.qs[0], rtol=0, atol=1e-8)
-
-
-

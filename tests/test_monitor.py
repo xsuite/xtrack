@@ -7,6 +7,7 @@ import json
 import pathlib
 
 import numpy as np
+import pytest
 from numpy.testing import assert_equal, assert_allclose
 
 import xtrack as xt
@@ -18,20 +19,29 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-with open(test_data_folder.joinpath(
-        'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
-    dct = json.load(f)
-line0 = xt.Line.from_dict(dct['line'])
-line0.particle_ref = xp.Particles.from_dict(dct['particle'])
-
-line0.build_tracker()
-
 num_particles = 50
-particles0 = xp.generate_matched_gaussian_bunch(line=line0,
-                                               num_particles=num_particles,
-                                               nemitt_x=2.5e-6,
-                                               nemitt_y=2.5e-6,
-                                               sigma_z=9e-2)
+
+
+@pytest.fixture(scope='module')
+def line0():
+    with open(test_data_folder.joinpath(
+            'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
+        dct = json.load(f)
+
+    line0 = xt.Line.from_dict(dct['line'])
+    line0.particle_ref = xp.Particles.from_dict(dct['particle'])
+    line0.build_tracker()
+    return line0
+
+
+@pytest.fixture(scope='module')
+def particles0():
+    particles0 = xp.generate_matched_gaussian_bunch(line=line0,
+                                                   num_particles=num_particles,
+                                                   nemitt_x=2.5e-6,
+                                                   nemitt_y=2.5e-6,
+                                                   sigma_z=9e-2)
+    return particles0
 
 
 @for_all_test_contexts
@@ -56,8 +66,8 @@ def test_constructor(test_context):
 
 
 @for_all_test_contexts
-def test_monitor(test_context):
-    line = line0.copy()
+def test_monitor(test_context, line0, particles0):
+    line = line0.copy(_context=test_context)
     line.build_tracker(_context=test_context)
     particles = particles0.copy(_context=test_context)
 
@@ -275,7 +285,7 @@ def test_beam_profile_monitor(test_context):
     assert_allclose(monitor.y_intensity, expected_y_intensity, err_msg="Monitor y_intensity does not match expected values")
 
 @for_all_test_contexts
-def test_collective_ebe_monitor(test_context):
+def test_collective_ebe_monitor(test_context, line0, particles0):
     num_turns = 30
 
     # Turn-by-turn mode
