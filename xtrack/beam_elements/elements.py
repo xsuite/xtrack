@@ -113,8 +113,8 @@ class Henonmap(BeamElement):
         Henon map does represent an entire ring.
     twiss_params : array of floats
         An array of the form [alpha_x, beta_x, alpha_y, beta_y] used for coordinate 
-        normalisation and denormalisation. Default is ``None``, so ValueError is 
-        raised if the user does not provide it.
+        normalisation and denormalisation. Default is ``None``, where a neutral 
+        array in the form of [0.0, 1.0, 0.0, 1.0] is passed.
     dqx : float
         A floating point number representing the value of the horizontal chromaticity 
 		in the ring. Default is ``0``.
@@ -132,6 +132,7 @@ class Henonmap(BeamElement):
         Integrated normal multipole strength of order n means the value of the nth 
         derivative of the vertical magnetic field w.r.t x multiplied by the element length 
         over the beam rigidity. The map only handles normal multipoles, not skew ones.
+        Default is None, where a neutral array of [0.0] (i.e., no multiples) is passed.
     norm : bool
         ``True`` if input coordinates are already normalised, ``False`` if not. Default 
         is ``False``.
