@@ -2540,6 +2540,10 @@ class TwissTable(Table):
             out.muzeta = out.muzeta[0] - out.muzeta
             out.dzeta = out.dzeta[0] - out.dzeta
 
+        if 'ax_chrom' in out._col_names:
+            out.ax_chrom = -out.ax_chrom
+            out.ay_chrom = -out.ay_chrom
+
         if hasattr(out, 'R_matrix'): out.R_matrix = None # To be implemented
         if hasattr(out, 'particle_on_co'):
             out.particle_on_co = self.particle_on_co.copy()
