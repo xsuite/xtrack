@@ -132,7 +132,7 @@ class Henonmap(BeamElement):
         Integrated normal multipole strength of order n means the value of the nth 
         derivative of the vertical magnetic field w.r.t x multiplied by the element length 
         over the beam rigidity. The map only handles normal multipoles, not skew ones.
-        Default is None, where a neutral array of [0.0] (i.e., no multiples) is passed.
+        Default is None, where a neutral array of [0.0] (i.e., no multipoles) is passed.
     norm : bool
         ``True`` if input coordinates are already normalised, ``False`` if not. Default 
         is ``False``.
