@@ -1127,12 +1127,21 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
     ax_chrom = dalfx - dbetx * alfx / betx
     ay_chrom = dalfy - dbety * alfy / bety
 
+    wx_chrom = np.sqrt(ax_chrom**2 + bx_chrom**2)
+    wy_chrom = np.sqrt(ay_chrom**2 + by_chrom**2)
+
+    # Could be addede if needed (note that mad-x unwaps and devide by 2pi)
+    # phix_chrom = np.arctan2(ax_chrom, bx_chrom)
+    # phiy_chrom = np.arctan2(ay_chrom, by_chrom)
+
     dqx = dmux[-1]
     dqy = dmuy[-1]
 
-    cols_chrom = {'dmux': dmux, 'dmuy': dmuy, 'bx_chrom': bx_chrom,
-                  'by_chrom': by_chrom, 'ax_chrom': ax_chrom,
-                  'ay_chrom': ay_chrom}
+    cols_chrom = {'dmux': dmux, 'dmuy': dmuy,
+                  'bx_chrom': bx_chrom, 'by_chrom': by_chrom,
+                  'ax_chrom': ax_chrom, 'ay_chrom': ay_chrom,
+                  'wx_chrom': wx_chrom, 'wy_chrom': wy_chrom,
+                  }
     scalars_chrom = {'dqx': dqx, 'dqy': dqy}
 
     return cols_chrom, scalars_chrom
