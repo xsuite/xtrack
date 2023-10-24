@@ -26,6 +26,11 @@ line = collider.lhcb1
 mad.use(sequence="lhcb1")
 seq = mad.sequence.lhcb1
 
+line = collider.lhcb2
+mad.use(sequence="lhcb2")
+seq = mad.sequence.lhcb2
+line.twiss_default['reverse'] = True
+
 tw = line.twiss(only_markers=True)
 twmad = mad.twiss(chrom=True)
 
