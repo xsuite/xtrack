@@ -520,6 +520,16 @@ def test_twiss_range(test_context):
             tw_init_ip5 = tw.get_twiss_init('ip5')
             tw_init_ip6 = tw.get_twiss_init('ip6')
 
+            assert np.isclose(tw_init_ip5.betx, tw['betx', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.bety, tw['bety', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.alfx, tw['alfx', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.alfy, tw['alfy', 'ip5'], atol=0, rtol=1e-7)
+
+            assert np.isclose(tw_init_ip6.betx, tw['betx', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.bety, tw['bety', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.alfx, tw['alfx', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.alfy, tw['alfy', 'ip6'], atol=0, rtol=1e-7)
+
             tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
                                     twiss_init=tw_init_ip5)
 

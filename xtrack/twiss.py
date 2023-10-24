@@ -934,8 +934,8 @@ def _compute_lattice_functions(Ws, use_full_inverse, s_co):
         gamx = Ws[:, 1, 0]**2 + Ws[:, 1, 1]**2
         gamy = Ws[:, 3, 2]**2 + Ws[:, 3, 3]**2
 
-        alfx = - Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
-        alfy = - Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
+        alfx = -Ws[:, 0, 0] * Ws[:, 1, 0] - Ws[:, 0, 1] * Ws[:, 1, 1]
+        alfy = -Ws[:, 2, 2] * Ws[:, 3, 2] - Ws[:, 2, 3] * Ws[:, 3, 3]
 
         bety1 = Ws[:, 2, 0]**2 + Ws[:, 2, 1]**2
         betx2 = Ws[:, 0, 2]**2 + Ws[:, 0, 3]**2
@@ -2254,6 +2254,26 @@ class TwissInit:
             setattr(self.particle_on_co, name, value)
         else:
             self.__dict__[name] = value
+
+    @property
+    def betx(self):
+        WW = self.W_matrix
+        return WW[0, 0]**2 + WW[0, 1]**2
+
+    @property
+    def bety(self):
+        WW = self.W_matrix
+        return WW[2, 2]**2 + WW[2, 3]**2
+
+    @property
+    def alfx(self):
+        WW = self.W_matrix
+        return -WW[0, 0] * WW[1, 0] - WW[0, 1] * WW[1, 1]
+
+    @property
+    def alfy(self):
+        WW = self.W_matrix
+        return -WW[2, 2] * WW[3, 2] - WW[2, 3] * WW[3, 3]
 
 class TwissTable(Table):
 
