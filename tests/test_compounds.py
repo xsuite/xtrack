@@ -5,6 +5,7 @@
 import pytest
 
 import xtrack as xt
+import xobjects as xo
 from cpymad.madx import Madx
 
 from xtrack.compounds import SlicedCompound, Compound, CompoundContainer
@@ -160,8 +161,8 @@ def test_slicing_preserve_thick_compound_if_unsliced():
     ]
 
 
-@pytest.fixture
-def line_with_compounds():
+@pytest.fixture(scope='function')
+def line_with_compounds(temp_context_default_func):
     elements = [
         ('a', xt.Marker()),         # ┐
         ('b', xt.Marker()),         # │
