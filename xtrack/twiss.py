@@ -1614,6 +1614,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
     twiss_init = TwissInit(particle_on_co=part_on_co, W_matrix=W,
                            element_name=tw_init_element_name,
+                           ax_chrom=None, bx_chrom=None,
+                           ay_chrom=None, by_chrom=None,
                            reference_frame='proper')
 
     return twiss_init, RR, steps_r_matrix, eigenvalues, Rot, RR_ebe
@@ -1983,7 +1985,9 @@ class TwissInit:
                 x=None, px=None, y=None, py=None, zeta=None, delta=None,
                 betx=None, alfx=None, bety=None, alfy=None, bets=None,
                 dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
-                mux=0, muy=0, muzeta=0, reference_frame=None):
+                mux=0, muy=0, muzeta=0,
+                ax_chrom=0, bx_chrom=0, ay_chrom=0, by_chrom=0,
+                reference_frame=None):
 
         # Custom setattr needs to be bypassed for creation of attributes
         object.__setattr__(self, 'particle_on_co', None)
@@ -2032,6 +2036,10 @@ class TwissInit:
         self.muy = muy
         self.muzeta = muzeta
         self.dzeta = dzeta
+        self.ax_chrom = ax_chrom
+        self.bx_chrom = bx_chrom
+        self.ay_chrom = ay_chrom
+        self.by_chrom = by_chrom
         self.reference_frame = reference_frame
 
         if line is not None and element_name is not None:
@@ -2204,6 +2212,10 @@ class TwissInit:
             muy=self.muy,
             muzeta=self.muzeta,
             dzeta=self.dzeta,
+            ax_chrom=self.ax_chrom,
+            bx_chrom=self.bx_chrom,
+            ay_chrom=self.ay_chrom,
+            by_chrom=self.by_chrom,
             reference_frame=self.reference_frame)
 
         if self._temp_co_data is not None:
@@ -2216,7 +2228,9 @@ class TwissInit:
 
     def reverse(self):
         out = TwissInit(particle_on_co=self.particle_on_co.copy(),
-                        W_matrix=self.W_matrix.copy())
+                        W_matrix=self.W_matrix.copy(),
+                        ax_chrom=-self.ax_chrom, bx_chrom=self.bx_chrom,
+                        ay_chrom=-self.ay_chrom, by_chrom=self.by_chrom,)
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
@@ -2312,12 +2326,25 @@ class TwissTable(Table):
 
         W = self.W_matrix[at_element]
 
+        if 'ax_chrom' in self.keys():
+            ax_chrom = self.ax_chrom[at_element]
+            bx_chrom = self.bx_chrom[at_element]
+            ay_chrom = self.ay_chrom[at_element]
+            by_chrom = self.by_chrom[at_element]
+        else:
+            ax_chrom = None
+            bx_chrom = None
+            ay_chrom = None
+            by_chrom = None
+
         return TwissInit(particle_on_co=part, W_matrix=W,
                         element_name=str(self.name[at_element]),
                         mux=self.mux[at_element],
                         muy=self.muy[at_element],
                         muzeta=self.muzeta[at_element],
                         dzeta=self.dzeta[at_element],
+                        ax_chrom=ax_chrom, bx_chrom=bx_chrom,
+                        ay_chrom=ay_chrom, by_chrom=by_chrom,
                         reference_frame=self.reference_frame)
 
     def get_betatron_sigmas(self, nemitt_x, nemitt_y):
