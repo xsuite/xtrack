@@ -1112,10 +1112,27 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
 
     dmux = (tw_chrom_res[1].mux - tw_chrom_res[0].mux)/(2*delta_chrom)
     dmuy = (tw_chrom_res[1].muy - tw_chrom_res[0].muy)/(2*delta_chrom)
+
+    dbetx = (tw_chrom_res[1].betx - tw_chrom_res[0].betx)/(2*delta_chrom)
+    dbety = (tw_chrom_res[1].bety - tw_chrom_res[0].bety)/(2*delta_chrom)
+    dalfx = (tw_chrom_res[1].alfx - tw_chrom_res[0].alfx)/(2*delta_chrom)
+    dalfy = (tw_chrom_res[1].alfy - tw_chrom_res[0].alfy)/(2*delta_chrom)
+    betx = (tw_chrom_res[1].betx + tw_chrom_res[0].betx)/2
+    bety = (tw_chrom_res[1].bety + tw_chrom_res[0].bety)/2
+    alfx = (tw_chrom_res[1].alfx + tw_chrom_res[0].alfx)/2
+    alfy = (tw_chrom_res[1].alfy + tw_chrom_res[0].alfy)/2
+
+    bx_chrom = dbetx / betx
+    by_chrom = dbety / bety
+    ax_chrom = dalfx - dbetx * alfx / betx
+    ay_chrom = dalfy - dbety * alfy / bety
+
     dqx = dmux[-1]
     dqy = dmuy[-1]
 
-    cols_chrom = {'dmux': dmux, 'dmuy': dmuy}
+    cols_chrom = {'dmux': dmux, 'dmuy': dmuy, 'bx_chrom': bx_chrom,
+                  'by_chrom': by_chrom, 'ax_chrom': ax_chrom,
+                  'ay_chrom': ay_chrom}
     scalars_chrom = {'dqx': dqx, 'dqy': dqy}
 
     return cols_chrom, scalars_chrom
