@@ -2289,6 +2289,31 @@ class TwissInit:
         WW = self.W_matrix
         return -WW[2, 2] * WW[3, 2] - WW[2, 3] * WW[3, 3]
 
+    @property
+    def dx(self):
+        WW = self.W_matrix
+        return (WW[0, 5] - WW[0, 4] * WW[4, 5] / WW[4, 4]) / (
+                WW[5, 5] - WW[5, 4] * WW[4, 5] / WW[4, 4])
+
+    @property
+    def dpx(self):
+        WW = self.W_matrix
+        return (WW[1, 5] - WW[1, 4] * WW[4, 5] / WW[4, 4]) / (
+                WW[5, 5] - WW[5, 4] * WW[4, 5] / WW[4, 4])
+
+    @property
+    def dy(self):
+        WW = self.W_matrix
+        return (WW[2, 5] - WW[2, 4] * WW[4, 5] / WW[4, 4]) / (
+                WW[5, 5] - WW[5, 4] * WW[4, 5] / WW[4, 4])
+
+    @property
+    def dpy(self):
+        WW = self.W_matrix
+        return (WW[3, 5] - WW[3, 4] * WW[4, 5] / WW[4, 4]) / (
+                WW[5, 5] - WW[5, 4] * WW[4, 5] / WW[4, 4])
+
+
 class TwissTable(Table):
 
     _error_on_row_not_found = True
