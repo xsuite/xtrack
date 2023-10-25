@@ -507,8 +507,7 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['eigenvalues'] = eigenvalues.copy()
         twiss_res._data['rotation_matrix'] = Rot.copy()
 
-    if (compute_chromatic_properties and not skip_global_quantities
-            and not only_orbit):
+    if (compute_chromatic_properties and not only_orbit):
 
         cols_chrom, scalars_chrom = _compute_chromatic_functions(
             line=line,
@@ -529,7 +528,8 @@ def twiss_line(line, particle_ref=None, method=None,
             ele_stop=ele_stop,
             hide_thin_groups=hide_thin_groups,
             group_compound_elements=group_compound_elements,
-            only_markers=only_markers)
+            only_markers=only_markers,
+            periodic=periodic)
         twiss_res._data.update(cols_chrom)
         twiss_res._data.update(scalars_chrom)
         twiss_res._col_names += list(cols_chrom.keys())
@@ -1062,7 +1062,8 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                     ele_start=None, ele_stop=None,
                     hide_thin_groups=False,
                     group_compound_elements=False,
-                    only_markers=False):
+                    only_markers=False,
+                    periodic=False):
 
     tw_chrom_res = []
     for dd in [-delta_chrom, delta_chrom]:
@@ -1079,16 +1080,46 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
                 W_matrix=tw_init_chrom.W_matrix)
         tw_init_chrom.particle_on_co = part_chrom
 
-        RR_chrom = line.compute_one_turn_matrix_finite_differences(
-                                    particle_on_co=tw_init_chrom.particle_on_co.copy(),
-                                    steps_r_matrix=steps_r_matrix)['R_matrix']
-        (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
-                                only_4d_block=method=='4d',
-                                responsiveness_tol=matrix_responsiveness_tol,
-                                stability_tol=matrix_stability_tol,
-                                symplectify=symplectify)
-        tw_init_chrom.W_matrix = WW_chrom
+        if periodic:
+            RR_chrom = line.compute_one_turn_matrix_finite_differences(
+                                        particle_on_co=tw_init_chrom.particle_on_co.copy(),
+                                        steps_r_matrix=steps_r_matrix)['R_matrix']
+            (WW_chrom, _, _, _) = lnf.compute_linear_normal_form(RR_chrom,
+                                    only_4d_block=method=='4d',
+                                    responsiveness_tol=matrix_responsiveness_tol,
+                                    stability_tol=matrix_stability_tol,
+                                    symplectify=symplectify)
+            tw_init_chrom.W_matrix = WW_chrom
+        else:
+            alfx = twiss_init.alfx
+            betx = twiss_init.betx
+            alfy = twiss_init.alfy
+            bety = twiss_init.bety
+            dx = twiss_init.dx
+            dy = twiss_init.dy
+            dpx = twiss_init.dpx
+            dpy = twiss_init.dpy
+            ax_chrom = twiss_init.ax_chrom
+            bx_chrom = twiss_init.bx_chrom
+            ay_chrom = twiss_init.ay_chrom
+            by_chrom = twiss_init.by_chrom
 
+            dbetx_dpzeta = bx_chrom * betx
+            dbety_dpzeta = by_chrom * bety
+            dalfx_dpzeta = ax_chrom + bx_chrom * alfx
+            dalfy_dpzeta = ay_chrom + by_chrom * alfy
+
+            twinit_aux = TwissInit(
+                alfx=alfx + dalfx_dpzeta * dd,
+                betx=betx + dbetx_dpzeta * dd,
+                alfy=alfy + dalfy_dpzeta * dd,
+                bety=bety + dbety_dpzeta * dd,
+                dx=dx,
+                dpx=dpx,
+                dy=dy,
+                dpy=dpy)
+            twinit_aux._complete(line, element_name=twiss_init.element_name)
+            tw_init_chrom.W_matrix = twinit_aux.W_matrix
 
         tw_chrom_res.append(
             _twiss_open(

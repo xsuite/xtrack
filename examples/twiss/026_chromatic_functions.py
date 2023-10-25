@@ -57,3 +57,20 @@ for line_name in ['lhcb1', 'lhcb2']:
     assert np.allclose(tw_test.ay_chrom, ay_ref, rtol=0, atol=2e-3 * np.max(ay_ref))
     assert np.allclose(tw_test.bx_chrom, bx_ref, rtol=0, atol=2e-3 * np.max(bx_ref))
     assert np.allclose(tw_test.by_chrom, by_ref, rtol=0, atol=2e-3 * np.max(by_ref))
+
+    twiss_init = tw.get_twiss_init('ip3')
+    tw_open = line.twiss(ele_start='ip3', ele_stop='ip6', twiss_init=twiss_init,
+                         compute_chromatic_properties=True,
+                         only_markers=True)
+
+    tw_ref_open = tw.rows['ip3':'ip6']
+    assert np.allclose(tw_open.wx_chrom[:-1], tw_ref_open.wx_chrom,
+                       rtol=0, atol=2e-3 * np.max(tw_ref_open.wx_chrom))
+    assert np.allclose(tw_open.wy_chrom[:-1], tw_ref_open.wy_chrom,
+                       rtol=0, atol=2e-3 * np.max(tw_ref_open.wy_chrom))
+    assert np.allclose(tw_open.ax_chrom[:-1], tw_ref_open.ax_chrom,
+                          rtol=0, atol=2e-3 * np.max(tw_ref_open.ax_chrom))
+    assert np.allclose(tw_open.ay_chrom[:-1], tw_ref_open.ay_chrom,
+                            rtol=0, atol=2e-3 * np.max(tw_ref_open.ay_chrom))
+    assert np.allclose(tw_open.bx_chrom[:-1], tw_ref_open.bx_chrom,
+                            rtol=0, atol=2e-3 * np.max(tw_ref_open.bx_chrom))
