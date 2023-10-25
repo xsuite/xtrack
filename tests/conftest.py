@@ -19,10 +19,16 @@ def assert_context_empty(context):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def cleanup():
-    """Assert that there are no active buffers after each test run."""
+def cleanup(request):
+    """Assert that there are no active buffers after each test run. If the test
+    fails, then don't bother though.
+    """
+    tests_failed_before = request.session.testsfailed
     yield
-    assert_context_empty(xo.context_default)
+    tests_failed_after = request.session.testsfailed
+    test_did_fail = tests_failed_after > tests_failed_before
+    if not test_did_fail:
+        assert_context_empty(xo.context_default)
 
 
 @pytest.fixture(scope="function")
