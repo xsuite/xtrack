@@ -163,6 +163,10 @@ def test_slicing_preserve_thick_compound_if_unsliced():
 
 @pytest.fixture(scope='function')
 def line_with_compounds(temp_context_default_func):
+    # The fixture `temp_context_default_func` is defined in conftest.py and is
+    # needed here as the non-empty context after the tests that invoke
+    # this fixture would trigger an error (due to the empty context check).
+    # See `conftest.py` for more details.
     elements = [
         ('a', xt.Marker()),         # ┐
         ('b', xt.Marker()),         # │

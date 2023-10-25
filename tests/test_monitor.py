@@ -19,11 +19,13 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-num_particles = 50
-
 
 @pytest.fixture(scope='module')
 def line0(temp_context_default_mod):
+    # The fixture `temp_context_default_mod` is defined in conftest.py and is
+    # needed here as the non-empty context after the tests that invoke
+    # this fixture would trigger an error (due to the empty context check).
+    # See `conftest.py` for more details.
     with open(test_data_folder.joinpath(
             'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
         dct = json.load(f)
@@ -36,8 +38,9 @@ def line0(temp_context_default_mod):
 
 @pytest.fixture(scope='module')
 def particles0(line0, temp_context_default_mod):
+    # See the comment in `line0` fixture.
     particles0 = xp.generate_matched_gaussian_bunch(line=line0,
-                                                    num_particles=num_particles,
+                                                    num_particles=50,
                                                     nemitt_x=2.5e-6,
                                                     nemitt_y=2.5e-6,
                                                     sigma_z=9e-2)
@@ -67,6 +70,7 @@ def test_constructor(test_context):
 
 @for_all_test_contexts
 def test_monitor(test_context, line0, particles0):
+    num_particles = len(particles0.x)
     line = line0.copy(_context=test_context)
     line.build_tracker(_context=test_context)
     particles = particles0.copy(_context=test_context)
