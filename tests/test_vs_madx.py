@@ -236,8 +236,6 @@ def test_twiss_and_survey(test_context):
                     assert np.isclose(twtst['dpy'][ixt], twmad['dpy'][imad],
                                     atol=3e-4, rtol=0)
 
-                    prrrrrr
-
                     if is_part:
                         # I chck the phase advance w.r.t. ip1
                         mux0_mad = twmad['mux'][list(twmad.name).index(ref_element_for_mu + ':1')]
