@@ -54,7 +54,7 @@ plt.plot(tw.s, tw.wy_chrom, label='closed')
 plt.plot(tw_open.s, tw_open.wy_chrom, label='open')
 plt.ylabel(r'$W_y$')
 
-plt.legend()
+plt.legend
 
 
 plt.show()

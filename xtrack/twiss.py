@@ -2260,10 +2260,13 @@ class TwissInit:
         return out
 
     def reverse(self):
-        out = TwissInit(particle_on_co=self.particle_on_co.copy(),
-                        W_matrix=self.W_matrix.copy(),
-                        ax_chrom=-self.ax_chrom, bx_chrom=self.bx_chrom,
-                        ay_chrom=-self.ay_chrom, by_chrom=self.by_chrom,)
+        out = TwissInit(
+            particle_on_co=self.particle_on_co.copy(),
+            W_matrix=self.W_matrix.copy(),
+            ax_chrom=(-self.ax_chrom if self.ax_chrom is not None else None),
+            ay_chrom=(-self.ay_chrom if self.ay_chrom is not None else None),
+            bx_chrom=self.bx_chrom,
+            by_chrom=self.by_chrom,)
         out.particle_on_co.x = -out.particle_on_co.x
         out.particle_on_co.py = -out.particle_on_co.py
         out.particle_on_co.zeta = -out.particle_on_co.zeta
