@@ -168,6 +168,12 @@ def twiss_line(line, particle_ref=None, method=None,
             - dy_zeta: vertical crab dispersion (d y / d zeta)
             - dpx_zeta: horizontal crab dispersion (d px / d zeta)
             - dpy_zeta: vertical crab dispersion (d py / d zeta)
+            - ax_chrom: chromatic function (d alfx / d delta - alfx / betx d betx / d delta)
+            - ay_chrom: chromatic function (d alfy / d delta - alfy / bety d bety / d delta)
+            - bx_chrom: chromatic function (d betx / d delta)
+            - by_chrom: chromatic function (d bety / d delta)
+            - wx_chrom: sqrt(ax_chrom**2 + bx_chrom**2)
+            - wy_chrom: sqrt(ay_chrom**2 + by_chrom**2)
             - W_matrix: W matrix of the linear normal form
             - betx1: computed horizontal beta function (Mais-Ripken)
             - bety1: computed vertical beta function (Mais-Ripken)
