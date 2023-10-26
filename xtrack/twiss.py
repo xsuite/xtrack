@@ -1155,6 +1155,7 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
     alfx = (tw_chrom_res[1].alfx + tw_chrom_res[0].alfx)/2
     alfy = (tw_chrom_res[1].alfy + tw_chrom_res[0].alfy)/2
 
+    # See MAD8 physics manual section 6.3
     bx_chrom = dbetx / betx
     by_chrom = dbety / bety
     ax_chrom = dalfx - dbetx * alfx / betx
