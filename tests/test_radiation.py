@@ -33,7 +33,7 @@ def test_radiation(test_context):
     particles_ave = xp.Particles(
             _context=test_context,
             p0c=5e9 / (1 + delta), # 5 GeV
-            x=np.zeros(1000000),
+            x=np.zeros(100000),
             px=1e-4,
             py=-1e-4,
             delta=delta,
@@ -88,25 +88,33 @@ def test_radiation(test_context):
     line.build_tracker(_context=test_context)
     line.configure_radiation(model='quantum')
 
-    record_capacity = int(100e6)
-    record = line.start_internal_logging_for_elements_of_type(xt.Multipole,
-                                                                capacity=record_capacity)
-    particles_test = particles_ave_0.copy()
-    particles_test_before = particles_test.copy()
-    line.track(particles_test)
+    sum_photon_energy = 0
+    sum_photon_energy_sq = 0
+    tot_n_recorded = 0
+    for iter in range(10):
+        record_capacity = int(10e6)
+        record = line.start_internal_logging_for_elements_of_type(xt.Multipole,
+                                                                    capacity=record_capacity)
+        particles_test = particles_ave_0.copy()
+        particles_test_before = particles_test.copy()
+        line.track(particles_test)
 
-    particles_test.move(xo.context_default)
-    particles_test_before.move(xo.context_default)
-    particles_ave.move(xo.context_default)
-    record.move(xo.context_default)
+        particles_test.move(xo.context_default)
+        particles_test_before.move(xo.context_default)
+        particles_ave.move(xo.context_default)
+        record.move(xo.context_default)
 
-    Delta_E_test = (particles_test.ptau - particles_test_before.ptau
-                                                        )*particles_test.p0c
-    n_recorded = record._index.num_recorded
-    assert n_recorded < record_capacity
-    assert np.allclose(-np.sum(Delta_E_test),
-                    np.sum(record.photon_energy[:n_recorded]),
-                    atol=0, rtol=1e-6)
+        Delta_E_test = (particles_test.ptau - particles_test_before.ptau
+                                                            )*particles_test.p0c
+        n_recorded = record._index.num_recorded
+        assert n_recorded < record_capacity
+        assert np.allclose(-np.sum(Delta_E_test),
+                        np.sum(record.photon_energy[:n_recorded]),
+                        atol=0, rtol=1e-6)
+
+        sum_photon_energy += np.sum(record.photon_energy[:n_recorded])
+        sum_photon_energy_sq += np.sum(record.photon_energy[:n_recorded]**2)
+        tot_n_recorded += n_recorded
 
     p0_J = particles_ave.p0c[0] / clight * qe
     B_T = p0_J / qe / rho_0
@@ -119,10 +127,14 @@ def test_radiation(test_context):
     E_sq_ave_J = 11 / 27 * E_crit_J**2
     E_sq_ave_eV = E_sq_ave_J / qe**2
 
-    assert np.isclose(np.mean(record.photon_energy[:n_recorded]),
-                    E_ave_eV, rtol=1e-2, atol=0)
-    assert np.isclose(np.std(record.photon_energy[:n_recorded]),
-                    np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=1e-3, atol=0)
+    mean_photon_energy = sum_photon_energy / tot_n_recorded
+    mean_photon_energy_sq = sum_photon_energy_sq / tot_n_recorded
+    std_photon_energy = np.sqrt(mean_photon_energy_sq - mean_photon_energy**2)
+
+    assert np.isclose(mean_photon_energy, E_ave_eV, rtol=1e-2, atol=0)
+    assert np.isclose(std_photon_energy,
+                      np.sqrt(E_sq_ave_eV - E_ave_eV**2), rtol=1e-3, atol=0)
+
 
 @for_all_test_contexts
 @retry()
