@@ -264,7 +264,7 @@ def twiss_line(line, particle_ref=None, method=None,
     compute_lattice_functions=(compute_lattice_functions
                         if compute_lattice_functions is not None else True)
     compute_chromatic_properties=(compute_chromatic_properties
-                        if compute_chromatic_properties is not None else True)
+                        if compute_chromatic_properties is not None else None)
 
     if only_orbit:
         raise NotImplementedError # Tested only experimentally
@@ -507,7 +507,9 @@ def twiss_line(line, particle_ref=None, method=None,
         twiss_res._data['eigenvalues'] = eigenvalues.copy()
         twiss_res._data['rotation_matrix'] = Rot.copy()
 
-    if (compute_chromatic_properties and not only_orbit):
+    if (not only_orbit and (
+        (compute_chromatic_properties is True)
+        or (compute_chromatic_properties is None and periodic))):
 
         cols_chrom, scalars_chrom = _compute_chromatic_functions(
             line=line,
