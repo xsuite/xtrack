@@ -382,8 +382,9 @@ def twiss_line(line, particle_ref=None, method=None,
             assert reverse is True, ('`twiss_init` needs to be given in the '
                 'reverse reference frame when `reverse` is True')
 
-    if not periodic and not reverse and (
-        _str_to_index(line, ele_start) >= _str_to_index(line, ele_stop)):
+    rv = (-1 if reverse else 1)
+    if not periodic and (
+        rv * _str_to_index(line, ele_start) >= rv * _str_to_index(line, ele_stop)):
 
         # Need to loop around
         ele_name_init =  twiss_init.element_name
@@ -393,7 +394,7 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs.pop('ele_stop')
         kwargs.pop('twiss_init')
 
-        if _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start):
+        if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
             tw1 = twiss_line(ele_start=ele_start, ele_stop=line.element_names[-1],
                              twiss_init=twiss_init, **kwargs)
             twini_2 = tw1.get_twiss_init(at_element=line.element_names[-1])
@@ -419,12 +420,6 @@ def twiss_line(line, particle_ref=None, method=None,
         tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
 
         return tw_res
-
-    elif not periodic and reverse and (
-        _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop)):
-
-        raise NotImplementedError('Reverse mode not implemented for non-periodic lines')
-
 
     if not periodic and twiss_init.element_name != ele_start and twiss_init.element_name != ele_stop:
         ele_name_init =  twiss_init.element_name
