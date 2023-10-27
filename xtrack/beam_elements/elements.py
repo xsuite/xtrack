@@ -701,6 +701,8 @@ class SimpleThinQuadrupole(BeamElement):
         'knl': xo.Float64[2],
     }
 
+    has_backtrack = True
+
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinquadrupole.h')]
 
@@ -1399,6 +1401,8 @@ class SimpleThinBend(BeamElement):
         'hxl': xo.Float64,
         'length': xo.Float64,
     }
+
+    has_backtrack = True
 
     _extra_c_sources = [
         _pkg_root.joinpath('beam_elements/elements_src/simplethinbend.h')]
