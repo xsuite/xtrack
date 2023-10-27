@@ -362,6 +362,70 @@ def twiss_line(line, particle_ref=None, method=None,
         assert ele_start is not None and ele_stop is not None, (
             'ele_start and ele_stop must be provided together')
 
+    if twiss_init is not None and not isinstance(twiss_init, str):
+        twiss_init = twiss_init.copy() # To avoid changing the one provided
+
+        if twiss_init._needs_complete():
+            assert isinstance(ele_start_user, str), (
+                'ele_start must be provided as name when an incomplete '
+                'twiss_init is provided')
+            twiss_init._complete(line=line,
+                    element_name=(twiss_init.element_name or ele_start_user))
+
+        if twiss_init.reference_frame is None:
+            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
+
+        if twiss_init.reference_frame == 'proper':
+            assert not(reverse), ('`twiss_init` needs to be given in the '
+                'proper reference frame when `reverse` is False')
+        elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
+            assert reverse is True, ('`twiss_init` needs to be given in the '
+                'reverse reference frame when `reverse` is True')
+
+    if not periodic and not reverse and (
+        _str_to_index(line, ele_start) >= _str_to_index(line, ele_stop)):
+
+        # Need to loop around
+        ele_name_init =  twiss_init.element_name
+
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
+        kwargs.pop('twiss_init')
+
+        if _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start):
+            tw1 = twiss_line(ele_start=ele_start, ele_stop=line.element_names[-1],
+                             twiss_init=twiss_init, **kwargs)
+            twini_2 = tw1.get_twiss_init(at_element=line.element_names[-1])
+            twini_2.element_name = line.element_names[0]
+            tw2 = twiss_line(ele_start=line.element_names[0], ele_stop=ele_stop,
+                             twiss_init=twini_2, **kwargs)
+            tw_res = TwissTable.concatenate([tw1, tw2])
+        else:
+            tw2 = twiss_line(ele_start=line.element_names[0], ele_stop=ele_stop,
+                             twiss_init=twiss_init, **kwargs)
+            twini_1 = tw2.get_twiss_init(at_element=line.element_names[0])
+            twini_1.element_name = line.element_names[-1]
+            tw1 = twiss_line(ele_start=ele_start, ele_stop=line.element_names[-1],
+                             twiss_init=twini_1, **kwargs)
+            tw_res = TwissTable.concatenate([tw1, tw2])
+
+        tw_res = TwissTable.concatenate([tw1, tw2])
+
+        tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
+        tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
+        tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
+        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
+        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
+
+        return tw_res
+
+    elif not periodic and reverse and (
+        _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop)):
+
+        raise NotImplementedError('Reverse mode not implemented for non-periodic lines')
+
+
     if not periodic and twiss_init.element_name != ele_start and twiss_init.element_name != ele_stop:
         ele_name_init =  twiss_init.element_name
         if reverse:
@@ -401,29 +465,6 @@ def twiss_line(line, particle_ref=None, method=None,
         if ele_start is not None and ele_stop is not None:
             assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop), (
                 'ele_start must be larger than ele_stop in forward mode')
-
-    if ele_start is not None:
-        assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop)
-
-    if twiss_init is not None and not isinstance(twiss_init, str):
-        twiss_init = twiss_init.copy() # To avoid changing the one provided
-
-        if twiss_init._needs_complete():
-            assert isinstance(ele_start_user, str), (
-                'ele_start must be provided as name when an incomplete '
-                'twiss_init is provided')
-            twiss_init._complete(line=line,
-                    element_name=(twiss_init.element_name or ele_start_user))
-
-        if twiss_init.reference_frame is None:
-            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
-
-        if twiss_init.reference_frame == 'proper':
-            assert not(reverse), ('`twiss_init` needs to be given in the '
-                'proper reference frame when `reverse` is False')
-        elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
-            assert reverse is True, ('`twiss_init` needs to be given in the '
-                'reverse reference frame when `reverse` is True')
 
     if ele_start is not None and twiss_init is None:
         assert twiss_init is not None, (
