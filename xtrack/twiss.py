@@ -394,20 +394,30 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs.pop('ele_stop')
         kwargs.pop('twiss_init')
 
+        if not reverse:
+            estart_tw1 = ele_start
+            estop_tw1 = line.element_names[-1]
+            estart_tw2 = line.element_names[0]
+            estop_tw2 = ele_stop
+        else:
+            estart_tw1 = ele_start
+            estop_tw1 = line.element_names[0]
+            estart_tw2 = line.element_names[-1]
+            estop_tw2 = ele_stop
         if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
-            tw1 = twiss_line(ele_start=ele_start, ele_stop=line.element_names[-1],
+            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
                              twiss_init=twiss_init, **kwargs)
-            twini_2 = tw1.get_twiss_init(at_element=line.element_names[-1])
-            twini_2.element_name = line.element_names[0]
-            tw2 = twiss_line(ele_start=line.element_names[0], ele_stop=ele_stop,
+            twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
+            twini_2.element_name = estart_tw2
+            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
                              twiss_init=twini_2, **kwargs)
             tw_res = TwissTable.concatenate([tw1, tw2])
         else:
-            tw2 = twiss_line(ele_start=line.element_names[0], ele_stop=ele_stop,
+            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
                              twiss_init=twiss_init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=line.element_names[0])
-            twini_1.element_name = line.element_names[-1]
-            tw1 = twiss_line(ele_start=ele_start, ele_stop=line.element_names[-1],
+            twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
+            twini_1.element_name = estop_tw1
+            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
                              twiss_init=twini_1, **kwargs)
             tw_res = TwissTable.concatenate([tw1, tw2])
 
