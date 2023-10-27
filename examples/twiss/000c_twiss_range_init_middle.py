@@ -28,8 +28,8 @@ tw = line.twiss()
 #                  twiss_init=tw.get_twiss_init('ip6'))
 
 # Loop around (init in the second part)
-# two = line.twiss(ele_start='ip2', ele_stop='ip5',
-#                     twiss_init=tw.get_twiss_init('ip4'))
+two = line.twiss(ele_start='ip2', ele_stop='ip5',
+                    twiss_init=tw.get_twiss_init('ip4'))
 
 # Loop around (init in the first part)
 # two = line.twiss(ele_start='ip1', ele_stop='ip4',
@@ -39,8 +39,8 @@ tw = line.twiss()
 # two = collider.lhcb1.twiss(ele_start='ip8', ele_stop='ip3', ele_init='ip2',
 #                              betx=10., bety=10.)
 
-two = collider.lhcb1.twiss(ele_start='ip3', ele_stop='ip6', ele_init='ip5',
-                             betx=.15, bety=.15)
+# two = collider.lhcb1.twiss(ele_start='ip3', ele_stop='ip6', ele_init='ip5',
+#                              betx=.15, bety=.15)
 
 import matplotlib.pyplot as plt
 plt.figure(1)

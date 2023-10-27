@@ -431,6 +431,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
         return tw_res
 
+    # twiss_init is not at the boundary
     if not periodic and twiss_init.element_name != ele_start and twiss_init.element_name != ele_stop:
         ele_name_init =  twiss_init.element_name
         if reverse:
@@ -454,6 +455,14 @@ def twiss_line(line, particle_ref=None, method=None,
         tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
         tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
         tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
+
+        # Not correctly handled yet
+        if 'dmux' in tw_res.keys():
+            tw_res._data.pop('dmux')
+            tw_res._col_names.remove('dmux')
+        if 'dmuy' in tw_res.keys():
+            tw_res._data.pop('dmuy')
+            tw_res._col_names.remove('dmuy')
 
         return tw_res
 
@@ -1804,6 +1813,14 @@ def _handle_loop_around(kwargs):
     tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
     tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
     tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
+
+    # Not yet supported
+    if 'dmux' in tw_res.keys():
+        tw_res._data.pop('dmux')
+        tw_res._col_names.remove('dmux')
+    if 'dmuy' in tw_res.keys():
+        tw_res._data.pop('dmuy')
+        tw_res._col_names.remove('dmuy')
 
     return tw_res
 
