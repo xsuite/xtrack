@@ -26,9 +26,13 @@ tw = line.twiss()
 # two = line.twiss(ele_start='ip5', ele_stop='ip8',
 #                  twiss_init=tw.get_twiss_init('ip6'))
 
-# Loop around
-two = line.twiss(ele_start='ip2', ele_stop='ip5',
-                    twiss_init=tw.get_twiss_init('ip4'))
+# Loop around (init in the second part)
+# two = line.twiss(ele_start='ip2', ele_stop='ip5',
+#                     twiss_init=tw.get_twiss_init('ip4'))
+
+# Loop around (init in the first part)
+two = line.twiss(ele_start='ip1', ele_stop='ip4',
+                 twiss_init=tw.get_twiss_init('ip2'))
 
 
 import matplotlib.pyplot as plt
