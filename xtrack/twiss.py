@@ -67,6 +67,12 @@ def twiss_line(line, particle_ref=None, method=None,
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
+        ele_init=None,
+        x=None, px=None, y=None, py=None, zeta=None, delta=None,
+        betx=None, alfx=None, bety=None, alfy=None, bets=None,
+        dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
+        mux=None, muy=None, muzeta=None,
+        ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -279,11 +285,11 @@ def twiss_line(line, particle_ref=None, method=None,
 
     ele_start_user = ele_start
 
-    if twiss_init is None or twiss_init=='periodic':
-        # Periodic mode
-        periodic = True
-    else:
+    if (twiss_init is not None and twiss_init != 'periodic'
+        or betx is not None or bety is not None):
         periodic = False
+    else:
+        periodic = True
 
     if freeze_longitudinal:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
@@ -361,6 +367,39 @@ def twiss_line(line, particle_ref=None, method=None,
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
             'ele_start and ele_stop must be provided together')
+        if twiss_init is None:
+            assert betx is not None and bety is not None, (
+                'betx and bety or twiss_init must be provided when ele_start '
+                'and ele_stop are used')
+            twiss_init = xt.TwissInit(
+                element_name=ele_init,
+                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+                betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
+                dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
+                mux=mux, muy=muy, muzeta=muzeta,
+                ax_chrom=ax_chrom, bx_chrom=bx_chrom,
+                ay_chrom=ay_chrom, by_chrom=by_chrom,
+                )
+            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+            for kk in ['ele_init', 'x', 'px', 'y', 'py', 'zeta', 'delta',
+                       'betx', 'alfx', 'bety', 'alfy', 'bets',
+                       'dx', 'dpx', 'dy', 'dpy', 'dzeta',
+                       'mux', 'muy', 'muzeta',
+                       'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+                       'twiss_init']:
+                kwargs.pop(kk)
+            return twiss_line(twiss_init=twiss_init, **kwargs)
+        else:
+            assert ele_init is None
+            assert x is None and px is None and y is None and py is None
+            assert zeta is None and delta is None
+            assert betx is None and alfx is None and bety is None and alfy is None
+            assert bets is None
+            assert dx is None and dpx is None and dy is None and dpy is None
+            assert dzeta is None
+            assert mux is None and muy is None and muzeta is None
+            assert ax_chrom is None and bx_chrom is None
+            assert ay_chrom is None and by_chrom is None
 
     if twiss_init is not None and not isinstance(twiss_init, str):
         twiss_init = twiss_init.copy() # To avoid changing the one provided
@@ -2114,9 +2153,9 @@ class TwissInit:
                 line=None, particle_ref=None,
                 x=None, px=None, y=None, py=None, zeta=None, delta=None,
                 betx=None, alfx=None, bety=None, alfy=None, bets=None,
-                dx=0, dpx=0, dy=0, dpy=0, dzeta=0,
-                mux=0, muy=0, muzeta=0,
-                ax_chrom=0, bx_chrom=0, ay_chrom=0, by_chrom=0,
+                dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
+                mux=None, muy=None, muzeta=None,
+                ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
                 reference_frame=None):
 
         # Custom setattr needs to be bypassed for creation of attributes
@@ -2126,7 +2165,13 @@ class TwissInit:
 
         if particle_on_co is None:
             self._temp_co_data = dict(
-                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta)
+                x=(x or 0.),
+                px=(px or 0.),
+                y=(y or 0.),
+                py=(py or 0.),
+                zeta=(zeta or 0.),
+                delta=(delta or 0.),
+            )
         else:
             assert x is None, "`x` must be None if `particle_on_co` is provided"
             assert px is None, "`px` must be None if `particle_on_co` is provided"
@@ -2162,14 +2207,14 @@ class TwissInit:
 
         self.element_name = element_name
         self.W_matrix = W_matrix
-        self.mux = mux
-        self.muy = muy
-        self.muzeta = muzeta
-        self.dzeta = dzeta
-        self.ax_chrom = ax_chrom
-        self.bx_chrom = bx_chrom
-        self.ay_chrom = ay_chrom
-        self.by_chrom = by_chrom
+        self.mux = (mux or 0.)
+        self.muy = (muy or 0.)
+        self.muzeta = (muzeta or 0.)
+        self.dzeta = (dzeta or 0.)
+        self.ax_chrom = (ax_chrom or 0.)
+        self.bx_chrom = (bx_chrom or 0.)
+        self.ay_chrom = (ay_chrom or 0.)
+        self.by_chrom = (by_chrom or 0.)
         self.reference_frame = reference_frame
 
         if line is not None and element_name is not None:
