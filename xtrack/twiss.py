@@ -481,6 +481,21 @@ def twiss_line(line, particle_ref=None, method=None,
         raise NotImplementedError(
             '`only_markers` not implemented for `eneloss_and_damping`')
 
+    if not periodic and twiss_init.element_name != ele_start and twiss_init.element_name != ele_stop:
+        ele_name_init =  twiss_init.element_name
+        assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start)
+        assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_stop)
+
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
+
+        tw1 = twiss_line(ele_start=ele_start, ele_stop=ele_name_init, **kwargs)
+        tw2 = twiss_line(ele_start=ele_name_init, ele_stop=ele_stop, **kwargs)
+
+        tw_res = TwissTable.concatenate([tw1, tw2])
+        return tw_res
+
     twiss_res = _twiss_open(
         line=line,
         twiss_init=twiss_init,
