@@ -382,52 +382,13 @@ def twiss_line(line, particle_ref=None, method=None,
             assert reverse is True, ('`twiss_init` needs to be given in the '
                 'reverse reference frame when `reverse` is True')
 
+    # Twiss goes throgh the start of the line
     rv = (-1 if reverse else 1)
     if not periodic and (
         rv * _str_to_index(line, ele_start) >= rv * _str_to_index(line, ele_stop)):
 
-        # Need to loop around
-        ele_name_init =  twiss_init.element_name
-
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('ele_start')
-        kwargs.pop('ele_stop')
-        kwargs.pop('twiss_init')
-
-        if not reverse:
-            estart_tw1 = ele_start
-            estop_tw1 = line.element_names[-1]
-            estart_tw2 = line.element_names[0]
-            estop_tw2 = ele_stop
-        else:
-            estart_tw1 = ele_start
-            estop_tw1 = line.element_names[0]
-            estart_tw2 = line.element_names[-1]
-            estop_tw2 = ele_stop
-        if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
-            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
-                             twiss_init=twiss_init, **kwargs)
-            twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
-            twini_2.element_name = estart_tw2
-            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
-                             twiss_init=twini_2, **kwargs)
-            tw_res = TwissTable.concatenate([tw1, tw2])
-        else:
-            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
-                             twiss_init=twiss_init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
-            twini_1.element_name = estop_tw1
-            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
-                             twiss_init=twini_1, **kwargs)
-            tw_res = TwissTable.concatenate([tw1, tw2])
-
-        tw_res = TwissTable.concatenate([tw1, tw2])
-
-        tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
-        tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
-        tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
-        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
-        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
+        tw_res = _handle_loop_around(kwargs)
 
         return tw_res
 
@@ -1736,6 +1697,58 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                            reference_frame='proper')
 
     return twiss_init, RR, steps_r_matrix, eigenvalues, Rot, RR_ebe
+
+def _handle_loop_around(kwargs):
+
+    kwargs = kwargs.copy()
+
+    twiss_init = kwargs.pop('twiss_init')
+    ele_start = kwargs.pop('ele_start')
+    ele_stop = kwargs.pop('ele_stop')
+
+    line = kwargs['line']
+    reverse = kwargs['reverse']
+    rv = -1 if reverse else 1
+
+    # Need to loop around
+    ele_name_init =  twiss_init.element_name
+
+    if not reverse:
+        estart_tw1 = ele_start
+        estop_tw1 = line.element_names[-1]
+        estart_tw2 = line.element_names[0]
+        estop_tw2 = ele_stop
+    else:
+        estart_tw1 = ele_start
+        estop_tw1 = line.element_names[0]
+        estart_tw2 = line.element_names[-1]
+        estop_tw2 = ele_stop
+    if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
+        tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
+                            twiss_init=twiss_init, **kwargs)
+        twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
+        twini_2.element_name = estart_tw2
+        tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                            twiss_init=twini_2, **kwargs)
+        tw_res = TwissTable.concatenate([tw1, tw2])
+    else:
+        tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                            twiss_init=twiss_init, **kwargs)
+        twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
+        twini_1.element_name = estop_tw1
+        tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
+                            twiss_init=twini_1, **kwargs)
+        tw_res = TwissTable.concatenate([tw1, tw2])
+
+    tw_res = TwissTable.concatenate([tw1, tw2])
+
+    tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
+    tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
+    tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
+    tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
+    tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
+
+    return tw_res
 
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
