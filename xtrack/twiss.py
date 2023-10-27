@@ -494,6 +494,9 @@ def twiss_line(line, particle_ref=None, method=None,
         tw2 = twiss_line(ele_start=ele_name_init, ele_stop=ele_stop, **kwargs)
 
         tw_res = TwissTable.concatenate([tw1, tw2])
+
+        tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
+
         return tw_res
 
     twiss_res = _twiss_open(
