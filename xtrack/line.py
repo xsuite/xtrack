@@ -24,7 +24,7 @@ import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .slicing import Slicer
 
-from .survey import survey_from_tracker
+from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
                           compute_T_matrix_line,
@@ -1142,7 +1142,7 @@ class Line:
             Survey table.
         """
 
-        return survey_from_tracker(self.tracker, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
+        return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
