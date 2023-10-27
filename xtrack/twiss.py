@@ -496,6 +496,10 @@ def twiss_line(line, particle_ref=None, method=None,
         tw_res = TwissTable.concatenate([tw1, tw2])
 
         tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
+        tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
+        tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
+        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
+        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
 
         return tw_res
 
