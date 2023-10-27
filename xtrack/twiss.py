@@ -424,7 +424,7 @@ def twiss_line(line, particle_ref=None, method=None,
     # Twiss goes throgh the start of the line
     rv = (-1 if reverse else 1)
     if not periodic and (
-        rv * _str_to_index(line, ele_start) >= rv * _str_to_index(line, ele_stop)):
+        rv * _str_to_index(line, ele_start) > rv * _str_to_index(line, ele_stop)):
 
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         tw_res = _handle_loop_around(kwargs)
@@ -459,7 +459,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if reverse:
         if ele_start is not None and ele_stop is not None:
-            assert _str_to_index(line, ele_start) >= _str_to_index(line, ele_stop), (
+            assert _str_to_index(line, ele_start) > _str_to_index(line, ele_stop), (
                 'ele_start must be smaller than ele_stop in reverse mode')
         ele_start, ele_stop = ele_stop, ele_start
         if twiss_init == 'preserve' or twiss_init == 'preserve_start':
@@ -468,7 +468,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_init = 'preserve_start'
     else:
         if ele_start is not None and ele_stop is not None:
-            assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop), (
+            assert _str_to_index(line, ele_start) < _str_to_index(line, ele_stop), (
                 'ele_start must be larger than ele_stop in forward mode')
 
     if ele_start is not None and twiss_init is None:
@@ -1762,6 +1762,7 @@ def _handle_loop_around(kwargs):
         estop_tw1 = line.element_names[0]
         estart_tw2 = line.element_names[-1]
         estop_tw2 = ele_stop
+    import pdb; pdb.set_trace()
     if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
         tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
                             twiss_init=twiss_init, **kwargs)
