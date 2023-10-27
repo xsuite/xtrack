@@ -1,0 +1,27 @@
+# copyright ############################### #
+# This file is part of the Xtrack Package.  #
+# Copyright (c) CERN, 2021.                 #
+# ######################################### #
+
+import numpy as np
+
+import xtrack as xt
+import xpart as xp
+
+collider = xt.Multiline.from_json(
+    '../../test_data/hllhc15_collider/collider_00_from_mad.json')
+collider.build_trackers()
+
+collider.lhcb1.twiss_default['method'] = '4d'
+collider.lhcb2.twiss_default['method'] = '4d'
+collider.lhcb2.twiss_default['reverse'] = True
+
+# line = collider.lhcb2
+# line_name = 'lhcb2'
+
+line = collider.lhcb1
+line_name = 'lhcb1'
+
+tw = line.twiss()
+two = line.twiss(ele_start='ip5', ele_stop='ip8',
+                 twiss_init=tw.get_twiss_init('ip6'))
