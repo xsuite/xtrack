@@ -19,17 +19,17 @@ collider.lhcb2.twiss_default['reverse'] = True
 line = collider.lhcb2
 line_name = 'lhcb2'
 
-# line = collider.lhcb1
-# line_name = 'lhcb1'
+line = collider.lhcb1
+line_name = 'lhcb1'
 
 tw = line.twiss()
 
-# two = line.twiss(ele_start='ip5', ele_stop='ip8',
-#                  twiss_init=tw.get_twiss_init('ip6'))
+two = line.twiss(ele_start='ip5', ele_stop='ip8',
+                 twiss_init=tw.get_twiss_init('ip6'))
 
 # Loop around (init in the second part)
-two = line.twiss(ele_start='ip2', ele_stop='ip5',
-                    twiss_init=tw.get_twiss_init('ip4'))
+# two = line.twiss(ele_start='ip2', ele_stop='ip5',
+#                     twiss_init=tw.get_twiss_init('ip4'))
 
 # Loop around (init in the first part)
 two = line.twiss(ele_start='ip1', ele_stop='ip4',
