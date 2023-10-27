@@ -388,6 +388,7 @@ def twiss_line(line, particle_ref=None, method=None,
                        'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
                        'twiss_init']:
                 kwargs.pop(kk)
+
             return twiss_line(twiss_init=twiss_init, **kwargs)
         else:
             assert ele_init is None
@@ -403,7 +404,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if twiss_init is not None and not isinstance(twiss_init, str):
         twiss_init = twiss_init.copy() # To avoid changing the one provided
-
         if twiss_init._needs_complete():
             assert isinstance(ele_start_user, str), (
                 'ele_start must be provided as name when an incomplete '
@@ -1770,7 +1770,7 @@ def _handle_loop_around(kwargs):
             twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
         else:
             tw1 = None
-            twini_2 = twiss_init.copy()
+            twini_2 = twiss_init
         twini_2.element_name = estart_tw2
         if estart_tw2 != estop_tw2:
             tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
@@ -1784,7 +1784,7 @@ def _handle_loop_around(kwargs):
             twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
         else:
             tw2 = None
-            twini_1 = twiss_init.copy()
+            twini_1 = twiss_init
         twini_1.element_name = estop_tw1
         if estart_tw1 != estop_tw1:
             tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
@@ -2324,27 +2324,36 @@ class TwissInit:
 
     def _complete(self, line, element_name):
 
+        if (line is not None and 'reverse' in line.twiss_default
+            and line.twiss_default['reverse']):
+            input_reversed = True
+            assert self.reference_frame is None, ("`reference_frame` must be None "
+                "if `twiss_default['reverse']` is True")
+        else:
+            input_reversed = False
+
         if self._temp_co_data is not None:
             assert line is not None, (
                 "`line` must be provided if `particle_on_co` is None")
+
+            i_ele_in_line = _str_to_index(line, element_name)
+            s_ele_in_line = line.tracker._tracker_data_base.element_s_locations[i_ele_in_line]
+
+            if input_reversed:
+                s_ele_twiss = line.tracker._tracker_data_base.element_s_locations[-1] - s_ele_in_line
+            else:
+                s_ele_twiss = s_ele_in_line
 
             particle_on_co=xp.build_particles(
                 x=self._temp_co_data['x'], px=self._temp_co_data['px'],
                 y=self._temp_co_data['y'], py=self._temp_co_data['py'],
                 delta=self._temp_co_data['delta'], zeta=self._temp_co_data['zeta'],
                 line=line)
+            particle_on_co.s = s_ele_twiss
             self.__dict__['particle_on_co'] = particle_on_co
             self._temp_co_data = None
 
         if self._temp_optics_data is not None:
-
-            if (line is not None and 'reverse' in line.twiss_default
-                and line.twiss_default['reverse']):
-                input_reversed = True
-                assert self.reference_frame is None, ("`reference_frame` must be None "
-                    "if `twiss_default['reverse']` is True")
-            else:
-                input_reversed = False
 
             aux_segment = xt.LineSegmentMap(
                 length=1., # dummy
