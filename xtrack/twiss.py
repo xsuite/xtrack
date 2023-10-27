@@ -1763,30 +1763,39 @@ def _handle_loop_around(kwargs):
         estart_tw2 = line.element_names[-1]
         estop_tw2 = ele_stop
 
-    tw_list = []
-
     if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
-        tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
-                            twiss_init=twiss_init, **kwargs)
-        tw_list += [tw1]
-        twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
+        if estart_tw1 != estop_tw1:
+            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
+                                twiss_init=twiss_init, **kwargs)
+            twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
+        else:
+            tw1 = None
+            twini_2 = twiss_init.copy()
         twini_2.element_name = estart_tw2
         if estart_tw2 != estop_tw2:
             tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
                                 twiss_init=twini_2, **kwargs)
-            tw_list += [tw2]
+        else:
+            tw2 = None
     else:
-        tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
-                            twiss_init=twiss_init, **kwargs)
-        twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
+        if estart_tw2 != estop_tw2:
+            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                                twiss_init=twiss_init, **kwargs)
+            twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
+        else:
+            tw2 = None
+            twini_1 = twiss_init.copy()
         twini_1.element_name = estop_tw1
         if estart_tw1 != estop_tw1:
             tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
                                 twiss_init=twini_1, **kwargs)
-            tw_list += [tw1]
+        else:
+            tw1 = None
 
-    if len(tw_list) == 1:
-        tw_res = tw_list[0]
+    if tw1 is None:
+        tw_res = tw2
+    elif tw2 is None:
+        tw_res = tw1
     else:
         tw_res = TwissTable.concatenate([tw1, tw2])
 
