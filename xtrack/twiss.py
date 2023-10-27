@@ -279,6 +279,12 @@ def twiss_line(line, particle_ref=None, method=None,
 
     ele_start_user = ele_start
 
+    if twiss_init is None or twiss_init=='periodic':
+        # Periodic mode
+        periodic = True
+    else:
+        periodic = False
+
     if freeze_longitudinal:
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         kwargs.pop('freeze_longitudinal')
@@ -355,6 +361,32 @@ def twiss_line(line, particle_ref=None, method=None,
     if ele_start is not None or ele_stop is not None:
         assert ele_start is not None and ele_stop is not None, (
             'ele_start and ele_stop must be provided together')
+
+    if not periodic and twiss_init.element_name != ele_start and twiss_init.element_name != ele_stop:
+        ele_name_init =  twiss_init.element_name
+        if reverse:
+            assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_start)
+            assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_stop)
+        else:
+            assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start)
+            assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_stop)
+
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
+
+        tw1 = twiss_line(ele_start=ele_start, ele_stop=ele_name_init, **kwargs)
+        tw2 = twiss_line(ele_start=ele_name_init, ele_stop=ele_stop, **kwargs)
+
+        tw_res = TwissTable.concatenate([tw1, tw2])
+
+        tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
+        tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
+        tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
+        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
+        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
+
+        return tw_res
 
     if reverse:
         if ele_start is not None and ele_stop is not None:
@@ -443,9 +475,7 @@ def twiss_line(line, particle_ref=None, method=None,
         elif twiss_init == 'preserve_end':
             twiss_init = tw0.get_twiss_init(at_element=ele_stop)
 
-    if twiss_init is None or twiss_init=='periodic':
-        # Periodic mode
-        periodic = True
+    if periodic:
 
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
@@ -468,7 +498,6 @@ def twiss_line(line, particle_ref=None, method=None,
     else:
         # force
         skip_global_quantities = True
-        periodic = False
 
     if only_twiss_init:
         assert periodic, '`only_twiss_init` can only be used in periodic mode'
@@ -481,27 +510,7 @@ def twiss_line(line, particle_ref=None, method=None,
         raise NotImplementedError(
             '`only_markers` not implemented for `eneloss_and_damping`')
 
-    if not periodic and twiss_init.element_name != ele_start and twiss_init.element_name != ele_stop:
-        ele_name_init =  twiss_init.element_name
-        assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start)
-        assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_stop)
 
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('ele_start')
-        kwargs.pop('ele_stop')
-
-        tw1 = twiss_line(ele_start=ele_start, ele_stop=ele_name_init, **kwargs)
-        tw2 = twiss_line(ele_start=ele_name_init, ele_stop=ele_stop, **kwargs)
-
-        tw_res = TwissTable.concatenate([tw1, tw2])
-
-        tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
-        tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
-        tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
-        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
-        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
-
-        return tw_res
 
     twiss_res = _twiss_open(
         line=line,
