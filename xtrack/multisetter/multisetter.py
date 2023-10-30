@@ -128,10 +128,6 @@ class MultiSetter(xo.HybridClass):
         index: int or None
             If the field is an array, the index of the array to be mutated.
         """
-        if len(elements) == 0:
-            self._empty = True
-            return
-        self._empty = False
 
         if isinstance(line, xt.Tracker):
             tracker = line
@@ -142,6 +138,13 @@ class MultiSetter(xo.HybridClass):
 
         tracker_buffer = tracker._buffer
         line = tracker.line
+
+        if len(elements) == 0:
+            self._empty = True
+            self.xoinitialize(_context=context, offsets=[])
+            return
+
+        self._empty = False
 
         # Get dtype from first element
         el = line[elements[0]]
@@ -181,7 +184,7 @@ class MultiSetter(xo.HybridClass):
     def get_values(self):
         """Get the values of the multisetter fields."""
         if self._empty:
-            return []
+            return self._context.zeros(0, dtype=np.float64)
 
         out = self._context.zeros(len(self.offsets), dtype=self.dtype)
         self._get_kernel.set_n_threads(len(self.offsets))
@@ -201,7 +204,7 @@ class MultiSetter(xo.HybridClass):
 
         self._set_kernel.set_n_threads(len(self.offsets))
         self._set_kernel(data=self, buffer=self._tracker_buffer.buffer,
-               input=xt.BeamElement._arr2ctx(self,values))
+               input=xt.BeamElement._arr2ctx(self, values))
 
 
 def _extract_offset(obj, field_name, index, dtype, xodtype):
