@@ -754,7 +754,8 @@ def _twiss_open(line, twiss_init,
     if not _continue_if_lost:
         assert np.all(ctx2np(part_for_twiss.state) == 1), (
             'Some test particles were lost during twiss! '
-          + f'(state: {np.unique(ctx2np(part_for_twiss.state))})')
+          + f'(state {np.unique(ctx2np(part_for_twiss.state))}, '
+          + f'at element {np.unique(ctx2np(part_for_twiss.at_element))})')
 
     if twiss_orientation == 'forward':
         i_start = ele_start
@@ -772,7 +773,8 @@ def _twiss_open(line, twiss_init,
     if not _continue_if_lost:
         assert np.all(recorded_state == 1), (
              'Some test particles were lost during twiss! '
-          + f'(state: {np.unique(recorded_state)})')
+          + f'(state {np.unique(recorded_state)}, '
+          + f'at element {np.unique(line.record_last_track.at_element[:, i_start:i_stop+1].copy())})')
 
     x_co = line.record_last_track.x[0, i_start:i_stop+1].copy()
     y_co = line.record_last_track.y[0, i_start:i_stop+1].copy()
