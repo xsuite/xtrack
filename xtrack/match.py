@@ -281,6 +281,14 @@ class TargetInequality(Target):
 
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
                  line=None, weight=None, tag=''):
+
+        raise NotImplementedError('TargetInequality is not anymore supported. '
+            'Please use Target with `Range`, `GreaterThan` `LessThan` instead. '
+            'For example, instead of '
+            'TargetInequality("x", "<", 0.1, at="ip1") '
+            'use '
+            'Target("x", LessThan(0.1), at="ip1")')
+
         Target.__init__(self, tar, value=0, at=at, tol=tol, scale=scale, line=line,
                          weight=weight, tag=tag)
         assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
