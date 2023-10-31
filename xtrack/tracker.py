@@ -282,7 +282,7 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, *args, with_progress: Union[bool, int] = False, **kwargs):
+    def _track(self, particles, *args, with_progress: Union[bool, int] = False, **kwargs):
         assert self.iscollective in (True, False)
         if self.iscollective or self.line.enable_time_dependent_vars:
             tracking_func = self._track_with_collective
@@ -312,9 +312,11 @@ class Tracker:
                     one_turn_kwargs['num_turns'] = num_turns % with_progress
                 else:
                     one_turn_kwargs['num_turns'] = scaling
-                tracking_func(*args, **one_turn_kwargs)
+
+                tracking_func(particles, *args, **one_turn_kwargs)
+                particles.reorganize()
         else:
-            tracking_func(*args, **kwargs)
+            tracking_func(particles, *args, **kwargs)
 
     @property
     def particle_ref(self) -> xp.Particles:
