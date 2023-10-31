@@ -33,6 +33,23 @@ opt = line.match(
     ]
 )
 
+opt.target_status()
+
+opt.targets[0].freeze()
+opt.target_status()
 opt.solve()
+
+tt = line.twiss()
+assert np.isclose(tt['mux'][-1], 62.31, atol=1e-4)
+assert tt['muy'][-1] < 60.281
+
+opt.targets[0].unfreeze()
+opt.target_status()
+opt.solve()
+tt = line.twiss()
+assert tt.mux[-1] > 62.26 - 1e-3
+assert tt.mux[-1] < 62.27 + 1e-3
+assert tt.muy[-1] < 60.281
+
 
 #!end-doc-part

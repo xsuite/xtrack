@@ -207,6 +207,8 @@ class Target(xd.Target):
         else:
             xdtar = tar
 
+        self._freeze_value = None
+
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag,
                             optimize_log=optimize_log)
@@ -227,6 +229,9 @@ class Target(xd.Target):
         else:
             out = res[self.tar]
 
+        if self._freeze_value is not None:
+            return out
+
         if isinstance(self.value, Range):
             if out < self.value.lower:
                 return out - self.value.lower
@@ -246,6 +251,24 @@ class Target(xd.Target):
                 return 0
 
         return out
+
+    @property
+    def value(self):
+        if self._freeze_value is not None:
+            return self._freeze_value
+        else:
+            return self._user_value
+
+    @value.setter
+    def value(self, val):
+        self._user_value = val
+
+    def freeze(self):
+        self._freeze_value = True # to bypass inequality logic
+        self._freeze_value = self.runeval()
+
+    def unfreeze(self):
+        self._freeze_value = None
 
 class Vary(xd.Vary):
     def __init__(self, name, container=None, limits=None, step=None, weight=None,
