@@ -167,6 +167,22 @@ class Range:
     def __repr__(self):
         return f'Range({self.lower:4g}, {self.upper:4g})'
 
+class GreaterThan:
+    def __init__(self, lower):
+        self.lower = lower
+        self._value = 0.
+
+    def __repr__(self):
+        return f'GreaterThan({self.lower:4g})'
+
+class LessThan:
+    def __init__(self, upper):
+        self.upper = upper
+        self._value = 0.
+
+    def __repr__(self):
+        return f'LessThan({self.upper:4g})'
+
 class Target(xd.Target):
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None, tag='', optimize_log=False,
@@ -215,6 +231,16 @@ class Target(xd.Target):
             if out < self.value.lower:
                 return out - self.value.lower
             elif out > self.value.upper:
+                return out - self.value.upper
+            else:
+                return 0
+        elif isinstance(self.value, GreaterThan):
+            if out < self.value.lower:
+                return out - self.value.lower
+            else:
+                return 0
+        elif isinstance(self.value, LessThan):
+            if out > self.value.upper:
                 return out - self.value.upper
             else:
                 return 0
