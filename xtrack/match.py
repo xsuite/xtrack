@@ -289,53 +289,35 @@ class TargetInequality(Target):
             'use '
             'Target("x", LessThan(0.1), at="ip1")')
 
-        Target.__init__(self, tar, value=0, at=at, tol=tol, scale=scale, line=line,
-                         weight=weight, tag=tag)
-        assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
-        self.ineq_sign = ineq_sign
-        self.rhs = rhs
-
-    def __repr__(self):
-        return f'TargetInequality({self.tar} {self.ineq_sign} {self.rhs}, tol={self.tol}, weight={self.weight})'
-
-    def eval(self, tw):
-        val = super().eval(tw)
-        if self.ineq_sign == '<' and val < self.rhs:
-            return 0
-        elif self.ineq_sign == '>' and val > self.rhs:
-            return 0
-        else:
-            return val - self.rhs
-
 class TargetRelPhaseAdvance(Target):
 
-    def __init__(self, tar, value, at_1=None, at_0=None, tag='',  **kwargs):
+    def __init__(self, tar, value, ele_stop=None, ele_start=None, tag='',  **kwargs):
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
-        if at_1 is None:
-            at_1 = '__ele_stop__'
-        if at_0 is None:
-            at_0 = '__ele_start__'
-        self.at_1 = at_1
-        self.at_0 = at_0
+        if ele_stop is None:
+            ele_stop = '__ele_stop__'
+        if ele_start is None:
+            ele_start = '__ele_start__'
+        self.ele_stop = ele_stop
+        self.ele_start = ele_start
 
     def __repr__(self):
-        return f'TargetPhaseAdvance({self.var}({self.at_1}) - {self.var}({self.at_0}), value={self.value}, tol={self.tol}, weight={self.weight})'
+        return f'TargetPhaseAdvance({self.var}({self.ele_stop}) - {self.var}({self.ele_start}), value={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
 
-        if self.at_1 == '__ele_stop__':
+        if self.ele_stop == '__ele_stop__':
             mu_1 = tw[self.var, -1]
         else:
-            mu_1 = tw[self.var, self.at_1]
+            mu_1 = tw[self.var, self.ele_stop]
 
-        if self.at_0 == '__ele_start__':
+        if self.ele_start == '__ele_start__':
             mu_0 = tw[self.var, 0]
         else:
-            mu_0 = tw[self.var, self.at_0]
+            mu_0 = tw[self.var, self.ele_start]
 
         return mu_1 - mu_0
 
