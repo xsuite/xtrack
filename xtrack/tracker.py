@@ -2,7 +2,7 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-
+from math import ceil
 from time import perf_counter
 from typing import Literal, Union
 from contextlib import contextmanager
@@ -25,6 +25,7 @@ from .general import _pkg_root
 from .internal_record import new_io_buffer
 from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
+from .progress_indicator import progress
 from .tracker_data import TrackerData
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
@@ -281,12 +282,39 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, *args, **kwargs):
+    def _track(self, *args, with_progress: Union[bool, int] = False, **kwargs):
         assert self.iscollective in (True, False)
         if self.iscollective or self.line.enable_time_dependent_vars:
-            return self._track_with_collective(*args, **kwargs)
+            tracking_func = self._track_with_collective
         else:
-            return self._track_no_collective(*args, **kwargs)
+            tracking_func = self._track_no_collective
+
+        if with_progress:
+            try:
+                num_turns = kwargs['num_turns']
+            except KeyError:
+                raise ValueError('Tracking with progress indicator is only '
+                                 'possible over more than one turn.')
+
+            if with_progress is True:
+                with_progress = scaling = 100
+            else:
+                with_progress = int(with_progress)
+                scaling = with_progress if with_progress > 1 else None
+
+            for ii in progress(
+                    range(0, num_turns, with_progress),
+                    desc='Tracking',
+                    unit_scale=scaling,
+            ):
+                one_turn_kwargs = kwargs.copy()
+                if ii + with_progress > num_turns:  # last group of turns
+                    one_turn_kwargs['num_turns'] = num_turns % with_progress
+                else:
+                    one_turn_kwargs['num_turns'] = scaling
+                tracking_func(*args, **one_turn_kwargs)
+        else:
+            tracking_func(*args, **kwargs)
 
     @property
     def particle_ref(self) -> xp.Particles:

@@ -4,6 +4,7 @@
 # ######################################### #
 import json
 import pathlib
+import pytest
 
 import numpy as np
 import xobjects as xo
@@ -502,3 +503,23 @@ def test_backtrack_with_flag(test_context):
     assert np.allclose(mon_forward.py, mon_backtrack.py, rtol=0, atol=1e-10)
     assert np.allclose(mon_forward.zeta, mon_backtrack.zeta, rtol=0, atol=1e-10)
     assert np.allclose(mon_forward.delta, mon_backtrack.delta, rtol=0, atol=1e-10)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'with_progress,turns',
+    [(True, 300), (True, 317), (7, 523), (1, 21), (10, 10)]
+)
+@pytest.mark.parametrize('collective', [True, False])
+def test_tracking_with_progress(test_context, with_progress, turns, collective):
+    elements = [xt.Drift(length=2.) for _ in range(5)]
+    elements[3].iscollective = collective
+    line = xt.Line(elements=elements)
+    line.reset_s_at_end_turn = False
+
+    particles = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12)
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=turns, with_progress=with_progress)
+
+    assert np.all(particles.at_turn == turns)
+    assert np.allclose(particles.s, 10 * turns, rtol=0, atol=1e-14)
