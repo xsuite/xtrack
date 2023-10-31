@@ -158,9 +158,19 @@ class ActionTwiss(xd.Action):
                 else:
                     raise ee
 
+class Range:
+    def __init__(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        self._value = 0.
+
+    def __repr__(self):
+        return f'Range({self.lower:4g}, {self.upper:4g})'
+
 class Target(xd.Target):
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag='', optimize_log=False, **kwargs):
+                 line=None, action=None, tag='', optimize_log=False,
+                 **kwargs):
 
         for kk in kwargs:
             assert kk in ALLOWED_TARGET_KWARGS, (
@@ -180,6 +190,7 @@ class Target(xd.Target):
             xdtar = (tar, at)
         else:
             xdtar = tar
+
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag,
                             optimize_log=optimize_log)
@@ -196,9 +207,19 @@ class Target(xd.Target):
         if self.line is not None:
             res = res[self.line]
         if callable(self.tar):
-            return self.tar(res)
+            out = self.tar(res)
         else:
-            return res[self.tar]
+            out = res[self.tar]
+
+        if isinstance(self.value, Range):
+            if out < self.value.lower:
+                return out - self.value.lower
+            elif out > self.value.upper:
+                return out - self.value.upper
+            else:
+                return 0
+
+        return out
 
 class Vary(xd.Vary):
     def __init__(self, name, container=None, limits=None, step=None, weight=None,
