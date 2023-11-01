@@ -441,7 +441,7 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             else:
                 tt.tol = default_tol
 
-        if isinstance(tt.value, GreaterThan):
+        if isinstance(tt.value, (GreaterThan, LessThan)):
             if tt.value.mode == 'auxvar':
                 aux_vary.append(tt.value.gen_vary(aux_vary_container))
 

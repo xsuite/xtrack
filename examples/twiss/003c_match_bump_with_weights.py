@@ -45,8 +45,8 @@ opt = line.match(
         # xt.Target('y', Range(-1e-3, 1e-3), at='mq.30l8.b1', tol=1e-6),
         # xt.Target('y', LessThan(1e-3), at='mq.30l8.b1', tol=1e-6),
         xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6),
-        xt.Target('y', GreaterThan(-1e-3, mode='auxvar'), at='mq.30l8.b1', tol=1e-6),
-        # xt.Target(lambda tw: -tw['y', 'mq.30l8.b1'], LessThan(1e-3))#, mode='auxvar'))
+        # xt.Target('y', GreaterThan(-1e-3, mode='auxvar'), at='mq.30l8.b1', tol=1e-6),
+        xt.Target(lambda tw: -tw['y', 'mq.30l8.b1'], LessThan(1e-3, mode='auxvar'))
     ]
 )
 opt.targets[-1].active = False
