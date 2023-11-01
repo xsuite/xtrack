@@ -216,6 +216,23 @@ class LessThan:
     def __repr__(self):
         return f'LessThan({self.upper:4g})'
 
+class Range:
+    def __init__(self, lower, upper):
+        self.lower = lower
+        self.upper = upper
+        self._value = 0.
+
+    def __repr__(self):
+        return f'Range({self.lower:4g}, {self.upper:4g})'
+
+    def auxtarget(self, res):
+        if res < self.lower:
+            return res - self.lower
+        elif res > self.upper:
+            return self.upper - res
+        else:
+            return 0
+
 GreaterThanAux = lambda lower: GreaterThan(lower, mode='auxvar')
 LessThanAux = lambda upper: LessThan(upper, mode='auxvar')
 
@@ -268,9 +285,7 @@ class Target(xd.Target):
         if self._freeze_value is not None:
             return out
 
-        if isinstance(self.value, GreaterThan):
-            return self.value.auxtarget(out)
-        elif isinstance(self.value, LessThan):
+        if isinstance(self.value, (GreaterThan, LessThan, Range)):
             return self.value.auxtarget(out)
 
         return out
