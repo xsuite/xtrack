@@ -17,6 +17,7 @@ Range = xt.Range
 GreaterThan = xt.GreaterThan
 LessThan = xt.LessThan
 
+line.vars['ttt'] = 0
 opt = line.match(
     solve=False,
     solver='jacobian',
@@ -32,6 +33,7 @@ opt = line.match(
         xt.Vary(name='acbv24.l8b1', step=1e-10),
         xt.Vary(name='acbv22.l8b1', step=1e-10, limits=[-38e-6, 38e-6], weight=1000),
         xt.Vary(name='acbv18.l8b1', step=1e-10),
+        xt.Vary(name='ttt', step=0.001),
     ],
     targets=[
         # I want the vertical orbit to be at 3 mm at mq.28l8.b1 with zero angle
@@ -41,9 +43,11 @@ opt = line.match(
         xt.Target('y', at='mq.17l8.b1', value='preserve', tol=1e-6),
         xt.Target('py', at='mq.17l8.b1', value='preserve', tol=1e-7, weight=1e3),
         # I want to limit the negative excursion ot the bump
-        xt.Target('y', Range(-1e-3, 1e-3), at='mq.30l8.b1', tol=1e-6),
-        xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
-        xt.Target('y', LessThan(1e-3), at='mq.30l8.b1', tol=1e-6),
+        # xt.Target('y', Range(-1e-3, 1e-3), at='mq.30l8.b1', tol=1e-6),
+        # xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
+        # xt.Target('y', LessThan(1e-3), at='mq.30l8.b1', tol=1e-6),
+        xt.Target('y', -1e-3, at='mq.30l8.b1', tol=1e-6),
+        xt.Target(lambda tw: (tw['y', 'mq.30l8.b1']-(-1.5e-3)) - tw.line.vv['ttt']**2, value=0, tol=1e-6),
     ]
 )
 
