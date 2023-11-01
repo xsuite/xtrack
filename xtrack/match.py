@@ -170,15 +170,31 @@ class Range:
         return f'Range({self.lower:4g}, {self.upper:4g})'
 
 class GreaterThan:
-    def __init__(self, lower):
+    def __init__(self, lower, mode='step'):
+        assert mode in ['step', 'auxvar']
         self.lower = lower
         self._value = 0.
+        self.mode=mode
 
     def auxtarget(self, res):
-        if res < self.lower:
-            return res - self.lower
+        if self.mode == 'step':
+            if res < self.lower:
+                return res - self.lower
+            else:
+                return 0
         else:
-            return 0
+            return res - self.lower - self.vary.container[self.vary.name]
+
+    def gen_vary(self, container):
+        for ii in range(10000):
+            if f'auxvar_{ii}' not in container:
+                vv = f'auxvar_{ii}'
+                break
+        else:
+            raise RuntimeError('Too many auxvary variables')
+        container[vv] = 0
+        self.vary = xt.Vary(name=vv, container=container, step=1e-3)
+        return self.vary
 
     def __repr__(self):
         return f'GreaterThan({self.lower:4g})'
@@ -369,6 +385,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         else:
             targets_flatten.append(tt.copy())
 
+    aux_vary_container = {}
+    aux_vary = []
+
     action_twiss = None
     for tt in targets_flatten:
 
@@ -413,8 +432,14 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             else:
                 tt.tol = default_tol
 
+        if isinstance(tt.value, GreaterThan):
+            if tt.value.mode == 'auxvar':
+                aux_vary.append(tt.value.gen_vary(aux_vary_container))
+
     if not isinstance(vary, (list, tuple)):
         vary = [vary]
+
+    vary = list(vary) + aux_vary
 
     vary_flatten = _flatten_vary(vary)
     _complete_vary_with_info_from_line(vary_flatten, line)
