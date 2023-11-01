@@ -13,7 +13,6 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
-Range = xt.Range
 GreaterThan = xt.GreaterThan
 LessThan = xt.LessThan
 

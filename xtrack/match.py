@@ -160,16 +160,7 @@ class ActionTwiss(xd.Action):
         out.line = self.line
         return out
 
-class Range:
-    def __init__(self, lower, upper):
-        self.lower = lower
-        self.upper = upper
-        self._value = 0.
-
-    def __repr__(self):
-        return f'Range({self.lower:4g}, {self.upper:4g})'
-
-def _gen_vary(obj, container):
+def _gen_vary(container):
     for ii in range(10000):
         if f'auxvar_{ii}' not in container:
             vv = f'auxvar_{ii}'
@@ -196,7 +187,7 @@ class GreaterThan:
             return res - self.lower - self.vary.container[self.vary.name]
 
     def gen_vary(self, container):
-        self.vary = _gen_vary(self, container)
+        self.vary = _gen_vary(container)
         return self.vary
 
     def __repr__(self):
@@ -219,7 +210,7 @@ class LessThan:
             return self.upper - res - self.vary.container[self.vary.name]
 
     def gen_vary(self, container):
-        self.vary = _gen_vary(self, container)
+        self.vary = _gen_vary(container)
         return self.vary
 
     def __repr__(self):
@@ -274,14 +265,7 @@ class Target(xd.Target):
         if self._freeze_value is not None:
             return out
 
-        if isinstance(self.value, Range):
-            if out < self.value.lower:
-                return out - self.value.lower
-            elif out > self.value.upper:
-                return out - self.value.upper
-            else:
-                return 0
-        elif isinstance(self.value, GreaterThan):
+        if isinstance(self.value, GreaterThan):
             return self.value.auxtarget(out)
         elif isinstance(self.value, LessThan):
             return self.value.auxtarget(out)
@@ -342,7 +326,7 @@ class TargetInequality(Target):
                  line=None, weight=None, tag=''):
 
         raise NotImplementedError('TargetInequality is not anymore supported. '
-            'Please use Target with `Range`, `GreaterThan` `LessThan` instead. '
+            'Please use Target with `GreaterThan` `LessThan` instead. '
             'For example, instead of '
             'TargetInequality("x", "<", 0.1, at="ip1") '
             'use '

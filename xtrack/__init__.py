@@ -12,7 +12,7 @@ from .tracker_data import TrackerData
 from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
 from .tracker import Tracker
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
-                    TargetRelPhaseAdvance, TargetSet, START, END, Range,
+                    TargetRelPhaseAdvance, TargetSet, START, END,
                     GreaterThan, LessThan)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
