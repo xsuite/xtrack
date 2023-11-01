@@ -33,7 +33,6 @@ opt = line.match(
         xt.Vary(name='acbv24.l8b1', step=1e-10),
         xt.Vary(name='acbv22.l8b1', step=1e-10, limits=[-38e-6, 38e-6], weight=1000),
         xt.Vary(name='acbv18.l8b1', step=1e-10),
-        xt.Vary(name='ttt', step=0.001),
     ],
     targets=[
         # I want the vertical orbit to be at 3 mm at mq.28l8.b1 with zero angle
@@ -46,8 +45,8 @@ opt = line.match(
         # xt.Target('y', Range(-1e-3, 1e-3), at='mq.30l8.b1', tol=1e-6),
         # xt.Target('y', LessThan(1e-3), at='mq.30l8.b1', tol=1e-6),
         xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6),
-        #xt.Target(lambda tw: (tw['y', 'mq.30l8.b1']-(-1e-3)) - tw.line.vv['ttt']**2, value=0, tol=1e-6),
-        xt.Target('y', GreaterThan(-1e-3, mode='auxvar'), at='mq.30l8.b1', tol=1e-6),
+        xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
+        # xt.Target(lambda tw: -tw['y', 'mq.30l8.b1'], LessThan(1e-3))#, mode='auxvar'))
     ]
 )
 opt.targets[-1].active = False

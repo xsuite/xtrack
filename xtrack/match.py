@@ -169,6 +169,16 @@ class Range:
     def __repr__(self):
         return f'Range({self.lower:4g}, {self.upper:4g})'
 
+def _gen_vary(obj, container):
+    for ii in range(10000):
+        if f'auxvar_{ii}' not in container:
+            vv = f'auxvar_{ii}'
+            break
+    else:
+        raise RuntimeError('Too many auxvary variables')
+    container[vv] = 0
+    return xt.Vary(name=vv, container=container, step=1e-3)
+
 class GreaterThan:
     def __init__(self, lower, mode='step'):
         assert mode in ['step', 'auxvar']
@@ -186,29 +196,31 @@ class GreaterThan:
             return res - self.lower - self.vary.container[self.vary.name]
 
     def gen_vary(self, container):
-        for ii in range(10000):
-            if f'auxvar_{ii}' not in container:
-                vv = f'auxvar_{ii}'
-                break
-        else:
-            raise RuntimeError('Too many auxvary variables')
-        container[vv] = 0
-        self.vary = xt.Vary(name=vv, container=container, step=1e-3)
+        self.vary = _gen_vary(self, container)
         return self.vary
 
     def __repr__(self):
         return f'GreaterThan({self.lower:4g})'
 
 class LessThan:
-    def __init__(self, upper):
+    def __init__(self, upper, mode='step'):
+        assert mode in ['step', 'auxvar']
         self.upper = upper
         self._value = 0.
+        self.mode=mode
 
     def auxtarget(self, res):
-        if res > self.upper:
-            return res - self.upper
+        if self.mode == 'step':
+            if res > self.upper:
+                return self.upper - res
+            else:
+                return 0
         else:
-            return 0
+            return self.upper - res - self.vary.container[self.vary.name]
+
+    def gen_vary(self, container):
+        self.vary = _gen_vary(self, container)
+        return self.vary
 
     def __repr__(self):
         return f'LessThan({self.upper:4g})'
@@ -270,12 +282,9 @@ class Target(xd.Target):
             else:
                 return 0
         elif isinstance(self.value, GreaterThan):
-            if out < self.value.lower:
-                return out - self.value.lower
-            else:
-                return 0
+            return self.value.auxtarget(out)
         elif isinstance(self.value, LessThan):
-            return self.value.auxtarget(res)
+            return self.value.auxtarget(out)
 
         return out
 
