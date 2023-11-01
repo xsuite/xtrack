@@ -216,6 +216,9 @@ class LessThan:
     def __repr__(self):
         return f'LessThan({self.upper:4g})'
 
+GreaterThanAux = lambda lower: GreaterThan(lower, mode='auxvar')
+LessThanAux = lambda upper: LessThan(upper, mode='auxvar')
+
 class Target(xd.Target):
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None, tag='', optimize_log=False,

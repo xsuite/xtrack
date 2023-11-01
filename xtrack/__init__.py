@@ -13,7 +13,7 @@ from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
 from .tracker import Tracker
 from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
                     TargetRelPhaseAdvance, TargetSet, START, END,
-                    GreaterThan, LessThan)
+                    GreaterThan, LessThan, GreaterThanAux, LessThanAux)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
 from .twiss import TwissInit, TwissTable
