@@ -46,10 +46,15 @@ opt = line.match(
         # xt.Target('y', Range(-1e-3, 1e-3), at='mq.30l8.b1', tol=1e-6),
         # xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
         # xt.Target('y', LessThan(1e-3), at='mq.30l8.b1', tol=1e-6),
-        xt.Target('y', -1e-3, at='mq.30l8.b1', tol=1e-6),
-        xt.Target(lambda tw: (tw['y', 'mq.30l8.b1']-(-1.5e-3)) - tw.line.vv['ttt']**2, value=0, tol=1e-6),
+        xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6),
+        xt.Target(lambda tw: (tw['y', 'mq.30l8.b1']-(-1e-3)) - tw.line.vv['ttt']**2, value=0, tol=1e-6),
     ]
 )
+opt.targets[-1].active = False
+opt.solve()
+opt.targets[-1].active = True
+opt.targets[-2].active = False
+opt.solve()
 
 opt.solve()
 
