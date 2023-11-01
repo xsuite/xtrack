@@ -174,6 +174,12 @@ class GreaterThan:
         self.lower = lower
         self._value = 0.
 
+    def auxtarget(self, res):
+        if res < self.lower:
+            return res - self.lower
+        else:
+            return 0
+
     def __repr__(self):
         return f'GreaterThan({self.lower:4g})'
 
@@ -181,6 +187,12 @@ class LessThan:
     def __init__(self, upper):
         self.upper = upper
         self._value = 0.
+
+    def auxtarget(self, res):
+        if res > self.upper:
+            return res - self.upper
+        else:
+            return 0
 
     def __repr__(self):
         return f'LessThan({self.upper:4g})'
@@ -247,10 +259,7 @@ class Target(xd.Target):
             else:
                 return 0
         elif isinstance(self.value, LessThan):
-            if out > self.value.upper:
-                return out - self.value.upper
-            else:
-                return 0
+            return self.value.auxtarget(res)
 
         return out
 
