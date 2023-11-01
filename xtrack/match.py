@@ -148,15 +148,17 @@ class ActionTwiss(xd.Action):
                     ' for Multiline')
             self.line.compensate_radiation_energy_loss(verbose=False)
         if not self.allow_twiss_failure or not allow_failure:
-            return self.line.twiss(**self.kwargs)
+            out = self.line.twiss(**self.kwargs)
         else:
             try:
-                return self.line.twiss(**self.kwargs)
+                out = self.line.twiss(**self.kwargs)
             except Exception as ee:
                 if allow_failure:
                     return 'failed'
                 else:
                     raise ee
+        out.line = self.line
+        return out
 
 class Range:
     def __init__(self, lower, upper):
