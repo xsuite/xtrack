@@ -184,7 +184,7 @@ class GreaterThan:
             else:
                 return 0
         else:
-            return res - self.lower - self.vary.container[self.vary.name]
+            return res - self.lower - self.vary.container[self.vary.name]**2
 
     def gen_vary(self, container):
         self.vary = _gen_vary(container)
@@ -207,7 +207,7 @@ class LessThan:
             else:
                 return 0
         else:
-            return self.upper - res - self.vary.container[self.vary.name]
+            return self.upper - res - self.vary.container[self.vary.name]**2
 
     def gen_vary(self, container):
         self.vary = _gen_vary(container)
@@ -446,6 +446,10 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
         if isinstance(tt.value, (GreaterThan, LessThan)):
             if tt.value.mode == 'auxvar':
                 aux_vary.append(tt.value.gen_vary(aux_vary_container))
+                aux_vary_container[aux_vary[-1].name] = 0
+                val = tt.runeval()
+                if val > 0:
+                    aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
 
     if not isinstance(vary, (list, tuple)):
         vary = [vary]
