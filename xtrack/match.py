@@ -177,12 +177,16 @@ def _sigmoid_integral(x):
         return np.log(1 + np.exp(x))
 
 class GreaterThan:
-    def __init__(self, lower, mode='step', sigma=None):
+    def __init__(self, lower, mode='step', sigma=None, sigma_rel=None):
         assert mode in ['step', 'sigmoid', 'auxvar']
         self.lower = lower
         self._value = 0.
         self.mode=mode
         if mode == 'sigmoid':
+            if sigma_rel is not None:
+                assert sigma is None
+                assert lower != 0
+                sigma = sigma_rel * np.abs(lower)
             assert sigma is not None
         self.sigma = sigma
 
