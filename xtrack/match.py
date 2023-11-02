@@ -171,7 +171,7 @@ def _gen_vary(container):
     return xt.Vary(name=vv, container=container, step=1e-3)
 
 def _sigmoid_integral(x):
-    x_shift = x - 10
+    x_shift = x
     if x_shift > 10:
         return x_shift
     else:
