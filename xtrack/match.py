@@ -170,12 +170,21 @@ def _gen_vary(container):
     container[vv] = 0
     return xt.Vary(name=vv, container=container, step=1e-3)
 
+def _sigmoid_integral(x):
+    if x > 10:
+        return x
+    else:
+        return np.log(1 + np.exp(x))
+
 class GreaterThan:
-    def __init__(self, lower, mode='step'):
-        assert mode in ['step', 'auxvar']
+    def __init__(self, lower, mode='step', sigma=None):
+        assert mode in ['step', 'sigmoid', 'auxvar']
         self.lower = lower
         self._value = 0.
         self.mode=mode
+        if mode == 'sigmoid':
+            assert sigma is not None
+        self.sigma = sigma
 
     def auxtarget(self, res):
         if self.mode == 'step':
@@ -183,6 +192,8 @@ class GreaterThan:
                 return res - self.lower
             else:
                 return 0
+        elif self.mode == 'sigmoid':
+            return _sigmoid_integral((res - self.lower) / self.sigma)
         else:
             return res - self.lower - self.vary.container[self.vary.name]**2
 
@@ -194,11 +205,14 @@ class GreaterThan:
         return f'GreaterThan({self.lower:4g})'
 
 class LessThan:
-    def __init__(self, upper, mode='step'):
-        assert mode in ['step', 'auxvar']
+    def __init__(self, upper, mode='step', sigma=None):
+        assert mode in ['step', 'auxvar', 'sigmoid']
         self.upper = upper
         self._value = 0.
         self.mode=mode
+        if mode == 'sigmoid':
+            assert sigma is not None
+        self.sigma = sigma
 
     def auxtarget(self, res):
         if self.mode == 'step':
@@ -206,6 +220,8 @@ class LessThan:
                 return self.upper - res
             else:
                 return 0
+        elif self.mode == 'sigmoid':
+            return _sigmoid_integral((self.upper - res) / self.sigma)
         else:
             return self.upper - res - self.vary.container[self.vary.name]**2
 
