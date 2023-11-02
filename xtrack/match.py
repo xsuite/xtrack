@@ -172,9 +172,9 @@ def _gen_vary(container):
 
 def _sigmoid_integral(x):
     if x > 10:
-        return x
+        return x - 5
     else:
-        return np.log(1 + np.exp(x))
+        return np.log(1 + np.exp(x - 5))
 
 class GreaterThan:
     def __init__(self, lower, mode='step', sigma=None, sigma_rel=None):
