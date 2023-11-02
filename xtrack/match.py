@@ -221,11 +221,19 @@ class GreaterThan:
         return f'GreaterThan({self.lower:4g})'
 
 class LessThan:
-    def __init__(self, upper, mode='step'):
-        assert mode in ['step', 'auxvar']
+    def __init__(self, upper, mode='step', sigma=None, sigma_rel=None):
+        assert mode in ['step', 'auxvar', 'sigmoid']
         self.upper = upper
         self._value = 0.
         self.mode=mode
+        if mode == 'sigmoid':
+            assert sigma is not None or sigma_rel is not None
+            if sigma is not None:
+                assert sigma_rel is None
+                self.sigma = sigma
+            else:
+                assert sigma_rel is not None
+                self.sigma = np.abs(self.upper) * sigma_rel
 
     def auxtarget(self, res):
         if self.mode == 'step':
@@ -233,15 +241,28 @@ class LessThan:
                 return self.upper - res
             else:
                 return 0
-        else:
+        elif self.mode == 'sigmoid':
+            return self.sigma * _sigmoid_integral((res - self.upper) / self.sigma)
+        elif self.mode == 'auxvar':
             return self.upper - res - self.vary.container[self.vary.name]**2
+        else:
+            raise ValueError(f'Unknown mode {self.mode}')
 
     def gen_vary(self, container):
         self.vary = _gen_vary(container)
         return self.vary
 
+    def _set_value(self, val, target):
+        self.upper = val
+        aux_vary_container = self.vary.container
+        aux_vary_container[self.vary.name] = 0
+        val = target.runeval()
+        if val > 0:
+            aux_vary_container[self.vary.name] = np.sqrt(val)
+
     def __repr__(self):
         return f'LessThan({self.upper:4g})'
+
 
 class Range:
     def __init__(self, lower, upper):
