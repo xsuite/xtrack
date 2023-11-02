@@ -193,7 +193,7 @@ class GreaterThan:
             else:
                 return 0
         elif self.mode == 'sigmoid':
-            return _sigmoid_integral((res - self.lower) / self.sigma)
+            return _sigmoid_integral((self.lower - res) / self.sigma)
         else:
             return res - self.lower - self.vary.container[self.vary.name]**2
 
