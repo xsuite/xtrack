@@ -177,7 +177,20 @@ def _sigmoid_integral(x):
     else:
         return np.log(1 + np.exp(x_shift))
 
+def _sigmoid_sin(x):
+
+    if x < 0:
+        return 0
+    if x < 1.:
+        return 0.5 * (1 - np.cos(np.pi * x / 2))
+    else:
+        return x - 0.5
+
+
 class GreaterThan:
+
+    _sigmoid = staticmethod(_sigmoid_sin)
+
     def __init__(self, lower, mode='step', sigma=None, sigma_rel=None):
         assert mode in ['step', 'auxvar', 'sigmoid']
         self.lower = lower
@@ -199,7 +212,7 @@ class GreaterThan:
             else:
                 return 0
         elif self.mode == 'sigmoid':
-            return self.sigma * _sigmoid_integral((self.lower - res) / self.sigma)
+            return self.sigma * self._sigmoid((self.lower - res) / self.sigma)
         elif self.mode == 'auxvar':
             return res - self.lower - self.vary.container[self.vary.name]**2
         else:
@@ -221,6 +234,9 @@ class GreaterThan:
         return f'GreaterThan({self.lower:4g})'
 
 class LessThan:
+
+    _sigmoid = staticmethod(_sigmoid_sin)
+
     def __init__(self, upper, mode='step', sigma=None, sigma_rel=None):
         assert mode in ['step', 'auxvar', 'sigmoid']
         self.upper = upper
@@ -242,7 +258,7 @@ class LessThan:
             else:
                 return 0
         elif self.mode == 'sigmoid':
-            return self.sigma * _sigmoid_integral((res - self.upper) / self.sigma)
+            return self.sigma * self._sigmoid((res - self.upper) / self.sigma)
         elif self.mode == 'auxvar':
             return self.upper - res - self.vary.container[self.vary.name]**2
         else:
