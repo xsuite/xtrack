@@ -286,6 +286,9 @@ class LessThan:
 
 
 class Range:
+
+    _transition = staticmethod(_transition_poly)
+
     def __init__(self, lower, upper, mode='step', sigma=None,
                  sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
 
