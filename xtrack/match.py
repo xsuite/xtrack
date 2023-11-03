@@ -10,7 +10,7 @@ import xtrack as xt
 import xdeps as xd
 
 XTRACK_DEFAULT_TOL = 1e-10
-XTRACK_DEFAULT_SIGMA_REL = 0.05
+XTRACK_DEFAULT_SIGMA_REL = 0.01
 
 XTRACK_DEFAULT_WEIGHTS = {
     # For quantities not specified here the default weight is 1
@@ -285,44 +285,6 @@ class LessThan:
 #     return xt.Vary(name=vv, container=container, step=1e-3)
 
 
-class Range:
-
-    _transition = staticmethod(_transition_poly)
-
-    def __init__(self, lower, upper, mode='step', sigma=None,
-                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
-
-        assert mode in ['step', 'smooth']
-        self.lower = lower
-        self.upper = upper
-        self._value = 0.
-        self.mode=mode
-        if mode == 'smooth':
-            assert sigma is not None or sigma_rel is not None
-            if sigma is not None:
-                assert sigma_rel is None
-                self.sigma = sigma
-            else:
-                assert sigma_rel is not None
-                self.sigma = np.abs(self.upper - self.lower) * sigma_rel
-
-    def auxtarget(self, res):
-        if self.mode == 'step':
-            if res < self.lower:
-                return res - self.lower
-            elif res > self.upper:
-                return self.upper - res
-            else:
-                return 0
-        elif self.mode == 'smooth':
-            return (self.sigma * self._transition((self.lower - res) / self.sigma)
-                    + self.sigma * self._transition((res - self.upper) / self.sigma))
-        elif self.mode == 'auxvar':
-            raise NotImplementedError
-
-    def __repr__(self):
-        return f'Range({self.lower:4g}, {self.upper:4g})'
-
 class Target(xd.Target):
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None, tag='', optimize_log=False,
@@ -372,7 +334,7 @@ class Target(xd.Target):
         if self._freeze_value is not None:
             return out
 
-        if isinstance(self.value, (GreaterThan, LessThan, Range)):
+        if hasattr(self.value, 'auxtarget'):
             return self.value.auxtarget(out)
 
         return out
