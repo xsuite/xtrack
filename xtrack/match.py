@@ -10,6 +10,7 @@ import xtrack as xt
 import xdeps as xd
 
 XTRACK_DEFAULT_TOL = 1e-10
+XTRACK_DEFAULT_SIGMA_REL = 0.05
 
 XTRACK_DEFAULT_WEIGHTS = {
     # For quantities not specified here the default weight is 1
@@ -160,36 +161,26 @@ class ActionTwiss(xd.Action):
         out.line = self.line
         return out
 
-def _gen_vary(container):
-    for ii in range(10000):
-        if f'auxvar_{ii}' not in container:
-            vv = f'auxvar_{ii}'
-            break
-    else:
-        raise RuntimeError('Too many auxvary variables')
-    container[vv] = 0
-    return xt.Vary(name=vv, container=container, step=1e-3)
+# Alternative transitions functions
+# def _transition_sigmoid_integral(x):
+#     x_shift = x - 3
+#     if x_shift > 10:
+#         return x_shift
+#     else:
+#         return np.log(1 + np.exp(x_shift))
 
-def _sigmoid_integral(x):
-    x_shift = x - 3
-    if x_shift > 10:
-        return x_shift
-    else:
-        return np.log(1 + np.exp(x_shift))
-
-def _sigmoid_sin(x):
-
-    if x < 0:
-        return 0
-    if x < 1.:
-        return 2 /np.pi - 2 /np.pi * np.cos(np.pi * x / 2)
-    else:
-        return x + 2 / np.pi - 1
+# def _transition_sin(x):
+#     if x < 0:
+#         return 0
+#     if x < 1.:
+#         return 2 /np.pi - 2 /np.pi * np.cos(np.pi * x / 2)
+#     else:
+#         return x + 2 / np.pi - 1
 
 def _poly(x):
      return 3 * x**3 - 2 * x**4
 
-def _sigmoid_poly(x):
+def _transition_poly(x):
         x_cut = 1/16 + np.sqrt(33)/16
         if x < 0:
             return 0
@@ -200,14 +191,15 @@ def _sigmoid_poly(x):
 
 class GreaterThan:
 
-    _sigmoid = staticmethod(_sigmoid_poly)
+    _transition = staticmethod(_transition_poly)
 
-    def __init__(self, lower, mode='step', sigma=None, sigma_rel=None):
-        assert mode in ['step', 'auxvar', 'sigmoid']
+    def __init__(self, lower, mode='step', sigma=None,
+                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
+        assert mode in ['step', 'smooth']
         self.lower = lower
         self._value = 0.
         self.mode=mode
-        if mode == 'sigmoid':
+        if mode == 'smooth':
             assert sigma is not None or sigma_rel is not None
             if sigma is not None:
                 assert sigma_rel is None
@@ -222,38 +214,40 @@ class GreaterThan:
                 return res - self.lower
             else:
                 return 0
-        elif self.mode == 'sigmoid':
-            return self.sigma * self._sigmoid((self.lower - res) / self.sigma)
+        elif self.mode == 'smooth':
+            return self.sigma * self._transition((self.lower - res) / self.sigma)
         elif self.mode == 'auxvar':
+            raise NotImplementedError # experimental
             return res - self.lower - self.vary.container[self.vary.name]**2
         else:
             raise ValueError(f'Unknown mode {self.mode}')
 
-    def gen_vary(self, container):
-        self.vary = _gen_vary(container)
-        return self.vary
-
-    def _set_value(self, val, target):
-        self.lower = val
-        aux_vary_container = self.vary.container
-        aux_vary_container[self.vary.name] = 0
-        val = target.runeval()
-        if val > 0:
-            aux_vary_container[self.vary.name] = np.sqrt(val)
-
     def __repr__(self):
         return f'GreaterThan({self.lower:4g})'
 
+    # Part of the `auxvar` experimental code
+    # def _set_value(self, val, target):
+    #     self.lower = val
+    #     aux_vary_container = self.vary.container
+    #     aux_vary_container[self.vary.name] = 0
+    #     val = target.runeval()
+    #     if val > 0:
+    #         aux_vary_container[self.vary.name] = np.sqrt(val)
+    # def gen_vary(self, container):
+    #     self.vary = _gen_vary(container)
+    #     return self.vary
+
 class LessThan:
 
-    _sigmoid = staticmethod(_sigmoid_poly)
+    _transition = staticmethod(_transition_poly)
 
-    def __init__(self, upper, mode='step', sigma=None, sigma_rel=None):
-        assert mode in ['step', 'auxvar', 'sigmoid']
+    def __init__(self, upper, mode='step', sigma=None,
+                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
+        assert mode in ['step', 'smooth']
         self.upper = upper
         self._value = 0.
         self.mode=mode
-        if mode == 'sigmoid':
+        if mode == 'smooth':
             assert sigma is not None or sigma_rel is not None
             if sigma is not None:
                 assert sigma_rel is None
@@ -268,48 +262,63 @@ class LessThan:
                 return self.upper - res
             else:
                 return 0
-        elif self.mode == 'sigmoid':
-            return self.sigma * self._sigmoid((res - self.upper) / self.sigma)
+        elif self.mode == 'smooth':
+            return self.sigma * self._transition((res - self.upper) / self.sigma)
         elif self.mode == 'auxvar':
+            raise NotImplementedError # experimental
             return self.upper - res - self.vary.container[self.vary.name]**2
         else:
             raise ValueError(f'Unknown mode {self.mode}')
 
-    def gen_vary(self, container):
-        self.vary = _gen_vary(container)
-        return self.vary
-
-    def _set_value(self, val, target):
-        self.upper = val
-        aux_vary_container = self.vary.container
-        aux_vary_container[self.vary.name] = 0
-        val = target.runeval()
-        if val > 0:
-            aux_vary_container[self.vary.name] = np.sqrt(val)
-
     def __repr__(self):
         return f'LessThan({self.upper:4g})'
 
+# part of the `auxvar` experimental code
+# def _gen_vary(container):
+#     for ii in range(10000):
+#         if f'auxvar_{ii}' not in container:
+#             vv = f'auxvar_{ii}'
+#             break
+#     else:
+#         raise RuntimeError('Too many auxvary variables')
+#     container[vv] = 0
+#     return xt.Vary(name=vv, container=container, step=1e-3)
+
 
 class Range:
-    def __init__(self, lower, upper):
+    def __init__(self, lower, upper, mode='step', sigma=None,
+                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
+
+        assert mode in ['step', 'smooth']
         self.lower = lower
         self.upper = upper
         self._value = 0.
+        self.mode=mode
+        if mode == 'smooth':
+            assert sigma is not None or sigma_rel is not None
+            if sigma is not None:
+                assert sigma_rel is None
+                self.sigma = sigma
+            else:
+                assert sigma_rel is not None
+                self.sigma = np.abs(self.upper - self.lower) * sigma_rel
+
+    def auxtarget(self, res):
+        if self.mode == 'step':
+            if res < self.lower:
+                return res - self.lower
+            elif res > self.upper:
+                return self.upper - res
+            else:
+                return 0
+        elif self.mode == 'smooth':
+            return (self.sigma * self._transition((self.lower - res) / self.sigma)
+                    + self.sigma * self._transition((res - self.upper) / self.sigma))
+        elif self.mode == 'auxvar':
+            raise NotImplementedError
 
     def __repr__(self):
         return f'Range({self.lower:4g}, {self.upper:4g})'
-
-    def auxtarget(self, res):
-        if res < self.lower:
-            return res - self.lower
-        elif res > self.upper:
-            return self.upper - res
-        else:
-            return 0
-
-GreaterThanAux = lambda lower: GreaterThan(lower, mode='auxvar')
-LessThanAux = lambda upper: LessThan(upper, mode='auxvar')
 
 class Target(xd.Target):
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
