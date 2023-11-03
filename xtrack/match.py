@@ -182,14 +182,25 @@ def _sigmoid_sin(x):
     if x < 0:
         return 0
     if x < 1.:
-        return 0.5 * (1 - np.cos(np.pi * x / 2))
+        return 2 /np.pi - 2 /np.pi * np.cos(np.pi * x / 2)
     else:
-        return x - 0.5
+        return x + 2 / np.pi - 1
 
+def _poly(x):
+     return 3 * x**3 - 2 * x**4
+
+def _sigmoid_poly(x):
+        x_cut = 1/16 + np.sqrt(33)/16
+        if x < 0:
+            return 0
+        if x < x_cut:
+            return _poly(x)
+        else:
+            return x - x_cut + _poly(x_cut)
 
 class GreaterThan:
 
-    _sigmoid = staticmethod(_sigmoid_sin)
+    _sigmoid = staticmethod(_sigmoid_poly)
 
     def __init__(self, lower, mode='step', sigma=None, sigma_rel=None):
         assert mode in ['step', 'auxvar', 'sigmoid']
@@ -235,7 +246,7 @@ class GreaterThan:
 
 class LessThan:
 
-    _sigmoid = staticmethod(_sigmoid_sin)
+    _sigmoid = staticmethod(_sigmoid_poly)
 
     def __init__(self, upper, mode='step', sigma=None, sigma_rel=None):
         assert mode in ['step', 'auxvar', 'sigmoid']
