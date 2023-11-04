@@ -426,6 +426,8 @@ def twiss_line(line, particle_ref=None, method=None,
     if not periodic and (
         rv * _str_to_index(line, ele_start) > rv * _str_to_index(line, ele_stop)):
 
+        raise NotImplementedError # Needs testing
+
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         tw_res = _handle_loop_around(kwargs)
 
@@ -435,6 +437,9 @@ def twiss_line(line, particle_ref=None, method=None,
     if (not periodic and not isinstance(twiss_init, str)
             and twiss_init.element_name != ele_start
             and twiss_init.element_name != ele_stop):
+
+        raise NotImplementedError # Needs testing
+
         ele_name_init =  twiss_init.element_name
         if reverse:
             assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_start)
