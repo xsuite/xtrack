@@ -14,7 +14,6 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
-Range = xt.Range
 GreaterThan = xt.GreaterThan
 LessThan = xt.LessThan
 
@@ -26,7 +25,9 @@ opt = line.match(
         xt.VaryList(['kqtf.b1', 'kqtd.b1'], step=1e-8),
     ],
     targets=[
-        xt.TargetRelPhaseAdvance('mux', Range(62.26, 62.27),
+        xt.TargetRelPhaseAdvance('mux', GreaterThan(62.26),
+                                 ele_start='ip1', ele_stop='ip1.l1', tol=1e-4),
+        xt.TargetRelPhaseAdvance('mux', LessThan(62.27),
                                  ele_start='ip1', ele_stop='ip1.l1', tol=1e-4),
         xt.TargetRelPhaseAdvance('muy', LessThan(60.28),
                                   ele_start='ip1', ele_stop='ip1.l1', tol=1e-4),
@@ -36,6 +37,7 @@ opt = line.match(
 opt.target_status()
 
 opt.targets[0].freeze()
+opt.targets[1].freeze()
 opt.target_status()
 opt.solve()
 
@@ -44,6 +46,7 @@ assert np.isclose(tt['mux'][-1], 62.31, atol=1e-4)
 assert tt['muy'][-1] < 60.281
 
 opt.targets[0].unfreeze()
+opt.targets[1].unfreeze()
 opt.target_status()
 opt.solve()
 tt = line.twiss()
