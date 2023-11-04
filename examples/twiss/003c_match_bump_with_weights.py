@@ -13,8 +13,8 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
-GreaterThan = xt.GreaterThanAux
-LessThan = xt.LessThanAux
+GreaterThan = xt.GreaterThan
+LessThan = xt.LessThan
 
 line.vars['ttt'] = 0
 opt = line.match(
