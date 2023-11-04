@@ -432,7 +432,9 @@ def twiss_line(line, particle_ref=None, method=None,
         return tw_res
 
     # twiss_init is not at the boundary
-    if not periodic and twiss_init.element_name != ele_start and twiss_init.element_name != ele_stop:
+    if (not periodic and not isinstance(twiss_init, str)
+            and twiss_init.element_name != ele_start
+            and twiss_init.element_name != ele_stop):
         ele_name_init =  twiss_init.element_name
         if reverse:
             assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_start)
