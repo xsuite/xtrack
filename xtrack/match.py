@@ -418,7 +418,7 @@ class TargetRelPhaseAdvance(Target):
         self.ele_start = ele_start
 
     def __repr__(self):
-        return f'TargetPhaseAdvance({self.var}({self.ele_stop}) - {self.var}({self.ele_start}), value={self.value}, tol={self.tol}, weight={self.weight})'
+        return f'TargetPhaseAdv({self.var}({self.ele_stop} - {self.ele_start}), value={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
 
