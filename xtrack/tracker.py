@@ -290,6 +290,9 @@ class Tracker:
             tracking_func = self._track_no_collective
 
         if with_progress:
+            if self.enable_pipeline_hold:
+                raise ValueError("Progress indicator is not supported with pipeline hold")
+
             try:
                 num_turns = kwargs['num_turns']
             except KeyError:
@@ -314,9 +317,9 @@ class Tracker:
                     one_turn_kwargs['num_turns'] = scaling
 
                 tracking_func(particles, *args, **one_turn_kwargs)
-                particles.reorganize()
+                # particles.reorganize() # could be done in the future to optimize GPU usage
         else:
-            tracking_func(particles, *args, **kwargs)
+            return tracking_func(particles, *args, **kwargs)
 
     @property
     def particle_ref(self) -> xp.Particles:
