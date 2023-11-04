@@ -334,10 +334,13 @@ class Target(xd.Target):
         if self._freeze_value is not None:
             return out
 
-        if hasattr(self.value, 'auxtarget'):
-            return self.value.auxtarget(out)
-
         return out
+
+    def transform(self, val):
+        if hasattr(self.value, 'auxtarget'):
+            return self.value.auxtarget(val)
+        else:
+            return val
 
     @property
     def value(self):
