@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Collection
 
 import numpy as np
 from scipy.constants import c as clight
@@ -22,6 +22,7 @@ import xpart as xp
 import xtrack as xt
 import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
+from .progress_indicator import progress
 from .slicing import Slicer
 
 from .survey import survey_from_tracker
@@ -171,19 +172,13 @@ class Line:
 
         if isinstance(dct['elements'], dict):
             elements = {}
-            num_elements = len(dct['elements'].keys())
-            for ii, (kk, ee) in enumerate(dct['elements'].items()):
-                if ii % 100 == 0:
-                    _print('Loading line from dict: '
-                        f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
+            for ii, (kk, ee) in enumerate(
+                    progress(dct['elements'].items(), desc='Loading line from dict')):
                 elements[kk] = _deserialize_element(ee, class_dict, _buffer)
         elif isinstance(dct['elements'], list):
             elements = []
-            num_elements = len(dct['elements'])
-            for ii, ee in enumerate(dct['elements']):
-                if ii % 100 == 0:
-                    _print('Loading line from dict: '
-                        f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
+            for ii, ee in enumerate(
+                    progress(dct['elements'], desc='Loading line from dict')):
                 elements.append(_deserialize_element(ee, class_dict, _buffer))
         else:
             raise ValueError('Field `elements` must be a dict or a list')
@@ -733,6 +728,7 @@ class Line:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         time=False,
+        with_progress=False,
         **kwargs):
 
         """
@@ -770,7 +766,11 @@ class Line:
         time: bool, optional
             If True, the time taken for tracking is recorded and can be retrieved
             in `line.time_last_track`.
-
+        with_progress: bool or int, optional
+            If truthy, a progress bar is displayed during tracking. If an integer
+            is provided, it is used as the number of turns between two updates
+            of the progress bar. If True, 100 is taken by default. By default,
+            equals to False and no progress bar is displayed.
         """
 
         self._check_valid_tracker()
@@ -783,6 +783,7 @@ class Line:
             turn_by_turn_monitor=turn_by_turn_monitor,
             freeze_longitudinal=freeze_longitudinal,
             time=time,
+            with_progress=with_progress,
             **kwargs)
 
     def slice_thick_elements(self, slicing_strategies):
@@ -2624,13 +2625,7 @@ class Line:
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
         i_next_aperture = 0
 
-        for iee in range(i_prev_aperture, num_elements):
-
-            if iee % 100 == 0:
-                _print(
-                    f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
-                    end="\r", flush=True)
-
+        for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
             if dont_need_aperture[elements_df.loc[iee, 'name']]:
                 continue
 
