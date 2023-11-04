@@ -148,7 +148,7 @@ def test_match_orbit_bump_with_weights():
                 xt.Target('y', at='mq.33l8.b1', value='preserve', tol=1e-6),
                 xt.Target('py', at='mq.33l8.b1', value='preserve', tol=1e-7, weight=1e3),
                 # I want to limit the negative excursion ot the bump
-                xt.TargetInequality('y', '>', -1e-3, at='mq.30l8.b1', tol=1e-6),
+                xt.Target('y', xt.LessThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
             ]
         )
 
