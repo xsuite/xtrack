@@ -9,9 +9,9 @@ with open('../../test_data/hllhc14_no_errors_with_coupling_knobs/line_b1.json',
     dct_b1 = json.load(fid)
 line = xt.Line.from_dict(dct_b1)
 
-context = xo.ContextCupy()
-#context = xo.ContextCpu()
-context = xo.ContextPyopencl()
+context = xo.ContextCpu()
+# context = xo.ContextCupy()
+# context = xo.ContextPyopencl()
 
 line.build_tracker(_context=context)
 target_qx = 62.315
