@@ -143,7 +143,7 @@ edge_test = np.linspace(x0 - 3 * sigma, x0 + 3 * sigma, 100)
 residue = edge_test * 0
 for ii, xx in enumerate(edge_test):
     tar.value.lower = xx
-    residue[ii] =  opt._err()[i_tar]
+    residue[ii] =  opt._err()[i_tar] / tar.weight
 
 x_transf_fun = x0 - edge_test
 
@@ -153,14 +153,14 @@ x_cut = x_cut_norm * sigma
 
 assert np.all(residue[x_transf_fun > 0] == 0)
 assert np.allclose(residue[x_transf_fun < x_cut],
-                   x_transf_fun[x_transf_fun < x_cut] - x_cut + poly(x_cut),
+                   x_transf_fun[x_transf_fun < x_cut] - x_cut + poly(x_cut_norm),
                    atol=0, rtol=1e-10)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(100)
 plt.plot(x_transf_fun, residue)
-plt.plot(x_transf_fun, -x_transf_fun + x_cut, '--')
+plt.plot(x_transf_fun, -x_transf_fun + x_cut + sigma * poly(x_cut_norm), '--')
 plt.axvline(x=x_cut, color='r', linestyle='--')
 plt.axvline(x=-sigma, color='g', linestyle='--')
 
