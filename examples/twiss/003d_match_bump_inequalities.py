@@ -145,7 +145,7 @@ for ii, xx in enumerate(edge_test):
     tar.value.lower = xx
     residue[ii] =  opt._err()[i_tar] / tar.weight
 
-x_transf_fun = edge_test - x0
+x_minus_edge = x0 - edge_test
 
 x_cut_norm = 1/16 + np.sqrt(33)/16
 poly = lambda x: 3 * x**3 - 2 * x**4
@@ -159,8 +159,8 @@ x_cut = x_cut_norm * sigma
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(100)
-plt.plot(x_transf_fun, residue)
-plt.plot(x_transf_fun, x_transf_fun - x_cut + sigma*poly(x_cut_norm), '--')
+plt.plot(x_minus_edge, residue)
+plt.plot(x_minus_edge, -x_minus_edge - x_cut + sigma*poly(x_cut_norm), '--')
 plt.axvline(x=-x_cut, color='r', linestyle='--')
 plt.axvline(x=-sigma, color='g', linestyle='--')
 
