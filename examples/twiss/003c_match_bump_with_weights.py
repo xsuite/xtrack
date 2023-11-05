@@ -16,7 +16,6 @@ tw_before = line.twiss()
 GreaterThan = xt.GreaterThan
 LessThan = xt.LessThan
 
-line.vars['ttt'] = 0
 opt = line.match(
     solve=False,
     solver='jacobian',
