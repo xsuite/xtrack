@@ -149,18 +149,22 @@ x_minus_edge = x0 - edge_test
 
 x_cut_norm = 1/16 + np.sqrt(33)/16
 poly = lambda x: 3 * x**3 - 2 * x**4
-x_cut = x_cut_norm * sigma
+x_cut = -x_cut_norm * sigma
 
-# assert np.all(residue[x_transf_fun > 0] == 0)
-# assert np.allclose(residue[x_transf_fun < x_cut],
-#                    x_transf_fun[x_transf_fun < x_cut] - x_cut + poly(x_cut_norm),
-#                    atol=0, rtol=1e-10)
+mask_zero = x_minus_edge > 0
+assert np.all(residue[mask_zero] == 0)
+mask_linear = x_minus_edge < x_cut
+assert np.allclose(residue[mask_linear],
+    -x_minus_edge[mask_linear] - x_cut_norm * sigma + sigma*poly(x_cut_norm),
+    atol=0, rtol=1e-10)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(100)
 plt.plot(x_minus_edge, residue)
-plt.plot(x_minus_edge, -x_minus_edge - x_cut + sigma*poly(x_cut_norm), '--', color='C1')
+plt.plot(x_minus_edge,
+    -x_minus_edge - x_cut_norm * sigma + sigma*poly(x_cut_norm),
+    '--', color='C1')
 plt.plot(x_minus_edge, sigma * poly(-x_minus_edge/sigma), '--', color='C1')
 plt.axvline(x=-x_cut, color='r', linestyle='--')
 plt.axvline(x=0, color='r', linestyle='--')
