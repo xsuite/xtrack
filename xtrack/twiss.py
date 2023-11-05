@@ -368,9 +368,13 @@ def twiss_line(line, particle_ref=None, method=None,
         assert ele_start is not None and ele_stop is not None, (
             'ele_start and ele_stop must be provided together')
         if twiss_init is None:
+
             assert betx is not None and bety is not None, (
                 'betx and bety or twiss_init must be provided when ele_start '
                 'and ele_stop are used')
+
+            raise NotImplementedError # Needs testing
+
             twiss_init = xt.TwissInit(
                 element_name=ele_init,
                 x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
