@@ -34,9 +34,35 @@ opt = line.match(
         xt.Target('y', GreaterThan(2.7e-3), at='mb.b26l8.b1'),
         xt.Target('y', GreaterThan(2.7e-3), at='mb.b25l8.b1'),
         xt.Target('y', at='mq.24l8.b1', value=xt.LessThan(3e-3)),
+        xt.Target('y', at='mq.26l8.b1', value=xt.LessThan(6e-3)),
         xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value='preserve'),
     ]
 )
+
+
+# Check freeze
+opt.step(1)
+ts = opt.target_status(ret=True)
+assert ts.tol_met[2] == False
+assert ts.tol_met[4] == False
+assert ts.tol_met[5] == False
+
+opt.targets[2].freeze()
+opt.targets[5].freeze()
+
+ts = opt.target_status(ret=True)
+assert ts.tol_met[2] == True
+assert ts.tol_met[4] == False
+assert ts.tol_met[5] == True
+
+opt.targets[2].unfreeze()
+opt.targets[5].unfreeze()
+
+ts = opt.target_status(ret=True)
+assert ts.tol_met[2] == False
+assert ts.tol_met[4] == False
+assert ts.tol_met[5] == False
+
 opt.solve()
 
 tw = line.twiss()
@@ -96,6 +122,30 @@ opt = line.match(
         xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value='preserve'),
     ]
 )
+
+# Check freeze
+opt.step(1)
+ts = opt.target_status(ret=True)
+assert ts.tol_met[0] == False
+assert ts.tol_met[1] == False
+assert ts.tol_met[5] == False
+
+opt.targets[0].freeze()
+opt.targets[5].freeze()
+
+ts = opt.target_status(ret=True)
+assert ts.tol_met[0] == True
+assert ts.tol_met[1] == False
+assert ts.tol_met[5] == True
+
+opt.targets[0].unfreeze()
+opt.targets[5].unfreeze()
+
+ts = opt.target_status(ret=True)
+assert ts.tol_met[0] == False
+assert ts.tol_met[1] == False
+assert ts.tol_met[5] == False
+
 opt.solve()
 
 tw = line.twiss()
