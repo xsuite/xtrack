@@ -160,10 +160,12 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(100)
 plt.plot(x_minus_edge, residue)
-plt.plot(x_minus_edge, -x_minus_edge - x_cut + sigma*poly(x_cut_norm), '--')
+plt.plot(x_minus_edge, -x_minus_edge - x_cut + sigma*poly(x_cut_norm), '--', color='C1')
+plt.plot(x_minus_edge, sigma * poly(-x_minus_edge/sigma), '--', color='C1')
 plt.axvline(x=-x_cut, color='r', linestyle='--')
+plt.axvline(x=0, color='r', linestyle='--')
 plt.axvline(x=-sigma, color='g', linestyle='--')
-
+plt.ylim(np.array([-1, 1]) * np.max(np.abs(x_minus_edge)))
 
 
 fig = plt.figure(1, figsize=(6.4*1.2, 4.8*0.8))
