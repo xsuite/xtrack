@@ -91,7 +91,7 @@ opt = line.match(
     targets=[
         xt.Target('y', GreaterThan(2.7e-3, mode='smooth', sigma_rel=0.05), at='mb.b26l8.b1'),
         xt.Target('y', GreaterThan(2.7e-3, mode='smooth'), at='mb.b25l8.b1'),
-        xt.Target('y', at='mq.24l8.b1', value=xt.LessThan(3e-3, mode='smooth', sigma_rel=0.05)),
+        xt.Target('y', at='mq.24l8.b1', value=xt.LessThan(3e-3, mode='smooth', sigma_rel=0.04)),
         xt.Target('y', at='mq.26l8.b1', value=xt.LessThan(6e-3, mode='smooth')),
         xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value='preserve'),
     ]
@@ -129,47 +129,92 @@ assert opt.targets[3].value.upper == 6e-3
 
 assert np.isclose(opt.targets[0].value.sigma, 0.05 * 2.7e-3, atol=0, rtol=1e-10)
 assert np.isclose(opt.targets[1].value.sigma, 0.01 * 2.7e-3, atol=0, rtol=1e-10)
-assert np.isclose(opt.targets[2].value.sigma, 0.05 * 3e-3, atol=0, rtol=1e-10)
+assert np.isclose(opt.targets[2].value.sigma, 0.04 * 3e-3, atol=0, rtol=1e-10)
 assert np.isclose(opt.targets[3].value.sigma, 0.01 * 6e-3, atol=0, rtol=1e-10)
-
-# Check smooth target
-i_tar = 0
-tar = opt.targets[i_tar]
-sigma = tar.value.sigma
-x0 = tar.runeval()
-
-edge_test = np.linspace(x0 - 3 * sigma, x0 + 3 * sigma, 100)
-
-residue = edge_test * 0
-for ii, xx in enumerate(edge_test):
-    tar.value.lower = xx
-    residue[ii] =  opt._err()[i_tar] / tar.weight
-
-x_minus_edge = x0 - edge_test
 
 x_cut_norm = 1/16 + np.sqrt(33)/16
 poly = lambda x: 3 * x**3 - 2 * x**4
-x_cut = -x_cut_norm * sigma
 
-mask_zero = x_minus_edge > 0
-assert np.all(residue[mask_zero] == 0)
-mask_linear = x_minus_edge < x_cut
-assert np.allclose(residue[mask_linear],
-    -x_minus_edge[mask_linear] - x_cut_norm * sigma + sigma*poly(x_cut_norm),
+# Check smooth target (GreaterThan)
+i_tar_gt = 0
+tar_gt = opt.targets[i_tar_gt]
+sigma_gt = tar_gt.value.sigma
+x0_gt = tar_gt.runeval()
+
+edge_test_gt = np.linspace(x0_gt - 3 * sigma_gt, x0_gt + 3 * sigma_gt, 100)
+
+residue_gt = edge_test_gt * 0
+for ii, xx in enumerate(edge_test_gt):
+    tar_gt.value.lower = xx
+    residue_gt[ii] =  opt._err()[i_tar_gt] / tar_gt.weight
+
+x_minus_edge_gt = x0_gt - edge_test_gt
+x_cut_gt = -x_cut_norm * sigma_gt
+
+mask_zero_gt = x_minus_edge_gt > 0
+assert np.all(residue_gt[mask_zero_gt] == 0)
+mask_linear_gt = x_minus_edge_gt < x_cut_gt
+assert np.allclose(residue_gt[mask_linear_gt],
+    -x_minus_edge_gt[mask_linear_gt] - x_cut_norm * sigma_gt + sigma_gt*poly(x_cut_norm),
+    atol=0, rtol=1e-10)
+mask_poly_gt = (~mask_zero_gt) & (~mask_linear_gt)
+assert np.allclose(residue_gt[mask_poly_gt],
+    sigma_gt * poly(-x_minus_edge_gt[mask_poly_gt]/sigma_gt),
+    atol=0, rtol=1e-10)
+
+# Check smooth target (LessThan)
+i_tar_lt = 2
+tar_lt = opt.targets[i_tar_lt]
+sigma_lt = tar_lt.value.sigma
+x0_lt = tar_lt.runeval()
+
+edge_test_lt = np.linspace(x0_lt - 3 * sigma_lt, x0_lt + 3 * sigma_lt, 100)
+
+residue_lt = edge_test_lt * 0
+for ii, xx in enumerate(edge_test_lt):
+    tar_lt.value.upper = xx
+    residue_lt[ii] =  opt._err()[i_tar_lt] / tar_lt.weight
+
+x_minus_edge_lt = x0_lt - edge_test_lt
+x_cut_lt = x_cut_norm * sigma_lt
+
+mask_zero_lt = x_minus_edge_lt < 0
+assert np.all(residue_lt[mask_zero_lt] == 0)
+mask_linear_lt = x_minus_edge_lt > x_cut_lt
+assert np.allclose(residue_lt[mask_linear_lt],
+    x_minus_edge_lt[mask_linear_lt] - x_cut_norm * sigma_lt + sigma_lt*poly(x_cut_norm),
+    atol=0, rtol=1e-10)
+mask_poly_lt = (~mask_zero_lt) & (~mask_linear_lt)
+assert np.allclose(residue_lt[mask_poly_lt],
+    sigma_lt * poly(x_minus_edge_lt[mask_poly_lt]/sigma_lt),
     atol=0, rtol=1e-10)
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(100)
-plt.plot(x_minus_edge, residue)
-plt.plot(x_minus_edge,
-    -x_minus_edge - x_cut_norm * sigma + sigma*poly(x_cut_norm),
+plt.suptitle('GreaterThan')
+plt.plot(x_minus_edge_gt, residue_gt)
+plt.plot(x_minus_edge_gt,
+    -x_minus_edge_gt - x_cut_norm * sigma_gt + sigma_gt*poly(x_cut_norm),
     '--', color='C1')
-plt.plot(x_minus_edge, sigma * poly(-x_minus_edge/sigma), '--', color='C1')
-plt.axvline(x=-x_cut, color='r', linestyle='--')
+plt.plot(x_minus_edge_gt, sigma_gt * poly(-x_minus_edge_gt/sigma_gt), '--', color='C1')
+plt.axvline(x=-x_cut_gt, color='r', linestyle='--')
 plt.axvline(x=0, color='r', linestyle='--')
-plt.axvline(x=-sigma, color='g', linestyle='--')
-plt.ylim(np.array([-1, 1]) * np.max(np.abs(x_minus_edge)))
+plt.axvline(x=-sigma_gt, color='g', linestyle='--')
+plt.ylim(np.array([-1, 1]) * np.max(np.abs(x_minus_edge_gt)))
+
+plt.figure(101)
+plt.suptitle('LessThan')
+plt.plot(x_minus_edge_lt, residue_lt)
+plt.plot(x_minus_edge_lt,
+    x_minus_edge_lt - x_cut_norm * sigma_lt + sigma_lt*poly(x_cut_norm),
+    '--', color='C1')
+plt.plot(x_minus_edge_lt, sigma_lt * poly(x_minus_edge_lt/sigma_lt), '--', color='C1')
+plt.axvline(x=x_cut_lt, color='r', linestyle='--')
+plt.axvline(x=0, color='r', linestyle='--')
+plt.axvline(x=sigma_lt, color='g', linestyle='--')
+plt.ylim(np.array([-1, 1]) * np.max(np.abs(x_minus_edge_lt)))
+
 
 
 fig = plt.figure(1, figsize=(6.4*1.2, 4.8*0.8))
