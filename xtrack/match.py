@@ -495,13 +495,14 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             else:
                 tt.tol = default_tol
 
-        if isinstance(tt.value, (GreaterThan, LessThan)):
-            if tt.value.mode == 'auxvar':
-                aux_vary.append(tt.value.gen_vary(aux_vary_container))
-                aux_vary_container[aux_vary[-1].name] = 0
-                val = tt.runeval()
-                if val > 0:
-                    aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+        # part of the `auxvar` experimental code
+        # if isinstance(tt.value, (GreaterThan, LessThan)):
+        #     if tt.value.mode == 'auxvar':
+        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+        #         aux_vary_container[aux_vary[-1].name] = 0
+        #         val = tt.runeval()
+        #         if val > 0:
+        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
 
     if not isinstance(vary, (list, tuple)):
         vary = [vary]

@@ -132,12 +132,40 @@ assert np.isclose(opt.targets[1].value.sigma, 0.01 * 2.7e-3, atol=0, rtol=1e-10)
 assert np.isclose(opt.targets[2].value.sigma, 0.05 * 3e-3, atol=0, rtol=1e-10)
 assert np.isclose(opt.targets[3].value.sigma, 0.01 * 6e-3, atol=0, rtol=1e-10)
 
+# Check smooth target
+i_tar = 0
+tar = opt.targets[i_tar]
+sigma = tar.value.sigma
+x0 = tar.runeval()
 
-#!end-doc-part
+edge_test = np.linspace(x0 - 3 * sigma, x0 + 3 * sigma, 100)
 
+residue = edge_test * 0
+for ii, xx in enumerate(edge_test):
+    tar.value.lower = xx
+    residue[ii] =  opt._err()[i_tar]
+
+x_transf_fun = x0 - edge_test
+
+x_cut_norm = -1/16 - np.sqrt(33)/16
+poly = lambda x: -3 * x**3 + 2 * x**4
+x_cut = x_cut_norm * sigma
+
+assert np.all(residue[x_transf_fun > 0] == 0)
+assert np.allclose(residue[x_transf_fun < x_cut],
+                   x_transf_fun[x_transf_fun < x_cut] - x_cut + poly(x_cut),
+                   atol=0, rtol=1e-10)
 
 import matplotlib.pyplot as plt
 plt.close('all')
+plt.figure(100)
+plt.plot(x_transf_fun, residue)
+plt.plot(x_transf_fun, -x_transf_fun + x_cut, '--')
+plt.axvline(x=x_cut, color='r', linestyle='--')
+plt.axvline(x=-sigma, color='g', linestyle='--')
+
+
+
 fig = plt.figure(1, figsize=(6.4*1.2, 4.8*0.8))
 ax = fig.add_subplot(111)
 ax.plot(tw_before.s, tw_before.y*1000, label='y')
