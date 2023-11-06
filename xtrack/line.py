@@ -13,6 +13,7 @@ from pprint import pformat
 from typing import List, Literal, Optional
 
 import numpy as np
+from scipy.constants import c as clight
 
 from . import linear_normal_form as lnf
 
@@ -26,6 +27,7 @@ from .slicing import Slicer
 from .survey import survey_from_tracker
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
+                          compute_T_matrix_line,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
 from .match import match_line, closed_orbit_correction, match_knob_line
@@ -54,8 +56,8 @@ class Line:
     _element_dict = None
     config = None
 
-    def __init__(self, elements=(), element_names=None, particle_ref=None):
-
+    def __init__(self, elements=(), element_names=None, particle_ref=None,
+                 energy_program=None):
         """
         Parameters
         ----------
@@ -70,6 +72,8 @@ class Line:
             Reference particle providing rest mass, charge and reference enegy
             used for building particles distributions, computing twiss parameters
             and matching.
+        energy_program: EnergyProgram
+            (optional) Energy program used to update the reference energy during the tracking.
         """
 
         self.config = xt.tracker.TrackerConfig()
@@ -85,7 +89,6 @@ class Line:
         self._extra_config['reset_s_at_end_turn'] = True
         self._extra_config['matrix_responsiveness_tol'] = DEFAULT_MATRIX_RESPONSIVENESS_TOL
         self._extra_config['matrix_stability_tol'] = DEFAULT_MATRIX_STABILITY_TOL
-        self._extra_config['t0_time_dependent_vars'] = 0.
         self._extra_config['dt_update_time_dependent_vars'] = 0.
         self._extra_config['_t_last_update_time_dependent_vars'] = None
         self._extra_config['_radiation_model'] = None
@@ -127,10 +130,12 @@ class Line:
 
         self.particle_ref = particle_ref
 
+        self.energy_program = energy_program # setter will take care of completing
+
         self._var_management = None
         self._line_vars = None
         self.tracker = None
-        
+
         self.metadata = {}
 
     @classmethod
@@ -204,6 +209,10 @@ class Line:
 
         if 'metadata' in dct.keys():
             self.metadata = dct['metadata']
+
+        if ('energy_program' in self.element_dict
+             and self['energy_program'] is not None):
+            self.energy_program.line = self
 
         _print('Done loading line from dict.           ')
 
@@ -422,6 +431,7 @@ class Line:
         ignored_madtypes=(),
         allow_thick=False,
         use_compound_elements=True,
+        name_prefix=None,
     ):
 
         """
@@ -493,6 +503,7 @@ class Line:
             replace_in_expr=replace_in_expr,
             allow_thick=allow_thick,
             use_compound_elements=use_compound_elements,
+            name_prefix=name_prefix
         )
         line = loader.make_line()
         return line
@@ -956,6 +967,9 @@ class Line:
         only_twiss_init=None,
         only_markers=None,
         only_orbit=None,
+        compute_R_element_by_element=None,
+        compute_lattice_functions=None,
+        compute_chromatic_properties=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1272,6 +1286,36 @@ class Line:
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  ele_start=ele_start, ele_stop=ele_stop)
 
+    def compute_T_matrix(self, ele_start=None, ele_stop=None,
+                         particle_on_co=None, steps_t_matrix=None):
+
+        """
+        Compute the second order tensor of the beamline.
+
+        Parameters
+        ----------
+        ele_start : int or str
+            Element at which the computation starts.
+        ele_stop : int or str
+            Element at which the computation stops.
+        particle_on_co : Particle
+            Particle at the closed orbit (optional).
+        steps_r_matrix : int
+            Finite difference step for computing the second order tensor.
+
+        Returns
+        -------
+        T_matrix : ndarray
+            Second order tensor of the beamline.
+
+        """
+
+        self._check_valid_tracker()
+
+        return compute_T_matrix_line(self, ele_start=ele_start, ele_stop=ele_stop,
+                                particle_on_co=particle_on_co,
+                                steps_t_matrix=steps_t_matrix)
+
     def get_footprint(self, nemitt_x=None, nemitt_y=None, n_turns=256, n_fft=2**18,
             mode='polar', r_range=None, theta_range=None, n_r=None, n_theta=None,
             x_norm_range=None, y_norm_range=None, n_x_norm=None, n_y_norm=None,
@@ -1367,7 +1411,8 @@ class Line:
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None,
-            ele_start=None, ele_stop=None):
+            ele_start=None, ele_stop=None,
+            element_by_element=False, only_markers=False):
 
         '''Compute the one turn matrix using finite differences.
 
@@ -1404,7 +1449,9 @@ class Line:
             line = self
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                        steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop)
+                        steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
+                        element_by_element=element_by_element,
+                        only_markers=only_markers)
 
     def get_length(self):
 
@@ -1836,9 +1883,13 @@ class Line:
             index_first_element = None
 
         if name_first_element is not None:
-            assert self.element_names.count(name_first_element) == 1, (
-                f"name_first_element={name_first_element} occurs more than once!"
-            )
+            n_occurrences = self.element_names.count(name_first_element)
+            if n_occurrences == 0:
+                raise ValueError(
+                    f"{name_first_element} not found in the line.")
+            if n_occurrences > 1:
+                raise ValueError(
+                    f"{name_first_element} occurs more than once in the line.")
             index_first_element = self.element_names.index(name_first_element)
 
         new_element_names = (list(self.element_names[index_first_element:])
@@ -2550,6 +2601,8 @@ class Line:
             ee = self.element_dict[name]
             if _allow_backtrack(ee) and not name in needs_aperture:
                 dont_need_aperture[name] = True
+            if name.endswith('_entry') or name.endswith('_exit'):
+                dont_need_aperture[name] = True
 
             # Correct isthick for elements that need aperture but have zero length.
             # Use-case example: Before collimators are installed as EverestCollimator
@@ -2700,6 +2753,57 @@ class Line:
             return self
         else:
             return newline
+
+    def get_line_with_second_order_maps(self, split_at):
+
+        '''
+        Return a new lines with segments definded by the elements in `split_at`
+        replaced by second order maps.
+
+        Parameters
+        ----------
+        split_at : list of str
+            Names of elements at which to split the line.
+
+        Returns
+        -------
+        line_maps : Line
+            Line with segments replaced by second order maps.
+        '''
+
+        ele_cut_ext = split_at.copy()
+        if self.element_names[0] not in ele_cut_ext:
+            ele_cut_ext.insert(0, self.element_names[0])
+        if self.element_names[-1] not in ele_cut_ext:
+            ele_cut_ext.append(self.element_names[-1])
+
+        ele_cut_sorted = []
+        for ee in self.element_names:
+            if ee in ele_cut_ext:
+                ele_cut_sorted.append(ee)
+
+        elements_map_line = []
+        names_map_line = []
+        tw = self.twiss()
+
+        for ii in range(len(ele_cut_sorted)-1):
+            names_map_line.append(ele_cut_sorted[ii])
+            elements_map_line.append(self[ele_cut_sorted[ii]])
+
+            smap = xt.SecondOrderTaylorMap.from_line(
+                                    self, ele_start=ele_cut_sorted[ii],
+                                    ele_stop=ele_cut_sorted[ii+1],
+                                    twiss_table=tw)
+            names_map_line.append(f'map_{ii}')
+            elements_map_line.append(smap)
+
+        names_map_line.append(ele_cut_sorted[-1])
+        elements_map_line.append(self[ele_cut_sorted[-1]])
+
+        line_maps = xt.Line(elements=elements_map_line, element_names=names_map_line)
+        line_maps.particle_ref = self.particle_ref.copy()
+
+        return line_maps
 
     def _freeze(self):
         self.element_names = tuple(self.element_names)
@@ -2962,14 +3066,6 @@ class Line:
         self._extra_config['enable_time_dependent_vars'] = value
 
     @property
-    def t0_time_dependent_vars(self):
-        return self._extra_config['t0_time_dependent_vars']
-
-    @t0_time_dependent_vars.setter
-    def t0_time_dependent_vars(self, value):
-        self._extra_config['t0_time_dependent_vars'] = value
-
-    @property
     def dt_update_time_dependent_vars(self):
         return self._extra_config['dt_update_time_dependent_vars']
 
@@ -2993,6 +3089,29 @@ class Line:
     @property
     def twiss_default(self):
         return self._extra_config['twiss_default']
+
+    @property
+    def energy_program(self):
+        try:
+            out = self.element_dict['energy_program']
+        except KeyError:
+            out = None
+        return out
+
+    @energy_program.setter
+    def energy_program(self, value):
+        if value is None:
+            if 'energy_program' in self.element_dict:
+                del self.element_dict['energy_program']
+            return
+        self.element_dict['energy_program'] = value
+        assert self.vars is not None, (
+            'Xdeps expression need to be enabled to use `energy_program`')
+        if self.energy_program.needs_complete:
+            self.energy_program.complete_init(self)
+        if self.energy_program.needs_line:
+            self.energy_program.line = self
+        self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
     def __getitem__(self, ii):
         if isinstance(ii, str):
@@ -3035,7 +3154,10 @@ class Line:
                          fields=['hxl', 'hyl', 'length', 'radiation_flag',
                                  'delta_taper', 'voltage', 'frequency',
                                  'lag', 'lag_taper',
-                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1)])
+                                 'k1',
+                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
+                                ('knl', 2), ('ksl', 2),
+                                ])
         return cache
 
 def frac(x):
@@ -3163,6 +3285,8 @@ def mk_class_namespace(extra_classes):
     except ImportError:
         all_classes = element_classes + extra_classes
         log.warning("Xfields not installed correctly")
+
+    all_classes = all_classes + (EnergyProgram,)
 
     out = AttrDict()
     for cl in all_classes:
@@ -3594,3 +3718,135 @@ class LineAttr:
 
     def __getitem__(self, key):
         return self._cache[key].get_full_array()
+
+
+class EnergyProgram:
+
+    def __init__(self, t_s, kinetic_energy0=None, p0c=None):
+
+        assert hasattr (t_s, '__len__'), 't_s must be a list or an array'
+
+        assert p0c is not None or kinetic_energy0 is not None, (
+            'Either p0c or kinetic_energy0 needs to be provided')
+
+        assert np.isclose(t_s[0], 0, rtol=0, atol=1e-12), 't_s must start from 0'
+
+        self.p0c = p0c
+        self.kinetic_energy0 = kinetic_energy0
+        self.t_s = t_s
+        self.needs_complete = True
+        self.needs_line = True
+
+    def complete_init(self, line):
+
+        assert self.needs_complete, 'EnergyProgram already completed'
+
+        p0c = self.p0c
+        kinetic_energy0 = self.kinetic_energy0
+        t_s = self.t_s
+
+        enevars = {}
+        assert line is not None, 'line must be provided'
+        assert line.particle_ref is not None, (
+            'line must have a valid particle_ref')
+
+        mass0 = line.particle_ref.mass0
+        circumference = line.get_length()
+
+        if p0c is not None:
+            assert hasattr (p0c, '__len__'), 'p0c must be a list or an array'
+            assert len(t_s) == len(p0c), 't_s and p0c must have same length'
+            enevars['p0c'] = p0c
+
+        if kinetic_energy0 is not None:
+            assert hasattr (kinetic_energy0, '__len__'), (
+                'kinetic_energy0 must be a list or an array')
+            assert len(t_s) == len(kinetic_energy0), (
+                't_s and kinetic_energy0 must have same length')
+
+            energy0 = kinetic_energy0 + mass0
+            enevars['energy0'] = energy0
+
+        # I use a particle to make the conversions
+        p = xt.Particles(**enevars, mass0=mass0)
+        beta0_program = p.beta0
+        bet0_mid = 0.5*(beta0_program[1:] + beta0_program[:-1])
+
+        dt_s = np.diff(t_s)
+
+        i_turn_at_t_samples = np.zeros_like(t_s)
+        i_turn_at_t_samples[1:] = (
+            beta0_program[0] * clight / circumference * t_s[0] +
+            np.cumsum(bet0_mid * clight / circumference * dt_s))
+        # In this way i_turn = 0 corresponds to t_s[0]
+
+        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear(
+                                x=i_turn_at_t_samples, y=t_s)
+        self.p0c_interpolator = xd.FunctionPieceWiseLinear(
+                                x=t_s, y=np.array(p.p0c))
+        self.line = line
+
+        self.needs_complete = False
+        self.needs_line = False
+        del self.p0c
+        del self.kinetic_energy0
+
+    def get_t_s_at_turn(self, i_turn):
+        assert not self.needs_complete, 'EnergyProgram not complete'
+        assert not self.needs_line, 'EnergyProgram not associated to a line'
+        out = self.t_at_turn_interpolator(i_turn)
+
+        return out
+
+    def get_p0c_at_t_s(self, t_s):
+        assert not self.needs_complete, 'EnergyProgram not complete'
+        assert not self.needs_line, 'EnergyProgram not associated to a line'
+        return self.p0c_interpolator(t_s)
+
+    def get_beta0_at_t_s(self, t_s):
+        p0c = self.get_p0c_at_t_s(t_s)
+        # I use a particle to make the conversions
+        p = xt.Particles(p0c=p0c, mass0=self.line.particle_ref.mass0)
+        if np.isscalar(t_s):
+            return p.beta0[0]
+        else:
+            return p.beta0
+
+    def get_frev_at_t_s(self, t_s):
+        beta0 = self.get_beta0_at_t_s(t_s)
+        circumference = self.line.get_length()
+        return beta0 * clight / circumference
+
+    def get_p0c_increse_per_turn_at_t_s(self, t_s):
+        beta0 = self.get_beta0_at_t_s(t_s)
+        circumference = self.line.get_length()
+        T_rev = circumference / (beta0 * clight)
+        return 0.5 * (self.get_p0c_at_t_s(t_s + T_rev)
+                      - self.get_p0c_at_t_s(t_s - T_rev))
+
+    @property
+    def t_turn_s_line(self):
+        raise ValueError('only setter allowed')
+
+    @t_turn_s_line.setter
+    def t_turn_s_line(self, value):
+        p0c = self.get_p0c_at_t_s(value)
+        self.line.particle_ref.update_p0c_and_energy_deviations(p0c=p0c)
+
+    def to_dict(self):
+        assert not self.needs_complete, 'EnergyProgram not completed'
+        return {
+            '__class__': self.__class__.__name__,
+            't_at_turn_interpolator': self.t_at_turn_interpolator.to_dict(),
+            'p0c_interpolator': self.p0c_interpolator.to_dict()}
+
+    @classmethod
+    def from_dict(cls, dct):
+        self = cls.__new__(cls)
+        self.t_at_turn_interpolator = xd.FunctionPieceWiseLinear.from_dict(
+                                        dct['t_at_turn_interpolator'])
+        self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
+                                        dct['p0c_interpolator'])
+        self.needs_complete = False
+        self.needs_line = True
+        return self

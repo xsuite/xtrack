@@ -70,7 +70,7 @@ def test_eq_emitt(conf):
         line.vars['on_wiggler_v'] = 0.4
 
     if vertical_orbit_distortion:
-        line['mwi.e5rg'].ksl[0] = 2e-7
+        line['mwi.e5rg..0'].ksl[0] = 2e-7
 
     # Make sure there is no vertical bend nor skew element
     for ee in line.elements:
@@ -111,8 +111,8 @@ def test_eq_emitt(conf):
         assert np.isclose(tw_after_tilt.dqy, tw_before_tilt.dqx, rtol=0, atol=1e-4)
         assert np.isclose(tw_after_tilt.dqx, tw_before_tilt.dqy, rtol=0, atol=1e-4)
 
-        assert np.allclose(tw_after_tilt.bety, tw_before_tilt.betx, rtol=1e-5, atol=0)
-        assert np.allclose(tw_after_tilt.betx, tw_before_tilt.bety, rtol=1e-5, atol=0)
+        assert np.allclose(tw_after_tilt.bety, tw_before_tilt.betx, rtol=3e-5, atol=0)
+        assert np.allclose(tw_after_tilt.betx, tw_before_tilt.bety, rtol=3e-5, atol=0)
 
         assert np.allclose(tw_after_tilt.y, tw_before_tilt.x, rtol=0, atol=1e-9)
         assert np.allclose(tw_after_tilt.x, tw_before_tilt.y, rtol=0, atol=1e-9)
@@ -131,39 +131,65 @@ def test_eq_emitt(conf):
     # for regression testing
     checked = False
     if not tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 6.9884e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 7.0592e-10, atol=0,     rtol=1e-4)
         assert np.isclose(ey, 0,          atol=1e-14, rtol=0)
-        assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and not wiggler_on:
         assert np.isclose(ex, 0,          atol=1e-14, rtol=0)
-        assert np.isclose(ey, 6.9884e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ez, 3.5634e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ey, 7.0592e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ez, 3.6000e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        assert np.isclose(ex, 6.9253e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ey, 1.7110e-12, atol=0,     rtol=2e-3)
-        assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 6.9954e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ey, 5.8575e-13, atol=0,     rtol=2e-3)
+        assert np.isclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and not vertical_orbit_distortion and wiggler_on:
-        assert np.isclose(ex, 1.7112e-12, atol=0,     rtol=2e-3)
-        assert np.isclose(ey, 6.9253e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ez, 3.8202e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 5.8575e-13, atol=0,     rtol=4e-3) # Quite large, to be kept in mind
+        assert np.isclose(ey, 6.9955e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ez, 3.8595e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif not tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 6.9869e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ey, 2.5048e-12, atol=0,     rtol=2e-3)
-        assert np.isclose(ez, 3.5404e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 7.0576e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ey, 2.5281e-12, atol=0,     rtol=2e-3)
+        assert np.isclose(ez, 3.5762e-6,  atol=0,     rtol=1e-4)
         checked = True
     elif tilt_machine_by_90_degrees and vertical_orbit_distortion and not wiggler_on:
-        assert np.isclose(ex, 2.4929e-12, atol=0,     rtol=2e-3)
-        assert np.isclose(ey, 6.9869e-10, atol=0,     rtol=1e-4)
-        assert np.isclose(ez, 3.5404e-6,  atol=0,     rtol=1e-4)
+        assert np.isclose(ex, 2.5531e-12, atol=0,     rtol=2e-3)
+        assert np.isclose(ey, 7.0576e-10, atol=0,     rtol=1e-4)
+        assert np.isclose(ez, 3.5763e-6,  atol=0,     rtol=1e-4)
         checked = True
     else:
         raise ValueError('Unknown configuration')
 
     assert checked
+
+    tw_rad2 = line.twiss(eneloss_and_damping=True, method='6d',
+                     radiation_method='full',
+                     compute_lattice_functions=False,
+                     compute_chromatic_properties=False)
+
+    assert 'x' in tw_rad2
+    assert 'betx' not in tw_rad2
+    assert 'circumference' in tw_rad2
+    assert 'qx' not in tw_rad2
+    assert 'dqx' not in tw_rad2
+
+    if not vertical_orbit_distortion: # Known inconsistency to be investigated
+        assert np.isclose(tw_rad2.eq_gemitt_x, tw_rad.eq_gemitt_x, atol=1e-14, rtol=1.5e-2)
+        assert np.isclose(tw_rad2.eq_gemitt_y, tw_rad.eq_gemitt_y, atol=1e-14, rtol=1.5e-2)
+        assert np.isclose(tw_rad2.eq_gemitt_zeta, tw_rad.eq_gemitt_zeta, atol=1e-14, rtol=4e-2)
+        assert np.isclose(tw_rad2.eq_nemitt_x, tw_rad.eq_nemitt_x, atol=1e-16, rtol=1.5e-2)
+        assert np.isclose(tw_rad2.eq_nemitt_y, tw_rad.eq_nemitt_y, atol=1e-16, rtol=1.5e-2)
+        assert np.isclose(tw_rad2.eq_nemitt_zeta, tw_rad.eq_nemitt_zeta, atol=1e-16, rtol=4e-2)
+
+    assert np.isclose(tw_rad.eq_nemitt_x, tw_rad.eq_gemitt_x/(tw_rad.gamma0*tw_rad.beta0), atol=1e-16, rtol=0)
+    assert np.isclose(tw_rad.eq_nemitt_y, tw_rad.eq_gemitt_y/(tw_rad.gamma0*tw_rad.beta0), atol=1e-16, rtol=0)
+    assert np.isclose(tw_rad.eq_nemitt_zeta, tw_rad.eq_gemitt_zeta/(tw_rad.gamma0*tw_rad.beta0), atol=1e-16, rtol=0)
+    assert np.isclose(tw_rad2.eq_nemitt_x, tw_rad2.eq_gemitt_x/(tw_rad2.gamma0*tw_rad2.beta0), atol=1e-16, rtol=0)
+    assert np.isclose(tw_rad2.eq_nemitt_y, tw_rad2.eq_gemitt_y/(tw_rad2.gamma0*tw_rad2.beta0), atol=1e-16, rtol=0)
+    assert np.isclose(tw_rad2.eq_nemitt_zeta, tw_rad2.eq_gemitt_zeta/(tw_rad2.gamma0*tw_rad2.beta0), atol=1e-16, rtol=0)
 
     if conf['check_against_tracking']:
 

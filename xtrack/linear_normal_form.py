@@ -214,7 +214,9 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     R[4:6,4:6] = Rot2D(mu3)
     ##################################################
 
-    return W, invW, R
+    eigenvalues = w0[modes]
+
+    return W, invW, R, eigenvalues
 
 def _assert_matrix_responsiveness(M,
                 responsiveness_tol, only_4d=False):

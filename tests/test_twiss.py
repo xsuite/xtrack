@@ -303,8 +303,8 @@ def test_get_R_matrix():
 
     R_matrix = tw.R_matrix
 
-    W_ref, invW_ref, Rot_ref = compute_linear_normal_form(R_matrix)
-    W_prod, invW_prod, Rot_prod = compute_linear_normal_form(R_prod)
+    W_ref, invW_ref, Rot_ref, _ = compute_linear_normal_form(R_matrix)
+    W_prod, invW_prod, Rot_prod, _ = compute_linear_normal_form(R_prod)
 
 
     for i_mode in range(3):
@@ -340,9 +340,9 @@ def test_get_R_matrix():
 
     R_matrix_4d = tw4d.R_matrix
 
-    W_ref_4d, invW_ref_4d, Rot_ref_4d = compute_linear_normal_form(
+    W_ref_4d, invW_ref_4d, Rot_ref_4d, _ = compute_linear_normal_form(
         R_matrix_4d, only_4d_block=True)
-    W_prod_4d, invW_prod_4d, Rot_prod_4d = compute_linear_normal_form(
+    W_prod_4d, invW_prod_4d, Rot_prod_4d, _ = compute_linear_normal_form(
         R_prod_4d, only_4d_block=True)
 
     for i_mode in range(3):
@@ -519,6 +519,32 @@ def test_twiss_range(test_context):
 
             tw_init_ip5 = tw.get_twiss_init('ip5')
             tw_init_ip6 = tw.get_twiss_init('ip6')
+
+            assert np.isclose(tw_init_ip5.betx, tw['betx', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.bety, tw['bety', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.alfx, tw['alfx', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.alfy, tw['alfy', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.dx,   tw['dx', 'ip5'],   atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.dy,   tw['dy', 'ip5'],   atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.dpx,  tw['dpx', 'ip5'],  atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.dpy,  tw['dpy', 'ip5'],  atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.ax_chrom, tw['ax_chrom', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.ay_chrom, tw['ay_chrom', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.bx_chrom, tw['bx_chrom', 'ip5'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip5.by_chrom, tw['by_chrom', 'ip5'], atol=0, rtol=1e-7)
+
+            assert np.isclose(tw_init_ip6.betx, tw['betx', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.bety, tw['bety', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.alfx, tw['alfx', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.alfy, tw['alfy', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.dx,   tw['dx', 'ip6'],   atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.dy,   tw['dy', 'ip6'],   atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.dpx,  tw['dpx', 'ip6'],  atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.dpy,  tw['dpy', 'ip6'],  atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.ax_chrom, tw['ax_chrom', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.ay_chrom, tw['ay_chrom', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.bx_chrom, tw['bx_chrom', 'ip6'], atol=0, rtol=1e-7)
+            assert np.isclose(tw_init_ip6.by_chrom, tw['by_chrom', 'ip6'], atol=0, rtol=1e-7)
 
             tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
                                     twiss_init=tw_init_ip5)

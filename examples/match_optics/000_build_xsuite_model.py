@@ -32,6 +32,13 @@ line4=xt.Line.from_madx_sequence(mad4.sequence.lhcb2,
                                  replace_in_expr={'bv_aux':'bvaux_b2'})
 line4.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7000e9)
 
+# Remove solenoids (cannot backtwiss for now)
+for ll in [line1, line4]:
+    tt = ll.get_table()
+    for nn in tt.rows[tt.element_type=='Solenoid'].name:
+        ee_elen = ll[nn].length
+        ll.element_dict[nn] = xt.Drift(length=ee_elen)
+
 collider = xt.Multiline(lines={'lhcb1':line1,'lhcb2':line4})
 collider.lhcb1.particle_ref=xp.Particles(mass0=xp.PROTON_MASS_EV,p0c=7000e9)
 collider.lhcb2.particle_ref=xp.Particles(mass0=xp.PROTON_MASS_EV,p0c=7000e9)

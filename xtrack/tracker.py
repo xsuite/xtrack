@@ -329,8 +329,17 @@ class Tracker:
             module_name=None,
             containing_dir='.',
     ):
-        if (self.use_prebuilt_kernels and compile != 'force'
-                and isinstance(self._context, xo.ContextCpu)):
+        if compile == 'force':
+            use_prebuilt_kernels = False
+        elif not isinstance(self._context, xo.ContextCpu):
+            use_prebuilt_kernels = False
+        elif (self._context.omp_num_threads == 'auto'  # CPU context, but OpenMP
+              or self._context.omp_num_threads > 1):
+            use_prebuilt_kernels = False
+        else:
+            use_prebuilt_kernels = self.use_prebuilt_kernels
+
+        if use_prebuilt_kernels:
             kernel_info = get_suitable_kernel(
                 self.config, self.line_element_classes
             )
@@ -697,7 +706,7 @@ class Tracker:
         ret = None
         skip = False
         stop_tracking = False
-        
+
         if tt == 0 and ipp < self._element_part[ele_start]:
             # Do not track before ele_start in the first turn
             skip = True
@@ -820,6 +829,7 @@ class Tracker:
                 if not(tt_resume is not None and tt == tt_resume):
                     monitor.track(particles)
 
+            # Time dependent vars and energy ramping
             if self.line.enable_time_dependent_vars:
                 # Find first active particle
                 state = particles.state
@@ -830,11 +840,13 @@ class Tracker:
                     # No active particles
                     break
 
-                # Needs to be generalized for acceleration
-                beta0 = particles._xobject.beta0[ii_first_active]
                 at_turn = particles._xobject.at_turn[ii_first_active]
-                t_turn = (at_turn * self._tracker_data_base.line_length
-                          / (beta0 * clight)) + self.line.t0_time_dependent_vars
+                if self.line.energy_program is not None:
+                    t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
+                else:
+                    beta0 = particles._xobject.beta0[ii_first_active]
+                    t_turn = (at_turn * self._tracker_data_base.line_length
+                            / (beta0 * clight))
 
                 if (self.line._t_last_update_time_dependent_vars is None
                     or self.line.dt_update_time_dependent_vars is None
@@ -842,6 +854,10 @@ class Tracker:
                                 + self.line.dt_update_time_dependent_vars):
                     self.line._t_last_update_time_dependent_vars = t_turn
                     self.vars['t_turn_s'] = t_turn
+
+                    if self.line.energy_program is not None:
+                        p0c = self.line.particle_ref._xobject.p0c[0]
+                        particles.update_p0c_and_energy_deviations(p0c)
 
             moveback_to_buffer = None
             moveback_to_offset = None
@@ -867,7 +883,7 @@ class Tracker:
                                             particles, pp,
                                             moveback_to_buffer, moveback_to_offset,
                                             _context_needs_clean_active_lost_state)
-                
+
                 if monitor is not None and monitor.ebe_mode == 1:
                     monitor_part = monitor
                 else:

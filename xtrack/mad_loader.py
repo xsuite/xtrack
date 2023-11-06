@@ -180,8 +180,11 @@ class PhaseErrors:
 
 
 class MadElem:
-    def __init__(self, name, elem, sequence, madeval=None):
-        self.name = name
+    def __init__(self, name, elem, sequence, madeval=None, name_prefix=None):
+        if name_prefix is None:
+            self.name = name
+        else:
+            self.name = name_prefix + name
         self.elem = elem
         self.sequence = sequence
         self.madeval = madeval
@@ -594,6 +597,7 @@ class MadLoader:
         replace_in_expr=None,
         allow_thick=False,
         use_compound_elements=True,
+        name_prefix=None
     ):
 
         if enable_errors is not None:
@@ -630,6 +634,7 @@ class MadLoader:
         self.replace_in_expr = replace_in_expr
         self._drift = self.classes.Drift
         self.ignore_madtypes = ignore_madtypes
+        self.name_prefix = name_prefix
 
         self.allow_thick = allow_thick
         self.use_compound_elements = use_compound_elements
@@ -640,7 +645,8 @@ class MadLoader:
             raise ValueError(f"{self.sequence} has no elements, please do {self.sequence}.use()")
         last_element = Dummy
         for el in self.sequence.expanded_elements:
-            madelem = MadElem(el.name, el, self.sequence, madeval)
+            madelem = MadElem(el.name, el, self.sequence, madeval,
+                              name_prefix=self.name_prefix)
             if self.skip_markers and madelem.is_empty_marker():
                 pass
             elif (
@@ -688,6 +694,7 @@ class MadLoader:
         nelem = len(self.sequence.expanded_elements)
 
         for ii, el in enumerate(self.iter_elements(madeval=madeval)):
+
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
@@ -866,7 +873,7 @@ class MadLoader:
         l_curv = mad_el.l
         h = mad_el.angle / l_curv
 
-        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and mad_el.angle:
+        if mad_el.type == 'rbend' and self.sequence._madx.options.rbarc and value_if_expr(mad_el.angle):
             R = 0.5 * mad_el.l / self.math.sin(0.5 * mad_el.angle) # l is on the straight line
             l_curv = R * mad_el.angle
             h = 1 / R
