@@ -485,12 +485,12 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
     opt.disable_targets(tag=['stage1', 'stage2'])
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.disable_vary(tag=['stage1', 'stage2'])
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
@@ -500,12 +500,12 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
     opt.enable_vary(tag='stage1')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage1')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
@@ -515,18 +515,18 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage2')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
     assert opt.log()['tol_met', -1] != 'yyyyyyyyyyyyyy'
 
     opt.enable_vary(tag='stage2')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.solve()
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
     assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
@@ -625,12 +625,12 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['tol_met', 0] == 'nnnnnnnnnnnnnn'
 
     opt.disable_targets(tag=['stage1', 'stage2'])
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.disable_vary(tag=['stage1', 'stage2'])
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
@@ -640,12 +640,12 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
     opt.enable_vary(tag='stage1')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage1')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
@@ -655,18 +655,18 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
 
     opt.enable_targets(tag='stage2')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyynnnnnnnnnn'
     assert opt.log()['tol_met', -1] != 'yyyyyyyyyyyyyy'
 
     opt.enable_vary(tag='stage2')
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
 
     opt.solve()
-    opt._add_point_to_log()
+    opt.add_point_to_log()
     assert opt.log()['target_active', -1] == 'yyyyyyyyyyyyyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyyyyyyyyyyyyyy'
     assert opt.log()['tol_met', -1] == 'yyyyyyyyyyyyyy'
