@@ -209,6 +209,9 @@ class GreaterThan:
                 self.sigma = np.abs(self.lower) * sigma_rel
 
     def auxtarget(self, res):
+        '''Transformation applied to target value to obtain the corresponding
+        cost function.
+        '''
         if self.mode == 'step':
             if res < self.lower:
                 return res - self.lower
