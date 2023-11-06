@@ -517,7 +517,7 @@ def test_tracking_with_progress(test_context, with_progress, turns, collective):
     line = xt.Line(elements=elements)
     line.reset_s_at_end_turn = False
 
-    particles = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12)
+    particles = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, _context=test_context)
     line.build_tracker(_context=test_context)
     line.track(particles, num_turns=turns, with_progress=with_progress)
 
