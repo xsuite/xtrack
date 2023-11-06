@@ -70,11 +70,11 @@ class BeamSizeMonitor(BeamElement):
 
         The monitor provides the following data:
         - `count` Number of particles
-        - `x_mean`, `y_mean` Beam position (centroid, i.e. mean of particle x, y)
-        - `x_std`, `y_std` Beam size (standard deviation of particle x, y)
-        - `x_var`, `y_var` Variance of particle x, y (= std**2)
-        - `x_sum`, `y_sum` Sum of particle x, y (= mean * count)
-        - `x2_sum`, `y2_sum` Sum of particle x, y squared (= (std**2 + mean**2) * count)
+        - `x_mean`, `y_mean` Beam position in m (centroid, i.e. mean of particle x, y)
+        - `x_std`, `y_std` Beam size in m (standard deviation of particle x, y)
+        - `x_var`, `y_var` Variance of particle x, y in m² (= std**2)
+        - `x_sum`, `y_sum` Sum of particle x, y in m (= mean * count)
+        - `x2_sum`, `y2_sum` Sum of particle x, y squared in m² (= (std**2 + mean**2) * count)
         each as an array of size:
             size = int(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
 

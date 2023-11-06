@@ -186,12 +186,12 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
                         reverse=True):
     """Execute SURVEY command. Based on MADX equivalent.
     Attributes, must be given in this order in the dictionary:
-    X0        (float)    Initial X position.
-    Y0        (float)    Initial Y position.
-    Z0        (float)    Initial Z position.
-    theta0    (float)    Initial azimuthal angle.
-    phi0      (float)    Initial elevation angle.
-    psi0      (float)    Initial roll angle."""
+    X0        (float)    Initial X position in meters.
+    Y0        (float)    Initial Y position in meters.
+    Z0        (float)    Initial Z position in meters.
+    theta0    (float)    Initial azimuthal angle in radians.
+    phi0      (float)    Initial elevation angle in radians.
+    psi0      (float)    Initial roll angle in radians."""
 
     if reverse:
         raise ValueError('`survey(..., reverse=True)` not supported anymore. '
