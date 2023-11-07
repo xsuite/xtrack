@@ -428,7 +428,7 @@ def rematch_ir2(collider, line_name,
         else:
             opt.solve()
 
-        return opt
+    return opt
 
 def rematch_ir3(collider, line_name,
                 boundary_conditions_left, boundary_conditions_right,
