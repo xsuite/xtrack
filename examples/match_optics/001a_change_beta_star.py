@@ -20,10 +20,10 @@ lm.set_var_limits_and_steps(collider)
 tw0 = collider.twiss()
 
 beta15 = {
-    'betx_ip1': 0.08,
-    'bety_ip1': 0.15,
-    'betx_ip5': 0.08,
-    'bety_ip5': 0.12,
+    'betx_ip1': 0.05,
+    'bety_ip1': 0.12,
+    'betx_ip5': 0.19,
+    'bety_ip5': 0.085,
 }
 
 staged_match = False
@@ -153,7 +153,7 @@ for bn in ['b1', 'b2']:
     max_bet_diff = max(abs(betx1_diff), abs(bety1_diff),
                           abs(betx5_diff), abs(bety5_diff))
 
-    n_steps = int(max_bet_diff / 0.002) + 1
+    n_steps = int(max_bet_diff / 0.01) + 1
 
     for i_step in range(n_steps):
 
