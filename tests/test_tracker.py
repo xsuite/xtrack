@@ -19,14 +19,17 @@ test_data_folder = pathlib.Path(
 @for_all_test_contexts
 def test_simple_collective_line(test_context):
     num_turns = 100
-    elements = [xt.Drift(length=2.) for _ in range(5)]
+    elements = [xt.Drift(length=2., _context=test_context) for _ in range(5)]
     elements[3].iscollective = True
     line = xt.Line(elements=elements)
     line.reset_s_at_end_turn = False
 
-    particles = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12)
+    particles = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12,
+            _context=test_context)
     line.build_tracker(_context=test_context)
     line.track(particles, num_turns=num_turns)
+
+    particles.move(_context=xo.ContextCpu())
 
     assert np.all(particles.at_turn == num_turns)
     assert np.allclose(particles.s, 10 * num_turns, rtol=0, atol=1e-14)
