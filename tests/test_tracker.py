@@ -527,7 +527,7 @@ def test_backtrack_with_flag(test_context):
 )
 @pytest.mark.parametrize('collective', [True, False], ids=['collective', 'non-collective'])
 def test_tracking_with_progress(test_context, with_progress, turns, collective):
-    elements = [xt.Drift(length=2.) for _ in range(5)]
+    elements = [xt.Drift(length=2, _context=test_context) for _ in range(5)]
     elements[3].iscollective = collective
     line = xt.Line(elements=elements)
     line.reset_s_at_end_turn = False
