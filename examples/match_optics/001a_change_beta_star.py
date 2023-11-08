@@ -4,6 +4,21 @@ import xtrack as xt
 
 import xtrack._temp.lhc_match as lm
 
+def second_order_chromaticity(line, ddelta=1e-5, **kwargs):
+
+    tw0 = line.twiss(**kwargs)
+
+    kwargs.pop('delta0', None)
+
+    tw_plus = line.twiss(delta0=tw0.delta[0] + ddelta, **kwargs)
+    tw_minus = line.twiss(delta0=tw0.delta[0] - ddelta, **kwargs)
+
+    ddqx = (tw_plus.dqx - tw_minus.dqx) / (2 * ddelta)
+    ddqy = (tw_plus.dqy - tw_minus.dqy) / (2 * ddelta)
+
+    return ddqx, ddqy
+
+
 default_tol = {None: 1e-8, 'betx': 1e-6, 'bety': 1e-6} # to have no rematching w.r.t. madx
 
 collider = xt.Multiline.from_json(
@@ -20,29 +35,22 @@ c0 = collider.copy()
 lm.set_var_limits_and_steps(collider)
 
 tw0 = collider.twiss()
+for ll in collider.line_names:
+    line = collider[ll]
+    ddqx, ddqy = second_order_chromaticity(line)
+    tw0[ll]._data['ddqx'] = ddqx
+    tw0[ll]._data['ddqy'] = ddqy
 
 beta15 = {
-    'betx_ip1': 0.30,
-    'bety_ip1': 0.20,
-    'betx_ip5': 0.19,
-    'bety_ip5': 0.081,
+    'betx_ip1': 0.05,
+    'bety_ip1': 0.15,
+    'betx_ip5': 0.15,
+    'bety_ip5': 0.05,
 }
 
 staged_match = False
 
 optimizers = {}
-
-# def open_limits(opt):
-#     for vv in opt.vary:
-#         a = vv.limits[0]
-#         b = vv.limits[1]
-
-#         if a>0 and b>0:
-#             vv.limits = (0.5*a, 1.5*b)
-#         elif a<0 and b<0:
-#             vv.limits = (1.5*a, 0.5*b)
-#         else:
-#             vv.limits = (1.5*a, 1.5*b)
 
 for vv in collider.vars.vary_default:
     lims = collider.vars.vary_default[vv]['limits']
@@ -275,30 +283,52 @@ opt = lm.match_orbit_knobs_ip2_ip8(collider)
 t4 = time.time()
 optimizers['orbit_knobs'] = opt
 
+# Rematch tunes and chromaticities
+for ll in collider.line_names:
+    line = collider[ll]
+    beam_name = ll[-2:]
+    line.match(
+        vary=[
+            xt.Vary('kqtf.' + beam_name, step=1e-8),
+            xt.Vary('kqtd.' + beam_name, step=1e-8),
+            xt.Vary('ksf.' + beam_name, step=1e-8),
+            xt.Vary('ksd.' + beam_name, step=1e-8),
+        ],
+        targets = [
+            xt.Target('qx', tw0[ll].qx, tol=1e-6),
+            xt.Target('qy', tw0[ll].qy, tol=1e-6),
+            xt.Target('dqx', tw0[ll].dqx, tol=1e-4),
+            xt.Target('dqy', tw0[ll].dqy, tol=1e-4)])
+
 tw = collider.twiss()
+
+for ll in collider.line_names:
+    line = collider[ll]
+    ddqx, ddqy = second_order_chromaticity(line)
+    tw[ll]._data['ddqx'] = ddqx
+    tw[ll]._data['ddqy'] = ddqy
+
 
 # Tunes
 print('Tunes:')
 print(f"  b1: qx={tw.lhcb1.qx:6f} qy={tw.lhcb1.qy:6f}")
 print(f"  b2: qx={tw.lhcb2.qx:6f} qy={tw.lhcb2.qy:6f}")
 
-print('IP15 phase before:')
-print(f"  b1: d_mux={tw0.lhcb1['mux', 'ip5'] - tw0.lhcb1['mux', 'ip1']:6f} "
-      f"      d_muy={tw0.lhcb1['muy', 'ip5'] - tw0.lhcb1['muy', 'ip1']:6f} ")
-print(f"  b2: d_mux={tw0.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip1']:6f} "
-      f"      d_muy={tw0.lhcb2['muy', 'ip5'] - tw0.lhcb2['muy', 'ip1']:6f} ")
+# Chromaticities
+print('Chromaticities before:')
+print(f"  b1: dqx={tw0.lhcb1.dqx:6f} dqy={tw0.lhcb1.dqy:6f}")
+print(f"  b2: dqx={tw0.lhcb2.dqx:6f} dqy={tw0.lhcb2.dqy:6f}")
+print('Chromaticities after:')
+print(f"  b1: dqx={tw.lhcb1.dqx:6f} dqy={tw.lhcb1.dqy:6f}")
+print(f"  b2: dqx={tw.lhcb2.dqx:6f} dqy={tw.lhcb2.dqy:6f}")
 
-print('IP15 phase after:')
-print(f"  b1: d_mux={tw.lhcb1['mux', 'ip5'] - tw.lhcb1['mux', 'ip1']:6f} "
-      f"      d_muy={tw.lhcb1['muy', 'ip5'] - tw.lhcb1['muy', 'ip1']:6f} ")
-print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw.lhcb2['mux', 'ip1']:6f} "
-      f"      d_muy={tw.lhcb2['muy', 'ip5'] - tw.lhcb2['muy', 'ip1']:6f} ")
-
-print('IP15 phase shifts:')
-print(f"  b1: d_mux={tw.lhcb1['mux', 'ip5'] - tw0.lhcb1['mux', 'ip5']:6f} "
-            f"d_muy={tw.lhcb1['muy', 'ip5'] - tw0.lhcb1['muy', 'ip5']:6f} ")
-print(f"  b2: d_mux={tw.lhcb2['mux', 'ip5'] - tw0.lhcb2['mux', 'ip5']:6f} "
-            f"d_muy={tw.lhcb2['muy', 'ip5'] - tw0.lhcb2['muy', 'ip5']:6f} ")
+# Second order chromaticities
+print('Second order chromaticities before:')
+print(f"  b1: ddqx={tw0.lhcb1.ddqx:6f} ddqy={tw0.lhcb1.ddqy:6f}")
+print(f"  b2: ddqx={tw0.lhcb2.ddqx:6f} ddqy={tw0.lhcb2.ddqy:6f}")
+print('Second order chromaticities after:')
+print(f"  b1: ddqx={tw.lhcb1.ddqx:6f} ddqy={tw.lhcb1.ddqy:6f}")
+print(f"  b2: ddqx={tw.lhcb2.ddqx:6f} ddqy={tw.lhcb2.ddqy:6f}")
 
 print(f'Time match IRs b1: {t_match_irs["b1"]}')
 print(f'Time match IRs b2: {t_match_irs["b2"]}')
