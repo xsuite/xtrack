@@ -920,3 +920,26 @@ def test_pickle():
     collider.vars['on_x1'] = 213
     assert np.isclose(collider['lhcb1'].twiss(method='4d')['px', 'ip1'], 213e-6, atol=1e-9, rtol=0)
     assert np.isclose(coll['lhcb1'].twiss(method='4d')['px', 'ip1'], 321e-6, atol=1e-9, rtol=0)
+
+
+def test_line_attr():
+    line = xt.Line(
+        elements=[
+            xt.Drift(length=1),
+            xt.Multipole(knl=[2, 3, 4], hxl=8),
+            xt.Bend(k0=5, h=0.5, length=6, knl=[7, 8, 9]),
+            xt.Drift(length=10),
+            xt.Quadrupole(k1=11, length=12, knl=[13]),
+        ]
+    )
+
+    line.build_tracker()
+
+    assert np.all(line.attr['length'] == [1, 0, 6, 10, 12])
+    assert np.all(line.attr['knl', 0] == [0, 2, 7, 0, 13])
+    assert np.all(line.attr['k0'] == [0, 0, 5, 0, 0])
+    assert np.all(line.attr['k0l'] == [0, 2, 5 * 6 + 7, 0, 13])
+    assert np.all(line.attr['knl', 1] == [0, 3, 8, 0, 0])
+    assert np.all(line.attr['k1'] == [0, 0, 0, 0, 11])
+    assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
+    assert np.all(line.attr['hl'] == [0, 8, 0.5 * 6, 0, 0])

@@ -3151,14 +3151,21 @@ class Line:
             return out
 
     def _get_attr_cache(self):
-        cache = LineAttr(line=self,
-                         fields=['hxl', 'hyl', 'length', 'radiation_flag',
-                                 'delta_taper', 'voltage', 'frequency',
-                                 'lag', 'lag_taper',
-                                 'k1',
-                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
-                                ('knl', 2), ('ksl', 2),
-                                ])
+        cache = LineAttr(
+            line=self,
+            fields=[
+                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper',
+                'voltage', 'frequency', 'lag', 'lag_taper', 'k0', 'k1', 'h',
+                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
+                ('knl', 2), ('ksl', 2),
+            ],
+            derived_fields={
+                'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
+                'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
+                'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
+                'hl': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
+            }
+        )
         return cache
 
 def frac(x):
@@ -3703,10 +3710,27 @@ class LineAttrItem:
 
 
 class LineAttr:
+    """A class to access a field of all elements in a line.
 
-    def __init__(self, line, fields):
+    The field can be a scalar or a vector. In the latter case, the index
+    can be specified to access a specific element of the vector.
+
+    Parameters
+    ----------
+    line : Line
+        The line to access.
+    fields : list of str or tuple of (str, int)
+        The fields to access. If a tuple is provided, the second element
+        is the index of the vector to access.
+    derived_fields : dict, optional
+        A dictionary of derived fields. The key is the name of the derived
+        field and the value is a function that takes the LineAttr object
+        as argument and returns the value of the derived field.
+    """
+    def __init__(self, line, fields, derived_fields=None):
         self.line = line
         self.fields = fields
+        self.derived_fields = derived_fields or {}
         self._cache = {}
 
         for ff in fields:
@@ -3718,6 +3742,9 @@ class LineAttr:
             self._cache[ff] = LineAttrItem(name=name, index=index, line=line)
 
     def __getitem__(self, key):
+        if key in self.derived_fields:
+            return self.derived_fields[key](self)
+
         return self._cache[key].get_full_array()
 
 
