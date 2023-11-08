@@ -42,7 +42,7 @@ Qx = 0.31
 Qy = 0.32
 bucket_length = 2.5E-9
 
-linear_fixed_rf = False
+linear_fixed_rf = True
 
 particles = xp.Particles(_context=context,
     p0c=p0c,
@@ -59,8 +59,8 @@ if linear_fixed_rf:
             betx=beta_x,qx=Qx,
             bety=beta_y,qy=Qy,
             longitudinal_mode='linear_fixed_rf',
-            voltage_rf = voltage,
-            frequency_rf = f_RF,
+            voltage_rf = voltage*10,
+            frequency_rf = f_RF/10,
             lag_rf = 180.0,
             slippage_length = circumference,
             momentum_compaction_factor = momentumCompaction)
@@ -69,8 +69,6 @@ else:
             betx=beta_x,qx=Qx,
             bety=beta_y,qy=Qy,
             bets=-beta_s,qs=Qs)
-
-print(arc.longitudinal_mode,'bucket_length',bucket_length)
 
 line = xt.Line(elements=[arc])
 line.build_tracker()
@@ -99,15 +97,12 @@ if linear_fixed_rf:
             frequency_rf = f_RF,
             lag_rf = 180.0,
             slippage_length = circumference,
-            momentum_compaction_factor = momentumCompaction,
-            bucket_length=bucket_length)
+            momentum_compaction_factor = momentumCompaction)
 else:
     arc = xt.LineSegmentMap(
             betx=beta_x,qx=Qx,
             bety=beta_y,qy=Qy,
             bets=-beta_s,qs=Qs,bucket_length=bucket_length)
-
-print(arc.longitudinal_mode,'bucket_length',bucket_length)
 
 line2 = xt.Line(elements=[arc])
 line2.build_tracker()
