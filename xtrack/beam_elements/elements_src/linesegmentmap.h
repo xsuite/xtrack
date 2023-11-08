@@ -239,7 +239,7 @@ void longitudinal_motion(LocalParticle *part0,
                 -0.5 * eta * slippage_length * LocalParticle_get_delta(part));
         //end_per_particle_block
     }
-    else if (mode_flag == 3){
+    else if (mode_flag == 3){ // linear motion fixed RF
 
         double const alfp =
             LineSegmentMapData_get_momentum_compaction_factor(el);
