@@ -15,15 +15,17 @@ collider.vars.load_madx_optics_file(
 collider.lhcb1.twiss_default['only_markers'] = True
 collider.lhcb2.twiss_default['only_markers'] = True
 
+c0 = collider.copy()
+
 lm.set_var_limits_and_steps(collider)
 
 tw0 = collider.twiss()
 
 beta15 = {
-    'betx_ip1': 0.05,
-    'bety_ip1': 0.12,
+    'betx_ip1': 0.30,
+    'bety_ip1': 0.20,
     'betx_ip5': 0.19,
-    'bety_ip5': 0.085,
+    'bety_ip5': 0.081,
 }
 
 staged_match = False
