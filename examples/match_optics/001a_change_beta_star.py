@@ -51,11 +51,11 @@ for vv in collider.vars.vary_default:
     b = lims[1]
 
     if a>0 and b>0:
-        collider.vars.vary_default[vv]['limits'] = (0.5*a, 1.5*b)
+        collider.vars.vary_default[vv]['limits'] = (0.9*a, 1.1*b)
     elif a<0 and b<0:
-        collider.vars.vary_default[vv]['limits'] = (1.5*a, 0.5*b)
+        collider.vars.vary_default[vv]['limits'] = (1.1*a, 0.9*b)
     else:
-        collider.vars.vary_default[vv]['limits'] = (1.5*a, 1.5*b)
+        collider.vars.vary_default[vv]['limits'] = (1.1*a, 1.1*b)
 
 arc_periodic_solution = lm.get_arc_periodic_solution(collider)
 
