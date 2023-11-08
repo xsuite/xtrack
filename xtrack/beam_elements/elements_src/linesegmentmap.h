@@ -246,11 +246,11 @@ void longitudinal_motion(LocalParticle *part0,
         double const slippage_length =
             LineSegmentMapData_get_slippage_length(el);
 
-        double const bucket_length = LineSegmentMapData_get_bucket_length(el)*LocalParticle_get_beta0(part0)*C_LIGHT;
-
         // Assume there is only one RF term (checked in the Python code)
         double const v_rf = LineSegmentMapData_get_voltage_rf(el,0);
         double const f_rf = LineSegmentMapData_get_frequency_rf(el,0);
+
+        double const bucket_length = LocalParticle_get_beta0(part0)*C_LIGHT/f_rf;
 
         //start_per_particle_block (part->part)
             double const gamma0 = LocalParticle_get_gamma0(part);
@@ -267,11 +267,8 @@ void longitudinal_motion(LocalParticle *part0,
             double const sin_s = sin(2 * PI * qs);
             double const cos_s = cos(2 * PI * qs);
 
-            double shift = 0.0;
-            if (bucket_length > 0.0) {
-                shift = bucket_length*floor(LocalParticle_get_zeta(part)/bucket_length+0.5);
-                LocalParticle_add_to_zeta(part,-shift);
-            }
+            double shift = bucket_length*floor(LocalParticle_get_zeta(part)/bucket_length+0.5);
+            LocalParticle_add_to_zeta(part,-shift);
 
             double const new_zeta = cos_s * LocalParticle_get_zeta(part) - bets * sin_s * LocalParticle_get_pzeta(part);
             double const new_pzeta = sin_s * LocalParticle_get_zeta(part) / bets + cos_s * LocalParticle_get_pzeta(part);

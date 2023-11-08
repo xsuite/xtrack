@@ -1903,8 +1903,7 @@ class LineSegmentMap(BeamElement):
         bucket_length : float
             The linear RF force becomes a sawtooth with a fixed point every
             bucket_length [full length in seconds]. Only used if
-            ``longitudinal_mode`` is ``'linear_fixed_qs'`` or
-            ``'linear_fixed_rf'``.
+            ``longitudinal_mode`` is ``'linear_fixed_qs'``.
         momentum_compaction_factor : float
             Momentum compaction factor of the segment. Only used if
             ``longitudinal_mode`` is ``'nonlinear'`` or ``'linear_fixed_rf'``.
@@ -2009,8 +2008,7 @@ class LineSegmentMap(BeamElement):
             assert momentum_compaction_factor is not None
             assert qs is None
             assert bets is None
-            if bucket_length == None:
-                bucket_length = -1.0
+            assert bucket_length is None
 
             if slippage_length is None:
                 assert length is not None
@@ -2022,7 +2020,6 @@ class LineSegmentMap(BeamElement):
                 nargs['longitudinal_mode_flag'] = 2
             elif longitudinal_mode == 'linear_fixed_rf':
                 nargs['longitudinal_mode_flag'] = 3
-                nargs['bucket_length'] = bucket_length
 
             nargs['voltage_rf'] = voltage_rf
             nargs['frequency_rf'] = frequency_rf
