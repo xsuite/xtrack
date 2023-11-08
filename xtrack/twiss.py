@@ -192,7 +192,7 @@ def twiss_line(line, particle_ref=None, method=None,
             - dqx: horizontal chromaticity (d qx / d delta)
             - dqy: vertical chromaticity (d qy / d delta)
             - c_minus: closest tune approach coefficient
-            - slip_factor: slip factor (-1 / f_ref * d f_ref / d delta)
+            - slip_factor: slip factor (-1 / f_ref * d f_ref / d delta) (positive above transition)
             - momentum_compaction_factor: momentum compaction factor (slip_factor + 1/gamma_0^2)
             - T_rev0: reference revolution period
             - partice_on_co: particle on closed orbit
