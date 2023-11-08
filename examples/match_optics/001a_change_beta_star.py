@@ -163,7 +163,7 @@ for bn in ['b1', 'b2']:
     max_bet_diff = max(abs(betx1_diff), abs(bety1_diff),
                           abs(betx5_diff), abs(bety5_diff))
 
-    n_steps = int(max_bet_diff / 0.01) + 1
+    n_steps = int(max_bet_diff / 0.02) + 1
 
     for i_step in range(n_steps):
 
