@@ -42,10 +42,10 @@ for ll in collider.line_names:
     tw0[ll]._data['ddqy'] = ddqy
 
 beta15 = {
-    'betx_ip1': 0.05,
-    'bety_ip1': 0.15,
-    'betx_ip5': 0.15,
-    'bety_ip5': 0.05,
+    'betx_ip1': 0.15,
+    'bety_ip1': 0.05,
+    'betx_ip5': 0.05,
+    'bety_ip5': 0.15,
 }
 
 staged_match = False
@@ -284,6 +284,7 @@ t4 = time.time()
 optimizers['orbit_knobs'] = opt
 
 # Rematch tunes and chromaticities
+print('Rematching tunes and chromaticities')
 for ll in collider.line_names:
     line = collider[ll]
     beam_name = ll[-2:]

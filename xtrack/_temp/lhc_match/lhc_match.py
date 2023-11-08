@@ -878,7 +878,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     ##############################
 
     angle_match_ip2 = 170e-6
-    angle_match_ip8 = 300e-6
+    angle_match_ip8 = 170e-6
 
     # ---------- on_x2h ----------
 
