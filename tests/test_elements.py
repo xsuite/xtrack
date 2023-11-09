@@ -1135,9 +1135,9 @@ def test_simplified_accelerator_segment_bucket_fixed_rf(test_context):
     arc.track(particles)
 
     eta = momentumCompaction - 1.0 / particles.gamma0 ** 2
-    h = f_RF * circumference / cst.c
+    h = f_RF * circumference / (particles.beta0*cst.c)
     p0 = particles.mass0 * cst.e * particles.beta0  * particles.gamma0 / cst.c
-    Q_s = np.sqrt(cst.e * voltage * eta * h / (2 * np.pi * particles.beta0**2 * cst.c * p0))
+    Q_s = np.sqrt(cst.e * voltage * eta * h / (2 * np.pi * particles.beta0 * cst.c * p0))
     beta_s = eta * circumference / (2 * np.pi * Q_s);
     Qx = 0.31
     Qy = 0.32
