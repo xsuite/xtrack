@@ -62,3 +62,4 @@ opt = line.match_knob(
 temp_expr = line.vars['on_x5vl']._expr
 line.vars['on_x5vl'] = 295.
 opt.solve()
+line.vars['on_x5vl'] = temp_expr
