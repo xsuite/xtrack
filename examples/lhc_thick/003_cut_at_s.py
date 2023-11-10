@@ -8,3 +8,7 @@ s1 = 'mq.29r3.b1_exit'
 
 s_cuts = np.linspace(line.get_s_position(s0), line.get_s_position(s1), 100)
 
+s_tol = 0.5e-6
+
+tt = line.get_table()
+
