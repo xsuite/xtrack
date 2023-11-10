@@ -12,3 +12,10 @@ s_tol = 0.5e-6
 
 tt = line.get_table()
 
+i_next = np.array([np.argmax(tt['s'] > s_cut) for s_cut in s_cuts])
+i_ele_containing = i_next - 1
+
+needs_cut = np.abs(tt['s'][i_ele_containing] - s_cuts) > s_tol
+
+assert np.all(s_cuts[needs_cut] > tt['s'][i_ele_containing[needs_cut]])
+assert np.all(s_cuts[needs_cut] < tt['s'][i_ele_containing[needs_cut]+1])

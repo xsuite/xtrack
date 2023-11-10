@@ -573,7 +573,7 @@ class Line:
 
         elements = list(self.elements)
         s_elements = np.array(list(self.get_s_elements()) + [self.get_length()])
-        element_types = list(map(lambda e: e.__class__.__name__, elements)) + [None]
+        element_types = list(map(lambda e: e.__class__.__name__, elements)) + [""]
         isthick = np.array(list(map(_is_thick, elements)) + [False])
         compound_name = list(self.get_element_compound_names()) + [None]
         elements += [None]
