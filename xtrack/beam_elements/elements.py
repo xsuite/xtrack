@@ -2465,18 +2465,24 @@ def _unregister_if_preset(ref):
 
 
 def _get_expr(knob):
+    """Return an xdeps expression for `knob`, or, if unavailable, the value."""
     if knob is None:
         return 0
     if hasattr(knob, '_expr'):
-        if knob._expr is None:
-            value = knob._get_value()
-            if hasattr(value, 'get'): # For pyopencl scalars
-                value = value.get()
-            return value
-        return knob._expr
+        if knob._expr is not None:
+            return knob._expr
+
+        value = knob._get_value()
+        if hasattr(value, 'get'):  # On cupy, pyopencl gets ndarray
+            value = value.get()
+        if hasattr(value, 'item'):  # Extract the scalar
+            value = value.item()
+        return value
     if isinstance(knob, Number):
         return knob
-    if hasattr(knob, 'dtype'): # it's an array
+    if hasattr(knob, 'dtype'):
+        if hasattr(knob, 'get'):
+            return knob.get()
         return knob
     raise ValueError(f'Cannot get expression for {knob}.')
 
