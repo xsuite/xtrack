@@ -597,11 +597,15 @@ class Line:
         })
         return elements_df
 
-    def get_table(self):
+    def get_table(self, attr=False):
         df = self.to_pandas()
 
         data = {kk: df[kk].values for kk in df.columns}
         data.pop('element')
+
+        if attr:
+            for kk in self.attr.keys():
+                data[kk] = self.attr[kk]
 
         return xd.Table(data=data)
 
@@ -3155,15 +3159,16 @@ class Line:
             line=self,
             fields=[
                 'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper',
-                'voltage', 'frequency', 'lag', 'lag_taper', 'k0', 'k1', 'h',
+                'voltage', 'frequency', 'lag', 'lag_taper', 'k0', 'k1', 'k2','h',
                 ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
-                ('knl', 2), ('ksl', 2),
+                ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
             ],
             derived_fields={
                 'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
                 'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
                 'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
-                'hl': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
+                'k3l': lambda attr: attr['knl', 3],
+                'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
             }
         )
         return cache
@@ -3746,6 +3751,9 @@ class LineAttr:
             return self.derived_fields[key](self)
 
         return self._cache[key].get_full_array()
+
+    def keys(self):
+        return list(self.fields) + list(self.derived_fields.keys())
 
 
 class EnergyProgram:

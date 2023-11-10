@@ -67,8 +67,10 @@ knobs_to_compensate = {
     'on_sep5v': dict(value=1, ip='ip5', plane='y'),
 }
 
+start_ele_before_cycle = []
 for line_name in ['lhcb1', 'lhcb2']:
     line = collider[line_name]
+    start_ele_before_cycle.append(line.element_names[0])
     line.cycle('ip3', inplace=True)
 
 for kk in knobs_to_compensate:
@@ -112,3 +114,8 @@ for kk in knobs_to_compensate:
         opt.solve()
         line.vars[kk] = temp_expr
         opt.generate_knob()
+
+# cycle back
+for line_name, estart  in zip(['lhcb1', 'lhcb2'], start_ele_before_cycle):
+    line = collider[line_name]
+    line.cycle(estart, inplace=True)
