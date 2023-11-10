@@ -942,4 +942,4 @@ def test_line_attr():
     assert np.all(line.attr['knl', 1] == [0, 3, 8, 0, 0])
     assert np.all(line.attr['k1'] == [0, 0, 0, 0, 11])
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
-    assert np.all(line.attr['hl'] == [0, 8, 0.5 * 6, 0, 0])
+    assert np.all(line.attr['angle_x'] == [0, 8, 0.5 * 6, 0, 0])

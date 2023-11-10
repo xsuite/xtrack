@@ -577,6 +577,10 @@ class Line:
         isthick = np.array(list(map(_is_thick, elements)))
         compound_name = self.get_element_compound_names()
 
+        for ii in range(len(compound_name)):
+            if compound_name[ii] is None:
+                compound_name[ii] = ''
+
         out = {
             's': s_elements,
             'element_type': element_types,
