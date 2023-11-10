@@ -53,8 +53,18 @@ for kk in correctors:
 acb_limits = (-800.e-6, 800e-6)
 
 knobs_to_compensate = {
-    'on_x5vl': dict(value=295, ip='ip5', plane='y'),
+    'on_x1hl': dict(value=295, ip='ip1', plane='x'),
+    'on_x1hs': dict(value=295, ip='ip1', plane='y'),
+    'on_x1vl': dict(value=295, ip='ip1', plane='y'),
+    'on_x1vs': dict(value=295, ip='ip1', plane='x'),
     'on_x5hl': dict(value=295, ip='ip5', plane='x'),
+    'on_x5hs': dict(value=295, ip='ip5', plane='y'),
+    'on_x5vl': dict(value=295, ip='ip5', plane='y'),
+    'on_x5vs': dict(value=295, ip='ip5', plane='x'),
+    'on_sep1h': dict(value=1, ip='ip1', plane='x'),
+    'on_sep1v': dict(value=1, ip='ip1', plane='y'),
+    'on_sep5h': dict(value=1, ip='ip5', plane='x'),
+    'on_sep5v': dict(value=1, ip='ip5', plane='y'),
 }
 
 for line_name in ['lhcb1', 'lhcb2']:
@@ -89,11 +99,11 @@ for kk in knobs_to_compensate:
                 ],
             targets=[
                 # Constraints on dispersion
-                xt.Target('d' + plane, value=tw_ref, at='ip5', tol=1e-6),
-                xt.Target('d' + plane, value=tw_ref, at='ip6', tol=1e-6),
+                xt.Target('d' + plane, value=tw_ref, at=ip, tol=1e-6),
+                xt.Target('d' + plane, value=tw_ref, at=right_ip, tol=1e-6),
                 # Constraints on orbit
-                xt.TargetSet([plane, 'p' + plane], value=tw_ref, at='e.ds.l5.' + beam_name),
-                xt.TargetSet([plane, 'p' + plane], value=tw_ref, at='e.ds.l6.' + beam_name),
+                xt.TargetSet([plane, 'p' + plane], value=tw_ref, at=f'e.ds.l{ip[-1:]}.{beam_name}'),
+                xt.TargetSet([plane, 'p' + plane], value=tw_ref, at=f'e.ds.l{right_ip[-1:]}.{beam_name}'),
             ],
         )
 
