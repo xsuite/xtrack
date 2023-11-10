@@ -8,6 +8,8 @@ s1 = 'mq.29r3.b1_exit'
 
 s_cuts = np.linspace(line.get_s_position(s0), line.get_s_position(s1), 100)
 
+s_cuts = np.sort(s_cuts)
+
 s_tol = 0.5e-6
 
 tt = line.get_table()
@@ -17,5 +19,8 @@ i_ele_containing = i_next - 1
 
 needs_cut = np.abs(tt['s'][i_ele_containing] - s_cuts) > s_tol
 
-assert np.all(s_cuts[needs_cut] > tt['s'][i_ele_containing[needs_cut]])
-assert np.all(s_cuts[needs_cut] < tt['s'][i_ele_containing[needs_cut]+1])
+assert np.all(s_cuts[needs_cut] > tt.s[i_ele_containing[needs_cut]])
+assert np.all(s_cuts[needs_cut] < tt.s[i_ele_containing[needs_cut]+1])
+assert np.all(tt.element_type[i_ele_containing[needs_cut]] == 'Drift')
+
+drifts_to_cut = tt.name[i_ele_containing[needs_cut]]
