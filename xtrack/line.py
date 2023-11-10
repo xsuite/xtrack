@@ -569,6 +569,25 @@ class Line:
             with open(file, 'w') as fid:
                 json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
 
+    def _to_table_dict(self):
+
+        elements = self.elements
+        s_elements = np.array(self.get_s_elements())
+        element_types = list(map(lambda e: e.__class__.__name__, elements))
+        isthick = np.array(list(map(_is_thick, elements)))
+        compound_name = self.get_element_compound_names()
+
+        out = {
+            's': s_elements,
+            'element_type': element_types,
+            'name': self.element_names,
+            'isthick': isthick,
+            'compound_name': compound_name,
+            'element': elements
+        }
+
+        return out
+
     def to_pandas(self):
         '''
         Return a pandas DataFrame with the elements of the line.
@@ -578,34 +597,22 @@ class Line:
         line_df : pandas.DataFrame
             DataFrame with the elements of the line.
         '''
-
-        elements = self.elements
-        s_elements = np.array(self.get_s_elements())
-        element_types = list(map(lambda e: e.__class__.__name__, elements))
-        isthick = np.array(list(map(_is_thick, elements)))
-        compound_name = self.get_element_compound_names()
-
         import pandas as pd
 
-        elements_df = pd.DataFrame({
-            's': s_elements,
-            'element_type': element_types,
-            'name': self.element_names,
-            'isthick': isthick,
-            'compound_name': compound_name,
-            'element': elements
-        })
+        elements_df = pd.DataFrame(self._to_table_dict())
         return elements_df
 
     def get_table(self, attr=False):
-        df = self.to_pandas()
 
-        data = {kk: df[kk].values for kk in df.columns}
+        data = self._to_table_dict()
         data.pop('element')
 
         if attr:
             for kk in self.attr.keys():
                 data[kk] = self.attr[kk]
+
+        for kk in data.keys():
+            data[kk] = np.array(data[kk])
 
         return xd.Table(data=data)
 
