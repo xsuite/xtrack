@@ -180,7 +180,7 @@ def _get_s_increments(elements):
 
 # Main function
 # ==================================================
-def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
+def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
                         element0=0,
                         values_at_element_exit=False,
                         reverse=True):
@@ -198,8 +198,6 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
                          'Use `survey(...).reverse()` instead.')
 
     assert not values_at_element_exit, "Not implemented yet"
-
-    line = tracker.line
 
     # Extract drift lengths
     drift_length = _get_s_increments(line.elements)

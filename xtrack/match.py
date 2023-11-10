@@ -10,6 +10,7 @@ import xtrack as xt
 import xdeps as xd
 
 XTRACK_DEFAULT_TOL = 1e-10
+XTRACK_DEFAULT_SIGMA_REL = 0.01
 
 XTRACK_DEFAULT_WEIGHTS = {
     # For quantities not specified here the default weight is 1
@@ -148,19 +149,149 @@ class ActionTwiss(xd.Action):
                     ' for Multiline')
             self.line.compensate_radiation_energy_loss(verbose=False)
         if not self.allow_twiss_failure or not allow_failure:
-            return self.line.twiss(**self.kwargs)
+            out = self.line.twiss(**self.kwargs)
         else:
             try:
-                return self.line.twiss(**self.kwargs)
+                out = self.line.twiss(**self.kwargs)
             except Exception as ee:
                 if allow_failure:
                     return 'failed'
                 else:
                     raise ee
+        out.line = self.line
+        return out
+
+# Alternative transitions functions
+# def _transition_sigmoid_integral(x):
+#     x_shift = x - 3
+#     if x_shift > 10:
+#         return x_shift
+#     else:
+#         return np.log(1 + np.exp(x_shift))
+
+# def _transition_sin(x):
+#     if x < 0:
+#         return 0
+#     if x < 1.:
+#         return 2 /np.pi - 2 /np.pi * np.cos(np.pi * x / 2)
+#     else:
+#         return x + 2 / np.pi - 1
+
+def _poly(x):
+     return 3 * x**3 - 2 * x**4
+
+def _transition_poly(x):
+        x_cut = 1/16 + np.sqrt(33)/16
+        if x < 0:
+            return 0
+        if x < x_cut:
+            return _poly(x)
+        else:
+            return x - x_cut + _poly(x_cut)
+
+class GreaterThan:
+
+    _transition = staticmethod(_transition_poly)
+
+    def __init__(self, lower, mode='step', sigma=None,
+                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
+        assert mode in ['step', 'smooth']
+        self.lower = lower
+        self._value = 0.
+        self.mode=mode
+        if mode == 'smooth':
+            assert sigma is not None or sigma_rel is not None
+            if sigma is not None:
+                assert sigma_rel is None
+                self.sigma = sigma
+            else:
+                assert sigma_rel is not None
+                self.sigma = np.abs(self.lower) * sigma_rel
+
+    def auxtarget(self, res):
+        '''Transformation applied to target value to obtain the corresponding
+        cost function.
+        '''
+        if self.mode == 'step':
+            if res < self.lower:
+                return res - self.lower
+            else:
+                return 0
+        elif self.mode == 'smooth':
+            return self.sigma * self._transition((self.lower - res) / self.sigma)
+        elif self.mode == 'auxvar':
+            raise NotImplementedError # experimental
+            return res - self.lower - self.vary.container[self.vary.name]**2
+        else:
+            raise ValueError(f'Unknown mode {self.mode}')
+
+    def __repr__(self):
+        return f'GreaterThan({self.lower:4g})'
+
+    # Part of the `auxvar` experimental code
+    # def _set_value(self, val, target):
+    #     self.lower = val
+    #     aux_vary_container = self.vary.container
+    #     aux_vary_container[self.vary.name] = 0
+    #     val = target.runeval()
+    #     if val > 0:
+    #         aux_vary_container[self.vary.name] = np.sqrt(val)
+    # def gen_vary(self, container):
+    #     self.vary = _gen_vary(container)
+    #     return self.vary
+
+class LessThan:
+
+    _transition = staticmethod(_transition_poly)
+
+    def __init__(self, upper, mode='step', sigma=None,
+                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
+        assert mode in ['step', 'smooth']
+        self.upper = upper
+        self._value = 0.
+        self.mode=mode
+        if mode == 'smooth':
+            assert sigma is not None or sigma_rel is not None
+            if sigma is not None:
+                assert sigma_rel is None
+                self.sigma = sigma
+            else:
+                assert sigma_rel is not None
+                self.sigma = np.abs(self.upper) * sigma_rel
+
+    def auxtarget(self, res):
+        if self.mode == 'step':
+            if res > self.upper:
+                return self.upper - res
+            else:
+                return 0
+        elif self.mode == 'smooth':
+            return self.sigma * self._transition((res - self.upper) / self.sigma)
+        elif self.mode == 'auxvar':
+            raise NotImplementedError # experimental
+            return self.upper - res - self.vary.container[self.vary.name]**2
+        else:
+            raise ValueError(f'Unknown mode {self.mode}')
+
+    def __repr__(self):
+        return f'LessThan({self.upper:4g})'
+
+# part of the `auxvar` experimental code
+# def _gen_vary(container):
+#     for ii in range(10000):
+#         if f'auxvar_{ii}' not in container:
+#             vv = f'auxvar_{ii}'
+#             break
+#     else:
+#         raise RuntimeError('Too many auxvary variables')
+#     container[vv] = 0
+#     return xt.Vary(name=vv, container=container, step=1e-3)
+
 
 class Target(xd.Target):
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag='', optimize_log=False, **kwargs):
+                 line=None, action=None, tag='', optimize_log=False,
+                 **kwargs):
 
         for kk in kwargs:
             assert kk in ALLOWED_TARGET_KWARGS, (
@@ -180,6 +311,9 @@ class Target(xd.Target):
             xdtar = (tar, at)
         else:
             xdtar = tar
+
+        self._freeze_value = None
+
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag,
                             optimize_log=optimize_log)
@@ -196,9 +330,38 @@ class Target(xd.Target):
         if self.line is not None:
             res = res[self.line]
         if callable(self.tar):
-            return self.tar(res)
+            out = self.tar(res)
         else:
-            return res[self.tar]
+            out = res[self.tar]
+
+        if self._freeze_value is not None:
+            return out
+
+        return out
+
+    def transform(self, val):
+        if hasattr(self.value, 'auxtarget'):
+            return self.value.auxtarget(val)
+        else:
+            return val
+
+    @property
+    def value(self):
+        if self._freeze_value is not None:
+            return self._freeze_value
+        else:
+            return self._user_value
+
+    @value.setter
+    def value(self, val):
+        self._user_value = val
+
+    def freeze(self):
+        self._freeze_value = True # to bypass inequality logic
+        self._freeze_value = self.runeval()
+
+    def unfreeze(self):
+        self._freeze_value = None
 
 class Vary(xd.Vary):
     def __init__(self, name, container=None, limits=None, step=None, weight=None,
@@ -234,53 +397,43 @@ class TargetInequality(Target):
 
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
                  line=None, weight=None, tag=''):
-        Target.__init__(self, tar, value=0, at=at, tol=tol, scale=scale, line=line,
-                         weight=weight, tag=tag)
-        assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
-        self.ineq_sign = ineq_sign
-        self.rhs = rhs
 
-    def __repr__(self):
-        return f'TargetInequality({self.tar} {self.ineq_sign} {self.rhs}, tol={self.tol}, weight={self.weight})'
-
-    def eval(self, tw):
-        val = super().eval(tw)
-        if self.ineq_sign == '<' and val < self.rhs:
-            return 0
-        elif self.ineq_sign == '>' and val > self.rhs:
-            return 0
-        else:
-            return val - self.rhs
+        raise NotImplementedError('TargetInequality is not anymore supported. '
+            'Please use Target with `GreaterThan` `LessThan` instead. '
+            'For example, instead of '
+            'TargetInequality("x", "<", 0.1, at="ip1") '
+            'use '
+            'Target("x", LessThan(0.1), at="ip1")')
 
 class TargetRelPhaseAdvance(Target):
 
-    def __init__(self, tar, value, at_1=None, at_0=None, tag='',  **kwargs):
+    def __init__(self, tar, value, ele_stop=None, ele_start=None, tag='',  **kwargs):
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
-        if at_1 is None:
-            at_1 = '__ele_stop__'
-        if at_0 is None:
-            at_0 = '__ele_start__'
-        self.at_1 = at_1
-        self.at_0 = at_0
+        if ele_stop is None:
+            ele_stop = '__ele_stop__'
+        if ele_start is None:
+            ele_start = '__ele_start__'
+        self.ele_stop = ele_stop
+        self.ele_start = ele_start
 
     def __repr__(self):
-        return f'TargetPhaseAdvance({self.var}({self.at_1}) - {self.var}({self.at_0}), value={self.value}, tol={self.tol}, weight={self.weight})'
+        return f'TargetPhaseAdv({self.var}({self.ele_stop} - {self.ele_start}), val={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
 
-        if self.at_1 == '__ele_stop__':
+        if self.ele_stop == '__ele_stop__':
             mu_1 = tw[self.var, -1]
         else:
-            mu_1 = tw[self.var, self.at_1]
+            mu_1 = tw[self.var, self.ele_stop]
 
-        if self.at_0 == '__ele_start__':
+        if self.ele_start == '__ele_start__':
             mu_0 = tw[self.var, 0]
         else:
-            mu_0 = tw[self.var, self.at_0]
+            mu_0 = tw[self.var, self.ele_start]
 
         return mu_1 - mu_0
 
@@ -297,6 +450,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 targets_flatten.append(tt1.copy())
         else:
             targets_flatten.append(tt.copy())
+
+    aux_vary_container = {}
+    aux_vary = []
 
     action_twiss = None
     for tt in targets_flatten:
@@ -342,8 +498,19 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             else:
                 tt.tol = default_tol
 
+        # part of the `auxvar` experimental code
+        # if isinstance(tt.value, (GreaterThan, LessThan)):
+        #     if tt.value.mode == 'auxvar':
+        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+        #         aux_vary_container[aux_vary[-1].name] = 0
+        #         val = tt.runeval()
+        #         if val > 0:
+        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+
     if not isinstance(vary, (list, tuple)):
         vary = [vary]
+
+    vary = list(vary) + aux_vary
 
     vary_flatten = _flatten_vary(vary)
     _complete_vary_with_info_from_line(vary_flatten, line)

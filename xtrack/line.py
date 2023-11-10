@@ -10,7 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Collection
 
 import numpy as np
 from scipy.constants import c as clight
@@ -22,9 +22,10 @@ import xpart as xp
 import xtrack as xt
 import xdeps as xd
 from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
+from .progress_indicator import progress
 from .slicing import Slicer
 
-from .survey import survey_from_tracker
+from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
                           compute_T_matrix_line,
@@ -171,19 +172,13 @@ class Line:
 
         if isinstance(dct['elements'], dict):
             elements = {}
-            num_elements = len(dct['elements'].keys())
-            for ii, (kk, ee) in enumerate(dct['elements'].items()):
-                if ii % 100 == 0:
-                    _print('Loading line from dict: '
-                        f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
+            for ii, (kk, ee) in enumerate(
+                    progress(dct['elements'].items(), desc='Loading line from dict')):
                 elements[kk] = _deserialize_element(ee, class_dict, _buffer)
         elif isinstance(dct['elements'], list):
             elements = []
-            num_elements = len(dct['elements'])
-            for ii, ee in enumerate(dct['elements']):
-                if ii % 100 == 0:
-                    _print('Loading line from dict: '
-                        f'{round(ii/num_elements*100):2d}%  ',end="\r", flush=True)
+            for ii, ee in enumerate(
+                    progress(dct['elements'], desc='Loading line from dict')):
                 elements.append(_deserialize_element(ee, class_dict, _buffer))
         else:
             raise ValueError('Field `elements` must be a dict or a list')
@@ -574,6 +569,25 @@ class Line:
             with open(file, 'w') as fid:
                 json.dump(self.to_dict(**kwargs), fid, cls=xo.JEncoder)
 
+    def _to_table_dict(self):
+
+        elements = self.elements
+        s_elements = np.array(self.get_s_elements())
+        element_types = list(map(lambda e: e.__class__.__name__, elements))
+        isthick = np.array(list(map(_is_thick, elements)))
+        compound_name = self.get_element_compound_names()
+
+        out = {
+            's': s_elements,
+            'element_type': element_types,
+            'name': self.element_names,
+            'isthick': isthick,
+            'compound_name': compound_name,
+            'element': elements
+        }
+
+        return out
+
     def to_pandas(self):
         '''
         Return a pandas DataFrame with the elements of the line.
@@ -583,30 +597,22 @@ class Line:
         line_df : pandas.DataFrame
             DataFrame with the elements of the line.
         '''
-
-        elements = self.elements
-        s_elements = np.array(self.get_s_elements())
-        element_types = list(map(lambda e: e.__class__.__name__, elements))
-        isthick = np.array(list(map(_is_thick, elements)))
-        compound_name = self.get_element_compound_names()
-
         import pandas as pd
 
-        elements_df = pd.DataFrame({
-            's': s_elements,
-            'element_type': element_types,
-            'name': self.element_names,
-            'isthick': isthick,
-            'compound_name': compound_name,
-            'element': elements
-        })
+        elements_df = pd.DataFrame(self._to_table_dict())
         return elements_df
 
-    def get_table(self):
-        df = self.to_pandas()
+    def get_table(self, attr=False):
 
-        data = {kk: df[kk].values for kk in df.columns}
+        data = self._to_table_dict()
         data.pop('element')
+
+        if attr:
+            for kk in self.attr.keys():
+                data[kk] = self.attr[kk]
+
+        for kk in data.keys():
+            data[kk] = np.array(data[kk])
 
         return xd.Table(data=data)
 
@@ -733,6 +739,7 @@ class Line:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         time=False,
+        with_progress=False,
         **kwargs):
 
         """
@@ -770,7 +777,11 @@ class Line:
         time: bool, optional
             If True, the time taken for tracking is recorded and can be retrieved
             in `line.time_last_track`.
-
+        with_progress: bool or int, optional
+            If truthy, a progress bar is displayed during tracking. If an integer
+            is provided, it is used as the number of turns between two updates
+            of the progress bar. If True, 100 is taken by default. By default,
+            equals to False and no progress bar is displayed.
         """
 
         self._check_valid_tracker()
@@ -783,6 +794,7 @@ class Line:
             turn_by_turn_monitor=turn_by_turn_monitor,
             freeze_longitudinal=freeze_longitudinal,
             time=time,
+            with_progress=with_progress,
             **kwargs)
 
     def slice_thick_elements(self, slicing_strategies):
@@ -970,6 +982,12 @@ class Line:
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
+        ele_init=None,
+        x=None, px=None, y=None, py=None, zeta=None, delta=None,
+        betx=None, alfx=None, bety=None, alfy=None, bets=None,
+        dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
+        mux=None, muy=None, muzeta=None,
+        ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1142,7 +1160,7 @@ class Line:
             Survey table.
         """
 
-        return survey_from_tracker(self.tracker, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
+        return survey_from_line(self, X0=X0, Y0=Y0, Z0=Z0, theta0=theta0,
                                    phi0=phi0, psi0=psi0, element0=element0,
                                    reverse=reverse)
 
@@ -2618,13 +2636,7 @@ class Line:
         i_prev_aperture = elements_df[elements_df['is_aperture']].index[0]
         i_next_aperture = 0
 
-        for iee in range(i_prev_aperture, num_elements):
-
-            if iee % 100 == 0:
-                _print(
-                    f'Checking aperture: {round(iee/num_elements*100):2d}%  ',
-                    end="\r", flush=True)
-
+        for iee in progress(range(i_prev_aperture, num_elements), desc='Checking aperture'):
             if dont_need_aperture[elements_df.loc[iee, 'name']]:
                 continue
 
@@ -3150,14 +3162,22 @@ class Line:
             return out
 
     def _get_attr_cache(self):
-        cache = LineAttr(line=self,
-                         fields=['hxl', 'hyl', 'length', 'radiation_flag',
-                                 'delta_taper', 'voltage', 'frequency',
-                                 'lag', 'lag_taper',
-                                 'k1',
-                                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
-                                ('knl', 2), ('ksl', 2),
-                                ])
+        cache = LineAttr(
+            line=self,
+            fields=[
+                'hxl', 'hyl', 'length', 'radiation_flag', 'delta_taper',
+                'voltage', 'frequency', 'lag', 'lag_taper', 'k0', 'k1', 'k2','h',
+                ('knl', 0), ('ksl', 0), ('knl', 1), ('ksl', 1),
+                ('knl', 2), ('ksl', 2), ('knl', 3), ('ksl', 3),
+            ],
+            derived_fields={
+                'k0l': lambda attr: attr['knl', 0] + attr['k0'] * attr['length'],
+                'k1l': lambda attr: attr['knl', 1] + attr['k1'] * attr['length'],
+                'k2l': lambda attr: attr['knl', 2] + attr['k2'] * attr['length'],
+                'k3l': lambda attr: attr['knl', 3],
+                'angle_x': lambda attr: attr['hxl'] + attr['h'] * attr['length'],
+            }
+        )
         return cache
 
 def frac(x):
@@ -3702,10 +3722,27 @@ class LineAttrItem:
 
 
 class LineAttr:
+    """A class to access a field of all elements in a line.
 
-    def __init__(self, line, fields):
+    The field can be a scalar or a vector. In the latter case, the index
+    can be specified to access a specific element of the vector.
+
+    Parameters
+    ----------
+    line : Line
+        The line to access.
+    fields : list of str or tuple of (str, int)
+        The fields to access. If a tuple is provided, the second element
+        is the index of the vector to access.
+    derived_fields : dict, optional
+        A dictionary of derived fields. The key is the name of the derived
+        field and the value is a function that takes the LineAttr object
+        as argument and returns the value of the derived field.
+    """
+    def __init__(self, line, fields, derived_fields=None):
         self.line = line
         self.fields = fields
+        self.derived_fields = derived_fields or {}
         self._cache = {}
 
         for ff in fields:
@@ -3717,7 +3754,13 @@ class LineAttr:
             self._cache[ff] = LineAttrItem(name=name, index=index, line=line)
 
     def __getitem__(self, key):
+        if key in self.derived_fields:
+            return self.derived_fields[key](self)
+
         return self._cache[key].get_full_array()
+
+    def keys(self):
+        return list(self.fields) + list(self.derived_fields.keys())
 
 
 class EnergyProgram:

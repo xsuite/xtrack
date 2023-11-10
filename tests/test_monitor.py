@@ -7,6 +7,7 @@ import json
 import pathlib
 
 import numpy as np
+import pytest
 from numpy.testing import assert_equal, assert_allclose
 
 import xtrack as xt
@@ -18,20 +19,32 @@ from xobjects.test_helpers import for_all_test_contexts
 test_data_folder = pathlib.Path(
         __file__).parent.joinpath('../test_data').absolute()
 
-with open(test_data_folder.joinpath(
-        'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
-    dct = json.load(f)
-line0 = xt.Line.from_dict(dct['line'])
-line0.particle_ref = xp.Particles.from_dict(dct['particle'])
 
-line0.build_tracker()
+@pytest.fixture(scope='module')
+def line0(temp_context_default_mod):
+    # The fixture `temp_context_default_mod` is defined in conftest.py and is
+    # needed here as the non-empty context after the tests that invoke
+    # this fixture would trigger an error (due to the empty context check).
+    # See `conftest.py` for more details.
+    with open(test_data_folder.joinpath(
+            'hllhc15_noerrors_nobb/line_and_particle.json')) as f:
+        dct = json.load(f)
 
-num_particles = 50
-particles0 = xp.generate_matched_gaussian_bunch(line=line0,
-                                               num_particles=num_particles,
-                                               nemitt_x=2.5e-6,
-                                               nemitt_y=2.5e-6,
-                                               sigma_z=9e-2)
+    line0 = xt.Line.from_dict(dct['line'])
+    line0.particle_ref = xp.Particles.from_dict(dct['particle'])
+    line0.build_tracker()
+    return line0
+
+
+@pytest.fixture(scope='module')
+def particles0(line0, temp_context_default_mod):
+    # See the comment in `line0` fixture.
+    particles0 = xp.generate_matched_gaussian_bunch(line=line0,
+                                                    num_particles=50,
+                                                    nemitt_x=2.5e-6,
+                                                    nemitt_y=2.5e-6,
+                                                    sigma_z=9e-2)
+    return particles0
 
 
 @for_all_test_contexts
@@ -56,8 +69,9 @@ def test_constructor(test_context):
 
 
 @for_all_test_contexts
-def test_monitor(test_context):
-    line = line0.copy()
+def test_monitor(test_context, line0, particles0):
+    num_particles = len(particles0.x)
+    line = line0.copy(_context=test_context)
     line.build_tracker(_context=test_context)
     particles = particles0.copy(_context=test_context)
 
@@ -154,12 +168,9 @@ def test_monitor(test_context):
                         == line_w_monitor.element_names.index('ip8') - 1)
 
 
-
 @for_all_test_contexts
 def test_last_turns_monitor(test_context):
-
     particles = xp.Particles(p0c=6.5e12, x=[1,2,3,4,5,6], _context=test_context)
-    num_particles = len(particles.x)
 
     monitor = xt.LastTurnsMonitor(n_last_turns=5, particle_id_range=(1, 5), _context=test_context)
 
@@ -195,6 +206,7 @@ def test_last_turns_monitor(test_context):
     assert np.all(monitor.particle_id == np.array([[0,0,1,1,1],[2]*5,[3]*5,[4]*5]))
     assert np.all(monitor.at_turn == np.array([np.clip(n-np.arange(4,-1,-1),0,None) for n in (2,4,6,9)]))
     assert np.all(monitor.x == np.array([[0,0,2,1,0],[3,5,7,9,11],[0,-2,-4,-6,-8],[20,23,26,29,32]]))
+
 
 @for_all_test_contexts
 def test_beam_profile_monitor(test_context):
@@ -274,8 +286,9 @@ def test_beam_profile_monitor(test_context):
     assert_allclose(monitor.x_intensity, expected_x_intensity, err_msg="Monitor x_intensity does not match expected values")
     assert_allclose(monitor.y_intensity, expected_y_intensity, err_msg="Monitor y_intensity does not match expected values")
 
+
 @for_all_test_contexts
-def test_collective_ebe_monitor(test_context):
+def test_collective_ebe_monitor(test_context, line0, particles0):
     num_turns = 30
 
     # Turn-by-turn mode
@@ -285,9 +298,7 @@ def test_collective_ebe_monitor(test_context):
     line.build_tracker(_context=test_context)
     particles = particles0.copy(_context=test_context)
 
-    line.track(particles, num_turns=num_turns,
-                turn_by_turn_monitor=monitor_mode,
-                )
+    line.track(particles, num_turns=num_turns, turn_by_turn_monitor=monitor_mode)
     recoded_track_x = line.record_last_track.x
 
     # Line with collective elements
@@ -299,9 +310,11 @@ def test_collective_ebe_monitor(test_context):
     line_collective.build_tracker(_context=test_context)
     particles_collective = particles0.copy(_context=test_context)
 
-    line_collective.track(particles_collective, num_turns=num_turns,
-                turn_by_turn_monitor=monitor_mode,
-                )
+    line_collective.track(
+        particles_collective,
+        num_turns=num_turns,
+        turn_by_turn_monitor=monitor_mode,
+    )
     recoded_track_x_collective = line_collective.record_last_track.x
 
     assert np.allclose(recoded_track_x, recoded_track_x_collective)
@@ -313,9 +326,7 @@ def test_collective_ebe_monitor(test_context):
     line.build_tracker(_context=test_context)
     particles = particles0.copy(_context=test_context)
 
-    line.track(particles, num_turns=num_turns,
-                turn_by_turn_monitor=monitor_mode,
-                )
+    line.track(particles, num_turns=num_turns, turn_by_turn_monitor=monitor_mode)
     recoded_track_x = line.record_last_track.x
 
     # Line with collective elements
@@ -327,11 +338,14 @@ def test_collective_ebe_monitor(test_context):
     line_collective.build_tracker(_context=test_context)
     particles_collective = particles0.copy(_context=test_context)
 
-    line_collective.track(particles_collective, num_turns=num_turns,
-                turn_by_turn_monitor=monitor_mode,
-                )
+    line_collective.track(
+        particles_collective,
+        num_turns=num_turns,
+        turn_by_turn_monitor=monitor_mode,
+    )
     recoded_track_x_collective = line_collective.record_last_track.x
     assert np.allclose(recoded_track_x, recoded_track_x_collective)
+
 
 @for_all_test_contexts
 def test_beam_size_monitor(test_context):
@@ -416,6 +430,7 @@ def test_beam_size_monitor(test_context):
     expected_x_std = expected_x_var**0.5
     assert_allclose(monitor.x_std, expected_x_std, err_msg="Monitor x standard deviation does not match expected values")
     assert_allclose(monitor.y_std, 10*expected_x_std, err_msg="Monitor y standard deviation does not match expected values")
+
 
 @for_all_test_contexts
 def test_beam_position_monitor(test_context):

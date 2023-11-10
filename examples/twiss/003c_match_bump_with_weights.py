@@ -13,6 +13,9 @@ line.build_tracker()
 
 tw_before = line.twiss()
 
+GreaterThan = xt.GreaterThan
+LessThan = xt.LessThan
+
 opt = line.match(
     solve=False,
     solver='jacobian',
@@ -37,9 +40,16 @@ opt = line.match(
         xt.Target('y', at='mq.17l8.b1', value='preserve', tol=1e-6),
         xt.Target('py', at='mq.17l8.b1', value='preserve', tol=1e-7, weight=1e3),
         # I want to limit the negative excursion ot the bump
-        xt.TargetInequality('y', '>', -1e-3, at='mq.30l8.b1', tol=1e-6),
+        xt.Target('y', -2e-3, at='mq.30l8.b1', tol=1e-6),
+        xt.Target('y', GreaterThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
+        # xt.Target(lambda tw: -tw['y', 'mq.30l8.b1'], LessThan(1e-3))
     ]
 )
+opt.targets[-1].active = False
+opt.solve()
+opt.targets[-1].active = True
+opt.targets[-2].active = False
+opt.solve()
 
 opt.solve()
 
