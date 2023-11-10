@@ -848,15 +848,15 @@ class Line:
             Number of particles to be generated (used if provided coordinates are
             all scalar).
         x : float or array
-            x coordinate of the particles (default is 0).
+            x coordinate of the particles in meters (default is 0).
         px : float or array
             px coordinate of the particles (default is 0).
         y : float or array
-            y coordinate of the particles (default is 0).
+            y coordinate of the particles in meters (default is 0).
         py : float or array
             py coordinate of the particles (default is 0).
         zeta : float or array
-            zeta coordinate of the particles (default is 0).
+            zeta coordinate of the particles in meters (default is 0).
         delta : float or array
             delta coordinate of the particles (default is 0).
         pzeta : float or array
@@ -890,7 +890,7 @@ class Line:
             Location within the line at which particles are generated. It can be an
             index or an element name.
         match_at_s : float
-            `s` location within the line at which particles are generated. The value
+            `s` location in meters within the line at which particles are generated. The value
             needs to be in the drift downstream of the element at `at_element`.
             The matched particles are backtracked to the element at `at_element`
             from which the tracking automatically starts when the generated
@@ -1140,17 +1140,17 @@ class Line:
         Parameters
         ----------
         X0 : float
-            Initial X coordinate.
+            Initial X coordinate in meters.
         Y0 : float
-            Initial Y coordinate.
+            Initial Y coordinate in meters.
         Z0 : float
-            Initial Z coordinate.
+            Initial Z coordinate in meters.
         theta0 : float
-            Initial theta coordinate.
+            Initial theta coordinate in radians.
         phi0 : float
-            Initial phi coordinate.
+            Initial phi coordinate in radians.
         psi0 : float
-            Initial psi coordinate.
+            Initial psi coordinate in radians.
         element0 : int or str
             Element at which the given coordinates are defined.
 
@@ -1256,7 +1256,7 @@ class Line:
         delta0 : float
             Initial delta coordinate.
         zeta0 : float
-            Initial zeta coordinate.
+            Initial zeta coordinate in meters.
         continue_on_closed_orbit_error : bool
             If True, the closed orbit at the last step is returned even if
             the closed orbit search fails.
@@ -1365,7 +1365,7 @@ class Line:
         r_range : tuple of floats
             Range of r values for footprint in polar mode. Default is (0.1, 6) sigmas.
         theta_range : tuple of floats
-            Range of theta values for footprint in polar mode. Default is
+            Range of theta values in radians for footprint in polar mode. Default is
             (0.05, pi / 2 - 0.05) radians.
         n_r : int
             Number of r values for footprint in polar mode. Default is 10.
@@ -1396,7 +1396,7 @@ class Line:
         delta0: float
             Initial value of the delta coordinate.
         zeta0: float
-            Initial value of the zeta coordinate.
+            Initial value of the zeta coordinate in meters.
 
         Returns
         -------
@@ -1558,10 +1558,10 @@ class Line:
             Element to be inserted. If not given, the element of the given name
             already present in the line is used.
         at_s: float, optional
-            Position of the element in the line. If `at_s` is provided, `index`
+            Position of the element in the line in meters. If `at_s` is provided, `index`
             must be None.
         s_tol: float, optional
-            Tolerance for the position of the element in the line.
+            Tolerance for the position of the element in the line in meters.
         """
 
         if isinstance(index, str):

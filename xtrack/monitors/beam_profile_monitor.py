@@ -79,8 +79,8 @@ class BeamProfileMonitor(BeamElement):
         The monitor provides the following data:
         - `x_intensity`, `y_intensity`: the profile intensity (particle count per bin) as 2D array of shape (size, n)
                                         where size = round(( stop_at_turn - start_at_turn ) * sampling_frequency / frev)
-        - `x_edges`, `y_edges`: the profile edges (position) as 1D array of shape (n+1)
-        - `x_grid`, `y_grid`: the profile position (midpoints) as 1D array of shape (n)
+        - `x_edges`, `y_edges`: the profile edges (position) in m as 1D array of shape (n+1)
+        - `x_grid`, `y_grid`: the profile position (midpoints) in m as 1D array of shape (n)
 
         Args:
             num_particles (int, optional): Number of particles to monitor. Defaults to -1 which means ALL.
@@ -92,10 +92,10 @@ class BeamProfileMonitor(BeamElement):
             frev (float): Revolution frequency in Hz of circulating beam (used to relate turn number to sample index).
             sampling_frequency (float): Sampling frequency in Hz.
             nx (int, optional): Number of raster points of the horizontal profile. Defaults to 128.
-            x_range (float or tuple): Extend of raster points of the profile. Either a tuple of (min_x, max_x)
+            x_range (float or tuple): Extend of raster points of the profile in m. Either a tuple of (min_x, max_x)
                                              or a scalar `width` in which case a range of (-width/2, width/2) is used.
             ny (int, optional): Number of raster points of the vertical profile. Defaults to 128.
-            y_range (float or tuple): Extend of raster points of the profile. Either a tuple of (min_y, max_y)
+            y_range (float or tuple): Extend of raster points of the profile in m. Either a tuple of (min_y, max_y)
                                              or a scalar `width` in which case a range of (-width/2, width/2) is used.
             n: Default value for `nx` and `ny` if these are not set.
             range: Default value for `x_range` and `y_range` if these are not set.

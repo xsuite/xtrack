@@ -110,7 +110,7 @@ def twiss_line(line, particle_ref=None, method=None,
         List of elements at which the Twiss parameters are computed.
         If not provided, the Twiss parameters are computed at all elements.
     at_s : list, optional
-        List of positions at which the Twiss parameters are computed.
+        List of positions in meters at which the Twiss parameters are computed.
         If not provided, the Twiss parameters are computed at all positions.
     radiation_method : {'full', 'kick_as_co', 'scale_as_co'}, optional
         Method to be used for the computation of twiss parameters in the presence
@@ -156,18 +156,18 @@ def twiss_line(line, particle_ref=None, method=None,
             - zeta: longitudinal position in meters (closed orbit for periodic solution)
             - delta: longitudinal momentum deviation (closed orbit for periodic solution)
             - ptau: longitudinal momentum deviation (closed orbit for periodic solution)
-            - betx: horizontal beta function
-            - bety: vertical beta function
+            - betx: horizontal beta function in meters
+            - bety: vertical beta function in meters
             - alfx: horizontal alpha function
             - alfy: vertical alpha function
-            - gamx: horizontal gamma function
-            - gamy: vertical gamma function
-            - mux: horizontal phase advance
-            - muy: vertical phase advance
-            - muzeta: longitudinal phase advance
-            - dx: horizontal dispersion (d x / d delta)
-            - dy: vertical dispersion (d y / d delta)
-            - dzeta: longitudinal dispersion (d zeta / d delta)
+            - gamx: horizontal gamma function in 1/meters
+            - gamy: vertical gamma function in 1/meters
+            - mux: horizontal phase advance in tune units (angle/2/pi)
+            - muy: vertical phase advance in tune units (angle/2/pi)
+            - muzeta: longitudinal phase advance in tune units (angle/2/pi)
+            - dx: horizontal dispersion (d x / d delta) in meters
+            - dy: vertical dispersion (d y / d delta) in meters
+            - dzeta: longitudinal dispersion (d zeta / d delta) in meters
             - dpx: horizontal dispersion (d px / d delta)
             - dpy: vertical dispersion (d y / d delta)
             - dx_zeta: horizontal crab dispersion (d x / d zeta)
@@ -181,10 +181,10 @@ def twiss_line(line, particle_ref=None, method=None,
             - wx_chrom: sqrt(ax_chrom**2 + bx_chrom**2)
             - wy_chrom: sqrt(ay_chrom**2 + by_chrom**2)
             - W_matrix: W matrix of the linear normal form
-            - betx1: computed horizontal beta function (Mais-Ripken)
-            - bety1: computed vertical beta function (Mais-Ripken)
-            - betx2: computed horizontal beta function (Mais-Ripken)
-            - bety2: computed vertical beta function (Mais-Ripken)
+            - betx1: computed horizontal beta function (Mais-Ripken) in meters
+            - bety1: computed vertical beta function (Mais-Ripken) in meters
+            - betx2: computed horizontal beta function (Mais-Ripken) in meters
+            - bety2: computed vertical beta function (Mais-Ripken) in meters
         The table also contains the following global quantities:
             - qx: horizontal tune
             - qy: vertical tune
@@ -194,7 +194,8 @@ def twiss_line(line, particle_ref=None, method=None,
             - c_minus: closest tune approach coefficient
             - slip_factor: slip factor (-1 / f_ref * d f_ref / d delta) (positive above transition)
             - momentum_compaction_factor: momentum compaction factor (slip_factor + 1/gamma_0^2)
-            - T_rev0: reference revolution period
+            - T_rev0: reference revolution period in seconds
+            - circumference: reference trajectory length in meters
             - partice_on_co: particle on closed orbit
             - R_matrix: R matrix (if calculated or provided)
             - eneloss_turn, energy loss per turn in electron volts (if
