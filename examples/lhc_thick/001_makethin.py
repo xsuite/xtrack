@@ -97,6 +97,8 @@ opt_thin = line.match(
 t2 = time.time()
 print('\nTime match thin: ', t2-t1)
 
+line.to_json('lhc_thin.json')
+
 tw = line.twiss()
 tw_thick = line_thick.twiss()
 

@@ -571,11 +571,11 @@ class Line:
 
     def _to_table_dict(self):
 
-        elements = self.elements
-        s_elements = np.array(self.get_s_elements())
-        element_types = list(map(lambda e: e.__class__.__name__, elements))
-        isthick = np.array(list(map(_is_thick, elements)))
-        compound_name = self.get_element_compound_names()
+        elements = self.elements + [None]
+        s_elements = np.array(list(self.get_s_elements()) + self.get_length())
+        element_types = list(map(lambda e: e.__class__.__name__, elements)) + [None]
+        isthick = np.array(list(map(_is_thick, elements)) + [False])
+        compound_name = self.get_element_compound_names() + [None]
 
         for ii in range(len(compound_name)):
             if compound_name[ii] is None:
@@ -584,7 +584,7 @@ class Line:
         out = {
             's': s_elements,
             'element_type': element_types,
-            'name': self.element_names,
+            'name': self.element_names + ['_end_point'],
             'isthick': isthick,
             'compound_name': compound_name,
             'element': elements
