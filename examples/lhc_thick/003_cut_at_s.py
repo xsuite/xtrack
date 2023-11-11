@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import xtrack as xt
 
@@ -28,6 +29,7 @@ assert np.all(tt.element_type[i_ele_containing[needs_cut]] == 'Drift')
 
 i_drifts_to_cut = set(i_ele_containing[needs_cut])
 
+t1 = time.time()
 for idr in i_drifts_to_cut:
     name_drift = tt.name[idr]
     drift = line[name_drift]
@@ -50,9 +52,21 @@ for idr in i_drifts_to_cut:
 
     insert_at = line.element_names.index(name_drift)
     line.element_names.remove(name_drift)
+    cpd_name = line.compound_container.compound_name_for_element(name_drift)
+    if cpd_name is not None:
+        cpd = line.compound_container.compound_for_name(cpd_name)
+        assert name_drift in cpd.core
+        cpd.core.remove(name_drift)
+    else:
+        cpd = None
     for nn, dd in zip(new_drift_names, drifts_for_replacement):
         line.element_dict[nn] = dd
         line.element_names.insert(insert_at, nn)
+        if cpd is not None:
+            cpd.core.add(nn)
         insert_at += 1
+t2 = time.time()
+
+print(f'Time cut drifts: {t2-t1}')
 
 line.build_tracker()
