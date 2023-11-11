@@ -13,17 +13,22 @@ e1 = 'mq.29r3.b1_exit'
 s0 = line.get_s_position(e0)
 s1 = line.get_s_position(e1)
 
+# elements_to_insert = [
+#     # s .    # elements to insert (name, element)
+#     (s0,     [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker()), (f'm2_at_a', xt.Marker())]),
+#     (s0+10., [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker()), (f'm2_at_b', xt.Marker())]),
+#     (s1,     [(f'm0_at_c', xt.Marker()), (f'm1_at_c', xt.Marker()), (f'm2_at_c', xt.Marker())]),
+# ]
+
+
+s_input = np.linspace(0, 26000, 3000)
 elements_to_insert = [
     # s .    # elements to insert (name, element)
-    (s0,     [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker()), (f'm2_at_a', xt.Marker())]),
-    (s0+10., [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker()), (f'm2_at_b', xt.Marker())]),
-    (s1,     [(f'm0_at_c', xt.Marker()), (f'm1_at_c', xt.Marker()), (f'm2_at_c', xt.Marker())]),
+    (ss,     [(f'm0_at_{ii}', xt.Marker()), (f'm1_at_{ii}', xt.Marker())]) for ii, ss in enumerate(s_input)
 ]
 
-# s_cuts = np.linspace(e0, e1, 100)
 
 s_cuts = [ee[0] for ee in elements_to_insert]
-
 s_cuts = np.sort(s_cuts)
 
 s_tol = 0.5e-6
@@ -97,6 +102,7 @@ for s_insert, ee in elements_to_insert:
         line.element_dict[nn] = el
 
 # Insert elements
+t3 = time.time()
 for i_ins, (s_insert, ee) in enumerate(elements_to_insert):
     ele_name_ins = ele_name_insertions[i_ins]
     cpd_name_ins = line.compound_container.compound_name_for_element(ele_name_ins)
@@ -129,9 +135,12 @@ for i_ins, (s_insert, ee) in enumerate(elements_to_insert):
             raise ValueError(f'Inconsistent insertion in compound {cpd_name_ins}')
 
         insert_at += 1
+t4 = time.time()
+print(f'Time cut drifts: {t2-t1}')
+print(f'Time insert: {t4-t3}')
 
 tt_final = line.get_table()
 
-print(f'Time cut drifts: {t2-t1}')
+
 
 line.build_tracker()
