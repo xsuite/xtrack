@@ -34,6 +34,4 @@ print('\nTime insert thin: ', t2-t1)
 
 tt_final = line.get_table()
 
-
-
 line.build_tracker()

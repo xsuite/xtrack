@@ -498,7 +498,7 @@ def test_to_pandas():
 
     assert tuple(df.columns) == (
         's', 'element_type', 'name', 'isthick', 'compound_name', 'element')
-    assert len(df) == 3
+    assert len(df) == 4
 
 def test_check_aperture():
 
@@ -560,7 +560,7 @@ def test_to_dict():
 
     assert result['elements']['d']['__class__'] == 'Drift'
     assert result['elements']['d']['length'] == 1
-    
+
     assert result['metadata'] == line.metadata
 
 
@@ -625,7 +625,7 @@ def test_from_dict_current():
     assert d1.length == 4
 
     assert d2 is d1
-    
+
     assert line.metadata == test_dict['metadata']
 
 

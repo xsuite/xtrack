@@ -2611,7 +2611,11 @@ class Line:
         elements_df = self.to_pandas()
 
         elements_df['is_aperture'] = elements_df.name.map(
-                                            lambda nn: _is_aperture(self.element_dict[nn]))
+                lambda nn: nn == '_end_point' or  _is_aperture(self.element_dict[nn]))
+
+        if not elements_df.name.values[-1] == '_end_point':
+            elements_df['is_aperture'][-1] = False
+
         elements_df['i_aperture_upstream'] = np.nan
         elements_df['s_aperture_upstream'] = np.nan
         elements_df['i_aperture_downstream'] = np.nan
@@ -2621,6 +2625,8 @@ class Line:
         # Elements that don't need aperture
         dont_need_aperture = {name: False for name in elements_df['name']}
         for name in elements_df['name']:
+            if name == '_end_point':
+                continue
             ee = self.element_dict[name]
             if _allow_backtrack(ee) and not name in needs_aperture:
                 dont_need_aperture[name] = True
