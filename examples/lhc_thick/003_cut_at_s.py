@@ -24,8 +24,24 @@ elements_to_insert = [
 
 line._insert_thin_elements_at_s(elements_to_insert)
 
-tt1 = line.get_table()
+tt = line.get_table()
+assert np.isclose(tt['s', 'm0_at_a'], s0, rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm1_at_a'], s0, rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm2_at_a'], s0, rtol=0, atol=1e-6)
 
+assert np.isclose(tt['s', 'm0_at_b'], s0 + 10., rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm1_at_b'], s0 + 10., rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm2_at_b'], s0 + 10., rtol=0, atol=1e-6)
+
+assert np.isclose(tt['s', 'm0_at_c'], s1, rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm1_at_c'], s1, rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm2_at_c'], s1, rtol=0, atol=1e-6)
+
+assert np.isclose(tt['s', 'm0_at_d'], s2, rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm1_at_d'], s2, rtol=0, atol=1e-6)
+assert np.isclose(tt['s', 'm2_at_d'], s2, rtol=0, atol=1e-6)
+
+pppppp
 # Check insertion at beginning and end of the line
 l1 = xt.Line(elements=5*[xt.Drift(length=1)])
 
