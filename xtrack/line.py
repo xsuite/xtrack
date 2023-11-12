@@ -3226,7 +3226,7 @@ class Line:
 
         i_drifts_to_cut = set(i_ele_containing[needs_cut])
 
-        for idr in i_drifts_to_cut:
+        for idr in progress(i_drifts_to_cut, desc='Cut drifts'):
             name_drift = tt_before_cut.name[idr]
             drift = self[name_drift]
             assert isinstance(drift, xt.Drift)
@@ -3280,7 +3280,8 @@ class Line:
                 self.element_dict[nn] = el
 
         # Insert elements
-        for i_ins, (s_insert, ee) in enumerate(elements_to_insert):
+        for i_ins, (s_insert, ee) in enumerate(
+                    progress(elements_to_insert, desc="Inserting elements")):
             ele_name_ins = ele_name_insertions[i_ins]
             cpd_name_ins = self.compound_container.compound_name_for_element(ele_name_ins)
             if cpd_name_ins is not None:
@@ -3306,14 +3307,14 @@ class Line:
                 elif ele_name_ins in cpd_ins.core:
                     cpd_ins.core.add(nn)
                     self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                elif ele_name_ins in cpd.entry:
+                elif ele_name_ins in cpd_ins.entry:
                     pass # Goes in front ot the compound but does not belong to it
-                elif ele_name_ins in cpd.exit:
+                elif ele_name_ins in cpd_ins.exit:
                     assert len(cpd.exit_transform) == 0
-                    cpd.core.add(nn)
+                    cpd_ins.core.add(nn)
                     self.compound_container._compound_name_for_element[nn] = cpd_name_ins
-                elif ele_name_ins in cpd.exit_transform:
-                    cpd.core.add(nn)
+                elif ele_name_ins in cpd_ins.exit_transform:
+                    cpd_ins.core.add(nn)
                     self.compound_container._compound_name_for_element[nn] = cpd_name_ins
                 else:
                     raise ValueError(f'Inconsistent insertion in compound {cpd_name_ins}')
