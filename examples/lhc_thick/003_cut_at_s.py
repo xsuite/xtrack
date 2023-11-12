@@ -12,14 +12,31 @@ e1 = 'mq.29r3.b1_exit'
 
 s0 = line.get_s_position(e0)
 s1 = line.get_s_position(e1)
+s2 = line.get_length()
 
-# elements_to_insert = [
-#     # s .    # elements to insert (name, element)
-#     (s0,     [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker()), (f'm2_at_a', xt.Marker())]),
-#     (s0+10., [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker()), (f'm2_at_b', xt.Marker())]),
-#     (s1,     [(f'm0_at_c', xt.Marker()), (f'm1_at_c', xt.Marker()), (f'm2_at_c', xt.Marker())]),
-# ]
+elements_to_insert = [
+    # s .    # elements to insert (name, element)
+    (s0,     [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker()), (f'm2_at_a', xt.Marker())]),
+    (s0+10., [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker()), (f'm2_at_b', xt.Marker())]),
+    (s1,     [(f'm0_at_c', xt.Marker()), (f'm1_at_c', xt.Marker()), (f'm2_at_c', xt.Marker())]),
+    (s2,     [(f'm0_at_d', xt.Marker()), (f'm1_at_d', xt.Marker()), (f'm2_at_d', xt.Marker())]),
+]
 
+line._insert_thin_elements_at_s(elements_to_insert)
+
+tt1 = line.get_table()
+
+# Check insertion at beginning and end of the line
+l1 = xt.Line(elements=5*[xt.Drift(length=1)])
+
+l1._insert_thin_elements_at_s([
+    (0, [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker())]),
+    (5, [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker())]),
+])
+
+
+
+prrrr
 
 s_input = np.linspace(0, 26000, 3000)
 elements_to_insert = [

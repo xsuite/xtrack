@@ -3288,11 +3288,18 @@ class Line:
             else:
                 cpd_ins = None
 
-            insert_at = self.element_names.index(ele_name_ins)
+            if ele_name_ins not in self.element_names:
+                assert ele_name_ins == '_end_point'
+                insert_at = None
+            else:
+                insert_at = self.element_names.index(ele_name_ins)
             for nn, el in ee:
 
                 assert el.isthick == False
-                self.element_names.insert(insert_at, nn)
+                if insert_at is None:
+                    self.element_names.append(nn)
+                else:
+                    self.element_names.insert(insert_at, nn)
 
                 if cpd_ins is None:
                     pass # No compound
@@ -3311,7 +3318,8 @@ class Line:
                 else:
                     raise ValueError(f'Inconsistent insertion in compound {cpd_name_ins}')
 
-                insert_at += 1
+                if insert_at is not None:
+                    insert_at += 1
 
 def frac(x):
     return x % 1
