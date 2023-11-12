@@ -944,6 +944,28 @@ def test_line_attr():
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
     assert np.all(line.attr['angle_x'] == [0, 8, 0.5 * 6, 0, 0])
 
+def test_insert_thin_elements_at_s_basic():
+
+    l1 = xt.Line(elements=5*[xt.Drift(length=1)])
+
+    l1._insert_thin_elements_at_s([
+        (0, [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker())]),
+        (5, [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker())]),
+    ])
+
+    t1 = l1.get_table()
+    assert t1.name[0] == 'm0_at_a'
+    assert t1.name[1] == 'm1_at_a'
+    assert t1.name[-1] == '_end_point'
+    assert t1.name[-2] == 'm1_at_b'
+    assert t1.name[-3] == 'm0_at_b'
+
+    assert t1.s[0] == 0
+    assert t1.s[1] == 0
+    assert t1.s[-1] == 5.
+    assert t1.s[-2] == 5.
+    assert t1.s[-3] == 5.
+
 def test_insert_thin_elements_at_s_lhc():
 
     line = xt.Line.from_json(test_data_folder /
