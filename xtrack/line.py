@@ -614,7 +614,11 @@ class Line:
 
         if attr:
             for kk in self.attr.keys():
-                data[kk] = self.attr[kk]
+                this_attr = self.attr[kk]
+                if hasattr(this_attr, 'get'):
+                    this_attr = this_attr.get() # bring to cpu
+                # Add zero at the end (there is _end_point)
+                data[kk] = np.concatenate((this_attr, [this_attr[-1]*0]))
 
         for kk in data.keys():
             data[kk] = np.array(data[kk])
