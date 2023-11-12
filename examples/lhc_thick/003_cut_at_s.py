@@ -60,6 +60,23 @@ assert np.all(tt.rows['m0_at_d':'m0_at_d%%+4'].name
               == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
                            'lhcb1ip7_p_', '_end_point']))
 
+
+assert tt['compound_name', 'm0_at_a'] == 'mq.28r3.b1'
+assert tt['compound_name', 'm1_at_a'] == 'mq.28r3.b1'
+assert tt['compound_name', 'm2_at_a'] == 'mq.28r3.b1'
+
+assert tt['compound_name', 'm0_at_b'] == 'mb.a29r3.b1'
+assert tt['compound_name', 'm1_at_b'] == 'mb.a29r3.b1'
+assert tt['compound_name', 'm2_at_b'] == 'mb.a29r3.b1'
+
+assert tt['compound_name', 'm0_at_c'] == 'mq.29r3.b1'
+assert tt['compound_name', 'm1_at_c'] == 'mq.29r3.b1'
+assert tt['compound_name', 'm2_at_c'] == 'mq.29r3.b1'
+
+assert tt['compound_name', 'm0_at_d'] == ''
+assert tt['compound_name', 'm1_at_d'] == ''
+assert tt['compound_name', 'm2_at_d'] == ''
+
 pppppp
 # Check insertion at beginning and end of the line
 l1 = xt.Line(elements=5*[xt.Drift(length=1)])

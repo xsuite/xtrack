@@ -943,3 +943,100 @@ def test_line_attr():
     assert np.all(line.attr['k1'] == [0, 0, 0, 0, 11])
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
     assert np.all(line.attr['angle_x'] == [0, 8, 0.5 * 6, 0, 0])
+
+def test_insert_thin_elements_at_s_lhc():
+
+    line = xt.Line.from_json(test_data_folder /
+                    'hllhc15_thick/lhc_thick_with_knobs.json')
+    line.twiss_default['method'] = '4d'
+
+    Strategy = xt.slicing.Strategy
+    Teapot = xt.slicing.Teapot
+    slicing_strategies = [
+        Strategy(slicing=Teapot(1)),  # Default catch-all as in MAD-X
+        Strategy(slicing=Teapot(4), element_type=xt.Bend),
+        Strategy(slicing=Teapot(20), element_type=xt.Quadrupole),
+        Strategy(slicing=Teapot(2), name=r'^mb\..*'),
+        Strategy(slicing=Teapot(5), name=r'^mq\..*'),
+        Strategy(slicing=Teapot(2), name=r'^mqt.*'),
+        Strategy(slicing=Teapot(60), name=r'^mqx.*'),
+    ]
+
+    line.slice_thick_elements(slicing_strategies=slicing_strategies)
+
+    tw0 = line.twiss()
+    line.discard_tracker()
+
+    e0 = 'mq.28r3.b1_entry'
+    e1 = 'mq.29r3.b1_exit'
+
+    s0 = line.get_s_position(e0)
+    s1 = line.get_s_position(e1)
+    s2 = line.get_length()
+
+    elements_to_insert = [
+        # s .    # elements to insert (name, element)
+        (s0,     [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker()), (f'm2_at_a', xt.Marker())]),
+        (s0+10., [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker()), (f'm2_at_b', xt.Marker())]),
+        (s1,     [(f'm0_at_c', xt.Marker()), (f'm1_at_c', xt.Marker()), (f'm2_at_c', xt.Marker())]),
+        (s2,     [(f'm0_at_d', xt.Marker()), (f'm1_at_d', xt.Marker()), (f'm2_at_d', xt.Marker())]),
+    ]
+
+    line._insert_thin_elements_at_s(elements_to_insert)
+
+    tt = line.get_table()
+
+    # Check that there are no duplicated elements
+    assert len(tt.name) == len(set(tt.name))
+
+    assert np.isclose(tt['s', 'm0_at_a'], s0, rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm1_at_a'], s0, rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm2_at_a'], s0, rtol=0, atol=1e-6)
+
+    assert np.isclose(tt['s', 'm0_at_b'], s0 + 10., rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm1_at_b'], s0 + 10., rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm2_at_b'], s0 + 10., rtol=0, atol=1e-6)
+
+    assert np.isclose(tt['s', 'm0_at_c'], s1, rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm1_at_c'], s1, rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm2_at_c'], s1, rtol=0, atol=1e-6)
+
+    assert np.isclose(tt['s', 'm0_at_d'], s2, rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm1_at_d'], s2, rtol=0, atol=1e-6)
+    assert np.isclose(tt['s', 'm2_at_d'], s2, rtol=0, atol=1e-6)
+
+    assert np.all(tt.rows['mq.28r3.b1_entry%%-3':'mq.28r3.b1_entry'].name
+            == np.array(['m0_at_a', 'm1_at_a', 'm2_at_a', 'mq.28r3.b1_entry']))
+
+    assert np.all(tt.rows['m0_at_b%%-2':'m0_at_b%%+4'].name
+            == np.array(['mb.a29r3.b1..0', 'drift_mb.a29r3.b1..1_0',
+                        'm0_at_b', 'm1_at_b', 'm2_at_b',
+                        'drift_mb.a29r3.b1..1_1', 'mb.a29r3.b1..1']))
+
+    assert np.all(tt.rows['mq.29r3.b1_exit%%-3':'mq.29r3.b1_exit'].name
+            == np.array(['m0_at_c', 'm1_at_c', 'm2_at_c', 'mq.29r3.b1_exit']))
+
+    assert np.all(tt.rows['m0_at_d':'m0_at_d%%+4'].name
+                == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
+                            'lhcb1ip7_p_', '_end_point']))
+
+    assert tt['compound_name', 'm0_at_a'] == 'mq.28r3.b1'
+    assert tt['compound_name', 'm1_at_a'] == 'mq.28r3.b1'
+    assert tt['compound_name', 'm2_at_a'] == 'mq.28r3.b1'
+
+    assert tt['compound_name', 'm0_at_b'] == 'mb.a29r3.b1'
+    assert tt['compound_name', 'm1_at_b'] == 'mb.a29r3.b1'
+    assert tt['compound_name', 'm2_at_b'] == 'mb.a29r3.b1'
+
+    assert tt['compound_name', 'm0_at_c'] == 'mq.29r3.b1'
+    assert tt['compound_name', 'm1_at_c'] == 'mq.29r3.b1'
+    assert tt['compound_name', 'm2_at_c'] == 'mq.29r3.b1'
+
+    assert tt['compound_name', 'm0_at_d'] == ''
+    assert tt['compound_name', 'm1_at_d'] == ''
+    assert tt['compound_name', 'm2_at_d'] == ''
+
+    assert np.isclose(line.get_length(), tw0.s[-1], atol=1e-6)
+
+    tw1 = line.twiss()
+    np.isclose(tw1.qx, tw0.qx, atol=1e-9, rtol=0)
