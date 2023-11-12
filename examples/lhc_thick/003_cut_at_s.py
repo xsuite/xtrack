@@ -25,6 +25,10 @@ elements_to_insert = [
 line._insert_thin_elements_at_s(elements_to_insert)
 
 tt = line.get_table()
+
+# Check that there are no duplicated elements
+assert len(tt.name) == len(set(tt.name))
+
 assert np.isclose(tt['s', 'm0_at_a'], s0, rtol=0, atol=1e-6)
 assert np.isclose(tt['s', 'm1_at_a'], s0, rtol=0, atol=1e-6)
 assert np.isclose(tt['s', 'm2_at_a'], s0, rtol=0, atol=1e-6)
@@ -40,6 +44,21 @@ assert np.isclose(tt['s', 'm2_at_c'], s1, rtol=0, atol=1e-6)
 assert np.isclose(tt['s', 'm0_at_d'], s2, rtol=0, atol=1e-6)
 assert np.isclose(tt['s', 'm1_at_d'], s2, rtol=0, atol=1e-6)
 assert np.isclose(tt['s', 'm2_at_d'], s2, rtol=0, atol=1e-6)
+
+assert np.all(tt.rows['mq.28r3.b1_entry%%-3':'mq.28r3.b1_entry'].name
+        == np.array(['m0_at_a', 'm1_at_a', 'm2_at_a', 'mq.28r3.b1_entry']))
+
+assert np.all(tt.rows['m0_at_b%%-2':'m0_at_b%%+4'].name
+        == np.array(['mb.a29r3.b1..0', 'drift_mb.a29r3.b1..1_0',
+                    'm0_at_b', 'm1_at_b', 'm2_at_b',
+                    'drift_mb.a29r3.b1..1_1', 'mb.a29r3.b1..1']))
+
+assert np.all(tt.rows['mq.29r3.b1_exit%%-3':'mq.29r3.b1_exit'].name
+        == np.array(['m0_at_c', 'm1_at_c', 'm2_at_c', 'mq.29r3.b1_exit']))
+
+assert np.all(tt.rows['m0_at_d':'m0_at_d%%+4'].name
+              == np.array(['m0_at_d', 'm1_at_d', 'm2_at_d',
+                           'lhcb1ip7_p_', '_end_point']))
 
 pppppp
 # Check insertion at beginning and end of the line
