@@ -34,9 +34,18 @@ l1._insert_thin_elements_at_s([
     (5, [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker())]),
 ])
 
+t1 = l1.get_table()
+assert t1.name[0] == 'm0_at_a'
+assert t1.name[1] == 'm1_at_a'
+assert t1.name[-1] == '_end_point'
+assert t1.name[-2] == 'm1_at_b'
+assert t1.name[-3] == 'm0_at_b'
 
-
-prrrr
+assert t1.s[0] == 0
+assert t1.s[1] == 0
+assert t1.s[-1] == 5.
+assert t1.s[-2] == 5.
+assert t1.s[-3] == 5.
 
 s_input = np.linspace(0, 26000, 3000)
 elements_to_insert = [
