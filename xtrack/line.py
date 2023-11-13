@@ -3231,6 +3231,8 @@ class Line:
             drift = self[name_drift]
             assert isinstance(drift, xt.Drift)
             _buffer = drift._buffer
+            if not isinstance(_buffer.context, xo.ContextCpu):
+                raise ValueError('Only supported on CPU') # GPU untested
             l_drift = drift.length
             s_start = tt_before_cut['s'][idr]
             s_end = s_start + l_drift
@@ -3267,7 +3269,7 @@ class Line:
 
         # Names for insertions
         ele_name_insertions = []
-        for s_insert, ee in elements_to_insert:
+        for s_insert, ee in progress(elements_to_insert, desc="Locate insertion points"):
             # Find element_name for insertion
             ii_ins = np.where(tt_after_cut['s'] >= s_insert)[0][0]
             ele_name_insertions.append(tt_after_cut['name'][ii_ins])
@@ -3276,7 +3278,7 @@ class Line:
         # Add all elements to self.element_dict
         for s_insert, ee in elements_to_insert:
             for nn, el in ee:
-                assert nn not in self.element_names
+                assert nn not in self.element_dict
                 self.element_dict[nn] = el
 
         # Insert elements
