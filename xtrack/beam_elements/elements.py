@@ -1964,7 +1964,8 @@ class LineSegmentMap(BeamElement):
             self._xobject = nargs['_xobject']
             return
 
-        assert longitudinal_mode in ['linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', None]
+        assert longitudinal_mode in [
+            'linear_fixed_qs', 'nonlinear', 'linear_fixed_rf', 'frozen', None]
 
         nargs['qx'] = qx
         nargs['qy'] = qy
