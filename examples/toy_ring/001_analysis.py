@@ -3,6 +3,7 @@ import xtrack as xt
 
 # Save to json
 line = xt.Line.from_json('toy_ring.json')
+tw0 = line.twiss(method='4d')
 
 xtsl = xt.slicing
 # slicing to see beta inside bends
@@ -23,6 +24,7 @@ tt = line.get_table(attr=True)
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1, figsize=(6.4, 4.8 * 1.4))
+
 ax0 = plt.subplot(3, 1, 1)
 ax0.bar(tt.s, tt.k1l, width=tt.length, color='r', alpha=0.2)
 ax0.axhline(0, color='k', lw=0.5, alpha=0.5)
@@ -42,9 +44,11 @@ ax2 = plt.subplot(3, 1, 3, sharex=ax1)
 ax2.plot(tw.s, tw.dx, color='C2', label='dx')
 ax2.set_ylabel(r'$D_x$ [m]')
 plt.xlabel('s [m]')
+plt.suptitle('Optics')
 
 sv = line_sliced.survey()
 plt.figure(2, figsize=(6.4 * 1.7, 4.8))
+
 axsv1 = plt.subplot(1, 2, 1)
 plt.plot(sv.s, sv.X, '-', label='X')
 plt.plot(sv.s, sv.Z, '-', label='Z')
@@ -56,6 +60,8 @@ plt.plot(sv.Z, sv.X, '-')
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
 plt.axis('equal')
+plt.suptitle('Survey')
+
 
 
 tt = line.get_table(attr=True)
