@@ -29,7 +29,11 @@ line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
 line.configure_bend_model(core='full', edge=None)
 tw0 = line.twiss(method='4d')
 
-tw0.cols['betx bety mux muy'].show(maxrows=100)
+# Print twiss table
+tw0.cols['betx bety mux muy'].show(maxrows=None)
+
+# Save to json
+line.to_json('toy_ring.json')
 
 xtsl = xt.slicing
 # slicing to see beta inside bends
