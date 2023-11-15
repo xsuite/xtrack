@@ -35,7 +35,7 @@ def compensate_radiation_energy_loss(line, delta0=0, rtol_eneloss=1e-12,
     line.track(p_test, turn_by_turn_monitor='ONE_TURN_EBE')
     mon = line.record_last_track
     eloss = -(mon.ptau[0, -1] - mon.ptau[0, 0]) * p_test.p0c[0]
-    if abs(eloss) < p_test.energy0[0] * rtol_eneloss:
+    if p_test.state[0] > 0 and abs(eloss) < p_test.energy0[0] * rtol_eneloss:
         if verbose: _print("  - No compensation needed")
         return
 
