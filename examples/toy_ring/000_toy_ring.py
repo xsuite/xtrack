@@ -26,7 +26,10 @@ elements = {
 # Build the ring
 line = xt.Line(elements=elements, element_names=list(elements.keys()))
 line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
+line.configure_bend_model(core='full', edge=None)
 tw0 = line.twiss(method='4d')
+
+tw0.cols['betx bety mux muy'].show(maxrows=100)
 
 xtsl = xt.slicing
 # slicing to see beta inside bends
@@ -96,6 +99,31 @@ for ax in [ax1, ax2, axsv1]:
         ll = ttquads.length[ii]
         ax.axvspan(ss, ss+ll, facecolor='r', alpha=0.2)
 
+
+# Comparison of bend models
+line_sliced.configure_bend_model(core='expanded', edge='linear')
+tw_core_expand_fringe_linear = line_sliced.twiss(method='4d')
+line_sliced.configure_bend_model(core='full', edge='linear')
+tw_core_full_fringe_linear = line_sliced.twiss(method='4d')
+
+plt.figure(3, figsize=(6.4, 4.8 * 1.4))
+ax0 = plt.subplot(3, 1, 1)
+ax0.plot(tw_core_expand_fringe_linear.s, tw_core_expand_fringe_linear.betx, label='betx')
+ax0.plot(tw_core_full_fringe_linear.s, tw_core_full_fringe_linear.betx, label='betx')
+ax0.set_ylabel(r'$\beta_{x}$ [m]')
+
+# wx_chrom
+ax1 = plt.subplot(3, 1, 2, sharex=ax0)
+ax1.plot(tw_core_expand_fringe_linear.s, tw_core_expand_fringe_linear.wx_chrom, label='expanded')
+ax1.plot(tw_core_full_fringe_linear.s, tw_core_full_fringe_linear.wx_chrom, label='full')
+plt.ylabel(r'$W_x$')
+plt.legend()
+
+# wy_chrom
+ax2 = plt.subplot(3, 1, 3, sharex=ax0)
+ax2.plot(tw_core_expand_fringe_linear.s, tw_core_expand_fringe_linear.wy_chrom, label='expanded')
+ax2.plot(tw_core_full_fringe_linear.s, tw_core_full_fringe_linear.wy_chrom, label='full')
+plt.ylabel(r'$W_y$')
 
 
 plt.show()
