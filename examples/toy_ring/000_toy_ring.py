@@ -4,22 +4,20 @@ import xtrack as xt
 pi = np.pi
 lbend = 3
 elements = {
-    'mqf.1': xt.Quadrupole(length=0.3, k1=0.1),
     'd1.1':  xt.Drift(length=1),
     'mb1.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd2.1':  xt.Drift(length=1),
 
-    'mqd.1': xt.Quadrupole(length=0.3, k1=-0.1),
+    'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.1':  xt.Drift(length=1),
     'mb2.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd4.1':  xt.Drift(length=1),
 
-    'mqf.2': xt.Quadrupole(length=0.3, k1=0.1),
     'd1.2':  xt.Drift(length=1),
     'mb1.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd2.2':  xt.Drift(length=1),
 
-    'mqd.2': xt.Quadrupole(length=0.3, k1=-0.1),
+    'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.2':  xt.Drift(length=1),
     'mb2.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd4.2':  xt.Drift(length=1),
@@ -44,31 +42,40 @@ line_sliced.slice_thick_elements(
 #     ele_start='mqf.1', ele_stop=len(line)-1, twiss_init=xt.TwissInit(betx=1, bety=1))
 tw = line_sliced.twiss(method='4d')
 
+tt = line.get_table(attr=True)
+
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(1)
-ax1 = plt.subplot(2, 1, 1)
+plt.figure(1, figsize=(6.4, 4.8 * 1.4))
+ax0 = plt.subplot(3, 1, 1)
+ax0.bar(tt.s, tt.k1l, width=tt.length, color='r', alpha=0.2)
+ax0.axhline(0, color='k', lw=0.5, alpha=0.5)
+ax0.set_ylabel(r'k1L [m$^{-1}$]')
+ax0.set_ylim(np.array([-1, 1]) * np.max(np.abs(tt.k1l)) * 1.1)
+
+ax1 = plt.subplot(3, 1, 2, sharex=ax0)
 plt.plot(tw.s, tw.betx, label='betx')
 plt.plot(tw.s, tw.bety, label='bety')
 # plt.plot(tw0.s, tw0.betx, '.', color='C0')
 # plt.plot(tw0.s, tw0.bety, '.', color='C1')
-plt.xlabel('s [m]')
+
 plt.ylabel(r'$\beta_{x,y}$ [m]')
 plt.legend()
 
-ax2 = plt.subplot(2, 1, 2, sharex=ax1)
+ax2 = plt.subplot(3, 1, 3, sharex=ax1)
 ax2.plot(tw.s, tw.dx, color='C2', label='dx')
 ax2.set_ylabel(r'$D_x$ [m]')
+plt.xlabel('s [m]')
 
 sv = line_sliced.survey()
-plt.figure(2, figsize=(6.4, 4.8*2))
-axsv1 = plt.subplot(2, 1, 1)
+plt.figure(2, figsize=(6.4 * 1.7, 4.8))
+axsv1 = plt.subplot(1, 2, 1)
 plt.plot(sv.s, sv.X, '-', label='X')
 plt.plot(sv.s, sv.Z, '-', label='Z')
 plt.xlabel('s [m]')
 plt.ylabel('X, Z [m]')
 plt.legend()
-axsv2 = plt.subplot(2, 1, 2)
+axsv2 = plt.subplot(1, 2, 2)
 plt.plot(sv.Z, sv.X, '-')
 plt.xlabel('Z [m]')
 plt.ylabel('X [m]')
