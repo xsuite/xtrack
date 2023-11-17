@@ -5,6 +5,7 @@ import pytest
 
 import xtrack as xt
 import xpart as xp
+import xobjects as xo
 
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -14,9 +15,12 @@ test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolu
 @pytest.mark.parametrize('freeze_longitudinal', [True, False])
 def test_footprint(test_context, freeze_longitudinal):
 
+    if isinstance(test_context, xo.ContextPyopencl):
+        pytest.skip('Pyopencl not yet supported for footprint')
+        return
+
     nemitt_x = 1e-6
     nemitt_y = 1e-6
-
 
     line = xt.Line.from_json(test_data_folder /
                 'hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
@@ -39,7 +43,10 @@ def test_footprint(test_context, freeze_longitudinal):
     fp1 = line.get_footprint(nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                             n_r=11, n_theta=7, r_range=[0.05, 7],
                             theta_range=[0.01, np.pi/2-0.01],
+                            keep_tracking_data=True,
                             **kwargs)
+
+    assert hasattr(fp1, 'tracking_data')
 
     assert hasattr(fp1, 'theta_grid')
     assert hasattr(fp1, 'r_grid')
@@ -188,6 +195,10 @@ def test_footprint(test_context, freeze_longitudinal):
 
 @for_all_test_contexts
 def test_footprint_delta0(test_context):
+
+    if isinstance(test_context, xo.ContextPyopencl):
+        pytest.skip('Pyopencl not yet supported for footprint')
+        return
 
     nemitt_x = 1e-6
     nemitt_y = 1e-6

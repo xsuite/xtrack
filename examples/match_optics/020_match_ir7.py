@@ -15,6 +15,34 @@ collider = xt.Multiline(lines={'lhcb1': line})
 collider.build_trackers()
 collider.vars.cache_active = True
 
+scale = 23348.89927
+scmin = 0.03*7000./line.vars['nrj']._value
+qtlimitx28 = 1.0*225.0/scale
+qtlimitx15 = 1.0*205.0/scale
+qtlimit2 = 1.0*160.0/scale
+qtlimit3 = 1.0*200.0/scale
+qtlimit4 = 1.0*125.0/scale
+qtlimit5 = 1.0*120.0/scale
+qtlimit6 = 1.0*90.0/scale
+
+collider.vars.vary_default.update({
+    'kqt13.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+    'kqt12.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+    'kqtl11.l7b1': {'step': 1.0E-9, 'limits': (-qtlimit4*300./550., qtlimit4*300./550.)},
+    'kqtl10.l7b1': {'step': 1.0E-9, 'limits': (-qtlimit4*500./550., qtlimit4*500./550.)},
+    'kqtl9.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*400./550., qtlimit4*400./550.)},
+    'kqtl8.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*300./550., qtlimit4*300./550.)},
+    'kqtl7.l7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kq6.l7b1':    {'step': 1.0E-9, 'limits': (-qtlimit6, qtlimit6)},
+    'kq6.r7b1':    {'step': 1.0E-9, 'limits': (-qtlimit6, qtlimit6)},
+    'kqtl7.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kqtl8.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*550./550., qtlimit4*550./550.)},
+    'kqtl9.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit4*500./550., qtlimit4*500./550.)},
+    'kqtl10.r7b1': {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kqtl11.r7b1': {'step': 1.0E-9, 'limits': (-qtlimit4, qtlimit4)},
+    'kqt12.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+    'kqt13.r7b1':  {'step': 1.0E-9, 'limits': (-qtlimit5, qtlimit5)},
+})
 tw_ref = collider.lhcb1.twiss()
 
 ele_start_match = 's.ds.l7.b1'
@@ -36,16 +64,6 @@ alfx_at_ip7 = tw_ref['alfx', 'ip7']
 alfy_at_ip7 = tw_ref['alfy', 'ip7']
 dx_at_ip7 = tw_ref['dx', 'ip7']
 dpx_at_ip7 = tw_ref['dpx', 'ip7']
-
-scale = 23348.89927
-scmin = 0.03*7000./line.vars['nrj']._value
-qtlimitx28 = 1.0*225.0/scale
-qtlimitx15 = 1.0*205.0/scale
-qtlimit2 = 1.0*160.0/scale
-qtlimit3 = 1.0*200.0/scale
-qtlimit4 = 1.0*125.0/scale
-qtlimit5 = 1.0*120.0/scale
-qtlimit6 = 1.0*90.0/scale
 
 
 # Break something
@@ -70,67 +88,44 @@ perturbed_vars['kqt13.r7b1'] = collider.vars['kqt13.r7b1']._value * 1.12
 
 tw_before = collider.lhcb1.twiss()
 
-fact_on_tol = 0.001
-
 for i_repeat in range(1):
 
     for nn, vv in perturbed_vars.items():
         collider.vars[nn]= vv
 
     t_start = time.perf_counter()
-    match_res = collider.match(
-        # verbose=True,
+    opt = collider.match(
+        solve=False,
         ele_start=ele_start_match,
         ele_stop=ele_end_match,
-        twiss_init=tw_init,
+        table_for_twiss_init=[tw_ref],
+        twiss_init='preserve',
         targets=[
-            xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='betx', value=betx_at_ip7, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='bety', value=bety_at_ip7, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='alfx', value=alfx_at_ip7, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='ip7',        tar='alfy', value=alfy_at_ip7, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfx', value=alfx_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='alfy', value=alfy_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='betx', value=betx_end_match, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='bety', value=bety_end_match, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dx',   value=dx_end_match, tol=1e-3*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='dpx',  value=dpx_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='mux',  value=mux_end_match, tol=1e-5*fact_on_tol),
-            xt.Target(line='lhcb1', at='e.ds.r7.b1', tar='muy', value=muy_end_match, tol=1e-5*fact_on_tol),
-            # xt.TargetInequality('bety', '<', 180.49-0.3, line='lhcb1', at='mq.11l7.b1'),
-            # xt.TargetInequality('bety', '<', 174.5,      line='lhcb1', at='mq.9l7.b1'),
-            # xt.TargetInequality('bety', '<', 176.92,     line='lhcb1', at='mq.8r7.b1'),
-            # xt.TargetInequality('bety', '<', 179,        line='lhcb1', at='mq.10r7.b1'),
-        ],
+            xt.TargetList(
+                ('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
+                at='ip7', line='lhcb1', value=tw_ref),
+            xt.TargetList(
+                ('alfx', 'alfy', 'betx', 'bety', 'dx', 'dpx', 'mux', 'muy'),
+                at='e.ds.r7.b1',line='lhcb1', value=tw_ref),
+            ],
         vary=[
-            xt.Vary('kqt13.l7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
-            xt.Vary('kqt12.l7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
-            xt.Vary('kqtl11.l7b1', step=1.0E-9, limits=(-qtlimit4*300./550., qtlimit4*300./550.)),
-            xt.Vary('kqtl10.l7b1', step=1.0E-9, limits=(-qtlimit4*500./550., qtlimit4*500./550.)),
-            xt.Vary('kqtl9.l7b1',  step=1.0E-9, limits=(-qtlimit4*400./550., qtlimit4*400./550.)),
-            xt.Vary('kqtl8.l7b1',  step=1.0E-9, limits=(-qtlimit4*300./550., qtlimit4*300./550.)),
-            xt.Vary('kqtl7.l7b1',  step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            xt.Vary('kq6.l7b1',    step=1.0E-9, limits=(-qtlimit6, qtlimit6)),
-            xt.Vary('kq6.r7b1',    step=1.0E-9, limits=(-qtlimit6, qtlimit6)),
-            xt.Vary('kqtl7.r7b1',  step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            xt.Vary('kqtl8.r7b1',  step=1.0E-9, limits=(-qtlimit4*550./550., qtlimit4*550./550.)),
-            xt.Vary('kqtl9.r7b1',  step=1.0E-9, limits=(-qtlimit4*500./550., qtlimit4*500./550.)),
-            xt.Vary('kqtl10.r7b1', step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            xt.Vary('kqtl11.r7b1', step=1.0E-9, limits=(-qtlimit4, qtlimit4)),
-            xt.Vary('kqt12.r7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
-            xt.Vary('kqt13.r7b1',  step=1.0E-9, limits=(-qtlimit5, qtlimit5)),
+            xt.VaryList(
+                ('kqt13.l7b1', 'kqt12.l7b1', 'kqtl11.l7b1', 'kqtl10.l7b1',
+                 'kqtl9.l7b1', 'kqtl8.l7b1', 'kqtl7.l7b1', 'kq6.l7b1',
+                 'kq6.r7b1', 'kqtl7.r7b1', 'kqtl8.r7b1', 'kqtl9.r7b1',
+                 'kqtl10.r7b1', 'kqtl11.r7b1', 'kqt12.r7b1', 'kqt13.r7b1'))
         ]
     )
+
+    match_res = opt.solve()
     t_end = time.perf_counter()
     print(f"Matching time: {t_end - t_start:0.4f} seconds")
 
-assert match_res['optimizer'].targets[4].weight == 10.
 
 tw_after = collider.lhcb1.twiss()
 
 
-_err = match_res['jac_solver'].func
+_err = opt._err
 x_final = match_res['res']
 
 n_repeat_err_call = 100

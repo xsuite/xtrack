@@ -9,12 +9,14 @@ from .base_element import BeamElement
 from .beam_elements import *
 from .random import *
 from .tracker_data import TrackerData
-from .line import Line, Node, freeze_longitudinal, _temp_knobs
+from .line import Line, Node, freeze_longitudinal, _temp_knobs, EnergyProgram
 from .tracker import Tracker
-from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action)
+from .match import (Vary, Target, TargetList, VaryList, TargetInequality, Action,
+                    TargetRelPhaseAdvance, TargetSet, START, END,
+                    GreaterThan, LessThan)
 from .targets import (TargetLuminosity, TargetSeparationOrthogonalToCrossing,
                       TargetSeparation)
-from .twiss import TwissInit
+from .twiss import TwissInit, TwissTable
 from .loss_location_refinement import LossLocationRefinement
 from .internal_record import (RecordIdentifier, RecordIndex, new_io_buffer,
                              start_internal_logging, stop_internal_logging)
@@ -36,12 +38,11 @@ from .line import _is_drift, _behaves_like_drift, _is_aperture, _is_thick, _allo
 from .line import _lines_equal, _apertures_equal
 from .loss_location_refinement import _skip_in_loss_location_refinement
 
+from xdeps import Table
 
 from ._version import __version__
 
-def Particles(*args, **kwargs):
-    raise ValueError(
-    "`xtrack.Particles` not available anymore, please use `xpart.Particles`")
+from xpart import Particles, PROTON_MASS_EV, ELECTRON_MASS_EV
 
 def enable_pyheadtail_interface(*args, **kwargs):
     raise ValueError(

@@ -2,12 +2,12 @@ import io
 import json
 import pandas as pd
 import numpy as np
+from copy import deepcopy
 
 from .shared_knobs import VarSharing
 from ..match import match_knob_line
 import xobjects as xo
 import xtrack as xt
-import xfields as xf
 
 class Multiline:
 
@@ -39,6 +39,8 @@ class Multiline:
         for nn, ll in zip(line_names, line_list):
             ll._in_multiline = self
             ll._name_in_multiline = nn
+
+        self.metadata = {}
 
     def to_dict(self, include_var_management=True):
 
@@ -76,6 +78,9 @@ class Multiline:
                             dct['_bb_config'][nn][kk] = None
                 else:
                     dct['_bb_config'][nn] = vv
+
+        dct["metadata"] = deepcopy(self.metadata)
+            
         return dct
 
     @classmethod
@@ -116,6 +121,9 @@ class Multiline:
                     df = None
                 new_multiline._bb_config[
                     'dataframes'][nn] = df
+                
+        if "metadata" in dct:
+            new_multiline.metadata = dct["metadata"]
 
         return new_multiline
 
@@ -162,36 +170,18 @@ class Multiline:
 
         return cls.from_dict(dct, **kwargs)
 
+    def copy(self):
+        '''
+        Returns a deep copy of the multiline.
+        '''
+        return self.__class__.from_dict(self.to_dict())
+
     def __getstate__(self):
         out = self.__dict__.copy()
-        for nn, ll in self.lines.items():
-            ll._pickled_by_multiline = True
-        if '_var_sharing' in out and out['_var_sharing'] is not None:
-            out['_var_sharing'] = 'to_be_rebuilt'
-            out['_var_manager'] = self._var_sharing.manager.dump()
-            out['_var_management_data'] = self._var_sharing.data
         return out
 
     def __setstate__(self, state):
-        if '_var_sharing' in state and state['_var_sharing'] == 'to_be_rebuilt':
-            rebuild_var_sharing = True
-            _var_manager = state.pop('_var_manager')
-            _var_management_data = state.pop('_var_management_data')
-        else:
-            rebuild_var_sharing = False
-            state['_var_sharing'] = None
         self.__dict__.update(state)
-        if rebuild_var_sharing:
-            line_names = list(self.lines.keys())
-            line_list = [self.lines[nn] for nn in line_names]
-            self._var_sharing = VarSharing(lines=line_list,
-                                           names=line_names)
-            self._var_sharing.manager.load(_var_manager)
-            for kk in _var_management_data.keys():
-                self._var_sharing.data[kk].update(_var_management_data[kk])
-        for nn, ll in self.lines.items():
-            ll._in_multiline = self
-
 
     def build_trackers(self, _context=None, _buffer=None, **kwargs):
         '''
@@ -320,11 +310,12 @@ class Multiline:
             Value of the knob after the matching. Defaults to 1.
 
         '''
-        raise NotImplementedError # Untested
 
-        match_knob_line(self, vary=vary, targets=targets,
+        opt = match_knob_line(self, vary=vary, targets=targets,
                         knob_name=knob_name, knob_value_start=knob_value_start,
                         knob_value_end=knob_value_end, **kwargs)
+
+        return opt
 
     def __getitem__(self, key):
         return self.lines[key]
@@ -345,9 +336,26 @@ class Multiline:
         return self._multiline_vars
 
     @property
+    def varval(self):
+        return self.vars.val
+
+    @property
+    def vv(self): # alias for varval
+        return self.vars.val
+
+    @property
+    def functions(self):
+        return self._xdeps_fref
+
+    @property
     def _xdeps_vref(self):
         if self._var_sharing is not None:
             return self._var_sharing._vref
+
+    @property
+    def _xdeps_fref(self):
+        if self._var_sharing is not None:
+            return self._var_sharing._fref
 
     @property
     def _xdeps_manager(self):
@@ -409,6 +417,7 @@ class Multiline:
             assert np.isclose(circumference_cw, circumference_acw,
                               atol=1e-4, rtol=0)
 
+        import xfields as xf
         bb_df_cw, bb_df_acw = xf.install_beambeam_elements_in_lines(
             line_b1=self.lines.get(clockwise_line, None),
             line_b4=self.lines.get(anticlockwise_line, None),
@@ -456,7 +465,7 @@ class Multiline:
         separation_bumps: dict
             Dictionary previding the plane of the separation bump in the IPs
             where separation is present. The keys are the IP names and the
-            values are the plane ("x" or "y"). This information needs to be 
+            values are the plane ("x" or "y"). This information needs to be
             provided only when use_antisymmetry is True.
 
         '''
@@ -471,6 +480,7 @@ class Multiline:
         else:
             bb_df_acw = None
 
+        import xfields as xf
         xf.configure_beam_beam_elements(
             bb_df_cw=bb_df_cw,
             bb_df_acw=bb_df_acw,
@@ -515,6 +525,7 @@ class Multiline:
             The index of the bunch to be simulated for the anticlockwise beam.
         '''
 
+        import xfields as xf
         apply_filling_pattern = (
             xf.config_tools.beambeam_config_tools.config_tools.apply_filling_pattern)
 

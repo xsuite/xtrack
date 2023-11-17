@@ -35,6 +35,9 @@ class TrackerData:
             element_names,
             element_s_locations,
             line_length,
+            cache=None,
+            compound_mask=None,
+            element_compound_names=None,
             kernel_element_classes=None,
             extra_element_classes=(),
             allow_move=False,
@@ -55,6 +58,9 @@ class TrackerData:
             List of element s locations.
         line_length : float
             Length of the line.
+        compound_mask : list, optional
+            List of booleans indicating whether the element is an entry of a
+            compound element, or a standalone element.
         kernel_element_classes : list, optional
             Explicit list of classes of elements of the line; if `None`,
             will be inferred from list.
@@ -62,7 +68,6 @@ class TrackerData:
             If `kernel_element_classes` is `None`, this list will be used to augment
             the inferred list of element classes.
         """
-
         if _offset is not None:
             raise ValueError('`_offset` is not supported yet')
 
@@ -72,11 +77,18 @@ class TrackerData:
         self._is_backtrackable = np.all([ee.has_backtrack for ee in self._elements])
         self.extra_element_classes = extra_element_classes
 
+        # If no buffer given, try to guess it from elements, if there is no
+        # common buffer, try to guess the context from elements, if there is
+        # no common context, a default will be taken.
         if _buffer is None:
             common_buffer = self.common_buffer_for_elements()
             if common_buffer is not None and _context in [common_buffer.context, None]:
                 _buffer = common_buffer
+            if _buffer is None and _context is None:
+                _context = self.common_context_for_elements()
             _buffer = _buffer or xo.get_a_buffer(context=_context, size=64)
+        elif _context is not None and _buffer.context is not _context:
+            raise ValueError('The given context and buffer are not compatible.')
 
         check_passed = self.check_elements_in_common_buffer(_buffer, allow_move=allow_move)
         if not check_passed:
@@ -86,6 +98,14 @@ class TrackerData:
         self.line_element_classes = line_element_classes
         self.element_s_locations = tuple(element_s_locations)
         self.line_length = line_length
+        if cache is None:
+            cache = {}
+        self.cache = cache
+
+        if compound_mask is None:
+            compound_mask = np.zeros(len(element_names), dtype=np.bool)
+        self.compound_mask = np.array(compound_mask)
+        self.element_compound_names = np.array(element_compound_names)
 
         if not kernel_element_classes:
             kernel_element_classes = (
@@ -114,6 +134,20 @@ class TrackerData:
                     return None
 
         return common_buffer
+
+    def common_context_for_elements(self):
+        """If all `self.elements` elements are on the same context,
+        returns said context, otherwise returns `None`."""
+        common_context = None
+        for ee in self._elements:
+            if hasattr(ee, '_context'):
+                if common_context is None:
+                    common_context = ee._context
+
+                if ee._context is not common_context:
+                    return None
+
+        return common_context
 
     def to_binary(self, buffer=None) -> Tuple[xo.context.XBuffer, int]:
         """

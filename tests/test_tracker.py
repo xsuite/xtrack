@@ -4,6 +4,7 @@
 # ######################################### #
 import json
 import pathlib
+import pytest
 
 import numpy as np
 import xobjects as xo
@@ -11,10 +12,28 @@ import xtrack as xt
 import xpart as xp
 from xobjects.test_helpers import for_all_test_contexts
 
-from pathlib import Path
-
 test_data_folder = pathlib.Path(
     __file__).parent.joinpath('../test_data').absolute()
+
+
+@for_all_test_contexts
+def test_simple_collective_line(test_context):
+    num_turns = 100
+    elements = [xt.Drift(length=2., _context=test_context) for _ in range(5)]
+    elements[3].iscollective = True
+    line = xt.Line(elements=elements)
+    line.reset_s_at_end_turn = False
+
+    particles = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12,
+            _context=test_context)
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=num_turns)
+
+    particles.move(_context=xo.ContextCpu())
+
+    assert np.all(particles.at_turn == num_turns)
+    assert np.allclose(particles.s, 10 * num_turns, rtol=0, atol=1e-14)
+
 
 
 @for_all_test_contexts
@@ -318,6 +337,7 @@ def test_tracker_hashable_config():
         ('TEST_FLAG_BOOL', True),
         ('TEST_FLAG_INT', 42),
         ('XFIELDS_BB3D_NO_BEAMSTR', True), # active by default
+        ('XFIELDS_BB3D_NO_BHABHA', True), # active by default
         ('XTRACK_GLOBAL_XY_LIMIT', 1.0), # active by default
         ('XTRACK_MULTIPOLE_NO_SYNRAD', True), # active by default
         ('ZZZ', 'lorem'),
@@ -501,3 +521,24 @@ def test_backtrack_with_flag(test_context):
     assert np.allclose(mon_forward.py, mon_backtrack.py, rtol=0, atol=1e-10)
     assert np.allclose(mon_forward.zeta, mon_backtrack.zeta, rtol=0, atol=1e-10)
     assert np.allclose(mon_forward.delta, mon_backtrack.delta, rtol=0, atol=1e-10)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'with_progress,turns',
+    [(True, 300), (True, 317), (7, 523), (1, 21), (10, 10)]
+)
+@pytest.mark.parametrize('collective', [True, False], ids=['collective', 'non-collective'])
+def test_tracking_with_progress(test_context, with_progress, turns, collective):
+    elements = [xt.Drift(length=2, _context=test_context) for _ in range(5)]
+    elements[3].iscollective = collective
+    line = xt.Line(elements=elements)
+    line.reset_s_at_end_turn = False
+
+    particles = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, _context=test_context)
+    line.build_tracker(_context=test_context)
+    line.track(particles, num_turns=turns, with_progress=with_progress)
+    particles.move(xo.ContextCpu())
+
+    assert np.all(particles.at_turn == turns)
+    assert np.allclose(particles.s, 10 * turns, rtol=0, atol=1e-14)

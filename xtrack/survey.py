@@ -180,22 +180,24 @@ def _get_s_increments(elements):
 
 # Main function
 # ==================================================
-def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
+def survey_from_line(line, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
                         element0=0,
                         values_at_element_exit=False,
                         reverse=True):
     """Execute SURVEY command. Based on MADX equivalent.
     Attributes, must be given in this order in the dictionary:
-    X0        (float)    Initial X position.
-    Y0        (float)    Initial Y position.
-    Z0        (float)    Initial Z position.
-    theta0    (float)    Initial azimuthal angle.
-    phi0      (float)    Initial elevation angle.
-    psi0      (float)    Initial roll angle."""
+    X0        (float)    Initial X position in meters.
+    Y0        (float)    Initial Y position in meters.
+    Z0        (float)    Initial Z position in meters.
+    theta0    (float)    Initial azimuthal angle in radians.
+    phi0      (float)    Initial elevation angle in radians.
+    psi0      (float)    Initial roll angle in radians."""
+
+    if reverse:
+        raise ValueError('`survey(..., reverse=True)` not supported anymore. '
+                         'Use `survey(...).reverse()` instead.')
 
     assert not values_at_element_exit, "Not implemented yet"
-
-    line = tracker.line
 
     # Extract drift lengths
     drift_length = _get_s_increments(line.elements)
@@ -240,12 +242,8 @@ def survey_from_tracker(tracker, X0=0, Y0=0, Z0=0, theta0=0, phi0=0, psi0=0,
 
     out_scalars['element0'] = element0
 
-    out = SurveyTable(data=(out_columns | out_scalars), # this is a merge
+    out = SurveyTable(data={**out_columns, **out_scalars},  # this is a merge
                       col_names=out_columns.keys())
-
-    if reverse:
-        raise ValueError('`survey(..., reverse=True)` not supported anymore. '
-                         'Use `survey(...).reverse()` instead.')
 
     return out
 

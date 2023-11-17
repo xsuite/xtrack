@@ -6,7 +6,7 @@ import xtrack as xt
 source = """
 
 /*gpukern*/
-void get_values_at_offsets(
+void get_values_at_offsets_float64(
     MultiSetterData data,
     /*gpuglmem*/ int8_t* buffer,
     /*gpuglmem*/ double* out){
@@ -22,7 +22,23 @@ void get_values_at_offsets(
 }
 
 /*gpukern*/
-void set_values_at_offsets(
+void get_values_at_offsets_int64(
+    MultiSetterData data,
+    /*gpuglmem*/ int8_t* buffer,
+    /*gpuglmem*/ int64_t* out){
+
+    int64_t num_offsets = MultiSetterData_len_offsets(data);
+
+    for (int64_t ii = 0; ii < num_offsets; ii++) { //vectorize_over ii num_offsets
+        int64_t offs = MultiSetterData_get_offsets(data, ii);
+
+        int64_t val = *((/*gpuglmem*/ int64_t*)(buffer + offs));
+        out[ii] = val;
+    } //end_vectorize
+}
+
+/*gpukern*/
+void set_values_at_offsets_float64(
     MultiSetterData data,
     /*gpuglmem*/ int8_t* buffer,
     /*gpuglmem*/ double* input){
@@ -37,6 +53,24 @@ void set_values_at_offsets(
     } //end_vectorize
 }
 
+/*gpukern*/
+void set_values_at_offsets_int64(
+    MultiSetterData data,
+    /*gpuglmem*/ int8_t* buffer,
+    /*gpuglmem*/ int64_t* input){
+
+    int64_t num_offsets = MultiSetterData_len_offsets(data);
+
+    for (int64_t ii = 0; ii < num_offsets; ii++) {  //vectorize_over ii num_offsets
+        int64_t offs = MultiSetterData_get_offsets(data, ii);
+
+        int64_t val = input[ii];
+        *((/*gpuglmem*/ int64_t*)(buffer + offs)) = val;
+    } //end_vectorize
+}
+
+
+
 """
 
 class MultiSetter(xo.HybridClass):
@@ -49,26 +83,38 @@ class MultiSetter(xo.HybridClass):
     ]
 
     _kernels = {
-        'get_values_at_offsets': xo.Kernel(
+        'get_values_at_offsets_float64': xo.Kernel(
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),
                 xo.Arg(xo.Float64, pointer=True, name='out'),
             ],
         ),
-        'set_values_at_offsets': xo.Kernel(
+        'get_values_at_offsets_int64': xo.Kernel(
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int64, pointer=True, name='out'),
+            ],
+        ),
+        'set_values_at_offsets_float64': xo.Kernel(
             args=[
                 xo.Arg(xo.ThisClass, name='data'),
                 xo.Arg(xo.Int8, pointer=True, name='buffer'),
                 xo.Arg(xo.Float64, pointer=True, name='input'),
             ],
         ),
+        'set_values_at_offsets_int64': xo.Kernel(
+            args=[
+                xo.Arg(xo.ThisClass, name='data'),
+                xo.Arg(xo.Int8, pointer=True, name='buffer'),
+                xo.Arg(xo.Int64, pointer=True, name='input'),
+            ],
+        ),
     }
 
     def __init__(self, line, elements, field, index=None):
-
-        '''
-        Create object to efficiently set and get values of a specific field of
+        """Create object to efficiently set and get values of a specific field of
         several elements of a line.
 
         Parameters
@@ -81,8 +127,7 @@ class MultiSetter(xo.HybridClass):
             Name of the field to be mutated.
         index: int or None
             If the field is an array, the index of the array to be mutated.
-
-        '''
+        """
 
         if isinstance(line, xt.Tracker):
             tracker = line
@@ -93,8 +138,31 @@ class MultiSetter(xo.HybridClass):
 
         tracker_buffer = tracker._buffer
         line = tracker.line
+
+        if len(elements) == 0:
+            self._empty = True
+            self.xoinitialize(_context=context, offsets=[])
+            return
+
+        self._empty = False
+
+        # Get dtype from first element
+        el = line[elements[0]]
+        dd = getattr(el.copy(_context=xo.context_default), field)
+        if index is not None:
+            dd = dd[index]
+        self.dtype = type(dd)
+        self.xodtype = {
+            np.float64: xo.Float64,
+            np.int64: xo.Int64,
+        }[self.dtype]
+
+        assert self.dtype in [np.float64, np.int64], (
+            'Only float64 and int64 are supported for now')
+
         assert np.all([line[nn]._buffer is tracker_buffer for nn in elements])
-        offsets = [_extract_offset(line[nn], field, index) for nn in elements]
+        offsets = [_extract_offset(line[nn], field, index, self.dtype, self.xodtype)
+                   for nn in elements]
 
         self.xoinitialize(_context=context, offsets=offsets)
         self.compile_kernels(only_if_needed=True)
@@ -103,41 +171,48 @@ class MultiSetter(xo.HybridClass):
         self.tracker = tracker
         self._tracker_buffer = tracker_buffer
 
+        self._get_kernel = {
+            np.float64: self._context.kernels.get_values_at_offsets_float64,
+            np.int64: self._context.kernels.get_values_at_offsets_int64,
+        }[self.dtype]
+
+        self._set_kernel = {
+            np.float64: self._context.kernels.set_values_at_offsets_float64,
+            np.int64: self._context.kernels.set_values_at_offsets_int64,
+        }[self.dtype]
+
     def get_values(self):
+        """Get the values of the multisetter fields."""
+        if self._empty:
+            return self._context.zeros(0, dtype=np.float64)
 
-        '''
-        Get the values of the multisetter fields.
-        '''
-
-        out = self._context.zeros(len(self.offsets), dtype=np.float64)
-        kernel = self._context.kernels.get_values_at_offsets
-        kernel.set_n_threads(len(self.offsets))
-        kernel(data=self, buffer=self._tracker_buffer.buffer, out=out)
+        out = self._context.zeros(len(self.offsets), dtype=self.dtype)
+        self._get_kernel.set_n_threads(len(self.offsets))
+        self._get_kernel(data=self, buffer=self._tracker_buffer.buffer, out=out)
         return out
 
     def set_values(self, values):
-
-        '''
-        Set the values of the multisetter fields.
+        """Set the values of the multisetter fields.
 
         Parameters
         ----------
         values: np.ndarray
             Array of values to be set.
-        '''
+        """
+        if self._empty:
+            return
 
-        kernel = self._context.kernels.set_values_at_offsets
-        kernel.set_n_threads(len(self.offsets))
-        kernel(data=self, buffer=self._tracker_buffer.buffer,
-               input=xt.BeamElement._arr2ctx(self,values))
+        self._set_kernel.set_n_threads(len(self.offsets))
+        self._set_kernel(data=self, buffer=self._tracker_buffer.buffer,
+               input=xt.BeamElement._arr2ctx(self, values))
 
 
-def _extract_offset(obj, field_name, index):
+def _extract_offset(obj, field_name, index, dtype, xodtype):
     if index is None:
-        assert isinstance(getattr(obj, field_name), np.float64), (
-            'Only float64 fields are supported for now')
+        assert isinstance(getattr(obj, field_name), dtype), (
+            "Inconsistent types")
         return obj._xobject._get_offset(field_name)
     else:
-        assert getattr(obj._xobject, field_name)._itemtype is xo.Float64, (
-            'Only Float64 arrays are supported for now')
+        assert getattr(obj._xobject, field_name)._itemtype is xodtype, (
+            "Inconsistent types")
         return getattr(obj._xobject, field_name)._get_offset(index)

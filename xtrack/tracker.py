@@ -2,13 +2,15 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-
+from math import ceil
 from time import perf_counter
 from typing import Literal, Union
 from contextlib import contextmanager
 import logging
 from functools import partial
 from collections import UserDict, defaultdict
+
+from scipy.constants import c as clight
 
 import numpy as np
 import xobjects as xo
@@ -23,6 +25,7 @@ from .general import _pkg_root
 from .internal_record import new_io_buffer
 from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
+from .progress_indicator import progress
 from .tracker_data import TrackerData
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
@@ -90,24 +93,26 @@ class Tracker:
         self._enable_pipeline_hold = enable_pipeline_hold
         self.use_prebuilt_kernels = use_prebuilt_kernels
 
-        if self.iscollective:
-            (parts, part_names, _element_part, _element_index_in_part,
-                _part_element_index, noncollective_xelements) = (
-                self._split_parts_for_colletctive_mode(line, _buffer))
+        # Some data for collective mode prepared also for non-collective lines
+        # to allow collective actions by the tracker (e.g. time-functions on knobs)
+        (parts, part_names, _element_part, _element_index_in_part,
+            _part_element_index, noncollective_xelements) = (
+            self._split_parts_for_collective_mode(line, _buffer))
 
+        assert len(line.element_names) == len(_element_index_in_part)
+        assert len(line.element_names) == len(_element_part)
+        if len(line.element_names) > 0:
+            assert _element_part[-1] == len(parts) - 1
+        self._parts = parts
+        self._part_names = part_names
+        self._element_part = _element_part
+        self._element_index_in_part = _element_index_in_part
+
+        if self.iscollective:
             # Build tracker for all non-collective elements
             # (with collective elements replaced by Drifts)
             ele_dict_non_collective = {
                 nn:ee for nn, ee in zip(line.element_names, noncollective_xelements)}
-
-            assert len(line.element_names) == len(_element_index_in_part)
-            assert len(line.element_names) == len(_element_part)
-            assert _element_part[-1] == len(parts) - 1
-            self._parts = parts
-            self._part_names = part_names
-            self._element_part = _element_part
-            self._element_index_in_part = _element_index_in_part
-
         else:
             ele_dict_non_collective = line.element_dict
 
@@ -117,6 +122,8 @@ class Tracker:
             element_names=line.element_names,
             element_s_locations=line.get_s_elements(),
             line_length=line.get_length(),
+            compound_mask=line.get_compound_mask(),
+            element_compound_names=line.get_element_compound_names(),
             kernel_element_classes=None,
             extra_element_classes=(particles_monitor_class._XoStruct,),
             _context=_context,
@@ -124,10 +131,6 @@ class Tracker:
         line._freeze()
 
         _buffer = tracker_data_base._buffer
-
-        if io_buffer is None:
-            io_buffer = new_io_buffer(_context=_buffer.context)
-        self.io_buffer = io_buffer
 
         # Make a "marker" element to increase at_element
         if self.iscollective:
@@ -137,13 +140,22 @@ class Tracker:
         self._tracker_data_cache = {}
         self._tracker_data_cache[None] = tracker_data_base
 
+        self._get_twiss_mask_markers() # to cache it
+
+        self._init_io_buffer(io_buffer)
+
         self.line = line
         self.line.tracker = self
 
         if compile:
             _ = self.get_track_kernel_and_data_for_present_config()  # This triggers compilation
 
-    def _split_parts_for_colletctive_mode(self, line, _buffer):
+    def _init_io_buffer(self, io_buffer=None):
+        if io_buffer is None:
+            io_buffer = new_io_buffer(_context=self._context)
+        self.io_buffer = io_buffer
+
+    def _split_parts_for_collective_mode(self, line, _buffer):
 
         # Split the sequence
         parts = []
@@ -252,6 +264,10 @@ class Tracker:
     def _beamstrahlung_model(self):
         return self.line._beamstrahlung_model
 
+    @property
+    def _bhabha_model(self):
+        return self.line._bhabha_model
+
     def _invalidate(self):
         if self.iscollective:
             self._invalidated_parts = self._parts
@@ -266,12 +282,44 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, *args, **kwargs):
+    def _track(self, particles, *args, with_progress: Union[bool, int] = False, **kwargs):
         assert self.iscollective in (True, False)
-        if self.iscollective:
-            return self._track_with_collective(*args, **kwargs)
+        if self.iscollective or self.line.enable_time_dependent_vars:
+            tracking_func = self._track_with_collective
         else:
-            return self._track_no_collective(*args, **kwargs)
+            tracking_func = self._track_no_collective
+
+        if with_progress:
+            if self.enable_pipeline_hold:
+                raise ValueError("Progress indicator is not supported with pipeline hold")
+
+            try:
+                num_turns = kwargs['num_turns']
+            except KeyError:
+                raise ValueError('Tracking with progress indicator is only '
+                                 'possible over more than one turn.')
+
+            if with_progress is True:
+                with_progress = scaling = 100
+            else:
+                with_progress = int(with_progress)
+                scaling = with_progress if with_progress > 1 else None
+
+            for ii in progress(
+                    range(0, num_turns, with_progress),
+                    desc='Tracking',
+                    unit_scale=scaling,
+            ):
+                one_turn_kwargs = kwargs.copy()
+                if ii + with_progress > num_turns:  # last group of turns
+                    one_turn_kwargs['num_turns'] = num_turns % with_progress
+                else:
+                    one_turn_kwargs['num_turns'] = scaling
+
+                tracking_func(particles, *args, **one_turn_kwargs)
+                # particles.reorganize() # could be done in the future to optimize GPU usage
+        else:
+            return tracking_func(particles, *args, **kwargs)
 
     @property
     def particle_ref(self) -> xp.Particles:
@@ -314,8 +362,17 @@ class Tracker:
             module_name=None,
             containing_dir='.',
     ):
-        if (self.use_prebuilt_kernels and compile != 'force'
-                and isinstance(self._context, xo.ContextCpu)):
+        if compile == 'force':
+            use_prebuilt_kernels = False
+        elif not isinstance(self._context, xo.ContextCpu):
+            use_prebuilt_kernels = False
+        elif (self._context.omp_num_threads == 'auto'  # CPU context, but OpenMP
+              or self._context.omp_num_threads > 1):
+            use_prebuilt_kernels = False
+        else:
+            use_prebuilt_kernels = self.use_prebuilt_kernels
+
+        if use_prebuilt_kernels:
             kernel_info = get_suitable_kernel(
                 self.config, self.line_element_classes
             )
@@ -627,9 +684,6 @@ class Tracker:
 
         assert num_turns >= 1
 
-        assert turn_by_turn_monitor != 'ONE_TURN_EBE', (
-            "Element-by-element monitor not available in collective mode")
-
         (flag_monitor, monitor, buffer_monitor, offset_monitor
             ) = self._get_monitor(particles, turn_by_turn_monitor, num_turns)
 
@@ -681,10 +735,11 @@ class Tracker:
 
         return _need_unhide_lost_particles, moveback_to_buffer, moveback_to_offset
 
-    def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns):
+    def _track_part(self, particles, pp, tt, ipp, ele_start, ele_stop, num_turns, monitor):
         ret = None
         skip = False
         stop_tracking = False
+
         if tt == 0 and ipp < self._element_part[ele_start]:
             # Do not track before ele_start in the first turn
             skip = True
@@ -701,11 +756,11 @@ class Tracker:
                     and tt == num_turns - 1 and self._element_part[ele_stop] == ipp):
                     # The stop element is also in this part, so track until ele_stop
                     i_stop_in_part = self._element_index_in_part[ele_stop]
-                    ret = pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part)
+                    ret = pp.track(particles, ele_start=i_start_in_part, ele_stop=i_stop_in_part, turn_by_turn_monitor=monitor)
                     stop_tracking = True
                 else:
                     # Track until end of part
-                    ret = pp.track(particles, ele_start=i_start_in_part)
+                    ret = pp.track(particles, ele_start=i_start_in_part, turn_by_turn_monitor=monitor)
 
         elif (ele_stop is not None
                 and tt == num_turns-1 and self._element_part[ele_stop] == ipp):
@@ -713,13 +768,16 @@ class Tracker:
             i_stop_in_part = self._element_index_in_part[ele_stop]
             if i_stop_in_part is not None:
                 # If not collective, track until ele_stop
-                ret = pp.track(particles, num_elements=i_stop_in_part)
+                ret = pp.track(particles, num_elements=i_stop_in_part, turn_by_turn_monitor=monitor)
             stop_tracking = True
 
         else:
             # We are in between the part that contains the start element,
             # and the one that contains the stop element, so track normally
-            ret = pp.track(particles)
+            if isinstance(pp, TrackerPartNonCollective):
+                ret = pp.track(particles, turn_by_turn_monitor=monitor)
+            else:
+                ret = pp.track(particles)
 
         return stop_tracking, skip, ret
 
@@ -804,6 +862,36 @@ class Tracker:
                 if not(tt_resume is not None and tt == tt_resume):
                     monitor.track(particles)
 
+            # Time dependent vars and energy ramping
+            if self.line.enable_time_dependent_vars:
+                # Find first active particle
+                state = particles.state
+                if isinstance(particles._context, xo.ContextPyopencl):
+                    state = state.get()
+                ii_first_active = int((state > 0).argmax())
+                if ii_first_active == 0 and particles._xobject.state[0] <= 0:
+                    # No active particles
+                    break
+
+                at_turn = particles._xobject.at_turn[ii_first_active]
+                if self.line.energy_program is not None:
+                    t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
+                else:
+                    beta0 = particles._xobject.beta0[ii_first_active]
+                    t_turn = (at_turn * self._tracker_data_base.line_length
+                            / (beta0 * clight))
+
+                if (self.line._t_last_update_time_dependent_vars is None
+                    or self.line.dt_update_time_dependent_vars is None
+                    or t_turn > self.line._t_last_update_time_dependent_vars
+                                + self.line.dt_update_time_dependent_vars):
+                    self.line._t_last_update_time_dependent_vars = t_turn
+                    self.vars['t_turn_s'] = t_turn
+
+                    if self.line.energy_program is not None:
+                        p0c = self.line.particle_ref._xobject.p0c[0]
+                        particles.update_p0c_and_energy_deviations(p0c)
+
             moveback_to_buffer = None
             moveback_to_offset = None
             for ipp, pp in enumerate(self._parts):
@@ -829,9 +917,14 @@ class Tracker:
                                             moveback_to_buffer, moveback_to_offset,
                                             _context_needs_clean_active_lost_state)
 
+                if monitor is not None and monitor.ebe_mode == 1:
+                    monitor_part = monitor
+                else:
+                    monitor_part = None
+
                 # Track!
                 stop_tracking, skip, returned_by_track = self._track_part(
-                        particles, pp, tt, ipp, ele_start, ele_stop, num_turns)
+                        particles, pp, tt, ipp, ele_start, ele_stop, num_turns, monitor_part)
 
                 if returned_by_track is not None:
                     if returned_by_track.on_hold:
@@ -1205,6 +1298,16 @@ class Tracker:
                 headers.append(f'#undef {k}')
         return headers
 
+    def _get_twiss_mask_markers(self):
+        if hasattr(self._tracker_data_base, 'mask_markers_for_twiss'):
+            return self._tracker_data_base.mask_markers_for_twiss
+        tt = self.line.get_table()
+        mask_twiss = np.ones(len(tt) + 1, dtype=bool)
+        if len(tt) == 0: return mask_twiss
+        mask_twiss[:-1] = tt.element_type == 'Marker'
+        self._tracker_data_base.mask_markers_for_twiss = mask_twiss
+        return mask_twiss
+
     def get_track_kernel_and_data_for_present_config(self):
 
         hash_config = self._hashable_config()
@@ -1223,6 +1326,9 @@ class Tracker:
                 element_names=td_base._element_names,
                 element_s_locations=td_base.element_s_locations,
                 line_length=td_base.line_length,
+                cache=td_base.cache.copy(),
+                compound_mask=td_base.compound_mask,
+                element_compound_names=td_base.element_compound_names,
                 kernel_element_classes=kernel_element_classes,
                 extra_element_classes=td_base.extra_element_classes,
                 _context=self._context,
@@ -1271,12 +1377,18 @@ class Tracker:
 
     def __getstate__(self):
         if not isinstance(self._context, xo.ContextCpu):
-            raise TypeError("Only non-CPU trackers can be pickled.")
+            raise TypeError("Only CPU trackers can be pickled.")
 
         # Remove the compiled kernels from the state
         state = self.__dict__.copy()
         state['_track_kernel'].clear()
         return state
+
+    def check_compatibility_with_prebuilt_kernels(self):
+        get_suitable_kernel(
+            config=self.line.config,
+            line_element_classes=self.line_element_classes,
+            verbose=True)
 
 
 class TrackerConfig(UserDict):
@@ -1316,7 +1428,7 @@ class TrackerPartNonCollective:
         self.ele_start_in_tracker = ele_start_in_tracker
         self.ele_stop_in_tracker = ele_stop_in_tracker
 
-    def track(self, particles, ele_start=None, ele_stop=None, num_elements=None):
+    def track(self, particles, ele_start=None, ele_stop=None, num_elements=None, turn_by_turn_monitor=None):
         if ele_start is None:
             temp_ele_start = self.ele_start_in_tracker
         else:
@@ -1333,7 +1445,7 @@ class TrackerPartNonCollective:
             temp_num_elements = num_elements
 
         self.tracker._track_no_collective(particles, ele_start=temp_ele_start,
-                           num_elements=temp_num_elements,
+                           num_elements=temp_num_elements, turn_by_turn_monitor=turn_by_turn_monitor,
                            _force_no_end_turn_actions=True)
 
     def __repr__(self):

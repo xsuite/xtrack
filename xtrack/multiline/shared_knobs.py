@@ -1,4 +1,4 @@
-from ..line import mathfunctions
+from ..line import Functions
 import xdeps
 
 class VarSharing:
@@ -8,7 +8,9 @@ class VarSharing:
 
         mgr = xdeps.Manager()
         newvref = mgr.ref({}, "vars")
-        newfref = mgr.ref(mathfunctions, "f")
+
+        functions = Functions()
+        newfref = mgr.ref(functions, "f")
 
         newe = {} # new root container
         neweref = mgr.ref(newe, "eref") # new root ref
@@ -35,6 +37,8 @@ class VarSharing:
                 and line._var_management["manager"] is not None):
 
             mgr1 = line._var_management["manager"]
+            if len(mgr1.containers["f"]._owner._funcs.keys()) > 0:
+                raise NotImplementedError("Functions not supported yet in multiline")
 
             if update_existing:
                 self._vref._owner.update(mgr1.containers["vars"]._owner) # copy data

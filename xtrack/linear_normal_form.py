@@ -7,8 +7,6 @@ import numpy as np
 
 from .general import _print
 
-DEFAULT_MATRIX_RESPONSIVENESS_TOL = 1e-15
-DEFAULT_MATRIX_STABILITY_TOL = 1e-3
 
 def healy_symplectify(M):
     # https://accelconf.web.cern.ch/e06/PAPERS/WEPCH152.PDF
@@ -60,8 +58,8 @@ def Rot2D(mu):
                      [-np.sin(mu), np.cos(mu)]])
 
 def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
-                        responsiveness_tol=DEFAULT_MATRIX_RESPONSIVENESS_TOL,
-                        stability_tol=DEFAULT_MATRIX_STABILITY_TOL):
+                        responsiveness_tol=None,
+                        stability_tol=None):
 
     '''
     Compute the linear normal form of a 6x6 matrix M in the form:
@@ -101,25 +99,20 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
         M[4:, 4:] = np.array([[np.cos(muz_dummy), np.sin(muz_dummy)],
                               [-np.sin(muz_dummy), np.cos(muz_dummy)]])
 
-    if stability_tol is not None and np.abs(np.linalg.det(M)-1) > stability_tol:
-        raise ValueError(
-            f'The determinant of M is out tolerance. det={np.linalg.det(M)}')
-
-    for ii in range(6):
-        mask_non_zero = np.abs(M[:, ii]) > responsiveness_tol
-        mask_non_zero[ii] = False
-        if np.sum(mask_non_zero)<1:
-            raise ValueError(
-                'Invalid one-turn map: No coordinates respond to variations of '
-                + 'x px y py zeta delta'.split()[ii])
+    if responsiveness_tol is not None:
+        _assert_matrix_responsiveness(M, responsiveness_tol)
 
     if symplectify:
         M = healy_symplectify(M)
 
+    if stability_tol is not None:
+        _assert_matrix_determinant_within_tol(M, stability_tol)
+
+    # Diagonalize M
     w0, v0 = np.linalg.eig(M)
-    if stability_tol is not None and  np.any(np.abs(w0) > 1. + stability_tol):
-        raise ValueError('One-turn matrix is unstable. '
-                         f'Magnitudes of eigenvalues are:\n{repr(np.abs(w0))}')
+
+    if stability_tol is not None:
+        _assert_matrix_stability(w0, stability_tol)
 
     a0 = np.real(v0)
     b0 = np.imag(v0)
@@ -127,7 +120,6 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     index_list = [0,5,1,2,3,4] # we mix them up to check the algorithm
 
     ##### Sort modes in pairs of conjugate modes #####
-
     conj_modes = np.zeros([3,2], dtype=np.int64)
     for j in [0,1]:
         conj_modes[j,0] = index_list[0]
@@ -222,4 +214,28 @@ def compute_linear_normal_form(M, symplectify=False, only_4d_block=False,
     R[4:6,4:6] = Rot2D(mu3)
     ##################################################
 
-    return W, invW, R
+    eigenvalues = w0[modes]
+
+    return W, invW, R, eigenvalues
+
+def _assert_matrix_responsiveness(M,
+                responsiveness_tol, only_4d=False):
+    n_check = 4 if only_4d else 6
+    for ii in range(n_check):
+        mask_non_zero = np.abs(M[:, ii]) > responsiveness_tol
+        mask_non_zero[ii] = False
+        if np.sum(mask_non_zero)<1:
+            raise ValueError(
+                'Invalid one-turn map: No coordinates respond to variations of '
+                + 'x px y py zeta delta'.split()[ii])
+
+
+def _assert_matrix_determinant_within_tol(M, tol=1e-15):
+    if np.abs(np.linalg.det(M)-1) > tol:
+        raise ValueError(
+            f'The determinant of M is out tolerance. det={np.linalg.det(M)}')
+
+def _assert_matrix_stability(eigenvals, tol=1e-3):
+    if np.any(np.abs(eigenvals) > 1. + tol):
+        raise ValueError('One-turn matrix is unstable. '
+                         f'Magnitudes of eigenvalues are:\n{repr(np.abs(eigenvals))}')

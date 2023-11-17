@@ -14,20 +14,22 @@ void synrad_average_kick(LocalParticle* part, double curv, double lpath,
                          double* dp_record, double* dpx_record, double* dpy_record
                         ){
     double const gamma0  = LocalParticle_get_gamma0(part);
-    double const beta0  = LocalParticle_get_beta0(part);
     double const mass0 = LocalParticle_get_mass0(part);
     double const q0 = LocalParticle_get_q0(part);
 
+    double const Q0_coulomb = q0 * QELEM;
+    double const mass0_kg = mass0 / C_LIGHT / C_LIGHT * QELEM;
+
     double const delta  = LocalParticle_get_delta(part);
+    double const gamma = gamma0 * (1 + delta); // Ultra-relativistic approximation
 
-    double const r = QELEM/(6*PI*EPSILON_0)
-                        * q0*q0 / mass0
-                        * (beta0*gamma0)*(beta0*gamma0)*(beta0*gamma0)
-	                * curv*curv
-                        * lpath * (1 + delta);
+    double const P0_J = LocalParticle_get_p0c(part) / C_LIGHT * QELEM;
+    double const B_T = curv * P0_J / (Q0_coulomb);
+    double const r0_m = Q0_coulomb * Q0_coulomb/  (4 * PI * EPSILON_0 * mass0_kg * C_LIGHT * C_LIGHT);
 
-    double const beta = beta0 * LocalParticle_get_rvv(part);
-    double f_t = sqrt(1 + r*(r-2)/(beta*beta));
+    double const Ps_W = 2 * r0_m * C_LIGHT * Q0_coulomb * Q0_coulomb * gamma * gamma * B_T * B_T / (3 * mass0_kg);
+    double const Delta_E_eV = Ps_W * lpath / C_LIGHT / QELEM;
+    double f_t = 1 - Delta_E_eV / (gamma0 * mass0 * (1 + delta));
 
     #ifdef XTRACK_SYNRAD_SCALE_SAME_AS_FIRST
     if (part -> ipart == 0){
@@ -223,6 +225,8 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
     double gamma = energy / m0; //
     //double beta_gamma = sqrt(gamma*gamma-1); //
     double n = RandomExponential_generate(part); // path_length / mean_free_path;
+    // printf("curv = %e\n gamma0 = %e\n lpath = %e\n", curv, gamma0, lpath);
+    // printf("Average_number_of_photons = %e\n", synrad_average_number_of_photons(beta0 * gamma0, curv, lpath));
     while (n < synrad_average_number_of_photons(beta0 * gamma0, curv, lpath)) {
         nphot++;
         double const c1 = 1.5 * 1.973269804593025e-07; // hbar * c = 1.973269804593025e-07 eV * m
@@ -255,10 +259,14 @@ int64_t synrad_emit_photons(LocalParticle *part, double curv /* 1/m */,
         }
     }
 
-    if (energy == 0.0)
+    if (energy <= 0.0)
       LocalParticle_set_state(part, XT_LOST_ALL_E_IN_SYNRAD); // used to flag this kind of loss
     else{
-      LocalParticle_add_to_energy(part, energy-initial_energy, 0);
+      //LocalParticle_add_to_energy(part, energy-initial_energy, 0);
+      double f_t = energy/initial_energy;
+      LocalParticle_update_delta(part, (LocalParticle_get_delta(part)+1) * f_t - 1);
+      LocalParticle_scale_px(part, f_t);
+      LocalParticle_scale_py(part, f_t);
     }
 
     return nphot;
