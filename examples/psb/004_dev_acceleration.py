@@ -89,6 +89,10 @@ p0c_test = ep.get_p0c_at_t_s(t_test)
 p_test.update_p0c_and_energy_deviations(p0c_test)
 ekin_test = p_test.energy0[0] - p_test.mass0
 
+etot_expected_ev = E_kin_GeV * 1e9 + p_test.mass0
+gamma_expected = etot_expected_ev / p_test.mass0
+beta_expected = np.sqrt(1 - 1/gamma_expected**2)
+
 t_turn = line.energy_program.get_t_s_at_turn(np.arange(n_turn_test))
 
 import matplotlib.pyplot as plt
@@ -107,16 +111,22 @@ plt.plot(t_s[:-1], dekin)
 plt.ylabel(r'd$E_{kin}$/dt [GeV/s]')
 
 sp_beta = plt.subplot(3,1,3, sharex=sp_ekin)
+plt.plot(t_s, beta_expected, '--', color='k', alpha=0.4)
 plt.plot(t_turn, monitor.beta0.T)
 plt.ylabel(r'$\beta$')
 plt.xlabel('t [s]')
 
 plt.figure(2)
-plt.plot(t_turn, np.arange(n_turn_test))
+i_turn_test = np.arange(n_turn_test)
+t_turn_constant_energy = i_turn_test * line.get_length()/clight/beta_expected[0]
+plt.plot(i_turn_test, 1e6 * (t_turn - t_turn_constant_energy))
 
-i_turn_test = 1000
-t_test_set = ep.get_t_s_at_turn(i_turn_test)
-plt.plot(t_test_set, i_turn_test, 'o')
+i_turn_test_method = 9000
+t_test_set = ep.get_t_s_at_turn(i_turn_test_method)
+t_turn_method_constant_energy = i_turn_test_method * line.get_length()/clight/beta_expected[0]
+plt.plot(i_turn_test_method, 1e6 * (t_test_set - t_turn_method_constant_energy), 'o')
+
+plt.ylabel(r't - L / ($\beta_{inj} c$) [$\mu$s]')
 
 plt.figure(3)
 colors = plt.cm.jet(np.linspace(0,1, len(p_test.zeta)))
