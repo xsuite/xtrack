@@ -9,7 +9,7 @@ import xdeps as xd
 # REMEMBER:
 # - Handle zero ramp rate
 
-fname = ''../../test_data/psb_chicane/Ramp_and_RF_functions.dat',t'
+fname = '../../test_data/psb_chicane/Ramp_and_RF_functions.dat'
 
 df = pd.read_csv(fname, sep='\t', skiprows=2,
     names=['t_s', 'E_kin_GeV', 'V1_MV', 'phi1_rad', 'V2_MV', 'phi2_rad'])

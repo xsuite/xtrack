@@ -6,8 +6,6 @@ from scipy.constants import c as clight
 import xtrack as xt
 import xdeps as xd
 
-# REMEMBER:
-# - Handle zero ramp rate
 
 fname = '../../test_data/psb_chicane/Ramp_and_RF_functions.dat'
 

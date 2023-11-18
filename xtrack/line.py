@@ -3736,7 +3736,7 @@ class LineVars:
 
     def __setitem__(self, key, value):
         if self.cache_active:
-            if xd.refs._isref(value) or isinstance(value, VarSetter):
+            if xd.refs.isref(value) or isinstance(value, VarSetter):
                 raise ValueError('Cannot set a variable to a ref when the '
                                  'cache is active')
             self._setter_from_cache(key)(value)
