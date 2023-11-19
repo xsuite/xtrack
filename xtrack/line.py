@@ -210,7 +210,7 @@ class Line:
             self.metadata = dct['metadata']
 
         if ('energy_program' in self.element_dict
-             and self['energy_program'] is not None):
+             and self.element_dict['energy_program'] is not None):
             self.energy_program.line = self
 
         _print('Done loading line from dict.           ')
@@ -3140,8 +3140,7 @@ class Line:
             'Xdeps expression need to be enabled to use `energy_program`')
         if self.energy_program.needs_complete:
             self.energy_program.complete_init(self)
-        if self.energy_program.needs_line:
-            self.energy_program.line = self
+        self.energy_program.line = self
         self.element_refs['energy_program'].t_turn_s_line = self.vars['t_turn_s']
 
     def __getitem__(self, ii):
@@ -3926,7 +3925,6 @@ class EnergyProgram:
         self.kinetic_energy0 = kinetic_energy0
         self.t_s = t_s
         self.needs_complete = True
-        self.needs_line = True
 
     def complete_init(self, line):
 
@@ -3978,20 +3976,19 @@ class EnergyProgram:
         self.line = line
 
         self.needs_complete = False
-        self.needs_line = False
         del self.p0c
         del self.kinetic_energy0
 
     def get_t_s_at_turn(self, i_turn):
         assert not self.needs_complete, 'EnergyProgram not complete'
-        assert not self.needs_line, 'EnergyProgram not associated to a line'
+        assert self.line is not None, 'EnergyProgram not associated to a line'
         out = self.t_at_turn_interpolator(i_turn)
 
         return out
 
     def get_p0c_at_t_s(self, t_s):
         assert not self.needs_complete, 'EnergyProgram not complete'
-        assert not self.needs_line, 'EnergyProgram not associated to a line'
+        assert self.line is not None, 'EnergyProgram not associated to a line'
         return self.p0c_interpolator(t_s)
 
     def get_beta0_at_t_s(self, t_s):
@@ -4039,5 +4036,4 @@ class EnergyProgram:
         self.p0c_interpolator = xd.FunctionPieceWiseLinear.from_dict(
                                         dct['p0c_interpolator'])
         self.needs_complete = False
-        self.needs_line = True
         return self
