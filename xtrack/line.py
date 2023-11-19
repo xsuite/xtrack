@@ -134,7 +134,8 @@ class Line:
 
         self.particle_ref = particle_ref
 
-        self.energy_program = energy_program # setter will take care of completing
+        if energy_program is not None:
+            self.energy_program = energy_program # setter will take care of completing
 
         self._var_management = None
         self._line_vars = None
