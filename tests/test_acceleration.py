@@ -89,6 +89,9 @@ def test_energy_program(test_context):
     line_dict = line.to_dict()
     line = xt.Line.from_dict(line_dict)
 
+    # test copy method
+    line = line.copy()
+
     line.build_tracker(_context=test_context)
 
     p_test = line.build_particles()

@@ -664,6 +664,9 @@ class Line:
         out.config.update(self.config.copy())
         out._extra_config.update(self._extra_config.copy())
 
+        if out.energy_program is not None:
+            out.energy_program.line = out
+
         return out
 
     def build_tracker(
@@ -4037,3 +4040,6 @@ class EnergyProgram:
                                         dct['p0c_interpolator'])
         self.needs_complete = False
         return self
+
+    def copy(self, _context=None, _buffer=None, _offeset=None):
+        return self.from_dict(self.to_dict())
