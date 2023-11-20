@@ -285,6 +285,8 @@ class Tracker:
     def _track(self, particles, *args, with_progress: Union[bool, int]=False,
                time=False, **kwargs):
 
+        out = None
+
         if time:
             t0 = perf_counter()
 
