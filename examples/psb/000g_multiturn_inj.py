@@ -82,12 +82,21 @@ p_injection = ParticlesInjectionRand(particles_to_inject=part_for_injection,
 
 line.discard_tracker()
 line.insert_element(index='bi1.tstr1l1', element=p_injection, name='injection')
+
+
+# Add monitor at end line
+monitor = xt.ParticlesMonitor(start_at_turn=0, stop_at_turn=10, num_particles=100)
+line.insert_element(index='p16ring1$end', element=monitor, name='monitor_at_end')
+
 line.build_tracker()
 
-p = line.build_particles(_capacity=200, x=0)
-p.state[0] = 0 # kill the particle
+p = line.build_particles(_capacity=100, x=0)
+p.state[0] = -500 # kill the particle added by default
 
 intensity = []
 for iturn in range(8):
     intensity.append(p.weight[p.state>0].sum())
     line.track(p, num_turns=1)
+
+assert np.all(np.sum(monitor.state > 0, axis=0)
+              == np.array([ 0,  7, 14, 21, 28, 35, 42, 49, 56,  0]))
