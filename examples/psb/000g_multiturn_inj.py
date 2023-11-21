@@ -41,7 +41,7 @@ part_for_injection.py = df["y'"].values  * 1e-3 * (1 + part_for_injection.delta)
 part_for_injection.weight = 10
 
 
-class ParticlesInjectionRand:
+class ParticlesInjectionSample:
 
     def __init__(self, particles_to_inject, line, element_name, num_particles_to_inject):
         self.particles_to_inject = particles_to_inject.copy()
@@ -78,7 +78,7 @@ class ParticlesInjectionRand:
 
         particles.add_particles(p_inj)
 
-p_injection = ParticlesInjectionRand(particles_to_inject=part_for_injection,
+p_injection = ParticlesInjectionSample(particles_to_inject=part_for_injection,
                                         line=line,
                                         element_name='injection',
                                         num_particles_to_inject=7)
