@@ -51,6 +51,9 @@ class ParticlesInjectionRand:
 
     def track(self, particles):
 
+        if not isinstance(particles._context, xo.ContextCpu):
+            raise ValueError('This element only works with CPU context')
+
         self.particles_to_inject.at_turn += 1
 
         if not self.num_particles_to_inject:
