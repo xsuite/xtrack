@@ -883,9 +883,10 @@ class Tracker:
                 ii_first_active = int((state > 0).argmax())
                 if ii_first_active == 0 and particles._xobject.state[0] <= 0:
                     # No active particles
-                    break
+                    at_turn = 0 # convenient for multi-turn injection
+                else:
+                    at_turn = particles._xobject.at_turn[ii_first_active]
 
-                at_turn = particles._xobject.at_turn[ii_first_active]
                 if self.line.energy_program is not None:
                     t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
                 else:
