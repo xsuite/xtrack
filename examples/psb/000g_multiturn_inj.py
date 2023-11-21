@@ -18,7 +18,7 @@ line.discard_tracker()
 line.insert_element(index='bi1.tstr1l1', element=monitor, name='monitor_at_foil')
 line.build_tracker()
 
-fname = 'inj_distrib.dat.txt'
+fname = '../../test_data/psb_chicane/inj_distrib.dat'
 df = pd.read_table(fname, skiprows=3,
     names="x x' y y' z z' Phase Time Energy Loss".split())
 
