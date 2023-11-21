@@ -51,6 +51,7 @@ class ParticlesInjectionRand:
 
     def track(self, particles):
 
+        import pdb; pdb.set_trace()
         self.particles_to_inject.at_turn += 1
 
         if not self.num_particles_to_inject:
@@ -94,9 +95,17 @@ p = line.build_particles(_capacity=100, x=0)
 p.state[0] = -500 # kill the particle added by default
 
 intensity = []
+line.enable_time_dependent_vars = True
 for iturn in range(8):
+    import pdb; pdb.set_trace()
     intensity.append(p.weight[p.state>0].sum())
     line.track(p, num_turns=1)
 
 assert np.all(np.sum(monitor.state > 0, axis=0)
               == np.array([ 0,  7, 14, 21, 28, 35, 42, 49, 56,  0]))
+
+assert np.all(monitor.at_element[monitor.state > 0] ==
+              line.element_names.index('monitor_at_end'))
+
+assert np.allclose(monitor.s[monitor.state > 0],
+                   line.get_s_position('monitor_at_end'), atol=1e-12)
