@@ -1,0 +1,69 @@
+"""
+RF-Track <-> Xsuite interface
+
+Authors: Andrea Latina, Gianni Iadarola
+Date: 22.11.2023
+
+"""
+
+import numpy as np
+
+class RFT_Lattice:
+    """Beam element calling RF-Track.
+
+    Xtrack will use RF-Track to track a bunch through an RF-Track lattice. This can
+    include any RF-Track element such as for exampke field maps, absorbers, travelling- and
+    standing-wave structures, electron coolers and others.
+
+    Parameters:
+        - lattice: An RF-Track Lattice.
+        - length (float): its total length in meters (optional).
+    """
+
+    # init xtrack variables
+    iscollective = True # <-- To state that the element uses a python track method
+    isthick = True
+
+    def __init__(self, lattice, length=0.0):
+        
+        import RF_Track as rft
+        self.arr_for_rft = np.empty(0)
+        self.length = lattice.get_length() if length==0.0 else length
+        self.lattice = lattice
+        self.bunch_in = rft.Bunch6d()
+        self.bunch_out = rft.Bunch6d()
+        
+    def track(self, particles, increment_at_element=False):
+        
+        p = particles
+        if p.x.shape[0]==0:
+           return
+            
+        # Prepare input for RF-Track
+        self.p = 1. + p.delta
+        self.pz = np.sqrt(self.p**2 - p.px**2 - p.py**2)
+
+        self.arr_for_rft.resize((len(p.x), 10))
+        self.arr_for_rft[:,0] = p.x * 1e3 # mm
+        self.arr_for_rft[:,1] = p.px * 1e3 / self.pz # mrad
+        self.arr_for_rft[:,2] = p.y * 1e3 # mm
+        self.arr_for_rft[:,3] = p.py * 1e3 / self.pz # mrad
+        self.arr_for_rft[:,5] = p.p0c * self.p / 1e6 # MeV
+        self.arr_for_rft[:,6] = p.mass0 / 1e6 # MeV
+        self.arr_for_rft[:,7] = p.q0
+        self.arr_for_rft[:,8] = p.weight
+        self.arr_for_rft[p.state==1,9] = np.nan # nan == not lost
+        
+        # Track using RF-Track
+        self.bunch_in.set_phase_space(self.arr_for_rft)
+        self.bunch_out = self.lattice.track(self.bunch_in)
+        self.arr_for_xt = self.bunch_out.get_phase_space('%x %Px %y %Py %t %Pc %lost', 'all')
+
+        # Update particles
+        p.x  = self.arr_for_xt[:,0] / 1e3 # m
+        p.px = self.arr_for_xt[:,1] * 1e6 / p.p0c # rad
+        p.y  = self.arr_for_xt[:,2] / 1e3 # m
+        p.py = self.arr_for_xt[:,3] * 1e6 / p.p0c # rad
+        p.zeta += self.length - self.arr_for_xt[:,4] * p.beta0 / 1e3 # m
+        p.delta = (self.arr_for_xt[:,5] * 1e6 - p.p0c) / p.p0c #
+        p.state[np.isnan(self.arr_for_xt[:,6]) != np.isnan(self.arr_for_rft[:,9])] = -400 # lost in RF-Track
