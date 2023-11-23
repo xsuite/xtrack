@@ -21,7 +21,7 @@ f_rf = h_rf/tw.T_rev0
 
 beta0 = line.particle_ref.beta0[0]
 
-# T_ref = h_rf/f_rf
+# T_rev = h_rf/f_rf
 # dt = h_rf/(f_rf + df_hz) - h_rf/f_rf = h_rf/f_rf (1/(1+df_hz/f_rf) - 1)
 #                                       ~= h_rf/f_rf * (1 - df_hz/f_rf -1)
 #                                       = -h_rf/(f_rf^2) * df_hz
