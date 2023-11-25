@@ -87,7 +87,8 @@ def progress(iterable: Iterable, **options):
 
 
 try:
-    from tqdm.autonotebook import tqdm
+    from tqdm import tqdm
+    # from tqdm.autonotebook import tqdm # to be enabled when tqdm is fixed
     set_default_indicator(tqdm)
 except ModuleNotFoundError:
     pass
