@@ -62,5 +62,5 @@ import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(mon.y.flatten(), mon.py.flatten(), '.', markersize=1)
-plt.plot(p_co.y, p_co.py, 'xr')
+plt.plot(p_co.y, p_co.py, '*r')
 plt.show()
