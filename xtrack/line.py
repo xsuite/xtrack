@@ -1251,7 +1251,8 @@ class Line:
                           delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
-                          ele_start=None, ele_stop=None):
+                          ele_start=None, ele_stop=None,
+                          num_turns=1):
 
         """
         Find the closed orbit of the beamline.
@@ -1318,7 +1319,7 @@ class Line:
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                 ele_start=ele_start, ele_stop=ele_stop)
+                                 ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns)
 
     def compute_T_matrix(self, ele_start=None, ele_stop=None,
                          particle_on_co=None, steps_t_matrix=None):

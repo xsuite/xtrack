@@ -1843,7 +1843,7 @@ def _handle_loop_around(kwargs):
 def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
-                      ele_start=None, ele_stop=None,
+                      ele_start=None, ele_stop=None, num_turns=1,
                       continue_on_closed_orbit_error=False):
 
     if line.enable_time_dependent_vars:
@@ -1911,7 +1911,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
             x0[4] = zeta0
         if np.all(np.abs(_error_for_co(
                 x0, particle_co_guess, line, delta_zeta, delta0, zeta0,
-                ele_start=ele_start, ele_stop=ele_stop)) < DEFAULT_CO_SEARCH_TOL):
+                ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns)) < DEFAULT_CO_SEARCH_TOL):
             res = x0
             fsolve_info = 'taken_guess'
             ier = 1
@@ -1920,7 +1920,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
         (res, infodict, ier, mesg
             ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, line,
                     delta_zeta, delta0, zeta0, ele_start=ele_start,
-                    ele_stop=ele_stop),
+                    ele_stop=ele_stop, num_turns=num_turns),
                 x0=x0,
                 full_output=True,
                 **co_search_settings)
@@ -1944,7 +1944,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
+def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop, num_turns):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
@@ -1959,7 +1959,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
                                                         line.vv['t_turn_s'])
         part.update_p0c_and_energy_deviations(p0c = part._xobject.p0c[0] + dp0c)
 
-    line.track(part, ele_start=ele_start, ele_stop=ele_stop)
+    line.track(part, ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns)
     if part.state[0] < 0:
         raise ClosedOrbitSearchError(
             f'Particle lost in one-turn map, p.state = {part.state[0]}')
@@ -1972,11 +1972,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
 
-def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -1985,8 +1985,8 @@ def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta
         0,
         p[5] - delta0])
 
-def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -1995,8 +1995,8 @@ def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0
         p[4] - zeta0,
         0])
 
-def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],

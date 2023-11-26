@@ -55,8 +55,12 @@ line['lod.60702'].knl[2] = 10e-1
 line.track(p, num_turns=1000, turn_by_turn_monitor=True)
 mon = line.record_last_track
 
+p_co_guess = line.build_particles(y=2.27e-3, py=-3.01e-5)
+p_co = line.find_closed_orbit(num_turns=4, particle_co_guess=p_co_guess)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(mon.y.flatten(), mon.py.flatten(), '.', markersize=1)
+plt.plot(p_co.y, p_co.py, 'xr')
 plt.show()
