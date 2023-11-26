@@ -42,7 +42,7 @@ opt = line.match(
 )
 opt.solve()
 
-r0 = np.linspace(0, 5, 50)
+r0 = np.linspace(0, 3, 50)
 p = line.build_particles(
     y_norm=r0*np.cos(np.pi/20.),
     py_norm=r0*np.sin(np.pi/20.),
