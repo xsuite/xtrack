@@ -22,3 +22,17 @@ for kk in line.vars.keys():
 
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
                                     q0=1, gamma0=mad.sequence.ps.beam.gamma)
+line.twiss_default['method'] = '4d'
+
+tw = line.twiss()
+
+opt = line.match(
+    solve=False,
+    vary=[
+        xt.VaryList(['kf', 'kd'], step=1e-5),
+    ],
+    targets=[
+        xt.TargetSet(qx=6.255278, qy=6.29826, tol=1e-7),
+        ],
+)
+opt.solve()
