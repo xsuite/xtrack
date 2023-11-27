@@ -58,13 +58,36 @@ mon = line.record_last_track
 p_co_guess = line.build_particles(y=2.27e-3, py=-3.01e-5)
 p_co = line.find_closed_orbit(num_turns_periodic=4, particle_co_guess=p_co_guess)
 
-tw4 = line.twiss(particle_co_guess=p_co_guess, num_turns_periodic=4)
+tw_t0 = line.twiss(particle_co_guess=p_co_guess, num_turns_periodic=4)
+
+twisses_to_merge = []
+
+num_turns = 4
+tw_curr = tw_t0
+
+for i_turn in range(num_turns):
+
+    tw_start_turn = tw_curr.rows[0]
+    tw_start_turn.name[0] = f'_turn_{i_turn}'
+    twisses_to_merge.append(tw_start_turn)
+    twisses_to_merge.append(tw_curr)
+
+    if i_turn == num_turns - 1:
+        break # need n-1 twisses
+
+    tini1 = tw_curr.get_twiss_init(-1)
+    tini1.element_name = tw_curr.name[0]
+    tw_curr = line.twiss(
+        twiss_init=tini1, ele_start=tw_curr.name[0], ele_stop=line.element_names[-1])
+
+tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
+
+tw_plt = tw_mt.rows['_turn_.*']
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 plt.plot(mon.y.flatten(), mon.py.flatten(), '.', markersize=1)
 # plt.plot(p_co.y, p_co.py, '*r')
-plt.plot(tw4.y[0], tw4.py[0], '*r')
-plt.plot(tw4.y[-1], tw4.py[-1], '*g')
+plt.plot(tw_plt.y, tw_plt.py, '*r')
 plt.show()
