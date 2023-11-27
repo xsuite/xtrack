@@ -288,6 +288,13 @@ def twiss_line(line, particle_ref=None, method=None,
 
     ele_start_user = ele_start
 
+    if num_turns != 1:
+        assert num_turns > 0
+        assert ele_start is None
+        assert ele_stop is None
+        assert twiss_init is None
+        assert reverse is False
+
     if (twiss_init is not None and twiss_init != 'periodic'
         or betx is not None or bety is not None):
         periodic = False
