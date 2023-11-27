@@ -14,14 +14,7 @@ twm = mad.twiss()
 
 line = xt.Line.from_madx_sequence(mad.sequence.ps, allow_thick=True,
                                   deferred_expressions=True,
-                                  replace_in_expr={'->':'__madarrow__'},
                                   )
-for kk in line.vars.keys():
-    if '__madarrow__' in kk:
-        mad_expr = kk.replace('__madarrow__', '->')
-        mad.input(f'{kk} = {mad_expr}')
-        line.vars[kk] = mad.globals[kk]
-
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
                                     q0=1, gamma0=mad.sequence.ps.beam.gamma)
 line.twiss_default['method'] = '4d'
@@ -63,7 +56,6 @@ plt.figure(2)
 ax1 = plt.subplot(2,1,1)
 plt.plot(tw_mt.s, tw_mt.betx)
 plt.plot(tw_core.s, tw_core.betx)
-
 plt.subplot(2,1,2, sharex=ax1)
 plt.plot(tw_mt.s, tw_mt.bety)
 plt.plot(tw_core.s, tw_core.bety)
