@@ -983,7 +983,7 @@ class Line:
         radiation_method=None,
         eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
-        num_turns=None,
+        num_turns_periodic=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
@@ -1253,7 +1253,7 @@ class Line:
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
                           ele_start=None, ele_stop=None,
-                          num_turns=1):
+                          num_turns_periodic=1):
 
         """
         Find the closed orbit of the beamline.
@@ -1320,7 +1320,7 @@ class Line:
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                 ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns)
+                                 ele_start=ele_start, ele_stop=ele_stop, num_turns_periodic=num_turns_periodic)
 
     def compute_T_matrix(self, ele_start=None, ele_stop=None,
                          particle_on_co=None, steps_t_matrix=None):
@@ -1448,7 +1448,7 @@ class Line:
             self, particle_on_co,
             steps_r_matrix=None,
             ele_start=None, ele_stop=None,
-            num_turns=1,
+            num_turns_periodic=1,
             element_by_element=False, only_markers=False):
 
         '''Compute the one turn matrix using finite differences.
@@ -1487,7 +1487,7 @@ class Line:
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
-                        num_turns=num_turns,
+                        num_turns_periodic=num_turns_periodic,
                         element_by_element=element_by_element,
                         only_markers=only_markers)
 
