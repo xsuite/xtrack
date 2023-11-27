@@ -29,6 +29,16 @@ line = xt.Line.from_madx_sequence(mad.sequence.sps, allow_thick=True,
 line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
                                     q0=1, gamma0=mad.sequence.sps.beam.gamma)
 
+# # Optionally thin
+# Strategy = xt.slicing.Strategy
+# Teapot = xt.slicing.Teapot
+# line.slice_thick_elements(slicing_strategies=[
+#     Strategy(slicing=Teapot(1)),  # Default
+#     Strategy(slicing=Teapot(2), element_type=xt.Bend),
+#     Strategy(slicing=Teapot(8), element_type=xt.Quadrupole),
+# ])
+# line.build_tracker()
+
 opt = line.match(
     solve=False,
     vary=[
