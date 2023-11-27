@@ -546,6 +546,7 @@ class MadLoader:
         _var_values = line._var_management["data"]["var_values"]
         _var_values.default_factory = _default_factory
         for name, par in mad.globals.cmdpar.items():
+            name = name.replace(" ", "")
             if replace_in_expr is not None:
                 for k, v in replace_in_expr.items():
                     name = name.replace(k, v)
@@ -559,6 +560,7 @@ class MadLoader:
 
         if replace_in_expr is not None:
             def madeval(expr):
+                expr = expr.replace(" ", "")
                 for k, v in replace_in_expr.items():
                     expr = expr.replace(k, v)
                 return madeval_no_repl(expr)
