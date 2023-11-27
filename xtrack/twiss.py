@@ -1876,6 +1876,9 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
     if isinstance(ele_stop, str):
         ele_stop = line.element_names.index(ele_stop)
 
+    if isinstance(particle_co_guess, dict):
+        particle_co_guess = line.build_particles(**particle_co_guess)
+
     if particle_co_guess is None:
         if particle_ref is None:
             if line.particle_ref is not None:
