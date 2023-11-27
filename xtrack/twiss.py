@@ -753,27 +753,9 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs.pop('ele_start')
         kwargs.pop('ele_stop')
 
-        num_turns = num_turns_periodic
-        tw_curr = twiss_res
-        twisses_to_merge = []
-
-        for i_turn in range(num_turns):
-
-            tw_start_turn = tw_curr.rows[0]
-            tw_start_turn.name[0] = f'_turn_{i_turn}'
-            twisses_to_merge.append(tw_start_turn)
-            twisses_to_merge.append(tw_curr)
-
-            if i_turn == num_turns - 1:
-                break # need n-1 twisses
-
-            tini1 = tw_curr.get_twiss_init(-1)
-            tini1.element_name = tw_curr.name[0]
-            tw_curr = twiss_line(**kwargs,
-                twiss_init=tini1, ele_start=tw_curr.name[0], ele_stop=line.element_names[-1])
-
-        tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
-
+        tw_mt = _multiturn_twiss(tw0=twiss_res, num_turns=num_turns_periodic,
+                                 kwargs=kwargs)
+        tw_mt._data['_tw0'] = twiss_res
         twiss_res = tw_mt
 
     if at_elements is not None:
@@ -3217,3 +3199,28 @@ def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
         / p_plus['delta']._xobject.beta0[0])
 
     return TT
+
+def _multiturn_twiss(tw0, num_turns, kwargs):
+    tw_curr = tw0
+    twisses_to_merge = []
+    line = kwargs['line']
+
+    for i_turn in range(num_turns):
+
+        tw_start_turn = tw_curr.rows[0]
+        tw_start_turn.name[0] = f'_turn_{i_turn}'
+        twisses_to_merge.append(tw_start_turn)
+        twisses_to_merge.append(tw_curr)
+
+        if i_turn == num_turns - 1:
+            break # need n-1 twisses
+
+        tini1 = tw_curr.get_twiss_init(-1)
+        tini1.element_name = tw_curr.name[0]
+        tw_curr = twiss_line(**kwargs,
+            twiss_init=tini1, ele_start=tw_curr.name[0],
+            ele_stop=line.element_names[-1])
+
+    tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
+
+    return tw_mt
