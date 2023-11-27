@@ -744,6 +744,35 @@ def twiss_line(line, particle_ref=None, method=None,
                 twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
                 twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
 
+
+    if num_turns_periodic > 1:
+
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('num_turns_periodic')
+
+        num_turns = 4
+        tw_curr = twiss_res
+        twisses_to_merge = []
+
+        for i_turn in range(num_turns):
+
+            tw_start_turn = tw_curr.rows[0]
+            tw_start_turn.name[0] = f'_turn_{i_turn}'
+            twisses_to_merge.append(tw_start_turn)
+            twisses_to_merge.append(tw_curr)
+
+            if i_turn == num_turns - 1:
+                break # need n-1 twisses
+
+            tini1 = tw_curr.get_twiss_init(-1)
+            tini1.element_name = tw_curr.name[0]
+            tw_curr = line.twiss(
+                twiss_init=tini1, ele_start=tw_curr.name[0], ele_stop=line.element_names[-1])
+
+        tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
+
+        twiss_res = tw_mt
+
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
 
