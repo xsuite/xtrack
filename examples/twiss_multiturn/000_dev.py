@@ -57,7 +57,7 @@ mon = line.record_last_track
 
 # Compute
 # p_co_guess = line.build_particles(y=2e-3)
-tw_mt = line.twiss(particle_co_guess={'y': 2e-3}, num_turns=4)
+tw_mt = line.twiss(co_guess={'y': 2e-3}, num_turns=4)
 
 # Inspect and plot
 tw_start_turns = tw_mt.rows['_turn_.*']

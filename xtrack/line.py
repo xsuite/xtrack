@@ -974,7 +974,7 @@ class Line:
         delta0=None, zeta0=None,
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
-        particle_co_guess=None, steps_r_matrix=None,
+        co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
@@ -1247,7 +1247,7 @@ class Line:
                                 solver=solver, verbose=verbose,
                                 restore_if_fail=restore_if_fail)
 
-    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
+    def find_closed_orbit(self, co_guess=None, particle_ref=None,
                           co_search_settings={}, delta_zeta=0,
                           delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
@@ -1260,7 +1260,7 @@ class Line:
 
         Parameters
         ----------
-        particle_co_guess : Particle
+        co_guess : Particle
             Particle used to compute the closed orbit. If None, the reference
             particle is used.
         particle_ref : Particle
@@ -1304,7 +1304,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        if particle_ref is None and particle_co_guess is None:
+        if particle_ref is None and co_guess is None:
             particle_ref = self.particle_ref
 
         if self.iscollective:
@@ -1316,7 +1316,7 @@ class Line:
         else:
             line = self
 
-        return find_closed_orbit_line(line, particle_co_guess=particle_co_guess,
+        return find_closed_orbit_line(line, co_guess=co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,

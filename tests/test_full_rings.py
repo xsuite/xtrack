@@ -135,7 +135,7 @@ def test_full_rings(
     # Check closed orbit #
     ######################
 
-    part_co = line.find_closed_orbit(particle_co_guess=xp.Particles(
+    part_co = line.find_closed_orbit(co_guess=xp.Particles(
         _context=test_context,
         p0c=input_data['particle']['p0c']))
 
