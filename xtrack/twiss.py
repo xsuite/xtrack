@@ -749,8 +749,11 @@ def twiss_line(line, particle_ref=None, method=None,
 
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         kwargs.pop('num_turns_periodic')
+        kwargs.pop('twiss_init')
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
 
-        num_turns = 4
+        num_turns = num_turns_periodic
         tw_curr = twiss_res
         twisses_to_merge = []
 
@@ -766,7 +769,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
             tini1 = tw_curr.get_twiss_init(-1)
             tini1.element_name = tw_curr.name[0]
-            tw_curr = line.twiss(
+            tw_curr = twiss_line(**kwargs,
                 twiss_init=tini1, ele_start=tw_curr.name[0], ele_stop=line.element_names[-1])
 
         tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
