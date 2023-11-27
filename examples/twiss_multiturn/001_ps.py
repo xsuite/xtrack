@@ -5,7 +5,7 @@ import xtrack as xt
 mad = Madx()
 mad.input("""
 beam, particle=proton, pc = 14.0;
-BRHO      := BEAM->PC * 3.3356;
+BRHO      = BEAM->PC * 3.3356;
 """)
 mad.call("ps.seq")
 mad.call("ps_hs_sftpro.str")
@@ -14,7 +14,8 @@ twm = mad.twiss()
 
 line = xt.Line.from_madx_sequence(mad.sequence.ps, allow_thick=True,
                                   deferred_expressions=True,
-                                  replace_in_expr={'->':'__madarrow__'})
+                                  replace_in_expr={'->':'__madarrow__'},
+                                  )
 for kk in line.vars.keys():
     if '__madarrow__' in kk:
         mad_expr = kk.replace('__madarrow__', '->')
@@ -45,6 +46,7 @@ line.track(p, num_turns=1000, turn_by_turn_monitor=True)
 mon = line.record_last_track
 
 tw_mt = line.twiss(co_guess={'x': 0.032}, num_turns=4)
+tw_core = line.twiss(co_guess={'x': 0.0}, num_turns=0)
 
 # Inspect and plot
 tw_start_turns = tw_mt.rows['_turn_.*']
@@ -56,4 +58,14 @@ plt.plot(mon.x.flatten(), mon.px.flatten(), '.', markersize=1)
 plt.plot(tw_start_turns.x, tw_start_turns.px, '*')
 plt.ylim(-0.004, 0.004)
 plt.xlim(-0.08, 0.08)
+
+plt.figure(2)
+ax1 = plt.subplot(2,1,1)
+plt.plot(tw_mt.s, tw_mt.betx)
+plt.plot(tw_core.s, tw_core.betx)
+
+plt.subplot(2,1,2, sharex=ax1)
+plt.plot(tw_mt.s, tw_mt.bety)
+plt.plot(tw_core.s, tw_core.bety)
+
 plt.show()
