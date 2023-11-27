@@ -983,6 +983,7 @@ class Line:
         radiation_method=None,
         eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
+        num_turns=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
@@ -1447,6 +1448,7 @@ class Line:
             self, particle_on_co,
             steps_r_matrix=None,
             ele_start=None, ele_stop=None,
+            num_turns=1,
             element_by_element=False, only_markers=False):
 
         '''Compute the one turn matrix using finite differences.
@@ -1485,6 +1487,7 @@ class Line:
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
+                        num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers)
 

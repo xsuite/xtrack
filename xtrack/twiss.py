@@ -52,6 +52,7 @@ def twiss_line(line, particle_ref=None, method=None,
         radiation_method=None,
         eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
+        num_turns=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
@@ -278,6 +279,7 @@ def twiss_line(line, particle_ref=None, method=None,
                         if compute_lattice_functions is not None else True)
     compute_chromatic_properties=(compute_chromatic_properties
                         if compute_chromatic_properties is not None else None)
+    num_turns = (num_turns or 1)
 
     if only_orbit:
         raise NotImplementedError # Tested only experimentally
@@ -558,6 +560,7 @@ def twiss_line(line, particle_ref=None, method=None,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             ele_start=ele_start, ele_stop=ele_stop,
+            num_turns=num_turns,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
@@ -1625,6 +1628,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             matrix_stability_tol,
                             nemitt_x, nemitt_y, r_sigma,
                             ele_start=None, ele_stop=None,
+                            num_turns=1,
                             compute_R_element_by_element=False,
                             only_markers=False):
 
@@ -1652,7 +1656,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 delta0=delta0,
                                 zeta0=zeta0,
                                 ele_start=ele_start,
-                                ele_stop=ele_stop)
+                                ele_stop=ele_stop,
+                                num_turns=num_turns)
 
     if W_matrix is not None:
         W = W_matrix
@@ -1675,6 +1680,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     particle_on_co=part_on_co,
                     ele_start=ele_start,
                     ele_stop=ele_stop,
+                    num_turns=num_turns,
                     element_by_element=compute_R_element_by_element,
                     only_markers=only_markers,
                     )
@@ -2009,6 +2015,7 @@ def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
         steps_r_matrix=None,
         ele_start=None, ele_stop=None,
+        num_turns=1,
         element_by_element=False,
         only_markers=False):
 
@@ -2060,17 +2067,23 @@ def compute_one_turn_matrix_finite_differences(
 
     if ele_start is not None:
         assert element_by_element is False, 'Not yet implemented'
+        assert num_turns == 1, 'Not yet implemented'
+        assert num_turns == 1, 'Not yet implemented'
         assert ele_stop is not None
         line.track(part_temp, ele_start=ele_start, ele_stop=ele_stop)
     elif particle_on_co._xobject.at_element[0]>0:
         assert element_by_element is False, 'Not yet implemented'
+        assert num_turns == 1, 'Not yet implemented'
         i_start = particle_on_co._xobject.at_element[0]
         line.track(part_temp, ele_start=i_start)
         line.track(part_temp, num_elements=i_start)
     else:
         assert particle_on_co._xobject.at_element[0] == 0
+        if element_by_element and num_turns != 1:
+            raise NotImplementedError
         monitor_setting = 'ONE_TURN_EBE' if element_by_element else None
-        line.track(part_temp, turn_by_turn_monitor=monitor_setting)
+        line.track(part_temp, num_turns=num_turns,
+                   turn_by_turn_monitor=monitor_setting)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
