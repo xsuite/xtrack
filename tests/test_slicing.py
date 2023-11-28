@@ -342,3 +342,25 @@ def test_slicing_thick_bend_into_thick_bends_simple(element_type):
     _fact = np.math.factorial
     assert np.isclose(_fact(bend0.order) * bend0.inv_factorial_order, 1, atol=1e-16)
     assert np.isclose(_fact(bend1.order) * bend0.inv_factorial_order, 1, atol=1e-16)
+
+
+def test_slicing_xdeps_consistency():
+    num_elements = 50000
+    num_slices = 1
+
+    line = xt.Line(
+        elements=[xt.Bend(k0=1, length=100)] * num_elements,
+        element_names=[f'bend{ii}' for ii in range(num_elements)],
+    )
+    line._init_var_management()
+
+    for ii in range(num_elements):
+        line.vars[f'k{ii}'] = 1
+        line.element_refs[f'bend{ii}'].k0 = line.vars[f'k{ii}']
+
+    sgy = xt.slicing.Strategy(
+        element_type=xt.Bend,
+        slicing=xt.slicing.Uniform(num_slices),
+    )
+    line.slice_thick_elements([sgy])
+    assert len(line.to_dict()['_var_manager']) == num_elements * num_slices

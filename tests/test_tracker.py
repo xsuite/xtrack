@@ -542,3 +542,29 @@ def test_tracking_with_progress(test_context, with_progress, turns, collective):
 
     assert np.all(particles.at_turn == turns)
     assert np.allclose(particles.s, 10 * turns, rtol=0, atol=1e-14)
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize(
+    'ele_start,ele_stop,expected_x',
+    [
+        (None, None, [0, 0.005, 0.010, 0.015, 0.020, 0.025]),
+        (None, 3, [0, 0.005, 0.010, 0.015, 0.020, 0.023]),
+        (2, None, [0, 0.003, 0.008, 0.013, 0.018, 0.023]),
+        (2, 3, [0, 0.003, 0.008, 0.013, 0.018, 0.021]),
+        (3, 2, [0, 0.002, 0.007, 0.012, 0.017, 0.022, 0.024]),
+    ],
+)
+@pytest.mark.parametrize('with_progress', [False, True, 1, 2, 3])
+def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x, with_progress):
+    line = xt.Line(elements=[xt.Drift(length=1, _context=test_context)] * 5)
+    line.build_tracker(_context=test_context)
+
+    p = xt.Particles(px=0.001)
+    line.track(p, num_turns=5, turn_by_turn_monitor=True, with_progress=with_progress, ele_start=ele_start, ele_stop=ele_stop)
+
+    monitor_recorded_x = line.record_last_track.x
+    assert monitor_recorded_x.shape == (1, len(expected_x) - 1)
+
+    recorded_x = np.concatenate([monitor_recorded_x[0], p.x])
+    assert np.allclose(recorded_x, expected_x, atol=1e-16)
