@@ -560,8 +560,9 @@ def test_tbt_monitor_with_progress(test_context, ele_start, ele_stop, expected_x
     line = xt.Line(elements=[xt.Drift(length=1, _context=test_context)] * 5)
     line.build_tracker(_context=test_context)
 
-    p = xt.Particles(px=0.001)
+    p = xt.Particles(px=0.001, _context=test_context)
     line.track(p, num_turns=5, turn_by_turn_monitor=True, with_progress=with_progress, ele_start=ele_start, ele_stop=ele_stop)
+    p.move(_context=xo.context_default)
 
     monitor_recorded_x = line.record_last_track.x
     assert monitor_recorded_x.shape == (1, len(expected_x) - 1)
