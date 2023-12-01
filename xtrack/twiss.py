@@ -289,6 +289,7 @@ def twiss_line(line, particle_ref=None, method=None,
     ele_start_user = ele_start
 
     if num_turns != 1:
+        # Untested cases
         assert num_turns > 0
         assert ele_start is None
         assert ele_stop is None
