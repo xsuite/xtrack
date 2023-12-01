@@ -6,7 +6,7 @@
 from .elements import *
 from .exciter import Exciter
 from .apertures import *
-from .beam_interaction import BeamInteraction
+from .beam_interaction import BeamInteraction, ParticlesInjectionSample
 from ..base_element import BeamElement
 
 element_classes = tuple(v for v in globals().values() if isinstance(v, type) and issubclass(v, BeamElement))

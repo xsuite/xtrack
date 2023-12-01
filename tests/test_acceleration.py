@@ -85,6 +85,15 @@ def test_energy_program(test_context):
     line['br1.acwf7l1.1'].voltage = 2e6
     line['br1.acwf7l1.1'].frequency = 1e3
 
+    # test to_dict and from_dict
+    line_dict = line.to_dict()
+    line = xt.Line.from_dict(line_dict)
+
+    # test copy method
+    line = line.copy()
+
+    line.build_tracker(_context=test_context)
+
     p_test = line.build_particles()
     line.enable_time_dependent_vars = True
     n_turn_test = 5000

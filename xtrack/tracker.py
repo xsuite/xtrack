@@ -282,7 +282,14 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, particles, *args, with_progress: Union[bool, int] = False, **kwargs):
+    def _track(self, particles, *args, with_progress: Union[bool, int]=False,
+               time=False, **kwargs):
+
+        out = None
+
+        if time:
+            t0 = perf_counter()
+
         assert self.iscollective in (True, False)
         if self.iscollective or self.line.enable_time_dependent_vars:
             tracking_func = self._track_with_collective
@@ -319,7 +326,16 @@ class Tracker:
                 tracking_func(particles, *args, **one_turn_kwargs)
                 # particles.reorganize() # could be done in the future to optimize GPU usage
         else:
-            return tracking_func(particles, *args, **kwargs)
+            out = tracking_func(particles, *args, **kwargs)
+
+        if time:
+            t1 = perf_counter()
+            self._context.synchronize()
+            self.time_last_track = t1 - t0
+        else:
+            self.time_last_track = None
+
+        return out
 
     @property
     def particle_ref(self) -> xp.Particles:
@@ -797,12 +813,8 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
-        time=False,
         _session_to_resume=None
     ):
-
-        if time:
-            t0 = perf_counter()
 
         if ele_start is None:
             ele_start = 0
@@ -871,15 +883,21 @@ class Tracker:
                 ii_first_active = int((state > 0).argmax())
                 if ii_first_active == 0 and particles._xobject.state[0] <= 0:
                     # No active particles
-                    break
+                    at_turn = 0 # convenient for multi-turn injection
+                else:
+                    at_turn = particles._xobject.at_turn[ii_first_active]
 
-                at_turn = particles._xobject.at_turn[ii_first_active]
                 if self.line.energy_program is not None:
                     t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
                 else:
                     beta0 = particles._xobject.beta0[ii_first_active]
                     t_turn = (at_turn * self._tracker_data_base.line_length
                             / (beta0 * clight))
+
+                # Clean leftover from previous trackings
+                if (self.line._t_last_update_time_dependent_vars and
+                   t_turn < self.line._t_last_update_time_dependent_vars):
+                    self.line._t_last_update_time_dependent_vars = None
 
                 if (self.line._t_last_update_time_dependent_vars is None
                     or self.line.dt_update_time_dependent_vars is None
@@ -995,12 +1013,6 @@ class Tracker:
 
         self.record_last_track = monitor
 
-        if time:
-            t1 = perf_counter()
-            self._context.synchronize()
-            self.time_last_track = t1 - t0
-        else:
-            self.time_last_track = None
 
     def _track_no_collective(
         self,
@@ -1012,7 +1024,6 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
-        time=False,
         _force_no_end_turn_actions=False,
     ):
 
@@ -1041,9 +1052,6 @@ class Tracker:
             self.config.pop('particles_class_name', None)
         self.particles_class = particles.__class__
         self.local_particle_src = particles.gen_local_particle_api()
-
-        if time:
-            t0 = perf_counter()
 
         if freeze_longitudinal:
             kwargs = locals().copy()
@@ -1226,13 +1234,6 @@ class Tracker:
             )
 
         self.record_last_track = monitor
-
-        if time:
-            self._context.synchronize()
-            t1 = perf_counter()
-            self.time_last_track = t1 - t0
-        else:
-            self.time_last_track = None
 
     @staticmethod
     def _get_default_monitor_class():
