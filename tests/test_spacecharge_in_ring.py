@@ -133,6 +133,10 @@ def test_ring_with_spacecharge(test_context, mode):
                                         update_mean_x_on_track=True,
                                         update_mean_y_on_track=True)
     elif mode == 'pic' or mode == 'pic_average_transverse':
+        if mode == 'pic':
+            solver = 'FFTSolver2p5D'
+        elif mode == 'pic_average_transverse':
+            solver = 'FFTSolver2p5DAveraged'
         pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
             _context=test_context, line=line,
             n_sigmas_range_pic_x=5,
@@ -140,8 +144,7 @@ def test_ring_with_spacecharge(test_context, mode):
             nx_grid=256, ny_grid=256, nz_grid=nz_grid,
             n_lims_x=7, n_lims_y=3,
             z_range=z_range,
-            _average_transverse_distribution=(
-                                mode == 'pic_average_transverse'))
+            solver=solver)
     else:
         raise ValueError(f'Invalid mode: {mode}')
 
@@ -201,13 +204,8 @@ def test_ring_with_spacecharge(test_context, mode):
 
     if mode == 'pic_average_transverse':
         sc_test = all_pics[50]
+        assert sc_test.fieldmap.solver.__class__.__name__ == 'FFTSolver2p5DAveraged'
         ctx2np = sc_test._context.nparray_from_context_array
-        assert sc_test.fieldmap._average_transverse_distribution == True
-        assert hasattr(sc_test.fieldmap, '_rho_before_average')
-        assert np.allclose(
-            ctx2np(sc_test.fieldmap._rho_before_average.sum(axis=(0, 1))),
-            ctx2np(sc_test.fieldmap.rho.sum(axis=(0, 1))),
-            atol=1e-14, rtol=1e-10)
         for dtest in [sc_test.fieldmap.dphi_dx, sc_test.fieldmap.dphi_dy]:
             # Check that the normalized electric field is the same
             dtest = ctx2np(dtest)
@@ -217,5 +215,4 @@ def test_ring_with_spacecharge(test_context, mode):
                 atol=1e-10, rtol=1e-5)
     elif mode == 'pic':
         sc_test = all_pics[50]
-        assert sc_test.fieldmap._average_transverse_distribution == False
-        assert not hasattr(sc_test.fieldmap, '_rho_before_average')
+        assert sc_test.fieldmap.solver.__class__.__name__ == 'FFTSolver2p5D'
