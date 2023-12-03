@@ -78,3 +78,8 @@ plt.figure(1)
 plt.plot(mon.y.flatten(), mon.py.flatten(), '.', markersize=1)
 plt.plot(tw_start_turns.y, tw_start_turns.py, '*r')
 plt.show()
+
+assert '_turn_0' in tw_mt.name
+assert '_turn_1' in tw_mt.name
+assert '_turn_2' in tw_mt.name
+assert '_turn_3' in tw_mt.name
