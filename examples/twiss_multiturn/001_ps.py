@@ -38,7 +38,7 @@ p = line.build_particles(
 line.track(p, num_turns=1000, turn_by_turn_monitor=True)
 mon = line.record_last_track
 
-tw_mt = line.twiss(co_guess={'x': 0.032}, num_turns=4)
+tw_mt = line.twiss(co_guess={'x': 0.025}, num_turns=4)
 tw_core = line.twiss(co_guess={'x': 0.0}, num_turns=0)
 
 # Inspect and plot
@@ -65,10 +65,29 @@ plt.plot(tw_core.s, tw_core.bety)
 
 plt.show()
 
+assert len(tw_mt.rows['_turn.*']) == 4
+assert len(tw_mt.rows['_end_poi.*']) == 1
+
 assert '_turn_0' in tw_mt.name
 assert '_turn_1' in tw_mt.name
 assert '_turn_2' in tw_mt.name
 assert '_turn_3' in tw_mt.name
 
 assert np.all(np.diff(tw_mt.s) >= 0)
+
 circum = line.get_length()
+
+assert np.isclose(tw_mt.s[-1], 4 * circum, atol=1e-10, rtol=0)
+assert np.isclose(tw_mt['s', '_turn_0'], 0, atol=1e-10, rtol=0)
+assert np.isclose(tw_mt['s', '_turn_1'], circum, atol=1e-10, rtol=0)
+assert np.isclose(tw_mt['s', '_turn_2'], 2 * circum, atol=1e-10, rtol=0)
+assert np.isclose(tw_mt['s', '_turn_3'], 3 * circum, atol=1e-10, rtol=0)
+assert np.isclose(tw_mt['s', '_end_point'], 4 * circum, atol=1e-10, rtol=0)
+
+assert np.isclose(tw_mt.mux[-1], 4 * tw.mux[-1], rtol=0, atol=0.05)
+assert np.isclose(tw_mt.muy[-1], 4 * tw.muy[-1], rtol=0, atol=0.05)
+
+assert 'qx' in tw
+assert 'qy' in tw
+assert 'qx' not in tw_mt
+assert 'qy' not in tw_mt
