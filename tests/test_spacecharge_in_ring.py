@@ -148,9 +148,7 @@ def test_ring_with_spacecharge(test_context, mode):
     else:
         raise ValueError(f'Invalid mode: {mode}')
 
-    #################
-    # Build Tracker #
-    #################
+    # rebuild the tracker after editing
     line.build_tracker(_context=test_context)
 
     ###############################
