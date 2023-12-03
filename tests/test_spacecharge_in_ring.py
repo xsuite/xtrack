@@ -49,6 +49,7 @@ def test_ring_with_spacecharge(test_context, mode):
          input_data = json.load(fid)
     line0_no_sc = xt.Line.from_dict(input_data['line'])
     line0_no_sc.particle_ref=xp.Particles.from_dict(input_data['particle'])
+    line0_no_sc.build_tracker(_context=test_context)
 
     lprofile = xf.LongitudinalProfileQGaussian(
         number_of_particles=bunch_intensity,
