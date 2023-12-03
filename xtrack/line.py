@@ -708,7 +708,7 @@ class Line:
         """
 
         if self.tracker is not None:
-            _print('The  already has an associated tracker')
+            _print('The line already has an associated tracker')
             return self.tracker
 
         self.tracker = xt.Tracker(
