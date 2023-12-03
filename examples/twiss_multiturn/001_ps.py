@@ -91,3 +91,8 @@ assert 'qx' in tw
 assert 'qy' in tw
 assert 'qx' not in tw_mt
 assert 'qy' not in tw_mt
+
+assert tw_mt['x', '_turn_0'] > 2e-2
+assert np.abs(tw_mt['x', '_turn_1']) < 1e-2
+assert tw_mt['x', '_turn_2'] < -2e-2
+assert np.abs(tw_mt['x', '_turn_3']) < 1e-2

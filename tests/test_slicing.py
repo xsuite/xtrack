@@ -4,6 +4,7 @@
 # ######################################### #
 import numpy as np
 import pytest
+import math
 
 import xtrack as xt
 from xtrack.slicing import Strategy, Teapot, Uniform
@@ -285,7 +286,7 @@ def test_slicing_thick_bend_simple(element_type):
     assert np.allclose(bend1.hxl, expected_hxl, atol=1e-16)
 
     # Make sure the order and the inverse factorial make sense:
-    _fact = np.math.factorial
+    _fact = math.factorial
     assert np.isclose(_fact(bend0.order) * bend0.inv_factorial_order, 1, atol=1e-16)
     assert np.isclose(_fact(bend1.order) * bend0.inv_factorial_order, 1, atol=1e-16)
 
