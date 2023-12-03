@@ -96,3 +96,8 @@ assert tw_mt['x', '_turn_0'] > 2e-2
 assert np.abs(tw_mt['x', '_turn_1']) < 1e-2
 assert tw_mt['x', '_turn_2'] < -2e-2
 assert np.abs(tw_mt['x', '_turn_3']) < 1e-2
+
+assert np.isclose(tw_mt.x[-1], tw_mt.x[0], rtol=0, atol=1e-8)
+assert np.isclose(tw_mt.y[-1], tw_mt.y[0], rtol=0, atol=1e-8)
+assert np.isclose(tw_mt.px[-1], tw_mt.px[0], rtol=0, atol=1e-10)
+assert np.isclose(tw_mt.py[-1], tw_mt.py[0], rtol=0, atol=1e-10)
