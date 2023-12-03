@@ -1260,7 +1260,7 @@ class Line:
 
         Parameters
         ----------
-        co_guess : Particle
+        co_guess : Particles or dict
             Particle used to compute the closed orbit. If None, the reference
             particle is used.
         particle_ref : Particle
