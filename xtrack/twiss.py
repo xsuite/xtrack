@@ -227,6 +227,9 @@ def twiss_line(line, particle_ref=None, method=None,
         - co_search_settings : dict, optional
             Settings to be used for the closed orbit search.
             If not provided, the default values are used.
+        - num_turns: int, optional
+            If specified the periodic solution and the twiss table are computed
+            on multiple turns.
         - continue_on_closed_orbit_error : bool, optional
             If True, the computation is continued even if the closed orbit
             search fails.
