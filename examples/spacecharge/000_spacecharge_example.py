@@ -24,13 +24,21 @@ sigma_z = 22.5e-2/3
 nemitt_x=2.5e-6
 nemitt_y=2.5e-6
 n_part=int(1e6)
-num_turns=32
+num_turns=3
 
 num_spacecharge_interactions = 540
 tol_spacecharge_position = 1e-2
 
 # Available modes: frozen/quasi-frozen/pic
 mode = 'pic'
+
+#################################
+# Testing simulation parameters #
+#     (quick but wrong!!!!)     #
+#################################
+
+num_spacecharge_interactions = 31
+n_part = 100
 
 ####################
 # Choose a context #
@@ -49,7 +57,7 @@ print(context)
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
-particle_ref = xp.Particles.from_dict(input_data['particle'])
+line.particle_ref = xp.Particles.from_dict(input_data['particle'])
 
 #############################################
 # Install spacecharge interactions (frozen) #
@@ -62,7 +70,6 @@ lprofile = xf.LongitudinalProfileQGaussian(
         q_parameter=1.)
 
 xf.install_spacecharge_frozen(line=line,
-                   particle_ref=particle_ref,
                    longitudinal_profile=lprofile,
                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                    sigma_z=sigma_z,
@@ -91,7 +98,6 @@ elif mode == 'pic':
 else:
     raise ValueError(f'Invalid mode: {mode}')
 
-
 #################
 # Build Tracker #
 #################
@@ -104,14 +110,13 @@ line_sc_off = line.filter_elements(exclude_types_starting_with='SpaceCh')
 ######################
 
 # (we choose to match the distribution without accounting for spacecharge)
-particles = xp.generate_matched_gaussian_bunch(_context=context,
+particles = xp.generate_matched_gaussian_bunch(line=line_sc_off,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
-         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-         particle_ref=particle_ref, line=line_sc_off)
+         nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z)
 
 #########
 # Track #
 #########
 
-line.track(particles, num_turns=3)
+line.track(particles, num_turns=num_turns, with_progress=1)
 
