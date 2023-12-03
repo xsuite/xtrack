@@ -23,7 +23,6 @@ from xpart.test_helpers import flaky_assertions, retry
 )
 @retry()
 def test_ring_with_spacecharge(test_context, mode):
-    import pdb; pdb.set_trace()
 
     test_data_folder = pathlib.Path(
             __file__).parent.joinpath('../test_data').absolute()
