@@ -48,7 +48,7 @@ def test_ring_with_spacecharge(test_context, mode):
     with open(fname_line, 'r') as fid:
          input_data = json.load(fid)
     line0_no_sc = xt.Line.from_dict(input_data['line'])
-    particle_ref=xp.Particles.from_dict(input_data['particle'])
+    line0_no_sc.particle_ref=xp.Particles.from_dict(input_data['particle'])
 
     lprofile = xf.LongitudinalProfileQGaussian(
         number_of_particles=bunch_intensity,
@@ -64,20 +64,17 @@ def test_ring_with_spacecharge(test_context, mode):
     line_temp.build_tracker(_context=test_context)
     import warnings
     warnings.filterwarnings('ignore')
-    particle_probe = line_temp.build_particles(_context=xo.ContextCpu(),
-                particle_ref=particle_ref,
+    particle_probe = line_temp.build_particles(
                 weight=0,  # pure probe particles
                 zeta=0, delta=0,
                 x_norm=2, px_norm=0,
                 y_norm=2, py_norm=0,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
-    particles_gaussian = xp.generate_matched_gaussian_bunch(
-             _context=xo.ContextCpu(),
+    particles_gaussian = xp.generate_matched_gaussian_bunch(line=line_temp,
              num_particles= 2 * n_part, # will mark half of them as lost
              total_intensity_particles = 2 * bunch_intensity, # will mark half of them as lost
-             nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-             particle_ref=particle_ref, line=line_temp)
+             nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z)
 
     particles_gaussian.state[1::2] = -222 # Mark half of them as lost
 
@@ -107,13 +104,12 @@ def test_ring_with_spacecharge(test_context, mode):
     else:
         raise ValueError('Invalid mode!')
 
-    particles = particles.copy(_context=test_context)
+    particles.move(_context=test_context)
 
     warnings.filterwarnings('ignore')
     line = line0_no_sc.copy()
     xf.install_spacecharge_frozen(
             line=line,
-            particle_ref=particle_ref,
             longitudinal_profile=lprofile,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             sigma_z=sigma_z,
@@ -129,7 +125,7 @@ def test_ring_with_spacecharge(test_context, mode):
         pass # Already configured in line
     elif mode == 'quasi-frozen':
         xf.replace_spacecharge_with_quasi_frozen(
-                                        line, _buffer=test_context.new_buffer(),
+                                        line,
                                         update_mean_x_on_track=True,
                                         update_mean_y_on_track=True)
     elif mode == 'pic' or mode == 'pic_average_transverse':
@@ -138,7 +134,7 @@ def test_ring_with_spacecharge(test_context, mode):
         elif mode == 'pic_average_transverse':
             solver = 'FFTSolver2p5DAveraged'
         pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
-            _context=test_context, line=line,
+            line=line,
             n_sigmas_range_pic_x=5,
             n_sigmas_range_pic_y=5,
             nx_grid=256, ny_grid=256, nz_grid=nz_grid,
@@ -158,8 +154,7 @@ def test_ring_with_spacecharge(test_context, mode):
     ###############################
 
     line_no_sc = line.filter_elements(exclude_types_starting_with='SpaceCh')
-    tw = line_no_sc.twiss(
-            particle_ref=particle_ref,  at_elements=[0])
+    tw = line_no_sc.twiss(at_elements=[0])
 
     p_probe_before = particles.filter(
             particles.particle_id == 0).to_dict()

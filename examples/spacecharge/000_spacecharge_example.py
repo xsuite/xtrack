@@ -30,8 +30,8 @@ num_spacecharge_interactions = 540
 tol_spacecharge_position = 1e-2
 
 # Available modes: frozen/quasi-frozen/pic
-# mode = 'pic'
-mode = 'quasi-frozen'
+mode = 'pic'
+# mode = 'quasi-frozen'
 
 # Choose solver between `FFTSolver2p5DAveraged` and `FFTSolver2p5D`
 pic_solver = 'FFTSolver2p5DAveraged'
@@ -93,7 +93,7 @@ elif mode == 'quasi-frozen':
                                     update_mean_y_on_track=True)
 elif mode == 'pic':
     pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
-        _context=context, line=line,
+        line=line,
         n_sigmas_range_pic_x=8,
         n_sigmas_range_pic_y=8,
         nx_grid=256, ny_grid=256, nz_grid=100,
