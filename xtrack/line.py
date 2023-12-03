@@ -707,8 +707,10 @@ class Line:
 
         """
 
-        assert self.tracker is None, 'The line already has an associated tracker'
-        import xtrack as xt  # avoid circular import
+        if self.tracker is not None:
+            _print('The  already has an associated tracker')
+            return self.tracker
+
         self.tracker = xt.Tracker(
                                 line=self,
                                 _context=_context,

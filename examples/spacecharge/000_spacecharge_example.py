@@ -30,7 +30,8 @@ num_spacecharge_interactions = 540
 tol_spacecharge_position = 1e-2
 
 # Available modes: frozen/quasi-frozen/pic
-mode = 'pic'
+# mode = 'pic'
+mode = 'quasi-frozen'
 
 # Choose solver between `FFTSolver2p5DAveraged` and `FFTSolver2p5D`
 pic_solver = 'FFTSolver2p5DAveraged'
