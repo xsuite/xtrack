@@ -7,8 +7,8 @@ mad.input("""
 beam, particle=proton, pc = 14.0;
 BRHO      = BEAM->PC * 3.3356;
 """)
-mad.call("ps.seq")
-mad.call("ps_hs_sftpro.str")
+mad.call("../../test_data/ps_sftpro/ps.seq")
+mad.call("../../test_data/ps_sftpro/ps_hs_sftpro.str")
 mad.use('ps')
 twm = mad.twiss()
 
@@ -64,3 +64,11 @@ plt.plot(tw_mt.s, tw_mt.bety)
 plt.plot(tw_core.s, tw_core.bety)
 
 plt.show()
+
+assert '_turn_0' in tw_mt.name
+assert '_turn_1' in tw_mt.name
+assert '_turn_2' in tw_mt.name
+assert '_turn_3' in tw_mt.name
+
+assert np.all(np.diff(tw_mt.s) >= 0)
+circum = line.get_length()

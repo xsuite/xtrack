@@ -39,6 +39,8 @@ line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
 # ])
 # line.build_tracker()
 
+tw = line.twiss()
+
 opt = line.match(
     solve=False,
     vary=[
@@ -83,3 +85,6 @@ assert '_turn_0' in tw_mt.name
 assert '_turn_1' in tw_mt.name
 assert '_turn_2' in tw_mt.name
 assert '_turn_3' in tw_mt.name
+
+assert np.all(np.diff(tw_mt.s) >= 0)
+circum = tw
