@@ -972,8 +972,6 @@ def test_insert_thin_elements_at_s_basic(test_context):
 @for_all_test_contexts
 def test_insert_thin_elements_at_s_lhc(test_context):
 
-    import pdb; pdb.set_trace()
-
     line = xt.Line.from_json(test_data_folder /
                     'hllhc15_thick/lhc_thick_with_knobs.json')
     line.twiss_default['method'] = '4d'
