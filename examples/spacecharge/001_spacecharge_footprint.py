@@ -32,11 +32,11 @@ z_range = (-3*sigma_z, 3*sigma_z)
 num_spacecharge_interactions = 540
 
 mode = 'frozen'
-#mode = 'quasi-frozen'
+mode = 'quasi-frozen'
 #mode = 'pic'
 
-context = xo.ContextCpu()
-#context = xo.ContextCupy()
+#context = xo.ContextCpu()
+context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 print(context)
