@@ -39,7 +39,6 @@ def test_ring_with_spacecharge(test_context, mode):
     z_range = (-3*sigma_z/40, 3*sigma_z/40)
 
     num_spacecharge_interactions = 540
-    tol_spacecharge_position = 1e-2
 
     ##############
     # Get a line #
@@ -113,12 +112,13 @@ def test_ring_with_spacecharge(test_context, mode):
             longitudinal_profile=lprofile,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             sigma_z=sigma_z,
-            num_spacecharge_interactions=num_spacecharge_interactions,
-            tol_spacecharge_position=tol_spacecharge_position)
+            num_spacecharge_interactions=num_spacecharge_interactions)
     warnings.filterwarnings('default')
 
     # Move to the right context
     line.build_tracker(_context=test_context)
+    assert line._context is test_context
+    buffer_for_check = line._buffer
 
     ##########################
     # Configure space-charge #
@@ -149,6 +149,17 @@ def test_ring_with_spacecharge(test_context, mode):
 
     # rebuild the tracker after editing
     line.build_tracker(_context=test_context)
+    assert line._buffer is buffer_for_check
+
+    if mode == 'pic_average_transverse' or mode == 'pic':
+        assert isinstance(line[0], xf.SpaceCharge3D)
+    else:
+        assert isinstance(line[0], xf.SpaceChargeBiGaussian)
+
+    if mode is not 'frozen':
+        assert line.iscollective
+    else:
+        assert not line.iscollective
 
     ###############################
     # Tune shift from single turn #
@@ -159,6 +170,8 @@ def test_ring_with_spacecharge(test_context, mode):
 
     p_probe_before = particles.filter(
             particles.particle_id == 0).to_dict()
+
+    assert line._buffer is buffer_for_check
 
     print('Start tracking...')
     line.track(particles)
