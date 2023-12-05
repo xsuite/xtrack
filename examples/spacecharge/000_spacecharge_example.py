@@ -127,6 +127,5 @@ particles = xp.generate_matched_gaussian_bunch(line=line_sc_off,
 #########
 # Track #
 #########
-prrrr
 line.track(particles, num_turns=num_turns, with_progress=1)
 

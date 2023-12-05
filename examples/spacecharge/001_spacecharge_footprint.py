@@ -30,14 +30,13 @@ nz_grid = 100
 z_range = (-3*sigma_z, 3*sigma_z)
 
 num_spacecharge_interactions = 540
-tol_spacecharge_position = 1e-2
 
 mode = 'frozen'
 #mode = 'quasi-frozen'
-mode = 'pic'
+#mode = 'pic'
 
-#context = xo.ContextCpu()
-context = xo.ContextCupy()
+context = xo.ContextCpu()
+#context = xo.ContextCupy()
 #context = xo.ContextPyopencl('0.0')
 
 print(context)
@@ -50,6 +49,7 @@ with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line= xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+line.build_tracker(_context=context, compile=False) # Move all elements in the same context
 
 #############################################
 # Install spacecharge interactions (frozen) #
@@ -62,13 +62,10 @@ lprofile = xf.LongitudinalProfileQGaussian(
         q_parameter=1.)
 
 xf.install_spacecharge_frozen(line=line,
-                   particle_ref=particle_ref,
                    longitudinal_profile=lprofile,
                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                    sigma_z=sigma_z,
-                   num_spacecharge_interactions=num_spacecharge_interactions,
-                   tol_spacecharge_position=tol_spacecharge_position)
-
+                   num_spacecharge_interactions=num_spacecharge_interactions)
 
 ##########################
 # Configure space-charge #
