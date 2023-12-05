@@ -3245,8 +3245,6 @@ class Line:
             drift = self[name_drift]
             assert isinstance(drift, xt.Drift)
             _buffer = drift._buffer
-            if not isinstance(_buffer.context, xo.ContextCpu):
-                raise ValueError('Only supported on CPU') # GPU untested
             l_drift = drift.length
             s_start = tt_before_cut['s'][idr]
             s_end = s_start + l_drift
