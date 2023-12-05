@@ -36,13 +36,13 @@ mode = 'quasi-frozen'
 # Choose solver between `FFTSolver2p5DAveraged` and `FFTSolver2p5D`
 pic_solver = 'FFTSolver2p5DAveraged'
 
-#################################
-# Testing simulation parameters #
-#     (quick but wrong!!!!)     #
-#################################
+# #################################
+# # Testing simulation parameters #
+# #     (quick but wrong!!!!)     #
+# #################################
 
-num_spacecharge_interactions = 31
-n_part = 100
+# num_spacecharge_interactions = 31
+# n_part = 100
 
 ####################
 # Choose a context #
@@ -122,6 +122,6 @@ particles = xp.generate_matched_gaussian_bunch(line=line_sc_off,
 #########
 # Track #
 #########
-
+prrrr
 line.track(particles, num_turns=num_turns, with_progress=1)
 

@@ -3220,6 +3220,8 @@ class Line:
 
         '''
 
+        self._frozen_check()
+
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
 
