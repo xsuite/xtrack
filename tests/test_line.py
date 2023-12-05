@@ -948,8 +948,9 @@ def test_line_attr():
 def test_insert_thin_elements_at_s_basic(test_context):
 
     l1 = xt.Line(elements=5*[xt.Drift(length=1)])
-    l1.build_tracker(_context=test_context)
+    l1.build_tracker(_context=test_context) # Move all elements to selected context
 
+    l1.discard_tracker()
     l1._insert_thin_elements_at_s([
         (0, [(f'm0_at_a', xt.Marker(_context=test_context)), (f'm1_at_a', xt.Marker(_context=test_context))]),
         (5, [(f'm0_at_b', xt.Marker(_context=test_context)), (f'm1_at_b', xt.Marker(_context=test_context))]),
@@ -989,6 +990,7 @@ def test_insert_thin_elements_at_s_lhc(test_context):
         Strategy(slicing=Teapot(60), name=r'^mqx.*'),
     ]
 
+    line.discard_tracker()
     line.slice_thick_elements(slicing_strategies=slicing_strategies)
 
     tw0 = line.twiss()
@@ -1009,8 +1011,8 @@ def test_insert_thin_elements_at_s_lhc(test_context):
         (s2,     [(f'm0_at_d', xt.Marker(_context=test_context)), (f'm1_at_d', xt.Marker(_context=test_context)), (f'm2_at_d', xt.Marker(_context=test_context))]),
     ]
 
+    line.discard_tracker()
     line._insert_thin_elements_at_s(elements_to_insert)
-
     line.build_tracker(_context=test_context)
 
     tt = line.get_table()
