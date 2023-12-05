@@ -27,7 +27,6 @@ n_part=int(1e6)
 num_turns=3
 
 num_spacecharge_interactions = 540
-tol_spacecharge_position = 1e-2
 
 # Available modes: frozen/quasi-frozen/pic
 # mode = 'pic'
@@ -62,7 +61,9 @@ with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
 line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-line.build_tracker(_context=context, compile=False) # Bring all elements to the context
+
+
+line.build_tracker(_context=context, compile=False)
 
 #############################################
 # Install spacecharge interactions (frozen) #
@@ -79,7 +80,7 @@ xf.install_spacecharge_frozen(line=line,
                    nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                    sigma_z=sigma_z,
                    num_spacecharge_interactions=num_spacecharge_interactions,
-                   tol_spacecharge_position=tol_spacecharge_position)
+                   )
 
 #################################
 # Switch to PIC or quasi-frozen #
@@ -109,11 +110,14 @@ else:
 #################
 
 line.build_tracker(_context=context)
-line_sc_off = line.filter_elements(exclude_types_starting_with='SpaceCh')
 
 ######################
 # Generate particles #
 ######################
+
+# Build a line without spacecharge (recycling the track kernel)
+line_sc_off = line.filter_elements(exclude_types_starting_with='SpaceCh')
+line_sc_off.build_tracker(track_kernel=line.tracker.track_kernel)
 
 # (we choose to match the distribution without accounting for spacecharge)
 particles = xp.generate_matched_gaussian_bunch(line=line_sc_off,
@@ -123,5 +127,6 @@ particles = xp.generate_matched_gaussian_bunch(line=line_sc_off,
 #########
 # Track #
 #########
+prrrr
 line.track(particles, num_turns=num_turns, with_progress=1)
 
