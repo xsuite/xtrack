@@ -199,8 +199,16 @@ class Tracker:
                 else:
                     ldrift = 0.
 
+                if _buffer is None:
+                    if hasattr(pp, '_buffer'):
+                        pp_buffer = pp._buffer
+                    else:
+                        pp_buffer = None
+                else:
+                    pp_buffer = _buffer
+
                 noncollective_xelements.append(
-                    Drift(_buffer=_buffer, length=ldrift))
+                    Drift(_buffer=pp_buffer, length=ldrift))
 
         # Build TrackerPartNonCollective objects for non-collective parts
         for ii, pp in enumerate(parts):

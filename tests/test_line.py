@@ -944,13 +944,16 @@ def test_line_attr():
     assert np.all(line.attr['k1l'] == [0, 3, 8, 0, 11 * 12])
     assert np.all(line.attr['angle_x'] == [0, 8, 0.5 * 6, 0, 0])
 
-def test_insert_thin_elements_at_s_basic():
+@for_all_test_contexts
+def test_insert_thin_elements_at_s_basic(test_context):
 
     l1 = xt.Line(elements=5*[xt.Drift(length=1)])
+    l1.build_tracker(_context=test_context) # Move all elements to selected context
 
+    l1.discard_tracker()
     l1._insert_thin_elements_at_s([
-        (0, [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker())]),
-        (5, [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker())]),
+        (0, [(f'm0_at_a', xt.Marker(_context=test_context)), (f'm1_at_a', xt.Marker(_context=test_context))]),
+        (5, [(f'm0_at_b', xt.Marker(_context=test_context)), (f'm1_at_b', xt.Marker(_context=test_context))]),
     ])
 
     t1 = l1.get_table()
@@ -966,11 +969,14 @@ def test_insert_thin_elements_at_s_basic():
     assert t1.s[-2] == 5.
     assert t1.s[-3] == 5.
 
-def test_insert_thin_elements_at_s_lhc():
+@for_all_test_contexts
+def test_insert_thin_elements_at_s_lhc(test_context):
 
     line = xt.Line.from_json(test_data_folder /
                     'hllhc15_thick/lhc_thick_with_knobs.json')
     line.twiss_default['method'] = '4d'
+
+    line.build_tracker(_context=test_context)
 
     Strategy = xt.slicing.Strategy
     Teapot = xt.slicing.Teapot
@@ -984,6 +990,7 @@ def test_insert_thin_elements_at_s_lhc():
         Strategy(slicing=Teapot(60), name=r'^mqx.*'),
     ]
 
+    line.discard_tracker()
     line.slice_thick_elements(slicing_strategies=slicing_strategies)
 
     tw0 = line.twiss()
@@ -998,13 +1005,15 @@ def test_insert_thin_elements_at_s_lhc():
 
     elements_to_insert = [
         # s .    # elements to insert (name, element)
-        (s0,     [(f'm0_at_a', xt.Marker()), (f'm1_at_a', xt.Marker()), (f'm2_at_a', xt.Marker())]),
-        (s0+10., [(f'm0_at_b', xt.Marker()), (f'm1_at_b', xt.Marker()), (f'm2_at_b', xt.Marker())]),
-        (s1,     [(f'm0_at_c', xt.Marker()), (f'm1_at_c', xt.Marker()), (f'm2_at_c', xt.Marker())]),
-        (s2,     [(f'm0_at_d', xt.Marker()), (f'm1_at_d', xt.Marker()), (f'm2_at_d', xt.Marker())]),
+        (s0,     [(f'm0_at_a', xt.Marker(_context=test_context)), (f'm1_at_a', xt.Marker(_context=test_context)), (f'm2_at_a', xt.Marker(_context=test_context))]),
+        (s0+10., [(f'm0_at_b', xt.Marker(_context=test_context)), (f'm1_at_b', xt.Marker(_context=test_context)), (f'm2_at_b', xt.Marker(_context=test_context))]),
+        (s1,     [(f'm0_at_c', xt.Marker(_context=test_context)), (f'm1_at_c', xt.Marker(_context=test_context)), (f'm2_at_c', xt.Marker(_context=test_context))]),
+        (s2,     [(f'm0_at_d', xt.Marker(_context=test_context)), (f'm1_at_d', xt.Marker(_context=test_context)), (f'm2_at_d', xt.Marker(_context=test_context))]),
     ]
 
+    line.discard_tracker()
     line._insert_thin_elements_at_s(elements_to_insert)
+    line.build_tracker(_context=test_context)
 
     tt = line.get_table()
 

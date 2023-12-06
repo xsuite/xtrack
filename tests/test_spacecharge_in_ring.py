@@ -39,7 +39,6 @@ def test_ring_with_spacecharge(test_context, mode):
     z_range = (-3*sigma_z/40, 3*sigma_z/40)
 
     num_spacecharge_interactions = 540
-    tol_spacecharge_position = 1e-2
 
     ##############
     # Get a line #
@@ -48,7 +47,7 @@ def test_ring_with_spacecharge(test_context, mode):
     with open(fname_line, 'r') as fid:
          input_data = json.load(fid)
     line0_no_sc = xt.Line.from_dict(input_data['line'])
-    particle_ref=xp.Particles.from_dict(input_data['particle'])
+    line0_no_sc.particle_ref=xp.Particles.from_dict(input_data['particle'])
 
     lprofile = xf.LongitudinalProfileQGaussian(
         number_of_particles=bunch_intensity,
@@ -61,23 +60,20 @@ def test_ring_with_spacecharge(test_context, mode):
     ##################
     line_temp = line0_no_sc.filter_elements(
         exclude_types_starting_with='SpaceCh')
-    line_temp.build_tracker(_context=test_context)
+    line_temp.build_tracker()
     import warnings
     warnings.filterwarnings('ignore')
-    particle_probe = line_temp.build_particles(_context=xo.ContextCpu(),
-                particle_ref=particle_ref,
+    particle_probe = line_temp.build_particles(
                 weight=0,  # pure probe particles
                 zeta=0, delta=0,
                 x_norm=2, px_norm=0,
                 y_norm=2, py_norm=0,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y)
 
-    particles_gaussian = xp.generate_matched_gaussian_bunch(
-             _context=xo.ContextCpu(),
+    particles_gaussian = xp.generate_matched_gaussian_bunch(line=line_temp,
              num_particles= 2 * n_part, # will mark half of them as lost
              total_intensity_particles = 2 * bunch_intensity, # will mark half of them as lost
-             nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z,
-             particle_ref=particle_ref, line=line_temp)
+             nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z)
 
     particles_gaussian.state[1::2] = -222 # Mark half of them as lost
 
@@ -107,19 +103,22 @@ def test_ring_with_spacecharge(test_context, mode):
     else:
         raise ValueError('Invalid mode!')
 
-    particles = particles.copy(_context=test_context)
+    particles.move(_context=test_context)
 
     warnings.filterwarnings('ignore')
     line = line0_no_sc.copy()
     xf.install_spacecharge_frozen(
             line=line,
-            particle_ref=particle_ref,
             longitudinal_profile=lprofile,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y,
             sigma_z=sigma_z,
-            num_spacecharge_interactions=num_spacecharge_interactions,
-            tol_spacecharge_position=tol_spacecharge_position)
+            num_spacecharge_interactions=num_spacecharge_interactions)
     warnings.filterwarnings('default')
+
+    # Move to the right context
+    line.build_tracker(_context=test_context)
+    assert line._context is test_context
+    buffer_for_check = line._buffer
 
     ##########################
     # Configure space-charge #
@@ -129,37 +128,50 @@ def test_ring_with_spacecharge(test_context, mode):
         pass # Already configured in line
     elif mode == 'quasi-frozen':
         xf.replace_spacecharge_with_quasi_frozen(
-                                        line, _buffer=test_context.new_buffer(),
+                                        line,
                                         update_mean_x_on_track=True,
                                         update_mean_y_on_track=True)
     elif mode == 'pic' or mode == 'pic_average_transverse':
+        if mode == 'pic':
+            solver = 'FFTSolver2p5D'
+        elif mode == 'pic_average_transverse':
+            solver = 'FFTSolver2p5DAveraged'
         pic_collection, all_pics = xf.replace_spacecharge_with_PIC(
-            _context=test_context, line=line,
+            line=line,
             n_sigmas_range_pic_x=5,
             n_sigmas_range_pic_y=5,
             nx_grid=256, ny_grid=256, nz_grid=nz_grid,
             n_lims_x=7, n_lims_y=3,
             z_range=z_range,
-            _average_transverse_distribution=(
-                                mode == 'pic_average_transverse'))
+            solver=solver)
     else:
         raise ValueError(f'Invalid mode: {mode}')
 
-    #################
-    # Build Tracker #
-    #################
+    # rebuild the tracker after editing
     line.build_tracker(_context=test_context)
+    assert line._buffer is buffer_for_check
+
+    if mode == 'pic_average_transverse' or mode == 'pic':
+        assert isinstance(line[0], xf.SpaceCharge3D)
+    else:
+        assert isinstance(line[0], xf.SpaceChargeBiGaussian)
+
+    if mode is not 'frozen':
+        assert line.iscollective
+    else:
+        assert not line.iscollective
 
     ###############################
     # Tune shift from single turn #
     ###############################
 
     line_no_sc = line.filter_elements(exclude_types_starting_with='SpaceCh')
-    tw = line_no_sc.twiss(
-            particle_ref=particle_ref,  at_elements=[0])
+    tw = line_no_sc.twiss(at_elements=[0])
 
     p_probe_before = particles.filter(
             particles.particle_id == 0).to_dict()
+
+    assert line._buffer is buffer_for_check
 
     print('Start tracking...')
     line.track(particles)
@@ -201,13 +213,8 @@ def test_ring_with_spacecharge(test_context, mode):
 
     if mode == 'pic_average_transverse':
         sc_test = all_pics[50]
+        assert sc_test.fieldmap.solver.__class__.__name__ == 'FFTSolver2p5DAveraged'
         ctx2np = sc_test._context.nparray_from_context_array
-        assert sc_test.fieldmap._average_transverse_distribution == True
-        assert hasattr(sc_test.fieldmap, '_rho_before_average')
-        assert np.allclose(
-            ctx2np(sc_test.fieldmap._rho_before_average.sum(axis=(0, 1))),
-            ctx2np(sc_test.fieldmap.rho.sum(axis=(0, 1))),
-            atol=1e-14, rtol=1e-10)
         for dtest in [sc_test.fieldmap.dphi_dx, sc_test.fieldmap.dphi_dy]:
             # Check that the normalized electric field is the same
             dtest = ctx2np(dtest)
@@ -217,5 +224,4 @@ def test_ring_with_spacecharge(test_context, mode):
                 atol=1e-10, rtol=1e-5)
     elif mode == 'pic':
         sc_test = all_pics[50]
-        assert sc_test.fieldmap._average_transverse_distribution == False
-        assert not hasattr(sc_test.fieldmap, '_rho_before_average')
+        assert sc_test.fieldmap.solver.__class__.__name__ == 'FFTSolver2p5D'

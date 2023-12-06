@@ -95,7 +95,7 @@ def get_nonlinear_chromaticity(line, max_delta=1.e-3, npoints=21, order=2):
         part_co_guess.px = delta*dpx
         part_co_guess.y = delta*dy
         part_co_guess.py = delta*dpy
-        twiss = line.twiss(method='4d', delta0=delta, particle_co_guess=part_co_guess)
+        twiss = line.twiss(method='4d', delta0=delta, co_guess=part_co_guess)
         qx[ii] = twiss.qx
         qy[ii] = twiss.qy
     
