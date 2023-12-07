@@ -3791,11 +3791,19 @@ class LineVars:
             {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
         self.line._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
 
-        for nn in self.line._xdeps_vref._owner.keys():
-            if (self.line._xdeps_vref[nn]._expr is None
-                and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
-                ):
-                self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]
+        try:
+            self.line._xdeps_vref._owner.default_factory = lambda: 0
+            allnames = list(self.line._xdeps_vref._owner.keys())
+            for nn in allnames:
+                if (self.line._xdeps_vref[nn]._expr is None
+                    and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
+                    ):
+                    self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner.get(nn, 0)
+        except Exception as ee:
+            self.line._xdeps_vref._owner.default_factory = None
+            raise ee
+
+        self.line._xdeps_vref._owner.default_factory = None
 
 class VarValues:
 
