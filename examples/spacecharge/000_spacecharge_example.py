@@ -116,6 +116,14 @@ particles = xp.generate_matched_gaussian_bunch(line=line_sc_off,
          num_particles=n_part, total_intensity_particles=bunch_intensity,
          nemitt_x=nemitt_x, nemitt_y=nemitt_y, sigma_z=sigma_z)
 
+####################################################
+# Check that everything is on the selected context #
+####################################################
+
+assert particles._context == context
+assert len(set([ee._buffer for ee in line.elements])) == 1 # All on same context
+assert line._context == context
+
 #########
 # Track #
 #########
