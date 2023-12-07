@@ -24,7 +24,7 @@ sigma_z = 22.5e-2/3
 nemitt_x=2.5e-6
 nemitt_y=2.5e-6
 n_part=int(1e6)
-num_turns=3
+num_turns=32
 
 num_spacecharge_interactions = 540
 
@@ -34,14 +34,6 @@ mode = 'quasi-frozen'
 
 # Choose solver between `FFTSolver2p5DAveraged` and `FFTSolver2p5D`
 pic_solver = 'FFTSolver2p5DAveraged'
-
-# #################################
-# # Testing simulation parameters #
-# #     (quick but wrong!!!!)     #
-# #################################
-
-# num_spacecharge_interactions = 31
-# n_part = 100
 
 ####################
 # Choose a context #
