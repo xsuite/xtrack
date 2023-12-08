@@ -80,6 +80,6 @@ particles = xp.Particles(p0c=p0c, #eV
 line.track(particles)
 
 from scipy.io import savemat
-r = np.transpose(np.array([particles.x, particles.px, particles.y, particles.py, particles.zeta, particles.delta]))
-dict = { "r": r }
+s = np.transpose(np.array([particles.x, particles.px, particles.y, particles.py, particles.zeta, particles.delta]))
+dict = { "s": s }
 savemat("particles_rft.mat", dict)
