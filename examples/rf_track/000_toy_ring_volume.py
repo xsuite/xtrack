@@ -7,11 +7,16 @@ import time
 import RF_Track as RFT
 
 # Bend parameters
+clight = 299792458 # m/s
 p0c = 1.2e9  # eV
 lbend = 3 # m
 angle = np.pi / 2 # rad
 rho = lbend / angle # m
-By = p0c / rho / RFT.clight # T
+By = p0c / rho / clight # T
+
+#############################################
+#######  RF-Track's part starts here  #######
+#############################################
 
 # Define the RF-Track element
 V = RFT.Volume()
@@ -24,6 +29,10 @@ V.set_s1(0.0, 0.0, rho, 0.0, 0.0, -angle)
 # Define the RFT Lattice
 L = RFT.Lattice()
 L.append(V)
+
+#############################################
+#######  RF-Track's part ends here    #######
+#############################################
 
 # Back to Xsuite
 pi = np.pi
@@ -74,16 +83,10 @@ particles = xp.Particles(p0c=p0c, #eV
                         y=rng.uniform(-2e-3, 2e-3, n_part),
                         py=rng.uniform(-3e-5, 3e-5, n_part),
                         zeta=rng.uniform(-1e-2, 1e-2, n_part),
-                        delta=rng.uniform(-1e-4, 1e-4, n_part),
+                        delta=rng.uniform(-1e-3, 1e-3, n_part),
                         _context=context)
 
-#tic = time.time()
-print('tracking starts')
 line.track(particles)
-print('tracking ends')
-#toc = time.time() - tic
-#print('Elapsed time ', toc, ' seconds');
-
 
 from scipy.io import savemat
 r = np.transpose(np.array([particles.x, particles.px, particles.y, particles.py, particles.zeta, particles.delta]))
