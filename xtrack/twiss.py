@@ -43,7 +43,7 @@ def twiss_line(line, particle_ref=None, method=None,
         delta0=None, zeta0=None,
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
-        particle_co_guess=None, steps_r_matrix=None,
+        co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
@@ -52,6 +52,7 @@ def twiss_line(line, particle_ref=None, method=None,
         radiation_method=None,
         eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
+        num_turns=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
@@ -221,11 +222,14 @@ def twiss_line(line, particle_ref=None, method=None,
         - W_matrix : np.ndarray, optional
             W matrix to be used for the computation. If not provided, the
             W matrix is computed from the R matrix.
-        - particle_co_guess : xpart.Particles, optional
+        - co_guess : xpart.Particles or dict, optional
             Initial guess for the closed orbit. If not provided, zero is assumed.
         - co_search_settings : dict, optional
             Settings to be used for the closed orbit search.
             If not provided, the default values are used.
+        - num_turns: int, optional
+            If specified the periodic solution and the twiss table are computed
+            on multiple turns.
         - continue_on_closed_orbit_error : bool, optional
             If True, the computation is continued even if the closed orbit
             search fails.
@@ -278,6 +282,7 @@ def twiss_line(line, particle_ref=None, method=None,
                         if compute_lattice_functions is not None else True)
     compute_chromatic_properties=(compute_chromatic_properties
                         if compute_chromatic_properties is not None else None)
+    num_turns = (num_turns or 1)
 
     if only_orbit:
         raise NotImplementedError # Tested only experimentally
@@ -285,6 +290,14 @@ def twiss_line(line, particle_ref=None, method=None,
     kwargs = locals().copy()
 
     ele_start_user = ele_start
+
+    if num_turns != 1:
+        # Untested cases
+        assert num_turns > 0
+        assert ele_start is None
+        assert ele_stop is None
+        assert twiss_init is None
+        assert reverse is False
 
     if (twiss_init is not None and twiss_init != 'periodic'
         or betx is not None or bety is not None):
@@ -508,7 +521,7 @@ def twiss_line(line, particle_ref=None, method=None,
             use_full_inverse = True
 
     if particle_ref is None:
-        if particle_co_guess is None and hasattr(line, 'particle_ref'):
+        if co_guess is None and hasattr(line, 'particle_ref'):
             particle_ref = line.particle_ref
 
     if line.iscollective:
@@ -518,9 +531,9 @@ def twiss_line(line, particle_ref=None, method=None,
             ' replaced by drifts')
         line = line._get_non_collective_line()
 
-    if particle_ref is None and particle_co_guess is None:
+    if particle_ref is None and co_guess is None:
         raise ValueError(
-            "Either `particle_ref` or `particle_co_guess` must be provided")
+            "Either `particle_ref` or `co_guess` must be provided")
 
     if method is None:
         method = '6d'
@@ -553,11 +566,12 @@ def twiss_line(line, particle_ref=None, method=None,
             continue_on_closed_orbit_error=continue_on_closed_orbit_error,
             delta0=delta0, zeta0=zeta0, steps_r_matrix=steps_r_matrix,
             W_matrix=W_matrix, R_matrix=R_matrix,
-            particle_co_guess=particle_co_guess,
+            co_guess=co_guess,
             delta_disp=delta_disp, symplectify=symplectify,
             matrix_responsiveness_tol=matrix_responsiveness_tol,
             matrix_stability_tol=matrix_stability_tol,
             ele_start=ele_start, ele_stop=ele_stop,
+            num_turns=num_turns,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
@@ -652,7 +666,7 @@ def twiss_line(line, particle_ref=None, method=None,
                     co_search_settings=co_search_settings,
                     continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                     steps_r_matrix=steps_r_matrix,
-                    particle_co_guess=particle_co_guess,
+                    co_guess=co_guess,
                     symplectify=False,
                     matrix_responsiveness_tol=matrix_responsiveness_tol,
                     matrix_stability_tol=None,
@@ -740,6 +754,20 @@ def twiss_line(line, particle_ref=None, method=None,
             if 'mux' in twiss_res._data:
                 twiss_res.mux += twiss_init.mux - twiss_res.mux[-1]
                 twiss_res.muy += twiss_init.muy - twiss_res.muy[-1]
+
+
+    if num_turns > 1:
+
+        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
+        kwargs.pop('num_turns')
+        kwargs.pop('twiss_init')
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
+
+        tw_mt = _multiturn_twiss(tw0=twiss_res, num_turns=num_turns,
+                                 kwargs=kwargs)
+        tw_mt._data['_tw0'] = twiss_res
+        twiss_res = tw_mt
 
     if at_elements is not None:
         twiss_res = twiss_res[:, at_elements]
@@ -1619,12 +1647,13 @@ class ClosedOrbitSearchError(Exception):
 def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             co_search_settings, continue_on_closed_orbit_error,
                             delta0, zeta0, steps_r_matrix, W_matrix,
-                            R_matrix, particle_co_guess,
+                            R_matrix, co_guess,
                             delta_disp, symplectify,
                             matrix_responsiveness_tol,
                             matrix_stability_tol,
                             nemitt_x, nemitt_y, r_sigma,
                             ele_start=None, ele_stop=None,
+                            num_turns=1,
                             compute_R_element_by_element=False,
                             only_markers=False):
 
@@ -1645,14 +1674,15 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
         part_on_co = particle_on_co
     else:
         part_on_co = line.find_closed_orbit(
-                                particle_co_guess=particle_co_guess,
+                                co_guess=co_guess,
                                 particle_ref=particle_ref,
                                 co_search_settings=co_search_settings,
                                 continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                 delta0=delta0,
                                 zeta0=zeta0,
                                 ele_start=ele_start,
-                                ele_stop=ele_stop)
+                                ele_stop=ele_stop,
+                                num_turns=num_turns)
 
     if W_matrix is not None:
         W = W_matrix
@@ -1675,6 +1705,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                     particle_on_co=part_on_co,
                     ele_start=ele_start,
                     ele_stop=ele_stop,
+                    num_turns=num_turns,
                     element_by_element=compute_R_element_by_element,
                     only_markers=only_markers,
                     )
@@ -1840,10 +1871,10 @@ def _handle_loop_around(kwargs):
 
     return tw_res
 
-def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
+def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
-                      ele_start=None, ele_stop=None,
+                      ele_start=None, ele_stop=None, num_turns=1,
                       continue_on_closed_orbit_error=False):
 
     if line.enable_time_dependent_vars:
@@ -1856,26 +1887,29 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
     if isinstance(ele_stop, str):
         ele_stop = line.element_names.index(ele_stop)
 
-    if particle_co_guess is None:
+    if isinstance(co_guess, dict):
+        co_guess = line.build_particles(**co_guess)
+
+    if co_guess is None:
         if particle_ref is None:
             if line.particle_ref is not None:
                 particle_ref = line.particle_ref
             else:
                 raise ValueError(
-                    "Either `particle_co_guess` or `particle_ref` must be provided")
+                    "Either `co_guess` or `particle_ref` must be provided")
 
-        particle_co_guess = particle_ref.copy()
-        particle_co_guess.x = 0
-        particle_co_guess.px = 0
-        particle_co_guess.y = 0
-        particle_co_guess.py = 0
-        particle_co_guess.zeta = 0
-        particle_co_guess.delta = 0
-        particle_co_guess.s = 0
-        particle_co_guess.at_element = (ele_start or 0)
-        particle_co_guess.at_turn = 0
+        co_guess = particle_ref.copy()
+        co_guess.x = 0
+        co_guess.px = 0
+        co_guess.y = 0
+        co_guess.py = 0
+        co_guess.zeta = 0
+        co_guess.delta = 0
+        co_guess.s = 0
+        co_guess.at_element = (ele_start or 0)
+        co_guess.at_turn = 0
     else:
-        particle_ref = particle_co_guess
+        particle_ref = co_guess
 
     if co_search_settings is None:
         co_search_settings = {}
@@ -1884,19 +1918,19 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
     if 'xtol' not in co_search_settings.keys():
         co_search_settings['xtol'] = 1e-6 # Relative error between calls
 
-    particle_co_guess = particle_co_guess.copy(
+    co_guess = co_guess.copy(
                         _context=line._buffer.context)
 
     for shift_factor in [0, 1.]: # if not found at first attempt we shift slightly the starting point
         if shift_factor>0:
             _print('Warning! Need second attempt on closed orbit search')
 
-        x0=np.array([particle_co_guess._xobject.x[0] + shift_factor * 1e-5,
-                    particle_co_guess._xobject.px[0] + shift_factor * 1e-7,
-                    particle_co_guess._xobject.y[0] + shift_factor * 1e-5,
-                    particle_co_guess._xobject.py[0] + shift_factor * 1e-7,
-                    particle_co_guess._xobject.zeta[0] + shift_factor * 1e-4,
-                    particle_co_guess._xobject.delta[0] + shift_factor * 1e-5])
+        x0=np.array([co_guess._xobject.x[0] + shift_factor * 1e-5,
+                    co_guess._xobject.px[0] + shift_factor * 1e-7,
+                    co_guess._xobject.y[0] + shift_factor * 1e-5,
+                    co_guess._xobject.py[0] + shift_factor * 1e-7,
+                    co_guess._xobject.zeta[0] + shift_factor * 1e-4,
+                    co_guess._xobject.delta[0] + shift_factor * 1e-5])
         if delta0 is not None and zeta0 is None:
             x0[5] = delta0
             _error_for_co = _error_for_co_search_4d_delta0
@@ -1910,17 +1944,18 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
         if zeta0 is not None:
             x0[4] = zeta0
         if np.all(np.abs(_error_for_co(
-                x0, particle_co_guess, line, delta_zeta, delta0, zeta0,
-                ele_start=ele_start, ele_stop=ele_stop)) < DEFAULT_CO_SEARCH_TOL):
+                x0, co_guess, line, delta_zeta, delta0, zeta0,
+                ele_start=ele_start, ele_stop=ele_stop,
+                num_turns=num_turns)) < DEFAULT_CO_SEARCH_TOL):
             res = x0
             fsolve_info = 'taken_guess'
             ier = 1
             break
 
         (res, infodict, ier, mesg
-            ) = fsolve(lambda p: _error_for_co(p, particle_co_guess, line,
+            ) = fsolve(lambda p: _error_for_co(p, co_guess, line,
                     delta_zeta, delta0, zeta0, ele_start=ele_start,
-                    ele_stop=ele_stop),
+                    ele_stop=ele_stop, num_turns=num_turns),
                 x0=x0,
                 full_output=True,
                 **co_search_settings)
@@ -1932,7 +1967,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
     if ier != 1 and not(continue_on_closed_orbit_error):
         raise ClosedOrbitSearchError
 
-    particle_on_co = particle_co_guess.copy()
+    particle_on_co = co_guess.copy()
     particle_on_co.x = res[0]
     particle_on_co.px = res[1]
     particle_on_co.y = res[2]
@@ -1944,7 +1979,7 @@ def find_closed_orbit_line(line, particle_co_guess=None, particle_ref=None,
 
     return particle_on_co
 
-def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
+def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop, num_turns):
     part = particle_ref.copy()
     part.x = p[0]
     part.px = p[1]
@@ -1959,7 +1994,7 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
                                                         line.vv['t_turn_s'])
         part.update_p0c_and_energy_deviations(p0c = part._xobject.p0c[0] + dp0c)
 
-    line.track(part, ele_start=ele_start, ele_stop=ele_stop)
+    line.track(part, ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns)
     if part.state[0] < 0:
         raise ClosedOrbitSearchError(
             f'Particle lost in one-turn map, p.state = {part.state[0]}')
@@ -1972,11 +2007,11 @@ def _one_turn_map(p, particle_ref, line, delta_zeta, ele_start, ele_stop):
            part._xobject.delta[0]])
     return p_res
 
-def _error_for_co_search_6d(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    return p - _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_6d(p, co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    return p - _one_turn_map(p, co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
 
-def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_4d_delta0(p, co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -1985,8 +2020,8 @@ def _error_for_co_search_4d_delta0(p, particle_co_guess, line, delta_zeta, delta
         0,
         p[5] - delta0])
 
-def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_4d_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -1995,8 +2030,8 @@ def _error_for_co_search_4d_zeta0(p, particle_co_guess, line, delta_zeta, delta0
         p[4] - zeta0,
         0])
 
-def _error_for_co_search_4d_delta0_zeta0(p, particle_co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop):
-    one_turn_res = _one_turn_map(p, particle_co_guess, line, delta_zeta, ele_start, ele_stop)
+def _error_for_co_search_4d_delta0_zeta0(p, co_guess, line, delta_zeta, delta0, zeta0, ele_start, ele_stop, num_turns):
+    one_turn_res = _one_turn_map(p, co_guess, line, delta_zeta, ele_start, ele_stop, num_turns)
     return np.array([
         p[0] - one_turn_res[0],
         p[1] - one_turn_res[1],
@@ -2009,6 +2044,7 @@ def compute_one_turn_matrix_finite_differences(
         line, particle_on_co,
         steps_r_matrix=None,
         ele_start=None, ele_stop=None,
+        num_turns=1,
         element_by_element=False,
         only_markers=False):
 
@@ -2060,17 +2096,23 @@ def compute_one_turn_matrix_finite_differences(
 
     if ele_start is not None:
         assert element_by_element is False, 'Not yet implemented'
+        assert num_turns == 1, 'Not yet implemented'
+        assert num_turns == 1, 'Not yet implemented'
         assert ele_stop is not None
         line.track(part_temp, ele_start=ele_start, ele_stop=ele_stop)
     elif particle_on_co._xobject.at_element[0]>0:
         assert element_by_element is False, 'Not yet implemented'
+        assert num_turns == 1, 'Not yet implemented'
         i_start = particle_on_co._xobject.at_element[0]
         line.track(part_temp, ele_start=i_start)
         line.track(part_temp, num_elements=i_start)
     else:
         assert particle_on_co._xobject.at_element[0] == 0
+        if element_by_element and num_turns != 1:
+            raise NotImplementedError
         monitor_setting = 'ONE_TURN_EBE' if element_by_element else None
-        line.track(part_temp, turn_by_turn_monitor=monitor_setting)
+        line.track(part_temp, num_turns=num_turns,
+                   turn_by_turn_monitor=monitor_setting)
 
     temp_mat = np.zeros(shape=(6, 12), dtype=np.float64)
     temp_mat[0, :] = context.nparray_from_context_array(part_temp.x)
@@ -3171,3 +3213,28 @@ def compute_T_matrix_line(line, ele_start, ele_stop, particle_on_co=None,
         / p_plus['delta']._xobject.beta0[0])
 
     return TT
+
+def _multiturn_twiss(tw0, num_turns, kwargs):
+    tw_curr = tw0
+    twisses_to_merge = []
+    line = kwargs['line']
+
+    for i_turn in range(num_turns):
+
+        tw_start_turn = tw_curr.rows[0]
+        tw_start_turn.name[0] = f'_turn_{i_turn}'
+        twisses_to_merge.append(tw_start_turn)
+        twisses_to_merge.append(tw_curr)
+
+        if i_turn == num_turns - 1:
+            break # need n-1 twisses
+
+        tini1 = tw_curr.get_twiss_init(-1)
+        tini1.element_name = tw_curr.name[0]
+        tw_curr = twiss_line(**kwargs,
+            twiss_init=tini1, ele_start=tw_curr.name[0],
+            ele_stop=line.element_names[-1])
+
+    tw_mt = xt.TwissTable.concatenate(twisses_to_merge)
+
+    return tw_mt

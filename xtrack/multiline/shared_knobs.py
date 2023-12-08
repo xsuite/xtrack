@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from ..line import Functions
 import xdeps
 
@@ -7,7 +9,8 @@ class VarSharing:
 
 
         mgr = xdeps.Manager()
-        newvref = mgr.ref({}, "vars")
+        newvref = mgr.ref(defaultdict(lambda: 0), "vars")
+        newvref._owner.default_factory = None
 
         functions = Functions()
         newfref = mgr.ref(functions, "f")

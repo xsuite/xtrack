@@ -555,7 +555,7 @@ class MadLoader:
         _fref = line._var_management["fref"]
         _lref = line._var_management["lref"]
 
-        madeval_no_repl = MadxEval(_vref, _fref, None).eval
+        madeval_no_repl = MadxEval(_vref, _fref, mad.elements).eval
 
         if replace_in_expr is not None:
             def madeval(expr):

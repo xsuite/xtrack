@@ -143,6 +143,7 @@ def _monitor_get_backtrack_element(
 
     return xt.Marker(_context=_context, _buffer=_buffer, _offset=_offset)
 
+
 class ParticlesMonitor(BeamElement):
 
     _xofields = {
@@ -166,6 +167,7 @@ class ParticlesMonitor(BeamElement):
     has_backtrack = True
     allow_backtrack = True
     _ParticlesClass = xp.Particles
+
 
 ParticlesMonitor.__init__ = _monitor_init
 ParticlesMonitor.get_backtrack_element = _monitor_get_backtrack_element
