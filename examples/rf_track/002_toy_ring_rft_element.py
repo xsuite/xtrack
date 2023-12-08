@@ -2,7 +2,6 @@ import numpy as np
 import xtrack as xt
 import xobjects as xo
 import xpart as xp
-import time
 
 import RF_Track as RFT
 
@@ -19,16 +18,7 @@ By = p0c / rho / clight # T
 #############################################
 
 # Define the RF-Track element
-V = RFT.Volume()
-V.dt_mm = 0.1
-V.odeint_algorithm = 'rk2'
-V.set_static_Bfield(0.0, By, 0.0)
-V.set_s0(rho, 0.0, 0.0, 0.0, 0.0, 0.0)
-V.set_s1(0.0, 0.0, rho, 0.0, 0.0, -angle)
-
-# Define the RFT Lattice
-L = RFT.Lattice()
-L.append(V)
+S = RFT.SBend(lbend, angle, p0c / 1e6)
 
 #############################################
 #######  RF-Track's part ends here    #######
@@ -39,21 +29,21 @@ pi = np.pi
 lbend = 3
 elements = {
     'd1.1':  xt.Drift(length=1),
-    'mb1.1': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb1.1': xt.RFT_Element(element=S),
     'd2.1':  xt.Drift(length=1),
 
     'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.1':  xt.Drift(length=1),
-    'mb2.1': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb2.1': xt.RFT_Element(element=S),
     'd4.1':  xt.Drift(length=1),
 
     'd1.2':  xt.Drift(length=1),
-    'mb1.2': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb1.2': xt.RFT_Element(element=S),
     'd2.2':  xt.Drift(length=1),
 
     'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.2':  xt.Drift(length=1),
-    'mb2.2': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb2.2': xt.RFT_Element(element=S),
     'd4.2':  xt.Drift(length=1),
 }
 
@@ -86,9 +76,11 @@ particles = xp.Particles(p0c=p0c, #eV
                         delta=rng.uniform(-1e-3, 1e-3, n_part),
                         _context=context)
 
+print('tracking starts')
 line.track(particles)
+print('tracking ends')
 
 from scipy.io import savemat
-r = np.transpose(np.array([particles.x, particles.px, particles.y, particles.py, particles.zeta, particles.delta]))
-dict = { "r": r }
-savemat("particles_rft.mat", dict)
+s = np.transpose(np.array([particles.x, particles.px, particles.y, particles.py, particles.zeta, particles.delta]))
+dict = { "s": s }
+savemat("particles_rft_sbend.mat", dict)
