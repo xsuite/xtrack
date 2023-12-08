@@ -7,6 +7,8 @@ from .elements import *
 from .exciter import Exciter
 from .apertures import *
 from .beam_interaction import BeamInteraction, ParticlesInjectionSample
+from .rft_element import RFT_Element
+from .rft_lattice import RFT_Lattice
 from ..base_element import BeamElement
 
 element_classes = tuple(v for v in globals().values() if isinstance(v, type) and issubclass(v, BeamElement))

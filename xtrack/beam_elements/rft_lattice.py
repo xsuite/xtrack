@@ -16,7 +16,7 @@ class RFT_Lattice:
     wave structures, electron coolers and others.
 
     Parameters:
-        - lattice: An RF-Track Lattice.
+        - lattice: An RF-Track lattice.
         - length (float): the element total length in meters (optional).
     """
 
@@ -27,11 +27,12 @@ class RFT_Lattice:
     def __init__(self, lattice, length=0.0):
         
         import RF_Track as rft
-        self.arr_for_rft = np.empty(0)
         self.length = lattice.get_length() if length==0.0 else length
         self.lattice = lattice
         self.bunch_in = rft.Bunch6d()
         self.bunch_out = rft.Bunch6d()
+        self.arr_for_rft = np.empty(0)
+        self.arr_for_xt = np.empty(0)
 
     def track(self, particles, increment_at_element=False):
         
