@@ -82,4 +82,4 @@ line.track(particles)
 from scipy.io import savemat
 s = np.transpose(np.array([particles.x, particles.px, particles.y, particles.py, particles.zeta, particles.delta]))
 dict = { "s": s }
-savemat("particles_rft.mat", dict)
+savemat("particles_rft_sbend.mat", dict)
