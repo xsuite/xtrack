@@ -18,7 +18,7 @@ By = p0c / rho / clight # T
 #############################################
 
 # Define the RF-Track element
-S = RFT.SBend(lbend, angle, p0c / 1e6)
+sbend = RFT.SBend(lbend, angle, p0c / 1e6)
 
 #############################################
 #######  RF-Track's part ends here    #######
@@ -29,21 +29,21 @@ pi = np.pi
 lbend = 3
 elements = {
     'd1.1':  xt.Drift(length=1),
-    'mb1.1': xt.RFT_Element(element=S),
+    'mb1.1': xt.RFT_Element(element=sbend),
     'd2.1':  xt.Drift(length=1),
 
     'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.1':  xt.Drift(length=1),
-    'mb2.1': xt.RFT_Element(element=S),
+    'mb2.1': xt.RFT_Element(element=sbend),
     'd4.1':  xt.Drift(length=1),
 
     'd1.2':  xt.Drift(length=1),
-    'mb1.2': xt.RFT_Element(element=S),
+    'mb1.2': xt.RFT_Element(element=sbend),
     'd2.2':  xt.Drift(length=1),
 
     'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.2':  xt.Drift(length=1),
-    'mb2.2': xt.RFT_Element(element=S),
+    'mb2.2': xt.RFT_Element(element=sbend),
     'd4.2':  xt.Drift(length=1),
 }
 

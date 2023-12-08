@@ -18,16 +18,13 @@ By = p0c / rho / clight # T
 #############################################
 
 # Define the RF-Track element
-V = RFT.Volume()
-V.dt_mm = 0.1
-V.odeint_algorithm = 'rk2'
-V.set_static_Bfield(0.0, By, 0.0)
-V.set_s0(rho, 0.0, 0.0, 0.0, 0.0, 0.0)
-V.set_s1(0.0, 0.0, rho, 0.0, 0.0, -angle)
-
-# Define the RFT Lattice
-L = RFT.Lattice()
-L.append(V)
+vol = RFT.Volume()
+vol.dt_mm = 0.1
+vol.odeint_algorithm = 'rk2'
+vol.set_static_Bfield(0.0, By, 0.0)
+vol.set_s0(rho, 0.0, 0.0, 0.0, 0.0, 0.0)
+vol.set_s1(0.0, 0.0, rho, 0.0, 0.0, -angle)
+vol.set_length(lbend)
 
 #############################################
 #######  RF-Track's part ends here    #######
@@ -38,21 +35,21 @@ pi = np.pi
 lbend = 3
 elements = {
     'd1.1':  xt.Drift(length=1),
-    'mb1.1': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb1.1': xt.RFT_Element(element=vol),
     'd2.1':  xt.Drift(length=1),
 
     'mqd.1': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.1':  xt.Drift(length=1),
-    'mb2.1': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb2.1': xt.RFT_Element(element=vol),
     'd4.1':  xt.Drift(length=1),
 
     'd1.2':  xt.Drift(length=1),
-    'mb1.2': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb1.2': xt.RFT_Element(element=vol),
     'd2.2':  xt.Drift(length=1),
 
     'mqd.2': xt.Quadrupole(length=0.3, k1=-0.7),
     'd3.2':  xt.Drift(length=1),
-    'mb2.2': xt.RFT_Lattice(lattice=L, length=lbend),
+    'mb2.2': xt.RFT_Element(element=vol),
     'd4.2':  xt.Drift(length=1),
 }
 
