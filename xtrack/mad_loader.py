@@ -686,11 +686,16 @@ class MadLoader:
             madeval = None
             self.Builder = ElementBuilder
 
-        for ii, el in enumerate(progress(
+        # Avoid progress bar if there are few elements
+        if len(self.sequence.expanded_elements) > 10:
+            _prog = progress(
                 self.iter_elements(madeval=madeval),
                 desc=f'Converting sequence "{self.sequence.name}"',
                 total=len(self.sequence.expanded_elements)),
-        ):
+        else:
+            _prog = self.iter_elements(madeval=madeval)
+
+        for ii, el in enumerate(_prog):
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
