@@ -3771,7 +3771,12 @@ class LineVars:
         mad.options.echo = False
         mad.options.info = False
         mad.options.warn = False
-        mad.call(str(filename))
+        if isinstance(filename, str):
+            filename = [filename]
+        else:
+            assert isinstance(filename, (list, tuple))
+        for ff in filename:
+            mad.call(str(ff))
 
         assert self.cache_active is False, (
             'Cannot load optics file when cache is active')
