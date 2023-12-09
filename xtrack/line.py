@@ -3765,9 +3765,9 @@ class LineVars:
         self._cache_active = value
         self.line._xdeps_manager._tree_frozen = value
 
-    def load_madx_optics_file(self, filename):
+    def load_madx_optics_file(self, filename, mad_stdout=False):
         from cpymad.madx import Madx
-        mad = Madx()
+        mad = Madx(stdout=mad_stdout)
         mad.options.echo = False
         mad.options.info = False
         mad.options.warn = False
@@ -3782,13 +3782,13 @@ class LineVars:
             'Cannot load optics file when cache is active')
 
         mad.input('''
-        elm: marker; seq: sequence, l=1; e:elm, at=0.5; endsequence;
-        beam; use,sequence=seq;''')
+        elm: marker; dummy: sequence, l=1; e:elm, at=0.5; endsequence;
+        beam; use,sequence=dummy;''')
 
         defined_vars = set(mad.globals.keys())
 
         xt.general._print.suppress = True
-        dummy_line = xt.Line.from_madx_sequence(mad.sequence.seq,
+        dummy_line = xt.Line.from_madx_sequence(mad.sequence.dummy,
                                                 deferred_expressions=True)
         xt.general._print.suppress = False
 
