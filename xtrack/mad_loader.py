@@ -691,7 +691,7 @@ class MadLoader:
             _prog = progress(
                 self.iter_elements(madeval=madeval),
                 desc=f'Converting sequence "{self.sequence.name}"',
-                total=len(self.sequence.expanded_elements)),
+                total=len(self.sequence.expanded_elements))
         else:
             _prog = self.iter_elements(madeval=madeval)
 
