@@ -832,7 +832,7 @@ class MadLoader:
     def _convert_quadrupole_thick(self, mad_el):
         if mad_el.k1s:
             tilt = -self.math.atan2(mad_el.k1s, mad_el.k1) / 2
-            k1 = 0.5 * self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
+            k1 = self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
         else:
             tilt = None
             k1 = mad_el.k1

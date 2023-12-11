@@ -467,7 +467,7 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     for elem in elems:
         assert np.isclose(elem.length, 1.0, atol=1e-16)
         expected_k1l = 0.5 * np.sqrt(0.01 + 0.04) * 2
-        assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
+        assert np.allclose(elem.knl, [0, expected_k1l, 0, 0, 0], atol=1e-16)
         assert np.allclose(elem.ksl, 0, atol=1e-16)
         assert np.isclose(elem.hxl, 0, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
