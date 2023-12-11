@@ -3765,7 +3765,24 @@ class LineVars:
         self._cache_active = value
         self.line._xdeps_manager._tree_frozen = value
 
-    def load_madx_optics_file(self, filename, mad_stdout=False):
+    def set_from_madx_file(self, filename, mad_stdout=False):
+
+        '''
+        Set variables veluas of expression from a MAD-X file.
+
+        Parameters
+        ----------
+        filename : str or list of str
+            Path to the MAD-X file(s) to load.
+        mad_stdout : bool, optional
+            If True, the MAD-X output is printed to stdout.
+
+        Notes
+        -----
+        The MAD-X file is executed in a temporary MAD-X instance, and the
+        variables are copied to the line after the execution.
+        '''
+
         from cpymad.madx import Madx
         mad = Madx(stdout=mad_stdout)
         mad.options.echo = False
@@ -3809,6 +3826,9 @@ class LineVars:
             raise ee
 
         self.line._xdeps_vref._owner.default_factory = None
+
+    def load_madx_optics_file(self, filename, mad_stdout=False):
+        self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
 class VarValues:
 
