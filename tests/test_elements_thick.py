@@ -338,7 +338,7 @@ def test_import_thick_quad_from_madx(with_knobs):
 
     # Verify that the line has been imported correctly
     assert np.isclose(elem.length, 2.0, atol=1e-16)
-    assert np.isclose(elem.k1, 0.5 * np.sqrt(0.01 + 0.04), atol=1e-16)
+    assert np.isclose(elem.k1, np.sqrt(0.01 + 0.04), atol=1e-16)
 
     expected_tilt_before = -np.arctan2(0.2, 0.1) / 2
     tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
@@ -357,7 +357,7 @@ def test_import_thick_quad_from_madx(with_knobs):
 
     # Verify that the line has been adjusted correctly
     assert np.isclose(elem.length, 3.0, atol=1e-16)
-    assert np.isclose(elem.k1, 0.5 * np.sqrt(1.21 + 1.44), atol=1e-16)
+    assert np.isclose(elem.k1, np.sqrt(1.21 + 1.44), atol=1e-16)
 
     expected_tilt_after = -np.arctan2(1.2, 1.1) / 2
     changed_tilt_entry = elem_tilt_entry.angle / 180 * np.pi  # rotation takes degrees
@@ -466,8 +466,8 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     # Verify that the slices are correct
     for elem in elems:
         assert np.isclose(elem.length, 1.0, atol=1e-16)
-        expected_k1l = 0.5 * np.sqrt(0.01 + 0.04) * 2
-        assert np.allclose(elem.knl, [0, expected_k1l, 0, 0, 0], atol=1e-16)
+        expected_k1l = np.sqrt(0.1**2 + 0.2**2) * 2
+        assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
         assert np.allclose(elem.ksl, 0, atol=1e-16)
         assert np.isclose(elem.hxl, 0, atol=1e-16)
         assert np.isclose(elem.hyl, 0, atol=1e-16)
@@ -487,7 +487,7 @@ def test_import_thick_quad_from_madx_and_slice(with_knobs):
     # Verify that the line has been adjusted correctly
     for elem in elems:
         assert np.isclose(elem.length, 1.5, atol=1e-16)
-        expected_k1l = 0.5 * np.sqrt(2.2 ** 2 + 2.1 ** 2) * 3
+        expected_k1l = np.sqrt(2.2 ** 2 + 2.1 ** 2) * 3
         assert np.allclose(elem.knl, [0, expected_k1l / 2, 0, 0, 0], atol=1e-16)
         assert np.allclose(elem.ksl, 0, atol=1e-16)
         assert np.isclose(elem.hxl, 0, atol=1e-16)

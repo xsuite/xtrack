@@ -10,6 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
+from pathlib import Path
 from typing import List, Literal, Optional, Collection
 
 import numpy as np
@@ -3788,7 +3789,7 @@ class LineVars:
         mad.options.echo = False
         mad.options.info = False
         mad.options.warn = False
-        if isinstance(filename, str):
+        if isinstance(filename, (str, Path)):
             filename = [filename]
         else:
             assert isinstance(filename, (list, tuple))
