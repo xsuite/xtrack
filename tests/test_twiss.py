@@ -487,12 +487,10 @@ def test_twiss_range(test_context):
     collider.lhcb2.twiss_default['method'] = '4d'
     collider.lhcb2.twiss_default['reverse'] = True
 
-    # collider.lhcb1['mq.10l3.b1..2'].knl[0] = 2e-6
-    # collider.lhcb1['mq.10l3.b1..2'].ksl[0] = -1.5e-6
-
-    # collider.lhcb2['mq.10l3.b2..2'].knl[0] = 3e-6
-    # collider.lhcb2['mq.10l3.b2..2'].ksl[0] = -1.3e-6
-
+    collider.vars['on_x5hs'] = 200
+    collider.vars['on_x5vs'] = 123
+    collider.vars['on_sep5h'] = 1
+    collider.vars['on_sep5v'] = 2
 
     atols = dict(
         alfx=1e-8, alfy=1e-8,
