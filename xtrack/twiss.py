@@ -442,7 +442,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if reverse:
         if ele_start is not None and ele_stop is not None:
-            assert _str_to_index(line, ele_start) > _str_to_index(line, ele_stop), (
+            assert _str_to_index(line, ele_start) >= _str_to_index(line, ele_stop), (
                 'ele_start must be smaller than ele_stop in reverse mode')
         ele_start, ele_stop = ele_stop, ele_start
         if twiss_init == 'preserve' or twiss_init == 'preserve_start':
@@ -451,7 +451,7 @@ def twiss_line(line, particle_ref=None, method=None,
             twiss_init = 'preserve_start'
     else:
         if ele_start is not None and ele_stop is not None:
-            assert _str_to_index(line, ele_start) < _str_to_index(line, ele_stop), (
+            assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop), (
                 'ele_start must be larger than ele_stop in forward mode')
 
     if ele_start is not None and twiss_init is None:
