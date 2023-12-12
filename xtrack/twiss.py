@@ -378,66 +378,15 @@ def twiss_line(line, particle_ref=None, method=None,
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
 
-    if ele_start is not None or ele_stop is not None:
-        assert ele_start is not None and ele_stop is not None, (
-            'ele_start and ele_stop must be provided together')
-        if twiss_init is None:
-
-            assert betx is not None and bety is not None, (
-                'betx and bety or twiss_init must be provided when ele_start '
-                'and ele_stop are used')
-
-            raise NotImplementedError # Needs testing
-
-            twiss_init = xt.TwissInit(
-                element_name=ele_init,
-                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
-                betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
-                dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
-                mux=mux, muy=muy, muzeta=muzeta,
-                ax_chrom=ax_chrom, bx_chrom=bx_chrom,
-                ay_chrom=ay_chrom, by_chrom=by_chrom,
-                )
-            kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-            for kk in ['ele_init', 'x', 'px', 'y', 'py', 'zeta', 'delta',
-                       'betx', 'alfx', 'bety', 'alfy', 'bets',
-                       'dx', 'dpx', 'dy', 'dpy', 'dzeta',
-                       'mux', 'muy', 'muzeta',
-                       'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
-                       'twiss_init']:
-                kwargs.pop(kk)
-
-            return twiss_line(twiss_init=twiss_init, **kwargs)
-        else:
-            assert ele_init is None
-            assert x is None and px is None and y is None and py is None
-            assert zeta is None and delta is None
-            assert betx is None and alfx is None and bety is None and alfy is None
-            assert bets is None
-            assert dx is None and dpx is None and dy is None and dpy is None
-            assert dzeta is None
-            assert mux is None and muy is None and muzeta is None
-            assert ax_chrom is None and bx_chrom is None
-            assert ay_chrom is None and by_chrom is None
-
-    if twiss_init is not None and not isinstance(twiss_init, str):
-        twiss_init = twiss_init.copy() # To avoid changing the one provided
-        if twiss_init._needs_complete():
-            assert isinstance(ele_start_user, str), (
-                'ele_start must be provided as name when an incomplete '
-                'twiss_init is provided')
-            twiss_init._complete(line=line,
-                    element_name=(twiss_init.element_name or ele_start_user))
-
-        if twiss_init.reference_frame is None:
-            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
-
-        if twiss_init.reference_frame == 'proper':
-            assert not(reverse), ('`twiss_init` needs to be given in the '
-                'proper reference frame when `reverse` is False')
-        elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
-            assert reverse is True, ('`twiss_init` needs to be given in the '
-                'reverse reference frame when `reverse` is True')
+    twiss_init = _complete_twiss_init(
+        ele_start, ele_stop, ele_init, ele_start_user, twiss_init,
+        line, reverse,
+        x, px, y, py, zeta, delta,
+        alfx, alfy, betx, bety, bets,
+        dx, dpx, dy, dpy, dzeta,
+        mux, muy, muzeta,
+        ax_chrom, bx_chrom, ay_chrom, by_chrom,
+        )
 
     # Twiss goes throgh the start of the line
     rv = (-1 if reverse else 1)
@@ -2976,6 +2925,66 @@ class TwissTable(Table):
         new_table._data['particle_on_co'] = tables_to_concat[0].particle_on_co
 
         return new_table
+
+def _complete_twiss_init(ele_start, ele_stop, ele_init, ele_start_user, twiss_init,
+                        line, reverse,
+                        x, px, y, py, zeta, delta,
+                        alfx, alfy, betx, bety, bets,
+                        dx, dpx, dy, dpy, dzeta,
+                        mux, muy, muzeta,
+                        ax_chrom, bx_chrom, ay_chrom, by_chrom,
+                        ):
+
+    if ele_start is not None or ele_stop is not None:
+        assert ele_start is not None and ele_stop is not None, (
+            'ele_start and ele_stop must be provided together')
+        if twiss_init is None:
+
+            assert betx is not None and bety is not None, (
+                'betx and bety or twiss_init must be provided when ele_start '
+                'and ele_stop are used')
+
+            twiss_init = xt.TwissInit(
+                element_name=ele_init,
+                x=x, px=px, y=y, py=py, zeta=zeta, delta=delta,
+                betx=betx, alfx=alfx, bety=bety, alfy=alfy, bets=bets,
+                dx=dx, dpx=dpx, dy=dy, dpy=dpy, dzeta=dzeta,
+                mux=mux, muy=muy, muzeta=muzeta,
+                ax_chrom=ax_chrom, bx_chrom=bx_chrom,
+                ay_chrom=ay_chrom, by_chrom=by_chrom,
+                )
+        else:
+            assert ele_init is None
+            assert x is None and px is None and y is None and py is None
+            assert zeta is None and delta is None
+            assert betx is None and alfx is None and bety is None and alfy is None
+            assert bets is None
+            assert dx is None and dpx is None and dy is None and dpy is None
+            assert dzeta is None
+            assert mux is None and muy is None and muzeta is None
+            assert ax_chrom is None and bx_chrom is None
+            assert ay_chrom is None and by_chrom is None
+
+    if twiss_init is not None and not isinstance(twiss_init, str):
+        twiss_init = twiss_init.copy() # To avoid changing the one provided
+        if twiss_init._needs_complete():
+            assert isinstance(ele_start_user, str), (
+                'ele_start must be provided as name when an incomplete '
+                'twiss_init is provided')
+            twiss_init._complete(line=line,
+                    element_name=(twiss_init.element_name or ele_start_user))
+
+        if twiss_init.reference_frame is None:
+            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
+
+        if twiss_init.reference_frame == 'proper':
+            assert not(reverse), ('`twiss_init` needs to be given in the '
+                'proper reference frame when `reverse` is False')
+        elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
+            assert reverse is True, ('`twiss_init` needs to be given in the '
+                'reverse reference frame when `reverse` is True')
+
+    return twiss_init
 
 def _complete_steps_r_matrix_with_default(steps_r_matrix):
     if steps_r_matrix is not None:
