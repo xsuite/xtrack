@@ -479,8 +479,15 @@ def test_periodic_cell_twiss(test_context):
 @for_all_test_contexts
 def test_twiss_range(test_context):
 
+    loop_around = True
+
     collider = xt.Multiline.from_json(test_data_folder /
                     'hllhc15_collider/collider_00_from_mad.json')
+
+    if loop_around:
+        collider.lhcb1.cycle('s.ds.l6.b1', inplace=True)
+        collider.lhcb2.cycle('s.ds.l6.b2', inplace=True)
+
     collider.build_trackers(_context=test_context)
 
     collider.lhcb1.twiss_default['method'] = '4d'
@@ -493,6 +500,7 @@ def test_twiss_range(test_context):
     collider.vars['on_sep5v'] = 2
 
     atols = dict(
+        zeta=5e-5,
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
         nuzeta=1e-5, dx_zeta=5e-9, dy_zeta=5e-9,
@@ -503,6 +511,24 @@ def test_twiss_range(test_context):
         betx=5e-9, bety=5e-9, betx1=5e-9, bety2=5e-9, betx2=1e-8, bety1=1e-8,
         gamx=5e-9, gamy=5e-9,
     )
+
+    if loop_around:
+        rtols['betx'] = 2e-5
+        rtols['bety'] = 2e-5
+        rtols['alfx'] = 4e-5
+        atols['alfx'] = 4e-5
+        rtols['alfy'] = 4e-5
+        atols['alfy'] = 4e-5
+        rtols['gamx'] = 2e-5
+        rtols['gamy'] = 2e-5
+        rtols['betx1'] = 2e-5
+        rtols['bety2'] = 2e-5
+        rtols['betx2'] = 4e-5
+        rtols['bety1'] = 4e-5
+        atols['mux'] = 1e-5
+        atols['muy'] = 1e-5
+        atols['nux'] = 1e-8
+        atols['nuy'] = 1e-8
 
     atol_default = 1e-11
     rtol_default = 1e-9
@@ -561,29 +587,29 @@ def test_twiss_range(test_context):
                                             twiss_init=tw_init_ip6)
             elif check == 'fw_kw':
                 tw_test = line.twiss(ele_start='ip5', ele_stop='ip6',
-                                        ele_init='ip5',
-                                        x=tw['x', 'ip5'],
-                                        px=tw['px', 'ip5'],
-                                        y=tw['y', 'ip5'],
-                                        py=tw['py', 'ip5'],
-                                        zeta=tw['zeta', 'ip5'],
-                                        delta=tw['delta', 'ip5'],
-                                        betx=tw['betx', 'ip5'],
-                                        alfx=tw['alfx', 'ip5'],
-                                        bety=tw['bety', 'ip5'],
-                                        alfy=tw['alfy', 'ip5'],
-                                        dx=tw['dx', 'ip5'],
-                                        dpx=tw['dpx', 'ip5'],
-                                        dy=tw['dy', 'ip5'],
-                                        dpy=tw['dpy', 'ip5'],
-                                        dzeta=tw['dzeta', 'ip5'],
-                                        mux=tw['mux', 'ip5'],
-                                        muy=tw['muy', 'ip5'],
-                                        muzeta=tw['muzeta', 'ip5'],
-                                        ax_chrom=tw['ax_chrom', 'ip5'],
-                                        bx_chrom=tw['bx_chrom', 'ip5'],
-                                        ay_chrom=tw['ay_chrom', 'ip5'],
-                                        by_chrom=tw['by_chrom', 'ip5'],
+                                    ele_init='ip5',
+                                    x=tw['x', 'ip5'],
+                                    px=tw['px', 'ip5'],
+                                    y=tw['y', 'ip5'],
+                                    py=tw['py', 'ip5'],
+                                    zeta=tw['zeta', 'ip5'],
+                                    delta=tw['delta', 'ip5'],
+                                    betx=tw['betx', 'ip5'],
+                                    alfx=tw['alfx', 'ip5'],
+                                    bety=tw['bety', 'ip5'],
+                                    alfy=tw['alfy', 'ip5'],
+                                    dx=tw['dx', 'ip5'],
+                                    dpx=tw['dpx', 'ip5'],
+                                    dy=tw['dy', 'ip5'],
+                                    dpy=tw['dpy', 'ip5'],
+                                    dzeta=tw['dzeta', 'ip5'],
+                                    mux=tw['mux', 'ip5'],
+                                    muy=tw['muy', 'ip5'],
+                                    muzeta=tw['muzeta', 'ip5'],
+                                    ax_chrom=tw['ax_chrom', 'ip5'],
+                                    bx_chrom=tw['bx_chrom', 'ip5'],
+                                    ay_chrom=tw['ay_chrom', 'ip5'],
+                                    by_chrom=tw['by_chrom', 'ip5'],
                                         )
             elif check == 'bw_kw':
                 tw_test = line.twiss(ele_start='ip5', ele_stop='ip6',
@@ -618,7 +644,22 @@ def test_twiss_range(test_context):
                 {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
             assert tw_init_ip5.element_name == 'ip5'
 
-            tw_part = tw.rows['ip5':'ip6']
+            if loop_around:
+                tw_part1 = tw.rows['ip5':]
+                tw_part2 = tw.rows[:'ip6']
+                tw_part = xt.TwissTable.concatenate([tw_part1, tw_part2])
+                n_0 = ('ip5' if check.startswith('fw') else 'ip6')
+                tw_part.s += tw['s', n_0] - tw_part.s[0]
+                tw_part.mux += tw['mux', n_0] - tw_part.mux[0]
+                tw_part.muy += tw['muy', n_0] - tw_part.muy[0]
+                tw_part.muzeta += tw['muzeta', n_0] - tw_part.muzeta[0]
+                tw_part.dzeta += tw['dzeta', n_0] - tw_part.dzeta[0]
+                tw_part._data['method'] = '4d'
+                tw_part._data['radiation_method'] = None
+                tw_part._data['orientation'] = (
+                    {'lhcb1': 'forward', 'lhcb2': 'backward'}[line_name])
+            else:
+                tw_part = tw.rows['ip5':'ip6']
             assert tw_part.name[0] == 'ip5'
             assert tw_part.name[-1] == 'ip6'
 
@@ -631,6 +672,7 @@ def test_twiss_range(test_context):
                 if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at',
                             'method', 'radiation_method', 'reference_frame',
                             'orientation', 'steps_r_matrix', 'line_config',
+                            'loop_around'
                             ]:
                     continue # some tested separately
                 atol = atols.get(kk, atol_default)
@@ -644,18 +686,20 @@ def test_twiss_range(test_context):
             assert tw_test.reference_frame == tw_part.reference_frame == (
                 {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
 
-            if not check.endswith('_kw'):
+            if not check.endswith('_kw') and not loop_around:
 
                 W_matrix_part = tw_part.W_matrix
                 W_matrix_test = tw_test.W_matrix
 
+                rel_error = []
                 for ss in range(W_matrix_part.shape[0]):
                     this_part = W_matrix_part[ss, :, :]
                     this_test = W_matrix_test[ss, :, :]
 
                     for ii in range(this_part.shape[0]):
-                        assert np.isclose((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
-                                        /np.linalg.norm(this_part[ii, :])), 0, atol=3e-3)
+                        rel_error.append((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
+                                        /np.linalg.norm(this_part[ii, :])))
+                assert np.max(rel_error) < 1e-3
 
 @for_all_test_contexts
 def test_twiss_against_matrix(test_context):

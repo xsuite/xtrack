@@ -446,7 +446,7 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if reverse:
         if ele_start is not None and ele_stop is not None:
-            assert _str_to_index(line, ele_start) >= _str_to_index(line, ele_stop), (
+            assert (_str_to_index(line, ele_start) >= _str_to_index(line, ele_stop)), (
                 'ele_start must be smaller than ele_stop in reverse mode')
         ele_start, ele_stop = ele_stop, ele_start
         if twiss_init == 'preserve' or twiss_init == 'preserve_start':
@@ -761,7 +761,10 @@ def _twiss_open(line, twiss_init,
     if isinstance(ele_start, str):
         ele_start = line.element_names.index(ele_start)
     if isinstance(ele_stop, str):
-        ele_stop = line.element_names.index(ele_stop)
+        if ele_stop == '_end_point':
+            ele_stop = len(line.element_names) - 1
+        else:
+            ele_stop = line.element_names.index(ele_stop)
 
     if twiss_init.element_name == line.element_names[ele_start]:
         twiss_orientation = 'forward'
@@ -1748,6 +1751,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
 def _handle_loop_around(kwargs):
 
+    import pdb; pdb.set_trace()
+
     kwargs = kwargs.copy()
 
     twiss_init = kwargs.pop('twiss_init')
@@ -1763,13 +1768,13 @@ def _handle_loop_around(kwargs):
 
     if not reverse:
         estart_tw1 = ele_start
-        estop_tw1 = line.element_names[-1]
+        estop_tw1 = '_end_point'
         estart_tw2 = line.element_names[0]
         estop_tw2 = ele_stop
     else:
         estart_tw1 = ele_start
         estop_tw1 = line.element_names[0]
-        estart_tw2 = line.element_names[-1]
+        estart_tw2 = '_end_point'
         estop_tw2 = ele_stop
 
     if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
@@ -1802,6 +1807,14 @@ def _handle_loop_around(kwargs):
     if 'dmuy' in tw_res.keys():
         tw_res._data.pop('dmuy')
         tw_res._col_names.remove('dmuy')
+
+    tw_res._data['loop_around'] = True
+
+    for kk in ['method', 'radiation_method', 'reference_frame']:
+        if tw1[kk] == tw2[kk]:
+            tw_res._data[kk] = tw1[kk]
+        else:
+            tw_res._data[kk] = (tw1[kk], tw2[kk])
 
     return tw_res
 
@@ -2345,7 +2358,7 @@ class TwissInit:
             assert line is not None, (
                 "`line` must be provided if `particle_on_co` is None")
 
-            i_ele_in_line = _str_to_index(line, element_name)
+            i_ele_in_line = _str_to_index(line, element_name, allow_end_point=False)
             s_ele_in_line = line.tracker._tracker_data_base.element_s_locations[i_ele_in_line]
 
             if input_reversed:
@@ -2882,7 +2895,12 @@ class TwissTable(Table):
                 new_data[kk] = np.empty(
                     (n_elem, 6, 6), dtype=tables_to_concat[0][kk].dtype)
                 continue
-            new_data[kk] = np.empty(n_elem, dtype=tables_to_concat[0][kk].dtype)
+            dtype=tables_to_concat[0][kk].dtype
+            if dtype.str.startswith('<U'):
+                str_len = np.max([int(tables_to_concat[ii][kk].dtype.str.split('<U')[-1])
+                                    for ii in range(len(tables_to_concat))])
+                dtype = f'<U{str_len}'
+            new_data[kk] = np.empty(n_elem, dtype=dtype)
 
         i_start = 0
         for ii, tt in enumerate(tables_to_concat):
@@ -3115,7 +3133,9 @@ def _extract_knl_ksl(line, names):
 
     return k_dict
 
-def _str_to_index(line, ele):
+def _str_to_index(line, ele, allow_end_point=True):
+    if allow_end_point and ele == '_end_point':
+        return len(line.element_names)
     if isinstance(ele, str):
         if ele not in line.element_names:
             raise ValueError(f'Element {ele} not found in line')
