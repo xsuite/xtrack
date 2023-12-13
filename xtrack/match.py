@@ -62,9 +62,11 @@ class ActionTwiss(xd.Action):
     def prepare(self):
         line = self.line
         kwargs = self.kwargs
+        import pdb; pdb.set_trace()
 
         ismultiline = isinstance(line, xt.Multiline)
 
+        # Forbit specifying twiss_init through kwargs for Multiline
         if ismultiline:
             for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 if kk in kwargs:
@@ -72,32 +74,33 @@ class ActionTwiss(xd.Action):
                         f'`{kk}` cannot be specified for a Multiline match. '
                         f'Please specify provide a TwissInit object for each line instead.')
 
-        if 'twiss_init' in kwargs:
-            if ismultiline:
-                twinit_list = kwargs['twiss_init']
-                ele_start_list = kwargs['ele_start']
-                ele_stop_list = kwargs['ele_stop']
-                line_names = kwargs.get('lines', line.line_names)
-                line_list = [line[nn] for nn in line_names]
-                assert isinstance(twinit_list, list)
-                assert isinstance(ele_start_list, list)
-                assert isinstance(ele_stop_list, list)
-                if self.table_for_twiss_init is not None:
-                    if isinstance(self.table_for_twiss_init, xt.multiline.MultiTwiss):
-                        table_for_twinit_list = [self.table_for_twiss_init[nn] for nn in line_names]
-                    else:
-                        assert isinstance(self.table_for_twiss_init, (list, tuple)), (
-                            'table_for_twiss_init for a Multiline match must be either a MultiTwiss, '
-                            'a list or a tuple')
-                        table_for_twinit_list = self.table_for_twiss_init
+        # Handle twiss_init from table or preserve
+        if ismultiline:
+            none_list = [None] * len(line.line_names)
+            twinit_list = kwargs.get('twiss_init', none_list)
+            ele_start_list = kwargs.get('ele_start', none_list)
+            ele_stop_list = kwargs.get('ele_stop', none_list)
+            line_names = kwargs.get('lines', line.line_names)
+            line_list = [line[nn] for nn in line_names]
+            assert isinstance(twinit_list, list)
+            assert isinstance(ele_start_list, list)
+            assert isinstance(ele_stop_list, list)
+            if self.table_for_twiss_init is not None:
+                if isinstance(self.table_for_twiss_init, xt.multiline.MultiTwiss):
+                    table_for_twinit_list = [self.table_for_twiss_init[nn] for nn in line_names]
                 else:
-                    table_for_twinit_list = [None] * len(twinit_list)
+                    assert isinstance(self.table_for_twiss_init, (list, tuple)), (
+                        'table_for_twiss_init for a Multiline match must be either a MultiTwiss, '
+                        'a list or a tuple')
+                    table_for_twinit_list = self.table_for_twiss_init
             else:
-                twinit_list = [kwargs['twiss_init']]
-                ele_start_list = [kwargs['ele_start']]
-                ele_stop_list = [kwargs['ele_stop']]
-                line_list = [line]
-                table_for_twinit_list = [self.table_for_twiss_init]
+                table_for_twinit_list = [None] * len(twinit_list)
+        else:
+            twinit_list = [kwargs.get('twiss_init', None)]
+            ele_start_list = [kwargs.get('ele_start', None)]
+            ele_stop_list = [kwargs.get('ele_stop', None)]
+            line_list = [line]
+            table_for_twinit_list = [self.table_for_twiss_init]
 
             _keep_ini_particles_list = [False] * len(twinit_list)
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
@@ -126,60 +129,65 @@ class ActionTwiss(xd.Action):
                         twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
                         _keep_ini_particles_list[ii] = True
 
-            if not ismultiline:
-                # Handle case in which twiss init is defined through kwargs
-                twiss_init = _complete_twiss_init(
-                        ele_start=kwargs.get('ele_start', None),
-                        ele_stop=kwargs.get('ele_stop', None),
-                        ele_init=kwargs.get('ele_init', None),
-                        twiss_init=twinit_list[0],
-                        line=line,
-                        reverse=None, # will be handled by the twiss
-                        x=kwargs.get('x', None),
-                        px=kwargs.get('px', None),
-                        y=kwargs.get('y', None),
-                        py=kwargs.get('py', None),
-                        zeta=kwargs.get('zeta', None),
-                        delta=kwargs.get('delta', None),
-                        alfx=kwargs.get('alfx', None),
-                        alfy=kwargs.get('alfy', None),
-                        betx=kwargs.get('betx', None),
-                        bety=kwargs.get('bety', None),
-                        bets=kwargs.get('bets', None),
-                        dx=kwargs.get('dx', None),
-                        dpx=kwargs.get('dpx', None),
-                        dy=kwargs.get('dy', None),
-                        dpy=kwargs.get('dpy', None),
-                        dzeta=kwargs.get('dzeta', None),
-                        mux=kwargs.get('mux', None),
-                        muy=kwargs.get('muy', None),
-                        muzeta=kwargs.get('muzeta', None),
-                        ax_chrom=kwargs.get('ax_chrom', None),
-                        bx_chrom=kwargs.get('bx_chrom', None),
-                        ay_chrom=kwargs.get('ay_chrom', None),
-                        by_chrom=kwargs.get('by_chrom', None),
-                        )
+        if not ismultiline:
+            # Handle case in which twiss init is defined through kwargs
+            twiss_init = _complete_twiss_init(
+                    ele_start=kwargs.get('ele_start', None),
+                    ele_stop=kwargs.get('ele_stop', None),
+                    ele_init=kwargs.get('ele_init', None),
+                    twiss_init=twinit_list[0],
+                    line=line,
+                    reverse=None, # will be handled by the twiss
+                    x=kwargs.get('x', None),
+                    px=kwargs.get('px', None),
+                    y=kwargs.get('y', None),
+                    py=kwargs.get('py', None),
+                    zeta=kwargs.get('zeta', None),
+                    delta=kwargs.get('delta', None),
+                    alfx=kwargs.get('alfx', None),
+                    alfy=kwargs.get('alfy', None),
+                    betx=kwargs.get('betx', None),
+                    bety=kwargs.get('bety', None),
+                    bets=kwargs.get('bets', None),
+                    dx=kwargs.get('dx', None),
+                    dpx=kwargs.get('dpx', None),
+                    dy=kwargs.get('dy', None),
+                    dpy=kwargs.get('dpy', None),
+                    dzeta=kwargs.get('dzeta', None),
+                    mux=kwargs.get('mux', None),
+                    muy=kwargs.get('muy', None),
+                    muzeta=kwargs.get('muzeta', None),
+                    ax_chrom=kwargs.get('ax_chrom', None),
+                    bx_chrom=kwargs.get('bx_chrom', None),
+                    ay_chrom=kwargs.get('ay_chrom', None),
+                    by_chrom=kwargs.get('by_chrom', None),
+                    )
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                if kk in kwargs:
+                    kwargs.pop(kk)
+            twinit_list[0] = twiss_init
+            _keep_ini_particles_list[ii] = True
 
-            for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
-                if isinstance(twini, xt.TwissInit) and twini._needs_complete():
-                    assert isinstance(eest, str)
-                    twini._complete(line=ln, element_name=eest)
+        for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
+            if isinstance(twini, xt.TwissInit) and twini._needs_complete():
+                assert isinstance(eest, str)
+                twini._complete(line=ln, element_name=eest)
 
-            if ismultiline:
-                kwargs['twiss_init'] = twinit_list
-                kwargs['_keep_initial_particles'] = _keep_ini_particles_list
-            else:
-                kwargs['twiss_init'] = twinit_list[0]
-                kwargs['_keep_initial_particles'] = _keep_ini_particles_list[0]
+        if ismultiline:
+            kwargs['twiss_init'] = twinit_list
+            kwargs['_keep_initial_particles'] = _keep_ini_particles_list
+        else:
+            kwargs['twiss_init'] = twinit_list[0]
+            kwargs['_keep_initial_particles'] = _keep_ini_particles_list[0]
 
-            tw0 = line.twiss(**kwargs)
+        tw0 = line.twiss(**kwargs)
 
-            if ismultiline:
-                kwargs['_initial_particles'] = [
-                    tw0[llnn]._data.get('_initial_particles', None) for llnn in line_names]
-            else:
-                kwargs['_initial_particles'] = tw0._data.get(
-                                        '_initial_particles', None)
+        if ismultiline:
+            kwargs['_initial_particles'] = [
+                tw0[llnn]._data.get('_initial_particles', None) for llnn in line_names]
+        else:
+            kwargs['_initial_particles'] = tw0._data.get(
+                                    '_initial_particles', None)
 
         self.kwargs = kwargs
 

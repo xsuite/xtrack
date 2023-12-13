@@ -112,6 +112,61 @@ def test_match_orbit_bump(test_context):
     assert np.isclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
     assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
 
+    # Same match but with twiss_init provided through a kwargs
+    # I start from scratch
+    line.vars['acbv30.l8b1'] = 0
+    line.vars['acbv28.l8b1'] = 0
+    line.vars['acbv26.l8b1'] = 0
+    line.vars['acbv24.l8b1'] = 0
+
+    tini = tw_before.get_twiss_init(at_element='mq.33l8.b1')
+
+    import pdb; pdb.set_trace()
+    line.match(
+        ele_start='mq.33l8.b1',
+        ele_stop='mq.23l8.b1',
+        betx=1, bety=1,
+        x=tini.x, px=tini.px, y=tini.y, py=tini.py,
+        vary=[
+            xt.Vary(name='acbv30.l8b1', step=1e-10),
+            xt.Vary(name='acbv28.l8b1', step=1e-10),
+            xt.Vary(name='acbv26.l8b1', step=1e-10),
+            xt.Vary(name='acbv24.l8b1', step=1e-10),
+            xt.Vary(name='acbh27.l8b1', step=1e-10),
+            xt.Vary(name='acbh25.l8b1', step=1e-10),
+        ],
+        targets=[
+            # I want the vertical orbit to be at 3 mm at mq.28l8.b1 with zero angle
+            xt.Target('y', at='mb.b28l8.b1', value=3e-3, tol=1e-4, scale=1),
+            xt.Target('py', at='mb.b28l8.b1', value=0, tol=1e-6, scale=1000),
+            # I want the bump to be closed
+            xt.Target('y', at='mq.23l8.b1', value=tw_before['y', 'mq.23l8.b1'],
+                    tol=1e-6, scale=1),
+            xt.Target('py', at='mq.23l8.b1', value=tw_before['py', 'mq.23l8.b1'],
+                    tol=1e-7, scale=1000),
+            xt.Target('x', at='mq.23l8.b1', value=tw_before['x', 'mq.23l8.b1'],
+                    tol=1e-6, scale=1),
+            xt.Target('px', at='mq.23l8.b1', value=tw_before['px', 'mq.23l8.b1'],
+                    tol=1e-7, scale=1000),
+        ]
+    )
+
+    tw = line.twiss()
+    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+
+    # There is a bit of leakage in the horizontal plane (due to feed-down from sextupoles)
+    assert np.isclose(tw['x', 'mb.b28l8.b1'], tw_before['x', 'mb.b28l8.b1'], atol=50e-6)
+    assert np.isclose(tw['px', 'mb.b28l8.b1'], tw_before['px', 'mb.b28l8.b1'], atol=2e-6)
+    assert np.isclose(tw['x', 'mq.23l8.b1'], tw_before['x', 'mq.23l8.b1'], atol=1e-6)
+    assert np.isclose(tw['px', 'mq.23l8.b1'], tw_before['px', 'mq.23l8.b1'], atol=1e-7)
+    assert np.isclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
+    assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
+
 def test_match_orbit_bump_with_weights():
 
     with open(test_data_folder /
