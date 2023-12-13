@@ -62,7 +62,6 @@ class ActionTwiss(xd.Action):
     def prepare(self):
         line = self.line
         kwargs = self.kwargs
-        import pdb; pdb.set_trace()
 
         ismultiline = isinstance(line, xt.Multiline)
 

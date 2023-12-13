@@ -121,12 +121,12 @@ def test_match_orbit_bump(test_context):
 
     tini = tw_before.get_twiss_init(at_element='mq.33l8.b1')
 
-    import pdb; pdb.set_trace()
     line.match(
         ele_start='mq.33l8.b1',
         ele_stop='mq.23l8.b1',
         betx=1, bety=1,
         x=tini.x, px=tini.px, y=tini.y, py=tini.py,
+        zeta=tini.zeta, delta=tini.delta,
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),
             xt.Vary(name='acbv28.l8b1', step=1e-10),
