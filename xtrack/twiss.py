@@ -289,8 +289,6 @@ def twiss_line(line, particle_ref=None, method=None,
 
     kwargs = locals().copy()
 
-    ele_start_user = ele_start
-
     if num_turns != 1:
         # Untested cases
         assert num_turns > 0
@@ -379,7 +377,7 @@ def twiss_line(line, particle_ref=None, method=None,
         raise RuntimeError('Time dependent variables not supported in Twiss')
 
     twiss_init = _complete_twiss_init(
-        ele_start, ele_stop, ele_init, ele_start_user, twiss_init,
+        ele_start, ele_stop, ele_init, twiss_init,
         line, reverse,
         x, px, y, py, zeta, delta,
         alfx, alfy, betx, bety, bets,
@@ -2926,7 +2924,7 @@ class TwissTable(Table):
 
         return new_table
 
-def _complete_twiss_init(ele_start, ele_stop, ele_init, ele_start_user, twiss_init,
+def _complete_twiss_init(ele_start, ele_stop, ele_init, twiss_init,
                         line, reverse,
                         x, px, y, py, zeta, delta,
                         alfx, alfy, betx, bety, bets,
@@ -2968,11 +2966,11 @@ def _complete_twiss_init(ele_start, ele_stop, ele_init, ele_start_user, twiss_in
     if twiss_init is not None and not isinstance(twiss_init, str):
         twiss_init = twiss_init.copy() # To avoid changing the one provided
         if twiss_init._needs_complete():
-            assert isinstance(ele_start_user, str), (
+            assert isinstance(ele_start, str), (
                 'ele_start must be provided as name when an incomplete '
                 'twiss_init is provided')
             twiss_init._complete(line=line,
-                    element_name=(twiss_init.element_name or ele_start_user))
+                    element_name=(twiss_init.element_name or ele_start))
 
         if twiss_init.reference_frame is None:
             twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
