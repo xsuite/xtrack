@@ -399,8 +399,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if not periodic and (
         rv * _str_to_index(line, ele_start) > rv * _str_to_index(line, ele_stop)):
 
-        raise NotImplementedError # Needs testing
-
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         tw_res = _handle_loop_around(kwargs)
 
@@ -1775,40 +1773,21 @@ def _handle_loop_around(kwargs):
         estop_tw2 = ele_stop
 
     if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
-        if estart_tw1 != estop_tw1:
-            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
-                                twiss_init=twiss_init, **kwargs)
-            twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
-        else:
-            tw1 = None
-            twini_2 = twiss_init.copy()
+        tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
+                            twiss_init=twiss_init, **kwargs)
+        twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
         twini_2.element_name = estart_tw2
-        if estart_tw2 != estop_tw2:
-            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+        tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
                                 twiss_init=twini_2, **kwargs)
-        else:
-            tw2 = None
     else:
-        if estart_tw2 != estop_tw2:
-            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
-                                twiss_init=twiss_init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
-        else:
-            tw2 = None
-            twini_1 = twiss_init.copy()
+        tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                            twiss_init=twiss_init, **kwargs)
+        twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
         twini_1.element_name = estop_tw1
-        if estart_tw1 != estop_tw1:
-            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
-                                twiss_init=twini_1, **kwargs)
-        else:
-            tw1 = None
+        tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
+                            twiss_init=twini_1, **kwargs)
 
-    if tw1 is None:
-        tw_res = tw2
-    elif tw2 is None:
-        tw_res = tw1
-    else:
-        tw_res = TwissTable.concatenate([tw1, tw2])
+    tw_res = TwissTable.concatenate([tw1, tw2])
 
     tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
     tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
