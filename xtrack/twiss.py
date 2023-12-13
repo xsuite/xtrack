@@ -394,6 +394,14 @@ def twiss_line(line, particle_ref=None, method=None,
         ax_chrom, bx_chrom, ay_chrom, by_chrom,
         )
 
+    # clean quantities embedded in twiss_init
+    ele_init=None
+    x=None; px=None; y=None; py=None; zeta=None; delta=None
+    alfx=None; alfy=None; betx=None; bety=None; bets=None
+    dx=None; dpx=None; dy=None; dpy=None; dzeta=None
+    mux=None; muy=None; muzeta=None
+    ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
+
     # Twiss goes throgh the start of the line
     rv = (-1 if reverse else 1)
     if not periodic and (
@@ -1765,8 +1773,7 @@ def _handle_loop_around(kwargs):
     reverse = kwargs['reverse']
     rv = -1 if reverse else 1
 
-    # Need to loop around
-    ele_name_init =  twiss_init.element_name
+    ele_name_init = twiss_init.element_name
 
     if not reverse:
         estart_tw1 = ele_start
