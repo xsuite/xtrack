@@ -768,6 +768,8 @@ def _twiss_open(line, twiss_init,
 
     if twiss_init.element_name == line.element_names[ele_start]:
         twiss_orientation = 'forward'
+    elif twiss_init.element_name == '_end_point' and ele_stop == len(line.element_names) - 1:
+        twiss_orientation = 'backward'
     elif ele_stop is not None and twiss_init.element_name == line.element_names[ele_stop]:
         twiss_orientation = 'backward'
         assert isinstance(line.element_dict[line.element_names[ele_stop]], xt.Marker) # to start one downstream without having to track
@@ -802,7 +804,7 @@ def _twiss_open(line, twiss_init,
             part_for_twiss.at_element = ele_start
             part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[ele_start]
         elif twiss_orientation == 'backward':
-            part_for_twiss.at_element = ele_stop + 1 # to include the last element (assume it is a marker)
+            part_for_twiss.at_element = ele_stop + 1 # to include the last element
             part_for_twiss.s = line.tracker._tracker_data_base.element_s_locations[ele_stop]
         else:
             raise ValueError('Invalid twiss_orientation')
@@ -1778,8 +1780,9 @@ def _handle_loop_around(kwargs):
         estop_tw2 = ele_stop
 
     if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
-        tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
-                            twiss_init=twiss_init, **kwargs)
+        tw1 = twiss_line(ele_start=estart_tw1,
+                         ele_stop=(len(line) - 1 if estop_tw1 == '_end_point' else estop_tw1),
+                         twiss_init=twiss_init, **kwargs)
         twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
         twini_2.element_name = estart_tw2
         tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
