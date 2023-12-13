@@ -36,6 +36,14 @@ DEFAULT_MATRIX_STABILITY_TOL = 2e-3
 
 AT_TURN_FOR_TWISS = -10 # # To avoid writing in monitors installed in the line
 
+VARS_FOR_TWISS_INIT_GENERATION = [
+    'x', 'px', 'y', 'py', 'zeta', 'delta',
+    'betx', 'alfx', 'bety', 'alfy', 'bets',
+    'dx', 'dpx', 'dy', 'dpy', 'dzeta',
+    'mux', 'muy', 'muzeta',
+    'ax_chrom', 'bx_chrom', 'ay_chrom', 'by_chrom',
+]
+
 log = logging.getLogger(__name__)
 
 def twiss_line(line, particle_ref=None, method=None,
@@ -2973,14 +2981,16 @@ def _complete_twiss_init(ele_start, ele_stop, ele_init, twiss_init,
                     element_name=(twiss_init.element_name or ele_start))
 
         if twiss_init.reference_frame is None:
-            twiss_init.reference_frame = {True: 'reverse', False: 'proper'}[reverse]
+            twiss_init.reference_frame = {
+                True: 'reverse', False: 'proper', None: None}[reverse]
 
-        if twiss_init.reference_frame == 'proper':
-            assert not(reverse), ('`twiss_init` needs to be given in the '
-                'proper reference frame when `reverse` is False')
-        elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
-            assert reverse is True, ('`twiss_init` needs to be given in the '
-                'reverse reference frame when `reverse` is True')
+        if reverse is not None:
+            if twiss_init.reference_frame == 'proper':
+                assert not(reverse), ('`twiss_init` needs to be given in the '
+                    'proper reference frame when `reverse` is False')
+            elif twiss_init is not None and twiss_init.reference_frame == 'reverse':
+                assert reverse is True, ('`twiss_init` needs to be given in the '
+                    'reverse reference frame when `reverse` is True')
 
     return twiss_init
 

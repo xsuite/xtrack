@@ -4,7 +4,7 @@ from functools import partial
 import numpy as np
 from scipy.optimize import fsolve, minimize
 
-from .twiss import TwissInit
+from .twiss import TwissInit, VARS_FOR_TWISS_INIT_GENERATION, _complete_twiss_init
 from .general import _print
 import xtrack as xt
 import xdeps as xd
@@ -51,7 +51,8 @@ END = _LOC('END')
 class ActionTwiss(xd.Action):
 
     def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None,
-                 compensate_radiation_energy_loss=True, **kwargs):
+                 compensate_radiation_energy_loss=True,
+                 **kwargs):
         self.line = line
         self.kwargs = kwargs
         self.table_for_twiss_init = table_for_twiss_init
@@ -63,6 +64,13 @@ class ActionTwiss(xd.Action):
         kwargs = self.kwargs
 
         ismultiline = isinstance(line, xt.Multiline)
+
+        if ismultiline:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                if kk in kwargs:
+                    raise ValueError(
+                        f'`{kk}` cannot be specified for a Multiline match. '
+                        f'Please specify provide a TwissInit object for each line instead.')
 
         if 'twiss_init' in kwargs:
             if ismultiline:
@@ -117,6 +125,40 @@ class ActionTwiss(xd.Action):
                         assert not isinstance(tab_twinit, xt.MultiTwiss)
                         twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
                         _keep_ini_particles_list[ii] = True
+
+            if not ismultiline:
+                # Handle case in which twiss init is defined through kwargs
+                twiss_init = _complete_twiss_init(
+                        ele_start=kwargs.get('ele_start', None),
+                        ele_stop=kwargs.get('ele_stop', None),
+                        ele_init=kwargs.get('ele_init', None),
+                        twiss_init=twinit_list[0],
+                        line=line,
+                        reverse=None, # will be handled by the twiss
+                        x=kwargs.get('x', None),
+                        px=kwargs.get('px', None),
+                        y=kwargs.get('y', None),
+                        py=kwargs.get('py', None),
+                        zeta=kwargs.get('zeta', None),
+                        delta=kwargs.get('delta', None),
+                        alfx=kwargs.get('alfx', None),
+                        alfy=kwargs.get('alfy', None),
+                        betx=kwargs.get('betx', None),
+                        bety=kwargs.get('bety', None),
+                        bets=kwargs.get('bets', None),
+                        dx=kwargs.get('dx', None),
+                        dpx=kwargs.get('dpx', None),
+                        dy=kwargs.get('dy', None),
+                        dpy=kwargs.get('dpy', None),
+                        dzeta=kwargs.get('dzeta', None),
+                        mux=kwargs.get('mux', None),
+                        muy=kwargs.get('muy', None),
+                        muzeta=kwargs.get('muzeta', None),
+                        ax_chrom=kwargs.get('ax_chrom', None),
+                        bx_chrom=kwargs.get('bx_chrom', None),
+                        ay_chrom=kwargs.get('ay_chrom', None),
+                        by_chrom=kwargs.get('by_chrom', None),
+                        )
 
             for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
                 if isinstance(twini, xt.TwissInit) and twini._needs_complete():
