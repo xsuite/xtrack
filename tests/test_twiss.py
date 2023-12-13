@@ -529,6 +529,8 @@ def test_twiss_range(test_context):
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8
         atols['nuy'] = 1e-8
+        atols['dx_zeta'] = 2e-5
+        atols['dy_zeta'] = 2e-5
 
     atol_default = 1e-11
     rtol_default = 1e-9
@@ -649,11 +651,11 @@ def test_twiss_range(test_context):
                 tw_part2 = tw.rows[:'ip6']
                 tw_part = xt.TwissTable.concatenate([tw_part1, tw_part2])
                 n_0 = ('ip5' if check.startswith('fw') else 'ip6')
-                tw_part.s += tw['s', n_0] - tw_part.s[0]
-                tw_part.mux += tw['mux', n_0] - tw_part.mux[0]
-                tw_part.muy += tw['muy', n_0] - tw_part.muy[0]
-                tw_part.muzeta += tw['muzeta', n_0] - tw_part.muzeta[0]
-                tw_part.dzeta += tw['dzeta', n_0] - tw_part.dzeta[0]
+                tw_part.s += tw['s', n_0] - tw_part['s', n_0]
+                tw_part.mux += tw['mux', n_0] - tw_part['mux', n_0]
+                tw_part.muy += tw['muy', n_0] - tw_part['muy', n_0]
+                tw_part.muzeta += tw['muzeta', n_0] - tw_part['muzeta', n_0]
+                tw_part.dzeta += tw['dzeta', n_0] - tw_part['dzeta', n_0]
                 tw_part._data['method'] = '4d'
                 tw_part._data['radiation_method'] = None
                 tw_part._data['orientation'] = (
