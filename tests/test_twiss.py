@@ -477,16 +477,18 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
 
 @for_all_test_contexts
-def test_twiss_range(test_context):
-
-    loop_around = True
+@pytest.mark.parametrize('cycle_to', [None, ('s.ds.l6.b1', 's.ds.l6.b2')], ids=['no_cycle', 'with_cycle'])
+def test_twiss_range(test_context, cycle_to):
 
     collider = xt.Multiline.from_json(test_data_folder /
                     'hllhc15_collider/collider_00_from_mad.json')
 
-    if loop_around:
-        collider.lhcb1.cycle('s.ds.l6.b1', inplace=True)
-        collider.lhcb2.cycle('s.ds.l6.b2', inplace=True)
+    if cycle_to is not None:
+        collider.lhcb1.cycle(cycle_to[0], inplace=True)
+        collider.lhcb2.cycle(cycle_to[1], inplace=True)
+        loop_around = True
+    else:
+        loop_around = False
 
     collider.build_trackers(_context=test_context)
 
