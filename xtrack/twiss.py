@@ -521,6 +521,8 @@ def twiss_line(line, particle_ref=None, method=None,
 
     if periodic:
 
+        assert not _keep_initial_particles
+
         steps_r_matrix = _complete_steps_r_matrix_with_default(steps_r_matrix)
 
         twiss_init, R_matrix, steps_r_matrix, eigenvalues, Rot, RR_ebe = _find_periodic_solution(
@@ -554,8 +556,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if only_markers and eneloss_and_damping:
         raise NotImplementedError(
             '`only_markers` not implemented for `eneloss_and_damping`')
-
-
 
     twiss_res = _twiss_open(
         line=line,
