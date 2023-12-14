@@ -780,7 +780,6 @@ def _twiss_open(line, twiss_init,
         twiss_orientation = 'backward'
     elif ele_stop is not None and twiss_init.element_name == line.element_names[ele_stop]:
         twiss_orientation = 'backward'
-        # assert isinstance(line.element_dict[line.element_names[ele_stop]], xt.Marker) # to start one downstream without having to track
     else:
         raise ValueError(
             '`twiss_init` must be given at the start or end of the specified element range.')
@@ -1808,12 +1807,11 @@ def _handle_loop_around(kwargs):
             tw2 = twiss_line(ele_start=line.element_names[-1], ele_stop=ele_stop,
                                     twiss_init=twini_2, **kwargs)
         elif _str_to_index(line, ele_name_init) == _str_to_index(line, ele_stop):
-            prrrr
-            tw2 = twiss_line(ele_start=line.element_names[0], ele_stop=ele_stop,
+            tw2 = twiss_line(ele_start=line.element_names[-1], ele_stop=ele_stop,
                                 twiss_init=twiss_init, **kwargs)
-            twini_1 = tw2.get_twiss_init(at_element=line.element_names[0])
-            twini_1.element_name = '_end_point'
-            tw1 = twiss_line(ele_start=ele_start, ele_stop='_end_point',
+            twini_1 = tw2.get_twiss_init(at_element=line.element_names[-1])
+            twini_1.element_name = line.element_names[0]
+            tw1 = twiss_line(ele_start=ele_start, ele_stop=line.element_names[0],
                                 twiss_init=twini_1, **kwargs)
         else:
             raise RuntimeError(
