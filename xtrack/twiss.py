@@ -1760,8 +1760,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
 def _handle_loop_around(kwargs):
 
-    import pdb; pdb.set_trace()
-
     kwargs = kwargs.copy()
 
     twiss_init = kwargs.pop('twiss_init')
@@ -1772,8 +1770,6 @@ def _handle_loop_around(kwargs):
     reverse = kwargs['reverse']
 
     ele_name_init = twiss_init.element_name
-
-    import pdb; pdb.set_trace()
 
     # if reversed, elements in the line are sorted opposite to the twiss table
     if not reverse:
@@ -2372,8 +2368,6 @@ class TwissInit:
         return cls.from_dict(dct)
 
     def _complete(self, line, element_name):
-
-        import pdb; pdb.set_trace()
 
         if (line is not None and 'reverse' in line.twiss_default
             and line.twiss_default['reverse']):
