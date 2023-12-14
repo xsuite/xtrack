@@ -1761,8 +1761,6 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
 def _handle_loop_around(kwargs):
 
-    import pdb; pdb.set_trace()
-
     kwargs = kwargs.copy()
 
     twiss_init = kwargs.pop('twiss_init')
@@ -1771,36 +1769,56 @@ def _handle_loop_around(kwargs):
 
     line = kwargs['line']
     reverse = kwargs['reverse']
-    rv = -1 if reverse else 1
 
     ele_name_init = twiss_init.element_name
 
+    import pdb; pdb.set_trace()
+
+    # if reversed, elements in the line are sorted opposite to the twiss table
     if not reverse:
         estart_tw1 = ele_start
         estop_tw1 = '_end_point'
         estart_tw2 = line.element_names[0]
         estop_tw2 = ele_stop
-    else:
+        if _str_to_index(line, ele_name_init) == _str_to_index(line, ele_start):
+            tw1 = twiss_line(ele_start=estart_tw1,
+                            ele_stop=(len(line) - 1 if estop_tw1 == '_end_point' else estop_tw1),
+                            twiss_init=twiss_init, **kwargs)
+            twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
+            twini_2.element_name = estart_tw2
+            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                                    twiss_init=twini_2, **kwargs)
+        elif _str_to_index(line, ele_name_init) == _str_to_index(line, ele_stop):
+            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                                twiss_init=twiss_init, **kwargs)
+            twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
+            twini_1.element_name = estop_tw1
+            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
+                                twiss_init=twini_1, **kwargs)
+        else:
+            raise RuntimeError('Initial twiss not at start or end of the specified range')
+    else: # reversed
+        raise ValueError('Not yet supported')
         estart_tw1 = ele_start
         estop_tw1 = line.element_names[0]
-        estart_tw2 = '_end_point'
+        estart_tw2 = '_start_point'
         estop_tw2 = ele_stop
-
-    if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
-        tw1 = twiss_line(ele_start=estart_tw1,
-                         ele_stop=(len(line) - 1 if estop_tw1 == '_end_point' else estop_tw1),
-                         twiss_init=twiss_init, **kwargs)
-        twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
-        twini_2.element_name = estart_tw2
-        tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
-                                twiss_init=twini_2, **kwargs)
-    else:
-        tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+        rv = -1
+        if rv * _str_to_index(line, ele_name_init) >= rv * _str_to_index(line, ele_start):
+            tw1 = twiss_line(ele_start=estart_tw1,
+                            ele_stop=(len(line) - 1 if estop_tw1 == '_end_point' else estop_tw1),
                             twiss_init=twiss_init, **kwargs)
-        twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
-        twini_1.element_name = estop_tw1
-        tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
-                            twiss_init=twini_1, **kwargs)
+            twini_2 = tw1.get_twiss_init(at_element=estop_tw1)
+            twini_2.element_name = estart_tw2
+            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                                    twiss_init=twini_2, **kwargs)
+        else:
+            tw2 = twiss_line(ele_start=estart_tw2, ele_stop=estop_tw2,
+                                twiss_init=twiss_init, **kwargs)
+            twini_1 = tw2.get_twiss_init(at_element=estart_tw2)
+            twini_1.element_name = estop_tw1
+            tw1 = twiss_line(ele_start=estart_tw1, ele_stop=estop_tw1,
+                                twiss_init=twini_1, **kwargs)
 
     tw_res = TwissTable.concatenate([tw1, tw2])
 

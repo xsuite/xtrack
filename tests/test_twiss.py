@@ -535,9 +535,9 @@ def test_twiss_range(test_context):
     atol_default = 1e-11
     rtol_default = 1e-9
 
-    for line_name, line in list(zip(['lhcb1', 'lhcb2'], [collider.lhcb1, collider.lhcb2]))[1:]:
+    for line_name, line in list(zip(['lhcb1', 'lhcb2'], [collider.lhcb1, collider.lhcb2])): #### DEBUUUUUG
 
-        for check in ('fw', 'bw', 'fw_kw', 'bw_kw'):
+        for check in ('fw', 'bw', 'fw_kw', 'bw_kw'): #### DEBUUUUUG
 
             print(f'Checking {line_name} {check}')
 
