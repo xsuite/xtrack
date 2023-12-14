@@ -101,12 +101,10 @@ class ActionTwiss(xd.Action):
             line_list = [line]
             table_for_twinit_list = [self.table_for_twiss_init]
 
-            _keep_ini_particles_list = [False] * len(twinit_list)
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
                     twinit_list, ele_start_list, ele_stop_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
-                    _keep_ini_particles_list[ii] = True
                 elif isinstance(twinit, str):
                     assert twinit in (
                         ['preserve', 'preserve_start', 'preserve_end', 'periodic'])
@@ -126,7 +124,6 @@ class ActionTwiss(xd.Action):
                             init_at = ele_stop
                         assert not isinstance(tab_twinit, xt.MultiTwiss)
                         twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
-                        _keep_ini_particles_list[ii] = True
 
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
@@ -165,7 +162,14 @@ class ActionTwiss(xd.Action):
                 if kk in kwargs:
                     kwargs.pop(kk)
             twinit_list[0] = twiss_init
-            _keep_ini_particles_list[ii] = True
+
+        _keep_ini_particles_list = []
+        for tt in twinit_list:
+            _keep_ini_particles_list.append(isinstance(tt, xt.TwissInit))
+
+        for ii, tt in enumerate(twinit_list):
+            if isinstance(tt, xt.TwissInit):
+                twinit_list[ii] = tt.copy()
 
         for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
             if isinstance(twini, xt.TwissInit) and twini._needs_complete():

@@ -295,6 +295,9 @@ def twiss_line(line, particle_ref=None, method=None,
     if only_orbit:
         raise NotImplementedError # Tested only experimentally
 
+    if isinstance(twiss_init, TwissInit):
+        twiss_init = twiss_init.copy()
+
     kwargs = locals().copy()
 
     if num_turns != 1:
