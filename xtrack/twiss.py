@@ -1760,6 +1760,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
 
 def _handle_loop_around(kwargs):
 
+    import pdb; pdb.set_trace()
+
     kwargs = kwargs.copy()
 
     twiss_init = kwargs.pop('twiss_init')
@@ -1771,7 +1773,7 @@ def _handle_loop_around(kwargs):
 
     ele_name_init = twiss_init.element_name
 
-    # import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
 
     # if reversed, elements in the line are sorted opposite to the twiss table
     if not reverse:
@@ -2371,6 +2373,8 @@ class TwissInit:
 
     def _complete(self, line, element_name):
 
+        import pdb; pdb.set_trace()
+
         if (line is not None and 'reverse' in line.twiss_default
             and line.twiss_default['reverse']):
             input_reversed = True
@@ -2387,7 +2391,10 @@ class TwissInit:
             s_ele_in_line = line.tracker._tracker_data_base.element_s_locations[i_ele_in_line]
 
             if input_reversed:
-                s_ele_twiss = line.tracker._tracker_data_base.element_s_locations[-1] - s_ele_in_line
+                s_ele_twiss = line.tracker._tracker_data_base.line_length - s_ele_in_line
+                first_ele = line[i_ele_in_line]
+                if hasattr(first_ele, 'isthick') and first_ele.isthick:
+                    s_ele_twiss -= first_ele.length
             else:
                 s_ele_twiss = s_ele_in_line
 
