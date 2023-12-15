@@ -2512,11 +2512,13 @@ class TwissInit:
         if name in self.__dict__:
             return self.__dict__[name]
         elif hasattr(self.__dict__['particle_on_co'], name):
-            # e.g. tw_init['x'] returns tw_init.particle_on_co.x[0]
-            pco = self.__dict__['particle_on_co']
-            pctx = pco._context
-            out = pctx.nparray_from_context_array(
-                getattr(self.__dict__['particle_on_co'], name))[0]
+            # e.g. tw_init['x'] returns tw_init.particle_on_co.x
+            out = getattr(self.__dict__['particle_on_co'], name)
+            #always cpu
+            if hasattr(out, 'get'):
+                out = out.get()
+            if hasattr(out, '__iter__'):
+                out = out [0]
             return out
         else:
             raise AttributeError(f'No attribute {name} found in TwissInit')
