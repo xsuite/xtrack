@@ -1179,8 +1179,8 @@ def _compute_chromatic_functions(line, twiss_init, delta_chrom, steps_r_matrix,
         part_chrom = xp.build_particles(
                 _context=line._context,
                 x_norm=0,
-                zeta=tw_init_chrom._xobject.zeta[0],
-                delta=part_co._xobject.delta[0] + dd,
+                zeta=tw_init_chrom.zeta,
+                delta=tw_init_chrom.delta+ dd,
                 particle_on_co=part_co,
                 nemitt_x=nemitt_x, nemitt_y=nemitt_y,
                 W_matrix=tw_init_chrom.W_matrix)
