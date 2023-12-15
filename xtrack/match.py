@@ -75,7 +75,6 @@ class ActionTwiss(xd.Action):
 
         # Handle twiss_init from table or preserve
         if ismultiline:
-            assert 'lines' in kwargs, ("`lines` must be provided to Multiline.match")
             line_names = kwargs.get('lines', line.line_names)
             none_list = [None] * len(line_names)
             twinit_list = kwargs.get('twiss_init', none_list)
