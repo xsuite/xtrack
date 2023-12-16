@@ -1256,7 +1256,8 @@ class Line:
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
                           ele_start=None, ele_stop=None,
-                          num_turns=1):
+                          num_turns=1,
+                          ele_co_search=None):
 
         """
         Find the closed orbit of the beamline.
@@ -1290,6 +1291,11 @@ class Line:
         ele_stop : int or str
             Optional. It can be provided to find the periodic solution for
             a portion of the beamline.
+        num_turns : int
+            Number of turns to be used for the closed orbit search.
+        ele_co_search : int or str
+            Element at which the closed orbit search is performed. If None,
+            the closed orbit search is performed at the start of the line.
 
         Returns
         -------
@@ -1323,7 +1329,8 @@ class Line:
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                 ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns)
+                                 ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns,
+                                 ele_co_search=ele_co_search)
 
     def compute_T_matrix(self, ele_start=None, ele_stop=None,
                          particle_on_co=None, steps_t_matrix=None):

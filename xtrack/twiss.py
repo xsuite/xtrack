@@ -1867,11 +1867,26 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
                       ele_start=None, ele_stop=None, num_turns=1,
+                      ele_co_search=None,
                       continue_on_closed_orbit_error=False):
 
     if line.enable_time_dependent_vars:
         raise RuntimeError(
             'Time-dependent vars not supported in closed orbit search')
+
+    if ele_start is not None and ele_stop is not None:
+        ele_co_search = None # needs to be implemented
+
+    if ele_co_search is not None:
+        kwargs = locals().copy()
+        kwargs.pop('ele_start')
+        kwargs.pop('ele_stop')
+        kwargs.pop('ele_co_search')
+        p_co_at_ele_co_search = find_closed_orbit_line(
+            ele_start=ele_co_search, ele_stop=ele_co_search,
+            **kwargs)
+        line.track(p_co_at_ele_co_search, ele_start=ele_co_search, ele_stop=0)
+        return p_co_at_ele_co_search
 
     if isinstance(ele_start, str):
         ele_start = line.element_names.index(ele_start)

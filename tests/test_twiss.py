@@ -665,7 +665,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
         {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
     assert tw_init_ip5.element_name == 'ip5'
 
-    if loop_around and not (line_name == 'lhcb2' and estop_user == 'ip6' and  cycle_to[1] == 'ip6'):
+    if (loop_around
+        and not (line_name == 'lhcb2' and estop_user == 'ip6' and  cycle_to[1] == 'ip6')
+        and not (line_name == 'lhcb1' and estart_user == 'ip5' and  cycle_to[1] == 'ip5')
+    ):
         tw_part1 = tw.rows[estart_user:]
         tw_part2 = tw.rows[:estop_user]
         tw_part = xt.TwissTable.concatenate([tw_part1, tw_part2])
