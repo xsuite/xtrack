@@ -420,42 +420,8 @@ def twiss_line(line, particle_ref=None, method=None,
             and twiss_init.element_name != ele_start
             and twiss_init.element_name != ele_stop):
 
-        ele_name_init =  twiss_init.element_name
-        if reverse:
-            assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_start)
-            assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_stop)
-        else:
-            assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start)
-            assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_stop)
-
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('ele_start')
-        kwargs.pop('ele_stop')
-
-        tw1 = twiss_line(ele_start=ele_start, ele_stop=ele_name_init, **kwargs)
-        tw2 = twiss_line(ele_start=ele_name_init, ele_stop=ele_stop, **kwargs)
-
-        tw_res = TwissTable.concatenate([tw1, tw2])
-
-        tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
-        tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
-        tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
-        tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
-        tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
-
-        # Not correctly handled yet
-        if 'dmux' in tw_res.keys():
-            tw_res._data.pop('dmux')
-            tw_res._col_names.remove('dmux')
-        if 'dmuy' in tw_res.keys():
-            tw_res._data.pop('dmuy')
-            tw_res._col_names.remove('dmuy')
-
-        for kk in ['method', 'radiation_method', 'reference_frame']:
-            if tw1[kk] == tw2[kk]:
-                tw_res._data[kk] = tw1[kk]
-            else:
-                tw_res._data[kk] = (tw1[kk], tw2[kk])
+        tw_res = _handle_init_inside_range(kwargs)
 
         return tw_res
 
@@ -1847,6 +1813,55 @@ def _handle_loop_around(kwargs):
             tw_res._data[kk] = (tw1[kk], tw2[kk])
 
     return tw_res
+
+
+
+def _handle_init_inside_range(kwargs):
+
+    kwargs = kwargs.copy()
+    line = kwargs.pop('line')
+    ele_start = kwargs.pop('ele_start')
+    ele_stop = kwargs.pop('ele_stop')
+    twiss_init = kwargs.pop('twiss_init')
+    reverse = kwargs.pop('reverse')
+
+    ele_name_init =  twiss_init.element_name
+    if reverse:
+        assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_start)
+        assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_stop)
+    else:
+        assert _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start)
+        assert _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_stop)
+
+    tw1 = twiss_line(line, ele_start=ele_start, ele_stop=ele_name_init,
+                     twiss_init=twiss_init, reverse=reverse, **kwargs)
+    tw2 = twiss_line(line, ele_start=ele_name_init, ele_stop=ele_stop,
+                     twiss_init=twiss_init, reverse=reverse, **kwargs)
+
+    tw_res = TwissTable.concatenate([tw1, tw2])
+
+    tw_res.s -= tw_res['s', ele_name_init] - twiss_init.s
+    tw_res.mux -= tw_res['mux', ele_name_init] - twiss_init.mux
+    tw_res.muy -= tw_res['muy', ele_name_init] - twiss_init.muy
+    tw_res.muzeta -= tw_res['muzeta', ele_name_init] - twiss_init.muzeta
+    tw_res.dzeta -= tw_res['dzeta', ele_name_init] - twiss_init.dzeta
+
+    # Not correctly handled yet
+    if 'dmux' in tw_res.keys():
+        tw_res._data.pop('dmux')
+        tw_res._col_names.remove('dmux')
+    if 'dmuy' in tw_res.keys():
+        tw_res._data.pop('dmuy')
+        tw_res._col_names.remove('dmuy')
+
+    for kk in ['method', 'radiation_method', 'reference_frame']:
+        if tw1[kk] == tw2[kk]:
+            tw_res._data[kk] = tw1[kk]
+        else:
+            tw_res._data[kk] = (tw1[kk], tw2[kk])
+
+    return tw_res
+
 
 def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
