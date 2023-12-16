@@ -478,7 +478,7 @@ def test_periodic_cell_twiss(test_context):
 
 
 @for_all_test_contexts
-@pytest.mark.parametrize('cycle_to', [None, ('s.ds.l6.b1', 's.ds.l6.b2')], ids=['no_cycle', 'with_cycle'])
+@pytest.mark.parametrize('cycle_to', [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6')], ids=['no_cycle', 'cycle_arc', 'cycle_edge'])
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
