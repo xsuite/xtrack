@@ -405,7 +405,7 @@ def twiss_line(line, particle_ref=None, method=None,
     mux=None; muy=None; muzeta=None
     ax_chrom=None; bx_chrom=None; ay_chrom=None; by_chrom=None
 
-    # Twiss goes throgh the start of the line
+    # Twiss goes through the start of the line
     rv = (-1 if reverse else 1)
     if not periodic and (
         rv * _str_to_index(line, ele_start) > rv * _str_to_index(line, ele_stop)):
@@ -419,8 +419,6 @@ def twiss_line(line, particle_ref=None, method=None,
     if (not periodic and not isinstance(twiss_init, str)
             and twiss_init.element_name != ele_start
             and twiss_init.element_name != ele_stop):
-
-        raise NotImplementedError # Needs testing
 
         ele_name_init =  twiss_init.element_name
         if reverse:
@@ -452,6 +450,12 @@ def twiss_line(line, particle_ref=None, method=None,
         if 'dmuy' in tw_res.keys():
             tw_res._data.pop('dmuy')
             tw_res._col_names.remove('dmuy')
+
+        for kk in ['method', 'radiation_method', 'reference_frame']:
+            if tw1[kk] == tw2[kk]:
+                tw_res._data[kk] = tw1[kk]
+            else:
+                tw_res._data[kk] = (tw1[kk], tw2[kk])
 
         return tw_res
 

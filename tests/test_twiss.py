@@ -480,7 +480,8 @@ def test_periodic_cell_twiss(test_context):
 @pytest.mark.parametrize('cycle_to', [None, ('s.ds.l6.b1', 's.ds.l6.b2')], ids=['no_cycle', 'with_cycle'])
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw'])
-def test_twiss_range(test_context, cycle_to, line_name, check):
+@pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
+def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
 
     collider = xt.Multiline.from_json(test_data_folder /
                     'hllhc15_collider/collider_00_from_mad.json')
@@ -580,14 +581,21 @@ def test_twiss_range(test_context, cycle_to, line_name, check):
     assert np.isclose(tw_init_ip6.bx_chrom, tw['bx_chrom', 'ip6'], atol=0, rtol=1e-7)
     assert np.isclose(tw_init_ip6.by_chrom, tw['by_chrom', 'ip6'], atol=0, rtol=1e-7)
 
+    if init_at_edge:
+        estart_user = 'ip5'
+        estop_user = 'ip6'
+    else:
+        estart_user = 'ip4'
+        estop_user = 'ip7'
+
     if check == 'fw':
-        tw_test = line.twiss(ele_start='ip5', ele_stop='ip6',
+        tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                                 twiss_init=tw_init_ip5)
     elif check == 'bw':
-        tw_test = line.twiss(ele_start='ip5', ele_stop='ip6',
+        tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                                     twiss_init=tw_init_ip6)
     elif check == 'fw_kw':
-        tw_test = line.twiss(ele_start='ip5', ele_stop='ip6',
+        tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                             ele_init='ip5',
                             x=tw['x', 'ip5'],
                             px=tw['px', 'ip5'],
@@ -613,7 +621,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check):
                             by_chrom=tw['by_chrom', 'ip5'],
                                 )
     elif check == 'bw_kw':
-        tw_test = line.twiss(ele_start='ip5', ele_stop='ip6',
+        tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                             ele_init='ip6',
                             x=tw['x', 'ip6'],
                             px=tw['px', 'ip6'],
@@ -646,10 +654,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check):
     assert tw_init_ip5.element_name == 'ip5'
 
     if loop_around:
-        tw_part1 = tw.rows['ip5':]
-        tw_part2 = tw.rows[:'ip6']
+        tw_part1 = tw.rows[estart_user:]
+        tw_part2 = tw.rows[:estop_user]
         tw_part = xt.TwissTable.concatenate([tw_part1, tw_part2])
-        n_0 = ('ip5' if check.startswith('fw') else 'ip6')
+        n_0 = (estart_user if check.startswith('fw') else estop_user)
         tw_part.s += tw['s', n_0] - tw_part['s', n_0]
         tw_part.mux += tw['mux', n_0] - tw_part['mux', n_0]
         tw_part.muy += tw['muy', n_0] - tw_part['muy', n_0]
@@ -660,9 +668,9 @@ def test_twiss_range(test_context, cycle_to, line_name, check):
         tw_part._data['orientation'] = (
             {'lhcb1': 'forward', 'lhcb2': 'backward'}[line_name])
     else:
-        tw_part = tw.rows['ip5':'ip6']
-    assert tw_part.name[0] == 'ip5'
-    assert tw_part.name[-1] == 'ip6'
+        tw_part = tw.rows[estart_user:estop_user]
+    assert tw_part.name[0] == estart_user
+    assert tw_part.name[-1] == estop_user
 
     assert tw_test.name[-1] == '_end_point'
 
