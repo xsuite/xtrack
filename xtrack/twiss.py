@@ -1782,7 +1782,7 @@ def _handle_loop_around(kwargs):
     if not reverse:
         assert _str_to_index(line, ele_stop) < _str_to_index(line, ele_start), (
             'This function should not have been called')
-        if _str_to_index(line, ele_name_init) == _str_to_index(line, ele_start):
+        if _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_start):
             tw1 = twiss_line(ele_start=ele_start,
                             ele_stop=len(line) - 1,
                             twiss_init=twiss_init, **kwargs)
@@ -1790,7 +1790,7 @@ def _handle_loop_around(kwargs):
             twini_2.element_name = line.element_names[0]
             tw2 = twiss_line(ele_start=line.element_names[0], ele_stop=ele_stop,
                                     twiss_init=twini_2, **kwargs)
-        elif _str_to_index(line, ele_name_init) == _str_to_index(line, ele_stop):
+        elif _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_stop):
             tw2 = twiss_line(ele_start=line.element_names[0], ele_stop=ele_stop,
                                 twiss_init=twiss_init, **kwargs)
             twini_1 = tw2.get_twiss_init(at_element=line.element_names[0])
@@ -1803,7 +1803,7 @@ def _handle_loop_around(kwargs):
     else: # reversed
         assert _str_to_index(line, ele_stop) > _str_to_index(line, ele_start), (
             'This function should not have been called')
-        if _str_to_index(line, ele_name_init) == _str_to_index(line, ele_start):
+        if _str_to_index(line, ele_name_init) <= _str_to_index(line, ele_start):
             tw1 = twiss_line(ele_start=ele_start,
                             ele_stop=line.element_names[0],
                             twiss_init=twiss_init, **kwargs)
@@ -1811,7 +1811,7 @@ def _handle_loop_around(kwargs):
             twini_2.element_name = line.element_names[-1]
             tw2 = twiss_line(ele_start=line.element_names[-1], ele_stop=ele_stop,
                                     twiss_init=twini_2, **kwargs)
-        elif _str_to_index(line, ele_name_init) == _str_to_index(line, ele_stop):
+        elif _str_to_index(line, ele_name_init) >= _str_to_index(line, ele_stop):
             tw2 = twiss_line(ele_start=line.element_names[-1], ele_stop=ele_stop,
                                 twiss_init=twiss_init, **kwargs)
             twini_1 = tw2.get_twiss_init(at_element=line.element_names[-1])
