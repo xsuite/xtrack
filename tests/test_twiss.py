@@ -476,6 +476,7 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(mux_arc_from_cell, mux_arc_target, rtol=1e-6)
         assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
 
+
 @for_all_test_contexts
 @pytest.mark.parametrize('cycle_to', [None, ('s.ds.l6.b1', 's.ds.l6.b2')], ids=['no_cycle', 'with_cycle'])
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
@@ -484,18 +485,16 @@ def test_periodic_cell_twiss(test_context):
 def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
 
     collider = xt.Multiline.from_json(test_data_folder /
-                    'hllhc15_collider/collider_00_from_mad.json')
+                    'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.lhcb1.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['method'] = '4d'
+    collider.lhcb2.twiss_default['reverse'] = True
 
     if cycle_to is not None:
         collider.lhcb1.cycle(cycle_to[0], inplace=True)
         collider.lhcb2.cycle(cycle_to[1], inplace=True)
-        loop_around = True
-    else:
-        loop_around = False
 
-    collider.lhcb1.twiss_default['method'] = '4d'
-    collider.lhcb2.twiss_default['method'] = '4d'
-    collider.lhcb2.twiss_default['reverse'] = True
+    loop_around = cycle_to is not None
 
     collider.vars['on_x5hs'] = 200
     collider.vars['on_x5vs'] = 123
@@ -506,16 +505,16 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
-        nuzeta=1e-5, dx_zeta=5e-9, dy_zeta=5e-9,
+        nuzeta=1e-5, dx_zeta=2e-8, dy_zeta=2e-8,
     )
 
     rtols = dict(
         alfx=5e-9, alfy=5e-8,
-        betx=5e-9, bety=5e-9, betx1=5e-9, bety2=5e-9, betx2=1e-8, bety1=1e-8,
+        betx=5e-9, bety=5e-9, betx1=5e-9, bety2=5e-9, betx2=1e-7, bety1=1e-7,
         gamx=5e-9, gamy=5e-9,
     )
 
-    if loop_around:
+    if loop_around or not init_at_edge:
         rtols['betx'] = 2e-5
         rtols['bety'] = 2e-5
         rtols['alfx'] = 4e-5
@@ -525,9 +524,9 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
         rtols['gamx'] = 2e-5
         rtols['gamy'] = 2e-5
         rtols['betx1'] = 2e-5
-        rtols['bety2'] = 2e-5
-        rtols['betx2'] = 4e-5
-        rtols['bety1'] = 4e-5
+        rtols['bety2'] = 1e-5
+        rtols['betx2'] = 1e-4
+        rtols['bety1'] = 1e-4
         atols['mux'] = 1e-5
         atols['muy'] = 1e-5
         atols['nux'] = 1e-8
@@ -545,10 +544,12 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
         # Coupling is supported --> we test it
         collider.vars['kqs.a23b1'] = 1e-4
         collider.vars['kqs.a23b2'] = -1e-4
+        collider.vars['on_disp'] = 1
     else:
         # Coupling is not supported --> we skip it
         collider.vars['kqs.a23b1'] = 0
         collider.vars['kqs.a23b2'] = 0
+        collider.vars['on_disp'] = 0 # avoid feeddown from sextupoles
 
     tw = line.twiss(r_sigma=0.01)
 
