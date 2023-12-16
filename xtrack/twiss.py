@@ -82,6 +82,7 @@ def twiss_line(line, particle_ref=None, method=None,
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
+        ele_co_search=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -508,6 +509,7 @@ def twiss_line(line, particle_ref=None, method=None,
             matrix_stability_tol=matrix_stability_tol,
             ele_start=ele_start, ele_stop=ele_stop,
             num_turns=num_turns,
+            ele_co_search=ele_co_search,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
@@ -1592,6 +1594,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             nemitt_x, nemitt_y, r_sigma,
                             ele_start=None, ele_stop=None,
                             num_turns=1,
+                            ele_co_search=None,
                             compute_R_element_by_element=False,
                             only_markers=False):
 
@@ -1620,7 +1623,8 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 zeta0=zeta0,
                                 ele_start=ele_start,
                                 ele_stop=ele_stop,
-                                num_turns=num_turns)
+                                num_turns=num_turns,
+                                ele_co_search=ele_co_search,)
 
     if W_matrix is not None:
         W = W_matrix

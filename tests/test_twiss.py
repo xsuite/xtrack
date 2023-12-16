@@ -504,6 +504,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
     collider.vars['on_sep5v'] = 2
 
     atols = dict(
+        s=1e-10,
         zeta=5e-5,
         alfx=1e-8, alfy=1e-8,
         dzeta=1e-4, dx=1e-4, dy=1e-4, dpx=1e-5, dpy=1e-5,
@@ -554,7 +555,8 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
         collider.vars['on_disp'] = 0 # avoid feeddown from sextupoles
 
     if line.element_names[0] == 'ip5':
-        tw = line.twiss(co_guess={'x':1e-3, 'y':2e-3})
+        # Need to avoid the crossing bumps in closed orbit search (convergence issues)
+        tw = line.twiss(ele_co_search='ip3')
     else:
         tw = line.twiss()
 
