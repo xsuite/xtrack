@@ -478,7 +478,9 @@ def test_periodic_cell_twiss(test_context):
 
 
 @for_all_test_contexts
-@pytest.mark.parametrize('cycle_to', [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6')], ids=['no_cycle', 'cycle_arc', 'cycle_edge'])
+@pytest.mark.parametrize('cycle_to',
+                         [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
+                         ids=['no_cycle', 'cycle_arc', 'cycle_edge1', 'cycle_edge2'])
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
 @pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
@@ -551,7 +553,10 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
         collider.vars['kqs.a23b2'] = 0
         collider.vars['on_disp'] = 0 # avoid feeddown from sextupoles
 
-    tw = line.twiss(r_sigma=0.01)
+    if line.element_names[0] == 'ip5':
+        tw = line.twiss(co_guess={'x':1e-3, 'y':2e-3})
+    else:
+        tw = line.twiss()
 
     tw_init_ip5 = tw.get_twiss_init('ip5')
     tw_init_ip6 = tw.get_twiss_init('ip6')
@@ -592,9 +597,11 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
     if check == 'fw':
         tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                                 twiss_init=tw_init_ip5)
+        name_init = 'ip5'
     elif check == 'bw':
         tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                                     twiss_init=tw_init_ip6)
+        name_init = 'ip6'
     elif check == 'fw_kw':
         tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                             ele_init='ip5',
@@ -621,6 +628,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
                             ay_chrom=tw['ay_chrom', 'ip5'],
                             by_chrom=tw['by_chrom', 'ip5'],
                                 )
+        name_init = 'ip5'
     elif check == 'bw_kw':
         tw_test = line.twiss(ele_start=estart_user, ele_stop=estop_user,
                             ele_init='ip6',
@@ -647,23 +655,25 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
                             ay_chrom=tw['ay_chrom', 'ip6'],
                             by_chrom=tw['by_chrom', 'ip6'],
                             )
+        name_init = 'ip6'
     else:
         raise ValueError(f'Unknown config {check}')
+
+    assert np.isclose(tw_test['s', name_init], tw['s', name_init], 1e-10)
 
     assert tw_init_ip5.reference_frame == (
         {'lhcb1': 'proper', 'lhcb2': 'reverse'}[line_name])
     assert tw_init_ip5.element_name == 'ip5'
 
-    if loop_around:
+    if loop_around and not (line_name == 'lhcb2' and estop_user == 'ip6' and  cycle_to[1] == 'ip6'):
         tw_part1 = tw.rows[estart_user:]
         tw_part2 = tw.rows[:estop_user]
         tw_part = xt.TwissTable.concatenate([tw_part1, tw_part2])
-        n_0 = (estart_user if check.startswith('fw') else estop_user)
-        tw_part.s += tw['s', n_0] - tw_part['s', n_0]
-        tw_part.mux += tw['mux', n_0] - tw_part['mux', n_0]
-        tw_part.muy += tw['muy', n_0] - tw_part['muy', n_0]
-        tw_part.muzeta += tw['muzeta', n_0] - tw_part['muzeta', n_0]
-        tw_part.dzeta += tw['dzeta', n_0] - tw_part['dzeta', n_0]
+        tw_part.s += tw['s', name_init] - tw_part['s', name_init]
+        tw_part.mux += tw['mux', name_init] - tw_part['mux', name_init]
+        tw_part.muy += tw['muy', name_init] - tw_part['muy', name_init]
+        tw_part.muzeta += tw['muzeta', name_init] - tw_part['muzeta', name_init]
+        tw_part.dzeta += tw['dzeta', name_init] - tw_part['dzeta', name_init]
         tw_part._data['method'] = '4d'
         tw_part._data['radiation_method'] = None
         tw_part._data['orientation'] = (
