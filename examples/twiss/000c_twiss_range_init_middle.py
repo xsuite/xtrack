@@ -9,7 +9,7 @@ import xtrack as xt
 import xpart as xp
 
 collider = xt.Multiline.from_json(
-    '../../test_data/hllhc15_collider/collider_00_from_mad.json')
+    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.build_trackers()
 
 collider.lhcb1.twiss_default['method'] = '4d'
@@ -22,28 +22,13 @@ line_name = 'lhcb2'
 line = collider.lhcb1
 line_name = 'lhcb1'
 
-tw = line.twiss()
+two = line.twiss(ele_start='ip7', ele_stop='ip3', ele_init='ip1',
+                 betx=.15, bety=.15)
 
-# two = line.twiss(ele_start='ip5', ele_stop='ip8',
-#                  twiss_init=tw.get_twiss_init('ip6'))
-
-# Loop around (init in the second part)
-two = line.twiss(ele_start='ip2', ele_stop='ip5',
-                    twiss_init=tw.get_twiss_init('ip4'))
-
-# Loop around (init in the first part)
-# two = line.twiss(ele_start='ip1', ele_stop='ip4',
-#                  twiss_init=tw.get_twiss_init('ip2'))
-
-# Corner cases
-# two = collider.lhcb1.twiss(ele_start='ip8', ele_stop='ip3', ele_init='ip2',
-#                              betx=10., bety=10.)
-
-# two = collider.lhcb1.twiss(ele_start='ip3', ele_stop='ip6', ele_init='ip5',
-#                              betx=.15, bety=.15)
 
 import matplotlib.pyplot as plt
+plt.close('all')
 plt.figure(1)
-plt.plot(tw.s, tw.betx, label='betx')
 plt.plot(two.s, two.betx, label='betx')
+plt.plot(two.s, two.bety, label='bety')
 plt.show()
