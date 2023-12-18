@@ -2,10 +2,8 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-
 from time import perf_counter
 from typing import Literal, Union
-from contextlib import contextmanager
 import logging
 from functools import partial
 from collections import UserDict, defaultdict
@@ -17,14 +15,13 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from .general import _print
-
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
 from .general import _pkg_root
 from .internal_record import new_io_buffer
 from .line import Line, _is_thick, freeze_longitudinal as _freeze_longitudinal
 from .pipeline import PipelineStatus
+from .progress_indicator import progress
 from .tracker_data import TrackerData
 from .prebuild_kernels import get_suitable_kernel, XT_PREBUILT_KERNELS_LOCATION
 
@@ -202,8 +199,16 @@ class Tracker:
                 else:
                     ldrift = 0.
 
+                if _buffer is None:
+                    if hasattr(pp, '_buffer'):
+                        pp_buffer = pp._buffer
+                    else:
+                        pp_buffer = None
+                else:
+                    pp_buffer = _buffer
+
                 noncollective_xelements.append(
-                    Drift(_buffer=_buffer, length=ldrift))
+                    Drift(_buffer=pp_buffer, length=ldrift))
 
         # Build TrackerPartNonCollective objects for non-collective parts
         for ii, pp in enumerate(parts):
@@ -281,12 +286,91 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, *args, **kwargs):
+    def _track(self, particles, *args, with_progress: Union[bool, int] = False,
+               time=False, **kwargs):
+
+        out = None
+
+        if time:
+            t0 = perf_counter()
+
         assert self.iscollective in (True, False)
         if self.iscollective or self.line.enable_time_dependent_vars:
-            return self._track_with_collective(*args, **kwargs)
+            tracking_func = self._track_with_collective
         else:
-            return self._track_no_collective(*args, **kwargs)
+            tracking_func = self._track_no_collective
+
+        if with_progress:
+            if self.enable_pipeline_hold:
+                raise ValueError("Progress indicator is not supported with pipeline hold")
+
+            try:
+                num_turns = kwargs['num_turns']
+            except KeyError:
+                raise ValueError('Tracking with progress indicator is only '
+                                 'possible over more than one turn.')
+
+            if with_progress is True:
+                batch_size = scaling = 100
+            else:
+                batch_size = int(with_progress)
+                scaling = with_progress if batch_size > 1 else None
+
+            if kwargs.get('turn_by_turn_monitor') is True:
+                ele_start = kwargs.get('ele_start') or 0
+                ele_stop = kwargs.get('ele_stop')
+                if ele_stop is None:
+                    ele_stop = len(self.line)
+
+                if ele_start >= ele_stop:
+                    # we need an additional turn and space in the monitor for
+                    # the incomplete turn
+                    num_turns += 1
+                _, monitor, _, _ = self._get_monitor(particles, True, num_turns)
+                kwargs['turn_by_turn_monitor'] = monitor
+
+            for ii in progress(
+                    range(0, num_turns, batch_size),
+                    desc='Tracking',
+                    unit_scale=scaling,
+            ):
+                one_turn_kwargs = kwargs.copy()
+                is_first_batch = ii == 0
+                is_last_batch = ii + batch_size >= num_turns
+
+                if is_first_batch and is_last_batch:
+                    # This is the only batch, we track as normal
+                    pass
+                elif is_first_batch:
+                    # Not the last batch, so track until the last element
+                    one_turn_kwargs['ele_stop'] = None
+                    one_turn_kwargs['num_turns'] = batch_size
+                elif is_last_batch:
+                    # Not the first batch, so track from the first element
+                    one_turn_kwargs['ele_start'] = None
+                    remaining_turns = num_turns % batch_size
+                    if remaining_turns == 0:
+                        remaining_turns = batch_size
+                    one_turn_kwargs['num_turns'] = remaining_turns
+                elif not is_first_batch and not is_last_batch:
+                    # A 'middle batch', track from first to last element
+                    one_turn_kwargs['num_turns'] = batch_size
+                    one_turn_kwargs['ele_start'] = None
+                    one_turn_kwargs['ele_stop'] = None
+
+                tracking_func(particles, *args, **one_turn_kwargs)
+                # particles.reorganize() # could be done in the future to optimize GPU usage
+        else:
+            out = tracking_func(particles, *args, **kwargs)
+
+        if time:
+            t1 = perf_counter()
+            self._context.synchronize()
+            self.time_last_track = t1 - t0
+        else:
+            self.time_last_track = None
+
+        return out
 
     @property
     def particle_ref(self) -> xp.Particles:
@@ -634,7 +718,7 @@ class Tracker:
                 num_turns = 1
             else:
                 assert num_turns > 0
-            if isinstance(ele_stop,str):
+            if isinstance(ele_stop, str):
                 ele_stop = self.line.element_names.index(ele_stop)
 
             # If ele_stop comes before ele_start, we need to add an additional turn to
@@ -764,12 +848,8 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
-        time=False,
         _session_to_resume=None
     ):
-
-        if time:
-            t0 = perf_counter()
 
         if ele_start is None:
             ele_start = 0
@@ -838,15 +918,21 @@ class Tracker:
                 ii_first_active = int((state > 0).argmax())
                 if ii_first_active == 0 and particles._xobject.state[0] <= 0:
                     # No active particles
-                    break
+                    at_turn = 0 # convenient for multi-turn injection
+                else:
+                    at_turn = particles._xobject.at_turn[ii_first_active]
 
-                at_turn = particles._xobject.at_turn[ii_first_active]
                 if self.line.energy_program is not None:
                     t_turn = self.line.energy_program.get_t_s_at_turn(at_turn)
                 else:
                     beta0 = particles._xobject.beta0[ii_first_active]
                     t_turn = (at_turn * self._tracker_data_base.line_length
                             / (beta0 * clight))
+
+                # Clean leftover from previous trackings
+                if (self.line._t_last_update_time_dependent_vars and
+                   t_turn < self.line._t_last_update_time_dependent_vars):
+                    self.line._t_last_update_time_dependent_vars = None
 
                 if (self.line._t_last_update_time_dependent_vars is None
                     or self.line.dt_update_time_dependent_vars is None
@@ -962,12 +1048,6 @@ class Tracker:
 
         self.record_last_track = monitor
 
-        if time:
-            t1 = perf_counter()
-            self._context.synchronize()
-            self.time_last_track = t1 - t0
-        else:
-            self.time_last_track = None
 
     def _track_no_collective(
         self,
@@ -979,7 +1059,6 @@ class Tracker:
         turn_by_turn_monitor=None,
         freeze_longitudinal=False,
         backtrack=False,
-        time=False,
         _force_no_end_turn_actions=False,
     ):
 
@@ -1008,9 +1087,6 @@ class Tracker:
             self.config.pop('particles_class_name', None)
         self.particles_class = particles.__class__
         self.local_particle_src = particles.gen_local_particle_api()
-
-        if time:
-            t0 = perf_counter()
 
         if freeze_longitudinal:
             kwargs = locals().copy()
@@ -1194,13 +1270,6 @@ class Tracker:
 
         self.record_last_track = monitor
 
-        if time:
-            self._context.synchronize()
-            t1 = perf_counter()
-            self.time_last_track = t1 - t0
-        else:
-            self.time_last_track = None
-
     @staticmethod
     def _get_default_monitor_class():
         return xt.ParticlesMonitor
@@ -1326,18 +1395,6 @@ class Tracker:
     @skip_end_turn_actions.setter
     def skip_end_turn_actions(self, value):
         self.line.skip_end_turn_actions = value
-
-    # def __getattr__(self, attr):
-    #     # If not in self look in self.line (if not None)
-    #     if attr == 'line':
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
-    #     if self.line is not None and attr in object.__dir__(self.line):
-    #         _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
-    #             f' Please use `Line.{attr}` (for more info see '
-    #             'https://github.com/xsuite/xsuite/issues/322)')
-    #         return getattr(self.line, attr)
-    #     else:
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
 
     def __dir__(self):
         return list(set(object.__dir__(self) + dir(self.line)))

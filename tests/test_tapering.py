@@ -73,7 +73,7 @@ def test_tapering_and_twiss_with_radiation():
             p0corr = 1
 
         # mask for taperable elemements
-        tt = line.get_table()
+        tt = line.get_table().rows[:-1] # remove endpoint
         mask_taperable = (tt.element_type == 'Multipole') | (tt.element_type == 'DipoleEdge')
         assert np.sum(mask_taperable) == 17420
 

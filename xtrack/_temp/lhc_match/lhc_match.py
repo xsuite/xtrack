@@ -428,7 +428,7 @@ def rematch_ir2(collider, line_name,
         else:
             opt.solve()
 
-        return opt
+    return opt
 
 def rematch_ir3(collider, line_name,
                 boundary_conditions_left, boundary_conditions_right,
@@ -878,7 +878,7 @@ def match_orbit_knobs_ip2_ip8(collider):
     ##############################
 
     angle_match_ip2 = 170e-6
-    angle_match_ip8 = 300e-6
+    angle_match_ip8 = 170e-6
 
     # ---------- on_x2h ----------
 

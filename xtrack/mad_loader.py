@@ -27,20 +27,15 @@ Loader.add_<name>(mad_elem,line,buffer) to add a new element to line
 
 if the want to control how the xobject is created
 """
-import abc
-import functools
-import re
-from itertools import zip_longest
-from typing import List, Iterable, Iterator, Tuple, Union
+from typing import List, Union
 
 import numpy as np
-from math import tan
 
-import xtrack, xobjects
+import xobjects
+import xtrack
 from .compounds import Compound
-
 from .general import _print
-
+from .progress_indicator import progress
 
 # Generic functions
 
@@ -560,7 +555,7 @@ class MadLoader:
         _fref = line._var_management["fref"]
         _lref = line._var_management["lref"]
 
-        madeval_no_repl = MadxEval(_vref, _fref, None).eval
+        madeval_no_repl = MadxEval(_vref, _fref, mad.elements).eval
 
         if replace_in_expr is not None:
             def madeval(expr):
@@ -691,10 +686,16 @@ class MadLoader:
             madeval = None
             self.Builder = ElementBuilder
 
-        nelem = len(self.sequence.expanded_elements)
+        # Avoid progress bar if there are few elements
+        if len(self.sequence.expanded_elements) > 10:
+            _prog = progress(
+                self.iter_elements(madeval=madeval),
+                desc=f'Converting sequence "{self.sequence.name}"',
+                total=len(self.sequence.expanded_elements))
+        else:
+            _prog = self.iter_elements(madeval=madeval)
 
-        for ii, el in enumerate(self.iter_elements(madeval=madeval)):
-
+        for ii, el in enumerate(_prog):
             # for each mad element create xtract elements in a buffer and add to a line
             converter = getattr(self, "convert_" + el.type, None)
             adder = getattr(self, "add_" + el.type, None)
@@ -715,14 +716,6 @@ class MadLoader:
                     f'Element {el.type} not supported,\nimplement "add_{el.type}"'
                     f" or convert_{el.type} in function in MadLoader"
                 )
-            if ii % 100 == 0:
-                _print(
-                    f'Converting sequence "{self.sequence.name}":'
-                    f' {round(ii/nelem*100):2d}%     ',
-                    end="\r",
-                    flush=True,
-                )
-        _print()
         return line
 
     def add_elements(
@@ -839,7 +832,7 @@ class MadLoader:
     def _convert_quadrupole_thick(self, mad_el):
         if mad_el.k1s:
             tilt = -self.math.atan2(mad_el.k1s, mad_el.k1) / 2
-            k1 = 0.5 * self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
+            k1 = self.math.sqrt(mad_el.k1s ** 2 + mad_el.k1 ** 2)
         else:
             tilt = None
             k1 = mad_el.k1

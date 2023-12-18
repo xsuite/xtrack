@@ -5,13 +5,12 @@
 
 import abc
 import re
-from collections import defaultdict
 
 from itertools import zip_longest
 from typing import List, Tuple, Iterator, Optional, Literal
 
 from .compounds import SlicedCompound
-from .general import _print
+from .progress_indicator import progress
 
 import xtrack as xt
 
@@ -156,10 +155,7 @@ class Slicer:
         thin_names = []
 
         collapsed_names = self.line.get_collapsed_names()
-        n_elements = len(collapsed_names)
-        for ii, name in enumerate(collapsed_names):
-            _print(f'Slicing line: {100*(ii + 1)/n_elements:.0f}%', end='\r', flush=True)
-
+        for ii, name in enumerate(progress(collapsed_names, desc='Slicing line')):
             compound = self.line.get_compound_by_name(name)
             if compound is not None:
                 subsequence = self._slice_compound(name, compound)

@@ -4,12 +4,13 @@ from functools import partial
 import numpy as np
 from scipy.optimize import fsolve, minimize
 
-from .twiss import TwissInit
+from .twiss import TwissInit, VARS_FOR_TWISS_INIT_GENERATION, _complete_twiss_init
 from .general import _print
 import xtrack as xt
 import xdeps as xd
 
 XTRACK_DEFAULT_TOL = 1e-10
+XTRACK_DEFAULT_SIGMA_REL = 0.01
 
 XTRACK_DEFAULT_WEIGHTS = {
     # For quantities not specified here the default weight is 1
@@ -50,7 +51,8 @@ END = _LOC('END')
 class ActionTwiss(xd.Action):
 
     def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None,
-                 compensate_radiation_energy_loss=True, **kwargs):
+                 compensate_radiation_energy_loss=True,
+                 **kwargs):
         self.line = line
         self.kwargs = kwargs
         self.table_for_twiss_init = table_for_twiss_init
@@ -63,39 +65,46 @@ class ActionTwiss(xd.Action):
 
         ismultiline = isinstance(line, xt.Multiline)
 
-        if 'twiss_init' in kwargs:
-            if ismultiline:
-                twinit_list = kwargs['twiss_init']
-                ele_start_list = kwargs['ele_start']
-                ele_stop_list = kwargs['ele_stop']
-                line_names = kwargs.get('lines', line.line_names)
-                line_list = [line[nn] for nn in line_names]
-                assert isinstance(twinit_list, list)
-                assert isinstance(ele_start_list, list)
-                assert isinstance(ele_stop_list, list)
-                if self.table_for_twiss_init is not None:
-                    if isinstance(self.table_for_twiss_init, xt.multiline.MultiTwiss):
-                        table_for_twinit_list = [self.table_for_twiss_init[nn] for nn in line_names]
-                    else:
-                        assert isinstance(self.table_for_twiss_init, (list, tuple)), (
-                            'table_for_twiss_init for a Multiline match must be either a MultiTwiss, '
-                            'a list or a tuple')
-                        table_for_twinit_list = self.table_for_twiss_init
-                else:
-                    table_for_twinit_list = [None] * len(twinit_list)
-            else:
-                twinit_list = [kwargs['twiss_init']]
-                ele_start_list = [kwargs['ele_start']]
-                ele_stop_list = [kwargs['ele_stop']]
-                line_list = [line]
-                table_for_twinit_list = [self.table_for_twiss_init]
+        # Forbit specifying twiss_init through kwargs for Multiline
+        if ismultiline:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                if kk in kwargs:
+                    raise ValueError(
+                        f'`{kk}` cannot be specified for a Multiline match. '
+                        f'Please specify provide a TwissInit object for each line instead.')
 
-            _keep_ini_particles_list = [False] * len(twinit_list)
+        # Handle twiss_init from table or preserve
+        if ismultiline:
+            line_names = kwargs.get('lines', line.line_names)
+            none_list = [None] * len(line_names)
+            twinit_list = kwargs.get('twiss_init', none_list)
+            ele_start_list = kwargs.get('ele_start', none_list)
+            ele_stop_list = kwargs.get('ele_stop', none_list)
+            line_list = [line[nn] for nn in line_names]
+            assert isinstance(twinit_list, list)
+            assert isinstance(ele_start_list, list)
+            assert isinstance(ele_stop_list, list)
+            if self.table_for_twiss_init is not None:
+                if isinstance(self.table_for_twiss_init, xt.multiline.MultiTwiss):
+                    table_for_twinit_list = [self.table_for_twiss_init[nn] for nn in line_names]
+                else:
+                    assert isinstance(self.table_for_twiss_init, (list, tuple)), (
+                        'table_for_twiss_init for a Multiline match must be either a MultiTwiss, '
+                        'a list or a tuple')
+                    table_for_twinit_list = self.table_for_twiss_init
+            else:
+                table_for_twinit_list = [None] * len(twinit_list)
+        else:
+            twinit_list = [kwargs.get('twiss_init', None)]
+            ele_start_list = [kwargs.get('ele_start', None)]
+            ele_stop_list = [kwargs.get('ele_stop', None)]
+            line_list = [line]
+            table_for_twinit_list = [self.table_for_twiss_init]
+
             for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
                     twinit_list, ele_start_list, ele_stop_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
-                    _keep_ini_particles_list[ii] = True
                 elif isinstance(twinit, str):
                     assert twinit in (
                         ['preserve', 'preserve_start', 'preserve_end', 'periodic'])
@@ -115,28 +124,73 @@ class ActionTwiss(xd.Action):
                             init_at = ele_stop
                         assert not isinstance(tab_twinit, xt.MultiTwiss)
                         twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
-                        _keep_ini_particles_list[ii] = True
 
-            for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
-                if isinstance(twini, xt.TwissInit) and twini._needs_complete():
-                    assert isinstance(eest, str)
-                    twini._complete(line=ln, element_name=eest)
+        if not ismultiline:
+            # Handle case in which twiss init is defined through kwargs
+            twiss_init = _complete_twiss_init(
+                    ele_start=kwargs.get('ele_start', None),
+                    ele_stop=kwargs.get('ele_stop', None),
+                    ele_init=kwargs.get('ele_init', None),
+                    twiss_init=twinit_list[0],
+                    line=line,
+                    reverse=None, # will be handled by the twiss
+                    x=kwargs.get('x', None),
+                    px=kwargs.get('px', None),
+                    y=kwargs.get('y', None),
+                    py=kwargs.get('py', None),
+                    zeta=kwargs.get('zeta', None),
+                    delta=kwargs.get('delta', None),
+                    alfx=kwargs.get('alfx', None),
+                    alfy=kwargs.get('alfy', None),
+                    betx=kwargs.get('betx', None),
+                    bety=kwargs.get('bety', None),
+                    bets=kwargs.get('bets', None),
+                    dx=kwargs.get('dx', None),
+                    dpx=kwargs.get('dpx', None),
+                    dy=kwargs.get('dy', None),
+                    dpy=kwargs.get('dpy', None),
+                    dzeta=kwargs.get('dzeta', None),
+                    mux=kwargs.get('mux', None),
+                    muy=kwargs.get('muy', None),
+                    muzeta=kwargs.get('muzeta', None),
+                    ax_chrom=kwargs.get('ax_chrom', None),
+                    bx_chrom=kwargs.get('bx_chrom', None),
+                    ay_chrom=kwargs.get('ay_chrom', None),
+                    by_chrom=kwargs.get('by_chrom', None),
+                    )
+            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+                if kk in kwargs:
+                    kwargs.pop(kk)
+            twinit_list[0] = twiss_init
 
-            if ismultiline:
-                kwargs['twiss_init'] = twinit_list
-                kwargs['_keep_initial_particles'] = _keep_ini_particles_list
-            else:
-                kwargs['twiss_init'] = twinit_list[0]
-                kwargs['_keep_initial_particles'] = _keep_ini_particles_list[0]
+        _keep_ini_particles_list = []
+        for tt in twinit_list:
+            _keep_ini_particles_list.append(isinstance(tt, xt.TwissInit))
 
-            tw0 = line.twiss(**kwargs)
+        for ii, tt in enumerate(twinit_list):
+            if isinstance(tt, xt.TwissInit):
+                twinit_list[ii] = tt.copy()
 
-            if ismultiline:
-                kwargs['_initial_particles'] = [
-                    tw0[llnn]._data.get('_initial_particles', None) for llnn in line_names]
-            else:
-                kwargs['_initial_particles'] = tw0._data.get(
-                                        '_initial_particles', None)
+        for twini, ln, eest in zip(twinit_list, line_list, ele_start_list):
+            if isinstance(twini, xt.TwissInit) and twini._needs_complete():
+                assert isinstance(eest, str)
+                twini._complete(line=ln, element_name=eest)
+
+        if ismultiline:
+            kwargs['twiss_init'] = twinit_list
+            kwargs['_keep_initial_particles'] = _keep_ini_particles_list
+        else:
+            kwargs['twiss_init'] = twinit_list[0]
+            kwargs['_keep_initial_particles'] = _keep_ini_particles_list[0]
+
+        tw0 = line.twiss(**kwargs)
+
+        if ismultiline:
+            kwargs['_initial_particles'] = [
+                tw0[llnn]._data.get('_initial_particles', None) for llnn in line_names]
+        else:
+            kwargs['_initial_particles'] = tw0._data.get(
+                                    '_initial_particles', None)
 
         self.kwargs = kwargs
 
@@ -148,19 +202,149 @@ class ActionTwiss(xd.Action):
                     ' for Multiline')
             self.line.compensate_radiation_energy_loss(verbose=False)
         if not self.allow_twiss_failure or not allow_failure:
-            return self.line.twiss(**self.kwargs)
+            out = self.line.twiss(**self.kwargs)
         else:
             try:
-                return self.line.twiss(**self.kwargs)
+                out = self.line.twiss(**self.kwargs)
             except Exception as ee:
                 if allow_failure:
                     return 'failed'
                 else:
                     raise ee
+        out.line = self.line
+        return out
+
+# Alternative transitions functions
+# def _transition_sigmoid_integral(x):
+#     x_shift = x - 3
+#     if x_shift > 10:
+#         return x_shift
+#     else:
+#         return np.log(1 + np.exp(x_shift))
+
+# def _transition_sin(x):
+#     if x < 0:
+#         return 0
+#     if x < 1.:
+#         return 2 /np.pi - 2 /np.pi * np.cos(np.pi * x / 2)
+#     else:
+#         return x + 2 / np.pi - 1
+
+def _poly(x):
+     return 3 * x**3 - 2 * x**4
+
+def _transition_poly(x):
+        x_cut = 1/16 + np.sqrt(33)/16
+        if x < 0:
+            return 0
+        if x < x_cut:
+            return _poly(x)
+        else:
+            return x - x_cut + _poly(x_cut)
+
+class GreaterThan:
+
+    _transition = staticmethod(_transition_poly)
+
+    def __init__(self, lower, mode='step', sigma=None,
+                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
+        assert mode in ['step', 'smooth']
+        self.lower = lower
+        self._value = 0.
+        self.mode=mode
+        if mode == 'smooth':
+            assert sigma is not None or sigma_rel is not None
+            if sigma is not None:
+                assert sigma_rel is None
+                self.sigma = sigma
+            else:
+                assert sigma_rel is not None
+                self.sigma = np.abs(self.lower) * sigma_rel
+
+    def auxtarget(self, res):
+        '''Transformation applied to target value to obtain the corresponding
+        cost function.
+        '''
+        if self.mode == 'step':
+            if res < self.lower:
+                return res - self.lower
+            else:
+                return 0
+        elif self.mode == 'smooth':
+            return self.sigma * self._transition((self.lower - res) / self.sigma)
+        elif self.mode == 'auxvar':
+            raise NotImplementedError # experimental
+            return res - self.lower - self.vary.container[self.vary.name]**2
+        else:
+            raise ValueError(f'Unknown mode {self.mode}')
+
+    def __repr__(self):
+        return f'GreaterThan({self.lower:4g})'
+
+    # Part of the `auxvar` experimental code
+    # def _set_value(self, val, target):
+    #     self.lower = val
+    #     aux_vary_container = self.vary.container
+    #     aux_vary_container[self.vary.name] = 0
+    #     val = target.runeval()
+    #     if val > 0:
+    #         aux_vary_container[self.vary.name] = np.sqrt(val)
+    # def gen_vary(self, container):
+    #     self.vary = _gen_vary(container)
+    #     return self.vary
+
+class LessThan:
+
+    _transition = staticmethod(_transition_poly)
+
+    def __init__(self, upper, mode='step', sigma=None,
+                 sigma_rel=XTRACK_DEFAULT_SIGMA_REL):
+        assert mode in ['step', 'smooth']
+        self.upper = upper
+        self._value = 0.
+        self.mode=mode
+        if mode == 'smooth':
+            assert sigma is not None or sigma_rel is not None
+            if sigma is not None:
+                assert sigma_rel is None
+                self.sigma = sigma
+            else:
+                assert sigma_rel is not None
+                self.sigma = np.abs(self.upper) * sigma_rel
+
+    def auxtarget(self, res):
+        if self.mode == 'step':
+            if res > self.upper:
+                return self.upper - res
+            else:
+                return 0
+        elif self.mode == 'smooth':
+            return self.sigma * self._transition((res - self.upper) / self.sigma)
+        elif self.mode == 'auxvar':
+            raise NotImplementedError # experimental
+            return self.upper - res - self.vary.container[self.vary.name]**2
+        else:
+            raise ValueError(f'Unknown mode {self.mode}')
+
+    def __repr__(self):
+        return f'LessThan({self.upper:4g})'
+
+# part of the `auxvar` experimental code
+# def _gen_vary(container):
+#     for ii in range(10000):
+#         if f'auxvar_{ii}' not in container:
+#             vv = f'auxvar_{ii}'
+#             break
+#     else:
+#         raise RuntimeError('Too many auxvary variables')
+#     container[vv] = 0
+#     return xt.Vary(name=vv, container=container, step=1e-3)
+
 
 class Target(xd.Target):
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
-                 line=None, action=None, tag='', optimize_log=False, **kwargs):
+                 line=None, action=None, tag='', optimize_log=False,
+                 **kwargs):
 
         for kk in kwargs:
             assert kk in ALLOWED_TARGET_KWARGS, (
@@ -180,6 +364,9 @@ class Target(xd.Target):
             xdtar = (tar, at)
         else:
             xdtar = tar
+
+        self._freeze_value = None
+
         xd.Target.__init__(self, tar=xdtar, value=value, tol=tol,
                             weight=weight, scale=scale, action=action, tag=tag,
                             optimize_log=optimize_log)
@@ -196,9 +383,38 @@ class Target(xd.Target):
         if self.line is not None:
             res = res[self.line]
         if callable(self.tar):
-            return self.tar(res)
+            out = self.tar(res)
         else:
-            return res[self.tar]
+            out = res[self.tar]
+
+        if self._freeze_value is not None:
+            return out
+
+        return out
+
+    def transform(self, val):
+        if hasattr(self.value, 'auxtarget'):
+            return self.value.auxtarget(val)
+        else:
+            return val
+
+    @property
+    def value(self):
+        if self._freeze_value is not None:
+            return self._freeze_value
+        else:
+            return self._user_value
+
+    @value.setter
+    def value(self, val):
+        self._user_value = val
+
+    def freeze(self):
+        self._freeze_value = True # to bypass inequality logic
+        self._freeze_value = self.runeval()
+
+    def unfreeze(self):
+        self._freeze_value = None
 
 class Vary(xd.Vary):
     def __init__(self, name, container=None, limits=None, step=None, weight=None,
@@ -234,53 +450,43 @@ class TargetInequality(Target):
 
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
                  line=None, weight=None, tag=''):
-        Target.__init__(self, tar, value=0, at=at, tol=tol, scale=scale, line=line,
-                         weight=weight, tag=tag)
-        assert ineq_sign in ['<', '>'], ('ineq_sign must be either "<" or ">"')
-        self.ineq_sign = ineq_sign
-        self.rhs = rhs
 
-    def __repr__(self):
-        return f'TargetInequality({self.tar} {self.ineq_sign} {self.rhs}, tol={self.tol}, weight={self.weight})'
-
-    def eval(self, tw):
-        val = super().eval(tw)
-        if self.ineq_sign == '<' and val < self.rhs:
-            return 0
-        elif self.ineq_sign == '>' and val > self.rhs:
-            return 0
-        else:
-            return val - self.rhs
+        raise NotImplementedError('TargetInequality is not anymore supported. '
+            'Please use Target with `GreaterThan` `LessThan` instead. '
+            'For example, instead of '
+            'TargetInequality("x", "<", 0.1, at="ip1") '
+            'use '
+            'Target("x", LessThan(0.1), at="ip1")')
 
 class TargetRelPhaseAdvance(Target):
 
-    def __init__(self, tar, value, at_1=None, at_0=None, tag='',  **kwargs):
+    def __init__(self, tar, value, ele_stop=None, ele_start=None, tag='',  **kwargs):
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
         assert tar in ['mux', 'muy'], 'Only mux and muy are supported'
         self.var = tar
-        if at_1 is None:
-            at_1 = '__ele_stop__'
-        if at_0 is None:
-            at_0 = '__ele_start__'
-        self.at_1 = at_1
-        self.at_0 = at_0
+        if ele_stop is None:
+            ele_stop = '__ele_stop__'
+        if ele_start is None:
+            ele_start = '__ele_start__'
+        self.ele_stop = ele_stop
+        self.ele_start = ele_start
 
     def __repr__(self):
-        return f'TargetPhaseAdvance({self.var}({self.at_1}) - {self.var}({self.at_0}), value={self.value}, tol={self.tol}, weight={self.weight})'
+        return f'TargetPhaseAdv({self.var}({self.ele_stop} - {self.ele_start}), val={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
 
-        if self.at_1 == '__ele_stop__':
+        if self.ele_stop == '__ele_stop__':
             mu_1 = tw[self.var, -1]
         else:
-            mu_1 = tw[self.var, self.at_1]
+            mu_1 = tw[self.var, self.ele_stop]
 
-        if self.at_0 == '__ele_start__':
+        if self.ele_start == '__ele_start__':
             mu_0 = tw[self.var, 0]
         else:
-            mu_0 = tw[self.var, self.at_0]
+            mu_0 = tw[self.var, self.ele_start]
 
         return mu_1 - mu_0
 
@@ -297,6 +503,9 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
                 targets_flatten.append(tt1.copy())
         else:
             targets_flatten.append(tt.copy())
+
+    aux_vary_container = {}
+    aux_vary = []
 
     action_twiss = None
     for tt in targets_flatten:
@@ -342,8 +551,19 @@ def match_line(line, vary, targets, restore_if_fail=True, solver=None,
             else:
                 tt.tol = default_tol
 
+        # part of the `auxvar` experimental code
+        # if isinstance(tt.value, (GreaterThan, LessThan)):
+        #     if tt.value.mode == 'auxvar':
+        #         aux_vary.append(tt.value.gen_vary(aux_vary_container))
+        #         aux_vary_container[aux_vary[-1].name] = 0
+        #         val = tt.runeval()
+        #         if val > 0:
+        #             aux_vary_container[aux_vary[-1].name] = np.sqrt(val)
+
     if not isinstance(vary, (list, tuple)):
         vary = [vary]
+
+    vary = list(vary) + aux_vary
 
     vary_flatten = _flatten_vary(vary)
     _complete_vary_with_info_from_line(vary_flatten, line)

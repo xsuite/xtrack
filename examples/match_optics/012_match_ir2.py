@@ -2,7 +2,8 @@ import xtrack as xt
 
 import xtrack._temp.lhc_match as lm
 
-collider = xt.Multiline.from_json('hllhc.json')
+collider = xt.Multiline.from_json(
+    '../../test_data/hllhc15_thick/hllhc15_collider_thick.json')
 collider.build_trackers()
 collider.vars.load_madx_optics_file(
     "../../test_data/hllhc15_thick/opt_round_150_1500.madx")
