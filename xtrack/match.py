@@ -346,6 +346,40 @@ class Target(xd.Target):
                  line=None, action=None, tag='', optimize_log=False,
                  **kwargs):
 
+        """
+        Target object for matching.
+
+        Parameters
+        ----------
+        tar : str or callable
+            Name of the quantity to be matched or callable computing the
+            quantity to be matched from the output of the action (by default the
+            action is the Twiss action).
+        value : float or xdeps.GreaterThan or xdeps.LessThan or xtrack.TwissTable
+            Value to be matched. Inequality constraints can also be specified.
+            If a TwissTable is specified, the target obtained from the specified
+            tar is matched at all elements.
+        at : str, optional
+            Element at which the quantity is evaluated. Needs to be specified
+            if the quantity to be matched is not a scalar.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the quantity is defined. Needs to be specified if the
+            match involves multiple lines.
+        action : Action, optional
+            Action used to compute the quantity to be matched. By default the
+            action is the Twiss action.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        optimize_log : bool, optional
+            If True, the logarithm of the quantity is used in the cost function
+            instead of the quantity itself. Default is False.
+        """
+
+
         for kk in kwargs:
             assert kk in ALLOWED_TARGET_KWARGS, (
                 f'Unknown keyword argument {kk}. '
@@ -416,6 +450,25 @@ class Target(xd.Target):
     def unfreeze(self):
         self._freeze_value = None
 
+class TargetSet(xd.TargetList):
+    def __init__(self, tars=None, action=None, **kwargs):
+        vnames = []
+        vvalues = []
+        for kk in ALLOWED_TARGET_KWARGS:
+            if kk in kwargs:
+                vnames.append(kk)
+                vvalues.append(kwargs[kk])
+                kwargs.pop(kk)
+        self.targets = []
+        if tars is not None:
+            self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
+        self.targets += [
+            Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
+        if len(self.targets) == 0:
+            raise ValueError('No targets specified')
+
+TargetList = TargetSet # for backward compatibility
+
 class Vary(xd.Vary):
     def __init__(self, name, container=None, limits=None, step=None, weight=None,
                  max_step=None, active=True, tag=''):
@@ -481,24 +534,7 @@ class VaryList(xd.VaryList):
                       weight=weight, max_step=max_step, active=active, tag=tag)
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
-class TargetSet(xd.TargetList):
-    def __init__(self, tars=None, action=None, **kwargs):
-        vnames = []
-        vvalues = []
-        for kk in ALLOWED_TARGET_KWARGS:
-            if kk in kwargs:
-                vnames.append(kk)
-                vvalues.append(kwargs[kk])
-                kwargs.pop(kk)
-        self.targets = []
-        if tars is not None:
-            self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
-        self.targets += [
-            Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
-        if len(self.targets) == 0:
-            raise ValueError('No targets specified')
 
-TargetList = TargetSet # for backward compatibility
 
 class TargetInequality(Target):
 
