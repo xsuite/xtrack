@@ -51,10 +51,6 @@ print(context)
 #############
 
 line = xt.Line.from_json(fname_line)
-print(line.particle_ref)
-#line.particle_ref = xp.Particles.from_dict(input_data['particle'])
-
-
 line.build_tracker(_context=context, compile=False)
 
 #############################################
