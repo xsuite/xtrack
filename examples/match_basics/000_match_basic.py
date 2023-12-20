@@ -3,13 +3,9 @@ import time
 import xtrack as xt
 import xpart as xp
 
-###################################
-# Load a line and build a tracker #
-####################################
-
+# Load a line and build a tracker
 with open('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json') as f:
     dct = json.load(f)
-
 line = xt.Line.from_dict(dct['line'])
 line.particle_ref = xp.Particles.from_dict(dct['particle'])
 line.build_tracker()
