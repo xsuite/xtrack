@@ -490,11 +490,12 @@ class TargetRelPhaseAdvance(Target):
 
         return mu_1 - mu_0
 
-def match_line(line, vary, targets, restore_if_fail=True, solver=None,
-                  verbose=False, assert_within_tol=True,
+def match_line(line, vary, targets, solve=True, assert_within_tol=True,
+                  compensate_radiation_energy_loss=False,
                   solver_options={}, allow_twiss_failure=True,
+                  restore_if_fail=True, verbose=False,
                   n_steps_max=20, default_tol=None,
-                  solve=True, compensate_radiation_energy_loss=False,**kwargs):
+                  solver=None, **kwargs):
 
     targets_flatten = []
     for tt in targets:

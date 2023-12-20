@@ -1030,10 +1030,12 @@ class Line:
 
     twiss.__doc__ = twiss_line.__doc__
 
-    def match(self, vary, targets, solve=True, restore_if_fail=True, solver=None,
-                  verbose=False, n_steps_max=20,
+    def match(self, vary, targets, solve=True, assert_within_tol=True,
                   compensate_radiation_energy_loss=False,
-                  **kwargs):
+                  solver_options={}, allow_twiss_failure=True,
+                  restore_if_fail=True, verbose=False,
+                  n_steps_max=20, default_tol=None,
+                  solver=None, **kwargs):
         '''
         Change a set of knobs in the beamline in order to match assigned targets.
 
@@ -1045,24 +1047,41 @@ class Line:
             for the optimization.
         targets : list of Target objects
             List of targets to be matched.
-        restore_if_fail : bool
-            If True, the beamline is restored to its initial state if the matching
-            fails.
+        solve : bool
+            If True (default), the matching is performed immediately. If not an
+            Optimize object is returnd, which can be used for advanced matching.
+        assert_within_tol : bool
+            If True (default), an exception is raised if the matching fails.
         compensate_radiation_energy_loss : bool
             If True, the radiation energy loss is compensated at each step of the
             matching.
-        solver : str
-            Solver to be used for the matching. Available solvers are "fsolve"
-            and "bfgs".
+        solver_options : dict
+            Dictionary of options to be passed to the solver.
+        allow_twiss_failure : bool
+            If True (default), the matching continues if the twiss computation
+            computation fails at some of the steps.
+        restore_if_fail : bool
+            If True (default), the beamline is restored to its initial state if
+            the matching fails.
         verbose : bool
             If True, the matching steps are printed.
+        n_steps_max : int
+            Maximum number of steps for the matching before matching is stopped.
+        default_tol : float
+            Default tolerances used on the target. A dictionary can be provided
+            associating a tolerance to each target name. The tolerance provided
+            for `None` is used for all targets for which a tolerance is not
+            otherwise provided. Example: `default_tol={'betx': 1e-4, None: 1e-6}`.
+        solver : str
+            Solver to be used for the matching. Available solvers are `jacobian`
+            (default), and `fsolve`.
         **kwargs : dict
             Additional arguments to be passed to the twiss.
 
         Returns
         -------
-        result_info : dict
-            Dictionary containing information about the matching result.
+        optimizer : xdeps.Optimize
+            xdeps optimizer object used for the optimization.
 
         Examples
         --------
@@ -1113,12 +1132,16 @@ class Line:
             )
 
         '''
-        return match_line(self, vary, targets, solve=solve,
-                          restore_if_fail=restore_if_fail,
-                          solver=solver, verbose=verbose,
-                          n_steps_max=n_steps_max,
-                          compensate_radiation_energy_loss=compensate_radiation_energy_loss,
-                          **kwargs)
+        return match_line(self,
+                        vary=vary, targets=targets, solve=solve,
+                        assert_within_tol=assert_within_tol,
+                        compensate_radiation_energy_loss=compensate_radiation_energy_loss,
+                        solver_options=solver_options,
+                        allow_twiss_failure=allow_twiss_failure,
+                        restore_if_fail=restore_if_fail,
+                        verbose=verbose, n_steps_max=n_steps_max,
+                        default_tol=default_tol, solver=solver, **kwargs)
+
 
     def match_knob(self, knob_name, vary, targets,
                    knob_value_start=0, knob_value_end=1,
