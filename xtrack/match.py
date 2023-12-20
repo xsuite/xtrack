@@ -450,7 +450,35 @@ class Vary(xd.Vary):
                          active=active)
 
 class VaryList(xd.VaryList):
-    def __init__(self, vars, **kwargs):
+    def __init__(self, vars, container=None, limits=None, step=None, weight=None,
+                 max_step=None, active=True, tag=''):
+        """
+        VaryList object for matching specifying a list of variables to be varied.
+
+        Parameters
+        ----------
+        vars : list
+            List of variables to be varied.
+        container : dict, optional
+            Container in which the variables are defined. If not specified,
+            line.vars is used.
+        limits : tuple or None, optional
+            Limits in which the variables are allowed to vary. Default is None.
+        step : float, optional
+            Step size used to compute the derivative of the cost function
+            with respect to the variables.
+        weight : float, optional
+            Weight used for these variables in the cost function.
+        max_step : float, optional
+            Maximum allowed change in the variables per iteration.
+        active : bool, optional
+            Whether the variables are active in the optimization. Default is True.
+        tag : str, optional
+            Tag associated to the variables. Default is ''.
+        """
+
+        kwargs = dict(container=container, limits=limits, step=step,
+                      weight=weight, max_step=max_step, active=active, tag=tag)
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
 class TargetSet(xd.TargetList):
