@@ -342,6 +342,7 @@ class LessThan:
 
 
 class Target(xd.Target):
+
     def __init__(self, tar=None, value=None, at=None, tol=None, weight=None, scale=None,
                  line=None, action=None, tag='', optimize_log=False,
                  **kwargs):
@@ -366,8 +367,8 @@ class Target(xd.Target):
             using keyword arguments.
         value : float or xdeps.GreaterThan or xdeps.LessThan or xtrack.TwissTable
             Value to be matched. Inequality constraints can also be specified.
-            If a TwissTable is specified, the target obtained from the specified
-            tar is matched at all elements.
+            If a TwissTable is specified, the value is obtained from the
+            table using the specified tar and at.
         at : str, optional
             Element at which the quantity is evaluated. Needs to be specified
             if the quantity to be matched is not a scalar.
@@ -460,6 +461,7 @@ class Target(xd.Target):
         self._freeze_value = None
 
 class TargetSet(xd.TargetList):
+
     def __init__(self, tars=None, value=None, at=None, tol=None, weight=None,
                  scale=None, line=None, action=None, tag='', optimize_log=False,
                  **kwargs):
@@ -527,6 +529,7 @@ class TargetSet(xd.TargetList):
 TargetList = TargetSet # for backward compatibility
 
 class Vary(xd.Vary):
+
     def __init__(self, name, container=None, limits=None, step=None, weight=None,
                  max_step=None, active=True, tag=''):
         """
@@ -560,6 +563,7 @@ class Vary(xd.Vary):
                          active=active)
 
 class VaryList(xd.VaryList):
+
     def __init__(self, vars, container=None, limits=None, step=None, weight=None,
                  max_step=None, active=True, tag=''):
         """
@@ -591,8 +595,6 @@ class VaryList(xd.VaryList):
                       weight=weight, max_step=max_step, active=active, tag=tag)
         self.vary_objects = [Vary(vv, **kwargs) for vv in vars]
 
-
-
 class TargetInequality(Target):
 
     def __init__(self, tar, ineq_sign, rhs, at=None, tol=None, scale=None,
@@ -608,6 +610,35 @@ class TargetInequality(Target):
 class TargetRelPhaseAdvance(Target):
 
     def __init__(self, tar, value, ele_stop=None, ele_start=None, tag='',  **kwargs):
+
+        """
+        Target object for matching the relative phase advance between two
+        elements in a line computed as mu(ele_stop) - mu(ele_start).
+
+        Parameters
+        ----------
+        tar : str
+            Phase advance to be matched. Can be either 'mux' or 'muy'.
+        value : float or GreaterThan or LessThan or TwissTable
+            Value to be matched. Inequality constraints can also be specified.
+            If a TwissTable is specified, the target obtained from the table
+            using the specified tar and at.
+        ele_stop : str, optional
+            Final element at which the phase advance is evaluated. Default is the
+            last element of the line.
+        ele_start : str, optional
+            Initali wlement at which the phase advance is evaluated. Default is the
+            first element of the line.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the phase advance is defined. Needs to be specified if the
+            match involves multiple lines.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        """
 
         Target.__init__(self, tar=self.compute, value=value, tag=tag, **kwargs)
 
