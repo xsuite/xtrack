@@ -347,14 +347,23 @@ class Target(xd.Target):
                  **kwargs):
 
         """
-        Target object for matching.
+        Target object for matching. Usage examples:
+
+        .. code-block:: python
+
+            Target('betx', 0.15, at='ip1', tol=1e-3)
+            Target(betx=0.15, at='ip1', tol=1e-3)
+            Target('betx', LessThan(0.15), at='ip1', tol=1e-3)
+            Target('betx', GreaterThan(0.15), at='ip1', tol=1e-3)
+
 
         Parameters
         ----------
         tar : str or callable
             Name of the quantity to be matched or callable computing the
             quantity to be matched from the output of the action (by default the
-            action is the Twiss action).
+            action is the Twiss action). Basic targets can also be specified
+            using keyword arguments.
         value : float or xdeps.GreaterThan or xdeps.LessThan or xtrack.TwissTable
             Value to be matched. Inequality constraints can also be specified.
             If a TwissTable is specified, the target obtained from the specified
