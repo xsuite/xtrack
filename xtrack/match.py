@@ -497,6 +497,9 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
                   n_steps_max=20, default_tol=None,
                   solver=None, **kwargs):
 
+    if not isinstance(targets, (list, tuple)):
+        targets = [targets]
+
     targets_flatten = []
     for tt in targets:
         if isinstance(tt, xd.TargetList):
@@ -505,7 +508,6 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
         else:
             targets_flatten.append(tt.copy())
 
-    aux_vary_container = {}
     aux_vary = []
 
     action_twiss = None
