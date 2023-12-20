@@ -42,10 +42,10 @@ for ll in collider.line_names:
     tw0[ll]._data['ddqy'] = ddqy
 
 beta15 = {
-    'betx_ip1': 0.15,
-    'bety_ip1': 0.05,
-    'betx_ip5': 0.05,
-    'bety_ip5': 0.15,
+    'betx_ip1': 0.13,
+    'bety_ip1': 0.03,
+    'betx_ip5': 0.19,
+    'bety_ip5': 0.089,
 }
 
 staged_match = False

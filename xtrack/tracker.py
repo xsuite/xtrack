@@ -2,10 +2,8 @@
 # This file is part of the Xtrack Package.  #
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
-from math import ceil
 from time import perf_counter
 from typing import Literal, Union
-from contextlib import contextmanager
 import logging
 from functools import partial
 from collections import UserDict, defaultdict
@@ -16,8 +14,6 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 import xtrack as xt
-
-from .general import _print
 
 from .base_element import _handle_per_particle_blocks
 from .beam_elements import Drift
@@ -203,8 +199,16 @@ class Tracker:
                 else:
                     ldrift = 0.
 
+                if _buffer is None:
+                    if hasattr(pp, '_buffer'):
+                        pp_buffer = pp._buffer
+                    else:
+                        pp_buffer = None
+                else:
+                    pp_buffer = _buffer
+
                 noncollective_xelements.append(
-                    Drift(_buffer=_buffer, length=ldrift))
+                    Drift(_buffer=pp_buffer, length=ldrift))
 
         # Build TrackerPartNonCollective objects for non-collective parts
         for ii, pp in enumerate(parts):
@@ -282,7 +286,7 @@ class Tracker:
                 "This tracker is not anymore valid, most probably because the corresponding line has been unfrozen. "
                 "Please rebuild the tracker, for example using `line.build_tracker(...)`.")
 
-    def _track(self, particles, *args, with_progress: Union[bool, int]=False,
+    def _track(self, particles, *args, with_progress: Union[bool, int] = False,
                time=False, **kwargs):
 
         out = None
@@ -307,21 +311,52 @@ class Tracker:
                                  'possible over more than one turn.')
 
             if with_progress is True:
-                with_progress = scaling = 100
+                batch_size = scaling = 100
             else:
-                with_progress = int(with_progress)
-                scaling = with_progress if with_progress > 1 else None
+                batch_size = int(with_progress)
+                scaling = with_progress if batch_size > 1 else None
+
+            if kwargs.get('turn_by_turn_monitor') is True:
+                ele_start = kwargs.get('ele_start') or 0
+                ele_stop = kwargs.get('ele_stop')
+                if ele_stop is None:
+                    ele_stop = len(self.line)
+
+                if ele_start >= ele_stop:
+                    # we need an additional turn and space in the monitor for
+                    # the incomplete turn
+                    num_turns += 1
+                _, monitor, _, _ = self._get_monitor(particles, True, num_turns)
+                kwargs['turn_by_turn_monitor'] = monitor
 
             for ii in progress(
-                    range(0, num_turns, with_progress),
+                    range(0, num_turns, batch_size),
                     desc='Tracking',
                     unit_scale=scaling,
             ):
                 one_turn_kwargs = kwargs.copy()
-                if ii + with_progress > num_turns:  # last group of turns
-                    one_turn_kwargs['num_turns'] = num_turns % with_progress
-                else:
-                    one_turn_kwargs['num_turns'] = scaling
+                is_first_batch = ii == 0
+                is_last_batch = ii + batch_size >= num_turns
+
+                if is_first_batch and is_last_batch:
+                    # This is the only batch, we track as normal
+                    pass
+                elif is_first_batch:
+                    # Not the last batch, so track until the last element
+                    one_turn_kwargs['ele_stop'] = None
+                    one_turn_kwargs['num_turns'] = batch_size
+                elif is_last_batch:
+                    # Not the first batch, so track from the first element
+                    one_turn_kwargs['ele_start'] = None
+                    remaining_turns = num_turns % batch_size
+                    if remaining_turns == 0:
+                        remaining_turns = batch_size
+                    one_turn_kwargs['num_turns'] = remaining_turns
+                elif not is_first_batch and not is_last_batch:
+                    # A 'middle batch', track from first to last element
+                    one_turn_kwargs['num_turns'] = batch_size
+                    one_turn_kwargs['ele_start'] = None
+                    one_turn_kwargs['ele_stop'] = None
 
                 tracking_func(particles, *args, **one_turn_kwargs)
                 # particles.reorganize() # could be done in the future to optimize GPU usage
@@ -683,7 +718,7 @@ class Tracker:
                 num_turns = 1
             else:
                 assert num_turns > 0
-            if isinstance(ele_stop,str):
+            if isinstance(ele_stop, str):
                 ele_stop = self.line.element_names.index(ele_stop)
 
             # If ele_stop comes before ele_start, we need to add an additional turn to
@@ -1360,18 +1395,6 @@ class Tracker:
     @skip_end_turn_actions.setter
     def skip_end_turn_actions(self, value):
         self.line.skip_end_turn_actions = value
-
-    # def __getattr__(self, attr):
-    #     # If not in self look in self.line (if not None)
-    #     if attr == 'line':
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
-    #     if self.line is not None and attr in object.__dir__(self.line):
-    #         _print(f'Warning! The use of `Tracker.{attr}` is deprecated.'
-    #             f' Please use `Line.{attr}` (for more info see '
-    #             'https://github.com/xsuite/xsuite/issues/322)')
-    #         return getattr(self.line, attr)
-    #     else:
-    #         raise AttributeError(f'Tracker object has no attribute `{attr}`')
 
     def __dir__(self):
         return list(set(object.__dir__(self) + dir(self.line)))

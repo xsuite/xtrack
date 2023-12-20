@@ -1,0 +1,2750 @@
+
+
+  /**********************************************************************************
+  *
+  * PS Ring version (draft) YETS 2022-2023 in MAD X SEQUENCE format
+  * Generated the 20-MAR-2023 19:11:31 from Layout
+  *
+  ***********************************************************************************/
+
+
+/************************************************************************************/
+/*                       TYPES DEFINITION                                           */
+/************************************************************************************/
+
+//---------------------- HKICKER        ---------------------------------------------
+PR_BFA__001    : HKICKER     , L := .54;       ! Bending magnet. Fast bumper - Optic length of 0.54m taken from EDMS 985644 v.1
+PR_BLG         : HKICKER     , L := .2;        ! Dipole magnet, bumper horizontal, type 213
+PR_DHZ         : HKICKER     , L := 0;         ! Virtual elements for the PS MUs (HKICKER)
+PR_KFA__001    : HKICKER     , L := .892;      ! Fast Kicker
+PR_KFA__002    : HKICKER     , L := 1.05;      ! Fast Kicker - Given length is flange to flange. However, the kicker has a small part that has a total length of 1090mm (drawing: PS_MKKFA0134).
+PR_KFA__003    : HKICKER     , L := 2.4458;    ! Fast Kicker
+PR_KFA__004    : HKICKER     , L := .888;      ! Fast Kicker
+PR_KFA__005    : HKICKER     , L := 1.05;      ! Fast Kicker
+PR_MCHBAWWP    : HKICKER     , L := .23;       ! Corrector magnet, dipole horizontal, type 205 - Magnetic length according to EDMS 1161510
+PR_MCHBBWWP    : HKICKER     , L := .27;       ! Corrector magnet, dipole horizontal, type 206 - Magnetic length according to EDMS 1161510
+PR_MDBBCWAP    : HKICKER     , L := .56;       ! Dipole magnet, bumper, new 209 type
+PR_MDBCAWWP    : HKICKER     , L := .3;        ! Dipole magnet, bumper vertical, type 210 - Magnetic length according to EDMS 1161510
+PR_MSBSW001    : HKICKER     , L := .334;      ! Magnet, Bumper, eddy current injection
+PR_MSMIC003    : HKICKER     , L := 0;         ! PS Horizontal Injection Magnetic Septum - Eddy Current
+PR_SEH__001    : HKICKER     , L := .8;        ! PS Horizontal Extraction Electrostatic Septum
+PR_SMH__001    : HKICKER     , L := 2.28;      ! Septum Magnet Horizontal - Optical length provided by Jan Borburgh
+PR_SMH__003    : HKICKER     , L := .83;       ! PS Horizontal Extraction Magnetic Septum - Optical length provided by Jan Borburgh
+PR_SMH__004    : HKICKER     , L := .568;      ! PS Horizontal Extraction Magnetic Septum
+PR_SMH__007    : HKICKER     , L := .79;       ! PS Horizontal Ion Injection Magnetic Septum
+//---------------------- KICKER         ---------------------------------------------
+PR_KFB         : KICKER      , L := .92;       ! kicker (Damper)
+//---------------------- MARKER         ---------------------------------------------
+OMK            : MARKER      , L := 0;         ! PS markers
+//---------------------- MONITOR        ---------------------------------------------
+PR_BCT         : MONITOR     , L := 0;         ! Beam current transformer
+PR_BCWAC001    : MONITOR     , L := 0;         ! Beam Wall Current monitor type C
+PR_BCW_A001    : MONITOR     , L := 0;         ! Beam Wall Current monitor type A - No alignment targets
+PR_BCW_A002    : MONITOR     , L := 0;         ! Beam Wall Current monitor type A, variant 002 with alignment targets
+PR_BGIHA       : MONITOR     , L := 0;         ! Beam Gas Ionisation Horizontal, type A
+PR_BGIVA       : MONITOR     , L := 0;         ! Beam Gas Ionisation Vertical, type A
+PR_BPMTS       : MONITOR     , L := 0;         ! 2 planes Stripline BPM with 4 long electrodes for PS Tune
+PR_BPPPA       : MONITOR     , L := 0;         ! Pickup for PS phase measurement (RF)
+PR_BPRPA       : MONITOR     , L := 0;         ! Pickup for PS radial measurement (RF)
+PR_BPTF_001    : MONITOR     , L := 0;         ! Beam Position Monitor for RF Transverse Feedback, variant 001 (UDP)
+PR_BPULG       : MONITOR     , L := 0;         ! Pickup for PS orbit measurement
+PR_BPUNO       : MONITOR     , L := 0;         ! Beam Position, Normal Pick-up
+PR_BPUPQ       : MONITOR     , L := 0;         ! Pickup for PS tune measurement
+PR_BPUWA       : MONITOR     , L := 0;         ! Beam Position Pickup, Wideband, type A
+PR_BSGW        : MONITOR     , L := 0;         ! SEM Grid with Wire
+PR_BTVMA001    : MONITOR     , L := 0;         ! Beam observation TV, with Magnetic coupling, type A, variant 001
+PR_BTVMF005    : MONITOR     , L := 0;         ! Beam TV Motorised Flip, variant 005
+PR_BTVPL001    : MONITOR     , L := 0;         ! Beam observation TV Pneumatic Linear, variant 001
+PR_BWSRB       : MONITOR     , L := 0;         ! Beam Wire Scanner, Rotational, type B
+PR_MSG         : MONITOR     , L := 0;         ! SEM grid
+PR_MTV         : MONITOR     , L := 0;         ! TV screen (scintillation monitor)
+PR_URP         : MONITOR     , L := 0;         ! Pick-up  (p.u. electrode). Resistive position.
+PR_USP         : MONITOR     , L := 0;         ! Pick-ups  (p.u. electrode). Special (low intensity)
+//---------------------- MULTIPOLE      ---------------------------------------------
+PR_MPD         : MULTIPOLE   , L := 0;         ! Virtual elements for the PS MUs (zero-length Multipole)
+PR_MPF         : MULTIPOLE   , L := 0;         ! Virtual elements for the PS MUs (zero-length Multipole)
+PR_MPJ         : MULTIPOLE   , L := 0;         ! Virtual elements for the PS MUs (zero-length Multipole)
+//---------------------- OCTUPOLE       ---------------------------------------------
+PR_MONAAFWP    : OCTUPOLE    , L := .22;       ! Octupole magnet, type 802 - Magnetic length according to EDMS 1161510
+PR_MONDAFWP    : OCTUPOLE    , L := .5;        ! Octupole magnet, type MTE - Magnetic length corresponds to the total mechanical length quoted in NORMA, as the magnetic length was not measured. Real mechanical length, from drawing PS_MOMTE0001 is 0.488m
+//---------------------- QUADRUPOLE     ---------------------------------------------
+PR_MQNAAIAP    : QUADRUPOLE  , L := .12;       ! Quadrupole magnet, type 401 - Magnetic length according to EDMS 371500
+PR_MQNABIAP    : QUADRUPOLE  , L := .12;       ! Quadrupole magnet, type 402 - Magnetic length according to EDMS 371500
+PR_MQNBAFAP    : QUADRUPOLE  , L := .19;       ! Quadrupole magnet, type 406 - Magnetic length according to EDMS 1161510
+PR_MQNBCAWP    : QUADRUPOLE  , L := .23;       ! Quadrupole magnet, type 407 - Magnetic length corresponds to the total mechanical length according to NORMA, as the magnetic length was not measured. Real mechanical length is estimated to be 0.25m, including the outer casing, as taken from 3D models.
+PR_MQNBDAAP    : QUADRUPOLE  , L := .19;       ! Quadrupole magnet, type 408 - Magnetic length according to EDMS 1161510
+PR_MQNCAAWP    : QUADRUPOLE  , L := .25;       ! Quadrupole magnet, type 409 - Magnetic length according to EDMS 1161510
+PR_MQNCHAWP    : QUADRUPOLE  , L := .3;        ! Quadrupole magnet, type 414 - Length corresponds to the total mechanical length according to EDMS 371500, as the magnetic length was not measured
+PR_MQSAAIAP    : QUADRUPOLE  , L := .12;       ! Quadrupole magnet, skew, type 404 - Magnetic length assumed to be identical to magnet types 401 and 402, as magnetic length was not measured
+PR_QNSD        : QUADRUPOLE  , L := .12;       ! Normal size Skew quadrupole type D inside multipole assembly MM_AAIAP (Q403)
+PR_QNSF        : QUADRUPOLE  , L := .12;       ! Normal size Skew quadrupole type F inside multipole assembly MM_AAIAP (Q403)
+//---------------------- RFCAVITY       ---------------------------------------------
+PR_ACC10       : RFCAVITY    , L := 2.45;      ! 10 MHz radio frequency cavity - Given mechanical length is 2.45m. This corresponds to the total cavity flange to flange length. Old drawing MPS-2C10-000 shows the cavity. A small transition piece seems to have been changed on the upstream side, shown in drawing P-00052.
+PR_ACC20       : RFCAVITY    , L := 1.05;      ! 20 MHz radio frequency cavity
+PR_ACC200      : RFCAVITY    , L := .12;       ! RF Cavity 200 MHz - Mechanical length is from flange to flange
+PR_ACC40       : RFCAVITY    , L := 1.05;      ! 40 MHz radio frequency cavity
+PR_ACC80       : RFCAVITY    , L := 1.05;      ! 80 MHz radio frequency cavity
+PR_ACWFA       : RFCAVITY    , L := .88;       ! Accelerating Cavities - Wide-band - Finemet - Type A (for PSring)
+//---------------------- SBEND          ---------------------------------------------
+PR_BHD         : SBEND       , L := 2.2055925; ! Virtual elements for the PS MUs (SBEND)
+PR_BHF         : SBEND       , L := 2.1975925; ! Virtual elements for the PS MUs (SBEND)
+//---------------------- SEXTUPOLE      ---------------------------------------------
+PR_MXNBAFWP    : SEXTUPOLE   , L := .2;        ! Sextupole Magnet, type 608 - Magnetic length according to EDMS 1161510
+PR_MXNCAAWP    : SEXTUPOLE   , L := .66;       ! Sextupole Magnet, type 610 - Length corresponds to the total mechanical length according to EDMS 1161510, as the magnetic length was not measured
+PR_MX_AAIAP    : SEXTUPOLE   , L := .15;       ! Sextupole Magnet, type 601 - Length corresponds to the mechanical length shown in the layout drawing, as the magnetic length was not measured
+PR_MX_ABIAP    : SEXTUPOLE   , L := .29;       ! Sextupole Magnet, type 602 - Length corresponds to the mechanical length of the main body of the magnet. There is a small extra cover on the downstream side that extends 18mm (total length 308mm).
+//---------------------- VKICKER        ---------------------------------------------
+PR_DVT__403    : VKICKER     , L := 0;         ! DVT Vertical Kicker inside MM_AAIAP multipole
+PR_MCVAAWAP    : VKICKER     , L := .12;       ! Corrector magnet, dipole vertical, type 202 - Defined magnetic length corresponds to the total mechanical length according to EDMS 1161510, as the magnetic length was not measured
+
+
+/************************************************************************************/
+/*                       PS STRAIGHT SECTIONS                                       */
+/************************************************************************************/
+
+SS01: SEQUENCE, refer = CENTRE, L = 3;
+  PR.XSE01.A          : PR_MXNBAFWP     , at = .42          , slot_id = 2369746;
+  PR.XSE01.B          : PR_MXNBAFWP     , at = .675         , slot_id = 2369747;
+ENDSEQUENCE;
+
+SS02: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPTF02           : PR_BPUNO        , at = .0934        , slot_id = 54972157;
+  PA.CWB02            : PR_ACWFA        , at = .775         , slot_id = 10338559;
+  PR.DVT02            : PR_DVT__403     , at = 1.546593     , slot_id = 8178826, assembly_id= 8178825;
+ENDSEQUENCE;
+
+SS03: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM03            : PR_BPUNO        , at = .0934        , slot_id = 2253342;
+  PR.BCW03.A          : PR_BCW_A001     , at = .51375       , slot_id = 36269910;
+  PR.BCW03.B          : PR_BCW_A001     , at = 1.03785      , slot_id = 36269911;
+  PR.QSK03            : PR_QNSF         , at = 1.486593     , slot_id = 2253345, assembly_id= 5365801;
+ENDSEQUENCE;
+
+SS04: SEQUENCE, refer = CENTRE, L = 1.6;
+  PE.KFA04            : PR_KFA__004     , at = .694         , slot_id = 2369736;
+  PR.QSK04            : PR_QNSD         , at = 1.486593     , slot_id = 2253361, assembly_id= 5365802;
+  PR.DVT04            : PR_DVT__403     , at = 1.546593     , slot_id = 2253360, assembly_id= 5365802;
+ENDSEQUENCE;
+
+SS05: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM05            : PR_BPUNO        , at = .0934        , slot_id = 2253375;
+  PE.QKE16.05         : PR_MQNCHAWP     , at = .436         , slot_id = 2253376;
+  PR.DHZOC05          : PR_MDBCAWWP     , at = .929         , slot_id = 8178824;
+  PR.QFN05            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2253379;
+ENDSEQUENCE;
+
+SS06: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C200.06.A        : PR_ACC200       , at = .5455        , slot_id = 2253393;
+  PA.C200.06.B        : PR_ACC200       , at = .9195        , slot_id = 2253394;
+  PA.C200.06.C        : PR_ACC200       , at = 1.2935       , slot_id = 2253395;
+  PA.C200.06.D        : PR_ACC200       , at = 1.6675       , slot_id = 2253396;
+  PA.C200.06.E        : PR_ACC200       , at = 2.0415       , slot_id = 2253397;
+  PA.C200.06.F        : PR_ACC200       , at = 2.4155       , slot_id = 2253398;
+  PR.QDW06            : PR_MQNABIAP     , at = 2.886693     , slot_id = 2253399;
+ENDSEQUENCE;
+
+SS07: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM07            : PR_BPULG        , at = .0934        , slot_id = 2253413;
+  PR.XSE07            : PR_MXNCAAWP     , at = .616         , slot_id = 2253414;
+  PR.QTRTB07          : PR_MQNCAAWP     , at = 1.115        , slot_id = 2253416;
+  PR.QSK07            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253417;
+ENDSEQUENCE;
+
+SS08: SEQUENCE, refer = CENTRE, L = 1.6;
+  PA.C80.08           : PR_ACC80        , at = .775         , slot_id = 2253431;
+  PR.QSK08            : PR_QNSD         , at = 1.486593     , slot_id = 2253432, assembly_id= 5365803;
+  PR.DVT08            : PR_DVT__403     , at = 1.546593     , slot_id = 2253433, assembly_id= 5365803;
+ENDSEQUENCE;
+
+SS09: SEQUENCE, refer = CENTRE, L = 1.6;
+  PE.BFA09.P          : PR_BFA__001     , at = .5795        , slot_id = 2253447, assembly_id= 54813709;
+  PR.QFN09            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2253449;
+ENDSEQUENCE;
+
+SS10: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM10            : PR_BPUNO        , at = .0934        , slot_id = 2253463;
+  PR.XSK10            : PR_MX_AAIAP     , at = .78          , slot_id = 10414023;
+  PR.VVS10            : OMK             , at = 1.25         , slot_id = 13720377;
+  PR.QDN10            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2253464;
+ENDSEQUENCE;
+
+SS11: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C10.11           : PR_ACC10        , at = 1.475        , slot_id = 2253478;
+ENDSEQUENCE;
+
+SS12: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.RAL12            : OMK             , at = .3077        , slot_id = 8178823;
+  PE.BSW12            : PR_MCHBAWWP     , at = .69908       , slot_id = 2253494;
+  PR.DVT12            : PR_MCVAAWAP     , at = .95508       , slot_id = 2253495;
+ENDSEQUENCE;
+
+SS13: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM13            : PR_BPUNO        , at = .0934        , slot_id = 2253509;
+  PE.KFA13            : PR_KFA__004     , at = .694         , slot_id = 2369737;
+ENDSEQUENCE;
+
+SS14: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.XSK14            : PR_MX_ABIAP     , at = .6231        , slot_id = 10414025;
+  PE.BSW14            : PR_MCHBAWWP     , at = 1.0911       , slot_id = 2253524;
+ENDSEQUENCE;
+
+SS15: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM15            : PR_BPULG        , at = .0934        , slot_id = 2253538;
+  PE.TPS15            : OMK             , at = .7766        , slot_id = 6894625;
+ENDSEQUENCE;
+
+SS16: SEQUENCE, refer = CENTRE, L = 3;
+  PE.BTV16            : PR_MTV          , at = .3083        , slot_id = 2253555, assembly_id= 2253556;
+  PE.SMH16            : PR_SMH__001     , at = 1.5067       , slot_id = 2253556;
+ENDSEQUENCE;
+
+SS17: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM17            : PR_BPULG        , at = .445         , slot_id = 2253570;
+  PR.QFW17            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2253572;
+ENDSEQUENCE;
+
+SS18: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPP18            : PR_BPPPA        , at = .0934        , slot_id = 54972264;
+  PR.DHZOC18          : PR_MCHBAWWP     , at = .41731       , slot_id = 2253587;
+  PR.QDW18            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2253588;
+ENDSEQUENCE;
+
+SS19: SEQUENCE, refer = CENTRE, L = 1.6;
+  PE.BSW23.19         : PR_MCHBAWWP     , at = .63275       , slot_id = 2253605;
+  PR.QTRDA19          : PR_MQNBAFAP     , at = 1.033        , slot_id = 2253606;
+  PR.QSK19            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253607;
+ENDSEQUENCE;
+
+SS20: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM20            : PR_BPUNO        , at = .0934        , slot_id = 2253621;
+  PE.BSW20            : PR_MCHBAWWP     , at = .465306      , slot_id = 2253622;
+  PR.VVS20            : OMK             , at = 1.25         , slot_id = 13720428;
+  PR.QSK20            : PR_QNSD         , at = 1.486593     , slot_id = 2253623, assembly_id= 5365804;
+  PR.DVT20            : PR_DVT__403     , at = 1.546593     , slot_id = 2253624, assembly_id= 5365804;
+ENDSEQUENCE;
+
+SS21: SEQUENCE, refer = CENTRE, L = 3;
+  PE.KFA21            : PR_KFA__004     , at = 2.094        , slot_id = 2369738;
+  PR.QFN21            : PR_MQNAAIAP     , at = 2.886343     , slot_id = 2253643;
+ENDSEQUENCE;
+
+SS22: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPR22            : PR_BPRPA        , at = .0934        , slot_id = 54972394;
+  PI.BSW26.22         : PR_MCHBBWWP     , at = .46628       , slot_id = 2253658;
+  PE.BSW22            : PR_MCHBAWWP     , at = .75628       , slot_id = 2253659;
+  PR.DVT22            : PR_MCVAAWAP     , at = 1.09328      , slot_id = 2253660;
+  PR.QDW22            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2253661;
+ENDSEQUENCE;
+
+SS23: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM23            : PR_BPUNO        , at = .0934        , slot_id = 2253675;
+  PE.SEH23            : PR_SEH__001     , at = .775         , slot_id = 2253676;
+  PR.QSK23            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253678;
+ENDSEQUENCE;
+
+SS24: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.DVT24            : PR_MCVAAWAP     , at = .81468       , slot_id = 2253692;
+  PR.QSK24            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253693;
+ENDSEQUENCE;
+
+SS25: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM25            : PR_BPULG        , at = .0934        , slot_id = 2253707;
+  PE.QKE16.25         : PR_MQNCHAWP     , at = .5205        , slot_id = 2253708;
+ENDSEQUENCE;
+
+SS26: SEQUENCE, refer = CENTRE, L = 3;
+  PI.SMH26            : PR_SMH__007     , at = 1.8          , slot_id = 2253724;
+  PI.BTV26            : PR_BTVPL001     , at = 2.2465       , slot_id = 2253725, assembly_id= 2253724;
+ENDSEQUENCE;
+
+SS27: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM27            : PR_BPULG        , at = .0934        , slot_id = 2253740;
+  PR.QTRDA27          : PR_MQNBAFAP     , at = .47482       , slot_id = 2253741;
+  PE.BSW23.27         : PR_MCHBAWWP     , at = 1.105578     , slot_id = 2253744;
+  PR.QFW27            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2253745;
+ENDSEQUENCE;
+
+SS28: SEQUENCE, refer = CENTRE, L = 1.6;
+  PI.KFA28            : PR_KFA__005     , at = .775         , slot_id = 2253760;
+  PR.QDW28            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2253761;
+ENDSEQUENCE;
+
+SS29: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.QSE29            : PR_MQNCAAWP     , at = .626         , slot_id = 2253775;
+  PR.QTRDB29          : PR_MQNBAFAP     , at = 1.08125      , slot_id = 2253777;
+  PR.QSK29            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253778;
+ENDSEQUENCE;
+
+SS30: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM30            : PR_BPULG        , at = .0934        , slot_id = 2253792;
+  PR.DVT30            : PR_MCVAAWAP     , at = .5465        , slot_id = 2253793;
+  PI.BSW26.30         : PR_MCHBBWWP     , at = .9505        , slot_id = 2253794;
+  PR.VVS30            : OMK             , at = 1.2084       , slot_id = 13720429;
+  PR.QSK30            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253795;
+ENDSEQUENCE;
+
+SS31: SEQUENCE, refer = CENTRE, L = 3;
+  PR.QFW31            : PR_MQNABIAP     , at = 2.886693     , slot_id = 2253811;
+ENDSEQUENCE;
+
+SS32: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.QDW32            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2253826;
+ENDSEQUENCE;
+
+SS33: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM33            : PR_BPULG        , at = .0934        , slot_id = 2253840;
+  PI.QLB33            : PR_MQNCHAWP     , at = .52          , slot_id = 47643341;
+  PR.QSK33            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253843;
+ENDSEQUENCE;
+
+SS34: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BCT34            : PR_BCT          , at = .775         , slot_id = 2253858;
+  PR.QSK34            : PR_QNSD         , at = 1.486593     , slot_id = 2253859, assembly_id= 5365805;
+  PR.DVT34            : PR_DVT__403     , at = 1.546593     , slot_id = 2253860, assembly_id= 5365805;
+ENDSEQUENCE;
+
+SS35: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM35            : PR_BPUNO        , at = .0934        , slot_id = 2253874;
+  PR.QFN35            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2253877;
+ENDSEQUENCE;
+
+SS36: SEQUENCE, refer = CENTRE, L = 3;
+  PR.BPR36            : PR_BPRPA        , at = .0934        , slot_id = 54972418;
+  PA.C10.36           : PR_ACC10        , at = 1.475        , slot_id = 2253892;
+  PR.QDN36            : PR_MQNAAIAP     , at = 2.886343     , slot_id = 2253893;
+ENDSEQUENCE;
+
+SS37: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM37            : PR_BPUNO        , at = .0934        , slot_id = 2253907;
+  PR.QTRDB37          : PR_MQNBDAAP     , at = .44075       , slot_id = 2253908;
+  PR.QSK37            : PR_QNSF         , at = 1.486593     , slot_id = 2253912, assembly_id= 5365806;
+ENDSEQUENCE;
+
+SS38: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPP38            : PR_BPPPA        , at = .0934        , slot_id = 54972316;
+  PR.BCT38            : PR_BCT          , at = .775         , slot_id = 2253927;
+  PR.QSK38            : PR_QNSD         , at = 1.486593     , slot_id = 2253928, assembly_id= 5365807;
+  PR.DVT38            : PR_DVT__403     , at = 1.546593     , slot_id = 2253929, assembly_id= 5365807;
+ENDSEQUENCE;
+
+SS39: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.XNO39.A          : PR_MXNBAFWP     , at = .398         , slot_id = 2369739;
+  PR.ONO39            : PR_MONDAFWP     , at = .7745        , slot_id = 2369740;
+  PR.XNO39.B          : PR_MXNBAFWP     , at = 1.151        , slot_id = 2369741;
+  PR.QFN39            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2253944;
+ENDSEQUENCE;
+
+SS40: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM40            : PR_BPUNO        , at = .0934        , slot_id = 2253958;
+  PR.ODN40            : PR_MONAAFWP     , at = .4045        , slot_id = 2253960;
+  PI.BSW40            : PR_MDBBCWAP     , at = .90665       , slot_id = 52436790;
+  PR.QDN40            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2253961;
+ENDSEQUENCE;
+
+SS41: SEQUENCE, refer = CENTRE, L = 3;
+  PR.VVS41            : OMK             , at = .3           , slot_id = 52434935;
+  PR.QTRTA41          : PR_MQNBCAWP     , at = 1.4815       , slot_id = 2253976;
+  PI.BSW41            : PR_MDBBCWAP     , at = 2.04675      , slot_id = 52434955;
+  PR.QSK41            : PR_MQSAAIAP     , at = 2.885793     , slot_id = 2253977;
+ENDSEQUENCE;
+
+SS42: SEQUENCE, refer = CENTRE, L = 1.6;
+  PI.BTV42            : PR_BTVMA001     , at = .01277       , slot_id = 53611786;
+  PI.BSW42            : PR_MSBSW001     , at = .48286       , slot_id = 54016199, assembly_id= 43074350;
+  PI.SMH42            : PR_MSMIC003     , at = .77762       , slot_id = 54016163, assembly_id= 43074350;
+  PI.SMH42.ENDMARKER  : OMK             , at = 1.30085      , slot_id = 54016163;
+  PI.BSGF42           : PR_MSG          , at = 1.47735      , slot_id = 54972572;
+ENDSEQUENCE;
+
+SS43: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM43            : PR_BPULG        , at = .0934        , slot_id = 2254008;
+  PI.BSW43            : PR_MDBBCWAP     , at = .64335       , slot_id = 52667940;
+  PR.QSK43            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254011;
+ENDSEQUENCE;
+
+SS44: SEQUENCE, refer = CENTRE, L = 1.6;
+  PI.BSW44            : PR_MDBBCWAP     , at = .90765       , slot_id = 52667955;
+  PR.QSK44            : PR_QNSD         , at = 1.486593     , slot_id = 2254027, assembly_id= 5365808;
+  PR.DVT44            : PR_DVT__403     , at = 1.546593     , slot_id = 2254028, assembly_id= 5365808;
+ENDSEQUENCE;
+
+SS45: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM45            : PR_BPUNO        , at = .0934        , slot_id = 2254042;
+  PI.KFA45            : PR_KFA__002     , at = .775         , slot_id = 2254043;
+  PR.QFN45            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254045;
+ENDSEQUENCE;
+
+SS46: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C10.46           : PR_ACC10        , at = 1.475        , slot_id = 2254059;
+  PR.QDN46            : PR_MQNAAIAP     , at = 2.886343     , slot_id = 2254060;
+ENDSEQUENCE;
+
+SS47: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM47            : PR_BPUNO        , at = .0934        , slot_id = 2254074;
+  PR.TDI47            : OMK             , at = .6877        , slot_id = 52785837;
+  PR.QSK47            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254077;
+ENDSEQUENCE;
+
+SS48: SEQUENCE, refer = CENTRE, L = 1.6;
+  PI.BSG48            : PR_BSGW         , at = .0934        , slot_id = 2254091;
+  PR.TDI48            : OMK             , at = .6877        , slot_id = 52785853;
+  PR.QSK48            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254093;
+ENDSEQUENCE;
+
+SS49: SEQUENCE, refer = CENTRE, L = 1.6;
+  PI.QLB49            : PR_MQNCHAWP     , at = .52          , slot_id = 47643342;
+  PR.QTRTA49          : PR_MQNCAAWP     , at = 1.0925       , slot_id = 2254108;
+  PR.QFN49            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254109;
+ENDSEQUENCE;
+
+SS50: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM50            : PR_BPUNO        , at = .0934        , slot_id = 2254123;
+  PR.ODN50            : PR_MONAAFWP     , at = .9725        , slot_id = 2254124;
+  PR.VVS50            : OMK             , at = 1.25         , slot_id = 13720431;
+  PR.QDN50            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254125;
+ENDSEQUENCE;
+
+SS51: SEQUENCE, refer = CENTRE, L = 3;
+  PR.BPR51            : PR_BPRPA        , at = .0934        , slot_id = 54972442;
+  PA.C10.51           : PR_ACC10        , at = 1.475        , slot_id = 2254140;
+ENDSEQUENCE;
+
+SS52: SEQUENCE, refer = CENTRE, L = 1.6;
+  PI.BSG52            : PR_BSGW         , at = .0934        , slot_id = 2254155;
+  PR.ODN52.A          : PR_MONAAFWP     , at = .5155        , slot_id = 10430397;
+  PR.XSK52            : PR_MX_AAIAP     , at = .75          , slot_id = 10414027;
+  PR.ODN52.B          : PR_MONAAFWP     , at = .9955        , slot_id = 2254156;
+  PR.QSK52            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2253994;
+ENDSEQUENCE;
+
+SS53: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM53            : PR_BPUNO        , at = .0934        , slot_id = 2254170;
+  PE.BSW57.53         : PR_MCHBBWWP     , at = .8333        , slot_id = 2254171;
+  PR.QSK53            : PR_QNSF         , at = 1.486593     , slot_id = 2254173, assembly_id= 5365809;
+ENDSEQUENCE;
+
+SS54: SEQUENCE, refer = CENTRE, L = 1.6;
+  PI.BSG54            : PR_BSGW         , at = .0934        , slot_id = 2254188;
+  PR.BPM54            : PR_BPUNO        , at = .357         , slot_id = 10414030;
+  PR.BWSH54           : PR_BWSRB        , at = .95343       , slot_id = 2254189;
+  PR.QSK54            : PR_QNSD         , at = 1.486593     , slot_id = 2254191, assembly_id= 5365810;
+  PR.DVT54            : PR_DVT__403     , at = 1.546593     , slot_id = 2254190, assembly_id= 5365810;
+ENDSEQUENCE;
+
+SS55: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM55            : PR_BPUNO        , at = .0934        , slot_id = 2254205;
+  PR.XNO55.A          : PR_MXNBAFWP     , at = .3981        , slot_id = 2254206;
+  PR.ONO55            : PR_MONDAFWP     , at = .7746        , slot_id = 2369742;
+  PR.XNO55.B          : PR_MXNBAFWP     , at = 1.1512       , slot_id = 2254207;
+  PR.QFN55            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254209;
+ENDSEQUENCE;
+
+SS56: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C10.56           : PR_ACC10        , at = 1.475        , slot_id = 2254223;
+  PR.QDW56            : PR_MQNABIAP     , at = 2.886693     , slot_id = 2254224;
+ENDSEQUENCE;
+
+SS57: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM57            : PR_BPULG        , at = .0934        , slot_id = 2254238;
+  PE.BTV57            : PR_BTVMF005     , at = .3091        , slot_id = 2254242, assembly_id= 2254240;
+  PE.SMH57            : PR_SMH__003     , at = .805         , slot_id = 2254240;
+  PR.QSK57            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254241;
+ENDSEQUENCE;
+
+SS58: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.XSK58            : PR_MX_ABIAP     , at = .755         , slot_id = 10414032;
+  PR.QSK58            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254256;
+ENDSEQUENCE;
+
+SS59: SEQUENCE, refer = CENTRE, L = 1.6;
+  PE.BSW57.59         : PR_MCHBAWWP     , at = .4454        , slot_id = 2254271;
+  PR.QFW59            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2254273;
+ENDSEQUENCE;
+
+SS60: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM60            : PR_BPULG        , at = .0934        , slot_id = 2254287;
+  PR.DHZOC60          : PR_MCHBBWWP     , at = .434         , slot_id = 2254288;
+  PR.XNO60            : PR_MXNBAFWP     , at = .85          , slot_id = 10428678;
+  PR.VVS60            : OMK             , at = 1.2084       , slot_id = 13720432;
+  PR.QDW60            : PR_MQNABIAP     , at = 1.486693     , slot_id = 2254289;
+ENDSEQUENCE;
+
+SS61: SEQUENCE, refer = CENTRE, L = 3;
+  PR.QTRDB61          : PR_MQNBAFAP     , at = .43205       , slot_id = 2254304;
+  PE.SMH61            : PR_SMH__004     , at = .995         , slot_id = 2254307;
+  PE.BSW57.61         : PR_BLG          , at = 1.855        , slot_id = 2254305;
+ENDSEQUENCE;
+
+SS62: SEQUENCE, refer = CENTRE, L = 1.6;
+ENDSEQUENCE;
+
+SS63: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM63            : PR_BPULG        , at = .3685        , slot_id = 2254334;
+ENDSEQUENCE;
+
+SS64: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM64            : PR_BPUNO        , at = .3587        , slot_id = 42548391;
+  PR.BWSV64           : PR_BWSRB        , at = .95343       , slot_id = 2254349;
+  PR.DVT64            : PR_DVT__403     , at = 1.546593     , slot_id = 2254351, assembly_id= 5365829;
+ENDSEQUENCE;
+
+SS65: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM65            : PR_BPUNO        , at = .0934        , slot_id = 2254365;
+  PR.BWSH65           : PR_BWSRB        , at = .95343       , slot_id = 2369743;
+ENDSEQUENCE;
+
+SS66: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C10.66           : PR_ACC10        , at = 1.475        , slot_id = 2254380;
+ENDSEQUENCE;
+
+SS67: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM67            : PR_BPUNO        , at = .0934        , slot_id = 2254394;
+  PE.BSW57.67         : PR_MCHBBWWP     , at = .4422        , slot_id = 2254395;
+  PR.QFN67            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254398;
+ENDSEQUENCE;
+
+SS68: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPP68            : PR_BPPPA        , at = .0934        , slot_id = 54972346;
+  PR.BPM68            : PR_BPUNO        , at = .357         , slot_id = 10414035;
+  PR.BWSH68           : PR_BWSRB        , at = .95343       , slot_id = 10414037;
+  PR.QDN68            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254413;
+ENDSEQUENCE;
+
+SS69: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BQS69            : PR_BPUPQ        , at = .0934        , slot_id = 2254427;
+  PR.QTRDB69          : PR_MQNBDAAP     , at = 1.16075      , slot_id = 2254429;
+  PR.QSK69            : PR_QNSF         , at = 1.486593     , slot_id = 2254430, assembly_id= 5365811;
+ENDSEQUENCE;
+
+SS70: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM70            : PR_BPUNO        , at = .0934        , slot_id = 2254445;
+  PR.ODN70.A          : PR_MONAAFWP     , at = .6305        , slot_id = 10430399;
+  PR.ODN70.B          : PR_MONAAFWP     , at = .978         , slot_id = 2254446;
+  PR.VVS70            : OMK             , at = 1.25         , slot_id = 13720433;
+  PR.QSK70            : PR_QNSD         , at = 1.486593     , slot_id = 2254448, assembly_id= 5365812;
+  PR.DVT70            : PR_DVT__403     , at = 1.546593     , slot_id = 2254447, assembly_id= 5365812;
+ENDSEQUENCE;
+
+SS71: SEQUENCE, refer = CENTRE, L = 3;
+  PE.KFA71            : PR_KFA__003     , at = 1.476        , slot_id = 2254462;
+  PR.QFN71            : PR_MQNAAIAP     , at = 2.886343     , slot_id = 2254464;
+ENDSEQUENCE;
+
+SS72: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BQL72            : PR_BPMTS        , at = .775         , slot_id = 6078900;
+  PR.QDN72            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254479;
+ENDSEQUENCE;
+
+SS73: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM73            : PR_BPUNO        , at = .0934        , slot_id = 2254493;
+  PR.QTRTA73          : PR_MQNBCAWP     , at = .4955        , slot_id = 2254494;
+  PR.QSK73            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254497;
+ENDSEQUENCE;
+
+SS74: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.QSK74            : PR_QNSD         , at = 1.486593     , slot_id = 2254511, assembly_id= 5365813;
+  PR.DVT74            : PR_DVT__403     , at = 1.546593     , slot_id = 2254512, assembly_id= 5365813;
+ENDSEQUENCE;
+
+SS75: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM75            : PR_BPUNO        , at = .0934        , slot_id = 2254526;
+ENDSEQUENCE;
+
+SS76: SEQUENCE, refer = CENTRE, L = 3;
+  PR.BPR76            : PR_BPRPA        , at = .0934        , slot_id = 54972466;
+  PA.C10.76           : PR_ACC10        , at = 1.475        , slot_id = 2254542;
+  PR.DVT76            : PR_DVT__403     , at = 2.946593     , slot_id = 2254543, assembly_id= 5365830;
+ENDSEQUENCE;
+
+SS77: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM77            : PR_BPUNO        , at = .0934        , slot_id = 2254558;
+  PA.C40.77           : PR_ACC40        , at = .775         , slot_id = 2254560;
+  PR.QFN77            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254561;
+ENDSEQUENCE;
+
+SS78: SEQUENCE, refer = CENTRE, L = 1.6;
+  PA.C40.78           : PR_ACC40        , at = .775         , slot_id = 2254575;
+  PR.QDN78            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254576;
+ENDSEQUENCE;
+
+SS79: SEQUENCE, refer = CENTRE, L = 1.6;
+  PE.KFA79            : PR_KFA__001     , at = .696         , slot_id = 2254591;
+  PR.VVS79            : OMK             , at = 1.25         , slot_id = 13720434;
+  PR.QSK79            : PR_QNSF         , at = 1.486593     , slot_id = 2254593, assembly_id= 5365814;
+ENDSEQUENCE;
+
+SS80: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM80            : PR_BPUNO        , at = .0934        , slot_id = 2254607;
+  PA.C20.80           : PR_ACC20        , at = .775         , slot_id = 2254608;
+  PR.QSK80            : PR_QNSD         , at = 1.486593     , slot_id = 2254609, assembly_id= 5365815;
+  PR.DVT80            : PR_DVT__403     , at = 1.546593     , slot_id = 2254610, assembly_id= 5365815;
+ENDSEQUENCE;
+
+SS81: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C10.81           : PR_ACC10        , at = 1.475        , slot_id = 2254624;
+  PR.QFN81            : PR_MQNAAIAP     , at = 2.886343     , slot_id = 2254626;
+ENDSEQUENCE;
+
+SS82: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.MDB82.STARTMARKER: OMK             , at = .595         , slot_id = 41442239;
+  PR.BGI82            : PR_BGIHA        , at = .775         , slot_id = 41479404, assembly_id= 41442239;
+  PR.MDB82.ENDMARKER  : OMK             , at = .955         , slot_id = 41442239;
+  PR.QDN82            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254641;
+ENDSEQUENCE;
+
+SS83: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM83            : PR_BPULG        , at = .0934        , slot_id = 2254655;
+  PR.BPMS83           : PR_USP          , at = .775         , slot_id = 54963084;
+  PR.QSK83            : PR_QNSF         , at = 1.486593     , slot_id = 2254658, assembly_id= 5365816;
+ENDSEQUENCE;
+
+SS84: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.MDB84.STARTMARKER: OMK             , at = .595         , slot_id = 52734468;
+  PR.BGI84            : PR_BGIVA        , at = .775         , slot_id = 52734483, assembly_id= 52734468;
+  PR.MDB84.ENDMARKER  : OMK             , at = .955         , slot_id = 52734468;
+  PR.QSK84            : PR_QNSD         , at = 1.486593     , slot_id = 2254675, assembly_id= 5365817;
+ENDSEQUENCE;
+
+SS85: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM85            : PR_BPULG        , at = .0934        , slot_id = 2254689;
+  PR.BWSV85           : PR_BWSRB        , at = .95343       , slot_id = 2254690;
+  PR.QFN85            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254692;
+ENDSEQUENCE;
+
+SS86: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C10.86           : PR_ACC10        , at = 1.475        , slot_id = 2254706;
+  PR.QDN86            : PR_MQNAAIAP     , at = 2.886343     , slot_id = 2254707;
+ENDSEQUENCE;
+
+SS87: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM87            : PR_BPUNO        , at = .0934        , slot_id = 2254721;
+  PR.QTRDA87          : PR_MQNBDAAP     , at = .41675       , slot_id = 2254722;
+  PR.QSE87            : PR_MQNCAAWP     , at = .843         , slot_id = 2254724;
+  PR.QSK87            : PR_QNSF         , at = 1.486593     , slot_id = 2254726, assembly_id= 5365818;
+ENDSEQUENCE;
+
+SS88: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPP88            : PR_BPPPA        , at = .0934        , slot_id = 54972370;
+  PA.C80.88           : PR_ACC80        , at = .775         , slot_id = 2254741;
+  PR.QSK88            : PR_QNSD         , at = 1.486593     , slot_id = 2254743, assembly_id= 5365819;
+  PR.DVT88            : PR_DVT__403     , at = 1.546593     , slot_id = 2254742, assembly_id= 5365819;
+ENDSEQUENCE;
+
+SS89: SEQUENCE, refer = CENTRE, L = 1.6;
+  PA.C80.89           : PR_ACC80        , at = .775         , slot_id = 2254758;
+  PR.QFN89            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254759;
+ENDSEQUENCE;
+
+SS90: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM90            : PR_BPUNO        , at = .0934        , slot_id = 2254773;
+  PR.BPMW90           : PR_BPUWA        , at = .41          , slot_id = 42401369;
+  PR.ODN90            : PR_MONAAFWP     , at = .9892        , slot_id = 2254774;
+  PR.VVS90            : OMK             , at = 1.25         , slot_id = 13720435;
+  PR.QDN90            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254775;
+ENDSEQUENCE;
+
+SS91: SEQUENCE, refer = CENTRE, L = 3;
+  PA.C10.91           : PR_ACC10        , at = 1.475        , slot_id = 2254789;
+  PR.QSK91            : PR_QNSF         , at = 2.886593     , slot_id = 2254792, assembly_id= 5365820;
+ENDSEQUENCE;
+
+SS92: SEQUENCE, refer = CENTRE, L = 1.6;
+  PA.C20.92           : PR_ACC20        , at = .775         , slot_id = 2254806;
+  PR.QSK92            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254807;
+ENDSEQUENCE;
+
+SS93: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM93            : PR_BPULG        , at = .0934        , slot_id = 2254821;
+  PR.BPMS93           : PR_BPTF_001     , at = .775         , slot_id = 54972082;
+  PR.QSK93            : PR_MQSAAIAP     , at = 1.485793     , slot_id = 2254824;
+ENDSEQUENCE;
+
+SS94: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.XNO94            : PR_MXNBAFWP     , at = .7706        , slot_id = 10428460;
+  PR.BPMW94           : PR_BPUWA        , at = 1.1135       , slot_id = 54963047;
+  PR.QSK94            : PR_QNSD         , at = 1.486593     , slot_id = 2254840, assembly_id= 5365821;
+  PR.DVT94            : PR_DVT__403     , at = 1.546593     , slot_id = 2254841, assembly_id= 5365821;
+ENDSEQUENCE;
+
+SS95: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM95            : PR_BPUNO        , at = .0934        , slot_id = 2254855;
+  PR.BCW95            : PR_BCWAC001     , at = .4624        , slot_id = 54972130;
+  PR.QTRDA95          : PR_MQNBDAAP     , at = 1.12215      , slot_id = 2254858;
+  PR.QFN95            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254859;
+ENDSEQUENCE;
+
+SS96: SEQUENCE, refer = CENTRE, L = 3;
+  PR.BPR96            : PR_BPRPA        , at = .0934        , slot_id = 54972490;
+  PA.C10.96           : PR_ACC10        , at = 1.475        , slot_id = 2254874;
+  PR.QDN96            : PR_MQNAAIAP     , at = 2.886343     , slot_id = 2254875;
+ENDSEQUENCE;
+
+SS97: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM97            : PR_BPUNO        , at = .0934        , slot_id = 2254889;
+  PR.KFB97            : PR_KFB          , at = .775         , slot_id = 2254890;
+  PR.QSK97            : PR_QNSF         , at = 1.486593     , slot_id = 2254893, assembly_id= 5365822;
+ENDSEQUENCE;
+
+SS98: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPTF98           : PR_BPUNO        , at = .0934        , slot_id = 54972206;
+  PR.BCW98            : PR_BCW_A002     , at = .5103        , slot_id = 57227987;
+  PR.QSK98            : PR_QNSD         , at = 1.486593     , slot_id = 2254910, assembly_id= 5365823;
+  PR.DVT98            : PR_DVT__403     , at = 1.546593     , slot_id = 2254909, assembly_id= 5365823;
+ENDSEQUENCE;
+
+SS99: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.QTRTB99.A        : PR_MQNBCAWP     , at = .6532        , slot_id = 2254926;
+  PR.QTRTB99.B        : PR_MQNBCAWP     , at = 1.0782       , slot_id = 5706126;
+  PR.QFN99            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254927;
+ENDSEQUENCE;
+
+SS00: SEQUENCE, refer = CENTRE, L = 1.6;
+  PR.BPM00            : PR_BPUNO        , at = .0934        , slot_id = 2254941;
+  PR.BPMW00           : PR_URP          , at = .5092        , slot_id = 54972548;
+  PR.ODN00            : PR_MONAAFWP     , at = .9508        , slot_id = 2254943;
+  PR.VVS00            : OMK             , at = 1.25         , slot_id = 13720436;
+  PR.QDN00            : PR_MQNAAIAP     , at = 1.486343     , slot_id = 2254944;
+ENDSEQUENCE;
+
+
+
+/************************************************************************************/
+/*                       PS MU                                                      */
+/************************************************************************************/
+
+PR.BHT01 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP01.F           : PR_MPF          , at = 0            , slot_id = 2253315, assembly_id= 2253018;
+  PR.BHT01.F          : PR_BHF          , at = 1.09879625   , slot_id = 2253316, assembly_id= 2253018;
+  PR.DHZ01.B          : PR_DHZ          , at = 2.1975925    , slot_id = 2368570, assembly_id= 2253018;
+  PR.MP01.J           : PR_MPJ          , at = 2.1975925    , slot_id = 2253320, assembly_id= 2253018;
+  PR.BHT01.D          : PR_BHD          , at = 3.30038875   , slot_id = 2253322, assembly_id= 2253018;
+  PR.MP01.D           : PR_MPD          , at = 4.403185     , slot_id = 2253325, assembly_id= 2253018;
+ENDSEQUENCE;
+
+PR.BHU02 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP02.D           : PR_MPD          , at = 0            , slot_id = 57390595, assembly_id= 2253020;
+  PR.BHU02.D          : PR_BHD          , at = 1.10279625   , slot_id = 57390663, assembly_id= 2253020;
+  PR.DHZ03.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57390731, assembly_id= 2253020;
+  PR.MP02.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57390697, assembly_id= 2253020;
+  PR.BHU02.F          : PR_BHF          , at = 3.30438875   , slot_id = 57390765, assembly_id= 2253020;
+  PR.MP02.F           : PR_MPF          , at = 4.403185     , slot_id = 57390799, assembly_id= 2253020;
+ENDSEQUENCE;
+
+PR.BHT03 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP03.F           : PR_MPF          , at = 0            , slot_id = 57390325, assembly_id= 2253022;
+  PR.BHT03.F          : PR_BHF          , at = 1.09879625   , slot_id = 57390326, assembly_id= 2253022;
+  PR.MP03.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57390327, assembly_id= 2253022;
+  PR.DHZ03.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57390330, assembly_id= 2253022;
+  PR.BHT03.D          : PR_BHD          , at = 3.30038875   , slot_id = 57390328, assembly_id= 2253022;
+  PR.MP03.D           : PR_MPD          , at = 4.403185     , slot_id = 57390329, assembly_id= 2253022;
+ENDSEQUENCE;
+
+PR.BHR04 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP04.D           : PR_MPD          , at = 0            , slot_id = 57390839, assembly_id= 2253024;
+  PR.BHR04.D          : PR_BHD          , at = 1.10279625   , slot_id = 57390873, assembly_id= 2253024;
+  PR.DHZ05.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57390941, assembly_id= 2253024;
+  PR.MP04.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57390907, assembly_id= 2253024;
+  PR.BHR04.F          : PR_BHF          , at = 3.30438875   , slot_id = 57390975, assembly_id= 2253024;
+  PR.MP04.F           : PR_MPF          , at = 4.403185     , slot_id = 57391009, assembly_id= 2253024;
+ENDSEQUENCE;
+
+PR.BHT05 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP05.F           : PR_MPF          , at = 0            , slot_id = 57391510, assembly_id= 2253026;
+  PR.BHT05.F          : PR_BHF          , at = 1.09879625   , slot_id = 57391511, assembly_id= 2253026;
+  PR.DHZ05.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57391515, assembly_id= 2253026;
+  PR.MP05.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57391512, assembly_id= 2253026;
+  PR.BHT05.D          : PR_BHD          , at = 3.30038875   , slot_id = 57391513, assembly_id= 2253026;
+  PR.MP05.D           : PR_MPD          , at = 4.403185     , slot_id = 57391514, assembly_id= 2253026;
+ENDSEQUENCE;
+
+PR.BHR06 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP06.D           : PR_MPD          , at = 0            , slot_id = 57403984, assembly_id= 2253028;
+  PR.BHR06.D          : PR_BHD          , at = 1.10279625   , slot_id = 57403985, assembly_id= 2253028;
+  PR.DHZ07.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57403987, assembly_id= 2253028;
+  PR.MP06.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57403986, assembly_id= 2253028;
+  PR.BHR06.F          : PR_BHF          , at = 3.30438875   , slot_id = 57403988, assembly_id= 2253028;
+  PR.MP06.F           : PR_MPF          , at = 4.403185     , slot_id = 57403989, assembly_id= 2253028;
+ENDSEQUENCE;
+
+PR.BHS07 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP07.F           : PR_MPF          , at = 0            , slot_id = 57391049, assembly_id= 2253030;
+  PR.BHS07.F          : PR_BHF          , at = 1.09879625   , slot_id = 57391083, assembly_id= 2253030;
+  PR.DHZ07.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57391151, assembly_id= 2253030;
+  PR.MP07.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57391117, assembly_id= 2253030;
+  PR.BHS07.D          : PR_BHD          , at = 3.30038875   , slot_id = 57391185, assembly_id= 2253030;
+  PR.MP07.D           : PR_MPD          , at = 4.403185     , slot_id = 57391238, assembly_id= 2253030;
+ENDSEQUENCE;
+
+PR.BHR08 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP08.D           : PR_MPD          , at = 0            , slot_id = 57404248, assembly_id= 2253032;
+  PR.BHR08.D          : PR_BHD          , at = 1.10279625   , slot_id = 57404249, assembly_id= 2253032;
+  PR.MP08.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57404250, assembly_id= 2253032;
+  PR.DHZ09.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57404251, assembly_id= 2253032;
+  PR.BHR08.F          : PR_BHF          , at = 3.30438875   , slot_id = 57404252, assembly_id= 2253032;
+  PR.MP08.F           : PR_MPF          , at = 4.403185     , slot_id = 57404253, assembly_id= 2253032;
+ENDSEQUENCE;
+
+PR.BHT09 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP09.F           : PR_MPF          , at = 0            , slot_id = 57391774, assembly_id= 2253034;
+  PR.BHT09.F          : PR_BHF          , at = 1.09879625   , slot_id = 57391775, assembly_id= 2253034;
+  PR.DHZ09.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57391779, assembly_id= 2253034;
+  PR.MP09.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57391776, assembly_id= 2253034;
+  PR.BHT09.D          : PR_BHD          , at = 3.30038875   , slot_id = 57391777, assembly_id= 2253034;
+  PR.MP09.D           : PR_MPD          , at = 4.403185     , slot_id = 57391778, assembly_id= 2253034;
+ENDSEQUENCE;
+
+PR.BHR10 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP10.D           : PR_MPD          , at = 0            , slot_id = 57404512, assembly_id= 2253036;
+  PR.BHR10.D          : PR_BHD          , at = 1.10279625   , slot_id = 57404513, assembly_id= 2253036;
+  PR.MP10.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57404514, assembly_id= 2253036;
+  PR.DHZ11.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57404515, assembly_id= 2253036;
+  PR.BHR10.F          : PR_BHF          , at = 3.30438875   , slot_id = 57404516, assembly_id= 2253036;
+  PR.MP10.F           : PR_MPF          , at = 4.403185     , slot_id = 57404517, assembly_id= 2253036;
+ENDSEQUENCE;
+
+PR.BHS11 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP11.F           : PR_MPF          , at = 0            , slot_id = 57413380, assembly_id= 2253038;
+  PR.BHS11.F          : PR_BHF          , at = 1.09879625   , slot_id = 57413381, assembly_id= 2253038;
+  PR.MP11.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57413382, assembly_id= 2253038;
+  PR.DHZ11.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57413383, assembly_id= 2253038;
+  PR.BHS11.D          : PR_BHD          , at = 3.30038875   , slot_id = 57413384, assembly_id= 2253038;
+  PR.MP11.D           : PR_MPD          , at = 4.403185     , slot_id = 57413385, assembly_id= 2253038;
+ENDSEQUENCE;
+
+PR.BHR12 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP12.D           : PR_MPD          , at = 0            , slot_id = 57404811, assembly_id= 2253040;
+  PR.BHR12.D          : PR_BHD          , at = 1.10279625   , slot_id = 57404812, assembly_id= 2253040;
+  PR.MP12.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57404813, assembly_id= 2253040;
+  PR.DHZ13.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57404814, assembly_id= 2253040;
+  PR.BHR12.F          : PR_BHF          , at = 3.30438875   , slot_id = 57404815, assembly_id= 2253040;
+  PR.MP12.F           : PR_MPF          , at = 4.403185     , slot_id = 57404816, assembly_id= 2253040;
+ENDSEQUENCE;
+
+PR.BHS13 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP13.F           : PR_MPF          , at = 0            , slot_id = 57413644, assembly_id= 2253042;
+  PR.BHS13.F          : PR_BHF          , at = 1.09879625   , slot_id = 57413645, assembly_id= 2253042;
+  PR.DHZ13.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57413647, assembly_id= 2253042;
+  PR.MP13.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57413646, assembly_id= 2253042;
+  PR.BHS13.D          : PR_BHD          , at = 3.30038875   , slot_id = 57413648, assembly_id= 2253042;
+  PR.MP13.D           : PR_MPD          , at = 4.403185     , slot_id = 57413649, assembly_id= 2253042;
+ENDSEQUENCE;
+
+PR.BHU14 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP14.D           : PR_MPD          , at = 0            , slot_id = 57400260, assembly_id= 2253044;
+  PR.BHU14.D          : PR_BHD          , at = 1.10279625   , slot_id = 57400261, assembly_id= 2253044;
+  PR.MP14.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57400262, assembly_id= 2253044;
+  PR.DHZ15.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57400263, assembly_id= 2253044;
+  PR.BHU14.F          : PR_BHF          , at = 3.30438875   , slot_id = 57400264, assembly_id= 2253044;
+  PR.MP14.F           : PR_MPF          , at = 4.403185     , slot_id = 57400265, assembly_id= 2253044;
+ENDSEQUENCE;
+
+PR.BHT15 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP15.F           : PR_MPF          , at = 0            , slot_id = 57392038, assembly_id= 2253046;
+  PR.BHT15.F          : PR_BHF          , at = 1.09879625   , slot_id = 57392039, assembly_id= 2253046;
+  PR.DHZ15.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57392043, assembly_id= 2253046;
+  PR.MP15.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57392040, assembly_id= 2253046;
+  PR.BHT15.D          : PR_BHD          , at = 3.30038875   , slot_id = 57392041, assembly_id= 2253046;
+  PR.MP15.D           : PR_MPD          , at = 4.403185     , slot_id = 57392042, assembly_id= 2253046;
+ENDSEQUENCE;
+
+PR.BHU16 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP16.D           : PR_MPD          , at = 0            , slot_id = 57400524, assembly_id= 2253048;
+  PR.BHU16.D          : PR_BHD          , at = 1.10279625   , slot_id = 57400525, assembly_id= 2253048;
+  PR.DHZ17.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57400527, assembly_id= 2253048;
+  PR.MP16.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57400526, assembly_id= 2253048;
+  PR.BHU16.F          : PR_BHF          , at = 3.30438875   , slot_id = 57400528, assembly_id= 2253048;
+  PR.MP16.F           : PR_MPF          , at = 4.403185     , slot_id = 57400529, assembly_id= 2253048;
+ENDSEQUENCE;
+
+PR.BHT17 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP17.F           : PR_MPF          , at = 0            , slot_id = 57392302, assembly_id= 2253050;
+  PR.BHT17.F          : PR_BHF          , at = 1.09879625   , slot_id = 57392303, assembly_id= 2253050;
+  PR.DHZ17.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57392307, assembly_id= 2253050;
+  PR.MP17.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57392304, assembly_id= 2253050;
+  PR.BHT17.D          : PR_BHD          , at = 3.30038875   , slot_id = 57392305, assembly_id= 2253050;
+  PR.MP17.D           : PR_MPD          , at = 4.403185     , slot_id = 57392306, assembly_id= 2253050;
+ENDSEQUENCE;
+
+PR.BHU18 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP18.D           : PR_MPD          , at = 0            , slot_id = 57400788, assembly_id= 2253052;
+  PR.BHU18.D          : PR_BHD          , at = 1.10279625   , slot_id = 57400789, assembly_id= 2253052;
+  PR.DHZ19.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57400791, assembly_id= 2253052;
+  PR.MP18.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57400790, assembly_id= 2253052;
+  PR.BHU18.F          : PR_BHF          , at = 3.30438875   , slot_id = 57400792, assembly_id= 2253052;
+  PR.MP18.F           : PR_MPF          , at = 4.403185     , slot_id = 57400793, assembly_id= 2253052;
+ENDSEQUENCE;
+
+PR.BHS19 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP19.F           : PR_MPF          , at = 0            , slot_id = 57413908, assembly_id= 2253054;
+  PR.BHS19.F          : PR_BHF          , at = 1.09879625   , slot_id = 57413909, assembly_id= 2253054;
+  PR.MP19.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57413910, assembly_id= 2253054;
+  PR.DHZ19.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57413911, assembly_id= 2253054;
+  PR.BHS19.D          : PR_BHD          , at = 3.30038875   , slot_id = 57413912, assembly_id= 2253054;
+  PR.MP19.D           : PR_MPD          , at = 4.403185     , slot_id = 57413913, assembly_id= 2253054;
+ENDSEQUENCE;
+
+PR.BHR20 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP20.D           : PR_MPD          , at = 0            , slot_id = 57405075, assembly_id= 2253056;
+  PR.BHR20.D          : PR_BHD          , at = 1.10279625   , slot_id = 57405076, assembly_id= 2253056;
+  PR.MP20.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57405077, assembly_id= 2253056;
+  PR.DHZ21.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57405078, assembly_id= 2253056;
+  PR.BHR20.F          : PR_BHF          , at = 3.30438875   , slot_id = 57405079, assembly_id= 2253056;
+  PR.MP20.F           : PR_MPF          , at = 4.403185     , slot_id = 57405080, assembly_id= 2253056;
+ENDSEQUENCE;
+
+PR.BHT21 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP21.F           : PR_MPF          , at = 0            , slot_id = 57392566, assembly_id= 2253058;
+  PR.BHT21.F          : PR_BHF          , at = 1.09879625   , slot_id = 57392567, assembly_id= 2253058;
+  PR.MP21.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57392568, assembly_id= 2253058;
+  PR.DHZ21.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57392571, assembly_id= 2253058;
+  PR.BHT21.D          : PR_BHD          , at = 3.30038875   , slot_id = 57392569, assembly_id= 2253058;
+  PR.MP21.D           : PR_MPD          , at = 4.403185     , slot_id = 57392570, assembly_id= 2253058;
+ENDSEQUENCE;
+
+PR.BHR22 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP22.D           : PR_MPD          , at = 0            , slot_id = 57405624, assembly_id= 2253060;
+  PR.BHR22.D          : PR_BHD          , at = 1.10279625   , slot_id = 57405625, assembly_id= 2253060;
+  PR.MP22.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57405626, assembly_id= 2253060;
+  PR.DHZ23.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57405627, assembly_id= 2253060;
+  PR.BHR22.F          : PR_BHF          , at = 3.30438875   , slot_id = 57405628, assembly_id= 2253060;
+  PR.MP22.F           : PR_MPF          , at = 4.403185     , slot_id = 57405629, assembly_id= 2253060;
+ENDSEQUENCE;
+
+PR.BHT23 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP23.F           : PR_MPF          , at = 0            , slot_id = 57392830, assembly_id= 2253062;
+  PR.BHT23.F          : PR_BHF          , at = 1.09879625   , slot_id = 57392831, assembly_id= 2253062;
+  PR.DHZ23.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57392835, assembly_id= 2253062;
+  PR.MP23.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57392832, assembly_id= 2253062;
+  PR.BHT23.D          : PR_BHD          , at = 3.30038875   , slot_id = 57392833, assembly_id= 2253062;
+  PR.MP23.D           : PR_MPD          , at = 4.403185     , slot_id = 57392834, assembly_id= 2253062;
+ENDSEQUENCE;
+
+PR.BHU24 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP24.D           : PR_MPD          , at = 0            , slot_id = 57401052, assembly_id= 2253064;
+  PR.BHU24.D          : PR_BHD          , at = 1.10279625   , slot_id = 57401053, assembly_id= 2253064;
+  PR.DHZ25.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57401055, assembly_id= 2253064;
+  PR.MP24.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57401054, assembly_id= 2253064;
+  PR.BHU24.F          : PR_BHF          , at = 3.30438875   , slot_id = 57401056, assembly_id= 2253064;
+  PR.MP24.F           : PR_MPF          , at = 4.403185     , slot_id = 57401057, assembly_id= 2253064;
+ENDSEQUENCE;
+
+PR.BHT25 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP25.F           : PR_MPF          , at = 0            , slot_id = 57393095, assembly_id= 2253066;
+  PR.BHT25.F          : PR_BHF          , at = 1.09879625   , slot_id = 57393096, assembly_id= 2253066;
+  PR.DHZ25.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57393100, assembly_id= 2253066;
+  PR.MP25.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57393097, assembly_id= 2253066;
+  PR.BHT25.D          : PR_BHD          , at = 3.30038875   , slot_id = 57393098, assembly_id= 2253066;
+  PR.MP25.D           : PR_MPD          , at = 4.403185     , slot_id = 57393099, assembly_id= 2253066;
+ENDSEQUENCE;
+
+PR.BHR26 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP26.D           : PR_MPD          , at = 0            , slot_id = 57405888, assembly_id= 2253068;
+  PR.BHR26.D          : PR_BHD          , at = 1.10279625   , slot_id = 57405889, assembly_id= 2253068;
+  PR.DHZ27.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57405891, assembly_id= 2253068;
+  PR.MP26.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57405890, assembly_id= 2253068;
+  PR.BHR26.F          : PR_BHF          , at = 3.30438875   , slot_id = 57405892, assembly_id= 2253068;
+  PR.MP26.F           : PR_MPF          , at = 4.403185     , slot_id = 57405893, assembly_id= 2253068;
+ENDSEQUENCE;
+
+PR.BHS27 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP27.F           : PR_MPF          , at = 0            , slot_id = 57414172, assembly_id= 2253070;
+  PR.BHS27.F          : PR_BHF          , at = 1.09879625   , slot_id = 57414173, assembly_id= 2253070;
+  PR.DHZ27.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57414175, assembly_id= 2253070;
+  PR.MP27.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57414174, assembly_id= 2253070;
+  PR.BHS27.D          : PR_BHD          , at = 3.30038875   , slot_id = 57414176, assembly_id= 2253070;
+  PR.MP27.D           : PR_MPD          , at = 4.403185     , slot_id = 57414177, assembly_id= 2253070;
+ENDSEQUENCE;
+
+PR.BHU28 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP28.D           : PR_MPD          , at = 0            , slot_id = 57401316, assembly_id= 2253072;
+  PR.BHU28.D          : PR_BHD          , at = 1.10279625   , slot_id = 57401317, assembly_id= 2253072;
+  PR.DHZ29.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57401319, assembly_id= 2253072;
+  PR.MP28.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57401318, assembly_id= 2253072;
+  PR.BHU28.F          : PR_BHF          , at = 3.30438875   , slot_id = 57401320, assembly_id= 2253072;
+  PR.MP28.F           : PR_MPF          , at = 4.403185     , slot_id = 57401321, assembly_id= 2253072;
+ENDSEQUENCE;
+
+PR.BHT29 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP29.F           : PR_MPF          , at = 0            , slot_id = 57393359, assembly_id= 2253074;
+  PR.BHT29.F          : PR_BHF          , at = 1.09879625   , slot_id = 57393360, assembly_id= 2253074;
+  PR.MP29.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57393361, assembly_id= 2253074;
+  PR.DHZ29.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57393364, assembly_id= 2253074;
+  PR.BHT29.D          : PR_BHD          , at = 3.30038875   , slot_id = 57393362, assembly_id= 2253074;
+  PR.MP29.D           : PR_MPD          , at = 4.403185     , slot_id = 57393363, assembly_id= 2253074;
+ENDSEQUENCE;
+
+PR.BHR30 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP30.D           : PR_MPD          , at = 0            , slot_id = 57406207, assembly_id= 2253076;
+  PR.BHR30.D          : PR_BHD          , at = 1.10279625   , slot_id = 57406208, assembly_id= 2253076;
+  PR.DHZ31.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57406210, assembly_id= 2253076;
+  PR.MP30.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57406209, assembly_id= 2253076;
+  PR.BHR30.F          : PR_BHF          , at = 3.30438875   , slot_id = 57406211, assembly_id= 2253076;
+  PR.MP30.F           : PR_MPF          , at = 4.403185     , slot_id = 57406212, assembly_id= 2253076;
+ENDSEQUENCE;
+
+PR.BHT31 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP31.F           : PR_MPF          , at = 0            , slot_id = 57393623, assembly_id= 2253078;
+  PR.BHT31.F          : PR_BHF          , at = 1.09879625   , slot_id = 57393624, assembly_id= 2253078;
+  PR.DHZ31.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57393628, assembly_id= 2253078;
+  PR.MP31.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57393625, assembly_id= 2253078;
+  PR.BHT31.D          : PR_BHD          , at = 3.30038875   , slot_id = 57393626, assembly_id= 2253078;
+  PR.MP31.D           : PR_MPD          , at = 4.403185     , slot_id = 57393627, assembly_id= 2253078;
+ENDSEQUENCE;
+
+PR.BHR32 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP32.D           : PR_MPD          , at = 0            , slot_id = 57406471, assembly_id= 2253080;
+  PR.BHR32.D          : PR_BHD          , at = 1.10279625   , slot_id = 57406472, assembly_id= 2253080;
+  PR.DHZ33.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57406474, assembly_id= 2253080;
+  PR.MP32.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57406473, assembly_id= 2253080;
+  PR.BHR32.F          : PR_BHF          , at = 3.30438875   , slot_id = 57406475, assembly_id= 2253080;
+  PR.MP32.F           : PR_MPF          , at = 4.403185     , slot_id = 57406476, assembly_id= 2253080;
+ENDSEQUENCE;
+
+PR.BHS33 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP33.F           : PR_MPF          , at = 0            , slot_id = 57414436, assembly_id= 2253082;
+  PR.BHS33.F          : PR_BHF          , at = 1.09879625   , slot_id = 57414437, assembly_id= 2253082;
+  PR.DHZ33.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57414439, assembly_id= 2253082;
+  PR.MP33.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57414438, assembly_id= 2253082;
+  PR.BHS33.D          : PR_BHD          , at = 3.30038875   , slot_id = 57414440, assembly_id= 2253082;
+  PR.MP33.D           : PR_MPD          , at = 4.403185     , slot_id = 57414441, assembly_id= 2253082;
+ENDSEQUENCE;
+
+PR.BHR34 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP34.D           : PR_MPD          , at = 0            , slot_id = 57406735, assembly_id= 2253084;
+  PR.BHR34.D          : PR_BHD          , at = 1.10279625   , slot_id = 57406736, assembly_id= 2253084;
+  PR.MP34.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57406737, assembly_id= 2253084;
+  PR.DHZ35.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57406738, assembly_id= 2253084;
+  PR.BHR34.F          : PR_BHF          , at = 3.30438875   , slot_id = 57406739, assembly_id= 2253084;
+  PR.MP34.F           : PR_MPF          , at = 4.403185     , slot_id = 57406740, assembly_id= 2253084;
+ENDSEQUENCE;
+
+PR.BHT35 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP35.F           : PR_MPF          , at = 0            , slot_id = 57393887, assembly_id= 2253086;
+  PR.BHT35.F          : PR_BHF          , at = 1.09879625   , slot_id = 57393888, assembly_id= 2253086;
+  PR.MP35.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57393889, assembly_id= 2253086;
+  PR.DHZ35.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57393892, assembly_id= 2253086;
+  PR.BHT35.D          : PR_BHD          , at = 3.30038875   , slot_id = 57393890, assembly_id= 2253086;
+  PR.MP35.D           : PR_MPD          , at = 4.403185     , slot_id = 57393891, assembly_id= 2253086;
+ENDSEQUENCE;
+
+PR.BHR36 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP36.D           : PR_MPD          , at = 0            , slot_id = 57406999, assembly_id= 2253088;
+  PR.BHR36.D          : PR_BHD          , at = 1.10279625   , slot_id = 57407000, assembly_id= 2253088;
+  PR.MP36.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57407001, assembly_id= 2253088;
+  PR.DHZ37.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57407002, assembly_id= 2253088;
+  PR.BHR36.F          : PR_BHF          , at = 3.30438875   , slot_id = 57407003, assembly_id= 2253088;
+  PR.MP36.F           : PR_MPF          , at = 4.403185     , slot_id = 57407004, assembly_id= 2253088;
+ENDSEQUENCE;
+
+PR.BHT37 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP37.F           : PR_MPF          , at = 0            , slot_id = 57394151, assembly_id= 2253090;
+  PR.BHT37.F          : PR_BHF          , at = 1.09879625   , slot_id = 57394152, assembly_id= 2253090;
+  PR.MP37.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57394153, assembly_id= 2253090;
+  PR.DHZ37.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57394156, assembly_id= 2253090;
+  PR.BHT37.D          : PR_BHD          , at = 3.30038875   , slot_id = 57394154, assembly_id= 2253090;
+  PR.MP37.D           : PR_MPD          , at = 4.403185     , slot_id = 57394155, assembly_id= 2253090;
+ENDSEQUENCE;
+
+PR.BHR38 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP38.D           : PR_MPD          , at = 0            , slot_id = 57407263, assembly_id= 2253092;
+  PR.BHR38.D          : PR_BHD          , at = 1.10279625   , slot_id = 57407264, assembly_id= 2253092;
+  PR.DHZ39.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57407266, assembly_id= 2253092;
+  PR.MP38.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57407265, assembly_id= 2253092;
+  PR.BHR38.F          : PR_BHF          , at = 3.30438875   , slot_id = 57407267, assembly_id= 2253092;
+  PR.MP38.F           : PR_MPF          , at = 4.403185     , slot_id = 57407268, assembly_id= 2253092;
+ENDSEQUENCE;
+
+PR.BHT39 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP39.F           : PR_MPF          , at = 0            , slot_id = 57394415, assembly_id= 2253094;
+  PR.BHT39.F          : PR_BHF          , at = 1.09879625   , slot_id = 57394416, assembly_id= 2253094;
+  PR.DHZ39.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57394420, assembly_id= 2253094;
+  PR.MP39.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57394417, assembly_id= 2253094;
+  PR.BHT39.D          : PR_BHD          , at = 3.30038875   , slot_id = 57394418, assembly_id= 2253094;
+  PR.MP39.D           : PR_MPD          , at = 4.403185     , slot_id = 57394419, assembly_id= 2253094;
+ENDSEQUENCE;
+
+PR.BHU40 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP40.D           : PR_MPD          , at = 0            , slot_id = 57401580, assembly_id= 2253096;
+  PR.BHU40.D          : PR_BHD          , at = 1.10279625   , slot_id = 57401581, assembly_id= 2253096;
+  PR.MP40.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57401582, assembly_id= 2253096;
+  PR.DHZ41.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57401583, assembly_id= 2253096;
+  PR.BHU40.F          : PR_BHF          , at = 3.30438875   , slot_id = 57401584, assembly_id= 2253096;
+  PR.MP40.F           : PR_MPF          , at = 4.403185     , slot_id = 57401585, assembly_id= 2253096;
+ENDSEQUENCE;
+
+PR.BHT41 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP41.F           : PR_MPF          , at = 0            , slot_id = 57394679, assembly_id= 2253098;
+  PR.BHT41.F          : PR_BHF          , at = 1.09879625   , slot_id = 57394680, assembly_id= 2253098;
+  PR.MP41.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57394681, assembly_id= 2253098;
+  PR.DHZ41.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57394684, assembly_id= 2253098;
+  PR.BHT41.D          : PR_BHD          , at = 3.30038875   , slot_id = 57394682, assembly_id= 2253098;
+  PR.MP41.D           : PR_MPD          , at = 4.403185     , slot_id = 57394683, assembly_id= 2253098;
+ENDSEQUENCE;
+
+PR.BHR42 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP42.D           : PR_MPD          , at = 0            , slot_id = 57407527, assembly_id= 2253100;
+  PR.BHR42.D          : PR_BHD          , at = 1.10279625   , slot_id = 57407528, assembly_id= 2253100;
+  PR.MP42.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57407529, assembly_id= 2253100;
+  PR.DHZ43.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57407530, assembly_id= 2253100;
+  PR.BHR42.F          : PR_BHF          , at = 3.30438875   , slot_id = 57407531, assembly_id= 2253100;
+  PR.MP42.F           : PR_MPF          , at = 4.403185     , slot_id = 57407532, assembly_id= 2253100;
+ENDSEQUENCE;
+
+PR.BHT43 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP43.F           : PR_MPF          , at = 0            , slot_id = 57394943, assembly_id= 2253102;
+  PR.BHT43.F          : PR_BHF          , at = 1.09879625   , slot_id = 57394944, assembly_id= 2253102;
+  PR.MP43.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57394945, assembly_id= 2253102;
+  PR.DHZ43.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57394948, assembly_id= 2253102;
+  PR.BHT43.D          : PR_BHD          , at = 3.30038875   , slot_id = 57394946, assembly_id= 2253102;
+  PR.MP43.D           : PR_MPD          , at = 4.403185     , slot_id = 57394947, assembly_id= 2253102;
+ENDSEQUENCE;
+
+PR.BHR44 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP44.D           : PR_MPD          , at = 0            , slot_id = 57407791, assembly_id= 2253104;
+  PR.BHR44.D          : PR_BHD          , at = 1.10279625   , slot_id = 57407792, assembly_id= 2253104;
+  PR.MP44.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57407793, assembly_id= 2253104;
+  PR.DHZ45.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57407794, assembly_id= 2253104;
+  PR.BHR44.F          : PR_BHF          , at = 3.30438875   , slot_id = 57407795, assembly_id= 2253104;
+  PR.MP44.F           : PR_MPF          , at = 4.403185     , slot_id = 57407796, assembly_id= 2253104;
+ENDSEQUENCE;
+
+PR.BHT45 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP45.F           : PR_MPF          , at = 0            , slot_id = 57395207, assembly_id= 2253106;
+  PR.BHT45.F          : PR_BHF          , at = 1.09879625   , slot_id = 57395208, assembly_id= 2253106;
+  PR.DHZ45.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57395212, assembly_id= 2253106;
+  PR.MP45.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57395209, assembly_id= 2253106;
+  PR.BHT45.D          : PR_BHD          , at = 3.30038875   , slot_id = 57395210, assembly_id= 2253106;
+  PR.MP45.D           : PR_MPD          , at = 4.403185     , slot_id = 57395211, assembly_id= 2253106;
+ENDSEQUENCE;
+
+PR.BHR46 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP46.D           : PR_MPD          , at = 0            , slot_id = 57408055, assembly_id= 2253108;
+  PR.BHR46.D          : PR_BHD          , at = 1.10279625   , slot_id = 57408056, assembly_id= 2253108;
+  PR.DHZ47.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57408058, assembly_id= 2253108;
+  PR.MP46.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57408057, assembly_id= 2253108;
+  PR.BHR46.F          : PR_BHF          , at = 3.30438875   , slot_id = 57408059, assembly_id= 2253108;
+  PR.MP46.F           : PR_MPF          , at = 4.403185     , slot_id = 57408060, assembly_id= 2253108;
+ENDSEQUENCE;
+
+PR.BHS47 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP47.F           : PR_MPF          , at = 0            , slot_id = 57414700, assembly_id= 2253110;
+  PR.BHS47.F          : PR_BHF          , at = 1.09879625   , slot_id = 57414701, assembly_id= 2253110;
+  PR.MP47.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57414702, assembly_id= 2253110;
+  PR.DHZ47.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57414703, assembly_id= 2253110;
+  PR.BHS47.D          : PR_BHD          , at = 3.30038875   , slot_id = 57414704, assembly_id= 2253110;
+  PR.MP47.D           : PR_MPD          , at = 4.403185     , slot_id = 57414705, assembly_id= 2253110;
+ENDSEQUENCE;
+
+PR.BHR48 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP48.D           : PR_MPD          , at = 0            , slot_id = 57408319, assembly_id= 2253112;
+  PR.BHR48.D          : PR_BHD          , at = 1.10279625   , slot_id = 57408320, assembly_id= 2253112;
+  PR.MP48.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57408321, assembly_id= 2253112;
+  PR.DHZ49.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57408322, assembly_id= 2253112;
+  PR.BHR48.F          : PR_BHF          , at = 3.30438875   , slot_id = 57408323, assembly_id= 2253112;
+  PR.MP48.F           : PR_MPF          , at = 4.403185     , slot_id = 57408324, assembly_id= 2253112;
+ENDSEQUENCE;
+
+PR.BHT49 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP49.F           : PR_MPF          , at = 0            , slot_id = 57395471, assembly_id= 2253114;
+  PR.BHT49.F          : PR_BHF          , at = 1.09879625   , slot_id = 57395472, assembly_id= 2253114;
+  PR.DHZ49.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57395476, assembly_id= 2253114;
+  PR.MP49.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57395473, assembly_id= 2253114;
+  PR.BHT49.D          : PR_BHD          , at = 3.30038875   , slot_id = 57395474, assembly_id= 2253114;
+  PR.MP49.D           : PR_MPD          , at = 4.403185     , slot_id = 57395475, assembly_id= 2253114;
+ENDSEQUENCE;
+
+PR.BHR50 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP50.D           : PR_MPD          , at = 0            , slot_id = 57408583, assembly_id= 2253116;
+  PR.BHR50.D          : PR_BHD          , at = 1.10279625   , slot_id = 57408584, assembly_id= 2253116;
+  PR.MP50.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57408585, assembly_id= 2253116;
+  PR.DHZ51.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57408586, assembly_id= 2253116;
+  PR.BHR50.F          : PR_BHF          , at = 3.30438875   , slot_id = 57408587, assembly_id= 2253116;
+  PR.MP50.F           : PR_MPF          , at = 4.403185     , slot_id = 57408588, assembly_id= 2253116;
+ENDSEQUENCE;
+
+PR.BHT51 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP51.F           : PR_MPF          , at = 0            , slot_id = 57395735, assembly_id= 2253118;
+  PR.BHT51.F          : PR_BHF          , at = 1.09879625   , slot_id = 57395736, assembly_id= 2253118;
+  PR.DHZ51.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57395740, assembly_id= 2253118;
+  PR.MP51.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57395737, assembly_id= 2253118;
+  PR.BHT51.D          : PR_BHD          , at = 3.30038875   , slot_id = 57395738, assembly_id= 2253118;
+  PR.MP51.D           : PR_MPD          , at = 4.403185     , slot_id = 57395739, assembly_id= 2253118;
+ENDSEQUENCE;
+
+PR.BHR52 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP52.D           : PR_MPD          , at = 0            , slot_id = 57408847, assembly_id= 2253120;
+  PR.BHR52.D          : PR_BHD          , at = 1.10279625   , slot_id = 57408848, assembly_id= 2253120;
+  PR.DHZ53.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57408850, assembly_id= 2253120;
+  PR.MP52.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57408849, assembly_id= 2253120;
+  PR.BHR52.F          : PR_BHF          , at = 3.30438875   , slot_id = 57408851, assembly_id= 2253120;
+  PR.MP52.F           : PR_MPF          , at = 4.403185     , slot_id = 57408852, assembly_id= 2253120;
+ENDSEQUENCE;
+
+PR.BHS53 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP53.F           : PR_MPF          , at = 0            , slot_id = 57414964, assembly_id= 2253122;
+  PR.BHS53.F          : PR_BHF          , at = 1.09879625   , slot_id = 57414965, assembly_id= 2253122;
+  PR.MP53.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57414966, assembly_id= 2253122;
+  PR.DHZ53.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57414967, assembly_id= 2253122;
+  PR.BHS53.D          : PR_BHD          , at = 3.30038875   , slot_id = 57414968, assembly_id= 2253122;
+  PR.MP53.D           : PR_MPD          , at = 4.403185     , slot_id = 57414969, assembly_id= 2253122;
+ENDSEQUENCE;
+
+PR.BHR54 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP54.D           : PR_MPD          , at = 0            , slot_id = 57409111, assembly_id= 2253124;
+  PR.BHR54.D          : PR_BHD          , at = 1.10279625   , slot_id = 57409112, assembly_id= 2253124;
+  PR.MP54.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57409113, assembly_id= 2253124;
+  PR.DHZ55.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57409114, assembly_id= 2253124;
+  PR.BHR54.F          : PR_BHF          , at = 3.30438875   , slot_id = 57409115, assembly_id= 2253124;
+  PR.MP54.F           : PR_MPF          , at = 4.403185     , slot_id = 57409116, assembly_id= 2253124;
+ENDSEQUENCE;
+
+PR.BHT55 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP55.F           : PR_MPF          , at = 0            , slot_id = 57395999, assembly_id= 2253126;
+  PR.BHT55.F          : PR_BHF          , at = 1.09879625   , slot_id = 57396000, assembly_id= 2253126;
+  PR.DHZ55.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57396004, assembly_id= 2253126;
+  PR.MP55.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57396001, assembly_id= 2253126;
+  PR.BHT55.D          : PR_BHD          , at = 3.30038875   , slot_id = 57396002, assembly_id= 2253126;
+  PR.MP55.D           : PR_MPD          , at = 4.403185     , slot_id = 57396003, assembly_id= 2253126;
+ENDSEQUENCE;
+
+PR.BHU56 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP56.D           : PR_MPD          , at = 0            , slot_id = 57401844, assembly_id= 2253128;
+  PR.BHU56.D          : PR_BHD          , at = 1.10279625   , slot_id = 57401845, assembly_id= 2253128;
+  PR.MP56.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57401846, assembly_id= 2253128;
+  PR.DHZ57.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57401847, assembly_id= 2253128;
+  PR.BHU56.F          : PR_BHF          , at = 3.30438875   , slot_id = 57401848, assembly_id= 2253128;
+  PR.MP56.F           : PR_MPF          , at = 4.403185     , slot_id = 57401849, assembly_id= 2253128;
+ENDSEQUENCE;
+
+PR.BHT57 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP57.F           : PR_MPF          , at = 0            , slot_id = 57396263, assembly_id= 2253130;
+  PR.BHT57.F          : PR_BHF          , at = 1.09879625   , slot_id = 57396264, assembly_id= 2253130;
+  PR.MP57.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57396265, assembly_id= 2253130;
+  PR.DHZ57.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57396268, assembly_id= 2253130;
+  PR.BHT57.D          : PR_BHD          , at = 3.30038875   , slot_id = 57396266, assembly_id= 2253130;
+  PR.MP57.D           : PR_MPD          , at = 4.403185     , slot_id = 57396267, assembly_id= 2253130;
+ENDSEQUENCE;
+
+PR.BHU58 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP58.D           : PR_MPD          , at = 0            , slot_id = 57402108, assembly_id= 2253132;
+  PR.BHU58.D          : PR_BHD          , at = 1.10279625   , slot_id = 57402109, assembly_id= 2253132;
+  PR.DHZ59.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57402111, assembly_id= 2253132;
+  PR.MP58.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57402110, assembly_id= 2253132;
+  PR.BHU58.F          : PR_BHF          , at = 3.30438875   , slot_id = 57402112, assembly_id= 2253132;
+  PR.MP58.F           : PR_MPF          , at = 4.403185     , slot_id = 57402113, assembly_id= 2253132;
+ENDSEQUENCE;
+
+PR.BHT59 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP59.F           : PR_MPF          , at = 0            , slot_id = 57396527, assembly_id= 2253134;
+  PR.BHT59.F          : PR_BHF          , at = 1.09879625   , slot_id = 57396528, assembly_id= 2253134;
+  PR.MP59.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57396529, assembly_id= 2253134;
+  PR.DHZ59.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57396532, assembly_id= 2253134;
+  PR.BHT59.D          : PR_BHD          , at = 3.30038875   , slot_id = 57396530, assembly_id= 2253134;
+  PR.MP59.D           : PR_MPD          , at = 4.403185     , slot_id = 57396531, assembly_id= 2253134;
+ENDSEQUENCE;
+
+PR.BHU60 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP60.D           : PR_MPD          , at = 0            , slot_id = 57402372, assembly_id= 2253136;
+  PR.BHU60.D          : PR_BHD          , at = 1.10279625   , slot_id = 57402373, assembly_id= 2253136;
+  PR.MP60.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57402374, assembly_id= 2253136;
+  PR.DHZ61.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57402375, assembly_id= 2253136;
+  PR.BHU60.F          : PR_BHF          , at = 3.30438875   , slot_id = 57402376, assembly_id= 2253136;
+  PR.MP60.F           : PR_MPF          , at = 4.403185     , slot_id = 57402377, assembly_id= 2253136;
+ENDSEQUENCE;
+
+PR.BHT61 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP61.F           : PR_MPF          , at = 0            , slot_id = 57396791, assembly_id= 2253138;
+  PR.BHT61.F          : PR_BHF          , at = 1.09879625   , slot_id = 57396792, assembly_id= 2253138;
+  PR.DHZ61.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57396796, assembly_id= 2253138;
+  PR.MP61.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57396793, assembly_id= 2253138;
+  PR.BHT61.D          : PR_BHD          , at = 3.30038875   , slot_id = 57396794, assembly_id= 2253138;
+  PR.MP61.D           : PR_MPD          , at = 4.403185     , slot_id = 57396795, assembly_id= 2253138;
+ENDSEQUENCE;
+
+PR.BHU62 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP62.D           : PR_MPD          , at = 0            , slot_id = 57402636, assembly_id= 2253140;
+  PR.BHU62.D          : PR_BHD          , at = 1.10279625   , slot_id = 57402637, assembly_id= 2253140;
+  PR.DHZ63.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57402639, assembly_id= 2253140;
+  PR.MP62.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57402638, assembly_id= 2253140;
+  PR.BHU62.F          : PR_BHF          , at = 3.30438875   , slot_id = 57402640, assembly_id= 2253140;
+  PR.MP62.F           : PR_MPF          , at = 4.403185     , slot_id = 57402641, assembly_id= 2253140;
+ENDSEQUENCE;
+
+PR.BHT63 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP63.F           : PR_MPF          , at = 0            , slot_id = 57397055, assembly_id= 2253142;
+  PR.BHT63.F          : PR_BHF          , at = 1.09879625   , slot_id = 57397056, assembly_id= 2253142;
+  PR.MP63.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57397057, assembly_id= 2253142;
+  PR.DHZ63.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57397060, assembly_id= 2253142;
+  PR.BHT63.D          : PR_BHD          , at = 3.30038875   , slot_id = 57397058, assembly_id= 2253142;
+  PR.MP63.D           : PR_MPD          , at = 4.403185     , slot_id = 57397059, assembly_id= 2253142;
+ENDSEQUENCE;
+
+PR.BHU64 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP64.D           : PR_MPD          , at = 0            , slot_id = 57402900, assembly_id= 2253144;
+  PR.BHU64.D          : PR_BHD          , at = 1.10279625   , slot_id = 57402901, assembly_id= 2253144;
+  PR.MP64.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57402902, assembly_id= 2253144;
+  PR.DHZ65.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57402903, assembly_id= 2253144;
+  PR.BHU64.F          : PR_BHF          , at = 3.30438875   , slot_id = 57402904, assembly_id= 2253144;
+  PR.MP64.F           : PR_MPF          , at = 4.403185     , slot_id = 57402905, assembly_id= 2253144;
+ENDSEQUENCE;
+
+PR.BHT65 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP65.F           : PR_MPF          , at = 0            , slot_id = 57397319, assembly_id= 2253146;
+  PR.BHT65.F          : PR_BHF          , at = 1.09879625   , slot_id = 57397320, assembly_id= 2253146;
+  PR.MP65.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57397321, assembly_id= 2253146;
+  PR.DHZ65.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57397324, assembly_id= 2253146;
+  PR.BHT65.D          : PR_BHD          , at = 3.30038875   , slot_id = 57397322, assembly_id= 2253146;
+  PR.MP65.D           : PR_MPD          , at = 4.403185     , slot_id = 57397323, assembly_id= 2253146;
+ENDSEQUENCE;
+
+PR.BHR66 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP66.D           : PR_MPD          , at = 0            , slot_id = 57409375, assembly_id= 2253148;
+  PR.BHR66.D          : PR_BHD          , at = 1.10279625   , slot_id = 57409376, assembly_id= 2253148;
+  PR.MP66.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57409377, assembly_id= 2253148;
+  PR.DHZ67.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57409378, assembly_id= 2253148;
+  PR.BHR66.F          : PR_BHF          , at = 3.30438875   , slot_id = 57409379, assembly_id= 2253148;
+  PR.MP66.F           : PR_MPF          , at = 4.403185     , slot_id = 57409380, assembly_id= 2253148;
+ENDSEQUENCE;
+
+PR.BHS67 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP67.F           : PR_MPF          , at = 0            , slot_id = 57415228, assembly_id= 2253150;
+  PR.BHS67.F          : PR_BHF          , at = 1.09879625   , slot_id = 57415229, assembly_id= 2253150;
+  PR.DHZ67.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57415231, assembly_id= 2253150;
+  PR.MP67.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57415230, assembly_id= 2253150;
+  PR.BHS67.D          : PR_BHD          , at = 3.30038875   , slot_id = 57415232, assembly_id= 2253150;
+  PR.MP67.D           : PR_MPD          , at = 4.403185     , slot_id = 57415233, assembly_id= 2253150;
+ENDSEQUENCE;
+
+PR.BHU68 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP68.D           : PR_MPD          , at = 0            , slot_id = 57403164, assembly_id= 2253152;
+  PR.BHU68.D          : PR_BHD          , at = 1.10279625   , slot_id = 57403165, assembly_id= 2253152;
+  PR.DHZ69.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57403167, assembly_id= 2253152;
+  PR.MP68.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57403166, assembly_id= 2253152;
+  PR.BHU68.F          : PR_BHF          , at = 3.30438875   , slot_id = 57403168, assembly_id= 2253152;
+  PR.MP68.F           : PR_MPF          , at = 4.403185     , slot_id = 57403169, assembly_id= 2253152;
+ENDSEQUENCE;
+
+PR.BHT69 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP69.F           : PR_MPF          , at = 0            , slot_id = 57397620, assembly_id= 2253154;
+  PR.BHT69.F          : PR_BHF          , at = 1.09879625   , slot_id = 57397621, assembly_id= 2253154;
+  PR.DHZ69.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57397625, assembly_id= 2253154;
+  PR.MP69.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57397622, assembly_id= 2253154;
+  PR.BHT69.D          : PR_BHD          , at = 3.30038875   , slot_id = 57397623, assembly_id= 2253154;
+  PR.MP69.D           : PR_MPD          , at = 4.403185     , slot_id = 57397624, assembly_id= 2253154;
+ENDSEQUENCE;
+
+PR.BHR70 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP70.D           : PR_MPD          , at = 0            , slot_id = 57409639, assembly_id= 2253156;
+  PR.BHR70.D          : PR_BHD          , at = 1.10279625   , slot_id = 57409640, assembly_id= 2253156;
+  PR.DHZ71.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57409642, assembly_id= 2253156;
+  PR.MP70.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57409641, assembly_id= 2253156;
+  PR.BHR70.F          : PR_BHF          , at = 3.30438875   , slot_id = 57409643, assembly_id= 2253156;
+  PR.MP70.F           : PR_MPF          , at = 4.403185     , slot_id = 57409644, assembly_id= 2253156;
+ENDSEQUENCE;
+
+PR.BHT71 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP71.F           : PR_MPF          , at = 0            , slot_id = 57397884, assembly_id= 2253158;
+  PR.BHT71.F          : PR_BHF          , at = 1.09879625   , slot_id = 57397885, assembly_id= 2253158;
+  PR.MP71.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57397886, assembly_id= 2253158;
+  PR.DHZ71.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57397889, assembly_id= 2253158;
+  PR.BHT71.D          : PR_BHD          , at = 3.30038875   , slot_id = 57397887, assembly_id= 2253158;
+  PR.MP71.D           : PR_MPD          , at = 4.403185     , slot_id = 57397888, assembly_id= 2253158;
+ENDSEQUENCE;
+
+PR.BHR72 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP72.D           : PR_MPD          , at = 0            , slot_id = 57409947, assembly_id= 2253160;
+  PR.BHR72.D          : PR_BHD          , at = 1.10279625   , slot_id = 57409948, assembly_id= 2253160;
+  PR.MP72.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57409949, assembly_id= 2253160;
+  PR.DHZ73.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57409950, assembly_id= 2253160;
+  PR.BHR72.F          : PR_BHF          , at = 3.30438875   , slot_id = 57409951, assembly_id= 2253160;
+  PR.MP72.F           : PR_MPF          , at = 4.403185     , slot_id = 57409952, assembly_id= 2253160;
+ENDSEQUENCE;
+
+PR.BHS73 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP73.F           : PR_MPF          , at = 0            , slot_id = 57415492, assembly_id= 2253162;
+  PR.BHS73.F          : PR_BHF          , at = 1.09879625   , slot_id = 57415493, assembly_id= 2253162;
+  PR.MP73.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57415494, assembly_id= 2253162;
+  PR.DHZ73.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57415495, assembly_id= 2253162;
+  PR.BHS73.D          : PR_BHD          , at = 3.30038875   , slot_id = 57415496, assembly_id= 2253162;
+  PR.MP73.D           : PR_MPD          , at = 4.403185     , slot_id = 57415497, assembly_id= 2253162;
+ENDSEQUENCE;
+
+PR.BHU74 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP74.D           : PR_MPD          , at = 0            , slot_id = 57403692, assembly_id= 2253164;
+  PR.BHU74.D          : PR_BHD          , at = 1.10279625   , slot_id = 57403693, assembly_id= 2253164;
+  PR.MP74.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57403694, assembly_id= 2253164;
+  PR.DHZ75.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57403695, assembly_id= 2253164;
+  PR.BHU74.F          : PR_BHF          , at = 3.30438875   , slot_id = 57403696, assembly_id= 2253164;
+  PR.MP74.F           : PR_MPF          , at = 4.403185     , slot_id = 57403697, assembly_id= 2253164;
+ENDSEQUENCE;
+
+PR.BHT75 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP75.F           : PR_MPF          , at = 0            , slot_id = 57398148, assembly_id= 2253166;
+  PR.BHT75.F          : PR_BHF          , at = 1.09879625   , slot_id = 57398149, assembly_id= 2253166;
+  PR.DHZ75.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57398153, assembly_id= 2253166;
+  PR.MP75.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57398150, assembly_id= 2253166;
+  PR.BHT75.D          : PR_BHD          , at = 3.30038875   , slot_id = 57398151, assembly_id= 2253166;
+  PR.MP75.D           : PR_MPD          , at = 4.403185     , slot_id = 57398152, assembly_id= 2253166;
+ENDSEQUENCE;
+
+PR.BHR76 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP76.D           : PR_MPD          , at = 0            , slot_id = 57410211, assembly_id= 2253168;
+  PR.BHR76.D          : PR_BHD          , at = 1.10279625   , slot_id = 57410212, assembly_id= 2253168;
+  PR.MP76.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57410213, assembly_id= 2253168;
+  PR.DHZ77.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57410214, assembly_id= 2253168;
+  PR.BHR76.F          : PR_BHF          , at = 3.30438875   , slot_id = 57410215, assembly_id= 2253168;
+  PR.MP76.F           : PR_MPF          , at = 4.403185     , slot_id = 57410216, assembly_id= 2253168;
+ENDSEQUENCE;
+
+PR.BHT77 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP77.F           : PR_MPF          , at = 0            , slot_id = 57398412, assembly_id= 2253170;
+  PR.BHT77.F          : PR_BHF          , at = 1.09879625   , slot_id = 57398413, assembly_id= 2253170;
+  PR.MP77.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57398414, assembly_id= 2253170;
+  PR.DHZ77.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57398417, assembly_id= 2253170;
+  PR.BHT77.D          : PR_BHD          , at = 3.30038875   , slot_id = 57398415, assembly_id= 2253170;
+  PR.MP77.D           : PR_MPD          , at = 4.403185     , slot_id = 57398416, assembly_id= 2253170;
+ENDSEQUENCE;
+
+PR.BHR78 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP78.D           : PR_MPD          , at = 0            , slot_id = 57410475, assembly_id= 2253172;
+  PR.BHR78.D          : PR_BHD          , at = 1.10279625   , slot_id = 57410476, assembly_id= 2253172;
+  PR.DHZ79.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57410478, assembly_id= 2253172;
+  PR.MP78.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57410477, assembly_id= 2253172;
+  PR.BHR78.F          : PR_BHF          , at = 3.30438875   , slot_id = 57410479, assembly_id= 2253172;
+  PR.MP78.F           : PR_MPF          , at = 4.403185     , slot_id = 57410480, assembly_id= 2253172;
+ENDSEQUENCE;
+
+PR.BHS79 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP79.F           : PR_MPF          , at = 0            , slot_id = 57415756, assembly_id= 2253174;
+  PR.BHS79.F          : PR_BHF          , at = 1.09879625   , slot_id = 57415757, assembly_id= 2253174;
+  PR.MP79.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57415758, assembly_id= 2253174;
+  PR.DHZ79.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57415759, assembly_id= 2253174;
+  PR.BHS79.D          : PR_BHD          , at = 3.30038875   , slot_id = 57415760, assembly_id= 2253174;
+  PR.MP79.D           : PR_MPD          , at = 4.403185     , slot_id = 57415761, assembly_id= 2253174;
+ENDSEQUENCE;
+
+PR.BHR80 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP80.D           : PR_MPD          , at = 0            , slot_id = 57410739, assembly_id= 2253176;
+  PR.BHR80.D          : PR_BHD          , at = 1.10279625   , slot_id = 57410740, assembly_id= 2253176;
+  PR.MP80.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57410741, assembly_id= 2253176;
+  PR.DHZ81.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57410742, assembly_id= 2253176;
+  PR.BHR80.F          : PR_BHF          , at = 3.30438875   , slot_id = 57410743, assembly_id= 2253176;
+  PR.MP80.F           : PR_MPF          , at = 4.403185     , slot_id = 57410744, assembly_id= 2253176;
+ENDSEQUENCE;
+
+PR.BHT81 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP81.F           : PR_MPF          , at = 0            , slot_id = 57398676, assembly_id= 2253178;
+  PR.BHT81.F          : PR_BHF          , at = 1.09879625   , slot_id = 57398677, assembly_id= 2253178;
+  PR.DHZ81.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57398681, assembly_id= 2253178;
+  PR.MP81.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57398678, assembly_id= 2253178;
+  PR.BHT81.D          : PR_BHD          , at = 3.30038875   , slot_id = 57398679, assembly_id= 2253178;
+  PR.MP81.D           : PR_MPD          , at = 4.403185     , slot_id = 57398680, assembly_id= 2253178;
+ENDSEQUENCE;
+
+PR.BHR82 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP82.D           : PR_MPD          , at = 0            , slot_id = 57411003, assembly_id= 2253180;
+  PR.BHR82.D          : PR_BHD          , at = 1.10279625   , slot_id = 57411004, assembly_id= 2253180;
+  PR.MP82.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57411005, assembly_id= 2253180;
+  PR.DHZ83.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57411006, assembly_id= 2253180;
+  PR.BHR82.F          : PR_BHF          , at = 3.30438875   , slot_id = 57411007, assembly_id= 2253180;
+  PR.MP82.F           : PR_MPF          , at = 4.403185     , slot_id = 57411008, assembly_id= 2253180;
+ENDSEQUENCE;
+
+PR.BHS83 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP83.F           : PR_MPF          , at = 0            , slot_id = 57416020, assembly_id= 2253182;
+  PR.BHS83.F          : PR_BHF          , at = 1.09879625   , slot_id = 57416021, assembly_id= 2253182;
+  PR.DHZ83.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57416023, assembly_id= 2253182;
+  PR.MP83.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57416022, assembly_id= 2253182;
+  PR.BHS83.D          : PR_BHD          , at = 3.30038875   , slot_id = 57416024, assembly_id= 2253182;
+  PR.MP83.D           : PR_MPD          , at = 4.403185     , slot_id = 57416025, assembly_id= 2253182;
+ENDSEQUENCE;
+
+PR.BHR84 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP84.D           : PR_MPD          , at = 0            , slot_id = 57411267, assembly_id= 2253184;
+  PR.BHR84.D          : PR_BHD          , at = 1.10279625   , slot_id = 57411268, assembly_id= 2253184;
+  PR.DHZ85.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57411270, assembly_id= 2253184;
+  PR.MP84.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57411269, assembly_id= 2253184;
+  PR.BHR84.F          : PR_BHF          , at = 3.30438875   , slot_id = 57411271, assembly_id= 2253184;
+  PR.MP84.F           : PR_MPF          , at = 4.403185     , slot_id = 57411272, assembly_id= 2253184;
+ENDSEQUENCE;
+
+PR.BHT85 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP85.F           : PR_MPF          , at = 0            , slot_id = 57398940, assembly_id= 2253186;
+  PR.BHT85.F          : PR_BHF          , at = 1.09879625   , slot_id = 57398941, assembly_id= 2253186;
+  PR.DHZ85.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57398945, assembly_id= 2253186;
+  PR.MP85.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57398942, assembly_id= 2253186;
+  PR.BHT85.D          : PR_BHD          , at = 3.30038875   , slot_id = 57398943, assembly_id= 2253186;
+  PR.MP85.D           : PR_MPD          , at = 4.403185     , slot_id = 57398944, assembly_id= 2253186;
+ENDSEQUENCE;
+
+PR.BHR86 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP86.D           : PR_MPD          , at = 0            , slot_id = 57411531, assembly_id= 2253188;
+  PR.BHR86.D          : PR_BHD          , at = 1.10279625   , slot_id = 57411532, assembly_id= 2253188;
+  PR.DHZ87.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57411534, assembly_id= 2253188;
+  PR.MP86.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57411533, assembly_id= 2253188;
+  PR.BHR86.F          : PR_BHF          , at = 3.30438875   , slot_id = 57411535, assembly_id= 2253188;
+  PR.MP86.F           : PR_MPF          , at = 4.403185     , slot_id = 57411536, assembly_id= 2253188;
+ENDSEQUENCE;
+
+PR.BHS87 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP87.F           : PR_MPF          , at = 0            , slot_id = 57416284, assembly_id= 2253190;
+  PR.BHS87.F          : PR_BHF          , at = 1.09879625   , slot_id = 57416285, assembly_id= 2253190;
+  PR.DHZ87.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57416287, assembly_id= 2253190;
+  PR.MP87.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57416286, assembly_id= 2253190;
+  PR.BHS87.D          : PR_BHD          , at = 3.30038875   , slot_id = 57416288, assembly_id= 2253190;
+  PR.MP87.D           : PR_MPD          , at = 4.403185     , slot_id = 57416289, assembly_id= 2253190;
+ENDSEQUENCE;
+
+PR.BHU88 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP88.D           : PR_MPD          , at = 0            , slot_id = 57403428, assembly_id= 2253192;
+  PR.BHU88.D          : PR_BHD          , at = 1.10279625   , slot_id = 57403429, assembly_id= 2253192;
+  PR.MP88.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57403430, assembly_id= 2253192;
+  PR.DHZ89.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57403431, assembly_id= 2253192;
+  PR.BHU88.F          : PR_BHF          , at = 3.30438875   , slot_id = 57403432, assembly_id= 2253192;
+  PR.MP88.F           : PR_MPF          , at = 4.403185     , slot_id = 57403433, assembly_id= 2253192;
+ENDSEQUENCE;
+
+PR.BHT89 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP89.F           : PR_MPF          , at = 0            , slot_id = 57399204, assembly_id= 2253194;
+  PR.BHT89.F          : PR_BHF          , at = 1.09879625   , slot_id = 57399205, assembly_id= 2253194;
+  PR.DHZ89.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57399209, assembly_id= 2253194;
+  PR.MP89.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57399206, assembly_id= 2253194;
+  PR.BHT89.D          : PR_BHD          , at = 3.30038875   , slot_id = 57399207, assembly_id= 2253194;
+  PR.MP89.D           : PR_MPD          , at = 4.403185     , slot_id = 57399208, assembly_id= 2253194;
+ENDSEQUENCE;
+
+PR.BHR90 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP90.D           : PR_MPD          , at = 0            , slot_id = 57411795, assembly_id= 2253196;
+  PR.BHR90.D          : PR_BHD          , at = 1.10279625   , slot_id = 57411796, assembly_id= 2253196;
+  PR.MP90.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57411797, assembly_id= 2253196;
+  PR.DHZ91.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57411798, assembly_id= 2253196;
+  PR.BHR90.F          : PR_BHF          , at = 3.30438875   , slot_id = 57411799, assembly_id= 2253196;
+  PR.MP90.F           : PR_MPF          , at = 4.403185     , slot_id = 57411800, assembly_id= 2253196;
+ENDSEQUENCE;
+
+PR.BHT91 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP91.F           : PR_MPF          , at = 0            , slot_id = 57399468, assembly_id= 2253198;
+  PR.BHT91.F          : PR_BHF          , at = 1.09879625   , slot_id = 57399469, assembly_id= 2253198;
+  PR.DHZ91.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57399473, assembly_id= 2253198;
+  PR.MP91.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57399470, assembly_id= 2253198;
+  PR.BHT91.D          : PR_BHD          , at = 3.30038875   , slot_id = 57399471, assembly_id= 2253198;
+  PR.MP91.D           : PR_MPD          , at = 4.403185     , slot_id = 57399472, assembly_id= 2253198;
+ENDSEQUENCE;
+
+PR.BHR92 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP92.D           : PR_MPD          , at = 0            , slot_id = 57412059, assembly_id= 2253200;
+  PR.BHR92.D          : PR_BHD          , at = 1.10279625   , slot_id = 57412060, assembly_id= 2253200;
+  PR.MP92.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57412061, assembly_id= 2253200;
+  PR.DHZ93.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57412062, assembly_id= 2253200;
+  PR.BHR92.F          : PR_BHF          , at = 3.30438875   , slot_id = 57412063, assembly_id= 2253200;
+  PR.MP92.F           : PR_MPF          , at = 4.403185     , slot_id = 57412064, assembly_id= 2253200;
+ENDSEQUENCE;
+
+PR.BHS93 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP93.F           : PR_MPF          , at = 0            , slot_id = 57416548, assembly_id= 2253202;
+  PR.BHS93.F          : PR_BHF          , at = 1.09879625   , slot_id = 57416549, assembly_id= 2253202;
+  PR.MP93.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57416550, assembly_id= 2253202;
+  PR.DHZ93.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57416551, assembly_id= 2253202;
+  PR.BHS93.D          : PR_BHD          , at = 3.30038875   , slot_id = 57416552, assembly_id= 2253202;
+  PR.MP93.D           : PR_MPD          , at = 4.403185     , slot_id = 57416553, assembly_id= 2253202;
+ENDSEQUENCE;
+
+PR.BHR94 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP94.D           : PR_MPD          , at = 0            , slot_id = 57412323, assembly_id= 2253204;
+  PR.BHR94.D          : PR_BHD          , at = 1.10279625   , slot_id = 57412324, assembly_id= 2253204;
+  PR.MP94.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57412325, assembly_id= 2253204;
+  PR.DHZ95.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57412326, assembly_id= 2253204;
+  PR.BHR94.F          : PR_BHF          , at = 3.30438875   , slot_id = 57412327, assembly_id= 2253204;
+  PR.MP94.F           : PR_MPF          , at = 4.403185     , slot_id = 57412328, assembly_id= 2253204;
+ENDSEQUENCE;
+
+PR.BHT95 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP95.F           : PR_MPF          , at = 0            , slot_id = 57399732, assembly_id= 2253206;
+  PR.BHT95.F          : PR_BHF          , at = 1.09879625   , slot_id = 57399733, assembly_id= 2253206;
+  PR.MP95.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57399734, assembly_id= 2253206;
+  PR.DHZ95.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57399737, assembly_id= 2253206;
+  PR.BHT95.D          : PR_BHD          , at = 3.30038875   , slot_id = 57399735, assembly_id= 2253206;
+  PR.MP95.D           : PR_MPD          , at = 4.403185     , slot_id = 57399736, assembly_id= 2253206;
+ENDSEQUENCE;
+
+PR.BHR96 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP96.D           : PR_MPD          , at = 0            , slot_id = 57412587, assembly_id= 2253208;
+  PR.BHR96.D          : PR_BHD          , at = 1.10279625   , slot_id = 57412588, assembly_id= 2253208;
+  PR.DHZ97.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57412590, assembly_id= 2253208;
+  PR.MP96.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57412589, assembly_id= 2253208;
+  PR.BHR96.F          : PR_BHF          , at = 3.30438875   , slot_id = 57412591, assembly_id= 2253208;
+  PR.MP96.F           : PR_MPF          , at = 4.403185     , slot_id = 57412592, assembly_id= 2253208;
+ENDSEQUENCE;
+
+PR.BHT97 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP97.F           : PR_MPF          , at = 0            , slot_id = 57399996, assembly_id= 2253210;
+  PR.BHT97.F          : PR_BHF          , at = 1.09879625   , slot_id = 57399997, assembly_id= 2253210;
+  PR.MP97.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57399998, assembly_id= 2253210;
+  PR.DHZ97.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57400001, assembly_id= 2253210;
+  PR.BHT97.D          : PR_BHD          , at = 3.30038875   , slot_id = 57399999, assembly_id= 2253210;
+  PR.MP97.D           : PR_MPD          , at = 4.403185     , slot_id = 57400000, assembly_id= 2253210;
+ENDSEQUENCE;
+
+PR.BHR98 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP98.D           : PR_MPD          , at = 0            , slot_id = 57412851, assembly_id= 2253212;
+  PR.BHR98.D          : PR_BHD          , at = 1.10279625   , slot_id = 57412852, assembly_id= 2253212;
+  PR.DHZ99.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57412854, assembly_id= 2253212;
+  PR.MP98.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57412853, assembly_id= 2253212;
+  PR.BHR98.F          : PR_BHF          , at = 3.30438875   , slot_id = 57412855, assembly_id= 2253212;
+  PR.MP98.F           : PR_MPF          , at = 4.403185     , slot_id = 57412856, assembly_id= 2253212;
+ENDSEQUENCE;
+
+PR.BHS99 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP99.F           : PR_MPF          , at = 0            , slot_id = 57416812, assembly_id= 2253214;
+  PR.BHS99.F          : PR_BHF          , at = 1.09879625   , slot_id = 57416813, assembly_id= 2253214;
+  PR.MP99.J           : PR_MPJ          , at = 2.1975925    , slot_id = 57416814, assembly_id= 2253214;
+  PR.DHZ99.B          : PR_DHZ          , at = 2.1975925    , slot_id = 57416815, assembly_id= 2253214;
+  PR.BHS99.D          : PR_BHD          , at = 3.30038875   , slot_id = 57416816, assembly_id= 2253214;
+  PR.MP99.D           : PR_MPD          , at = 4.403185     , slot_id = 57416817, assembly_id= 2253214;
+ENDSEQUENCE;
+
+PR.BHR00 : SEQUENCE, refer = CENTRE, L = 4.403185;
+  PR.MP00.D           : PR_MPD          , at = 0            , slot_id = 57413115, assembly_id= 2253216;
+  PR.BHR00.D          : PR_BHD          , at = 1.10279625   , slot_id = 57413116, assembly_id= 2253216;
+  PR.DHZ01.A          : PR_DHZ          , at = 2.2055925    , slot_id = 57413118, assembly_id= 2253216;
+  PR.MP00.J           : PR_MPJ          , at = 2.2055925    , slot_id = 57413117, assembly_id= 2253216;
+  PR.BHR00.F          : PR_BHF          , at = 3.30438875   , slot_id = 57413119, assembly_id= 2253216;
+  PR.MP00.F           : PR_MPF          , at = 4.403185     , slot_id = 57413120, assembly_id= 2253216;
+ENDSEQUENCE;
+
+
+/************************************************************************************/
+/*                       PS SECTORS                                                 */
+/************************************************************************************/
+
+SEC01 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS01                               , at = 0;
+ PR.BHT01                           , at = 3;
+ SS02                               , at = 7.403185;
+ PR.BHU02                           , at = 9.003185;
+ SS03                               , at = 13.40637;
+ PR.BHT03                           , at = 15.00637;
+ SS04                               , at = 19.409555;
+ PR.BHR04                           , at = 21.009555;
+ SS05                               , at = 25.41274;
+ PR.BHT05                           , at = 27.01274;
+ SS06                               , at = 31.415925;
+ PR.BHR06                           , at = 34.415925;
+ SS07                               , at = 38.81911;
+ PR.BHS07                           , at = 40.41911;
+ SS08                               , at = 44.822295;
+ PR.BHR08                           , at = 46.422295;
+ SS09                               , at = 50.82548;
+ PR.BHT09                           , at = 52.42548;
+ SS10                               , at = 56.828665;
+ PR.BHR10                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC02 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS11                               , at = 0;
+ PR.BHS11                           , at = 3;
+ SS12                               , at = 7.403185;
+ PR.BHR12                           , at = 9.003185;
+ SS13                               , at = 13.40637;
+ PR.BHS13                           , at = 15.00637;
+ SS14                               , at = 19.409555;
+ PR.BHU14                           , at = 21.009555;
+ SS15                               , at = 25.41274;
+ PR.BHT15                           , at = 27.01274;
+ SS16                               , at = 31.415925;
+ PR.BHU16                           , at = 34.415925;
+ SS17                               , at = 38.81911;
+ PR.BHT17                           , at = 40.41911;
+ SS18                               , at = 44.822295;
+ PR.BHU18                           , at = 46.422295;
+ SS19                               , at = 50.82548;
+ PR.BHS19                           , at = 52.42548;
+ SS20                               , at = 56.828665;
+ PR.BHR20                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC03 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS21                               , at = 0;
+ PR.BHT21                           , at = 3;
+ SS22                               , at = 7.403185;
+ PR.BHR22                           , at = 9.003185;
+ SS23                               , at = 13.40637;
+ PR.BHT23                           , at = 15.00637;
+ SS24                               , at = 19.409555;
+ PR.BHU24                           , at = 21.009555;
+ SS25                               , at = 25.41274;
+ PR.BHT25                           , at = 27.01274;
+ SS26                               , at = 31.415925;
+ PR.BHR26                           , at = 34.415925;
+ SS27                               , at = 38.81911;
+ PR.BHS27                           , at = 40.41911;
+ SS28                               , at = 44.822295;
+ PR.BHU28                           , at = 46.422295;
+ SS29                               , at = 50.82548;
+ PR.BHT29                           , at = 52.42548;
+ SS30                               , at = 56.828665;
+ PR.BHR30                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC04 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS31                               , at = 0;
+ PR.BHT31                           , at = 3;
+ SS32                               , at = 7.403185;
+ PR.BHR32                           , at = 9.003185;
+ SS33                               , at = 13.40637;
+ PR.BHS33                           , at = 15.00637;
+ SS34                               , at = 19.409555;
+ PR.BHR34                           , at = 21.009555;
+ SS35                               , at = 25.41274;
+ PR.BHT35                           , at = 27.01274;
+ SS36                               , at = 31.415925;
+ PR.BHR36                           , at = 34.415925;
+ SS37                               , at = 38.81911;
+ PR.BHT37                           , at = 40.41911;
+ SS38                               , at = 44.822295;
+ PR.BHR38                           , at = 46.422295;
+ SS39                               , at = 50.82548;
+ PR.BHT39                           , at = 52.42548;
+ SS40                               , at = 56.828665;
+ PR.BHU40                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC05 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS41                               , at = 0;
+ PR.BHT41                           , at = 3;
+ SS42                               , at = 7.403185;
+ PR.BHR42                           , at = 9.003185;
+ SS43                               , at = 13.40637;
+ PR.BHT43                           , at = 15.00637;
+ SS44                               , at = 19.409555;
+ PR.BHR44                           , at = 21.009555;
+ SS45                               , at = 25.41274;
+ PR.BHT45                           , at = 27.01274;
+ SS46                               , at = 31.415925;
+ PR.BHR46                           , at = 34.415925;
+ SS47                               , at = 38.81911;
+ PR.BHS47                           , at = 40.41911;
+ SS48                               , at = 44.822295;
+ PR.BHR48                           , at = 46.422295;
+ SS49                               , at = 50.82548;
+ PR.BHT49                           , at = 52.42548;
+ SS50                               , at = 56.828665;
+ PR.BHR50                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC06 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS51                               , at = 0;
+ PR.BHT51                           , at = 3;
+ SS52                               , at = 7.403185;
+ PR.BHR52                           , at = 9.003185;
+ SS53                               , at = 13.40637;
+ PR.BHS53                           , at = 15.00637;
+ SS54                               , at = 19.409555;
+ PR.BHR54                           , at = 21.009555;
+ SS55                               , at = 25.41274;
+ PR.BHT55                           , at = 27.01274;
+ SS56                               , at = 31.415925;
+ PR.BHU56                           , at = 34.415925;
+ SS57                               , at = 38.81911;
+ PR.BHT57                           , at = 40.41911;
+ SS58                               , at = 44.822295;
+ PR.BHU58                           , at = 46.422295;
+ SS59                               , at = 50.82548;
+ PR.BHT59                           , at = 52.42548;
+ SS60                               , at = 56.828665;
+ PR.BHU60                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC07 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS61                               , at = 0;
+ PR.BHT61                           , at = 3;
+ SS62                               , at = 7.403185;
+ PR.BHU62                           , at = 9.003185;
+ SS63                               , at = 13.40637;
+ PR.BHT63                           , at = 15.00637;
+ SS64                               , at = 19.409555;
+ PR.BHU64                           , at = 21.009555;
+ SS65                               , at = 25.41274;
+ PR.BHT65                           , at = 27.01274;
+ SS66                               , at = 31.415925;
+ PR.BHR66                           , at = 34.415925;
+ SS67                               , at = 38.81911;
+ PR.BHS67                           , at = 40.41911;
+ SS68                               , at = 44.822295;
+ PR.BHU68                           , at = 46.422295;
+ SS69                               , at = 50.82548;
+ PR.BHT69                           , at = 52.42548;
+ SS70                               , at = 56.828665;
+ PR.BHR70                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC08 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS71                               , at = 0;
+ PR.BHT71                           , at = 3;
+ SS72                               , at = 7.403185;
+ PR.BHR72                           , at = 9.003185;
+ SS73                               , at = 13.40637;
+ PR.BHS73                           , at = 15.00637;
+ SS74                               , at = 19.409555;
+ PR.BHU74                           , at = 21.009555;
+ SS75                               , at = 25.41274;
+ PR.BHT75                           , at = 27.01274;
+ SS76                               , at = 31.415925;
+ PR.BHR76                           , at = 34.415925;
+ SS77                               , at = 38.81911;
+ PR.BHT77                           , at = 40.41911;
+ SS78                               , at = 44.822295;
+ PR.BHR78                           , at = 46.422295;
+ SS79                               , at = 50.82548;
+ PR.BHS79                           , at = 52.42548;
+ SS80                               , at = 56.828665;
+ PR.BHR80                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC09 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS81                               , at = 0;
+ PR.BHT81                           , at = 3;
+ SS82                               , at = 7.403185;
+ PR.BHR82                           , at = 9.003185;
+ SS83                               , at = 13.40637;
+ PR.BHS83                           , at = 15.00637;
+ SS84                               , at = 19.409555;
+ PR.BHR84                           , at = 21.009555;
+ SS85                               , at = 25.41274;
+ PR.BHT85                           , at = 27.01274;
+ SS86                               , at = 31.415925;
+ PR.BHR86                           , at = 34.415925;
+ SS87                               , at = 38.81911;
+ PR.BHS87                           , at = 40.41911;
+ SS88                               , at = 44.822295;
+ PR.BHU88                           , at = 46.422295;
+ SS89                               , at = 50.82548;
+ PR.BHT89                           , at = 52.42548;
+ SS90                               , at = 56.828665;
+ PR.BHR90                           , at = 58.428665;
+ENDSEQUENCE;
+
+SEC10 : SEQUENCE, refer = ENTRY, L = 62.83185;
+ SS91                               , at = 0;
+ PR.BHT91                           , at = 3;
+ SS92                               , at = 7.403185;
+ PR.BHR92                           , at = 9.003185;
+ SS93                               , at = 13.40637;
+ PR.BHS93                           , at = 15.00637;
+ SS94                               , at = 19.409555;
+ PR.BHR94                           , at = 21.009555;
+ SS95                               , at = 25.41274;
+ PR.BHT95                           , at = 27.01274;
+ SS96                               , at = 31.415925;
+ PR.BHR96                           , at = 34.415925;
+ SS97                               , at = 38.81911;
+ PR.BHT97                           , at = 40.41911;
+ SS98                               , at = 44.822295;
+ PR.BHR98                           , at = 46.422295;
+ SS99                               , at = 50.82548;
+ PR.BHS99                           , at = 52.42548;
+ SS00                               , at = 56.828665;
+ PR.BHR00                           , at = 58.428665;
+ENDSEQUENCE;
+
+
+/************************************************************************************/
+/*                       PS SEQUENCE                                                */
+/************************************************************************************/
+
+
+PS : SEQUENCE, refer = ENTRY, L = 628.3185;
+ SEC01                              , at = 0;
+ SEC02                              , at = 62.83185;
+ SEC03                              , at = 125.6637;
+ SEC04                              , at = 188.49555;
+ SEC05                              , at = 251.3274;
+ SEC06                              , at = 314.15925;
+ SEC07                              , at = 376.9911;
+ SEC08                              , at = 439.82295;
+ SEC09                              , at = 502.6548;
+ SEC10                              , at = 565.48665;
+ENDSEQUENCE;
+
+
+/************************************************************************************/
+/*                       STRENGTH DEFINITIONS                                       */
+/************************************************************************************/
+
+  PR.BHT01.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU02.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT03.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR04.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT05.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR06.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS07.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR08.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT09.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR10.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS11.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR12.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS13.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU14.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT15.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU16.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT17.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU18.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS19.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR20.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT21.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR22.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT23.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU24.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT25.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR26.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS27.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU28.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT29.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR30.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT31.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR32.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS33.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR34.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT35.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR36.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT37.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR38.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT39.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU40.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT41.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR42.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT43.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR44.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT45.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR46.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS47.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR48.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT49.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR50.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT51.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR52.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS53.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR54.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT55.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU56.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT57.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU58.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT59.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU60.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT61.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU62.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT63.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU64.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT65.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR66.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS67.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU68.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT69.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR70.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT71.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR72.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS73.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU74.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT75.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR76.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT77.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR78.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS79.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR80.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT81.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR82.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS83.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR84.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT85.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR86.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS87.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHU88.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT89.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR90.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT91.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR92.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS93.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR94.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT95.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR96.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT97.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR98.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHS99.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHR00.D,                ANGLE := angle.PRBHD, K1 := k1PRBHD + k1PRPFWD + k1PRF8L, K2 := k2PRBHD + k2PRPFWD;
+  PR.BHT01.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU02.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT03.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR04.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT05.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR06.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS07.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR08.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT09.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR10.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS11.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR12.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS13.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU14.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT15.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU16.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT17.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU18.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS19.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR20.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT21.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR22.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT23.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU24.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT25.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR26.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS27.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU28.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT29.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR30.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT31.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR32.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS33.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR34.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT35.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR36.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT37.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR38.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT39.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU40.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT41.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR42.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT43.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR44.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT45.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR46.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS47.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR48.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT49.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR50.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT51.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR52.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS53.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR54.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT55.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU56.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT57.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU58.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT59.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU60.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT61.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU62.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT63.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU64.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT65.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR66.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS67.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU68.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT69.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR70.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT71.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR72.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS73.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU74.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT75.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR76.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT77.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR78.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS79.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR80.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT81.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR82.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS83.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR84.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT85.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR86.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS87.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHU88.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT89.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR90.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT91.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR92.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS93.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR94.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT95.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR96.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHT97.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR98.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHS99.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PR.BHR00.F,                ANGLE := angle.PRBHF, K1 := k1PRBHF + k1PRPFWF - k1PRF8L, K2 := k2PRBHF + k2PRPFWF;
+  PE.QKE16.05,               K1 := -kPEQKE16;
+  PE.QKE16.25,               K1 := kPEQKE16;
+  PI.QLB33,                  K1 := kPIQLB;
+  PI.QLB49,                  K1 := -kPIQLB;
+  PR.QDN00,                  K1 := kPRQDN00;
+  PR.QDN10,                  K1 := kPRQDN10;
+  PR.QDN36,                  K1 := kPRQDN36;
+  PR.QDN40,                  K1 := kPRQDN40;
+  PR.QDN46,                  K1 := kPRQDN46;
+  PR.QDN50,                  K1 := kPRQDN50;
+  PR.QDN68,                  K1 := kPRQDN68;
+  PR.QDN72,                  K1 := kPRQDN72;
+  PR.QDN78,                  K1 := kPRQDN78;
+  PR.QDN82,                  K1 := kPRQDN82;
+  PR.QDN86,                  K1 := kPRQDN86;
+  PR.QDN90,                  K1 := kPRQDN90;
+  PR.QDN96,                  K1 := kPRQDN96;
+  PR.QDW06,                  K1 := kPRQDW06;
+  PR.QDW18,                  K1 := kPRQDW18;
+  PR.QDW22,                  K1 := kPRQDW22;
+  PR.QDW28,                  K1 := kPRQDW28;
+  PR.QDW32,                  K1 := kPRQDW32;
+  PR.QDW56,                  K1 := kPRQDW56;
+  PR.QDW60,                  K1 := kPRQDW60;
+  PR.QFN05,                  K1 := kPRQFN05;
+  PR.QFN09,                  K1 := kPRQFN09;
+  PR.QFN21,                  K1 := kPRQFN21;
+  PR.QFN35,                  K1 := kPRQFN35;
+  PR.QFN39,                  K1 := kPRQFN39;
+  PR.QFN45,                  K1 := kPRQFN45;
+  PR.QFN49,                  K1 := kPRQFN49;
+  PR.QFN55,                  K1 := kPRQFN55;
+  PR.QFN67,                  K1 := kPRQFN67;
+  PR.QFN71,                  K1 := kPRQFN71;
+  PR.QFN77,                  K1 := kPRQFN77;
+  PR.QFN81,                  K1 := kPRQFN81;
+  PR.QFN85,                  K1 := kPRQFN85;
+  PR.QFN89,                  K1 := kPRQFN89;
+  PR.QFN95,                  K1 := kPRQFN95;
+  PR.QFN99,                  K1 := kPRQFN99;
+  PR.QFW17,                  K1 := kPRQFW17;
+  PR.QFW27,                  K1 := kPRQFW27;
+  PR.QFW31,                  K1 := kPRQFW31;
+  PR.QFW59,                  K1 := kPRQFW59;
+  PR.QSE29,                  K1 := kPRQSE;
+  PR.QSE87,                  K1 := kPRQSE;
+  PR.QTRDA19,                K1 := kPRQTRDA;
+  PR.QTRDA27,                K1 :=-kPRQTRDA;
+  PR.QTRDA87,                K1 :=-kPRQTRDA*0.90934;
+  PR.QTRDA95,                K1 := kPRQTRDA*0.90934;
+  PR.QTRDB29,                K1 :=-kPRQTRDB;
+  PR.QTRDB61,                K1 := kPRQTRDB;
+  PR.QTRDB37,                K1 := kPRQTRDB*0.90934;
+  PR.QTRDB69,                K1 :=-kPRQTRDB*0.90934;
+  PR.QTRTA49,                K1 := kPRQTRTA;
+  PR.QTRTA41,                K1 :=-kPRQTRTA*0.47968*PR.QTRTA49->L/PR.QTRTA41->L;
+  PR.QTRTA73,                K1 :=-kPRQTRTA*0.47968*PR.QTRTA49->L/PR.QTRTA41->L;
+  PR.QTRTB07,                K1 := kPRQTRTB;
+  PR.QTRTB99.A,              K1 :=-kPRQTRTB*0.47968*PR.QTRTA49->L/PR.QTRTA41->L;
+  PR.QTRTB99.B,              K1 :=-kPRQTRTB*0.47968*PR.QTRTA49->L/PR.QTRTA41->L;
+  PR.QSK03,                  K1S := kPRQSK03;
+  PR.QSK04,                  K1S := kPRQSK04;
+  PR.QSK07,                  K1S := kPRQSK07;
+  PR.QSK08,                  K1S := kPRQSK08;
+  PR.QSK19,                  K1S := kPRQSK19;
+  PR.QSK20,                  K1S := kPRQSK20;
+  PR.QSK23,                  K1S := kPRQSK23;
+  PR.QSK24,                  K1S := kPRQSK24;
+  PR.QSK29,                  K1S := kPRQSK29;
+  PR.QSK30,                  K1S := kPRQSK30;
+  PR.QSK33,                  K1S := kPRQSK33;
+  PR.QSK34,                  K1S := kPRQSK34;
+  PR.QSK37,                  K1S := kPRQSK37;
+  PR.QSK38,                  K1S := kPRQSK38;
+  PR.QSK41,                  K1S := kPRQSK41;
+  PR.QSK43,                  K1S := kPRQSK43;
+  PR.QSK44,                  K1S := kPRQSK44;
+  PR.QSK47,                  K1S := kPRQSK47;
+  PR.QSK48,                  K1S := kPRQSK48;
+  PR.QSK52,                  K1S := kPRQSK52;
+  PR.QSK53,                  K1S := kPRQSK53;
+  PR.QSK54,                  K1S := kPRQSK54;
+  PR.QSK57,                  K1S := kPRQSK57;
+  PR.QSK58,                  K1S := kPRQSK58;
+  PR.QSK69,                  K1S := kPRQSK69;
+  PR.QSK70,                  K1S := kPRQSK70;
+  PR.QSK73,                  K1S := kPRQSK73;
+  PR.QSK74,                  K1S := kPRQSK74;
+  PR.QSK79,                  K1S := kPRQSK79;
+  PR.QSK80,                  K1S := kPRQSK80;
+  PR.QSK83,                  K1S := kPRQSK83;
+  PR.QSK84,                  K1S := kPRQSK84;
+  PR.QSK87,                  K1S := kPRQSK87;
+  PR.QSK88,                  K1S := kPRQSK88;
+  PR.QSK91,                  K1S := kPRQSK91;
+  PR.QSK92,                  K1S := kPRQSK92;
+  PR.QSK93,                  K1S := kPRQSK93;
+  PR.QSK94,                  K1S := kPRQSK94;
+  PR.QSK97,                  K1S := kPRQSK97;
+  PR.QSK98,                  K1S := kPRQSK98;
+  PR.XNO60,                  K2 := kPRXNO;
+  PR.XNO94,                  K2 := kPRXNO;
+  PR.XNO39.A,                K2 := kPRXNO39;
+  PR.XNO39.B,                K2 := kPRXNO39;
+  PR.XNO55.A,                K2 := kPRXNO55;
+  PR.XNO55.B,                K2 := kPRXNO55;
+  PR.XSE01.A,                K2 := kPRXSE;
+  PR.XSE01.B,                K2 := kPRXSE;
+  PR.XSE07,                  K2 := kPRXSE*2.81682*PR.XSE01.A->L/PR.XSE07->L;
+  PR.XSK10,                  K2S := kPRXSK10;
+  PR.XSK14,                  K2S := kPRXSK14;
+  PR.XSK52,                  K2S := kPRXSK52;
+  PR.XSK58,                  K2S := kPRXSK58;
+  PR.ODN40,                  K3 := kPRODN;
+  PR.ODN50,                  K3 := kPRODN;
+  PR.ODN52.A,                K3 := kPRODN;
+  PR.ODN52.B,                K3 := kPRODN;
+  PR.ODN70.A,                K3 := kPRODN;
+  PR.ODN70.B,                K3 := kPRODN;
+  PR.ODN90,                  K3 := kPRODN;
+  PR.ODN00,                  K3 := kPRODN;
+  PR.ONO39,                  K3 := kPRONO39;
+  PR.ONO55,                  K3 := kPRONO55;
+  PE.BSW12,                  KICK := kPEBSW12;
+  PE.BSW14,                  KICK := kPEBSW14;
+  PE.BSW20,                  KICK := kPEBSW20;
+  PE.BSW22,                  KICK := kPEBSW22;
+  PE.BSW23.19,               KICK := kPEBSW23;
+  PE.BSW23.27,               KICK := kPEBSW23;
+  PE.BSW57.59,               KICK := kPEBSW57;
+  PE.BSW57.53,               KICK :=-kPEBSW57*1.06492*PE.BSW57.59->L/PE.BSW57.53->L;
+  PE.BSW57.67,               KICK := kPEBSW57*1.06492*PE.BSW57.59->L/PE.BSW57.67->L;
+  PE.BSW57.61,               KICK :=-kPEBSW57*1.19887*PE.BSW57.59->L/PE.BSW57.61->L;
+  PE.KFA04,                  KICK := kPEKFA04;
+  PE.KFA13,                  KICK := kPEKFA13;
+  PE.KFA21,                  KICK := kPEKFA21;
+  PE.KFA71,                  KICK := kPEKFA71;
+  PI.BSW26.22,               KICK := kPIBSW26;
+  PI.BSW26.30,               KICK := kPIBSW26;
+  PI.BSW40,                  KICK := kPIBSW40;
+  PI.BSW41,                  KICK := kPIBSW41;
+  PI.BSW42,                  KICK := kPIBSW42;
+  PI.BSW43,                  KICK := kPIBSW43;
+  PI.BSW44,                  KICK := kPIBSW44;
+  PI.KFA28,                  KICK := kPIKFA28;
+  PI.KFA45,                  KICK := kPIKFA45;
+  PR.DHZ01.B,                KICK := kPRDHZ01;
+  PR.DHZ01.A,                KICK := kPRDHZ01;
+  PR.DHZ03.A,                KICK := kPRDHZ03;
+  PR.DHZ03.B,                KICK := kPRDHZ03;
+  PR.DHZ05.A,                KICK := kPRDHZ05;
+  PR.DHZ05.B,                KICK := kPRDHZ05;
+  PR.DHZ07.A,                KICK := kPRDHZ07;
+  PR.DHZ07.B,                KICK := kPRDHZ07;
+  PR.DHZ09.A,                KICK := kPRDHZ09;
+  PR.DHZ09.B,                KICK := kPRDHZ09;
+  PR.DHZ11.A,                KICK := kPRDHZ11;
+  PR.DHZ11.B,                KICK := kPRDHZ11;
+  PR.DHZ13.A,                KICK := kPRDHZ13;
+  PR.DHZ13.B,                KICK := kPRDHZ13;
+  PR.DHZ15.A,                KICK := kPRDHZ15;
+  PR.DHZ15.B,                KICK := kPRDHZ15;
+  PR.DHZ17.A,                KICK := kPRDHZ17;
+  PR.DHZ17.B,                KICK := kPRDHZ17;
+  PR.DHZ19.A,                KICK := kPRDHZ19;
+  PR.DHZ19.B,                KICK := kPRDHZ19;
+  PR.DHZ21.A,                KICK := kPRDHZ21;
+  PR.DHZ21.B,                KICK := kPRDHZ21;
+  PR.DHZ23.A,                KICK := kPRDHZ23;
+  PR.DHZ23.B,                KICK := kPRDHZ23;
+  PR.DHZ25.A,                KICK := kPRDHZ25;
+  PR.DHZ25.B,                KICK := kPRDHZ25;
+  PR.DHZ27.A,                KICK := kPRDHZ27;
+  PR.DHZ27.B,                KICK := kPRDHZ27;
+  PR.DHZ29.A,                KICK := kPRDHZ29;
+  PR.DHZ29.B,                KICK := kPRDHZ29;
+  PR.DHZ31.A,                KICK := kPRDHZ31;
+  PR.DHZ31.B,                KICK := kPRDHZ31;
+  PR.DHZ33.A,                KICK := kPRDHZ33;
+  PR.DHZ33.B,                KICK := kPRDHZ33;
+  PR.DHZ35.A,                KICK := kPRDHZ35;
+  PR.DHZ35.B,                KICK := kPRDHZ35;
+  PR.DHZ37.A,                KICK := kPRDHZ37;
+  PR.DHZ37.B,                KICK := kPRDHZ37;
+  PR.DHZ39.A,                KICK := kPRDHZ39;
+  PR.DHZ39.B,                KICK := kPRDHZ39;
+  PR.DHZ41.A,                KICK := kPRDHZ41;
+  PR.DHZ41.B,                KICK := kPRDHZ41;
+  PR.DHZ43.A,                KICK := kPRDHZ43;
+  PR.DHZ43.B,                KICK := kPRDHZ43;
+  PR.DHZ45.A,                KICK := kPRDHZ45;
+  PR.DHZ45.B,                KICK := kPRDHZ45;
+  PR.DHZ47.A,                KICK := kPRDHZ47;
+  PR.DHZ47.B,                KICK := kPRDHZ47;
+  PR.DHZ49.A,                KICK := kPRDHZ49;
+  PR.DHZ49.B,                KICK := kPRDHZ49;
+  PR.DHZ51.A,                KICK := kPRDHZ51;
+  PR.DHZ51.B,                KICK := kPRDHZ51;
+  PR.DHZ53.A,                KICK := kPRDHZ53;
+  PR.DHZ53.B,                KICK := kPRDHZ53;
+  PR.DHZ55.A,                KICK := kPRDHZ55;
+  PR.DHZ55.B,                KICK := kPRDHZ55;
+  PR.DHZ57.A,                KICK := kPRDHZ57;
+  PR.DHZ57.B,                KICK := kPRDHZ57;
+  PR.DHZ59.A,                KICK := kPRDHZ59;
+  PR.DHZ59.B,                KICK := kPRDHZ59;
+  PR.DHZ61.A,                KICK := kPRDHZ61;
+  PR.DHZ61.B,                KICK := kPRDHZ61;
+  PR.DHZ63.A,                KICK := kPRDHZ63;
+  PR.DHZ63.B,                KICK := kPRDHZ63;
+  PR.DHZ65.A,                KICK := kPRDHZ65;
+  PR.DHZ65.B,                KICK := kPRDHZ65;
+  PR.DHZ67.A,                KICK := kPRDHZ67;
+  PR.DHZ67.B,                KICK := kPRDHZ67;
+  PR.DHZ69.A,                KICK := kPRDHZ69;
+  PR.DHZ69.B,                KICK := kPRDHZ69;
+  PR.DHZ71.A,                KICK := kPRDHZ71;
+  PR.DHZ71.B,                KICK := kPRDHZ71;
+  PR.DHZ73.A,                KICK := kPRDHZ73;
+  PR.DHZ73.B,                KICK := kPRDHZ73;
+  PR.DHZ75.A,                KICK := kPRDHZ75;
+  PR.DHZ75.B,                KICK := kPRDHZ75;
+  PR.DHZ77.A,                KICK := kPRDHZ77;
+  PR.DHZ77.B,                KICK := kPRDHZ77;
+  PR.DHZ79.A,                KICK := kPRDHZ79;
+  PR.DHZ79.B,                KICK := kPRDHZ79;
+  PR.DHZ81.A,                KICK := kPRDHZ81;
+  PR.DHZ81.B,                KICK := kPRDHZ81;
+  PR.DHZ83.A,                KICK := kPRDHZ83;
+  PR.DHZ83.B,                KICK := kPRDHZ83;
+  PR.DHZ85.A,                KICK := kPRDHZ85;
+  PR.DHZ85.B,                KICK := kPRDHZ85;
+  PR.DHZ87.A,                KICK := kPRDHZ87;
+  PR.DHZ87.B,                KICK := kPRDHZ87;
+  PR.DHZ89.A,                KICK := kPRDHZ89;
+  PR.DHZ89.B,                KICK := kPRDHZ89;
+  PR.DHZ91.A,                KICK := kPRDHZ91;
+  PR.DHZ91.B,                KICK := kPRDHZ91;
+  PR.DHZ93.A,                KICK := kPRDHZ93;
+  PR.DHZ93.B,                KICK := kPRDHZ93;
+  PR.DHZ95.A,                KICK := kPRDHZ95;
+  PR.DHZ95.B,                KICK := kPRDHZ95;
+  PR.DHZ97.A,                KICK := kPRDHZ97;
+  PR.DHZ97.B,                KICK := kPRDHZ97;
+  PR.DHZ99.A,                KICK := kPRDHZ99;
+  PR.DHZ99.B,                KICK := kPRDHZ99;
+  PR.DHZOC05,                KICK := kPRDHZOC05;
+  PR.DHZOC18,                KICK := kPRDHZOC18;
+  PR.DHZOC60,                KICK := kPRDHZOC60;
+  PR.DVT02,                  KICK := kPRDVT02;
+  PR.DVT04,                  KICK := kPRDVT04;
+  PR.DVT08,                  KICK := kPRDVT08;
+  PR.DVT12,                  KICK := kPRDVT12;
+  PR.DVT20,                  KICK := kPRDVT20;
+  PR.DVT22,                  KICK := kPRDVT22;
+  PR.DVT24,                  KICK := kPRDVT22;
+  PR.DVT30,                  KICK := kPRDVT22;
+  PR.DVT34,                  KICK := kPRDVT34;
+  PR.DVT38,                  KICK := kPRDVT38;
+  PR.DVT44,                  KICK := kPRDVT44;
+  PR.DVT54,                  KICK := kPRDVT54;
+  PR.DVT64,                  KICK := kPRDVT64;
+  PR.DVT70,                  KICK := kPRDVT70;
+  PR.DVT74,                  KICK := kPRDVT74;
+  PR.DVT76,                  KICK := kPRDVT76;
+  PR.DVT80,                  KICK := kPRDVT80;
+  PR.DVT88,                  KICK := kPRDVT88;
+  PR.DVT94,                  KICK := kPRDVT94;
+  PR.DVT98,                  KICK := kPRDVT98;
+  PR.MP01.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP02.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP03.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP04.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP05.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP06.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP07.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP08.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP09.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP10.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP11.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP12.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP13.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP14.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP15.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP16.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP17.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP18.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP19.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP20.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP21.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP22.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP23.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP24.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP25.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP26.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP27.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP28.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP29.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP30.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP31.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP32.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP33.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP34.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP35.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP36.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP37.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP38.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP39.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP40.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP41.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP42.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP43.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP44.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP45.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP46.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP47.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP48.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP49.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP50.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP51.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP52.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP53.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP54.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP55.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP56.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP57.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP58.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP59.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP60.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP61.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP62.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP63.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP64.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP65.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP66.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP67.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP68.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP69.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP70.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP71.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP72.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP73.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP74.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP75.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP76.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP77.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP78.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP79.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP80.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP81.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP82.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP83.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP84.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP85.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP86.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP87.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP88.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP89.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP90.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP91.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP92.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP93.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP94.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP95.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP96.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP97.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP98.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP99.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP00.D,                 KNL := {0, 0, k2PRMP, k3PRMPD+k3PRPFWD, k4PRMPD, k5PRMPD};
+  PR.MP01.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP02.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP03.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP04.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP05.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP06.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP07.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP08.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP09.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP10.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP11.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP12.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP13.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP14.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP15.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP16.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP17.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP18.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP19.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP20.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP21.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP22.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP23.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP24.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP25.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP26.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP27.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP28.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP29.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP30.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP31.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP32.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP33.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP34.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP35.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP36.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP37.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP38.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP39.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP40.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP41.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP42.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP43.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP44.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP45.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP46.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP47.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP48.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP49.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP50.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP51.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP52.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP53.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP54.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP55.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP56.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP57.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP58.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP59.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP60.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP61.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP62.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP63.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP64.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP65.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP66.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP67.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP68.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP69.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP70.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP71.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP72.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP73.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP74.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP75.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP76.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP77.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP78.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP79.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP80.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP81.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP82.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP83.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP84.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP85.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP86.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP87.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP88.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP89.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP90.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP91.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP92.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP93.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP94.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP95.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP96.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP97.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP98.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP99.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP00.F,                 KNL := {0, 0, k2PRMP, k3PRMPF+k3PRPFWF, k4PRMPF, k5PRMPF};
+  PR.MP01.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP02.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP03.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP04.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP05.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP06.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP07.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP08.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP09.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP10.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP11.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP12.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP13.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP14.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP15.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP16.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP17.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP18.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP19.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP20.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP21.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP22.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP23.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP24.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP25.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP26.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP27.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP28.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP29.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP30.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP31.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP32.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP33.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP34.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP35.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP36.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP37.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP38.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP39.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP40.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP41.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP42.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP43.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP44.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP45.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP46.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP47.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP48.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP49.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP50.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP51.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP52.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP53.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP54.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP55.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP56.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP57.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP58.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP59.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP60.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP61.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP62.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP63.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP64.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP65.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP66.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP67.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP68.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP69.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP70.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP71.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP72.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP73.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP74.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP75.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP76.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP77.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP78.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP79.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP80.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP81.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP82.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP83.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP84.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP85.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP86.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP87.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP88.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP89.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP90.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP91.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP92.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP93.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP94.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP95.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP96.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP97.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP98.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP99.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+  PR.MP00.J,                 KNL := {0, 0, k2PRMPJ, 0, k4PRMPJ, k5PRMPJ};
+
+  k1PRBHD             := -0.05711581728;
+  k1PRBHF             := 0.05705266952;
+  k1PRF8L             := 0;
+  k1PRPFWD            := 0;
+  k1PRPFWF            := 0;
+  k2PRBHD             := 0;
+  k2PRBHF             := 0;
+  k2PRMP              := -0.01858039299;
+  k2PRMPJ             := 0.03934772381;
+  k2PRPFWD            := 0;
+  k2PRPFWF            := 0;
+  k3PRMPD             := -0.13201484960;
+  k3PRMPF             := 0.05812457857;
+  k3PRPFWD            := 0;
+  k3PRPFWF            := 0;
+  k4PRMPD             := 0;
+  k4PRMPF             := 0;
+  k4PRMPJ             := 0;
+  k5PRMPD             := 0;
+  k5PRMPF             := 0;
+  k5PRMPJ             := 0;
+
+  angle.PRBHD         := 0.03147300489;
+  angle.PRBHF         := 0.03135884818;
+  kPRQDN10            := kd;
+  kPRQDN36            := kd;
+  kPRQDN40            := kd;
+  kPRQDN46            := kd;
+  kPRQDN50            := kd;
+  kPRQDN68            := kd;
+  kPRQDN72            := kd;
+  kPRQDN78            := kd;
+  kPRQDN82            := kd;
+  kPRQDN86            := kd;
+  kPRQDN90            := kd;
+  kPRQDN96            := kd;
+  kPRQDW06            := kd;
+  kPRQDW18            := kd;
+  kPRQDW22            := kd;
+  kPRQDW28            := kd;
+  kPRQDW32            := kd;
+  kPRQDW56            := kd;
+  kPRQDW60            := kd;
+  kPRQFN05            := kf;
+  kPRQFN09            := kf;
+  kPRQFN21            := kf;
+  kPRQFN35            := kf;
+  kPRQFN39            := kf;
+  kPRQFN45            := kf;
+  kPRQFN49            := kf;
+  kPRQFN55            := kf;
+  kPRQFN67            := kf;
+  kPRQFN71            := kf;
+  kPRQFN77            := kf;
+  kPRQFN81            := kf;
+  kPRQFN85            := kf;
+  kPRQFN89            := kf;
+  kPRQFN95            := kf;
+  kPRQFN99            := kf ;
+  kPRQFW17            := kf;
+  kPRQFW27            := kf;
+  kPRQFW31            := kf;
+  kPRQFW59            := kf;
+  kPRQSK03            := kfs;
+  kPRQSK04            := kds;
+  kPRQSK07            := kfs;
+  kPRQSK08            := kds;
+  kPRQSK19            := kfs;
+  kPRQSK20            := kds;
+  kPRQSK23            := kfs;
+  kPRQSK24            := kds;
+  kPRQSK29            := kfs;
+  kPRQSK30            := kds;
+  kPRQSK33            := kfs;
+  kPRQSK34            := kds;
+  kPRQSK37            := kfs;
+  kPRQSK38            := kds;
+  kPRQSK41            := kfs;
+  kPRQSK43            := kfs;
+  kPRQSK44            := kds;
+  kPRQSK47            := kfs;
+  kPRQSK48            := kds;
+  kPRQSK52            := kds;
+  kPRQSK53            := kfs;
+  kPRQSK54            := kds;
+  kPRQSK57            := kfs;
+  kPRQSK58            := kds;
+  kPRQSK69            := kfs;
+  kPRQSK70            := kds;
+  kPRQSK73            := kfs;
+  kPRQSK74            := kds;
+  kPRQSK79            := kfs;
+  kPRQSK80            := kds;
+  kPRQSK83            := kfs;
+  kPRQSK84            := kds;
+  kPRQSK87            := kfs;
+  kPRQSK88            := kds;
+  kPRQSK91            := kfs;
+  kPRQSK92            := kds;
+  kPRQSK93            := kfs;
+  kPRQSK94            := kds;
+  kPRQSK97            := kfs;
+  kPRQSK98            := kds;
+
+return;
+
+

@@ -10,6 +10,7 @@ import json
 from contextlib import contextmanager
 from copy import deepcopy
 from pprint import pformat
+from pathlib import Path
 from typing import List, Literal, Optional, Collection
 
 import numpy as np
@@ -707,8 +708,10 @@ class Line:
 
         """
 
-        assert self.tracker is None, 'The line already has an associated tracker'
-        import xtrack as xt  # avoid circular import
+        if self.tracker is not None:
+            _print('The line already has an associated tracker')
+            return self.tracker
+
         self.tracker = xt.Tracker(
                                 line=self,
                                 _context=_context,
@@ -974,7 +977,7 @@ class Line:
         delta0=None, zeta0=None,
         r_sigma=None, nemitt_x=None, nemitt_y=None,
         delta_disp=None, delta_chrom=None, zeta_disp=None,
-        particle_co_guess=None, steps_r_matrix=None,
+        co_guess=None, steps_r_matrix=None,
         co_search_settings=None, at_elements=None, at_s=None,
         continue_on_closed_orbit_error=None,
         freeze_longitudinal=None,
@@ -983,6 +986,7 @@ class Line:
         radiation_method=None,
         eneloss_and_damping=None,
         ele_start=None, ele_stop=None, twiss_init=None,
+        num_turns=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
         matrix_stability_tol=None,
@@ -1004,6 +1008,7 @@ class Line:
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
+        ele_co_search=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1246,21 +1251,23 @@ class Line:
                                 solver=solver, verbose=verbose,
                                 restore_if_fail=restore_if_fail)
 
-    def find_closed_orbit(self, particle_co_guess=None, particle_ref=None,
+    def find_closed_orbit(self, co_guess=None, particle_ref=None,
                           co_search_settings={}, delta_zeta=0,
                           delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
-                          ele_start=None, ele_stop=None):
+                          ele_start=None, ele_stop=None,
+                          num_turns=1,
+                          ele_co_search=None):
 
         """
         Find the closed orbit of the beamline.
 
         Parameters
         ----------
-        particle_co_guess : Particle
-            Particle used to compute the closed orbit. If None, the reference
-            particle is used.
+        co_guess : Particles or dict
+            Particle used as first guess to compute the closed orbit. If None,
+            the reference particle is used.
         particle_ref : Particle
             Particle used to compute the closed orbit. If None, the reference
             particle is used.
@@ -1285,6 +1292,11 @@ class Line:
         ele_stop : int or str
             Optional. It can be provided to find the periodic solution for
             a portion of the beamline.
+        num_turns : int
+            Number of turns to be used for the closed orbit search.
+        ele_co_search : int or str
+            Element at which the closed orbit search is performed. If None,
+            the closed orbit search is performed at the start of the line.
 
         Returns
         -------
@@ -1302,7 +1314,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        if particle_ref is None and particle_co_guess is None:
+        if particle_ref is None and co_guess is None:
             particle_ref = self.particle_ref
 
         if self.iscollective:
@@ -1314,11 +1326,12 @@ class Line:
         else:
             line = self
 
-        return find_closed_orbit_line(line, particle_co_guess=particle_co_guess,
+        return find_closed_orbit_line(line, co_guess=co_guess,
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                 ele_start=ele_start, ele_stop=ele_stop)
+                                 ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns,
+                                 ele_co_search=ele_co_search)
 
     def compute_T_matrix(self, ele_start=None, ele_stop=None,
                          particle_on_co=None, steps_t_matrix=None):
@@ -1446,6 +1459,7 @@ class Line:
             self, particle_on_co,
             steps_r_matrix=None,
             ele_start=None, ele_stop=None,
+            num_turns=1,
             element_by_element=False, only_markers=False):
 
         '''Compute the one turn matrix using finite differences.
@@ -1484,6 +1498,7 @@ class Line:
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
                         steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
+                        num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers)
 
@@ -3214,6 +3229,8 @@ class Line:
 
         '''
 
+        self._frozen_check()
+
         s_cuts = [ee[0] for ee in elements_to_insert]
         s_cuts = np.sort(s_cuts)
 
@@ -3237,8 +3254,6 @@ class Line:
             drift = self[name_drift]
             assert isinstance(drift, xt.Drift)
             _buffer = drift._buffer
-            if not isinstance(_buffer.context, xo.ContextCpu):
-                raise ValueError('Only supported on CPU') # GPU untested
             l_drift = drift.length
             s_start = tt_before_cut['s'][idr]
             s_end = s_start + l_drift
@@ -3759,25 +3774,47 @@ class LineVars:
         self._cache_active = value
         self.line._xdeps_manager._tree_frozen = value
 
-    def load_madx_optics_file(self, filename):
+    def set_from_madx_file(self, filename, mad_stdout=False):
+
+        '''
+        Set variables veluas of expression from a MAD-X file.
+
+        Parameters
+        ----------
+        filename : str or list of str
+            Path to the MAD-X file(s) to load.
+        mad_stdout : bool, optional
+            If True, the MAD-X output is printed to stdout.
+
+        Notes
+        -----
+        The MAD-X file is executed in a temporary MAD-X instance, and the
+        variables are copied to the line after the execution.
+        '''
+
         from cpymad.madx import Madx
-        mad = Madx()
+        mad = Madx(stdout=mad_stdout)
         mad.options.echo = False
         mad.options.info = False
         mad.options.warn = False
-        mad.call(str(filename))
+        if isinstance(filename, (str, Path)):
+            filename = [filename]
+        else:
+            assert isinstance(filename, (list, tuple))
+        for ff in filename:
+            mad.call(str(ff))
 
         assert self.cache_active is False, (
             'Cannot load optics file when cache is active')
 
         mad.input('''
-        elm: marker; seq: sequence, l=1; e:elm, at=0.5; endsequence;
-        beam; use,sequence=seq;''')
+        elm: marker; dummy: sequence, l=1; e:elm, at=0.5; endsequence;
+        beam; use,sequence=dummy;''')
 
         defined_vars = set(mad.globals.keys())
 
         xt.general._print.suppress = True
-        dummy_line = xt.Line.from_madx_sequence(mad.sequence.seq,
+        dummy_line = xt.Line.from_madx_sequence(mad.sequence.dummy,
                                                 deferred_expressions=True)
         xt.general._print.suppress = False
 
@@ -3785,11 +3822,22 @@ class LineVars:
             {kk: dummy_line._xdeps_vref._owner[kk] for kk in defined_vars})
         self.line._xdeps_manager.copy_expr_from(dummy_line._xdeps_manager, "vars")
 
-        for nn in self.line._xdeps_vref._owner.keys():
-            if (self.line._xdeps_vref[nn]._expr is None
-                and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
-                ):
-                self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner[nn]
+        try:
+            self.line._xdeps_vref._owner.default_factory = lambda: 0
+            allnames = list(self.line._xdeps_vref._owner.keys())
+            for nn in allnames:
+                if (self.line._xdeps_vref[nn]._expr is None
+                    and len(self.line._xdeps_vref[nn]._find_dependant_targets()) > 1 # always contain itself
+                    ):
+                    self.line._xdeps_vref[nn] = self.line._xdeps_vref._owner.get(nn, 0)
+        except Exception as ee:
+            self.line._xdeps_vref._owner.default_factory = None
+            raise ee
+
+        self.line._xdeps_vref._owner.default_factory = None
+
+    def load_madx_optics_file(self, filename, mad_stdout=False):
+        self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
 class VarValues:
 

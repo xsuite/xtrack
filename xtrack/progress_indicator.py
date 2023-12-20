@@ -48,7 +48,7 @@ class DefaultProgressIndicator:
         return self
 
     def __next__(self):
-        if self._iteration % self._update_interval == 0:
+        if self._total and self._iteration % self._update_interval == 0:
             self._print_progress()
 
         try:
@@ -61,6 +61,11 @@ class DefaultProgressIndicator:
             self._iteration += 1
 
     def _print_progress(self):
+        if self._total == 0:
+            # No meaningful progress over an empty collection
+            _print(f'{self.desc}: done (0 iterations).', end='\r', flush=True)
+            return
+
         percent = round(self._iteration * 100 / self._total)
         index = self._iteration * self._unit_scale
         scaled_total = self._total * self._unit_scale
@@ -87,8 +92,25 @@ def progress(iterable: Iterable, **options):
 
 
 try:
-    from tqdm import tqdm
-    # from tqdm.autonotebook import tqdm # to be enabled when tqdm is fixed
+    from tqdm.autonotebook import tqdm
+    from tqdm.notebook import tqdm_notebook
+
+    if tqdm is tqdm_notebook:  # tqdm determined we're in a notebook.
+        class PatchedTqdm(tqdm):
+            """Patched version of tqdm_notebook.
+
+            This patch is necessary, because notebook.tqdm has a bug. Until it
+            is fixed, this workaround makes it possible to use tqdm with
+            unit_scale in Jupyter.
+
+            See issue tqdm/tqdm#1399 and PRs tqdm/tqdm#1528 and tqdm/tqdm#1461.
+            """
+            def __init__(self, *args, **kwargs):
+                super(PatchedTqdm, self).__init__(*args, **kwargs)
+                self.container.children[1].max = self.total
+
+        tqdm = PatchedTqdm
+
     set_default_indicator(tqdm)
 except ModuleNotFoundError:
     pass
