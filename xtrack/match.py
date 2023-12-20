@@ -460,7 +460,16 @@ class Target(xd.Target):
         self._freeze_value = None
 
 class TargetSet(xd.TargetList):
-    def __init__(self, tars=None, action=None, **kwargs):
+    def __init__(self, tars=None, value=None, at=None, tol=None, weight=None,
+                 scale=None, line=None, action=None, tag='', optimize_log=False,
+                 **kwargs):
+
+        common_kwargs = locals().copy()
+        common_kwargs.pop('self')
+        common_kwargs.pop('kwargs')
+        common_kwargs.pop('tars')
+        common_kwargs.pop('value')
+
         vnames = []
         vvalues = []
         for kk in ALLOWED_TARGET_KWARGS:
@@ -468,11 +477,12 @@ class TargetSet(xd.TargetList):
                 vnames.append(kk)
                 vvalues.append(kwargs[kk])
                 kwargs.pop(kk)
+
         self.targets = []
         if tars is not None:
-            self.targets += [Target(tt, action=action, **kwargs) for tt in tars]
+            self.targets += [Target(tt, value=value, **common_kwargs) for tt in tars]
         self.targets += [
-            Target(tar=tar, value=val, action=action, **kwargs) for tar, val in zip(vnames, vvalues)]
+            Target(tar=tar, value=val, **common_kwargs) for tar, val in zip(vnames, vvalues)]
         if len(self.targets) == 0:
             raise ValueError('No targets specified')
 
