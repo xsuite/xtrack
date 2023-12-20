@@ -464,6 +464,44 @@ class TargetSet(xd.TargetList):
                  scale=None, line=None, action=None, tag='', optimize_log=False,
                  **kwargs):
 
+        """
+        TargetSet object for matching, specifying a set of targets to be matched.
+
+        Examples:
+
+        .. code-block:: python
+                TargetSet(['betx', 'bety'], 0.15, at='ip1', tol=1e-3)
+                TargetSet(betx=0.15, bety=0.2, at='ip1', tol=1e-3)
+
+        Parameters
+        ----------
+        tars : list, optional
+            List of quantities to be matched. Basic targets can also be
+            specified using keyword arguments.
+        value : float or xdeps.GreaterThan or xdeps.LessThan
+            Value to be matched. Inequality constraints can also be specified.
+        at : str, optional
+            Element at which the quantity is evaluated. Needs to be specified
+            if the quantity to be matched is not a scalar.
+        tol : float, optional
+            Tolerance below which the target is considered to be met.
+        weight : float, optional
+            Weight used for this target in the cost function.
+        line : Line, optional
+            Line in which the quantity is defined. Needs to be specified if the
+            match involves multiple lines.
+        action : Action, optional
+            Action used to compute the quantity to be matched. By default the
+            action is the Twiss action.
+        tag : str, optional
+            Tag associated to the target. Default is ''.
+        optimize_log : bool, optional
+            If True, the logarithm of the quantity is used in the cost function
+            instead of the quantity itself. Default is False.
+        """
+
+
+
         common_kwargs = locals().copy()
         common_kwargs.pop('self')
         common_kwargs.pop('kwargs')
