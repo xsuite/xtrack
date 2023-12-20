@@ -1,36 +1,35 @@
-import json
-import time
 import xtrack as xt
-import xpart as xp
 
 # Load a line and build a tracker
-with open('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json') as f:
-    dct = json.load(f)
-line = xt.Line.from_dict(dct['line'])
-line.particle_ref = xp.Particles.from_dict(dct['particle'])
+line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.json')
 line.build_tracker()
-
-# Tunes, chromaticities before matching
-tw_before = line.twiss()
-print('\nInitial twiss parameters')                                             #!skip-doc
-print(f"Qx = {tw_before['qx']:.5f} Qy = {tw_before['qy']:.5f} "
-      f"Q'x = {tw_before['dqx']:.5f} Q'y = {tw_before['dqy']:.5f}")
 
 # Match tunes and chromaticities to assigned values
 opt = line.match(
+    method='4d',
     vary=[
-        xt.VaryList(['kqtf.b1', 'kqtd.b1'], step=1e-8),
-        xt.Vary('ksf.b1', step=1e-8),
-        xt.Vary('ksd.b1', step=1e-8),
+        xt.VaryList(['kqtf.b1', 'kqtd.b1'], step=1e-8, tag='quad'),
+        xt.VaryList(['ksf.b1', 'ksd.b1'], step=1e-4, limits=[-0.1, 0.1], tag='sext'),
     ],
     targets = [
-        xt.Target('qx', 62.315, tol=1e-4),
-        xt.Target('qy', 60.325, tol=1e-4),
-        xt.Target('dqx', 10.0, tol=0.01),
-        xt.Target('dqy', 12.0, tol=0.01)])
+        xt.TargetSet(qx=62.315, qy=60.325, tol=1e-4, tag='tune'),
+        xt.TargetSet(dqx=10.0, dqy=12.0, tol=0.01, tag='chrom'),
+    ])
 
-# Tunes, chromaticities after matching
-tw_final = line.twiss()
-print('\nFinal twiss parameters')                                               #!skip-doc
-print(f"Qx = {tw_final['qx']:.5f} Qy = {tw_final['qy']:.5f} "
-      f"Q'x = {tw_final['dqx']:.2f} Q'y = {tw_final['dqy']:.2f}")
+# Inspect optimization outcome
+opt.target_status()
+opt.vary_status()
+# prints:
+#
+# Target status:
+# id state tag   tol_met      residue current_val target_val description
+#  0 ON    tune     True  1.50695e-06      62.315     62.315 'qx', val=62.315, tol=0.0001, weight=10)
+#  1 ON    tune     True   1.4591e-06      60.325     60.325 'qy', val=60.325, tol=0.0001, weight=10)
+#  2 ON    chrom    True -0.000211381     9.99979         10 'dqx', val=10, tol=0.01, weight=1)      
+#  3 ON    chrom    True  -0.00259168     11.9974         12 'dqy', val=12, tol=0.01, weight=1)      
+# Vary status:
+# id state tag  name    lower_limit  current_val upper_limit val_at_iter_0   step weight
+#  0 ON    quad kqtf.b1        None  4.27291e-05        None             0  1e-08      1
+#  1 ON    quad kqtd.b1        None -4.27329e-05        None             0  1e-08      1
+#  2 ON    sext ksf.b1         -0.1    0.0117773         0.1             0 0.0001      1
+#  3 ON    sext ksd.b1         -0.1   -0.0230563         0.1             0 0.0001      1

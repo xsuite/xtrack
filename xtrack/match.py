@@ -419,6 +419,32 @@ class Target(xd.Target):
 class Vary(xd.Vary):
     def __init__(self, name, container=None, limits=None, step=None, weight=None,
                  max_step=None, active=True, tag=''):
+        """
+        Vary object for matching.
+
+        Parameters
+        ----------
+        name : str
+            Name of the variable to be varied.
+        container : dict, optional
+            Container in which the variable is defined. If not specified,
+            line.vars is used.
+        limits : tuple or None, optional
+            Limits in which the variable is allowed to vary. Default is None.
+        step : float, optional
+            Step size used to compute the derivative of the cost function
+            with respect to the variable.
+        weight : float, optional
+            Weight used for this vary in the cost function.
+        max_step : float, optional
+            Maximum allowed change in the variable per iteration.
+        active : bool, optional
+            Whether the variable is active in the optimization. Default is True.
+        tag : str, optional
+            Tag associated to the variable. Default is ''.
+
+        """
+
         xd.Vary.__init__(self, name=name, container=container, limits=limits,
                          step=step, weight=weight, max_step=max_step, tag=tag,
                          active=active)
