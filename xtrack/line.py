@@ -1103,7 +1103,6 @@ class Line:
                     xt.Target('dqy', 12.0, tol=0.05)]
             )
 
-
         .. code-block:: python
 
             # Match a local orbit bump
