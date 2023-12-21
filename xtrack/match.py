@@ -73,7 +73,7 @@ class ActionTwiss(xd.Action):
                         f'`{kk}` cannot be specified for a Multiline match. '
                         f'Please specify provide a TwissInit object for each line instead.')
 
-        # Handle twiss_init from table or preserve
+        # Handle twiss_init from table
         if ismultiline:
             line_names = kwargs.get('lines', line.line_names)
             none_list = [None] * len(line_names)
@@ -109,24 +109,7 @@ class ActionTwiss(xd.Action):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
                 elif isinstance(twinit, str):
-                    assert twinit in (
-                        ['preserve', 'preserve_start', 'preserve_end', 'periodic'])
-                    if twinit in ['preserve', 'preserve_start', 'preserve_end']:
-                        full_twiss_kwargs = kwargs.copy()
-                        full_twiss_kwargs.pop('twiss_init')
-                        full_twiss_kwargs.pop('ele_start')
-                        full_twiss_kwargs.pop('ele_stop')
-                        if 'lines' in full_twiss_kwargs:
-                            full_twiss_kwargs.pop('lines')
-                        tab_twinit = table_for_twinit_list[ii]
-                        if tab_twinit is None:
-                            tab_twinit = line_list[ii].twiss(**full_twiss_kwargs)
-                        if (twinit == 'preserve' or twinit == 'preserve_start'):
-                            init_at = ele_start
-                        elif kwargs['twiss_init'] == 'preserve_end':
-                            init_at = ele_stop
-                        assert not isinstance(tab_twinit, xt.MultiTwiss)
-                        twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
+                    assert twinit == 'periodic'
 
         # Handle twiss_init from table
         for ii, (twinit, ele_start, ele_stop, ele_init, tab_twinit
