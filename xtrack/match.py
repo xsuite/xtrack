@@ -50,12 +50,11 @@ END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, allow_twiss_failure, table_for_twiss_init=None,
+    def __init__(self, line, allow_twiss_failure,
                  compensate_radiation_energy_loss=True,
                  **kwargs):
         self.line = line
         self.kwargs = kwargs
-        self.table_for_twiss_init = table_for_twiss_init
         self.allow_twiss_failure = allow_twiss_failure
         self.compensate_radiation_energy_loss = compensate_radiation_energy_loss
 
@@ -75,6 +74,8 @@ class ActionTwiss(xd.Action):
 
         # Handle twiss_init from table
         if ismultiline:
+            import pdb; pdb.set_trace()
+
             line_names = kwargs.get('lines', line.line_names)
             none_list = [None] * len(line_names)
             twinit_list = kwargs.get('twiss_init', none_list)
@@ -82,53 +83,49 @@ class ActionTwiss(xd.Action):
             ele_stop_list = kwargs.get('ele_stop', none_list)
             ele_init_list = kwargs.get('ele_init', none_list)
             line_list = [line[nn] for nn in line_names]
+
             assert isinstance(twinit_list, list)
             assert isinstance(ele_start_list, list)
             assert isinstance(ele_stop_list, list)
-            if self.table_for_twiss_init is not None:
-                if isinstance(self.table_for_twiss_init, xt.multiline.MultiTwiss):
-                    table_for_twinit_list = [self.table_for_twiss_init[nn] for nn in line_names]
-                else:
-                    assert isinstance(self.table_for_twiss_init, (list, tuple)), (
-                        'table_for_twiss_init for a Multiline match must be either a MultiTwiss, '
-                        'a list or a tuple')
-                    table_for_twinit_list = self.table_for_twiss_init
-            else:
-                table_for_twinit_list = [None] * len(twinit_list)
+
+            for ii, twinit in enumerate(twinit_list):
+                if isinstance(twinit, xt.MultiTwiss):
+                    twinit_list[ii] = twinit[line_names[ii]]
+
         else:
             twinit_list = [kwargs.get('twiss_init', None)]
             ele_start_list = [kwargs.get('ele_start', None)]
             ele_stop_list = [kwargs.get('ele_stop', None)]
             ele_init_list = [kwargs.get('ele_init', None)]
             line_list = [line]
-            table_for_twinit_list = [self.table_for_twiss_init]
 
             for ii, (twinit, ele_start, ele_stop, ele_init, tab_twinit
                     ) in enumerate(zip(twinit_list, ele_start_list, ele_stop_list,
-                                     ele_init_list, table_for_twinit_list)):
+                                     ele_init_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
                 elif isinstance(twinit, str):
                     assert twinit == 'periodic'
 
         # Handle twiss_init from table
-        for ii, (twinit, ele_start, ele_stop, ele_init, tab_twinit
-                ) in enumerate(zip(twinit_list, ele_start_list, ele_stop_list,
-                                   ele_init_list, table_for_twinit_list)):
-            if ele_init is not None and tab_twinit is not None:
+        for ii, (twinit, ele_start, ele_stop, ele_init) in enumerate(
+                zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
+            if isinstance(twinit, xt.TwissInit):
+                continue
+            elif isinstance(twinit, xt.TwissTable):
+                assert ele_init is not None
                 init_at = ele_init
-                assert not isinstance(tab_twinit, xt.MultiTwiss)
-                twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
+                twinit_list[ii] = twinit.get_twiss_init(at_element=init_at)
                 ele_init_list[ii] = None
+            else:
+                assert twinit is None or twinit == 'periodic'
 
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
-            if table_for_twinit_list[0] is not None:
-                kwargs.pop('ele_init')
             twiss_init = _complete_twiss_init(
-                    ele_start=kwargs.get('ele_start', None),
-                    ele_stop=kwargs.get('ele_stop', None),
-                    ele_init=kwargs.get('ele_init', None),
+                    ele_start=ele_start_list[0],
+                    ele_stop=ele_stop_list[0],
+                    ele_init=ele_init_list[0],
                     twiss_init=twinit_list[0],
                     line=line,
                     reverse=None, # will be handled by the twiss

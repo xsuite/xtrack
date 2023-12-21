@@ -12,7 +12,7 @@ opt = collider.match(
     ele_start=['mq.30l8.b1', 'mq.31l8.b2'],
     ele_stop=['mq.23l8.b1', 'mq.24l8.b2'],
     ele_init=['mq.30l8.b1', 'mq.31l8.b2'],
-    table_for_twiss_init=tw0,
+    twiss_init=tw0,
     vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1',
                       'acbv31.l8b2', 'acbv29.l8b2', 'acbv27.l8b2', 'acbv25.l8b2'],
                     step=1e-10, limits=[-1e-3, 1e-3]),
