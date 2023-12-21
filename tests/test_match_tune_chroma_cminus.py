@@ -183,20 +183,21 @@ def test_match_chroma_knob(test_context):
         targets = [xt.Target('dqx', 2.0, tol=1e-6),
                 xt.Target('dqy', 2.0, tol=1e-6)])
 
+    tw0 = line.twiss()
     line.match_knob('dqx.b1',
                 knob_value_start=2.0,
                 knob_value_end=3.0,
                 vary=[ xt.Vary('ksf.b1', step=1e-8), xt.Vary('ksd.b1', step=1e-8)],
                 targets=[
                     xt.Target('dqx', 3.0, tol=1e-6),
-                    xt.Target('dqy', 'preserve', tol=1e-6)])
+                    xt.Target('dqy', tw0, tol=1e-6)])
 
     line.match_knob('dqy.b1',
                 knob_value_start=2.0,
                 knob_value_end=3.0,
                 vary=[ xt.Vary('ksf.b1', step=1e-8), xt.Vary('ksd.b1', step=1e-8)],
                 targets=[
-                    xt.Target('dqx', 'preserve', tol=1e-6),
+                    xt.Target('dqx', tw0, tol=1e-6),
                     xt.Target('dqy', 3.0, tol=1e-6)])
 
     tw = line.twiss()
