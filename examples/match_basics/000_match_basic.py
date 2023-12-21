@@ -6,7 +6,7 @@ line.build_tracker()
 
 # Match tunes and chromaticities to assigned values
 opt = line.match(
-    method='4d',
+    method='4d', # <- passed to twiss
     vary=[
         xt.VaryList(['kqtf.b1', 'kqtd.b1'], step=1e-8, tag='quad'),
         xt.VaryList(['ksf.b1', 'ksd.b1'], step=1e-4, limits=[-0.1, 0.1], tag='sext'),
