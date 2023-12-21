@@ -105,6 +105,14 @@ class ActionTwiss(xd.Action):
                 elif isinstance(twinit, str):
                     assert twinit == 'periodic'
 
+        # Handle ele_init as xt.START or xt.END
+        for ii, ele_init in enumerate(ele_init_list):
+            if isinstance(ele_init, _LOC):
+                if ele_init.name == 'START':
+                    ele_init_list[ii] = ele_start_list[ii]
+                elif ele_init.name == 'END':
+                    ele_init_list[ii] = ele_stop_list[ii]
+
         # Handle twiss_init from table
         for ii, (twinit, ele_start, ele_stop, ele_init) in enumerate(
                 zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
