@@ -86,8 +86,8 @@ opt.target_status()
 # Target status:
 # id state tag   tol_met      residue current_val target_val description
 #  0 ON    tune     True -5.62885e-10      62.315     62.315 'qx', val=62.315, tol=1e-06, weight=10)
-#  1 ON    tune     True  2.67875e-11      60.325     60.325 'qy', val=60.325, tol=1e-06, weight=10)
-#  2 ON    chrom   False      14.9998     9.99984         -5 'dqx', val=-5, tol=0.01, weight=1)
+#  1 ON    tune    False        0.275      60.325      60.05 'qy', val=60.05, tol=1e-10, weight=10)
+#  2 ON    chrom    True -0.000156234     9.99984         10 'dqx', val=10, tol=0.01, weight=1)
 #  3 ON    chrom    True -9.81714e-07          12         12 'dqy', val=12, tol=0.01, weight=1)
 
 # Perform two optimization steps (without checking for convergence)
