@@ -414,10 +414,12 @@ def test_periodic_cell_twiss(test_context):
         mux_arc_target = tw['mux', end_arc] - tw['mux', start_arc]
         muy_arc_target = tw['muy', end_arc] - tw['muy', start_arc]
 
+        tw0 = line.twiss()
         tw_cell = line.twiss(
             ele_start=start_cell,
             ele_stop=end_cell,
-            twiss_init='preserve')
+            ele_init=xt.START,
+            twiss_init=tw0)
 
         assert tw_cell.method == '4d'
         assert 'dqx' not in tw_cell.keys() # check that periodic twiss is not used

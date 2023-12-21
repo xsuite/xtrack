@@ -429,9 +429,9 @@ def test_match_ir8_optics(test_context):
     opt = collider[f'lhcb1'].match(
         default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
         solve=False,
-        ele_start=f's.ds.l8.b1', ele_stop=f'e.ds.r8.b1',
+        ele_start=f's.ds.l8.b1', ele_stop=f'e.ds.r8.b1', ele_init=xt.START,
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
+        twiss_init=tab_boundary_left,
         targets=[
             xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
             xt.TargetSet(at=f'e.ds.r8.b1',
@@ -572,9 +572,9 @@ def test_match_ir8_optics(test_context):
     opt = collider[f'lhcb2'].match(
         default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
         solve=False,
-        ele_start=f's.ds.l8.b2', ele_stop=f'e.ds.r8.b2',
+        ele_start=f's.ds.l8.b2', ele_stop=f'e.ds.r8.b2', ele_init=xt.START,
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=tab_boundary_left,
+        twiss_init=tab_boundary_left,
         targets=[
             xt.TargetSet(at='ip8', betx=1.5, bety=1.5, alfx=0, alfy=0, dx=0, dpx=0),
             xt.TargetSet(at=xt.END,
