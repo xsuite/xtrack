@@ -74,7 +74,6 @@ class ActionTwiss(xd.Action):
 
         # Handle twiss_init from table
         if ismultiline:
-            import pdb; pdb.set_trace()
 
             line_names = kwargs.get('lines', line.line_names)
             none_list = [None] * len(line_names)
@@ -99,9 +98,8 @@ class ActionTwiss(xd.Action):
             ele_init_list = [kwargs.get('ele_init', None)]
             line_list = [line]
 
-            for ii, (twinit, ele_start, ele_stop, ele_init, tab_twinit
-                    ) in enumerate(zip(twinit_list, ele_start_list, ele_stop_list,
-                                     ele_init_list)):
+            for ii, (twinit, ele_start, ele_stop, ele_init) in enumerate(
+                    zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
                 elif isinstance(twinit, str):
