@@ -31,10 +31,11 @@ tw = line.twiss()
 mux_arc_target = tw['mux', end_arc] - tw['mux', start_arc]
 muy_arc_target = tw['muy', end_arc] - tw['muy', start_arc]
 
+tw0 = line.twiss()
 tw_cell = line.twiss(
     ele_start=start_cell,
     ele_stop=end_cell,
-    twiss_init='preserve')
+    twiss_init=tw0, ele_init=xt.START)
 
 tw_cell_periodic = line.twiss(
     method='4d',

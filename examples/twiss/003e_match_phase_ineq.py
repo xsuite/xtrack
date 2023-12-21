@@ -20,7 +20,7 @@ LessThan = xt.LessThan
 opt = line.match(
     solve=False,
     ele_start='ip1', ele_stop='ip1.l1',
-    twiss_init='preserve',
+    twiss_init=tw_before, ele_init=xt.START,
     vary=[
         xt.VaryList(['kqtf.b1', 'kqtd.b1'], step=1e-8),
     ],

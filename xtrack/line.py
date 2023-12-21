@@ -44,8 +44,7 @@ from .internal_record import (start_internal_logging_for_elements_of_type,
 
 from .general import _print
 
-# For xdeps compatibility
-isref = (xd.refs.isref if hasattr(xd.refs, 'isref') else xd.refs._isref)
+isref = xd.refs.is_ref
 
 log = logging.getLogger(__name__)
 

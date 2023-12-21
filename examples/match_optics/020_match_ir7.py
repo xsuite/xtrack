@@ -94,12 +94,12 @@ for i_repeat in range(1):
         collider.vars[nn]= vv
 
     t_start = time.perf_counter()
+    tw0 = collider.twiss()
     opt = collider.match(
         solve=False,
         ele_start=ele_start_match,
         ele_stop=ele_end_match,
-        table_for_twiss_init=[tw_ref],
-        twiss_init='preserve',
+        twiss_init=tw_ref, ele_init=xt.START,
         targets=[
             xt.TargetList(
                 ('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),

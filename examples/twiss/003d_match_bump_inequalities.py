@@ -16,13 +16,14 @@ tw_before = line.twiss()
 GreaterThan = xt.GreaterThan
 LessThan = xt.LessThan
 
+tw0 = line.twiss()
 opt = line.match(
     solve=False,
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions
     ele_start='mq.33l8.b1',
     ele_stop='mq.17l8.b1',
-    twiss_init='preserve',
+    twiss_init=tw0, ele_init=xt.START,
     # Dipole corrector strengths to be varied
     vary=[
         xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -35,7 +36,7 @@ opt = line.match(
         xt.Target('y', GreaterThan(2.7e-3), at='mb.b25l8.b1'),
         xt.Target('y', at='mq.24l8.b1', value=xt.LessThan(3e-3)),
         xt.Target('y', at='mq.26l8.b1', value=xt.LessThan(6e-3)),
-        xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value='preserve'),
+        xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value=tw0),
     ]
 )
 
@@ -99,14 +100,13 @@ tw_before = line.twiss()
 assert tw_before['y', 'mb.b26l8.b1'] < 1e-7
 assert tw_before['y', 'mb.b25l8.b1'] < 1e-7
 
-
 opt = line.match(
     solve=False,
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions
     ele_start='mq.33l8.b1',
     ele_stop='mq.17l8.b1',
-    twiss_init='preserve',
+    twiss_init=tw_before, ele_init=xt.START,
     # Dipole corrector strengths to be varied
     vary=[
         xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -119,7 +119,7 @@ opt = line.match(
         xt.Target('y', GreaterThan(2.7e-3, mode='smooth'), at='mb.b25l8.b1'),
         xt.Target('y', at='mq.24l8.b1', value=xt.LessThan(3e-3, mode='smooth', sigma_rel=0.04)),
         xt.Target('y', at='mq.26l8.b1', value=xt.LessThan(6e-3, mode='smooth')),
-        xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value='preserve'),
+        xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value=tw_before),
     ]
 )
 
