@@ -136,6 +136,7 @@ class ActionTwiss(xd.Action):
                 init_at = ele_init
                 assert not isinstance(tab_twinit, xt.MultiTwiss)
                 twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
+                ele_init_list[ii] = None
 
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
