@@ -158,7 +158,7 @@ class ActionTwiss(xd.Action):
                     ay_chrom=kwargs.get('ay_chrom', None),
                     by_chrom=kwargs.get('by_chrom', None),
                     )
-            for kk in VARS_FOR_TWISS_INIT_GENERATION:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION + ['ele_init']:
                 if kk in kwargs:
                     kwargs.pop(kk)
             twinit_list[0] = twiss_init
