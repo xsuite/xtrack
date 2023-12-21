@@ -456,6 +456,9 @@ def test_match_ir8_optics(test_context):
         ]
     )
 
+    # Initial knob values
+    init_knob_vals = opt.get_knob_values()
+
     assert opt.vary[8].name == 'kq4.l8b1'
     assert opt.vary[8].tag == 'stage1'
     assert opt.vary[8].step == 1.1e-6
@@ -634,10 +637,38 @@ def test_match_ir8_optics(test_context):
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
 
+    # Tag present state
+    knob_values_before_tag0 = opt.get_knob_values()
+    i_iter_tag0 = opt.log().iteration[-1]
+
     opt.step(10)
     assert opt.log()['penalty', -1] < 0.1
     assert opt.log()['target_active', -1] == 'yyyyyynnnnnnyy'
     assert opt.log()['vary_active', -1] == 'yyyyyyyynnnnnnnnnnnn'
+
+    # Tag present state
+    knob_values_before_tag1 = opt.get_knob_values()
+    opt.add_point_to_log(tag='mytag1')
+
+    ##### Check of reloading features #####
+
+    # Check that knobs have changed
+    assert np.any([knob_values_before_tag0[k] != knob_values_before_tag1[k]
+                     for k in knob_values_before_tag0])
+
+    # Reload with iteration number
+    opt.reload(iteration=i_iter_tag0)
+    knobs_now = opt.get_knob_values()
+    assert np.all([knobs_now[k] == knob_values_before_tag0[k]
+                        for k in knob_values_before_tag0])
+
+    # Reload with tag
+    opt.reload(tag='mytag1')
+    knobs_now = opt.get_knob_values()
+    assert np.all([knobs_now[k] == knob_values_before_tag1[k]
+                        for k in knob_values_before_tag1])
+
+    ##### Done checking reloading features #####
 
     opt.enable_vary(tag='stage1')
     opt.add_point_to_log()
@@ -690,3 +721,4 @@ def test_match_ir8_optics(test_context):
     assert np.isclose(tw.lhcb1['bety', 'ip2'], 10., atol=1e-5, rtol=0)
     assert np.isclose(tw.lhcb2['betx', 'ip2'], 10., atol=1e-5, rtol=0)
     assert np.isclose(tw.lhcb2['bety', 'ip2'], 10., atol=1e-5, rtol=0)
+
