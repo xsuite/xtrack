@@ -80,6 +80,7 @@ class ActionTwiss(xd.Action):
             twinit_list = kwargs.get('twiss_init', none_list)
             ele_start_list = kwargs.get('ele_start', none_list)
             ele_stop_list = kwargs.get('ele_stop', none_list)
+            ele_init_list = kwargs.get('ele_init', none_list)
             line_list = [line[nn] for nn in line_names]
             assert isinstance(twinit_list, list)
             assert isinstance(ele_start_list, list)
@@ -98,11 +99,13 @@ class ActionTwiss(xd.Action):
             twinit_list = [kwargs.get('twiss_init', None)]
             ele_start_list = [kwargs.get('ele_start', None)]
             ele_stop_list = [kwargs.get('ele_stop', None)]
+            ele_init_list = [kwargs.get('ele_init', None)]
             line_list = [line]
             table_for_twinit_list = [self.table_for_twiss_init]
 
-            for ii, (twinit, ele_start, ele_stop) in enumerate(zip(
-                    twinit_list, ele_start_list, ele_stop_list)):
+            for ii, (twinit, ele_start, ele_stop, ele_init, tab_twinit
+                    ) in enumerate(zip(twinit_list, ele_start_list, ele_stop_list,
+                                     ele_init_list, table_for_twinit_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
                 elif isinstance(twinit, str):
@@ -125,8 +128,19 @@ class ActionTwiss(xd.Action):
                         assert not isinstance(tab_twinit, xt.MultiTwiss)
                         twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
 
+        # Handle twiss_init from table
+        for ii, (twinit, ele_start, ele_stop, ele_init, tab_twinit
+                ) in enumerate(zip(twinit_list, ele_start_list, ele_stop_list,
+                                   ele_init_list, table_for_twinit_list)):
+            if ele_init is not None and tab_twinit is not None:
+                init_at = ele_init
+                assert not isinstance(tab_twinit, xt.MultiTwiss)
+                twinit_list[ii] = tab_twinit.get_twiss_init(at_element=init_at)
+
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
+            if table_for_twinit_list[0] is not None:
+                kwargs.pop('ele_init')
             twiss_init = _complete_twiss_init(
                     ele_start=kwargs.get('ele_start', None),
                     ele_stop=kwargs.get('ele_stop', None),
