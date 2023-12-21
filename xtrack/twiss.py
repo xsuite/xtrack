@@ -388,6 +388,17 @@ def twiss_line(line, particle_ref=None, method=None,
     if line.enable_time_dependent_vars:
         raise RuntimeError('Time dependent variables not supported in Twiss')
 
+    if isinstance(ele_init, xt.match._LOC):
+        if ele_init.name == 'START':
+            ele_init = ele_start
+        elif ele_init.name == 'END':
+            ele_init = ele_stop
+
+    if isinstance(twiss_init, TwissTable):
+        assert ele_init is not None
+        twiss_init = twiss_init.get_twiss_init(at_element=ele_init)
+        ele_init = None
+
     twiss_init = _complete_twiss_init(
         ele_start, ele_stop, ele_init, twiss_init,
         line, reverse,
@@ -431,10 +442,6 @@ def twiss_line(line, particle_ref=None, method=None,
             assert (_str_to_index(line, ele_start) >= _str_to_index(line, ele_stop)), (
                 'ele_start must be smaller than ele_stop in reverse mode')
         ele_start, ele_stop = ele_stop, ele_start
-        if twiss_init == 'preserve' or twiss_init == 'preserve_start':
-            twiss_init = 'preserve_end'
-        elif twiss_init == 'preserve_end':
-            twiss_init = 'preserve_start'
     else:
         if ele_start is not None and ele_stop is not None:
             assert _str_to_index(line, ele_start) <= _str_to_index(line, ele_stop), (
@@ -476,19 +483,12 @@ def twiss_line(line, particle_ref=None, method=None,
     assert method in ['6d', '4d'], 'Method must be `6d` or `4d`'
 
     if isinstance(twiss_init, str):
-        assert twiss_init in ['preserve', 'preserve_start', 'preserve_end', 'periodic']
+        if twiss_init in ['preserve', 'preserve_start', 'preserve_end']:
+            raise ValueError(f'twiss_init={twiss_init} not anymore supported')
+        assert twiss_init == 'periodic'
 
-    if twiss_init in ['preserve', 'preserve_start', 'preserve_end']:
-        # Twiss full machine with periodic boundary conditions
-        kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
-        kwargs.pop('twiss_init')
-        kwargs.pop('ele_start')
-        kwargs.pop('ele_stop')
-        tw0 = twiss_line(**kwargs)
-        if twiss_init == 'preserve' or twiss_init == 'preserve_start':
-            twiss_init = tw0.get_twiss_init(at_element=ele_start)
-        elif twiss_init == 'preserve_end':
-            twiss_init = tw0.get_twiss_init(at_element=ele_stop)
+
+
 
     if periodic:
 
