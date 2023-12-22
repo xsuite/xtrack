@@ -386,7 +386,7 @@ def rematch_ir2(collider, line_name,
         default_tol=default_tol,
         ele_start=f's.ds.l2.{bn}', ele_stop=f'e.ds.r2.{bn}',
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at=xt.END,
                     tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
@@ -445,7 +445,7 @@ def rematch_ir3(collider, line_name,
         solve=False,
         default_tol=default_tol,
         ele_start=f's.ds.l3.{bn}', ele_stop=f'e.ds.r3.{bn}',
-        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at='ip3',
                     alfx=alfx_ip3, alfy=alfy_ip3, betx=betx_ip3, bety=bety_ip3,
@@ -492,7 +492,7 @@ def rematch_ir4(collider, line_name,
         solve=False,
         default_tol=default_tol,
         ele_start=f's.ds.l4.{bn}', ele_stop=f'e.ds.r4.{bn}',
-        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at='ip4',
                     alfx=alfx_ip4, alfy=alfy_ip4, betx=betx_ip4, bety=bety_ip4,
@@ -542,7 +542,7 @@ def rematch_ir6(collider, line_name,
         default_tol=default_tol,
         ele_start=f's.ds.l6.{bn}', ele_stop=f'e.ds.r6.{bn}',
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at='ip6',
                     alfx=alfx_ip6, alfy=alfy_ip6, betx=betx_ip6, bety=bety_ip6,
@@ -585,7 +585,7 @@ def rematch_ir7(collider, line_name,
         default_tol=default_tol,
         ele_start=f's.ds.l7.{bn}', ele_stop=f'e.ds.r7.{bn}',
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at='ip7',
                     alfx=alfx_ip7, alfy=alfy_ip7, betx=betx_ip7, bety=bety_ip7,
@@ -635,7 +635,7 @@ def rematch_ir8(collider, line_name,
         default_tol=default_tol,
         ele_start=f's.ds.l8.{bn}', ele_stop=f'e.ds.r8.{bn}',
         # Left boundary
-        twiss_init='preserve_start', table_for_twiss_init=boundary_conditions_left,
+        twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at='ip8',
                     alfx=alfx_ip8, alfy=alfy_ip8, betx=betx_ip8, bety=bety_ip8,
