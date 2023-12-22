@@ -1013,12 +1013,22 @@ class Line:
         _keep_initial_particles=None,
         _initial_particles=None,
         _ebe_monitor=None,
+        ele_start='__discontinued__',
+        ele_stop='__discontinued__',
+        ele_init='__discontinued__',
+        twiss_init='__discontinued__'
         ):
 
         if not self._has_valid_tracker():
             self.build_tracker()
 
         tw_kwargs = locals().copy()
+
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                            ['start', 'end', 'init_at', 'init']):
+            if tw_kwargs[old] != '__discontinued__':
+                raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
+            tw_kwargs.pop(old)
 
         for kk, vv in self.twiss_default.items():
             if kk not in tw_kwargs.keys() or tw_kwargs[kk] is None:
@@ -1130,6 +1140,12 @@ class Line:
             )
 
         '''
+
+        for old, new in zip(['ele_start', 'ele_stop', 'ele_init', 'twiss_init'],
+                                ['start', 'end', 'init_at', 'init']):
+                if old in kwargs.keys():
+                    raise ValueError(f'`{old}` is deprecated. Please use `{new}`.')
+
         return match_line(self,
                         vary=vary, targets=targets, solve=solve,
                         assert_within_tol=assert_within_tol,
