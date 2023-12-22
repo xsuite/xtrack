@@ -8,7 +8,6 @@ collider.build_trackers()
 tw0 = collider.twiss(method='4d')
 
 opt = collider.match(
-    solve=False,
     lines=['lhcb1', 'lhcb2'],
     start=['e.ds.l5.b1', 'e.ds.l5.b2'],
     end=['s.ds.r5.b1', 's.ds.r5.b2'],
@@ -21,15 +20,14 @@ opt = collider.match(
         step=1e-10, limits=[-1e-3, 1e-3]),
     targets = [
         xt.Target(y=0, at='ip5', line='lhcb1'),
-        xt.Target('py', xt.GreaterThan(9e-6), at='ip5', line='lhcb1'),
-        xt.Target('py', xt.LessThan(  11e-6), at='ip5', line='lhcb1'),
+        xt.Target('py', xt.GreaterThan(9e-6), at='ip5', line='lhcb1'), # <-- inequality
+        xt.Target('py', xt.LessThan(  11e-6), at='ip5', line='lhcb1'), # <-- inequality
         xt.Target(y=0, at='ip5', line='lhcb2'),
         xt.Target(
             lambda tw: tw.lhcb1['py', 'ip5'] + tw.lhcb2['py', 'ip5'], value=0), # <-- callable
         xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb1'),
         xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb2')
     ])
-opt.solve()
 opt.target_status()
 
 # prints:
