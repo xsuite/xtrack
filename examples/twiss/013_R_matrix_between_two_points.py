@@ -17,8 +17,8 @@ line.build_tracker()
 
 tw = line.twiss()
 
-R_IP3_IP6 = tw.get_R_matrix(start=0, ele_stop='ip6')
-R_IP6_IP3 = tw.get_R_matrix(start='ip6', ele_stop=len(tw.name)-1)
+R_IP3_IP6 = tw.get_R_matrix(start=0, end='ip6')
+R_IP6_IP3 = tw.get_R_matrix(start='ip6', end=len(tw.name)-1)
 
 # # Checks
 R_prod = R_IP6_IP3 @ R_IP3_IP6
@@ -52,8 +52,8 @@ for i_mode in range(3):
 
 tw4d = line.twiss(method='4d', freeze_longitudinal=True)
 
-R_IP3_IP6_4d = tw4d.get_R_matrix(start=0, ele_stop='ip6')
-R_IP6_IP3_4d = tw4d.get_R_matrix(start='ip6', ele_stop=len(tw4d.name)-1)
+R_IP3_IP6_4d = tw4d.get_R_matrix(start=0, end='ip6')
+R_IP6_IP3_4d = tw4d.get_R_matrix(start='ip6', end=len(tw4d.name)-1)
 
 R_prod_4d = R_IP6_IP3_4d @ R_IP3_IP6_4d
 

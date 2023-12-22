@@ -214,12 +214,12 @@ print(
 #### check twiss ####
 tw1s = line.twiss(
     start="mq0",
-    ele_stop="mq3",
+    end="mq3",
     twiss_init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
 )
 tw2s = line.twiss(
     start="mq4",
-    ele_stop="mq7",
+    end="mq7",
     twiss_init=xt.TwissInit(betx=betMax2, bety=betMin2, element_name="mq4", line=line),
 )
 print(tw1s.cols["s", "betx", "bety", "alfx", "alfy"])
@@ -240,7 +240,7 @@ opt = line.match(
     default_tol={None: 5e-10},
     twiss_init=tw1s.get_twiss_init("mq0"),
     start=("mq0"),
-    ele_stop=("end"),
+    end=("end"),
     targets=[
         xt.Target(tar="alfx", value=tw2s.rows["mq6"]["alfx"][0], at="mq6"),
         xt.Target(tar="alfy", value=tw2s.rows["mq6"]["alfy"][0], at="mq6"),
@@ -255,7 +255,7 @@ print(opt.log())
 #### cross-check the final twiss ####
 tw3s = line.twiss(
     start="mq0",
-    ele_stop="end",
+    end="end",
     twiss_init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
 )
 print(tw3s.cols["s", "betx", "bety", "alfx", "alfy"])

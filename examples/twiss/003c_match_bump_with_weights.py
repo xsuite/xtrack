@@ -22,7 +22,7 @@ opt = line.match(
     solver='jacobian',
     # Portion of the beam line to be modified and initial conditions
     start='mq.33l8.b1',
-    ele_stop='mq.17l8.b1',
+    end='mq.17l8.b1',
     twiss_init=tw0, ele_init=xt.START,
     # Dipole corrector strengths to be varied
     vary=[

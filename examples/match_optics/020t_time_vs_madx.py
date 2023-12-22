@@ -105,7 +105,7 @@ t_start = time.perf_counter()
 collider.match(
     #verbose=True,
     start=ele_start_match,
-    ele_stop=ele_end_match,
+    end=ele_end_match,
     twiss_init=tw_init,
     targets=[
         xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3),

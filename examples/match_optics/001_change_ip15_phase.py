@@ -123,11 +123,11 @@ for bn in ['b1', 'b2']:
     dpx_ip8 = collider.varval[f'dpxip8{bn}']
 
     tw_sq_a81_ip1_a12 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
-            line_name=f'lhc{bn}', start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
+            line_name=f'lhc{bn}', start=f's.ds.r8.{bn}', end=f'e.ds.l2.{bn}',
             beta_star_x=betx_ip1, beta_star_y=bety_ip1)
 
     tw_sq_a45_ip5_a56 = lm.propagate_optics_from_beta_star(collider, ip_name='ip5',
-            line_name=f'lhc{bn}', start=f's.ds.r4.{bn}', ele_stop=f'e.ds.l6.{bn}',
+            line_name=f'lhc{bn}', start=f's.ds.r4.{bn}', end=f'e.ds.l6.{bn}',
             beta_star_x=betx_ip5, beta_star_y=bety_ip5)
 
     (mux_ir2_target, muy_ir2_target, mux_ir4_target, muy_ir4_target,
@@ -244,12 +244,12 @@ print(f'Time match orbit knobs: {t4-t3} s')
 
 # # Open twisses to debug
 # tw_b1_check = collider.lhcb1.twiss(
-#     start='ip1', ele_stop='ip1.l1',
+#     start='ip1', end='ip1.l1',
 #     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
 #                             line=collider.lhcb1))
 
 # tw_b2_check = collider.lhcb2.twiss(
-#     start='ip1', ele_stop='ip1.l1',
+#     start='ip1', end='ip1.l1',
 #     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
 #                             line=collider.lhcb2))
 

@@ -32,4 +32,4 @@ twiss_init = xt.twiss.TwissInit(
     element_name=line.element_names[0],
 )
 
-line.twiss(twiss_init=twiss_init, start=0, ele_stop=10000)
+line.twiss(twiss_init=twiss_init, start=0, end=10000)

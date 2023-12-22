@@ -42,19 +42,19 @@ def get_arc_periodic_solution(collider, line_name=None, arc_name=None):
 
     twinit_cell = line.twiss(
                 start=start_cell,
-                ele_stop=end_cell,
+                end=end_cell,
                 twiss_init='periodic',
                 only_twiss_init=True)
 
     tw_to_end_arc = line.twiss(
         start=twinit_cell.element_name,
-        ele_stop=end_arc,
+        end=end_arc,
         twiss_init=twinit_cell,
         )
 
     tw_to_start_arc = line.twiss(
         start=start_arc,
-        ele_stop=twinit_cell.element_name,
+        end=twinit_cell.element_name,
         twiss_init=twinit_cell)
 
     res = xt.TwissTable.concatenate([tw_to_start_arc, tw_to_end_arc])
@@ -162,7 +162,7 @@ def compute_ats_phase_advances_for_auxiliary_irs(line_name,
 
 def propagate_optics_from_beta_star(collider, ip_name, line_name,
                                     beta_star_x, beta_star_y,
-                                    start, ele_stop):
+                                    start, end):
 
     assert collider.lhcb1.twiss_default.get('reverse', False) is False
     assert collider.lhcb2.twiss_default['reverse'] is True
@@ -178,12 +178,12 @@ def propagate_optics_from_beta_star(collider, ip_name, line_name,
         ele_stop_left = ip_name
         ele_start_right = ip_name
 
-    tw_left = collider[line_name].twiss(start=start, ele_stop=ele_stop_left,
+    tw_left = collider[line_name].twiss(start=start, end=ele_stop_left,
                     twiss_init=xt.TwissInit(line=collider[line_name],
                                             element_name=ele_stop_left,
                                             betx=beta_star_x,
                                             bety=beta_star_y))
-    tw_right = collider[line_name].twiss(start=ele_start_right, ele_stop=ele_stop,
+    tw_right = collider[line_name].twiss(start=ele_start_right, end=end,
                         twiss_init=xt.TwissInit(line=collider[line_name],
                                                 element_name=ele_start_right,
                                                 betx=beta_star_x,
@@ -384,7 +384,7 @@ def rematch_ir2(collider, line_name,
     opt = collider[f'lhc{bn}'].match(
         solve=False,
         default_tol=default_tol,
-        start=f's.ds.l2.{bn}', ele_stop=f'e.ds.r2.{bn}',
+        start=f's.ds.l2.{bn}', end=f'e.ds.r2.{bn}',
         # Left boundary
         twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
@@ -444,7 +444,7 @@ def rematch_ir3(collider, line_name,
     opt = collider[f'lhc{bn}'].match(
         solve=False,
         default_tol=default_tol,
-        start=f's.ds.l3.{bn}', ele_stop=f'e.ds.r3.{bn}',
+        start=f's.ds.l3.{bn}', end=f'e.ds.r3.{bn}',
         twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at='ip3',
@@ -491,7 +491,7 @@ def rematch_ir4(collider, line_name,
     opt = collider[f'lhc{bn}'].match(
         solve=False,
         default_tol=default_tol,
-        start=f's.ds.l4.{bn}', ele_stop=f'e.ds.r4.{bn}',
+        start=f's.ds.l4.{bn}', end=f'e.ds.r4.{bn}',
         twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
             xt.TargetSet(at='ip4',
@@ -540,7 +540,7 @@ def rematch_ir6(collider, line_name,
     opt = collider[f'lhc{bn}'].match(
         solve=False,
         default_tol=default_tol,
-        start=f's.ds.l6.{bn}', ele_stop=f'e.ds.r6.{bn}',
+        start=f's.ds.l6.{bn}', end=f'e.ds.r6.{bn}',
         # Left boundary
         twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
@@ -583,7 +583,7 @@ def rematch_ir7(collider, line_name,
     opt = collider[f'lhc{bn}'].match(
         solve=False,
         default_tol=default_tol,
-        start=f's.ds.l7.{bn}', ele_stop=f'e.ds.r7.{bn}',
+        start=f's.ds.l7.{bn}', end=f'e.ds.r7.{bn}',
         # Left boundary
         twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
@@ -633,7 +633,7 @@ def rematch_ir8(collider, line_name,
     opt = collider[f'lhc{bn}'].match(
         solve=False,
         default_tol=default_tol,
-        start=f's.ds.l8.{bn}', ele_stop=f'e.ds.r8.{bn}',
+        start=f's.ds.l8.{bn}', end=f'e.ds.r8.{bn}',
         # Left boundary
         twiss_init=boundary_conditions_left, ele_init=xt.START,
         targets=[
@@ -710,11 +710,11 @@ def match_orbit_knobs_ip2_ip8(collider):
 
     bump_range_ip2 = {
         'start': ['s.ds.l2.b1', 's.ds.l2.b2'],
-        'ele_stop': ['e.ds.r2.b1', 'e.ds.r2.b2'],
+        'end': ['e.ds.r2.b1', 'e.ds.r2.b2'],
     }
     bump_range_ip8 = {
         'start': ['s.ds.l8.b1', 's.ds.l8.b2'],
-        'ele_stop': ['e.ds.r8.b1', 'e.ds.r8.b2'],
+        'end': ['e.ds.r8.b1', 'e.ds.r8.b2'],
     }
 
     correctors_ir2_single_beam_h = [

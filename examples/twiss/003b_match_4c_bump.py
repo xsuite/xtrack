@@ -16,7 +16,7 @@ tw_before = line.twiss()
 line.match(
     # Portion of the beam line to be modified and initial conditions
     start='mq.33l8.b1',
-    ele_stop='mq.23l8.b1',
+    end='mq.23l8.b1',
     twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
     # Dipole corrector strengths to be varied
     vary=[
@@ -87,7 +87,7 @@ line.vars['acbv24.l8b1'] = 0
 
 line.match(
     start='mq.33l8.b1',
-    ele_stop='mq.23l8.b1',
+    end='mq.23l8.b1',
     twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
     vary=[
         xt.Vary(name='acbv30.l8b1', step=1e-10),

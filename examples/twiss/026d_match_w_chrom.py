@@ -13,7 +13,7 @@ tw = line.twiss(only_markers=True)
 twiss_init = xt.TwissInit(betx=0.15, bety=0.15,
                            ax_chrom=42.7928, bx_chrom=-18.4181,
                            ay_chrom=-18.0191, by_chrom= 11.54862)
-tw_open = line.twiss(start='ip5', ele_stop='ip7', twiss_init=twiss_init,
+tw_open = line.twiss(start='ip5', end='ip7', twiss_init=twiss_init,
                         compute_chromatic_properties=True,
                         only_markers=True)
 

@@ -94,7 +94,7 @@ def test_ip_knob_matching(test_context):
         knob_value_start=0,
         knob_value_end=(angle_match * 1e6),
         start=['s.ds.l8.b1', 's.ds.l8.b2'],
-        ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
+        end=['e.ds.r8.b1', 'e.ds.r8.b2'],
         twiss_init=[xt.TwissInit(), xt.TwissInit()],
         targets=[
             xt.TargetSet(x=0, px=0, at=xt.END, line='lhcb1'),
@@ -248,7 +248,7 @@ def test_ip_knob_matching(test_context):
         knob_value_start=0,
         knob_value_end=(sep_match * 1e3),
         start=['s.ds.l8.b1', 's.ds.l8.b2'],
-        ele_stop=['e.ds.r8.b1', 'e.ds.r8.b2'],
+        end=['e.ds.r8.b1', 'e.ds.r8.b2'],
         twiss_init=[xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b1', line=collider.lhcb1),
                     xt.TwissInit(betx=1, bety=1, element_name='s.ds.l8.b2', line=collider.lhcb2)],
         targets=[
@@ -418,18 +418,18 @@ def test_match_ir8_optics(test_context):
     collider.varval['kq6.r8b1'] *= 1.1
 
     tab_boundary_right = collider.lhcb1.twiss(
-        start='ip8', ele_stop='ip1.l1',
+        start='ip8', end='ip1.l1',
         twiss_init=xt.TwissInit(element_name='ip1.l1', line=collider.lhcb1,
                                 betx=0.15, bety=0.15))
     tab_boundary_left = collider.lhcb1.twiss(
-        start='ip5', ele_stop='ip8',
+        start='ip5', end='ip8',
         twiss_init=xt.TwissInit(element_name='ip5', line=collider.lhcb1,
                                 betx=0.15, bety=0.15))
 
     opt = collider[f'lhcb1'].match(
         default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
         solve=False,
-        start=f's.ds.l8.b1', ele_stop=f'e.ds.r8.b1', ele_init=xt.START,
+        start=f's.ds.l8.b1', end=f'e.ds.r8.b1', ele_init=xt.START,
         # Left boundary
         twiss_init=tab_boundary_left,
         targets=[
@@ -561,18 +561,18 @@ def test_match_ir8_optics(test_context):
     collider.varval['kq6.r8b2'] *= 1.1
 
     tab_boundary_right = collider.lhcb2.twiss(
-        start='ip8', ele_stop='ip1.l1',
+        start='ip8', end='ip1.l1',
         twiss_init=xt.TwissInit(element_name='ip1.l1', line=collider.lhcb2,
                                 betx=0.15, bety=0.15))
     tab_boundary_left = collider.lhcb2.twiss(
-        start='ip5', ele_stop='ip8',
+        start='ip5', end='ip8',
         twiss_init=xt.TwissInit(element_name='ip5', line=collider.lhcb2,
                                 betx=0.15, bety=0.15))
 
     opt = collider[f'lhcb2'].match(
         default_tol={None: 1e-7, 'betx': 1e-6, 'bety': 1e-6},
         solve=False,
-        start=f's.ds.l8.b2', ele_stop=f'e.ds.r8.b2', ele_init=xt.START,
+        start=f's.ds.l8.b2', end=f'e.ds.r8.b2', ele_init=xt.START,
         # Left boundary
         twiss_init=tab_boundary_left,
         targets=[

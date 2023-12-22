@@ -271,7 +271,7 @@ def test_knl_ksl_in_twiss(test_context):
     tw_with_knl_ksl = line.twiss(strengths=True)
     tw_with_knl_ksl_part = line.twiss(strengths=True,
                         start='bpm.31l5.b1',
-                        ele_stop='bpm.31r5.b1',
+                        end='bpm.31r5.b1',
                         twiss_init=tw.get_twiss_init(at_element='bpm.31l5.b1'))
 
     for tt in [tw_with_knl_ksl, tw_with_knl_ksl_part]:
@@ -291,8 +291,8 @@ def test_get_R_matrix():
 
     tw = line.twiss()
 
-    R_IP3_IP6 = tw.get_R_matrix(start=0, ele_stop='ip6')
-    R_IP6_IP3 = tw.get_R_matrix(start='ip6', ele_stop=len(tw.name)-1)
+    R_IP3_IP6 = tw.get_R_matrix(start=0, end='ip6')
+    R_IP6_IP3 = tw.get_R_matrix(start='ip6', end=len(tw.name)-1)
 
     # # Checks
     R_prod = R_IP6_IP3 @ R_IP3_IP6
@@ -328,8 +328,8 @@ def test_get_R_matrix():
 
     tw4d = line.twiss(method='4d', freeze_longitudinal=True)
 
-    R_IP3_IP6_4d = tw4d.get_R_matrix(start=0, ele_stop='ip6')
-    R_IP6_IP3_4d = tw4d.get_R_matrix(start='ip6', ele_stop=len(tw4d.name)-1)
+    R_IP3_IP6_4d = tw4d.get_R_matrix(start=0, end='ip6')
+    R_IP6_IP3_4d = tw4d.get_R_matrix(start='ip6', end=len(tw4d.name)-1)
 
     R_prod_4d = R_IP6_IP3_4d @ R_IP3_IP6_4d
 
@@ -417,7 +417,7 @@ def test_periodic_cell_twiss(test_context):
         tw0 = line.twiss()
         tw_cell = line.twiss(
             start=start_cell,
-            ele_stop=end_cell,
+            end=end_cell,
             ele_init=xt.START,
             twiss_init=tw0)
 
@@ -432,7 +432,7 @@ def test_periodic_cell_twiss(test_context):
         tw_cell_periodic = line.twiss(
             method='4d',
             start=start_cell,
-            ele_stop=end_cell,
+            end=end_cell,
             twiss_init='periodic')
 
         assert tw_cell_periodic.method == '4d'
@@ -458,7 +458,7 @@ def test_periodic_cell_twiss(test_context):
 
         tw_to_end_arc = line.twiss(
             start=start_cell,
-            ele_stop=end_arc,
+            end=end_arc,
             twiss_init=twinit_start_cell)
         assert tw_to_end_arc.method == '4d'
         assert tw_to_end_arc.orientation == {'b1': 'forward', 'b2': 'backward'}[beam_name]
@@ -466,7 +466,7 @@ def test_periodic_cell_twiss(test_context):
 
         tw_to_start_arc = line.twiss(
             start=start_arc,
-            ele_stop=start_cell,
+            end=start_cell,
             twiss_init=twinit_start_cell)
         assert tw_to_start_arc.method == '4d'
         assert tw_to_start_arc.orientation == {'b1': 'backward', 'b2': 'forward'}[beam_name]
@@ -599,15 +599,15 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
         estop_user = 'ip7'
 
     if check == 'fw':
-        tw_test = line.twiss(start=estart_user, ele_stop=estop_user,
+        tw_test = line.twiss(start=estart_user, end=estop_user,
                                 twiss_init=tw_init_ip5)
         name_init = 'ip5'
     elif check == 'bw':
-        tw_test = line.twiss(start=estart_user, ele_stop=estop_user,
+        tw_test = line.twiss(start=estart_user, end=estop_user,
                                     twiss_init=tw_init_ip6)
         name_init = 'ip6'
     elif check == 'fw_kw':
-        tw_test = line.twiss(start=estart_user, ele_stop=estop_user,
+        tw_test = line.twiss(start=estart_user, end=estop_user,
                             ele_init='ip5',
                             x=tw['x', 'ip5'],
                             px=tw['px', 'ip5'],
@@ -634,7 +634,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
                                 )
         name_init = 'ip5'
     elif check == 'bw_kw':
-        tw_test = line.twiss(start=estart_user, ele_stop=estop_user,
+        tw_test = line.twiss(start=estart_user, end=estop_user,
                             ele_init='ip6',
                             x=tw['x', 'ip6'],
                             px=tw['px', 'ip6'],
@@ -1032,7 +1032,7 @@ def test_custom_twiss_init(test_context):
         mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
         bets=bets, reference_frame=reference_frame)
 
-    tw_test = line.twiss(start=ele_init, ele_stop='ip6', twiss_init=tw_init)
+    tw_test = line.twiss(start=ele_init, end='ip6', twiss_init=tw_init)
 
     assert tw_test.name[-1] == '_end_point'
     tw_part = tw.rows['e.cell.45.b1':'ip6']
@@ -1212,10 +1212,10 @@ def test_twiss_group_compounds(test_context):
     tw_comp_local = line.twiss(group_compound_elements=True,
                             twiss_init=tw_init_comp,
                             start='bi1.ksw16l1_entry',
-                            ele_stop='br.stscrap162_entry')
+                            end='br.stscrap162_entry')
     tw_local = line.twiss(twiss_init=tw_init,
                             start='bi1.ksw16l1_entry',
-                            ele_stop='br.stscrap162_entry')
+                            end='br.stscrap162_entry')
 
     for nn in tw_local._col_names:
         assert len(tw_local[nn]) == len(tw_local['name'])
@@ -1276,7 +1276,7 @@ def test_twiss_init_file(test_context):
         else:
             assert np.isclose(tw_init_loaded.__dict__[key], val,  atol=1e-9, rtol=0).all()
 
-    tw = line.twiss(start=location, ele_stop='ip7', twiss_init=tw_init_loaded)
+    tw = line.twiss(start=location, end='ip7', twiss_init=tw_init_loaded)
 
     check_vars = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy',
                     'mux', 'muy', 'x', 'y', 'px', 'py']
@@ -1336,7 +1336,7 @@ def test_custom_twiss_init(test_context):
                                 dx=dx0, dpx=dpx0, dy=dy0, dpy=dpy0,
                                 mux=mux0, muy=muy0, x=x0, px=px0, y=y0, py=py0)
 
-        tw = line.twiss(start=location, ele_stop='ip7', twiss_init=tw_init_custom)
+        tw = line.twiss(start=location, end='ip7', twiss_init=tw_init_custom)
 
         # Check at starting point
         assert np.isclose(tw['betx', location], betx0, atol=1e-9, rtol=0)
@@ -1392,7 +1392,7 @@ def test_custom_twiss_init(test_context):
                                 mux=mux0, muy=muy0, x=x0, px=px0, y=y0, py=py0
                                 )
 
-        tw = line.twiss(start='ip4', ele_stop=location, twiss_init=tw_init_custom)
+        tw = line.twiss(start='ip4', end=location, twiss_init=tw_init_custom)
 
         # Check at end point
         assert np.isclose(tw['betx', location], betx0, atol=1e-9, rtol=0)
@@ -1457,12 +1457,12 @@ def test_only_markers(test_context):
     tw_init_start = line.twiss().get_twiss_init('s.ds.l5.b1')
     tw_init_end = line.twiss().get_twiss_init('e.ds.r5.b1')
 
-    tw = line.twiss(start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_start)
-    tw2 = line.twiss(start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_end)
+    tw = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', twiss_init=tw_init_start)
+    tw2 = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', twiss_init=tw_init_end)
 
-    tw_mk = line.twiss(start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_start,
+    tw_mk = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', twiss_init=tw_init_start,
                     only_markers=True)
-    tw2_mk = line.twiss(start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_end,
+    tw2_mk = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', twiss_init=tw_init_end,
                         only_markers=True)
 
     # Check names are the right ones
@@ -1510,12 +1510,12 @@ def test_only_markers(test_context):
     tw_init_start = line.twiss().get_twiss_init('s.ds.l5.b2')
     tw_init_end = line.twiss().get_twiss_init('e.ds.r5.b2')
 
-    tw = line.twiss(start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_start)
-    tw2 = line.twiss(start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_end)
+    tw = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', twiss_init=tw_init_start)
+    tw2 = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', twiss_init=tw_init_end)
 
-    tw_mk = line.twiss(start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_start,
+    tw_mk = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', twiss_init=tw_init_start,
                     only_markers=True)
-    tw2_mk = line.twiss(start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_end,
+    tw2_mk = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', twiss_init=tw_init_end,
                         only_markers=True)
 
     # Check on b2 (with reverse)

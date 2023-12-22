@@ -115,7 +115,7 @@ tw0 = line.twiss()
 opt_bump = line.match(
     solve=False,
     method='4d',
-    start='mdv.52707', ele_stop='mdv.60107',
+    start='mdv.52707', end='mdv.60107',
     ele_init=xt.START, twiss_init=tw0,
     vary=[
         xt.VaryList(['mdv.52907.ksl0', 'mdv.53107.ksl0',
