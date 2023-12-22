@@ -7,7 +7,7 @@ line.build_tracker()
 tw0 = line.twiss(method='4d')
 
 opt = line.match(
-    ele_start='mq.30l8.b1', ele_stop='mq.23l8.b1', ele_init=xt.START,
+    ele_start='mq.30l8.b1', ele_stop='mq.23l8.b1',
     twiss_init=tw0,
     vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
                     step=1e-10, limits=[-1e-3, 1e-3]),

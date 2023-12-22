@@ -119,7 +119,8 @@ class ActionTwiss(xd.Action):
             if isinstance(twinit, xt.TwissInit):
                 continue
             elif isinstance(twinit, xt.TwissTable):
-                assert ele_init is not None
+                if ele_init is None:
+                    ele_init = ele_start
                 init_at = ele_init
                 twinit_list[ii] = twinit.get_twiss_init(at_element=init_at)
                 ele_init_list[ii] = None
@@ -715,7 +716,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
 
         # Handle value
         if isinstance(tt.value, xt.multiline.MultiTwiss):
-            tt.value=tt.value[tt.line][tt.tar]
+            tt.value=tt.value[line][tt.tar]
         if isinstance(tt.value, xt.TwissTable):
             tt.value=tt.value[tt.tar]
         if isinstance(tt.value, np.ndarray):

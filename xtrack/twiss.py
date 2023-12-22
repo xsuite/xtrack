@@ -395,7 +395,8 @@ def twiss_line(line, particle_ref=None, method=None,
             ele_init = ele_stop
 
     if isinstance(twiss_init, TwissTable):
-        assert ele_init is not None
+        if ele_init is None:
+            ele_init = ele_start
         twiss_init = twiss_init.get_twiss_init(at_element=ele_init)
         ele_init = None
 
