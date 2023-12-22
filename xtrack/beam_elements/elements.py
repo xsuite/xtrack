@@ -2540,7 +2540,7 @@ class SecondOrderTaylorMap(BeamElement):
     }
 
     @classmethod
-    def from_line(cls, line, ele_start, ele_stop, twiss_table=None,
+    def from_line(cls, line, start, ele_stop, twiss_table=None,
                   **kwargs):
 
         '''
@@ -2552,7 +2552,7 @@ class SecondOrderTaylorMap(BeamElement):
         ----------
         line : Line
             A `Line` object.
-        ele_start : str
+        start : str
             Name of the element where the map starts.
         ele_stop : str
             Name of the element where the map stops.
@@ -2571,13 +2571,13 @@ class SecondOrderTaylorMap(BeamElement):
         else:
             tw = twiss_table
 
-        twinit = tw.get_twiss_init(ele_start)
+        twinit = tw.get_twiss_init(start)
         twinit_out = tw.get_twiss_init(ele_stop)
 
         RR = line.compute_one_turn_matrix_finite_differences(
-            ele_start=ele_start, ele_stop=ele_stop, particle_on_co=twinit.particle_on_co
+            start=start, ele_stop=ele_stop, particle_on_co=twinit.particle_on_co
             )['R_matrix']
-        TT = line.compute_T_matrix(ele_start=ele_start, ele_stop=ele_stop,
+        TT = line.compute_T_matrix(start=start, ele_stop=ele_stop,
                                     particle_on_co=twinit.particle_on_co)
 
         x_co_in = np.array([
@@ -2606,7 +2606,7 @@ class SecondOrderTaylorMap(BeamElement):
         RR_hat = RR - 2 * R_T_fd
 
         smap = cls(R=RR_hat, T=TT, k=K_hat,
-                   length=tw['s', ele_stop] - tw['s', ele_start],
+                   length=tw['s', ele_stop] - tw['s', start],
                    **kwargs)
 
         return smap

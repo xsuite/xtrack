@@ -78,7 +78,7 @@ class ActionTwiss(xd.Action):
             line_names = kwargs.get('lines', line.line_names)
             none_list = [None] * len(line_names)
             twinit_list = kwargs.get('twiss_init', none_list)
-            ele_start_list = kwargs.get('ele_start', none_list)
+            ele_start_list = kwargs.get('start', none_list)
             ele_stop_list = kwargs.get('ele_stop', none_list)
             ele_init_list = kwargs.get('ele_init', none_list)
             line_list = [line[nn] for nn in line_names]
@@ -93,12 +93,12 @@ class ActionTwiss(xd.Action):
 
         else:
             twinit_list = [kwargs.get('twiss_init', None)]
-            ele_start_list = [kwargs.get('ele_start', None)]
+            ele_start_list = [kwargs.get('start', None)]
             ele_stop_list = [kwargs.get('ele_stop', None)]
             ele_init_list = [kwargs.get('ele_init', None)]
             line_list = [line]
 
-            for ii, (twinit, ele_start, ele_stop, ele_init) in enumerate(
+            for ii, (twinit, start, ele_stop, ele_init) in enumerate(
                     zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
@@ -114,13 +114,13 @@ class ActionTwiss(xd.Action):
                     ele_init_list[ii] = ele_stop_list[ii]
 
         # Handle twiss_init from table
-        for ii, (twinit, ele_start, ele_stop, ele_init) in enumerate(
+        for ii, (twinit, start, ele_stop, ele_init) in enumerate(
                 zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
             if isinstance(twinit, xt.TwissInit):
                 continue
             elif isinstance(twinit, xt.TwissTable):
                 if ele_init is None:
-                    ele_init = ele_start
+                    ele_init = start
                 init_at = ele_init
                 twinit_list[ii] = twinit.get_twiss_init(at_element=init_at)
                 ele_init_list[ii] = None
@@ -130,7 +130,7 @@ class ActionTwiss(xd.Action):
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
             twiss_init = _complete_twiss_init(
-                    ele_start=ele_start_list[0],
+                    start=ele_start_list[0],
                     ele_stop=ele_stop_list[0],
                     ele_init=ele_init_list[0],
                     twiss_init=twinit_list[0],
@@ -611,11 +611,11 @@ class TargetInequality(Target):
 
 class TargetRelPhaseAdvance(Target):
 
-    def __init__(self, tar, value, ele_stop=None, ele_start=None, tag='',  **kwargs):
+    def __init__(self, tar, value, ele_stop=None, start=None, tag='',  **kwargs):
 
         """
         Target object for matching the relative phase advance between two
-        elements in a line computed as mu(ele_stop) - mu(ele_start).
+        elements in a line computed as mu(ele_stop) - mu(start).
 
         Parameters
         ----------
@@ -628,7 +628,7 @@ class TargetRelPhaseAdvance(Target):
         ele_stop : str, optional
             Final element at which the phase advance is evaluated. Default is the
             last element of the line.
-        ele_start : str, optional
+        start : str, optional
             Initali wlement at which the phase advance is evaluated. Default is the
             first element of the line.
         tol : float, optional
@@ -648,13 +648,13 @@ class TargetRelPhaseAdvance(Target):
         self.var = tar
         if ele_stop is None:
             ele_stop = '__ele_stop__'
-        if ele_start is None:
-            ele_start = '__ele_start__'
+        if start is None:
+            start = '__ele_start__'
         self.ele_stop = ele_stop
-        self.ele_start = ele_start
+        self.start = start
 
     def __repr__(self):
-        return f'TargetPhaseAdv({self.var}({self.ele_stop} - {self.ele_start}), val={self.value}, tol={self.tol}, weight={self.weight})'
+        return f'TargetPhaseAdv({self.var}({self.ele_stop} - {self.start}), val={self.value}, tol={self.tol}, weight={self.weight})'
 
     def compute(self, tw):
 
@@ -663,10 +663,10 @@ class TargetRelPhaseAdvance(Target):
         else:
             mu_1 = tw[self.var, self.ele_stop]
 
-        if self.ele_start == '__ele_start__':
+        if self.start == '__ele_start__':
             mu_0 = tw[self.var, 0]
         else:
-            mu_0 = tw[self.var, self.ele_start]
+            mu_0 = tw[self.var, self.start]
 
         return mu_1 - mu_0
 
@@ -711,7 +711,7 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
             tt_at = _at_from_placeholder(tt_at, line=line, line_name=tt.line,
-                    ele_start=kwargs['ele_start'], ele_stop=kwargs['ele_stop'])
+                    start=kwargs['start'], ele_stop=kwargs['ele_stop'])
             tt.tar = (tt_name, tt_at)
 
         # Handle value
@@ -810,7 +810,7 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
                 zeta=tw_ref['zeta', corr['start']],
                 delta=tw_ref['delta', corr['start']],
             ),
-            ele_start=corr['start'], ele_stop=corr['end'])
+            start=corr['start'], ele_stop=corr['end'])
 
 def match_knob_line(line, knob_name, vary, targets, knob_value_start,
                     knob_value_end, run=True, **kwargs):
@@ -888,12 +888,12 @@ class KnobOptimizer:
 
         _print('Generated knob: ', self.knob_name)
 
-def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
+def _at_from_placeholder(tt_at, line, line_name, start, ele_stop):
     assert isinstance(tt_at, _LOC)
     if isinstance(line, xt.Multiline):
         assert line is not None, (
             'For a Multiline, the line must be specified if the target '
-            'is `ele_start`')
+            'is `start`')
         assert line_name in line.line_names
         i_line = line.line_names.index(line_name)
         this_line = line[line_name]
@@ -902,9 +902,9 @@ def _at_from_placeholder(tt_at, line, line_name, ele_start, ele_stop):
         this_line = line
     if tt_at.name == 'START':
         if i_line is not None:
-            tt_at = ele_start[i_line]
+            tt_at = start[i_line]
         else:
-            tt_at = ele_start
+            tt_at = start
     elif tt_at.name == 'END':
         if i_line is not None:
             tt_at = ele_stop[i_line]

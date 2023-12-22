@@ -984,7 +984,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
-        ele_start=None, ele_stop=None, twiss_init=None,
+        start=None, ele_stop=None, twiss_init=None,
         num_turns=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
@@ -1108,7 +1108,7 @@ class Line:
             tw_before = line.twiss()
 
             line.match(
-                ele_start='mq.33l8.b1',
+                start='mq.33l8.b1',
                 ele_stop='mq.23l8.b1',
                 twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
                 vary=[
@@ -1277,7 +1277,7 @@ class Line:
                           delta0=None, zeta0=None,
                           continue_on_closed_orbit_error=False,
                           freeze_longitudinal=False,
-                          ele_start=None, ele_stop=None,
+                          start=None, ele_stop=None,
                           num_turns=1,
                           ele_co_search=None):
 
@@ -1307,7 +1307,7 @@ class Line:
         freeze_longitudinal : bool
             If True, the longitudinal coordinates are frozen during the closed
             orbit search.
-        ele_start : int or str
+        start : int or str
             Optional. It can be provided to find the periodic solution for
             a portion of the beamline.
         ele_stop : int or str
@@ -1351,10 +1351,10 @@ class Line:
                                  particle_ref=particle_ref, delta0=delta0, zeta0=zeta0,
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
-                                 ele_start=ele_start, ele_stop=ele_stop, num_turns=num_turns,
+                                 start=start, ele_stop=ele_stop, num_turns=num_turns,
                                  ele_co_search=ele_co_search)
 
-    def compute_T_matrix(self, ele_start=None, ele_stop=None,
+    def compute_T_matrix(self, start=None, ele_stop=None,
                          particle_on_co=None, steps_t_matrix=None):
 
         """
@@ -1362,7 +1362,7 @@ class Line:
 
         Parameters
         ----------
-        ele_start : int or str
+        start : int or str
             Element at which the computation starts.
         ele_stop : int or str
             Element at which the computation stops.
@@ -1380,7 +1380,7 @@ class Line:
 
         self._check_valid_tracker()
 
-        return compute_T_matrix_line(self, ele_start=ele_start, ele_stop=ele_stop,
+        return compute_T_matrix_line(self, start=start, ele_stop=ele_stop,
                                 particle_on_co=particle_on_co,
                                 steps_t_matrix=steps_t_matrix)
 
@@ -1479,7 +1479,7 @@ class Line:
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None,
-            ele_start=None, ele_stop=None,
+            start=None, ele_stop=None,
             num_turns=1,
             element_by_element=False, only_markers=False):
 
@@ -1492,7 +1492,7 @@ class Line:
         steps_r_matrix : float
             Step size for finite differences. In not given, default step sizes
             are used.
-        ele_start : str
+        start : str
             Optional. It can be used to find the periodic solution for a
             portion of the line.
         ele_stop : str
@@ -1518,7 +1518,7 @@ class Line:
             line = self
 
         return compute_one_turn_matrix_finite_differences(line, particle_on_co,
-                        steps_r_matrix, ele_start=ele_start, ele_stop=ele_stop,
+                        steps_r_matrix, start=start, ele_stop=ele_stop,
                         num_turns=num_turns,
                         element_by_element=element_by_element,
                         only_markers=only_markers)
@@ -2861,7 +2861,7 @@ class Line:
             elements_map_line.append(self[ele_cut_sorted[ii]])
 
             smap = xt.SecondOrderTaylorMap.from_line(
-                                    self, ele_start=ele_cut_sorted[ii],
+                                    self, start=ele_cut_sorted[ii],
                                     ele_stop=ele_cut_sorted[ii+1],
                                     twiss_table=tw)
             names_map_line.append(f'map_{ii}')
