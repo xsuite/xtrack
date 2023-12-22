@@ -23,9 +23,9 @@ assert np.all(p.at_turn == 4)
 assert line.record_last_track.x.shape == (3, 4)
 
 
-# start > 0
+# ele_start > 0
 p = xp.Particles(x=[1e-3, 2e-3, 3e-3], p0c=7e12, s=4., at_element=2)
-line.track(p, num_turns=3, start=2, turn_by_turn_monitor=True)
+line.track(p, num_turns=3, ele_start=2, turn_by_turn_monitor=True)
 assert np.all(p.s == 3 * 10 * 2.)
 assert np.all(p.at_turn == 3)
 assert line.record_last_track.x.shape == (3,3)
@@ -33,17 +33,17 @@ assert line.record_last_track.x.shape == (3,3)
 ### Behavior:
 
 # For num_turns = 1 (default):
-#  - line.track(particles, start=3, ele_stop=5) tracks once from element 3 to
+#  - line.track(particles, ele_start=3, ele_stop=5) tracks once from element 3 to
 #    element 5 e. particles.at_turn is not incremented as the particles never pass through
 #    the end of the beam line.
-#  - line.track(particles, start=7, ele_stop=3) tracks once from element 5 to
+#  - line.track(particles, ele_start=7, ele_stop=3) tracks once from element 5 to
 #    the end of the beamline and then from element 0 to element 3 excluded.
 #    particles.at_turn is incremented to one as the particles pass once
 #    the end of the beam line.
 
 # When indicating num_turns = N with N > 1, additional (N-1) full turns are added to logic
 # above. Therefore:
-# - if ele_stop < start: stops at element ele_stop when particles.at_turn = N - 1
+# - if ele_stop < ele_start: stops at element ele_stop when particles.at_turn = N - 1
 # - if ele_stop >= ele_start: stops at element ele_stop when particles.at_turn = N
 
 
