@@ -116,7 +116,7 @@ opt_bump = line.match(
     solve=False,
     method='4d',
     start='mdv.52707', end='mdv.60107',
-    ele_init=xt.START, twiss_init=tw0,
+    init_at=xt.START, init=tw0,
     vary=[
         xt.VaryList(['mdv.52907.ksl0', 'mdv.53107.ksl0',
                      'mdv.53307.ksl0', 'mdv.53507.ksl0'], step=1e-5),

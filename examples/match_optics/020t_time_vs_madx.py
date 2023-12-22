@@ -106,7 +106,7 @@ collider.match(
     #verbose=True,
     start=ele_start_match,
     end=ele_end_match,
-    twiss_init=tw_init,
+    init=tw_init,
     targets=[
         xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3),
         xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7, tol=1e-5),

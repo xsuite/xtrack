@@ -34,12 +34,12 @@ class ActionArcPhaseAdvanceFromCell(xd.Action):
 
         twinit_cell = line.twiss(
                     start=self.start_cell, end=self.end_cell,
-                    twiss_init='periodic', only_twiss_init=True)
+                    init='periodic', only_twiss_init=True)
         #  twinit_cell.element_name is start_cell for b1 and end_cell for b2
 
-        tw_to_end_arc = line.twiss(twiss_init=twinit_cell,
+        tw_to_end_arc = line.twiss(init=twinit_cell,
             start=twinit_cell.element_name, end=self.end_arc)
-        tw_to_start_arc = line.twiss(twiss_init=twinit_cell,
+        tw_to_start_arc = line.twiss(init=twinit_cell,
             start=self.start_arc,end=twinit_cell.element_name)
 
         mux_arc_from_cell = (tw_to_end_arc['mux', self.end_arc]

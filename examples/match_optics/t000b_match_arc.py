@@ -36,20 +36,20 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
         twinit_cell = self.line.twiss(
                     start=self.start_cell,
                     end=self.end_cell,
-                    twiss_init='periodic',
+                    init='periodic',
                     only_twiss_init=True)
         #  twinit_cell.element_name is start_cell for b1 and end_cell for b2
 
         tw_to_end_arc = self.line.twiss(
             start=twinit_cell.element_name,
             end=self.end_arc,
-            twiss_init=twinit_cell,
+            init=twinit_cell,
             )
 
         tw_to_start_arc = self.line.twiss(
             start=self.start_arc,
             end=twinit_cell.element_name,
-            twiss_init=twinit_cell)
+            init=twinit_cell)
 
         mux_arc_from_cell = (tw_to_end_arc['mux', self.end_arc]
                              - tw_to_start_arc['mux', self.start_arc])
@@ -130,7 +130,7 @@ resb1_after = action_arc_phase_s67_b1.run()
 tw_init_arcb1 = resb1_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b1')
 twb1_after = collider.lhcb1.twiss(start='e.ds.r6.b1',
                                   end='s.ds.l7.b1',
-                                  twiss_init=tw_init_arcb1)
+                                  init=tw_init_arcb1)
 assert np.isclose(twb1_after['mux', 's.ds.l7.b1'] - twb1_after['mux', 'e.ds.r6.b1'],
                     mux_arc_target_b1, rtol=0, atol=1e-8)
 assert np.isclose(twb1_after['muy', 's.ds.l7.b1'] - twb1_after['muy', 'e.ds.r6.b1'],
@@ -144,7 +144,7 @@ resb2_after = action_arc_phase_s67_b2.run()
 tw_init_arcb2 = resb2_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b2')
 twb2_after = collider.lhcb2.twiss(start='e.ds.r6.b2',
                                   end='s.ds.l7.b2',
-                                  twiss_init=tw_init_arcb2)
+                                  init=tw_init_arcb2)
 assert np.isclose(twb2_after['mux', 's.ds.l7.b2'] - twb2_after['mux', 'e.ds.r6.b2'],
                     mux_arc_target_b2, rtol=0, atol=1e-8)
 assert np.isclose(twb2_after['muy', 's.ds.l7.b2'] - twb2_after['muy', 'e.ds.r6.b2'],

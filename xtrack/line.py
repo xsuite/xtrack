@@ -984,7 +984,7 @@ class Line:
         values_at_element_exit=None,
         radiation_method=None,
         eneloss_and_damping=None,
-        start=None, end=None, twiss_init=None,
+        start=None, end=None, init=None,
         num_turns=None,
         skip_global_quantities=None,
         matrix_responsiveness_tol=None,
@@ -1001,7 +1001,7 @@ class Line:
         compute_R_element_by_element=None,
         compute_lattice_functions=None,
         compute_chromatic_properties=None,
-        ele_init=None,
+        init_at=None,
         x=None, px=None, y=None, py=None, zeta=None, delta=None,
         betx=None, alfx=None, bety=None, alfy=None, bets=None,
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
@@ -1110,7 +1110,7 @@ class Line:
             line.match(
                 start='mq.33l8.b1',
                 end='mq.23l8.b1',
-                twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+                init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
                 vary=[
                     xt.Vary(name='acbv30.l8b1', step=1e-10),
                     xt.Vary(name='acbv28.l8b1', step=1e-10),

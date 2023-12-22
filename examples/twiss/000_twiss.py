@@ -45,7 +45,7 @@ for ii, ss in enumerate(s_test):
 twmb19r5 = tw.get_twiss_init(at_element='mb.b19l5.b1')
 
 tw_part = line.twiss(start='mb.b19l5.b1', end='mb.b19r5.b1',
-                        twiss_init=twmb19r5)
+                        init=twmb19r5)
 
 
 import matplotlib.pyplot as plt

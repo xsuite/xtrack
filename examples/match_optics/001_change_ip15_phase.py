@@ -245,12 +245,12 @@ print(f'Time match orbit knobs: {t4-t3} s')
 # # Open twisses to debug
 # tw_b1_check = collider.lhcb1.twiss(
 #     start='ip1', end='ip1.l1',
-#     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
+#     init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
 #                             line=collider.lhcb1))
 
 # tw_b2_check = collider.lhcb2.twiss(
 #     start='ip1', end='ip1.l1',
-#     twiss_init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
+#     init=xt.TwissInit(betx=0.15, bety=0.15, element_name='ip1',
 #                             line=collider.lhcb2))
 
 # Save xsuite model

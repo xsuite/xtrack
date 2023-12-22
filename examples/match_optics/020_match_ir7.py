@@ -99,7 +99,7 @@ for i_repeat in range(1):
         solve=False,
         start=ele_start_match,
         end=ele_end_match,
-        twiss_init=tw_ref, ele_init=xt.START,
+        init=tw_ref, init_at=xt.START,
         targets=[
             xt.TargetList(
                 ('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
@@ -161,7 +161,7 @@ ele_index_end = line.element_names.index(ele_end_match)
 ttt = collider.twiss(
         start=[ele_index_start],
         end=[ele_index_end],
-        twiss_init=tw_init,
+        init=tw_init,
         _keep_initial_particles=True,
         _keep_tracking_data=True,
         )
@@ -172,7 +172,7 @@ for _ in range(n_repeat_twiss):
     collider.twiss(
         start=[ele_index_start],
         end=[ele_index_end],
-        twiss_init=tw_init,
+        init=tw_init,
         _ebe_monitor=[ttt.lhcb1.tracking_data],
         _initial_particles=[ttt.lhcb1._initial_particles]
         )

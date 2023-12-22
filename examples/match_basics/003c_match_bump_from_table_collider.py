@@ -11,7 +11,7 @@ opt = collider.match(
     lines=['lhcb1', 'lhcb2'],
     start=['mq.30l8.b1', 'mq.31l8.b2'],
     end=['mq.23l8.b1', 'mq.24l8.b2'],
-    twiss_init=tw0,
+    init=tw0,
     vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1',
                       'acbv31.l8b2', 'acbv29.l8b2', 'acbv27.l8b2', 'acbv25.l8b2'],
                     step=1e-10, limits=[-1e-3, 1e-3]),

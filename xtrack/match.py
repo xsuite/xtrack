@@ -64,7 +64,7 @@ class ActionTwiss(xd.Action):
 
         ismultiline = isinstance(line, xt.Multiline)
 
-        # Forbit specifying twiss_init through kwargs for Multiline
+        # Forbit specifying init through kwargs for Multiline
         if ismultiline:
             for kk in VARS_FOR_TWISS_INIT_GENERATION:
                 if kk in kwargs:
@@ -72,15 +72,15 @@ class ActionTwiss(xd.Action):
                         f'`{kk}` cannot be specified for a Multiline match. '
                         f'Please specify provide a TwissInit object for each line instead.')
 
-        # Handle twiss_init from table
+        # Handle init from table
         if ismultiline:
 
             line_names = kwargs.get('lines', line.line_names)
             none_list = [None] * len(line_names)
-            twinit_list = kwargs.get('twiss_init', none_list)
+            twinit_list = kwargs.get('init', none_list)
             ele_start_list = kwargs.get('start', none_list)
             ele_stop_list = kwargs.get('end', none_list)
-            ele_init_list = kwargs.get('ele_init', none_list)
+            ele_init_list = kwargs.get('init_at', none_list)
             line_list = [line[nn] for nn in line_names]
 
             assert isinstance(twinit_list, list)
@@ -92,36 +92,36 @@ class ActionTwiss(xd.Action):
                     twinit_list[ii] = twinit[line_names[ii]]
 
         else:
-            twinit_list = [kwargs.get('twiss_init', None)]
+            twinit_list = [kwargs.get('init', None)]
             ele_start_list = [kwargs.get('start', None)]
             ele_stop_list = [kwargs.get('end', None)]
-            ele_init_list = [kwargs.get('ele_init', None)]
+            ele_init_list = [kwargs.get('init_at', None)]
             line_list = [line]
 
-            for ii, (twinit, start, end, ele_init) in enumerate(
+            for ii, (twinit, start, end, init_at) in enumerate(
                     zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
                 if isinstance(twinit, xt.TwissInit):
                     twinit_list[ii] = twinit.copy()
                 elif isinstance(twinit, str):
                     assert twinit == 'periodic'
 
-        # Handle ele_init as xt.START or xt.END
-        for ii, ele_init in enumerate(ele_init_list):
-            if isinstance(ele_init, _LOC):
-                if ele_init.name == 'START':
+        # Handle init_at as xt.START or xt.END
+        for ii, init_at in enumerate(ele_init_list):
+            if isinstance(init_at, _LOC):
+                if init_at.name == 'START':
                     ele_init_list[ii] = ele_start_list[ii]
-                elif ele_init.name == 'END':
+                elif init_at.name == 'END':
                     ele_init_list[ii] = ele_stop_list[ii]
 
-        # Handle twiss_init from table
-        for ii, (twinit, start, end, ele_init) in enumerate(
+        # Handle init from table
+        for ii, (twinit, start, end, init_at) in enumerate(
                 zip(twinit_list, ele_start_list, ele_stop_list, ele_init_list)):
             if isinstance(twinit, xt.TwissInit):
                 continue
             elif isinstance(twinit, xt.TwissTable):
-                if ele_init is None:
-                    ele_init = start
-                init_at = ele_init
+                if init_at is None:
+                    init_at = start
+                init_at = init_at
                 twinit_list[ii] = twinit.get_twiss_init(at_element=init_at)
                 ele_init_list[ii] = None
             else:
@@ -129,11 +129,11 @@ class ActionTwiss(xd.Action):
 
         if not ismultiline:
             # Handle case in which twiss init is defined through kwargs
-            twiss_init = _complete_twiss_init(
+            init = _complete_twiss_init(
                     start=ele_start_list[0],
                     end=ele_stop_list[0],
-                    ele_init=ele_init_list[0],
-                    twiss_init=twinit_list[0],
+                    init_at=ele_init_list[0],
+                    init=twinit_list[0],
                     line=line,
                     reverse=None, # will be handled by the twiss
                     x=kwargs.get('x', None),
@@ -160,10 +160,10 @@ class ActionTwiss(xd.Action):
                     ay_chrom=kwargs.get('ay_chrom', None),
                     by_chrom=kwargs.get('by_chrom', None),
                     )
-            for kk in VARS_FOR_TWISS_INIT_GENERATION + ['ele_init']:
+            for kk in VARS_FOR_TWISS_INIT_GENERATION + ['init_at']:
                 if kk in kwargs:
                     kwargs.pop(kk)
-            twinit_list[0] = twiss_init
+            twinit_list[0] = init
 
         _keep_ini_particles_list = []
         for tt in twinit_list:
@@ -179,10 +179,10 @@ class ActionTwiss(xd.Action):
                 twini._complete(line=ln, element_name=eest)
 
         if ismultiline:
-            kwargs['twiss_init'] = twinit_list
+            kwargs['init'] = twinit_list
             kwargs['_keep_initial_particles'] = _keep_ini_particles_list
         else:
-            kwargs['twiss_init'] = twinit_list[0]
+            kwargs['init'] = twinit_list[0]
             kwargs['_keep_initial_particles'] = _keep_ini_particles_list[0]
 
         tw0 = line.twiss(**kwargs)
@@ -800,7 +800,7 @@ def closed_orbit_correction(line, line_co_ref, correction_config,
             restore_if_fail=restore_if_fail,
             vary=vary,
             targets=targets,
-            twiss_init=xt.TwissInit(
+            init=xt.TwissInit(
                 line=line,
                 element_name=corr['start'],
                 x=tw_ref['x', corr['start']],

@@ -43,19 +43,19 @@ def get_arc_periodic_solution(collider, line_name=None, arc_name=None):
     twinit_cell = line.twiss(
                 start=start_cell,
                 end=end_cell,
-                twiss_init='periodic',
+                init='periodic',
                 only_twiss_init=True)
 
     tw_to_end_arc = line.twiss(
         start=twinit_cell.element_name,
         end=end_arc,
-        twiss_init=twinit_cell,
+        init=twinit_cell,
         )
 
     tw_to_start_arc = line.twiss(
         start=start_arc,
         end=twinit_cell.element_name,
-        twiss_init=twinit_cell)
+        init=twinit_cell)
 
     res = xt.TwissTable.concatenate([tw_to_start_arc, tw_to_end_arc])
     res['mux'] = res['mux'] - res['mux', start_arc]
@@ -179,12 +179,12 @@ def propagate_optics_from_beta_star(collider, ip_name, line_name,
         ele_start_right = ip_name
 
     tw_left = collider[line_name].twiss(start=start, end=ele_stop_left,
-                    twiss_init=xt.TwissInit(line=collider[line_name],
+                    init=xt.TwissInit(line=collider[line_name],
                                             element_name=ele_stop_left,
                                             betx=beta_star_x,
                                             bety=beta_star_y))
     tw_right = collider[line_name].twiss(start=ele_start_right, end=end,
-                        twiss_init=xt.TwissInit(line=collider[line_name],
+                        init=xt.TwissInit(line=collider[line_name],
                                                 element_name=ele_start_right,
                                                 betx=beta_star_x,
                                                 bety=beta_star_y))
@@ -386,7 +386,7 @@ def rematch_ir2(collider, line_name,
         default_tol=default_tol,
         start=f's.ds.l2.{bn}', end=f'e.ds.r2.{bn}',
         # Left boundary
-        twiss_init=boundary_conditions_left, ele_init=xt.START,
+        init=boundary_conditions_left, init_at=xt.START,
         targets=[
             xt.TargetSet(at=xt.END,
                     tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'),
@@ -445,7 +445,7 @@ def rematch_ir3(collider, line_name,
         solve=False,
         default_tol=default_tol,
         start=f's.ds.l3.{bn}', end=f'e.ds.r3.{bn}',
-        twiss_init=boundary_conditions_left, ele_init=xt.START,
+        init=boundary_conditions_left, init_at=xt.START,
         targets=[
             xt.TargetSet(at='ip3',
                     alfx=alfx_ip3, alfy=alfy_ip3, betx=betx_ip3, bety=bety_ip3,
@@ -492,7 +492,7 @@ def rematch_ir4(collider, line_name,
         solve=False,
         default_tol=default_tol,
         start=f's.ds.l4.{bn}', end=f'e.ds.r4.{bn}',
-        twiss_init=boundary_conditions_left, ele_init=xt.START,
+        init=boundary_conditions_left, init_at=xt.START,
         targets=[
             xt.TargetSet(at='ip4',
                     alfx=alfx_ip4, alfy=alfy_ip4, betx=betx_ip4, bety=bety_ip4,
@@ -542,7 +542,7 @@ def rematch_ir6(collider, line_name,
         default_tol=default_tol,
         start=f's.ds.l6.{bn}', end=f'e.ds.r6.{bn}',
         # Left boundary
-        twiss_init=boundary_conditions_left, ele_init=xt.START,
+        init=boundary_conditions_left, init_at=xt.START,
         targets=[
             xt.TargetSet(at='ip6',
                     alfx=alfx_ip6, alfy=alfy_ip6, betx=betx_ip6, bety=bety_ip6,
@@ -585,7 +585,7 @@ def rematch_ir7(collider, line_name,
         default_tol=default_tol,
         start=f's.ds.l7.{bn}', end=f'e.ds.r7.{bn}',
         # Left boundary
-        twiss_init=boundary_conditions_left, ele_init=xt.START,
+        init=boundary_conditions_left, init_at=xt.START,
         targets=[
             xt.TargetSet(at='ip7',
                     alfx=alfx_ip7, alfy=alfy_ip7, betx=betx_ip7, bety=bety_ip7,
@@ -635,7 +635,7 @@ def rematch_ir8(collider, line_name,
         default_tol=default_tol,
         start=f's.ds.l8.{bn}', end=f'e.ds.r8.{bn}',
         # Left boundary
-        twiss_init=boundary_conditions_left, ele_init=xt.START,
+        init=boundary_conditions_left, init_at=xt.START,
         targets=[
             xt.TargetSet(at='ip8',
                     alfx=alfx_ip8, alfy=alfy_ip8, betx=betx_ip8, bety=bety_ip8,
@@ -760,7 +760,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip2', y=offset_match, py=0),
         ]),
         vary=xt.VaryList(correctors_ir2_single_beam_v),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     opt_o2v.solve()
     opt_o2v.generate_knob()
@@ -774,7 +774,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip2', x=offset_match, px=0),
         ]),
         vary=xt.VaryList(correctors_ir2_single_beam_h),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     opt_o2h.solve()
     opt_o2h.generate_knob()
@@ -788,7 +788,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip8', y=offset_match, py=0),
         ]),
         vary=xt.VaryList(correctors_ir8_single_beam_v),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
     opt_o8v.solve()
     opt_o8v.generate_knob()
@@ -802,7 +802,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip8', x=offset_match, px=0),
         ]),
         vary=xt.VaryList(correctors_ir8_single_beam_h),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
     opt_o8h.solve()
     opt_o8h.generate_knob()
@@ -822,7 +822,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip2', x=0, px=ang_offset_match),
         ]),
         vary=xt.VaryList(correctors_ir2_single_beam_h),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
 
     opt_a2h.solve()
@@ -837,7 +837,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip2', y=0, py=ang_offset_match),
         ]),
         vary=xt.VaryList(correctors_ir2_single_beam_v),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
 
     opt_a2v.solve()
@@ -852,7 +852,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip8', x=0, px=ang_offset_match),
         ]),
         vary=xt.VaryList(correctors_ir8_single_beam_h),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
 
     opt_a8h.solve()
@@ -867,7 +867,7 @@ def match_orbit_knobs_ip2_ip8(collider):
             xt.TargetSet(line='lhcb2', at='ip8', y=0, py=ang_offset_match),
         ]),
         vary=xt.VaryList(correctors_ir8_single_beam_v),
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
 
     opt_a8v.solve()
@@ -891,7 +891,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir2_single_beam_h),
             xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     # Set mcbx by hand
     testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
@@ -915,7 +915,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir2_single_beam_v),
             xt.VaryList(correctors_ir2_common_v, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
     # Set mcbx by hand
     testkqx2=abs(collider.varval['kqx.l2'])*7000./0.3
@@ -939,7 +939,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir8_single_beam_h),
             xt.VaryList(correctors_ir8_common_h, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
 
     # Set mcbx by hand (reduce value by 10, to test matching algorithm)
@@ -985,7 +985,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir8_single_beam_v),
             xt.VaryList(correctors_ir8_common_v, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
 
     # Set mcbx by hand
@@ -1022,7 +1022,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir2_single_beam_h),
             xt.VaryList(correctors_ir2_common_h, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
 
     # Set mcbx by hand
@@ -1049,7 +1049,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir2_single_beam_v),
             xt.VaryList(correctors_ir2_common_v, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip2,
+        run=False, init=twinit_zero_orbit, **bump_range_ip2,
     )
 
     # Set mcbx by hand
@@ -1076,7 +1076,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir8_single_beam_h),
             xt.VaryList(correctors_ir8_common_h, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
 
     # Set mcbx by hand
@@ -1103,7 +1103,7 @@ def match_orbit_knobs_ip2_ip8(collider):
         vary=[
             xt.VaryList(correctors_ir8_single_beam_v),
             xt.VaryList(correctors_ir8_common_v, tag='mcbx')],
-        run=False, twiss_init=twinit_zero_orbit, **bump_range_ip8,
+        run=False, init=twinit_zero_orbit, **bump_range_ip8,
     )
 
     # Set mcbx by hand

@@ -86,10 +86,10 @@ assert np.isclose(tw_init_comp.mux, tw_init.mux, rtol=0, atol=1e-15)
 assert np.isclose(tw_init_comp.x, tw_init.x, rtol=0, atol=1e-15)
 
 tw_comp_local = line.twiss(group_compound_elements=True,
-                           twiss_init=tw_init_comp,
+                           init=tw_init_comp,
                            start='bi1.ksw16l1_entry',
                            end='br.stscrap161')
-tw_local = line.twiss(twiss_init=tw_init,
+tw_local = line.twiss(init=tw_init,
                         start='bi1.ksw16l1_entry',
                         end='br.stscrap161')
 

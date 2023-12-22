@@ -215,12 +215,12 @@ print(
 tw1s = line.twiss(
     start="mq0",
     end="mq3",
-    twiss_init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
+    init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
 )
 tw2s = line.twiss(
     start="mq4",
     end="mq7",
-    twiss_init=xt.TwissInit(betx=betMax2, bety=betMin2, element_name="mq4", line=line),
+    init=xt.TwissInit(betx=betMax2, bety=betMin2, element_name="mq4", line=line),
 )
 print(tw1s.cols["s", "betx", "bety", "alfx", "alfy"])
 print(tw2s.cols["s", "betx", "bety", "alfx", "alfy"])
@@ -238,7 +238,7 @@ for i, kfd in enumerate(kfd_refs):
 opt = line.match(
     solve=False,
     default_tol={None: 5e-10},
-    twiss_init=tw1s.get_twiss_init("mq0"),
+    init=tw1s.get_twiss_init("mq0"),
     start=("mq0"),
     end=("end"),
     targets=[
@@ -256,6 +256,6 @@ print(opt.log())
 tw3s = line.twiss(
     start="mq0",
     end="end",
-    twiss_init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
+    init=xt.TwissInit(betx=betMax1, bety=betMin1, element_name="mq0", line=line),
 )
 print(tw3s.cols["s", "betx", "bety", "alfx", "alfy"])

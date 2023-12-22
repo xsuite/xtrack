@@ -540,7 +540,7 @@ class MultiTwiss(dict):
 
 def _dispatch_twiss_kwargs(kwargs, lines):
     kwargs_per_twiss = {}
-    for arg_name in ['start', 'end', 'ele_init', 'twiss_init',
+    for arg_name in ['start', 'end', 'init_at', 'init',
                         '_keep_initial_particles',
                         '_initial_particles', '_ebe_monitor']:
         if arg_name not in kwargs:

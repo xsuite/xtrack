@@ -29,7 +29,7 @@ opt = collider.lhcb1.match(
     default_tol=default_tol,
     start='s.ds.l2.b1', end='e.ds.r2.b1',
     # Left boundary
-    twiss_init=tw_sq_ip1_b1,
+    init=tw_sq_ip1_b1,
     targets=[
         # IP optics
         xt.TargetSet(at='ip2',

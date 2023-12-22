@@ -25,7 +25,7 @@ def test_match_orbit_bump(test_context):
     line.match(
         start='mq.33l8.b1',
         end='mq.23l8.b1',
-        twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+        init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -71,7 +71,7 @@ def test_match_orbit_bump(test_context):
     line.match(
         start='mq.33l8.b1',
         end='mq.23l8.b1',
-        twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+        init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -112,7 +112,7 @@ def test_match_orbit_bump(test_context):
     assert np.isclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
     assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
 
-    # Same match but with twiss_init provided through a kwargs
+    # Same match but with init provided through a kwargs
     # I start from scratch
     line.vars['acbv30.l8b1'] = 0
     line.vars['acbv28.l8b1'] = 0
@@ -176,7 +176,7 @@ def test_match_orbit_bump_with_weights():
 
     line.build_tracker()
 
-    for ele_init in [xt.START, xt.END]:
+    for init_at in [xt.START, xt.END]:
         tw0 = line.twiss()
         opt = line.match(
             #verbose=True,
@@ -184,8 +184,8 @@ def test_match_orbit_bump_with_weights():
             # Portion of the beam line to be modified and initial conditions
             start='mq.33l8.b1',
             end='mq.17l8.b1',
-            ele_init=ele_init,
-            twiss_init=tw0,
+            init_at=init_at,
+            init=tw0,
             # Dipole corrector strengths to be varied
             vary=[
                 xt.Vary(name='acbv32.l8b1', step=1e-10, weight=0.7),
@@ -227,7 +227,7 @@ def test_match_orbit_bump_with_weights():
         action = list(last_data.keys())[0]
         last_twiss  = last_data[action]
         assert last_twiss.orientation == (
-            'backward' if ele_init == xt.END else 'forward')
+            'backward' if init_at == xt.END else 'forward')
         assert last_twiss.method == '6d'
         assert last_twiss.reference_frame == 'proper'
 
@@ -263,8 +263,8 @@ def test_match_orbit_bump_within_multiline(test_context):
         lines=['lhcb1'],
         start=['mq.33l8.b1'],
         end=['mq.23l8.b1'],
-        ele_init=xt.START,
-        twiss_init=tw0,
+        init_at=xt.START,
+        init=tw0,
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -318,8 +318,8 @@ def test_bump_step_and_smooth_inequalities(test_context):
         # Portion of the beam line to be modified and initial conditions
         start='mq.33l8.b1',
         end='mq.17l8.b1',
-        ele_init=xt.START,
-        twiss_init=tw0,
+        init_at=xt.START,
+        init=tw0,
         # Dipole corrector strengths to be varied
         vary=[
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -403,8 +403,8 @@ def test_bump_step_and_smooth_inequalities(test_context):
         # Portion of the beam line to be modified and initial conditions
         start='mq.33l8.b1',
         end='mq.17l8.b1',
-        ele_init=xt.START,
-        twiss_init=tw0,
+        init_at=xt.START,
+        init=tw0,
         # Dipole corrector strengths to be varied
         vary=[
             xt.Vary(name='acbv28.l8b1', step=1e-10),

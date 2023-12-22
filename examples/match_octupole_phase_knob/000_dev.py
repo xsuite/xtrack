@@ -76,7 +76,7 @@ opt = line.match_knob(
     knob_name='phase_knob',
     run=False,
     assert_within_tol=False,
-    twiss_init=tw.get_twiss_init(0),
+    init=tw.get_twiss_init(0),
     start=0, end=len(line)-1,
     targets=[
         RDTargetReal(j=2, k=0, l=0, m=2),

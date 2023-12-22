@@ -66,7 +66,7 @@ for nn in wigs:
 
 line.build_tracker()
 tw_thin_before = line.twiss(start=0, end=len(line)-1, method='4d',
-                          twiss_init=tw_thick_no_rad.get_twiss_init(0))
+                          init=tw_thick_no_rad.get_twiss_init(0))
 
 # Compare tunes
 print('Before rematching:')
@@ -89,7 +89,7 @@ opt = line.match(
     only_markers=True,
     method='4d',
     start=0, end=len(line)-1,
-    twiss_init=tw_thick_no_rad.get_twiss_init(0),
+    init=tw_thick_no_rad.get_twiss_init(0),
     vary=xt.VaryList(['k1qf4', 'k1qf2', 'k1qd3', 'k1qd1',], step=1e-8,
     ),
     targets=[
