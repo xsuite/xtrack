@@ -6,12 +6,13 @@ line.build_tracker()
 
 tw0 = line.twiss(method='4d')
 opt = line.match(
-    start='mq.30l8.b1', end='mq.23l8.b1', init=tw0,
+    start='mq.30l8.b1', end='mq.23l8.b1',
+    init=tw0, init_at=xt.END, # <-- Boundary conditions from table
     vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
                     step=1e-10, limits=[-1e-3, 1e-3]),
     targets = [
         xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1'),
-        xt.TargetSet(y=0, py=0, at=xt.END)
+        xt.TargetSet(['y', 'py'], value=tw0, at=xt.START) # <-- Target from table
     ])
 
 opt.target_status()
