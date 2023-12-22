@@ -8,7 +8,6 @@ collider.build_trackers()
 tw0 = collider.twiss(method='4d')
 
 opt = collider.match(
-    solve=False,
     lines=['lhcb1', 'lhcb2'],
     start=['e.ds.l5.b1', 'e.ds.l5.b2'],
     end=['s.ds.r5.b1', 's.ds.r5.b2'],
@@ -25,7 +24,6 @@ opt = collider.match(
         xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb1'),
         xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb2')
     ])
-opt.solve()
 opt.target_status()
 
 # prints:
