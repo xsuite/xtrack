@@ -22,7 +22,7 @@ collider.vars['on_x1vs'] = 200
 collider.vars['on_sep1v'] = -3
 
 # tw = collider.lhcb1.twiss()                  # Fails on closed orbit search
-tw = collider.lhcb1.twiss(ele_co_search='ip7') # Successful closed orbit search
+tw = collider.lhcb1.twiss(co_search_at='ip7') # Successful closed orbit search
 
 import matplotlib.pyplot as plt
 plt.close('all')

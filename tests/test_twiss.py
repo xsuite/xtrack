@@ -586,7 +586,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
 
     if line.element_names[0] == 'ip5':
         # Need to avoid the crossing bumps in closed orbit search (convergence issues)
-        tw = line.twiss(ele_co_search='ip3')
+        tw = line.twiss(co_search_at='ip3')
     else:
         tw = line.twiss()
 

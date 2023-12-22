@@ -1007,7 +1007,7 @@ class Line:
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
-        ele_co_search=None,
+        co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -1279,7 +1279,7 @@ class Line:
                           freeze_longitudinal=False,
                           start=None, end=None,
                           num_turns=1,
-                          ele_co_search=None):
+                          co_search_at=None):
 
         """
         Find the closed orbit of the beamline.
@@ -1315,7 +1315,7 @@ class Line:
             a portion of the beamline.
         num_turns : int
             Number of turns to be used for the closed orbit search.
-        ele_co_search : int or str
+        co_search_at : int or str
             Element at which the closed orbit search is performed. If None,
             the closed orbit search is performed at the start of the line.
 
@@ -1352,7 +1352,7 @@ class Line:
                                  co_search_settings=co_search_settings, delta_zeta=delta_zeta,
                                  continue_on_closed_orbit_error=continue_on_closed_orbit_error,
                                  start=start, end=end, num_turns=num_turns,
-                                 ele_co_search=ele_co_search)
+                                 co_search_at=co_search_at)
 
     def compute_T_matrix(self, start=None, end=None,
                          particle_on_co=None, steps_t_matrix=None):

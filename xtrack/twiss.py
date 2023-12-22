@@ -82,7 +82,7 @@ def twiss_line(line, particle_ref=None, method=None,
         dx=None, dpx=None, dy=None, dpy=None, dzeta=None,
         mux=None, muy=None, muzeta=None,
         ax_chrom=None, bx_chrom=None, ay_chrom=None, by_chrom=None,
-        ele_co_search=None,
+        co_search_at=None,
         _continue_if_lost=None,
         _keep_tracking_data=None,
         _keep_initial_particles=None,
@@ -510,7 +510,7 @@ def twiss_line(line, particle_ref=None, method=None,
             matrix_stability_tol=matrix_stability_tol,
             start=start, end=end,
             num_turns=num_turns,
-            ele_co_search=ele_co_search,
+            co_search_at=co_search_at,
             nemitt_x=nemitt_x, nemitt_y=nemitt_y, r_sigma=r_sigma,
             compute_R_element_by_element=compute_R_element_by_element,
             only_markers=only_markers,
@@ -1595,7 +1595,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                             nemitt_x, nemitt_y, r_sigma,
                             start=None, end=None,
                             num_turns=1,
-                            ele_co_search=None,
+                            co_search_at=None,
                             compute_R_element_by_element=False,
                             only_markers=False):
 
@@ -1625,7 +1625,7 @@ def _find_periodic_solution(line, particle_on_co, particle_ref, method,
                                 start=start,
                                 end=end,
                                 num_turns=num_turns,
-                                ele_co_search=ele_co_search,)
+                                co_search_at=co_search_at,)
 
     if W_matrix is not None:
         W = W_matrix
@@ -1872,7 +1872,7 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
                       co_search_settings=None, delta_zeta=0,
                       delta0=None, zeta0=None,
                       start=None, end=None, num_turns=1,
-                      ele_co_search=None,
+                      co_search_at=None,
                       continue_on_closed_orbit_error=False):
 
     if line.enable_time_dependent_vars:
@@ -1880,17 +1880,17 @@ def find_closed_orbit_line(line, co_guess=None, particle_ref=None,
             'Time-dependent vars not supported in closed orbit search')
 
     if start is not None and end is not None:
-        ele_co_search = None # needs to be implemented
+        co_search_at = None # needs to be implemented
 
-    if ele_co_search is not None:
+    if co_search_at is not None:
         kwargs = locals().copy()
         kwargs.pop('start')
         kwargs.pop('end')
-        kwargs.pop('ele_co_search')
+        kwargs.pop('co_search_at')
         p_co_at_ele_co_search = find_closed_orbit_line(
-            start=ele_co_search, end=ele_co_search,
+            start=co_search_at, end=co_search_at,
             **kwargs)
-        line.track(p_co_at_ele_co_search, ele_start=ele_co_search, ele_stop=0)
+        line.track(p_co_at_ele_co_search, ele_start=co_search_at, ele_stop=0)
         return p_co_at_ele_co_search
 
     if isinstance(start, str):
