@@ -243,7 +243,7 @@ def test_lhc_match_phase_15(test_context, config):
     optimizers['orbit_knobs'] = opt
 
     # Generate madx optics file
-    lm.gen_madx_optics_file_auto(collider, 'opt_round_150_1500_xs.madx')
+    lm.gen_madx_optics_file_auto(collider, f'opt_round_150_1500_xs_{config}.madx')
 
     tw = collider.twiss()
 
@@ -525,7 +525,7 @@ def test_lhc_match_phase_15(test_context, config):
     mad.use('lhcb1')
     mad.input('beam, sequence=lhcb2, particle=proton, energy=7000, bv=-1;')
     mad.use('lhcb2')
-    mad.call("opt_round_150_1500_xs.madx")
+    mad.call(f"opt_round_150_1500_xs_{config}.madx")
 
     mad.input('twiss, sequence=lhcb1, table=twb1')
     mad.input('twiss, sequence=lhcb2, table=twb2')
