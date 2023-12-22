@@ -478,25 +478,44 @@ def test_periodic_cell_twiss(test_context):
         assert np.isclose(mux_arc_from_cell, mux_arc_target, rtol=1e-6)
         assert np.isclose(muy_arc_from_cell, muy_arc_target, rtol=1e-6)
 
-
-@for_all_test_contexts
-@pytest.mark.parametrize('cycle_to',
-                         [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
-                         ids=['no_cycle', 'cycle_arc', 'cycle_edge1', 'cycle_edge2'])
-@pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
-@pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw'])
-@pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
-def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
+@pytest.fixture(scope='module')
+def collider_for_test_twiss_range():
 
     collider = xt.Multiline.from_json(test_data_folder /
                     'hllhc15_thick/hllhc15_collider_thick.json')
     collider.lhcb1.twiss_default['method'] = '4d'
     collider.lhcb2.twiss_default['method'] = '4d'
     collider.lhcb2.twiss_default['reverse'] = True
+    collider.build_trackers(_context=xo.ContextCpu())
+    collider.lhcb1.particle_ref.move(_buffer=xo.ContextCpu().new_buffer())
+    collider.lhcb2.particle_ref.move(_buffer=xo.ContextCpu().new_buffer())
+    return collider
+
+
+
+@for_all_test_contexts
+@pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
+@pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw'])
+@pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
+@pytest.mark.parametrize('cycle_to',
+                         [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
+                         ids=['no_cycle', 'cycle_arc', 'cycle_edge1', 'cycle_edge2'])
+def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, collider_for_test_twiss_range):
+
+    if collider_for_test_twiss_range is not None:
+        collider = collider_for_test_twiss_range
+    else:
+        collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_thick/hllhc15_collider_thick.json')
+        collider.lhcb1.twiss_default['method'] = '4d'
+        collider.lhcb2.twiss_default['method'] = '4d'
+        collider.lhcb2.twiss_default['reverse'] = True
 
     if cycle_to is not None:
-        collider.lhcb1.cycle(cycle_to[0], inplace=True)
-        collider.lhcb2.cycle(cycle_to[1], inplace=True)
+        if collider.lhcb1.element_names[0] != cycle_to[0]:
+            collider.lhcb1.cycle(cycle_to[0], inplace=True)
+        if collider.lhcb2.element_names[0] != cycle_to[1]:
+            collider.lhcb2.cycle(cycle_to[1], inplace=True)
 
     loop_around = cycle_to is not None
 
@@ -543,7 +562,16 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
     rtol_default = 1e-9
 
     line = collider[line_name]
-    line.build_tracker(_context=test_context)
+
+    if isinstance(test_context, xo.ContextCpu) and (
+        test_context.omp_num_threads != line._context.omp_num_threads):
+        buffer = test_context.new_buffer()
+    elif isinstance(test_context, line._context.__class__):
+        buffer = line._buffer
+    else:
+        buffer = test_context.new_buffer()
+
+    line.build_tracker(_buffer=buffer)
 
     if not check.endswith('_kw'):
         # Coupling is supported --> we test it
@@ -727,6 +755,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge):
                 rel_error.append((np.linalg.norm(this_part[ii, :] - this_test[ii, :])
                                 /np.linalg.norm(this_part[ii, :])))
         assert np.max(rel_error) < 1e-3
+
 
 @for_all_test_contexts
 def test_twiss_against_matrix(test_context):
