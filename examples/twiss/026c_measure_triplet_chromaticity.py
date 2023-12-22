@@ -19,7 +19,7 @@ twiss_init.ax_chrom = 0
 twiss_init.bx_chrom = 0
 twiss_init.ay_chrom = 0
 twiss_init.by_chrom = 0
-tw_l5 = line.twiss(ele_start=start_range, ele_stop=end_range,
+tw_l5 = line.twiss(start=start_range, ele_stop=end_range,
                    twiss_init=twiss_init,
                    compute_chromatic_properties=True)
 
@@ -31,7 +31,7 @@ twiss_init.ax_chrom = 0
 twiss_init.bx_chrom = 0
 twiss_init.ay_chrom = 0
 twiss_init.by_chrom = 0
-tw_r5 = line.twiss(ele_start=start_range, ele_stop=end_range,
+tw_r5 = line.twiss(start=start_range, ele_stop=end_range,
                    twiss_init=twiss_init,
                    compute_chromatic_properties=True)
 

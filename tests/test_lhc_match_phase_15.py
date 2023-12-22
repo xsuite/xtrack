@@ -144,11 +144,11 @@ def test_lhc_match_phase_15(test_context, config):
         dpx_ip8 = collider.varval[f'dpxip8{bn}']
 
         tw_sq_a81_ip1_a12 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
-                line_name=f'lhc{bn}', ele_start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
+                line_name=f'lhc{bn}', start=f's.ds.r8.{bn}', ele_stop=f'e.ds.l2.{bn}',
                 beta_star_x=betx_ip1, beta_star_y=bety_ip1)
 
         tw_sq_a45_ip5_a56 = lm.propagate_optics_from_beta_star(collider, ip_name='ip5',
-                line_name=f'lhc{bn}', ele_start=f's.ds.r4.{bn}', ele_stop=f'e.ds.l6.{bn}',
+                line_name=f'lhc{bn}', start=f's.ds.r4.{bn}', ele_stop=f'e.ds.l6.{bn}',
                 beta_star_x=betx_ip5, beta_star_y=bety_ip5)
 
         (mux_ir2_target, muy_ir2_target, mux_ir4_target, muy_ir4_target,

@@ -33,25 +33,25 @@ muy_arc_target = tw['muy', end_arc] - tw['muy', start_arc]
 
 tw0 = line.twiss()
 tw_cell = line.twiss(
-    ele_start=start_cell,
+    start=start_cell,
     ele_stop=end_cell,
     twiss_init=tw0, ele_init=xt.START)
 
 tw_cell_periodic = line.twiss(
     method='4d',
-    ele_start=start_cell,
+    start=start_cell,
     ele_stop=end_cell,
     twiss_init='periodic')
 
 twinit_start_cell = tw_cell_periodic.get_twiss_init(start_cell)
 
 tw_to_end_arc = line.twiss(
-    ele_start=start_cell,
+    start=start_cell,
     ele_stop=end_arc,
     twiss_init=twinit_start_cell)
 
 tw_to_start_arc = line.twiss(
-    ele_start=start_arc,
+    start=start_arc,
     ele_stop=start_cell,
     twiss_init=twinit_start_cell)
 

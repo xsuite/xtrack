@@ -52,10 +52,10 @@ for line_name, line in zip(['lhcb1', 'lhcb2'], [collider.lhcb1, collider.lhcb2])
     tw_init_ip5 = tw.get_twiss_init('ip5')
     tw_init_ip6 = tw.get_twiss_init('ip6')
 
-    tw_forward = line.twiss(ele_start='ip5', ele_stop='ip6',
+    tw_forward = line.twiss(start='ip5', ele_stop='ip6',
                             twiss_init=tw_init_ip5)
 
-    tw_backward = line.twiss(ele_start='ip5', ele_stop='ip6',
+    tw_backward = line.twiss(start='ip5', ele_stop='ip6',
                             twiss_init=tw_init_ip6)
 
     assert tw_init_ip5.reference_frame == (

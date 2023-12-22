@@ -47,7 +47,7 @@ tw_init = xt.TwissInit(element_name=ele_init,
     dx=dx, dy=dy, dpx=dpx, dpy=dpy,
     mux=mux, muy=muy, muzeta=muzeta, dzeta=dzeta,
     bets=bets, reference_frame=reference_frame)
-tw_test = line.twiss(ele_start=ele_init, ele_stop='ip6', twiss_init=tw_init)
+tw_test = line.twiss(start=ele_init, ele_stop='ip6', twiss_init=tw_init)
 
 
 import matplotlib.pyplot as plt

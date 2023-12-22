@@ -23,7 +23,7 @@ def test_match_orbit_bump(test_context):
     tw_before = line.twiss()
 
     line.match(
-        ele_start='mq.33l8.b1',
+        start='mq.33l8.b1',
         ele_stop='mq.23l8.b1',
         twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
         vary=[
@@ -69,7 +69,7 @@ def test_match_orbit_bump(test_context):
     line.vars['acbv24.l8b1'] = 0
 
     line.match(
-        ele_start='mq.33l8.b1',
+        start='mq.33l8.b1',
         ele_stop='mq.23l8.b1',
         twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
         vary=[
@@ -122,7 +122,7 @@ def test_match_orbit_bump(test_context):
     tini = tw_before.get_twiss_init(at_element='mq.33l8.b1')
 
     line.match(
-        ele_start='mq.33l8.b1',
+        start='mq.33l8.b1',
         ele_stop='mq.23l8.b1',
         betx=1, bety=1,
         x=tini.x, px=tini.px, y=tini.y, py=tini.py,
@@ -182,7 +182,7 @@ def test_match_orbit_bump_with_weights():
             #verbose=True,
             solver='jacobian',
             # Portion of the beam line to be modified and initial conditions
-            ele_start='mq.33l8.b1',
+            start='mq.33l8.b1',
             ele_stop='mq.17l8.b1',
             ele_init=ele_init,
             twiss_init=tw0,
@@ -261,7 +261,7 @@ def test_match_orbit_bump_within_multiline(test_context):
 
     collider.match(
         lines=['lhcb1'],
-        ele_start=['mq.33l8.b1'],
+        start=['mq.33l8.b1'],
         ele_stop=['mq.23l8.b1'],
         ele_init=xt.START,
         twiss_init=tw0,
@@ -316,7 +316,7 @@ def test_bump_step_and_smooth_inequalities(test_context):
         solve=False,
         solver='jacobian',
         # Portion of the beam line to be modified and initial conditions
-        ele_start='mq.33l8.b1',
+        start='mq.33l8.b1',
         ele_stop='mq.17l8.b1',
         ele_init=xt.START,
         twiss_init=tw0,
@@ -401,7 +401,7 @@ def test_bump_step_and_smooth_inequalities(test_context):
         solve=False,
         solver='jacobian',
         # Portion of the beam line to be modified and initial conditions
-        ele_start='mq.33l8.b1',
+        start='mq.33l8.b1',
         ele_stop='mq.17l8.b1',
         ele_init=xt.START,
         twiss_init=tw0,
