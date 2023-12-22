@@ -97,7 +97,7 @@ for i_repeat in range(1):
     tw0 = collider.twiss()
     opt = collider.match(
         solve=False,
-        ele_start=ele_start_match,
+        start=ele_start_match,
         ele_stop=ele_end_match,
         twiss_init=tw_ref, ele_init=xt.START,
         targets=[
@@ -159,7 +159,7 @@ ele_index_start = line.element_names.index(ele_start_match)
 ele_index_end = line.element_names.index(ele_end_match)
 
 ttt = collider.twiss(
-        ele_start=[ele_index_start],
+        start=[ele_index_start],
         ele_stop=[ele_index_end],
         twiss_init=tw_init,
         _keep_initial_particles=True,
@@ -170,7 +170,7 @@ n_repeat_twiss = 100
 t0 = time.perf_counter()
 for _ in range(n_repeat_twiss):
     collider.twiss(
-        ele_start=[ele_index_start],
+        start=[ele_index_start],
         ele_stop=[ele_index_end],
         twiss_init=tw_init,
         _ebe_monitor=[ttt.lhcb1.tracking_data],
@@ -185,7 +185,7 @@ t0 = time.perf_counter()
 for ii in range(n_repeat_tracking):
     collider.lhcb1.track(
         p_test[ii],
-        ele_start=ele_index_start,
+        start=ele_index_start,
         ele_stop=ele_index_end,
         turn_by_turn_monitor=ttt.lhcb1.tracking_data
         )

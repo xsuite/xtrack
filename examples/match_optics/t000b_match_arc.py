@@ -34,20 +34,20 @@ class ActionArcPhaseAdvanceFromCell(xt.Action):
     def run(self):
 
         twinit_cell = self.line.twiss(
-                    ele_start=self.start_cell,
+                    start=self.start_cell,
                     ele_stop=self.end_cell,
                     twiss_init='periodic',
                     only_twiss_init=True)
         #  twinit_cell.element_name is start_cell for b1 and end_cell for b2
 
         tw_to_end_arc = self.line.twiss(
-            ele_start=twinit_cell.element_name,
+            start=twinit_cell.element_name,
             ele_stop=self.end_arc,
             twiss_init=twinit_cell,
             )
 
         tw_to_start_arc = self.line.twiss(
-            ele_start=self.start_arc,
+            start=self.start_arc,
             ele_stop=twinit_cell.element_name,
             twiss_init=twinit_cell)
 
@@ -128,7 +128,7 @@ print(f'Elapsed time: {t2-t1} s')
 # Checks
 resb1_after = action_arc_phase_s67_b1.run()
 tw_init_arcb1 = resb1_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b1')
-twb1_after = collider.lhcb1.twiss(ele_start='e.ds.r6.b1',
+twb1_after = collider.lhcb1.twiss(start='e.ds.r6.b1',
                                   ele_stop='s.ds.l7.b1',
                                   twiss_init=tw_init_arcb1)
 assert np.isclose(twb1_after['mux', 's.ds.l7.b1'] - twb1_after['mux', 'e.ds.r6.b1'],
@@ -142,7 +142,7 @@ assert np.isclose(twb1_after['bety', 's.cell.67.b1'], twb1_after['bety', 'e.cell
 
 resb2_after = action_arc_phase_s67_b2.run()
 tw_init_arcb2 = resb2_after['tw_to_start_arc'].get_twiss_init('e.ds.r6.b2')
-twb2_after = collider.lhcb2.twiss(ele_start='e.ds.r6.b2',
+twb2_after = collider.lhcb2.twiss(start='e.ds.r6.b2',
                                   ele_stop='s.ds.l7.b2',
                                   twiss_init=tw_init_arcb2)
 assert np.isclose(twb2_after['mux', 's.ds.l7.b2'] - twb2_after['mux', 'e.ds.r6.b2'],

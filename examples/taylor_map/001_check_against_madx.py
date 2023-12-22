@@ -21,10 +21,10 @@ collider['lhcb1'].twiss_default['method'] = '4d'
 collider['lhcb2'].twiss_default['method'] = '4d'
 
 map_b1 = xt.SecondOrderTaylorMap.from_line(
-    line=collider.lhcb1, ele_start='ip3', ele_stop='ip4')
+    line=collider.lhcb1, start='ip3', ele_stop='ip4')
 
 map_b4 = xt.SecondOrderTaylorMap.from_line(
-    line=collider.lhcb2, ele_start='ip4', ele_stop='ip3')
+    line=collider.lhcb2, start='ip4', ele_stop='ip3')
 map_b2_reflected = map_b4.scale_coordinates(scale_x=-1, scale_px=-1)
 
 # Generate MAD-X maps
@@ -67,13 +67,13 @@ for line_name in ['lhcb1', 'lhcb2']:
     if line_name == 'lhcb1':
         xs_map = map_b1
         sectmad = sectmad_b1
-        ele_start = 'ip3'
+        start = 'ip3'
         ele_stop = 'ip4'
         tw = collider.lhcb1.twiss()
     elif line_name == 'lhcb2':
         xs_map = map_b2_reflected
         sectmad = sectmad_b2
-        ele_start = 'ip4'
+        start = 'ip4'
         ele_stop = 'ip3'
         tw = collider.lhcb2.twiss()
     else:
@@ -87,10 +87,10 @@ for line_name in ['lhcb1', 'lhcb2']:
     nemitt_x = 2.5e-6
     nemitt_y = 2.5e-6
     scale_in = [
-        np.sqrt(tw['betx', ele_start] * nemitt_x / tw['gamma0']),
-        np.sqrt(tw['gamx', ele_start] * nemitt_x / tw['gamma0']),
-        np.sqrt(tw['bety', ele_start] * nemitt_y / tw['gamma0']),
-        np.sqrt(tw['gamy', ele_start] * nemitt_y / tw['gamma0']),
+        np.sqrt(tw['betx', start] * nemitt_x / tw['gamma0']),
+        np.sqrt(tw['gamx', start] * nemitt_x / tw['gamma0']),
+        np.sqrt(tw['bety', start] * nemitt_y / tw['gamma0']),
+        np.sqrt(tw['gamy', start] * nemitt_y / tw['gamma0']),
         0.05,
         1e-3]
 

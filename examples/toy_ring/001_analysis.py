@@ -16,7 +16,7 @@ line_sliced.slice_thick_elements(
 )
 
 # tw = line.twiss(
-#     ele_start='mqf.1', ele_stop=len(line)-1, twiss_init=xt.TwissInit(betx=1, bety=1))
+#     start='mqf.1', ele_stop=len(line)-1, twiss_init=xt.TwissInit(betx=1, bety=1))
 tw = line_sliced.twiss(method='4d')
 
 tt = line.get_table(attr=True)

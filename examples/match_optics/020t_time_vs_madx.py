@@ -104,7 +104,7 @@ tw_mad_before = mad.twiss().dframe()
 t_start = time.perf_counter()
 collider.match(
     #verbose=True,
-    ele_start=ele_start_match,
+    start=ele_start_match,
     ele_stop=ele_end_match,
     twiss_init=tw_init,
     targets=[

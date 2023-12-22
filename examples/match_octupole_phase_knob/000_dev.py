@@ -77,7 +77,7 @@ opt = line.match_knob(
     run=False,
     assert_within_tol=False,
     twiss_init=tw.get_twiss_init(0),
-    ele_start=0, ele_stop=len(line)-1,
+    start=0, ele_stop=len(line)-1,
     targets=[
         RDTargetReal(j=2, k=0, l=0, m=2),
         RDTargetReal(j=4, k=0, l=0, m=0),
