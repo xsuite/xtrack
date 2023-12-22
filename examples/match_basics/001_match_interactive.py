@@ -128,7 +128,7 @@ opt.target_status()
 #  2 ON    chrom   False    -8.09005     1.90995         10 'dqx', val=10, tol=0.01, weight=1
 #  3 ON    chrom   False     -10.057     1.94297         12 'dqy', val=12, tol=0.01, weight=1
 
-# Reload configuration tagged configuration
+# Reload tagged configuration
 opt.reload(tag='my_tag')
 opt.target_status()
 # Target status:

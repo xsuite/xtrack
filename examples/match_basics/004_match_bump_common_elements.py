@@ -45,7 +45,6 @@ opt.target_status()
 
 import matplotlib.pyplot as plt
 
-
 tw = collider.twiss()
 plt.close('all')
 fig = plt.figure(1, figsize=(6.4*1.3, 4.8))
