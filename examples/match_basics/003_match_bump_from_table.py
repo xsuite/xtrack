@@ -5,10 +5,8 @@ line = xt.Line.from_json('../../test_data/hllhc15_thick/lhc_thick_with_knobs.jso
 line.build_tracker()
 
 tw0 = line.twiss(method='4d')
-
 opt = line.match(
-    start='mq.30l8.b1', end='mq.23l8.b1',
-    init=tw0,
+    start='mq.30l8.b1', end='mq.23l8.b1', init=tw0,
     vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
                     step=1e-10, limits=[-1e-3, 1e-3]),
     targets = [
