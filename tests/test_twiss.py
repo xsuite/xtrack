@@ -495,7 +495,7 @@ def collider_for_test_twiss_range():
 
 @for_all_test_contexts
 @pytest.mark.parametrize('line_name', ['lhcb1', 'lhcb2'])
-@pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw'])
+@pytest.mark.parametrize('check', ['fw', 'bw', 'fw_kw', 'bw_kw', 'fw_table', 'bw_table'])
 @pytest.mark.parametrize('init_at_edge', [True, False], ids=['init_at_edge', 'init_inside'])
 @pytest.mark.parametrize('cycle_to',
                          [None, ('s.ds.l6.b1', 's.ds.l6.b2'), ('ip6', 'ip6'), ('ip5', 'ip5')],
@@ -633,6 +633,22 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
     elif check == 'bw':
         tw_test = line.twiss(start=estart_user, end=estop_user,
                                     init=tw_init_ip6)
+        name_init = 'ip6'
+    elif check == 'fw_table' and init_at_edge:
+        tw_test = line.twiss(start=estart_user, end=estop_user,
+                             init=tw) # init_at=xt.START is default
+        name_init = 'ip5'
+    elif check == 'bw_table' and init_at_edge:
+        tw_test = line.twiss(start=estart_user, end=estop_user,
+                             init=tw, init_at=xt.END)
+        name_init = 'ip6'
+    elif check == 'fw_table' and not init_at_edge:
+        tw_test = line.twiss(start=estart_user, end=estop_user,
+                             init=tw, init_at='ip5')
+        name_init = 'ip5'
+    elif check == 'bw_table' and not init_at_edge:
+        tw_test = line.twiss(start=estart_user, end=estop_user,
+                             init=tw, init_at='ip6')
         name_init = 'ip6'
     elif check == 'fw_kw':
         tw_test = line.twiss(start=estart_user, end=estop_user,
