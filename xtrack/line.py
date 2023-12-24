@@ -1492,6 +1492,82 @@ class Line:
 
         return fp
 
+    def get_amplitude_detuning_coefficients(self, nemitt_x=1e-6, nemitt_y=1e-6,
+                num_turns=256, a0_sigmas=0.01, a1_sigmas=0.1, a2_sigmas=0.2):
+
+        '''
+        Compute the amplitude detuning coefficients (det_xx = dQx / dJx,
+        det_yy = dQy / dJy, det_xy = dQx / dJy, det_yx = dQy / dJx) using
+        tracking.
+
+        Parameters
+        ----------
+        nemitt_x : float
+            Normalized emittance in the x-plane. Default is 1e-6.
+        nemitt_y : float
+            Normalized emittance in the y-plane. Default is 1e-6.
+        num_turns : int
+            Number of turns for tracking. Default is 256.
+        a0_sigmas : float
+            Amplitude of the first particle (in sigmas). Default is 0.01.
+        a1_sigmas : float
+            Amplitude of the second particle (in sigmas). Default is 0.1.
+        a2_sigmas : float
+            Amplitude of the third particle (in sigmas). Default is 0.2.
+
+        Returns
+        -------
+        det_xx : float
+            Amplitude detuning coefficient dQx / dJx.
+        det_yy : float
+            Amplitude detuning coefficient dQy / dJy.
+        det_xy : float
+            Amplitude detuning coefficient dQx / dJy.
+        det_yx : float
+            Amplitude detuning coefficient dQy / dJx.
+        '''
+
+        import NAFFlib as nl
+
+        gemitt_x = (nemitt_x / self.particle_ref._xobject.beta0[0]
+                            / self.particle_ref._xobject.gamma0[0])
+        gemitt_y = (nemitt_y / self.particle_ref._xobject.beta0[0]
+                            / self.particle_ref._xobject.gamma0[0])
+
+        Jx_1 = a1_sigmas**2 * gemitt_x / 2
+        Jx_2 = a2_sigmas**2 * gemitt_x / 2
+        Jy_1 = a1_sigmas**2 * gemitt_y / 2
+        Jy_2 = a2_sigmas**2 * gemitt_y / 2
+
+        particles = self.build_particles(
+                            method='4d',
+                            zeta=0, delta=0,
+                            x_norm=[a1_sigmas, a2_sigmas, a0_sigmas, a0_sigmas],
+                            y_norm=[a0_sigmas, a0_sigmas, a1_sigmas, a2_sigmas],
+                            nemitt_x=nemitt_x, nemitt_y=nemitt_y)
+
+        self.track(particles,
+                        num_turns=num_turns, time=True,
+                        turn_by_turn_monitor=True)
+        mon = self.record_last_track
+
+        assert np.all(particles.state > 0)
+
+        qx = np.zeros(4)
+        qy = np.zeros(4)
+
+        for ii in range(len(qx)):
+            qx[ii] = nl.get_tune(mon.x[ii, :])
+            qy[ii] = nl.get_tune(mon.y[ii, :])
+
+        det_xx = (qx[1] - qx[0]) / (Jx_2 - Jx_1)
+        det_yy = (qy[3] - qy[2]) / (Jy_2 - Jy_1)
+        det_xy = (qx[3] - qx[2]) / (Jy_2 - Jy_1)
+        det_yx = (qy[1] - qy[0]) / (Jx_2 - Jx_1)
+
+        return {'det_xx': det_xx, 'det_yy': det_yy,
+                'det_xy': det_xy, 'det_yx': det_yx}
+
     def compute_one_turn_matrix_finite_differences(
             self, particle_on_co,
             steps_r_matrix=None,
