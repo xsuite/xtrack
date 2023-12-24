@@ -21,8 +21,10 @@ class ActionMeasAmplDet(xt.Action):
         return det_coefficients
 
 action = ActionMeasAmplDet(line=line, nemitt_x=2.5e-6, nemitt_y=2.5e-6,
-                           num_turns=512)
+                           num_turns=128)
 
 opt = line.match(vary=xt.VaryList(['kof.a23b1', 'kod.a23b1'], step=1.),
                  targets=[action.target('det_xx', 1000., tol=0.1),
                           action.target('det_yy', 2000., tol=0.1)])
+
+opt.target_status()
