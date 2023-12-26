@@ -55,10 +55,10 @@ line.vars['ksd.b1_from_dqx.b1']._expr # is None
 # is ((-0.0003691583859286993 * vars['dqx.b1']) - -0.0007050751889840094)
 
 # Create also vertical chromaticity knob
-opt_dqy = line.match_knob('dqy.b1', knob_value_start=tw0.dqx, knob_value_end=3.0,
+opt_dqy = line.match_knob('dqy.b1', knob_value_start=tw0.dqy, knob_value_end=3.0,
             run=False, method='4d',
             vary=xt.VaryList(['ksf.b1', 'ksd.b1'], step=1e-8),
-            targets=xt.TargetSet(dqy=tw0, dqx=3.0, tol=1e-6))
+            targets=xt.TargetSet(dqx=tw0, dqy=3.0, tol=1e-6))
 opt_dqy.solve()
 opt_dqy.generate_knob()
 
@@ -74,3 +74,11 @@ line.vars['ksf.b1_from_dqy.b1']._expr
 # is ((0.0011956933485755728 * vars['dqy.b1']) - 0.0022837181704350494)
 line.vars['ksd.b1_from_dqy.b1']._expr
 # is ((-0.0003691583859286993 * vars['dqy.b1']) - -0.0007050751889840094)
+
+# Test knobs
+line.vars['dqx.b1'] = 5.
+line.vars['dqy.b1'] = 6.
+
+tw = line.twiss(method='4d')
+tw.dqx # is 5.00000231
+tw.dqy # is 5.99999987
