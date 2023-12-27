@@ -29,7 +29,7 @@ opt.target_status()
 
 import matplotlib.pyplot as plt
 
-opt.add_point_to_log(tag='matched')
+opt.tag(tag='matched')
 opt.reload(0)
 tw_before = line.twiss(method='4d')
 opt.reload(tag='matched')

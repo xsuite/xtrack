@@ -31,7 +31,7 @@ plt.close('all')
 
 line = collider['lhcb1']
 
-opt.add_point_to_log(tag='matched')
+opt.tag(tag='matched')
 opt.reload(0)
 tw_before = line.twiss(method='4d')
 opt.reload(tag='matched')
@@ -74,7 +74,7 @@ assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e
 
 line = collider['lhcb2']
 
-opt.add_point_to_log(tag='matched')
+opt.tag(tag='matched')
 opt.reload(0)
 tw_before = line.twiss(method='4d')
 opt.reload(tag='matched')

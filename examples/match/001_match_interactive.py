@@ -114,7 +114,7 @@ opt.target_status()
 #  3 ON    chrom    True -1.30694e-09          12         12 'dqy', val=12, tol=0.01, weight=1)
 
 # Tag present configuration
-opt.add_point_to_log(tag='my_tag')
+opt.tag(tag='my_tag')
 
 # Reload initial configuration
 opt.reload(iteration=0)
