@@ -9,7 +9,6 @@
 
 import numpy as np
 import xtrack as xt
-import xpart as xp
 import xobjects as xo
 import matplotlib.pyplot as plt
 
