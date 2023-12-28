@@ -1,5 +1,3 @@
-import json
-
 import xtrack as xt
 
 # import a line and add reference particle
