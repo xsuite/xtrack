@@ -2,8 +2,6 @@ import numpy as np
 from cpymad.madx import Madx
 
 import xtrack as xt
-import xpart as xp
-import xdeps as xd
 
 import matplotlib.pyplot as plt
 
@@ -39,6 +37,6 @@ line = xt.Line.from_madx_sequence(
     deferred_expressions=True,
 )
 line.configure_bend_model(core='full')
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV,
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
                             gamma0=mad.sequence.psb1.beam.gamma)
 line.to_json('psb_00_from_mad.json')
