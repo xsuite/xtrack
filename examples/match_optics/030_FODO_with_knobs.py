@@ -131,7 +131,7 @@ line = xt.Line(
         "end",
     ],
 )
-line.particle_ref = xp.Particles(p0c=450e9, q0=1, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=450e9, q0=1, mass0=xt.PROTON_MASS_EV)
 
 context = xo.ContextCpu()
 line.build_tracker(_context=context)
