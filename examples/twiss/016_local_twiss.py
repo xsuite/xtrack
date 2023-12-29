@@ -6,7 +6,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 #################################
 # Load a line and build tracker #
@@ -32,4 +31,4 @@ init = xt.twiss.TwissInit(
     element_name=line.element_names[0],
 )
 
-line.twiss(init=init, start=0, end=10000)
+line.twiss(init=init, start=line.element_names[0], end=line.element_names[10000])

@@ -3,7 +3,6 @@ import json
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 ###################################
 # Load a line and build a tracker #
@@ -13,7 +12,7 @@ with open('../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json'
     dct = json.load(f)
 
 line = xt.Line.from_dict(dct['line'])
-line.particle_ref = xp.Particles.from_dict(dct['particle'])
+line.particle_ref = xt.Particles.from_dict(dct['particle'])
 line.twiss_default['method'] = '4d'
 line.twiss_default['freeze_longitudinal'] = True
 line.build_tracker()
