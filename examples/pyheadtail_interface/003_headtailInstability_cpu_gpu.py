@@ -15,8 +15,7 @@ plt.close('all')
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
-xp.enable_pyheadtail_interface()
+xt.enable_pyheadtail_interface()
 
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -178,7 +177,7 @@ p_pht = particles
 
 ############ xsuite-PyHEADTAIL part (the WakeField instance is shared) ########################
 
-particles = xp.Particles(
+particles = xt.Particles(
     _context=context,
     circumference=circumference,
     particlenumber_per_mp=bunch_intensity / n_macroparticles,
