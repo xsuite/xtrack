@@ -504,7 +504,8 @@ class TargetSet(xd.TargetList):
             instead of the quantity itself. Default is False.
         """
 
-
+        if tars is not None and not isinstance(tars, (list, tuple)):
+            tars = [tars]
 
         common_kwargs = locals().copy()
         common_kwargs.pop('self')

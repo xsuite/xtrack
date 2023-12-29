@@ -3008,6 +3008,13 @@ class TwissTable(Table):
 
         return new_table
 
+    def target(self, tars=None, value=None, at=None, **kwargs):
+        if value is None:
+            value = self
+        tarset = xt.TargetSet(tars=tars, value=value, at=at,
+                              action=self._action, **kwargs)
+        return tarset
+
 def _complete_twiss_init(start, end, init_at, init,
                         line, reverse,
                         x, px, y, py, zeta, delta,
