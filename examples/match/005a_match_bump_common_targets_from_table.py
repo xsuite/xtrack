@@ -21,7 +21,7 @@ opt = collider.match(
         twb1.target(y=0, py=10e-6, at='ip5'),
         twb2.target(y=0, py=-10e-6, at='ip5'),
         twb1.target(y=0, py=0, at=xt.END),
-        twb2.target(y=0, py=0, at=xt.END),
+        twb2.target(['y', 'py'], at=xt.END), # <-- preserve
         twb1.target('py', xt.GreaterThan(9.9e-6), at='ip5'), # <-- inequality
     ])
 opt.target_status()
@@ -43,6 +43,8 @@ opt.target_status()
 #!end-doc-part
 
 import matplotlib.pyplot as plt
+
+assert len(opt.actions) == 2
 
 tw = collider.twiss()
 plt.close('all')

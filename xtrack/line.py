@@ -3017,6 +3017,16 @@ class Line:
                 "Please build the tracke using `line.build_tracker(...)`.")
 
     @property
+    def name(self):
+        '''Name of the line (if it is part of a `MultiLine`)'''
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            for kk, vv in self._in_multiline.lines.items():
+                if vv is self:
+                    return kk
+        else:
+            return None
+
+    @property
     def iscollective(self):
         if not self._has_valid_tracker():
             raise RuntimeError(

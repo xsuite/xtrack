@@ -421,7 +421,13 @@ class Target(xd.Target):
     def __repr__(self):
         out = xd.Target.__repr__(self)
         if self.line is not None:
-            out = out.replace('Target(', f'Target(line={self.line}, ')
+            lname = self.line
+        elif hasattr(self.action, 'line') and hasattr(self.action.line , 'name'):
+            lname = self.action.line.name
+        else:
+            lname = None
+        if lname is not None:
+            out = out.replace('Target(', f'Target(line={lname}, ')
         return out
 
     def eval(self, data):
