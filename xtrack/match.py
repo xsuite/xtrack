@@ -50,8 +50,8 @@ END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, allow_twiss_failure,
-                 compensate_radiation_energy_loss=True,
+    def __init__(self, line, allow_twiss_failure=False,
+                 compensate_radiation_energy_loss=False,
                  **kwargs):
         self.line = line
         self.kwargs = kwargs
