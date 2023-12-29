@@ -52,7 +52,7 @@ print(context)
 with open(fname_line, 'r') as fid:
      input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
-line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+line.particle_ref = xt.Particles.from_dict(input_data['particle'])
 
 
 line.build_tracker(_context=context, compile=False)
