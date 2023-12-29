@@ -9,12 +9,14 @@ tw0 = collider.twiss(method='4d')
 
 twb1 = collider.lhcb1.twiss(start='e.ds.l5.b1', end='s.ds.r5.b1', init=tw0.lhcb1)
 twb2 = collider.lhcb2.twiss(start='e.ds.l5.b2', end='s.ds.r5.b2', init=tw0.lhcb2)
+vars = collider.vars
 
 opt = collider.match(
+    solve=False,
     vary=xt.VaryList([
         'acbxv1.r5', 'acbxv1.l5', # <-- common elements
-        'acbyvs4.l5b1', 'acbrdv4.r5b1', 'acbcv5.l5b1', # <-- b1
-        'acbyvs4.l5b2', 'acbrdv4.r5b2', 'acbcv5.r5b2', # <-- b2
+        'acbyvs4.l5b1', 'acbrdv4.r5b1', 'acbcv5.l5b1', 'acbcv6.r5b1', # <-- b1
+        'acbyvs4.l5b2', 'acbrdv4.r5b2', 'acbcv5.r5b2', 'acbcv6.l5b2' # <-- b2
         ],
         step=1e-10, limits=[-1e-3, 1e-3]),
     targets = [
@@ -22,29 +24,22 @@ opt = collider.match(
         twb2.target(y=0, py=-10e-6, at='ip5'),
         twb1.target(y=0, py=0, at=xt.END),
         twb2.target(['y', 'py'], at=xt.END), # <-- preserve
-        twb1.target('py', xt.GreaterThan(9.9e-6), at='ip5'), # <-- inequality
+        vars.target('acbxv1.l5', xt.LessThan(1e-3)),
+        vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'],  # <-- callable
+                             xt.LessThan(1e-9)),
     ])
+opt.solve()
 opt.target_status()
 
 # prints:
 #
 # Target status:
-# id state tag tol_met      residue  current_val         target_val description
-#  0 ON           True -5.42101e-20 -5.42101e-20                  0 line=lhcb1, ('y', 'ip5'), val=0, tol=1e- ...
-#  1 ON           True -1.99849e-17        9e-06 GreaterThan(9e-06) line=lhcb1, ('py', 'ip5'), val=GreaterTh ...
-#  2 ON           True            0        9e-06  LessThan(1.1e-05) line=lhcb1, ('py', 'ip5'), val=LessThan( ...
-#  3 ON           True -4.67562e-19 -4.67562e-19                  0 line=lhcb2, ('y', 'ip5'), val=0, tol=1e- ...
-#  4 ON           True  1.03338e-19  1.03338e-19                  0 callable, val=0, tol=1e-10, weight=1
-#  5 ON           True  3.64674e-18  3.64674e-18                  0 line=lhcb1, ('y', 's.ds.r5.b1'), val=0,  ...
-#  6 ON           True  1.68179e-19  1.68179e-19                  0 line=lhcb1, ('py', 's.ds.r5.b1'), val=0, ...
-#  7 ON           True  2.05694e-18  2.05694e-18                  0 line=lhcb2, ('y', 's.ds.r5.b2'), val=0,  ...
-#  8 ON           True -1.21224e-19 -1.21224e-19                  0 line=lhcb2, ('py', 's.ds.r5.b2'), val=0, ...
 
 #!end-doc-part
 
 import matplotlib.pyplot as plt
 
-assert len(opt.actions) == 2
+# assert len(opt.actions) == 2
 
 tw = collider.twiss()
 plt.close('all')

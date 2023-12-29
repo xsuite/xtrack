@@ -26,13 +26,14 @@ from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
 from .slicing import Slicer
 
+
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
                           compute_T_matrix_line,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
-from .match import match_line, closed_orbit_correction, match_knob_line
+from .match import match_line, closed_orbit_correction, match_knob_line, Action
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -3961,6 +3962,22 @@ class LineVars:
 
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
+
+    def target(self, tar, value):
+        action = ActionCurrentVars(self.line)
+        return xt.Target(action=action, tar=tar, value=value)
+
+class ActionCurrentVars(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self, **kwargs):
+        assert not self.line.vars.cache_active, (
+            'Cannot run action when cache is active')
+        return self.line._xdeps_vref._owner
+
+
 
 class VarValues:
 
