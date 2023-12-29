@@ -1,6 +1,5 @@
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
 import xdeps as xd
 
 import numpy as np
