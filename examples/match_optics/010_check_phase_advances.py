@@ -22,7 +22,7 @@ for aa in ['12', '23', '34', '45', '56', '67', '78', '81']:
 
 
 tw_presq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
-        line_name='lhcb1', ele_start='s.ds.r8.b1', ele_stop='e.ds.l2.b1',
+        line_name='lhcb1', start='s.ds.r8.b1', end='e.ds.l2.b1',
         beta_star_x=0.5, beta_star_y = 0.5)
 
 assert np.isclose(
@@ -41,7 +41,7 @@ assert np.isclose(
 # Beam 1
 
 tw_sq_ip1_b1 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
-        line_name='lhcb1', ele_start='s.ds.r7.b1', ele_stop='e.ds.l3.b1',
+        line_name='lhcb1', start='s.ds.r7.b1', end='e.ds.l3.b1',
         beta_star_x=0.15, beta_star_y = 0.15)
 vt = collider.vars.get_table()
 
@@ -68,7 +68,7 @@ assert np.isclose(muxip8b1_sq - vt['value', 'muxip8b1'], -(dmux_81 + dmux_ip1_l)
 
 # Beam 2
 tw_sq_ip1_b2 = lm.propagate_optics_from_beta_star(collider, ip_name='ip1',
-        line_name='lhcb2', ele_start='s.ds.r7.b2', ele_stop='e.ds.l3.b2',
+        line_name='lhcb2', start='s.ds.r7.b2', end='e.ds.l3.b2',
         beta_star_x=0.15, beta_star_y = 0.15)
 
 

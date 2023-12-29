@@ -176,11 +176,11 @@ def test_twiss_and_survey(
                                     at_element=range_for_partial_twiss[0])
         tw4d_init = line.twiss(method='4d').get_twiss_init(
                                     at_element=range_for_partial_twiss[0])
-        tw_part = line.twiss(ele_start=range_for_partial_twiss[0],
-                ele_stop=range_for_partial_twiss[1], twiss_init=tw_init)
+        tw_part = line.twiss(start=range_for_partial_twiss[0],
+                end=range_for_partial_twiss[1], init=tw_init)
         tw4d_part = line.twiss(method='4d',
-                ele_start=range_for_partial_twiss[0],
-                ele_stop=range_for_partial_twiss[1], twiss_init=tw4d_init)
+                start=range_for_partial_twiss[0],
+                end=range_for_partial_twiss[1], init=tw4d_init)
         if reverse:
             tw_part = tw_part.reverse()
             tw4d_part = tw4d_part.reverse()

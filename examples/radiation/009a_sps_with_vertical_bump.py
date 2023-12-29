@@ -111,10 +111,12 @@ line.element_refs['lsd.53505..0'].knl[2] = 0
 line.element_refs['lsf.53605..0'].knl[2] = 0
 line.element_refs['lsd.60105..0'].knl[2] = 0
 
+tw0 = line.twiss()
 opt_bump = line.match(
     solve=False,
     method='4d',
-    ele_start='mdv.52707', ele_stop='mdv.60107', twiss_init='preserve_start',
+    start='mdv.52707', end='mdv.60107',
+    init_at=xt.START, init=tw0,
     vary=[
         xt.VaryList(['mdv.52907.ksl0', 'mdv.53107.ksl0',
                      'mdv.53307.ksl0', 'mdv.53507.ksl0'], step=1e-5),

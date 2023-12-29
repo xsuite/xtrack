@@ -1,15 +1,12 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
-
-import matplotlib.pyplot as plt
 
 
 fringe = xt.DipoleEdge(k=0.12, fint=100, hgap=0.035, model='full')
 
 line = xt.Line(elements=[fringe])
-line.particle_ref = xp.Particles(mass0=xp.PROTON_MASS_EV, beta0=0.5)
+line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, beta0=0.5)
 line.build_tracker()
 
 p0 = line.build_particles(px=0.5, py=0.001, y=0.01, delta=0.1)

@@ -5,7 +5,6 @@
 
 from cpymad.madx import Madx
 import xtrack as xt
-import xpart as xp
 
 import numpy as np
 
@@ -41,7 +40,7 @@ line = xt.Line.from_madx_sequence(mad.sequence.ss, install_apertures=True)
 
 part_gen_range = 0.1
 n_part=100000
-part = xp.Particles(
+part = xt.Particles(
         p0c=6500e9,
         x=np.random.uniform(-part_gen_range, part_gen_range, n_part),
         px = np.zeros(n_part),

@@ -26,10 +26,10 @@ particle_on_co.py = 0.
 particle_on_co.zeta = 0.
 particle_on_co.ptau = 0.
 
-twiss_init = xt.twiss.TwissInit(
+init = xt.twiss.TwissInit(
     particle_on_co=particle_on_co,
     W_matrix=np.eye(6),
     element_name=line.element_names[0],
 )
 
-line.twiss(twiss_init=twiss_init, ele_start=0, ele_stop=10000)
+line.twiss(init=init, start=0, end=10000)

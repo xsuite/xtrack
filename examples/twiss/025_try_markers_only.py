@@ -15,12 +15,12 @@ line = collider.lhcb1
 tw_init_start = line.twiss().get_twiss_init('s.ds.l5.b1')
 tw_init_end = line.twiss().get_twiss_init('e.ds.r5.b1')
 
-tw = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_start)
-tw2 = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_end)
+tw = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_start)
+tw2 = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_end)
 
-tw_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_start,
+tw_mk = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_start,
                    only_markers=True)
-tw2_mk = line.twiss(ele_start='s.ds.l5.b1', ele_stop='e.ds.r5.b1', twiss_init=tw_init_end,
+tw2_mk = line.twiss(start='s.ds.l5.b1', end='e.ds.r5.b1', init=tw_init_end,
                     only_markers=True)
 
 # Check names are the right ones
@@ -68,12 +68,12 @@ line = collider.lhcb2
 tw_init_start = line.twiss().get_twiss_init('s.ds.l5.b2')
 tw_init_end = line.twiss().get_twiss_init('e.ds.r5.b2')
 
-tw = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_start)
-tw2 = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_end)
+tw = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_start)
+tw2 = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_end)
 
-tw_mk = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_start,
+tw_mk = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_start,
                    only_markers=True)
-tw2_mk = line.twiss(ele_start='s.ds.l5.b2', ele_stop='e.ds.r5.b2', twiss_init=tw_init_end,
+tw2_mk = line.twiss(start='s.ds.l5.b2', end='e.ds.r5.b2', init=tw_init_end,
                     only_markers=True)
 
 # Check on b2 (with reverse)

@@ -14,7 +14,7 @@ context = xo.ContextCpu()
 with open('../../test_data/hllhc15_noerrors_nobb/line_and_particle.json') as f:
     dct = json.load(f)
 line = xt.Line.from_dict(dct['line'])
-line.particle_ref = xp.Particles.from_dict(dct['particle'])
+line.particle_ref = xt.Particles.from_dict(dct['particle'])
 
 line.build_tracker()
 

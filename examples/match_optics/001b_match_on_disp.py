@@ -93,8 +93,8 @@ for kk in knobs_to_compensate:
             run=False,
             knob_name=disp_knob_name,
             knob_value_start=0, knob_value_end=ref_val,
-            ele_start=left_ip, ele_stop=right_ip,
-            twiss_init='preserve_start', table_for_twiss_init=tw_ref,
+            start=left_ip, end=right_ip,
+            init=tw_ref, init_at=xt.START,
             vary=[
                 xt.VaryList(correctors[f'{ip}_{plane}_{beam_name}'],
                             step=1e-10, limits=acb_limits),

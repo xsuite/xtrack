@@ -58,8 +58,8 @@ for line_name in ['lhcb1', 'lhcb2']:
     assert np.allclose(tw_test.bx_chrom, bx_ref, rtol=0, atol=2e-3 * np.max(bx_ref))
     assert np.allclose(tw_test.by_chrom, by_ref, rtol=0, atol=2e-3 * np.max(by_ref))
 
-    twiss_init = tw.get_twiss_init('ip3')
-    tw_open = line.twiss(ele_start='ip3', ele_stop='ip6', twiss_init=twiss_init,
+    init = tw.get_twiss_init('ip3')
+    tw_open = line.twiss(start='ip3', end='ip6', init=init,
                          compute_chromatic_properties=True,
                          only_markers=True)
 

@@ -1,14 +1,13 @@
 import time
 
 import xtrack as xt
-import xpart as xp
 
 from cpymad.madx import Madx
 
 # Load the line
 line = xt.Line.from_json(
     '../../test_data/hllhc15_noerrors_nobb/line_w_knobs_and_particle.json')
-line.particle_ref = xp.Particles(p0c=7e12, mass=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=7e12, mass=xt.PROTON_MASS_EV)
 collider = xt.Multiline(lines={'lhcb1': line})
 collider.build_trackers()
 
@@ -104,9 +103,9 @@ tw_mad_before = mad.twiss().dframe()
 t_start = time.perf_counter()
 collider.match(
     #verbose=True,
-    ele_start=ele_start_match,
-    ele_stop=ele_end_match,
-    twiss_init=tw_init,
+    start=ele_start_match,
+    end=ele_end_match,
+    init=tw_init,
     targets=[
         xt.Target(line='lhcb1', at='ip7',        tar='dx',   value=dx_at_ip7, tol=1e-3),
         xt.Target(line='lhcb1', at='ip7',        tar='dpx',  value=dpx_at_ip7, tol=1e-5),

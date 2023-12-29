@@ -14,7 +14,6 @@ from matplotlib import pyplot as plt
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 xp.enable_pyheadtail_interface()
 
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss

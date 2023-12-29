@@ -23,9 +23,9 @@ def test_match_orbit_bump(test_context):
     tw_before = line.twiss()
 
     line.match(
-        ele_start='mq.33l8.b1',
-        ele_stop='mq.23l8.b1',
-        twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+        start='mq.33l8.b1',
+        end='mq.23l8.b1',
+        init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -69,9 +69,9 @@ def test_match_orbit_bump(test_context):
     line.vars['acbv24.l8b1'] = 0
 
     line.match(
-        ele_start='mq.33l8.b1',
-        ele_stop='mq.23l8.b1',
-        twiss_init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
+        start='mq.33l8.b1',
+        end='mq.23l8.b1',
+        init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -112,7 +112,7 @@ def test_match_orbit_bump(test_context):
     assert np.isclose(tw['x', 'mq.33l8.b1'], tw_before['x', 'mq.33l8.b1'], atol=1e-6)
     assert np.isclose(tw['px', 'mq.33l8.b1'], tw_before['px', 'mq.33l8.b1'], atol=1e-7)
 
-    # Same match but with twiss_init provided through a kwargs
+    # Same match but with init provided through a kwargs
     # I start from scratch
     line.vars['acbv30.l8b1'] = 0
     line.vars['acbv28.l8b1'] = 0
@@ -122,8 +122,8 @@ def test_match_orbit_bump(test_context):
     tini = tw_before.get_twiss_init(at_element='mq.33l8.b1')
 
     line.match(
-        ele_start='mq.33l8.b1',
-        ele_stop='mq.23l8.b1',
+        start='mq.33l8.b1',
+        end='mq.23l8.b1',
         betx=1, bety=1,
         x=tini.x, px=tini.px, y=tini.y, py=tini.py,
         zeta=tini.zeta, delta=tini.delta,
@@ -176,14 +176,16 @@ def test_match_orbit_bump_with_weights():
 
     line.build_tracker()
 
-    for twiss_init in ['preserve', 'preserve_start', 'preserve_end']:
+    for init_at in [xt.START, xt.END]:
+        tw0 = line.twiss()
         opt = line.match(
             #verbose=True,
             solver='jacobian',
             # Portion of the beam line to be modified and initial conditions
-            ele_start='mq.33l8.b1',
-            ele_stop='mq.17l8.b1',
-            twiss_init=twiss_init,
+            start='mq.33l8.b1',
+            end='mq.17l8.b1',
+            init_at=init_at,
+            init=tw0,
             # Dipole corrector strengths to be varied
             vary=[
                 xt.Vary(name='acbv32.l8b1', step=1e-10, weight=0.7),
@@ -198,10 +200,10 @@ def test_match_orbit_bump_with_weights():
                 xt.Target('y', at='mb.b26l8.b1', value=3e-3, tol=1e-4),
                 xt.Target('py', at='mb.b26l8.b1', value=0, tol=1e-6),
                 # I want the bump to be closed
-                xt.Target('y', at='mq.17l8.b1', value='preserve', tol=1e-6),
-                xt.Target('py', at='mq.17l8.b1', value='preserve', tol=1e-7, weight=1e3),
-                xt.Target('y', at='mq.33l8.b1', value='preserve', tol=1e-6),
-                xt.Target('py', at='mq.33l8.b1', value='preserve', tol=1e-7, weight=1e3),
+                xt.Target('y', at='mq.17l8.b1', value=tw0, tol=1e-6),
+                xt.Target('py', at='mq.17l8.b1', value=tw0, tol=1e-7, weight=1e3),
+                xt.Target('y', at='mq.33l8.b1', value=tw0, tol=1e-6),
+                xt.Target('py', at='mq.33l8.b1', value=tw0, tol=1e-7, weight=1e3),
                 # I want to limit the negative excursion ot the bump
                 xt.Target('y', xt.LessThan(-1e-3), at='mq.30l8.b1', tol=1e-6),
             ]
@@ -225,7 +227,7 @@ def test_match_orbit_bump_with_weights():
         action = list(last_data.keys())[0]
         last_twiss  = last_data[action]
         assert last_twiss.orientation == (
-            'backward' if twiss_init == 'preserve_end' else 'forward')
+            'backward' if init_at == xt.END else 'forward')
         assert last_twiss.method == '6d'
         assert last_twiss.reference_frame == 'proper'
 
@@ -255,11 +257,14 @@ def test_match_orbit_bump_within_multiline(test_context):
 
     tw_before = collider.twiss().lhcb1
 
+    tw0 = collider.twiss()
+
     collider.match(
         lines=['lhcb1'],
-        ele_start=['mq.33l8.b1'],
-        ele_stop=['mq.23l8.b1'],
-        twiss_init=['preserve_start'],
+        start=['mq.33l8.b1'],
+        end=['mq.23l8.b1'],
+        init_at=xt.START,
+        init=tw0,
         vary=[
             xt.Vary(name='acbv30.l8b1', step=1e-10),
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -305,13 +310,16 @@ def test_bump_step_and_smooth_inequalities(test_context):
     GreaterThan = xt.GreaterThan
     LessThan = xt.LessThan
 
+    tw0=line.twiss()
+
     opt = line.match(
         solve=False,
         solver='jacobian',
         # Portion of the beam line to be modified and initial conditions
-        ele_start='mq.33l8.b1',
-        ele_stop='mq.17l8.b1',
-        twiss_init='preserve',
+        start='mq.33l8.b1',
+        end='mq.17l8.b1',
+        init_at=xt.START,
+        init=tw0,
         # Dipole corrector strengths to be varied
         vary=[
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -324,7 +332,7 @@ def test_bump_step_and_smooth_inequalities(test_context):
             xt.Target('y', GreaterThan(2.7e-3), at='mb.b25l8.b1'),
             xt.Target('y', at='mq.24l8.b1', value=xt.LessThan(3e-3)),
             xt.Target('y', at='mq.26l8.b1', value=xt.LessThan(6e-3)),
-            xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value='preserve'),
+            xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value=tw0),
         ]
     )
 
@@ -388,14 +396,15 @@ def test_bump_step_and_smooth_inequalities(test_context):
     assert tw_before['y', 'mb.b26l8.b1'] < 1e-7
     assert tw_before['y', 'mb.b25l8.b1'] < 1e-7
 
-
+    tw0 = line.twiss()
     opt = line.match(
         solve=False,
         solver='jacobian',
         # Portion of the beam line to be modified and initial conditions
-        ele_start='mq.33l8.b1',
-        ele_stop='mq.17l8.b1',
-        twiss_init='preserve',
+        start='mq.33l8.b1',
+        end='mq.17l8.b1',
+        init_at=xt.START,
+        init=tw0,
         # Dipole corrector strengths to be varied
         vary=[
             xt.Vary(name='acbv28.l8b1', step=1e-10),
@@ -408,7 +417,7 @@ def test_bump_step_and_smooth_inequalities(test_context):
             xt.Target('y', GreaterThan(2.7e-3, mode='smooth'), at='mb.b25l8.b1'),
             xt.Target('y', at='mq.24l8.b1', value=xt.LessThan(3e-3, mode='smooth', sigma_rel=0.04)),
             xt.Target('y', at='mq.26l8.b1', value=xt.LessThan(6e-3, mode='smooth')),
-            xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value='preserve'),
+            xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value=tw0),
         ]
     )
 

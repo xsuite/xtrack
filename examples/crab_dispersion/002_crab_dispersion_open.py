@@ -12,11 +12,11 @@ line = collider.lhcb1
 line.cycle('ip2', inplace=True)
 tw4d = line.twiss(method='4d')
 
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                     twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_plus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                     init=xt.TwissInit(element_name=line.element_names[0],
                                              line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_minus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                        init=xt.TwissInit(element_name=line.element_names[0],
                                                 line=line, zeta=-d_zeta))
 dx_zeta_rf_off_crab_off = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
 
@@ -26,11 +26,11 @@ cl_dx_zeta_rf_off_crab_off = (tw_plus_closed.x - tw_minus_closed.x)/(tw_plus_clo
 
 line.vars['vrf400'] = 16
 
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                     twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_plus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                     init=xt.TwissInit(element_name=line.element_names[0],
                                              line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_minus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                        init=xt.TwissInit(element_name=line.element_names[0],
                                                 line=line, zeta=-d_zeta))
 dx_zeta_4d_rf_on_crab_off = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
 
@@ -40,11 +40,11 @@ cl_dx_zeta_4d_rf_on_crab_off = (tw_plus_closed.x - tw_minus_closed.x)/(tw_plus_c
 
 line.vars['on_crab1'] = -190
 
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_plus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                        init=xt.TwissInit(element_name=line.element_names[0],
                                                 line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_minus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                        init=xt.TwissInit(element_name=line.element_names[0],
                                                 line=line, zeta=-d_zeta))
 dx_zeta_4d_rf_on_crab_on = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
 
@@ -53,11 +53,11 @@ tw_minus_closed = line.twiss(method='4d', zeta0=-d_zeta)
 cl_dx_zeta_4d_rf_on_crab_on = (tw_plus_closed.x - tw_minus_closed.x)/(tw_plus_closed.zeta - tw_minus_closed.zeta)
 
 line.vars['vrf400'] = 0
-tw_plus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_plus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                        init=xt.TwissInit(element_name=line.element_names[0],
                                                 line=line, zeta=d_zeta))
-tw_minus = line.twiss(method='4d', ele_start=0, ele_stop=len(line) - 1,
-                        twiss_init=xt.TwissInit(element_name=line.element_names[0],
+tw_minus = line.twiss(method='4d', start=0, end=len(line) - 1,
+                        init=xt.TwissInit(element_name=line.element_names[0],
                                                 line=line, zeta=-d_zeta))
 dx_zeta_rf_off_crab_on = (tw_plus.x - tw_minus.x)/(tw_plus.zeta - tw_minus.zeta)
 

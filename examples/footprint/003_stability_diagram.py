@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 context = xo.ContextCpu()
 
@@ -28,7 +27,7 @@ element = xt.LineSegmentMap(_context=context,
         qy=Q_y, dety_y = dety_y, dety_x = dety_x,
         qs = Q_s,bets=1.0)
 line = xt.Line(elements = [element])
-line.particle_ref = xp.Particles(p0c=7000e9, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=7000e9, mass0=xt.PROTON_MASS_EV)
 line.build_tracker()
 # ######################################### #
 # Create footprint on a uniform grid        #

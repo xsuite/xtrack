@@ -42,9 +42,6 @@ from xdeps import Table
 
 from ._version import __version__
 
-from xpart import Particles, PROTON_MASS_EV, ELECTRON_MASS_EV
+from xpart import(Particles, PROTON_MASS_EV, ELECTRON_MASS_EV,
+                  enable_pyheadtail_interface, disable_pyheadtail_interface)
 
-def enable_pyheadtail_interface(*args, **kwargs):
-    raise ValueError(
-    "\n`xtrack.enable_pyheadtail_interface` not available anymore,"
-    "\nplease use `xpart.enable_pyheadtail_interface`")
