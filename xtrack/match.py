@@ -50,8 +50,8 @@ END = _LOC('END')
 
 class ActionTwiss(xd.Action):
 
-    def __init__(self, line, allow_twiss_failure,
-                 compensate_radiation_energy_loss=True,
+    def __init__(self, line, allow_twiss_failure=False,
+                 compensate_radiation_energy_loss=False,
                  **kwargs):
         self.line = line
         self.kwargs = kwargs
@@ -421,7 +421,13 @@ class Target(xd.Target):
     def __repr__(self):
         out = xd.Target.__repr__(self)
         if self.line is not None:
-            out = out.replace('Target(', f'Target(line={self.line}, ')
+            lname = self.line
+        elif hasattr(self.action, 'line') and hasattr(self.action.line , 'name'):
+            lname = self.action.line.name
+        else:
+            lname = None
+        if lname is not None:
+            out = out.replace('Target(', f'Target(line={lname}, ')
         return out
 
     def eval(self, data):
@@ -504,7 +510,8 @@ class TargetSet(xd.TargetList):
             instead of the quantity itself. Default is False.
         """
 
-
+        if tars is not None and not isinstance(tars, (list, tuple)):
+            tars = [tars]
 
         common_kwargs = locals().copy()
         common_kwargs.pop('self')
@@ -710,8 +717,9 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tt_name = tt.tar
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
-            tt_at = _at_from_placeholder(tt_at, line=line, line_name=tt.line,
-                    start=kwargs['start'], end=kwargs['end'])
+            tt_at = _at_from_placeholder(tt_at, line=tt.action.line,
+                    line_name=tt.line, start=tt.action.kwargs['start'],
+                    end=tt.action.kwargs['end'])
             tt.tar = (tt_name, tt_at)
 
         # Handle value

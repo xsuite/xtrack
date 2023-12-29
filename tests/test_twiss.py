@@ -743,7 +743,7 @@ def test_twiss_range(test_context, cycle_to, line_name, check, init_at_edge, col
         if kk in ['name', 'W_matrix', 'particle_on_co', 'values_at',
                     'method', 'radiation_method', 'reference_frame',
                     'orientation', 'steps_r_matrix', 'line_config',
-                    'loop_around'
+                    'loop_around', '_action'
                     ]:
             continue # some tested separately
         atol = atols.get(kk, atol_default)

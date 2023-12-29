@@ -26,13 +26,14 @@ from .compounds import CompoundContainer, CompoundType, Compound, SlicedCompound
 from .progress_indicator import progress
 from .slicing import Slicer
 
+
 from .survey import survey_from_line
 from xtrack.twiss import (compute_one_turn_matrix_finite_differences,
                           find_closed_orbit_line, twiss_line,
                           compute_T_matrix_line,
                           DEFAULT_MATRIX_STABILITY_TOL,
                           DEFAULT_MATRIX_RESPONSIVENESS_TOL)
-from .match import match_line, closed_orbit_correction, match_knob_line
+from .match import match_line, closed_orbit_correction, match_knob_line, Action
 from .tapering import compensate_radiation_energy_loss
 from .mad_loader import MadLoader
 from .beam_elements import element_classes
@@ -2967,6 +2968,11 @@ class Line:
 
         return line_maps
 
+    def target(self, tar, value, **kwargs):
+
+        action = ActionCurrentLine(line=self)
+        return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
@@ -3015,6 +3021,16 @@ class Line:
             raise RuntimeError(
                 "This line does not have a valid tracker. "
                 "Please build the tracke using `line.build_tracker(...)`.")
+
+    @property
+    def name(self):
+        '''Name of the line (if it is part of a `MultiLine`)'''
+        if hasattr(self, '_in_multiline') and self._in_multiline is not None:
+            for kk, vv in self._in_multiline.lines.items():
+                if vv is self:
+                    return kk
+        else:
+            return None
 
     @property
     def iscollective(self):
@@ -3405,7 +3421,7 @@ class Line:
         ele_name_insertions = []
         for s_insert, ee in progress(elements_to_insert, desc="Locate insertion points"):
             # Find element_name for insertion
-            ii_ins = np.where(tt_after_cut['s'] >= s_insert)[0][0]
+            ii_ins = np.where(tt_after_cut['s'] >= s_insert - s_tol)[0][0]
             ele_name_insertions.append(tt_after_cut['name'][ii_ins])
             assert np.abs(s_insert - tt_after_cut['s'][ii_ins]) < s_tol
 
@@ -3951,6 +3967,28 @@ class LineVars:
 
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
+
+    def target(self, tar, value, **kwargs):
+        action = ActionCurrentVars(self.line)
+        return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
+class ActionCurrentVars(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self, **kwargs):
+        assert not self.line.vars.cache_active, (
+            'Cannot run action when cache is active')
+        return self.line._xdeps_vref._owner
+
+class ActionCurrentLine(Action):
+
+    def __init__(self, line):
+        self.line = line
+
+    def run(self):
+        return self.line
 
 class VarValues:
 
