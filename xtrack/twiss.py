@@ -376,13 +376,13 @@ def twiss_line(line, particle_ref=None, method=None,
             not line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST)):
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_KICK_SAME_AS_FIRST = True
-                return _add_action_in_res(twiss_line(**kwargs))
+                return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
         elif (radiation_method == 'scale_as_co' and (
             not hasattr(line.config, 'XTRACK_SYNRAD_SCALE_SAME_AS_FIRST') or
             not line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST)):
             with xt.line._preserve_config(line):
                 line.config.XTRACK_SYNRAD_SCALE_SAME_AS_FIRST = True
-                return _add_action_in_res(twiss_line(**kwargs))
+                return _add_action_in_res(twiss_line(**kwargs), input_kwargs)
 
     if radiation_method == 'kick_as_co':
         assert hasattr(line.config, 'XTRACK_SYNRAD_KICK_SAME_AS_FIRST')
@@ -429,7 +429,7 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         tw_res = _handle_loop_around(kwargs)
 
-        return _add_action_in_res(tw_res)
+        return _add_action_in_res(tw_res, input_kwargs)
 
     # init is not at the boundary
     if (not periodic and not isinstance(init, str)
@@ -439,7 +439,7 @@ def twiss_line(line, particle_ref=None, method=None,
         kwargs = _updated_kwargs_from_locals(kwargs, locals().copy())
         tw_res = _handle_init_inside_range(kwargs)
 
-        return _add_action_in_res(tw_res)
+        return _add_action_in_res(tw_res, input_kwargs)
 
     if reverse:
         if start is not None and end is not None:
@@ -3345,6 +3345,8 @@ def _multiturn_twiss(tw0, num_turns, kwargs):
     return tw_mt
 
 def _add_action_in_res(res, kwargs):
+    if isinstance(res, xt.TwissInit):
+        return res
     twiss_kwargs = kwargs.copy()
     action = xt.match.ActionTwiss(**twiss_kwargs)
     res._data['_action'] = action
