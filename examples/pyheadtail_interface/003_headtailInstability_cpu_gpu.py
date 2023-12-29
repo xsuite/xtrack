@@ -15,8 +15,7 @@ plt.close('all')
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
-xp.enable_pyheadtail_interface()
+xt.enable_pyheadtail_interface()
 
 from PyHEADTAIL.particles.generators import generate_Gaussian6DTwiss
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -26,7 +25,8 @@ from PyHEADTAIL.trackers.transverse_tracking import TransverseSegmentMap
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningSegment
 
-context = xo.ContextCupy()
+# context = xo.ContextCupy()
+context = xo.ContextCpu()
 
 nTurn = 5000  # int(1E4)
 bunch_intensity = 1.8e11
@@ -178,7 +178,7 @@ p_pht = particles
 
 ############ xsuite-PyHEADTAIL part (the WakeField instance is shared) ########################
 
-particles = xp.Particles(
+particles = xt.Particles(
     _context=context,
     circumference=circumference,
     particlenumber_per_mp=bunch_intensity / n_macroparticles,
