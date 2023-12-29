@@ -311,6 +311,12 @@ def twiss_line(line, particle_ref=None, method=None,
         assert init is None
         assert reverse is False
 
+    if start is not None:
+        assert isinstance(start, str) # index not supported anymore
+
+    if end is not None:
+        assert isinstance(end, str) # index not supported anymore
+
     if (init is not None and init != 'periodic'
         or betx is not None or bety is not None):
         periodic = False
@@ -1758,7 +1764,7 @@ def _handle_loop_around(kwargs):
             'This function should not have been called')
         if _str_to_index(line, ele_name_init) >= _str_to_index(line, start):
             tw1 = twiss_line(start=start,
-                            end=len(line) - 1,
+                            end='_end_point',
                             init=init, **kwargs)
             twini_2 = tw1.get_twiss_init(at_element='_end_point')
             twini_2.element_name = line.element_names[0]

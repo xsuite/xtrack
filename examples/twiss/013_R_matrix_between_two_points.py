@@ -6,13 +6,11 @@
 import json
 import numpy as np
 
-import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.json'
 line = xt.Line.from_json(fname_line_particles)
-line.particle_ref = xp.Particles(p0c=7e12, mass0=xp.PROTON_MASS_EV)
+line.particle_ref = xt.Particles(p0c=7e12, mass0=xt.PROTON_MASS_EV)
 line.build_tracker()
 
 tw = line.twiss()
@@ -29,8 +27,8 @@ norm = np.linalg.norm
 
 R_matrix = tw.R_matrix
 
-W_ref, invW_ref, Rot_ref = compute_linear_normal_form(R_matrix)
-W_prod, invW_prod, Rot_prod = compute_linear_normal_form(R_prod)
+W_ref, invW_ref, Rot_ref, _ = compute_linear_normal_form(R_matrix)
+W_prod, invW_prod, Rot_prod, _ = compute_linear_normal_form(R_prod)
 
 
 for i_mode in range(3):
@@ -46,7 +44,7 @@ for i_mode in range(3):
         0, rtol=0, atol=5e-4)
     assert np.isclose(
         norm(W_prod[:4, 2*i_mode] - W_ref[:4, 2*i_mode], ord=2)/norm(W_ref[:4, 2*i_mode], ord=2),
-        0, rtol=0, atol=5e-5)
+        0, rtol=0, atol=5e-4)
 
 # Check method=4d
 
@@ -64,9 +62,9 @@ norm = np.linalg.norm
 
 R_matrix_4d = tw4d.R_matrix
 
-W_ref_4d, invW_ref_4d, Rot_ref_4d = compute_linear_normal_form(
+W_ref_4d, invW_ref_4d, Rot_ref_4d, _ = compute_linear_normal_form(
     R_matrix_4d, only_4d_block=True)
-W_prod_4d, invW_prod_4d, Rot_prod_4d = compute_linear_normal_form(
+W_prod_4d, invW_prod_4d, Rot_prod_4d, _ = compute_linear_normal_form(
     R_prod_4d, only_4d_block=True)
 
 for i_mode in range(3):

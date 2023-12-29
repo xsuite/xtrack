@@ -6,7 +6,6 @@
 import numpy as np
 
 import xtrack as xt
-import xpart as xp
 
 collider = xt.Multiline.from_json(
     '../../test_data/hllhc15_collider/collider_00_from_mad.json')

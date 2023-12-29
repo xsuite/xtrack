@@ -8,7 +8,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 ###############
 # Load a line #
@@ -20,7 +19,7 @@ fname_line_particles = '../../test_data/hllhc15_noerrors_nobb/line_and_particle.
 with open(fname_line_particles, 'r') as fid:
     input_data = json.load(fid)
 line = xt.Line.from_dict(input_data['line'])
-line.particle_ref = xp.Particles.from_dict(input_data['particle'])
+line.particle_ref = xt.Particles.from_dict(input_data['particle'])
 
 line.build_tracker()
 

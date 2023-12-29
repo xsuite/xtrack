@@ -37,10 +37,10 @@ for i_case, (configuration, longitudinal_mode) in enumerate(
     if machine == 'sps':
         if configuration == 'above transition':
             line[cavity_name].lag = 180.
-            line.particle_ref = xp.Particles(p0c=450e9, q0=1.0)
+            line.particle_ref = xt.Particles(p0c=450e9, q0=1.0)
         else:
             line[cavity_name].lag = 0.
-            line.particle_ref = xp.Particles(p0c=16e9, q0=1.0)
+            line.particle_ref = xt.Particles(p0c=16e9, q0=1.0)
 
     # Build corresponding matrix
     tw = line.twiss()
