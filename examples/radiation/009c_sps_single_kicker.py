@@ -108,7 +108,7 @@ opt = line.match(
         xt.VaryList(['klsda', 'klsdb', 'klsfa', 'klsfb', 'klsfc'], step=1e-4, tag='chrom'),
     ],
     targets=[
-        xt.TargetSet(qx=20.13, qy=20.18, tag='tune'),
+        xt.TargetSet(qx=20.13, qy=20.18, tol=1e-6, tag='tune'),
         xt.Target(lambda tw: np.std(tw.y), 5e-3, tag='orbit'),
         xt.TargetSet(dqx=0.1, dqy=0.1, tol=1e-4, tag='chrom'),
         ],
