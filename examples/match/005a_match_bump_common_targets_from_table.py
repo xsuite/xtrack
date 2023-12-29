@@ -10,6 +10,7 @@ tw0 = collider.twiss(method='4d')
 twb1 = collider.lhcb1.twiss(start='e.ds.l5.b1', end='s.ds.r5.b1', init=tw0.lhcb1)
 twb2 = collider.lhcb2.twiss(start='e.ds.l5.b2', end='s.ds.r5.b2', init=tw0.lhcb2)
 vars = collider.vars
+line_b1 = collider.lhcb1
 
 opt = collider.match(
     solve=False,
@@ -25,8 +26,10 @@ opt = collider.match(
         twb1.target(y=0, py=0, at=xt.END),
         twb2.target(['y', 'py'], at=xt.END), # <-- preserve
         vars.target('acbxv1.l5', xt.LessThan(1e-3)),
-        vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'],  # <-- callable
+        vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'],  # <-- target on vars
                              xt.LessThan(1e-9)),
+        line_b1.target(lambda ll: ll['mcbxfbv.a2r5'].ksl[0] + ll['mcbxfbv.a2l5'].ksl[0],
+                                xt.LessThan(1e-9)), # <-- target on line
     ])
 opt.solve()
 opt.target_status()

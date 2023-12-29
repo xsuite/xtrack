@@ -2968,6 +2968,11 @@ class Line:
 
         return line_maps
 
+    def target(self, tar, value, **kwargs):
+
+        action = ActionCurrentLine(line=self)
+        return xt.Target(action=action, tar=tar, value=value, **kwargs)
+
     def _freeze(self):
         self.element_names = tuple(self.element_names)
 
@@ -3963,9 +3968,9 @@ class LineVars:
     def load_madx_optics_file(self, filename, mad_stdout=False):
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
-    def target(self, tar, value):
+    def target(self, tar, value, **kwargs):
         action = ActionCurrentVars(self.line)
-        return xt.Target(action=action, tar=tar, value=value)
+        return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
 class ActionCurrentVars(Action):
 
@@ -3977,7 +3982,13 @@ class ActionCurrentVars(Action):
             'Cannot run action when cache is active')
         return self.line._xdeps_vref._owner
 
+class ActionCurrentLine(Action):
 
+    def __init__(self, line):
+        self.line = line
+
+    def run(self):
+        return self.line
 
 class VarValues:
 
