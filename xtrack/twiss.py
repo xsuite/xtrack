@@ -3042,6 +3042,8 @@ def _complete_twiss_init(start, end, init_at, init,
                 ax_chrom=ax_chrom, bx_chrom=bx_chrom,
                 ay_chrom=ay_chrom, by_chrom=by_chrom,
                 )
+        elif isinstance(init, TwissTable):
+            init = init.get_twiss_init(at_element=init_at)
         else:
             assert init_at is None
             assert x is None and px is None and y is None and py is None
@@ -3055,6 +3057,7 @@ def _complete_twiss_init(start, end, init_at, init,
             assert ay_chrom is None and by_chrom is None
 
     if init is not None and not isinstance(init, str):
+        assert isinstance(init, TwissInit)
         init = init.copy() # To avoid changing the one provided
         if init._needs_complete():
             assert isinstance(start, str), (

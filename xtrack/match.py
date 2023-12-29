@@ -711,8 +711,9 @@ def match_line(line, vary, targets, solve=True, assert_within_tol=True,
             tt_name = tt.tar
             tt_at = None
         if tt_at is not None and isinstance(tt_at, _LOC):
-            tt_at = _at_from_placeholder(tt_at, line=line, line_name=tt.line,
-                    start=kwargs['start'], end=kwargs['end'])
+            tt_at = _at_from_placeholder(tt_at, line==tt.action.line,
+                    line_name=None, start=tt.action.kwargs['start'],
+                    end=tt.action.kwargs['end'])
             tt.tar = (tt_name, tt_at)
 
         # Handle value
