@@ -211,7 +211,6 @@ def test_instability_cpu_gpu(test_context):
         energy_increment=0,
     )
 
-
     line = xt.Line(elements=[arc, wake_field, damper],
                        element_names=['arc', 'wake_field', 'damper'])
     line.build_tracker(_context=test_context)

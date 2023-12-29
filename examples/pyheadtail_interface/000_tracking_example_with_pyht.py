@@ -9,7 +9,6 @@ import numpy as np
 
 import xobjects as xo
 import xtrack as xt
-import xpart as xp
 
 xt.enable_pyheadtail_interface()
 
