@@ -124,4 +124,12 @@ assert isinstance(opt.targets[10].action, xt.line.ActionVars)
 assert isinstance(opt.targets[11].action, xt.line.ActionLine)
 assert isinstance(opt.targets[12].action, xt.line.ActionLine)
 
+opt.tag('solution')
+opt.reload(0)
+
+assert np.all(opt.target_status(ret=True).tol_met == np.array(
+    [ True, False,  True,  True,  True, False,  True,  True,  True,
+      False,  True, False,  True]))
+opt.reload(tag='solution')
+assert np.all(opt.target_status(ret=True).tol_met)
 plt.show()
