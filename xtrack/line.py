@@ -3838,7 +3838,7 @@ class LineVars:
         if self.line._xdeps_vref is None:
             raise RuntimeError(
                 f'Cannot access variables as the line has no xdeps manager')
-        name = np.array(list(self.keys()))
+        name = np.array([kk for kk in list(self.keys()) if kk != '__vary_default'])
         value = np.array([self.line._xdeps_vref[kk]._value for kk in name])
 
         return xd.Table({'name': name, 'value': value})

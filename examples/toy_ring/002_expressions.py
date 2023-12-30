@@ -110,12 +110,10 @@ line.vars['a'] = 3 * line.functions.sqrt(line.vars['k1lf']) + 2 * line.vars['k1l
 # As seen above, line.vars['varname'] returns a reference object that
 # can be used to build further references, or to inpect its properties.
 # To get the current value of the variable, one needs to use `._get_value()`
-
 # For quick access to the current value of a variable, one can use the `line.varval`
 # attribute or its shortcut `line.vv`:
 line.varval['k1lf'] # is 0.2
 line.vv['k1lf']     # is 0.2
-
 # Note an important difference when using `line.vars` or `line.varval` in building
 # expressions. For example:
 line.vars['a'] = 3.
@@ -133,6 +131,30 @@ line.vv['b'] # is 6.
 line.vv['a'] = 4.
 line.vv['b'] # is still 6.
 
+# The `line.vars.get_table()` method returns a table with the value of all the
+# existing variables:
+line.vars.get_table()
+# returns:
+#
+# Table: 9 rows, 2 cols
+# name     value
+# t_turn_s     0
+# k1l.qf.1   0.2
+# k1l.qd.1  -0.7
+# k1l.qf.2   0.2
+# k1l.qd.2  -0.7
+# k1lf       0.2
+# k1ld      -0.7
+# a            4
+# b            6
 
-
-
+# Regular explessions can be used to select variables. For example we can select all
+# the variables containing `qf` usinf the following:
+var_tab = line.vars.get_table()
+var_tab.rows['.*qf.*']
+# returns:
+#
+# Table: 2 rows, 2 cols
+# name     value
+# k1l.qf.1   0.2
+# k1l.qf.2   0.2
