@@ -4,6 +4,7 @@ import xtrack as xt
 pi = np.pi
 lbend = 3
 elements = {
+    'mqf.1': xt.Quadrupole(length=0.3, k1=0.1),
     'd1.1':  xt.Drift(length=1),
     'mb1.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd2.1':  xt.Drift(length=1),
@@ -13,6 +14,7 @@ elements = {
     'mb2.1': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd4.1':  xt.Drift(length=1),
 
+    'mqf.2': xt.Quadrupole(length=0.3, k1=0.1),
     'd1.2':  xt.Drift(length=1),
     'mb1.2': xt.Bend(length=lbend, k0=pi / 2 / lbend, h=pi / 2 / lbend),
     'd2.2':  xt.Drift(length=1),

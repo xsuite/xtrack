@@ -1081,10 +1081,10 @@ class Quadrupole(BeamElement):
 
         ref.k1 = _get_expr(self_or_ref.k1)
 
-        for ii in range(len(_get_expr(self_or_ref.knl))):
+        for ii in range(4):
             ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
 
-        for ii in range(len(_get_expr(self_or_ref.ksl))):
+        for ii in range(4):
             ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
     @staticmethod

@@ -12,6 +12,7 @@ line_sliced.slice_thick_elements(
     slicing_strategies=[
         xtsl.Strategy(slicing=None), # default
         xtsl.Strategy(slicing=xtsl.Teapot(100, mode='thick'), element_type=xt.Bend),
+        xtsl.Strategy(slicing=xtsl.Teapot(100, mode='thick'), element_type=xt.Quadrupole),
     ]
 )
 
