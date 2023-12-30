@@ -2970,7 +2970,7 @@ class Line:
 
     def target(self, tar, value, **kwargs):
 
-        action = ActionCurrentLine(line=self)
+        action = ActionLine(line=self)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
     def _freeze(self):
@@ -3969,10 +3969,10 @@ class LineVars:
         self.set_from_madx_file(filename, mad_stdout=mad_stdout)
 
     def target(self, tar, value, **kwargs):
-        action = ActionCurrentVars(self.line)
+        action = ActionVars(self.line)
         return xt.Target(action=action, tar=tar, value=value, **kwargs)
 
-class ActionCurrentVars(Action):
+class ActionVars(Action):
 
     def __init__(self, line):
         self.line = line
@@ -3982,7 +3982,7 @@ class ActionCurrentVars(Action):
             'Cannot run action when cache is active')
         return self.line._xdeps_vref._owner
 
-class ActionCurrentLine(Action):
+class ActionLine(Action):
 
     def __init__(self, line):
         self.line = line
