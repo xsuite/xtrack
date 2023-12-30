@@ -78,5 +78,15 @@ for nn in ['mcbxfbv.a2r5', 'mcbxfbv.a2l5', 'ip5',
 plt.ylim(-1.15, 0.6)
 plt.xlim(-250, 250)
 
+import numpy as np
+assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
+assert np.isclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1e-9)
+assert np.isclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+assert np.isclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
+assert np.isclose(tw.lhcb2['py', 'ip5'], -10e-6, rtol=0, atol=1e-10)
+assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+
 
 plt.show()
