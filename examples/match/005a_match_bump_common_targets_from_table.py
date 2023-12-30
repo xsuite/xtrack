@@ -61,8 +61,6 @@ opt.target_status()
 
 import matplotlib.pyplot as plt
 
-# assert len(opt.actions) == 2
-
 tw = collider.twiss()
 
 plt.close('all')
@@ -108,5 +106,22 @@ assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
 assert np.isclose(tw.lhcb2['py', 'ip5'], -10e-6, rtol=0, atol=1e-10)
 assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
 assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+
+assert len(opt.targets) == 13
+for ii in range(4):
+    assert opt.targets[ii].action is opt.targets[0].action
+    assert isinstance(opt.targets[ii].action, xt.match.ActionTwiss)
+    assert opt.targets[ii].action.line.name == 'lhcb1'
+
+for ii in range(4, 8):
+    assert opt.targets[ii].action is opt.targets[4].action
+    assert isinstance(opt.targets[ii].action, xt.match.ActionTwiss)
+    assert opt.targets[ii].action.line.name == 'lhcb2'
+
+assert isinstance(opt.targets[8].action, xt.line.ActionVars)
+assert isinstance(opt.targets[9].action, xt.line.ActionVars)
+assert isinstance(opt.targets[10].action, xt.line.ActionVars)
+assert isinstance(opt.targets[11].action, xt.line.ActionLine)
+assert isinstance(opt.targets[12].action, xt.line.ActionLine)
 
 plt.show()
