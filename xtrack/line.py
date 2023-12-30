@@ -138,8 +138,7 @@ class Line:
         if energy_program is not None:
             self.energy_program = energy_program # setter will take care of completing
 
-        self._var_management = None
-        self._line_vars = None
+        self._init_var_management()
         self.tracker = None
 
         self.metadata = {}

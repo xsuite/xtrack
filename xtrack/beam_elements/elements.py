@@ -1294,21 +1294,23 @@ class Bend(BeamElement):
     def add_thick_slice(cls, weight, container, name, slice_name, _buffer=None):
         self_or_ref = container[name]
         container[slice_name] = cls(
-            length=self_or_ref.length * weight,
-            num_multipole_kicks=self_or_ref.num_multipole_kicks,
-            order=self_or_ref.order,
+            length=999.,
+            order=4,
             _buffer=_buffer,
         )
         ref = container[slice_name]
 
+        ref.length = _get_expr(self_or_ref.length) * weight
+        ref.num_multipole_kicks = _get_expr(self_or_ref.num_multipole_kicks)
+        ref.order = _get_expr(self_or_ref.order)
         ref.k0 = _get_expr(self_or_ref.k0)
         ref.h = _get_expr(self_or_ref.h)
         ref.length = _get_expr(self_or_ref.length) * weight
 
-        for ii in range(len(self_or_ref.knl)):
+        for ii in range(4): # For now we hardcode 4
             ref.knl[ii] = _get_expr(self_or_ref.knl[ii]) * weight
 
-        for ii in range(len(self_or_ref.ksl)):
+        for ii in range(4): # For now we hardcode 4
             ref.ksl[ii] = _get_expr(self_or_ref.ksl[ii]) * weight
 
     @staticmethod
