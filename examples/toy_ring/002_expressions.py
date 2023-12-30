@@ -114,7 +114,25 @@ line.vars['a'] = 3 * line.functions.sqrt(line.vars['k1lf']) + 2 * line.vars['k1l
 # For quick access to the current value of a variable, one can use the `line.varval`
 # attribute or its shortcut `line.vv`:
 line.varval['k1lf'] # is 0.2
-line.vv['k1lf'] # is 0.2
+line.vv['k1lf']     # is 0.2
+
+# Note an important difference when using `line.vars` or `line.varval` in building
+# expressions. For example:
+line.vars['a'] = 3.
+line.vars['b'] = 2 * line.vars['a']
+# In this case the reference to the quantity `line.vars['a']` is stored in the
+# expression, and the value of `line.vars['b']` is updated when `line.vars['a']`
+# changes:
+line.vars['a'] = 4.
+line.vv['b'] # is 8.
+# On the contrary, when using `line.varval` or `line.vv` in building expressions,
+# the current value of the variable is stored in the expression:
+line.vv['a'] = 3.
+line.vv['b'] = 2 * line.vv['a']
+line.vv['b'] # is 6.
+line.vv['a'] = 4.
+line.vv['b'] # is still 6.
+
 
 
 
