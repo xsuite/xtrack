@@ -29,7 +29,9 @@ elements = {
 line = xt.Line(elements=elements, element_names=list(elements.keys()))
 line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
 
-# For each quadrupole we create a variable controlling its integrated strength
+# For each quadrupole we create a variable controlling its integrated strength.
+# Expressions can be associated to any beam element property, using the `element_refs`
+# attribute of the line. For example:
 line.vars['k1l.qf.1'] = 0
 line.element_refs['mqf.1'].k1 = line.vars['k1l.qf.1'] / lquad
 line.vars['k1l.qd.1'] = 0
@@ -108,7 +110,7 @@ line.element_refs['mqf.1'].k1._info()
 line.vars['a'] = 3 * line.functions.sqrt(line.vars['k1lf']) + 2 * line.vars['k1ld']
 
 # As seen above, line.vars['varname'] returns a reference object that
-# can be used to build further references, or to inpect its properties.
+# can be used to build further references, or to inspect its properties.
 # To get the current value of the variable, one needs to use `._get_value()`
 # For quick access to the current value of a variable, one can use the `line.varval`
 # attribute or its shortcut `line.vv`:
@@ -148,8 +150,8 @@ line.vars.get_table()
 # a            4
 # b            6
 
-# Regular explessions can be used to select variables. For example we can select all
-# the variables containing `qf` usinf the following:
+# Regular expressions can be used to select variables. For example we can select all
+# the variables containing `qf` using the following:
 var_tab = line.vars.get_table()
 var_tab.rows['.*qf.*']
 # returns:
