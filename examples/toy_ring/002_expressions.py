@@ -109,5 +109,12 @@ line.vars['a'] = 3 * line.functions.sqrt(line.vars['k1lf']) + 2 * line.vars['k1l
 
 # As seen above, line.vars['varname'] returns a reference object that
 # can be used to build further references, or to inpect its properties.
-# To get the current value of the variable, one needs to åuse `._get_value()`
+# To get the current value of the variable, one needs to use `._get_value()`
+
+# For quick access to the current value of a variable, one can use the `line.varval`
+# attribute or its shortcut `line.vv`:
+line.varval['k1lf'] # is 0.2
+line.vv['k1lf'] # is 0.2
+
+
 
