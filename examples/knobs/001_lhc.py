@@ -122,6 +122,8 @@ line.vars['acbxh3.r1']._info()
 #          #  vars['acbxh3.r1']._find_dependant_targets()
 #             element_refs['mcbxfah.3r1'].knl[0]
 
+#!end-doc-part
+
 #########################################################################
 # The Xtrack line including the related expressions can be saved in a   #
 # json and reloaded.                                                    #
@@ -137,8 +139,6 @@ with open('status.json', 'w') as fid:
 with open('status.json', 'r') as fid:
     dct = json.load(fid)
 line_reloaded = xt.Line.from_dict(dct)
-
-#!end-doc-part
 
 import numpy as np
 line.vars['on_x1'] = 250
