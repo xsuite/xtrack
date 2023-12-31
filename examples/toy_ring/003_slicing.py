@@ -32,7 +32,7 @@ line.particle_ref = xt.Particles(p0c=1.2e9, mass0=xt.PROTON_MASS_EV)
 
 line_before_slicing = line.copy() # Keep for comparison
 
-# Slice different elements in different strategies (in case multiple strategies
+# Slice different elements with different strategies (in case multiple strategies
 # apply to the same element, the last one takes precedence)
 line.slice_thick_elements(
     slicing_strategies=[

@@ -822,7 +822,26 @@ class Line:
         Parameters
         ----------
         slicing_strategies : list
-            List of slicing Strategy objects.
+            List of slicing Strategy objects. In case multiple strategies
+            apply to the same element, the last one takes precedence)
+
+        Examples
+        --------
+
+        .. code-block:: python
+
+            line.slice_thick_elements(
+                slicing_strategies=[
+                    # Slicing with thin elements
+                    xt.Strategy(slicing=xt.Teapot(1)), # (1) Default applied to all elements
+                    xt.Strategy(slicing=xt.Uniform(2), element_type=xt.Bend), # (2) Selection by element type
+                    xt.Strategy(slicing=xt.Teapot(3), element_type=xt.Quadrupole),  # (4) Selection by element type
+                    xt.Strategy(slicing=xt.Teapot(4), name='mb1.*'), # (5) Selection by name pattern
+                    # Slicing with thick elements
+                    xt.Strategy(slicing=xt.Uniform(2, mode='thick'), name='mqf.*'), # (6) Selection by name pattern
+                    # Do not slice (leave untouched)
+                    xt.Strategy(slicing=None, name='mqd.1') # (7) Selection by name
+            ])
 
         """
 
