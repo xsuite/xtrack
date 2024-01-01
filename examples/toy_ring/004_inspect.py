@@ -130,3 +130,35 @@ tab.rows[3.0:7.0:'s']
 # d3.1       5.6 Drift           True
 # mb2.1      6.6 Bend            True
 
+# A section of the ring can be selected using indexes relative one element
+# (e.g. to get from three elements upstream of 'mqd.1' to two elements
+# downstream of 'mb2.1')
+tab.rows['mqd.1%%-3':'mb2.1%%2']
+# returns:
+#
+# Table: 8 rows, 5 cols
+# name          s element_type isthick compound_name
+# d1.1        0.3 Drift           True
+# mb1.1       1.3 Bend            True
+# d2.1        4.3 Drift           True
+# mqd.1       5.3 Quadrupole      True
+# d3.1        5.6 Drift           True
+# mb2.1       6.6 Bend            True
+# d4.1        9.6 Drift           True
+# mqf.2      10.6 Quadrupole      True
+
+# Each of the selection methods above returns a valid table, hence selections
+# can be chained. For example:
+tab.rows[0:10:'s'].rows['mb.*']
+# returns:
+#
+# Table: 2 rows, 5 cols
+# name       s element_type isthick compound_name
+# mb1.1    1.3 Bend            True
+# mb2.1    6.6 Bend            True
+
+# All attributes extracted by `line.attr[...]` can be included in the table
+# using `attr=True`. For example, using `tab.cols[...]` to select columns, we
+# we can get the focusing strength of all quadrupoles in the ring:
+tab = line.get_table(attr=True)
+tab.rows[tab.element_type=='Quadrupole'].cols['s length k1l']
