@@ -28,7 +28,7 @@ elements = {
 
 # Build the ring
 line = xt.Line(elements=elements,
-               element_names=['mqf.1', 'd1.1', 'mb1.1', 'd2.1',
+               element_names=['mqf.1', 'd1.1', 'mb1.1', 'd2.1', # defines the order
                               'mqd.1', 'd3.1', 'mb2.1', 'd4.1',
                               'mqf.2', 'd1.2', 'mb1.2', 'd2.2',
                               'mqd.2', 'd3.2', 'mb2.2', 'd4.2'])

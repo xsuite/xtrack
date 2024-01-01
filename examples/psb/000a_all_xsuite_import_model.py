@@ -36,7 +36,9 @@ line = xt.Line.from_madx_sequence(
     enable_align_errors=True,
     deferred_expressions=True,
 )
-line.configure_bend_model(core='full')
 line.particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV,
                             gamma0=mad.sequence.psb1.beam.gamma)
+#!end-doc-part
+
+line.configure_bend_model(core='full')
 line.to_json('psb_00_from_mad.json')
