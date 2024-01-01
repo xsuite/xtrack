@@ -91,7 +91,19 @@ tab.rows['mb.*']
 # mb1.2   11.9 Bend            True
 # mb2.2   17.2 Bend            True
 
-# It is possible to select a section of the ring using names
+# Elements can be selected by type
+tab.rows[tab.element_type == 'Quadrupole']
+# returns:
+#
+# Table: 4 rows, 5 cols
+# Table: 4 rows, 5 cols
+# name          s element_type isthick compound_name
+# mqf.1         0 Quadrupole      True
+# mqd.1       5.3 Quadrupole      True
+# mqf.2      10.6 Quadrupole      True
+# mqd.2      15.9 Quadrupole      True
+
+# A section of the ring can be selected using names
 tab.rows['mqd.1':'mqd.2']
 # returns:
 #
@@ -106,3 +118,15 @@ tab.rows['mqd.1':'mqd.2']
 # mb1.2      11.9 Bend            True
 # d2.2       14.9 Drift           True
 # mqd.2      15.9 Quadrupole      True
+
+# A section of the ring can be selected using the s coordinate
+tab.rows[3.0:7.0:'s']
+# returns:
+#
+# Table: 4 rows, 5 cols
+# name         s element_type isthick compound_name
+# d2.1       4.3 Drift           True
+# mqd.1      5.3 Quadrupole      True
+# d3.1       5.6 Drift           True
+# mb2.1      6.6 Bend            True
+
