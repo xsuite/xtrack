@@ -1,6 +1,7 @@
 import numpy as np
 import xtrack as xt
 
+# Define elements
 pi = np.pi
 lbend = 3
 elements = {
