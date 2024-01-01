@@ -162,3 +162,11 @@ tab.rows[0:10:'s'].rows['mb.*']
 # we can get the focusing strength of all quadrupoles in the ring:
 tab = line.get_table(attr=True)
 tab.rows[tab.element_type=='Quadrupole'].cols['s length k1l']
+# returns:
+#
+#Table: 4 rows, 4 cols
+# name          s length   k1l
+# mqf.1         0    0.3  0.03
+# mqd.1       5.3    0.3 -0.21
+# mqf.2      10.6    0.3  0.03
+# mqd.2      15.9    0.3 -0.21
