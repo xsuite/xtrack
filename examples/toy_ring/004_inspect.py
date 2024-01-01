@@ -40,8 +40,69 @@ line[0] # is Quadrupole(length=0.3, k1=0.1, ...)
 line[0].k1 # is 0.1
 line[0].length # is 0.3
 
-# Tuple with all element Names
+# Tuple with all element names
 line.element_names # is ('mqf.1', 'd1.1', 'mb1.1', 'd2.1', 'mqd.1', ...
 
 # Tuple with all element objects
 line.elements # is (Quadrupole(length=0.3, k1=0.1, ...), Drift(length=1), ...
+
+# `line.attr[...]` can be used for efficient extraction of a given attribute for
+# all elements. For example:
+line.attr['length'] # is (0.3, 1, 3, 1, 0.3, 1, 3, 1, 0.3, 1, 3, 1, 0.3, 1, 3, 1)
+line.attr['k1l'] # is ('0.03, 0.0, 0.0, 0.0, -0.21, 0.0, 0.0, 0.0, 0.03, ... )
+
+# The list of all attributes can be found in
+line.attr.keys() # is ('length', 'k1', 'k1l', 'k2', 'k2l', 'k3', 'k3l', 'k4', ...
+
+# `line.get_table()`` can be used to get a table with information about the line
+# elements. For example:
+line.get_table()
+# returns:
+#
+# Table: 17 rows, 5 cols
+# name          s element_type isthick compound_name
+# mqf.1         0 Quadrupole      True
+# d1.1        0.3 Drift           True
+# mb1.1       1.3 Bend            True
+# d2.1        4.3 Drift           True
+# mqd.1       5.3 Quadrupole      True
+# d3.1        5.6 Drift           True
+# mb2.1       6.6 Bend            True
+# d4.1        9.6 Drift           True
+# mqf.2      10.6 Quadrupole      True
+# d1.2       10.9 Drift           True
+# mb1.2      11.9 Bend            True
+# d2.2       14.9 Drift           True
+# mqd.2      15.9 Quadrupole      True
+# d3.2       16.2 Drift           True
+# mb2.2      17.2 Bend            True
+# d4.2       20.2 Drift           True
+# _end_point 21.2                False
+
+# Regular expressions can be used to select elements by name
+tab = line.get_table()
+tab.rows['mb.*']
+# returns:
+#
+# Table: 4 rows, 5 cols
+# name       s element_type isthick compound_name
+# mb1.1    1.3 Bend            True
+# mb2.1    6.6 Bend            True
+# mb1.2   11.9 Bend            True
+# mb2.2   17.2 Bend            True
+
+# It is possible to select a section of the ring using names
+tab.rows['mqd.1':'mqd.2']
+# returns:
+#
+# Table: 9 rows, 5 cols
+# name          s element_type isthick compound_name
+# mqd.1       5.3 Quadrupole      True
+# d3.1        5.6 Drift           True
+# mb2.1       6.6 Bend            True
+# d4.1        9.6 Drift           True
+# mqf.2      10.6 Quadrupole      True
+# d1.2       10.9 Drift           True
+# mb1.2      11.9 Bend            True
+# d2.2       14.9 Drift           True
+# mqd.2      15.9 Quadrupole      True
