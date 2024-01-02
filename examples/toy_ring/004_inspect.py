@@ -57,7 +57,10 @@ line.attr.keys() # is ('length', 'k1', 'k1l', 'k2', 'k2l', 'k3', 'k3l', 'k4', ..
 # `line.get_table()`` can be used to get a table with information about the line
 # elements. For example:
 tab = line.get_table()
-# is:
+
+# The table can be printed
+tab.show()
+# prints:
 #
 # Table: 17 rows, 5 cols
 # name          s element_type isthick compound_name
