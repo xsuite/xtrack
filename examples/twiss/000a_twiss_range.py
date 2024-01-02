@@ -39,6 +39,9 @@ tw4 = line.twiss(start='ip5', end='mb.c24r5.b1', init_at='mb.c14r5.b1',
 tw_init = tw_p.get_twiss_init('mb.c14r5.b1',)
 tw5 = line.twiss(start='ip5', end='mb.c24r5.b1', init=tw_init)
 
+
+#!end-doc-part
+
 # Plot
 
 # Choose the twiss to plot
