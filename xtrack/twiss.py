@@ -3248,6 +3248,15 @@ def _build_sigma_table(Sigma, s=None, name=None):
 
     # Longitudinal plane is untested
 
+    res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
+    res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
+    res_data['sigma_zeta'] = np.sqrt(Sigma[:, 4, 4])
+
+    res_data['sigma_px'] = np.sqrt(Sigma[:, 1, 1])
+    res_data['sigma_py'] = np.sqrt(Sigma[:, 3, 3])
+    res_data['sigma_pzeta'] = np.sqrt(Sigma[:, 5, 5])
+
+
     res_data['Sigma'] = Sigma
     res_data['Sigma11'] = Sigma[:, 0, 0]
     res_data['Sigma12'] = Sigma[:, 0, 1]
@@ -3274,9 +3283,6 @@ def _build_sigma_table(Sigma, s=None, name=None):
     res_data['Sigma51'] = Sigma[:, 4, 0]
     res_data['Sigma52'] = Sigma[:, 4, 1]
 
-    res_data['sigma_x'] = np.sqrt(Sigma[:, 0, 0])
-    res_data['sigma_y'] = np.sqrt(Sigma[:, 2, 2])
-    res_data['sigma_zeta'] = np.sqrt(Sigma[:, 4, 4])
 
     return Table(res_data)
 
