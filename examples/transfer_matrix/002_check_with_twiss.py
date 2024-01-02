@@ -55,7 +55,7 @@ tw4d = line.twiss(method='4d')
 tw6d = line.twiss()
 
 assert np.isclose(tw6d.qs, 0.0004, atol=1e-7, rtol=0)
-assert np.isclose(tw6d.betz0, 1e-3, atol=1e-7, rtol=0)
+assert np.isclose(tw6d.bets0, 1e-3, atol=1e-7, rtol=0)
 
 for tw in [tw4d, tw6d]:
 

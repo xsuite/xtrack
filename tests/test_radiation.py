@@ -233,7 +233,7 @@ def test_ring_with_radiation(test_context):
 
     with flaky_assertions():
         assert np.isclose(np.std(mon.zeta[:, 750:]),
-            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0] * np.abs(tw['betz0'])),
+            np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0] * np.abs(tw['bets0'])),
             rtol=0.2, atol=0
             )
 

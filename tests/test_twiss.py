@@ -828,7 +828,7 @@ def test_twiss_against_matrix(test_context):
     tw6d = line.twiss()
 
     assert np.isclose(tw6d.qs, 0.0004, atol=1e-7, rtol=0)
-    assert np.isclose(tw6d.betz0, 1e-3, atol=1e-7, rtol=0)
+    assert np.isclose(tw6d.bets0, 1e-3, atol=1e-7, rtol=0)
 
     for tw in [tw4d, tw6d]:
 
@@ -984,13 +984,13 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
         tw_matrix = line_matrix.twiss()
 
         if configuration == 'above transition':
-            assert tw_line.betz0 > 0
-            assert tw_matrix.betz0 > 0
+            assert tw_line.bets0 > 0
+            assert tw_matrix.bets0 > 0
             assert tw_line.slip_factor > 0
             assert tw_matrix.slip_factor > 0
         elif configuration == 'below transition':
-            assert tw_line.betz0 < 0
-            assert tw_matrix.betz0 < 0
+            assert tw_line.bets0 < 0
+            assert tw_matrix.bets0 < 0
             assert tw_line.slip_factor < 0
             assert tw_matrix.slip_factor < 0
         else:
@@ -1014,7 +1014,7 @@ def test_longitudinal_plane_against_matrix(machine, test_context):
 
         assert tw_matrix.s[0] == 0
         assert np.isclose(tw_matrix.s[-1], tw_line.circumference, rtol=0, atol=1e-6)
-        assert np.allclose(tw_matrix.betz0, tw_line.betz0, rtol=1e-2, atol=0)
+        assert np.allclose(tw_matrix.bets0, tw_line.bets0, rtol=1e-2, atol=0)
 
         assert np.allclose(np.squeeze(mon.zeta), np.squeeze(mon_matrix.zeta),
                         rtol=0, atol=2e-2*np.max(np.squeeze(mon.zeta)))
@@ -1067,7 +1067,7 @@ def test_custom_twiss_init(test_context):
     muy = tw['muy', init_at]
     muzeta = tw['muzeta', init_at]
     dzeta = tw['dzeta', init_at]
-    bets = tw.betz0
+    bets = tw.bets0
     reference_frame = 'proper'
 
     tw_init = xt.TwissInit(element_name=init_at,

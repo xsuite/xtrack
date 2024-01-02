@@ -18,7 +18,7 @@ mad = Madx()
 mad.call('../../test_data/clic_dr/sequence.madx')
 
 # # ELETTRA
-# np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0'])# ELETTRA
+# np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['bets0'])# ELETTRA
 # mad.globals.update({'ON_SEXT': 1, 'ON_OCT': 1, 'ON_RF': 1, 'NRJ_GeV': 2.4,
 #                    'SAVE_FIGS': False, 'SAVE_TWISS': False})
 # mad.call("../../../elettra/elettra2_v15_VADER_2.3T.madx")
@@ -147,7 +147,7 @@ print(f'Track time: {(t2-t1)/num_turns:.2e} s/turn')
 mon = line.record_last_track
 
 assert np.isclose(np.std(mon.zeta[:, 750:]),
-    np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['betz0']),
+    np.sqrt(met[met.loc[:, 'parameter']=='emittance']['mode3'][0]*tw['bets0']),
     rtol=0.2, atol=0
     )
 

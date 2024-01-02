@@ -37,7 +37,7 @@ mux = tw['mux', init_at]
 muy = tw['muy', init_at]
 muzeta = tw['muzeta', init_at]
 dzeta = tw['dzeta', init_at]
-bets = tw.betz0
+bets = tw.bets0
 reference_frame = 'proper'
 
 tw_init = xt.TwissInit(element_name=init_at,

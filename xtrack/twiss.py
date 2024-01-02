@@ -1099,14 +1099,14 @@ def _compute_global_quantities(line, twiss_res):
 
         beta0 = part_on_co._xobject.beta0[0]
         T_rev0 = circumference/clight/beta0
-        betz0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
+        bets0 = W_matrix[0, 4, 4]**2 + W_matrix[0, 4, 5]**2
         if eta < 0: # below transition
-            betz0 = -betz0
+            bets0 = -bets0
         ptau_co = twiss_res['ptau']
 
 
         twiss_res._data.update({
-            'slip_factor': eta, 'momentum_compaction_factor': alpha, 'betz0': betz0,
+            'slip_factor': eta, 'momentum_compaction_factor': alpha, 'bets0': bets0,
             'circumference': circumference, 'T_rev0': T_rev0,
             'particle_on_co':part_on_co.copy(_context=xo.context_default),
             'gamma0': part_on_co._xobject.gamma0[0],
