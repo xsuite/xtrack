@@ -4,7 +4,6 @@
 # ######################################### #
 
 import numpy as np
-
 import xtrack as xt
 
 # Load a line and build tracker
