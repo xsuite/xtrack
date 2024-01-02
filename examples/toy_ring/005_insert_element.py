@@ -99,5 +99,3 @@ line.get_table().show()
 # mb2.2      17.2 Bend            True
 # d4.2       20.2 Drift           True
 # _end_point 21.2                False
-
-
