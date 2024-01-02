@@ -43,6 +43,16 @@ beam_sizes.rows['ip.?'].show()
 # ip1                  19994.2 7.08975e-06 7.08979e-06   0.196939 4.72651e-05
 # ip2                  23326.6 5.78877e-05 5.78878e-05   0.196939 5.78879e-06
 
+# All covariances are computed including those from linear coupling
+beam_sizes.keys()
+# is:
+#
+# ['s', 'name', 'sigma_x', 'sigma_y', 'sigma_zeta', 'sigma_px', 'sigma_py',
+# 'sigma_pzeta', 'Sigma', 'Sigma11', 'Sigma12', 'Sigma13', 'Sigma14', 'Sigma15',
+# 'Sigma16', 'Sigma21', 'Sigma22', 'Sigma23', 'Sigma24', 'Sigma25', 'Sigma26',
+# 'Sigma31', 'Sigma32', 'Sigma33', 'Sigma34', 'Sigma41', 'Sigma42', 'Sigma43',
+# 'Sigma44', 'Sigma51', 'Sigma52'])
+
 # Plot
 import matplotlib.pyplot as plt
 plt.close('all')
