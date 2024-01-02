@@ -30,11 +30,19 @@ tw3 = line.twiss(start='ip5', end='mb.c24r5.b1', init_at='mb.c14r5.b1',
                  alfx=-0.437695, betx=31.8512, alfy=-6.73282, bety=450.454,
                  dx=1.22606, dpx=-0.0169647)
 
+# Initial conditions can also be taken from an existing twiss table
+tw4 = line.twiss(start='ip5', end='mb.c24r5.b1', init_at='mb.c14r5.b1',
+                 init=tw_p)
+
+# More explicitly, a `TwissInit` object can be extracted from the twiss table
+# and used as initial conditions
+tw_init = tw_p.get_twiss_init('mb.c14r5.b1',)
+tw5 = line.twiss(start='ip5', end='mb.c24r5.b1', init=tw_init)
 
 # Plot
 
 # Choose the twiss to plot
-tw = tw2
+tw = tw5
 
 import matplotlib.pyplot as plt
 plt.close('all')
