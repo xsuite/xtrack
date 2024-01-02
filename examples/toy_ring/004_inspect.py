@@ -56,8 +56,8 @@ line.attr.keys() # is ('length', 'k1', 'k1l', 'k2', 'k2l', 'k3', 'k3l', 'k4', ..
 
 # `line.get_table()`` can be used to get a table with information about the line
 # elements. For example:
-line.get_table()
-# returns:
+tab = line.get_table()
+# is:
 #
 # Table: 17 rows, 5 cols
 # name          s element_type isthick compound_name
@@ -79,8 +79,13 @@ line.get_table()
 # d4.2       20.2 Drift           True
 # _end_point 21.2                False
 
+# Access to a single element of the table
+tab['s', 'mb2.1'] # is 6.6
+
+# Access to a single column of the table
+tab['s'] # is [0.0, 0.3, 1.3, 4.3, 5.3, 5.6, 6.6, 9.6, 10.6, 10.9, 11.9, ...
+
 # Regular expressions can be used to select elements by name
-tab = line.get_table()
 tab.rows['mb.*']
 # returns:
 #
