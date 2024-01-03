@@ -47,8 +47,7 @@ tw2.rows['ip[1,3,5,7]'].cols['s mux muy x y px py'].show(digits=4)
 # ip3  1.999e+04 46.46 44.81  -9.85e-08 -2.447e-08  3.218e-09 -9.711e-10
 # ip1  2.666e+04 62.31 60.32 -2.278e-09    -0.0005     -1e-05   2.57e-08
 
-# Reverse b2 twiss
-
+# -- Reverse b2 twiss --
 # The `reverse`` flag, allows getting the output of the twiss in the counter-rotating
 # reference system. When `reverse` is True, the ordering of the elements is reversed,
 # the zero of the s coordinate and fo the phase advances is set at  the new start,
@@ -64,7 +63,6 @@ tw2.rows['ip[1,3,5,7]'].cols['s mux muy x y px py'].show(digits=4)
 # py  -> -py
 
 tw2_r = collider.lhcb2.twiss(method='4d', reverse=True)
-
 tw2_r.reference_frame # is `reverse`
 
 tw2_r.rows['ip[1,3,5,7]'].cols['s mux muy x y px py'].show(digits=4)
