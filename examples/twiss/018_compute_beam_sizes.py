@@ -75,5 +75,7 @@ spbsz.plot(beam_sizes.s, beam_sizes.sigma_y)
 spbsz.set_ylabel(r'$\sigma_{x,y}$ [m]')
 spbsz.set_xlabel('s [m]')
 
+spbet.set_xlim(tw['s', 'ip5'] - 2000, tw['s', 'ip5'] + 2000)
+
 fig1.subplots_adjust(left=.15, right=.92, hspace=.27)
 plt.show()

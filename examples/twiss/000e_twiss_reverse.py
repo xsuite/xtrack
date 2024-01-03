@@ -27,22 +27,25 @@ collider.vars['on_sep5h'] = 0.5 # [mm]
 tw1 = collider.lhcb1.twiss(method='4d')
 tw2 = collider.lhcb2.twiss(method='4d')
 
+tw1.reference_frame # is `proper`
+tw2.reference_frame # is `proper`
+
 # tw1 has a clokwise orientation while tw2 has a counter-clockwise orientation.
 #
-# name                             s   mux   muy         x          y         px         py
-# ip1                              0     0     0 4.313e-09     0.0005  1.002e-05 -4.133e-09
-# ip3                           6665 15.95 15.45 2.392e-08 -2.209e-07  3.695e-10 -3.005e-09
-# ip5                      1.333e+04 30.93 29.99    0.0005  4.332e-09  1.918e-08      1e-05
-# ip7                      1.999e+04 46.35 44.59 2.138e-07 -1.785e-08 -2.132e-09 -3.078e-11
+# name         s   mux   muy         x          y         px         py
+# ip1          0     0     0 4.313e-09     0.0005  1.002e-05 -4.133e-09
+# ip3       6665 15.95 15.45 2.392e-08 -2.209e-07  3.695e-10 -3.005e-09
+# ip5  1.333e+04 30.93 29.99    0.0005  4.332e-09  1.918e-08      1e-05
+# ip7  1.999e+04 46.35 44.59 2.138e-07 -1.785e-08 -2.132e-09 -3.078e-11
 
 tw2.rows['ip[1,3,5,7]'].cols['s mux muy x y px py'].show(digits=4)
 # prints:
 #
-# name                             s   mux   muy          x          y         px         py
-# ip7                           6665 16.19 15.45 -5.941e-09   2.69e-07 -1.098e-10  2.428e-09
-# ip5                      1.333e+04 31.28 30.37     0.0005  5.997e-09 -4.562e-09  1.003e-05
-# ip3                      1.999e+04 46.46 44.81  -9.85e-08 -2.447e-08  3.218e-09 -9.711e-10
-# ip1                      2.666e+04 62.31 60.32 -2.278e-09    -0.0005     -1e-05   2.57e-08
+# name         s   mux   muy          x          y         px         py
+# ip7       6665 16.19 15.45 -5.941e-09   2.69e-07 -1.098e-10  2.428e-09
+# ip5  1.333e+04 31.28 30.37     0.0005  5.997e-09 -4.562e-09  1.003e-05
+# ip3  1.999e+04 46.46 44.81  -9.85e-08 -2.447e-08  3.218e-09 -9.711e-10
+# ip1  2.666e+04 62.31 60.32 -2.278e-09    -0.0005     -1e-05   2.57e-08
 
 # Reverse b2 twiss
 
@@ -62,14 +65,16 @@ tw2.rows['ip[1,3,5,7]'].cols['s mux muy x y px py'].show(digits=4)
 
 tw2_r = collider.lhcb2.twiss(method='4d', reverse=True)
 
+tw2_r.reference_frame # is `reverse`
+
 tw2_r.rows['ip[1,3,5,7]'].cols['s mux muy x y px py'].show(digits=4)
 # prints:
 #
-# name                             s   mux   muy         x          y         px         py
-# ip1                      2.183e-11     0     0 2.278e-09    -0.0005     -1e-05  -2.57e-08
-# ip3                           6665 15.85 15.51  9.85e-08 -2.447e-08  3.218e-09  9.711e-10
-# ip5                      1.333e+04 31.03 29.95   -0.0005  5.997e-09 -4.562e-09 -1.003e-05
-# ip7                      1.999e+04 46.12 44.87 5.941e-09   2.69e-07 -1.098e-10 -2.428e-09
+# name         s   mux   muy         x          y         px         py
+# ip1  2.183e-11     0     0 2.278e-09    -0.0005     -1e-05  -2.57e-08
+# ip3       6665 15.85 15.51  9.85e-08 -2.447e-08  3.218e-09  9.711e-10
+# ip5  1.333e+04 31.03 29.95   -0.0005  5.997e-09 -4.562e-09 -1.003e-05
+# ip7  1.999e+04 46.12 44.87 5.941e-09   2.69e-07 -1.098e-10 -2.428e-09
 
 # In this way, for a collider, it is possible to plot the closed orbit and the
 # twiss functions of the two beams in the same graph. For example:
