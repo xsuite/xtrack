@@ -3,8 +3,6 @@
 # Copyright (c) CERN, 2021.                 #
 # ######################################### #
 
-import numpy as np
-
 import xtrack as xt
 
 collider = xt.Multiline.from_json(
