@@ -699,3 +699,97 @@ def test_match_bump_common_elements(test_context):
     assert np.isclose(tw.lhcb2['py', 'ip5'], -10e-6, rtol=0, atol=1e-10)
     assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
     assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+
+@for_all_test_contexts
+def test_match_bump_common_elements_callables_and_inequalities(test_context):
+    # Load a line and build a tracker
+    collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.build_trackers(test_context)
+
+    tw0 = collider.twiss(method='4d')
+
+    opt = collider.match(
+        lines=['lhcb1', 'lhcb2'],
+        start=['e.ds.l5.b1', 'e.ds.l5.b2'],
+        end=['s.ds.r5.b1', 's.ds.r5.b2'],
+        init=tw0,
+        vary=xt.VaryList([
+            'acbxv1.r5', 'acbxv1.l5', # <-- common elements
+            'acbyvs4.l5b1', 'acbrdv4.r5b1', 'acbcv5.l5b1', # <-- b1
+            'acbyvs4.l5b2', 'acbrdv4.r5b2', 'acbcv5.r5b2', # <-- b2
+            ],
+            step=1e-10, limits=[-1e-3, 1e-3]),
+        targets = [
+            xt.Target(y=0, at='ip5', line='lhcb1'),
+            xt.Target('py', xt.GreaterThan(9e-6), at='ip5', line='lhcb1'), # <-- inequality
+            xt.Target('py', xt.LessThan(  11e-6), at='ip5', line='lhcb1'), # <-- inequality
+            xt.Target(y=0, at='ip5', line='lhcb2'),
+            xt.Target(
+                lambda tw: tw.lhcb1['py', 'ip5'] + tw.lhcb2['py', 'ip5'], value=0), # <-- callable
+            xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb1'),
+            xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb2')
+        ])
+
+    tw = collider.twiss()
+
+    assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1.1e-6)
+    assert np.isclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['py', 'ip5'] + tw.lhcb1['py', 'ip5'], 0, rtol=0, atol=1e-10)
+    assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+
+@for_all_test_contexts
+def test_match_bump_common_elements_targets_from_tables(test_context):
+    # Load a line and build a tracker
+    collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.build_trackers(test_context)
+
+    tw0 = collider.twiss(method='4d')
+
+    twb1 = collider.lhcb1.twiss(start='e.ds.l5.b1', end='s.ds.r5.b1', init=tw0.lhcb1)
+    twb2 = collider.lhcb2.twiss(start='e.ds.l5.b2', end='s.ds.r5.b2', init=tw0.lhcb2)
+    vars = collider.vars
+    line_b1 = collider.lhcb1
+
+    opt = collider.match(
+        solve=False,
+        vary=xt.VaryList([
+            'acbxv1.r5', 'acbxv1.l5', # <-- common elements
+            'acbyvs4.l5b1', 'acbrdv4.r5b1', 'acbcv5.l5b1', 'acbcv6.r5b1', # <-- b1
+            'acbyvs4.l5b2', 'acbrdv4.r5b2', 'acbcv5.r5b2', 'acbcv6.l5b2'  # <-- b2
+            ],
+            step=1e-10, limits=[-1e-3, 1e-3]),
+        targets = [
+            # Targets from b1 twiss
+            twb1.target(y=0, py=10e-6, at='ip5'),
+            twb1.target(y=0, py=0, at=xt.END),
+            # Targets from b2 twiss
+            twb2.target(y=0, py=-10e-6, at='ip5'),
+            twb2.target(['y', 'py'], at=xt.END), # <-- preserve
+            # Targets from vars
+            vars.target('acbxv1.l5', xt.LessThan(1e-3)),
+            vars.target('acbxv1.l5', xt.GreaterThan(1e-6)),
+            vars.target(lambda vv: vv['acbxv1.l5'] + vv['acbxv1.r5'], xt.LessThan(1e-9)),
+            # Targets from line
+            line_b1.target(lambda ll: ll['mcbrdv.4r5.b1'].ksl[0], xt.GreaterThan(1e-6)),
+            line_b1.target(lambda ll: ll['mcbxfbv.a2r5'].ksl[0] + ll['mcbxfbv.a2l5'].ksl[0],
+                                    xt.LessThan(1e-9)),
+        ])
+    opt.solve()
+
+
+    tw = collider.twiss()
+
+    assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1.1e-6)
+    assert np.isclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['py', 'ip5'] + tw.lhcb1['py', 'ip5'], 0, rtol=0, atol=1e-10)
+    assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
