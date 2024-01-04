@@ -336,6 +336,8 @@ def test_twiss_and_survey(
                 # Check sigma_x, sigma_y
                 assert np.isclose(Sigmas.sigma_x[ixt], np.sqrt(Sigmas.Sigma11[ixt]), atol=1e-16)
                 assert np.isclose(Sigmas.sigma_y[ixt], np.sqrt(Sigmas.Sigma33[ixt]), atol=1e-16)
+                assert np.isclose(Sigmas.sigma_px[ixt], np.sqrt(Sigmas.Sigma22[ixt]), atol=1e-16)
+                assert np.isclose(Sigmas.sigma_py[ixt], np.sqrt(Sigmas.Sigma44[ixt]), atol=1e-16)
 
                 if not(is_part): # We don't have survey on a part of the machine
                     # Check survey
