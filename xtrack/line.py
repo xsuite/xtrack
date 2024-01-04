@@ -2518,7 +2518,7 @@ class Line:
 
         '''
 
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`remove_zero_length_drifts` not'
                                       ' available when deferred expressions are'
                                       ' used')
@@ -2624,7 +2624,7 @@ class Line:
         # only separated by Drifts or Markers, this script removes the
         # middle apertures
         # TODO: this probably actually works, but better be safe than sorry
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`remove_redundant_apertures` not'
                                       ' available when deferred expressions are'
                                       ' used')
@@ -2877,7 +2877,7 @@ class Line:
             The modified line.
         '''
 
-        if self._var_management is not None:
+        if not _vars_unused(self):
             raise NotImplementedError('`merge_consecutive_multipoles` not'
                                       ' available when deferred expressions are'
                                       ' used')
@@ -3687,7 +3687,14 @@ def _apertures_equal(ap1, ap2):
 
 
 def _lines_equal(line1, line2):
-    return _dicts_equal(line1.to_dict(), line2.to_dict())
+    d1 = line1.to_dict()
+    d2 = line2.to_dict()
+    d1.pop('_var_management_data', None)
+    d2.pop('_var_management_data', None)
+    d1.pop('_var_manager', None)
+    d2.pop('_var_manager', None)
+    out = _dicts_equal(d1, d2)
+    return out
 
 
 DEG2RAD = np.pi / 180.
@@ -4260,3 +4267,12 @@ class EnergyProgram:
 
     def copy(self, _context=None, _buffer=None, _offeset=None):
         return self.from_dict(self.to_dict())
+
+def _vars_unused(line):
+    if line._xdeps_vref is None:
+        return True
+    if (len(line.vars.keys()) == 2
+        and '__vary_default' in line.vars.keys()
+        and 't_turn_s' in line.vars.keys()):
+        return True
+    return False
