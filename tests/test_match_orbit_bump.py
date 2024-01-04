@@ -567,3 +567,135 @@ def test_match_bump_sets_implicit_end(test_context):
     assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
     assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
     assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+
+@for_all_test_contexts
+def test_match_bump_sets_init_end(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+                             'hllhc15_thick/lhc_thick_with_knobs.json')
+    line.build_tracker(test_context)
+
+    opt = line.match(
+        start='mq.30l8.b1', end='mq.23l8.b1',
+        init_at=xt.END, betx=1, bety=1, y=0, py=0, # <-- conditions at end
+        vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
+                        step=1e-10, limits=[-1e-3, 1e-3]),
+        targets = [
+            xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1'),
+            xt.TargetSet(y=0, py=0, at=xt.START)
+    ])
+
+    opt.tag(tag='matched')
+    opt.reload(0)
+    tw_before = line.twiss(method='4d')
+    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    opt.reload(tag='matched')
+    tw = line.twiss(method='4d')
+
+    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+
+@for_all_test_contexts
+def test_match_bump_sets_init_middle(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+                             'hllhc15_thick/lhc_thick_with_knobs.json')
+    line.build_tracker(test_context)
+
+    opt = line.match(
+        start='mq.30l8.b1', end='mq.23l8.b1',
+        init_at='mb.b28l8.b1', betx=1, bety=1, y=3e-3, py=0, # <-- conditions at point inside the range
+        vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
+                        step=1e-10, limits=[-1e-3, 1e-3]),
+        targets = [
+            xt.TargetSet(y=0, py=0, at=xt.START),
+            xt.TargetSet(y=0, py=0, at=xt.END)
+    ])
+
+    opt.tag(tag='matched')
+    opt.reload(0)
+    tw_before = line.twiss(method='4d')
+    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    opt.reload(tag='matched')
+    tw = line.twiss(method='4d')
+
+    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+
+@for_all_test_contexts
+def test_match_bump_sets_init_table(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+                             'hllhc15_thick/lhc_thick_with_knobs.json')
+    line.build_tracker(test_context)
+
+    tw0 = line.twiss(method='4d')
+    opt = line.match(
+        start='mq.30l8.b1', end='mq.23l8.b1',
+        init=tw0, init_at=xt.END, # <-- Boundary conditions from table
+        vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
+                        step=1e-10, limits=[-1e-3, 1e-3]),
+        targets = [
+            xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1'),
+            xt.TargetSet(['y', 'py'], value=tw0, at=xt.START) # <-- Target from table
+        ])
+
+    opt.tag(tag='matched')
+    opt.reload(0)
+    tw_before = line.twiss(method='4d')
+    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    opt.reload(tag='matched')
+    tw = line.twiss(method='4d')
+
+    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
+
+@for_all_test_contexts
+def test_match_bump_common_elements(test_context):
+    # Load a line and build a tracker
+    collider = xt.Multiline.from_json(test_data_folder /
+                        'hllhc15_thick/hllhc15_collider_thick.json')
+    collider.build_trackers(test_context)
+
+    tw0 = collider.twiss(method='4d')
+
+    opt = collider.match(
+        lines=['lhcb1', 'lhcb2'],
+        start=['e.ds.l5.b1', 'e.ds.l5.b2'],
+        end=['s.ds.r5.b1', 's.ds.r5.b2'],
+        init=tw0,
+        vary=xt.VaryList([
+            'acbxv1.r5', 'acbxv1.l5', # <-- common elements
+            'acbyvs4.l5b1', 'acbrdv4.r5b1', 'acbcv5.l5b1', # <-- b1
+            'acbyvs4.l5b2', 'acbrdv4.r5b2', 'acbcv5.r5b2', # <-- b2
+            ],
+            step=1e-10, limits=[-1e-3, 1e-3]),
+        targets = [
+            xt.TargetSet(y=0, py=10e-6, at='ip5', line='lhcb1'),
+            xt.TargetSet(y=0, py=-10e-6, at='ip5', line='lhcb2'),
+            xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb1'),
+            xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb2')
+        ])
+
+
+    tw = collider.twiss()
+    assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb1['py', 'ip5'], 10e-6, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb1['y', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb1['py', 's.ds.r5.b1'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['y', 'ip5'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['py', 'ip5'], -10e-6, rtol=0, atol=1e-10)
+    assert np.isclose(tw.lhcb2['y', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
+    assert np.isclose(tw.lhcb2['py', 's.ds.r5.b2'], 0, rtol=0, atol=1e-9)
