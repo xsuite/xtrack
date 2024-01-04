@@ -22,7 +22,7 @@ def test_match_orbit_bump(test_context):
 
     tw_before = line.twiss()
 
-    line.match(
+    opt = line.match(
         start='mq.33l8.b1',
         end='mq.23l8.b1',
         init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
@@ -43,6 +43,9 @@ def test_match_orbit_bump(test_context):
                       tol=1e-7, scale=1000),
         ]
     )
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     tw = line.twiss()
 
@@ -68,7 +71,7 @@ def test_match_orbit_bump(test_context):
     line.vars['acbv26.l8b1'] = 0
     line.vars['acbv24.l8b1'] = 0
 
-    line.match(
+    opt = line.match(
         start='mq.33l8.b1',
         end='mq.23l8.b1',
         init=tw_before.get_twiss_init(at_element='mq.33l8.b1'),
@@ -96,6 +99,10 @@ def test_match_orbit_bump(test_context):
         ]
     )
 
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
+
     tw = line.twiss()
     assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
     assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
@@ -121,7 +128,7 @@ def test_match_orbit_bump(test_context):
 
     tini = tw_before.get_twiss_init(at_element='mq.33l8.b1')
 
-    line.match(
+    opt = line.match(
         start='mq.33l8.b1',
         end='mq.23l8.b1',
         betx=1, bety=1,
@@ -150,6 +157,10 @@ def test_match_orbit_bump(test_context):
                     tol=1e-7, scale=1000),
         ]
     )
+
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     tw = line.twiss()
     assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
@@ -209,6 +220,10 @@ def test_match_orbit_bump_with_weights():
             ]
         )
 
+        assert len(opt.actions) == 1
+        assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+        assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
+
         tw = line.twiss()
 
         assert np.isclose(tw['y', 'mq.33l8.b1'], 0, atol=1e-6, rtol=0)
@@ -259,7 +274,7 @@ def test_match_orbit_bump_within_multiline(test_context):
 
     tw0 = collider.twiss()
 
-    collider.match(
+    opt = collider.match(
         lines=['lhcb1'],
         start=['mq.33l8.b1'],
         end=['mq.23l8.b1'],
@@ -282,6 +297,11 @@ def test_match_orbit_bump_within_multiline(test_context):
                       tol=1e-7, scale=1000),
         ]
     )
+
+    assert len(opt.actions) == 1
+    assert len(opt.actions[0].kwargs['_keep_initial_particles']) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'][0] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'][0], xt.Particles)
 
     tw_after_collider = collider.twiss()
     tw = tw_after_collider.lhcb1
@@ -336,6 +356,9 @@ def test_bump_step_and_smooth_inequalities(test_context):
         ]
     )
 
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     # Check freeze
     opt.step(1)
@@ -420,6 +443,10 @@ def test_bump_step_and_smooth_inequalities(test_context):
             xt.TargetSet(['y', 'py'], at='mq.17l8.b1', value=tw0),
         ]
     )
+
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     # Check freeze
     opt.step(1)
@@ -554,6 +581,10 @@ def test_match_bump_sets_implicit_end(test_context):
             xt.TargetSet(y=0, py=0, at=xt.END)
         ])
 
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
+
     opt.tag(tag='matched')
     opt.reload(0)
     tw_before = line.twiss(method='4d')
@@ -584,6 +615,10 @@ def test_match_bump_sets_init_end(test_context):
             xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1'),
             xt.TargetSet(y=0, py=0, at=xt.START)
     ])
+
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     opt.tag(tag='matched')
     opt.reload(0)
@@ -616,6 +651,10 @@ def test_match_bump_sets_init_middle(test_context):
             xt.TargetSet(y=0, py=0, at=xt.END)
     ])
 
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert opt.actions[0].kwargs['_initial_particles'] is None # due to init in the middle
+
     opt.tag(tag='matched')
     opt.reload(0)
     tw_before = line.twiss(method='4d')
@@ -647,6 +686,10 @@ def test_match_bump_sets_init_table(test_context):
             xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1'),
             xt.TargetSet(['y', 'py'], value=tw0, at=xt.START) # <-- Target from table
         ])
+
+    assert len(opt.actions) == 1
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
 
     opt.tag(tag='matched')
     opt.reload(0)
@@ -689,6 +732,12 @@ def test_match_bump_common_elements(test_context):
             xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb2')
         ])
 
+    assert len(opt.actions) == 1
+    assert len(opt.actions[0].kwargs['_keep_initial_particles']) == 2
+    assert opt.actions[0].kwargs['_keep_initial_particles'][0] is True
+    assert opt.actions[0].kwargs['_keep_initial_particles'][1] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'][0], xt.Particles)
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'][1], xt.Particles)
 
     tw = collider.twiss()
     assert np.isclose(tw.lhcb1['y', 'ip5'], 0, rtol=0, atol=1e-9)
@@ -730,6 +779,13 @@ def test_match_bump_common_elements_callables_and_inequalities(test_context):
             xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb1'),
             xt.TargetSet(y=0, py=0, at=xt.END, line='lhcb2')
         ])
+
+    assert len(opt.actions) == 1
+    assert len(opt.actions[0].kwargs['_keep_initial_particles']) == 2
+    assert opt.actions[0].kwargs['_keep_initial_particles'][0] is True
+    assert opt.actions[0].kwargs['_keep_initial_particles'][1] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'][0], xt.Particles)
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'][1], xt.Particles)
 
     tw = collider.twiss()
 
@@ -782,6 +838,11 @@ def test_match_bump_common_elements_targets_from_tables(test_context):
         ])
     opt.solve()
 
+    assert len(opt.actions) == 7
+    assert opt.actions[0].kwargs['_keep_initial_particles'] is True
+    assert opt.actions[1].kwargs['_keep_initial_particles'] is True
+    assert isinstance(opt.actions[0].kwargs['_initial_particles'], xt.Particles)
+    assert isinstance(opt.actions[1].kwargs['_initial_particles'], xt.Particles)
 
     tw = collider.twiss()
 
