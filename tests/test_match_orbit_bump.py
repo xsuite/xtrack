@@ -536,3 +536,34 @@ def test_bump_step_and_smooth_inequalities(test_context):
     assert np.allclose(residue_lt[mask_poly_lt],
         sigma_lt * poly(x_minus_edge_lt[mask_poly_lt]/sigma_lt),
         atol=0, rtol=1e-10)
+
+@for_all_test_contexts
+def test_match_bump_sets_implicit_end(test_context):
+
+    line = xt.Line.from_json(test_data_folder /
+                             'hllhc15_thick/lhc_thick_with_knobs.json')
+    line.build_tracker(test_context)
+
+    opt = line.match(
+        start='mq.30l8.b1', end='mq.23l8.b1',
+        betx=1, bety=1, y=0, py=0, # <-- conditions at start
+        vary=xt.VaryList(['acbv30.l8b1', 'acbv28.l8b1', 'acbv26.l8b1', 'acbv24.l8b1'],
+                        step=1e-10, limits=[-1e-3, 1e-3]),
+        targets = [
+            xt.TargetSet(y=3e-3, py=0, at='mb.b28l8.b1'),
+            xt.TargetSet(y=0, py=0, at=xt.END)
+        ])
+
+    opt.tag(tag='matched')
+    opt.reload(0)
+    tw_before = line.twiss(method='4d')
+    assert np.isclose(tw_before['y', 'mb.b28l8.b1'], 0, atol=1e-4)
+    opt.reload(tag='matched')
+    tw = line.twiss(method='4d')
+
+    assert np.isclose(tw['y', 'mb.b28l8.b1'], 3e-3, atol=1e-4)
+    assert np.isclose(tw['py', 'mb.b28l8.b1'], 0, atol=1e-6)
+    assert np.isclose(tw['y', 'mq.23l8.b1'], tw_before['y', 'mq.23l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.23l8.b1'], tw_before['py', 'mq.23l8.b1'], atol=1e-7)
+    assert np.isclose(tw['y', 'mq.33l8.b1'], tw_before['y', 'mq.33l8.b1'], atol=1e-6)
+    assert np.isclose(tw['py', 'mq.33l8.b1'], tw_before['py', 'mq.33l8.b1'], atol=1e-7)
